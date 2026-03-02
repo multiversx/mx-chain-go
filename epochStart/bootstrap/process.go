@@ -914,7 +914,11 @@ func (e *epochStartBootstrap) syncEpochStartMetaHeaders(
 
 	if meta.GetEpoch() == e.startEpoch+1 {
 		// for genesis block there is no epoch start header to sync, so we set an empty meta block
-		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
+		var metaBlock data.MetaHeaderHandler = &block.MetaBlock{}
+		if meta.IsHeaderV3() {
+			metaBlock = &block.MetaBlockV3{}
+		}
+		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = metaBlock
 	}
 
 	return syncedHeaders, nil

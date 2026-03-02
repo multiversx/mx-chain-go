@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -120,6 +121,7 @@ type coreComponents struct {
 	processConfigsHandler         common.ProcessConfigsHandler
 	epochStartConfigsHandler      common.CommonConfigsHandler
 	antifloodConfigsHandler       common.AntifloodConfigsHandler
+	closingNodeStarted            *atomic.Bool
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -287,6 +289,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
 	supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRound * genesisRoundDuration.Nanoseconds()))
 
+	if supernovaStartRound < startRound {
+		return nil, fmt.Errorf("supernovaStartRound %d lower then startRound %d",
+			supernovaStartRound,
+			startRound,
+		)
+	}
+
 	if supernovaGenesisTime.Compare(genesisTime) < 0 {
 		return nil, fmt.Errorf("supernovaGenesisTime %d lower then genesisTime %d",
 			supernovaGenesisTime.UnixMilli(),
@@ -312,6 +321,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		StartRound:                startRound,
 		SupernovaStartRound:       supernovaStartRound,
 		EnableRoundsHandler:       enableRoundsHandler,
+		ImportDBMode:              ccf.importDbConfig.IsImportDBMode,
 	}
 	roundHandler, err := round.NewRound(roundArgs)
 	if err != nil {
@@ -448,6 +458,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		processConfigsHandler:         processConfigs,
 		epochStartConfigsHandler:      commonConfigsHandler,
 		antifloodConfigsHandler:       antifloodConfigsHandler,
+		closingNodeStarted:            &atomic.Bool{},
 	}, nil
 }
 

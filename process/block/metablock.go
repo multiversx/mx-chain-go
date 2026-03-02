@@ -30,7 +30,10 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-const firstHeaderNonce = uint64(1)
+const (
+	firstHeaderNonce           = uint64(1)
+	defaultMaxProposalNonceGap = 10
+)
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
 
@@ -101,6 +104,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if check.IfNil(arguments.ShardInfoCreator) {
 		return nil, process.ErrNilShardInfoCreator
 	}
+
 	mp := metaProcessor{
 		baseProcessor:                base,
 		headersCounter:               NewHeaderCounter(),
@@ -1218,6 +1222,9 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	prevBlockHeader := mp.blockChain.GetCurrentBlockHeader()
+	prevBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
+
 	if !headerHandler.IsHeaderV3() {
 		mp.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
 		defer func() {
@@ -1230,6 +1237,8 @@ func (mp *metaProcessor) CommitBlock(
 		defer func() {
 			if err != nil {
 				mp.RevertHeaderV3OnCommit(headerHandler)
+				_ = mp.blockChain.SetCurrentBlockHeader(prevBlockHeader)
+				mp.blockChain.SetCurrentBlockHeaderHash(prevBlockHeaderHash)
 			}
 		}()
 	}
@@ -1364,11 +1373,6 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
-	if err != nil {
-		return err
-	}
-
 	if !check.IfNil(finalMetaBlock) && finalMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.GetEpoch(), header.GetRound())
 	}
@@ -1381,6 +1385,11 @@ func (mp *metaProcessor) CommitBlock(
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
+
+	err = mp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
+	if err != nil {
+		return err
+	}
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce, mp.managedPeersHolder)

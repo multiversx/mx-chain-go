@@ -151,7 +151,7 @@ func CreateNodesWithTestConsensusNode(
 	waitingMap := make(map[uint32][]nodesCoordinator.Validator)
 	connectableNodes := make(map[uint32][]Connectable, 0)
 
-	startTime := time.Now().Unix()
+	startTime := time.Now().Add(10 * time.Second).Round(time.Second).Unix()
 	testHasher := createHasher(consensusType)
 
 	for shardID := range cp.NodesKeys {
@@ -258,9 +258,14 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	store := CreateStore(tcn.ShardCoordinator.NumberOfShards())
 
+	supernovaGenesisTimeStamp := time.UnixMilli(args.StartTime * 1000)
+	if args.EnableEpochsConfig.SupernovaEnableEpoch == UnreachableEpoch {
+		supernovaGenesisTimeStamp = time.UnixMilli(args.StartTime * int64(UnreachableEpoch))
+	}
+
 	roundArgs := round.ArgsRound{
 		GenesisTimeStamp:          time.Unix(args.StartTime, 0),
-		SupernovaGenesisTimeStamp: time.UnixMilli(args.StartTime * 1000),
+		SupernovaGenesisTimeStamp: supernovaGenesisTimeStamp,
 		CurrentTimeStamp:          syncer.CurrentTime(),
 		RoundTimeDuration:         roundTime,
 		SupernovaTimeDuration:     roundTime,
@@ -427,6 +432,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		dataPool.Proofs(),
 		tcn.ChainParametersHandler,
 		tcn.ProcessConfigsHandler,
+		tcn.ShardCoordinator.SelfId(),
 	)
 
 	processComponents := GetDefaultProcessComponents()

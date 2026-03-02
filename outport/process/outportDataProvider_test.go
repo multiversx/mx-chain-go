@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	dr "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -33,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
+	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
 func createArgOutportDataProvider() ArgOutportDataProvider {
@@ -267,6 +269,185 @@ func Test_extractExecutedTxsFromMb(t *testing.T) {
 			_, ok := executedTxHashes[string(mbs[0].TxHashes[i])]
 			require.True(t, ok)
 		}
+	})
+}
+
+func TestOutportDataProvider_getTxFromCacheOrStorage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cache hit returns tx without storage", func(t *testing.T) {
+		txHash := []byte("tx-hash")
+		expectedTx := &transaction.Transaction{Nonce: 7}
+		cacher := cache.NewCacherMock()
+		cacher.Put(txHash, expectedTx, 0)
+
+		arg := createArgOutportDataProvider()
+		arg.StorageService = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dr.UnitType) (storage.Storer, error) {
+				t.Fatalf("unexpected GetStorer call for unit %v", unitType)
+				return nil, errors.New("unexpected")
+			},
+		}
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		res, err := outportDataP.getTxFromCacheOrStorage(cacher, txHash, block.TxBlock)
+		require.NoError(t, err)
+		require.Same(t, expectedTx, res)
+	})
+
+	t.Run("cache miss uses storage and unmarshals", func(t *testing.T) {
+		txHash := []byte("tx-hash")
+		expectedTx := &transaction.Transaction{Nonce: 42}
+		marshaller := &marshallerMock.MarshalizerMock{}
+		txBytes, err := marshaller.Marshal(expectedTx)
+		require.NoError(t, err)
+
+		storer := &storageMocks.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				require.Equal(t, txHash, key)
+				return txBytes, nil
+			},
+		}
+		arg := createArgOutportDataProvider()
+		arg.Marshaller = marshaller
+		arg.StorageService = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dr.UnitType) (storage.Storer, error) {
+				require.Equal(t, dr.TransactionUnit, unitType)
+				return storer, nil
+			},
+		}
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		res, err := outportDataP.getTxFromCacheOrStorage(cache.NewCacherMock(), txHash, block.TxBlock)
+		require.NoError(t, err)
+		require.IsType(t, &transaction.Transaction{}, res)
+		require.Equal(t, expectedTx.Nonce, res.(*transaction.Transaction).Nonce)
+	})
+
+	t.Run("cache miss SCR uses storage and unmarshals", func(t *testing.T) {
+		txHash := []byte("scr-hash")
+		expectedTx := &smartContractResult.SmartContractResult{Nonce: 11}
+		marshaller := &marshallerMock.MarshalizerMock{}
+		txBytes, err := marshaller.Marshal(expectedTx)
+		require.NoError(t, err)
+
+		storer := &storageMocks.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				require.Equal(t, txHash, key)
+				return txBytes, nil
+			},
+		}
+		arg := createArgOutportDataProvider()
+		arg.Marshaller = marshaller
+		arg.StorageService = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dr.UnitType) (storage.Storer, error) {
+				require.Equal(t, dr.UnsignedTransactionUnit, unitType)
+				return storer, nil
+			},
+		}
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		res, err := outportDataP.getTxFromCacheOrStorage(cache.NewCacherMock(), txHash, block.SmartContractResultBlock)
+		require.NoError(t, err)
+		require.IsType(t, &smartContractResult.SmartContractResult{}, res)
+		require.Equal(t, expectedTx.Nonce, res.(*smartContractResult.SmartContractResult).Nonce)
+	})
+
+	t.Run("cache miss rewards uses storage and unmarshals", func(t *testing.T) {
+		txHash := []byte("reward-hash")
+		expectedTx := &rewardTx.RewardTx{Round: 7}
+		marshaller := &marshallerMock.MarshalizerMock{}
+		txBytes, err := marshaller.Marshal(expectedTx)
+		require.NoError(t, err)
+
+		storer := &storageMocks.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				require.Equal(t, txHash, key)
+				return txBytes, nil
+			},
+		}
+		arg := createArgOutportDataProvider()
+		arg.Marshaller = marshaller
+		arg.StorageService = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dr.UnitType) (storage.Storer, error) {
+				require.Equal(t, dr.RewardTransactionUnit, unitType)
+				return storer, nil
+			},
+		}
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		res, err := outportDataP.getTxFromCacheOrStorage(cache.NewCacherMock(), txHash, block.RewardsBlock)
+		require.NoError(t, err)
+		require.IsType(t, &rewardTx.RewardTx{}, res)
+		require.Equal(t, expectedTx.Round, res.(*rewardTx.RewardTx).Round)
+	})
+
+	t.Run("get storer error", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.StorageService = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dr.UnitType) (storage.Storer, error) {
+				return nil, errors.New("get storer error")
+			},
+		}
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		_, err := outportDataP.getTxFromCacheOrStorage(cache.NewCacherMock(), []byte("tx-hash"), block.TxBlock)
+		require.Error(t, err)
+	})
+
+	t.Run("storer get error", func(t *testing.T) {
+		storer := &storageMocks.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return nil, errors.New("get error")
+			},
+		}
+		arg := createArgOutportDataProvider()
+		arg.StorageService = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dr.UnitType) (storage.Storer, error) {
+				return storer, nil
+			},
+		}
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		_, err := outportDataP.getTxFromCacheOrStorage(cache.NewCacherMock(), []byte("tx-hash"), block.TxBlock)
+		require.Error(t, err)
+	})
+
+	t.Run("create tx object error for unsupported block type", func(t *testing.T) {
+		storer := &storageMocks.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return []byte(`{"Nonce":1}`), nil
+			},
+		}
+		arg := createArgOutportDataProvider()
+		arg.StorageService = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dr.UnitType) (storage.Storer, error) {
+				return storer, nil
+			},
+		}
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		_, err := outportDataP.getTxFromCacheOrStorage(cache.NewCacherMock(), []byte("tx-hash"), block.PeerBlock)
+		require.Error(t, err)
+	})
+
+	t.Run("unmarshal error", func(t *testing.T) {
+		storer := &storageMocks.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return []byte(`{"Nonce":1}`), nil
+			},
+		}
+		arg := createArgOutportDataProvider()
+		arg.Marshaller = &marshallerMock.MarshalizerMock{Fail: true}
+		arg.StorageService = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dr.UnitType) (storage.Storer, error) {
+				return storer, nil
+			},
+		}
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		_, err := outportDataP.getTxFromCacheOrStorage(cache.NewCacherMock(), []byte("tx-hash"), block.TxBlock)
+		require.Error(t, err)
 	})
 }
 
@@ -860,7 +1041,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		require.Len(t, results, 0)
 	})
 
-	t.Run("should work", func(t *testing.T) {
+	t.Run("cannot get header gas data should err", func(t *testing.T) {
 		arg := createArgOutportDataProvider()
 		arg.DataPool = dataRetriever.NewPoolsHolderMock()
 		arg.AlteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
@@ -902,6 +1083,53 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 				},
 			},
 		})
+		require.True(t, errors.Is(err, common.ErrMissingHeaderGasData))
+		require.Len(t, results, 0)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+		arg.AlteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
+			ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
+				return map[string]*alteredAccount.AlteredAccount{
+					"s": {},
+				}, nil
+			},
+		}
+
+		headerHash := []byte("hash")
+		intraMbs := make([]*block.MiniBlock, 0)
+		intraMbs = append(intraMbs, &block.MiniBlock{})
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
+
+		logsKey := common.PrepareLogEventsKey(headerHash)
+		logsSlice := make([]data.LogDataHandler, 0)
+		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
+
+		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
+		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareHeaderGasDataKey(headerHash), &outportcore.HeaderGasConsumption{}, 0)
+
+		key := common.PrepareOrderedTxHashesKey(headerHash)
+		arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.HeaderV3{
+				ExecutionResults: []*block.ExecutionResult{
+					{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  headerHash,
+							HeaderNonce: 10,
+						},
+					},
+				},
+			},
+		})
 		require.Nil(t, err)
 		require.Len(t, results, 1)
 		require.Len(t, results[hex.EncodeToString(headerHash)].IntraShardMiniBlocks, 1)
@@ -912,6 +1140,8 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 
 func TestPutInMapTxsFromBody(t *testing.T) {
 	t.Parallel()
+
+	arg := createArgOutportDataProvider()
 
 	dataPool := dataRetriever.NewPoolsHolderMock()
 	txsMap := make(map[block.Type]map[string]data.TransactionHandler)
@@ -930,6 +1160,10 @@ func TestPutInMapTxsFromBody(t *testing.T) {
 	tx3 := &smartContractResult.SmartContractResult{}
 	cacheID = process.ShardCacherIdentifier(2, 0)
 	dataPool.UnsignedTransactions().AddData(tx3H, tx3, 1, cacheID)
+
+	arg.DataPool = dataPool
+	outportDataP, err := NewOutportDataProvider(arg)
+	require.Nil(t, err)
 
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -960,7 +1194,7 @@ func TestPutInMapTxsFromBody(t *testing.T) {
 		},
 	}
 
-	putInMapTxsFromBody(dataPool, body, shardID, txsMap)
+	outportDataP.putInMapTxsFromBody(body, txsMap)
 
 	txPool, scrPool, rewardPool := txsMap[block.TxBlock], txsMap[block.SmartContractResultBlock], txsMap[block.RewardsBlock]
 	txFromPool := txPool[string(tx1H)].(*transaction.Transaction)
@@ -1020,6 +1254,7 @@ func TestOutportDataProvider_GetRewards(t *testing.T) {
 	key := common.PrepareOrderedTxHashesKey(headerHash)
 	arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
 	arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
+	arg.DataPool.PostProcessTransactions().Put(common.PrepareHeaderGasDataKey(headerHash), &outportcore.HeaderGasConsumption{}, 0)
 
 	outportDataP, _ := NewOutportDataProvider(arg)
 

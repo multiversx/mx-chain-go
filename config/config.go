@@ -28,6 +28,13 @@ type TxCacheSelectionConfig struct {
 	SelectionLoopDurationCheckInterval            int
 }
 
+// AOTSelectionConfig will map the ahead-of-time transaction selection config
+type AOTSelectionConfig struct {
+	Enabled            bool
+	CacheSize          int
+	SelectionTimeoutMs int
+}
+
 // HeadersPoolConfig will map the headers cache configuration
 type HeadersPoolConfig struct {
 	MaxHeadersPerShard            int
@@ -40,7 +47,7 @@ type ProofsPoolConfig struct {
 	BucketSize        int
 }
 
-// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read‑only thereafter.
+// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read-only thereafter.
 // TODO add also max estimated block gas capacity
 type ExecutionResultInclusionEstimatorConfig struct {
 	SafetyMargin       uint64
@@ -127,8 +134,9 @@ type EpochStartConfig struct {
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
 type BlockSizeThrottleConfig struct {
-	MinSizeInBytes uint32
-	MaxSizeInBytes uint32
+	MinSizeInBytes        uint32
+	MaxSizeInBytes        uint32
+	MaxExecResSizeInBytes uint32
 }
 
 // SoftwareVersionConfig will hold the configuration for software version checker
@@ -207,6 +215,7 @@ type Config struct {
 	TxDataPool                   CacheConfig
 	TxCacheBounds                TxCacheBoundsConfig
 	TxCacheSelection             TxCacheSelectionConfig
+	AOTSelection                 AOTSelectionConfig
 	UnsignedTransactionDataPool  CacheConfig
 	RewardTransactionDataPool    CacheConfig
 	TrieNodesChunksDataPool      CacheConfig
@@ -403,6 +412,8 @@ type ProcessConfigByRound struct {
 
 	MaxConsecutiveRoundsOfRatingDecrease uint64
 	MaxRoundsOfInactivityAccepted        uint64
+	MaxBlockProcessingTimeMs             uint32
+	NumHeadersToRequestInAdvance         uint64
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -418,6 +429,7 @@ type GeneralSettingsConfig struct {
 	SyncProcessTimeInMillis          uint32
 	SyncProcessTimeSupernovaInMillis uint32
 	SetGuardianEpochsDelay           uint32
+	MaxProposalNonceGap              uint64
 	ChainParametersByEpoch           []ChainParametersByEpochConfig
 	EpochChangeGracePeriodByEpoch    []EpochChangeGracePeriodByEpoch
 	ProcessConfigsByEpoch            []ProcessConfigByEpoch

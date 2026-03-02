@@ -132,8 +132,9 @@ func (cache *TxCache) SelectTransactions(
 func (cache *TxCache) SimulateSelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
+	currentBlockNonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
-	return cache.selectTransactions(session, options, 0, true)
+	return cache.selectTransactions(session, options, currentBlockNonce, true)
 }
 
 // selectTransactions executes a real / simulated selection
@@ -199,6 +200,14 @@ func (cache *TxCache) OnProposedBlock(
 	accountsProvider common.AccountNonceAndBalanceProvider,
 	latestExecutedHash []byte) error {
 	return cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
+}
+
+// OnBackfilledBlock calls the OnBackfilledBlock method from SelectionTracker
+func (cache *TxCache) OnBackfilledBlock(
+	blockHash []byte,
+	blockBody data.BodyHandler,
+	blockHeader data.HeaderHandler) error {
+	return cache.tracker.OnBackfilledBlock(blockHash, blockBody, blockHeader)
 }
 
 // OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
@@ -397,4 +406,10 @@ func (cache *TxCache) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil
+}
+
+// SetAOTSelectionPreempter sets the AOT selection preempter for preemption support
+// This allows the selectionTracker to preempt ongoing AOT selections when needed
+func (cache *TxCache) SetAOTSelectionPreempter(preempter common.AOTSelectionPreempter) {
+	cache.tracker.SetAOTSelectionPreempter(preempter)
 }

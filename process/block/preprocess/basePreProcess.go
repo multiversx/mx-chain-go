@@ -415,19 +415,22 @@ func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error
 }
 
 func (bpp *basePreProcess) getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
-	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler)
-	cost := big.NewInt(0)
-	if !isAsyncExecEnabled {
-		cost.Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
-	} else {
-		cost = bpp.feeHandler.ComputeTxFee(txHandler)
-	}
+	cost := bpp.getTxFee(txHandler)
 
 	if txHandler.GetValue() != nil {
 		cost.Add(cost, txHandler.GetValue())
 	}
 
 	return cost
+}
+
+func (bpp *basePreProcess) getTxFee(txHandler data.TransactionHandler) *big.Int {
+	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler)
+	if !isAsyncExecEnabled {
+		return big.NewInt(0).Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
+	}
+
+	return bpp.feeHandler.ComputeTxFee(txHandler)
 }
 
 func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
@@ -546,4 +549,36 @@ func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
 	pi.indexOfLastTxProcessedByProposer = miniBlockHeader.GetIndexOfLastTxProcessed()
 
 	return pi, nil
+}
+
+func (bpp *basePreProcess) addNumTxs(numTxs int) {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return
+	}
+
+	bpp.blockSizeComputation.AddNumTxs(numTxs)
+}
+
+func (bpp *basePreProcess) addNumMiniBlocks(numMiniBlocks int) {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return
+	}
+
+	bpp.blockSizeComputation.AddNumMiniBlocks(numMiniBlocks)
+}
+
+func (bpp *basePreProcess) isMaxBlockSizeReached(numNewMiniBlocks int, numNewTxs int) bool {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return false
+	}
+
+	return bpp.blockSizeComputation.IsMaxBlockSizeReached(numNewMiniBlocks, numNewTxs)
+}
+
+func (bpp *basePreProcess) isMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks int, numNewTxs int) bool {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return false
+	}
+
+	return bpp.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks, numNewTxs)
 }

@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -11,8 +12,10 @@ type BlockTrackerStub struct {
 	AddCrossNotarizedHeaderCalled                      func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
 	AddSelfNotarizedHeaderCalled                       func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
 	CheckBlockAgainstRoundHandlerCalled                func(headerHandler data.HeaderHandler) error
+	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
 	CheckBlockAgainstFinalCalled                       func(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelistCalled                   func(interceptedData process.InterceptedData) bool
+	CheckProofAgainstFinalCalled                       func(proof data.HeaderProofHandler) error
+	CheckAgainstWhitelistCalled                        func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarizedCalled     func() ([]data.HeaderHandler, [][]byte, error)
@@ -78,10 +81,28 @@ func (bts *BlockTrackerStub) CheckBlockAgainstFinal(headerHandler data.HeaderHan
 	return nil
 }
 
-// CheckBlockAgainstWhitelist -
-func (bts *BlockTrackerStub) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
-	if bts.CheckBlockAgainstWhitelistCalled != nil {
-		return bts.CheckBlockAgainstWhitelistCalled(interceptedData)
+// CheckProofAgainstFinal -
+func (bts *BlockTrackerStub) CheckProofAgainstFinal(proof data.HeaderProofHandler) error {
+	if bts.CheckProofAgainstFinalCalled != nil {
+		return bts.CheckProofAgainstFinalCalled(proof)
+	}
+
+	return nil
+}
+
+// CheckProofAgainstRoundHandler -
+func (bts *BlockTrackerStub) CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error {
+	if bts.CheckProofAgainstRoundHandlerCalled != nil {
+		return bts.CheckProofAgainstRoundHandlerCalled(proof)
+	}
+
+	return nil
+}
+
+// CheckAgainstWhitelist -
+func (bts *BlockTrackerStub) CheckAgainstWhitelist(interceptedData process.InterceptedData) bool {
+	if bts.CheckAgainstWhitelistCalled != nil {
+		return bts.CheckAgainstWhitelistCalled(interceptedData)
 	}
 
 	return false

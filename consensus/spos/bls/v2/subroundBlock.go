@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/common"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -27,7 +28,7 @@ type subroundBlock struct {
 	processingThresholdPercentage int
 	worker                        spos.WorkerHandler
 	mutBlockProcessing            sync.Mutex
-	syncController                spos.RoundSyncControllerHandler
+	syncController                spos.NtpSyncControllerHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -35,7 +36,7 @@ func NewSubroundBlock(
 	baseSubround *spos.Subround,
 	processingThresholdPercentage int,
 	worker spos.WorkerHandler,
-	syncController spos.RoundSyncControllerHandler,
+	syncController spos.NtpSyncControllerHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
@@ -241,6 +242,8 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 
 	sr.sendDirectSentTransactions(header, body, leader)
 
+	sr.syncController.AddLeaderNonceAsOutOfRange(header.GetNonce(), string(headerHash))
+
 	return true
 }
 
@@ -434,7 +437,13 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 }
 
 func (sr *subroundBlock) createHeaderBasedOnRound(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	if sr.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+	isSupernovaActiveInRound := sr.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round)
+	isSupernovaActiveInEpoch := sr.EnableEpochsHandler().IsFlagEnabled(common.SupernovaFlag)
+	if isSupernovaActiveInRound && !isSupernovaActiveInEpoch {
+		log.Warn("Supernova is active in round but not in epoch, creating header v2...")
+	}
+
+	if isSupernovaActiveInRound && isSupernovaActiveInEpoch {
 		return sr.BlockProcessor().CreateNewHeaderProposal(round, nonce)
 	}
 
@@ -443,10 +452,6 @@ func (sr *subroundBlock) createHeaderBasedOnRound(round uint64, nonce uint64) (d
 
 // receivedBlockBody method is called when a block body is received through the block body channel
 func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensus.Message) bool {
-	if !sr.waitForStartRoundToFinishBlocking() {
-		return false
-	}
-
 	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
@@ -497,7 +502,7 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 	if header.GetShardID() != sr.ShardCoordinator().SelfId() {
 		return false
 	}
-	if header.GetRound() != uint64(sr.RoundHandler().Index()) {
+	if header.GetRound() != uint64(sr.GetRoundIndex()) {
 		sr.addOutOfRangeHeader(header)
 		return false
 	}
@@ -524,7 +529,7 @@ func (sr *subroundBlock) addOutOfRangeHeader(header data.HeaderHandler) {
 		return
 	}
 
-	sr.syncController.AddOutOfRangeRound(header.GetRound(), string(hash))
+	sr.syncController.AddOutOfRangeNonce(header.GetNonce(), string(hash))
 }
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
@@ -553,31 +558,6 @@ func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([
 	return leader.PubKey(), err
 }
 
-func (sr *subroundBlock) waitForStartRoundToFinishBlocking() bool {
-	if sr.IsSubroundFinished(bls.SrStartRound) {
-		return true
-	}
-
-	timerStartRoundChecks := time.NewTimer(timeSpentBetweenChecks)
-
-	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
-	defer cancel()
-
-	for {
-		timerStartRoundChecks.Reset(timeSpentBetweenChecks)
-
-		select {
-		case <-timerStartRoundChecks.C:
-			if sr.IsSubroundFinished(bls.SrStartRound) {
-				return true
-			}
-		case <-ctx.Done():
-			log.Debug("subroundBlock timeout while waiting for start round to finish")
-			return false
-		}
-	}
-}
-
 func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) {
 		log.Debug("subroundBlock.receivedBlockHeader - header is nil")
@@ -595,11 +575,12 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	if !sr.waitForStartRoundToFinishBlocking() {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return
 	}
 
-	if sr.IsSubroundFinished(sr.Current()) {
+	if !sr.IsSubroundFinished(bls.SrStartRound) {
+		log.Debug("subroundBlock.receivedBlockHeader subroundStartRound not finished yet")
 		return
 	}
 
@@ -702,7 +683,7 @@ func (sr *subroundBlock) CanProcessReceivedHeader(headerLeader string) bool {
 }
 
 func (sr *subroundBlock) shouldProcessBlock(headerLeader string) bool {
-	if sr.IsNodeSelf(headerLeader) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
+	if sr.IsNodeSelf(headerLeader) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
 		return false
 	}
 	if sr.IsJobDone(headerLeader, sr.Current()) {

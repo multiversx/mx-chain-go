@@ -3,6 +3,7 @@ package processing
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
@@ -29,6 +30,7 @@ import (
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	factoryOutportProvider "github.com/multiversx/mx-chain-go/outport/process/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
@@ -58,6 +60,7 @@ type blockProcessorAndVmFactories struct {
 	blockProcessor         process.BlockProcessor
 	vmFactoryForProcessing process.VirtualMachinesContainerFactory
 	epochSystemSCProcessor process.EpochStartSystemSCProcessor
+	aotSelector            process.AOTTransactionSelector
 }
 
 func (pcf *processComponentsFactory) newBlockProcessor(
@@ -122,6 +125,71 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 }
 
 var log = logger.GetOrCreate("factory")
+
+// createAOTSelector creates the AOT (Ahead-of-Time) transaction selector for shard nodes
+// This enables pre-selection of transactions before the next consensus round
+func (pcf *processComponentsFactory) createAOTSelector(
+	transactionProcessor process.TransactionProcessor,
+) (process.AOTTransactionSelector, error) {
+	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
+
+	// AOT selection only applies to shard nodes, not metachain
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		log.Debug("AOT selection is not applicable for metachain")
+		return aotSelection.NewDisabledAOTSelector(), nil
+	}
+
+	// Check if AOT selection is explicitly disabled in config
+	if !pcf.config.AOTSelection.Enabled {
+		log.Debug("AOT selection is disabled by configuration")
+		return aotSelection.NewDisabledAOTSelector(), nil
+	}
+
+	// Get the TxCache from the datapool
+	txShardPool := pcf.data.Datapool().Transactions().ShardDataStore(
+		process.ShardCacherIdentifier(shardCoordinator.SelfId(), shardCoordinator.SelfId()),
+	)
+	if txShardPool == nil {
+		return nil, fmt.Errorf("createAOTSelector: could not get transaction pool for shard %d", shardCoordinator.SelfId())
+	}
+
+	txCache, isTxCache := txShardPool.(preprocess.TxCache)
+	if !isTxCache {
+		return nil, fmt.Errorf("createAOTSelector: transaction pool is not a TxCache")
+	}
+
+	aotSelectorArgs := aotSelection.AOTSelectorArgs{
+		NodesCoordinator:          pcf.nodesCoordinator,
+		ShardCoordinator:          shardCoordinator,
+		KeysHandler:               pcf.crypto.KeysHandler(),
+		NodeRedundancy:            pcf.nodeRedundancyHandler,
+		TxCache:                   txCache,
+		AccountsAdapter:           pcf.state.AccountsAdapterProposal(),
+		TransactionProcessor:      transactionProcessor,
+		TxVersionChecker:          pcf.coreData.TxVersionChecker(),
+		BlockChain:                pcf.data.Blockchain(),
+		EconomicsDataHandler:      pcf.coreData.EconomicsData(),
+		SelectionTimeout:          time.Duration(pcf.config.AOTSelection.SelectionTimeoutMs) * time.Millisecond,
+		CacheSize:                 pcf.config.AOTSelection.CacheSize,
+		MaxTxsPerBlock:            pcf.config.TxCacheSelection.SelectionMaxNumTxs,
+		LoopDurationCheckInterval: pcf.config.TxCacheSelection.SelectionLoopDurationCheckInterval,
+	}
+
+	aotSelector, err := aotSelection.NewAOTSelector(aotSelectorArgs)
+	if err != nil {
+		return nil, fmt.Errorf("createAOTSelector: could not create AOT selector: %w", err)
+	}
+
+	// Set the AOT selector as the preempter for the TxCache
+	// This allows the txcache to preempt AOT selection when needed
+	txCache.SetAOTSelectionPreempter(aotSelector)
+
+	log.Info("AOT transaction selection enabled",
+		"cacheSize", pcf.config.AOTSelection.CacheSize,
+		"selectionTimeoutMs", pcf.config.TxCacheSelection.SelectionMaxNumTxs)
+
+	return aotSelector, nil
+}
 
 func (pcf *processComponentsFactory) newShardBlockProcessor(
 	requestHandler process.RequestHandler,
@@ -328,7 +396,17 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	// TODO: evaluate disabling this entirely (for old flows) - the check is not triggered if async enabled but there are still some checks in the old flow
 	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(
+		pcf.coreData.InternalMarshalizer(),
+		blockSizeThrottler,
+		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	blockSizeComputationProposalHandler, err := preprocess.NewBlockSizeComputation(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
 		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
@@ -348,6 +426,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
+		BlockSizeComputation:              blockSizeComputationProposalHandler,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -435,6 +514,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	aotSelector, err := pcf.createAOTSelector(transactionProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                       pcf.coreData.Hasher(),
 		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
@@ -460,6 +544,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   proposalBlockDataRequester,
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelector,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -513,10 +598,22 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	execResSizeComputationHandler, err := estimator.NewExecResultSizeComputationHandler(
+		pcf.coreData.InternalMarshalizer(),
+		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
+		execResSizeComputationHandler,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        pcf.data.Datapool().Headers(),
@@ -571,6 +668,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   executionManager,
 		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
+		AOTSelector:                        aotSelector,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -590,6 +688,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		blockProcessor:         blockProcessor,
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: factoryDisabled.NewDisabledEpochStartSystemSC(),
+		aotSelector:            aotSelector,
 	}
 
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
@@ -765,6 +864,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	blockSizeComputationProposalHandler, err := preprocess.NewBlockSizeComputation(
+		pcf.coreData.InternalMarshalizer(),
+		blockSizeThrottler,
+		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	balanceComputationHandler, err := preprocess.NewBalanceComputation()
 	if err != nil {
 		return nil, err
@@ -776,6 +884,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
+		BlockSizeComputation:              blockSizeComputationProposalHandler,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -886,6 +995,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   proposalBlockDataRequester,
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -1069,10 +1179,22 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	execResSizeComputationHandler, err := estimator.NewExecResultSizeComputationHandler(
+		pcf.coreData.InternalMarshalizer(),
+		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
+		execResSizeComputationHandler,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        pcf.data.Datapool().Headers(),
@@ -1085,6 +1207,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	aotSelector := aotSelection.NewDisabledAOTSelector() // Metachain doesn't use AOT selection
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:                     pcf.coreData,
 		DataComponents:                     pcf.data,
@@ -1127,6 +1250,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   executionManager,
 		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
+		AOTSelector:                        aotSelector,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
@@ -1254,6 +1378,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		blockProcessor:         metaProcessor,
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: epochStartSystemSCProcessor,
+		aotSelector:            aotSelector,
 	}
 
 	return blockProcessorComponents, nil
@@ -1276,22 +1401,12 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 	gasConsumedProvider processOutport.GasConsumedProvider,
 	epochRewards processOutport.EpochRewardsGetter,
 ) (outport.DataProviderOutport, error) {
-	txsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit)
-	if err != nil {
-		return nil, err
-	}
-	mbsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
-	if err != nil {
-		return nil, err
-	}
-
 	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
 		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
 		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
 		AccountsDB:             pcf.state.AccountsAdapterAPI(),
 		Marshaller:             pcf.coreData.InternalMarshalizer(),
 		EsdtDataStorageHandler: pcf.esdtNftStorage,
-		TransactionsStorer:     txsStorer,
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
 		TxCoordinator:          txCoordinator,
 		NodesCoordinator:       pcf.nodesCoordinator,
@@ -1299,13 +1414,13 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		EconomicsData:          pcf.coreData.EconomicsData(),
 		IsImportDBMode:         pcf.importDBConfig.IsImportDBMode,
 		Hasher:                 pcf.coreData.Hasher(),
-		MbsStorer:              mbsStorer,
 		EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
 		ExecutionOrderGetter:   pcf.txExecutionOrderHandler,
 		DataPool:               pcf.data.Datapool(),
 		StateAccessesCollector: pcf.state.StateAccessesCollector(),
 		RoundHandler:           pcf.coreData.RoundHandler(),
 		RewardsGetter:          epochRewards,
+		StorageService:         pcf.data.StorageService(),
 	})
 }
 

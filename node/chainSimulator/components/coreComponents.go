@@ -3,6 +3,7 @@ package components
 import (
 	"bytes"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -85,6 +86,7 @@ type coreComponentsHolder struct {
 	processConfigsHandler         common.ProcessConfigsHandler
 	epochStartConfigsHandler      common.CommonConfigsHandler
 	antifloodConfigsHandler       common.AntifloodConfigsHandler
+	closingNodeStarted            *atomic.Bool
 }
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
@@ -113,7 +115,8 @@ type ArgsCoreComponentsHolder struct {
 func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder, error) {
 	var err error
 	instance := &coreComponentsHolder{
-		closeHandler: NewCloseHandler(),
+		closeHandler:       NewCloseHandler(),
+		closingNodeStarted: &atomic.Bool{},
 	}
 
 	instance.internalMarshaller, err = marshalFactory.NewMarshalizer(args.Config.Marshalizer.Type)
@@ -582,9 +585,14 @@ func (c *coreComponentsHolder) CommonConfigsHandler() common.CommonConfigsHandle
 	return c.epochStartConfigsHandler
 }
 
-// AntifloddConfigsHandler returns epoch start configs handler component
+// AntifloodConfigsHandler returns epoch start configs handler component
 func (c *coreComponentsHolder) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
 	return c.antifloodConfigsHandler
+}
+
+// ClosingNodeStarted returns the atomic bool that signals if the closing of the node has started
+func (c *coreComponentsHolder) ClosingNodeStarted() *atomic.Bool {
+	return c.closingNodeStarted
 }
 
 func (c *coreComponentsHolder) collectClosableComponents() {

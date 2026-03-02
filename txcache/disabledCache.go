@@ -4,8 +4,9 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/types"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 var _ types.Cacher = (*DisabledCache)(nil)
@@ -134,6 +135,11 @@ func (cache *DisabledCache) Close() error {
 
 // OnProposedBlock does nothing
 func (cache *DisabledCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ []byte) error {
+	return nil
+}
+
+// OnBackfilledBlock does nothing
+func (cache *DisabledCache) OnBackfilledBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler) error {
 	return nil
 }
 

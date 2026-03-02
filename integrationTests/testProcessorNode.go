@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
@@ -181,6 +182,7 @@ var TestProcessConfigsHandler, _ = configs.NewProcessConfigsHandler([]config.Pro
 			NumFloodingRoundsFastReacting:          30,
 			NumFloodingRoundsOutOfSpecs:            40,
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
+			MaxBlockProcessingTimeMs:               1000,
 		},
 	},
 	forking.NewGenericRoundNotifier(),
@@ -1066,6 +1068,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 					MinStepValue:                         "10",
 					MinStakeValue:                        "1",
 					UnBondPeriod:                         1,
+					UnBondPeriodSupernova:                2,
 					UnBondPeriodInEpochs:                 1,
 					NumRoundsWithoutBleed:                1,
 					MaximumPercentageToBleed:             1,
@@ -1928,6 +1931,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -2029,6 +2033,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequesterProposal,
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -2148,6 +2153,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				UnBondPeriodInEpochs:                 1,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
@@ -2262,6 +2268,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -2357,6 +2364,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequesterProposal,
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -2476,6 +2484,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.DataPool.Proofs(),
 			tpn.ChainParametersHandler,
 			tpn.ProcessConfigsHandler,
+			tpn.ShardCoordinator.SelfId(),
 		)
 	} else {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
@@ -2543,7 +2552,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
-		BlocksQueue:             tpn.BlocksCache,
+		BlocksCache:             tpn.BlocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
@@ -2567,13 +2576,17 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		log.LogIfError(err)
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		tpn.RoundHandler,
+		&testscommon.ExecResSizeComputationStub{},
 	)
+	if err != nil {
+		log.LogIfError(err)
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        tpn.DataPool.Headers(),
@@ -2592,6 +2605,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -2638,6 +2652,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   tpn.ExecutionManager,
 		TxExecutionOrderHandler:            tpn.TxExecutionOrderHandler,
+		AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

@@ -13,21 +13,20 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-
-	"github.com/multiversx/mx-chain-go/state"
-
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	aotStubs "github.com/multiversx/mx-chain-go/testscommon/aotStubs"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	commonMock "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/preprocMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -56,13 +55,14 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_NilHeader(t *testing.T)
 	require.Nil(t, err)
 	require.NotNil(t, tc)
 
-	miniBlocks, pendingMiniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(nil, nil)
+	miniBlocks, pendingMiniBlocks, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(nil, nil)
 
 	require.Equal(t, process.ErrNilHeaderHandler, err)
 	require.Equal(t, 0, len(miniBlocks))
 	require.Equal(t, 0, len(pendingMiniBlocks))
 	require.Equal(t, uint32(0), numTxs)
 	require.False(t, allAdded)
+	require.False(t, hasMissingData)
 }
 
 func TestTransactionCoordinator_CreateMbsCrossShardDstMe_UsesProposalContext(t *testing.T) {
@@ -109,12 +109,13 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_UsesProposalContext(t *
 	cacheId = process.ShardCacherIdentifier(td.mb2Info.Miniblock.SenderShardID, td.mb2Info.Miniblock.ReceiverShardID)
 	ph.Transactions().AddData(td.tx3Hash, &transaction.Transaction{}, 100, cacheId)
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, expectedMiniBlocks, miniBlocks)
 	require.Equal(t, uint32(3), numTxs)
 	require.True(t, allAdded)
+	require.False(t, hasMissingData)
 
 	// Verify proposal context was used, not execution context
 	require.True(t, proposalBlockDataRequesterCalled)
@@ -145,12 +146,13 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MaxBlockSizeReached(t *
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks))
 	require.Equal(t, uint32(0), numTxs)
 	require.False(t, allAdded) // Not all mini blocks were processed due to size limit
+	require.False(t, hasMissingData)
 }
 
 func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing(t *testing.T) {
@@ -205,7 +207,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing(t *
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 1, len(miniBlocks))
@@ -213,6 +215,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing(t *
 	require.Equal(t, td.mb1Info.Hash, miniBlocks[0].Hash)
 	require.Equal(t, uint32(2), numTxs) // Two transactions in the mini block
 	require.True(t, allAdded)
+	require.False(t, hasMissingData)
 
 	// Verify proposal preprocessor was used, not execution
 	require.True(t, proposalPreprocessorCalled)
@@ -277,7 +280,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, _, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "gas computation error")
@@ -347,7 +350,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 		},
 	}
 
-	miniBlocks, pendingMiniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, pendingMiniBlocks, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 
@@ -361,6 +364,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 
 	require.Equal(t, uint32(2), numTxs)
 	require.False(t, allAdded)
+	require.False(t, hasMissingData)
 
 	// Verify proposal preprocessor was used, not execution
 	require.True(t, proposalPreprocessorCalled)
@@ -409,12 +413,13 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingMiniB
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks))
 	require.Equal(t, uint32(0), numTxs)
 	require.False(t, allAdded) // No mini blocks were processed
+	require.True(t, hasMissingData)
 }
 
 func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingTransactions(t *testing.T) {
@@ -441,13 +446,14 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingTrans
 	cacheId := process.ShardCacherIdentifier(td.mb2Info.Miniblock.SenderShardID, td.mb2Info.Miniblock.ReceiverShardID)
 	ph.Transactions().AddData(td.tx3Hash, &transaction.Transaction{}, 100, cacheId)
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 1, len(miniBlocks))
 	require.Equal(t, td.mb2Info.Miniblock, miniBlocks[0].Miniblock)
 	require.Equal(t, uint32(len(td.mb2Info.Miniblock.TxHashes)), numTxs)
 	require.False(t, allAdded)
+	require.True(t, hasMissingData)
 }
 
 func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ErrorOnUnknownBlockType(t *testing.T) {
@@ -498,7 +504,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ErrorOnUnknownBlockType
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
+	miniBlocks, _, numTxs, allAdded, _, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
 
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "unknown block type")
@@ -730,7 +736,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ProcessedMiniBlocksInfo
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, processedMiniBlocksInfo)
+	miniBlocks, _, numTxs, allAdded, _, err := tc.CreateMbsCrossShardDstMe(hdr, processedMiniBlocksInfo)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks)) // Should skip already processed mini block
@@ -778,11 +784,12 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_TypeAssertion(t *testin
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks)) // Should skip due to type assertion failure
 	require.Equal(t, uint32(0), numTxs)
+	require.True(t, hasMissingData)
 	require.False(t, allAdded) // Not all mini blocks were processed
 }
 
@@ -1148,4 +1155,138 @@ func createHeaderWithMiniBlocksAndTransactions() testData {
 		mb1Info:        mb1Info,
 		mb2Info:        mb2Info,
 	}
+}
+
+func TestTransactionCoordinator_SelectOutgoingTransactionsAOTCacheHit(t *testing.T) {
+	t.Parallel()
+
+	ph := dataRetrieverMock.NewPoolsHolderMock()
+	tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+
+	txHash1 := []byte("aot_tx_hash_1")
+	txHash2 := []byte("aot_tx_hash_2")
+	tx1 := &transaction.Transaction{SndAddr: []byte("sender1"), Nonce: 0, Value: big.NewInt(0)}
+	tx2 := &transaction.Transaction{SndAddr: []byte("sender2"), Nonce: 0, Value: big.NewInt(0)}
+
+	// Add transactions to tc.dataPool (used by getTxHandlersFromHashes)
+	cacheId := process.ShardCacherIdentifier(0, 0)
+	tc.dataPool.Transactions().AddData(txHash1, tx1, 100, cacheId)
+	tc.dataPool.Transactions().AddData(txHash2, tx2, 100, cacheId)
+
+	// Set up AOT selector that returns a cache hit
+	tc.aotSelector = &aotStubs.AOTSelectorStub{
+		GetPreSelectedTransactionsCalled: func(blockNonce uint64) (*process.AOTSelectionResult, bool) {
+			return &process.AOTSelectionResult{
+				TxHashes:            [][]byte{txHash1, txHash2},
+				GasProvided:         50000,
+				PredictedBlockNonce: blockNonce,
+			}, true
+		},
+	}
+
+	// Track whether the preprocessor was called (it shouldn't be with AOT hit)
+	preprocessorCalled := false
+	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64, _ func() bool) ([][]byte, []data.TransactionHandler, error) {
+			preprocessorCalled = true
+			return nil, nil, nil
+		},
+	}
+
+	txHashes, _ := tc.SelectOutgoingTransactions(42, haveTimeTrue)
+
+	require.Equal(t, 2, len(txHashes))
+	require.Equal(t, txHash1, txHashes[0])
+	require.Equal(t, txHash2, txHashes[1])
+	require.False(t, preprocessorCalled, "preprocessor should not be called when AOT cache hit")
+}
+
+func TestTransactionCoordinator_SelectOutgoingTransactionsAOTCacheMiss(t *testing.T) {
+	t.Parallel()
+
+	ph := dataRetrieverMock.NewPoolsHolderMock()
+	tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+
+	// Set up AOT selector that returns a cache miss
+	tc.aotSelector = &aotStubs.AOTSelectorStub{
+		GetPreSelectedTransactionsCalled: func(blockNonce uint64) (*process.AOTSelectionResult, bool) {
+			return nil, false
+		},
+	}
+
+	// Set up preprocessor to return transactions (fallback path)
+	expectedTxHashes := [][]byte{[]byte("fallback_tx_1"), []byte("fallback_tx_2")}
+	expectedTxs := []data.TransactionHandler{&transaction.Transaction{}, &transaction.Transaction{}}
+	preprocessorCalled := false
+	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64, _ func() bool) ([][]byte, []data.TransactionHandler, error) {
+			preprocessorCalled = true
+			return expectedTxHashes, expectedTxs, nil
+		},
+	}
+
+	txHashes, _ := tc.SelectOutgoingTransactions(42, haveTimeTrue)
+
+	require.Equal(t, 2, len(txHashes))
+	require.Equal(t, expectedTxHashes[0], txHashes[0])
+	require.Equal(t, expectedTxHashes[1], txHashes[1])
+	require.True(t, preprocessorCalled, "preprocessor should be called when AOT cache miss")
+}
+
+func TestTransactionCoordinator_SelectOutgoingTransactionsNilAOTSelector(t *testing.T) {
+	t.Parallel()
+
+	ph := dataRetrieverMock.NewPoolsHolderMock()
+	tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+
+	// Ensure AOT selector is nil (default from createMockTransactionCoordinatorArguments)
+	tc.aotSelector = nil
+
+	// Set up preprocessor (should be called as fallback)
+	expectedTxHashes := [][]byte{[]byte("normal_tx_1")}
+	expectedTxs := []data.TransactionHandler{&transaction.Transaction{}}
+	preprocessorCalled := false
+	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64, _ func() bool) ([][]byte, []data.TransactionHandler, error) {
+			preprocessorCalled = true
+			return expectedTxHashes, expectedTxs, nil
+		},
+	}
+
+	txHashes, _ := tc.SelectOutgoingTransactions(42, haveTimeTrue)
+
+	require.Equal(t, 1, len(txHashes))
+	require.Equal(t, expectedTxHashes[0], txHashes[0])
+	require.True(t, preprocessorCalled, "preprocessor should be called when AOT selector is nil")
+}
+
+func TestTransactionCoordinator_GetTxHandlersFromHashesSomeMissing(t *testing.T) {
+	t.Parallel()
+
+	ph := dataRetrieverMock.NewPoolsHolderMock()
+	tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+
+	txHash1 := []byte("present_tx")
+	txHash2 := []byte("missing_tx")
+	txHash3 := []byte("also_present_tx")
+	tx1 := &transaction.Transaction{SndAddr: []byte("sender1"), Nonce: 0, Value: big.NewInt(0)}
+	tx3 := &transaction.Transaction{SndAddr: []byte("sender3"), Nonce: 0, Value: big.NewInt(0)}
+
+	// Only add tx1 and tx3 to tc.dataPool, tx2 is missing
+	cacheId := process.ShardCacherIdentifier(0, 0)
+	tc.dataPool.Transactions().AddData(txHash1, tx1, 100, cacheId)
+	tc.dataPool.Transactions().AddData(txHash3, tx3, 100, cacheId)
+
+	validHashes, txs := tc.getTxHandlersFromHashes([][]byte{txHash1, txHash2, txHash3})
+
+	require.Equal(t, 0, len(validHashes))
+	require.Equal(t, 0, len(txs))
 }
