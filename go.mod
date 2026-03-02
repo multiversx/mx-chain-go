@@ -36,7 +36,7 @@ require (
 	github.com/urfave/cli v1.22.16
 	golang.org/x/crypto v0.39.0
 	golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476
-	golang.org/x/sync v0.11.0
+	golang.org/x/sync v0.15.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
@@ -187,7 +187,6 @@ require (
 	golang.org/x/arch v0.18.0 // indirect
 	golang.org/x/mod v0.25.0 // indirect
 	golang.org/x/net v0.41.0 // indirect
-	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
