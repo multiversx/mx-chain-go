@@ -77,7 +77,7 @@
             # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
             # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
             MaxRoundsOfInactivityAccepted = 3,
-            MaxBlockProcessingTimeMs = 3000,
+            MaxBlockProcessingTimeMs = 6000, # this is only used after Supernova
             NumHeadersToRequestInAdvance = 10
         },
         {
@@ -90,7 +90,7 @@
             MaxRoundsToKeepUnprocessedTransactions = 3000,
             MaxConsecutiveRoundsOfRatingDecrease = 6000,
             MaxRoundsOfInactivityAccepted = 30,
-            MaxBlockProcessingTimeMs = 3000,
+            MaxBlockProcessingTimeMs = 6000,
             NumHeadersToRequestInAdvance = 10
         }
     ]

@@ -1373,11 +1373,6 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
-	if err != nil {
-		return err
-	}
-
 	if !check.IfNil(finalMetaBlock) && finalMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.GetEpoch(), header.GetRound())
 	}
@@ -1390,6 +1385,11 @@ func (mp *metaProcessor) CommitBlock(
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
+
+	err = mp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
+	if err != nil {
+		return err
+	}
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce, mp.managedPeersHolder)
