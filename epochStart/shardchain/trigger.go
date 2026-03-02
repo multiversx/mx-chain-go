@@ -339,6 +339,11 @@ func (t *trigger) requestMissingMiniBlocks(ctx context.Context) {
 		t.mutMissingMiniBlocks.RLock()
 		if len(t.mapMissingMiniBlocks) == 0 {
 			t.mutMissingMiniBlocks.RUnlock()
+
+			t.mutTrigger.Lock()
+			t.updateTriggerFromMeta()
+			t.mutTrigger.Unlock()
+
 			continue
 		}
 
