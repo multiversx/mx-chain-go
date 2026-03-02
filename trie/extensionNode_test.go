@@ -687,7 +687,6 @@ func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 	key = append(key, lnKey...)
 	lnPathKey := key
 
-	dtmc := dtmc
 	_ = en.commitDirty(db, db, dtmc)
 	bn, key, _ := en.getNext(key, dtmc, db)
 	ln, _, _ := bn.getNext(key, dtmc, db)
