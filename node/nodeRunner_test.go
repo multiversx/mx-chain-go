@@ -9,13 +9,14 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/api"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const originalConfigsPath = "../cmd/node/config"
@@ -174,6 +175,18 @@ func TestWaitForSignal(t *testing.T) {
 			return nil
 		},
 	}
+	consensusClosableComponent := &mock.CloserStub{
+		CloseCalled: func() error {
+			closedCalled["consensus"] = struct{}{}
+			return nil
+		},
+	}
+	executionManagerClosableComponent := &mock.CloserStub{
+		CloseCalled: func() error {
+			closedCalled["executionManager"] = struct{}{}
+			return nil
+		},
+	}
 	n, _ := NewNode()
 	n.closableComponents = append(n.closableComponents, internalNodeClosableComponent1)
 	n.closableComponents = append(n.closableComponents, internalNodeClosableComponent2)
@@ -199,6 +212,8 @@ func TestWaitForSignal(t *testing.T) {
 			1,
 			&atomic.Bool{},
 			time.Millisecond,
+			consensusClosableComponent,
+			executionManagerClosableComponent,
 		)
 
 		assert.Equal(t, nextOperationShouldStop, nextOperation)
@@ -227,6 +242,8 @@ func TestWaitForSignal(t *testing.T) {
 			1,
 			&atomic.Bool{},
 			time.Millisecond,
+			consensusClosableComponent,
+			executionManagerClosableComponent,
 		)
 
 		assert.Equal(t, nextOperationShouldRestart, nextOperation)
@@ -257,6 +274,8 @@ func TestWaitForSignal(t *testing.T) {
 				1,
 				&atomic.Bool{},
 				time.Millisecond,
+				consensusClosableComponent,
+				executionManagerClosableComponent,
 			)
 			close(functionFinished)
 		}()
@@ -299,6 +318,8 @@ func TestWaitForSignal(t *testing.T) {
 			1,
 			&atomic.Bool{},
 			time.Millisecond,
+			consensusClosableComponent,
+			executionManagerClosableComponent,
 		)
 
 		// these exceptions appear because the delayedComponent prevented the call of the first 2 components
@@ -330,6 +351,8 @@ func TestWaitForSignal(t *testing.T) {
 			1,
 			&atomic.Bool{},
 			time.Millisecond,
+			consensusClosableComponent,
+			executionManagerClosableComponent,
 		)
 
 		// these exceptions appear because the delayedComponent prevented the call of the first 2 components
@@ -342,7 +365,7 @@ func TestWaitForSignal(t *testing.T) {
 }
 
 func checkCloseCalledMap(tb testing.TB, closedCalled map[string]struct{}, exceptions ...string) {
-	allKeys := []string{"healthService", "facade", "http", "node closable component 1", "node closable component 2"}
+	allKeys := []string{"consensus", "executionManager", "healthService", "facade", "http", "node closable component 1", "node closable component 2"}
 	numKeys := 0
 	for _, key := range allKeys {
 		if contains(key, exceptions) {
