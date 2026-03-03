@@ -174,8 +174,7 @@ func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 		MainConfig:            *pr.Config.GeneralConfig,
 		RatingsConfig:         *pr.Config.RatingsConfig,
 		StatusHandler:         pr.StatusCoreComponents.AppStatusHandler(),
-		Marshalizer:           pr.CoreComponents.InternalMarshalizer(),
-		Syncer:                pr.CoreComponents.SyncTimer(),
+		CoreComponents:        pr.CoreComponents,
 		PreferredPeersSlices:  make([]string, 0),
 		BootstrapWaitTime:     1,
 		NodeOperationMode:     common.NormalOperation,
@@ -283,6 +282,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.GenesisNodesSetup(),
 		pr.Config.GeneralConfig.EpochStartConfig,
 		pr.CoreComponents.ChanStopNodeProcess(),
+		pr.CoreComponents.ChainParametersHandler(),
 	)
 	require.Nil(tb, err)
 
@@ -393,6 +393,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		Marshalizer:              pr.CoreComponents.InternalMarshalizer(),
 		Store:                    pr.DataComponents.StorageService(),
 		Uint64ByteSliceConverter: pr.CoreComponents.Uint64ByteSliceConverter(),
+		DataPool:                 pr.DataComponents.Datapool(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	require.Nil(tb, err)
@@ -438,6 +439,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		StatusComponents:        pr.StatusComponents,
 		StatusCoreComponents:    pr.StatusCoreComponents,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
+		EconomicsConfig:         *pr.Config.EconomicsConfig,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

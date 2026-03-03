@@ -24,7 +24,10 @@ import (
 	dataTx "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	common2 "github.com/multiversx/mx-chain-go/testscommon/common"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-storage-go/types"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1058,9 +1061,10 @@ func createAccounts(
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              integrationTests.TestHasher,
-		Marshaller:          integrationTests.TestMarshalizer,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                 integrationTests.TestHasher,
+		Marshaller:             integrationTests.TestMarshalizer,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
@@ -1082,6 +1086,7 @@ func createAccounts(
 		StoragePruningManager:    spm,
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:         snapshotsManager,
+		StateAccessesCollector:   &stateMock.StateAccessesCollectorStub{},
 		MaxDataTriesSizeInMemory: integrationTests.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
@@ -1326,7 +1331,6 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	fmt.Println("Minting sender addresses...")
 	integrationTests.CreateMintingForSenders(nodes, 0, sendersPrivateKeys, valMinting)
-
 	shardNode := nodes[0]
 
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -1385,6 +1389,8 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	nonces := []*uint64{new(uint64), new(uint64)}
 	atomic.AddUint64(nonces[0], 2)
 	atomic.AddUint64(nonces[1], 3)
+
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
 
 	numOfRounds := 2
 	integrationTests.ProposeBlocks(
@@ -2490,6 +2496,7 @@ func startNodesAndIssueToken(
 		StakingV4Step2EnableEpoch:                   integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                   integrationTests.UnreachableEpoch,
 		AndromedaEnableEpoch:                        integrationTests.UnreachableEpoch,
+		SupernovaEnableEpoch:                        integrationTests.UnreachableEpoch,
 		AutoBalanceDataTriesEnableEpoch:             1,
 	}
 	nodes = integrationTests.CreateNodesWithEnableEpochs(
@@ -2731,9 +2738,10 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              integrationTests.TestHasher,
-		Marshaller:          integrationTests.TestMarshalizer,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                 integrationTests.TestHasher,
+		Marshaller:             integrationTests.TestMarshalizer,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
@@ -2757,9 +2765,114 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		StoragePruningManager:    spm,
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:         snapshotsManager,
+		StateAccessesCollector:   &stateMock.StateAccessesCollectorStub{},
 		MaxDataTriesSizeInMemory: integrationTests.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
 	return adb
+}
+
+// TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot tests the behavior of the state snapshot mechanism
+// when multiple epochs are processed without creating a complete snapshot. It verifies that if a trie node is found
+// in the db for epoch n-2, all following nodes will be retrieved starting from that db and continuing with
+// older ones.
+func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
+	epochNotifier := notifier.NewEpochStartSubscriptionHandler()
+	mainStorer, persistersMap, err := stateMock.CreateTestingTriePruningStorer(&testscommon.ShardsCoordinatorMock{}, epochNotifier)
+	assert.Nil(t, err)
+
+	mainStorerWithEpoch, ok := mainStorer.(types.StorerWithPutInEpoch)
+	assert.True(t, ok)
+
+	numEpochs := 5
+	getCounters := make([]int, numEpochs)
+
+	args := testStorage.GetStorageManagerArgs()
+	args.MainStorer = mainStorer
+	trieStorage, _ := trie.NewTrieStorageManager(args)
+	tr, _ := trie.NewTrie(trieStorage, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	defer func() {
+		_ = trieStorage.Close()
+	}()
+
+	numTrieEntries := 100
+	numTrieEntriesEpoch1 := 100000
+	numLeaves := 0
+
+	for i := 1; i < numEpochs; i++ {
+		epochIdx := i
+		persister := testscommon.NewMemDbMock()
+		persister.GetCalledNoReturn = func(key []byte) {
+			getCounters[epochIdx]++
+		}
+
+		persisterPath := fmt.Sprintf("Epoch_%d/Shard_0/id", i)
+		persistersMap.AddPersister(persisterPath, persister)
+		mainStorerWithEpoch.SetEpochForPutOperation(uint32(i))
+		epochNotifier.NotifyAll(&block.Header{Epoch: uint32(i)})
+
+		if i == 1 {
+			// add multiple entries for epoch 1; this way there will be multiple trie nodes that
+			// do not change in the following epochs
+			numLeaves += addDataToTrie(t, tr, 0, numTrieEntriesEpoch1)
+		} else {
+			startingIndexBasedOnEpoch := numTrieEntriesEpoch1 + (i-2)*numTrieEntries
+			numLeaves += addDataToTrie(t, tr, startingIndexBasedOnEpoch, numTrieEntries)
+		}
+
+		err = tr.Commit()
+		assert.Nil(t, err)
+	}
+
+	rootHash, err := tr.RootHash()
+	assert.Nil(t, err)
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+	missingNodesChannel := make(chan []byte, 100)
+	epochNotifier.NotifyAll(&block.Header{Epoch: uint32(5)})
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	trieStorage.TakeSnapshot(
+		"",
+		rootHash,
+		rootHash,
+		chLeaves,
+		missingNodesChannel,
+		&trieMock.MockStatistics{
+			AddTrieStatsCalled: func(_ common.TrieStatisticsHandler, _ common.TrieType) {
+				wg.Done()
+			},
+		},
+		5,
+	)
+
+	numRetrievedLeaves := 0
+	for range chLeaves.LeavesChan {
+		numRetrievedLeaves++
+	}
+
+	assert.Equal(t, numLeaves, numRetrievedLeaves)
+	wg.Wait()
+
+	hashes, err := tr.GetAllHashes()
+	assert.Nil(t, err)
+	numTrieNodes := len(hashes)
+	assert.Less(t, getCounters[numEpochs-1], numTrieNodes)
+}
+
+func addDataToTrie(t *testing.T, tr common.Trie, startIndex int, numEntries int) int {
+	numLeaves := 0
+	for j := startIndex; j < startIndex+numEntries; j++ {
+		key := []byte(fmt.Sprintf("key%d", j))
+		value := []byte(fmt.Sprintf("value%d", j))
+		err := tr.Update(key, value)
+		assert.Nil(t, err)
+		numLeaves++
+	}
+
+	return numLeaves
 }

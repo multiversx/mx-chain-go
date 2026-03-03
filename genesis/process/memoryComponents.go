@@ -34,6 +34,7 @@ func createAccountAdapter(
 		StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:         addressConverter,
 		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
 		MaxDataTriesSizeInMemory: tenMbSize,
 	}
 

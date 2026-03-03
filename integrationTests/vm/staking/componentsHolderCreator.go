@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -76,11 +77,12 @@ func createCoreComponents() factory.CoreComponentsHolder {
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, epochNotifier)
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+	statusMetrics, _ := statusHandler.NewStatusMetrics(enableEpochsHandler, &testscommon.EnableRoundsHandlerStub{})
 	return &integrationMocks.CoreComponentsStub{
 		InternalMarshalizerField:           &marshal.GogoProtoMarshalizer{},
 		HasherField:                        sha256.NewSha256(),
 		Uint64ByteSliceConverterField:      uint64ByteSlice.NewBigEndianConverter(),
-		StatusHandlerField:                 statusHandler.NewStatusMetrics(),
+		StatusHandlerField:                 statusMetrics,
 		RoundHandlerField:                  &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
 		EpochStartNotifierWithConfirmField: notifier.NewEpochStartSubscriptionHandler(),
 		EpochNotifierField:                 epochNotifier,
@@ -94,6 +96,9 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		RoundNotifierField:                 &notifierMocks.RoundNotifierStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
+		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
+		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+		AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 
@@ -139,7 +144,7 @@ func createBootstrapComponents(
 		ShCoordinator:        shardCoordinator,
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
-			CreateCalled: func(epoch uint32) data.HeaderHandler {
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
 				return &block.MetaBlock{Epoch: epoch}
 			},
 		},
@@ -161,9 +166,10 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
 	argsAccCreator := stateFactory.ArgsAccountCreator{
-		Hasher:              coreComponents.Hasher(),
-		Marshaller:          coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		Hasher:                 coreComponents.Hasher(),
+		Marshaller:             coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 
 	accCreator, _ := stateFactory.NewAccountCreator(argsAccCreator)
@@ -175,8 +181,9 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	_ = peerAccountsDB.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	return &factoryTests.StateComponentsMock{
-		PeersAcc: peerAccountsDB,
-		Accounts: userAccountsDB,
+		PeersAcc:         peerAccountsDB,
+		Accounts:         userAccountsDB,
+		AccountsProposal: userAccountsDB,
 	}
 }
 
@@ -219,6 +226,7 @@ func createAccountsDB(
 		StoragePruningManager:    spm,
 		AddressConverter:         coreComponents.AddressPubKeyConverter(),
 		SnapshotsManager:         &stateTests.SnapshotsManagerStub{},
+		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
 		MaxDataTriesSizeInMemory: integrationTests.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDb)

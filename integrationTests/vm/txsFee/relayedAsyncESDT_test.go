@@ -21,6 +21,7 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
+		RelayedTransactionsV1V2DisableEpoch:             integrationTests.UnreachableEpoch,
 	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -83,7 +84,9 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -145,7 +148,9 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 

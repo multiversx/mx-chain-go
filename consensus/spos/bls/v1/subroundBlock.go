@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -66,7 +67,7 @@ func checkNewSubroundBlockParams(
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
 	}
@@ -359,7 +360,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	err = hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
+	err = hdr.SetTimeStamp(sr.GetUnixTimestampForHeader(hdr.GetEpoch()))
 	if err != nil {
 		return nil, err
 	}

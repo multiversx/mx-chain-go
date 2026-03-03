@@ -14,7 +14,7 @@ import (
 )
 
 func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.TransactionHandler) bool {
-	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
+	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards(), tep.enableEpochsHandler.GetCurrentEpoch())
 
 	isESDTTransferOperation := res.Operation == core.BuiltInFunctionESDTTransfer ||
 		res.Operation == core.BuiltInFunctionESDTNFTTransfer || res.Operation == core.BuiltInFunctionMultiESDTNFTTransfer
@@ -87,7 +87,11 @@ func isSCRWithRefundNoTx(scr *smartContractResult.SmartContractResult) bool {
 	return ok && differentHash && hasRefund
 }
 
-func isRelayedTx(tx *transactionWithResults) bool {
+func (tep *transactionsFeeProcessor) isRelayedTxV1V2(tx *transactionWithResults, epoch uint32) bool {
+	if tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, epoch) {
+		return false
+	}
+
 	txData := string(tx.GetTxHandler().GetData())
 	isRelayed := strings.HasPrefix(txData, core.RelayedTransaction) || strings.HasPrefix(txData, core.RelayedTransactionV2)
 	return isRelayed && len(tx.scrs) > 0

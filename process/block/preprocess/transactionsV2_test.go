@@ -11,83 +11,54 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/config"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+
+	"github.com/multiversx/mx-chain-go/testscommon/preprocMocks"
+	"github.com/multiversx/mx-chain-go/txcache"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/multiversx/mx-chain-go/txcache"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
 )
 
 func createTransactionPreprocessor() *transactions {
-	dataPool := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txPreProcArgs := ArgsTransactionPreProcessor{
-		TxDataPool:           dataPool.Transactions(),
-		Store:                &storageStubs.ChainStorerStub{},
-		Hasher:               &hashingMocks.HasherMock{},
-		Marshalizer:          &mock.MarshalizerMock{},
-		TxProcessor:          &testscommon.TxProcessorMock{},
-		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(3),
-		Accounts:             &stateMock.AccountsStub{},
-		OnRequestTransaction: requestTransaction,
-		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
-			MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
-				return MaxGasLimitPerBlock
-			},
-			MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
-				return MaxGasLimitPerBlock
-			},
-			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
-				return MaxGasLimitPerBlock
-			},
-			MaxGasLimitPerTxCalled: func() uint64 {
-				return MaxGasLimitPerBlock
-			},
+	args := createDefaultTransactionsProcessorArgs()
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
+			return MaxGasLimitPerBlock
 		},
-		GasHandler:           &mock.GasHandlerMock{},
-		BlockTracker:         &mock.BlockTrackerMock{},
-		BlockType:            block.TxBlock,
-		PubkeyConverter:      createMockPubkeyConverter(),
-		BlockSizeComputation: &testscommon.BlockSizeComputationStub{},
-		BalanceComputation: &testscommon.BalanceComputationStub{
-			IsAddressSetCalled: func(address []byte) bool {
-				return true
-			},
-			SubBalanceFromAddressCalled: func(address []byte, value *big.Int) bool {
-				return false
-			},
+		MaxGasLimitPerBlockForSafeCrossShardInEpochCalled: func(_ uint32) uint64 {
+			return MaxGasLimitPerBlock
 		},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxTypeHandler: &testscommon.TxTypeHandlerMock{
-			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
-				if bytes.Equal(tx.GetRcvAddr(), []byte("smart contract address")) {
-					return process.MoveBalance, process.SCInvoking, false
-				}
-				return process.MoveBalance, process.MoveBalance, false
-			},
+		MaxGasLimitPerBlockInEpochCalled: func(_ uint32, _ uint32) uint64 {
+			return MaxGasLimitPerBlock
 		},
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
-		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
-		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
-			SelectionGasBandwidthIncreasePercent:          400,
-			SelectionGasBandwidthIncreaseScheduledPercent: 260,
-			SelectionGasRequested:                         10_000_000_000,
-			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
-			SelectionLoopDurationCheckInterval:            10,
+		MaxGasLimitPerTxInEpochCalled: func(_ uint32) uint64 {
+			return MaxGasLimitPerBlock
 		},
 	}
-
-	preprocessor, _ := NewTransactionPreprocessor(txPreProcArgs)
+	args.BalanceComputation = &testscommon.BalanceComputationStub{
+		IsAddressSetCalled: func(address []byte) bool {
+			return true
+		},
+		SubBalanceFromAddressCalled: func(address []byte, value *big.Int) bool {
+			return false
+		},
+	}
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			if bytes.Equal(tx.GetRcvAddr(), []byte("smart contract address")) {
+				return process.MoveBalance, process.SCInvoking, false
+			}
+			return process.MoveBalance, process.MoveBalance, false
+		},
+	}
+	preprocessor, _ := NewTransactionPreprocessor(args)
 
 	return preprocessor
 }
@@ -532,7 +503,9 @@ func TestTransactions_VerifyTransactionShouldWork(t *testing.T) {
 	mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = 0
 	err = preprocessor.verifyTransaction(tx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Nil(t, err)
-	_, ok := preprocessor.txsForCurrBlock.txHashAndInfo[string(txHash)]
+
+	txsForCurrBlock := preprocessor.txsForCurrBlock.(*txsForBlock)
+	_, ok := txsForCurrBlock.txHashAndInfo[string(txHash)]
 	assert.True(t, ok)
 }
 
@@ -832,6 +805,16 @@ func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 			return 0, gasProvidedByTx, nil
 		},
 	}
+	preprocessor.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return true
+		},
+	}
+	preprocessor.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return true
+		},
+	}
 
 	tx := &transaction.Transaction{}
 	txHash := []byte("txHash")
@@ -874,4 +857,485 @@ func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 	processTransactionErr = nil
 	_, err = preprocessor.processTransaction(tx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Nil(t, err)
+}
+
+func TestTransactions_GetCreatedMiniBlocksFromMe(t *testing.T) {
+	t.Parallel()
+
+	preprocessor := createTransactionPreprocessor()
+	txHashes := [][]byte{[]byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")}
+
+	mb1 := &block.MiniBlock{
+		TxHashes:        [][]byte{txHashes[0]},
+		ReceiverShardID: 0}
+	mb2 := &block.MiniBlock{
+		TxHashes:        [][]byte{txHashes[0], txHashes[1]},
+		ReceiverShardID: 1}
+	mb3 := &block.MiniBlock{
+		TxHashes:        [][]byte{txHashes[0], txHashes[1], txHashes[2]},
+		ReceiverShardID: 2}
+	mb4 := &block.MiniBlock{
+		TxHashes:        [][]byte{txHashes[0], txHashes[1], txHashes[2], txHashes[3]},
+		ReceiverShardID: core.MetachainShardId}
+
+	mbs := block.MiniBlockSlice{mb1, mb2, mb3, mb4}
+	preprocessor.createdMiniBlocks = mbs
+
+	resultingMbs := preprocessor.GetCreatedMiniBlocksFromMe()
+	assert.Equal(t, 4, len(resultingMbs))
+	assert.Equal(t, mbs, resultingMbs)
+}
+
+func TestTransactions_GetUnExecutableTransactions(t *testing.T) {
+	t.Parallel()
+
+	preprocessor := createTransactionPreprocessor()
+
+	txs := make(map[string]struct{})
+	txs["txHash1"] = struct{}{}
+	txs["txHash2"] = struct{}{}
+	txs["txHash3"] = struct{}{}
+	txs["txHash4"] = struct{}{}
+
+	preprocessor.unExecutableTransactions = txs
+
+	resultingTxs := preprocessor.GetUnExecutableTransactions()
+	assert.Len(t, resultingTxs, len(txs))
+	assert.Equal(t, txs, resultingTxs)
+}
+
+func TestTransactions_CreateBlockStarted(t *testing.T) {
+	t.Parallel()
+
+	preprocessor := createTransactionPreprocessor()
+	preprocessor.createdMiniBlocks = make(block.MiniBlockSlice, 10)
+	preprocessor.unExecutableTransactions = map[string]struct{}{"txHash": {}}
+	preprocessor.orderedTxs = map[string][]data.TransactionHandler{"txHash": {}}
+	preprocessor.orderedTxHashes = map[string][][]byte{"shard0": {[]byte("txHash")}}
+	called := false
+	preprocessor.txsForCurrBlock = &preprocMocks.TxsForBlockStub{
+		ResetCalled: func() {
+			called = true
+		},
+	}
+
+	preprocessor.CreateBlockStarted()
+	assert.Empty(t, preprocessor.createdMiniBlocks)
+	assert.Empty(t, preprocessor.unExecutableTransactions)
+	assert.Empty(t, preprocessor.orderedTxs)
+	assert.Empty(t, preprocessor.orderedTxHashes)
+	assert.True(t, called)
+}
+
+func TestTransactions_HasAddressEnoughInitialBalance(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sender == fee payer, checks full cost against sender", func(t *testing.T) {
+		t.Parallel()
+
+		var checkedAddress []byte
+		var checkedValue *big.Int
+		preprocessor := createTransactionPreprocessor()
+		preprocessor.balanceComputation = &testscommon.BalanceComputationStub{
+			IsAddressSetCalled: func(address []byte) bool {
+				return true
+			},
+			AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
+				checkedAddress = address
+				checkedValue = value
+				return true
+			},
+		}
+
+		tx := &transaction.Transaction{
+			SndAddr:  []byte("sender"),
+			GasPrice: 10,
+			GasLimit: 100,
+			Value:    big.NewInt(500),
+		}
+
+		result := preprocessor.hasAddressEnoughInitialBalance(tx)
+		assert.True(t, result)
+		assert.Equal(t, []byte("sender"), checkedAddress)
+		// should check full cost: gasPrice*gasLimit + value = 10*100 + 500 = 1500
+		assert.Equal(t, big.NewInt(1500), checkedValue)
+	})
+
+	t.Run("sender == fee payer, not enough balance", func(t *testing.T) {
+		t.Parallel()
+
+		preprocessor := createTransactionPreprocessor()
+		preprocessor.balanceComputation = &testscommon.BalanceComputationStub{
+			IsAddressSetCalled: func(address []byte) bool {
+				return true
+			},
+			AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
+				return false
+			},
+		}
+
+		tx := &transaction.Transaction{
+			SndAddr:  []byte("sender"),
+			GasPrice: 10,
+			GasLimit: 100,
+			Value:    big.NewInt(500),
+		}
+
+		result := preprocessor.hasAddressEnoughInitialBalance(tx)
+		assert.False(t, result)
+	})
+
+	t.Run("relayed v3: fee payer pays fee only, sender pays value only", func(t *testing.T) {
+		t.Parallel()
+
+		checkedBalances := make(map[string]*big.Int)
+		preprocessor := createTransactionPreprocessor()
+		preprocessor.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		}
+		preprocessor.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return true
+			},
+		}
+		txFee := big.NewInt(50)
+		feeHandlerMock := &economicsmocks.EconomicsHandlerMock{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(0).Set(txFee)
+			},
+		}
+		preprocessor.economicsFee = feeHandlerMock
+		preprocessor.feeHandler = feeHandlerMock
+		preprocessor.balanceComputation = &testscommon.BalanceComputationStub{
+			IsAddressSetCalled: func(address []byte) bool {
+				return true
+			},
+			AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
+				checkedBalances[string(address)] = big.NewInt(0).Set(value)
+				return true
+			},
+		}
+
+		tx := &transaction.Transaction{
+			SndAddr:     []byte("sender"),
+			RelayerAddr: []byte("relayer"),
+			GasPrice:    10,
+			GasLimit:    100,
+			Value:       big.NewInt(500),
+		}
+
+		result := preprocessor.hasAddressEnoughInitialBalance(tx)
+		assert.True(t, result)
+		// fee payer (relayer) should be checked for fee only
+		assert.Equal(t, txFee, checkedBalances["relayer"])
+		// sender should be checked for value only
+		assert.Equal(t, big.NewInt(500), checkedBalances["sender"])
+	})
+
+	t.Run("relayed v3: fee payer has not enough for fee", func(t *testing.T) {
+		t.Parallel()
+
+		preprocessor := createTransactionPreprocessor()
+		preprocessor.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		}
+		preprocessor.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return true
+			},
+		}
+		feeHandlerMock := &economicsmocks.EconomicsHandlerMock{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(50)
+			},
+		}
+		preprocessor.economicsFee = feeHandlerMock
+		preprocessor.feeHandler = feeHandlerMock
+		preprocessor.balanceComputation = &testscommon.BalanceComputationStub{
+			IsAddressSetCalled: func(address []byte) bool {
+				return true
+			},
+			AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
+				if bytes.Equal(address, []byte("relayer")) {
+					return false // relayer doesn't have enough for fee
+				}
+				return true
+			},
+		}
+
+		tx := &transaction.Transaction{
+			SndAddr:     []byte("sender"),
+			RelayerAddr: []byte("relayer"),
+			GasPrice:    10,
+			GasLimit:    100,
+			Value:       big.NewInt(500),
+		}
+
+		result := preprocessor.hasAddressEnoughInitialBalance(tx)
+		assert.False(t, result)
+	})
+
+	t.Run("relayed v3: sender has not enough for value", func(t *testing.T) {
+		t.Parallel()
+
+		preprocessor := createTransactionPreprocessor()
+		preprocessor.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		}
+		preprocessor.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return true
+			},
+		}
+		feeHandlerMock := &economicsmocks.EconomicsHandlerMock{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(50)
+			},
+		}
+		preprocessor.economicsFee = feeHandlerMock
+		preprocessor.feeHandler = feeHandlerMock
+		preprocessor.balanceComputation = &testscommon.BalanceComputationStub{
+			IsAddressSetCalled: func(address []byte) bool {
+				return true
+			},
+			AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
+				if bytes.Equal(address, []byte("sender")) {
+					return false // sender doesn't have enough for value
+				}
+				return true
+			},
+		}
+
+		tx := &transaction.Transaction{
+			SndAddr:     []byte("sender"),
+			RelayerAddr: []byte("relayer"),
+			GasPrice:    10,
+			GasLimit:    100,
+			Value:       big.NewInt(500),
+		}
+
+		result := preprocessor.hasAddressEnoughInitialBalance(tx)
+		assert.False(t, result)
+	})
+
+	t.Run("relayed v3: zero value tx, only fee payer checked", func(t *testing.T) {
+		t.Parallel()
+
+		checkedAddresses := make([]string, 0)
+		preprocessor := createTransactionPreprocessor()
+		preprocessor.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		}
+		preprocessor.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return true
+			},
+		}
+		feeHandlerMock := &economicsmocks.EconomicsHandlerMock{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(50)
+			},
+		}
+		preprocessor.economicsFee = feeHandlerMock
+		preprocessor.feeHandler = feeHandlerMock
+		preprocessor.balanceComputation = &testscommon.BalanceComputationStub{
+			IsAddressSetCalled: func(address []byte) bool {
+				return true
+			},
+			AddressHasEnoughBalanceCalled: func(address []byte, value *big.Int) bool {
+				checkedAddresses = append(checkedAddresses, string(address))
+				return true
+			},
+		}
+
+		tx := &transaction.Transaction{
+			SndAddr:     []byte("sender"),
+			RelayerAddr: []byte("relayer"),
+			GasPrice:    10,
+			GasLimit:    100,
+			Value:       big.NewInt(0),
+		}
+
+		result := preprocessor.hasAddressEnoughInitialBalance(tx)
+		assert.True(t, result)
+		// only fee payer should be checked (sender value is 0, no check needed)
+		assert.Equal(t, []string{"relayer"}, checkedAddresses)
+	})
+}
+
+func TestTransactions_ApplyExecutedTransactionFeePayerSplit(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sender == fee payer, subtracts full cost from sender", func(t *testing.T) {
+		t.Parallel()
+
+		var subtractedAddress []byte
+		var subtractedValue *big.Int
+		preprocessor := createTransactionPreprocessor()
+		preprocessor.blockSizeComputation = &testscommon.BlockSizeComputationStub{
+			AddNumTxsCalled:        func(i int) {},
+			AddNumMiniBlocksCalled: func(i int) {},
+		}
+		preprocessor.balanceComputation = &testscommon.BalanceComputationStub{
+			IsAddressSetCalled: func(address []byte) bool {
+				return true
+			},
+			SubBalanceFromAddressCalled: func(address []byte, value *big.Int) bool {
+				subtractedAddress = address
+				subtractedValue = value
+				return true
+			},
+		}
+
+		tx := &transaction.Transaction{
+			SndAddr:  []byte("sender"),
+			GasPrice: 10,
+			GasLimit: 100,
+			Value:    big.NewInt(500),
+		}
+		txHash := []byte("hash")
+		mb := &block.MiniBlock{}
+		receiverShardID := uint32(1)
+		txMbInfo := &txAndMbInfo{}
+		mbInfo := &createAndProcessMiniBlocksInfo{
+			mapCrossShardScCallsOrSpecialTxs: make(map[uint32]int),
+			mapScsForShard:                   make(map[uint32]int),
+			mapSCTxs:                         make(map[string]struct{}),
+			mapTxsForShard:                   make(map[uint32]int),
+		}
+
+		preprocessor.applyExecutedTransaction(tx, txHash, mb, receiverShardID, txMbInfo, mbInfo)
+		assert.Equal(t, []byte("sender"), subtractedAddress)
+		// full cost: gasPrice*gasLimit + value = 10*100 + 500 = 1500
+		assert.Equal(t, big.NewInt(1500), subtractedValue)
+	})
+
+	t.Run("relayed v3: fee from relayer, value from sender", func(t *testing.T) {
+		t.Parallel()
+
+		subtractedAmounts := make(map[string]*big.Int)
+		preprocessor := createTransactionPreprocessor()
+		preprocessor.blockSizeComputation = &testscommon.BlockSizeComputationStub{
+			AddNumTxsCalled:        func(i int) {},
+			AddNumMiniBlocksCalled: func(i int) {},
+		}
+		preprocessor.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		}
+		preprocessor.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return true
+			},
+		}
+		txFee := big.NewInt(50)
+		feeHandlerMock := &economicsmocks.EconomicsHandlerMock{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(0).Set(txFee)
+			},
+		}
+		preprocessor.economicsFee = feeHandlerMock
+		preprocessor.feeHandler = feeHandlerMock
+		preprocessor.balanceComputation = &testscommon.BalanceComputationStub{
+			IsAddressSetCalled: func(address []byte) bool {
+				return true
+			},
+			SubBalanceFromAddressCalled: func(address []byte, value *big.Int) bool {
+				subtractedAmounts[string(address)] = big.NewInt(0).Set(value)
+				return true
+			},
+		}
+
+		tx := &transaction.Transaction{
+			SndAddr:     []byte("sender"),
+			RelayerAddr: []byte("relayer"),
+			GasPrice:    10,
+			GasLimit:    100,
+			Value:       big.NewInt(500),
+		}
+		txHash := []byte("hash")
+		mb := &block.MiniBlock{}
+		receiverShardID := uint32(1)
+		txMbInfo := &txAndMbInfo{}
+		mbInfo := &createAndProcessMiniBlocksInfo{
+			mapCrossShardScCallsOrSpecialTxs: make(map[uint32]int),
+			mapScsForShard:                   make(map[uint32]int),
+			mapSCTxs:                         make(map[string]struct{}),
+			mapTxsForShard:                   make(map[uint32]int),
+		}
+
+		preprocessor.applyExecutedTransaction(tx, txHash, mb, receiverShardID, txMbInfo, mbInfo)
+		// relayer pays fee only
+		assert.Equal(t, txFee, subtractedAmounts["relayer"])
+		// sender pays value only
+		assert.Equal(t, big.NewInt(500), subtractedAmounts["sender"])
+	})
+
+	t.Run("relayed v3: zero value tx, only fee subtracted from relayer", func(t *testing.T) {
+		t.Parallel()
+
+		subtractedAddresses := make([]string, 0)
+		preprocessor := createTransactionPreprocessor()
+		preprocessor.blockSizeComputation = &testscommon.BlockSizeComputationStub{
+			AddNumTxsCalled:        func(i int) {},
+			AddNumMiniBlocksCalled: func(i int) {},
+		}
+		preprocessor.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		}
+		preprocessor.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return true
+			},
+		}
+		feeHandlerMock := &economicsmocks.EconomicsHandlerMock{
+			ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(50)
+			},
+		}
+		preprocessor.economicsFee = feeHandlerMock
+		preprocessor.feeHandler = feeHandlerMock
+		preprocessor.balanceComputation = &testscommon.BalanceComputationStub{
+			IsAddressSetCalled: func(address []byte) bool {
+				return true
+			},
+			SubBalanceFromAddressCalled: func(address []byte, value *big.Int) bool {
+				subtractedAddresses = append(subtractedAddresses, string(address))
+				return true
+			},
+		}
+
+		tx := &transaction.Transaction{
+			SndAddr:     []byte("sender"),
+			RelayerAddr: []byte("relayer"),
+			GasPrice:    10,
+			GasLimit:    100,
+			Value:       big.NewInt(0),
+		}
+		txHash := []byte("hash")
+		mb := &block.MiniBlock{}
+		receiverShardID := uint32(1)
+		txMbInfo := &txAndMbInfo{}
+		mbInfo := &createAndProcessMiniBlocksInfo{
+			mapCrossShardScCallsOrSpecialTxs: make(map[uint32]int),
+			mapScsForShard:                   make(map[uint32]int),
+			mapSCTxs:                         make(map[string]struct{}),
+			mapTxsForShard:                   make(map[uint32]int),
+		}
+
+		preprocessor.applyExecutedTransaction(tx, txHash, mb, receiverShardID, txMbInfo, mbInfo)
+		// only relayer should have balance subtracted (no value to subtract from sender)
+		assert.Equal(t, []string{"relayer"}, subtractedAddresses)
+	})
 }

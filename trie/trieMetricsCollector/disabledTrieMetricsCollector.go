@@ -11,6 +11,11 @@ func NewDisabledTrieMetricsCollector() *disabledTrieMetricsCollector {
 func (d *disabledTrieMetricsCollector) SetDepth(_ uint32) {
 }
 
+// GetCurrentDepth returns 0 for the disabled metrics collector
+func (d *disabledTrieMetricsCollector) GetCurrentDepth() uint32 {
+	return 0
+}
+
 // GetMaxDepth returns 0 for the disabled metrics collector
 func (d *disabledTrieMetricsCollector) GetMaxDepth() uint32 {
 	return 0

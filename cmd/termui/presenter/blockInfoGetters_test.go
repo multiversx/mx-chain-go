@@ -125,6 +125,104 @@ func TestPresenterStatusHandler_GetCurrentRoundTimestamp(t *testing.T) {
 	assert.Equal(t, currentRoundTimestamp, result)
 }
 
+func TestPresenterStatusHandler_GetBlockReceived(t *testing.T) {
+	t.Parallel()
+
+	proposedBlockMs := uint64(100)
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricReceivedOrSentProposedBlock, proposedBlockMs)
+	result := presenterStatusHandler.GetDurationProposedBlockReceivedOrSentFromRoundStart()
+	assert.Equal(t, proposedBlockMs, result)
+}
+
+func TestPresenterStatusHandler_GetAvgBlockReceived(t *testing.T) {
+	t.Parallel()
+
+	proposedBlockMs := uint64(100)
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricAvgReceivedOrSentProposedBlock, proposedBlockMs)
+	result := presenterStatusHandler.GetAvgDurationProposedBlockReceivedOrSentFromRoundStart()
+	assert.Equal(t, proposedBlockMs, result)
+}
+
+func TestPresenterStatusHandler_GetProofReceived(t *testing.T) {
+	t.Parallel()
+
+	proofMs := uint64(100)
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricReceivedProof, proofMs)
+	result := presenterStatusHandler.GetDurationProofReceivedFromProposedBlockReceivedOrSent()
+	assert.Equal(t, proofMs, result)
+}
+func TestPresenterStatusHandler_GetAvgProofReceived(t *testing.T) {
+	t.Parallel()
+
+	proofMs := uint64(100)
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricAvgReceivedProof, proofMs)
+	result := presenterStatusHandler.GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent()
+	assert.Equal(t, proofMs, result)
+}
+
+func TestPresenterStatusHandler_GetNumTrackedBlocks(t *testing.T) {
+	t.Parallel()
+
+	numTrackedBlocks := uint64(100)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricNumTrackedBlocks, numTrackedBlocks)
+	result := presenterStatusHandler.GetNumTrackedBlocks()
+
+	assert.Equal(t, numTrackedBlocks, result)
+}
+
+func TestPresenterStatusHandler_GetNumTrackedAccounts(t *testing.T) {
+	t.Parallel()
+
+	numTrackedAccounts := uint64(100)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricNumTrackedAccounts, numTrackedAccounts)
+	result := presenterStatusHandler.GetNumTrackedAccounts()
+
+	assert.Equal(t, numTrackedAccounts, result)
+}
+
+func TestPresenterStatusHandler_GetDeltaHeaderNonceLastExecutionResultNonce(t *testing.T) {
+	t.Parallel()
+
+	delta := uint64(1)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricDeltaHeaderNonceLastExecutionResultNonce, delta)
+	result := presenterStatusHandler.GetDeltaHeaderNonceLastExecutionResultNonce()
+
+	assert.Equal(t, delta, result)
+}
+
+func TestPresenterStatusHandler_GetInclusionEstimationRejected(t *testing.T) {
+	t.Parallel()
+
+	numRejected := uint64(10)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricNumInclusionEstimationRejected, numRejected)
+	result := presenterStatusHandler.GetRejectedExecutionResults()
+
+	assert.Equal(t, numRejected, result)
+}
+
+func TestPresenterStatusHandler_GetHighestFinalBlock(t *testing.T) {
+	t.Parallel()
+
+	highestFinalBlockNonce := uint64(100)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
+	result := presenterStatusHandler.GetHighestFinalBlock()
+
+	assert.Equal(t, highestFinalBlockNonce, result)
+}
+
 func TestPresenterStatusHandler_GetBlockSize(t *testing.T) {
 	t.Parallel()
 
@@ -137,15 +235,4 @@ func TestPresenterStatusHandler_GetBlockSize(t *testing.T) {
 
 	blockExpectedSize := miniBlocksSize + headerSize
 	assert.Equal(t, blockExpectedSize, result)
-}
-
-func TestPresenterStatusHandler_GetHighestFinalBlock(t *testing.T) {
-	t.Parallel()
-
-	highestFinalBlockNonce := uint64(100)
-	presenterStatusHandler := NewPresenterStatusHandler()
-	presenterStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
-	result := presenterStatusHandler.GetHighestFinalBlock()
-
-	assert.Equal(t, highestFinalBlockNonce, result)
 }
