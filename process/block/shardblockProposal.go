@@ -184,7 +184,7 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
+	err = sp.waitForExecutionResultsVerification(header, haveTime)
 	if err != nil {
 		return err
 	}
