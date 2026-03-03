@@ -372,12 +372,12 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, statusCore
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
-	tiresContainer := triesHolder.NewTriesHolder()
+	triesContainer := triesHolder.NewTriesHolder()
 	tenMBSize := uint64(10485760)
 	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), tenMBSize)
 	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), tenMBSize)
-	tiresContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
-	tiresContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
+	triesContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
+	triesContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
 
 	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
 		Config:         GetGeneralConfig(),
