@@ -530,7 +530,7 @@ func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUse
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash",
 				Log: &transaction.Log{
@@ -582,7 +582,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash",
 				Log: &transaction.Log{
@@ -648,7 +648,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash",
 				Log: &transaction.Log{
@@ -716,7 +716,7 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hh",
 				Log: &transaction.Log{
@@ -784,7 +784,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
@@ -864,7 +864,7 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
@@ -944,7 +944,7 @@ func testExtractAlteredAccountsFromPoolMultiTransferEventV2(t *testing.T) {
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
@@ -1085,7 +1085,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
@@ -1192,7 +1192,7 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "txHash",
 				Log: &transaction.Log{
@@ -1405,7 +1405,7 @@ func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "txHash",
 				Log: &transaction.Log{

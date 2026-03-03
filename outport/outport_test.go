@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/outport/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,13 +37,13 @@ func TestNewOutport(t *testing.T) {
 	t.Parallel()
 
 	t.Run("invalid retrial time should error", func(t *testing.T) {
-		outportHandler, err := NewOutport(0, outportcore.OutportConfig{})
+		outportHandler, err := NewOutport(0, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 
 		assert.True(t, errors.Is(err, ErrInvalidRetrialInterval))
 		assert.True(t, check.IfNil(outportHandler))
 	})
 	t.Run("should work", func(t *testing.T) {
-		outportHandler, err := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+		outportHandler, err := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(outportHandler))
@@ -70,7 +72,7 @@ func TestOutport_SaveAccounts(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -116,7 +118,7 @@ func TestOutport_SaveBlock(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -162,7 +164,7 @@ func TestOutport_SaveRoundsInfo(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -207,7 +209,7 @@ func TestOutport_SaveValidatorsPubKeys(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -254,7 +256,7 @@ func TestOutport_SaveValidatorsRating(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -301,7 +303,7 @@ func TestOutport_RevertIndexedBlock(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -349,7 +351,7 @@ func TestOutport_FinalizedBlock(t *testing.T) {
 			return nil
 		},
 	}
-	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	numLogDebugCalled := uint32(0)
 	outportHandler.logHandler = func(logLevel logger.LogLevel, message string, args ...interface{}) {
 		if logLevel == logger.LogError {
@@ -378,7 +380,7 @@ func TestOutport_SubscribeDriver(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil driver should error", func(t *testing.T) {
-		outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+		outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 
 		require.False(t, outportHandler.HasDrivers())
 
@@ -387,7 +389,7 @@ func TestOutport_SubscribeDriver(t *testing.T) {
 		require.False(t, outportHandler.HasDrivers())
 	})
 	t.Run("should work", func(t *testing.T) {
-		outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+		outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 
 		require.False(t, outportHandler.HasDrivers())
 
@@ -400,7 +402,7 @@ func TestOutport_SubscribeDriver(t *testing.T) {
 func TestOutport_Close(t *testing.T) {
 	t.Parallel()
 
-	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 
 	localErr := errors.New("local err")
 	driver1 := &mock.DriverStub{
@@ -424,7 +426,7 @@ func TestOutport_Close(t *testing.T) {
 func TestOutport_CloseWhileDriverIsStuckInContinuousErrors(t *testing.T) {
 	t.Parallel()
 
-	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 
 	localErr := errors.New("driver stuck in error")
 	driver1 := &mock.DriverStub{
@@ -512,7 +514,7 @@ func TestOutport_SaveBlockDriverStuck(t *testing.T) {
 	t.Parallel()
 
 	currentCounter := uint64(778)
-	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	outportHandler.messageCounter = currentCounter
 	outportHandler.timeForDriverCall = time.Second
 	logErrorCalled := atomic.Flag{}
@@ -547,7 +549,7 @@ func TestOutport_SaveBlockDriverIsNotStuck(t *testing.T) {
 	t.Parallel()
 
 	currentCounter := uint64(778)
-	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{})
+	outportHandler, _ := NewOutport(minimumRetrialInterval, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	outportHandler.messageCounter = currentCounter
 	outportHandler.timeForDriverCall = time.Second
 	numLogDebugCalled := uint32(0)
@@ -595,7 +597,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 			},
 		}
 
-		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{})
+		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 		err := outportHandler.SubscribeDriver(driver)
 		assert.Equal(t, expectedErr, err)
 		require.False(t, outportHandler.HasDrivers())
@@ -624,7 +626,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 			},
 		}
 
-		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{})
+		outportHandler, _ := NewOutport(time.Second, outportcore.OutportConfig{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 		err := outportHandler.SubscribeDriver(driver)
 		assert.Nil(t, err)
 
@@ -654,7 +656,7 @@ func TestOutport_SettingsRequestAndReceive(t *testing.T) {
 		providedConfig := outportcore.OutportConfig{
 			IsInImportDBMode: true,
 		}
-		outportHandler, _ := NewOutport(time.Second, providedConfig)
+		outportHandler, _ := NewOutport(time.Second, providedConfig, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 		err := outportHandler.SubscribeDriver(driver)
 		assert.Nil(t, err)
 		assert.True(t, outportHandler.HasDrivers())

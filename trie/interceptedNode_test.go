@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getDefaultInterceptedTrieNodeParameters() ([]byte, hashing.Hasher) {
@@ -177,4 +178,11 @@ func TestInterceptedTrieNode_SizeInBytes(t *testing.T) {
 
 	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
 	assert.Equal(t, 131, interceptedNode.SizeInBytes())
+}
+
+func TestInterceptedTrieNode_ShouldAllowDuplicates(t *testing.T) {
+	t.Parallel()
+
+	interceptedNode, _ := trie.NewInterceptedTrieNode(getDefaultInterceptedTrieNodeParameters())
+	require.True(t, interceptedNode.ShouldAllowDuplicates())
 }

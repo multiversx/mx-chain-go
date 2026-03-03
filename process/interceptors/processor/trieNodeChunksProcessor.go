@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor/chunk"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -102,7 +103,7 @@ func (proc *trieNodeChunksProcessor) processLoop(ctx context.Context) {
 }
 
 // CheckBatch will check the batch returning a checked chunk result containing result processing
-func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch, whiteListHandler process.WhiteListHandler) (process.CheckedChunkResult, error) {
+func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch, whiteListHandler process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 	batchValid, err := proc.batchIsValid(b, whiteListHandler)
 	if !batchValid {
 		return process.CheckedChunkResult{
@@ -132,6 +133,10 @@ func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch, whiteListHandler
 	}
 }
 
+// MarkVerified does nothing
+func (proc *trieNodeChunksProcessor) MarkVerified(_ *batch.Batch, _ p2p.BroadcastMethod) {
+}
+
 func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 	shouldNotCreateChunk := cr.batch.ChunkIndex != 0
 	result := process.CheckedChunkResult{
@@ -140,7 +145,7 @@ func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 	chunkObject, found := proc.chunksCacher.Get(cr.batch.Reference)
 	if !found {
 		if shouldNotCreateChunk {
-			//we received other chunks from a previous, completed large trie node, return
+			// we received other chunks from a previous, completed large trie node, return
 
 			proc.writeCheckedChunkResultOnChan(cr, result)
 			return
@@ -151,7 +156,7 @@ func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {
 	chunkData, ok := chunkObject.(chunkHandler)
 	if !ok {
 		if shouldNotCreateChunk {
-			//we received other chunks from a previous, completed large trie node, return
+			// we received other chunks from a previous, completed large trie node, return
 			proc.writeCheckedChunkResultOnChan(cr, result)
 			return
 		}
@@ -210,7 +215,7 @@ func (proc *trieNodeChunksProcessor) doRequests(ctx context.Context) {
 	for _, ref := range references {
 		select {
 		case <-ctx.Done():
-			//early exit
+			// early exit
 			return
 		default:
 		}
@@ -234,7 +239,7 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 	for _, missingChunkIndex := range missing {
 		select {
 		case <-ctx.Done():
-			//early exit
+			// early exit
 			return
 		default:
 		}
@@ -247,7 +252,7 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 func (proc *trieNodeChunksProcessor) Close() error {
 	log.Debug("trieNodeChunkProcessor.Close()", "key", proc.topic)
 	defer func() {
-		//this instruction should be called last as to release hanging go routines
+		// this instruction should be called last as to release hanging go routines
 		close(proc.chanClose)
 	}()
 

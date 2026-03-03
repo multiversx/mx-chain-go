@@ -45,6 +45,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -101,7 +102,7 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createAcc(address []byte) state.UserAccountHandler {
 	dtlp, _ := parsers.NewDataTrieLeafParser(address, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(address, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(address, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, disabled.NewDisabledStateAccessesCollector())
 	acc, _ := accounts.NewUserAccount(address, dtt, dtlp)
 
 	return acc
@@ -5355,20 +5356,21 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		WDTimer:                  &testscommon.WatchdogMock{},
-		Alarm:                    &testscommon.AlarmSchedulerStub{},
-		NtpTimer:                 &testscommon.SyncTimerStub{},
-		RoundHandlerField:        &testscommon.RoundHandlerMock{},
-		EconomicsHandler:         &economicsmocks.EconomicsHandlerMock{},
-		APIEconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
-		RatingsConfig:            &testscommon.RatingsInfoMock{},
-		RatingHandler:            &testscommon.RaterMock{},
-		NodesConfig:              &genesisMocks.NodesSetupStub{},
-		StartTime:                time.Time{},
-		EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
-		TxVersionCheckHandler:    versioning.NewTxVersionChecker(0),
-		EnableEpochsHandlerField: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag),
-		FieldsSizeCheckerField:   &testscommon.FieldsSizeCheckerMock{},
+		WDTimer:                      &testscommon.WatchdogMock{},
+		Alarm:                        &testscommon.AlarmSchedulerStub{},
+		NtpTimer:                     &testscommon.SyncTimerStub{},
+		RoundHandlerField:            &testscommon.RoundHandlerMock{},
+		EconomicsHandler:             &economicsmocks.EconomicsHandlerMock{},
+		APIEconomicsHandler:          &economicsmocks.EconomicsHandlerMock{},
+		RatingsConfig:                &testscommon.RatingsInfoMock{},
+		RatingHandler:                &testscommon.RaterMock{},
+		NodesConfig:                  &genesisMocks.NodesSetupStub{},
+		StartTime:                    time.Time{},
+		EpochChangeNotifier:          &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckHandler:        versioning.NewTxVersionChecker(0),
+		EnableEpochsHandlerField:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag),
+		FieldsSizeCheckerField:       &testscommon.FieldsSizeCheckerMock{},
+		AntifloodConfigsHandlerField: &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 

@@ -86,7 +86,6 @@ func TestStorageEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T
 }
 
 func TestStorageEpochStartBootstrap_BootstrapFromGenesis(t *testing.T) {
-	roundsPerEpoch := int64(100)
 	roundDuration := uint64(60000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
@@ -101,7 +100,6 @@ func TestStorageEpochStartBootstrap_BootstrapFromGenesis(t *testing.T) {
 		},
 	}
 	args.GeneralConfig = testscommon.GetGeneralConfig()
-	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
 	sesb, _ := NewStorageEpochStartBootstrap(args)
 
 	params, err := sesb.Bootstrap()
@@ -128,7 +126,6 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 		RoundIndex: 2*roundsPerEpoch + 1,
 	}
 	args.GeneralConfig = testscommon.GetGeneralConfig()
-	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
 	args.InterceptedDataVerifierFactory = &processMock.InterceptedDataVerifierFactoryMock{}
 	sesb, _ := NewStorageEpochStartBootstrap(args)
 

@@ -2,12 +2,14 @@ package testscommon
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/state"
 )
 
 // ValidatorStatisticsProcessorStub -
 type ValidatorStatisticsProcessorStub struct {
 	UpdatePeerStateCalled                    func(header data.MetaHeaderHandler) ([]byte, error)
+	UpdatePeerStateV3Called                  func(header data.MetaHeaderHandler, metaExecutionResult data.MetaExecutionResultHandler) ([]byte, error)
 	RevertPeerStateCalled                    func(header data.MetaHeaderHandler) error
 	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
@@ -67,6 +69,14 @@ func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHas
 func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.MetaHeaderHandler, _ map[string]data.HeaderHandler) ([]byte, error) {
 	if vsp.UpdatePeerStateCalled != nil {
 		return vsp.UpdatePeerStateCalled(header)
+	}
+	return nil, nil
+}
+
+// UpdatePeerStateV3 -
+func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerStateV3(header data.MetaHeaderHandler, _ map[string]data.HeaderHandler, metaExecResult data.MetaExecutionResultHandler) ([]byte, error) {
+	if vsp.UpdatePeerStateV3Called != nil {
+		return vsp.UpdatePeerStateV3Called(header, metaExecResult)
 	}
 	return nil, nil
 }

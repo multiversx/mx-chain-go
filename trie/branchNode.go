@@ -11,9 +11,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ = node(&branchNode{})
@@ -288,67 +289,51 @@ func (bn *branchNode) commitDirty(originDb common.TrieStorageInteractor, targetD
 	return nil
 }
 
+// TODO refactor long parameter list
 func (bn *branchNode) commitSnapshot(
-	db common.TrieStorageInteractor,
+	db snapshotDb,
+	maxEpochToSearchFrom uint32,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
 	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	nodeBytes []byte,
 	tmc MetricsCollector,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return core.ErrContextClosing
 	}
 
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
-	}
-
 	depthLevel := tmc.GetCurrentDepth()
 	tmc.SetDepth(depthLevel + 1)
 	defer tmc.SetDepth(depthLevel) // Reset depth when returning from this level
 
-	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), tmc, db)
-		childIsMissing, err := treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
-		if err != nil {
-			return err
-		}
-		if childIsMissing {
+	for i := range bn.EncodedChildren {
+		if len(bn.EncodedChildren[i]) == 0 {
 			continue
 		}
 
-		if bn.children[i] == nil {
-			continue
-		}
-
-		err = bn.children[i].commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, tmc)
+		err := commitSnapshot(
+			db,
+			maxEpochToSearchFrom,
+			bn.marsh,
+			bn.hasher,
+			leavesChan,
+			missingNodesChan,
+			ctx,
+			stats,
+			idleProvider,
+			tmc,
+			bn.EncodedChildren[i],
+		)
 		if err != nil {
 			return err
 		}
 	}
 
-	return bn.saveToStorage(db, stats, int(depthLevel))
-}
-
-func (bn *branchNode) saveToStorage(targetDb common.BaseStorer, stats common.TrieStatisticsHandler, depthLevel int) error {
-	nodeSize, err := encodeNodeAndCommitToDB(bn, targetDb)
-	if err != nil {
-		return err
-	}
-
-	stats.AddBranchNode(depthLevel, uint64(nodeSize))
-
-	bn.removeChildrenPointers()
+	stats.AddBranchNode(int(depthLevel), uint64(len(nodeBytes)))
 	return nil
-}
-
-func (bn *branchNode) removeChildrenPointers() {
-	for i := range bn.children {
-		bn.children[i] = nil
-	}
 }
 
 func (bn *branchNode) getEncodedNode() ([]byte, error) {

@@ -140,4 +140,5 @@ func TestInterceptedPeerShard_Getters(t *testing.T) {
 	assert.True(t, bytes.Equal([]byte(""), identifiers[0]))
 	assert.Equal(t, fmt.Sprintf("shard=%s", providedShard), idci.String())
 	assert.Equal(t, providedShard, idci.ShardID())
+	assert.True(t, idci.ShouldAllowDuplicates())
 }

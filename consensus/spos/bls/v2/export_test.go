@@ -226,6 +226,11 @@ func (sr *subroundBlock) GetLeaderForHeader(headerHandler data.HeaderHandler) ([
 	return sr.getLeaderForHeader(headerHandler)
 }
 
+// UpdateConsensusMetricsProposedBlockReceivedOrSent updates the metrics containing time taken to receive a proposed block body since the round started
+func (sr *subroundBlock) UpdateConsensusMetricsProposedBlockReceivedOrSent() {
+	sr.updateConsensusMetricsProposedBlockReceivedOrSent()
+}
+
 // subroundSignature
 
 // SubroundSignature defines an alias to the subroundSignature structure
@@ -359,4 +364,19 @@ func (sr *subroundEndRound) GetEquivalentProofSender() string {
 // SendProof -
 func (sr *subroundEndRound) SendProof() (bool, error) {
 	return sr.sendProof()
+}
+
+// UpdateConsensusMetricsProof -
+func (sr *subroundEndRound) UpdateConsensusMetricsProof() {
+	sr.updateConsensusMetricsProof()
+}
+
+// UpdateNonceDeltaMetrics -
+func (sr *subroundEndRound) UpdateNonceDeltaMetrics() {
+	sr.updateNonceDeltaMetrics()
+}
+
+// PrepareBlockForExecution prepares the block for execution
+func (sr *subroundBlock) PrepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
+	return sr.prepareBlockForExecution(header, body)
 }

@@ -82,6 +82,9 @@ var ErrNotSupportedCacheType = storageErrors.ErrNotSupportedCacheType
 // ErrDBIsClosed is raised when the DB is closed
 var ErrDBIsClosed = storageErrors.ErrDBIsClosed
 
+// ErrNilPersister is raised when a nil persister is provided
+var ErrNilPersister = storageErrors.ErrNilPersister
+
 // ErrEpochKeepIsLowerThanNumActive signals that num epochs to keep is lower than num active epochs
 var ErrEpochKeepIsLowerThanNumActive = errors.New("num epochs to keep is lower than num active epochs")
 

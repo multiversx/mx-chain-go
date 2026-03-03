@@ -126,8 +126,10 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 				break
 			}
 
-			transactionsToEvict = append(transactionsToEvict, item.currentTransaction)
-			transactionsToEvictHashes = append(transactionsToEvictHashes, item.currentTransaction.TxHash)
+			if !cache.tracker.IsTransactionTracked(item.currentTransaction) {
+				transactionsToEvict = append(transactionsToEvict, item.currentTransaction)
+				transactionsToEvictHashes = append(transactionsToEvictHashes, item.currentTransaction.TxHash)
+			}
 
 			// If there are more transactions in the same bunch (same sender as the popped item),
 			// add the next one to the heap (to compete with the others in being "the worst").
