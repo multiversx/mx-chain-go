@@ -71,7 +71,6 @@ const DefaultTimeToWaitForRequestedData = 5 * time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)
-const tenMbSize = 10 * 1024 * 1024
 
 // thresholdForConsideringMetaBlockCorrect represents the percentage (between 0 and 100) of connected peers to send
 // the same meta block in order to consider it correct
