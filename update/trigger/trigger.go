@@ -12,12 +12,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/update"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const hardforkTriggerString = "hardfork trigger"
@@ -417,7 +418,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 	}
 
 	currentEpoch := t.epochProvider.MetaEpoch()
-	if currentEpoch-epoch > epochGracePeriod {
+	if currentEpoch > epoch && currentEpoch-epoch > epochGracePeriod {
 		return true, fmt.Errorf("%w epoch out of grace period", update.ErrIncorrectHardforkMessage)
 	}
 
