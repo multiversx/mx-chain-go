@@ -145,7 +145,10 @@ func TestManagedStatusComponents_StartPolling(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
 		managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
-		err := managedStatusComponents.Create()
+		err := managedStatusComponents.SetForkDetector(&mock.ForkDetectorMock{})
+		require.Nil(t, err)
+
+		err = managedStatusComponents.Create()
 		require.NoError(t, err)
 
 		err = managedStatusComponents.StartPolling()

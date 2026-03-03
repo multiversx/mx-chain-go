@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -19,13 +20,17 @@ type TransactionCoordinatorMock struct {
 	SaveTxsToStorageCalled                               func(body *block.Body)
 	RestoreBlockDataFromStorageCalled                    func(body *block.Body) (int, error)
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
-	RemoveTxsFromPoolCalled                              func(body *block.Body) error
+	RemoveTxsFromPoolCalled                              func(body *block.Body, rootHashHolder common.RootHashHolder) error
 	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
+	GetCreatedMiniBlocksFromMeCalled                     func() block.MiniBlockSlice
 	CreateBlockStartedCalled                             func()
+	CreateMbsCrossShardDstMeCalled                       func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error)
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                          func(body *block.Body) map[string][][]byte
+	CreateMarshalledDataForHeaderCalled                  func(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte
 	GetCreatedInShardMiniBlocksCalled                    func() []*block.MiniBlock
+	SelectOutgoingTransactionsCalled                     func(nonce uint64, haveTimeForSelection func() bool) ([][]byte, []data.MiniBlockHeaderHandler)
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
 	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
 	CreatePostProcessMiniBlocksCalled                    func() block.MiniBlockSlice
@@ -34,12 +39,34 @@ type TransactionCoordinatorMock struct {
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
+	ComputeTransactionTypeInEpochCalled                  func(tx data.TransactionHandler, epoch uint32) (process.TransactionType, process.TransactionType, bool)
+	CreateReceiptsHashCalled                             func() ([]byte, error)
+	GetUnExecutableTransactionsCalled                    func() map[string]struct{}
+	ProposedDirectSentTransactionsToBroadcastCalled      func(proposedBody data.BodyHandler) map[string][][]byte
 
 	miniBlocks []*block.MiniBlock
 }
 
+// GetUnExecutableTransactions -
+func (tcm *TransactionCoordinatorMock) GetUnExecutableTransactions() map[string]struct{} {
+	if tcm.GetUnExecutableTransactionsCalled != nil {
+		return tcm.GetUnExecutableTransactionsCalled()
+	}
+
+	return nil
+}
+
+// ComputeTransactionTypeInEpoch -
+func (tcm *TransactionCoordinatorMock) ComputeTransactionTypeInEpoch(tx data.TransactionHandler, epoch uint32) (process.TransactionType, process.TransactionType, bool) {
+	if tcm.ComputeTransactionTypeInEpochCalled == nil {
+		return process.MoveBalance, process.MoveBalance, false
+	}
+
+	return tcm.ComputeTransactionTypeInEpochCalled(tx, epoch)
+}
+
 // GetAllCurrentLogs -
-func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() []*data.LogData {
+func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() []data.LogDataHandler {
 	return nil
 }
 
@@ -53,6 +80,9 @@ func (tcm *TransactionCoordinatorMock) CreatePostProcessMiniBlocks() block.MiniB
 
 // CreateReceiptsHash -
 func (tcm *TransactionCoordinatorMock) CreateReceiptsHash() ([]byte, error) {
+	if tcm.CreateReceiptsHashCalled != nil {
+		return tcm.CreateReceiptsHashCalled()
+	}
 	return []byte("receiptHash"), nil
 }
 
@@ -120,12 +150,12 @@ func (tcm *TransactionCoordinatorMock) RemoveBlockDataFromPool(body *block.Body)
 }
 
 // RemoveTxsFromPool -
-func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body) error {
+func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body, rootHashHolder common.RootHashHolder) error {
 	if tcm.RemoveTxsFromPoolCalled == nil {
 		return nil
 	}
 
-	return tcm.RemoveTxsFromPoolCalled(body)
+	return tcm.RemoveTxsFromPoolCalled(body, rootHashHolder)
 }
 
 // ProcessBlockTransaction -
@@ -137,6 +167,15 @@ func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(header data.Heade
 	return tcm.ProcessBlockTransactionCalled(header, body, haveTime)
 }
 
+// GetCreatedMiniBlocksFromMe -
+func (tcm *TransactionCoordinatorMock) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	if tcm.GetCreatedMiniBlocksFromMeCalled == nil {
+		return nil
+	}
+
+	return tcm.GetCreatedMiniBlocksFromMeCalled()
+}
+
 // CreateBlockStarted -
 func (tcm *TransactionCoordinatorMock) CreateBlockStarted() {
 	if tcm.CreateBlockStartedCalled == nil {
@@ -144,6 +183,18 @@ func (tcm *TransactionCoordinatorMock) CreateBlockStarted() {
 	}
 
 	tcm.CreateBlockStartedCalled()
+}
+
+// CreateMbsCrossShardDstMe -
+func (tcm *TransactionCoordinatorMock) CreateMbsCrossShardDstMe(
+	header data.HeaderHandler,
+	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+	if tcm.CreateMbsCrossShardDstMeCalled == nil {
+		return nil, nil, 0, false, false, nil
+	}
+
+	return tcm.CreateMbsCrossShardDstMeCalled(header, processedMiniBlocksInfo)
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe -
@@ -159,6 +210,15 @@ func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactions
 	}
 
 	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksInfo, haveTime, haveAdditionalTime, scheduledMode)
+}
+
+// SelectOutgoingTransactions -
+func (tcm *TransactionCoordinatorMock) SelectOutgoingTransactions(nonce uint64, haveTimeForSelection func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
+	if tcm.SelectOutgoingTransactionsCalled == nil {
+		return make([][]byte, 0), make([]data.MiniBlockHeaderHandler, 0)
+	}
+
+	return tcm.SelectOutgoingTransactionsCalled(nonce, haveTimeForSelection)
 }
 
 // CreateMbsAndProcessTransactionsFromMe -
@@ -177,6 +237,15 @@ func (tcm *TransactionCoordinatorMock) CreateMarshalizedData(body *block.Body) m
 	}
 
 	return tcm.CreateMarshalizedDataCalled(body)
+}
+
+// CreateMarshalledDataForHeader -
+func (tcm *TransactionCoordinatorMock) CreateMarshalledDataForHeader(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte {
+	if tcm.CreateMarshalledDataForHeaderCalled == nil {
+		return make(map[string][][]byte)
+	}
+
+	return tcm.CreateMarshalledDataForHeaderCalled(header, body, miniBlocksMap)
 }
 
 // GetAllCurrentUsedTxs -
@@ -252,8 +321,18 @@ func (tcm *TransactionCoordinatorMock) AddTransactions(txHandlers []data.Transac
 	tcm.AddTransactionsCalled(txHandlers, blockType)
 }
 
+// ClearStoredMbs -
 func (tcm *TransactionCoordinatorMock) ClearStoredMbs() {
 	tcm.miniBlocks = make([]*block.MiniBlock, 0)
+}
+
+// ProposedDirectSentTransactionsToBroadcast -
+func (tcm *TransactionCoordinatorMock) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	if tcm.ProposedDirectSentTransactionsToBroadcastCalled == nil {
+		return nil
+	}
+
+	return tcm.ProposedDirectSentTransactionsToBroadcastCalled(proposedBody)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

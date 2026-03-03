@@ -26,10 +26,14 @@ func NewShardForkDetector(
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
+	supernovaGenesisTime int64,
 	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
 	proofsPool process.ProofsPool,
+	chainParametersHandler common.ChainParametersHandler,
+	processConfigsHandler common.ProcessConfigsHandler,
+	shardID uint32,
 ) (*shardForkDetector, error) {
-
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
@@ -42,8 +46,17 @@ func NewShardForkDetector(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(enableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(proofsPool) {
 		return nil, process.ErrNilProofsPool
+	}
+	if check.IfNil(chainParametersHandler) {
+		return nil, process.ErrNilChainParametersHandler
+	}
+	if check.IfNil(processConfigsHandler) {
+		return nil, process.ErrNilProcessConfigsHandler
 	}
 
 	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
@@ -52,15 +65,20 @@ func NewShardForkDetector(
 	}
 
 	bfd := &baseForkDetector{
-		roundHandler:        roundHandler,
-		blackListHandler:    blackListHandler,
-		genesisTime:         genesisTime,
-		blockTracker:        blockTracker,
-		genesisNonce:        genesisHdr.GetNonce(),
-		genesisRound:        genesisHdr.GetRound(),
-		genesisEpoch:        genesisHdr.GetEpoch(),
-		enableEpochsHandler: enableEpochsHandler,
-		proofsPool:          proofsPool,
+		roundHandler:           roundHandler,
+		blackListHandler:       blackListHandler,
+		genesisTime:            genesisTime,
+		supernovaGenesisTime:   supernovaGenesisTime,
+		blockTracker:           blockTracker,
+		genesisNonce:           genesisHdr.GetNonce(),
+		genesisRound:           genesisHdr.GetRound(),
+		genesisEpoch:           genesisHdr.GetEpoch(),
+		enableEpochsHandler:    enableEpochsHandler,
+		enableRoundsHandler:    enableRoundsHandler,
+		proofsPool:             proofsPool,
+		chainParametersHandler: chainParametersHandler,
+		processConfigsHandler:  processConfigsHandler,
+		shardID:                shardID,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)

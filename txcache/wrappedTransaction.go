@@ -33,7 +33,12 @@ func (wrappedTx *WrappedTransaction) precomputeFields(host MempoolHost) {
 
 	gasLimit := wrappedTx.Tx.GetGasLimit()
 	if gasLimit != 0 {
-		wrappedTx.PricePerUnit = wrappedTx.Fee.Uint64() / gasLimit
+		pricePerUnit := big.NewInt(0)
+		_ = pricePerUnit.Div(wrappedTx.Fee, big.NewInt(int64(gasLimit)))
+		// The operation below can't result in an overflow.
+		// PricePerUnit will always be uint64 because of how the fee is computed:
+		// Two uint64s which are multiplied and one of them being the actual gasLimit which is used later for the div.
+		wrappedTx.PricePerUnit = pricePerUnit.Uint64()
 	}
 
 	wrappedTx.TransferredValue = host.GetTransferredValue(wrappedTx.Tx)
@@ -66,4 +71,8 @@ func (wrappedTx *WrappedTransaction) isTransactionMoreValuableForNetwork(otherTr
 
 	// In the end, compare by transaction hash
 	return bytes.Compare(wrappedTx.TxHash, otherTransaction.TxHash) < 0
+}
+
+func (wrappedTx *WrappedTransaction) isFeePayerSameAsSender() bool {
+	return bytes.Equal(wrappedTx.FeePayer, wrappedTx.Tx.GetSndAddr())
 }

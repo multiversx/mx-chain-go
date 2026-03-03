@@ -65,6 +65,8 @@ func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandl
 		HostDriversArgs:           hostDriverArgs,
 		EventNotifierFactoryArgs:  &outportFactory.EventNotifierFactoryArgs{},
 		ElasticIndexerFactoryArgs: makeElasticIndexerArgs(external, coreComponents),
+		EnableEpochsHandler:       coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:       coreComponents.EnableRoundsHandler(),
 	})
 	if err != nil {
 		return nil, err
@@ -145,7 +147,6 @@ func makeElasticIndexerArgs(external config.ExternalConfig, coreComponents proce
 		ValidatorPubkeyConverter: coreComponents.ValidatorPubKeyConverter(),
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		Denomination:             18,
-		UseKibana:                elasticSearchConfig.UseKibana,
 		ImportDB:                 false,
 		HeaderMarshaller:         coreComponents.InternalMarshalizer(),
 	}

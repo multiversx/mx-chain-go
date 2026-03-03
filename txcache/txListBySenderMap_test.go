@@ -9,26 +9,30 @@ import (
 )
 
 func TestSendersMap_AddTx_IncrementsCounter(t *testing.T) {
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
+
 	myMap := newSendersMapToTest()
 
-	myMap.addTxReturnEvicted(createTx([]byte("a"), "alice", 1))
-	myMap.addTxReturnEvicted(createTx([]byte("aa"), "alice", 2))
-	myMap.addTxReturnEvicted(createTx([]byte("b"), "bob", 1))
+	myMap.addTxReturnEvicted(createTx([]byte("a"), "alice", 1), txCache.tracker)
+	myMap.addTxReturnEvicted(createTx([]byte("aa"), "alice", 2), txCache.tracker)
+	myMap.addTxReturnEvicted(createTx([]byte("b"), "bob", 1), txCache.tracker)
 
 	// There are 2 senders
 	require.Equal(t, int64(2), myMap.counter.Get())
 }
 
 func TestSendersMap_removeTransactionsWithLowerOrEqualNonceReturnHashes_alsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
+
 	myMap := newSendersMapToTest()
 
 	txAlice1 := createTx([]byte("a1"), "alice", 1)
 	txAlice2 := createTx([]byte("a2"), "alice", 2)
 	txBob := createTx([]byte("b"), "bob", 1)
 
-	myMap.addTxReturnEvicted(txAlice1)
-	myMap.addTxReturnEvicted(txAlice2)
-	myMap.addTxReturnEvicted(txBob)
+	myMap.addTxReturnEvicted(txAlice1, txCache.tracker)
+	myMap.addTxReturnEvicted(txAlice2, txCache.tracker)
+	myMap.addTxReturnEvicted(txBob, txCache.tracker)
 	require.Equal(t, int64(2), myMap.counter.Get())
 	require.Equal(t, uint64(2), myMap.testGetListForSender("alice").countTx())
 	require.Equal(t, uint64(1), myMap.testGetListForSender("bob").countTx())
@@ -48,9 +52,11 @@ func TestSendersMap_removeTransactionsWithLowerOrEqualNonceReturnHashes_alsoRemo
 }
 
 func TestSendersMap_RemoveSender(t *testing.T) {
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
+
 	myMap := newSendersMapToTest()
 
-	myMap.addTxReturnEvicted(createTx([]byte("a"), "alice", 1))
+	myMap.addTxReturnEvicted(createTx([]byte("a"), "alice", 1), txCache.tracker)
 	require.Equal(t, int64(1), myMap.counter.Get())
 
 	// Bob is unknown
@@ -63,6 +69,7 @@ func TestSendersMap_RemoveSender(t *testing.T) {
 
 func TestSendersMap_RemoveSendersBulk_ConcurrentWithAddition(t *testing.T) {
 	myMap := newSendersMapToTest()
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
 
 	var wg sync.WaitGroup
 
@@ -85,9 +92,9 @@ func TestSendersMap_RemoveSendersBulk_ConcurrentWithAddition(t *testing.T) {
 	wg.Add(100)
 	for i := 0; i < 100; i++ {
 		go func(i int) {
-			myMap.addTxReturnEvicted(createTx([]byte("a"), "alice", uint64(i)))
-			myMap.addTxReturnEvicted(createTx([]byte("b"), "bob", uint64(i)))
-			myMap.addTxReturnEvicted(createTx([]byte("c"), "carol", uint64(i)))
+			myMap.addTxReturnEvicted(createTx([]byte("a"), "alice", uint64(i)), txCache.tracker)
+			myMap.addTxReturnEvicted(createTx([]byte("b"), "bob", uint64(i)), txCache.tracker)
+			myMap.addTxReturnEvicted(createTx([]byte("c"), "carol", uint64(i)), txCache.tracker)
 
 			wg.Done()
 		}(i)

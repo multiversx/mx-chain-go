@@ -11,6 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
@@ -25,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	"github.com/multiversx/mx-chain-go/sharding"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/statusHandler"
@@ -35,7 +38,6 @@ import (
 	hardfork "github.com/multiversx/mx-chain-go/update/genesis"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 	"github.com/multiversx/mx-chain-go/update/storing"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 )
 
 const accountStartNonce = uint64(0)
@@ -153,6 +155,9 @@ func createStorer(storageConfig config.StorageConfig, folder string) (storage.St
 func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.Accounts) {
 		return process.ErrNilAccountsAdapter
+	}
+	if check.IfNil(arg.AccountsProposal) {
+		return fmt.Errorf("%w for proposal", process.ErrNilAccountsAdapter)
 	}
 	if check.IfNil(arg.Core) {
 		return process.ErrNilCoreComponentsHolder
@@ -405,7 +410,9 @@ func (gbc *genesisBlockCreator) createHeaders(
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
-func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
+func (gbc *genesisBlockCreator) computeDNSAddresses(
+	enableEpochsConfig config.EnableEpochs,
+) error {
 	var dnsSC genesis.InitialSmartContractHandler
 	for _, sc := range gbc.arg.SmartContractParser.InitialSmartContracts() {
 		if sc.GetType() == genesis.DNSType {
@@ -496,9 +503,10 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 	}
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              newArgument.Core.Hasher(),
-		Marshaller:          newArgument.Core.InternalMarshalizer(),
-		EnableEpochsHandler: newArgument.Core.EnableEpochsHandler(),
+		Hasher:                 newArgument.Core.Hasher(),
+		Marshaller:             newArgument.Core.InternalMarshalizer(),
+		EnableEpochsHandler:    newArgument.Core.EnableEpochsHandler(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {
@@ -517,6 +525,9 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating an in-memory accounts adapter for shard %d",
 			err, shardID)
 	}
+	// for genesis we can reuse the same account adapter for proposal as first proposal needs to happen after genesis block execution
+	// and the proposal won't use the genesis block creator
+	newArgument.AccountsProposal = newArgument.Accounts
 
 	newArgument.ShardCoordinator, err = sharding.NewMultiShardCoordinator(
 		newArgument.ShardCoordinator.NumberOfShards(),
@@ -533,16 +544,9 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 }
 
 func (gbc *genesisBlockCreator) createVersionedHeaderFactory() (genesis.VersionedHeaderFactory, error) {
-	cacheConfig := factory.GetCacherFromConfig(gbc.arg.HeaderVersionConfigs.Cache)
-	cache, err := storageunit.NewCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	headerVersionHandler, err := factoryBlock.NewHeaderVersionHandler(
 		gbc.arg.HeaderVersionConfigs.VersionsByEpochs,
 		gbc.arg.HeaderVersionConfigs.DefaultVersion,
-		cache,
 	)
 	if err != nil {
 		return nil, err

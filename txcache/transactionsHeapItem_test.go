@@ -44,7 +44,8 @@ func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
 	item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 	require.NoError(t, err)
 
-	selected := item.selectCurrentTransaction()
+	selected := item.getCurrentTransaction()
+	item.selectCurrentTransaction()
 	require.Equal(t, a, selected)
 	require.Equal(t, a, item.latestSelectedTransaction)
 	require.Equal(t, 42, int(item.latestSelectedTransactionNonce))
@@ -52,7 +53,8 @@ func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
 	ok := item.gotoNextTransaction()
 	require.True(t, ok)
 
-	selected = item.selectCurrentTransaction()
+	selected = item.getCurrentTransaction()
+	item.selectCurrentTransaction()
 	require.Equal(t, b, selected)
 	require.Equal(t, b, item.latestSelectedTransaction)
 	require.Equal(t, 43, int(item.latestSelectedTransactionNonce))
@@ -156,7 +158,7 @@ func TestTransactionsHeapItem_detectNonceDuplicate(t *testing.T) {
 func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
 	t.Run("is correctly guarded", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		sessionWrapper := newSelectionSessionWrapper(session)
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
 			return false
@@ -165,7 +167,7 @@ func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{createTx([]byte("tx-1"), "alice", 42)})
 		require.NoError(t, err)
 
-		require.False(t, item.detectIncorrectlyGuarded(sessionWrapper))
+		require.False(t, item.detectIncorrectlyGuarded(virtualSession))
 	})
 
 	t.Run("is incorrectly guarded", func(t *testing.T) {
@@ -173,11 +175,11 @@ func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
 		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
 			return true
 		}
-		sessionWrapper := newSelectionSessionWrapper(session)
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		item, err := newTransactionsHeapItem(bunchOfTransactions{createTx([]byte("tx-1"), "alice", 42)})
 		require.NoError(t, err)
 
-		require.True(t, item.detectIncorrectlyGuarded(sessionWrapper))
+		require.True(t, item.detectIncorrectlyGuarded(virtualSession))
 	})
 }

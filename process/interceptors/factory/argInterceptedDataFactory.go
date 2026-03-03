@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -37,8 +36,9 @@ type interceptedDataCryptoComponentsHolder interface {
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSingleSigner() crypto.SingleSigner
 	BlockSigner() crypto.SingleSigner
-	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
+	GetMultiSigner(epoch uint32) (crypto.MultiSignerV2, error)
 	PublicKey() crypto.PublicKey
+	ManagedPeersHolder() common.ManagedPeersHolder
 	IsInterfaceNil() bool
 }
 

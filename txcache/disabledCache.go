@@ -1,7 +1,12 @@
 package txcache
 
 import (
+	"time"
+
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-storage-go/types"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 var _ types.Cacher = (*DisabledCache)(nil)
@@ -113,6 +118,11 @@ func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 func (cache *DisabledCache) Diagnose(_ bool) {
 }
 
+// GetTrackerDiagnosis returns nil
+func (cache *DisabledCache) GetTrackerDiagnosis() TrackerDiagnosis {
+	return nil
+}
+
 // GetTransactionsPoolForSender returns an empty slice
 func (cache *DisabledCache) GetTransactionsPoolForSender(_ string) []*WrappedTransaction {
 	return make([]*WrappedTransaction, 0)
@@ -121,6 +131,29 @@ func (cache *DisabledCache) GetTransactionsPoolForSender(_ string) []*WrappedTra
 // Close does nothing
 func (cache *DisabledCache) Close() error {
 	return nil
+}
+
+// OnProposedBlock does nothing
+func (cache *DisabledCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ []byte) error {
+	return nil
+}
+
+// OnBackfilledBlock does nothing
+func (cache *DisabledCache) OnBackfilledBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler) error {
+	return nil
+}
+
+// OnExecutedBlock does nothing
+func (cache *DisabledCache) OnExecutedBlock(_ data.HeaderHandler, _ []byte) error {
+	return nil
+}
+
+// ResetTracker does nothing
+func (cache *DisabledCache) ResetTracker() {}
+
+// Cleanup does nothing
+func (cache *DisabledCache) Cleanup(_ common.AccountNonceProvider, _ uint64, _ int, _ time.Duration) uint64 {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

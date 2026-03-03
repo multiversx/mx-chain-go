@@ -48,7 +48,7 @@ type node interface {
 	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, tmc MetricsCollector, db common.TrieStorageInteractor, keyBuilder common.KeyBuilder) (bool, error)
 
 	commitDirty(originDb common.TrieStorageInteractor, targetDb common.BaseStorer, tmc MetricsCollector) error
-	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, tmc MetricsCollector) error
+	commitSnapshot(originDb snapshotDb, maxEpochToSearchFrom uint32, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, encodedRoot []byte, tmc MetricsCollector) error
 
 	getMarshalizer() marshal.Marshalizer
 	setMarshalizer(marshal.Marshalizer)
@@ -65,7 +65,7 @@ type dbWithGetFromEpoch interface {
 }
 
 type snapshotNode interface {
-	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, tmc MetricsCollector) error
+	commitSnapshot(originDb snapshotDb, maxEpochToSearchFrom uint32, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, encodedRoot []byte, tmc MetricsCollector) error
 }
 
 // RequestHandler defines the methods through which request to data can be made
@@ -89,7 +89,7 @@ type epochStorer interface {
 
 type snapshotPruningStorer interface {
 	common.BaseStorer
-	GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error)
+	GetWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error)
 	GetFromLastEpoch(key []byte) ([]byte, error)
 	PutInEpoch(key []byte, data []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
@@ -110,6 +110,13 @@ type EpochNotifier interface {
 type IdleNodeProvider interface {
 	IsIdle() bool
 	IsInterfaceNil() bool
+}
+
+type snapshotDb interface {
+	GetWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, uint32, error)
+	GetFromLastEpoch(key []byte) ([]byte, error)
+	PutInEpochWithoutCache(key []byte, data []byte) error
+	GetIdentifier() string
 }
 
 // MetricsCollector is used to collect metrics about the trie

@@ -4,10 +4,12 @@ import (
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	"github.com/multiversx/mx-chain-communication-go/websocket/factory"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/outport/host"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type ArgsHostDriverFactory struct {

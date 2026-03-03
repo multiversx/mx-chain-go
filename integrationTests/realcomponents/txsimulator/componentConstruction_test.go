@@ -108,7 +108,7 @@ func TestTransactionSimulationComponentConstructionOnShard(t *testing.T) {
 	// get the contract address from logs
 	logs, found := pr.ProcessComponents.TxLogsProcessor().GetLogFromCache(hash)
 	require.True(t, found)
-	events := logs.GetLogEvents()
+	events := logs.GetLogHandler().GetLogEvents()
 	require.Equal(t, 1, len(events))
 	require.Equal(t, "SCDeploy", string(events[0].GetIdentifier()))
 	contractAddress := events[0].GetAddress()

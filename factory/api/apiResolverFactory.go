@@ -9,6 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/operationmodes"
@@ -46,10 +51,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/vm"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -222,8 +223,9 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
-		AddressLength: args.CoreComponents.AddressPubKeyConverter().Len(),
-		Marshalizer:   args.CoreComponents.InternalMarshalizer(),
+		AddressLength:                       args.CoreComponents.AddressPubKeyConverter().Len(),
+		Marshalizer:                         args.CoreComponents.InternalMarshalizer(),
+		RelayedTransactionsV1V2DisableEpoch: args.CoreComponents.EnableEpochsHandler().GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag),
 	}
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
 	if err != nil {
@@ -246,6 +248,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             args.CoreComponents.TxMarshalizer(),
 		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:      args.CoreComponents.EnableRoundsHandler(),
+		TxVersionChecker:         args.CoreComponents.TxVersionChecker(),
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
@@ -500,6 +504,7 @@ func createMetaVmContainerFactory(args scQueryElementArgs, argsHook hooks.ArgBlo
 		ChanceComputer:      args.coreComponents.Rater(),
 		ShardCoordinator:    args.processComponents.ShardCoordinator(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler: args.coreComponents.EnableRoundsHandler(),
 		NodesCoordinator:    args.processComponents.NodesCoordinator(),
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argsNewVmFactory)
@@ -550,9 +555,10 @@ func createShardVmContainerFactory(args scQueryElementArgs, argsHook hooks.ArgBl
 
 func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.ChainHandler) (state.AccountsAdapterAPI, common.StorageManager, error) {
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              args.coreComponents.Hasher(),
-		Marshaller:          args.coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		Hasher:                 args.coreComponents.Hasher(),
+		Marshaller:             args.coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    args.coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: args.stateComponents.StateAccessesCollector(),
 	}
 	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {
@@ -595,13 +601,14 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 	}
 
 	argsAPIAccountsDB := state.ArgsAccountsDB{
-		Trie:                  merkleTrie,
-		Hasher:                args.coreComponents.Hasher(),
-		Marshaller:            args.coreComponents.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: storagePruning,
-		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
-		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		Trie:                   merkleTrie,
+		Hasher:                 args.coreComponents.Hasher(),
+		Marshaller:             args.coreComponents.InternalMarshalizer(),
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  storagePruning,
+		AddressConverter:       args.coreComponents.AddressPubKeyConverter(),
+		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)

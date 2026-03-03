@@ -65,6 +65,7 @@ func TestBlockTracker(t *testing.T) {
 
 	handler := &BlockTracker{}
 	require.False(t, handler.IsShardStuck(0))
+	require.False(t, handler.IsOwnShardStuck())
 	require.False(t, handler.ShouldSkipMiniBlocksCreationFromSelf())
 	require.False(t, handler.IsInterfaceNil())
 }
@@ -108,6 +109,10 @@ func TestFeeHandler(t *testing.T) {
 	require.Equal(t, uint64(math.MaxUint64), handler.MaxGasLimitPerBlockForSafeCrossShard())
 	require.Equal(t, uint64(math.MaxUint64), handler.MaxGasLimitPerMiniBlockForSafeCrossShard())
 	require.Equal(t, uint64(math.MaxUint64), handler.MaxGasLimitPerTx())
+	require.Equal(t, uint64(math.MaxUint64), handler.BlockCapacityOverestimationFactor())
+	require.Equal(t, uint64(math.MaxUint64), handler.MaxGasLimitPerTxInEpoch(0))
+	require.Equal(t, uint64(math.MaxUint64), handler.MaxGasLimitPerBlockForSafeCrossShardInEpoch(0))
+	require.Equal(t, uint64(math.MaxUint64), handler.MaxGasLimitPerBlockInEpoch(0, 0))
 	require.Equal(t, uint64(0), handler.ComputeGasLimit(nil))
 	require.Equal(t, big.NewInt(0), handler.ComputeMoveBalanceFee(nil))
 	require.Equal(t, big.NewInt(0), handler.ComputeFeeForProcessing(nil, 0))
@@ -195,7 +200,7 @@ func TestRequestHandler(t *testing.T) {
 	handler.RequestMetaHeader([]byte{})
 	handler.RequestMetaHeaderByNonce(0)
 	handler.RequestShardHeaderByNonce(0, 0)
-	handler.RequestTransaction(0, [][]byte{})
+	handler.RequestTransactions(0, [][]byte{})
 	handler.RequestUnsignedTransactions(0, [][]byte{})
 	handler.RequestRewardTransactions(0, [][]byte{})
 	handler.RequestMiniBlock(0, []byte{})

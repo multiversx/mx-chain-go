@@ -36,9 +36,9 @@ func TestTransfers_DuplicatedTransferValueEvents(t *testing.T) {
 	err = context.ExecuteSC(&context.Owner, fmt.Sprintf("forwardAskMoney@%s", hex.EncodeToString(vault)))
 	require.Nil(t, err)
 	require.Len(t, context.LastLogs, 1)
-	require.Len(t, context.LastLogs[0].GetLogEvents(), 5)
+	require.Len(t, context.LastLogs[0].GetLogHandler().GetLogEvents(), 5)
 
-	events := context.LastLogs[0].GetLogEvents()
+	events := context.LastLogs[0].GetLogHandler().GetLogEvents()
 
 	require.Equal(t, "transferValueOnly", string(events[0].GetIdentifier()))
 	require.Equal(t, "AsyncCall", string(events[0].GetData()))

@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -138,21 +137,6 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 		bc, err := bcf.Create()
 		require.Nil(t, bc)
 		require.True(t, strings.Contains(err.Error(), "DestinationShardAsObserver"))
-	})
-	t.Run("NewCache fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := componentsMock.GetBootStrapFactoryArgs()
-		args.Config.Versions.Cache = config.CacheConfig{
-			Type:        "LRU",
-			SizeInBytes: 1,
-		}
-		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
-		require.NotNil(t, bcf)
-
-		bc, err := bcf.Create()
-		require.Nil(t, bc)
-		require.True(t, strings.Contains(err.Error(), "LRU"))
 	})
 	t.Run("NewHeaderVersionHandler fails should error", func(t *testing.T) {
 		t.Parallel()
