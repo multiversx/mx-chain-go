@@ -710,10 +710,7 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(fromNonce uint64) {
 	toNonce := core.MinUint64(fromNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 
 	if fromNonce > toNonce {
-		if !boot.isInImportMode {
-			return
-		}
-		// in import mode, request at least the next header so the fork detector
+		// request at least the next header so the fork detector
 		// can discover blocks beyond probableHighestNonce
 		toNonce = fromNonce
 	}
