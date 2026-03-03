@@ -235,7 +235,7 @@ func (en *extensionNode) commitSnapshot(
 		return err
 	}
 
-	stats.AddExtensionNode(depthLevel, uint64(len(nodeBytes)))
+	stats.AddExtensionNode(int(depthLevel), uint64(len(nodeBytes)))
 	return nil
 }
 

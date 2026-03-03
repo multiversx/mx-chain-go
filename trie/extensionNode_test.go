@@ -954,7 +954,7 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db, dtmc)
 	_ = collapsedEn.setHash()
 
 	en.print(enWriter, 0, dtmc, db)
@@ -968,7 +968,7 @@ func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db, dtmc)
 	dirtyHashes := make(common.ModifiedHashes)
 
 	err := en.getDirtyHashes(dirtyHashes)
@@ -993,7 +993,7 @@ func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	trieNodes := 5
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(0, 5, db, db)
+	_ = en.commitDirty(db, db, dtmc)
 
 	hashes, err := collapsedEn.getAllHashes(dtmc, db)
 	assert.Nil(t, err)
@@ -1087,7 +1087,7 @@ func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
 
 	_, collapsedEn := getEnAndCollapsedEn()
 	missingNodesChan := make(chan []byte, 10)
-	err := collapsedEn.commitSnapshot(db, 0, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte{}, 0)
+	err := collapsedEn.commitSnapshot(db, 0, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte{}, dtmc)
 	assert.True(t, core.IsClosingError(err))
 	assert.Equal(t, 0, len(missingNodesChan))
 }

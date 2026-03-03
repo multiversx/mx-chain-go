@@ -344,7 +344,7 @@ func commitSnapshot(
 		return err
 	}
 
-	err = child.commitSnapshot(db, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
+	err = child.commitSnapshot(db, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, tmc)
 	if err != nil {
 		return err
 	}

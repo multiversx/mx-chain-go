@@ -332,7 +332,7 @@ func (bn *branchNode) commitSnapshot(
 		}
 	}
 
-	stats.AddBranchNode(depthLevel, uint64(len(nodeBytes)))
+	stats.AddBranchNode(int(depthLevel), uint64(len(nodeBytes)))
 	return nil
 }
 
