@@ -5779,3 +5779,128 @@ func TestBaseProcessor_Close(t *testing.T) {
 
 	require.NoError(t, bp.Close())
 }
+
+func TestBaseProcessor_WaitForExecutionResultsVerification(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return nil when verification succeeds on first call", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				return nil
+			},
+		}
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{Nonce: 1}
+		err = bp.WaitForExecutionResultsVerification(header, func() time.Duration { return time.Second })
+		require.Nil(t, err)
+	})
+
+	t.Run("should return non-retryable error immediately", func(t *testing.T) {
+		t.Parallel()
+
+		callCount := atomic.Int32{}
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				callCount.Add(1)
+				return process.ErrExecutionResultDoesNotMatch
+			},
+		}
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{Nonce: 1}
+		err = bp.WaitForExecutionResultsVerification(header, func() time.Duration { return time.Second })
+		require.ErrorIs(t, err, process.ErrExecutionResultDoesNotMatch)
+		require.Equal(t, int32(1), callCount.Load())
+	})
+
+	t.Run("should retry on mismatch then succeed", func(t *testing.T) {
+		t.Parallel()
+
+		callCount := atomic.Int32{}
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				count := callCount.Add(1)
+				if count < 3 {
+					return process.ErrExecutionResultsNumberMismatch
+				}
+				return nil
+			},
+		}
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{Nonce: 1}
+		err = bp.WaitForExecutionResultsVerification(header, func() time.Duration { return time.Second })
+		require.Nil(t, err)
+		require.Equal(t, int32(3), callCount.Load())
+	})
+
+	t.Run("should timeout and return mismatch error when haveTime expires", func(t *testing.T) {
+		t.Parallel()
+
+		callCount := atomic.Int32{}
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				callCount.Add(1)
+				return process.ErrExecutionResultsNumberMismatch
+			},
+		}
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{Nonce: 1}
+		deadline := time.Now().Add(25 * time.Millisecond)
+		err = bp.WaitForExecutionResultsVerification(header, func() time.Duration { return time.Until(deadline) })
+		require.ErrorIs(t, err, process.ErrExecutionResultsNumberMismatch)
+		require.Greater(t, callCount.Load(), int32(1))
+	})
+
+	t.Run("should return mismatch error immediately when haveTime returns zero", func(t *testing.T) {
+		t.Parallel()
+
+		callCount := atomic.Int32{}
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				callCount.Add(1)
+				return process.ErrExecutionResultsNumberMismatch
+			},
+		}
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{Nonce: 1}
+		err = bp.WaitForExecutionResultsVerification(header, func() time.Duration { return 0 })
+		require.ErrorIs(t, err, process.ErrExecutionResultsNumberMismatch)
+		require.Equal(t, int32(1), callCount.Load())
+	})
+
+	t.Run("should return mismatch error immediately when haveTime returns negative", func(t *testing.T) {
+		t.Parallel()
+
+		callCount := atomic.Int32{}
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				callCount.Add(1)
+				return process.ErrExecutionResultsNumberMismatch
+			},
+		}
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{Nonce: 1}
+		err = bp.WaitForExecutionResultsVerification(header, func() time.Duration { return -time.Second })
+		require.ErrorIs(t, err, process.ErrExecutionResultsNumberMismatch)
+		require.Equal(t, int32(1), callCount.Load())
+	})
+}
