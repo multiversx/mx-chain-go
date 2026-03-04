@@ -1095,7 +1095,7 @@ func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitDirty(db, db, dtmc)
+	_ = bn.commitDirty(db, db)
 
 	children, err := collapsedBn.getChildren(dtmc, db)
 	assert.Nil(t, err)
@@ -1281,8 +1281,8 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitDirty(db, db, dtmc)
-	_ = collapsedBn.commitDirty(db, db, dtmc)
+	_ = bn.commitDirty(db, db)
+	_ = collapsedBn.commitDirty(db, db)
 
 	bn.print(bnWriter, 0, dtmc, db)
 	collapsedBn.print(collapsedBnWriter, 0, dtmc, db)
@@ -1319,7 +1319,7 @@ func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitDirty(db, db, dtmc)
+	_ = bn.commitDirty(db, db)
 
 	hashes, err := collapsedBn.getAllHashes(dtmc, db)
 	assert.Nil(t, err)

@@ -968,7 +968,7 @@ func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, _ := getEnAndCollapsedEn()
-	_ = en.commitDirty(db, db, dtmc)
+	_ = en.commitDirty(db, db)
 	dirtyHashes := make(common.ModifiedHashes)
 
 	err := en.getDirtyHashes(dirtyHashes)
@@ -993,7 +993,7 @@ func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
 	trieNodes := 5
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(db, db, dtmc)
+	_ = en.commitDirty(db, db)
 
 	hashes, err := collapsedEn.getAllHashes(dtmc, db)
 	assert.Nil(t, err)
