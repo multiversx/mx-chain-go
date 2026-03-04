@@ -90,6 +90,7 @@ func TestDataTriesHolder_Put(t *testing.T) {
 		retrievedEntry, ok := dth.cacher.Get(string(entry.key))
 		assert.True(t, ok)
 		tr, ok := retrievedEntry.(common.Trie)
+		assert.True(t, ok)
 		assert.Equal(t, tr, entry.trie)
 		assert.Equal(t, uint64(oneKB), dth.cacher.SizeInBytesContained())
 		assert.Equal(t, 1, len(dth.dirtyTries))
@@ -117,6 +118,7 @@ func TestDataTriesHolder_Put(t *testing.T) {
 			retrievedEntry, ok := dth.cacher.Get(cacherKeys[i])
 			assert.True(t, ok)
 			tr, ok := retrievedEntry.(common.Trie)
+			assert.True(t, ok)
 			assert.Equal(t, tr, entries[i].trie)
 			assert.Equal(t, cacherKeys[i], string(entries[i].key))
 		}

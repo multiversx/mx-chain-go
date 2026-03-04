@@ -5,12 +5,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/errors"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewStateComponentsFactory(t *testing.T) {

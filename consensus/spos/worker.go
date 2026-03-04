@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -59,6 +60,7 @@ type Worker struct {
 	headerIntegrityVerifier process.HeaderIntegrityVerifier
 	appStatusHandler        core.AppStatusHandler
 	enableEpochsHandler     common.EnableEpochsHandler
+	enableRoundsHandler     common.EnableRoundsHandler
 
 	networkShardingCollector consensus.NetworkShardingCollector
 
@@ -90,6 +92,7 @@ type Worker struct {
 	closer                    core.SafeCloser
 
 	invalidSignersCache InvalidSignersCache
+	consensusMetrics    ConsensusMetricsHandler
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -121,6 +124,7 @@ type WorkerArgs struct {
 	PeerBlacklistHandler     consensus.PeerBlacklistHandler
 	EnableEpochsHandler      common.EnableEpochsHandler
 	InvalidSignersCache      InvalidSignersCache
+	EnableRoundsHandler      common.EnableRoundsHandler
 }
 
 // NewWorker creates a new Worker object
@@ -144,6 +148,11 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 	}
 
 	consensusMessageValidatorObj, err := NewConsensusMessageValidator(argsConsensusMessageValidator)
+	if err != nil {
+		return nil, err
+	}
+
+	consensusMetrics, err := NewConsensusMetrics(args.AppStatusHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +182,9 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		peerBlacklistHandler:     args.PeerBlacklistHandler,
 		closer:                   closing.NewSafeChanCloser(),
 		enableEpochsHandler:      args.EnableEpochsHandler,
+		enableRoundsHandler:      args.EnableRoundsHandler,
 		invalidSignersCache:      args.InvalidSignersCache,
+		consensusMetrics:         consensusMetrics,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -302,7 +313,8 @@ func (wrk *Worker) addFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
 	}
 
 	isHeaderForNextRound := int64(header.GetRound()) == wrk.roundHandler.Index()+1
-	if !isHeaderForNextRound {
+	isHeaderForCurrentRound := int64(header.GetRound()) == wrk.roundHandler.Index()
+	if !isHeaderForCurrentRound && !isHeaderForNextRound {
 		return
 	}
 
@@ -725,7 +737,9 @@ func (wrk *Worker) computeRedundancyMetrics() (bool, string) {
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
 	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
-	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf {
+	isSelfKey := wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey)
+	shouldConsiderSelfKeyInConsensus := isSelfKey && commonConsensus.ShouldConsiderSelfKeyInConsensus(wrk.nodeRedundancyHandler)
+	if shouldConsiderSelfKeyInConsensus || isMultiKeyManagedBySelf {
 		return ErrMessageFromItself
 	}
 
@@ -855,11 +869,23 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
-	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
-	wrk.blockProcessor.RevertCurrentBlock()
-	wrk.removeConsensusHeaderFromPool()
-
 	log.Debug("current block is reverted")
+
+	if !wrk.isAsyncExecEnabled() {
+		wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
+		wrk.blockProcessor.RevertCurrentBlock()
+	}
+
+	wrk.removeConsensusHeaderFromPool()
+}
+
+func (wrk *Worker) isAsyncExecEnabled() bool {
+	header := wrk.consensusState.GetHeader()
+	if !check.IfNil(header) {
+		return header.IsHeaderV3()
+	}
+
+	return wrk.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag)
 }
 
 func (wrk *Worker) removeConsensusHeaderFromPool() {
@@ -987,4 +1013,9 @@ func emptyChannel(ch chan *consensus.Message) int {
 			return readsCnt
 		}
 	}
+}
+
+// ConsensusMetrics returns the consensus metrics handler
+func (wrk *Worker) ConsensusMetrics() ConsensusMetricsHandler {
+	return wrk.consensusMetrics
 }

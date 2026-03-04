@@ -3,6 +3,8 @@ package statusCore
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
@@ -15,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/statusHandler/persister"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -97,6 +98,12 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 		return nil, err
 	}
 
+	chainParamsMetricsHandler, err := statusHandler.NewChainParamsMetricsHandler(appStatusHandler)
+	if err != nil {
+		return nil, err
+	}
+	sccf.coreComp.ChainParametersSubscriber().RegisterNotifyHandler(chainParamsMetricsHandler)
+
 	stateStatsHandler := sccf.createStateStatsHandler()
 
 	ssc := &statusCoreComponents{
@@ -123,7 +130,10 @@ func (sccf *statusCoreComponentsFactory) createStateStatsHandler() common.StateS
 func (sccf *statusCoreComponentsFactory) createStatusHandler() (core.AppStatusHandler, external.StatusMetricsHandler, factory.PersistentStatusHandler, error) {
 	var appStatusHandlers []core.AppStatusHandler
 	var handler core.AppStatusHandler
-	statusMetrics := statusHandler.NewStatusMetrics()
+	statusMetrics, err := statusHandler.NewStatusMetrics(sccf.coreComp.EnableEpochsHandler(), sccf.coreComp.EnableRoundsHandler())
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	appStatusHandlers = append(appStatusHandlers, statusMetrics)
 
 	persistentHandler, err := persister.NewPersistentStatusHandler(sccf.coreComp.InternalMarshalizer(), sccf.coreComp.Uint64ByteSliceConverter())

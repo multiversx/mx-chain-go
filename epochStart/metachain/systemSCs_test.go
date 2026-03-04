@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
@@ -766,6 +767,7 @@ func createAccountsDB(
 		StoragePruningManager:    spm,
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
 		MaxDataTriesSizeInMemory: tenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(args)
@@ -782,9 +784,10 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, common2.GetStorageManagerOptions())
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshalizer,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                 hasher,
+		Marshaller:             marshalizer,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	peerAccCreator := factory.NewPeerAccountCreator()
@@ -800,19 +803,26 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	peerAccountsDB := createAccountsDB(hasher, marshalizer, peerAccCreator, trieFactoryManager, enableEpochsHandler)
 
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
-		Marshalizer:                          marshalizer,
-		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
-		ShardCoordinator:                     &mock.ShardCoordinatorStub{},
-		DataPool:                             &dataRetrieverMock.PoolsHolderStub{},
-		StorageService:                       &storageMock.ChainStorerStub{},
-		PubkeyConv:                           &testscommon.PubkeyConverterMock{},
-		PeerAdapter:                          peerAccountsDB,
-		Rater:                                &mock.RaterStub{},
-		RewardsHandler:                       &mock.RewardsHandlerStub{},
-		NodesSetup:                           &genesisMocks.NodesSetupStub{},
-		MaxComputableRounds:                  1,
-		MaxConsecutiveRoundsOfRatingDecrease: 2000,
-		EnableEpochsHandler:                  enableEpochsHandler,
+		Marshalizer:         marshalizer,
+		NodesCoordinator:    &shardingMocks.NodesCoordinatorStub{},
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
+		DataPool:            &dataRetrieverMock.PoolsHolderStub{},
+		StorageService:      &storageMock.ChainStorerStub{},
+		PubkeyConv:          &testscommon.PubkeyConverterMock{},
+		PeerAdapter:         peerAccountsDB,
+		Rater:               &mock.RaterStub{},
+		RewardsHandler:      &mock.RewardsHandlerStub{},
+		NodesSetup:          &genesisMocks.NodesSetupStub{},
+		MaxComputableRounds: 1,
+		EnableEpochsHandler: enableEpochsHandler,
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{
+			GetValueCalled: func(variable dto.ConfigVariable) uint64 {
+				if variable == dto.MaxConsecutiveRoundsOfRatingDecrease {
+					return 2000
+				}
+				return 10
+			},
+		},
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
@@ -886,6 +896,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -916,6 +927,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		ChanceComputer:      &mock.ChanceComputerStub{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		NodesCoordinator:    &shardingMocks.NodesCoordinatorStub{},
 		ArgBlockChainHook:   argsHook,
 	}

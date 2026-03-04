@@ -1,6 +1,7 @@
 package trieMetricsCollector
 
 type trieMetricsCollector struct {
+	currentDepth    int
 	maxDepth        int
 	sizeLoadedInMem int
 }
@@ -15,11 +16,17 @@ func NewTrieMetricsCollector() *trieMetricsCollector {
 
 // SetDepth sets the maxDepth to the provided value if it is greater than the current maxDepth
 func (tmc *trieMetricsCollector) SetDepth(depth uint32) {
-	if depth < uint32(tmc.maxDepth) {
+	tmc.currentDepth = int(depth)
+	if depth <= uint32(tmc.maxDepth) {
 		return
 	}
 
 	tmc.maxDepth = int(depth)
+}
+
+// GetCurrentDepth returns the current depth stored in the collector
+func (tmc *trieMetricsCollector) GetCurrentDepth() uint32 {
+	return uint32(tmc.currentDepth)
 }
 
 // GetMaxDepth returns the collected maxDepth

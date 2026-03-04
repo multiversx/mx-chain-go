@@ -3,6 +3,8 @@ package storagePruningManager
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/statistics"
@@ -17,10 +19,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/collapseManager"
-	"github.com/stretchr/testify/assert"
 )
 
 func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.AccountsDB, *storagePruningManager) {
@@ -41,10 +42,12 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
+
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                 hasher,
+		Marshaller:             marshaller,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
@@ -53,7 +56,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		Marshaller:           marshaller,
 		AddressConverter:     &testscommon.PubkeyConverterMock{},
 		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
-		StateMetrics:         &testStorage.StateMetricsStub{},
+		StateMetrics:         &stateMock.StateMetricsStub{},
 		AccountFactory:       accCreator,
 		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
@@ -68,6 +71,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		StoragePruningManager:    spm,
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:         snapshotsManager,
+		StateAccessesCollector:   &stateMock.StateAccessesCollectorStub{},
 		MaxDataTriesSizeInMemory: tenMBSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)

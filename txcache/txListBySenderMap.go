@@ -30,11 +30,11 @@ func newTxListBySenderMap(
 
 // addTxReturnEvicted adds a transaction in the map, in the corresponding list (selected by its sender).
 // This function returns a boolean indicating whether the transaction was added, and a slice of evicted transaction hashes (upon applying sender-level constraints).
-func (txMap *txListBySenderMap) addTxReturnEvicted(tx *WrappedTransaction) (bool, [][]byte) {
+func (txMap *txListBySenderMap) addTxReturnEvicted(tx *WrappedTransaction, tracker *selectionTracker) (bool, [][]byte) {
 	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
 
-	added, evictedHashes := listForSender.AddTx(tx)
+	added, evictedHashes := listForSender.AddTx(tx, tracker)
 	return added, evictedHashes
 }
 

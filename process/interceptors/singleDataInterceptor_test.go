@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -29,6 +30,7 @@ func createMockArgSingleDataInterceptor() interceptors.ArgSingleDataInterceptor 
 		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		CurrentPeerId:           "pid",
 		InterceptedDataVerifier: createMockInterceptedDataVerifier(),
+		ManagedPeersHolder:      &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
@@ -41,12 +43,12 @@ func createMockInterceptorStub(checkCalledNum *int32, processCalledNum *int32) p
 
 			return nil
 		},
-		SaveCalled: func(data process.InterceptedData) error {
+		SaveCalled: func(data process.InterceptedData) (bool, error) {
 			if processCalledNum != nil {
 				atomic.AddInt32(processCalledNum, 1)
 			}
 
-			return nil
+			return true, nil
 		},
 	}
 }
@@ -61,7 +63,7 @@ func createMockThrottler() *mock.InterceptorThrottlerStub {
 
 func createMockInterceptedDataVerifier() *mock.InterceptedDataVerifierMock {
 	return &mock.InterceptedDataVerifierMock{
-		VerifyCalled: func(interceptedData process.InterceptedData) error {
+		VerifyCalled: func(interceptedData process.InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error {
 			return interceptedData.CheckValidity()
 		},
 	}
@@ -153,6 +155,17 @@ func TestNewSingleDataInterceptor_EmptyPeerIDShouldErr(t *testing.T) {
 
 	assert.Nil(t, sdi)
 	assert.Equal(t, process.ErrEmptyPeerID, err)
+}
+
+func TestNewSingleDataInterceptor_NilManagedPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgSingleDataInterceptor()
+	arg.ManagedPeersHolder = nil
+	sdi, err := interceptors.NewSingleDataInterceptor(arg)
+
+	assert.Nil(t, sdi)
+	assert.Equal(t, process.ErrNilManagedPeersHolder, err)
 }
 
 func TestNewSingleDataInterceptor_NilInterceptedDataVerifierShouldErr(t *testing.T) {

@@ -37,7 +37,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
-	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -114,6 +113,9 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 			RoundActivations: map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
 					Round: "18446744073709551615",
+				},
+				"SupernovaEnableRound": {
+					Round: "9999999",
 				},
 			},
 		},
@@ -316,10 +318,21 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
 		},
-		PoolsCleanersConfig: config.PoolsCleanersConfig{
-			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
-			MaxRoundsToKeepUnprocessedTransactions: 50,
+		GeneralSettings: config.GeneralSettingsConfig{
+			ProcessConfigsByRound: []config.ProcessConfigByRound{
+				{
+					MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+					MaxRoundsToKeepUnprocessedTransactions: 50,
+					NumFloodingRoundsSlowReacting:          20,
+					NumFloodingRoundsFastReacting:          30,
+					NumFloodingRoundsOutOfSpecs:            40,
+					MaxConsecutiveRoundsOfRatingDecrease:   600,
+					MaxBlockProcessingTimeMs:               1000,
+					NumHeadersToRequestInAdvance:           10,
+				},
+			},
 		},
+		Antiflood: testscommon.GetDefaultAntifloodConfig(),
 	}
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
@@ -331,7 +344,6 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 		NodeOperationMode: common.NormalOperation,
 		MainConfig:        mainConfig,
 		StatusHandler:     appStatusHandler,
-		Marshalizer:       &mock.MarshalizerMock{},
 		RatingsConfig: config.RatingsConfig{
 			General:    config.General{},
 			ShardChain: config.ShardChain{},
@@ -345,8 +357,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:           &p2pFactory.LocalSyncTimer{},
 		CryptoComponents: cryptoCompMock,
+		CoreComponents:   GetCoreComponents(),
 	}
 }
 
@@ -361,11 +373,11 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, statusCore
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
-	tiresContainer := triesHolder.NewTriesHolder()
+	triesContainer := triesHolder.NewTriesHolder()
 	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), collapseManager.NewDisabledCollapseManager())
 	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), collapseManager.NewDisabledCollapseManager())
-	tiresContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
-	tiresContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
+	triesContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
+	triesContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
 
 	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
 		Config:         GetGeneralConfig(),
@@ -583,7 +595,8 @@ func GetProcessArgs(
 				MinStakeValue:                        "1",
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
-				UnBondPeriod:                         0,
+				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                0,
 				MaximumPercentageToBleed:             0,
 				BleedPercentagePerRound:              0,
@@ -624,6 +637,12 @@ func GetProcessArgs(
 						NodesToShufflePerShard: 2,
 					},
 				},
+			},
+		},
+		EconomicsConfig: config.EconomicsConfig{
+			FeeSettings: config.FeeSettings{
+				BlockCapacityOverestimationFactor: 200,
+				PercentDecreaseLimitsStep:         10,
 			},
 		},
 	}

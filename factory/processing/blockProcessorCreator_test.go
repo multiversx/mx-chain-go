@@ -59,6 +59,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&testscommon.BlockProcessingCutoffStub{},
 		&testscommon.MissingTrieNodesNotifierStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&processMocks.ExecutionManagerMock{},
 	)
 
 	require.NoError(t, err)
@@ -104,9 +105,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              coreComponents.Hasher(),
-		Marshaller:          coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		Hasher:                 coreComponents.Hasher(),
+		Marshaller:             coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
 
@@ -142,6 +144,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		AccountsAdapterAPICalled: func() state.AccountsAdapter {
 			return adb
 		},
+		AccountsAdapterProposalCalled: func() state.AccountsAdapter {
+			return adb
+		},
 		TriesContainerCalled: func() common.TriesHolder {
 			return &trieMock.TriesHolderStub{
 				GetCalled: func(bytes []byte) common.Trie {
@@ -151,6 +156,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		},
 		TrieStorageManagersCalled: func() map[string]common.StorageManager {
 			return trieStorageManagers
+		},
+		StateAccessesCollectorCalled: func() state.StateAccessesCollector {
+			return &stateMock.StateAccessesCollectorStub{}
 		},
 	}
 	args := componentsMock.GetProcessArgs(
@@ -187,6 +195,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&testscommon.BlockProcessingCutoffStub{},
 		&testscommon.MissingTrieNodesNotifierStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&processMocks.ExecutionManagerMock{},
 	)
 
 	require.NoError(t, err)
@@ -215,6 +224,7 @@ func createAccountAdapter(
 		StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
 		MaxDataTriesSizeInMemory: tenMbSize,
 	}
 	adb, err := state.NewAccountsDB(args)

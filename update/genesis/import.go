@@ -152,7 +152,7 @@ func (si *stateImport) importEpochStartMetaBlock(identifier string, keys [][]byt
 		return err
 	}
 
-	metaBlock, ok := object.(*block.MetaBlock)
+	metaBlock, ok := object.(data.MetaHeaderHandler)
 	if !ok {
 		return update.ErrWrongTypeAssertion
 	}
@@ -171,7 +171,7 @@ func (si *stateImport) importUnFinishedMetaBlocks(identifier string, keys [][]by
 			break
 		}
 
-		metaBlock, ok := object.(*block.MetaBlock)
+		metaBlock, ok := object.(data.MetaHeaderHandler)
 		if !ok {
 			return update.ErrWrongTypeAssertion
 		}
@@ -288,9 +288,10 @@ func newAccountCreator(
 	switch accType {
 	case UserAccount:
 		args := factory.ArgsAccountCreator{
-			Hasher:              hasher,
-			Marshaller:          marshaller,
-			EnableEpochsHandler: handler,
+			Hasher:                 hasher,
+			Marshaller:             marshaller,
+			EnableEpochsHandler:    handler,
+			StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 		}
 		return factory.NewAccountCreator(args)
 	case ValidatorAccount:
@@ -421,6 +422,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 				StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
 				AddressConverter:         si.addressConverter,
 				SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+				StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
 				MaxDataTriesSizeInMemory: tenMBSize,
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
@@ -445,6 +447,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 		StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:         si.addressConverter,
 		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
 		MaxDataTriesSizeInMemory: tenMBSize,
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)

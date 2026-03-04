@@ -780,6 +780,9 @@ func GetNodeDataFromHash(hash []byte, keyBuilder common.KeyBuilder, db common.Tr
 
 // SizeInMemory returns the size in memory of the trie
 func (tr *patriciaMerkleTrie) SizeInMemory() int {
+	tr.mutOperation.RLock()
+	defer tr.mutOperation.RUnlock()
+
 	return tr.collapseManager.GetSizeInMemory()
 }
 

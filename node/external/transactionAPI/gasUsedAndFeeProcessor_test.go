@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/require"
@@ -23,6 +24,7 @@ import (
 func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
+		ChainParamsHandler:  &chainParameters.ChainParametersHolderMock{},
 		Economics:           &economicsConfig,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
@@ -354,11 +356,15 @@ func TestComputeAndAttachGasUsedAndFeeFailedRelayedV1(t *testing.T) {
 func TestComputeAndAttachGasUsedAndFeeRelayedV1CreateNewDelegationContractWithRefund(t *testing.T) {
 	t.Parallel()
 
+	epochsEnabled := map[core.EnableEpochFlag]struct{}{
+		common.GasPriceModifierFlag:    {},
+		common.PenalizedTooMuchGasFlag: {},
+		common.FixRelayedBaseCostFlag:  {},
+	}
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.GasPriceModifierFlag ||
-				flag == common.PenalizedTooMuchGasFlag ||
-				flag == common.FixRelayedBaseCostFlag
+			_, ok := epochsEnabled[flag]
+			return ok
 		},
 	}
 	feeComp, _ := fee.NewFeeComputer(createEconomicsData(enableEpochsHandler))
@@ -397,6 +403,22 @@ func TestComputeAndAttachGasUsedAndFeeRelayedV1CreateNewDelegationContractWithRe
 	require.Equal(t, uint64(56328500), txWithSRefundSCR.GasUsed)
 	require.Equal(t, "1878500000000000", txWithSRefundSCR.Fee)
 	require.Equal(t, "2177505000000000", txWithSRefundSCR.InitiallyPaidFee)
+
+	// testing after relayed is disabled
+	epochsEnabled[common.RelayedTransactionsV1V2DisableFlag] = struct{}{}
+	relayedTxAsMoveBalance := txWithSRefundSCR
+	relayedTxAsMoveBalance.InitiallyPaidFee = ""
+	relayedTxAsMoveBalance.Fee = ""
+	relayedTxAsMoveBalance.GasUsed = 0
+	relayedTxAsMoveBalance.SmartContractResults = nil
+	relayedTxAsMoveBalance.Logs = nil
+
+	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(relayedTxAsMoveBalance)
+	gasNeeded := uint64(50000 + 1500*len(relayedTxAsMoveBalance.Tx.GetData()))
+	gasPrice := relayedTxAsMoveBalance.Tx.GetGasPrice()
+	actualFee := big.NewInt(0).SetUint64(gasNeeded * gasPrice)
+	require.Equal(t, gasNeeded, relayedTxAsMoveBalance.GasUsed)
+	require.Equal(t, actualFee.String(), relayedTxAsMoveBalance.Fee)
 }
 
 func TestComputeAndAttachGasUsedAndFeeRelayedV3WithMultipleRefunds(t *testing.T) {

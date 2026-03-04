@@ -144,6 +144,14 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV1
 	}
 
 	metaBlock.Epoch = 3
+	metaBlock.EpochStart.Economics = block.Economics{
+		TotalSupply:                      big.NewInt(10000),
+		TotalToDistribute:                big.NewInt(1000000),
+		TotalNewlyMinted:                 big.NewInt(1000000),
+		RewardsPerBlock:                  big.NewInt(1),
+		NodePrice:                        big.NewInt(10000),
+		RewardsForProtocolSustainability: big.NewInt(50),
+	}
 	economics := &metaBlock.EpochStart.Economics
 
 	miniBlocks, err := rewardsCreatorProxy.CreateRewardsMiniBlocks(metaBlock, vInfo, economics)
@@ -191,19 +199,19 @@ func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksOK(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestRewardsCreatorProxy_GetProtocolSustainabilityRewards(t *testing.T) {
+func TestRewardsCreatorProxy_GetAcceleratorRewards(t *testing.T) {
 	t.Parallel()
 
 	expectedValue := big.NewInt(12345)
 	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
-		GetProtocolSustainabilityRewardsCalled: func() *big.Int {
+		GetAcceleratorRewardsCalled: func() *big.Int {
 			return expectedValue
 		},
 	}
 
 	rewardsCreatorProxy, _, _ := createTestData(rewardCreatorV1, rCreatorV1)
 
-	protocolSustainabilityRewards := rewardsCreatorProxy.GetProtocolSustainabilityRewards()
+	protocolSustainabilityRewards := rewardsCreatorProxy.GetAcceleratorRewards()
 	require.Equal(t, expectedValue, protocolSustainabilityRewards)
 }
 

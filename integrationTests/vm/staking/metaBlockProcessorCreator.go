@@ -7,6 +7,20 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
+	commonMock "github.com/multiversx/mx-chain-go/testscommon/common"
+
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/estimator"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	"github.com/multiversx/mx-chain-go/process/missingData"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
@@ -23,9 +37,10 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
-	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
+	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -72,39 +87,121 @@ func createMetaBlockProcessor(
 	valInfoCreator := createValidatorInfoCreator(coreComponents, dataComponents, bootstrapComponents.ShardCoordinator())
 	stakingToPeer := createSCToProtocol(coreComponents, stateComponents, dataComponents.Datapool().CurrentBlockTxs())
 
+	headersForBlock, _ := headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
+		DataPool:            dataComponents.Datapool(),
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
+		BlockTracker:        blockTracker,
+		TxCoordinator:       txCoordinator,
+		RoundHandler:        coreComponents.RoundHandler(),
+		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
+		GenesisNonce: 0,
+	})
+
+	preprocessors := containers.NewPreProcessorsContainer()
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		MiniBlockPool:       dataComponents.Datapool().MiniBlocks(),
+		PreProcessors:       preprocessors,
+		ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+	}
+	// second instance for proposal missing data fetching to avoid interferences
+	proposalBlockDataRequester, _ := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+
+	mbSelectionSession, _ := blproc.NewMiniBlocksSelectionSession(
+		bootstrapComponents.ShardCoordinator().SelfId(),
+		coreComponents.InternalMarshalizer(),
+		coreComponents.Hasher(),
+	)
+
+	blocksCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+		BlocksCache:             blocksCache,
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              dataComponents.Blockchain(),
+		Headers:                 dataComponents.Datapool().Headers(),
+		PostProcessTransactions: dataComponents.Datapool().PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.Datapool().ExecutedMiniBlocks(),
+		StorageService:          dataComponents.StorageService(),
+		Marshaller:              coreComponents.InternalMarshalizer(),
+		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
+	})
+	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.Blockchain(), execManager)
+	inclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(
+		config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       110,
+			MaxResultsPerBlock: 20,
+		},
+		coreComponents.RoundHandler(),
+		&testscommon.ExecResSizeComputationStub{},
+	)
+
+	missingDataArgs := missingData.ResolverArgs{
+		HeadersPool:        dataComponents.Datapool().Headers(),
+		ProofsPool:         dataComponents.Datapool().Proofs(),
+		RequestHandler:     &testscommon.RequestHandlerStub{},
+		BlockDataRequester: proposalBlockDataRequester,
+	}
+	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
+
+	shardInfoCreateDataArgs := blproc.ShardInfoCreateDataArgs{
+		EnableEpochsHandler:      coreComponents.EnableEpochsHandler(),
+		HeadersPool:              dataComponents.Datapool().Headers(),
+		ProofsPool:               dataComponents.Datapool().Proofs(),
+		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
+		BlockTracker:             blockTracker,
+		Storage:                  dataComponents.StorageService(),
+		Marshaller:               coreComponents.InternalMarshalizer(),
+	}
+	shardInfoCreator, _ := blproc.NewShardInfoCreateData(shardInfoCreateDataArgs)
+
 	args := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:      coreComponents,
 			DataComponents:      dataComponents,
 			BootstrapComponents: bootstrapComponents,
 			StatusComponents:    statusComponents,
-			StatusCoreComponents: &factory2.StatusCoreComponentsStub{
+			StatusCoreComponents: &testsFactory.StatusCoreComponentsStub{
 				AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 			},
-			AccountsDB:                     accountsDb,
-			ForkDetector:                   &integrationMocks.ForkDetectorStub{},
-			NodesCoordinator:               nc,
-			FeeHandler:                     postprocess.NewFeeAccumulator(),
-			RequestHandler:                 &testscommon.RequestHandlerStub{},
-			BlockChainHook:                 blockChainHook,
-			TxCoordinator:                  txCoordinator,
-			EpochStartTrigger:              epochStartHandler,
-			HeaderValidator:                headerValidator,
-			BootStorer:                     bootStorer,
-			BlockTracker:                   blockTracker,
-			BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
-			HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
-			VMContainersFactory:            metaVMFactory,
-			VmContainer:                    vmContainer,
-			GasHandler:                     &mock.GasHandlerMock{},
-			ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
-			ScheduledMiniBlocksEnableEpoch: 10000,
-			ProcessedMiniBlocksTracker:     processedMb.NewProcessedMiniBlocksTracker(),
-			OutportDataProvider:            &outport.OutportDataProviderStub{},
-			ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
-			ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
-			BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
-			SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
+			AccountsDB:                         accountsDb,
+			AccountsProposal:                   stateComponents.AccountsAdapterProposal(),
+			ForkDetector:                       &integrationMocks.ForkDetectorStub{},
+			NodesCoordinator:                   nc,
+			FeeHandler:                         postprocess.NewFeeAccumulator(),
+			RequestHandler:                     &testscommon.RequestHandlerStub{},
+			BlockChainHook:                     blockChainHook,
+			TxCoordinator:                      txCoordinator,
+			EpochStartTrigger:                  epochStartHandler,
+			HeaderValidator:                    headerValidator,
+			BootStorer:                         bootStorer,
+			BlockTracker:                       blockTracker,
+			BlockSizeThrottler:                 &mock.BlockSizeThrottlerStub{},
+			HistoryRepository:                  &dblookupext.HistoryRepositoryStub{},
+			VMContainersFactory:                metaVMFactory,
+			VmContainer:                        vmContainer,
+			GasHandler:                         &mock.GasHandlerMock{},
+			ScheduledTxsExecutionHandler:       &testscommon.ScheduledTxsExecutionStub{},
+			ScheduledMiniBlocksEnableEpoch:     10000,
+			ProcessedMiniBlocksTracker:         processedMb.NewProcessedMiniBlocksTracker(),
+			OutportDataProvider:                &outport.OutportDataProviderStub{},
+			ReceiptsRepository:                 &testscommon.ReceiptsRepositoryStub{},
+			ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
+			BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
+			SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+			StateAccessesCollector:             disabled.NewDisabledStateAccessesCollector(),
+			HeadersForBlock:                    headersForBlock,
+			MiniBlocksSelectionSession:         mbSelectionSession,
+			ExecutionResultsVerifier:           execResultsVerifier,
+			MissingDataResolver:                missingDataResolver,
+			ExecutionResultsInclusionEstimator: inclusionEstimator,
+			GasComputation:                     &testscommon.GasComputationMock{},
+			ExecutionManager:                   execManager,
+			TxExecutionOrderHandler:            &commonMock.TxExecutionOrderHandlerStub{},
+			AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
@@ -118,9 +215,20 @@ func createMetaBlockProcessor(
 		EpochValidatorInfoCreator:    valInfoCreator,
 		ValidatorStatisticsProcessor: validatorsInfoCreator,
 		EpochSystemSCProcessor:       systemSCProcessor,
+		ShardInfoCreator:             shardInfoCreator,
 	}
 
 	metaProc, _ := blproc.NewMetaProcessor(args)
+
+	argHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
+		BlocksCache:      blocksCache,
+		ExecutionTracker: executionResultsTracker,
+		BlockProcessor:   metaProc,
+		BlockChain:       dataComponents.Blockchain(),
+	}
+	headersExecutor, _ := asyncExecution.NewHeadersExecutor(argHeadersExecutor)
+	_ = execManager.SetHeadersExecutor(headersExecutor)
+
 	return metaProc
 }
 

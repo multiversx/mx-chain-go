@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -191,7 +192,6 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("payable by smart contract"), "epoch", enableEpochs.IsPayableBySCEnableEpoch)
 	log.Debug(readEpochFor("cleanup informative only SCRs"), "epoch", enableEpochs.CleanUpInformativeSCRsEnableEpoch)
 	log.Debug(readEpochFor("storage API cost optimization"), "epoch", enableEpochs.StorageAPICostOptimizationEnableEpoch)
-	log.Debug(readEpochFor("transform to multi shard create on esdt"), "epoch", enableEpochs.TransformToMultiShardCreateEnableEpoch)
 	log.Debug(readEpochFor("esdt: enable epoch for esdt register and set all roles function"), "epoch", enableEpochs.ESDTRegisterAndSetAllRolesEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 	log.Debug(readEpochFor("correct jailed not unstaked if empty queue"), "epoch", enableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch)
@@ -213,6 +213,7 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("staking v4 step 1"), "epoch", enableEpochs.StakingV4Step1EnableEpoch)
 	log.Debug(readEpochFor("staking v4 step 2"), "epoch", enableEpochs.StakingV4Step2EnableEpoch)
 	log.Debug(readEpochFor("staking v4 step 3"), "epoch", enableEpochs.StakingV4Step3EnableEpoch)
+	log.Debug(readEpochFor("disable relayed transactions v1 v2"), "epoch", enableEpochs.RelayedTransactionsV1V2DisableEpoch)
 
 	gasSchedule := configs.EpochConfig.GasSchedule
 
@@ -371,6 +372,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.GeneralConfig.EpochStartConfig,
 		managedCoreComponents.ChanStopNodeProcess(),
+		managedCoreComponents.ChainParametersHandler(),
 	)
 	if err != nil {
 		return true, err
@@ -565,6 +567,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	// closeComponentsDelay is needed because of pruning. To avoid removing data that will be needed when the node restarts,
+	// block pruning and then wait for a duration of one round before closing the components so that the info that is needed
+	// for the restart is persisted to storage.
+	closeComponentsDelay := time.Millisecond * time.Duration(managedCoreComponents.ChainParametersHandler().CurrentChainParameters().RoundDuration)
 	nextOperation := waitForSignal(
 		sigs,
 		managedCoreComponents.ChanStopNodeProcess(),
@@ -573,6 +579,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		webServerHandler,
 		currentNode,
 		goRoutinesNumberStart,
+		managedCoreComponents.ClosingNodeStarted(),
+		closeComponentsDelay,
+		managedConsensusComponents,
+		managedProcessComponents.ExecutionManager(),
 	)
 
 	return nextOperation == nextOperationShouldStop, nil
@@ -751,11 +761,11 @@ func (nr *nodeRunner) createApiFacade(
 			RestApiInterface:            flagsConfig.RestApiInterface,
 			PprofEnabled:                flagsConfig.EnablePprof,
 			P2PPrometheusMetricsEnabled: flagsConfig.P2PPrometheusMetricsEnabled,
+			TxCacheSelectionConfig:      configs.GeneralConfig.TxCacheSelection,
 		},
-		ApiRoutesConfig: *configs.ApiRoutesConfig,
-		AccountsState:   currentNode.stateComponents.AccountsAdapter(),
-		PeerState:       currentNode.stateComponents.PeerAccounts(),
-		Blockchain:      currentNode.dataComponents.Blockchain(),
+		ApiRoutesConfig:  *configs.ApiRoutesConfig,
+		AccountsStateAPI: currentNode.stateComponents.AccountsAdapterAPI(),
+		Blockchain:       currentNode.dataComponents.Blockchain(),
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -818,7 +828,13 @@ func (nr *nodeRunner) createMetrics(
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 ) error {
-	err := metrics.InitMetrics(
+
+	chainParameters, err := coreComponents.ChainParametersHandler().ChainParametersForEpoch(bootstrapComponents.EpochBootstrapParams().Epoch())
+	if err != nil {
+		return err
+	}
+
+	err = metrics.InitMetrics(
 		statusCoreComponents.AppStatusHandler(),
 		cryptoComponents.PublicKeyString(),
 		bootstrapComponents.NodeType(),
@@ -826,7 +842,7 @@ func (nr *nodeRunner) createMetrics(
 		coreComponents.GenesisNodesSetup(),
 		nr.configs.FlagsConfig.Version,
 		nr.configs.EconomicsConfig,
-		nr.configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
+		chainParameters,
 		coreComponents.MinTransactionVersion(),
 	)
 
@@ -976,6 +992,10 @@ func waitForSignal(
 	httpServer shared.UpgradeableHttpServerHandler,
 	currentNode *Node,
 	goRoutinesNumberStart int,
+	closingNodeStarted *atomic.Bool,
+	closeComponentsDelay time.Duration,
+	consensusComponentsCloser io.Closer,
+	executionManagerCloser io.Closer,
 ) nextOperationForNode {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
@@ -998,13 +1018,13 @@ func waitForSignal(
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(healthService, facade, httpServer, currentNode, chanCloseComponents)
+		closeAllComponents(healthService, facade, httpServer, currentNode, chanCloseComponents, closingNodeStarted, closeComponentsDelay, consensusComponentsCloser, executionManagerCloser)
 	}()
 
 	select {
 	case <-chanCloseComponents:
 		log.Debug("Closed all components gracefully")
-	case <-time.After(maxTimeToClose):
+	case <-time.After(maxTimeToClose + closeComponentsDelay):
 		log.Warn("force closing the node",
 			"error", "closeAllComponents did not finish on time",
 			"stack", goroutines.GetGoRoutines())
@@ -1050,7 +1070,7 @@ func (nr *nodeRunner) logInformation(
 		"ShardId", shardIdString,
 		"TotalShards", bootstrapComponents.ShardCoordinator().NumberOfShards(),
 		"AppVersion", nr.configs.FlagsConfig.Version,
-		"GenesisTimeStamp", coreComponents.GenesisTime().Unix(),
+		"GenesisTimeStamp", common.GetGenesisUnixTimestampFromStartTime(coreComponents.GenesisTime(), coreComponents.EnableEpochsHandler()),
 	)
 
 	sessionInfoFileOutput += "\nStarted with parameters:\n"
@@ -1212,6 +1232,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		Marshalizer:              coreComponents.InternalMarshalizer(),
 		Store:                    dataComponents.StorageService(),
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter(),
+		DataPool:                 dataComponents.Datapool(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {
@@ -1429,8 +1450,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		MainConfig:            *nr.configs.GeneralConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		StatusHandler:         statusCoreComponents.AppStatusHandler(),
-		Marshalizer:           coreComponents.InternalMarshalizer(),
-		Syncer:                coreComponents.SyncTimer(),
+		CoreComponents:        coreComponents,
 		PreferredPeersSlices:  nr.configs.PreferencesConfig.Preferences.PreferredConnections,
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
 		NodeOperationMode:     common.NormalOperation,
@@ -1571,7 +1591,21 @@ func closeAllComponents(
 	httpServer shared.UpgradeableHttpServerHandler,
 	node *Node,
 	chanCloseComponents chan struct{},
+	closingNodeStarted *atomic.Bool,
+	closeComponentsDelay time.Duration,
+	consensusComponentsCloser io.Closer,
+	executionManagerCloser io.Closer,
 ) {
+	closingNodeStarted.Store(true)
+	// stop pruning, but wait a bit before closing the components to let the node finish processing the current block
+	time.Sleep(closeComponentsDelay)
+
+	log.Debug("stopping consensus...")
+	log.LogIfError(consensusComponentsCloser.Close())
+
+	log.Debug("stopping async execution...")
+	log.LogIfError(executionManagerCloser.Close())
+
 	log.Debug("closing health service...")
 	err := healthService.Close()
 	log.LogIfError(err)

@@ -42,7 +42,7 @@ func createDummyRatingsData() RatingsDataArg {
 		ChainParametersHolder: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
-					RoundDuration:               4000,
+					RoundDuration:               roundDurationMilliseconds,
 					Hysteresis:                  0.2,
 					EnableEpoch:                 0,
 					ShardConsensusGroupSize:     shardConsensusSize,
@@ -55,7 +55,7 @@ func createDummyRatingsData() RatingsDataArg {
 			AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
 				return []config.ChainParametersByEpochConfig{
 					{
-						RoundDuration:               4000,
+						RoundDuration:               roundDurationMilliseconds,
 						Hysteresis:                  0.2,
 						EnableEpoch:                 0,
 						ShardConsensusGroupSize:     shardConsensusSize,
@@ -67,8 +67,7 @@ func createDummyRatingsData() RatingsDataArg {
 				}
 			},
 		},
-		RoundDurationMilliseconds: roundDurationMilliseconds,
-		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
+		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 	}
 }
 
@@ -423,7 +422,7 @@ func TestRatingsData_EpochConfirmed(t *testing.T) {
 	chainParams := make([]config.ChainParametersByEpochConfig, 0)
 	for i := uint32(0); i <= 15; i += 5 {
 		newChainParams := config.ChainParametersByEpochConfig{
-			RoundDuration:               4000,
+			RoundDuration:               roundDurationMilliseconds,
 			Hysteresis:                  0.2,
 			EnableEpoch:                 i,
 			ShardConsensusGroupSize:     shardConsensusSize,
@@ -775,10 +774,12 @@ func TestRatingsData_RatingsCorrectValues(t *testing.T) {
 	assert.Equal(t, maxRating, ratingsData.MaxRating())
 	assert.Equal(t, signedBlocksThreshold, ratingsData.SignedBlocksThreshold())
 	assert.Equal(t, shardValidatorIncreaseRatingStep, ratingsData.ShardChainRatingsStepHandler().ValidatorIncreaseRatingStep())
+	assert.Equal(t, shardValidatorIncreaseRatingStep, ratingsData.ShardChainRatingsStepHandlerForEpoch(0).ValidatorIncreaseRatingStep())
 	assert.Equal(t, shardValidatorDecreaseRatingStep, ratingsData.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep())
 	assert.Equal(t, shardProposerIncreaseRatingStep, ratingsData.ShardChainRatingsStepHandler().ProposerIncreaseRatingStep())
 	assert.Equal(t, shardProposerDecreaseRatingStep, ratingsData.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep())
 	assert.Equal(t, metaValidatorIncreaseRatingStep, ratingsData.MetaChainRatingsStepHandler().ValidatorIncreaseRatingStep())
+	assert.Equal(t, metaValidatorIncreaseRatingStep, ratingsData.MetaChainRatingsStepHandlerForEpoch(0).ValidatorIncreaseRatingStep())
 	assert.Equal(t, metaValidatorDecreaseRatingStep, ratingsData.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep())
 	assert.Equal(t, metaProposerIncreaseRatingStep, ratingsData.MetaChainRatingsStepHandler().ProposerIncreaseRatingStep())
 	assert.Equal(t, metaProposerDecreaseRatingStep, ratingsData.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep())
