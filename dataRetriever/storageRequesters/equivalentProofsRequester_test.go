@@ -5,6 +5,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
@@ -13,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgEquivalentProofsRequester() ArgEquivalentProofsRequester {
@@ -126,6 +127,63 @@ func TestEquivalentProofsRequester_IsInterfaceNil(t *testing.T) {
 func TestEquivalentProofsRequester_RequestDataFromHash(t *testing.T) {
 	t.Parallel()
 
+	t.Run("flag disabled for both epoch and epoch+1 should skip", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgEquivalentProofsRequester()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+		req, err := NewEquivalentProofsRequester(args)
+		require.NoError(t, err)
+
+		err = req.RequestDataFromHash([]byte(common.GetEquivalentProofHashShardKey([]byte("hash"), 1)), 0)
+		require.NoError(t, err)
+	})
+	t.Run("flag disabled for epoch but enabled for epoch+1 should proceed", func(t *testing.T) {
+		t.Parallel()
+
+		providedBuff := []byte("provided buff")
+		newEpochCalled := false
+		args := createMockArgEquivalentProofsRequester()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return epoch == 1
+			},
+		}
+		args.ManualEpochStartNotifier = &mock.ManualEpochStartNotifierStub{
+			NewEpochCalled: func(epoch uint32) {
+				if epoch == 1 {
+					newEpochCalled = true
+				}
+			},
+		}
+		args.Storage = &storage.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (chainStorage.Storer, error) {
+				return &storage.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						return providedBuff, nil
+					},
+				}, nil
+			},
+		}
+		wasSendToConnectedPeerCalled := false
+		args.Messenger = &p2pmocks.MessengerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				wasSendToConnectedPeerCalled = true
+				return nil
+			},
+		}
+		req, err := NewEquivalentProofsRequester(args)
+		require.NoError(t, err)
+
+		err = req.RequestDataFromHash([]byte(common.GetEquivalentProofHashShardKey([]byte("hash"), 1)), 0)
+		require.NoError(t, err)
+		require.True(t, newEpochCalled)
+		require.True(t, wasSendToConnectedPeerCalled)
+	})
 	t.Run("invalid key should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -204,6 +262,63 @@ func TestEquivalentProofsRequester_RequestDataFromHash(t *testing.T) {
 func TestEquivalentProofsRequester_RequestDataFromNonce(t *testing.T) {
 	t.Parallel()
 
+	t.Run("flag disabled for both epoch and epoch+1 should skip", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgEquivalentProofsRequester()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+		req, err := NewEquivalentProofsRequester(args)
+		require.NoError(t, err)
+
+		err = req.RequestDataFromNonce([]byte(common.GetEquivalentProofNonceShardKey(123, 1)), 0)
+		require.NoError(t, err)
+	})
+	t.Run("flag disabled for epoch but enabled for epoch+1 should proceed", func(t *testing.T) {
+		t.Parallel()
+
+		providedBuff := []byte("provided buff")
+		newEpochCalled := false
+		args := createMockArgEquivalentProofsRequester()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return epoch == 1
+			},
+		}
+		args.ManualEpochStartNotifier = &mock.ManualEpochStartNotifierStub{
+			NewEpochCalled: func(epoch uint32) {
+				if epoch == 1 {
+					newEpochCalled = true
+				}
+			},
+		}
+		args.Storage = &storage.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (chainStorage.Storer, error) {
+				return &storage.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						return providedBuff, nil
+					},
+				}, nil
+			},
+		}
+		wasSendToConnectedPeerCalled := false
+		args.Messenger = &p2pmocks.MessengerStub{
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				wasSendToConnectedPeerCalled = true
+				return nil
+			},
+		}
+		req, err := NewEquivalentProofsRequester(args)
+		require.NoError(t, err)
+
+		err = req.RequestDataFromNonce([]byte(common.GetEquivalentProofNonceShardKey(123, 1)), 0)
+		require.NoError(t, err)
+		require.True(t, newEpochCalled)
+		require.True(t, wasSendToConnectedPeerCalled)
+	})
 	t.Run("invalid key should error", func(t *testing.T) {
 		t.Parallel()
 
