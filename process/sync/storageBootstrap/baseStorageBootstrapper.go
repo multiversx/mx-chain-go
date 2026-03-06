@@ -531,7 +531,7 @@ func (st *storageBootstrapper) setCurrentBlockInfo(
 
 	// set also last executed block info and header
 	// this will be useful at transition to Supernova with headers v3
-	st.blkc.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, header.GetRootHash())
+	st.blkc.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
 
 	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
 	if err != nil {
