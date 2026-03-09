@@ -2025,6 +2025,11 @@ func (boot *baseBootstrap) restoreState(
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
+	// for legacy (non-V3) headers, keep last executed block header in sync with current block header
+	if check.IfNil(currHeader) || !currHeader.IsHeaderV3() {
+		boot.chainHandler.SetLastExecutedBlockHeaderAndRootHash(currHeader, currHeaderHash, currRootHash)
+	}
+
 	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 	if err != nil {
 		scheduledInfo := &process.ScheduledInfo{
@@ -2054,6 +2059,11 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 	}
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(headerHash)
+
+	// for legacy (non-V3) headers, keep last executed block header in sync with current block header
+	if check.IfNil(header) || !header.IsHeaderV3() {
+		boot.chainHandler.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
+	}
 
 	return nil
 }

@@ -671,6 +671,8 @@ func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 	}
 
 	st.blkc.SetCurrentBlockHeaderHash(nil)
+	// keep last executed block header in sync when reverting to genesis
+	st.blkc.SetLastExecutedBlockHeaderAndRootHash(nil, nil, nil)
 }
 
 func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) error {
