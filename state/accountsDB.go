@@ -562,13 +562,12 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*state
 
 	if !check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
 		adb.dataTries.MarkAsDirty(accountHandler.AddressBytes())
-		return nil, nil
+		return newValues, nil
 	}
 
 	trie, ok := accountHandler.DataTrie().(common.Trie)
 	if !ok {
-		log.Warn("wrong type conversion", "trie type", fmt.Sprintf("%T", accountHandler.DataTrie()))
-		return nil, nil
+		return nil, fmt.Errorf("wrong type conversion, trie type %T", accountHandler.DataTrie())
 	}
 
 	adb.dataTries.Put(accountHandler.AddressBytes(), trie)
