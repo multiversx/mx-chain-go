@@ -66,11 +66,9 @@ func (dth *dataTriesHolder) putNoLock(key []byte, tr common.Trie) {
 	keyString := string(key)
 
 	if len(dth.evictedBuffer) > 0 {
-		if _, ok := dth.evictedBuffer[keyString]; ok {
-			// this means that this trie was evicted while being dirty
-			delete(dth.evictedBuffer, keyString)
-			log.Trace("removed trie from evicted buffer", "key", key)
-		}
+		// this means that this trie was evicted while being dirty
+		delete(dth.evictedBuffer, keyString)
+		log.Trace("removed trie from evicted buffer", "key", key)
 	}
 
 	evicted := dth.cacher.AddSizedAndReturnEvicted(keyString, tr, int64(tr.SizeInMemory()))

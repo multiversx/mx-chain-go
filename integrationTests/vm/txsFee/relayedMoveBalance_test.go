@@ -24,7 +24,8 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
+		FixRelayedBaseCostEnableEpoch:       integrationTests.UnreachableEpoch,
+		RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -75,7 +76,9 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -112,7 +115,8 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
+		FixRelayedBaseCostEnableEpoch:       integrationTests.UnreachableEpoch,
+		RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -151,8 +155,9 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-		RelayedNonceFixEnableEpoch:    1,
-		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
+		RelayedNonceFixEnableEpoch:          1,
+		FixRelayedBaseCostEnableEpoch:       integrationTests.UnreachableEpoch,
+		RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -191,7 +196,8 @@ func TestRelayedMoveBalanceHigherNonce(t *testing.T) {
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-		RelayedNonceFixEnableEpoch: 1,
+		RelayedNonceFixEnableEpoch:          1,
+		RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -247,7 +253,8 @@ func TestRelayedMoveBalanceLowerNonce(t *testing.T) {
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-		RelayedNonceFixEnableEpoch: 1,
+		RelayedNonceFixEnableEpoch:          1,
+		RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -303,7 +310,8 @@ func TestRelayedMoveBalanceHigherNonceWithActivatedFixCrossShard(t *testing.T) {
 	}
 
 	enableEpochs := config.EnableEpochs{
-		RelayedNonceFixEnableEpoch: 0,
+		RelayedNonceFixEnableEpoch:          0,
+		RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 	}
 
 	shardCoordinator0, _ := sharding.NewMultiShardCoordinator(2, 0)

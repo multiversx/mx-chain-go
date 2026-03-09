@@ -3,6 +3,7 @@ package node
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -89,13 +90,57 @@ func (n *Node) getBlockHeaderInEpochByHash(headerHash []byte, epoch core.Optiona
 	return header, nil
 }
 
+// TODO: refactor to remove duplicated code sc query
 func (n *Node) getBlockRootHash(headerHash []byte, header data.HeaderHandler) []byte {
+	if header.IsHeaderV3() {
+		return n.getBlockRootHashV3(headerHash, header)
+	}
+
 	blockRootHash, err := n.processComponents.ScheduledTxsExecutionHandler().GetScheduledRootHashForHeaderWithEpoch(
 		headerHash,
 		header.GetEpoch())
-	if err != nil {
-		blockRootHash = header.GetRootHash()
+	if err == nil {
+		return blockRootHash
 	}
 
-	return blockRootHash
+	return header.GetRootHash()
+}
+
+func (n *Node) getBlockRootHashV3(
+	headerHash []byte,
+	header data.HeaderHandler,
+) []byte {
+	rootHash, err := n.getRootHashByExecutionResult(headerHash)
+	if err == nil {
+		return rootHash
+	}
+
+	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
+	if err != nil {
+		log.Error("getBlockRootHashV3: failed to get root hash for header v3, using root hash directly from header", "error", err)
+		return header.GetRootHash()
+	}
+
+	return lastExecutionResult.GetRootHash()
+}
+
+func (n *Node) getRootHashByExecutionResult(
+	currentHeaderHash []byte,
+) ([]byte, error) {
+	execResStorer, err := n.dataComponents.StorageService().GetStorer(dataRetriever.ExecutionResultsUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	execResBytes, err := execResStorer.Get(currentHeaderHash)
+	if err != nil {
+		return nil, err
+	}
+
+	execRes, err := process.UnmarshalExecutionResult(n.coreComponents.InternalMarshalizer(), execResBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return execRes.GetRootHash(), nil
 }

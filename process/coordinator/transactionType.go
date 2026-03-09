@@ -76,8 +76,19 @@ func NewTxTypeHandler(
 	return tc, nil
 }
 
+// ComputeTransactionTypeInEpoch calculates the transaction type based on the provided epoch
+func (tth *txTypeHandler) ComputeTransactionTypeInEpoch(tx data.TransactionHandler, epoch uint32) (process.TransactionType, process.TransactionType, bool) {
+	return tth.computeTransactionType(tx, epoch)
+}
+
 // ComputeTransactionType calculates the transaction type
 func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+	currentEpoch := tth.enableEpochsHandler.GetCurrentEpoch()
+
+	return tth.computeTransactionType(tx, currentEpoch)
+}
+
+func (tth *txTypeHandler) computeTransactionType(tx data.TransactionHandler, epoch uint32) (process.TransactionType, process.TransactionType, bool) {
 	err := tth.checkTxValidity(tx)
 	if err != nil {
 		return process.InvalidTransaction, process.InvalidTransaction, false
@@ -99,7 +110,7 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 	funcName, args := tth.getFunctionFromArguments(tx.GetData())
 	isBuiltInFunction := tth.isBuiltInFunctionCall(funcName)
 	if isBuiltInFunction {
-		if tth.isSCCallAfterBuiltIn(funcName, args, tx) {
+		if tth.isSCCallAfterBuiltIn(funcName, args, tx, epoch) {
 			return process.BuiltInFunctionCall, process.SCInvoking, isRelayedV3
 		}
 
@@ -114,11 +125,11 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.MoveBalance, process.MoveBalance, isRelayedV3
 	}
 
-	if tth.isRelayedTransactionV1(funcName) {
+	if tth.isRelayedTransactionV1(funcName, epoch) {
 		return process.RelayedTx, process.RelayedTx, isRelayedV3 // this should never be reached with both relayed v1 and relayed v3
 	}
 
-	if tth.isRelayedTransactionV2(funcName) {
+	if tth.isRelayedTransactionV2(funcName, epoch) {
 		return process.RelayedTxV2, process.RelayedTxV2, isRelayedV3 // this should never be reached with both relayed v2 and relayed v3
 	}
 
@@ -143,8 +154,8 @@ func isCallOfType(tx data.TransactionHandler, callType vm.CallType) bool {
 	return scr.CallType == callType
 }
 
-func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, tx data.TransactionHandler) bool {
-	isTransferAndAsyncCallbackFixFlagSet := tth.enableEpochsHandler.IsFlagEnabled(common.ESDTMetadataContinuousCleanupFlag)
+func (tth *txTypeHandler) isSCCallAfterBuiltIn(function string, args [][]byte, tx data.TransactionHandler, epoch uint32) bool {
+	isTransferAndAsyncCallbackFixFlagSet := tth.enableEpochsHandler.IsFlagEnabledInEpoch(common.ESDTMetadataContinuousCleanupFlag, epoch)
 	if isTransferAndAsyncCallbackFixFlagSet && isCallOfType(tx, vm.AsynchronousCallBack) {
 		return true
 	}
@@ -184,11 +195,21 @@ func (tth *txTypeHandler) isBuiltInFunctionCall(functionName string) bool {
 	return function.IsActive()
 }
 
-func (tth *txTypeHandler) isRelayedTransactionV1(functionName string) bool {
+func (tth *txTypeHandler) isRelayedTransactionV1(functionName string, epoch uint32) bool {
+	areRelayedDisabled := tth.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, epoch)
+	if areRelayedDisabled {
+		return false
+	}
+
 	return functionName == core.RelayedTransaction
 }
 
-func (tth *txTypeHandler) isRelayedTransactionV2(functionName string) bool {
+func (tth *txTypeHandler) isRelayedTransactionV2(functionName string, epoch uint32) bool {
+	areRelayedDisabled := tth.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, epoch)
+	if areRelayedDisabled {
+		return false
+	}
+
 	return functionName == core.RelayedTransactionV2
 }
 

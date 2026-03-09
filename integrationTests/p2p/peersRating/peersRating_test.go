@@ -152,6 +152,7 @@ func TestPeersRatingAndResponsivenessOnFullArchive(t *testing.T) {
 	// clean the above broadcast consequences
 	requesterFullArchiveNode.DataPool.Headers().RemoveHeaderByHash(hdrHash)
 	resolverFullArchiveNode.DataPool.Headers().RemoveHeaderByHash(hdrHash)
+	time.Sleep(time.Second * 10) // invalidate the intercepted data verifier cache
 
 	// Broadcast on main network should also work and reach all nodes
 	topic = factory.ShardBlocksTopic + regularNode.ShardCoordinator.CommunicationIdentifier(requesterFullArchiveNode.ShardCoordinator.SelfId())
@@ -166,6 +167,7 @@ func TestPeersRatingAndResponsivenessOnFullArchive(t *testing.T) {
 	requesterFullArchiveNode.DataPool.Headers().RemoveHeaderByHash(hdrHash)
 	resolverFullArchiveNode.DataPool.Headers().RemoveHeaderByHash(hdrHash)
 	regularNode.DataPool.Headers().RemoveHeaderByHash(hdrHash)
+	time.Sleep(time.Second * 10) // invalidate the intercepted data verifier cache
 
 	numOfRequests := 10
 	// Add header to the resolver node's cache

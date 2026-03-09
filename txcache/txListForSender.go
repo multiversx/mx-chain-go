@@ -1,8 +1,6 @@
 package txcache
 
 import (
-	"bytes"
-	"container/list"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
@@ -10,10 +8,11 @@ import (
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	sender      string
-	items       *list.List
-	totalBytes  atomic.Counter
-	constraints *senderConstraints
+	sender          string
+	list            *orderedTransactionsList
+	totalBytes      atomic.Counter
+	constraints     *senderConstraints
+	selectionOffset int // Index from which selection should start (transactions before are in proposed blocks)
 
 	mutex sync.RWMutex
 }
@@ -21,7 +20,7 @@ type txListForSender struct {
 // newTxListForSender creates a new (sorted) list of transactions
 func newTxListForSender(sender string, constraints *senderConstraints) *txListForSender {
 	return &txListForSender{
-		items:       list.New(),
+		list:        newOrderedTransactionsList(),
 		sender:      sender,
 		constraints: constraints,
 	}
@@ -29,44 +28,52 @@ func newTxListForSender(sender string, constraints *senderConstraints) *txListFo
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, [][]byte) {
-	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
+func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, tracker *selectionTracker) (bool, [][]byte) {
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	insertionPlace, err := listForSender.findInsertionPlace(tx)
-	if err != nil {
+	if tracker == nil {
 		return false, nil
 	}
 
-	if insertionPlace == nil {
-		listForSender.items.PushFront(tx)
-	} else {
-		listForSender.items.InsertAfter(tx, insertionPlace)
+	insertionIndex := listForSender.list.findInsertionIndex(tx)
+	added := listForSender.list.insertAt(tx, insertionIndex)
+	if !added {
+		return false, nil
+	}
+
+	// If transaction was inserted before the selection offset, increment offset to maintain position
+	if insertionIndex < listForSender.selectionOffset {
+		listForSender.selectionOffset++
 	}
 
 	listForSender.onAddedTransaction(tx)
 
-	evicted := listForSender.applySizeConstraints()
+	evicted := listForSender.applySizeConstraints(tracker)
 	return true, evicted
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) applySizeConstraints() [][]byte {
+func (listForSender *txListForSender) applySizeConstraints(tracker *selectionTracker) [][]byte {
 	evictedTxHashes := make([][]byte, 0)
 
 	// Iterate back to front
-	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
+	for i := listForSender.list.len() - 1; i >= 0; i-- {
 		if !listForSender.isCapacityExceeded() {
 			break
 		}
 
-		listForSender.items.Remove(element)
-		listForSender.onRemovedListElement(element)
+		tx := listForSender.list.get(i)
+		if !tracker.IsTransactionTracked(tx) {
+			_ = listForSender.list.removeAt(i)
+			listForSender.onRemovedTransaction(tx)
+			evictedTxHashes = append(evictedTxHashes, tx.TxHash)
 
-		// Keep track of removed transactions
-		value := element.Value.(*WrappedTransaction)
-		evictedTxHashes = append(evictedTxHashes, value.TxHash)
+			// If removal is at index < offset, decrement offset
+			if i < listForSender.selectionOffset {
+				listForSender.selectionOffset--
+			}
+		}
 	}
 
 	return evictedTxHashes
@@ -85,66 +92,7 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction)
 	listForSender.totalBytes.Add(tx.Size)
 }
 
-// This function should only be used in critical section (listForSender.mutex).
-// When searching for the insertion place, we consider the following rules:
-// - transactions are sorted by nonce in ascending order.
-// - transactions with the same nonce are sorted by gas price in descending order.
-// - transactions with the same nonce and gas price are sorted by hash in ascending order.
-// - duplicates are not allowed.
-// - "PPU" measurement is not relevant in this context. Competition among transactions of the same sender (and nonce) is based on gas price.
-func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTransaction) (*list.Element, error) {
-	incomingNonce := incomingTx.Tx.GetNonce()
-	incomingGasPrice := incomingTx.Tx.GetGasPrice()
-
-	// The loop iterates from the back to the front of the list.
-	// Starting from the back allows the function to quickly find the insertion point for transactions with higher nonces, which are more likely to be added.
-	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
-		currentTx := element.Value.(*WrappedTransaction)
-		currentTxNonce := currentTx.Tx.GetNonce()
-		currentTxGasPrice := currentTx.Tx.GetGasPrice()
-
-		if currentTxNonce == incomingNonce {
-			if currentTxGasPrice > incomingGasPrice {
-				// The case of same nonce, lower gas price.
-				// We've found an insertion place: right after "element".
-				return element, nil
-			}
-
-			if currentTxGasPrice == incomingGasPrice {
-				// The case of same nonce, same gas price.
-
-				comparison := bytes.Compare(currentTx.TxHash, incomingTx.TxHash)
-				if comparison == 0 {
-					// The incoming transaction will be discarded, since it's already in the cache.
-					return nil, errItemAlreadyInCache
-				}
-				if comparison < 0 {
-					// We've found an insertion place: right after "element".
-					return element, nil
-				}
-
-				// We allow the search loop to continue, since the incoming transaction has a "higher hash".
-			}
-
-			// We allow the search loop to continue, since the incoming transaction has a higher gas price.
-			continue
-		}
-
-		if currentTxNonce < incomingNonce {
-			// We've found the first transaction with a lower nonce than the incoming one,
-			// thus the incoming transaction will be placed right after this one.
-			return element, nil
-		}
-
-		// We allow the search loop to continue, since the incoming transaction has a higher nonce.
-	}
-
-	// The incoming transaction will be inserted at the head of the list.
-	return nil, nil
-}
-
-func (listForSender *txListForSender) onRemovedListElement(element *list.Element) {
-	tx := element.Value.(*WrappedTransaction)
+func (listForSender *txListForSender) onRemovedTransaction(tx *WrappedTransaction) {
 	listForSender.totalBytes.Subtract(tx.Size)
 }
 
@@ -158,14 +106,7 @@ func (listForSender *txListForSender) getTxs() []*WrappedTransaction {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
 
-	result := make([]*WrappedTransaction, 0, listForSender.countTx())
-
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(*WrappedTransaction)
-		result = append(result, value)
-	}
-
-	return result
+	return listForSender.list.getAll()
 }
 
 // getTxsReversed returns the transactions of the sender, in reverse nonce order
@@ -173,51 +114,40 @@ func (listForSender *txListForSender) getTxsReversed() []*WrappedTransaction {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
 
-	result := make([]*WrappedTransaction, 0, listForSender.countTx())
-
-	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
-		value := element.Value.(*WrappedTransaction)
-		result = append(result, value)
+	items := listForSender.list.items
+	result := make([]*WrappedTransaction, 0, len(items))
+	for i := len(items) - 1; i >= 0; i-- {
+		result = append(result, items[i])
 	}
-
 	return result
 }
 
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) countTx() uint64 {
-	return uint64(listForSender.items.Len())
+	return uint64(listForSender.list.len())
 }
 
 func (listForSender *txListForSender) countTxWithLock() uint64 {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
-	return uint64(listForSender.items.Len())
+	return uint64(listForSender.list.len())
 }
 
 // removeTransactionsWithLowerOrEqualNonceReturnHashes removes transactions with nonces lower or equal to the given nonce
 func (listForSender *txListForSender) removeTransactionsWithLowerOrEqualNonceReturnHashes(targetNonce uint64) [][]byte {
-	evictedTxHashes := make([][]byte, 0)
-
-	// We don't allow concurrent goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	for element := listForSender.items.Front(); element != nil; {
-		tx := element.Value.(*WrappedTransaction)
-		txNonce := tx.Tx.GetNonce()
+	removed := listForSender.list.removeBeforeNonce(targetNonce)
+	evictedTxHashes := make([][]byte, len(removed))
 
-		if txNonce > targetNonce {
-			break
-		}
-
-		nextElement := element.Next()
-		_ = listForSender.items.Remove(element)
-		listForSender.onRemovedListElement(element)
-		element = nextElement
-
-		// Keep track of removed transactions
-		evictedTxHashes = append(evictedTxHashes, tx.TxHash)
+	for i, tx := range removed {
+		listForSender.onRemovedTransaction(tx)
+		evictedTxHashes[i] = tx.TxHash
 	}
+
+	// Decrement offset by number of removed transactions (clamped to 0)
+	listForSender.decrementSelectionOffset(len(removed))
 
 	return evictedTxHashes
 }
@@ -226,17 +156,61 @@ func (listForSender *txListForSender) removeTransactionsWithHigherOrEqualNonce(g
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	for element := listForSender.items.Back(); element != nil; {
-		tx := element.Value.(*WrappedTransaction)
-		txNonce := tx.Tx.GetNonce()
-
-		if txNonce < givenNonce {
-			break
-		}
-
-		prevElement := element.Prev()
-		_ = listForSender.items.Remove(element)
-		listForSender.onRemovedListElement(element)
-		element = prevElement
+	removed := listForSender.list.removeAfterNonce(givenNonce)
+	for _, tx := range removed {
+		listForSender.onRemovedTransaction(tx)
 	}
+	if listForSender.selectionOffset > listForSender.list.len() {
+		listForSender.selectionOffset = listForSender.list.len()
+	}
+}
+
+// getTxsForSelection returns the transactions of the sender starting from the selection offset.
+// Transactions before the offset are already in proposed blocks and should be skipped during selection.
+func (listForSender *txListForSender) getTxsForSelection() []*WrappedTransaction {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
+
+	return listForSender.list.getAllFromIndex(listForSender.selectionOffset)
+}
+
+// incrementSelectionOffset increases the selection offset by the given count.
+// This is called during OnProposed to skip transactions that are now in a proposed block.
+// This function should only be used in critical section (listForSender.mutex)
+func (listForSender *txListForSender) incrementSelectionOffset(count int) {
+	listForSender.selectionOffset += count
+	// Clamp to list length to avoid going beyond available transactions
+	if listForSender.selectionOffset > listForSender.list.len() {
+		listForSender.selectionOffset = listForSender.list.len()
+	}
+}
+
+// decrementSelectionOffset decreases the selection offset by the given count.
+// This is called when transactions are removed from the front of the list (executed).
+// This function should only be used in critical section (listForSender.mutex)
+func (listForSender *txListForSender) decrementSelectionOffset(count int) {
+	listForSender.selectionOffset -= count
+	// Clamp to 0 to avoid negative offset
+	if listForSender.selectionOffset < 0 {
+		listForSender.selectionOffset = 0
+	}
+}
+
+// resetSelectionOffsetByNonce resets the selection offset to point to the first transaction
+// with nonce >= startNonce. Uses binary search for efficiency.
+// This is called during block replacement to re-enable transactions for selection.
+func (listForSender *txListForSender) resetSelectionOffsetByNonce(startNonce uint64) {
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
+	listForSender.selectionOffset = listForSender.list.findIndexByNonce(startNonce)
+}
+
+// getSelectionOffset returns the current selection offset.
+// This is primarily used for testing.
+func (listForSender *txListForSender) getSelectionOffset() int {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
+
+	return listForSender.selectionOffset
 }

@@ -33,8 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 )
 
-const tenMBSize = uint64(10485760)
-
 func getDefaultUserAccountsSyncerArgs() syncer.ArgsNewUserAccountsSyncer {
 	return syncer.ArgsNewUserAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: getDefaultBaseAccSyncerArgs(),

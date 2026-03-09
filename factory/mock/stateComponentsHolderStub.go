@@ -10,11 +10,13 @@ type StateComponentsHolderStub struct {
 	PeerAccountsCalled             func() state.AccountsAdapter
 	AccountsAdapterCalled          func() state.AccountsAdapter
 	AccountsAdapterAPICalled       func() state.AccountsAdapter
+	AccountsAdapterProposalCalled  func() state.AccountsAdapter
 	AccountsRepositoryCalled       func() state.AccountsRepository
 	TriesContainerCalled           func() common.TriesHolder
 	TrieStorageManagersCalled      func() map[string]common.StorageManager
 	MissingTrieNodesNotifierCalled func() common.MissingTrieNodesNotifier
 	TrieLeavesRetrieverCalled      func() common.TrieLeavesRetriever
+	StateAccessesCollectorCalled   func() state.StateAccessesCollector
 }
 
 // PeerAccounts -
@@ -39,6 +41,15 @@ func (s *StateComponentsHolderStub) AccountsAdapter() state.AccountsAdapter {
 func (s *StateComponentsHolderStub) AccountsAdapterAPI() state.AccountsAdapter {
 	if s.AccountsAdapterAPICalled != nil {
 		return s.AccountsAdapterAPICalled()
+	}
+
+	return nil
+}
+
+// AccountsAdapterProposal -
+func (s *StateComponentsHolderStub) AccountsAdapterProposal() state.AccountsAdapter {
+	if s.AccountsAdapterProposalCalled != nil {
+		return s.AccountsAdapterProposalCalled()
 	}
 
 	return nil
@@ -85,6 +96,15 @@ func (s *StateComponentsHolderStub) TrieLeavesRetriever() common.TrieLeavesRetri
 	if s.TrieLeavesRetrieverCalled != nil {
 		return s.TrieLeavesRetrieverCalled()
 	}
+	return nil
+}
+
+// StateAccessesCollector -
+func (s *StateComponentsHolderStub) StateAccessesCollector() state.StateAccessesCollector {
+	if s.StateAccessesCollectorCalled != nil {
+		return s.StateAccessesCollectorCalled()
+	}
+
 	return nil
 }
 

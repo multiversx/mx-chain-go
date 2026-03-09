@@ -3,8 +3,6 @@ package storageBootstrap
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -45,6 +43,7 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		appStatusHandler:             arguments.AppStatusHandler,
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		proofsPool:                   arguments.ProofsPool,
+		executionManager:             arguments.ExecutionManager,
 	}
 
 	boot := shardStorageBootstrapper{
@@ -119,7 +118,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 	}
 
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
-		var metaBlock *block.MetaBlock
+		var metaBlock data.MetaHeaderHandler
 		metaBlock, err = process.GetMetaHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
 		if err != nil {
 			log.Debug("meta block is not found in MetaBlockUnit storage",
@@ -187,7 +186,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExi
 	}
 }
 
-func (ssb *shardStorageBootstrapper) removeMetaFromMetaHeaderNonceToHashUnit(metaBlock *block.MetaBlock, metaBlockHash []byte) {
+func (ssb *shardStorageBootstrapper) removeMetaFromMetaHeaderNonceToHashUnit(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
 	nonceToByteSlice := ssb.uint64Converter.ToByteSlice(metaBlock.GetNonce())
 	metaHdrNonceHashStorer, err := ssb.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
 	if err != nil {
@@ -207,7 +206,7 @@ func (ssb *shardStorageBootstrapper) removeMetaFromMetaHeaderNonceToHashUnit(met
 	}
 }
 
-func (ssb *shardStorageBootstrapper) removeMetaFromMetaBlockUnit(metaBlock *block.MetaBlock, metaBlockHash []byte) {
+func (ssb *shardStorageBootstrapper) removeMetaFromMetaBlockUnit(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
 	metaBlockStorer, err := ssb.store.GetStorer(dataRetriever.MetaBlockUnit)
 	if err != nil {
 		log.Debug("could not get storage unit",

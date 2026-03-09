@@ -143,29 +143,21 @@ func (ln *leafNode) shouldCollapseChild(hexKey []byte, _ MetricsCollector) bool 
 }
 
 func (ln *leafNode) commitSnapshot(
-	db common.TrieStorageInteractor,
+	_ snapshotDb,
+	_ uint32,
 	leavesChan chan core.KeyValueHolder,
 	_ chan []byte,
 	ctx context.Context,
 	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	nodeBytes []byte,
 	tmc MetricsCollector,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return core.ErrContextClosing
 	}
 
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
-	}
-
-	err = writeNodeOnChannel(ln, leavesChan)
-	if err != nil {
-		return err
-	}
-
-	nodeSize, err := encodeNodeAndCommitToDB(ln, db)
+	err := writeNodeOnChannel(ln, leavesChan)
 	if err != nil {
 		return err
 	}
@@ -175,7 +167,7 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	stats.AddLeafNode(int(tmc.GetMaxDepth()), uint64(nodeSize), version)
+	stats.AddLeafNode(int(tmc.GetCurrentDepth()), uint64(len(nodeBytes)), version)
 
 	return nil
 }
@@ -530,7 +522,7 @@ func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, tmc MetricsCol
 		return err
 	}
 
-	ts.AddLeafNode(int(tmc.GetMaxDepth()), uint64(len(val)), version)
+	ts.AddLeafNode(int(tmc.GetCurrentDepth()), uint64(len(val)), version)
 	return nil
 }
 
