@@ -92,12 +92,10 @@ func (tracker *sentSignaturesTracker) RecordSignedNonce(pkBytes []byte, nonce ui
 // GetSignedHash returns the header hash previously signed by the given public key for the given nonce.
 // Returns (hash, true) if found, (nil, false) otherwise.
 func (tracker *sentSignaturesTracker) GetSignedHash(pkBytes []byte, nonce uint64) ([]byte, bool) {
-	pk := string(pkBytes)
-
 	tracker.mut.RLock()
 	defer tracker.mut.RUnlock()
 
-	nonceMap, exists := tracker.signedNonces[pk]
+	nonceMap, exists := tracker.signedNonces[string(pkBytes)]
 	if !exists {
 		return nil, false
 	}
