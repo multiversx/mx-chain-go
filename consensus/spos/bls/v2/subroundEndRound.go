@@ -400,6 +400,20 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 }
 
 func (sr *subroundEndRound) shouldSendProof() bool {
+	// Allow proof sending with a grace period into the next round so the proof can
+	// reach nodes delaying before signing a competing block (equivocation prevention).
+	consensusRoundStart := sr.GetRoundTimeStamp()
+	roundDuration := sr.RoundHandler().TimeDuration()
+	graceDuration := time.Duration(float64(roundDuration) * competingProofSendDelay)
+	maxDuration := roundDuration + graceDuration
+	remaining := sr.RoundHandler().RemainingTime(consensusRoundStart, maxDuration)
+	if remaining <= 0 {
+		log.Debug("shouldSendProof: grace period expired, not sending proof",
+			"consensus round", sr.GetRoundIndex(),
+			"current round", sr.RoundHandler().Index())
+		return false
+	}
+
 	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		log.Debug("shouldSendProof: equivalent message already processed")
 		return false

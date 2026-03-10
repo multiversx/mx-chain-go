@@ -1180,3 +1180,11 @@ func (bp *baseProcessor) SaveExecutionResult(
 ) error {
 	return bp.saveExecutionResult(execResult)
 }
+
+// WaitForExecutionResultsVerification -
+func (bp *baseProcessor) WaitForExecutionResultsVerification(
+	header data.HeaderHandler,
+	haveTime func() time.Duration,
+) error {
+	return bp.waitForExecutionResultsVerification(header, haveTime)
+}

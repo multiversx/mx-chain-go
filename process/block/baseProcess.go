@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -49,7 +50,8 @@ import (
 )
 
 const (
-	cleanupHeadersDelta = 5
+	cleanupHeadersDelta                  = 5
+	waitForExecutionResultsCheckInterval = 5 * time.Millisecond
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -3292,6 +3294,37 @@ func getStorageUnitFromBlockType(blockType block.Type) (dataRetriever.UnitType, 
 		return dataRetriever.UnsignedTransactionUnit, nil
 	}
 	return 0, process.ErrInvalidBlockType
+}
+
+func (bp *baseProcessor) waitForExecutionResultsVerification(
+	header data.HeaderHandler,
+	haveTime func() time.Duration,
+) error {
+	isWaiting := false
+	for {
+		err := bp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
+		if !errors.Is(err, process.ErrExecutionResultsNumberMismatch) {
+			return err
+		}
+
+		remainingTime := haveTime()
+		if remainingTime <= 0 {
+			log.Debug("waitForExecutionResultsVerification: timed out waiting for execution results",
+				"header nonce", header.GetNonce(),
+			)
+			return err
+		}
+
+		if !isWaiting {
+			isWaiting = true
+			log.Debug("waitForExecutionResultsVerification: waiting for execution results",
+				"header nonce", header.GetNonce(),
+				"remaining time", remainingTime,
+			)
+		}
+
+		time.Sleep(min(waitForExecutionResultsCheckInterval, remainingTime))
+	}
 }
 
 func (bp *baseProcessor) checkInclusionEstimationForExecutionResults(header data.HeaderHandler) error {
