@@ -1,0 +1,175 @@
+package common
+
+import (
+	"encoding/hex"
+	"fmt"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/storage"
+)
+
+var log = logger.GetOrCreate("common")
+
+// GetCachedIntermediateTxs will return from cache intermediate transactions
+func GetCachedIntermediateTxs(cache storage.Cacher, headerHash []byte) (map[block.Type]map[string]data.TransactionHandler, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
+	cachedIntermediateTxs, ok := cache.Get(headerHash)
+	if !ok {
+		log.Warn("intermediateTxs not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingCachedTransactions, hex.EncodeToString(headerHash))
+	}
+
+	cachedIntermediateTxsMap, ok := cachedIntermediateTxs.(map[block.Type]map[string]data.TransactionHandler)
+	if !ok {
+		return nil, fmt.Errorf("%w for cached intermediate transaction %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
+	}
+
+	return cachedIntermediateTxsMap, nil
+}
+
+// GetCachedLogs will return the cached log events from provided cache
+func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]data.LogDataHandler, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
+	logsKey := PrepareLogEventsKey(headerHash)
+	cachedLogs, ok := cache.Get(logsKey)
+	if !ok {
+		log.Warn("logs not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingCachedLogs, hex.EncodeToString(headerHash))
+	}
+	cachedLogsSlice, ok := cachedLogs.([]data.LogDataHandler)
+	if !ok {
+		return nil, fmt.Errorf("%w for cached logs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
+	}
+
+	return cachedLogsSlice, nil
+}
+
+// GetCachedOrderedTxHashes wil return the cached ordered tx hashes from the provided cache
+func GetCachedOrderedTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
+	orderedTxHashesKey := PrepareOrderedTxHashesKey(headerHash)
+	cachedData, ok := cache.Get(orderedTxHashesKey)
+	if !ok {
+		log.Warn("orderedTxHashes not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingOrderedTxHashes, hex.EncodeToString(headerHash))
+	}
+
+	cachedDataSlice, ok := cachedData.([][]byte)
+	if !ok {
+		return nil, fmt.Errorf("%w for cached logs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
+	}
+
+	return cachedDataSlice, nil
+}
+
+// GetCachedUnexecutableTxHashes will return the cached unexecutable tx hashes from the provided cache
+func GetCachedUnexecutableTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
+	unexecutableTxHashesKey := PrepareUnexecutableTxHashesKey(headerHash)
+	cachedData, ok := cache.Get(unexecutableTxHashesKey)
+	if !ok {
+		log.Warn("unexecutableTxHashes not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingUnexecutableTxHash, hex.EncodeToString(headerHash))
+	}
+
+	cachedDataSlice, ok := cachedData.([][]byte)
+	if !ok {
+		return nil, fmt.Errorf("%w for cached unexecutable txs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
+	}
+
+	return cachedDataSlice, nil
+}
+
+// GetCachedMbs will return the cached miniblocks from provided cache
+func GetCachedMbs(cache storage.Cacher, marshaller marshal.Marshalizer, headerHash []byte) ([]*block.MiniBlock, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
+	cachedIntraMBs, ok := cache.Get(headerHash)
+	if !ok {
+		log.Warn("intra miniblocks not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingMiniBlock, hex.EncodeToString(headerHash))
+	}
+
+	miniBlocks, ok := cachedIntraMBs.([]*block.MiniBlock)
+	if !ok {
+		return nil, fmt.Errorf("%w for GetCachedMbs", ErrWrongTypeAssertion)
+	}
+
+	return miniBlocks, nil
+}
+
+// GetCachedBody will return the block body based from provided cache based on the execution result
+func GetCachedBody(cache storage.Cacher, marshaller marshal.Marshalizer, baseExecResult data.BaseExecutionResultHandler) (*block.Body, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
+	miniBlockHeaderHandlers, err := GetMiniBlocksHeaderHandlersFromExecResult(baseExecResult)
+	if err != nil {
+		return nil, err
+	}
+
+	var miniBlocks block.MiniBlockSlice
+	for _, miniBlockHeaderHandler := range miniBlockHeaderHandlers {
+		mbHash := miniBlockHeaderHandler.GetHash()
+		cachedMiniBlock, found := cache.Get(mbHash)
+		if !found {
+			log.Warn("mini block from execution result not cached after execution",
+				"mini block hash", mbHash)
+			return nil, ErrMissingMiniBlock
+		}
+
+		cachedMiniBlockBytes := cachedMiniBlock.([]byte)
+
+		miniBlock := &block.MiniBlock{}
+		err = marshaller.Unmarshal(miniBlock, cachedMiniBlockBytes)
+		if err != nil {
+			return nil, err
+		}
+
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+// GetCacheHeaderGasData will return the cached header gas data from the provided cache
+func GetCacheHeaderGasData(cache storage.Cacher, headerHash []byte) (*outport.HeaderGasConsumption, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
+	cacheHeaderGasDataI, ok := cache.Get(PrepareHeaderGasDataKey(headerHash))
+	if !ok {
+		log.Warn("header gas data not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingHeaderGasData, hex.EncodeToString(headerHash))
+	}
+
+	cacheHeaderGasData, ok := cacheHeaderGasDataI.(*outport.HeaderGasConsumption)
+	if !ok {
+		return nil, fmt.Errorf("%w for GetCacheHeaderGasData", ErrWrongTypeAssertion)
+	}
+
+	return cacheHeaderGasData, nil
+}

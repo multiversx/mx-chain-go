@@ -118,6 +118,6 @@ type DeployProcessor interface {
 
 // VersionedHeaderFactory creates versioned headers
 type VersionedHeaderFactory interface {
-	Create(epoch uint32) data.HeaderHandler
+	Create(epoch uint32, round uint64) data.HeaderHandler
 	IsInterfaceNil() bool
 }

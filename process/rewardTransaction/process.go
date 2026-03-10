@@ -117,7 +117,7 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 	// TODO refactor to set the tx hash for the following state accesses before the processing occurs
 	defer func() {
 		rtp.accounts.SetTxHashForLatestStateAccesses(txHash)
-		log.Debug("SetTxHashForLatestStateAccesses", "txHash", txHash)
+		log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
 	}()
 
 	err = accHandler.AddToBalance(rTx.Value)

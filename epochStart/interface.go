@@ -21,6 +21,10 @@ type TriggerHandler interface {
 	Epoch() uint32
 	MetaEpoch() uint32
 	Update(round uint64, nonce uint64)
+	SetEpochChange(round uint64)
+	ShouldProposeEpochChange(round uint64, nonce uint64) bool
+	SetEpochChangeProposed(value bool)
+	GetEpochChangeProposed() bool
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
 	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
@@ -64,6 +68,7 @@ type RequestHandler interface {
 	GetNumPeersToQuery(key string) (int, int, error)
 	RequestValidatorInfo(hash []byte)
 	RequestValidatorsInfo(hashes [][]byte)
+	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte)
 	IsInterfaceNil() bool
 }
 
@@ -183,11 +188,19 @@ type EpochEconomicsDataProvider interface {
 	SetLeadersFees(fees *big.Int)
 	SetRewardsToBeDistributed(rewards *big.Int)
 	SetRewardsToBeDistributedForBlocks(rewards *big.Int)
+	SetRewardsForProtocolSustainability(rewards *big.Int)
+	SetRewardsForEcosystemGrowth(rewards *big.Int)
+	SetRewardsForGrowthDividend(rewards *big.Int)
 	NumberOfBlocks() uint64
 	NumberOfBlocksPerShard() map[uint32]uint64
 	LeaderFees() *big.Int
 	RewardsToBeDistributed() *big.Int
 	RewardsToBeDistributedForBlocks() *big.Int
+	RewardsForProtocolSustainability() *big.Int
+	RewardsForEcosystemGrowth() *big.Int
+	RewardsForGrowthDividend() *big.Int
+	RewardsForAccelerator() *big.Int
+	Clean()
 	IsInterfaceNil() bool
 }
 
@@ -199,7 +212,13 @@ type RewardsCreator interface {
 	VerifyRewardsMiniBlocks(
 		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
-	GetProtocolSustainabilityRewards() *big.Int
+	CreateRewardsMiniBlocksV3(
+		metaBlock data.MetaHeaderHandler,
+		validatorsInfo state.ShardValidatorsInfoMapHandler,
+		computedEconomics *block.Economics,
+		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	) (block.MiniBlockSlice, error)
+	GetAcceleratorRewards() *big.Int
 	GetLocalTxCache() TransactionCacher
 	CreateMarshalledData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler

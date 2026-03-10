@@ -13,10 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 )
 
@@ -200,8 +201,8 @@ func (ts *transactionsSync) requestTransactionsForNonPeerMiniBlock(miniBlock *bl
 
 	switch mbType {
 	case block.TxBlock:
-		ts.requestHandler.RequestTransaction(miniBlock.SenderShardID, missingTxs)
-		ts.requestHandler.RequestTransaction(miniBlock.ReceiverShardID, missingTxs)
+		ts.requestHandler.RequestTransactions(miniBlock.SenderShardID, missingTxs)
+		ts.requestHandler.RequestTransactions(miniBlock.ReceiverShardID, missingTxs)
 	case block.SmartContractResultBlock:
 		ts.requestHandler.RequestUnsignedTransactions(miniBlock.SenderShardID, missingTxs)
 		ts.requestHandler.RequestUnsignedTransactions(miniBlock.ReceiverShardID, missingTxs)

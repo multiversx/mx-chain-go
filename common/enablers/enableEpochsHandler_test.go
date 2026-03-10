@@ -1,7 +1,9 @@
 package enablers
 
 import (
+	"fmt"
 	"math"
+	"reflect"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -71,7 +73,6 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		IsPayableBySCEnableEpoch:                                 52,
 		CleanUpInformativeSCRsEnableEpoch:                        53,
 		StorageAPICostOptimizationEnableEpoch:                    54,
-		TransformToMultiShardCreateEnableEpoch:                   55,
 		ESDTRegisterAndSetAllRolesEnableEpoch:                    56,
 		ScheduledMiniBlocksEnableEpoch:                           57,
 		CorrectJailedNotUnstakedEmptyQueueEpoch:                  58,
@@ -135,6 +136,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		BarnardOpcodesEnableEpoch:                                116,
 		AutomaticActivationOfNodesDisableEpoch:                   117,
 		RelayedTransactionsV1V2DisableEpoch:                      118,
+		SupernovaEnableEpoch:                                     119,
 	}
 }
 
@@ -342,6 +344,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.AndromedaFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 	require.True(t, handler.IsFlagEnabled(common.RelayedTransactionsV1V2DisableFlag))
+	require.True(t, handler.IsFlagEnabled(common.SupernovaFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -478,6 +481,32 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.AutomaticActivationOfNodesDisableEpoch, handler.GetActivationEpoch(common.AutomaticActivationOfNodesDisableFlag))
 	require.Equal(t, cfg.FixGetBalanceEnableEpoch, handler.GetActivationEpoch(common.FixGetBalanceFlag))
 	require.Equal(t, cfg.RelayedTransactionsV1V2DisableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag))
+	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
+}
+
+func TestEnableEpochsHandler_GetAllEnableEpochs(t *testing.T) {
+	t.Parallel()
+
+	cfg := createEnableEpochsConfig()
+	handler, _ := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+	require.NotNil(t, handler)
+
+	allEpochs := handler.GetAllEnableEpochs()
+	typeOfCfg := reflect.TypeOf(cfg)
+	valueOfCfg := reflect.ValueOf(cfg)
+	for i := 0; i < typeOfCfg.NumField(); i++ {
+		field := typeOfCfg.Field(i)
+		value := valueOfCfg.Field(i)
+		if field.Name == "MaxNodesChangeEnableEpoch" ||
+			field.Name == "BLSMultiSignerEnableEpoch" {
+			// slices, ignoring
+			continue
+		}
+
+		epoch, exists := allEpochs[field.Name]
+		require.True(t, exists, fmt.Sprintf("could not find: %s", field.Name))
+		require.Equal(t, value.Uint(), uint64(epoch))
+	}
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

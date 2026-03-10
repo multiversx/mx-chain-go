@@ -17,14 +17,24 @@ import (
 
 var log = logger.GetOrCreate("state/stateAccesses")
 
+const maxNumBlocksInMemory = 20
+
+type stateAccessesForTxs map[string]*data.StateAccesses
+
 type collector struct {
-	collectRead         bool
-	collectWrite        bool
-	withAccountChanges  bool
-	stateAccesses       []*data.StateAccess
-	stateAccessesForTxs map[string]*data.StateAccesses
-	storer              state.StateAccessesStorer
-	stateAccessesMut    sync.RWMutex
+	collectRead              bool
+	collectWrite             bool
+	withAccountChanges       bool
+	stateAccesses            []*data.StateAccess
+	stateAccessesForTxs      stateAccessesForTxs
+	stateAccessesForBlock    map[string]stateAccessesForTxs
+	stateAccessesForBlockMut sync.RWMutex
+
+	storer           state.StateAccessesStorer
+	stateAccessesMut sync.RWMutex
+
+	lastCollectedRootHash     []byte
+	lastCommitHasStateChanges bool
 }
 
 // NewCollector will create a new collector which gathers the state accesses based on the provided options.
@@ -34,8 +44,9 @@ func NewCollector(storer state.StateAccessesStorer, opts ...CollectorOption) (*c
 	}
 
 	c := &collector{
-		stateAccesses:       make([]*data.StateAccess, 0),
-		stateAccessesForTxs: make(map[string]*data.StateAccesses),
+		stateAccesses:         make([]*data.StateAccess, 0),
+		stateAccessesForTxs:   make(map[string]*data.StateAccesses),
+		stateAccessesForBlock: make(map[string]stateAccessesForTxs),
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -77,22 +88,54 @@ func (c *collector) GetAccountChanges(oldAccount, account vmcommon.AccountHandle
 // Reset resets the state accesses collector
 func (c *collector) Reset() {
 	c.stateAccessesMut.Lock()
-	defer c.stateAccessesMut.Unlock()
 
 	c.stateAccesses = make([]*data.StateAccess, 0)
 	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
-	log.Trace("reset state accesses collector")
+
+	if c.lastCommitHasStateChanges {
+		c.removeStateAccessesForRootHash(c.lastCollectedRootHash)
+		log.Trace("removed last collected root hash from stateAccessesForBlock", "rootHash", c.lastCollectedRootHash)
+	}
+	c.stateAccessesMut.Unlock()
+
+	c.stateAccessesForBlockMut.RLock()
+	if len(c.stateAccessesForBlock) > maxNumBlocksInMemory {
+		// TODO remove oldest entries instead of logging a warning
+		log.Warn("max number of blocks in memory exceeded", "numBlocksInMemory", len(c.stateAccessesForBlock))
+	}
+
+	log.Trace("reset state accesses collector", "num state accesses for block", len(c.stateAccessesForBlock))
+	c.stateAccessesForBlockMut.RUnlock()
 }
 
-// GetCollectedAccesses will return the collected state accesses
-func (c *collector) GetCollectedAccesses() map[string]*data.StateAccesses {
-	return c.getStateAccessesForTxs()
+// GetStateAccessesForRootHash will return the collected state accesses
+func (c *collector) GetStateAccessesForRootHash(rootHash []byte) map[string]*data.StateAccesses {
+	c.stateAccessesForBlockMut.RLock()
+	defer c.stateAccessesForBlockMut.RUnlock()
+
+	stateAccessesForRootHash, ok := c.stateAccessesForBlock[string(rootHash)]
+	if !ok {
+		log.Warn("stateAccessesForRootHash not found in stateAccessesForBlock", "rootHash", rootHash)
+		return nil
+	}
+
+	return stateAccessesForRootHash
+}
+
+// RemoveStateAccessesForRootHash will remove the collected state accesses for the given root hash
+func (c *collector) RemoveStateAccessesForRootHash(rootHash []byte) {
+	c.removeStateAccessesForRootHash(rootHash)
+}
+
+func (c *collector) removeStateAccessesForRootHash(rootHash []byte) {
+	c.stateAccessesForBlockMut.Lock()
+	defer c.stateAccessesForBlockMut.Unlock()
+
+	delete(c.stateAccessesForBlock, string(rootHash))
+	log.Trace("removed stateAccessesForRootHash from stateAccessesForBlock", "rootHash", rootHash)
 }
 
 func (c *collector) getStateAccessesForTxs() map[string]*data.StateAccesses {
-	c.stateAccessesMut.Lock()
-	defer c.stateAccessesMut.Unlock()
-
 	if len(c.stateAccessesForTxs) != 0 && len(c.stateAccesses) == 0 {
 		return c.stateAccessesForTxs
 	}
@@ -175,10 +218,9 @@ func logCollectedStateAccesses(message string, stateAccessesForTx map[string]*da
 func stateAccessToString(stateAccess *data.StateAccess) string {
 	dataTrieChanges := make([]string, len(stateAccess.GetDataTrieChanges()))
 	for i, dataTrieChange := range stateAccess.GetDataTrieChanges() {
-		dataTrieChanges[i] = fmt.Sprintf("key: %v, val: %v, type: %v", hex.EncodeToString(dataTrieChange.Key), hex.EncodeToString(dataTrieChange.Val), dataTrieChange.Type)
+		dataTrieChanges[i] = fmt.Sprintf("key: %v, val: %v, type: %v, operation: %v, version: %v", hex.EncodeToString(dataTrieChange.Key), hex.EncodeToString(dataTrieChange.Val), dataTrieChange.Type, dataTrieChange.Operation, dataTrieChange.Version)
 	}
-	return fmt.Sprintf("type: %v, operation: %v, mainTrieKey: %v, mainTrieVal: %v, index: %v, dataTrieChanges: %v, accountChanges %v",
-		stateAccess.GetType(),
+	return fmt.Sprintf("type: %v, operation: %v, mainTrieKey: %v, mainTrieVal: %v, index: %v, dataTrieChanges: %v, accountChanges: %v", stateAccess.GetType(),
 		stateAccess.GetOperation(),
 		hex.EncodeToString(stateAccess.GetMainTrieKey()),
 		hex.EncodeToString(stateAccess.GetMainTrieVal()),
@@ -188,9 +230,38 @@ func stateAccessToString(stateAccess *data.StateAccess) string {
 	)
 }
 
-// Store will call the Store method of the underlying storer, giving it the collected state accesses.
-func (c *collector) Store() error {
-	return c.storer.Store(c.getStateAccessesForTxs())
+// CommitCollectedAccesses will call the Store method of the underlying storer, giving it the collected state accesses.
+func (c *collector) CommitCollectedAccesses(rootHash []byte) error {
+	c.stateAccessesMut.Lock()
+
+	collectedStateAccesses := c.getStateAccessesForTxs()
+	if len(collectedStateAccesses) == 0 {
+		c.lastCollectedRootHash = rootHash
+		c.lastCommitHasStateChanges = false
+		c.stateAccessesMut.Unlock()
+
+		log.Trace("no state accesses collected, skipping commit", "rootHash", rootHash)
+
+		return nil
+	}
+
+	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
+	c.stateAccesses = make([]*data.StateAccess, 0)
+
+	c.lastCollectedRootHash = rootHash
+	c.lastCommitHasStateChanges = true
+	c.stateAccessesMut.Unlock()
+
+	c.stateAccessesForBlockMut.Lock()
+	c.stateAccessesForBlock[string(rootHash)] = collectedStateAccesses
+	log.Trace("state accesses collected", "numStateAccesses", len(collectedStateAccesses), "rootHash", rootHash)
+
+	if len(c.stateAccessesForBlock) > maxNumBlocksInMemory {
+		log.Warn("max number of blocks in memory exceeded", "numBlocksInMemory", len(c.stateAccessesForBlock))
+	}
+	c.stateAccessesForBlockMut.Unlock()
+
+	return c.storer.Store(collectedStateAccesses)
 }
 
 // AddTxHashToCollectedStateAccesses will try to set txHash field to each state access

@@ -3,12 +3,14 @@ package spos_test
 import (
 	"bytes"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
 	p2pMessage "github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -57,6 +59,7 @@ func internalInitConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler
 		rcns,
 		rthr,
 		rstatus,
+		&mock.NodeRedundancyHandlerStub{},
 	)
 
 	return cns
@@ -78,9 +81,9 @@ func TestConsensusState_ResetConsensusStateShouldWork(t *testing.T) {
 	cns.SetExtendedCalled(true)
 	cns.SetWaitingAllSignaturesTimeOut(true)
 	cns.ResetConsensusState()
-	assert.False(t, cns.RoundCanceled)
+	assert.False(t, cns.GetRoundCanceled())
 	assert.False(t, cns.GetExtendedCalled())
-	assert.False(t, cns.WaitingAllSignaturesTimeOut)
+	assert.False(t, cns.GetWaitingAllSignaturesTimeOut())
 }
 
 func TestConsensusState_IsNodeLeaderInCurrentRoundShouldReturnFalseWhenGetLeaderErr(t *testing.T) {
@@ -422,11 +425,52 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsR
 func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsReceivedForOtherRound(t *testing.T) {
 	t.Parallel()
 
-	cns := internalInitConsensusState()
+	eligibleList := []string{"1", "2", "3"}
+
+	eligibleNodesPubKeys := make(map[string]struct{})
+	for _, key := range eligibleList {
+		eligibleNodesPubKeys[key] = struct{}{}
+	}
+
+	rcns, _ := spos.NewRoundConsensus(
+		eligibleNodesPubKeys,
+		3,
+		"2",
+		&testscommon.KeysHandlerStub{},
+	)
+
+	rcns.SetConsensusGroup(eligibleList)
+	rcns.SetLeader(eligibleList[0])
+	rcns.ResetRoundState()
+
+	rthr := spos.NewRoundThreshold()
+
+	rthr.SetThreshold(bls.SrBlock, 1)
+	rthr.SetThreshold(bls.SrSignature, 3)
+	rthr.SetFallbackThreshold(bls.SrBlock, 1)
+	rthr.SetFallbackThreshold(bls.SrSignature, 2)
+
+	rstatus := spos.NewRoundStatus()
+	rstatus.ResetRoundStatus()
+
+	// force backup case for coverage
+	cns := spos.NewConsensusState(
+		rcns,
+		rthr,
+		rstatus,
+		&mock.NodeRedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return true
+			},
+			IsMainMachineActiveCalled: func() bool {
+				return false
+			},
+		},
+	)
 
 	cnsDta := &consensus.Message{
 		RoundIndex: 0,
-		PubKey:     []byte("1"),
+		PubKey:     []byte(cns.SelfPubKey()),
 	}
 
 	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 1, bls.SrBlock))
@@ -653,6 +697,71 @@ func TestConsensusState_GettersSetters(t *testing.T) {
 	msg, ok := cns.GetMessageWithSignature(providedKey)
 	require.True(t, ok)
 	require.Equal(t, providedMsg, msg)
+}
+
+func TestConsensusState_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	keysHandler := &testscommon.KeysHandlerStub{}
+	cns := internalInitConsensusStateWithKeysHandler(keysHandler)
+
+	numOperations := 1000
+
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx % 20 {
+			case 0:
+				cns.AddReceivedHeader(&block.HeaderV2{})
+			case 1:
+				_ = cns.GetReceivedHeaders()
+			case 2:
+				cns.AddMessageWithSignature("", nil)
+			case 3:
+				_, _ = cns.GetMessageWithSignature("")
+			case 4:
+				_ = cns.IsNodeLeaderInCurrentRound("")
+			case 5:
+				_, _ = cns.GetLeader()
+			case 6:
+				cns.SetLeader("")
+			case 7:
+				_ = cns.IsJobDone("", 0)
+			case 8:
+				_ = cns.ConsensusGroup()
+			case 9:
+				cns.SetConsensusGroup([]string{})
+			case 10:
+				cns.SetRoundIndex(0)
+			case 11:
+				_ = cns.ConsensusGroupSize()
+			case 12:
+				cns.SetConsensusGroupSize(0)
+			case 13:
+				_ = cns.GetRoundTimeStamp()
+			case 14:
+				cns.SetRoundTimeStamp(time.Now())
+			case 15:
+				cns.SetRoundCanceled(true)
+			case 16:
+				_ = cns.GetRoundIndex()
+			case 17:
+				cns.SetStatus(0, spos.SsFinished)
+			case 18:
+				_ = cns.IsSelfJobDone(0)
+			case 19:
+				cns.ResetConsensusRoundState()
+			default:
+				assert.Fail(t, "should have not been called")
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }
 
 func TestConsensusState_IsInterfaceNil(t *testing.T) {

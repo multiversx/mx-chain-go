@@ -65,7 +65,7 @@ type ArgsNewTxProcessor struct {
 	BadTxForwarder      process.IntermediateTransactionHandler
 	ArgsParser          process.ArgumentsParser
 	ScrForwarder        process.IntermediateTransactionHandler
-	EnableRoundsHandler process.EnableRoundsHandler
+	EnableRoundsHandler common.EnableRoundsHandler
 	EnableEpochsHandler common.EnableEpochsHandler
 	TxVersionChecker    process.TxVersionCheckerHandler
 	GuardianChecker     process.GuardianChecker
@@ -201,7 +201,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 	// TODO refactor to set the tx hash for the following state accesses before the processing occurs
 	defer func() {
 		txProc.accounts.SetTxHashForLatestStateAccesses(txHash)
-		log.Debug("SetTxHashForLatestStateAccesses", "txHash", txHash)
+		log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
 	}()
 
 	txType, dstShardTxType, isRelayedV3 := txProc.txTypeHandler.ComputeTransactionType(tx)
@@ -879,7 +879,6 @@ func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHas
 	}
 
 	return txProc.txLogsProcessor.SaveLog(originalTxHash, originalTx, []*vmcommon.LogEntry{logEntry})
-
 }
 
 func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(
