@@ -39,3 +39,7 @@ const srEndEndTime = 0.95
 // competingBlockSignDelay is the fraction of the full round time to wait before signing
 // a competing block for the same nonce, giving the previous block's proof time to arrive.
 const competingBlockSignDelay = 0.5
+
+// competingProofSendDelay is the fraction of the full round time to wait before sending
+// a proof, giving the previous block's proof time to arrive.
+const competingProofSendDelay = 0.25
