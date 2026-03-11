@@ -2,12 +2,12 @@ package block
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -77,15 +77,17 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 		}
 	}
 
-	for i, er := range executionResults {
-		if !er.Equal(pendingExecutionResults[i]) {
+	for i, headerExecRes := range executionResults {
+		if !headerExecRes.Equal(pendingExecutionResults[i]) {
+			headerExecResOutput, _ := common.PrettifyStruct(headerExecRes)
+			pendingExecResOutput, _ := common.PrettifyStruct(pendingExecutionResults[i])
+
 			log.Debug("verifyExecutionResults: results not matching",
 				"header nonce", header.GetNonce(),
-				"header res nonce", er.GetHeaderNonce(),
-				"header res type", reflect.TypeOf(er).String(),
-				"pending res nonce", pendingExecutionResults[i].GetHeaderNonce(),
-				"pending res type", reflect.TypeOf(pendingExecutionResults[i]).String(),
+				"header execution result", headerExecResOutput,
+				"pending execution result", pendingExecResOutput,
 			)
+
 			return process.ErrExecutionResultDoesNotMatch
 		}
 	}
