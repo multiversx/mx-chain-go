@@ -89,6 +89,7 @@ type AccountsDB struct {
 	mutOp                  sync.RWMutex
 	loadCodeMeasurements   *loadingMeasurements
 	addressConverter       core.PubkeyConverter
+	pruningEnabled         bool
 
 	stackDebug []byte
 }
@@ -105,6 +106,7 @@ type ArgsAccountsDB struct {
 	AddressConverter       core.PubkeyConverter
 	SnapshotsManager       SnapshotsManager
 	StateAccessesCollector StateAccessesCollector
+	PruningEnabled         bool
 }
 
 // NewAccountsDB creates a new account manager
@@ -134,6 +136,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		addressConverter:       args.AddressConverter,
 		snapshotsManger:        args.SnapshotsManager,
 		stateAccessesCollector: args.StateAccessesCollector,
+		pruningEnabled:         args.PruningEnabled,
 	}
 }
 
@@ -971,7 +974,7 @@ func (adb *AccountsDB) markForEviction(
 	oldHashes common.ModifiedHashes,
 	newHashes common.ModifiedHashes,
 ) error {
-	if !adb.mainTrie.GetStorageManager().IsPruningEnabled() {
+	if !adb.pruningEnabled {
 		return nil
 	}
 
@@ -985,7 +988,7 @@ func (adb *AccountsDB) markForEviction(
 }
 
 func (adb *AccountsDB) commitTrie(tr common.Trie, oldHashes common.ModifiedHashes, newHashes common.ModifiedHashes) error {
-	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
+	if adb.pruningEnabled {
 		oldTrieHashes := tr.GetObsoleteHashes()
 		newTrieHashes, err := tr.GetDirtyHashes()
 		if err != nil {
@@ -1035,7 +1038,10 @@ func (adb *AccountsDB) RecreateTrieIfNeeded(options common.RootHashHolder) error
 	if err != nil {
 		return err
 	}
+
+	adb.mutOp.Lock()
 	adb.lastRootHash = options.GetRootHash()
+	adb.mutOp.Unlock()
 
 	return nil
 }
@@ -1073,6 +1079,9 @@ func (adb *AccountsDB) recreateTrieIfNeeded(options common.RootHashHolder) error
 		log.Trace("accountsDB.RecreateTrieIfNeeded - no need to recreate", "root hash", currentRootHash)
 		return nil
 	}
+
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
 
 	return adb.recreateTrie(options)
 }
@@ -1250,7 +1259,7 @@ func emptyErrChanReturningHadContained(errChan chan error) bool {
 
 // IsPruningEnabled returns true if state pruning is enabled
 func (adb *AccountsDB) IsPruningEnabled() bool {
-	return adb.getMainTrie().GetStorageManager().IsPruningEnabled()
+	return adb.pruningEnabled
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash

@@ -17,10 +17,19 @@ func (p *proofNonceBucket) size() int {
 	return len(p.proofsByNonce)
 }
 
-func (p *proofNonceBucket) insert(proof data.HeaderProofHandler) {
-	p.proofsByNonce[proof.GetHeaderNonce()] = string(proof.GetHeaderHash())
+func (p *proofNonceBucket) insert(proof data.HeaderProofHandler) string {
+	nonce := proof.GetHeaderNonce()
+	newHash := string(proof.GetHeaderHash())
 
-	if proof.GetHeaderNonce() > p.maxNonce {
-		p.maxNonce = proof.GetHeaderNonce()
+	oldHash, existed := p.proofsByNonce[nonce]
+	p.proofsByNonce[nonce] = newHash
+
+	if nonce > p.maxNonce {
+		p.maxNonce = nonce
 	}
+
+	if existed {
+		return oldHash
+	}
+	return ""
 }

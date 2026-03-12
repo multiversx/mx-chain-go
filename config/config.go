@@ -412,6 +412,8 @@ type ProcessConfigByRound struct {
 
 	MaxConsecutiveRoundsOfRatingDecrease uint64
 	MaxRoundsOfInactivityAccepted        uint64
+	MaxBlockProcessingTimeMs             uint32
+	NumHeadersToRequestInAdvance         uint64
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -427,6 +429,7 @@ type GeneralSettingsConfig struct {
 	SyncProcessTimeInMillis          uint32
 	SyncProcessTimeSupernovaInMillis uint32
 	SetGuardianEpochsDelay           uint32
+	MaxProposalNonceGap              uint64
 	ChainParametersByEpoch           []ChainParametersByEpochConfig
 	EpochChangeGracePeriodByEpoch    []EpochChangeGracePeriodByEpoch
 	ProcessConfigsByEpoch            []ProcessConfigByEpoch

@@ -38,6 +38,9 @@
     # Make sure that this is greater than the unbonding period!
     SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
 
+    # MaxProposalNonceGap defines the maximum gap allowed between the highest finalized nonce and lowest proposed nonce
+    MaxProposalNonceGap = 20
+
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
         { EnableEpoch = 0, RoundDuration = 1000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 0 },
@@ -73,7 +76,9 @@
             MaxConsecutiveRoundsOfRatingDecrease = 600,
             # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
             # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
-            MaxRoundsOfInactivityAccepted = 3
+            MaxRoundsOfInactivityAccepted = 3,
+            MaxBlockProcessingTimeMs = 6000, # this is only used after Supernova
+            NumHeadersToRequestInAdvance = 10
         },
         {
             EnableRound = 440,
@@ -84,7 +89,9 @@
             MaxRoundsToKeepUnprocessedMiniBlocks = 3000,
             MaxRoundsToKeepUnprocessedTransactions = 3000,
             MaxConsecutiveRoundsOfRatingDecrease = 6000,
-            MaxRoundsOfInactivityAccepted = 30
+            MaxRoundsOfInactivityAccepted = 30,
+            MaxBlockProcessingTimeMs = 6000,
+            NumHeadersToRequestInAdvance = 10
         }
     ]
 

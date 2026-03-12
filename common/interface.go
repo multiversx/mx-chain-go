@@ -191,6 +191,7 @@ type SnapshotStatisticsHandler interface {
 	AddTrieStats(handler TrieStatisticsHandler, trieType TrieType)
 	GetSnapshotDuration() int64
 	GetSnapshotNumNodes() uint64
+	IncrementThrottlerWaits()
 	IsInterfaceNil() bool
 }
 
@@ -336,6 +337,7 @@ type EnableRoundsHandler interface {
 	IsFlagEnabled(flag EnableRoundFlag) bool
 	IsFlagEnabledInRound(flag EnableRoundFlag, round uint64) bool
 	GetActivationRound(flag EnableRoundFlag) uint64
+	GetAllEnableRounds() map[string]uint64
 
 	IsInterfaceNil() bool
 }
@@ -491,6 +493,8 @@ type ProcessConfigsHandler interface {
 	GetMaxSyncWithErrorsAllowed(round uint64) uint32
 	GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64
 	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
+	GetMaxBlockProcessingTime(round uint64) time.Duration
+	GetNumHeadersToRequestInAdvance(round uint64) uint64
 
 	GetValue(variable dto.ConfigVariable) uint64
 

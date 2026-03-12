@@ -242,6 +242,31 @@ func TestHeaderRequester_RequestDataFromHashShouldWork(t *testing.T) {
 	assert.True(t, sendCalled)
 }
 
+func TestHeaderRequester_RequestDataFromNonce_ZeroNonceShouldDoNothing(t *testing.T) {
+	t.Parallel()
+
+	searchCaled := false
+	arg := createMockHeaderRequesterArg()
+	arg.HdrStorage = &storageStubs.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			return make([]byte, 0), nil
+		},
+	}
+	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			searchCaled = true
+			return nil, nil
+		},
+	}
+
+	hdReq, _ := NewHeaderRequester(arg)
+
+	err := hdReq.RequestDataFromNonce(0, 0)
+	assert.Nil(t, err)
+	assert.False(t, searchCaled)
+
+}
+
 func TestHeaderRequester_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
 

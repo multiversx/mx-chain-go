@@ -308,3 +308,42 @@ func shouldMigrateCurrentNode(
 
 	return true, nil
 }
+
+func commitSnapshot(
+	db snapshotDb,
+	maxEpochToSearchFrom uint32,
+	marshaller marshal.Marshalizer,
+	hasher hashing.Hasher,
+	leavesChan chan core.KeyValueHolder,
+	missingNodesChan chan []byte,
+	ctx context.Context,
+	stats common.TrieStatisticsHandler,
+	idleProvider IdleNodeProvider,
+	depthLevel int,
+	hash []byte,
+) error {
+	encChild, foundInEpoch, err := db.GetWithoutAddingToCache(hash, maxEpochToSearchFrom)
+	if err != nil {
+		treatLogError(log, err, hash)
+
+		if core.IsClosingError(err) {
+			return err
+		}
+
+		log.Error("error during trie snapshot", "err", err.Error(), "hash", hash, "maxEpochToSearchFrom", maxEpochToSearchFrom)
+		missingNodesChan <- hash
+		return nil
+	}
+
+	child, err := decodeNode(encChild, marshaller, hasher)
+	if err != nil {
+		return err
+	}
+
+	err = child.commitSnapshot(db, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
+	if err != nil {
+		return err
+	}
+
+	return db.PutInEpochWithoutCache(hash, encChild)
+}

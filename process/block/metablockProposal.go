@@ -17,8 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-const numHeadersToRequestInAdvance = 10
-
 // usedShardHeadersInfo holds the used shard headers information
 type usedShardHeadersInfo struct {
 	headersPerShard          map[uint32][]ShardHeaderInfo
@@ -54,6 +52,11 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 	}
 
 	err = mp.addExecutionResultsOnHeader(metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.checkNonceGaps(metaHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -229,18 +232,26 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
+	if header.IsEpochChangeProposed() && len(body.MiniBlocks) != 0 {
+		return process.ErrEpochStartProposeBlockHasMiniBlocks
+	}
+
 	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
 	}
 
-	// TODO: analyse if it should be enforced that execution results on start of epoch block include only start of epoch execution results
-	err = mp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
+	err = mp.waitForExecutionResultsVerification(header, haveTime)
 	if err != nil {
 		return err
 	}
 
 	err = mp.checkInclusionEstimationForExecutionResults(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.checkNonceGaps(header)
 	if err != nil {
 		return err
 	}
@@ -370,7 +381,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	// although we can have a long time for processing, it being decoupled from consensus,
 	// we still give some reasonable timeout
 	proposalStartTime := time.Now()
-	haveTime := getHaveTimeForProposal(proposalStartTime, maxBlockProcessingTime)
+	haveTime := getHaveTimeForProposal(proposalStartTime, mp.processConfigsHandler.GetMaxBlockProcessingTime(headerHandler.GetRound()))
 
 	err = mp.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {
@@ -420,12 +431,125 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	err = mp.commitState(headerHandler)
-	if err != nil {
-		return nil, err
+	return execResult, nil
+}
+
+// CommitBlockProposalState commits the accounts state after processing a block proposal
+// and performs any post-commit operations (e.g. saving epoch start economics metrics).
+func (mp *metaProcessor) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+	if check.IfNil(headerHandler) {
+		return process.ErrNilBlockHeader
 	}
 
-	return execResult, nil
+	err := mp.commitState(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	metaHeader, ok := headerHandler.(data.MetaHeaderHandler)
+	if ok {
+		mp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHeader)
+	}
+
+	return nil
+}
+
+// RevertBlockProposalState reverts the uncommitted accounts state after a block proposal processing failure
+func (mp *metaProcessor) RevertBlockProposalState() {
+	mp.RevertCurrentBlock()
+}
+
+func (mp *metaProcessor) checkNonceGaps(metaHeader data.MetaHeaderHandler) error {
+	err := mp.checkHeaderExecutionResultNonceGap(metaHeader)
+	if err != nil {
+		return err
+	}
+
+	shardDataFinalizedNonces := make(map[uint32]uint64)
+
+	// Initialize shardDataFinalizedNonces with data from block tracker
+	lastCrossNotarizedForAllShards, err := mp.blockTracker.GetLastCrossNotarizedHeadersForAllShards()
+	if err != nil {
+		return err
+	}
+
+	// Get highest finalized nonce per shard from ShardInfoHandlers
+	for _, shardData := range metaHeader.GetShardInfoHandlers() {
+		shardID := shardData.GetShardID()
+		nonce := shardData.GetNonce()
+
+		existing, found := shardDataFinalizedNonces[shardID]
+		if !found || nonce > existing {
+			lastCrossNotarizedInBlockTracker, foundInTracker := lastCrossNotarizedForAllShards[shardID]
+			if !foundInTracker {
+				log.Warn("missing cross notarized header for shard in block tracker", "shard", shardID)
+				return process.ErrMissingCrossNotarizedHeader
+			}
+
+			lastExecResultNonceOfLastCrossNotarized := common.GetLastExecutionResultNonce(lastCrossNotarizedInBlockTracker)
+			if nonce < lastExecResultNonceOfLastCrossNotarized {
+				log.Warn("found proposed nonce lower than last exec result of cross notarized",
+					"shard", shardID,
+					"shardInfoNonce", nonce,
+					"lastExecResultNonceOfLastCrossNotarized", lastExecResultNonceOfLastCrossNotarized,
+				)
+				return process.ErrInvalidShardInfo
+			}
+
+			shardDataFinalizedNonces[shardID] = nonce
+		}
+	}
+
+	// fill missing data from block tracker
+	for shardID, lastCrossNotarizedInBlockTracker := range lastCrossNotarizedForAllShards {
+		_, found := shardDataFinalizedNonces[shardID]
+		if found {
+			continue
+		}
+
+		shardDataFinalizedNonces[shardID] = common.GetLastExecutionResultNonce(lastCrossNotarizedInBlockTracker)
+	}
+
+	// Get highest proposed nonce per shard from ShardInfoProposalHandlers
+	shardDataProposedNonces := make(map[uint32]uint64)
+	for _, shardProposalData := range metaHeader.GetShardInfoProposalHandlers() {
+		shardID := shardProposalData.GetShardID()
+		nonce := shardProposalData.GetNonce()
+
+		if existing, found := shardDataProposedNonces[shardID]; !found || nonce > existing {
+			shardDataProposedNonces[shardID] = nonce
+		}
+	}
+
+	// Check nonce gaps for each shard
+	for shardID, maxProposedNonce := range shardDataProposedNonces {
+		lastFinalizedNonce, found := shardDataFinalizedNonces[shardID]
+		if !found {
+			log.Warn("missing last notarized header for shard", "shard", shardID)
+			return process.ErrMissingCrossNotarizedHeader
+		}
+
+		if maxProposedNonce < lastFinalizedNonce {
+			return fmt.Errorf("%w: shard %d, last finalized nonce %d, proposed nonce %d",
+				process.ErrInvalidProposedNonce,
+				shardID,
+				lastFinalizedNonce,
+				maxProposedNonce)
+		}
+
+		nonceGap := maxProposedNonce - lastFinalizedNonce
+		if nonceGap > mp.maxProposalNonceGap {
+			return fmt.Errorf("%w: shard %d has nonce gap of %d between finalized nonce %d and proposed nonce %d, max allowed gap is %d",
+				process.ErrNonceGapTooLarge,
+				shardID,
+				nonceGap,
+				lastFinalizedNonce,
+				maxProposedNonce,
+				mp.maxProposalNonceGap)
+		}
+	}
+
+	return nil
 }
 
 func (mp *metaProcessor) processEpochStartProposeBlock(
@@ -484,13 +608,6 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 	if err != nil {
 		return nil, err
 	}
-
-	err = mp.commitState(metaHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	mp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHeader)
 
 	return execResult, nil
 }
@@ -634,6 +751,7 @@ func (mp *metaProcessor) createExecutionResult(
 
 	mp.cacheOrderedTxHashes(headerHash)
 	mp.cacheUnexecutableTxHashes(headerHash)
+	mp.cacheHeaderGasData(headerHash)
 
 	return executionResult, nil
 }

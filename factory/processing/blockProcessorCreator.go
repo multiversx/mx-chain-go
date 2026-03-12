@@ -159,19 +159,20 @@ func (pcf *processComponentsFactory) createAOTSelector(
 	}
 
 	aotSelectorArgs := aotSelection.AOTSelectorArgs{
-		NodesCoordinator:     pcf.nodesCoordinator,
-		ShardCoordinator:     shardCoordinator,
-		KeysHandler:          pcf.crypto.KeysHandler(),
-		NodeRedundancy:       pcf.nodeRedundancyHandler,
-		TxCache:              txCache,
-		AccountsAdapter:      pcf.state.AccountsAdapterProposal(),
-		TransactionProcessor: transactionProcessor,
-		TxVersionChecker:     pcf.coreData.TxVersionChecker(),
-		BlockChain:           pcf.data.Blockchain(),
-		EconomicsDataHandler: pcf.coreData.EconomicsData(),
-		SelectionTimeout:     time.Duration(pcf.config.AOTSelection.SelectionTimeoutMs) * time.Millisecond,
-		CacheSize:            pcf.config.AOTSelection.CacheSize,
-		MaxTxsPerBlock:       pcf.config.TxCacheSelection.SelectionMaxNumTxs,
+		NodesCoordinator:          pcf.nodesCoordinator,
+		ShardCoordinator:          shardCoordinator,
+		KeysHandler:               pcf.crypto.KeysHandler(),
+		NodeRedundancy:            pcf.nodeRedundancyHandler,
+		TxCache:                   txCache,
+		AccountsAdapter:           pcf.state.AccountsAdapterProposal(),
+		TransactionProcessor:      transactionProcessor,
+		TxVersionChecker:          pcf.coreData.TxVersionChecker(),
+		BlockChain:                pcf.data.Blockchain(),
+		EconomicsDataHandler:      pcf.coreData.EconomicsData(),
+		SelectionTimeout:          time.Duration(pcf.config.AOTSelection.SelectionTimeoutMs) * time.Millisecond,
+		CacheSize:                 pcf.config.AOTSelection.CacheSize,
+		MaxTxsPerBlock:            pcf.config.TxCacheSelection.SelectionMaxNumTxs,
+		LoopDurationCheckInterval: pcf.config.TxCacheSelection.SelectionLoopDurationCheckInterval,
 	}
 
 	aotSelector, err := aotSelection.NewAOTSelector(aotSelectorArgs)
@@ -1400,22 +1401,12 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 	gasConsumedProvider processOutport.GasConsumedProvider,
 	epochRewards processOutport.EpochRewardsGetter,
 ) (outport.DataProviderOutport, error) {
-	txsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit)
-	if err != nil {
-		return nil, err
-	}
-	mbsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
-	if err != nil {
-		return nil, err
-	}
-
 	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
 		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
 		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
 		AccountsDB:             pcf.state.AccountsAdapterAPI(),
 		Marshaller:             pcf.coreData.InternalMarshalizer(),
 		EsdtDataStorageHandler: pcf.esdtNftStorage,
-		TransactionsStorer:     txsStorer,
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
 		TxCoordinator:          txCoordinator,
 		NodesCoordinator:       pcf.nodesCoordinator,
@@ -1423,13 +1414,13 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		EconomicsData:          pcf.coreData.EconomicsData(),
 		IsImportDBMode:         pcf.importDBConfig.IsImportDBMode,
 		Hasher:                 pcf.coreData.Hasher(),
-		MbsStorer:              mbsStorer,
 		EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
 		ExecutionOrderGetter:   pcf.txExecutionOrderHandler,
 		DataPool:               pcf.data.Datapool(),
 		StateAccessesCollector: pcf.state.StateAccessesCollector(),
 		RoundHandler:           pcf.coreData.RoundHandler(),
 		RewardsGetter:          epochRewards,
+		StorageService:         pcf.data.StorageService(),
 	})
 }
 

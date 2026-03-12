@@ -4,9 +4,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/ntp"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
@@ -30,7 +27,9 @@ import (
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -203,7 +202,7 @@ type TransactionCoordinator interface {
 	CreateMbsCrossShardDstMe(
 		header data.HeaderHandler,
 		processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-	) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, err error)
+	) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, hasMissingData bool, err error)
 	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte
 }
 
@@ -285,6 +284,8 @@ type PreProcessor interface {
 type BlockProcessor interface {
 	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	ProcessBlockProposal(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
+	CommitBlockProposalState(headerHandler data.HeaderHandler) error
+	RevertBlockProposalState()
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
 	RevertCurrentBlock()
@@ -307,6 +308,11 @@ type BlockProcessor interface {
 		haveTime func() time.Duration,
 	) error
 	OnProposedBlock(
+		proposedBody data.BodyHandler,
+		proposedHeader data.HeaderHandler,
+		proposedHash []byte,
+	) error
+	OnBackfilledBlock(
 		proposedBody data.BodyHandler,
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
@@ -344,7 +350,7 @@ type ExecutionManager interface {
 	AddPairForExecution(pair cache.HeaderBodyPair) error
 	GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
-	CleanOnConsensusReached(headerHash []byte, nonce uint64)
+	CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler)
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	RemoveAtNonceAndHigher(nonce uint64) error
@@ -1013,7 +1019,9 @@ type BlockTracker interface {
 	AddTrackedHeader(header data.HeaderHandler, hash []byte)
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRoundHandler(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelist(interceptedData InterceptedData) bool
+	CheckAgainstWhitelist(interceptedData InterceptedData) bool
+	CheckProofAgainstFinal(proof data.HeaderProofHandler) error
+	CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
@@ -1157,7 +1165,9 @@ type EpochStartSystemSCProcessor interface {
 type ValidityAttester interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRoundHandler(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelist(interceptedData InterceptedData) bool
+	CheckAgainstWhitelist(interceptedData InterceptedData) bool
+	CheckProofAgainstFinal(proof data.HeaderProofHandler) error
+	CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1178,6 +1188,7 @@ type RoundTimeDurationHandler interface {
 // RoundHandler defines the actions which should be handled by a round implementation
 type RoundHandler interface {
 	Index() int64
+	TimeDuration() time.Duration
 	IsInterfaceNil() bool
 }
 
@@ -1646,7 +1657,7 @@ type ExecutionResultsTracker interface {
 	RemoveFromNonce(nonce uint64) error
 	Clean(lastNotarizedResult data.BaseExecutionResultHandler)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
-	CleanOnConsensusReached(headerHash []byte, nonce uint64)
+	CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 

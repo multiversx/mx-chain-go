@@ -17,9 +17,9 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.13.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.3.0
-	github.com/multiversx/mx-chain-core-go v1.4.2-0.20260211100920-a4e12f6428cc
+	github.com/multiversx/mx-chain-core-go v1.4.2-0.20260219091525-015123fd1603
 	github.com/multiversx/mx-chain-crypto-go v1.3.1-0.20260130144701-dfa5fd3ea5d7
-	github.com/multiversx/mx-chain-es-indexer-go v1.9.4-0.20260206131000-9cb135f8f0fb
+	github.com/multiversx/mx-chain-es-indexer-go v1.9.4-0.20260219114236-37624897dc3a
 	github.com/multiversx/mx-chain-logger-go v1.1.0
 	github.com/multiversx/mx-chain-scenario-go v1.6.0
 	github.com/multiversx/mx-chain-storage-go v1.1.0
@@ -36,6 +36,7 @@ require (
 	github.com/urfave/cli v1.22.16
 	golang.org/x/crypto v0.35.0
 	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c
+	golang.org/x/sync v0.11.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
@@ -196,7 +197,6 @@ require (
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/tools v0.29.0 // indirect

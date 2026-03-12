@@ -57,6 +57,7 @@ func GetGeneralConfig() config.Config {
 			SyncProcessTimeSupernovaInMillis: 3000,
 			SetGuardianEpochsDelay:           20,
 			StatusPollingIntervalSec:         10,
+			MaxProposalNonceGap:              10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,
@@ -89,6 +90,8 @@ func GetGeneralConfig() config.Config {
 					NumFloodingRoundsFastReacting:          30,
 					NumFloodingRoundsOutOfSpecs:            40,
 					MaxConsecutiveRoundsOfRatingDecrease:   2000,
+					MaxBlockProcessingTimeMs:               1000,
+					NumHeadersToRequestInAdvance:           10,
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{

@@ -483,6 +483,9 @@ var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshInterv
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
+// ErrInvalidTimestamp signals that the header timestamp does not match the expected value for the round
+var ErrInvalidTimestamp = errors.New("invalid timestamp")
+
 // ErrStartOfEpochExecutionResultsDoNotExist signals that the start of epoch execution results do not exist
 var ErrStartOfEpochExecutionResultsDoNotExist = errors.New("start of epoch execution results do not exist")
 
@@ -1469,3 +1472,21 @@ var ErrNilTxCache = errors.New("nil tx cache")
 
 // ErrNilAOTSelector signals that a nil AOT selector has been provided
 var ErrNilAOTSelector = errors.New("nil AOT selector")
+
+// ErrNonceGapTooLarge signals that nonce gap between finalized and proposed shard headers is too large
+var ErrNonceGapTooLarge = errors.New("nonce gap between finalized and proposed shard headers is too large")
+
+// ErrInvalidLastExecutionResult signals that an invalid last execution result has been included
+var ErrInvalidLastExecutionResult = errors.New("invalid last execution result")
+
+// ErrInvalidProposedNonce signals that an invalid nonce has been proposed
+var ErrInvalidProposedNonce = errors.New("invalid proposed nonce")
+
+// ErrMissingCrossNotarizedHeader signals that there is a missing cross notarized header
+var ErrMissingCrossNotarizedHeader = errors.New("missing cross notarized header")
+
+// ErrInvalidShardInfo signals that an invalid shard info has been provided
+var ErrInvalidShardInfo = errors.New("invalid shard info")
+
+// ErrNilClosingNodeStartedFlag signals that the closing node started flag is nil
+var ErrNilClosingNodeStartedFlag = errors.New("closing node started flag is nil")
