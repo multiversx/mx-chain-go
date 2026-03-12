@@ -25,7 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
-	common2 "github.com/multiversx/mx-chain-go/testscommon/common"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-storage-go/types"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -271,7 +271,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	hasher := integrationTests.TestHasher
 	store := integrationTests.CreateMemUnit()
-	args := common2.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = store
 	args.Hasher = hasher
 	trieStorage, _ := trie.NewTrieStorageManager(args)
@@ -1055,7 +1055,7 @@ func createAccounts(
 		HashesSize:     evictionWaitListSize * 100,
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
-	args := common2.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
@@ -2732,7 +2732,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		HashesSize:     evictionWaitListSize * 100,
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
-	args := common2.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
@@ -2788,7 +2788,7 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 	numEpochs := 5
 	getCounters := make([]int, numEpochs)
 
-	args := common2.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = mainStorer
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tr, _ := trie.NewTrie(trieStorage, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)

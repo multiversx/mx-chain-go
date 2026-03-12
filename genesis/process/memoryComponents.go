@@ -11,8 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
-const tenMbSize = uint64(10485760)
-
 func createAccountAdapter(
 	marshaller marshal.Marshalizer,
 	hasher hashing.Hasher,
@@ -21,7 +19,7 @@ func createAccountAdapter(
 	addressConverter core.PubkeyConverter,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, tenMbSize)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, common.TenMbSize)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +33,7 @@ func createAccountAdapter(
 		AddressConverter:         addressConverter,
 		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
 		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-		MaxDataTriesSizeInMemory: tenMbSize,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 
 	adb, err := state.NewAccountsDB(args)

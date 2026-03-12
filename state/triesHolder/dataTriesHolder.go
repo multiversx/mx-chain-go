@@ -140,7 +140,7 @@ func (dth *dataTriesHolder) GetAll() []common.Trie {
 
 	tries := make([]common.Trie, 0)
 	for keyString := range dth.dirtyTries {
-		tr := dth.getDirtyTrie(keyString)
+		tr := dth.getDirtyTrieNoLock(keyString)
 		if check.IfNil(tr) {
 			continue
 		}
@@ -152,7 +152,7 @@ func (dth *dataTriesHolder) GetAll() []common.Trie {
 	return tries
 }
 
-func (dth *dataTriesHolder) getDirtyTrie(key string) common.Trie {
+func (dth *dataTriesHolder) getDirtyTrieNoLock(key string) common.Trie {
 	entry, exists := dth.cacher.Get(key)
 	if exists {
 		tr, ok := entry.(common.Trie)

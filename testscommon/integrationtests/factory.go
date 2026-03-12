@@ -18,7 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	common2 "github.com/multiversx/mx-chain-go/testscommon/common"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -91,7 +91,7 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 
-	args := common2.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = db
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
