@@ -531,7 +531,7 @@ func (st *storageBootstrapper) setCurrentBlockInfo(
 
 	// set also last executed block info and header
 	// this will be useful at transition to Supernova with headers v3
-	st.blkc.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, header.GetRootHash())
+	st.blkc.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
 
 	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
 	if err != nil {
@@ -671,6 +671,8 @@ func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 	}
 
 	st.blkc.SetCurrentBlockHeaderHash(nil)
+	// keep last executed block header in sync when reverting to genesis
+	st.blkc.SetLastExecutedBlockHeaderAndRootHash(nil, nil, nil)
 }
 
 func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) error {
