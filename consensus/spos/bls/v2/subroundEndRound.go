@@ -404,7 +404,7 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 	// reach nodes delaying before signing a competing block (equivocation prevention).
 	consensusRoundStart := sr.GetRoundTimeStamp()
 	roundDuration := sr.RoundHandler().TimeDuration()
-	graceDuration := time.Duration(float64(roundDuration) * competingProofSendDelay)
+	graceDuration := time.Duration(float64(roundDuration) * competingBlockSignDelay)
 	maxDuration := roundDuration + graceDuration
 	remaining := sr.RoundHandler().RemainingTime(consensusRoundStart, maxDuration)
 	if remaining <= 0 {
