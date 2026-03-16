@@ -351,6 +351,11 @@ func (sr *subroundSignature) WaitIfCompetingBlock(ctx context.Context, pkBytes [
 	return sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
 }
 
+// WaitIfCompetingBlockForNode calls the unexported waitIfCompetingBlockForNode function
+func (sr *subroundSignature) WaitIfCompetingBlockForNode(ctx context.Context, nonce uint64, currentHash []byte) bool {
+	return sr.waitIfCompetingBlockForNode(ctx, nonce, currentHash)
+}
+
 // ShouldSendProof calls the unexported shouldSendProof function
 func (sr *subroundEndRound) ShouldSendProof() bool {
 	return sr.shouldSendProof()
