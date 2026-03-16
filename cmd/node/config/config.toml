@@ -887,6 +887,9 @@
     AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
     StateStatisticsEnabled = false
+    MaxUserTrieSizeInMemory = 524288000 #500MB
+    MaxPeerTrieSizeInMemory = 104857600 #100MB
+    DataTriesSizeInMemory = 524288000 #500MB
 
 [TrieLeavesRetrieverConfig]
     Enabled = false

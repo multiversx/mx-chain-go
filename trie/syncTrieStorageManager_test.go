@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +34,7 @@ func TestNewSyncTrieStorageManager(t *testing.T) {
 	t.Parallel()
 
 	_, trieStorage := newEmptyTrie()
-	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{}
+	trieStorage.mainStorer = &storage.SnapshotPruningStorerStub{}
 	stsm, err := NewSyncTrieStorageManager(trieStorage)
 	assert.Nil(t, err)
 	assert.NotNil(t, stsm)
@@ -45,7 +45,7 @@ func TestNewSyncTrieStorageManager_PutInFirstEpoch(t *testing.T) {
 
 	_, trieStorage := newEmptyTrie()
 	putInEpochCalled := 0
-	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+	trieStorage.mainStorer = &storage.SnapshotPruningStorerStub{
 		PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
 			putInEpochCalled++
 			return nil
@@ -66,7 +66,7 @@ func TestNewSyncTrieStorageManager_PutInEpochError(t *testing.T) {
 
 	expectedErr := errors.New("expected error")
 	_, trieStorage := newEmptyTrie()
-	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+	trieStorage.mainStorer = &storage.SnapshotPruningStorerStub{
 		PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
 			return expectedErr
 		},
@@ -82,7 +82,7 @@ func TestNewSyncTrieStorageManager_PutInEpoch(t *testing.T) {
 
 	_, trieStorage := newEmptyTrie()
 	putInEpochCalled := 0
-	trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
+	trieStorage.mainStorer = &storage.SnapshotPruningStorerStub{
 		PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
 			putInEpochCalled++
 			return nil

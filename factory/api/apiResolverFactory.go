@@ -594,6 +594,7 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
 		StatsCollector:      args.statusCoreComponents.StateStatsHandler(),
+		MaxSizeInMemory:     args.generalConfig.StateTriesConfig.MaxUserTrieSizeInMemory,
 	}
 	trieStorageManager, merkleTrie, err := trFactory.Create(trieCreatorArgs)
 	if err != nil {
@@ -601,14 +602,16 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 	}
 
 	argsAPIAccountsDB := state.ArgsAccountsDB{
-		Trie:                   merkleTrie,
-		Hasher:                 args.coreComponents.Hasher(),
-		Marshaller:             args.coreComponents.InternalMarshalizer(),
-		AccountFactory:         accountFactory,
-		StoragePruningManager:  storagePruning,
-		AddressConverter:       args.coreComponents.AddressPubKeyConverter(),
-		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
-		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		Trie:                     merkleTrie,
+		Hasher:                   args.coreComponents.Hasher(),
+		Marshaller:               args.coreComponents.InternalMarshalizer(),
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    storagePruning,
+		AddressConverter:         args.coreComponents.AddressPubKeyConverter(),
+		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
+		// TODO check if this should be lower than in the processing adb
+		MaxDataTriesSizeInMemory: args.generalConfig.StateTriesConfig.DataTriesSizeInMemory,
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)

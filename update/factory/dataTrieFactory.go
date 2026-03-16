@@ -13,13 +13,15 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/genesis"
 )
+
+const tenMBSize = uint64(10485760)
 
 // ArgsNewDataTrieFactory is the argument structure for the new data trie factory
 type ArgsNewDataTrieFactory struct {
@@ -115,7 +117,7 @@ func (d *dataTrieFactory) TrieStorageManager() common.StorageManager {
 
 // Create creates a TriesHolder container to hold all the states
 func (d *dataTrieFactory) Create() (common.TriesHolder, error) {
-	container := state.NewDataTriesHolder()
+	container := triesHolder.NewTriesHolder()
 
 	for i := uint32(0); i < d.shardCoordinator.NumberOfShards(); i++ {
 		err := d.createAndAddOneTrie(i, genesis.UserAccount, container)
@@ -138,7 +140,7 @@ func (d *dataTrieFactory) Create() (common.TriesHolder, error) {
 }
 
 func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType genesis.Type, container common.TriesHolder) error {
-	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher, d.enableEpochsHandler)
+	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher, d.enableEpochsHandler, tenMBSize)
 	if err != nil {
 		return err
 	}

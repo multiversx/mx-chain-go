@@ -7,7 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 )
@@ -21,6 +21,7 @@ type TrieCreateArgs struct {
 	Identifier          string
 	EnableEpochsHandler common.EnableEpochsHandler
 	StatsCollector      common.StateStatisticsHandler
+	MaxSizeInMemory     uint64
 }
 
 type trieCreator struct {
@@ -77,7 +78,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		return nil, nil, err
 	}
 
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, args.EnableEpochsHandler)
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, args.EnableEpochsHandler, args.MaxSizeInMemory)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -121,13 +122,14 @@ func CreateTriesComponentsForShardId(
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
 		StatsCollector:      stateStatsHandler,
+		MaxSizeInMemory:     generalConfig.StateTriesConfig.MaxUserTrieSizeInMemory,
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	trieContainer := state.NewDataTriesHolder()
+	trieContainer := triesHolder.NewTriesHolder()
 	trieStorageManagers := make(map[string]common.StorageManager)
 
 	trieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), userAccountTrie)
@@ -146,6 +148,7 @@ func CreateTriesComponentsForShardId(
 		Identifier:          dataRetriever.PeerAccountsUnit.String(),
 		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
 		StatsCollector:      stateStatsHandler,
+		MaxSizeInMemory:     generalConfig.StateTriesConfig.MaxPeerTrieSizeInMemory,
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
 	if err != nil {

@@ -253,15 +253,17 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	argsProcessingAccountsDB := state.ArgsAccountsDB{
-		Trie:                   merkleTrie,
-		Hasher:                 scf.core.Hasher(),
-		Marshaller:             scf.core.InternalMarshalizer(),
-		AccountFactory:         accountFactory,
-		StoragePruningManager:  storagePruning,
-		AddressConverter:       scf.core.AddressPubKeyConverter(),
-		SnapshotsManager:       snapshotsManager,
-		StateAccessesCollector: StateAccessesCollector,
-		PruningEnabled:         scf.config.StateTriesConfig.AccountsStatePruningEnabled,
+		Trie:                     merkleTrie,
+		Hasher:                   scf.core.Hasher(),
+		Marshaller:               scf.core.InternalMarshalizer(),
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    storagePruning,
+		AddressConverter:         scf.core.AddressPubKeyConverter(),
+		SnapshotsManager:         snapshotsManager,
+		StateAccessesCollector:   StateAccessesCollector,
+		PruningEnabled:           scf.config.StateTriesConfig.AccountsStatePruningEnabled,
+		MaxDataTriesSizeInMemory: scf.config.StateTriesConfig.DataTriesSizeInMemory,
+
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
@@ -280,14 +282,16 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	argsAPIAccountsDB := state.ArgsAccountsDB{
-		Trie:                   merkleTrie,
-		Hasher:                 scf.core.Hasher(),
-		Marshaller:             scf.core.InternalMarshalizer(),
-		AccountFactory:         accountFactoryAPI,
-		StoragePruningManager:  storagePruning,
-		AddressConverter:       scf.core.AddressPubKeyConverter(),
-		SnapshotsManager:       disabled.NewDisabledSnapshotsManager(),
-		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		Trie:                     merkleTrie,
+		Hasher:                   scf.core.Hasher(),
+		Marshaller:               scf.core.InternalMarshalizer(),
+		AccountFactory:           accountFactoryAPI,
+		StoragePruningManager:    storagePruning,
+		AddressConverter:         scf.core.AddressPubKeyConverter(),
+		SnapshotsManager:         disabled.NewDisabledSnapshotsManager(),
+		StateAccessesCollector:   disabled.NewDisabledStateAccessesCollector(),
+		// TODO check if this should be lower than in the processing adb
+		MaxDataTriesSizeInMemory: scf.config.StateTriesConfig.DataTriesSizeInMemory,
 	}
 
 	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsAPIAccountsDB, scf.chainHandler)
@@ -357,15 +361,17 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 
 	// TODO: also collect state accesses for the peer trie
 	argsProcessingPeerAccountsDB := state.ArgsAccountsDB{
-		Trie:                   merkleTrie,
-		Hasher:                 scf.core.Hasher(),
-		Marshaller:             scf.core.InternalMarshalizer(),
-		AccountFactory:         accountFactory,
-		StoragePruningManager:  storagePruning,
-		AddressConverter:       scf.core.AddressPubKeyConverter(),
-		SnapshotsManager:       snapshotManager,
-		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
-		PruningEnabled:         scf.config.StateTriesConfig.PeerStatePruningEnabled,
+		Trie:                     merkleTrie,
+		Hasher:                   scf.core.Hasher(),
+		Marshaller:               scf.core.InternalMarshalizer(),
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    storagePruning,
+		AddressConverter:         scf.core.AddressPubKeyConverter(),
+		SnapshotsManager:         snapshotManager,
+		StateAccessesCollector:   disabled.NewDisabledStateAccessesCollector(),
+		PruningEnabled:           scf.config.StateTriesConfig.PeerStatePruningEnabled,
+		// TODO check if this should be different from the user adb
+		MaxDataTriesSizeInMemory: scf.config.StateTriesConfig.DataTriesSizeInMemory,
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {

@@ -458,6 +458,9 @@ type StateTriesConfig struct {
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	StateStatisticsEnabled      bool
+	MaxUserTrieSizeInMemory     uint64
+	MaxPeerTrieSizeInMemory     uint64
+	DataTriesSizeInMemory       uint64
 }
 
 // StateAccessesCollectorConfig will hold information about state accesses collector

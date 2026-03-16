@@ -28,6 +28,9 @@ const (
 	nonceIndex     = 0
 )
 
+// TenMbSize defines the size of 10 megabytes in bytes, used as a constant for memory limits or buffer sizes
+const TenMbSize = uint64(10485760)
+
 type executionResultHandler interface {
 	GetMiniBlockHeadersHandlers() []data.MiniBlockHeaderHandler
 }

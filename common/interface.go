@@ -152,7 +152,6 @@ type SnapshotDbHandler interface {
 // TriesHolder is used to store multiple tries
 type TriesHolder interface {
 	Put([]byte, Trie)
-	Replace(key []byte, tr Trie)
 	Get([]byte) Trie
 	GetAll() []Trie
 	Reset()

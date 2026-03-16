@@ -17,19 +17,21 @@ import (
 )
 
 func createMockAccountsArgs() state.ArgsAccountsDB {
+	tenMbSize := uint64(10 * 1024 * 1024)
 	return state.ArgsAccountsDB{
 		Trie: &mockTrie.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
 				return &storageManager.StorageManagerStub{}
 			},
 		},
-		Hasher:                 &testscommon.HasherStub{},
-		Marshaller:             &marshallerMock.MarshalizerMock{},
-		AccountFactory:         &mockState.AccountsFactoryStub{},
-		StoragePruningManager:  &mockState.StoragePruningManagerStub{},
-		AddressConverter:       &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:       &mockState.SnapshotsManagerStub{},
-		StateAccessesCollector: &mockState.StateAccessesCollectorStub{},
+		Hasher:                   &testscommon.HasherStub{},
+		Marshaller:               &marshallerMock.MarshalizerMock{},
+		AccountFactory:           &mockState.AccountsFactoryStub{},
+		StoragePruningManager:    &mockState.StoragePruningManagerStub{},
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         &mockState.SnapshotsManagerStub{},
+		StateAccessesCollector:   &mockState.StateAccessesCollectorStub{},
+		MaxDataTriesSizeInMemory: tenMbSize,
 	}
 }
 

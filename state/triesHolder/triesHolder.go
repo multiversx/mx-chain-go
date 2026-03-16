@@ -1,4 +1,4 @@
-package state
+package triesHolder
 
 import (
 	"sync"
@@ -7,34 +7,29 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-type dataTriesHolder struct {
+type triesHolder struct {
 	tries map[string]common.Trie
 	mutex sync.RWMutex
 }
 
-// NewDataTriesHolder creates a new instance of dataTriesHolder
-func NewDataTriesHolder() *dataTriesHolder {
-	return &dataTriesHolder{
+// NewTriesHolder creates a new instance of triesHolder
+func NewTriesHolder() *triesHolder {
+	return &triesHolder{
 		tries: make(map[string]common.Trie),
 	}
 }
 
 // Put adds a trie pointer to the tries map
-func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
-	log.Trace("put trie in data tries holder", "key", key)
+func (dth *triesHolder) Put(key []byte, tr common.Trie) {
+	log.Trace("put trie in tries holder", "key", key)
 
 	dth.mutex.Lock()
 	dth.tries[string(key)] = tr
 	dth.mutex.Unlock()
 }
 
-// Replace changes a trie pointer to the tries map
-func (dth *dataTriesHolder) Replace(key []byte, tr common.Trie) {
-	dth.Put(key, tr)
-}
-
 // Get returns the trie pointer that is stored in the map at the given key
-func (dth *dataTriesHolder) Get(key []byte) common.Trie {
+func (dth *triesHolder) Get(key []byte) common.Trie {
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
 
@@ -42,7 +37,7 @@ func (dth *dataTriesHolder) Get(key []byte) common.Trie {
 }
 
 // GetAll returns all trie pointers from the map
-func (dth *dataTriesHolder) GetAll() []common.Trie {
+func (dth *triesHolder) GetAll() []common.Trie {
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
 
@@ -54,21 +49,8 @@ func (dth *dataTriesHolder) GetAll() []common.Trie {
 	return tries
 }
 
-// GetAllTries returns the tries with key value map
-func (dth *dataTriesHolder) GetAllTries() map[string]common.Trie {
-	dth.mutex.Lock()
-	defer dth.mutex.Unlock()
-
-	copyTries := make(map[string]common.Trie, len(dth.tries))
-	for key, trie := range dth.tries {
-		copyTries[key] = trie
-	}
-
-	return copyTries
-}
-
 // Reset clears the tries map
-func (dth *dataTriesHolder) Reset() {
+func (dth *triesHolder) Reset() {
 	dth.mutex.Lock()
 
 	if log.GetLevel() == logger.LogTrace {
@@ -82,6 +64,6 @@ func (dth *dataTriesHolder) Reset() {
 }
 
 // IsInterfaceNil returns true if underlying object is nil
-func (dth *dataTriesHolder) IsInterfaceNil() bool {
+func (dth *triesHolder) IsInterfaceNil() bool {
 	return dth == nil
 }
