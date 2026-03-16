@@ -108,7 +108,7 @@ func TestWaitIfCompetingBlock_PreviousHashEqualsCurrent(t *testing.T) {
 	assert.False(t, result, "should return false when previous hash equals current hash")
 }
 
-func TestWaitIfCompetingBlock_NoTimeRemaining(t *testing.T) {
+func TestWaitIfCompetingBlock_AlreadyPastDelayDeadline(t *testing.T) {
 	t.Parallel()
 
 	sr := createSubroundSignatureForCompetingBlockTests(
@@ -123,7 +123,37 @@ func TestWaitIfCompetingBlock_NoTimeRemaining(t *testing.T) {
 				return 100 * time.Millisecond
 			},
 			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-				// No time remaining in the signature subround
+				// Already past the competing block delay deadline (and subround end)
+				return 0
+			},
+		},
+	)
+
+	result := sr.WaitIfCompetingBlock(context.Background(), []byte("pk"), 100, []byte("current_hash"))
+	assert.False(t, result, "should return false (proceed to sign) when already past delay deadline")
+}
+
+func TestWaitIfCompetingBlock_NoTimeRemainingInSubround(t *testing.T) {
+	t.Parallel()
+
+	sr := createSubroundSignatureForCompetingBlockTests(
+		&testscommon.SentSignatureTrackerStub{
+			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
+				return []byte("previous_hash"), true
+			},
+		},
+		nil,
+		&testscommon.RoundHandlerMock{
+			TimeDurationCalled: func() time.Duration {
+				return 600 * time.Millisecond
+			},
+			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+				// targetTime = 300ms: still has time to target
+				// sigEndDuration (85ms): no time left
+				if maxTime > 200*time.Millisecond {
+					return 200 * time.Millisecond
+				}
+				// No time remaining in signature subround
 				return 0
 			},
 		},
@@ -227,8 +257,8 @@ func TestWaitIfCompetingBlock_DeadlineExpiresNoProof(t *testing.T) {
 				return 100 * time.Millisecond
 			},
 			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-				// Enough remaining time so delay is not capped to 0
-				return 200 * time.Millisecond
+				// Simulate round just started: remaining = maxTime
+				return maxTime
 			},
 		},
 	)
@@ -238,8 +268,9 @@ func TestWaitIfCompetingBlock_DeadlineExpiresNoProof(t *testing.T) {
 	elapsed := time.Since(start)
 
 	assert.False(t, result, "should return false (proceed to sign) when deadline expires")
-	// competingBlockSignDelay = 0.5, roundDuration = 100ms, delay = 50ms
-	// This should be capped to min(50ms, 200ms - 10ms) = 50ms
+	// competingBlockSignDelay = 0.5, roundDuration = 100ms
+	// targetTime = 50ms, sigEndDuration = 85ms (0.85 * 100ms)
+	// delay = min(50ms, 85ms - 10ms) = 50ms
 	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond, "should have waited at least ~50ms")
 }
 
@@ -259,10 +290,13 @@ func TestWaitIfCompetingBlock_DelayCappedBySubroundRemaining(t *testing.T) {
 		},
 		&testscommon.RoundHandlerMock{
 			TimeDurationCalled: func() time.Duration {
-				return 600 * time.Millisecond // delay would be 300ms
+				return 600 * time.Millisecond // targetTime = 300ms
 			},
 			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-				return 60 * time.Millisecond // only 60ms left, maxDelay = 50ms
+				// Simulate round just started: remaining = maxTime
+				// targetTime = 300ms, sigEndDuration = 85ms (0.85 * roundTimeDuration=100ms)
+				// delay = min(300ms, 85ms - 10ms) = 75ms
+				return maxTime
 			},
 		},
 	)
@@ -272,7 +306,7 @@ func TestWaitIfCompetingBlock_DelayCappedBySubroundRemaining(t *testing.T) {
 	elapsed := time.Since(start)
 
 	assert.False(t, result, "should return false (proceed to sign) after capped delay expires")
-	// maxDelay = 60ms - 10ms safety = 50ms
+	// delay should be capped to 75ms (sigEndDuration 85ms - 10ms safety), not full 300ms
 	assert.Less(t, elapsed, 150*time.Millisecond, "delay should be capped, not full 300ms")
 }
 
@@ -334,6 +368,240 @@ func TestWaitIfCompetingBlock_RecordSignedNonceCalledBeforeBroadcast(t *testing.
 	result := srSignature.SendSignatureForManagedKey(context.Background(), 0, "A")
 	assert.False(t, result, "should return false because broadcast failed")
 	assert.True(t, recordCalled, "RecordSignedNonce should be called before broadcast")
+}
+
+func TestWaitIfCompetingBlockForNode_NoCompetingBlockForAnyKey(t *testing.T) {
+	t.Parallel()
+
+	sr := createSubroundSignatureForCompetingBlockTests(
+		&testscommon.SentSignatureTrackerStub{
+			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
+				return nil, false // no key has previously signed
+			},
+		},
+		nil,
+		nil,
+	)
+
+	result := sr.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	assert.False(t, result, "should return false when no key has a competing block")
+}
+
+func TestWaitIfCompetingBlockForNode_SameHashForAllKeys(t *testing.T) {
+	t.Parallel()
+
+	currentHash := []byte("current_hash")
+	sr := createSubroundSignatureForCompetingBlockTests(
+		&testscommon.SentSignatureTrackerStub{
+			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
+				return currentHash, true // all keys signed the same hash
+			},
+		},
+		nil,
+		nil,
+	)
+
+	result := sr.WaitIfCompetingBlockForNode(context.Background(), 100, currentHash)
+	assert.False(t, result, "should return false when all keys signed the same hash")
+}
+
+func TestWaitIfCompetingBlockForNode_SelfKeyHasCompetingBlock(t *testing.T) {
+	t.Parallel()
+
+	container := consensusMocks.InitConsensusCore()
+	container.SetRoundHandler(&testscommon.RoundHandlerMock{
+		TimeDurationCalled: func() time.Duration {
+			return 100 * time.Millisecond
+		},
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return maxTime
+		},
+	})
+
+	consensusState := initializers.InitConsensusState()
+	ch := make(chan bool, 1)
+
+	sr, _ := spos.NewSubround(
+		bls.SrBlock,
+		bls.SrSignature,
+		bls.SrEndRound,
+		roundTimeDuration,
+		0.25,
+		0.85,
+		"(SIGNATURE)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+
+	selfPk := sr.SelfPubKey()
+
+	srSignature, _ := v2.NewSubroundSignature(
+		sr,
+		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.SentSignatureTrackerStub{
+			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
+				if string(pkBytes) == selfPk {
+					return []byte("different_hash"), true
+				}
+				return nil, false
+			},
+		},
+		&consensusMocks.SposWorkerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+	)
+
+	srSignature.SetHeader(&block.Header{Nonce: 100})
+	srSignature.SetData([]byte("current_hash"))
+
+	start := time.Now()
+	result := srSignature.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	elapsed := time.Since(start)
+
+	// Should have waited (delay from round start) and returned false (no proof arrived)
+	assert.False(t, result, "should return false after delay expires")
+	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond, "should have waited for competing block delay")
+}
+
+func TestWaitIfCompetingBlockForNode_ManagedKeyHasCompetingBlock(t *testing.T) {
+	t.Parallel()
+
+	container := consensusMocks.InitConsensusCore()
+	container.SetRoundHandler(&testscommon.RoundHandlerMock{
+		TimeDurationCalled: func() time.Duration {
+			return 100 * time.Millisecond
+		},
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return maxTime
+		},
+	})
+
+	// Self key has no competing block, but a managed key does
+	consensusState := initializers.InitConsensusStateWithKeysHandler(
+		&testscommon.KeysHandlerStub{
+			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+				// Mark the first consensus group member as managed
+				return string(pkBytes) == "A"
+			},
+		},
+	)
+	ch := make(chan bool, 1)
+
+	sr, _ := spos.NewSubround(
+		bls.SrBlock,
+		bls.SrSignature,
+		bls.SrEndRound,
+		roundTimeDuration,
+		0.25,
+		0.85,
+		"(SIGNATURE)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+
+	selfPk := sr.SelfPubKey()
+
+	srSignature, _ := v2.NewSubroundSignature(
+		sr,
+		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.SentSignatureTrackerStub{
+			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
+				if string(pkBytes) == selfPk {
+					// Self key: no competing block
+					return nil, false
+				}
+				if string(pkBytes) == "A" {
+					// Managed key "A": has competing block
+					return []byte("old_hash"), true
+				}
+				return nil, false
+			},
+		},
+		&consensusMocks.SposWorkerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+	)
+
+	srSignature.SetHeader(&block.Header{Nonce: 100})
+	srSignature.SetData([]byte("current_hash"))
+
+	start := time.Now()
+	result := srSignature.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	elapsed := time.Since(start)
+
+	// Managed key "A" has a competing block, so the node should wait
+	assert.False(t, result, "should return false after delay expires (no proof arrived)")
+	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond, "should have waited for competing block delay")
+}
+
+func TestWaitIfCompetingBlockForNode_WaitsOnceNotPerKey(t *testing.T) {
+	t.Parallel()
+
+	// This test verifies that waitIfCompetingBlockForNode returns after a single wait
+	// even when multiple keys have competing blocks - it should not wait per-key.
+	container := consensusMocks.InitConsensusCore()
+	container.SetRoundHandler(&testscommon.RoundHandlerMock{
+		TimeDurationCalled: func() time.Duration {
+			return 100 * time.Millisecond
+		},
+		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+			return maxTime
+		},
+	})
+
+	consensusState := initializers.InitConsensusState()
+	ch := make(chan bool, 1)
+
+	sr, _ := spos.NewSubround(
+		bls.SrBlock,
+		bls.SrSignature,
+		bls.SrEndRound,
+		roundTimeDuration,
+		0.25,
+		0.85,
+		"(SIGNATURE)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+
+	srSignature, _ := v2.NewSubroundSignature(
+		sr,
+		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.SentSignatureTrackerStub{
+			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
+				// ALL keys have signed a different hash
+				return []byte("old_hash"), true
+			},
+		},
+		&consensusMocks.SposWorkerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+	)
+
+	srSignature.SetHeader(&block.Header{Nonce: 100})
+	srSignature.SetData([]byte("current_hash"))
+
+	start := time.Now()
+	result := srSignature.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	elapsed := time.Since(start)
+
+	// Should return after ONE wait, not multiple
+	assert.False(t, result)
+	// targetTime = 50ms, sigEndDuration = 85ms, delay = min(50ms, 75ms) = 50ms
+	// Should only wait once (~50ms), not per-key
+	assert.Less(t, elapsed, 120*time.Millisecond, "should have waited only once, not per-key")
 }
 
 func TestShouldSendProof_GracePeriodNotExpired(t *testing.T) {
