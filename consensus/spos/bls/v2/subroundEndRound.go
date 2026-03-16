@@ -389,7 +389,6 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 
 	// Re-check grace period after aggregation which may have been slow under CPU contention
 	if !sr.shouldSendProof() {
-		log.Debug("sendProof: grace period expired during aggregation, not broadcasting")
 		return false, nil
 	}
 

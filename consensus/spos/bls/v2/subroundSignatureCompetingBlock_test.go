@@ -406,8 +406,6 @@ func TestWaitIfCompetingBlockForNode_SameHashForAllKeys(t *testing.T) {
 }
 
 func TestWaitIfCompetingBlockForNode_SelfKeyHasCompetingBlock(t *testing.T) {
-	t.Parallel()
-
 	container := consensusMocks.InitConsensusCore()
 	container.SetRoundHandler(&testscommon.RoundHandlerMock{
 		TimeDurationCalled: func() time.Duration {
@@ -468,8 +466,6 @@ func TestWaitIfCompetingBlockForNode_SelfKeyHasCompetingBlock(t *testing.T) {
 }
 
 func TestWaitIfCompetingBlockForNode_ManagedKeyHasCompetingBlock(t *testing.T) {
-	t.Parallel()
-
 	container := consensusMocks.InitConsensusCore()
 	container.SetRoundHandler(&testscommon.RoundHandlerMock{
 		TimeDurationCalled: func() time.Duration {
