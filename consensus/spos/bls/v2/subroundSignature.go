@@ -108,6 +108,14 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 		return false
 	}
 
+	// Wait once for the entire node if competing block detected
+	nonce := sr.GetHeader().GetNonce()
+	currentHash := sr.GetData()
+	shouldAbort := sr.waitIfCompetingBlockForNode(ctx, nonce, currentHash)
+	if shouldAbort {
+		return false
+	}
+
 	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if isSelfSingleKeyInConsensusGroup {
 		if !sr.doSignatureJobForSingleKey(ctx) {
@@ -251,15 +259,10 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 	return sentSigForAllKeys.IsSet()
 }
 
-func (sr *subroundSignature) sendSignatureForManagedKey(ctx context.Context, idx int, pk string) bool {
+func (sr *subroundSignature) sendSignatureForManagedKey(_ context.Context, idx int, pk string) bool {
 	pkBytes := []byte(pk)
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
-
-	shouldAbort := sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
-	if shouldAbort {
-		return false
-	}
 
 	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 		currentHash,
@@ -301,15 +304,10 @@ func (sr *subroundSignature) checkGoRoutinesThrottler(ctx context.Context) error
 	return nil
 }
 
-func (sr *subroundSignature) doSignatureJobForSingleKey(ctx context.Context) bool {
+func (sr *subroundSignature) doSignatureJobForSingleKey(_ context.Context) bool {
 	pkBytes := []byte(sr.SelfPubKey())
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
-
-	shouldAbort := sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
-	if shouldAbort {
-		return false
-	}
 
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
@@ -341,9 +339,33 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(ctx context.Context) boo
 	return sr.completeSignatureSubRound(sr.SelfPubKey())
 }
 
-// waitIfCompetingBlock checks if this node already signed a different block for the same nonce.
-// If so, it waits for a fraction of the round time to give the previous block's proof a chance to arrive.
-// Returns true if the signing should be aborted (proof for previous block arrived or context cancelled).
+// waitIfCompetingBlockForNode checks if any key managed by this node previously signed a different
+// hash for the given nonce. If found, waits once for the entire node instead of per-key.
+func (sr *subroundSignature) waitIfCompetingBlockForNode(ctx context.Context, nonce uint64, currentHash []byte) bool {
+	// Check self key first
+	selfPk := []byte(sr.SelfPubKey())
+	previousHash, exists := sr.sentSignatureTracker.GetSignedHash(selfPk, nonce)
+	if exists && !bytes.Equal(previousHash, currentHash) {
+		return sr.waitIfCompetingBlock(ctx, selfPk, nonce, currentHash)
+	}
+
+	// Check managed keys
+	for _, pk := range sr.ConsensusGroup() {
+		pkBytes := []byte(pk)
+		if !sr.IsKeyManagedBySelf(pkBytes) {
+			continue
+		}
+		previousHash, exists = sr.sentSignatureTracker.GetSignedHash(pkBytes, nonce)
+		if exists && !bytes.Equal(previousHash, currentHash) {
+			return sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
+		}
+	}
+
+	return false
+}
+
+// waitIfCompetingBlock waits if this node already signed a different block for the same nonce.
+// The delay is measured from round start. Returns true if signing should be aborted.
 func (sr *subroundSignature) waitIfCompetingBlock(ctx context.Context, pkBytes []byte, nonce uint64, currentHash []byte) bool {
 	previousHash, exists := sr.sentSignatureTracker.GetSignedHash(pkBytes, nonce)
 	if !exists {
@@ -354,10 +376,16 @@ func (sr *subroundSignature) waitIfCompetingBlock(ctx context.Context, pkBytes [
 		return false
 	}
 
-	delay := time.Duration(float64(sr.RoundHandler().TimeDuration()) * competingBlockSignDelay)
+	// Delay is measured from round start, not from when this function is called
+	roundStart := sr.GetRoundTimeStamp()
+	targetTime := time.Duration(float64(sr.RoundHandler().TimeDuration()) * competingBlockSignDelay)
+	delay := sr.RoundHandler().RemainingTime(roundStart, targetTime)
+	if delay <= 0 {
+		log.Debug("waitIfCompetingBlock: already past competing block delay deadline, proceeding to sign")
+		return false
+	}
 
 	// Cap the delay so signing still happens within the signature subround window.
-	roundStart := sr.GetRoundTimeStamp()
 	sigEndDuration := time.Duration(sr.EndTime())
 	remaining := sr.RoundHandler().RemainingTime(roundStart, sigEndDuration)
 	safetyMargin := 10 * time.Millisecond
