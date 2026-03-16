@@ -642,7 +642,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
-		r := srSignature.SendSignatureForManagedKey(context.Background(), 0, "a")
+		r := srSignature.SendSignatureForManagedKey(0, "a")
 
 		assert.False(t, r)
 	})
@@ -710,7 +710,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
-		r := srSignature.SendSignatureForManagedKey(context.Background(), 1, "a")
+		r := srSignature.SendSignatureForManagedKey(1, "a")
 
 		assert.False(t, r)
 	})
@@ -780,7 +780,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
-		_ = srSignature.SendSignatureForManagedKey(context.Background(), 1, "a")
+		_ = srSignature.SendSignatureForManagedKey(1, "a")
 
 		assert.True(t, varCalled)
 	})
