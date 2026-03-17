@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -429,7 +430,7 @@ func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt)
-		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, []bunchOfTransactions{}, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, []bunchOfTransactions{}, options, 0)
 
 		require.Equal(t, 0, len(selected))
 		require.Equal(t, uint64(0), accumulatedGas)
@@ -549,7 +550,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options, 0)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -563,7 +564,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options, 0)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -577,7 +578,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(100000, 3)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options, 0)
 		sw.Stop(t.Name())
 
 		// Limited by maxAccountsPerBlock (maxAccountsPerBlock unique senders); exact count depends on heap interleaving
@@ -594,7 +595,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options, 0)
 		sw.Stop(t.Name())
 
 		// Limited by maxAccountsPerBlock (maxAccountsPerBlock unique senders)
@@ -626,7 +627,7 @@ func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *te
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		options := createMockTxSelectionOptionsWithTimeFunc(10_000_000_000, 50_000, haveTimeFalseForSelection)
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
-		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options, 0)
 
 		require.Less(t, len(selected), 50_000)
 		require.Less(t, int(accumulatedGas), 10_000_000_000)
@@ -912,4 +913,137 @@ func TestTxCache_ResetSelectionOffsetsToNonce(t *testing.T) {
 	require.Len(t, bunches, 1)
 	require.Len(t, bunches[0], 3)
 	require.Equal(t, "hash-alice-20", string(bunches[0][0].TxHash))
+}
+
+func TestTxCache_PropagationGracePeriod(t *testing.T) {
+	t.Parallel()
+
+	t.Run("grace period zero disables filtering", func(t *testing.T) {
+		t.Parallel()
+
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
+		boundsConfig := config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+			PropagationGracePeriodMs:       0,
+		}
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		session := txcachemocks.NewSelectionSessionMock()
+		session.SetNonce([]byte("alice"), 1)
+		session.SetNonce([]byte("bob"), 5)
+
+		// Even freshly added transactions are selected when grace period is disabled
+		cache.AddTx(createRelayedTx([]byte("hash-alice-1"), "alice", "relayer", 1))
+		cache.AddTx(createRelayedTx([]byte("hash-bob-5"), "bob", "relayer", 5))
+
+		selected, _, err := cache.SelectTransactions(session, options, 0)
+		require.Nil(t, err)
+		require.Equal(t, 2, len(selected))
+	})
+
+	t.Run("all transactions too young", func(t *testing.T) {
+		t.Parallel()
+
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
+		boundsConfig := config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+			PropagationGracePeriodMs:       500,
+		}
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		session := txcachemocks.NewSelectionSessionMock()
+		session.SetNonce([]byte("alice"), 1)
+		session.SetNonce([]byte("bob"), 5)
+
+		// Transactions just added (ReceivedAt ~ now), grace period is 500ms
+		cache.AddTx(createRelayedTx([]byte("hash-alice-1"), "alice", "relayer", 1))
+		cache.AddTx(createRelayedTx([]byte("hash-bob-5"), "bob", "relayer", 5))
+
+		selected, _, err := cache.SelectTransactions(session, options, 0)
+		require.Nil(t, err)
+		require.Equal(t, 0, len(selected))
+	})
+
+	t.Run("mixed senders: old sender selected, young sender skipped", func(t *testing.T) {
+		t.Parallel()
+
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
+		boundsConfig := config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+			PropagationGracePeriodMs:       500,
+		}
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		session := txcachemocks.NewSelectionSessionMock()
+		session.SetNonce([]byte("alice"), 1)
+		session.SetNonce([]byte("bob"), 5)
+
+		cache.AddTx(createRelayedTx([]byte("hash-alice-1"), "alice", "relayer", 1))
+		cache.AddTx(createRelayedTx([]byte("hash-bob-5"), "bob", "relayer", 5))
+
+		// Make alice's transaction old enough
+		aliceTx, _ := cache.GetByTxHash([]byte("hash-alice-1"))
+		aliceTx.ReceivedAt = time.Now().Add(-1 * time.Second)
+
+		selected, _, err := cache.SelectTransactions(session, options, 0)
+		require.Nil(t, err)
+		require.Equal(t, 1, len(selected))
+		require.Equal(t, "hash-alice-1", string(selected[0].TxHash))
+	})
+
+	t.Run("same sender mixed age: old nonce selected, young nonce stops sender", func(t *testing.T) {
+		t.Parallel()
+
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
+		boundsConfig := config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+			PropagationGracePeriodMs:       500,
+		}
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		session := txcachemocks.NewSelectionSessionMock()
+		session.SetNonce([]byte("alice"), 1)
+
+		cache.AddTx(createRelayedTx([]byte("hash-alice-1"), "alice", "relayer", 1))
+		cache.AddTx(createRelayedTx([]byte("hash-alice-2"), "alice", "relayer", 2))
+		cache.AddTx(createRelayedTx([]byte("hash-alice-3"), "alice", "relayer", 3))
+
+		// Make nonce 1 old enough, but nonce 2 and 3 are still young
+		tx1, _ := cache.GetByTxHash([]byte("hash-alice-1"))
+		tx1.ReceivedAt = time.Now().Add(-1 * time.Second)
+
+		selected, _, err := cache.SelectTransactions(session, options, 0)
+		require.Nil(t, err)
+		// Only nonce 1 selected; nonce 2 is too young, and nonce 3 depends on nonce 2
+		require.Equal(t, 1, len(selected))
+		require.Equal(t, "hash-alice-1", string(selected[0].TxHash))
+	})
+
+	t.Run("all transactions old enough", func(t *testing.T) {
+		t.Parallel()
+
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
+		boundsConfig := config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               maxTrackedBlocks,
+			PropagationGracePeriodMs:       200,
+		}
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		session := txcachemocks.NewSelectionSessionMock()
+		session.SetNonce([]byte("alice"), 1)
+		session.SetNonce([]byte("bob"), 5)
+
+		cache.AddTx(createRelayedTx([]byte("hash-alice-1"), "alice", "relayer", 1))
+		cache.AddTx(createRelayedTx([]byte("hash-bob-5"), "bob", "relayer", 5))
+
+		// Make all transactions old enough
+		aliceTx, _ := cache.GetByTxHash([]byte("hash-alice-1"))
+		aliceTx.ReceivedAt = time.Now().Add(-1 * time.Second)
+		bobTx, _ := cache.GetByTxHash([]byte("hash-bob-5"))
+		bobTx.ReceivedAt = time.Now().Add(-1 * time.Second)
+
+		selected, _, err := cache.SelectTransactions(session, options, 0)
+		require.Nil(t, err)
+		require.Equal(t, 2, len(selected))
+	})
 }

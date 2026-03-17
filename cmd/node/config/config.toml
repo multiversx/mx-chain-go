@@ -513,6 +513,7 @@
 [TxCacheBounds]
     MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
     MaxTrackedBlocks = 100
+    PropagationGracePeriodMs = 200
 
 [TxCacheSelection]
     SelectionMaxNumTxs = 30000
