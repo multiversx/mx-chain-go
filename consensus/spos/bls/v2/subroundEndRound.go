@@ -272,10 +272,8 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		}
 
 		proofSent, err := sr.sendProof()
-		shouldWaitForMoreSignatures := errors.Is(err, spos.ErrInvalidNumSigShares)
-		// if not enough valid signatures were detected, wait a bit more
-		// either more signatures will be received, either proof from another participant
-		if shouldWaitForMoreSignatures {
+		// Not enough valid signatures: wait for more or for a proof from another participant
+		if errors.Is(err, spos.ErrInvalidNumSigShares) {
 			continue
 		}
 
@@ -387,6 +385,11 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 	if err != nil {
 		log.Debug("sendProof.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
 		return false, err
+	}
+
+	// Re-check grace period after aggregation which may have been slow under CPU contention
+	if !sr.shouldSendProof() {
+		return false, nil
 	}
 
 	// broadcast header proof
