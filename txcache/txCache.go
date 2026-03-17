@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
@@ -81,6 +82,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	}
 
 	tx.precomputeFields(cache.host)
+	tx.ReceivedAt = time.Now()
 
 	if cache.config.EvictionEnabled {
 		_ = cache.doEviction()
