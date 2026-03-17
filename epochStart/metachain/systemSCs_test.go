@@ -45,7 +45,7 @@ import (
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	common2 "github.com/multiversx/mx-chain-go/testscommon/common"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -777,12 +777,12 @@ func createAccountsDB(
 func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEpochs, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	storageManagerArgs := common2.GetStorageManagerArgs()
+	storageManagerArgs := testCommon.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 	storageManagerArgs.MainStorer = trieStorer
 
-	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, common2.GetStorageManagerOptions())
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, testCommon.GetStorageManagerOptions())
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:                 hasher,
 		Marshaller:             marshalizer,
