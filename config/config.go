@@ -17,6 +17,7 @@ type CacheConfig struct {
 type TxCacheBoundsConfig struct {
 	MaxNumBytesPerSenderUpperBound uint32
 	MaxTrackedBlocks               uint32
+	PropagationGracePeriodMs       uint32
 }
 
 // TxCacheSelectionConfig will map the mempool selection config
