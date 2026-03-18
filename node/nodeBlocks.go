@@ -112,6 +112,10 @@ func (n *Node) getBlockRootHashV3(
 ) []byte {
 	rootHash, err := n.getRootHashByExecutionResult(headerHash)
 	if err == nil {
+		if len(rootHash) == 0 {
+			log.Warn("block root hash is empty", "nonce", header.GetNonce())
+		}
+
 		return rootHash
 	}
 
