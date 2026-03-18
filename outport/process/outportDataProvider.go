@@ -326,6 +326,7 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 			AlteredAccounts:      alteredAccounts,
 			TimestampMs:          odp.roundHandler.GetTimeStampForRound(executionResult.GetHeaderRound()),
 			HeaderGasConsumption: headerGasData,
+			RootHash:             executionResult.GetRootHash(),
 		}
 
 		results[encodedHash] = executionResultData
