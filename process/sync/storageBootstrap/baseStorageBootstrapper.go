@@ -128,12 +128,14 @@ func (st *storageBootstrapper) loadBlocks() error {
 			break
 		}
 
-		storageHeadersInfo = append(storageHeadersInfo, headerInfo)
-
 		if uint64(round) > st.bootstrapRoundIndex {
+			st.cleanupStorage(headerInfo.LastHeader)
+			st.bootstrapper.cleanupNotarizedStorage(headerInfo.LastHeader.Hash)
 			round = headerInfo.LastRound
 			continue
 		}
+
+		storageHeadersInfo = append(storageHeadersInfo, headerInfo)
 
 		_, numHdrs := metricsLoader.UpdateMetricsFromStorage(st.store, st.uint64Converter, st.marshalizer, st.appStatusHandler, headerInfo.LastHeader.Nonce)
 		st.blkExecutor.SetNumProcessedObj(numHdrs)
