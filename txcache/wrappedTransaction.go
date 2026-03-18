@@ -3,6 +3,7 @@ package txcache
 import (
 	"bytes"
 	"math/big"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 )
@@ -17,6 +18,7 @@ type WrappedTransaction struct {
 	SenderShardID   uint32
 	ReceiverShardID uint32
 	Size            int64
+	ReceivedAt      time.Time
 
 	// These fields are only set within "precomputeFields".
 	// We don't need to protect them with a mutex, since "precomputeFields" is called only once for each transaction.
