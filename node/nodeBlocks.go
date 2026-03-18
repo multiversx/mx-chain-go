@@ -115,6 +115,8 @@ func (n *Node) getBlockRootHashV3(
 		return rootHash
 	}
 
+	log.Warn("cannot get root hash for block execution result", "err", err, "nonce", header.GetNonce())
+
 	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
 	if err != nil {
 		log.Error("getBlockRootHashV3: failed to get root hash for header v3, using root hash directly from header", "error", err)
