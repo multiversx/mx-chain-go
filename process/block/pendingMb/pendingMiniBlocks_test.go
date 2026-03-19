@@ -67,8 +67,11 @@ func createMockHeader(
 func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 	t.Parallel()
 
-	pmb, _ := pendingMb.NewPendingMiniBlocks(&pool.HeadersPoolStub{})
 	t.Run("same sender and receiver shard, empty pendingMb", func(t *testing.T) {
+		t.Parallel()
+
+		pmb, _ := pendingMb.NewPendingMiniBlocks(&pool.HeadersPoolStub{})
+
 		miniBlockHeaders := []block.MiniBlockHeader{
 			{
 				Hash:            []byte("mb header hash"),
@@ -92,6 +95,9 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 		assert.Equal(t, 0, len(pendingMiniblocks))
 	})
 	t.Run("metachain receiver shard, empty pendingMb", func(t *testing.T) {
+		t.Parallel()
+
+		pmb, _ := pendingMb.NewPendingMiniBlocks(&pool.HeadersPoolStub{})
 		receivedShardId := core.MetachainShardId
 		miniBlockHeaders := []block.MiniBlockHeader{
 			{
@@ -115,6 +121,9 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 		assert.Equal(t, 0, len(pendingMiniblocks))
 	})
 	t.Run("metachain sender shard, empty pendingMb", func(t *testing.T) {
+		t.Parallel()
+
+		pmb, _ := pendingMb.NewPendingMiniBlocks(&pool.HeadersPoolStub{})
 		miniBlockHeaders := []block.MiniBlockHeader{
 			{
 				Hash:            []byte("mb header hash"),
@@ -137,6 +146,9 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 		assert.Equal(t, 0, len(pendingMiniblocks))
 	})
 	t.Run("different sender and receiver shard, non empty pendingMb", func(t *testing.T) {
+		t.Parallel()
+
+		pmb, _ := pendingMb.NewPendingMiniBlocks(&pool.HeadersPoolStub{})
 		receivedShardId := uint32(1)
 		miniBlockHeaders := []block.MiniBlockHeader{
 			{
@@ -159,7 +171,11 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 		pendingMiniblocks := pmb.GetPendingMiniBlocks(receivedShardId)
 		assert.Equal(t, 2, len(pendingMiniblocks))
 	})
+
 	t.Run("different sender and receiver shard, delete already added, non empty pendingMb", func(t *testing.T) {
+		t.Parallel()
+
+		pmb, _ := pendingMb.NewPendingMiniBlocks(&pool.HeadersPoolStub{})
 		receivedShardId := uint32(1)
 		miniBlockHeaders := []block.MiniBlockHeader{
 			{
@@ -187,8 +203,15 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 		assert.Nil(t, err)
 
 		pendingMiniblocks := pmb.GetPendingMiniBlocks(receivedShardId)
-		assert.Equal(t, 2, len(pendingMiniblocks))
+		assert.Equal(t, 4, len(pendingMiniblocks))
+
+		err = pmb.AddProcessedHeader(header)
+		assert.Nil(t, err)
+
+		pendingMiniblocks = pmb.GetPendingMiniBlocks(receivedShardId)
+		assert.Equal(t, 2, len(pendingMiniblocks)) // removed duplicated mbs
 	})
+
 	t.Run("epoch start should reprocess everything", func(t *testing.T) {
 		t.Parallel()
 
@@ -269,6 +292,7 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 		assert.Equal(t, expectedMap, pendingMiniblocks.GetMapPendingMbShard())
 		assert.Equal(t, expectedBefore, pendingMiniblocks.GetBeforeRevertPendingMbShard())
 	})
+
 	t.Run("MetaBlockV3 with shard data proposals", func(t *testing.T) {
 		t.Parallel()
 
@@ -328,7 +352,77 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 
 		// Only valid cross-shard miniblocks should be added
 		pendingMiniblocks := pmbLocal.GetPendingMiniBlocks(1)
-		assert.Equal(t, 0, len(pendingMiniblocks))
+		assert.Equal(t, 1, len(pendingMiniblocks)) // shard data mb header is included here
+		assert.Equal(t, []byte("cross shard 0-1"), pendingMiniblocks[0])
+
+		pendingMiniblocks = pmbLocal.GetPendingMiniBlocks(2)
+		assert.Equal(t, 0, len(pendingMiniblocks)) // do not consider proposed shard data info
+
+		// Invalid miniblocks should not be present
+		pendingMiniblocks = pmbLocal.GetPendingMiniBlocks(core.MetachainShardId)
+		assert.Nil(t, pendingMiniblocks)
+	})
+
+	t.Run("MetaBlockV3 with execution result miniblocks", func(t *testing.T) {
+		t.Parallel()
+
+		pmbLocal, _ := pendingMb.NewPendingMiniBlocks(&pool.HeadersPoolStub{})
+
+		header := &block.MetaBlockV3{
+			Nonce: 1,
+			ShardInfo: []block.ShardData{
+				{
+					ShardMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash:            []byte("cross shard 0-1"),
+							SenderShardID:   0,
+							ReceiverShardID: 1,
+						},
+					},
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					HeaderHash: []byte("proposed header"),
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash:            []byte("same shard"),
+							SenderShardID:   1,
+							ReceiverShardID: 1,
+						},
+						{
+							Hash:            []byte("shard to meta"),
+							SenderShardID:   1,
+							ReceiverShardID: core.MetachainShardId,
+						},
+						{
+							Hash:            []byte("meta to all"),
+							SenderShardID:   core.MetachainShardId,
+							ReceiverShardID: core.AllShardId,
+						},
+						{
+							Hash:            []byte("cross shard 0-2"),
+							SenderShardID:   0,
+							ReceiverShardID: 2,
+						},
+					},
+				},
+			},
+		}
+
+		err := pmbLocal.AddProcessedHeader(header)
+		require.Nil(t, err)
+
+		// Only valid cross-shard miniblocks should be added
+		// added from execution results data from meta
+		pendingMiniblocks := pmbLocal.GetPendingMiniBlocks(1)
+		assert.Equal(t, 1, len(pendingMiniblocks))
+		assert.Equal(t, []byte("cross shard 0-1"), pendingMiniblocks[0])
 
 		pendingMiniblocks = pmbLocal.GetPendingMiniBlocks(2)
 		assert.Equal(t, 1, len(pendingMiniblocks))
@@ -337,27 +431,6 @@ func TestPendingMiniBlockHeaders_AddProcessedHeader(t *testing.T) {
 		// Invalid miniblocks should not be present
 		pendingMiniblocks = pmbLocal.GetPendingMiniBlocks(core.MetachainShardId)
 		assert.Nil(t, pendingMiniblocks)
-	})
-	t.Run("MetaBlockV3 with missing header from pool should error", func(t *testing.T) {
-		t.Parallel()
-
-		dataPool := &pool.HeadersPoolStub{
-			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				return nil, errExpected
-			},
-		}
-		pmbLocal, _ := pendingMb.NewPendingMiniBlocks(dataPool)
-		header := &block.MetaBlockV3{
-			Nonce: 1,
-			ShardInfoProposal: []block.ShardDataProposal{
-				{
-					HeaderHash: []byte("proposed header"),
-				},
-			},
-		}
-
-		err := pmbLocal.AddProcessedHeader(header)
-		require.Equal(t, errExpected, err)
 	})
 }
 
