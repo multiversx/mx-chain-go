@@ -112,7 +112,6 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 func (hip *HdrInterceptorProcessor) checkBoNHardfork(hdr data.HeaderHandler) error {
 	round := hdr.GetRound()
 	shardID := hdr.GetShardID()
-	log.Debug("checkBoNHardfork", "shardID", shardID, "round", round)
 	excludedIntervals := hip.hfExcludedIntervals[shardID]
 	for _, interval := range excludedIntervals {
 		if round >= interval.low && round <= interval.high {
