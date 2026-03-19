@@ -263,7 +263,7 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 		synchronizedRound, currentRound)}
 
 	consensusRoundTime := wr.presenter.GetRoundTime()
-	rows[7] = []string{fmt.Sprintf("Consensus round time: %ds", consensusRoundTime)}
+	rows[7] = []string{fmt.Sprintf("Consensus round time: %dms", consensusRoundTime)}
 
 	numConnectedPeers := wr.presenter.GetNumConnectedPeers()
 	numLiveValidators := wr.presenter.GetLiveValidatorNodes()
