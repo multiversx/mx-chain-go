@@ -54,25 +54,25 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	hfExcludedIntervals := map[uint32][]*excludedInterval{
 		0: {
 			{
-				low:  29903053,
+				low:  29903054,
 				high: 30030500,
 			},
 		},
 		1: {
 			{
-				low:  29903053,
+				low:  29903054,
 				high: 30030500,
 			},
 		},
 		2: {
 			{
-				low:  29903053,
+				low:  29903054,
 				high: 30030500,
 			},
 		},
 		core.MetachainShardId: {
 			{
-				low:  29903053,
+				low:  29903054,
 				high: 30030500,
 			},
 		},
