@@ -65,26 +65,10 @@ func (p *pendingMiniBlocks) getMiniBlocksHashesReadyForCrossShardExecution(metaB
 
 func (p *pendingMiniBlocks) getMiniBlockHandlersFromShardData(metaBlock data.MetaHeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
 	miniBlocks := make([]data.MiniBlockHeaderHandler, 0)
-	if !metaBlock.IsHeaderV3() {
-		for _, shardData := range metaBlock.GetShardInfoHandlers() {
-			miniblockHandlers := shardData.GetShardMiniBlockHeaderHandlers()
-			miniBlocks = append(miniBlocks, miniblockHandlers...)
-		}
 
-		return miniBlocks, nil
-	}
-
-	for _, shardData := range metaBlock.GetShardInfoProposalHandlers() {
-		shardHeader, err := p.headersPool.GetHeaderByHash(shardData.GetHeaderHash())
-		if err != nil {
-			log.Debug("getMiniBlockHandlersFromShardData: failed to get from pool",
-				"hash", shardData.GetHeaderHash(),
-				"error", err,
-			)
-			return nil, err
-		}
-
-		miniBlocks = append(miniBlocks, shardHeader.GetMiniBlockHeaderHandlers()...)
+	for _, shardData := range metaBlock.GetShardInfoHandlers() {
+		miniblockHandlers := shardData.GetShardMiniBlockHeaderHandlers()
+		miniBlocks = append(miniBlocks, miniblockHandlers...)
 	}
 
 	return miniBlocks, nil
