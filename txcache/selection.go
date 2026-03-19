@@ -11,10 +11,7 @@ import (
 func (cache *TxCache) doSelectTransactions(virtualSession *virtualSelectionSession, options common.TxSelectionOptions) (bunchOfTransactions, uint64) {
 	bunches := cache.acquireBunchesOfTransactions()
 
-	gracePeriodMs := cache.config.TxCacheBoundsConfig.PropagationGracePeriodMs
-	propagationGracePeriod := time.Duration(gracePeriodMs) * time.Millisecond
-
-	return selectTransactionsFromBunches(virtualSession, bunches, options, propagationGracePeriod)
+	return selectTransactionsFromBunches(virtualSession, bunches, options, cache.propagationGracePeriod)
 }
 
 func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
