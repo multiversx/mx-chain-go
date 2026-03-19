@@ -98,6 +98,13 @@ func (bdi *baseDataInterceptor) processInterceptedData(
 		return false
 	}
 
+	log.Debug("intercepted data is valid",
+		"hash", data.Hash(),
+		"type", data.Type(),
+		"pid", p2p.MessageOriginatorPid(msg),
+		"seq no", p2p.MessageOriginatorSeq(msg),
+		"intercepted data", data.String())
+
 	savedData, err := bdi.processor.Save(data, msg.Peer(), bdi.topic, msg.BroadcastMethod())
 	if err != nil {
 		log.Trace("intercepted data can not be processed",
