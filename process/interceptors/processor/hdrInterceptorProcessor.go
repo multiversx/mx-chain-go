@@ -54,26 +54,26 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	hfExcludedIntervals := map[uint32][]*excludedInterval{
 		0: {
 			{
-				low:  1870267,
-				high: 1927500,
+				low:  29903054,
+				high: 30030500,
 			},
 		},
 		1: {
 			{
-				low:  1870268,
-				high: 1927500,
+				low:  29903054,
+				high: 30030500,
 			},
 		},
 		2: {
 			{
-				low:  1870268,
-				high: 1927500,
+				low:  29903054,
+				high: 30030500,
 			},
 		},
 		core.MetachainShardId: {
 			{
-				low:  1870268,
-				high: 1927500,
+				low:  29903054,
+				high: 30030500,
 			},
 		},
 	}
@@ -101,7 +101,7 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 		return process.ErrHeaderIsBlackListed
 	}
 
-	err := hip.checkDevnetHardfork(interceptedHdr.HeaderHandler())
+	err := hip.checkBoNHardfork(interceptedHdr.HeaderHandler())
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 	return nil
 }
 
-func (hip *HdrInterceptorProcessor) checkDevnetHardfork(hdr data.HeaderHandler) error {
+func (hip *HdrInterceptorProcessor) checkBoNHardfork(hdr data.HeaderHandler) error {
 	round := hdr.GetRound()
 	shardID := hdr.GetShardID()
 
