@@ -47,6 +47,7 @@ func createBaseBlockProcessor() *baseAPIBlockProcessor {
 		logsFacade:               &testscommon.LogsFacadeStub{},
 		receiptsRepository:       &testscommon.ReceiptsRepositoryStub{},
 		enableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		enableRoundsHandler:      &testscommon.EnableRoundsHandlerStub{},
 	}
 }
 
@@ -73,7 +74,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	_ = storer.Put(scrHash, scResultBytes)
 
 	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
-		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
+		LoadReceiptsCalled: func(_ []byte, header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
 			return holders.NewReceiptsHolder([]*block.MiniBlock{miniblock}), nil
 		},
 	}
@@ -89,7 +90,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	}
 
 	blockHeader := &block.Header{ReceiptsHash: []byte("aaaa"), Epoch: 0}
-	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
+	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
 		Hash: "f4add7b23eb83cf290422b0f6b770e3007b8ed3cd9683797fc90c8b4881f27bd",
@@ -134,7 +135,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	_ = storer.Put(receiptHash, receiptBytes)
 
 	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
-		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
+		LoadReceiptsCalled: func(_ []byte, header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
 			return holders.NewReceiptsHolder([]*block.MiniBlock{miniblock}), nil
 		},
 	}
@@ -154,7 +155,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	}
 
 	blockHeader := &block.Header{ReceiptsHash: []byte("aaaa"), Epoch: 0}
-	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
+	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
 		Hash: "596545f64319f2fcf8e0ebae06f40f3353d603f6070255588a48018c7b30c951",

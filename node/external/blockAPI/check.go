@@ -69,6 +69,9 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	if check.IfNil(arg.BlockChain) {
 		return process.ErrNilBlockChain
 	}
+	if check.IfNil(arg.EnableRoundHandler) {
+		return process.ErrNilEnableRoundsHandler
+	}
 
 	return core.CheckHandlerCompatibility(arg.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.RefactorPeersMiniBlocksFlag,

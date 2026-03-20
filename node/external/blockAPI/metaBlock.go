@@ -42,6 +42,7 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			enableEpochsHandler:          arg.EnableEpochsHandler,
 			proofsPool:                   arg.ProofsPool,
 			blockchain:                   arg.BlockChain,
+			enableRoundsHandler:          arg.EnableRoundHandler,
 		},
 	}
 }
@@ -176,43 +177,6 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		return nil, err
 	}
 
-	numOfTxs := uint32(0)
-	miniblocks := make([]*api.MiniBlock, 0)
-	for _, mb := range blockHeader.GetMiniBlockHeaderHandlers() {
-		if mb.GetTypeInt32() == int32(block.PeerBlock) {
-			continue
-		}
-
-		numOfTxs += mb.GetTxCount()
-
-		miniblockAPI := &api.MiniBlock{
-			Hash:             hex.EncodeToString(mb.GetHash()),
-			Type:             block.ProcessingType(mb.GetProcessingType()).String(),
-			SourceShard:      mb.GetSenderShardID(),
-			DestinationShard: mb.GetReceiverShardID(),
-		}
-		if options.WithTransactions {
-			miniBlockCopy := mb
-			err = mbp.getAndAttachTxsToMb(miniBlockCopy, blockHeader, miniblockAPI, options)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		miniblocks = append(miniblocks, miniblockAPI)
-	}
-
-	intraMb, err := mbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, hash, options)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(intraMb) > 0 {
-		miniblocks = append(miniblocks, intraMb...)
-	}
-
-	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
-
 	notarizedBlocks := make([]*api.NotarizedBlock, 0, len(blockHeader.GetShardInfoHandlers()))
 	for _, shardData := range blockHeader.GetShardInfoHandlers() {
 		notarizedBlock := &api.NotarizedBlock{
@@ -237,9 +201,7 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		Shard:                  core.MetachainShardId,
 		Hash:                   hex.EncodeToString(hash),
 		PrevBlockHash:          hex.EncodeToString(blockHeader.GetPrevHash()),
-		NumTxs:                 numOfTxs,
 		NotarizedBlocks:        notarizedBlocks,
-		MiniBlocks:             miniblocks,
 		AccumulatedFees:        blockHeader.GetAccumulatedFees().String(),
 		DeveloperFees:          blockHeader.GetDeveloperFees().String(),
 		AccumulatedFeesInEpoch: blockHeader.GetAccumulatedFeesInEpoch().String(),
@@ -320,7 +282,7 @@ func (mbp *metaAPIBlockProcessor) addMbsAndNumTxsV1(apiBlock *api.Block, blockHe
 		return err
 	}
 
-	intraMb, err := mbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, headerHash, options)
+	intraMb, err := mbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), blockHeader, headerHash, options)
 	if err != nil {
 		return err
 	}

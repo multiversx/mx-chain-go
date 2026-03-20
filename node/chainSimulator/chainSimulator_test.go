@@ -585,6 +585,82 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	chainSimulatorCommon.CheckGenerateTransactions(t, chainSimulator)
 }
 
+func TestSimilator_MoveBalanceCheckReceipt(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 defaultRoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        defaultSupernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               defaultMinNodesPerShard,
+		MetaChainMinNodes:              defaultMetaChainMinNodes,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = uint32(2)
+			cfg.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+				Round: "46",
+			}
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	defer chainSimulator.Close()
+
+	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(0, chainSimulatorCommon.OneEGLD)
+	require.Nil(t, err)
+	err = chainSimulator.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	ftx := &transaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(1),
+		SndAddr:   wallet0.Bytes,
+		RcvAddr:   wallet0.Bytes,
+		Data:      []byte(""),
+		GasLimit:  100_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+		Signature: []byte("010101"),
+	}
+
+	apiTx, err := chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(ftx, 10)
+	require.Nil(t, err)
+	require.NotNil(t, apiTx)
+
+	blockWithTxs, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(apiTx.BlockNonce, apiBlock.BlockQueryOptions{
+		WithTransactions: true,
+		WithLogs:         true,
+	})
+	require.Nil(t, err)
+	require.Equal(t, 2, len(blockWithTxs.MiniBlocks))
+
+	err = chainSimulator.GenerateBlocks(50)
+	require.Nil(t, err)
+
+	ftx.Nonce++
+	apiTx, err = chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(ftx, 10)
+	require.Nil(t, err)
+	require.NotNil(t, apiTx)
+
+	blockWithTxs, err = chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(apiTx.BlockNonce, apiBlock.BlockQueryOptions{
+		WithTransactions: true,
+		WithLogs:         true,
+	})
+	require.Nil(t, err)
+	require.Equal(t, 2, len(blockWithTxs.MiniBlocks))
+}
+
 func TestSimulator_SentMoveBalanceNoGasForFee(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
