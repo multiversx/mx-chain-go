@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiBlock "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -634,6 +635,18 @@ func TestSimilator_MoveBalanceCheckReceipt(t *testing.T) {
 		Signature: []byte("010101"),
 	}
 
+	checkReceipts := func(te *testing.T, aB *apiBlock.Block, value string) {
+		called := false
+		for _, mb := range aB.MiniBlocks {
+			if mb.Type == block.ReceiptBlock.String() {
+				called = true
+				require.Equal(te, 1, len(mb.Receipts))
+				require.Equal(te, value, mb.Receipts[0].Value.String())
+			}
+		}
+		require.True(t, called)
+	}
+
 	apiTx, err := chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(ftx, 10)
 	require.Nil(t, err)
 	require.NotNil(t, apiTx)
@@ -644,6 +657,7 @@ func TestSimilator_MoveBalanceCheckReceipt(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.Equal(t, 2, len(blockWithTxs.MiniBlocks))
+	checkReceipts(t, blockWithTxs, "50000000000000")
 
 	err = chainSimulator.GenerateBlocks(50)
 	require.Nil(t, err)
@@ -659,6 +673,7 @@ func TestSimilator_MoveBalanceCheckReceipt(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.Equal(t, 2, len(blockWithTxs.MiniBlocks))
+	checkReceipts(t, blockWithTxs, "500000000000")
 }
 
 func TestSimulator_SentMoveBalanceNoGasForFee(t *testing.T) {
