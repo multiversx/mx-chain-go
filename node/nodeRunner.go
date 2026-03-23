@@ -324,6 +324,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	log.Debug("creating metrics before bootstrap")
+	err = nr.createMetricsBeforeBootrapping(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating bootstrap components")
 	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(
 		managedStatusCoreComponents,
@@ -828,6 +834,52 @@ func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.S
 	return httpServerWrapper, nil
 }
 
+func (nr *nodeRunner) createMetricsBeforeBootrapping(
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	coreComponents mainFactory.CoreComponentsHolder,
+	cryptoComponents mainFactory.CryptoComponentsHolder,
+) error {
+	err := metrics.InitInitialMetrics(
+		statusCoreComponents.AppStatusHandler(),
+		cryptoComponents.PublicKeyString(),
+		coreComponents.GenesisNodesSetup(),
+		nr.configs.FlagsConfig.Version,
+		nr.configs.EconomicsConfig,
+		coreComponents.MinTransactionVersion(),
+	)
+	if err != nil {
+		return err
+	}
+
+	nr.setMetricsAtInit(statusCoreComponents, coreComponents)
+
+	return nil
+}
+
+func (nr *nodeRunner) setMetricsAtInit(
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	coreComponents mainFactory.CoreComponentsHolder,
+) {
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyLevel, fmt.Sprintf("%d", nr.configs.PreferencesConfig.Preferences.RedundancyLevel))
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyIsMainActive, common.MetricValueNA)
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyStepInReason, "")
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricChainId, coreComponents.ChainID())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasLimit, coreComponents.EconomicsData().MinGasLimit())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitGuardedTx, coreComponents.EconomicsData().ExtraGasLimitGuardedTx())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitRelayedTx, coreComponents.EconomicsData().MinGasLimit())
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerTx())
+	if nr.configs.PreferencesConfig.Preferences.FullArchive {
+		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerType, core.ObserverPeer.String())
+		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerSubType, core.FullHistoryObserver.String())
+	}
+}
+
 func (nr *nodeRunner) createMetrics(
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
@@ -856,24 +908,7 @@ func (nr *nodeRunner) createMetrics(
 		return err
 	}
 
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyLevel, fmt.Sprintf("%d", nr.configs.PreferencesConfig.Preferences.RedundancyLevel))
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyIsMainActive, common.MetricValueNA)
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyStepInReason, "")
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricChainId, coreComponents.ChainID())
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasLimit, coreComponents.EconomicsData().MinGasLimit())
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitGuardedTx, coreComponents.EconomicsData().ExtraGasLimitGuardedTx())
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitRelayedTx, coreComponents.EconomicsData().MinGasLimit())
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerTx())
-	if nr.configs.PreferencesConfig.Preferences.FullArchive {
-		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerType, core.ObserverPeer.String())
-		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerSubType, core.FullHistoryObserver.String())
-	}
+	nr.setMetricsAtInit(statusCoreComponents, coreComponents)
 
 	return nil
 }

@@ -275,6 +275,53 @@ func InitRatingsMetrics(appStatusHandler core.AppStatusHandler, ratingsConfig co
 	return nil
 }
 
+// InitInitialMetrics will set initial metrics for status handler (before bootstrapping process is completed)
+func InitInitialMetrics(
+	appStatusHandler core.AppStatusHandler,
+	pubkeyStr string,
+	nodesConfig sharding.GenesisNodesSetupHandler,
+	version string,
+	economicsConfig *config.EconomicsConfig,
+	minTransactionVersion uint32,
+) error {
+	if check.IfNil(appStatusHandler) {
+		return ErrNilAppStatusHandler
+	}
+	if nodesConfig == nil {
+		return fmt.Errorf("nil nodes config when initializing metrics")
+	}
+	if economicsConfig == nil {
+		return fmt.Errorf("nil economics config when initializing metrics")
+	}
+
+	isSyncing := uint64(1)
+
+	leaderPercentage := float64(0)
+	rewardsConfigs := make([]config.EpochRewardSettings, len(economicsConfig.RewardsSettings.RewardsConfigByEpoch))
+	_ = copy(rewardsConfigs, economicsConfig.RewardsSettings.RewardsConfigByEpoch)
+
+	sort.Slice(rewardsConfigs, func(i, j int) bool {
+		return rewardsConfigs[i].EpochEnable < rewardsConfigs[j].EpochEnable
+	})
+
+	if len(rewardsConfigs) > 0 {
+		leaderPercentage = rewardsConfigs[0].LeaderPercentage
+	}
+
+	appStatusHandler.SetStringValue(common.MetricPublicKeyBlockSign, pubkeyStr)
+	appStatusHandler.SetStringValue(common.MetricAppVersion, version)
+	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, "0")
+	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, 0)
+	appStatusHandler.SetUInt64Value(common.MetricIsSyncing, isSyncing)
+	appStatusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", leaderPercentage))
+	appStatusHandler.SetUInt64Value(common.MetricDenomination, uint64(economicsConfig.GlobalSettings.Denomination))
+
+	appStatusHandler.SetUInt64Value(common.MetricStartTime, uint64(nodesConfig.GetStartTime()))
+	appStatusHandler.SetUInt64Value(common.MetricMinTransactionVersion, uint64(minTransactionVersion))
+
+	return nil
+}
+
 // InitMetrics will init metrics for status handler
 func InitMetrics(
 	appStatusHandler core.AppStatusHandler,

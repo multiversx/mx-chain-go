@@ -28,7 +28,7 @@ func (provider *initialStatusMetricsProvider) BootstrapMetrics() (map[string]int
 
 // StatusMetricsMapWithoutP2P returns an empty map and the error which specifies that the node is starting
 func (provider *initialStatusMetricsProvider) StatusMetricsMapWithoutP2P() (map[string]interface{}, error) {
-	return getEmptyReturnValues()
+	return provider.realStatusMetricsProvider.StatusMetricsMapWithoutP2P()
 }
 
 // StatusP2pMetricsMap returns an empty map and the error which specifies that the node is starting

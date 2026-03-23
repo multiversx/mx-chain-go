@@ -43,7 +43,6 @@ func TestNewInitialStatusMetricsProvider(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(provider))
 
-		testDisabledGetter(t, provider.StatusMetricsMapWithoutP2P)
 		testDisabledGetter(t, provider.StatusP2pMetricsMap)
 		testDisabledGetter(t, provider.EconomicsMetrics)
 		testDisabledGetter(t, provider.ConfigMetrics)
