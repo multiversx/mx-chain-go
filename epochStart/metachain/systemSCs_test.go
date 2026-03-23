@@ -750,7 +750,6 @@ func createAccountsDB(
 	trieStorageManager common.StorageManager,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) *state.AccountsDB {
-	tenMbSize := uint64(10485760)
 	tr, _ := trie.NewTrie(trieStorageManager, marshaller, hasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
@@ -768,7 +767,7 @@ func createAccountsDB(
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
 		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-		MaxDataTriesSizeInMemory: tenMbSize,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(args)
 	return adb

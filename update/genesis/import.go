@@ -26,8 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 )
 
-const tenMBSize = uint64(10485760)
-
 var _ update.ImportHandler = (*stateImport)(nil)
 
 // ArgsNewStateImport is the arguments structure to create a new state importer
@@ -423,7 +421,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 				AddressConverter:         si.addressConverter,
 				SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
 				StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-				MaxDataTriesSizeInMemory: tenMBSize,
+				MaxDataTriesSizeInMemory: common.TenMbSize,
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -448,7 +446,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 		AddressConverter:         si.addressConverter,
 		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
 		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-		MaxDataTriesSizeInMemory: tenMBSize,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB

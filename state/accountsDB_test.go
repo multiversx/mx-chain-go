@@ -54,7 +54,6 @@ import (
 
 const (
 	trieDbOperationDelay = time.Second
-	tenMbSize            = uint64(10485760)
 )
 
 func createMockAccountsDBArgs() state.ArgsAccountsDB {
@@ -89,7 +88,7 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:         snapshotsManager,
 		StateAccessesCollector:   &stateMock.StateAccessesCollectorStub{},
-		MaxDataTriesSizeInMemory: tenMbSize,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 }
 
@@ -187,7 +186,7 @@ func getDefaultStateComponents(
 		SnapshotsManager:         snapshotsManager,
 		StateAccessesCollector:   collector,
 		PruningEnabled:           true,
-		MaxDataTriesSizeInMemory: tenMbSize,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

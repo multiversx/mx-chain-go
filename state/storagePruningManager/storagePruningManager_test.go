@@ -34,7 +34,6 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	hasher := &hashingMocks.HasherMock{}
 	args := testCommon.GetStorageManagerArgs()
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tenMBSize := uint64(10485760)
 	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
@@ -72,7 +71,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:         snapshotsManager,
 		StateAccessesCollector:   &stateMock.StateAccessesCollectorStub{},
-		MaxDataTriesSizeInMemory: tenMBSize,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

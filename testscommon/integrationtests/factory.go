@@ -98,7 +98,6 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	args.Hasher = TestHasher
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tenMBSize := uint64(10485760)
 
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
@@ -132,7 +131,7 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:         snapshotsManager,
 		StateAccessesCollector:   disabled.NewDisabledStateAccessesCollector(),
-		MaxDataTriesSizeInMemory: tenMBSize,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

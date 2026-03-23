@@ -169,9 +169,10 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 		StateTriesConfig: StateTriesConfig{
-			SnapshotsEnabled:            true,
-			AccountsStatePruningEnabled: true,
-			PeerStatePruningEnabled:     true,
+			SnapshotsEnabled:             true,
+			AccountsStatePruningEnabled:  true,
+			PeerStatePruningEnabled:      true,
+			NumLeavesToCollapseSingleRun: 100,
 		},
 		TxCacheBounds: TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
@@ -628,6 +629,7 @@ func TestTomlParser(t *testing.T) {
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
+	NumLeavesToCollapseSingleRun = 100
 `
 	cfg := Config{}
 

@@ -34,14 +34,15 @@ func getArgs() factory.TrieFactoryArgs {
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
-		MainStorer:          testscommon.CreateMemUnit(),
-		PruningEnabled:      false,
-		SnapshotsEnabled:    true,
-		IdleProvider:        &testscommon.ProcessStatusHandlerStub{},
-		Identifier:          dataRetriever.UserAccountsUnit.String(),
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StatsCollector:      disabled.NewStateStatistics(),
-		MaxSizeInMemory:     common.TenMbSize,
+		MainStorer:                   testscommon.CreateMemUnit(),
+		PruningEnabled:               false,
+		SnapshotsEnabled:             true,
+		IdleProvider:                 &testscommon.ProcessStatusHandlerStub{},
+		Identifier:                   dataRetriever.UserAccountsUnit.String(),
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StatsCollector:               disabled.NewStateStatistics(),
+		MaxSizeInMemory:              common.TenMbSize,
+		NumLeavesToCollapseSingleRun: common.NumLeavesToCollapseSingleRun,
 	}
 }
 
