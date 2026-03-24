@@ -7144,7 +7144,7 @@ func pruneTrieHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootHash
 		},
 	}
 	header1 := &block.HeaderV3{}
-	header1.SetExecutionResultsHandlers(executionResultsHandlers)
+	_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
 
 	sp.PruneTrieHeaderV3(header1)
 
