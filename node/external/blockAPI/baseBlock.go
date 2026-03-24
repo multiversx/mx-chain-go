@@ -104,11 +104,6 @@ func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMinibl
 	}
 
 	if options.WithTransactions {
-		log.Warn("number of transactions in receipts", "num", len(miniblock.TxHashes))
-		for _, txHash := range miniblock.TxHashes {
-			log.Warn("transaction hash", "txhash", txHash)
-		}
-
 		firstProcessed := int32(0)
 		lastProcessed := int32(len(miniblock.TxHashes) - 1)
 
@@ -270,7 +265,6 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 	if err != nil {
 		return nil, err
 	}
-	log.Warn("getReceiptsFromMiniblock", "epoch", epoch, "unit", unit)
 
 	start := time.Now()
 	marshalledReceipts, err := storer.GetBulkFromEpoch(miniblock.TxHashes, epoch)
@@ -280,27 +274,6 @@ func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.Mini
 	logging.LogAPIActionDurationIfNeeded(start, "GetBulkFromEpoch")
 
 	apiReceipts := make([]*transaction.ApiReceipt, 0)
-	log.Warn("num marshalledReceipts", "len", len(marshalledReceipts))
-	if len(marshalledReceipts) == 0 {
-		marshalledReceipts, err = storer.GetBulkFromEpoch(miniblock.TxHashes, epoch+1)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %v", errCannotLoadReceipts, err)
-		}
-	}
-
-	//for _, receiptHash := range miniblock.TxHashes {
-	//	res, errG := storer.GetFromEpoch(receiptHash, epoch)
-	//	if errG != nil {
-	//		log.Warn("storer.GetFromEpoch", "err", errG)
-	//	}
-	//	receipt, errUnmarshal := bap.apiTransactionHandler.UnmarshalReceipt(res)
-	//	if errUnmarshal != nil {
-	//		log.Warn("storer.UnmarshalReceipt", "err", errUnmarshal)
-	//	}
-	//	apiReceipts = append(apiReceipts, receipt)
-	//	log.Warn("add receipt", "receipt", receipt.TxHash)
-	//}
-
 	for _, pair := range marshalledReceipts {
 		receipt, errUnmarshal := bap.apiTransactionHandler.UnmarshalReceipt(pair.Value)
 		if errUnmarshal != nil {
