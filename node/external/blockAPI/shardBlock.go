@@ -42,7 +42,7 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			enableEpochsHandler:          arg.EnableEpochsHandler,
 			proofsPool:                   arg.ProofsPool,
 			blockchain:                   arg.BlockChain,
-			enableRoundsHandler:          arg.EnableRoundHandler,
+			enableRoundsHandler:          arg.EnableRoundsHandler,
 		},
 	}
 }

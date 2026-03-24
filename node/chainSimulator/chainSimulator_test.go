@@ -586,7 +586,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	chainSimulatorCommon.CheckGenerateTransactions(t, chainSimulator)
 }
 
-func TestSimilator_MoveBalanceCheckReceipt(t *testing.T) {
+func TestSimulator_MoveBalanceCheckReceipt(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -644,7 +644,7 @@ func TestSimilator_MoveBalanceCheckReceipt(t *testing.T) {
 				require.Equal(te, value, mb.Receipts[0].Value.String())
 			}
 		}
-		require.True(t, called)
+		require.True(te, called)
 	}
 
 	apiTx, err := chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(ftx, 10)

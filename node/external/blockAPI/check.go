@@ -69,7 +69,7 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	if check.IfNil(arg.BlockChain) {
 		return process.ErrNilBlockChain
 	}
-	if check.IfNil(arg.EnableRoundHandler) {
+	if check.IfNil(arg.EnableRoundsHandler) {
 		return process.ErrNilEnableRoundsHandler
 	}
 

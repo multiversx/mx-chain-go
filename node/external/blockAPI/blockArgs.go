@@ -32,7 +32,7 @@ type ArgAPIBlockProcessor struct {
 	AccountsRepository           state.AccountsRepository
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
-	EnableRoundHandler           common.EnableRoundsHandler
+	EnableRoundsHandler          common.EnableRoundsHandler
 	ProofsPool                   dataRetriever.ProofsPool
 	BlockChain                   data.ChainHandler
 }

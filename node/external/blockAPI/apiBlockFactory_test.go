@@ -48,7 +48,7 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ProofsPool:                   &dataRetrieverTestCommon.ProofsPoolMock{},
 		BlockChain:                   chainHandler,
-		EnableRoundHandler:           &testscommon.EnableRoundsHandlerStub{},
+		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 	}
 }
 
