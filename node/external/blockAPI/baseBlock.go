@@ -104,6 +104,11 @@ func (bap *baseAPIBlockProcessor) convertMiniblockFromReceiptsStorageToApiMinibl
 	}
 
 	if options.WithTransactions {
+		log.Warn("number of transactions in receipts", "num", len(miniblock.TxHashes))
+		for _, txHash := range miniblock.TxHashes {
+			log.Warn("transaction hash", "txhash", txHash)
+		}
+
 		firstProcessed := int32(0)
 		lastProcessed := int32(len(miniblock.TxHashes) - 1)
 

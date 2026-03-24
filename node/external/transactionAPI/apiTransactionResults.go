@@ -72,6 +72,7 @@ func (arp *apiTransactionResultsProcessor) putResultsInTransaction(hash []byte, 
 	}
 
 	if len(resultsHashes.ReceiptsHash) > 0 {
+		log.Warn("apiTransactionResultsProcessor.putResultsInTransaction", "receiptHash", resultsHashes.ReceiptsHash)
 		return arp.putReceiptInTransaction(tx, resultsHashes.ReceiptsHash, epoch, round)
 	}
 
