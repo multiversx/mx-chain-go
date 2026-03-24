@@ -5948,7 +5948,7 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		header1 := &block.HeaderV3{
 			Nonce: 10,
 		}
-		header1.SetExecutionResultsHandlers(executionResultsHandlers)
+		_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
 		bp.PruneTrieAsyncHeader(header1)
 
 		require.True(t, cancelPruneCalled)
@@ -6028,7 +6028,7 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 			Nonce:               8,
 			LastExecutionResult: &block.ExecutionResultInfo{},
 		}
-		header1.SetExecutionResultsHandlers(executionResultsHandlers)
+		_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
 
 		rootHash2 := []byte("rootHash2")
 		executionResultsHandlers = []data.BaseExecutionResultHandler{
@@ -6046,7 +6046,7 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		header2 := &block.HeaderV3{
 			Nonce: 9,
 		}
-		header2.SetExecutionResultsHandlers(executionResultsHandlers)
+		_ = header2.SetExecutionResultsHandlers(executionResultsHandlers)
 
 		headerCalls := 0
 		headerHashCalls := 0
@@ -6095,7 +6095,7 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		header3 := &block.HeaderV3{
 			Nonce: 10,
 		}
-		header1.SetExecutionResultsHandlers(executionResultsHandlers)
+		_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
 		bp.PruneTrieAsyncHeader(header3)
 
 		require.Equal(t, 2, cancelPruneCalled)

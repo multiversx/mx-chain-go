@@ -299,7 +299,6 @@ func (bps *BlockProcessorStub) PruneTrieAsyncHeader(header data.HeaderHandler) {
 	if bps.PruneTrieAsyncHeaderCalled != nil {
 		bps.PruneTrieAsyncHeaderCalled(header)
 	}
-
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
