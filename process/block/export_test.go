@@ -1188,3 +1188,19 @@ func (bp *baseProcessor) WaitForExecutionResultsVerification(
 ) error {
 	return bp.waitForExecutionResultsVerification(header, haveTime)
 }
+
+// SetLastPrunedNonce -
+func (bp *baseProcessor) SetLastPrunedNonce(nonce uint64) {
+	bp.mutLastPrunedHeader.Lock()
+	bp.lastPrunedHeaderNonce = nonce
+	bp.mutLastPrunedHeader.Unlock()
+}
+
+// GetLastPrunedNonce -
+func (bp *baseProcessor) GetLastPrunedNonce() uint64 {
+	bp.mutLastPrunedHeader.RLock()
+	lastPrunedNonce := bp.lastPrunedHeaderNonce
+	bp.mutLastPrunedHeader.RUnlock()
+
+	return lastPrunedNonce
+}

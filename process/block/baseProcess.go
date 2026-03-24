@@ -4054,7 +4054,7 @@ func (bp *baseProcessor) PruneTrieAsyncHeader(
 		return
 	}
 
-	// prune trie for intermediate headers if needed
+	// prune trie for intermediate headers
 	for nonce := bp.lastPrunedHeaderNonce + 1; nonce < header.GetNonce(); nonce++ {
 		// headers pool is cleaned on consensus flow based on last execution result
 		// included on the committed header (plus some delta), so intermediate header

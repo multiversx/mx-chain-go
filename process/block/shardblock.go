@@ -1247,7 +1247,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	if !currentHeader.IsHeaderV3() {
 		sp.pruneTrieLegacy(headers)
 	} else {
-		sp.pruneTrieHeaderV3(currentHeader)
+		// for header v3, trie prunning is triggered in async mode from headers executor
 
 		if currentHeader.IsStartOfEpochBlock() {
 			sp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
