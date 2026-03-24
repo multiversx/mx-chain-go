@@ -48,6 +48,7 @@ type BlockProcessorStub struct {
 	OnExecutedBlockCalled                           func(header data.HeaderHandler, rootHash []byte) error
 	RemoveHeaderFromPoolCalled                      func(headerHash []byte)
 	ProposedDirectSentTransactionsToBroadcastCalled func(proposedBody data.BodyHandler) map[string][][]byte
+	PruneTrieAsyncHeaderCalled                      func(header data.HeaderHandler)
 }
 
 // SetNumProcessedObj -
@@ -291,6 +292,14 @@ func (bps *BlockProcessorStub) ProposedDirectSentTransactionsToBroadcast(propose
 		return bps.ProposedDirectSentTransactionsToBroadcastCalled(proposedBody)
 	}
 	return nil
+}
+
+// PruneTrieAsyncHeader -
+func (bps *BlockProcessorStub) PruneTrieAsyncHeader(header data.HeaderHandler) {
+	if bps.PruneTrieAsyncHeaderCalled != nil {
+		bps.PruneTrieAsyncHeaderCalled(header)
+	}
+
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -25,5 +25,6 @@ type BlockProcessor interface {
 	ProcessBlockProposal(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	CommitBlockProposalState(headerHandler data.HeaderHandler) error
 	RevertBlockProposalState()
+	PruneTrieAsyncHeader(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }

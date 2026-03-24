@@ -135,8 +135,8 @@ func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, 
 }
 
 // PruneTrieHeaderV3 -
-func (sp *shardProcessor) PruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
-	sp.pruneTrieHeaderV3(executionResultsHandlers)
+func (sp *shardProcessor) PruneTrieHeaderV3(header data.HeaderHandler) {
+	sp.pruneTrieHeaderV3(header)
 }
 
 // NewShardProcessorEmptyWith3shards -
