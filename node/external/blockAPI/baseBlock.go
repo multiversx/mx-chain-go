@@ -2,7 +2,6 @@ package blockAPI
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -736,14 +735,8 @@ func proofToAPIProof(proof data.HeaderProofHandler) *api.HeaderProof {
 func (bap *baseAPIBlockProcessor) addMbsAndNumTxsAsyncExecution(apiBlock *api.Block, blockHeader data.HeaderHandler, headerHash []byte, options api.BlockQueryOptions) error {
 	executionResultBytes, err := bap.getFromStorerWithEpoch(dataRetriever.ExecutionResultsUnit, headerHash, blockHeader.GetEpoch())
 	if err != nil {
-		// It's possible to have a block without an execution result (transactions from block are not executed yet)
-		if errors.Is(err, dblookupext.ErrNotFoundInStorage) {
-			mbs, totalTxs, errG := bap.getMbsAndTxsIfMissingExecutionResult(blockHeader, options)
-			apiBlock.MiniBlocks = mbs
-			apiBlock.NumTxs = totalTxs
-			return errG
-		}
-		return err
+		// do not return a partial block if the execution result is missing
+		return errBlockNotFound
 	}
 
 	executionResultHandler, err := process.UnmarshalExecutionResult(bap.marshalizer, executionResultBytes)
