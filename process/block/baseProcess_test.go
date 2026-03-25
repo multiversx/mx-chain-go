@@ -5904,3 +5904,203 @@ func TestBaseProcessor_WaitForExecutionResultsVerification(t *testing.T) {
 		require.Equal(t, int32(1), callCount.Load())
 	})
 }
+
+func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("last pruned header not set, should trigger provided header", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneCalled := false
+		pruneTrieCalled := false
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalled = true
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				pruneTrieCalled = true
+			},
+		}
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		require.Equal(t, uint64(0), bp.GetLastPrunedNonce())
+
+		rootHash1 := []byte("rootHash1")
+
+		executionResultsHandlers := []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					RootHash: rootHash1,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					RootHash: []byte("some other root hash"),
+				},
+			},
+		}
+		header1 := &block.HeaderV3{
+			Nonce: 10,
+		}
+		_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
+		bp.PruneTrieAsyncHeader(header1)
+
+		require.True(t, cancelPruneCalled)
+		require.True(t, pruneTrieCalled)
+
+		require.Equal(t, uint64(10), bp.GetLastPrunedNonce())
+	})
+
+	t.Run("header nonce lower than last pruned header, should not trigger", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneCalled := false
+		pruneTrieCalled := false
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalled = true
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				pruneTrieCalled = true
+			},
+		}
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.SetLastPrunedNonce(10)
+
+		header2 := &block.HeaderV3{
+			Nonce: 9,
+		}
+		bp.PruneTrieAsyncHeader(header2)
+		require.False(t, cancelPruneCalled)
+		require.False(t, pruneTrieCalled)
+
+		require.Equal(t, uint64(10), bp.GetLastPrunedNonce())
+	})
+
+	t.Run("should trigger multiple times for intermediate headers", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneCalled := 0
+		pruneTrieCalled := 0
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalled++
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				pruneTrieCalled++
+			},
+		}
+
+		rootHash1 := []byte("rootHash1")
+		executionResultsHandlers := []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					RootHash: rootHash1,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					RootHash: []byte("some other root hash"),
+				},
+			},
+		}
+		header1 := &block.HeaderV3{
+			Nonce:               8,
+			LastExecutionResult: &block.ExecutionResultInfo{},
+		}
+		_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
+
+		rootHash2 := []byte("rootHash2")
+		executionResultsHandlers = []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					RootHash: rootHash2,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					RootHash: []byte("some other root hash6"),
+				},
+			},
+		}
+		header2 := &block.HeaderV3{
+			Nonce: 9,
+		}
+		_ = header2.SetExecutionResultsHandlers(executionResultsHandlers)
+
+		headerCalls := 0
+		headerHashCalls := 0
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				if headerCalls == 0 {
+					headerCalls++
+					return []data.HeaderHandler{header2}, [][]byte{[]byte("hash1")}, nil
+				}
+
+				return []data.HeaderHandler{}, [][]byte{}, nil
+			},
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if headerHashCalls == 0 {
+					headerHashCalls++
+					return header1, nil
+				}
+				return header2, nil
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return headersPool
+		}
+		dataComponents.DataPool = dataPool
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.SetLastPrunedNonce(8)
+
+		rootHash3 := []byte("rootHash3")
+
+		executionResultsHandlers = []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					RootHash: rootHash3,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					RootHash: []byte("some other root hash2"),
+				},
+			},
+		}
+		header3 := &block.HeaderV3{
+			Nonce: 10,
+		}
+		_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
+		bp.PruneTrieAsyncHeader(header3)
+
+		require.Equal(t, 2, cancelPruneCalled)
+		require.Equal(t, 2, pruneTrieCalled)
+
+		require.Equal(t, uint64(10), bp.GetLastPrunedNonce())
+	})
+}

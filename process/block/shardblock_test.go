@@ -7143,8 +7143,10 @@ func pruneTrieHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootHash
 			},
 		},
 	}
+	header1 := &block.HeaderV3{}
+	_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
 
-	sp.PruneTrieHeaderV3(executionResultsHandlers)
+	sp.PruneTrieHeaderV3(header1)
 
 	assert.Equal(t, 2, pruneCalled)
 	assert.Equal(t, 2, cancelPruneCalled)

@@ -1247,7 +1247,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	if !currentHeader.IsHeaderV3() {
 		sp.pruneTrieLegacy(headers)
 	} else {
-		sp.pruneTrieHeaderV3(currentHeader.GetExecutionResultsHandlers())
+		// for header v3, trie prunning is triggered in async mode from headers executor
 
 		if currentHeader.IsStartOfEpochBlock() {
 			sp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
@@ -1265,7 +1265,11 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
 }
 
-func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
+func (sp *shardProcessor) pruneTrieHeaderV3(
+	header data.HeaderHandler,
+) {
+	executionResultsHandlers := header.GetExecutionResultsHandlers()
+
 	accountsDb := sp.accountsDB[state.UserAccountsState]
 	if !accountsDb.IsPruningEnabled() {
 		return
@@ -1303,11 +1307,15 @@ func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.Base
 	}
 }
 
-func (sp *shardProcessor) getPreviousExecutionResult(index int, executionResultsHandlers []data.BaseExecutionResultHandler) (data.BaseExecutionResultHandler, error) {
+func (sp *shardProcessor) getPreviousExecutionResult(
+	index int,
+	executionResultsHandlers []data.BaseExecutionResultHandler,
+) (data.BaseExecutionResultHandler, error) {
 	if index > 0 {
 		return executionResultsHandlers[index-1], nil
 	}
 
+	// TODO: analyse based on current header to be committed, not last committed header
 	prevHeaderHash := sp.getCurrentBlockHeader().GetPrevHash()
 	prevHeader, err := process.GetShardHeader(prevHeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 	if err != nil {

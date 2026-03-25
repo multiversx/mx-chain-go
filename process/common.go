@@ -775,6 +775,35 @@ func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.Storag
 	return storageUpdates
 }
 
+// GetHeaderWithNonce tries to get the header by nonce from pool first and if not found, searches for it through storer
+func GetHeaderWithNonce(
+	nonce uint64,
+	shardId uint32,
+	headersCacher dataRetriever.HeadersPool,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+) (data.HeaderHandler, []byte, error) {
+	if shardId == core.MetachainShardId {
+		return GetMetaHeaderWithNonce(
+			nonce,
+			headersCacher,
+			marshalizer,
+			storageService,
+			uint64Converter,
+		)
+	}
+
+	return GetShardHeaderWithNonce(
+		nonce,
+		shardId,
+		headersCacher,
+		marshalizer,
+		storageService,
+		uint64Converter,
+	)
+}
+
 // GetHeader tries to get the header from pool first and if not found, searches for it through storer
 func GetHeader(
 	headerHash []byte,

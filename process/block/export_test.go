@@ -135,8 +135,8 @@ func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, 
 }
 
 // PruneTrieHeaderV3 -
-func (sp *shardProcessor) PruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
-	sp.pruneTrieHeaderV3(executionResultsHandlers)
+func (sp *shardProcessor) PruneTrieHeaderV3(header data.HeaderHandler) {
+	sp.pruneTrieHeaderV3(header)
 }
 
 // NewShardProcessorEmptyWith3shards -
@@ -1187,4 +1187,20 @@ func (bp *baseProcessor) WaitForExecutionResultsVerification(
 	haveTime func() time.Duration,
 ) error {
 	return bp.waitForExecutionResultsVerification(header, haveTime)
+}
+
+// SetLastPrunedNonce -
+func (bp *baseProcessor) SetLastPrunedNonce(nonce uint64) {
+	bp.mutLastPrunedHeader.Lock()
+	bp.lastPrunedHeaderNonce = nonce
+	bp.mutLastPrunedHeader.Unlock()
+}
+
+// GetLastPrunedNonce -
+func (bp *baseProcessor) GetLastPrunedNonce() uint64 {
+	bp.mutLastPrunedHeader.RLock()
+	lastPrunedNonce := bp.lastPrunedHeaderNonce
+	bp.mutLastPrunedHeader.RUnlock()
+
+	return lastPrunedNonce
 }

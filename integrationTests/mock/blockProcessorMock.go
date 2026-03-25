@@ -43,6 +43,7 @@ type BlockProcessorMock struct {
 	) error
 	OnExecutedBlockCalled                           func(header data.HeaderHandler, rootHash []byte) error
 	ProposedDirectSentTransactionsToBroadcastCalled func(proposedBody data.BodyHandler) map[string][][]byte
+	PruneTrieAsyncHeaderCalled                      func(header data.HeaderHandler)
 }
 
 // ProcessBlock mocks processing a block
@@ -228,6 +229,13 @@ func (bpm *BlockProcessorMock) NonceOfFirstCommittedBlock() core.OptionalUint64 
 func (bpm *BlockProcessorMock) RemoveHeaderFromPool(headerHash []byte) {
 	if bpm.RemoveHeaderFromPoolCalled != nil {
 		bpm.RemoveHeaderFromPoolCalled(headerHash)
+	}
+}
+
+// PruneTrieAsyncHeader -
+func (bpm *BlockProcessorMock) PruneTrieAsyncHeader(header data.HeaderHandler) {
+	if bpm.PruneTrieAsyncHeaderCalled != nil {
+		bpm.PruneTrieAsyncHeaderCalled(header)
 	}
 }
 

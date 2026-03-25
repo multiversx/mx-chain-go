@@ -1634,7 +1634,7 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 			mp.accountsDB[state.PeerAccountsState],
 		)
 	} else {
-		mp.pruneTriesHeaderV3(metaBlock, prevMetaBlock)
+		mp.pruneTrieHeaderV3(metaBlock)
 	}
 
 	outportFinalizedHeaderHash := metaBlockHash
@@ -1646,9 +1646,8 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, rootHash)
 }
 
-func (mp *metaProcessor) pruneTriesHeaderV3(
-	metaBlock data.MetaHeaderHandler,
-	prevMetaBlock data.MetaHeaderHandler,
+func (mp *metaProcessor) pruneTrieHeaderV3(
+	metaBlock data.HeaderHandler,
 ) {
 	accountsDb := mp.accountsDB[state.UserAccountsState]
 	peerAccountsDb := mp.accountsDB[state.PeerAccountsState]
@@ -1666,7 +1665,7 @@ func (mp *metaProcessor) pruneTriesHeaderV3(
 				"currentExecResType", fmt.Sprintf("%T", execResults[i]))
 			continue
 		}
-		prevExecRes, err := mp.getPreviousExecutionResult(i, execResults, prevMetaBlock, prevMetaBlockHash)
+		prevExecRes, err := mp.getPreviousExecutionResult(i, execResults, prevMetaBlockHash)
 		if err != nil {
 			log.Warn("failed to get previous execution result for pruning",
 				"err", err,
@@ -1708,7 +1707,6 @@ func (mp *metaProcessor) pruneTriesHeaderV3(
 func (mp *metaProcessor) getPreviousExecutionResult(
 	index int,
 	executionResultsHandlers []data.BaseExecutionResultHandler,
-	prevMetaBlock data.MetaHeaderHandler,
 	prevMetaBlockHash []byte,
 ) (data.BaseMetaExecutionResultHandler, error) {
 	if index > 0 {
@@ -1717,6 +1715,11 @@ func (mp *metaProcessor) getPreviousExecutionResult(
 			return nil, process.ErrWrongTypeAssertion
 		}
 		return metaExecRes, nil
+	}
+
+	prevMetaBlock, err := process.GetMetaHeader(prevMetaBlockHash, mp.dataPool.Headers(), mp.marshalizer, mp.store)
+	if err != nil {
+		return nil, err
 	}
 
 	if prevMetaBlock.IsHeaderV3() {

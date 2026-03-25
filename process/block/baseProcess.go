@@ -152,6 +152,9 @@ type baseProcessor struct {
 	aotSelector                        process.AOTTransactionSelector
 	maxProposalNonceGap                uint64
 	closingNodeStarted                 *atomic.Bool
+
+	lastPrunedHeaderNonce uint64
+	mutLastPrunedHeader   sync.RWMutex
 }
 
 type bootStorerDataArgs struct {
@@ -4031,4 +4034,50 @@ func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data
 
 	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.GetAccumulatedFeesInEpoch().String())
 	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.GetDevFeesInEpoch().String())
+}
+
+// PruneTrieAsyncHeader will trigger trie pruning for header from async execution flow
+func (bp *baseProcessor) PruneTrieAsyncHeader(
+	header data.HeaderHandler,
+) {
+	bp.mutLastPrunedHeader.Lock()
+	defer bp.mutLastPrunedHeader.Unlock()
+
+	if bp.lastPrunedHeaderNonce == 0 {
+		// last pruned header nonce not set, trigger prune trie for the provided header
+		bp.blockProcessor.pruneTrieHeaderV3(header)
+		bp.lastPrunedHeaderNonce = header.GetNonce()
+		return
+	}
+
+	if header.GetNonce() <= bp.lastPrunedHeaderNonce {
+		return
+	}
+
+	// prune trie for intermediate headers
+	for nonce := bp.lastPrunedHeaderNonce + 1; nonce < header.GetNonce(); nonce++ {
+		// headers pool is cleaned on consensus flow based on last execution result
+		// included on the committed header (plus some delta), so intermediate header
+		// should be available in pool, since trie prunning is triggered from
+		// execution flow; if there are no included blocks from execution flow
+		// (and not prunning triggerd) headers will not be removed from pool
+		intermHeader, _, err := process.GetHeaderWithNonce(
+			nonce,
+			header.GetShardID(),
+			bp.dataPool.Headers(),
+			bp.marshalizer,
+			bp.store,
+			bp.uint64Converter,
+		)
+		if err != nil {
+			log.Warn("failed to get intermediate header for prunning", "error", err)
+			continue
+		}
+
+		bp.blockProcessor.pruneTrieHeaderV3(intermHeader)
+	}
+
+	// prune trie for the provided header
+	bp.blockProcessor.pruneTrieHeaderV3(header)
+	bp.lastPrunedHeaderNonce = header.GetNonce()
 }
