@@ -318,14 +318,14 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Debug("creating disabled API services")
-	webServerHandler, err := nr.createHttpServer(managedStatusCoreComponents)
+	log.Debug("creating metrics before bootstrap")
+	err = nr.createMetricsBeforeBootrapping(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
 
-	log.Debug("creating metrics before bootstrap")
-	err = nr.createMetricsBeforeBootrapping(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents)
+	log.Debug("creating disabled API services")
+	webServerHandler, err := nr.createHttpServer(managedStatusCoreComponents)
 	if err != nil {
 		return true, err
 	}

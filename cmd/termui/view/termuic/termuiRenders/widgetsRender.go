@@ -131,7 +131,7 @@ func (wr *WidgetsRender) getShardIdStr() string {
 	isNodeSyncing := isNodeSyncingTrie || isRoundNotSynchronized || currentRound == 0
 
 	if isNodeSyncing {
-		return "N/A"
+		return statusNotApplicable
 	}
 
 	shardID := wr.presenter.GetShardId()

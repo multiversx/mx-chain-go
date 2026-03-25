@@ -310,7 +310,7 @@ func InitInitialMetrics(
 
 	appStatusHandler.SetStringValue(common.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetStringValue(common.MetricAppVersion, version)
-	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, "0")
+	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, "N/A")
 	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, 0)
 	appStatusHandler.SetUInt64Value(common.MetricIsSyncing, isSyncing)
 	appStatusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", leaderPercentage))
