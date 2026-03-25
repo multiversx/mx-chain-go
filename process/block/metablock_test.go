@@ -4061,6 +4061,41 @@ func TestMetaProcessor_CrossChecksBlockHeightsMetrics(t *testing.T) {
 	requireInstance.Equal(uint64(39), savedMetrics["erd_cross_check_block_height_2"])
 }
 
+func TestMetaProcessor_PruneTrieAsyncHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("prune trie for headerV3, prev header is headerV2", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash1 := []byte("state root hash 1")
+		validatorStatsRootHash1 := []byte("validator stats root hash 1")
+
+		prevHeader := &block.MetaBlock{
+			RootHash:               rootHash1,
+			ValidatorStatsRootHash: validatorStatsRootHash1,
+		}
+		pruneTrieForHeaderV3Test(t, prevHeader, rootHash1, validatorStatsRootHash1)
+	})
+
+	t.Run("prune trie for headerV3, prev header is headerV3", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash1 := []byte("state root hash 1")
+		validatorStatsRootHash1 := []byte("validator stats root hash 1")
+		prevHeader := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						RootHash: rootHash1,
+					},
+					ValidatorStatsRootHash: validatorStatsRootHash1,
+				},
+			},
+		}
+		pruneTrieForHeaderV3Test(t, prevHeader, rootHash1, validatorStatsRootHash1)
+	})
+}
+
 func TestMetaProcessor_UpdateState(t *testing.T) {
 	t.Parallel()
 
@@ -4126,36 +4161,6 @@ func TestMetaProcessor_UpdateState(t *testing.T) {
 		assert.True(t, pruneCalledForPeerAccounts)
 		assert.True(t, cancelPruneCalledForUserAccounts)
 		assert.True(t, cancelPruneCalledForPeerAccounts)
-	})
-	t.Run("prune trie for headerV3, prev header is headerV2", func(t *testing.T) {
-		t.Parallel()
-
-		rootHash1 := []byte("state root hash 1")
-		validatorStatsRootHash1 := []byte("validator stats root hash 1")
-
-		prevHeader := &block.MetaBlock{
-			RootHash:               rootHash1,
-			ValidatorStatsRootHash: validatorStatsRootHash1,
-		}
-		pruneTrieForHeaderV3Test(t, prevHeader, rootHash1, validatorStatsRootHash1)
-
-	})
-	t.Run("prune trie for headerV3, prev header is headerV3", func(t *testing.T) {
-		t.Parallel()
-
-		rootHash1 := []byte("state root hash 1")
-		validatorStatsRootHash1 := []byte("validator stats root hash 1")
-		prevHeader := &block.MetaBlockV3{
-			LastExecutionResult: &block.MetaExecutionResultInfo{
-				ExecutionResult: &block.BaseMetaExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						RootHash: rootHash1,
-					},
-					ValidatorStatsRootHash: validatorStatsRootHash1,
-				},
-			},
-		}
-		pruneTrieForHeaderV3Test(t, prevHeader, rootHash1, validatorStatsRootHash1)
 	})
 }
 
@@ -4238,7 +4243,6 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 
 	mp, _ := processBlock.NewMetaProcessor(arguments)
 
-	metaBlockHash := []byte("meta block hash")
 	metaBlock := &block.MetaBlockV3{
 		PrevHash: []byte("hash"),
 		ExecutionResults: []*block.MetaExecutionResult{
@@ -4269,7 +4273,7 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 		},
 	}
 
-	mp.UpdateState(metaBlock, metaBlockHash)
+	mp.PruneTrieAsyncHeader(metaBlock)
 
 	assert.Equal(t, 2, pruneCalledForUserAccounts)
 	assert.Equal(t, 2, pruneCalledForPeerAccounts)
