@@ -153,6 +153,7 @@ type baseProcessor struct {
 	maxProposalNonceGap                uint64
 	closingNodeStarted                 *atomic.Bool
 
+	lastPrunedHeaderHash  []byte
 	lastPrunedHeaderNonce uint64
 	mutLastPrunedHeader   sync.RWMutex
 }
@@ -4037,47 +4038,78 @@ func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data
 }
 
 // PruneTrieAsyncHeader will trigger trie pruning for header from async execution flow
-func (bp *baseProcessor) PruneTrieAsyncHeader(
-	header data.HeaderHandler,
-) {
+func (bp *baseProcessor) PruneTrieAsyncHeader() {
 	bp.mutLastPrunedHeader.Lock()
 	defer bp.mutLastPrunedHeader.Unlock()
 
-	if bp.lastPrunedHeaderNonce == 0 {
-		// last pruned header nonce not set, trigger prune trie for the provided header
+	header := bp.blockChain.GetCurrentBlockHeader()
+	headerHash := bp.blockChain.GetCurrentBlockHeaderHash()
+
+	if len(bp.lastPrunedHeaderHash) == 0 {
+		// last pruned header hash not set, trigger prune trie for the provided header
 		bp.blockProcessor.pruneTrieHeaderV3(header)
+		bp.lastPrunedHeaderHash = headerHash
 		bp.lastPrunedHeaderNonce = header.GetNonce()
 		return
 	}
 
+	// extra check by nonce
 	if header.GetNonce() <= bp.lastPrunedHeaderNonce {
 		return
 	}
 
-	// prune trie for intermediate headers
-	for nonce := bp.lastPrunedHeaderNonce + 1; nonce < header.GetNonce(); nonce++ {
-		// headers pool is cleaned on consensus flow based on last execution result
-		// included on the committed header (plus some delta), so intermediate header
-		// should be available in pool, since trie prunning is triggered from
-		// execution flow; if there are no included blocks from execution flow
-		// (and not prunning triggerd) headers will not be removed from pool
-		intermHeader, _, err := process.GetHeaderWithNonce(
-			nonce,
-			header.GetShardID(),
-			bp.dataPool.Headers(),
-			bp.marshalizer,
-			bp.store,
-			bp.uint64Converter,
-		)
-		if err != nil {
-			log.Warn("failed to get intermediate header for prunning", "error", err)
-			continue
-		}
-
-		bp.blockProcessor.pruneTrieHeaderV3(intermHeader)
+	err := bp.pruneTrieForHeadersUnprotected(headerHash, header)
+	if err != nil {
+		// there was an error while fetching intermediate headers
+		// reset pruning context
+		bp.blockProcessor.resetPruning()
 	}
 
-	// prune trie for the provided header
-	bp.blockProcessor.pruneTrieHeaderV3(header)
+	bp.lastPrunedHeaderHash = headerHash
 	bp.lastPrunedHeaderNonce = header.GetNonce()
+}
+
+func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
+	headerHash []byte,
+	header data.HeaderHandler,
+) error {
+	if bytes.Equal(headerHash, bp.lastPrunedHeaderHash) {
+		return nil
+	}
+
+	headersToPrune := make([]data.HeaderHandler, 0)
+	headersToPrune = append(headersToPrune, header)
+
+	lastPrunedHeaderHash := bp.lastPrunedHeaderHash
+	walkerHash := header.GetPrevHash()
+
+	for !bytes.Equal(walkerHash, lastPrunedHeaderHash) {
+		// headers pool is cleaned on consensus flow based on last execution result
+		// included on the committed header (plus some delta), so intermediate headers
+		// should be available in pool, since trie pruning is triggered from
+		// execution flow; if there are no included blocks from execution flow
+		// (and not pruning triggered) headers will not be removed from pool
+		header, err := process.GetHeader(
+			walkerHash,
+			bp.dataPool.Headers(),
+			bp.store,
+			bp.marshalizer,
+			header.GetShardID(),
+		)
+		if err != nil {
+			log.Warn("failed to get intermediate header for pruning", "error", err)
+			return err
+		}
+
+		headersToPrune = append(headersToPrune, header)
+
+		walkerHash = header.GetPrevHash()
+	}
+
+	for i := len(headersToPrune) - 1; i >= 0; i-- {
+		header := headersToPrune[i]
+		bp.blockProcessor.pruneTrieHeaderV3(header)
+	}
+
+	return nil
 }

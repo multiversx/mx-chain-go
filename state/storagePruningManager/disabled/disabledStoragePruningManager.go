@@ -26,6 +26,9 @@ func (i *disabledStoragePruningManager) PruneTrie(_ []byte, _ state.TriePruningI
 func (i *disabledStoragePruningManager) CancelPrune(_ []byte, _ state.TriePruningIdentifier, _ common.StorageManager) {
 }
 
+// Reset does nothing for this implementation
+func (i *disabledStoragePruningManager) Reset() {}
+
 // Close does nothing for this implementation
 func (i *disabledStoragePruningManager) Close() error {
 	return nil

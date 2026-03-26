@@ -7,7 +7,7 @@ type BlockProcessorStub struct {
 	ProcessBlockProposalCalled     func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	CommitBlockProposalStateCalled func(headerHandler data.HeaderHandler) error
 	RevertBlockProposalStateCalled func()
-	PruneTrieAsyncHeaderCalled     func(header data.HeaderHandler)
+	PruneTrieAsyncHeaderCalled     func()
 }
 
 // ProcessBlockProposal -
@@ -36,9 +36,9 @@ func (bp *BlockProcessorStub) RevertBlockProposalState() {
 }
 
 // PruneTrieAsyncHeader -
-func (bp *BlockProcessorStub) PruneTrieAsyncHeader(header data.HeaderHandler) {
+func (bp *BlockProcessorStub) PruneTrieAsyncHeader() {
 	if bp.PruneTrieAsyncHeaderCalled != nil {
-		bp.PruneTrieAsyncHeaderCalled(header)
+		bp.PruneTrieAsyncHeaderCalled()
 	}
 }
 

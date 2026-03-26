@@ -224,6 +224,10 @@ func (accountsDB *accountsDBApi) PruneTrie(_ []byte, _ TriePruningIdentifier, _ 
 func (accountsDB *accountsDBApi) CancelPrune(_ []byte, _ TriePruningIdentifier) {
 }
 
+// ResetPruning is a not permitted operation in this implementation and thus, does nothing
+func (accountsDB *accountsDBApi) ResetPruning() {
+}
+
 // SnapshotState is a not permitted operation in this implementation and thus, does nothing
 func (accountsDB *accountsDBApi) SnapshotState(_ []byte, _ uint32) {
 }

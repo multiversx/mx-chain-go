@@ -234,6 +234,14 @@ func (spm *storagePruningManager) removeFromDb(
 	return nil
 }
 
+func (spm *storagePruningManager) Reset() {
+	bufferedHashes := spm.pruningBuffer.RemoveAll()
+	for _, hash := range bufferedHashes {
+		log.Trace("trie storage manager reset", "hash", hash)
+	}
+	spm.dbEvictionWaitingList.Reset()
+}
+
 // Close will handle the closing of the underlying components
 func (spm *storagePruningManager) Close() error {
 	return spm.dbEvictionWaitingList.Close()

@@ -1196,11 +1196,18 @@ func (bp *baseProcessor) SetLastPrunedNonce(nonce uint64) {
 	bp.mutLastPrunedHeader.Unlock()
 }
 
-// GetLastPrunedNonce -
-func (bp *baseProcessor) GetLastPrunedNonce() uint64 {
+// SetLastPrunedHash -
+func (bp *baseProcessor) SetLastPrunedHash(hash []byte) {
+	bp.mutLastPrunedHeader.Lock()
+	bp.lastPrunedHeaderHash = hash
+	bp.mutLastPrunedHeader.Unlock()
+}
+
+// GetLastPrunedHash -
+func (bp *baseProcessor) GetLastPrunedHash() []byte {
 	bp.mutLastPrunedHeader.RLock()
-	lastPrunedNonce := bp.lastPrunedHeaderNonce
+	lastPrunedHeaderHash := bp.lastPrunedHeaderHash
 	bp.mutLastPrunedHeader.RUnlock()
 
-	return lastPrunedNonce
+	return lastPrunedHeaderHash
 }

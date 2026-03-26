@@ -364,7 +364,7 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 		return nil
 	}
 
-	he.blockProcessor.PruneTrieAsyncHeader(he.blockChain.GetCurrentBlockHeader())
+	he.blockProcessor.PruneTrieAsyncHeader()
 
 	he.blockChain.SetFinalBlockInfo(
 		executionResult.GetHeaderNonce(),

@@ -205,6 +205,19 @@ func (mewl *memoryEvictionWaitingList) ShouldKeepHash(hash string, identifier st
 	return false, nil
 }
 
+// Reset will reinitialize the eviction waiting list, by emptying the cache and reversed cache. It will not change the sizes of the caches.
+func (mewl *memoryEvictionWaitingList) Reset() {
+	mewl.opMutex.Lock()
+
+	for key := range mewl.cache {
+		log.Debug("trie nodes eviction waiting list reset", "rootHash", []byte(key))
+	}
+
+	mewl.cache = make(map[string]*rootHashData)
+	mewl.reversedCache = make(map[string]*hashInfo)
+	mewl.opMutex.Unlock()
+}
+
 // Close returns nil
 func (mewl *memoryEvictionWaitingList) Close() error {
 	return nil

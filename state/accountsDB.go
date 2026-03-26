@@ -1230,6 +1230,14 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdenti
 	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.mainTrie.GetStorageManager())
 }
 
+// ResetPruning will reset all collected data needed for pruning
+func (adb *AccountsDB) ResetPruning() {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	adb.storagePruningManager.Reset()
+}
+
 // SnapshotState triggers the snapshotting process of the state trie
 func (adb *AccountsDB) SnapshotState(rootHash []byte, epoch uint32) {
 	adb.snapshotsManger.SnapshotState(rootHash, epoch, adb.getMainTrie().GetStorageManager())

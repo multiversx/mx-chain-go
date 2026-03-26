@@ -7097,7 +7097,7 @@ func pruneTrieHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootHash
 		}
 	}
 	dataComponents.DataPool = dataPool
-	_ = dataComponents.BlockChain.SetCurrentBlockHeader(&block.Header{PrevHash: prevHeaderHash})
+
 	arguments := CreateMockArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
 	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 		state.UserAccountsState: &stateMock.AccountsStub{
@@ -7143,7 +7143,9 @@ func pruneTrieHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootHash
 			},
 		},
 	}
-	header1 := &block.HeaderV3{}
+	header1 := &block.HeaderV3{
+		PrevHash: prevHeaderHash,
+	}
 	_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
 
 	sp.PruneTrieHeaderV3(header1)
