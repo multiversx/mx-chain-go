@@ -178,6 +178,7 @@ type DBRemoveCacher interface {
 	Put([]byte, common.ModifiedHashes) error
 	Evict([]byte) (common.ModifiedHashes, error)
 	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
+	Reset()
 	IsInterfaceNil() bool
 	Close() error
 }
@@ -194,6 +195,7 @@ type StoragePruningManager interface {
 	MarkForEviction([]byte, []byte, common.ModifiedHashes, common.ModifiedHashes) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager)
+	Reset()
 	Close() error
 	IsInterfaceNil() bool
 }

@@ -81,6 +81,13 @@ func (ewl *EvictionWaitingListMock) ShouldKeepHash(hash string, identifier state
 	return false, nil
 }
 
+// Reset will reinitialize the cache
+func (ewl *EvictionWaitingListMock) Reset() {
+	ewl.OpMutex.Lock()
+	ewl.Cache = make(map[string]common.ModifiedHashes)
+	ewl.OpMutex.Unlock()
+}
+
 // Close -
 func (ewl *EvictionWaitingListMock) Close() error {
 	return nil

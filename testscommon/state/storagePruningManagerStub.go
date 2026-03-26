@@ -10,6 +10,7 @@ type StoragePruningManagerStub struct {
 	MarkForEvictionCalled func(bytes []byte, bytes2 []byte, hashes common.ModifiedHashes, hashes2 common.ModifiedHashes) error
 	PruneTrieCalled       func(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager, handler state.PruningHandler)
 	CancelPruneCalled     func(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager)
+	ResetCalled           func()
 	CloseCalled           func() error
 }
 
@@ -33,6 +34,12 @@ func (stub *StoragePruningManagerStub) PruneTrie(rootHash []byte, identifier sta
 func (stub *StoragePruningManagerStub) CancelPrune(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager) {
 	if stub.CancelPruneCalled != nil {
 		stub.CancelPruneCalled(rootHash, identifier, tsm)
+	}
+}
+
+func (stub *StoragePruningManagerStub) Reset() {
+	if stub.ResetCalled != nil {
+		stub.ResetCalled()
 	}
 }
 

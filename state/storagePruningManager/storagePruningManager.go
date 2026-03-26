@@ -234,6 +234,12 @@ func (spm *storagePruningManager) removeFromDb(
 	return nil
 }
 
+func (spm *storagePruningManager) Reset() {
+	log.Debug("storage pruning manager reset")
+	_ = spm.pruningBuffer.RemoveAll()
+	spm.dbEvictionWaitingList.Reset()
+}
+
 // Close will handle the closing of the underlying components
 func (spm *storagePruningManager) Close() error {
 	return spm.dbEvictionWaitingList.Close()
