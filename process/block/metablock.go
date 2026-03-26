@@ -1635,7 +1635,7 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 		)
 	}
 
-	// for header v3, trie prunning is triggered in async mode from headers executor
+	// for header v3, trie prnning is triggered in async mode from headers executor
 
 	outportFinalizedHeaderHash := metaBlockHash
 	if !common.IsFlagEnabledAfterEpochsStartBlock(metaBlock, mp.enableEpochsHandler, common.AndromedaFlag) {
