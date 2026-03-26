@@ -84,6 +84,7 @@ type AccountsAdapter interface {
 	RecreateTrieIfNeeded(options common.RootHashHolder) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
+	ResetPruning()
 	SnapshotState(rootHash []byte, epoch uint32)
 	IsPruningEnabled() bool
 	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error

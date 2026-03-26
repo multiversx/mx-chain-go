@@ -359,3 +359,18 @@ func TestMemoryEvictionWaitingList_RemoveFromInversedCache(t *testing.T) {
 	assert.Nil(t, info)
 	assert.False(t, exists)
 }
+
+func TestMemoryEvictionWaitingList_Reset(t *testing.T) {
+	t.Parallel()
+
+	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
+
+	_ = mewl.Put([]byte("root1"), common.ModifiedHashes{"hash1": {}, "hash2": {}})
+	_ = mewl.Put([]byte("root2"), common.ModifiedHashes{"hash3": {}, "hash4": {}})
+
+	assert.Equal(t, 2, len(mewl.cache))
+	assert.Equal(t, 4, len(mewl.reversedCache))
+	mewl.Reset()
+	assert.Equal(t, 0, len(mewl.cache))
+	assert.Equal(t, 0, len(mewl.reversedCache))
+}

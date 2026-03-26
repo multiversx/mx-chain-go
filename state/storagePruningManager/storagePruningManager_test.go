@@ -261,7 +261,7 @@ func TestStoragePruningManager_MarkForEviction_removeDuplicatedKeys(t *testing.T
 	assert.False(t, ok)
 }
 
-func TestStoreagePruningManager_Reset(t *testing.T) {
+func TestStoragePruningManager_Reset(t *testing.T) {
 	t.Parallel()
 
 	args := storage.GetStorageManagerArgs()
@@ -288,7 +288,7 @@ func TestStoreagePruningManager_Reset(t *testing.T) {
 	spm.Reset()
 	assert.Equal(t, 0, spm.pruningBuffer.Len())
 
-	// rootHash2 will should not be added to the pruning buffer because ewl was also reset when spm.Reset() was called
+	// rootHash2 should not be added to the pruning buffer because ewl was also reset when spm.Reset() was called
 	trieStorage.EnterPruningBufferingMode()
 	spm.PruneTrie([]byte("rootHash2"), state.NewRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
 	trieStorage.ExitPruningBufferingMode()

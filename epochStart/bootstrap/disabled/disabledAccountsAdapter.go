@@ -99,6 +99,10 @@ func (a *accountsAdapter) RecreateTrieIfNeeded(_ common.RootHashHolder) error {
 func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
 
+// ResetPruning -
+func (a *accountsAdapter) ResetPruning() {
+}
+
 // SnapshotState -
 func (a *accountsAdapter) SnapshotState(_ []byte, _ uint32) {
 }
