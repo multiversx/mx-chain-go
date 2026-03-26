@@ -37,6 +37,7 @@ func (stub *StoragePruningManagerStub) CancelPrune(rootHash []byte, identifier s
 	}
 }
 
+// Reset -
 func (stub *StoragePruningManagerStub) Reset() {
 	if stub.ResetCalled != nil {
 		stub.ResetCalled()
