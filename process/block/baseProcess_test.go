@@ -5943,6 +5943,8 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 				},
 			},
 		}
+
+		header1Hash := []byte("headerHash1")
 		header1 := &block.HeaderV3{
 			Nonce: 10,
 		}
@@ -5952,7 +5954,7 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 			return header1
 		}
 		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-			return []byte("metaHash")
+			return header1Hash
 		}
 		dataComponents.BlockChain = blkc
 
@@ -5967,7 +5969,7 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		require.True(t, cancelPruneCalled)
 		require.True(t, pruneTrieCalled)
 
-		require.Equal(t, []byte{}, bp.GetLastPrunedHash())
+		require.Equal(t, header1Hash, bp.GetLastPrunedHash())
 	})
 
 	t.Run("header nonce lower than last pruned header, should not trigger", func(t *testing.T) {
@@ -5991,6 +5993,7 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 			},
 		}
 
+		header2Hash := []byte("headerHash2")
 		header2 := &block.HeaderV3{
 			Nonce: 9,
 		}
@@ -6000,7 +6003,7 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 			return header2
 		}
 		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-			return []byte("metaHash")
+			return header2Hash
 		}
 		dataComponents.BlockChain = blkc
 
@@ -6013,7 +6016,7 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		require.False(t, cancelPruneCalled)
 		require.False(t, pruneTrieCalled)
 
-		require.Equal(t, []byte{}, bp.GetLastPrunedHash())
+		require.Equal(t, header2Hash, bp.GetLastPrunedHash())
 	})
 
 	t.Run("should trigger multiple times for intermediate headers", func(t *testing.T) {
@@ -6051,6 +6054,7 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 				},
 			},
 		}
+		headerHash1 := []byte("headerHash1")
 		header1 := &block.HeaderV3{
 			Nonce:               8,
 			LastExecutionResult: &block.ExecutionResultInfo{},
@@ -6070,35 +6074,12 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 				},
 			},
 		}
+		headerHash2 := []byte("headerHash2")
 		header2 := &block.HeaderV3{
-			Nonce: 9,
+			Nonce:    9,
+			PrevHash: headerHash1,
 		}
 		_ = header2.SetExecutionResultsHandlers(executionResultsHandlers)
-
-		headerCalls := 0
-		headerHashCalls := 0
-		headersPool := &mock.HeadersCacherStub{
-			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
-				if headerCalls == 0 {
-					headerCalls++
-					return []data.HeaderHandler{header2}, [][]byte{[]byte("hash1")}, nil
-				}
-
-				return []data.HeaderHandler{}, [][]byte{}, nil
-			},
-			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				if headerHashCalls == 0 {
-					headerHashCalls++
-					return header1, nil
-				}
-				return header2, nil
-			},
-		}
-		dataPool := initDataPool()
-		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
-			return headersPool
-		}
-		dataComponents.DataPool = dataPool
 
 		rootHash3 := []byte("rootHash3")
 
@@ -6114,23 +6095,47 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 				},
 			},
 		}
+
+		headerHash3 := []byte("headerHash3")
 		header3 := &block.HeaderV3{
-			Nonce: 10,
+			Nonce:    10,
+			PrevHash: headerHash2,
 		}
+
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, headerHash1) {
+					return header1, nil
+				}
+				if bytes.Equal(hash, headerHash2) {
+					return header2, nil
+				}
+				if bytes.Equal(hash, headerHash3) {
+					return header3, nil
+				}
+
+				return nil, errors.New("header not found")
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return headersPool
+		}
+		dataComponents.DataPool = dataPool
 
 		blkc := createTestBlockchain()
 		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
 			return header3
 		}
 		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-			return []byte("metaHash")
+			return headerHash3
 		}
 		dataComponents.BlockChain = blkc
 
 		bp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
-		bp.SetLastPrunedHash([]byte{})
+		bp.SetLastPrunedHash(headerHash1)
 
 		_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
 		bp.PruneTrieAsyncHeader()
@@ -6138,6 +6143,6 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		require.Equal(t, 2, cancelPruneCalled)
 		require.Equal(t, 2, pruneTrieCalled)
 
-		require.Equal(t, []byte{}, bp.GetLastPrunedHash())
+		require.Equal(t, headerHash3, bp.GetLastPrunedHash())
 	})
 }

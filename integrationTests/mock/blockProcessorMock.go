@@ -43,7 +43,7 @@ type BlockProcessorMock struct {
 	) error
 	OnExecutedBlockCalled                           func(header data.HeaderHandler, rootHash []byte) error
 	ProposedDirectSentTransactionsToBroadcastCalled func(proposedBody data.BodyHandler) map[string][][]byte
-	PruneTrieAsyncHeaderCalled                      func(header data.HeaderHandler)
+	PruneTrieAsyncHeaderCalled                      func()
 }
 
 // ProcessBlock mocks processing a block
@@ -233,9 +233,9 @@ func (bpm *BlockProcessorMock) RemoveHeaderFromPool(headerHash []byte) {
 }
 
 // PruneTrieAsyncHeader -
-func (bpm *BlockProcessorMock) PruneTrieAsyncHeader(header data.HeaderHandler) {
+func (bpm *BlockProcessorMock) PruneTrieAsyncHeader() {
 	if bpm.PruneTrieAsyncHeaderCalled != nil {
-		bpm.PruneTrieAsyncHeaderCalled(header)
+		bpm.PruneTrieAsyncHeaderCalled()
 	}
 }
 
