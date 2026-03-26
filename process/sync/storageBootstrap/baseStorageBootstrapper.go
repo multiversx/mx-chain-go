@@ -129,6 +129,12 @@ func (st *storageBootstrapper) loadBlocks() error {
 		}
 
 		if uint64(round) > st.bootstrapRoundIndex {
+			log.Debug("loadBlocks: removing round info",
+				"round", round,
+				"last header nonce", headerInfo.LastHeader.GetNonce(),
+				"lastRound", headerInfo.GetLastRound(),
+			)
+
 			st.cleanupStorage(headerInfo.LastHeader)
 			st.bootstrapper.cleanupNotarizedStorage(headerInfo.LastHeader.Hash)
 			round = headerInfo.LastRound
