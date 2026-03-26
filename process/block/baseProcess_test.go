@@ -5914,7 +5914,9 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		cancelPruneCalled := false
 		pruneTrieCalled := false
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 			IsPruningEnabledCalled: func() bool {
 				return true
@@ -5926,10 +5928,6 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 				pruneTrieCalled = true
 			},
 		}
-		bp, err := blproc.NewShardProcessor(arguments)
-		require.Nil(t, err)
-
-		require.Equal(t, uint64(0), bp.GetLastPrunedNonce())
 
 		rootHash1 := []byte("rootHash1")
 
@@ -5948,13 +5946,28 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		header1 := &block.HeaderV3{
 			Nonce: 10,
 		}
+
+		blkc := createTestBlockchain()
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return header1
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return []byte("metaHash")
+		}
+		dataComponents.BlockChain = blkc
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		require.Nil(t, bp.GetLastPrunedHash())
+
 		_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
-		bp.PruneTrieAsyncHeader(header1)
+		bp.PruneTrieAsyncHeader()
 
 		require.True(t, cancelPruneCalled)
 		require.True(t, pruneTrieCalled)
 
-		require.Equal(t, uint64(10), bp.GetLastPrunedNonce())
+		require.Equal(t, []byte{}, bp.GetLastPrunedHash())
 	})
 
 	t.Run("header nonce lower than last pruned header, should not trigger", func(t *testing.T) {
@@ -5963,7 +5976,9 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		cancelPruneCalled := false
 		pruneTrieCalled := false
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 			IsPruningEnabledCalled: func() bool {
 				return true
@@ -5975,19 +5990,30 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 				pruneTrieCalled = true
 			},
 		}
-		bp, err := blproc.NewShardProcessor(arguments)
-		require.Nil(t, err)
-
-		bp.SetLastPrunedNonce(10)
 
 		header2 := &block.HeaderV3{
 			Nonce: 9,
 		}
-		bp.PruneTrieAsyncHeader(header2)
+
+		blkc := createTestBlockchain()
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return header2
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return []byte("metaHash")
+		}
+		dataComponents.BlockChain = blkc
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.SetLastPrunedHash([]byte{})
+
+		bp.PruneTrieAsyncHeader()
 		require.False(t, cancelPruneCalled)
 		require.False(t, pruneTrieCalled)
 
-		require.Equal(t, uint64(10), bp.GetLastPrunedNonce())
+		require.Equal(t, []byte{}, bp.GetLastPrunedHash())
 	})
 
 	t.Run("should trigger multiple times for intermediate headers", func(t *testing.T) {
@@ -5997,6 +6023,7 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		pruneTrieCalled := 0
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
@@ -6073,11 +6100,6 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		}
 		dataComponents.DataPool = dataPool
 
-		bp, err := blproc.NewShardProcessor(arguments)
-		require.Nil(t, err)
-
-		bp.SetLastPrunedNonce(8)
-
 		rootHash3 := []byte("rootHash3")
 
 		executionResultsHandlers = []data.BaseExecutionResultHandler{
@@ -6095,12 +6117,27 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		header3 := &block.HeaderV3{
 			Nonce: 10,
 		}
+
+		blkc := createTestBlockchain()
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return header3
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return []byte("metaHash")
+		}
+		dataComponents.BlockChain = blkc
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.SetLastPrunedHash([]byte{})
+
 		_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
-		bp.PruneTrieAsyncHeader(header3)
+		bp.PruneTrieAsyncHeader()
 
 		require.Equal(t, 2, cancelPruneCalled)
 		require.Equal(t, 2, pruneTrieCalled)
 
-		require.Equal(t, uint64(10), bp.GetLastPrunedNonce())
+		require.Equal(t, []byte{}, bp.GetLastPrunedHash())
 	})
 }

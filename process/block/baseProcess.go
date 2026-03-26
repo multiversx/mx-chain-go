@@ -153,8 +153,8 @@ type baseProcessor struct {
 	maxProposalNonceGap                uint64
 	closingNodeStarted                 *atomic.Bool
 
-	lastPrunedHeaderNonce uint64
-	mutLastPrunedHeader   sync.RWMutex
+	lastPrunedHeaderHash []byte
+	mutLastPrunedHeader  sync.RWMutex
 }
 
 type bootStorerDataArgs struct {
@@ -4037,47 +4037,64 @@ func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data
 }
 
 // PruneTrieAsyncHeader will trigger trie pruning for header from async execution flow
-func (bp *baseProcessor) PruneTrieAsyncHeader(
-	header data.HeaderHandler,
-) {
+func (bp *baseProcessor) PruneTrieAsyncHeader() {
 	bp.mutLastPrunedHeader.Lock()
 	defer bp.mutLastPrunedHeader.Unlock()
 
-	if bp.lastPrunedHeaderNonce == 0 {
-		// last pruned header nonce not set, trigger prune trie for the provided header
+	header := bp.blockChain.GetCurrentBlockHeader()
+	headerHash := bp.blockChain.GetCurrentBlockHeaderHash()
+
+	if len(bp.lastPrunedHeaderHash) == 0 {
+		// last pruned header hash not set, trigger prune trie for the provided header
 		bp.blockProcessor.pruneTrieHeaderV3(header)
-		bp.lastPrunedHeaderNonce = header.GetNonce()
+		bp.lastPrunedHeaderHash = headerHash
 		return
 	}
 
-	if header.GetNonce() <= bp.lastPrunedHeaderNonce {
+	if bytes.Equal(headerHash, bp.lastPrunedHeaderHash) {
 		return
 	}
 
-	// prune trie for intermediate headers
-	for nonce := bp.lastPrunedHeaderNonce + 1; nonce < header.GetNonce(); nonce++ {
+	bp.pruneTrieForHeadersUnprotected(headerHash, header)
+
+	bp.lastPrunedHeaderHash = headerHash
+}
+
+func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
+	headerHash []byte,
+	header data.HeaderHandler,
+) {
+	headersToPrune := make([]data.HeaderHandler, 0)
+
+	lastPrunedHeaderHash := bp.lastPrunedHeaderHash
+	walkerHash := headerHash
+
+	for !bytes.Equal(walkerHash, lastPrunedHeaderHash) {
 		// headers pool is cleaned on consensus flow based on last execution result
-		// included on the committed header (plus some delta), so intermediate header
+		// included on the committed header (plus some delta), so intermediate headers
 		// should be available in pool, since trie prunning is triggered from
 		// execution flow; if there are no included blocks from execution flow
 		// (and not prunning triggerd) headers will not be removed from pool
-		intermHeader, _, err := process.GetHeaderWithNonce(
-			nonce,
-			header.GetShardID(),
+		header, err := process.GetHeader(
+			walkerHash,
 			bp.dataPool.Headers(),
-			bp.marshalizer,
 			bp.store,
-			bp.uint64Converter,
+			bp.marshalizer,
+			header.GetShardID(),
 		)
 		if err != nil {
+			// TODO: handle pruning eviction list cleanup
 			log.Warn("failed to get intermediate header for prunning", "error", err)
 			continue
 		}
 
-		bp.blockProcessor.pruneTrieHeaderV3(intermHeader)
+		headersToPrune = append(headersToPrune, header)
+
+		walkerHash = header.GetPrevHash()
 	}
 
-	// prune trie for the provided header
-	bp.blockProcessor.pruneTrieHeaderV3(header)
-	bp.lastPrunedHeaderNonce = header.GetNonce()
+	for i := len(headersToPrune) - 1; i >= 0; i-- {
+		header := headersToPrune[i]
+		bp.blockProcessor.pruneTrieHeaderV3(header)
+	}
 }

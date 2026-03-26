@@ -319,7 +319,7 @@ type BlockProcessor interface {
 	) error
 	OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error
 	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte
-	PruneTrieAsyncHeader(header data.HeaderHandler)
+	PruneTrieAsyncHeader()
 	Close() error
 	IsInterfaceNil() bool
 }

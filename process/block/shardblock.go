@@ -1277,7 +1277,7 @@ func (sp *shardProcessor) pruneTrieHeaderV3(
 
 	for i := range executionResultsHandlers {
 		currentExecRes := executionResultsHandlers[i]
-		prevExecRes, err := sp.getPreviousExecutionResult(i, executionResultsHandlers)
+		prevExecRes, err := sp.getPreviousExecutionResult(i, executionResultsHandlers, header.GetPrevHash())
 		if err != nil {
 			log.Warn("failed to get previous execution result for pruning",
 				"err", err,
@@ -1310,13 +1310,12 @@ func (sp *shardProcessor) pruneTrieHeaderV3(
 func (sp *shardProcessor) getPreviousExecutionResult(
 	index int,
 	executionResultsHandlers []data.BaseExecutionResultHandler,
+	prevHeaderHash []byte,
 ) (data.BaseExecutionResultHandler, error) {
 	if index > 0 {
 		return executionResultsHandlers[index-1], nil
 	}
 
-	// TODO: analyse based on current header to be committed, not last committed header
-	prevHeaderHash := sp.getCurrentBlockHeader().GetPrevHash()
 	prevHeader, err := process.GetShardHeader(prevHeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 	if err != nil {
 		return nil, err

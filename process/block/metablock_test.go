@@ -4241,8 +4241,6 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 		},
 	}
 
-	mp, _ := processBlock.NewMetaProcessor(arguments)
-
 	metaBlock := &block.MetaBlockV3{
 		PrevHash: []byte("hash"),
 		ExecutionResults: []*block.MetaExecutionResult{
@@ -4273,7 +4271,18 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 		},
 	}
 
-	mp.PruneTrieAsyncHeader(metaBlock)
+	blkc := createTestBlockchain()
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return metaBlock
+	}
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return []byte("metaHash")
+	}
+	dataComponents.BlockChain = blkc
+
+	mp, _ := processBlock.NewMetaProcessor(arguments)
+
+	mp.PruneTrieAsyncHeader()
 
 	assert.Equal(t, 2, pruneCalledForUserAccounts)
 	assert.Equal(t, 2, pruneCalledForPeerAccounts)
