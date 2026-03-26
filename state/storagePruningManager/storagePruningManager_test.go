@@ -260,3 +260,37 @@ func TestStoragePruningManager_MarkForEviction_removeDuplicatedKeys(t *testing.T
 	_, ok = map2["hash4"]
 	assert.False(t, ok)
 }
+
+func TestStoragePruningManager_Reset(t *testing.T) {
+	t.Parallel()
+
+	args := storage.GetStorageManagerArgs()
+	trieStorage, _ := trie.NewTrieStorageManager(args)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
+	spm, _ := NewStoragePruningManager(ewl, 1000)
+
+	err := spm.MarkForEviction([]byte("rootHash"), []byte("newRootHash"), map[string]struct{}{"hash1": {}, "hash2": {}}, map[string]struct{}{"hash3": {}, "hash4": {}})
+	assert.Nil(t, err)
+	err = spm.markForEviction([]byte("rootHash2"), map[string]struct{}{"hash5": {}, "hash6": {}}, state.NewRoot)
+	assert.Nil(t, err)
+
+	trieStorage.EnterPruningBufferingMode()
+	spm.PruneTrie([]byte("rootHash"), state.OldRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
+	spm.CancelPrune([]byte("newRootHash"), state.NewRoot, trieStorage)
+	trieStorage.ExitPruningBufferingMode()
+
+	assert.Equal(t, 2, spm.pruningBuffer.Len())
+
+	spm.Reset()
+	assert.Equal(t, 0, spm.pruningBuffer.Len())
+
+	// rootHash2 should not be added to the pruning buffer because ewl was also reset when spm.Reset() was called
+	trieStorage.EnterPruningBufferingMode()
+	spm.PruneTrie([]byte("rootHash2"), state.NewRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
+	trieStorage.ExitPruningBufferingMode()
+	assert.Equal(t, 0, spm.pruningBuffer.Len())
+}
