@@ -211,6 +211,15 @@ func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
 		_, err := CreateAPIBlockProcessor(arguments)
 		assert.Equal(t, process.ErrNilBlockChain, err)
 	})
+	t.Run("NilEnableRoundsHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.EnableRoundsHandler = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+	})
 }
 
 func TestGetBlockByHash_KeyNotFound(t *testing.T) {
