@@ -153,8 +153,9 @@ type baseProcessor struct {
 	maxProposalNonceGap                uint64
 	closingNodeStarted                 *atomic.Bool
 
-	lastPrunedHeaderHash []byte
-	mutLastPrunedHeader  sync.RWMutex
+	lastPrunedHeaderHash  []byte
+	lastPrunedHeaderNonce uint64
+	mutLastPrunedHeader   sync.RWMutex
 }
 
 type bootStorerDataArgs struct {
@@ -4048,26 +4049,34 @@ func (bp *baseProcessor) PruneTrieAsyncHeader() {
 		// last pruned header hash not set, trigger prune trie for the provided header
 		bp.blockProcessor.pruneTrieHeaderV3(header)
 		bp.lastPrunedHeaderHash = headerHash
+		bp.lastPrunedHeaderNonce = header.GetNonce()
 		return
 	}
 
-	if bytes.Equal(headerHash, bp.lastPrunedHeaderHash) {
+	// extra check by nonce
+	if header.GetNonce() <= bp.lastPrunedHeaderNonce {
 		return
 	}
 
 	bp.pruneTrieForHeadersUnprotected(headerHash, header)
 
 	bp.lastPrunedHeaderHash = headerHash
+	bp.lastPrunedHeaderNonce = header.GetNonce()
 }
 
 func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 	headerHash []byte,
 	header data.HeaderHandler,
 ) {
+	if bytes.Equal(headerHash, bp.lastPrunedHeaderHash) {
+		return
+	}
+
 	headersToPrune := make([]data.HeaderHandler, 0)
+	headersToPrune = append(headersToPrune, header)
 
 	lastPrunedHeaderHash := bp.lastPrunedHeaderHash
-	walkerHash := headerHash
+	walkerHash := header.GetPrevHash()
 
 	for !bytes.Equal(walkerHash, lastPrunedHeaderHash) {
 		// headers pool is cleaned on consensus flow based on last execution result

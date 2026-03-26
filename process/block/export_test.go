@@ -1189,6 +1189,13 @@ func (bp *baseProcessor) WaitForExecutionResultsVerification(
 	return bp.waitForExecutionResultsVerification(header, haveTime)
 }
 
+// SetLastPrunedNonce -
+func (bp *baseProcessor) SetLastPrunedNonce(nonce uint64) {
+	bp.mutLastPrunedHeader.Lock()
+	bp.lastPrunedHeaderNonce = nonce
+	bp.mutLastPrunedHeader.Unlock()
+}
+
 // SetLastPrunedHash -
 func (bp *baseProcessor) SetLastPrunedHash(hash []byte) {
 	bp.mutLastPrunedHeader.Lock()
