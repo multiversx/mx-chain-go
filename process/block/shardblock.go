@@ -1247,7 +1247,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	if !currentHeader.IsHeaderV3() {
 		sp.pruneTrieLegacy(headers)
 	} else {
-		// for header v3, trie prunning is triggered in async mode from headers executor
+		// for header v3, trie pruning is triggered in async mode from headers executor
 
 		if currentHeader.IsStartOfEpochBlock() {
 			sp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
@@ -1305,6 +1305,15 @@ func (sp *shardProcessor) pruneTrieHeaderV3(
 
 		sp.setFinalizedHeaderHashInIndexer(currentExecRes.GetHeaderHash())
 	}
+}
+
+func (sp *shardProcessor) resetPruning() {
+	accountsDb := sp.accountsDB[state.UserAccountsState]
+	if !accountsDb.IsPruningEnabled() {
+		return
+	}
+
+	accountsDb.ResetPruning()
 }
 
 func (sp *shardProcessor) getPreviousExecutionResult(

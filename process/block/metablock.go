@@ -1704,6 +1704,18 @@ func (mp *metaProcessor) pruneTrieHeaderV3(
 	}
 }
 
+func (mp *metaProcessor) resetPruning() {
+	accountsDb := mp.accountsDB[state.UserAccountsState]
+	if accountsDb.IsPruningEnabled() {
+		accountsDb.ResetPruning()
+	}
+
+	peerAccountsDb := mp.accountsDB[state.PeerAccountsState]
+	if peerAccountsDb.IsPruningEnabled() {
+		peerAccountsDb.ResetPruning()
+	}
+}
+
 func (mp *metaProcessor) getPreviousExecutionResult(
 	index int,
 	executionResultsHandlers []data.BaseExecutionResultHandler,

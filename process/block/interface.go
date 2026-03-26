@@ -13,6 +13,7 @@ import (
 type blockProcessor interface {
 	removeStartOfEpochBlockDataFromPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error
 	pruneTrieHeaderV3(header data.HeaderHandler)
+	resetPruning()
 }
 
 type gasConsumedProvider interface {

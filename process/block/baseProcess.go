@@ -4058,7 +4058,12 @@ func (bp *baseProcessor) PruneTrieAsyncHeader() {
 		return
 	}
 
-	bp.pruneTrieForHeadersUnprotected(headerHash, header)
+	err := bp.pruneTrieForHeadersUnprotected(headerHash, header)
+	if err != nil {
+		// there was an error while fetching intermediate headers
+		// reset pruning context
+		bp.blockProcessor.resetPruning()
+	}
 
 	bp.lastPrunedHeaderHash = headerHash
 	bp.lastPrunedHeaderNonce = header.GetNonce()
@@ -4067,9 +4072,9 @@ func (bp *baseProcessor) PruneTrieAsyncHeader() {
 func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 	headerHash []byte,
 	header data.HeaderHandler,
-) {
+) error {
 	if bytes.Equal(headerHash, bp.lastPrunedHeaderHash) {
-		return
+		return nil
 	}
 
 	headersToPrune := make([]data.HeaderHandler, 0)
@@ -4081,9 +4086,9 @@ func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 	for !bytes.Equal(walkerHash, lastPrunedHeaderHash) {
 		// headers pool is cleaned on consensus flow based on last execution result
 		// included on the committed header (plus some delta), so intermediate headers
-		// should be available in pool, since trie prunning is triggered from
+		// should be available in pool, since trie pruning is triggered from
 		// execution flow; if there are no included blocks from execution flow
-		// (and not prunning triggerd) headers will not be removed from pool
+		// (and not pruning triggered) headers will not be removed from pool
 		header, err := process.GetHeader(
 			walkerHash,
 			bp.dataPool.Headers(),
@@ -4092,9 +4097,8 @@ func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 			header.GetShardID(),
 		)
 		if err != nil {
-			// TODO: handle pruning eviction list cleanup
-			log.Warn("failed to get intermediate header for prunning", "error", err)
-			continue
+			log.Warn("failed to get intermediate header for pruning", "error", err)
+			return err
 		}
 
 		headersToPrune = append(headersToPrune, header)
@@ -4106,4 +4110,6 @@ func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 		header := headersToPrune[i]
 		bp.blockProcessor.pruneTrieHeaderV3(header)
 	}
+
+	return nil
 }
