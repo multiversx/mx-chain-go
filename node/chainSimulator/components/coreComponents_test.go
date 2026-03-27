@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -74,6 +75,8 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						NumFloodingRoundsFastReacting:          30,
 						NumFloodingRoundsOutOfSpecs:            40,
 						MaxConsecutiveRoundsOfRatingDecrease:   600,
+						MaxBlockProcessingTimeMs:               1000,
+						NumHeadersToRequestInAdvance:           10,
 					},
 				},
 				EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
@@ -90,6 +93,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 				PublicKeyToListenFrom: components.DummyPk,
 			},
 			EpochStartConfig: config.EpochStartConfig{},
+			Antiflood:        testscommon.GetDefaultAntifloodConfig(),
 		},
 		EnableEpochsConfig: config.EnableEpochs{},
 		RoundsConfig: config.RoundConfig{

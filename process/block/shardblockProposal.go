@@ -1,8 +1,10 @@
 package block
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -21,9 +23,6 @@ type pendingBlocksAfterSelection struct {
 	header            data.HeaderHandler
 	pendingMiniBlocks map[string]*block.MiniBlock
 }
-
-// TODO: maybe move this to config
-const maxBlockProcessingTime = 3 * time.Second
 
 // CreateNewHeaderProposal creates a new header proposal
 func (sp *shardProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
@@ -108,6 +107,11 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
+	err = sp.checkHeaderExecutionResultNonceGap(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	// TODO: sanity check use the verify execution results method
 
 	body := &block.Body{MiniBlocks: miniBlocks}
@@ -180,12 +184,17 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
+	err = sp.waitForExecutionResultsVerification(header, haveTime)
 	if err != nil {
 		return err
 	}
 
 	err = sp.checkInclusionEstimationForExecutionResults(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.checkHeaderExecutionResultNonceGap(header)
 	if err != nil {
 		return err
 	}
@@ -264,6 +273,7 @@ func getHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
 func (sp *shardProcessor) ProcessBlockProposal(
 	headerHandler data.HeaderHandler,
+	headerHash []byte,
 	bodyHandler data.BodyHandler,
 ) (data.BaseExecutionResultHandler, error) {
 	if check.IfNil(headerHandler) {
@@ -319,7 +329,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	// although we can have a long time for processing, it being decoupled from consensus,
 	// we still give some reasonable timeout
 	proposalStartTime := time.Now()
-	haveTime := getHaveTimeForProposal(proposalStartTime, maxBlockProcessingTime)
+	haveTime := getHaveTimeForProposal(proposalStartTime, sp.processConfigsHandler.GetMaxBlockProcessingTime(headerHandler.GetRound()))
 
 	err = sp.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {
@@ -345,11 +355,11 @@ func (sp *shardProcessor) ProcessBlockProposal(
 
 	defer func() {
 		if err != nil {
-			sp.RevertCurrentBlock(header)
+			sp.RevertCurrentBlock()
 		}
 	}()
 
-	err = sp.checkAndUpdateContextBeforeExecution(header)
+	err = sp.checkAndUpdateContextBeforeExecution(header, headerHash)
 	if err != nil {
 		return nil, err
 	}
@@ -369,13 +379,6 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: should receive the header hash instead of re-computing it
-	var headerHash []byte
-	headerHash, err = core.CalculateHash(sp.marshalizer, sp.hasher, header)
-	if err != nil {
-		return nil, err
-	}
-
 	var executionResult data.BaseExecutionResultHandler
 	executionResult, err = sp.collectExecutionResults(headerHash, header, body)
 	if err != nil {
@@ -387,12 +390,32 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	err = sp.commitState(headerHandler)
-	if err != nil {
-		return nil, err
+	return executionResult, nil
+}
+
+// CommitBlockProposalState commits the accounts state after processing a block proposal
+// and performs any post-commit operations (e.g. saving epoch start economics metrics).
+func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+	if check.IfNil(headerHandler) {
+		return process.ErrNilBlockHeader
 	}
 
-	return executionResult, nil
+	err := sp.commitState(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	header, ok := headerHandler.(data.ShardHeaderHandler)
+	if ok {
+		sp.saveEpochStartEconomicsIfNeeded(header)
+	}
+
+	return nil
+}
+
+// RevertBlockProposalState reverts the uncommitted accounts state after a block proposal processing failure
+func (sp *shardProcessor) RevertBlockProposalState() {
+	sp.RevertCurrentBlock()
 }
 
 func computeTxTotalTxCount(miniBlockHeaders []data.MiniBlockHeaderHandler) uint32 {
@@ -572,6 +595,11 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			pendingMiniBlocks: miniBlocksSliceToMap(createIncomingMbsResult.PendingMiniBlocks),
 		})
 
+		// if missing data detected, break after saving pending as they are part of the same header already referenced
+		if createIncomingMbsResult.HasMissingData {
+			break
+		}
+
 		canAddMorePendingMiniBlocks := sp.gasComputation.CanAddPendingIncomingMiniBlocks()
 		if !canAddMorePendingMiniBlocks {
 			break
@@ -610,7 +638,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 
-	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.selectOutgoingTransactions(nonce)
+	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.selectOutgoingTransactions(nonce, haveTime)
 
 	err = sp.appendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocks, pendingIncomingMiniBlocksAdded)
 	if err != nil {
@@ -750,6 +778,7 @@ func findPendingHeaderWithNonceAndNoMiniBlocksDstMe(
 
 func (sp *shardProcessor) selectOutgoingTransactions(
 	nonce uint64,
+	haveTimeForSelection func() bool,
 ) ([][]byte, []data.MiniBlockHeaderHandler) {
 	log.Debug("selectOutgoingTransactions has been started")
 
@@ -760,7 +789,7 @@ func (sp *shardProcessor) selectOutgoingTransactions(
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
-	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.txCoordinator.SelectOutgoingTransactions(nonce)
+	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.txCoordinator.SelectOutgoingTransactions(nonce, haveTimeForSelection)
 	log.Debug("selectOutgoingTransactions has been finished",
 		"num txs", len(outgoingTransactions),
 		"num pending mini blocks added", len(pendingIncomingMiniBlocksAdded))
@@ -857,6 +886,8 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	}
 
 	sp.cacheOrderedTxHashes(headerHash)
+	sp.cacheUnexecutableTxHashes(headerHash)
+	sp.cacheHeaderGasData(headerHash)
 
 	return executionResult, nil
 }
@@ -864,14 +895,14 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	header data.HeaderHandler,
 	miniBlockHashes map[int][]byte,
-) ([]data.HeaderHandler, error) {
+) ([]data.HeaderHandler, []*hashAndHdr, error) {
 	shardHeader, ok := header.(data.ShardHeaderHandler)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 	metaHeaderHashes, metaHeaders, err := sp.getReferencedMetaHeadersFromPool(shardHeader)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hashSet := make(map[string]struct{}, len(miniBlockHashes))
@@ -879,7 +910,9 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 		hashSet[string(b)] = struct{}{}
 	}
 
+	partialReferencedMetaBlocks := make([]*hashAndHdr, 0)
 	fullyReferencedMetaBlocks := make([]data.HeaderHandler, 0, len(metaHeaders))
+
 	var remaining int
 	var metaHeaderHash []byte
 	for i, metaHeader := range metaHeaders {
@@ -905,10 +938,121 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 		}
 		if remaining == 0 {
 			fullyReferencedMetaBlocks = append(fullyReferencedMetaBlocks, metaHeader)
+		} else {
+			partialReferencedMetaBlocks = append(partialReferencedMetaBlocks, &hashAndHdr{
+				hdr:  metaHeader,
+				hash: metaHeaderHash,
+			})
 		}
 	}
 
 	process.SortHeadersByNonce(fullyReferencedMetaBlocks)
+	sort.Slice(partialReferencedMetaBlocks, func(i, j int) bool {
+		return partialReferencedMetaBlocks[i].hdr.GetNonce() < partialReferencedMetaBlocks[j].hdr.GetNonce()
+	})
 
-	return fullyReferencedMetaBlocks, nil
+	return fullyReferencedMetaBlocks, partialReferencedMetaBlocks, nil
+}
+
+func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeaderHandler) {
+	metaEpochChangeHeaderHash, metaEpochChangeHeader, err := sp.extractEpochChangeHeader(header)
+	if err != nil {
+		return
+	}
+
+	// if epoch change header found, extract epoch change proposed header
+	metaEpochChangeProposedHeader, err := sp.extractEpochChangeProposedHeader(metaEpochChangeHeader)
+	if err != nil {
+		return
+	}
+
+	sp.saveEconomicsMetricFromHeaders(metaEpochChangeHeader, metaEpochChangeProposedHeader, metaEpochChangeHeaderHash)
+}
+
+func (sp *shardProcessor) extractEpochChangeHeader(header data.ShardHeaderHandler) ([]byte, data.MetaHeaderHandler, error) {
+	for _, metaHash := range header.GetMetaBlockHashes() {
+		hdr, err := sp.getHeaderFromHash(header.IsHeaderV3(), metaHash, core.MetachainShardId)
+		if err != nil {
+			return nil, nil, err
+		}
+		metaHdr, ok := hdr.(data.MetaHeaderHandler)
+		if !ok {
+			continue
+		}
+
+		// save epoch change header if found
+		if metaHdr.IsStartOfEpochBlock() {
+			return metaHash, metaHdr, nil
+		}
+	}
+
+	return nil, nil, process.ErrMissingHeader
+}
+
+func (sp *shardProcessor) extractEpochChangeProposedHeader(epochChangeHeader data.MetaHeaderHandler) (data.MetaHeaderHandler, error) {
+	for _, execResult := range epochChangeHeader.GetExecutionResultsHandlers() {
+		hdr, err := sp.getHeaderFromHash(epochChangeHeader.IsHeaderV3(), execResult.GetHeaderHash(), core.MetachainShardId)
+		if err != nil {
+			return nil, err
+		}
+		metaHdr, ok := hdr.(data.MetaHeaderHandler)
+		if !ok {
+			continue
+		}
+
+		if !metaHdr.IsEpochChangeProposed() {
+			continue
+		}
+
+		return metaHdr, nil
+	}
+
+	return nil, process.ErrMissingHeader
+}
+
+func (sp *shardProcessor) saveEconomicsMetricFromHeaders(
+	metaEpochChangeHeader data.MetaHeaderHandler,
+	metaEpochChangeProposedHeader data.MetaHeaderHandler,
+	metaEpochChangeHeaderHash []byte,
+) {
+	// iterate through all headers starting from epoch change header up until epoch change proposed header
+	currentNonce := metaEpochChangeHeader.GetNonce()
+	currentHash := metaEpochChangeHeaderHash
+	for currentNonce > metaEpochChangeProposedHeader.GetNonce() {
+		intermHeader, err := sp.getHeaderFromHash(true, currentHash, core.MetachainShardId)
+		if err != nil {
+			// if a header is not found, return here to close the loop. should not be blocking
+			return
+		}
+		currentNonce = intermHeader.GetNonce()
+
+		updatedMetrics := sp.saveEconomicsMetricFromExecutionResults(intermHeader.GetExecutionResultsHandlers(), metaEpochChangeProposedHeader.GetPrevHash())
+		if updatedMetrics {
+			return
+		}
+
+		currentHash = intermHeader.GetPrevHash()
+	}
+}
+
+func (sp *shardProcessor) saveEconomicsMetricFromExecutionResults(
+	execResults []data.BaseExecutionResultHandler,
+	headerHashWithFees []byte,
+) bool {
+	for _, execResult := range execResults {
+		if !bytes.Equal(headerHashWithFees, execResult.GetHeaderHash()) {
+			continue
+		}
+
+		metaExecResultWithFees, okMetaExecResultCast := execResult.(data.BaseMetaExecutionResultHandler)
+		if !okMetaExecResultCast {
+			continue
+		}
+
+		sp.appStatusHandler.SetStringValue(common.MetricTotalFees, metaExecResultWithFees.GetAccumulatedFeesInEpoch().String())
+		sp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, metaExecResultWithFees.GetDevFeesInEpoch().String())
+		return true
+	}
+
+	return false
 }

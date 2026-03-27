@@ -161,7 +161,7 @@ func (rc *rewardsCreatorV2) createRewardsMiniBlocks(
 	rc.clean()
 	rc.flagDelegationSystemSCEnabled.SetValue(args.newEpoch >= rc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
 
-	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(args.newEpoch, args.round, args.computedEconomics.GetRewardsForProtocolSustainability())
+	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(args.newEpoch, args.round, rc.economicsDataProvider.RewardsForProtocolSustainability())
 	if err != nil {
 		return nil, err
 	}

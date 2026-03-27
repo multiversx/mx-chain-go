@@ -283,13 +283,21 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 	round := sr.RoundHandler().Index()
 
+	headerTimestamp := sr.GetUnixTimestampForHeader(epoch)
+	timestampSec, timestampMs, err := common.PrepareTimestampBasedOnHeaderData(headerTimestamp, epoch, sr.EnableEpochsHandler())
+	if err != nil {
+		log.Debug("subroundStartRound.indexRoundIfNeeded cannot prepare timestamp", "error", err.Error(), "epoch", epoch, "round", round)
+		return
+	}
+
 	roundInfo := &outportcore.RoundInfo{
 		Round:            uint64(round),
 		SignersIndexes:   make([]uint64, 0),
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
-		Timestamp:        sr.GetUnixTimestampForHeader(epoch),
+		Timestamp:        timestampSec,
+		TimestampMs:      timestampMs,
 	}
 	roundsInfo := &outportcore.RoundsInfo{
 		ShardID:    shardId,
@@ -357,7 +365,8 @@ func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
 func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
 	epochNodes, err := sr.NodesCoordinator().GetConsensusWhitelistedNodes(currentEpoch)
 	if err != nil {
-		panic(fmt.Sprintf("consensus changing epoch failed with error %s", err.Error()))
+		log.Error("consensus changing epoch failed", "error", err.Error())
+		return
 	}
 
 	sr.worker.ConsensusMetrics().ResetAverages()

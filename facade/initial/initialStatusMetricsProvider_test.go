@@ -34,22 +34,33 @@ func TestNewInitialStatusMetricsProvider(t *testing.T) {
 			"key-2": uint64(15),
 			"key-3": uint64(20),
 		}
+
+		providedMetrics2 := map[string]interface{}{
+			"key-11": uint64(20),
+			"key-21": uint64(25),
+			"key-31": uint64(30),
+		}
 		statusMetricsProvider := &testscommon.StatusMetricsStub{
 			BootstrapMetricsCalled: func() (map[string]interface{}, error) {
 				return providedMetrics, nil
+			},
+			StatusMetricsMapWithoutP2PCalled: func() (map[string]interface{}, error) {
+				return providedMetrics2, nil
 			},
 		}
 		provider, err := NewInitialStatusMetricsProvider(statusMetricsProvider)
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(provider))
 
-		testDisabledGetter(t, provider.StatusMetricsMapWithoutP2P)
 		testDisabledGetter(t, provider.StatusP2pMetricsMap)
 		testDisabledGetter(t, provider.EconomicsMetrics)
 		testDisabledGetter(t, provider.ConfigMetrics)
 		testDisabledGetter(t, provider.EnableEpochsMetrics)
 		testDisabledGetter(t, provider.NetworkMetrics)
 		testDisabledGetter(t, provider.RatingsMetrics)
+
+		enableRoundsMetrics := provider.EnableRoundsMetrics()
+		assert.Equal(t, map[string]uint64{}, enableRoundsMetrics)
 
 		metrics, err := provider.StatusMetricsWithoutP2PPrometheusString()
 		assert.Equal(t, errNodeStarting, err)
@@ -58,6 +69,10 @@ func TestNewInitialStatusMetricsProvider(t *testing.T) {
 		bootstrapMetrics, err := provider.BootstrapMetrics()
 		assert.Nil(t, err)
 		assert.Equal(t, providedMetrics, bootstrapMetrics)
+
+		statusMetrics, err := provider.StatusMetricsMapWithoutP2P()
+		assert.Nil(t, err)
+		assert.Equal(t, providedMetrics2, statusMetrics)
 	})
 }
 

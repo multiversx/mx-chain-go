@@ -3,6 +3,7 @@ package asyncExecution
 import (
 	"bytes"
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -11,7 +12,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
 var log = logger.GetOrCreate("process/asyncExecution")
@@ -20,30 +21,32 @@ const timeToSleep = time.Millisecond * 5
 const timeToSleepOnError = time.Millisecond * 300
 const maxRetryAttempts = 10
 const maxBackoffTime = time.Second * 5
-const validationInterval = time.Minute * 1
 
 // ArgsHeadersExecutor holds all the components needed to create a new instance of *headersExecutor
 type ArgsHeadersExecutor struct {
-	BlocksQueue      BlocksQueue
-	ExecutionTracker ExecutionResultsHandler
-	BlockProcessor   BlockProcessor
-	BlockChain       data.ChainHandler
+	BlocksCache                 BlocksCache
+	ExecutionTracker            ExecutionResultsHandler
+	BlockProcessor              BlockProcessor
+	BlockChain                  data.ChainHandler
+	SignalProcessCompletionChan chan uint64
 }
 
 type headersExecutor struct {
-	blocksQueue      BlocksQueue
-	executionTracker ExecutionResultsHandler
-	blockProcessor   BlockProcessor
-	blockChain       data.ChainHandler
-	cancelFunc       context.CancelFunc
-	mutPaused        sync.RWMutex
-	isPaused         bool
+	blocksCache                 BlocksCache
+	executionTracker            ExecutionResultsHandler
+	blockProcessor              BlockProcessor
+	blockChain                  data.ChainHandler
+	cancelFunc                  context.CancelFunc
+	mutPaused                   sync.Mutex
+	isPaused                    bool
+	processingDone              chan struct{}
+	signalProcessCompletionChan chan uint64
 }
 
 // NewHeadersExecutor will create a new instance of *headersExecutor
 func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
-	if check.IfNil(args.BlocksQueue) {
-		return nil, ErrNilHeadersQueue
+	if check.IfNil(args.BlocksCache) {
+		return nil, ErrNilHeadersCache
 	}
 	if check.IfNil(args.ExecutionTracker) {
 		return nil, ErrNilExecutionTracker
@@ -56,10 +59,11 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 	}
 
 	instance := &headersExecutor{
-		blocksQueue:      args.BlocksQueue,
-		executionTracker: args.ExecutionTracker,
-		blockProcessor:   args.BlockProcessor,
-		blockChain:       args.BlockChain,
+		blocksCache:                 args.BlocksCache,
+		executionTracker:            args.ExecutionTracker,
+		blockProcessor:              args.BlockProcessor,
+		blockChain:                  args.BlockChain,
+		signalProcessCompletionChan: args.SignalProcessCompletionChan,
 	}
 
 	return instance, nil
@@ -74,18 +78,31 @@ func (he *headersExecutor) StartExecution() {
 	go he.start(ctx)
 }
 
-// PauseExecution pauses the execution
+// PauseExecution pauses the execution and waits for any ongoing block processing to complete.
+// It returns only after the processing loop has acknowledged the pause, guaranteeing
+// that no block execution is in flight.
 func (he *headersExecutor) PauseExecution() {
 	log.Debug("headersExecutor.PauseExecution: pausing execution")
 
-	he.mutPaused.Lock()
-	defer he.mutPaused.Unlock()
+	if he.cancelFunc == nil {
+		log.Debug("headersExecutor.PauseExecution: execution not started yet or already closed")
+		return
+	}
 
+	he.mutPaused.Lock()
 	if he.isPaused {
+		he.mutPaused.Unlock()
 		return
 	}
 
 	he.isPaused = true
+	ch := make(chan struct{})
+	he.processingDone = ch
+	he.mutPaused.Unlock()
+
+	// Block until the processing loop acknowledges the pause by closing this channel.
+	// This guarantees no block execution is in flight when PauseExecution returns.
+	<-ch
 }
 
 // ResumeExecution resumes the execution
@@ -96,62 +113,119 @@ func (he *headersExecutor) ResumeExecution() {
 	defer he.mutPaused.Unlock()
 
 	he.isPaused = false
+
+	// If PauseExecution is waiting for acknowledgement but we're resuming first,
+	// close the channel to unblock it.
+	if he.processingDone != nil {
+		close(he.processingDone)
+		he.processingDone = nil
+	}
+}
+
+// acknowledgePause checks if a pause has been requested and, if so, closes the
+// processingDone channel to unblock PauseExecution. This must only be called
+// between block processing iterations, ensuring no execution is in flight.
+func (he *headersExecutor) acknowledgePause() {
+	he.mutPaused.Lock()
+	defer he.mutPaused.Unlock()
+
+	if !he.isPaused {
+		return
+	}
+
+	if he.processingDone != nil {
+		close(he.processingDone)
+		he.processingDone = nil
+	}
 }
 
 func (he *headersExecutor) start(ctx context.Context) {
 	log.Debug("headersExecutor.start: starting execution")
 
-	validationTicker := time.NewTicker(validationInterval)
-	defer validationTicker.Stop()
-
 	for {
 		select {
 		case <-ctx.Done():
+			he.acknowledgePause()
 			return
-		case <-validationTicker.C:
-			// Periodic queue validation
-			err := he.blocksQueue.ValidateQueueIntegrity()
-			if err != nil {
-				log.Error("headersExecutor.start: queue integrity validation failed", "err", err)
-			}
 		default:
-			he.mutPaused.RLock()
-			isPaused := he.isPaused
-			he.mutPaused.RUnlock()
+		}
 
-			if isPaused {
+		he.acknowledgePause()
+		he.mutPaused.Lock()
+		isPaused := he.isPaused
+		he.mutPaused.Unlock()
+
+		if isPaused {
+			time.Sleep(timeToSleep)
+			continue
+		}
+
+		lastExecutedNonce, lastExecutedHeaderHash, _ := he.blockChain.GetLastExecutedBlockInfo()
+		if len(lastExecutedHeaderHash) == 0 {
+			he.acknowledgePause()
+			time.Sleep(timeToSleep)
+			continue
+		}
+
+		// check if we need to execute another block for the same nonce (replacement block)
+		headerBodyPair, ok := he.blocksCache.GetByNonce(lastExecutedNonce)
+		if !ok {
+			// Either block not in cache (genesis or cleaned) or same hash (already executed)
+			// Try to get the next block to execute
+			headerBodyPair, ok = he.blocksCache.GetByNonce(lastExecutedNonce + 1)
+			if !ok {
+				he.acknowledgePause()
 				time.Sleep(timeToSleep)
 				continue
 			}
+		}
 
-			// blocking operation
-			headerBodyPair, ok := he.blocksQueue.Pop()
+		if headerBodyPair.Header.GetNonce() == lastExecutedNonce && !bytes.Equal(lastExecutedHeaderHash, headerBodyPair.HeaderHash) {
+			// Different block at same nonce - this is a replacement block and needs to be executed
+			log.Debug("headersExecutor.start: detected replacement block at same nonce",
+				"nonce", lastExecutedNonce,
+				"executed_hash", lastExecutedHeaderHash,
+				"replacement_hash", headerBodyPair.HeaderHash,
+			)
+		}
+
+		if bytes.Equal(lastExecutedHeaderHash, headerBodyPair.HeaderHash) {
+			// Already executed this block, try to get the next one
+			headerBodyPair, ok = he.blocksCache.GetByNonce(lastExecutedNonce + 1)
 			if !ok {
-				log.Debug("headersExecutor.start: not ok fetching from queue")
-				// close event
-				return
-			}
-
-			if check.IfNil(headerBodyPair.Header) || check.IfNil(headerBodyPair.Body) {
-				log.Debug("headersExecutor.start: popped nil header or body, continuing...")
+				he.acknowledgePause()
+				time.Sleep(timeToSleep)
 				continue
 			}
+		}
 
-			err := he.process(headerBodyPair)
-			if err != nil {
-				he.handleProcessError(ctx, headerBodyPair)
+		err := he.process(headerBodyPair)
+		if err != nil {
+			if errors.Is(err, ErrContextMismatch) {
+				he.acknowledgePause()
+				time.Sleep(timeToSleep)
+				continue
 			}
+			he.handleProcessError(ctx, headerBodyPair)
 		}
 	}
 }
 
-func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.HeaderBodyPair) {
+func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.HeaderBodyPair) {
 	retryCount := 0
 	backoffTime := timeToSleepOnError
 
 	for retryCount < maxRetryAttempts {
-		pairFromQueue, ok := he.blocksQueue.Peek()
-		if ok && pairFromQueue.Header.GetNonce() == pair.Header.GetNonce() {
+		he.mutPaused.Lock()
+		isPaused := he.isPaused
+		he.mutPaused.Unlock()
+
+		if isPaused {
+			return
+		}
+
+		pairFromQueue, ok := he.blocksCache.GetByNonce(pair.Header.GetNonce())
+		if ok && !bytes.Equal(pair.HeaderHash, pairFromQueue.HeaderHash) {
 			// continue the processing (pop the next header from queue)
 			return
 		}
@@ -160,6 +234,29 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 		case <-ctx.Done():
 			return
 		default:
+			he.mutPaused.Lock()
+			isPausedRetry := he.isPaused
+			he.mutPaused.Unlock()
+
+			if isPausedRetry {
+				return
+			}
+
+			// Exponential backoff with maximum limit
+			time.Sleep(backoffTime)
+			backoffTime = backoffTime * 2
+			if backoffTime > maxBackoffTime {
+				backoffTime = maxBackoffTime
+			}
+
+			he.mutPaused.Lock()
+			isPausedRetry = he.isPaused
+			he.mutPaused.Unlock()
+
+			if isPausedRetry {
+				return
+			}
+
 			// retry with the same pair
 			err := he.process(pair)
 			if err == nil {
@@ -168,19 +265,13 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 					"retry_count", retryCount)
 				return
 			}
+
 			retryCount++
 			log.Warn("headersExecutor.handleProcessError - retry failed",
 				"nonce", pair.Header.GetNonce(),
 				"retry_count", retryCount,
 				"max_retries", maxRetryAttempts,
 				"err", err)
-
-			// Exponential backoff with maximum limit
-			time.Sleep(backoffTime)
-			backoffTime = backoffTime * 2
-			if backoffTime > maxBackoffTime {
-				backoffTime = maxBackoffTime
-			}
 		}
 	}
 
@@ -189,13 +280,13 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 		"max_retries", maxRetryAttempts)
 }
 
-func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
-	ok := he.checkLastExecutionResultContext(pair.Header)
+func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
+	ok := he.checkLastExecutionResultContext(pair.Header, pair.HeaderHash)
 	if !ok {
-		return nil
+		return ErrContextMismatch
 	}
 
-	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
+	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.HeaderHash, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed",
 			"nonce", pair.Header.GetNonce(),
@@ -209,21 +300,68 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	if check.IfNil(executionResult) {
 		log.Warn("headersExecutor.process - nil execution result received",
 			"nonce", pair.Header.GetNonce())
+		he.blockProcessor.RevertBlockProposalState()
 		return ErrNilExecutionResult
 	}
 
-	ok = he.checkLastExecutionResultContext(pair.Header)
+	ok = he.checkLastExecutionResultContext(pair.Header, pair.HeaderHash)
 	if !ok {
+		he.blockProcessor.RevertBlockProposalState()
 		return nil
 	}
 
-	err = he.executionTracker.AddExecutionResult(executionResult)
+	lastCommittedBlockHash := he.blockChain.GetCurrentBlockHeaderHash()
+	lastCommittedBlockHeader := he.blockChain.GetCurrentBlockHeader()
+	if !check.IfNil(lastCommittedBlockHeader) &&
+		executionResult.GetHeaderNonce() == lastCommittedBlockHeader.GetNonce() &&
+		!bytes.Equal(executionResult.GetHeaderHash(), lastCommittedBlockHash) {
+		log.Debug("headersExecutor.process - execution result header hash does not match last committed block hash",
+			"nonce", pair.Header.GetNonce(),
+			"exec_header_hash", executionResult.GetHeaderHash(),
+			"committed_block_hash", lastCommittedBlockHash,
+		)
+		he.blockProcessor.RevertBlockProposalState()
+		return nil
+	}
+
+	lastExecutionResult := he.blockChain.GetLastExecutionResult()
+	if !check.IfNil(lastExecutionResult) {
+		if !bytes.Equal(lastExecutionResult.GetHeaderHash(), pair.Header.GetPrevHash()) {
+			log.Error("headersExecutor.process - header hash mismatch")
+			he.blockProcessor.RevertBlockProposalState()
+			return nil
+		}
+	}
+
+	// All post-execution checks passed, commit the state now
+	err = he.blockProcessor.CommitBlockProposalState(pair.Header)
+	if err != nil {
+		log.Warn("headersExecutor.process commit block proposal state failed",
+			"nonce", pair.Header.GetNonce(),
+			"err", err,
+		)
+		he.blockProcessor.RevertBlockProposalState()
+		return err
+	}
+
+	// Add to execution tracker only after state is committed, so the tracker never
+	// holds a result whose state was not persisted.
+	added, err := he.executionTracker.AddExecutionResult(executionResult)
 	if err != nil {
 		log.Warn("headersExecutor.process add execution result failed",
 			"nonce", pair.Header.GetNonce(),
 			"err", err,
 		)
 		return err
+	}
+	if !added {
+		// Result was rejected because consensus already committed a different block for this nonce.
+		// State was already committed but the corrective flow on the next processing iteration
+		// will recreate the trie from the expected root hash.
+		log.Debug("headersExecutor.process execution result not added, skipping blockchain updates",
+			"nonce", pair.Header.GetNonce(),
+		)
+		return nil
 	}
 
 	he.blockChain.SetFinalBlockInfo(
@@ -235,6 +373,8 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	he.blockChain.SetLastExecutedBlockHeaderAndRootHash(pair.Header, executionResult.GetHeaderHash(), executionResult.GetRootHash())
 	he.blockChain.SetLastExecutionResult(executionResult)
 
+	he.signalProcessCompletion(pair.Header.GetNonce())
+
 	log.Debug("headersExecutor.process completed",
 		"nonce", pair.Header.GetNonce(),
 		"exec nonce", executionResult.GetHeaderNonce(),
@@ -244,8 +384,20 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	return nil
 }
 
+func (he *headersExecutor) signalProcessCompletion(currentNonce uint64) {
+	if he.signalProcessCompletionChan == nil {
+		return
+	}
+
+	select {
+	case he.signalProcessCompletionChan <- currentNonce:
+	default:
+	}
+}
+
 func (he *headersExecutor) checkLastExecutionResultContext(
 	currentHeader data.HeaderHandler,
+	currentHeaderHash []byte,
 ) bool {
 	if check.IfNil(currentHeader) {
 		return false
@@ -256,7 +408,7 @@ func (he *headersExecutor) checkLastExecutionResultContext(
 		return true
 	}
 
-	if process.IsReplacementBlockForExecution(currentHeader, lastExecutionResult) {
+	if process.IsReplacementBlockForExecution(currentHeader, currentHeaderHash, lastExecutionResult) {
 		return true
 	}
 
@@ -281,6 +433,11 @@ func (he *headersExecutor) checkLastExecutionResultContext(
 	}
 
 	return true
+}
+
+// GetSignalProcessCompletionChan returns the channel used to signal the sync loop after execution completes
+func (he *headersExecutor) GetSignalProcessCompletionChan() chan uint64 {
+	return he.signalProcessCompletionChan
 }
 
 // Close will close the blocks execution loop

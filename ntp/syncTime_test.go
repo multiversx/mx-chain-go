@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -161,7 +162,7 @@ func TestCallQueryShouldErrIndexOutOfBounds(t *testing.T) {
 }
 
 func TestCallQueryShouldWork(t *testing.T) {
-	//TODO fix this test
+	// TODO fix this test
 	t.Skip("rework this test as to not rely on the internet connection")
 	t.Parallel()
 
@@ -182,82 +183,21 @@ func TestNtpHostIsChange(t *testing.T) {
 	st := ntp.NewSyncTime(ntpConfig, queryMock5)
 	st.Sync()
 
-	//HostIndex will be equal with 1 and time offset will be a second
+	// HostIndex will be equal with 1 and time offset will be a second
 	assert.Equal(t, time.Second, st.ClockOffset())
 }
 
-func TestSyncShouldNotUpdateClockOffset(t *testing.T) {
+func TestSyncShouldUpdateClockOffsetWhenEnoughResponses(t *testing.T) {
 	t.Parallel()
 
-	ntpConfig := config.NTPConfig{Hosts: []string{"host1", "host2", "host3"}, SyncPeriodSeconds: 1, OutOfBoundsThreshold: 200}
+	// queryMock6: host 0 succeeds (ClockOffset = 1s), hosts 1 and 2 fail
+	// 10 successful responses out of 30 total (33%) exceeds minResponsesPercent (25%)
+	ntpConfig := config.NTPConfig{Hosts: []string{"host1", "host2", "host3"}, SyncPeriodSeconds: 1, OutOfBoundsThreshold: 1200}
 	st := ntp.NewSyncTime(ntpConfig, queryMock6)
 	st.SetClockOffset(time.Millisecond)
 	st.Sync()
 
-	assert.Equal(t, time.Millisecond, st.ClockOffset())
-}
-
-func TestGetClockOffsetsWithoutEdges(t *testing.T) {
-	t.Parallel()
-
-	st := ntp.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1, OutOfBoundsThreshold: 200}, nil)
-
-	clockOffsets := make([]time.Duration, 0)
-	clockOffsetsWithoutEdges := st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 0, len(clockOffsetsWithoutEdges))
-
-	clockOffsets = []time.Duration{100}
-	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 1, len(clockOffsetsWithoutEdges))
-
-	clockOffsets = []time.Duration{100, 54}
-	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 2, len(clockOffsetsWithoutEdges))
-	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[0])
-	assert.Equal(t, time.Duration(100), clockOffsetsWithoutEdges[1])
-
-	clockOffsets = []time.Duration{100, 54, 2}
-	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 3, len(clockOffsetsWithoutEdges))
-	assert.Equal(t, time.Duration(2), clockOffsetsWithoutEdges[0])
-	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[1])
-	assert.Equal(t, time.Duration(100), clockOffsetsWithoutEdges[2])
-
-	clockOffsets = []time.Duration{100, 54, 2, 52}
-	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 4, len(clockOffsetsWithoutEdges))
-	assert.Equal(t, time.Duration(2), clockOffsetsWithoutEdges[0])
-	assert.Equal(t, time.Duration(52), clockOffsetsWithoutEdges[1])
-	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[2])
-	assert.Equal(t, time.Duration(100), clockOffsetsWithoutEdges[3])
-
-	clockOffsets = []time.Duration{100, 54, 12, 52, 16, 1, 70}
-	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 5, len(clockOffsetsWithoutEdges))
-	assert.Equal(t, time.Duration(12), clockOffsetsWithoutEdges[0])
-	assert.Equal(t, time.Duration(16), clockOffsetsWithoutEdges[1])
-	assert.Equal(t, time.Duration(52), clockOffsetsWithoutEdges[2])
-	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[3])
-	assert.Equal(t, time.Duration(70), clockOffsetsWithoutEdges[4])
-}
-
-func TestGetHarmonicMean(t *testing.T) {
-	t.Parallel()
-
-	st := ntp.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1, OutOfBoundsThreshold: 200}, nil)
-
-	clockOffsets := make([]time.Duration, 0)
-	harmonicMean := st.GetHarmonicMean(clockOffsets)
-	assert.Equal(t, time.Duration(0), harmonicMean)
-
-	clockOffsets = []time.Duration{2, 0, 3}
-	harmonicMean = st.GetHarmonicMean(clockOffsets)
-	assert.Equal(t, time.Duration(0), harmonicMean)
-
-	// harmonic mean for 4, 1, 4 is equal with: 3 / (1/4 + 1/1 + 1/4) = 3 / 1.5 = 2
-	clockOffsets = []time.Duration{4, 1, 4}
-	harmonicMean = st.GetHarmonicMean(clockOffsets)
-	assert.Equal(t, time.Duration(2), harmonicMean)
+	assert.Equal(t, time.Second, st.ClockOffset())
 }
 
 func TestGetSleepTime(t *testing.T) {
@@ -348,7 +288,7 @@ func TestCallQueryShouldUpdateOnOutOfBoundValuesNegative(t *testing.T) {
 	st.SetClockOffset(currentValue)
 	st.Sync()
 
-	expValue := -2 - 2*time.Millisecond + 1 // + 1 due to added constant in harmonic mean calculation
+	expValue := -2 - 2*time.Millisecond
 
 	assert.Equal(t, expValue, st.ClockOffset())
 }
@@ -479,6 +419,239 @@ func TestCall_Sync_AcceptedBoundsChecks(t *testing.T) {
 	})
 }
 
+func TestSyncTime_ForceSync(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ForceSync should work", func(t *testing.T) {
+		t.Parallel()
+
+		var numCalls atomic.Uint32
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				time.Sleep(1 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		currentValue := 3 * time.Millisecond
+		st.SetClockOffset(currentValue)
+
+		st.ForceSync()
+
+		require.Eventually(t, func() bool {
+			return st.ClockOffset() == time.Millisecond &&
+				numCalls.Load() == uint32(ntp.NumRequestsFromHost)
+		}, time.Second, 5*time.Millisecond)
+
+		expClockOffset := 1 * time.Millisecond
+		assert.Equal(t, expClockOffset, st.ClockOffset())
+
+		require.Equal(t, ntp.NumRequestsFromHost, int(numCalls.Load()))
+	})
+
+	t.Run("TriggerSync should not trigger multiple times", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				time.Sleep(2 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		currentValue := 3 * time.Millisecond
+		st.SetClockOffset(currentValue)
+
+		// multiple calls should trigger multiple times
+		st.TriggerSync()
+		st.TriggerSync()
+		st.TriggerSync()
+		st.TriggerSync()
+
+		expClockOffset := 1 * time.Millisecond
+		assert.Equal(t, expClockOffset, st.ClockOffset())
+
+		// should not trigger multiple times due to cooldown
+		require.Equal(t, ntp.NumRequestsFromHost, int(numCalls.Load()))
+	})
+
+	t.Run("direct trigger should not trigger if already in progress", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				time.Sleep(10 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		// multiple ForceSync calls should not trigger if already syncing
+		go st.TriggerSync()
+		st.ForceSync()
+		st.ForceSync()
+		st.ForceSync()
+
+		time.Sleep(time.Duration(ntp.NumRequestsFromHost*10+10) * time.Millisecond)
+
+		require.Equal(t, ntp.NumRequestsFromHost, int(numCalls.Load()))
+	})
+
+	t.Run("ForceSync should skip during cooldown", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		// set lastSyncTime to now, so cooldown is active
+		st.SetLastSyncTime(time.Now())
+
+		st.ForceSync()
+
+		time.Sleep(50 * time.Millisecond)
+
+		require.Equal(t, uint32(0), numCalls.Load())
+	})
+
+	t.Run("ForceSync should work after cooldown expires", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		// set lastSyncTime in the past, so cooldown has expired
+		st.SetLastSyncTime(time.Now().Add(-ntp.SyncCooldownDuration - time.Second))
+
+		st.ForceSync()
+
+		time.Sleep(50 * time.Millisecond)
+
+		require.Equal(t, uint32(ntp.NumRequestsFromHost), numCalls.Load())
+	})
+
+	t.Run("triggerSync should skip during cooldown", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		// set lastSyncTime to now, so cooldown is active
+		st.SetLastSyncTime(time.Now())
+
+		// triggerSync should still skip during cooldown
+		st.TriggerSync()
+
+		require.Equal(t, uint32(0), numCalls.Load())
+	})
+
+	t.Run("ForceSync followed by TriggerSync within cooldown should result in a single sync", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		// call ForceSync to perform a sync and start cooldown
+		st.ForceSync()
+		time.Sleep(50 * time.Millisecond)
+
+		st.TriggerSync()
+		time.Sleep(50 * time.Millisecond)
+
+		// only one sync operation should have been performed
+		require.Equal(t, uint32(ntp.NumRequestsFromHost), numCalls.Load())
+	})
+}
+
 // On local machine, seems like average query time is ~35ms, e.g.:
 // Avg response time from host: time.google.com is 42.928837ms
 // Avg response time from host: time.cloudflare.com is 13.877162ms
@@ -533,4 +706,176 @@ func TestCallQueryShouldWorkMeasurements(t *testing.T) {
 
 	avgGlobalTime := totalGlobalDuration / time.Duration(totalRequests)
 	fmt.Printf("Global average response time is %s\n", avgGlobalTime)
+}
+
+func TestGetMedianOffset(t *testing.T) {
+	t.Parallel()
+
+	st := ntp.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1, OutOfBoundsThreshold: 200}, nil)
+
+	t.Run("empty slice should return error", func(t *testing.T) {
+		t.Parallel()
+
+		offset, err := st.GetMedianOffset([]time.Duration{})
+		require.Equal(t, ntp.ErrNoClockOffsets, err)
+		require.Equal(t, time.Duration(0), offset)
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		t.Parallel()
+
+		offset, err := st.GetMedianOffset([]time.Duration{42 * time.Millisecond})
+		require.Nil(t, err)
+		require.Equal(t, 42*time.Millisecond, offset)
+	})
+
+	t.Run("single negative element", func(t *testing.T) {
+		t.Parallel()
+
+		offset, err := st.GetMedianOffset([]time.Duration{-500 * time.Microsecond})
+		require.Nil(t, err)
+		require.Equal(t, -500*time.Microsecond, offset)
+	})
+
+	t.Run("odd count returns true middle element", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: 10, 20, 30 \u2192 middle index = 1 \u2192 20
+		clockOffsets := []time.Duration{30 * time.Millisecond, 10 * time.Millisecond, 20 * time.Millisecond}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, 20*time.Millisecond, offset)
+	})
+
+	t.Run("even count returns average of two middle elements", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: 10, 20, 30, 40 \u2192 median = (20 + 30) / 2 = 25
+		clockOffsets := []time.Duration{40 * time.Millisecond, 10 * time.Millisecond, 30 * time.Millisecond, 20 * time.Millisecond}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, 25*time.Millisecond, offset)
+	})
+
+	t.Run("all identical values", func(t *testing.T) {
+		t.Parallel()
+
+		val := 100 * time.Microsecond
+		clockOffsets := []time.Duration{val, val, val, val, val}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, val, offset)
+	})
+
+	t.Run("all negative values", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: -50, -30, -20, -10, -5 -> middle index = 2 -> -20
+		clockOffsets := []time.Duration{
+			-10 * time.Millisecond,
+			-50 * time.Millisecond,
+			-20 * time.Millisecond,
+			-5 * time.Millisecond,
+			-30 * time.Millisecond,
+		}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, -20*time.Millisecond, offset)
+	})
+
+	t.Run("mixed positive and negative values", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: -30, -10, 5, 20, 40 -> middle index = 2 -> 5
+		clockOffsets := []time.Duration{
+			20 * time.Millisecond,
+			-10 * time.Millisecond,
+			40 * time.Millisecond,
+			-30 * time.Millisecond,
+			5 * time.Millisecond,
+		}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, 5*time.Millisecond, offset)
+	})
+
+	t.Run("two elements returns average of both", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: -6, 10 -> median = (-6 + 10) / 2 = 2
+		clockOffsets := []time.Duration{10 * time.Millisecond, -6 * time.Millisecond}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, 2*time.Millisecond, offset)
+	})
+
+	t.Run("zero offset among values", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: -10, 0, 10 -> middle index = 1 -> 0
+		clockOffsets := []time.Duration{10 * time.Millisecond, 0, -10 * time.Millisecond}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, time.Duration(0), offset)
+	})
+
+	t.Run("realistic mixed positive and negative NTP offsets", func(t *testing.T) {
+		t.Parallel()
+
+		// 30 elements (even count): median = average of sorted[14] and sorted[15]
+		// sorted[14] = -709033ns, sorted[15] = -706902ns -> (-709033 + -706902) / 2 = -707967
+		expectedValue := -707967 * time.Nanosecond
+		clockOffsets := []time.Duration{
+			-1855712 * time.Nanosecond,
+			-1621517 * time.Nanosecond,
+			-1682624 * time.Nanosecond,
+			-1732382 * time.Nanosecond,
+			-1793740 * time.Nanosecond,
+			-1739692 * time.Nanosecond,
+			-1791143 * time.Nanosecond,
+			-1680870 * time.Nanosecond,
+			-1674741 * time.Nanosecond,
+			-1678761 * time.Nanosecond,
+			431740 * time.Nanosecond,
+			384421 * time.Nanosecond,
+			496821 * time.Nanosecond,
+			289701 * time.Nanosecond,
+			505729 * time.Nanosecond,
+			551695 * time.Nanosecond,
+			264902 * time.Nanosecond,
+			336397 * time.Nanosecond,
+			426982 * time.Nanosecond,
+			349654 * time.Nanosecond,
+			-717224 * time.Nanosecond,
+			-706902 * time.Nanosecond,
+			-709033 * time.Nanosecond,
+			-613281 * time.Nanosecond,
+			-705814 * time.Nanosecond,
+			-691355 * time.Nanosecond,
+			-602491 * time.Nanosecond,
+			-733157 * time.Nanosecond,
+			-754736 * time.Nanosecond,
+			-732048 * time.Nanosecond,
+		}
+
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, expectedValue, offset)
+	})
+
+	t.Run("outlier does not affect median", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: -1, 10, 11, 12, 1000000 -> middle index = 2 -> 11
+		clockOffsets := []time.Duration{
+			10 * time.Millisecond,
+			12 * time.Millisecond,
+			1000000 * time.Millisecond,
+			-1 * time.Millisecond,
+			11 * time.Millisecond,
+		}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, 11*time.Millisecond, offset)
+	})
 }

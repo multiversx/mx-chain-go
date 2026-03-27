@@ -15,8 +15,9 @@ import (
 type interceptedDataStatus int8
 
 const (
-	validInterceptedData           interceptedDataStatus = iota
-	interceptedDataStatusBytesSize                       = 8
+	validInterceptedData interceptedDataStatus = iota
+	pendingValidInterceptedData
+	interceptedDataStatusBytesSize = 8
 )
 
 type interceptedDataVerifier struct {
@@ -44,20 +45,47 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 		return interceptedData.CheckValidity()
 	}
 
-	exists, err := idv.checkCachedData(interceptedData, topic, broadcastMethod)
-	if err != nil {
-		return err
-	}
-	if exists {
+	hash := string(interceptedData.Hash())
+	idv.km.RLock(hash)
+	val, ok := idv.cache.Get(interceptedData.Hash())
+	idv.km.RUnlock(hash)
+
+	if ok {
+		err := checkCachedData(val, topic, broadcastMethod, interceptedData)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
-	err = interceptedData.CheckValidity()
+	// Validate and mark with write lock to prevent race condition
+	idv.km.Lock(hash)
+	defer idv.km.Unlock(hash)
+
+	// Double-check cache after acquiring write lock
+	val, ok = idv.cache.Get(interceptedData.Hash())
+	if ok {
+		err := checkCachedData(val, topic, broadcastMethod, interceptedData)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	// Validate the data
+	err := interceptedData.CheckValidity()
 	if err != nil {
 		logInterceptedDataCheckValidityErr(interceptedData, err)
 		// TODO: investigate to selectively add as invalid intercepted data only when data is indeed invalid instead of missing
 		// idv.cache.Put(interceptedData.Hash(), invalidInterceptedData, interceptedDataStatusBytesSize)
 		return process.ErrInvalidInterceptedData
+	}
+
+	// Mark as verified pending immediately after successful validation
+	if !isDirectSend(broadcastMethod) {
+		idv.cache.Put(interceptedData.Hash(), pendingValidInterceptedData, interceptedDataStatusBytesSize)
 	}
 
 	return nil
@@ -78,47 +106,25 @@ func (idv *interceptedDataVerifier) MarkVerified(interceptedData process.Interce
 	idv.cache.Put(interceptedData.Hash(), validInterceptedData, interceptedDataStatusBytesSize)
 }
 
-func (idv *interceptedDataVerifier) checkCachedData(
-	interceptedData process.InterceptedData,
-	topic string,
-	broadcastMethod p2p.BroadcastMethod,
-) (bool, error) {
-	hash := string(interceptedData.Hash())
-	idv.km.RLock(hash)
-	defer idv.km.RUnlock(hash)
-
-	val, ok := idv.cache.Get(interceptedData.Hash())
-	if !ok {
-		return ok, nil
-	}
-
-	if val != validInterceptedData {
-		return ok, process.ErrInvalidInterceptedData
-	}
-
-	if !shouldCheckForDuplicates(topic, broadcastMethod) {
-		return ok, nil
-	}
-
-	if !interceptedData.ShouldAllowDuplicates() {
-		return ok, process.ErrDuplicatedInterceptedDataNotAllowed
-	}
-
-	return ok, nil
-}
-
 func isDirectSend(broadcastMethod p2p.BroadcastMethod) bool {
 	return broadcastMethod == p2p.Direct
 }
 
-func shouldCheckForDuplicates(topic string, broadcastMethod p2p.BroadcastMethod) bool {
+func shouldCheckForDuplicates(
+	topic string,
+	broadcastMethod p2p.BroadcastMethod,
+	cachedValue interface{},
+) bool {
 	if isDirectSend(broadcastMethod) {
 		return false // skip deduplication on direct messages
 	}
 
+	// if the value was not yet marked as verified, do not check for duplicates yet
+	isPending := cachedValue == pendingValidInterceptedData
+
 	topicSplit := strings.Split(topic, "_")
 	isCrossShardTopic := len(topicSplit) == 3 || len(topicSplit) == 1 // cross _0_1 or global topic
-	return isCrossShardTopic
+	return isCrossShardTopic && !isPending
 }
 
 func logInterceptedDataCheckValidityErr(interceptedData process.InterceptedData, err error) {
@@ -128,6 +134,31 @@ func logInterceptedDataCheckValidityErr(interceptedData process.InterceptedData,
 	}
 
 	log.Debug("Intercepted data is invalid", "hash", interceptedData.Hash(), "err", err)
+}
+
+func checkCachedData(
+	cachedValue interface{},
+	topic string,
+	broadcastMethod p2p.BroadcastMethod,
+	interceptedData process.InterceptedData,
+) error {
+	if !isValidInterceptedData(cachedValue) {
+		return process.ErrInvalidInterceptedData
+	}
+
+	if !shouldCheckForDuplicates(topic, broadcastMethod, cachedValue) {
+		return nil
+	}
+
+	if !interceptedData.ShouldAllowDuplicates() {
+		return process.ErrDuplicatedInterceptedDataNotAllowed
+	}
+
+	return nil
+}
+
+func isValidInterceptedData(val interface{}) bool {
+	return val == validInterceptedData || val == pendingValidInterceptedData
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

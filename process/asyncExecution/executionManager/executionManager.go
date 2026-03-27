@@ -10,20 +10,22 @@ import (
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
-
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var log = logger.GetOrCreate("process/asyncExecution/executionManager")
 
 // ArgsExecutionManager holds all the components needed to create a new instance of executionManager
 type ArgsExecutionManager struct {
-	BlocksQueue             process.BlocksQueue
+	BlocksCache             process.BlocksCache
 	ExecutionResultsTracker process.ExecutionResultsTracker
 	BlockChain              data.ChainHandler
 	Headers                 dataRetriever.HeadersPool
+	PostProcessTransactions storage.Cacher
+	ExecutedMiniBlocks      storage.Cacher
 	StorageService          dataRetriever.StorageService
 	Marshaller              marshal.Marshalizer
 	ShardCoordinator        sharding.Coordinator
@@ -32,10 +34,12 @@ type ArgsExecutionManager struct {
 type executionManager struct {
 	mut                     sync.RWMutex
 	headersExecutor         process.HeadersExecutor
-	blocksQueue             process.BlocksQueue
+	blocksCache             process.BlocksCache
 	executionResultsTracker process.ExecutionResultsTracker
 	blockChain              data.ChainHandler
 	headers                 dataRetriever.HeadersPool
+	postProcessTransactions storage.Cacher
+	executedMiniBlocks      storage.Cacher
 	storageService          dataRetriever.StorageService
 	marshaller              marshal.Marshalizer
 	shardCoordinator        sharding.Coordinator
@@ -43,8 +47,8 @@ type executionManager struct {
 
 // NewExecutionManager creates a new instance of executionManager
 func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
-	if check.IfNil(args.BlocksQueue) {
-		return nil, ErrNilBlocksQueue
+	if check.IfNil(args.BlocksCache) {
+		return nil, ErrNilBlocksCache
 	}
 	if check.IfNil(args.ExecutionResultsTracker) {
 		return nil, ErrNilExecutionResultsTracker
@@ -54,6 +58,12 @@ func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
 	}
 	if check.IfNil(args.Headers) {
 		return nil, ErrNilHeadersPool
+	}
+	if check.IfNil(args.PostProcessTransactions) {
+		return nil, process.ErrNilPostProcessTransactionsCache
+	}
+	if check.IfNil(args.ExecutedMiniBlocks) {
+		return nil, process.ErrNilExecutedMiniBlocksCache
 	}
 	if check.IfNil(args.StorageService) {
 		return nil, process.ErrNilStorage
@@ -67,10 +77,12 @@ func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
 
 	instance := &executionManager{
 		headersExecutor:         disabled.NewHeadersExecutor(),
-		blocksQueue:             args.BlocksQueue,
+		blocksCache:             args.BlocksCache,
 		executionResultsTracker: args.ExecutionResultsTracker,
 		blockChain:              args.BlockChain,
 		headers:                 args.Headers,
+		postProcessTransactions: args.PostProcessTransactions,
+		executedMiniBlocks:      args.ExecutedMiniBlocks,
 		storageService:          args.StorageService,
 		marshaller:              args.Marshaller,
 		shardCoordinator:        args.ShardCoordinator,
@@ -103,7 +115,7 @@ func (em *executionManager) SetHeadersExecutor(executor process.HeadersExecutor)
 }
 
 // AddPairForExecution adds or replaces a header-body pair in the blocks queue
-func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error {
+func (em *executionManager) AddPairForExecution(pair cache.HeaderBodyPair) error {
 	// lock the internal mutex to avoid any concurrent removal requests
 	em.mut.Lock()
 	defer em.mut.Unlock()
@@ -116,6 +128,8 @@ func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error
 			em,
 			em.blockChain,
 			em.headers,
+			em.postProcessTransactions,
+			em.executedMiniBlocks,
 			em.storageService,
 			em.marshaller,
 			em.shardCoordinator.SelfId(),
@@ -125,7 +139,7 @@ func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error
 		}
 	}
 
-	return em.blocksQueue.AddOrReplace(pair)
+	return em.blocksCache.AddOrReplace(pair)
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker
@@ -145,7 +159,21 @@ func (em *executionManager) SetLastNotarizedResult(executionResult data.BaseExec
 
 // CleanConfirmedExecutionResults calls the same method from executionResultsTracker
 func (em *executionManager) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
+	for _, executionResult := range header.GetExecutionResultsHandlers() {
+		em.blocksCache.Remove(executionResult.GetHeaderNonce())
+	}
+
 	return em.executionResultsTracker.CleanConfirmedExecutionResults(header)
+}
+
+// CleanOnConsensusReached calls the same method from executionResultsTracker
+func (em *executionManager) CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler) {
+	if check.IfNil(header) {
+		return
+	}
+
+	em.executionResultsTracker.CleanOnConsensusReached(headerHash, header)
+	em.blocksCache.RemoveAtNonceAndHigher(header.GetNonce() + 1)
 }
 
 // RemoveAtNonceAndHigher removes the header-body pair at the specified nonce
@@ -177,19 +205,7 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	em.headersExecutor.PauseExecution()
 
 	// remove from queue
-	removedNonces := em.blocksQueue.RemoveAtNonceAndHigher(nonceToRemove)
-	if len(removedNonces) > 0 && removedNonces[0] == nonceToRemove {
-		// if the first nonce removed is the initial one,
-		// it means it was still in queue and was not processed.
-		// no matter how many were removed, safe to resume execution
-		em.headersExecutor.ResumeExecution()
-
-		return nil
-	}
-
-	// if the initial nonce was not returned as removed from the queue,
-	// it means that it was already popped for execution (and perhaps not the only one).
-	// inform executionResultsTracker to remove all nonces >= than the provided one
+	_ = em.blocksCache.RemoveAtNonceAndHigher(nonceToRemove)
 	err = em.executionResultsTracker.RemoveFromNonce(nonceToRemove)
 	if err != nil {
 		return err
@@ -226,8 +242,7 @@ func (em *executionManager) ResetAndResumeExecution(lastNotarizedResult data.Bas
 
 	em.executionResultsTracker.Clean(lastNotarizedResult)
 
-	lastNotarizedNonce := lastNotarizedResult.GetHeaderNonce()
-	em.blocksQueue.Clean(lastNotarizedNonce)
+	em.blocksCache.Clean()
 
 	em.headersExecutor.ResumeExecution()
 
@@ -277,6 +292,14 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 	return nil
 }
 
+// GetSignalProcessCompletionChan returns the channel used to signal the sync loop after execution completes
+func (em *executionManager) GetSignalProcessCompletionChan() chan uint64 {
+	em.mut.RLock()
+	defer em.mut.RUnlock()
+
+	return em.headersExecutor.GetSignalProcessCompletionChan()
+}
+
 // Close closes the execution manager and all its components
 func (em *executionManager) Close() error {
 	log.Debug("closing execution manager")
@@ -285,8 +308,6 @@ func (em *executionManager) Close() error {
 	if err != nil {
 		log.Warn("executionManager.Close - failed to close headers executor", "error", err)
 	}
-
-	em.blocksQueue.Close()
 
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -317,6 +318,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	log.Debug("creating metrics before bootstrap")
+	err = nr.createMetricsBeforeBootrapping(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents)
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating disabled API services")
 	webServerHandler, err := nr.createHttpServer(managedStatusCoreComponents)
 	if err != nil {
@@ -566,6 +573,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	// closeComponentsDelay is needed because of pruning. To avoid removing data that will be needed when the node restarts,
+	// block pruning and then wait for a duration of one round before closing the components so that the info that is needed
+	// for the restart is persisted to storage.
+	closeComponentsDelay := time.Millisecond * time.Duration(managedCoreComponents.ChainParametersHandler().CurrentChainParameters().RoundDuration)
 	nextOperation := waitForSignal(
 		sigs,
 		managedCoreComponents.ChanStopNodeProcess(),
@@ -574,6 +585,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		webServerHandler,
 		currentNode,
 		goRoutinesNumberStart,
+		managedCoreComponents.ClosingNodeStarted(),
+		closeComponentsDelay,
+		managedConsensusComponents,
+		managedProcessComponents.ExecutionManager(),
 	)
 
 	return nextOperation == nextOperationShouldStop, nil
@@ -819,6 +834,52 @@ func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.S
 	return httpServerWrapper, nil
 }
 
+func (nr *nodeRunner) createMetricsBeforeBootrapping(
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	coreComponents mainFactory.CoreComponentsHolder,
+	cryptoComponents mainFactory.CryptoComponentsHolder,
+) error {
+	err := metrics.InitInitialMetrics(
+		statusCoreComponents.AppStatusHandler(),
+		cryptoComponents.PublicKeyString(),
+		coreComponents.GenesisNodesSetup(),
+		nr.configs.FlagsConfig.Version,
+		nr.configs.EconomicsConfig,
+		coreComponents.MinTransactionVersion(),
+	)
+	if err != nil {
+		return err
+	}
+
+	nr.setMetricsAtInit(statusCoreComponents, coreComponents)
+
+	return nil
+}
+
+func (nr *nodeRunner) setMetricsAtInit(
+	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	coreComponents mainFactory.CoreComponentsHolder,
+) {
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyLevel, fmt.Sprintf("%d", nr.configs.PreferencesConfig.Preferences.RedundancyLevel))
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyIsMainActive, common.MetricValueNA)
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyStepInReason, "")
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricChainId, coreComponents.ChainID())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasLimit, coreComponents.EconomicsData().MinGasLimit())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitGuardedTx, coreComponents.EconomicsData().ExtraGasLimitGuardedTx())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitRelayedTx, coreComponents.EconomicsData().MinGasLimit())
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerTx())
+	if nr.configs.PreferencesConfig.Preferences.FullArchive {
+		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerType, core.ObserverPeer.String())
+		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerSubType, core.FullHistoryObserver.String())
+	}
+}
+
 func (nr *nodeRunner) createMetrics(
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
@@ -847,24 +908,7 @@ func (nr *nodeRunner) createMetrics(
 		return err
 	}
 
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyLevel, fmt.Sprintf("%d", nr.configs.PreferencesConfig.Preferences.RedundancyLevel))
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyIsMainActive, common.MetricValueNA)
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyStepInReason, "")
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricChainId, coreComponents.ChainID())
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasLimit, coreComponents.EconomicsData().MinGasLimit())
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitGuardedTx, coreComponents.EconomicsData().ExtraGasLimitGuardedTx())
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitRelayedTx, coreComponents.EconomicsData().MinGasLimit())
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
-	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
-	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMaxGasPerTransaction, coreComponents.EconomicsData().MaxGasLimitPerTx())
-	if nr.configs.PreferencesConfig.Preferences.FullArchive {
-		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerType, core.ObserverPeer.String())
-		metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricPeerSubType, core.FullHistoryObserver.String())
-	}
+	nr.setMetricsAtInit(statusCoreComponents, coreComponents)
 
 	return nil
 }
@@ -989,6 +1033,10 @@ func waitForSignal(
 	httpServer shared.UpgradeableHttpServerHandler,
 	currentNode *Node,
 	goRoutinesNumberStart int,
+	closingNodeStarted *atomic.Bool,
+	closeComponentsDelay time.Duration,
+	consensusComponentsCloser io.Closer,
+	executionManagerCloser io.Closer,
 ) nextOperationForNode {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
@@ -1011,13 +1059,13 @@ func waitForSignal(
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(healthService, facade, httpServer, currentNode, chanCloseComponents)
+		closeAllComponents(healthService, facade, httpServer, currentNode, chanCloseComponents, closingNodeStarted, closeComponentsDelay, consensusComponentsCloser, executionManagerCloser)
 	}()
 
 	select {
 	case <-chanCloseComponents:
 		log.Debug("Closed all components gracefully")
-	case <-time.After(maxTimeToClose):
+	case <-time.After(maxTimeToClose + closeComponentsDelay):
 		log.Warn("force closing the node",
 			"error", "closeAllComponents did not finish on time",
 			"stack", goroutines.GetGoRoutines())
@@ -1584,7 +1632,21 @@ func closeAllComponents(
 	httpServer shared.UpgradeableHttpServerHandler,
 	node *Node,
 	chanCloseComponents chan struct{},
+	closingNodeStarted *atomic.Bool,
+	closeComponentsDelay time.Duration,
+	consensusComponentsCloser io.Closer,
+	executionManagerCloser io.Closer,
 ) {
+	closingNodeStarted.Store(true)
+	// stop pruning, but wait a bit before closing the components to let the node finish processing the current block
+	time.Sleep(closeComponentsDelay)
+
+	log.Debug("stopping consensus...")
+	log.LogIfError(consensusComponentsCloser.Close())
+
+	log.Debug("stopping async execution...")
+	log.LogIfError(executionManagerCloser.Close())
+
 	log.Debug("closing health service...")
 	err := healthService.Close()
 	log.LogIfError(err)

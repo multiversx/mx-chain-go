@@ -3,6 +3,7 @@ package configs
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common/configs/dto"
@@ -129,20 +130,12 @@ func checkRoundConfigValues(cfg config.ProcessConfigByRound) error {
 		return fmt.Errorf("%w for MaxRoundsToKeepUnprocessedMiniBlocks, received %d, min expected %d",
 			process.ErrInvalidValue, cfg.MaxRoundsToKeepUnprocessedMiniBlocks, minRoundsToKeepUnprocessedData)
 	}
-	if cfg.NumFloodingRoundsFastReacting < minFloodingRounds {
-		return fmt.Errorf("%w for NumFloodingRoundsFastReacting, received %d, min expected %d",
-			process.ErrInvalidValue, cfg.NumFloodingRoundsFastReacting, minFloodingRounds)
-	}
-	if cfg.NumFloodingRoundsSlowReacting < minFloodingRounds {
-		return fmt.Errorf("%w for NumFloodingRoundsSlowReacting, received %d, min expected %d",
-			process.ErrInvalidValue, cfg.NumFloodingRoundsSlowReacting, minFloodingRounds)
-	}
-	if cfg.NumFloodingRoundsOutOfSpecs < minFloodingRounds {
-		return fmt.Errorf("%w for NumFloodingRoundsOutOfSpecs, received %d, min expected %d",
-			process.ErrInvalidValue, cfg.NumFloodingRoundsOutOfSpecs, minFloodingRounds)
-	}
 	if cfg.MaxConsecutiveRoundsOfRatingDecrease == 0 {
 		return process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease
+	}
+	if cfg.MaxBlockProcessingTimeMs < minBlockProcessingTimeMs {
+		return fmt.Errorf("%w for MaxBlockProcessingTimeMs, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.MaxBlockProcessingTimeMs, minBlockProcessingTimeMs)
 	}
 
 	return nil
@@ -267,6 +260,30 @@ func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedTransactions(roun
 			return cfg.MaxRoundsToKeepUnprocessedTransactions
 		},
 		defaultMaxRoundsToKeepUnprocessedTransactions,
+	)
+}
+
+// GetMaxBlockProcessingTime returns max block processing time
+func (pce *processConfigsByEpoch) GetMaxBlockProcessingTime(round uint64) time.Duration {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) time.Duration {
+			return time.Duration(cfg.MaxBlockProcessingTimeMs) * time.Millisecond
+		},
+		defaultMaxBlockProcessingTimeMs,
+	)
+}
+
+// GetNumHeadersToRequestInAdvance returns the number of headers to request in advance based on round
+func (pce *processConfigsByEpoch) GetNumHeadersToRequestInAdvance(round uint64) uint64 {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint64 {
+			return cfg.NumHeadersToRequestInAdvance
+		},
+		defaultNumHeadersToRequestInAdvance,
 	)
 }
 

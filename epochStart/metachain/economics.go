@@ -492,11 +492,30 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 
 // compute inflation rate from genesisTotalSupply and economics settings for that year
 func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch uint32) float64 {
-	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
+	roundDurationInSec := uint64(e.roundTime.TimeDuration().Seconds())
+	if roundDurationInSec <= 0 {
+		// this means that round duration is sub-seconds
+		// set it to default number of seconds
+		log.Error("computeInflationBeforeSupernova: sub second round time before supernova activation")
+		roundDurationInSec = e.getDefaultRoundDuration()
+	}
+
+	roundsPerDay := numberOfSecondsInDay / roundDurationInSec
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
 	yearsIndex := uint32(currentRound/roundsPerYear) + 1
 
 	return e.rewardsHandler.MaxInflationRate(yearsIndex, epoch)
+}
+
+func (e *economics) getDefaultRoundDuration() uint64 {
+	defaultRoundDuration := uint64(6) // seconds
+	chainParameters, err := e.chainParamsHandler.ChainParametersForEpoch(0)
+	if err != nil {
+		// this should not happen, chain parameter configs is checked at init
+		return defaultRoundDuration
+	}
+
+	return chainParameters.RoundDuration
 }
 
 func (e *economics) computeInflationRate(
@@ -523,7 +542,7 @@ func (e *economics) computeInflationRateAfterSupernova(currentTimestampMs uint64
 	}
 
 	if currentTimestampMs < genesisTimestamp {
-		return 1 // years index are defined starting from 1
+		return e.rewardsHandler.MaxInflationRate(1, epoch) // years index are defined starting from 1
 	}
 
 	yearsIndex := (currentTimestampMs-genesisTimestamp)/numberOfMillisecondsInYear + 1
@@ -572,6 +591,11 @@ func (e *economics) computeInflationForEpoch(
 	inflationRatePerDay := inflationRate / numberOfDaysInYear
 	roundsPerDay := common.ComputeRoundsPerDay(roundDuration, e.enableEpochsHandler, epoch)
 	maxBlocksInADay := core.MaxUint64(1, roundsPerDay*uint64(e.shardCoordinator.NumberOfShards()+1))
+
+	if maxBlocksInADay == 0 {
+		log.Warn("computeInflationForEpoch: max block in a day is zero, return inflation rate directly")
+		return inflationRate
+	}
 
 	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
 

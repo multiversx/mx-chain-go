@@ -7,9 +7,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TriggerHandler defines the functionalities for an start of epoch trigger
@@ -23,6 +24,7 @@ type TriggerHandler interface {
 	SetEpochChange(round uint64)
 	ShouldProposeEpochChange(round uint64, nonce uint64) bool
 	SetEpochChangeProposed(value bool)
+	GetEpochChangeProposed() bool
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
 	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
@@ -66,6 +68,7 @@ type RequestHandler interface {
 	GetNumPeersToQuery(key string) (int, int, error)
 	RequestValidatorInfo(hash []byte)
 	RequestValidatorsInfo(hashes [][]byte)
+	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte)
 	IsInterfaceNil() bool
 }
 

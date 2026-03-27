@@ -43,6 +43,7 @@ type ArgsTransactionPreProcessor struct {
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	TxCacheSelectionConfig       config.TxCacheSelectionConfig
+	TxVersionCheckerHandler      process.TxVersionCheckerHandler
 }
 
 type transactions struct {
@@ -61,6 +62,7 @@ type transactions struct {
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txCacheSelectionConfig       config.TxCacheSelectionConfig
+	txVersionCheckerHandler      process.TxVersionCheckerHandler
 
 	unExecutableTransactions map[string]struct{}
 	mutUnExecutableTxs       sync.RWMutex
@@ -112,11 +114,11 @@ func NewTransactionPreprocessor(
 	if args.TxCacheSelectionConfig.SelectionGasRequested == 0 {
 		return nil, process.ErrBadTxCacheSelectionGasRequested
 	}
-	if args.TxCacheSelectionConfig.SelectionLoopMaximumDuration == 0 {
-		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
-	}
 	if args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopDurationCheckInterval
+	}
+	if check.IfNil(args.TxVersionCheckerHandler) {
+		return nil, process.ErrNilTransactionVersionChecker
 	}
 
 	ges, err := newGasEpochState(
@@ -146,6 +148,7 @@ func NewTransactionPreprocessor(
 		enableRoundsHandler:        args.EnableRoundsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
+		feeHandler:                 args.EconomicsFee,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(bpp)
@@ -162,6 +165,7 @@ func NewTransactionPreprocessor(
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 		txCacheSelectionConfig:       args.TxCacheSelectionConfig,
+		txVersionCheckerHandler:      args.TxVersionCheckerHandler,
 	}
 
 	txs.txPool.RegisterOnAdded(txs.receivedTransaction)
@@ -512,7 +516,8 @@ func (txs *transactions) processTxsToMe(
 
 	var err error
 	scheduledMode := false
-	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
+	isAsyncExecEnabled := header.IsHeaderV3()
+	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) && !isAsyncExecEnabled {
 		scheduledMode, err = process.IsScheduledMode(header, body, txs.hasher, txs.marshalizer)
 		if err != nil {
 			return err
@@ -584,7 +589,8 @@ func (txs *transactions) processTxsToMe(
 			receiverShardID,
 			tx,
 			txHash,
-			&gasInfo)
+			&gasInfo,
+			isAsyncExecEnabled)
 
 		if errComputeGas != nil {
 			return errComputeGas
@@ -909,8 +915,10 @@ func (txs *transactions) processAndRemoveBadTransaction(
 		txs.txExecutionOrderHandler.Remove(txHash)
 		// TODO: remove log if no longer needed for validation
 		log.Debug("processAndRemoveBadTransaction - found not executable transaction", "txHash", txHash)
-		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-		txs.txPool.RemoveData(txHash, strCache)
+		if !isAsyncExecEnabled {
+			strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+			txs.txPool.RemoveData(txHash, strCache)
+		}
 	}
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
@@ -1032,8 +1040,15 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 func (txs *transactions) SelectOutgoingTransactions(
 	bandwidth uint64,
 	nonce uint64,
+	haveTimeForSelection func() bool,
 ) ([][]byte, []data.TransactionHandler, error) {
-	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), bandwidth, nonce)
+	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(
+		txs.shardCoordinator.SelfId(),
+		txs.shardCoordinator.SelfId(),
+		bandwidth,
+		nonce,
+		haveTimeForSelection,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1065,7 +1080,13 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		gasBandwidth += gasBandwidthForScheduled
 	}
 
-	sortedTxs, remainingTxsForScheduled, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth, randomness)
+	sortedTxs, remainingTxsForScheduled, err := txs.computeSortedTxs(
+		txs.shardCoordinator.SelfId(),
+		txs.shardCoordinator.SelfId(),
+		gasBandwidth,
+		randomness,
+		haveTime,
+	)
 	elapsedTime := time.Since(startTime)
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())
@@ -1101,7 +1122,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	miniBlocks, remainingTxs, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
 		txs.blockTracker.IsShardStuck,
-		txs.blockSizeComputation.IsMaxBlockSizeReached,
+		txs.isMaxBlockSizeReached,
 		sortedTxs,
 	)
 	elapsedTime = time.Since(startTime)
@@ -1151,7 +1172,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
 		haveAdditionalTime,
 		txs.blockTracker.IsShardStuck,
-		txs.blockSizeComputation.IsMaxBlockSizeReached,
+		txs.isMaxBlockSizeReached,
 		sortedTxs,
 		mapSCTxs,
 	)
@@ -1184,13 +1205,15 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 		gasTracker:                txs.gasTracker,
 		accounts:                  txs.accounts,
 		balanceComputationHandler: txs.balanceComputation,
-		blockSizeComputation:      txs.blockSizeComputation,
+		blockSizeComputation:      txs.blockSizeComputation, // this will use size calculation using methods from base preprocessor
 		haveTime:                  haveTime,
 		isShardStuck:              isShardStuck,
 		isMaxBlockSizeReached:     isMaxBlockSizeReached,
-		getTxMaxTotalCost:         getTxMaxTotalCost,
+		getTxMaxTotalCost:         txs.getTxMaxTotalCost,
 		getTotalGasConsumed:       txs.getTotalGasConsumed,
 		txPool:                    txs.txPool,
+		enableEpochsHandler:       txs.enableEpochsHandler,
+		enableRoundsHandler:       txs.enableRoundsHandler,
 	}
 
 	mbBuilder, err := newMiniBlockBuilder(args)
@@ -1448,6 +1471,7 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 	dstShardId uint32,
 	gasBandwidth uint64,
 	nonce uint64,
+	haveTimeForSelection func() bool,
 ) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
@@ -1461,19 +1485,24 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       txs.accountsProposal,
-		TransactionsProcessor: txs.txProcessor,
+		AccountsAdapter:         txs.accountsProposal,
+		TransactionsProcessor:   txs.txProcessor,
+		TxVersionCheckerHandler: txs.txVersionCheckerHandler,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	selectionOptions := holders.NewTxSelectionOptions(
+	selectionOptions, err := holders.NewTxSelectionOptions(
 		gasBandwidth,
 		txs.txCacheSelectionConfig.SelectionMaxNumTxs,
-		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+		haveTimeForSelection,
 	)
+	if err != nil {
+		return nil, err
+	}
+
 	selectedTransactions, _, err := txCache.SelectTransactions(session, selectionOptions, nonce)
 	if err != nil {
 		return nil, err
@@ -1486,6 +1515,7 @@ func (txs *transactions) selectTransactionsFromTxPool(
 	sndShardId uint32,
 	dstShardId uint32,
 	gasBandwidth uint64,
+	haveTimeForSelection func() bool,
 ) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
@@ -1499,19 +1529,23 @@ func (txs *transactions) selectTransactionsFromTxPool(
 	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       txs.accountsProposal,
-		TransactionsProcessor: txs.txProcessor,
+		AccountsAdapter:         txs.accountsProposal,
+		TransactionsProcessor:   txs.txProcessor,
+		TxVersionCheckerHandler: txs.txVersionCheckerHandler,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	selectionOptions := holders.NewTxSelectionOptions(
+	selectionOptions, err := holders.NewTxSelectionOptions(
 		gasBandwidth,
 		txs.txCacheSelectionConfig.SelectionMaxNumTxs,
-		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+		haveTimeForSelection,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	selectedTxs, _, err := txCache.SelectTransactions(session, selectionOptions, 0)
 	if err != nil {
@@ -1526,6 +1560,7 @@ func (txs *transactions) computeSortedTxs(
 	dstShardId uint32,
 	gasBandwidth uint64,
 	randomness []byte,
+	haveTimeForSelection func() bool,
 ) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, error) {
 	log.Debug("computeSortedTxs",
 		"sndShardId", sndShardId,
@@ -1534,7 +1569,7 @@ func (txs *transactions) computeSortedTxs(
 		"randomness", randomness,
 	)
 
-	sortedTxs, err := txs.selectTransactionsFromTxPool(sndShardId, dstShardId, gasBandwidth)
+	sortedTxs, err := txs.selectTransactionsFromTxPool(sndShardId, dstShardId, gasBandwidth, haveTimeForSelection)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1577,7 +1612,7 @@ func (txs *transactions) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, err
 	}
 
-	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
+	if txs.isMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
@@ -1629,7 +1664,7 @@ func (txs *transactions) ProcessMiniBlock(
 	}()
 
 	numOfOldCrossInterMbs, numOfOldCrossInterTxs := preProcessorExecutionInfoHandler.GetNumOfCrossInterMbsAndTxs()
-
+	skipBlockLimitChecks := common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler)
 	for txIndex = indexOfFirstTxToBeProcessed; txIndex < len(miniBlockTxs); txIndex++ {
 		if !haveTime() && !haveAdditionalTime() {
 			err = process.ErrTimeIsOut
@@ -1641,7 +1676,8 @@ func (txs *transactions) ProcessMiniBlock(
 			miniBlock.ReceiverShardID,
 			miniBlockTxs[txIndex],
 			miniBlockTxHashes[txIndex],
-			&gasInfo)
+			&gasInfo,
+			skipBlockLimitChecks)
 
 		if err != nil {
 			break
@@ -1695,7 +1731,7 @@ func (txs *transactions) ProcessMiniBlock(
 
 	numMiniBlocks := 1 + numOfNewCrossInterMbs
 	numTxs := len(miniBlock.TxHashes) + numOfNewCrossInterTxs
-	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMiniBlocks, numTxs) {
+	if txs.isMaxBlockSizeWithoutThrottleReached(numMiniBlocks, numTxs) {
 		return processedTxHashes, txIndex - 1, true, process.ErrMaxBlockSizeReached
 	}
 
@@ -1703,8 +1739,8 @@ func (txs *transactions) ProcessMiniBlock(
 		txs.txsForCurrBlock.AddTransaction(txHash, miniBlockTxs[index], miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 	}
 
-	txs.blockSizeComputation.AddNumMiniBlocks(numMiniBlocks)
-	txs.blockSizeComputation.AddNumTxs(numTxs)
+	txs.addNumMiniBlocks(numMiniBlocks)
+	txs.addNumTxs(numTxs)
 
 	if scheduledMode {
 		for index := indexOfFirstTxToBeProcessed; index <= txIndex-1; index++ {

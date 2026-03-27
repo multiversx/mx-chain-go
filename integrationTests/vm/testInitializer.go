@@ -775,6 +775,7 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			UnJailValue:                          "2500000000000000000",
 			MinStepValue:                         "100000000000000000000",
 			UnBondPeriod:                         250,
+			UnBondPeriodSupernova:                2500,
 			UnBondPeriodInEpochs:                 1,
 			NumRoundsWithoutBleed:                100,
 			MaximumPercentageToBleed:             0.5,
@@ -994,8 +995,9 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	})
 
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
-		AddressLength: pubkeyConv.Len(),
-		Marshalizer:   integrationtests.TestMarshalizer,
+		AddressLength:                       pubkeyConv.Len(),
+		Marshalizer:                         integrationtests.TestMarshalizer,
+		RelayedTransactionsV1V2DisableEpoch: enableEpochsHandler.GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag),
 	})
 	if err != nil {
 		return nil, err

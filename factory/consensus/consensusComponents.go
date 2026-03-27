@@ -222,6 +222,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 		PeerBlacklistHandler:     cc.peerBlacklistHandler,
 		EnableEpochsHandler:      ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:      ccf.coreComponents.EnableRoundsHandler(),
 		InvalidSignersCache:      invalidSignersCache,
 	}
 
@@ -271,6 +272,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
 		InvalidSignersCache:           invalidSignersCache,
+		AOTSelector:                   ccf.processComponents.AOTSelector(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

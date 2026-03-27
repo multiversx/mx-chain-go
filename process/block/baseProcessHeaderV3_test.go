@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -17,9 +16,11 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	commonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
@@ -652,6 +653,14 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 						},
 					}, nil
 				},
+				PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
+					if unitType == dataRetriever.ExecutionResultsUnit {
+						cntPutCalled++
+						return nil
+					}
+
+					return nil
+				},
 			},
 			dataPool: &dataRetrieverMock.PoolsHolderStub{
 				PostProcessTransactionsCalled: func() storage.Cacher {
@@ -710,7 +719,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 		err := bp.saveExecutedData(header)
 		require.NoError(t, err)
 		require.False(t, wasRemoveCalledForTxs)
-		require.Equal(t, 4, cntPutCalled) // 3 types of tx blocks + one for mbs
+		require.Equal(t, 5, cntPutCalled) // 3 types of tx blocks + one for mbs + one for exec result
 	})
 }
 
@@ -783,10 +792,14 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			"hash1",
 			"executionhash1",
 			"logshash1",
+			"gashash1",
+			"hash1",
 			"mb1",
 			"hash2",
 			"executionhash2",
 			"logshash2",
+			"gashash2",
+			"hash2",
 			"mb2",
 		}
 
@@ -810,4 +823,94 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, expectedRemovedKeys, removedKeys)
 	})
+}
+
+func TestBaseProcessor_setCurrentBlockInfoV3CallsCleanOnConsensusReached(t *testing.T) {
+	t.Parallel()
+
+	t.Run("V3 header should call CleanOnConsensusReached and set current block header on blockchain", func(t *testing.T) {
+		t.Parallel()
+
+		cleanCalled := false
+		var receivedHash []byte
+		var receivedNonce uint64
+		setHeaderCalled := false
+
+		bp := &baseProcessor{
+			executionManager: &processMocks.ExecutionManagerMock{
+				CleanOnConsensusReachedCalled: func(headerHash []byte, header data.HeaderHandler) {
+					cleanCalled = true
+					receivedHash = headerHash
+					receivedNonce = header.GetNonce()
+				},
+			},
+			blockChain: &testscommon.ChainHandlerStub{
+				SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
+					setHeaderCalled = true
+					return nil
+				},
+			},
+		}
+
+		header := &testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool {
+				return true
+			},
+			GetNonceCalled: func() uint64 {
+				return 10
+			},
+		}
+
+		committedHash := []byte("committedHash")
+		err := bp.setCurrentBlockInfo(header, committedHash, []byte("rootHash"))
+		require.NoError(t, err)
+		require.True(t, cleanCalled)
+		require.Equal(t, committedHash, receivedHash)
+		require.True(t, setHeaderCalled)
+		require.Equal(t, uint64(10), receivedNonce)
+	})
+}
+
+func TestBaseProcessor_saveExecutionResult(t *testing.T) {
+	t.Parallel()
+
+	cntPutCalled := 0
+
+	bp := &baseProcessor{
+		marshalizer: &marshallerMock.MarshalizerMock{},
+		store: &commonStorage.ChainStorerStub{
+			PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
+				if unitType == dataRetriever.ExecutionResultsUnit {
+					cntPutCalled++
+					return nil
+				}
+
+				return nil
+			},
+		},
+	}
+
+	execRes := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderNonce: 1,
+			HeaderRound: 2,
+		},
+	}
+
+	err := bp.SaveExecutionResult(execRes)
+	require.NoError(t, err)
+
+	execResMeta := &block.MetaExecutionResult{
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 1,
+				HeaderRound: 2,
+			},
+		},
+	}
+
+	err = bp.SaveExecutionResult(execResMeta)
+	require.NoError(t, err)
+
+	require.Equal(t, 2, cntPutCalled)
 }

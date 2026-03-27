@@ -2,8 +2,8 @@ package asyncExecution
 
 import "errors"
 
-// ErrNilHeadersQueue signals that a nil headers queue has been provided
-var ErrNilHeadersQueue = errors.New("nil headers queue")
+// ErrNilHeadersCache signals that a nil headers cache has been provided
+var ErrNilHeadersCache = errors.New("nil headers cache")
 
 // ErrNilExecutionTracker signals that a nil execution tracker has been provided
 var ErrNilExecutionTracker = errors.New("nil execution tracker")
@@ -13,3 +13,6 @@ var ErrNilBlockProcessor = errors.New("nil block processor")
 
 // ErrNilExecutionResult signals that a nil execution result has been provided
 var ErrNilExecutionResult = errors.New("nil execution result")
+
+// ErrContextMismatch signals that a block context does not match the current execution state
+var ErrContextMismatch = errors.New("block context mismatch with current execution state")

@@ -3,6 +3,7 @@ package factory
 import (
 	"context"
 	"math/big"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -145,6 +146,8 @@ type CoreComponentsHolder interface {
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandler() common.ProcessConfigsHandler
 	CommonConfigsHandler() common.CommonConfigsHandler
+	AntifloodConfigsHandler() common.AntifloodConfigsHandler
+	ClosingNodeStarted() *atomic.Bool
 	IsInterfaceNil() bool
 }
 
@@ -190,7 +193,7 @@ type CryptoComponentsHolder interface {
 	BlockSigner() crypto.SingleSigner
 	SetMultiSignerContainer(container cryptoCommon.MultiSignerContainer) error
 	MultiSignerContainer() cryptoCommon.MultiSignerContainer
-	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
+	GetMultiSigner(epoch uint32) (crypto.MultiSignerV2, error)
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator
@@ -325,6 +328,7 @@ type ProcessComponentsHolder interface {
 	SentSignaturesTracker() process.SentSignaturesTracker
 	EpochSystemSCProcessor() process.EpochStartSystemSCProcessor
 	BlockchainHook() process.BlockChainHookWithAccountsAdapter
+	AOTSelector() process.AOTTransactionSelector
 	IsInterfaceNil() bool
 }
 
@@ -533,7 +537,7 @@ type LogsFacade interface {
 type ReceiptsRepository interface {
 	SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
 	SaveReceiptsForExecResult(holder common.ReceiptsHolder, execResult data.BaseExecutionResultHandler) error
-	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
+	LoadReceipts(receiptsHash []byte, header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 	IsInterfaceNil() bool
 }
 

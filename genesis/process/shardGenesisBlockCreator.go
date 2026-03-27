@@ -10,6 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -22,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -42,8 +46,6 @@ import (
 	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 const unreachableEpoch = ^uint32(0)
@@ -588,6 +590,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: arg.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         arg.FeeSettings.PercentDecreaseLimitsStep,
+		BlockSizeComputation:              disabledBlockSizeComputationHandler,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -622,6 +625,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 		TxCacheSelectionConfig:       arg.TxCacheSelectionConfig,
+		TxVersionChecker:             arg.Core.TxVersionChecker(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProcessorContainerFactory)
 	if err != nil {
@@ -673,6 +677,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		TxTypeHandler:                txTypeHandler,
 		TransactionsLogProcessor:     arg.TxLogsProcessor,
 		EnableEpochsHandler:          enableEpochsHandler,
+		EnableRoundsHandler:          enableRoundsHandler,
 		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
@@ -680,6 +685,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequester, // no need for a different one in genesis
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

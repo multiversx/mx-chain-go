@@ -1,14 +1,20 @@
 package estimator
 
 import (
+	"errors"
 	"math/bits"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
 )
+
+// ErrInvalidMaxResultsPerBlock signals that invalid max results per block config has been provided
+var ErrInvalidMaxResultsPerBlock = errors.New("invalid max results per block config")
 
 var log = logger.GetOrCreate("process/executionResultInclusionEstimator")
 
@@ -21,12 +27,6 @@ type RoundHandler interface {
 	IsInterfaceNil() bool
 }
 
-// LastExecutionResultForInclusion is a lightweight summary of the last notarized execution result EIE requires.
-type LastExecutionResultForInclusion struct {
-	NotarizedInRound uint64
-	ProposedInRound  uint64
-}
-
 // ExecutionResultInclusionEstimator (EIE) is a deterministic component shipped with the MultiversX *Supernova*
 // node. It determines, at proposal‑time and at validation‑time, whether one or more pending execution results can be
 // safely embedded in the block that is being produced / verified.
@@ -35,25 +35,43 @@ type ExecutionResultInclusionEstimator struct {
 	tGas         uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
 	roundHandler RoundHandler
 	// TODO add also max estimated block gas capacity - used gas must be lower than this
+	execResSizeComputation ExecResSizeComputationHandler
 }
 
 // NewExecutionResultInclusionEstimator returns a new instance of EIE
-func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEstimatorConfig, roundHandler RoundHandler) *ExecutionResultInclusionEstimator {
+func NewExecutionResultInclusionEstimator(
+	cfg config.ExecutionResultInclusionEstimatorConfig,
+	roundHandler RoundHandler,
+	execResultComputationHandler ExecResSizeComputationHandler,
+) (*ExecutionResultInclusionEstimator, error) {
+	err := checkConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(roundHandler) {
-		log.Error("NewExecutionResultInclusionEstimator: nil roundHandler")
-		return nil
+		return nil, process.ErrNilRoundHandler
 	}
+
 	return &ExecutionResultInclusionEstimator{
-		cfg:          cfg,
-		tGas:         tGas,
-		roundHandler: roundHandler,
+		cfg:                    cfg,
+		tGas:                   tGas,
+		roundHandler:           roundHandler,
+		execResSizeComputation: execResultComputationHandler,
+	}, nil
+}
+
+func checkConfig(cfg config.ExecutionResultInclusionEstimatorConfig) error {
+	if cfg.MaxResultsPerBlock == 0 {
+		return ErrInvalidMaxResultsPerBlock
 	}
+
+	return nil
 }
 
 // Decide returns the prefix of `pending` that may be inserted into the block currently being built / verified.
 // Return value: `allowed` is the count of leading entries in `pending` deemed safe. The caller slices `pending[:allowed]` and embeds them.
 func (erie *ExecutionResultInclusionEstimator) Decide(
-	lastNotarised *LastExecutionResultForInclusion,
+	lastNotarised *common.LastExecutionResultForInclusion,
 	pending []data.BaseExecutionResultHandler,
 	currentRound uint64,
 ) (allowed int) {
@@ -61,6 +79,12 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 
 	if len(pending) == 0 {
 		return allowed
+	}
+
+	nominalSafetyMargin := uint64(100)
+	safetyMargin := erie.cfg.SafetyMargin
+	if erie.cfg.SafetyMargin > nominalSafetyMargin {
+		safetyMargin -= nominalSafetyMargin
 	}
 
 	var roundForTBaseCalculation uint64
@@ -78,15 +102,17 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 	currentHdrTsMs := erie.roundHandler.GetTimeStampForRound(currentRound)
 	currentHdrTsNs := convertMsToNs(currentHdrTsMs)
 
-	// accumulated execution time in ns (1 gas = 1ns)
-	estimatedTime := uint64(0)
-	for i, executionResultMeta := range pending {
-		if i > 0 {
-			previousExecutionResultMeta = pending[i-1]
+	execResSizeLimitChecker := erie.execResSizeComputation.NewComputation()
+
+	// accumulated execution tBase for each pending execution result in ns (1 gas = 1ns)
+	estimatedTBase := tBase
+	for pendingExecutionIndex, executionResultMeta := range pending {
+		if pendingExecutionIndex > 0 {
+			previousExecutionResultMeta = pending[pendingExecutionIndex-1]
 		}
 		ok := erie.checkSanity(executionResultMeta, previousExecutionResultMeta, lastNotarised, currentRound)
 		if !ok {
-			return i
+			return pendingExecutionIndex
 		}
 
 		overflow, currentEstimatedTime := bits.Mul64(executionResultMeta.GetGasUsed(), erie.tGas)
@@ -96,33 +122,38 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 				"gasUsed", executionResultMeta.GetGasUsed(),
 				"tGas", erie.tGas,
 			)
-			return i
+			return pendingExecutionIndex
 		}
 
-		estimatedTime, overflow = bits.Add64(estimatedTime, currentEstimatedTime, 0)
+		// Round timestamp for current execution result, since it is the time when the execution result becomes available
+		tRoundNs := convertMsToNs(erie.roundHandler.GetTimeStampForRound(executionResultMeta.GetHeaderRound()))
+
+		// Align previously estimated tBase with start of round if needed
+		estimatedTBase = max(estimatedTBase, tRoundNs)
+		estimatedTBase, overflow = bits.Add64(estimatedTBase, currentEstimatedTime, 0)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in block transactions time estimation",
-				"estimatedTime", estimatedTime,
+				"estimatedTBase", estimatedTBase,
 				"currentEstimatedTime", currentEstimatedTime)
-			return i
+			return pendingExecutionIndex
 		}
 
-		// Apply safety margin
-		overflow, estimatedTimeWithMargin := bits.Mul64(estimatedTime, erie.cfg.SafetyMargin)
+		// Apply safety margin to current estimated time
+		overflow, currentEstimatedTimeMargin := bits.Mul64(currentEstimatedTime, safetyMargin)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in estimated time with margin",
-				"estimatedTime", estimatedTime,
-				"safetyMargin", erie.cfg.SafetyMargin)
-			return i
+				"currentEstimatedTime", currentEstimatedTime,
+				"safetyMargin", safetyMargin)
+			return pendingExecutionIndex
 		}
-		estimatedTimeWithMargin /= 100
+		currentEstimatedTimeMargin /= nominalSafetyMargin
 
-		tDone, overflow := bits.Add64(tBase, estimatedTimeWithMargin, 0)
+		tDone, overflow := bits.Add64(estimatedTBase, currentEstimatedTimeMargin, 0)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in total estimated time",
-				"tBase", tBase,
-				"estimatedTimeWithMargin", estimatedTimeWithMargin)
-			return i
+				"estimatedTBase", estimatedTBase,
+				"estimatedTimeWithMargin", currentEstimatedTimeMargin)
+			return pendingExecutionIndex
 		}
 
 		// check for time cap reached, cannot include current pending item or anything after
@@ -130,15 +161,22 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 			log.Debug("ExecutionResultInclusionEstimator: estimated time exceeds current header timestamp",
 				"tDone", tDone,
 				"currentHdrTsNs", currentHdrTsNs)
-			return i
+			return pendingExecutionIndex
 		}
 
+		if execResSizeLimitChecker.IsMaxExecResSizeReached(1) {
+			log.Debug("ExecutionResultInclusionEstimator: estimated max size reached",
+				"currentIndex", pendingExecutionIndex)
+			return pendingExecutionIndex
+		}
+		execResSizeLimitChecker.AddNumExecRes(1)
+
 		// check for number of results cap reached, including current pending item. MaxResultsPerBlock = 0 means no cap.
-		if erie.cfg.MaxResultsPerBlock != 0 && uint64(i+1) >= erie.cfg.MaxResultsPerBlock {
+		if uint64(pendingExecutionIndex+1) >= erie.cfg.MaxResultsPerBlock {
 			log.Debug("ExecutionResultInclusionEstimator: reached MaxResultsPerBlock cap",
 				"maxResultsPerBlock", erie.cfg.MaxResultsPerBlock,
-				"currentIndex", i+1)
-			return i + 1
+				"currentIndex", pendingExecutionIndex+1)
+			return pendingExecutionIndex + 1
 		}
 	}
 
@@ -154,7 +192,7 @@ func (erie *ExecutionResultInclusionEstimator) IsInterfaceNil() bool {
 func (erie *ExecutionResultInclusionEstimator) checkSanity(
 	currentExecutionResult data.BaseExecutionResultHandler,
 	previousExecutionResult data.BaseExecutionResultHandler,
-	lastNotarised *LastExecutionResultForInclusion,
+	lastNotarised *common.LastExecutionResultForInclusion,
 	currentRound uint64,
 ) bool {
 	// Check for genesis round

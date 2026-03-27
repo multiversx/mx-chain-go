@@ -40,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -147,7 +148,8 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				MinStakeValue:                        "1",
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
-				UnBondPeriod:                         0,
+				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                0,
 				MaximumPercentageToBleed:             0,
 				BleedPercentagePerRound:              0,
@@ -231,6 +233,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+			AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 		},
 		Crypto: &testsMocks.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
@@ -248,6 +251,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 			KeysHandlerField:        &testscommon.KeysHandlerStub{},
+			SigHandler:              &consensusMocks.SigningHandlerStub{},
 		},
 		Network: &testsMocks.NetworkComponentsStub{
 			Messenger:                        &p2pmocks.MessengerStub{},

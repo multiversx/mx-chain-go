@@ -26,8 +26,10 @@ type BlockTrackerMock struct {
 	AddCrossNotarizedHeaderCalled                      func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
 	AddSelfNotarizedHeaderCalled                       func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
 	CheckBlockAgainstFinalCalled                       func(headerHandler data.HeaderHandler) error
+	CheckProofAgainstFinalCalled                       func(proof data.HeaderProofHandler) error
 	CheckBlockAgainstRoundHandlerCalled                func(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelistCalled                   func(interceptedData process.InterceptedData) bool
+	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
+	CheckAgainstWhitelistCalled                        func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarizedCalled     func() ([]data.HeaderHandler, [][]byte, error)
@@ -184,10 +186,28 @@ func (btm *BlockTrackerMock) CheckBlockAgainstFinal(headerHandler data.HeaderHan
 	return nil
 }
 
-// CheckBlockAgainstWhitelist -
-func (btm *BlockTrackerMock) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
-	if btm.CheckBlockAgainstWhitelistCalled != nil {
-		return btm.CheckBlockAgainstWhitelistCalled(interceptedData)
+// CheckProofAgainstFinal -
+func (btm *BlockTrackerMock) CheckProofAgainstFinal(proof data.HeaderProofHandler) error {
+	if btm.CheckProofAgainstFinalCalled != nil {
+		return btm.CheckProofAgainstFinalCalled(proof)
+	}
+
+	return nil
+}
+
+// CheckProofAgainstRoundHandler -
+func (btm *BlockTrackerMock) CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error {
+	if btm.CheckProofAgainstRoundHandlerCalled != nil {
+		return btm.CheckProofAgainstRoundHandlerCalled(proof)
+	}
+
+	return nil
+}
+
+// CheckAgainstWhitelist -
+func (btm *BlockTrackerMock) CheckAgainstWhitelist(interceptedData process.InterceptedData) bool {
+	if btm.CheckAgainstWhitelistCalled != nil {
+		return btm.CheckAgainstWhitelistCalled(interceptedData)
 	}
 
 	return false

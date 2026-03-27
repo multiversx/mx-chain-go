@@ -76,6 +76,7 @@ func NewMetaForkDetector(
 		proofsPool:             proofsPool,
 		chainParametersHandler: chainParametersHandler,
 		processConfigsHandler:  processConfigsHandler,
+		shardID:                core.MetachainShardId,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)

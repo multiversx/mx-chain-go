@@ -18,6 +18,7 @@ type SelectionSession interface {
 	GetAccountNonceAndBalance(accountKey []byte) (uint64, *big.Int, bool, error)
 	GetRootHash() ([]byte, error)
 	IsIncorrectlyGuarded(tx data.TransactionHandler) bool
+	IsGuarded(tx data.TransactionHandler) bool
 	IsInterfaceNil() bool
 }
 
@@ -27,6 +28,8 @@ type ForEachTransaction func(txHash []byte, value *WrappedTransaction)
 // txCacheForSelectionTracker provides the TxCache methods used in SelectionTracker
 type txCacheForSelectionTracker interface {
 	GetByTxHash(txHash []byte) (*WrappedTransaction, bool)
+	SetSelectionOffsetsByLastNonce(lastNoncePerSender map[string]uint64)
+	ResetSelectionOffsetsToNonce(sendersWithFirstNonce map[string]uint64)
 	IsInterfaceNil() bool
 }
 

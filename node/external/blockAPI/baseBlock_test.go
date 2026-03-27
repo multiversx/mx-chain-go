@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	dblookupext2 "github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -47,6 +46,7 @@ func createBaseBlockProcessor() *baseAPIBlockProcessor {
 		logsFacade:               &testscommon.LogsFacadeStub{},
 		receiptsRepository:       &testscommon.ReceiptsRepositoryStub{},
 		enableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		enableRoundsHandler:      &testscommon.EnableRoundsHandlerStub{},
 	}
 }
 
@@ -73,7 +73,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	_ = storer.Put(scrHash, scResultBytes)
 
 	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
-		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
+		LoadReceiptsCalled: func(_ []byte, header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
 			return holders.NewReceiptsHolder([]*block.MiniBlock{miniblock}), nil
 		},
 	}
@@ -89,7 +89,7 @@ func TestBaseBlockGetIntraMiniblocksSCRS(t *testing.T) {
 	}
 
 	blockHeader := &block.Header{ReceiptsHash: []byte("aaaa"), Epoch: 0}
-	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
+	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
 		Hash: "f4add7b23eb83cf290422b0f6b770e3007b8ed3cd9683797fc90c8b4881f27bd",
@@ -134,7 +134,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	_ = storer.Put(receiptHash, receiptBytes)
 
 	baseAPIBlockProc.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
-		LoadReceiptsCalled: func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
+		LoadReceiptsCalled: func(_ []byte, header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
 			return holders.NewReceiptsHolder([]*block.MiniBlock{miniblock}), nil
 		},
 	}
@@ -154,7 +154,7 @@ func TestBaseBlockGetIntraMiniblocksReceipts(t *testing.T) {
 	}
 
 	blockHeader := &block.Header{ReceiptsHash: []byte("aaaa"), Epoch: 0}
-	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
+	intraMbs, err := baseAPIBlockProc.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), blockHeader, []byte{}, api.BlockQueryOptions{WithTransactions: true})
 	require.Nil(t, err)
 	require.Equal(t, &api.MiniBlock{
 		Hash: "596545f64319f2fcf8e0ebae06f40f3353d603f6070255588a48018c7b30c951",
@@ -905,63 +905,18 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 	t.Parallel()
 
 	baseAPIBlockProc := createBaseBlockProcessor()
-	baseAPIBlockProc.txStatusComputer = &mock.StatusComputerStub{
-		ComputeStatusWhenInStorageKnowingMiniblockCalled: func(mbType block.Type, tx *transaction.ApiTransactionResult) (transaction.TxStatus, error) {
-			return transaction.TxStatusPending, nil
-		},
-	}
 
 	blockHeader := &block.Header{
 		Nonce: 100,
 		Round: 1000,
 		Epoch: 5,
-		MiniBlockHeaders: []block.MiniBlockHeader{
-			{
-				Hash:            []byte("mb_hash_1"),
-				SenderShardID:   0,
-				ReceiverShardID: 1,
-				TxCount:         2,
-			},
-		},
 	}
-
-	// Create miniblock data
-	mb1 := &block.MiniBlock{
-		TxHashes: [][]byte{
-			[]byte("tx_hash_1"),
-			[]byte("tx_hash_2"),
-		},
-	}
-	mbBytes, _ := baseAPIBlockProc.marshalizer.Marshal(mb1)
-
-	tx1 := &transaction.Transaction{
-		Nonce: 1,
-	}
-	tx1Bytes, _ := baseAPIBlockProc.marshalizer.Marshal(tx1)
 
 	baseAPIBlockProc.store = &storageMocks.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageMocks.StorerStub{
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-					if string(key) == "header_hash" {
-						return nil, dblookupext2.ErrNotFoundInStorage
-					}
-					if string(key) == "mb_hash_1" {
-						return mbBytes, nil
-					}
 					return nil, errors.New("not found")
-				},
-				GetBulkFromEpochCalled: func(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error) {
-					return []data.KeyValuePair{
-						{
-							Key:   []byte("tx_hash_1"),
-							Value: tx1Bytes,
-						},
-						{
-							Key:   []byte("tx_hash_2"),
-							Value: tx1Bytes,
-						},
-					}, nil
 				},
 			}, nil
 		},
@@ -988,15 +943,7 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 		[]byte("header_hash"),
 		api.BlockQueryOptions{WithTransactions: true},
 	)
-
-	require.NoError(t, err)
-	require.NotNil(t, apiBlock.MiniBlocks)
-	require.Equal(t, 1, len(apiBlock.MiniBlocks))
-	require.Equal(t, 2, len(apiBlock.MiniBlocks[0].Transactions))
-	// All transactions should have pending status when no execution result is found
-	for _, tx := range apiBlock.MiniBlocks[0].Transactions {
-		require.Equal(t, transaction.TxStatusPending, tx.Status)
-	}
+	require.Equal(t, errBlockNotFound, err)
 }
 
 func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResult_UnmarshalError(t *testing.T) {
@@ -1134,4 +1081,29 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "miniblock not found")
+}
+
+func TestGetNumExecutedTx(t *testing.T) {
+	t.Parallel()
+
+	t.Run("meta execution result should work ok", func(t *testing.T) {
+		t.Parallel()
+
+		metaExecutionResult := &block.MetaExecutionResult{
+			ExecutedTxCount: 100,
+		}
+		require.Equal(t, uint64(100), getNumExecutedTx(metaExecutionResult))
+	})
+	t.Run("execution result should work ok ", func(t *testing.T) {
+		metaExecutionResult := &block.ExecutionResult{
+			ExecutedTxCount: 100,
+		}
+		require.Equal(t, uint64(100), getNumExecutedTx(metaExecutionResult))
+	})
+	t.Run("base execution results should return 0", func(t *testing.T) {
+		t.Parallel()
+
+		baseExecutionResult := &block.BaseExecutionResult{}
+		require.Equal(t, uint64(0), getNumExecutedTx(baseExecutionResult))
+	})
 }

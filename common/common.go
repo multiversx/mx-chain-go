@@ -14,10 +14,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/errors"
 )
 
 const (
@@ -46,6 +46,16 @@ func PrepareLogEventsKey(headerHash []byte) []byte {
 // PrepareOrderedTxHashesKey will prepare transactions execution order key for cacher
 func PrepareOrderedTxHashesKey(headerHash []byte) []byte {
 	return append([]byte("execution"), headerHash...)
+}
+
+// PrepareHeaderGasDataKey will prepare header gas data key for cacher
+func PrepareHeaderGasDataKey(headerHash []byte) []byte {
+	return append([]byte("gas"), headerHash...)
+}
+
+// PrepareUnexecutableTxHashesKey will prepare unexecutable transaction hashes key for cacher
+func PrepareUnexecutableTxHashesKey(headerHash []byte) []byte {
+	return append([]byte("unexecutable"), headerHash...)
 }
 
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
@@ -258,16 +268,20 @@ func GetHeaderTimestamps(
 	if check.IfNil(header) {
 		return 0, 0, ErrNilHeaderHandler
 	}
+
+	headerTimestamp := header.GetTimeStamp()
+	return PrepareTimestampBasedOnHeaderData(headerTimestamp, header.GetEpoch(), enableEpochsHandler)
+}
+
+// PrepareTimestampBasedOnHeaderData will prepare timestamp based on the provided data
+func PrepareTimestampBasedOnHeaderData(headerTimestamp uint64, headerEpoch uint32, enableEpochsHandler EnableEpochsHandler) (uint64, uint64, error) {
 	if check.IfNil(enableEpochsHandler) {
 		return 0, 0, errors.ErrNilEnableEpochsHandler
 	}
-
-	headerTimestamp := header.GetTimeStamp()
-
 	timestampSec := headerTimestamp
 	timestampMs := headerTimestamp
 
-	if !enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, header.GetEpoch()) {
+	if !enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, headerEpoch) {
 		timestampMs = ConvertTimeStampSecToMs(headerTimestamp)
 		return timestampSec, timestampMs, nil
 	}
@@ -588,50 +602,17 @@ func GetMiniBlockHeadersFromExecResult(header data.HeaderHandler) ([]data.MiniBl
 	return mbHeaderHandlers, nil
 }
 
-// GetAccumulatedFeesInEpoch returns the accumulated fees in epoch from the header
-func GetAccumulatedFeesInEpoch(header data.HeaderHandler) *big.Int {
-	if check.IfNil(header) {
-		return big.NewInt(0)
+// GetFeePayer returns the address that pays the fee for this transaction.
+// For relayed v3 transactions, the fee payer is the relayer; otherwise it is the sender.
+func GetFeePayer(tx data.TransactionHandler) []byte {
+	if check.IfNil(tx) {
+		return nil
 	}
 
-	if !header.IsHeaderV3() {
-		metaHeader, ok := header.(data.MetaHeaderHandler)
-		if !ok {
-			return big.NewInt(0)
-		}
-
-		return metaHeader.GetAccumulatedFeesInEpoch()
+	relayedTx, ok := tx.(data.RelayedTransactionHandler)
+	if ok && len(relayedTx.GetRelayerAddr()) > 0 {
+		return relayedTx.GetRelayerAddr()
 	}
 
-	metaExecutionResult, ok := header.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
-	if !ok {
-		log.Warn("GetAccumulatedFeesInEpoch cannot cast last execution result handler to data.LastMetaExecutionResultHandler")
-		return big.NewInt(0)
-	}
-
-	return metaExecutionResult.GetExecutionResultHandler().GetAccumulatedFeesInEpoch()
-}
-
-// GetDeveloperFeesInEpoch returns the developer fees in epoch from the header
-func GetDeveloperFeesInEpoch(header data.HeaderHandler) *big.Int {
-	if check.IfNil(header) {
-		return big.NewInt(0)
-	}
-
-	if !header.IsHeaderV3() {
-		metaHeader, ok := header.(data.MetaHeaderHandler)
-		if !ok {
-			return big.NewInt(0)
-		}
-
-		return metaHeader.GetDevFeesInEpoch()
-	}
-
-	metaExecutionResult, ok := header.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
-	if !ok {
-		log.Warn("GetDeveloperFeesInEpoch cannot cast last execution result handler to data.LastMetaExecutionResultHandler")
-		return big.NewInt(0)
-	}
-
-	return metaExecutionResult.GetExecutionResultHandler().GetDevFeesInEpoch()
+	return tx.GetSndAddr()
 }

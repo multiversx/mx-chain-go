@@ -3,6 +3,7 @@ package block
 import (
 	"math/big"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -13,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -22,9 +25,9 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -47,6 +50,9 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
+
+// HashAndHdr -
+type HashAndHdr = hashAndHdr
 
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
@@ -89,6 +95,11 @@ func (bp *baseProcessor) GetPruningHandler(finalHeaderNonce uint64) state.Prunin
 	return bp.getPruningHandler(finalHeaderNonce)
 }
 
+// SetClosingNodeStarted -
+func (bp *baseProcessor) SetClosingNodeStarted(val bool) {
+	bp.closingNodeStarted.Store(val)
+}
+
 // SetLastRestartNonce -
 func (bp *baseProcessor) SetLastRestartNonce(lastRestartNonce uint64) {
 	bp.lastRestartNonce = lastRestartNonce
@@ -105,13 +116,13 @@ func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, m
 }
 
 // GetOrderedProcessedMetaBlocksFromHeader -
-func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, []*hashAndHdr, error) {
 	return sp.getOrderedProcessedMetaBlocksFromHeader(header)
 }
 
 // UpdateCrossShardInfo -
-func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHandler) error {
-	return sp.updateCrossShardInfo(processedMetaHdrs)
+func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHandler, partialProcessedMetaBlocks []*hashAndHdr) error {
+	return sp.updateCrossShardInfo(processedMetaHdrs, partialProcessedMetaBlocks)
 }
 
 // UpdateStateStorage -
@@ -164,6 +175,7 @@ func NewShardProcessorEmptyWith3shards(
 				NumFloodingRoundsFastReacting:          30,
 				NumFloodingRoundsOutOfSpecs:            40,
 				MaxConsecutiveRoundsOfRatingDecrease:   600,
+				MaxBlockProcessingTimeMs:               1000,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
@@ -182,6 +194,7 @@ func NewShardProcessorEmptyWith3shards(
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
 		ProcessConfigsHandlerField:         processConfigsHandler,
+		ClosingNodeStartedField:            &atomic.Bool{},
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &storageStubs.ChainStorerStub{},
@@ -216,24 +229,27 @@ func NewShardProcessorEmptyWith3shards(
 		coreComponents.Hasher(),
 	)
 
-	blocksQueue := queue.NewBlocksQueue()
+	blocksCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
-		BlocksQueue:             blocksQueue,
+		BlocksCache:             blocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.Datapool().Headers(),
+		PostProcessTransactions: dataComponents.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.DataPool.ExecutedMiniBlocks(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
 		ShardCoordinator:        boostrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		coreComponents.RoundHandler(),
+		&testscommon.ExecResSizeComputationStub{},
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
@@ -250,6 +266,7 @@ func NewShardProcessorEmptyWith3shards(
 		GasHandler:                        &mock.GasHandlerMock{},
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasComputation, _ := NewGasConsumption(argsGasConsumption)
 
@@ -296,6 +313,7 @@ func NewShardProcessorEmptyWith3shards(
 			GasComputation:                     gasComputation,
 			ExecutionManager:                   execManager,
 			TxExecutionOrderHandler:            &commonMocks.TxExecutionOrderHandlerStub{},
+			AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -304,7 +322,7 @@ func NewShardProcessorEmptyWith3shards(
 	}
 
 	argsHeaderExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      blocksQueue,
+		BlocksCache:      blocksCache,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   shardProc,
 		BlockChain:       dataComponents.BlockChain,
@@ -1071,8 +1089,8 @@ func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (c
 }
 
 // CheckContextBeforeExecution -
-func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
-	return bp.checkAndUpdateContextBeforeExecution(header)
+func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler, headerHash []byte) error {
+	return bp.checkAndUpdateContextBeforeExecution(header, headerHash)
 }
 
 // SaveProposedTxsToStorage -
@@ -1144,7 +1162,7 @@ func (mp *metaProcessor) GetCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHand
 func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	header data.HeaderHandler,
 	miniBlockHashes map[int][]byte,
-) ([]data.HeaderHandler, error) {
+) ([]data.HeaderHandler, []*hashAndHdr, error) {
 	return sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
 }
 
@@ -1154,4 +1172,19 @@ func (bp *baseProcessor) ExcludeRevertedExecutionResultsForHeader(
 	pendingExecutionResults []data.BaseExecutionResultHandler,
 ) []data.BaseExecutionResultHandler {
 	return bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
+}
+
+// SaveExecutionResult -
+func (bp *baseProcessor) SaveExecutionResult(
+	execResult data.BaseExecutionResultHandler,
+) error {
+	return bp.saveExecutionResult(execResult)
+}
+
+// WaitForExecutionResultsVerification -
+func (bp *baseProcessor) WaitForExecutionResultsVerification(
+	header data.HeaderHandler,
+	haveTime func() time.Duration,
+) error {
+	return bp.waitForExecutionResultsVerification(header, haveTime)
 }

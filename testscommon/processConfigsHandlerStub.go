@@ -1,6 +1,8 @@
 package testscommon
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/common/configs/dto"
@@ -29,6 +31,8 @@ func GetDefaultProcessConfigsHandler() common.ProcessConfigsHandler {
 				NumFloodingRoundsFastReacting:          30,
 				NumFloodingRoundsOutOfSpecs:            40,
 				MaxConsecutiveRoundsOfRatingDecrease:   600,
+				MaxBlockProcessingTimeMs:               1000,
+				NumHeadersToRequestInAdvance:           10,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
@@ -49,6 +53,8 @@ type ProcessConfigsHandlerStub struct {
 	GetMaxRoundsToKeepUnprocessedTransactionsCalled   func(round uint64) uint64
 	GetMaxRoundsToKeepUnprocessedMiniBlocksCalled     func(round uint64) uint64
 	GetValueCalled                                    func(variable dto.ConfigVariable) uint64
+	GetMaxBlockProcessingTimeCalled                   func(round uint64) time.Duration
+	GetNumHeadersToRequestInAdvanceCalled             func(round uint64) uint64
 }
 
 // GetMaxMetaNoncesBehindByEpoch -
@@ -138,6 +144,24 @@ func (p *ProcessConfigsHandlerStub) GetValue(variable dto.ConfigVariable) uint64
 	}
 
 	return 1
+}
+
+// GetMaxBlockProcessingTime -
+func (p *ProcessConfigsHandlerStub) GetMaxBlockProcessingTime(round uint64) time.Duration {
+	if p.GetMaxBlockProcessingTimeCalled != nil {
+		return p.GetMaxBlockProcessingTimeCalled(round)
+	}
+
+	return time.Millisecond
+}
+
+// GetNumHeadersToRequestInAdvance -
+func (p *ProcessConfigsHandlerStub) GetNumHeadersToRequestInAdvance(round uint64) uint64 {
+	if p.GetNumHeadersToRequestInAdvanceCalled != nil {
+		return p.GetNumHeadersToRequestInAdvanceCalled(round)
+	}
+
+	return 10
 }
 
 // IsInterfaceNil -

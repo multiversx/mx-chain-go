@@ -120,13 +120,36 @@ func (wr *WidgetsRender) RefreshData(numMillisecondsRefreshTime int) {
 	wr.prepareLoads()
 }
 
+func (wr *WidgetsRender) getShardIdStr() string {
+	currentRound := wr.presenter.GetCurrentRound()
+	nodesProcessed := wr.presenter.GetTrieSyncNumProcessedNodes()
+	isNodeSyncingTrie := nodesProcessed != 0
+
+	synchronizedRound := wr.presenter.GetSynchronizedRound()
+	isRoundNotSynchronized := synchronizedRound < currentRound
+
+	isNodeSyncing := isNodeSyncingTrie || isRoundNotSynchronized || currentRound == 0
+
+	if isNodeSyncing {
+		return statusNotApplicable
+	}
+
+	shardID := wr.presenter.GetShardId()
+
+	shardIdStr := fmt.Sprintf("%d", shardID)
+	if shardID == uint64(core.MetachainShardId) {
+		shardIdStr = "meta"
+	}
+
+	return shardIdStr
+}
+
 func (wr *WidgetsRender) prepareInstanceInfo() {
 	// 8 rows and one column
 	numRows := 8
 	rows := make([][]string, numRows)
 
 	nodeName := wr.presenter.GetNodeName()
-	shardId := wr.presenter.GetShardId()
 	instanceType := wr.presenter.GetNodeType()
 	peerType := wr.presenter.GetPeerType()
 	peerSubType := wr.presenter.GetPeerSubType()
@@ -139,15 +162,12 @@ func (wr *WidgetsRender) prepareInstanceInfo() {
 	if peerSubType == core.FullHistoryObserver.String() {
 		nodeTypeAndListDisplay += " - full archive"
 	}
-	shardIdStr := fmt.Sprintf("%d", shardId)
-	if shardId == uint64(core.MetachainShardId) {
-		shardIdStr = "meta"
-	}
+
 	wr.instanceInfo.RowStyles[0] = ui.NewStyle(ui.ColorYellow)
 	rows[0] = []string{
 		fmt.Sprintf("Node name: %s (Shard %s - %s)",
 			nodeName,
-			shardIdStr,
+			wr.getShardIdStr(),
 			nodeTypeAndListDisplay,
 		),
 	}
@@ -263,7 +283,7 @@ func (wr *WidgetsRender) prepareChainInfo(numMillisecondsRefreshTime int) {
 		synchronizedRound, currentRound)}
 
 	consensusRoundTime := wr.presenter.GetRoundTime()
-	rows[7] = []string{fmt.Sprintf("Consensus round time: %ds", consensusRoundTime)}
+	rows[7] = []string{fmt.Sprintf("Consensus round time: %dms", consensusRoundTime)}
 
 	numConnectedPeers := wr.presenter.GetNumConnectedPeers()
 	numLiveValidators := wr.presenter.GetLiveValidatorNodes()
@@ -303,9 +323,20 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	numRows := 10
 	rows := make([][]string, numRows)
 
-	currentBlockHeight := wr.presenter.GetNonce()
+	currentBlockHeight := wr.presenter.GetProposedNonce()
 	blockSize := wr.presenter.GetBlockSize()
-	rows[0] = []string{fmt.Sprintf("Current block height: %d, size: %s", currentBlockHeight, core.ConvertBytes(blockSize))}
+	lastExecutedNonce := wr.presenter.GetLastExecutedNonce()
+	lastNotarizedExecutedNonce := wr.presenter.GetNonce()
+
+	if currentBlockHeight == 0 {
+		currentBlockHeight = lastNotarizedExecutedNonce
+	}
+
+	if lastExecutedNonce == 0 {
+		lastExecutedNonce = currentBlockHeight
+	}
+
+	rows[0] = []string{fmt.Sprintf("Current block height: %d, size: %s, last executed nonce: %d, last notarized executed nonce: %d", currentBlockHeight, core.ConvertBytes(blockSize), lastExecutedNonce, lastNotarizedExecutedNonce)}
 
 	numTransactionInBlock := wr.presenter.GetNumTxInBlock()
 	numMiniBlocks := wr.presenter.GetNumMiniBlocks()

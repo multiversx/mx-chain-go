@@ -22,12 +22,16 @@ type statusMetrics struct {
 	mutInt64Operations sync.RWMutex
 
 	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 }
 
 // NewStatusMetrics will return an instance of the struct
-func NewStatusMetrics(enableEpochsHandler common.EnableEpochsHandler) (*statusMetrics, error) {
+func NewStatusMetrics(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) (*statusMetrics, error) {
 	if check.IfNil(enableEpochsHandler) {
 		return nil, ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(enableRoundsHandler) {
+		return nil, ErrNilEnableRoundsHandler
 	}
 
 	return &statusMetrics{
@@ -35,6 +39,7 @@ func NewStatusMetrics(enableEpochsHandler common.EnableEpochsHandler) (*statusMe
 		stringMetrics:       make(map[string]string),
 		int64Metrics:        make(map[string]int64),
 		enableEpochsHandler: enableEpochsHandler,
+		enableRoundsHandler: enableRoundsHandler,
 	}, nil
 }
 
@@ -428,6 +433,11 @@ func (sm *statusMetrics) EnableEpochsMetricsV2() map[string]uint32 {
 	return sm.enableEpochsHandler.GetAllEnableEpochs()
 }
 
+// EnableRoundsMetrics returns all enable round flags with their activation rounds
+func (sm *statusMetrics) EnableRoundsMetrics() map[string]uint64 {
+	return sm.enableRoundsHandler.GetAllEnableRounds()
+}
+
 // NetworkMetrics will return metrics related to current configuration
 func (sm *statusMetrics) NetworkMetrics() (map[string]interface{}, error) {
 	networkMetrics := make(map[string]interface{})
@@ -448,6 +458,7 @@ func (sm *statusMetrics) saveUint64NetworkMetricsInMap(networkMetrics map[string
 	currentNonce := sm.uint64Metrics[common.MetricNonce]
 	nonceAtEpochStart := sm.uint64Metrics[common.MetricNonceAtEpochStart]
 	networkMetrics[common.MetricNonce] = currentNonce
+	networkMetrics[common.MetricLastExecutedNonce] = sm.uint64Metrics[common.MetricLastExecutedNonce]
 	networkMetrics[common.MetricBlockTimestamp] = sm.uint64Metrics[common.MetricBlockTimestamp]
 	networkMetrics[common.MetricBlockTimestampMs] = sm.uint64Metrics[common.MetricBlockTimestampMs]
 	networkMetrics[common.MetricHighestFinalBlock] = sm.uint64Metrics[common.MetricHighestFinalBlock]

@@ -9,51 +9,72 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
+var log = logger.GetOrCreate("process/asyncExecution/executionTrack")
+
 type executionResultsTracker struct {
-	lastNotarizedResult    data.BaseExecutionResultHandler
-	mutex                  sync.RWMutex
-	executionResultsByHash map[string]data.BaseExecutionResultHandler
-	nonceHash              *nonceHash
-	lastExecutedResultHash []byte
+	lastNotarizedResult      data.BaseExecutionResultHandler
+	mutex                    sync.RWMutex
+	executionResultsByHash   map[string]data.BaseExecutionResultHandler
+	nonceHash                *nonceHash
+	lastExecutedResultHash   []byte
+	consensusCommittedHashes map[uint64][]byte // tracks which hash was committed by consensus for each nonce
 }
 
 // NewExecutionResultsTracker will create a new instance of *executionResultsTracker
 func NewExecutionResultsTracker() *executionResultsTracker {
 	return &executionResultsTracker{
-		executionResultsByHash: make(map[string]data.BaseExecutionResultHandler),
-		nonceHash:              newNonceHash(),
+		executionResultsByHash:   make(map[string]data.BaseExecutionResultHandler),
+		nonceHash:                newNonceHash(),
+		consensusCommittedHashes: make(map[uint64][]byte),
 	}
 }
 
-// AddExecutionResult will add the provided execution result in tracker
-// It will return true if the execution result was added in the tracker
-func (ert *executionResultsTracker) AddExecutionResult(executionResult data.BaseExecutionResultHandler) error {
+// AddExecutionResult will add the provided execution result in tracker.
+// It returns true if the execution result was added, false if it was rejected
+// because consensus already committed a different block for this nonce.
+func (ert *executionResultsTracker) AddExecutionResult(executionResult data.BaseExecutionResultHandler) (bool, error) {
 	if executionResult == nil {
-		return ErrNilExecutionResult
+		return false, ErrNilExecutionResult
 	}
 
 	ert.mutex.Lock()
 	defer ert.mutex.Unlock()
 	if ert.lastNotarizedResult == nil {
-		return ErrNilLastNotarizedExecutionResult
+		return false, ErrNilLastNotarizedExecutionResult
 	}
 
 	if ert.lastNotarizedResult.GetHeaderNonce() >= executionResult.GetHeaderNonce() {
-		return fmt.Errorf("%w nonce(%d) is lower than last notarized nonce(%d)", ErrWrongExecutionResultNonce, executionResult.GetHeaderNonce(), ert.lastNotarizedResult.GetHeaderNonce())
+		return false, fmt.Errorf("%w nonce(%d) is lower than last notarized nonce(%d)", ErrWrongExecutionResultNonce, executionResult.GetHeaderNonce(), ert.lastNotarizedResult.GetHeaderNonce())
+	}
+	// Check if consensus already committed a different block for this nonce
+	committedHash, hasCommitted := ert.consensusCommittedHashes[executionResult.GetHeaderNonce()]
+	if hasCommitted && !bytes.Equal(committedHash, executionResult.GetHeaderHash()) {
+		log.Debug("AddExecutionResult: rejecting result because consensus committed different block",
+			"nonce", executionResult.GetHeaderNonce(),
+			"result_hash", executionResult.GetHeaderHash(),
+			"committed_hash", committedHash,
+		)
+		return false, nil // Reject without error - this is expected in race scenarios
 	}
 
 	lastExecutedResult, err := ert.getLastExecutionResult()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	last := lastExecutedResult.GetHeaderNonce()
 	current := executionResult.GetHeaderNonce()
 	isNextOrSameNonce := current == last || current == last+1
 	if !isNextOrSameNonce {
-		return fmt.Errorf("%w nonce(%d) should be equal to the subsequent nonce after last executed(%d)", ErrWrongExecutionResultNonce, executionResult.GetHeaderNonce(), lastExecutedResult.GetHeaderNonce())
+		return false, fmt.Errorf("%w nonce(%d) should be equal to the subsequent nonce after last executed(%d)", ErrWrongExecutionResultNonce, executionResult.GetHeaderNonce(), lastExecutedResult.GetHeaderNonce())
+	}
+
+	executionResultByHash := ert.nonceHash.getHashByNonce(executionResult.GetHeaderNonce())
+	if len(executionResultByHash) > 0 {
+		delete(ert.executionResultsByHash, executionResultByHash)
 	}
 
 	ert.executionResultsByHash[string(executionResult.GetHeaderHash())] = executionResult
@@ -61,7 +82,7 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 
 	ert.lastExecutedResultHash = executionResult.GetHeaderHash()
 
-	return nil
+	return true, nil
 }
 
 func (ert *executionResultsTracker) getLastExecutionResult() (data.BaseExecutionResultHandler, error) {
@@ -207,10 +228,48 @@ func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 }
 
 func (ert *executionResultsTracker) cleanExecutionResults(executionResult []data.BaseExecutionResultHandler) {
+	ert.removeExecutionResultsFromMaps(executionResult)
+	for _, result := range executionResult {
+		delete(ert.consensusCommittedHashes, result.GetHeaderNonce())
+	}
+}
+
+// removeExecutionResultsFromMaps removes execution results from the internal maps
+// but preserves consensusCommittedHashes entries to continue blocking stale results
+func (ert *executionResultsTracker) removeExecutionResultsFromMaps(executionResult []data.BaseExecutionResultHandler) {
 	for _, result := range executionResult {
 		delete(ert.executionResultsByHash, string(result.GetHeaderHash()))
 		ert.nonceHash.removeByNonce(result.GetHeaderNonce())
 	}
+}
+
+// CleanOnConsensusReached will clean the execution results tracker when consensus is reached
+// If the pending execution result for the given nonce has a different hash than the one that
+// passed consensus, remove it and all higher nonces from the tracker.
+// It also records the committed hash to prevent stale results from being added later.
+func (ert *executionResultsTracker) CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler) {
+	if check.IfNil(header) {
+		return
+	}
+
+	ert.mutex.Lock()
+	defer ert.mutex.Unlock()
+
+	if header.IsHeaderV3() {
+		// record the committed hash to prevent stale results being added later
+		ert.consensusCommittedHashes[header.GetNonce()] = headerHash
+	}
+
+	pendingExecutionResult, err := ert.getPendingExecutionResultsByNonce(header.GetNonce())
+	if err != nil {
+		return
+	}
+
+	if bytes.Equal(pendingExecutionResult.GetHeaderHash(), headerHash) {
+		return
+	}
+
+	_ = ert.removePendingFromNonceUnprotected(header.GetNonce())
 }
 
 // GetLastNotarizedExecutionResult will return the last notarized execution result
@@ -283,7 +342,9 @@ func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint
 		return nil
 	}
 
-	ert.cleanExecutionResults(resultsToRemove)
+	// Remove from executionResultsByHash and nonceHash, but preserve consensusCommittedHashes
+	// to continue blocking stale results from being added for these nonces
+	ert.removeExecutionResultsFromMaps(resultsToRemove)
 
 	pendingExecutionResults, err := ert.getPendingExecutionResults()
 	if err != nil {

@@ -17,8 +17,9 @@ import (
 // TxCache defines the functionality for the transactions cache
 type TxCache interface {
 	SelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions, currentBlockNonce uint64) ([]*txcache.WrappedTransaction, uint64, error)
-	SimulateSelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error)
+	SimulateSelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions, currentNonce uint64) ([]*txcache.WrappedTransaction, uint64, error)
 	GetVirtualNonceAndRootHash(sender []byte) (uint64, []byte, error)
+	SetAOTSelectionPreempter(preempter common.AOTSelectionPreempter)
 	IsInterfaceNil() bool
 }
 
@@ -33,7 +34,9 @@ type BlockTracker interface {
 type BlockSizeComputationHandler interface {
 	Init()
 	AddNumMiniBlocks(numMiniBlocks int)
+	DecNumMiniBlocks(numMiniBlocks int)
 	AddNumTxs(numTxs int)
+	DecNumTxs(numTxs int)
 	IsMaxBlockSizeReached(numNewMiniBlocks int, numNewTxs int) bool
 	IsMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks int, numNewTxs int) bool
 	IsInterfaceNil() bool

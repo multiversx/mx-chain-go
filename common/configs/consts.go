@@ -2,7 +2,7 @@ package configs
 
 const (
 	minRoundsToKeepUnprocessedData = uint64(1)
-	minFloodingRounds              = 2
+	minBlockProcessingTimeMs       = uint32(1)
 )
 
 const (
@@ -15,9 +15,8 @@ const (
 	defaultMaxSyncWithErrorsAllowed               = 20
 	defaultMaxRoundsToKeepUnprocessedMiniBlocks   = 3000
 	defaultMaxRoundsToKeepUnprocessedTransactions = 3000
-	defaultNumFloodingRoundsFastReacting          = 20
-	defaultNumFloodingRoundsSlowReacting          = 20
-	defaultNumFloodingRoundsOutOfSpecs            = 20
 	defaultMaxConsecutiveRoundsOfRatingDecrease   = 600
 	defaultMaxRoundsOfInactivityAccepted          = 3
+	defaultMaxBlockProcessingTimeMs               = 100
+	defaultNumHeadersToRequestInAdvance           = 10
 )

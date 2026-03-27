@@ -35,10 +35,11 @@ import (
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
@@ -181,6 +182,7 @@ var TestProcessConfigsHandler, _ = configs.NewProcessConfigsHandler([]config.Pro
 			NumFloodingRoundsFastReacting:          30,
 			NumFloodingRoundsOutOfSpecs:            40,
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
+			MaxBlockProcessingTimeMs:               1000,
 		},
 	},
 	forking.NewGenericRoundNotifier(),
@@ -209,6 +211,9 @@ var TestMultiSig = cryptoMocks.NewMultiSigner()
 
 // TestKeyGenForAccounts represents a mock key generator for balances
 var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
+
+// TestBlsKeyGen represents a mock key generator for pub keys
+var TestBlsKeyGen = signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
@@ -340,7 +345,7 @@ type ArgTestProcessorNode struct {
 	NodeKeys                *TestNodeKeys
 	NodesSetup              sharding.GenesisNodesSetupHandler
 	NodesCoordinator        nodesCoordinator.NodesCoordinator
-	MultiSigner             crypto.MultiSigner
+	MultiSigner             crypto.MultiSignerV2
 	RatingsData             *rating.RatingsData
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
@@ -415,7 +420,7 @@ type TestProcessorNode struct {
 
 	ForkDetector             process.ForkDetector
 	BlockProcessor           process.BlockProcessor
-	BlocksQueue              process.BlocksQueue
+	BlocksCache              process.BlocksCache
 	ExecutionManager         process.ExecutionManager
 	BroadcastMessenger       consensus.BroadcastMessenger
 	MiniblocksProvider       process.MiniBlockProvider
@@ -432,7 +437,7 @@ type TestProcessorNode struct {
 	EpochStartNotifier notifier.EpochStartNotifier
 	EpochProvider      dataRetriever.CurrentNetworkEpochProviderHandler
 
-	MultiSigner             crypto.MultiSigner
+	MultiSigner             crypto.MultiSignerV2
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	GuardedAccountHandler   process.GuardedAccountHandler
@@ -692,6 +697,7 @@ func (tpn *TestProcessorNode) Close() {
 	_ = tpn.MainMessenger.Close()
 	_ = tpn.FullArchiveMessenger.Close()
 	_ = tpn.VMContainer.Close()
+	_ = tpn.ExecutionManager.Close()
 }
 
 func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
@@ -1062,6 +1068,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 					MinStepValue:                         "10",
 					MinStakeValue:                        "1",
 					UnBondPeriod:                         1,
+					UnBondPeriodSupernova:                2,
 					UnBondPeriodInEpochs:                 1,
 					NumRoundsWithoutBleed:                1,
 					MaximumPercentageToBleed:             1,
@@ -1611,23 +1618,29 @@ func (tpn *TestProcessorNode) initResolvers() {
 	fullArchivePreferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                    tpn.ShardCoordinator,
-		MainMessenger:                       tpn.MainMessenger,
-		FullArchiveMessenger:                tpn.FullArchiveMessenger,
-		Store:                               tpn.Storage,
-		Marshalizer:                         TestMarshalizer,
-		DataPools:                           tpn.DataPool,
-		Uint64ByteSliceConverter:            TestUint64Converter,
-		DataPacker:                          dataPacker,
-		TriesContainer:                      tpn.TrieContainer,
-		SizeCheckDelta:                      100,
-		InputAntifloodHandler:               &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:              &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:          10,
-		NumConcurrentResolvingTrieNodesJobs: 3,
-		MainPreferredPeersHolder:            preferredPeersHolder,
-		FullArchivePreferredPeersHolder:     fullArchivePreferredPeersHolder,
-		PayloadValidator:                    payloadValidator,
+		ShardCoordinator:                tpn.ShardCoordinator,
+		MainMessenger:                   tpn.MainMessenger,
+		FullArchiveMessenger:            tpn.FullArchiveMessenger,
+		Store:                           tpn.Storage,
+		Marshalizer:                     TestMarshalizer,
+		DataPools:                       tpn.DataPool,
+		Uint64ByteSliceConverter:        TestUint64Converter,
+		DataPacker:                      dataPacker,
+		TriesContainer:                  tpn.TrieContainer,
+		SizeCheckDelta:                  100,
+		InputAntifloodHandler:           &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
+		MainPreferredPeersHolder:        preferredPeersHolder,
+		FullArchivePreferredPeersHolder: fullArchivePreferredPeersHolder,
+		PayloadValidator:                payloadValidator,
+		AntifloodConfigsHandler: &testscommon.AntifloodConfigsHandlerStub{
+			GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+				return config.AntifloodConfigByRound{
+					NumConcurrentResolverJobs:           10,
+					NumConcurrentResolvingTrieNodesJobs: 3,
+				}
+			},
+		},
 	}
 
 	var err error
@@ -1918,6 +1931,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -1956,9 +1970,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionGasRequested:                         10_000_000_000,
 			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
+		TxVersionChecker: versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
 	}
 	fact, err := shard.NewPreProcessorsContainerFactory(args)
 	if err != nil {
@@ -2011,6 +2025,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TxTypeHandler:                txTypeHandler,
 		TransactionsLogProcessor:     tpn.TransactionLogProcessor,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		EnableRoundsHandler:          tpn.EnableRoundsHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -2018,6 +2033,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequesterProposal,
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -2137,6 +2153,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				UnBondPeriodInEpochs:                 1,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
@@ -2251,6 +2268,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -2287,9 +2305,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionGasRequested:                         10_000_000_000,
 			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
+		TxVersionCheckerHandler: versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
 	}
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(args)
 	tpn.PreProcessorsContainer, _ = fact.Create()
@@ -2338,6 +2356,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		TxTypeHandler:                txTypeHandler,
 		TransactionsLogProcessor:     tpn.TransactionLogProcessor,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		EnableRoundsHandler:          tpn.EnableRoundsHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -2345,6 +2364,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequesterProposal,
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -2464,6 +2484,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.DataPool.Proofs(),
 			tpn.ChainParametersHandler,
 			tpn.ProcessConfigsHandler,
+			tpn.ShardCoordinator.SelfId(),
 		)
 	} else {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
@@ -2528,13 +2549,15 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
-		BlocksQueue:             tpn.BlocksQueue,
+		BlocksCache:             tpn.BlocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
+		PostProcessTransactions: tpn.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      tpn.DataPool.ExecutedMiniBlocks(),
 		StorageService:          &storageStubs.ChainStorerStub{},
 		Marshaller:              TestMarshaller,
 		ShardCoordinator:        &testscommon.ShardsCoordinatorMock{},
@@ -2553,13 +2576,17 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		log.LogIfError(err)
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		tpn.RoundHandler,
+		&testscommon.ExecResSizeComputationStub{},
 	)
+	if err != nil {
+		log.LogIfError(err)
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        tpn.DataPool.Headers(),
@@ -2578,6 +2605,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -2624,6 +2652,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   tpn.ExecutionManager,
 		TxExecutionOrderHandler:            tpn.TxExecutionOrderHandler,
+		AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2866,7 +2895,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      tpn.BlocksQueue,
+		BlocksCache:      tpn.BlocksCache,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   tpn.BlockProcessor,
 		BlockChain:       tpn.BlockChain,
@@ -3806,6 +3835,7 @@ func GetDefaultCoreComponents(
 		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
 		ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+		AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 
@@ -4008,11 +4038,17 @@ func createTxsSender(shardCoordinator storage.ShardCoordinator, messenger txsSen
 	log.LogIfError(err)
 
 	argsTxsSender := txsSender.ArgsTxsSenderWithAccumulator{
-		Marshaller:        TestMarshalizer,
-		ShardCoordinator:  shardCoordinator,
-		NetworkMessenger:  messenger,
-		AccumulatorConfig: txAccumulatorConfig,
-		DataPacker:        dataPacker,
+		Marshaller:       TestMarshalizer,
+		ShardCoordinator: shardCoordinator,
+		NetworkMessenger: messenger,
+		DataPacker:       dataPacker,
+		AntifloodConfigHandler: &testscommon.AntifloodConfigsHandlerStub{
+			GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+				return config.AntifloodConfigByRound{
+					TxAccumulator: txAccumulatorConfig,
+				}
+			},
+		},
 	}
 	txsSenderHandler, err := txsSender.NewTxsSenderWithAccumulator(argsTxsSender)
 	log.LogIfError(err)

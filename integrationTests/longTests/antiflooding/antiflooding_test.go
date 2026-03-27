@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -22,58 +23,71 @@ import (
 
 var log = logger.GetOrCreate("integrationtests/longtests/antiflood") //nolint
 
-// nolint
+func createAntifloodConfigHandler(enabled bool) common.AntifloodConfigsHandler {
+	antifloodConfigHandler := &testscommon.AntifloodConfigsHandlerStub{
+		IsEnabledCalled: func() bool {
+			return enabled
+		},
+		GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+			return config.AntifloodConfigByRound{
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 5000,
+					Shards:   16,
+				},
+				FastReacting: config.FloodPreventerConfig{
+					IntervalInSeconds: 1,
+					ReservedPercent:   20,
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 75,
+						TotalSizePerInterval:    2097152,
+					},
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 480,
+						ThresholdSizePerInterval:        5242880,
+						PeerBanDurationInSeconds:        300,
+					},
+				},
+				SlowReacting: config.FloodPreventerConfig{
+					IntervalInSeconds: 30,
+					ReservedPercent:   20,
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 2500,
+						TotalSizePerInterval:    15728640,
+					},
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 6000,
+						ThresholdSizePerInterval:        37748736,
+						PeerBanDurationInSeconds:        3600,
+					},
+				},
+				OutOfSpecs: config.FloodPreventerConfig{
+					IntervalInSeconds: 1,
+					ReservedPercent:   0,
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 1000,
+						TotalSizePerInterval:    8388608,
+					},
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 1500,
+						ThresholdSizePerInterval:        10485760,
+						PeerBanDurationInSeconds:        3600,
+					},
+				},
+				Topic: config.TopicAntifloodConfig{
+					DefaultMaxMessagesPerSec: 10000,
+				},
+			}
+		},
+	}
+
+	return antifloodConfigHandler
+}
+
 func createWorkableConfig() config.Config {
 	return config.Config{
 		Antiflood: config.AntifloodConfig{
-			Enabled: true,
-			Cache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 5000,
-				Shards:   16,
-			},
-			FastReacting: config.FloodPreventerConfig{
-				IntervalInSeconds: 1,
-				ReservedPercent:   20,
-				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 75,
-					TotalSizePerInterval:    2097152,
-				},
-				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 480,
-					ThresholdSizePerInterval:        5242880,
-					PeerBanDurationInSeconds:        300,
-				},
-			},
-			SlowReacting: config.FloodPreventerConfig{
-				IntervalInSeconds: 30,
-				ReservedPercent:   20,
-				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 2500,
-					TotalSizePerInterval:    15728640,
-				},
-				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 6000,
-					ThresholdSizePerInterval:        37748736,
-					PeerBanDurationInSeconds:        3600,
-				},
-			},
-			OutOfSpecs: config.FloodPreventerConfig{
-				IntervalInSeconds: 1,
-				ReservedPercent:   0,
-				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 1000,
-					TotalSizePerInterval:    8388608,
-				},
-				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 1500,
-					ThresholdSizePerInterval:        10485760,
-					PeerBanDurationInSeconds:        3600,
-				},
-			},
-			Topic: config.TopicAntifloodConfig{
-				DefaultMaxMessagesPerSec: 10000,
-			},
+			Enabled: false,
 		},
 	}
 }
@@ -121,13 +135,14 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 		var err error
 
 		if intInSlice(i, idxBadPeers) {
-			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createDisabledConfig(), &statusHandlerMock.AppStatusHandlerStub{}, peers[i].ID(), &testscommon.ProcessConfigsHandlerStub{})
+			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createDisabledConfig(), &statusHandlerMock.AppStatusHandlerStub{}, peers[i].ID(), createAntifloodConfigHandler(false))
 			log.LogIfError(err)
 		}
 
 		if intInSlice(i, idxGoodPeers) {
 			statusHandler := &statusHandlerMock.AppStatusHandlerStub{}
-			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createWorkableConfig(), statusHandler, peers[i].ID(), &testscommon.ProcessConfigsHandlerStub{})
+
+			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createWorkableConfig(), statusHandler, peers[i].ID(), createAntifloodConfigHandler(true))
 			log.LogIfError(err)
 		}
 

@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 func (cache *TxCache) doSelectTransactions(virtualSession *virtualSelectionSession, options common.TxSelectionOptions) (bunchOfTransactions, uint64) {
 	bunches := cache.acquireBunchesOfTransactions()
 
-	return selectTransactionsFromBunches(virtualSession, bunches, options)
+	return selectTransactionsFromBunches(virtualSession, bunches, options, cache.propagationGracePeriod)
 }
 
 func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
@@ -18,7 +19,10 @@ func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
 	for _, sender := range senders {
-		bunches = append(bunches, sender.getTxs())
+		bunch := sender.getTxsForSelection()
+		if len(bunch) > 0 {
+			bunches = append(bunches, bunch)
+		}
 	}
 
 	return bunches
@@ -29,18 +33,17 @@ func selectTransactionsFromBunches(
 	virtualSession *virtualSelectionSession,
 	bunches []bunchOfTransactions,
 	options common.TxSelectionOptions,
+	propagationGracePeriod time.Duration,
 ) (bunchOfTransactions, uint64) {
 	gasRequested := options.GetGasRequested()
 	maxNumTxs := options.GetMaxNumTxs()
 	loopDurationCheckInterval := options.GetLoopDurationCheckInterval()
-	selectionLoopMaxDuration := time.Duration(options.GetLoopMaximumDurationMs()) * time.Millisecond
 
 	logSelect.Debug("TxCache.selectTransactionsFromBunches",
 		"len(bunches)", len(bunches),
 		"gasRequested", gasRequested,
 		"maxNumTxs", maxNumTxs,
 		"loopDurationCheckInterval", loopDurationCheckInterval,
-		"selectionLoopMaxDuration", selectionLoopMaxDuration,
 	)
 
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
@@ -62,10 +65,14 @@ func selectTransactionsFromBunches(
 
 	accumulatedGas := uint64(0)
 	selectionLoopStartTime := time.Now()
+	selectionCutoff := selectionLoopStartTime.Add(-propagationGracePeriod)
+	uniqueSenderCount := 0
 
 	var currentTransaction *WrappedTransaction
+	var processedTxs int
 	// Select transactions (sorted).
 	for transactionsHeap.Len() > 0 {
+		processedTxs++
 		// Always pick the best transaction.
 		item := heap.Pop(transactionsHeap).(*transactionsHeapItem)
 		gasLimit := item.currentTransaction.Tx.GetGasLimit()
@@ -76,11 +83,16 @@ func selectTransactionsFromBunches(
 		if len(selectedTransactions) >= maxNumTxs {
 			break
 		}
-		if len(selectedTransactions)%loopDurationCheckInterval == 0 {
-			if time.Since(selectionLoopStartTime) > selectionLoopMaxDuration {
+		if processedTxs%loopDurationCheckInterval == 0 {
+			if !options.HaveTimeForSelection() {
 				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
 				break
 			}
+		}
+
+		// Skip transactions that haven't had enough time to propagate
+		if propagationGracePeriod > 0 && item.currentTransaction.ReceivedAt.After(selectionCutoff) {
+			continue
 		}
 
 		senderRecord, err := virtualSession.getRecord(item.sender)
@@ -109,6 +121,17 @@ func selectTransactionsFromBunches(
 					"err", err,
 					"txHash", currentTransaction.TxHash)
 			} else {
+				// Track unique senders to match OnProposedBlock's maxAccountsPerBlock limit.
+				isNewSender := item.latestSelectedTransaction == nil
+				if isNewSender {
+					uniqueSenderCount++
+					if uniqueSenderCount > maxAccountsPerBlock {
+						logSelect.Debug("TxCache.selectTransactionsFromBunches, unique sender limit reached",
+							"limit", maxAccountsPerBlock)
+						break
+					}
+				}
+
 				// only if there isn't any error, we select the transaction
 				accumulatedGas += gasLimit
 				item.selectCurrentTransaction()
@@ -132,12 +155,17 @@ func selectTransactionsFromBunches(
 func detectSkippableSender(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
-		// Every virtual record is initialized with the session nonce, to avoid virtual records with no initial nonce.
-		// So this error should never appear.
+		// This error is expected for accounts with discontinuous global breadcrumbs,
+		// which get a blocked virtual record (initialNonce.HasValue=false).
+		// In this case, the sender is correctly skipped to avoid selecting transactions
+		// that would fail OnProposedBlock validation.
 		log.Debug("detectSkippableSender", "err", err)
 		return true
 	}
 
+	if virtualRecord.hasPendingChangeGuardian() {
+		return true
+	}
 	if item.detectInitialGap(nonce) {
 		return true
 	}
@@ -148,14 +176,23 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 		return true
 	}
 
+	isSetGuardianCall := process.IsSetGuardianCall(item.currentTransaction.Tx.GetData())
+	if !isSetGuardianCall {
+		return false
+	}
+
+	// if an instant change guardian is detected, further transactions for this sender should be skipped as they are probably guarded by the old one
+	// allow this one though
+	virtualSession.setChangeGuardianIfNeeded(item.currentTransaction.Tx)
+
 	return false
 }
 
 func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
-		// Every virtual record is initialized with the session nonce, to avoid virtual records with no initial nonce.
-		// So this error should never appear.
+		// This error is expected for accounts with discontinuous global breadcrumbs,
+		// which get a blocked virtual record (initialNonce.HasValue=false).
 		log.Debug("detectSkippableTransaction", "err", err)
 		return true
 	}

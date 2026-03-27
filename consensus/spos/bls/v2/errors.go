@@ -13,3 +13,9 @@ var ErrProofAlreadyPropagated = errors.New("proof already propagated")
 
 // ErrNilRoundSyncController signals that a nil round sync controller has been provided
 var ErrNilRoundSyncController = errors.New("nil round sync controller")
+
+// ErrTooManyInvalidSigners signals that too many invalid signers were received
+var ErrTooManyInvalidSigners = errors.New("too many invalid signers")
+
+// ErrValidSignatureFromInvalidSigner signals that a valid signature was received on invalid signers message
+var ErrValidSignatureFromInvalidSigner = errors.New("valid signature from invalid sender")

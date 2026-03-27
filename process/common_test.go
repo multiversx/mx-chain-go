@@ -19,8 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
-	"github.com/multiversx/mx-chain-go/process/estimator"
-
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -2867,7 +2865,7 @@ func Test_CreateDataForInclusionEstimation(t *testing.T) {
 		t.Parallel()
 
 		executionResult := createLastExecutionResultShard()
-		expectedLastExecResultForInclusion := &estimator.LastExecutionResultForInclusion{
+		expectedLastExecResultForInclusion := &common.LastExecutionResultForInclusion{
 			NotarizedInRound: executionResult.GetNotarizedInRound(),
 			ProposedInRound:  executionResult.GetExecutionResult().GetHeaderRound(),
 		}
@@ -2880,7 +2878,7 @@ func Test_CreateDataForInclusionEstimation(t *testing.T) {
 		t.Parallel()
 
 		executionResult := createLastExecutionResultMeta()
-		expectedLastExecResultForInclusion := &estimator.LastExecutionResultForInclusion{
+		expectedLastExecResultForInclusion := &common.LastExecutionResultForInclusion{
 			NotarizedInRound: executionResult.GetNotarizedInRound(),
 			ProposedInRound:  executionResult.GetExecutionResult().GetHeaderRound(),
 		}
@@ -3052,6 +3050,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			&processMocks.ExecutionManagerMock{},
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3067,6 +3067,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			nil,
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3082,6 +3084,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			&processMocks.ExecutionManagerMock{},
 			nil,
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3097,11 +3101,72 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			&processMocks.ExecutionManagerMock{},
 			&testscommon.ChainHandlerStub{},
 			nil,
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
 		)
 		require.Equal(t, process.ErrNilHeadersDataPool, err)
+	})
+
+	t.Run("error on CleanCachesForExecutionResult due to postProcessTransaction should error", func(t *testing.T) {
+		t.Parallel()
+
+		lastNotarizedResult := &block.BaseExecutionResult{
+			HeaderHash:  []byte("lastNotarizedHash"),
+			HeaderNonce: 5,
+			HeaderRound: 5,
+			RootHash:    []byte("lastNotarizedRoot"),
+		}
+
+		executionManager := &processMocks.ExecutionManagerMock{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{}, nil
+			},
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return lastNotarizedResult, nil
+			},
+		}
+
+		header := &block.HeaderV3{
+			Nonce:    6,
+			PrevHash: []byte("lastNotarizedHash"),
+		}
+
+		headerToSet := &block.HeaderV3{
+			Nonce: 5,
+		}
+
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("lastNotarizedHash")) {
+					return headerToSet, nil
+				}
+				return nil, errors.New("not found")
+			},
+		}
+
+		blockChain := &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: lastNotarizedResult,
+				}
+			},
+		}
+
+		err := process.UpdateContextForReplacedHeader(
+			header,
+			executionManager,
+			blockChain,
+			headersPool,
+			nil,
+			&cache.CacherStub{},
+			&storageStubs.ChainStorerStub{},
+			&mock.MarshalizerMock{},
+			0,
+		)
+		require.Equal(t, process.ErrNilPostProcessTransactionsCache, err)
 	})
 
 	t.Run("nil storage should error", func(t *testing.T) {
@@ -3112,6 +3177,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			&processMocks.ExecutionManagerMock{},
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			nil,
 			&mock.MarshalizerMock{},
 			0,
@@ -3127,6 +3194,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			&processMocks.ExecutionManagerMock{},
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			nil,
 			0,
@@ -3148,6 +3217,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3172,6 +3243,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3208,6 +3281,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3260,6 +3335,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			&testscommon.ChainHandlerStub{},
 			headersPool,
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			storageService,
 			&mock.MarshalizerMock{},
 			0,
@@ -3314,6 +3391,11 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 				setLastExecutionResultCalled = true
 				require.Equal(t, lastNotarizedResult, executionResult)
 			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: lastNotarizedResult,
+				}
+			},
 		}
 
 		headersPool := &mock.HeadersCacherStub{
@@ -3330,6 +3412,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			blockChain,
 			headersPool,
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3394,6 +3478,11 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 				setLastExecutionResultCalled = true
 				require.Equal(t, pendingResult, executionResult)
 			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: lastNotarizedResult,
+				}
+			},
 		}
 
 		headersPool := &mock.HeadersCacherStub{
@@ -3410,6 +3499,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			blockChain,
 			headersPool,
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3456,6 +3547,11 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			},
 			SetLastExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) {
 			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: lastNotarizedResult,
+				}
+			},
 		}
 
 		headersPool := &mock.HeadersCacherStub{
@@ -3472,10 +3568,247 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			blockChain,
 			headersPool,
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
 		)
 		require.Equal(t, errExpected, err)
+	})
+}
+
+func TestCleanCachesForExecutionResult(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil execution result should error", func(t *testing.T) {
+		t.Parallel()
+
+		postProcessTxsCache := &cache.CacherStub{}
+		executedMbs := &cache.CacherStub{}
+
+		err := process.CleanCachesForExecutionResult(nil, postProcessTxsCache, executedMbs)
+		require.Equal(t, process.ErrNilExecutionResultHandler, err)
+	})
+
+	t.Run("nil postProcessTxsCache should error", func(t *testing.T) {
+		t.Parallel()
+
+		execResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash: []byte("hash"),
+			},
+		}
+		executedMbs := &cache.CacherStub{}
+
+		err := process.CleanCachesForExecutionResult(execResult, nil, executedMbs)
+		require.Equal(t, process.ErrNilPostProcessTransactionsCache, err)
+	})
+
+	t.Run("nil executedMbs should error", func(t *testing.T) {
+		t.Parallel()
+
+		execResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash: []byte("hash"),
+			},
+		}
+		postProcessTxsCache := &cache.CacherStub{}
+
+		err := process.CleanCachesForExecutionResult(execResult, postProcessTxsCache, nil)
+		require.Equal(t, process.ErrNilExecutedMiniBlocksCache, err)
+	})
+
+	t.Run("error from GetMiniBlocksHeaderHandlersFromExecResult should return error", func(t *testing.T) {
+		t.Parallel()
+
+		// Create an execution result that doesn't implement the executionResultHandler interface properly
+		// This will cause GetMiniBlocksHeaderHandlersFromExecResult to return an error
+		execResult := &block.BaseExecutionResult{
+			HeaderHash: []byte("hash"),
+		}
+
+		postProcessTxsCache := &cache.CacherStub{}
+		executedMbs := &cache.CacherStub{}
+
+		err := process.CleanCachesForExecutionResult(execResult, postProcessTxsCache, executedMbs)
+		require.NotNil(t, err)
+		require.ErrorIs(t, err, common.ErrWrongTypeAssertion)
+	})
+
+	t.Run("success with no mini block headers", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash := []byte("headerHash")
+		execResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash: headerHash,
+			},
+			MiniBlockHeaders: []block.MiniBlockHeader{},
+		}
+
+		postProcessRemovedKeys := make(map[string]struct{})
+		postProcessTxsCache := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				postProcessRemovedKeys[string(key)] = struct{}{}
+			},
+		}
+
+		executedMbsRemovedKeys := make(map[string]struct{})
+		executedMbsCache := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				executedMbsRemovedKeys[string(key)] = struct{}{}
+			},
+		}
+
+		err := process.CleanCachesForExecutionResult(execResult, postProcessTxsCache, executedMbsCache)
+		require.Nil(t, err)
+
+		// Verify all expected keys were removed from postProcessTxsCache
+		expectedPostProcessKeys := []string{
+			string(headerHash),
+			string(common.PrepareOrderedTxHashesKey(headerHash)),
+			string(common.PrepareLogEventsKey(headerHash)),
+		}
+
+		for _, key := range expectedPostProcessKeys {
+			_, found := postProcessRemovedKeys[key]
+			require.True(t, found, fmt.Sprintf("key %s should have been removed from postProcessTxsCache", key))
+		}
+		require.Equal(t, 4, len(postProcessRemovedKeys))
+
+		// Verify headerHash was removed from executedMbs
+		_, found := executedMbsRemovedKeys[string(headerHash)]
+		require.True(t, found, "headerHash should have been removed from executedMbs")
+		require.Equal(t, 1, len(executedMbsRemovedKeys))
+	})
+
+	t.Run("success with mini block headers", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash := []byte("headerHash")
+		mbHash1 := []byte("mbHash1")
+		mbHash2 := []byte("mbHash2")
+		mbHash3 := []byte("mbHash3")
+
+		execResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash: headerHash,
+			},
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: mbHash1},
+				{Hash: mbHash2},
+				{Hash: mbHash3},
+			},
+		}
+
+		postProcessRemovedKeys := make(map[string]struct{})
+		postProcessTxsCache := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				postProcessRemovedKeys[string(key)] = struct{}{}
+			},
+		}
+
+		executedMbsRemovedKeys := make(map[string]struct{})
+		executedMbsCache := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				executedMbsRemovedKeys[string(key)] = struct{}{}
+			},
+		}
+
+		err := process.CleanCachesForExecutionResult(execResult, postProcessTxsCache, executedMbsCache)
+		require.Nil(t, err)
+
+		// Verify all expected keys were removed from postProcessTxsCache
+		expectedPostProcessKeys := []string{
+			string(headerHash),
+			string(common.PrepareOrderedTxHashesKey(headerHash)),
+			string(common.PrepareLogEventsKey(headerHash)),
+			string(common.PrepareHeaderGasDataKey(headerHash)),
+		}
+
+		for _, key := range expectedPostProcessKeys {
+			_, found := postProcessRemovedKeys[key]
+			require.True(t, found, fmt.Sprintf("key %s should have been removed from postProcessTxsCache", key))
+		}
+		require.Equal(t, 4, len(postProcessRemovedKeys))
+
+		// Verify all miniblock headers and headerHash were removed from executedMbs
+		expectedExecutedMbsKeys := []string{
+			string(headerHash),
+			string(mbHash1),
+			string(mbHash2),
+			string(mbHash3),
+		}
+
+		for _, key := range expectedExecutedMbsKeys {
+			_, found := executedMbsRemovedKeys[key]
+			require.True(t, found, fmt.Sprintf("key %s should have been removed from executedMbs", key))
+		}
+		require.Equal(t, 4, len(executedMbsRemovedKeys))
+	})
+
+	t.Run("success with MetaExecutionResult and mini block headers", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash := []byte("metaHeaderHash")
+		mbHash1 := []byte("metaMbHash1")
+		mbHash2 := []byte("metaMbHash2")
+
+		metaExecResult := &block.MetaExecutionResult{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: headerHash,
+				},
+			},
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{Hash: mbHash1},
+				{Hash: mbHash2},
+			},
+		}
+
+		postProcessRemovedKeys := make(map[string]struct{})
+		postProcessTxsCache := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				postProcessRemovedKeys[string(key)] = struct{}{}
+			},
+		}
+
+		executedMbsRemovedKeys := make(map[string]struct{})
+		executedMbsCache := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				executedMbsRemovedKeys[string(key)] = struct{}{}
+			},
+		}
+
+		err := process.CleanCachesForExecutionResult(metaExecResult, postProcessTxsCache, executedMbsCache)
+		require.Nil(t, err)
+
+		// Verify all expected keys were removed from postProcessTxsCache
+		expectedPostProcessKeys := []string{
+			string(headerHash),
+			string(common.PrepareOrderedTxHashesKey(headerHash)),
+			string(common.PrepareLogEventsKey(headerHash)),
+			string(common.PrepareHeaderGasDataKey(headerHash)),
+		}
+
+		for _, key := range expectedPostProcessKeys {
+			_, found := postProcessRemovedKeys[key]
+			require.True(t, found, fmt.Sprintf("key %s should have been removed from postProcessTxsCache", key))
+		}
+		require.Equal(t, 4, len(postProcessRemovedKeys))
+
+		// Verify headerHash and miniblock hashes were removed from executedMbs
+		expectedExecutedMbsKeys := []string{
+			string(headerHash),
+			string(mbHash1),
+			string(mbHash2),
+		}
+
+		for _, key := range expectedExecutedMbsKeys {
+			_, found := executedMbsRemovedKeys[key]
+			require.True(t, found, fmt.Sprintf("key %s should have been removed from executedMbs", key))
+		}
+		require.Equal(t, 3, len(executedMbsRemovedKeys))
 	})
 }

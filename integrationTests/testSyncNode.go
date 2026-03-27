@@ -5,12 +5,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/estimator"
@@ -69,6 +71,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
+	coreComponents.RoundHandlerField = tpn.RoundHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.RoundNotifierField = tpn.RoundNotifier
 
@@ -125,13 +128,15 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksCache = cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
-		BlocksQueue:             tpn.BlocksQueue,
+		BlocksCache:             tpn.BlocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
+		PostProcessTransactions: tpn.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      tpn.DataPool.ExecutedMiniBlocks(),
 		StorageService:          &storageStubs.ChainStorerStub{},
 		Marshaller:              TestMarshaller,
 		ShardCoordinator:        &testscommon.ShardsCoordinatorMock{},
@@ -150,14 +155,17 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		log.LogIfError(err)
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
-
 		tpn.RoundHandler,
+		&testscommon.ExecResSizeComputationStub{},
 	)
+	if err != nil {
+		log.LogIfError(err)
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        tpn.DataPool.Headers(),
@@ -176,6 +184,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -223,6 +232,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   tpn.ExecutionManager,
 		TxExecutionOrderHandler:            tpn.TxExecutionOrderHandler,
+		AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -282,6 +292,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.DataPool.Proofs(),
 			tpn.ChainParametersHandler,
 			tpn.ProcessConfigsHandler,
+			tpn.ShardCoordinator.SelfId(),
 		)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
@@ -299,7 +310,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      tpn.BlocksQueue,
+		BlocksCache:      tpn.BlocksCache,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   tpn.BlockProcessor,
 		BlockChain:       tpn.BlockChain,

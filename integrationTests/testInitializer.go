@@ -499,6 +499,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       snapshotsManager,
 		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		PruningEnabled:         trieStorageManager.IsPruningEnabled(),
 	}
 	adb, _ := state.NewAccountsDB(args)
 
@@ -728,6 +729,7 @@ func CreateFullGenesisBlocks(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -772,7 +774,6 @@ func CreateFullGenesisBlocks(
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionGasRequested:                         10_000_000_000,
 			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
 	}
@@ -862,6 +863,7 @@ func CreateGenesisMetaBlock(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -905,7 +907,6 @@ func CreateGenesisMetaBlock(
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionGasRequested:                         10_000_000_000,
 			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
 	}

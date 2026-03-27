@@ -46,6 +46,7 @@ type baseForkDetector struct {
 	fork       forkInfo
 	mutFork    sync.RWMutex
 
+	shardID                uint32
 	blackListHandler       process.TimeCacher
 	genesisTime            int64
 	supernovaGenesisTime   int64
@@ -230,6 +231,14 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 	if nonce <= finalCheckpointNonce {
 		log.Debug("baseForkDetector.RemoveHeader: given nonce is lower or equal than final checkpoint",
 			"nonce", nonce,
+			"final checkpoint nonce", finalCheckpointNonce)
+		return
+	}
+
+	if bfd.proofsPool.HasProof(bfd.shardID, hash) {
+		log.Debug("baseForkDetector.RemoveHeader: proof available for the given header, skipping removal",
+			"nonce", nonce,
+			"hash", hash,
 			"final checkpoint nonce", finalCheckpointNonce)
 		return
 	}

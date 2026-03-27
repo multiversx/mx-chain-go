@@ -30,7 +30,10 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-const firstHeaderNonce = uint64(1)
+const (
+	firstHeaderNonce           = uint64(1)
+	defaultMaxProposalNonceGap = 10
+)
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
 
@@ -101,6 +104,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if check.IfNil(arguments.ShardInfoCreator) {
 		return nil, process.ErrNilShardInfoCreator
 	}
+
 	mp := metaProcessor{
 		baseProcessor:                base,
 		headersCounter:               NewHeaderCounter(),
@@ -205,7 +209,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			mp.RevertCurrentBlock(headerHandler)
+			mp.RevertCurrentBlock()
 		}
 	}()
 
@@ -434,7 +438,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	saveEpochStartEconomicsMetrics(mp.appStatusHandler, header)
+	mp.saveEpochStartEconomicsMetrics(header)
 
 	return nil
 }
@@ -826,7 +830,7 @@ func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error 
 
 	metaHdr.EpochStart.Economics = *economicsData
 
-	saveEpochStartEconomicsMetrics(mp.appStatusHandler, metaHdr)
+	mp.saveEpochStartEconomicsMetrics(metaHdr)
 
 	return nil
 }
@@ -1218,13 +1222,24 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	prevBlockHeader := mp.blockChain.GetCurrentBlockHeader()
+	prevBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
+
 	if !headerHandler.IsHeaderV3() {
 		mp.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
 		defer func() {
 			if err != nil {
-				mp.RevertCurrentBlock(headerHandler)
+				mp.RevertCurrentBlock()
 			}
 			mp.processStatusHandler.SetIdle()
+		}()
+	} else {
+		defer func() {
+			if err != nil {
+				mp.RevertHeaderV3OnCommit(headerHandler)
+				_ = mp.blockChain.SetCurrentBlockHeader(prevBlockHeader)
+				mp.blockChain.SetCurrentBlockHeaderHash(prevBlockHeaderHash)
+			}
 		}()
 	}
 
@@ -1358,11 +1373,6 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
-	if err != nil {
-		return err
-	}
-
 	if !check.IfNil(finalMetaBlock) && finalMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.GetEpoch(), header.GetRound())
 	}
@@ -1375,6 +1385,11 @@ func (mp *metaProcessor) CommitBlock(
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
+
+	err = mp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
+	if err != nil {
+		return err
+	}
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce, mp.managedPeersHolder)
@@ -1445,7 +1460,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	if header.IsHeaderV3() && header.IsStartOfEpochBlock() {
-		saveEpochStartEconomicsMetrics(mp.appStatusHandler, header)
+		mp.saveEpochStartEconomicsMetrics(header)
 	}
 
 	return nil
@@ -1852,7 +1867,7 @@ func (mp *metaProcessor) prepareEpochStartBodyForTrigger(header data.MetaHeaderH
 
 		retrievedObj, found := mp.dataPool.ExecutedMiniBlocks().Get(metaExecRes.GetHeaderHash())
 		if !found {
-			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for key: %s", trie.ErrKeyNotFound, metaExecRes.GetHeaderHash())
+			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for key: %s", trie.ErrKeyNotFound, hex.EncodeToString(metaExecRes.GetHeaderHash()))
 		}
 
 		currMBs, castOk := retrievedObj.([]*block.MiniBlock)

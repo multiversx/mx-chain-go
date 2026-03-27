@@ -6,7 +6,7 @@ import (
 
 // ExecutionTrackerStub -
 type ExecutionTrackerStub struct {
-	AddExecutionResultCalled               func(executionResult data.BaseExecutionResultHandler) error
+	AddExecutionResultCalled               func(executionResult data.BaseExecutionResultHandler) (bool, error)
 	GetPendingExecutionResultsCalled       func() ([]data.BaseExecutionResultHandler, error)
 	GetPendingExecutionResultByHashCalled  func(hash []byte) (data.BaseExecutionResultHandler, error)
 	GetPendingExecutionResultByNonceCalled func(nonce uint64) (data.BaseExecutionResultHandler, error)
@@ -15,15 +15,16 @@ type ExecutionTrackerStub struct {
 	RemoveFromNonceCalled                  func(nonce uint64) error
 	CleanCalled                            func(lastNotarizedResult data.BaseExecutionResultHandler)
 	CleanConfirmedExecutionResultsCalled   func(header data.HeaderHandler) error
+	CleanOnConsensusReachedCalled          func(headerHash []byte, header data.HeaderHandler)
 }
 
 // AddExecutionResult -
-func (e *ExecutionTrackerStub) AddExecutionResult(executionResult data.BaseExecutionResultHandler) error {
+func (e *ExecutionTrackerStub) AddExecutionResult(executionResult data.BaseExecutionResultHandler) (bool, error) {
 	if e.AddExecutionResultCalled != nil {
 		return e.AddExecutionResultCalled(executionResult)
 	}
 
-	return nil
+	return true, nil
 }
 
 // GetPendingExecutionResults -
@@ -94,6 +95,13 @@ func (e *ExecutionTrackerStub) CleanConfirmedExecutionResults(header data.Header
 	}
 
 	return nil
+}
+
+// CleanOnConsensusReached -
+func (e *ExecutionTrackerStub) CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler) {
+	if e.CleanOnConsensusReachedCalled != nil {
+		e.CleanOnConsensusReachedCalled(headerHash, header)
+	}
 }
 
 // IsInterfaceNil -

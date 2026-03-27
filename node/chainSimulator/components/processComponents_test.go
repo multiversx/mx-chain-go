@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/commonmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -111,7 +112,8 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 				MinStakeValue:                        "1",
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
-				UnBondPeriod:                         0,
+				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                0,
 				MaximumPercentageToBleed:             0,
 				BleedPercentagePerRound:              0,
@@ -182,6 +184,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			ChainParametersSubscriberField:     &commonmocks.ChainParametersNotifierStub{},
 			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+			AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 		},
 		CryptoComponents: &mock.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
@@ -199,6 +202,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 			KeysHandlerField:        &testscommon.KeysHandlerStub{},
+			SigHandler:              &consensusMocks.SigningHandlerStub{},
 		},
 		NetworkComponents: &mock.NetworkComponentsStub{
 			Messenger:                        &p2pmocks.MessengerStub{},
@@ -258,7 +262,7 @@ func TestCreateProcessComponents(t *testing.T) {
 
 	t.Run("should work", func(t *testing.T) {
 		comp, err := CreateProcessComponents(createArgsProcessComponentsHolder())
-		require.NoError(t, err)
+		require.Nil(t, err)
 		require.NotNil(t, comp)
 
 		require.Nil(t, comp.Create())
