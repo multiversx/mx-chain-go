@@ -6439,3 +6439,250 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		require.Equal(t, headerHash9, bp.GetLastPrunedHash())
 	})
 }
+
+func TestComputeEWLResetThreshold(t *testing.T) {
+	t.Parallel()
+
+	t.Run("gap 0 should return minimum baseline", func(t *testing.T) {
+		t.Parallel()
+		// gap=0 -> expected=0*2=0, 0*130/100=0, +10 = 10
+		require.Equal(t, 10, blproc.ComputeEWLResetThreshold(0))
+	})
+	t.Run("gap 1", func(t *testing.T) {
+		t.Parallel()
+		// gap=1 -> expected=1*2=2, 2*130/100=2, +10 = 12
+		require.Equal(t, 12, blproc.ComputeEWLResetThreshold(1))
+	})
+	t.Run("default gap 10", func(t *testing.T) {
+		t.Parallel()
+		// gap=10 -> expected=10*2=20, 20*130/100=26, +10 = 36
+		require.Equal(t, 36, blproc.ComputeEWLResetThreshold(10))
+	})
+	t.Run("gap above cap should be clamped", func(t *testing.T) {
+		t.Parallel()
+		// gap=500 clamped to 250 -> expected=250*2=500, 500*130/100=650, +10 = 660
+		require.Equal(t, 660, blproc.ComputeEWLResetThreshold(500))
+		require.Equal(t, 660, blproc.ComputeEWLResetThreshold(1000))
+	})
+	t.Run("gap at cap boundary", func(t *testing.T) {
+		t.Parallel()
+		require.Equal(t, 660, blproc.ComputeEWLResetThreshold(250))
+		require.Equal(t, blproc.ComputeEWLResetThreshold(250), blproc.ComputeEWLResetThreshold(251))
+	})
+}
+
+func TestCancelPruneForRootHashTransition(t *testing.T) {
+	t.Parallel()
+
+	t.Run("different hashes should call CancelPrune for both", func(t *testing.T) {
+		t.Parallel()
+		cancelPruneCalls := make([]struct {
+			rootHash   []byte
+			identifier state.TriePruningIdentifier
+		}, 0)
+		accountsStub := &stateMock.AccountsStub{
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalls = append(cancelPruneCalls, struct {
+					rootHash   []byte
+					identifier state.TriePruningIdentifier
+				}{rootHash, identifier})
+			},
+		}
+
+		blproc.CancelPruneForRootHashTransition(accountsStub, []byte("prev"), []byte("curr"))
+
+		require.Len(t, cancelPruneCalls, 2)
+		require.Equal(t, []byte("curr"), cancelPruneCalls[0].rootHash)
+		require.Equal(t, state.NewRoot, cancelPruneCalls[0].identifier)
+		require.Equal(t, []byte("prev"), cancelPruneCalls[1].rootHash)
+		require.Equal(t, state.OldRoot, cancelPruneCalls[1].identifier)
+	})
+	t.Run("equal hashes should not call CancelPrune", func(t *testing.T) {
+		t.Parallel()
+		accountsStub := &stateMock.AccountsStub{
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called for equal hashes")
+			},
+		}
+		blproc.CancelPruneForRootHashTransition(accountsStub, []byte("same"), []byte("same"))
+	})
+	t.Run("empty prev hash should not call CancelPrune", func(t *testing.T) {
+		t.Parallel()
+		accountsStub := &stateMock.AccountsStub{
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called when prev is empty")
+			},
+		}
+		blproc.CancelPruneForRootHashTransition(accountsStub, nil, []byte("curr"))
+		blproc.CancelPruneForRootHashTransition(accountsStub, []byte{}, []byte("curr"))
+	})
+	t.Run("empty current hash should not call CancelPrune", func(t *testing.T) {
+		t.Parallel()
+		accountsStub := &stateMock.AccountsStub{
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called when current is empty")
+			},
+		}
+		blproc.CancelPruneForRootHashTransition(accountsStub, []byte("prev"), nil)
+		blproc.CancelPruneForRootHashTransition(accountsStub, []byte("prev"), []byte{})
+	})
+}
+
+func TestCleanupDismissedEWLEntries(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty dismissed queue should only run size check", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled:           func() bool { return true },
+			GetEvictionWaitingListSizeCalled: func() int { return 0 },
+		}
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+			PopDismissedResultsCalled: func() []executionTrack.DismissedBatch { return nil },
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		// should not panic, should not call CancelPrune
+		sp.CleanupDismissedEWLEntries()
+	})
+	t.Run("dismissed batches should trigger CancelPrune and reset last pruned header", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneCalls := 0
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalls++
+			},
+			GetEvictionWaitingListSizeCalled: func() int { return 0 },
+		}
+		popCalled := false
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+			PopDismissedResultsCalled: func() []executionTrack.DismissedBatch {
+				if popCalled {
+					return nil
+				}
+				popCalled = true
+				return []executionTrack.DismissedBatch{
+					{
+						AnchorResult: &block.ExecutionResult{
+							BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R0")},
+						},
+						Results: []data.BaseExecutionResultHandler{
+							&block.ExecutionResult{
+								BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R1")},
+							},
+							&block.ExecutionResult{
+								BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R2")},
+							},
+						},
+					},
+				}
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		sp.SetLastPrunedHash([]byte("someHash"))
+		sp.SetLastPrunedNonce(100)
+
+		sp.CleanupDismissedEWLEntries()
+
+		// Two transitions: R0->R1 and R1->R2, each producing 2 CancelPrune calls = 4 total
+		require.Equal(t, 4, cancelPruneCalls)
+		// Last pruned header should be reset
+		require.Nil(t, sp.GetLastPrunedHash())
+	})
+}
+
+func TestCheckEWLSizeAndReset(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ewl size below threshold should not trigger reset", func(t *testing.T) {
+		t.Parallel()
+
+		resetCalled := false
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled:           func() bool { return true },
+			GetEvictionWaitingListSizeCalled: func() int { return 5 },
+			ResetPruningCalled: func() {
+				resetCalled = true
+			},
+		}
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+			PopDismissedResultsCalled: func() []executionTrack.DismissedBatch { return nil },
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		// default gap=10 -> threshold=36, ewlSize=5 < 36
+		sp.CheckEWLSizeAndReset()
+		require.False(t, resetCalled)
+	})
+	t.Run("ewl size above threshold should trigger reset and clear last pruned header", func(t *testing.T) {
+		t.Parallel()
+
+		resetCalled := false
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled:           func() bool { return true },
+			GetEvictionWaitingListSizeCalled: func() int { return 1000 },
+			ResetPruningCalled: func() {
+				resetCalled = true
+			},
+		}
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+			PopDismissedResultsCalled: func() []executionTrack.DismissedBatch { return nil },
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		sp.SetLastPrunedHash([]byte("someHash"))
+		sp.SetLastPrunedNonce(50)
+
+		// default gap=10 -> threshold=36, ewlSize=1000 > 36
+		sp.CheckEWLSizeAndReset()
+		require.True(t, resetCalled)
+		require.Nil(t, sp.GetLastPrunedHash())
+	})
+	t.Run("pruning disabled should skip reset even if size would exceed", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return false },
+			GetEvictionWaitingListSizeCalled: func() int {
+				require.Fail(t, "should not check EWL size when pruning is disabled")
+				return 0
+			},
+			ResetPruningCalled: func() {
+				require.Fail(t, "should not reset when pruning is disabled")
+			},
+		}
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+			PopDismissedResultsCalled: func() []executionTrack.DismissedBatch { return nil },
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		sp.CheckEWLSizeAndReset()
+	})
+}

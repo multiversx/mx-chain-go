@@ -308,6 +308,11 @@ func (accountsDB *accountsDBApi) GetCodeWithBlockInfo(codeHash []byte, _ common.
 	return accountsDB.innerAccountsAdapter.GetCode(codeHash), blockInfo, nil
 }
 
+// GetEvictionWaitingListSize returns 0 for the API accounts adapter
+func (adb *accountsDBApi) GetEvictionWaitingListSize() int {
+	return 0
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (accountsDB *accountsDBApi) IsInterfaceNil() bool {
 	return accountsDB == nil

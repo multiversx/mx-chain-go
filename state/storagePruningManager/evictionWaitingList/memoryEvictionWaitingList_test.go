@@ -7,9 +7,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/stretchr/testify/assert"
 )
 
 func getDefaultArgsForMemoryEvictionWaitingList() MemoryEvictionWaitingListArgs {
@@ -373,4 +374,23 @@ func TestMemoryEvictionWaitingList_Reset(t *testing.T) {
 	mewl.Reset()
 	assert.Equal(t, 0, len(mewl.cache))
 	assert.Equal(t, 0, len(mewl.reversedCache))
+}
+
+func TestMemoryEvictionWaitingList_CacheLen(t *testing.T) {
+	t.Parallel()
+
+	mewl, _ := NewMemoryEvictionWaitingList(getDefaultArgsForMemoryEvictionWaitingList())
+	assert.Equal(t, 0, mewl.CacheLen())
+
+	_ = mewl.Put([]byte("root1"), common.ModifiedHashes{"hash1": {}})
+	assert.Equal(t, 1, mewl.CacheLen())
+
+	_ = mewl.Put([]byte("root2"), common.ModifiedHashes{"hash2": {}})
+	assert.Equal(t, 2, mewl.CacheLen())
+
+	_, _ = mewl.Evict([]byte("root1"))
+	assert.Equal(t, 1, mewl.CacheLen())
+
+	mewl.Reset()
+	assert.Equal(t, 0, mewl.CacheLen())
 }

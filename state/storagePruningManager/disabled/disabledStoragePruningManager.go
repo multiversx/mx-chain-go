@@ -34,6 +34,11 @@ func (i *disabledStoragePruningManager) Close() error {
 	return nil
 }
 
+// EvictionWaitingListCacheLen returns 0 for the disabled storage pruning manager
+func (d *disabledStoragePruningManager) EvictionWaitingListCacheLen() int {
+	return 0
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (i *disabledStoragePruningManager) IsInterfaceNil() bool {
 	return i == nil

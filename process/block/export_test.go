@@ -1211,3 +1211,33 @@ func (bp *baseProcessor) GetLastPrunedHash() []byte {
 
 	return lastPrunedHeaderHash
 }
+
+// CleanupDismissedEWLEntries -
+func (bp *baseProcessor) CleanupDismissedEWLEntries() {
+	bp.cleanupDismissedEWLEntries()
+}
+
+// CheckEWLSizeAndReset -
+func (bp *baseProcessor) CheckEWLSizeAndReset() {
+	bp.checkEWLSizeAndReset()
+}
+
+// ComputeEWLResetThreshold -
+func ComputeEWLResetThreshold(maxProposalNonceGap uint64) int {
+	return computeEWLResetThreshold(maxProposalNonceGap)
+}
+
+// CancelPruneForRootHashTransition -
+func CancelPruneForRootHashTransition(accountsDb state.AccountsAdapter, prevRootHash, currentRootHash []byte) {
+	cancelPruneForRootHashTransition(accountsDb, prevRootHash, currentRootHash)
+}
+
+// CancelPruneForDismissedExecutionResults -
+func (sp *shardProcessor) CancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch) {
+	sp.cancelPruneForDismissedExecutionResults(batches)
+}
+
+// CancelPruneForDismissedExecutionResults -
+func (mp *metaProcessor) CancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch) {
+	mp.cancelPruneForDismissedExecutionResults(batches)
+}

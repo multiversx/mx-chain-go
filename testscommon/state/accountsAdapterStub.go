@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -30,6 +31,7 @@ type AccountsStub struct {
 	PruneTrieCalled                       func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
 	CancelPruneCalled                     func(rootHash []byte, identifier state.TriePruningIdentifier)
 	ResetPruningCalled                    func()
+	GetEvictionWaitingListSizeCalled      func() int
 	SnapshotStateCalled                   func(rootHash []byte, epoch uint32)
 	IsPruningEnabledCalled                func() bool
 	GetAllLeavesCalled                    func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
@@ -282,6 +284,14 @@ func (as *AccountsStub) Close() error {
 	}
 
 	return nil
+}
+
+// GetEvictionWaitingListSize -
+func (as *AccountsStub) GetEvictionWaitingListSize() int {
+	if as.GetEvictionWaitingListSizeCalled != nil {
+		return as.GetEvictionWaitingListSizeCalled()
+	}
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

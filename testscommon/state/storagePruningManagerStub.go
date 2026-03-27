@@ -7,11 +7,12 @@ import (
 
 // StoragePruningManagerStub -
 type StoragePruningManagerStub struct {
-	MarkForEvictionCalled func(bytes []byte, bytes2 []byte, hashes common.ModifiedHashes, hashes2 common.ModifiedHashes) error
-	PruneTrieCalled       func(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager, handler state.PruningHandler)
-	CancelPruneCalled     func(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager)
-	ResetCalled           func()
-	CloseCalled           func() error
+	MarkForEvictionCalled             func(bytes []byte, bytes2 []byte, hashes common.ModifiedHashes, hashes2 common.ModifiedHashes) error
+	PruneTrieCalled                   func(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager, handler state.PruningHandler)
+	CancelPruneCalled                 func(rootHash []byte, identifier state.TriePruningIdentifier, tsm common.StorageManager)
+	ResetCalled                       func()
+	EvictionWaitingListCacheLenCalled func() int
+	CloseCalled                       func() error
 }
 
 // MarkForEviction -
@@ -51,6 +52,14 @@ func (stub *StoragePruningManagerStub) Close() error {
 	}
 
 	return nil
+}
+
+// EvictionWaitingListCacheLen -
+func (stub *StoragePruningManagerStub) EvictionWaitingListCacheLen() int {
+	if stub.EvictionWaitingListCacheLenCalled != nil {
+		return stub.EvictionWaitingListCacheLenCalled()
+	}
+	return 0
 }
 
 // IsInterfaceNil -

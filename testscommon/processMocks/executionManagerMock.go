@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 )
 
 // ExecutionManagerMock is a mock implementation of the ExecutionManager interface
@@ -21,6 +22,7 @@ type ExecutionManagerMock struct {
 	GetLastNotarizedExecutionResultCalled        func() (data.BaseExecutionResultHandler, error)
 	RemovePendingExecutionResultsFromNonceCalled func(nonce uint64) error
 	GetSignalProcessCompletionChanCalled         func() chan uint64
+	PopDismissedResultsCalled                    func() []executionTrack.DismissedBatch
 	CloseCalled                                  func() error
 }
 
@@ -122,6 +124,14 @@ func (emm *ExecutionManagerMock) GetSignalProcessCompletionChan() chan uint64 {
 func (emm *ExecutionManagerMock) Close() error {
 	if emm.CloseCalled != nil {
 		return emm.CloseCalled()
+	}
+	return nil
+}
+
+// PopDismissedResults -
+func (emm *ExecutionManagerMock) PopDismissedResults() []executionTrack.DismissedBatch {
+	if emm.PopDismissedResultsCalled != nil {
+		return emm.PopDismissedResultsCalled()
 	}
 	return nil
 }
