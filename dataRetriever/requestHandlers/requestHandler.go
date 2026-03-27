@@ -38,16 +38,17 @@ const uniqueEquivalentProofSuffix = "eqp"
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
 type resolverRequestHandler struct {
-	mutEpoch              sync.RWMutex
-	epoch                 uint32
-	shardID               uint32
-	maxTxsToRequest       int
-	requestersFinder      dataRetriever.RequestersFinder
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
-	whiteList             dataRetriever.WhiteListHandler
-	sweepTime             time.Time
-	requestInterval       time.Duration
-	mutSweepTime          sync.Mutex
+	mutEpoch                 sync.RWMutex
+	epoch                    uint32
+	shardID                  uint32
+	maxTxsToRequest          int
+	requestersFinder         dataRetriever.RequestersFinder
+	requestedItemsHandler    dataRetriever.RequestedItemsHandler
+	whiteList                dataRetriever.WhiteListHandler
+	sweepTime                time.Time
+	requestInterval          time.Duration
+	requestProofByNonceDelay time.Duration
+	mutSweepTime             sync.Mutex
 
 	trieHashesAccumulator map[string]struct{}
 	lastTrieRequestTime   time.Time
@@ -62,6 +63,7 @@ func NewResolverRequestHandler(
 	maxTxsToRequest int,
 	shardID uint32,
 	requestInterval time.Duration,
+	requestProofByNonceDelay time.Duration,
 ) (*resolverRequestHandler, error) {
 
 	if check.IfNil(finder) {
@@ -81,14 +83,15 @@ func NewResolverRequestHandler(
 	}
 
 	rrh := &resolverRequestHandler{
-		requestersFinder:      finder,
-		requestedItemsHandler: requestedItemsHandler,
-		epoch:                 uint32(0), // will be updated after creation of the request handler
-		shardID:               shardID,
-		maxTxsToRequest:       maxTxsToRequest,
-		whiteList:             whiteList,
-		requestInterval:       requestInterval,
-		trieHashesAccumulator: make(map[string]struct{}),
+		requestersFinder:         finder,
+		requestedItemsHandler:    requestedItemsHandler,
+		epoch:                    uint32(0), // will be updated after creation of the request handler
+		shardID:                  shardID,
+		maxTxsToRequest:          maxTxsToRequest,
+		whiteList:                whiteList,
+		requestInterval:          requestInterval,
+		requestProofByNonceDelay: requestProofByNonceDelay,
+		trieHashesAccumulator:    make(map[string]struct{}),
 	}
 
 	rrh.sweepTime = time.Now()
@@ -997,7 +1000,10 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHashForEpoch(headerSh
 // RequestEquivalentProofByNonce asks for equivalent proof for the provided header nonce
 func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64) {
 	epoch := rrh.getEpoch()
-	rrh.RequestEquivalentProofByNonceForEpoch(headerShard, headerNonce, epoch)
+	go func(requestEpoch uint32) {
+		time.Sleep(rrh.requestProofByNonceDelay)
+		rrh.RequestEquivalentProofByNonceForEpoch(headerShard, headerNonce, requestEpoch)
+	}(epoch)
 }
 
 // RequestEquivalentProofByNonceForEpoch asks for equivalent proof for the provided header nonce and epoch

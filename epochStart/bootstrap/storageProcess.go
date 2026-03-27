@@ -192,6 +192,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		MetaBlockProcessor:             metablockProcessor,
 		InterceptedDataVerifierFactory: sesb.interceptedDataVerifierFactory,
 		ProofsPool:                     sesb.dataPool.Proofs(),
+		HeadersPool:                    sesb.dataPool.Headers(),
 		ProofsInterceptorProcessor:     processor.NewEquivalentProofsInterceptorProcessor(),
 	}
 
@@ -222,6 +223,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 		maxToRequest,
 		core.MetachainShardId,
 		timeBetweenRequests,
+		time.Duration(sesb.generalConfig.Requesters.RequestProofByNonceDelayMs)*time.Millisecond,
 	)
 	return err
 }

@@ -128,6 +128,8 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
 	configs.GeneralConfig.EpochStartConfig.GenesisEpoch = args.InitialEpoch
 
+	configs.GeneralConfig.Requesters.RequestProofByNonceDelayMs = 0
+
 	if args.RoundsPerEpoch.HasValue {
 		for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
 			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)

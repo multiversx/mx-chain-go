@@ -632,6 +632,7 @@ func (thn *TestHeartbeatNode) createRequestHandler() {
 		100,
 		thn.ShardCoordinator.SelfId(),
 		time.Second,
+		time.Millisecond,
 	)
 }
 

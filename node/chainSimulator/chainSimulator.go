@@ -425,6 +425,7 @@ func (s *simulator) allNodesCreateBlocks() error {
 		}
 
 		if !check.IfNil(pair.Proof) {
+			time.Sleep(time.Millisecond * 5) // small delay to ensure proof is not dropped as being received before header
 			err = s.nodes[shardID].GetBroadcastMessenger().BroadcastEquivalentProof(pair.Proof, pair.LeaderKey)
 			if err != nil {
 				return err
