@@ -2,8 +2,10 @@ package txcache
 
 import (
 	"math/big"
+	"runtime"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"golang.org/x/sync/errgroup"
 )
 
 type virtualSessionComputer struct {
@@ -38,122 +40,87 @@ func (computer *virtualSessionComputer) createVirtualSelectionSession(
 	return virtualSession, nil
 }
 
-// handleGlobalAccountBreadcrumbs iterates over each global account breadcrumb, verifies the continuity with the session nonce
-// and transforms each global account breadcrumb into a virtual record.
+const parallelBreadcrumbThreshold = 16
+
+// handleGlobalAccountBreadcrumbs processes each account breadcrumb into a virtual record.
+// For >= 16 accounts, fetches state and builds records in parallel using errgroup.
 func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb,
 ) error {
-	for address, globalBreadcrumb := range globalAccountBreadcrumbs {
-		accountNonce, accountBalance, _, err := computer.session.GetAccountNonceAndBalance([]byte(address))
-		if err != nil {
-			log.Debug("virtualSessionComputer.handleGlobalAccountBreadcrumbs",
-				"err", err,
-				"address", address)
-			return err
-		}
-
-		if !globalBreadcrumb.isContinuousWithSessionNonce(accountNonce) {
-			log.Debug("virtualSessionComputer.handleGlobalAccountBreadcrumbs global breadcrumb not continuous with session nonce, creating blocked record",
-				"address", address,
-				"accountNonce", accountNonce,
-				"breadcrumb nonce", globalBreadcrumb.firstNonce,
-			)
-
-			err = computer.createBlockedVirtualRecord(address, accountBalance, globalBreadcrumb)
+	if len(globalAccountBreadcrumbs) < parallelBreadcrumbThreshold {
+		for addr, bc := range globalAccountBreadcrumbs {
+			nonce, balance, _, err := computer.session.GetAccountNonceAndBalance([]byte(addr))
 			if err != nil {
 				return err
 			}
-			continue
+			record, err := computer.buildRecord(nonce, balance, bc)
+			if err != nil {
+				return err
+			}
+			computer.virtualAccountsByAddress[addr] = record
 		}
-
-		err = computer.fromGlobalBreadcrumbToVirtualRecord(address, accountNonce, accountBalance, globalBreadcrumb)
-		if err != nil {
-			return err
-		}
+		return nil
 	}
 
+	type entry struct {
+		addr string
+		bc   *globalAccountBreadcrumb
+	}
+	entries := make([]entry, 0, len(globalAccountBreadcrumbs))
+	for addr, bc := range globalAccountBreadcrumbs {
+		entries = append(entries, entry{addr, bc})
+	}
+
+	records := make([]*virtualAccountRecord, len(entries))
+	g := new(errgroup.Group)
+	g.SetLimit(runtime.GOMAXPROCS(0))
+
+	for i := range entries {
+		idx := i
+		g.Go(func() error {
+			nonce, balance, _, err := computer.session.GetAccountNonceAndBalance([]byte(entries[idx].addr))
+			if err != nil {
+				return err
+			}
+			rec, err := computer.buildRecord(nonce, balance, entries[idx].bc)
+			if err != nil {
+				return err
+			}
+			records[idx] = rec
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
+	for i, rec := range records {
+		computer.virtualAccountsByAddress[entries[i].addr] = rec
+	}
 	return nil
 }
 
-// fromGlobalBreadcrumbToVirtualRecord transforms a global account breadcrumb simply by:
-// initializing the initialNonce of the virtual record with the latestNonce + 1
-// copying the consumed balance in the initialBalance of the virtual record.
-// It also saves the created virtual record into the map of the virtualSessionComputer.
-// Each sender has a unique global breadcrumb which contains the necessary information to create a virtual record.
-// If an account already exists in the map of virtual records, its virtual record doesn't need to be updated.
-func (computer *virtualSessionComputer) fromGlobalBreadcrumbToVirtualRecord(
-	address string,
+// buildRecord creates a virtual account record from on-chain state and a breadcrumb.
+// Pure computation — no shared state access, safe for concurrent use.
+func (computer *virtualSessionComputer) buildRecord(
 	accountNonce uint64,
 	accountBalance *big.Int,
-	globalBreadcrumb *globalAccountBreadcrumb,
-) error {
-	_, ok := computer.virtualAccountsByAddress[address]
-	if ok {
-		return nil
+	bc *globalAccountBreadcrumb,
+) (*virtualAccountRecord, error) {
+	nonce := core.OptionalUint64{Value: accountNonce, HasValue: true}
+
+	if !bc.isContinuousWithSessionNonce(accountNonce) {
+		nonce = core.OptionalUint64{HasValue: false}
+	} else if bc.isUser() {
+		nonce = core.OptionalUint64{Value: bc.lastNonce.Value + 1, HasValue: true}
 	}
 
-	initialBalance := accountBalance
-	initialNonce := core.OptionalUint64{
-		Value:    accountNonce,
-		HasValue: true,
-	}
-
-	if globalBreadcrumb.isUser() {
-		initialNonce = core.OptionalUint64{
-			Value:    globalBreadcrumb.lastNonce.Value + 1,
-			HasValue: true,
-		}
-	}
-
-	// We initialize the virtual record with the session nonce because an account might be only a relayer in the proposed blocks.
-	// Without this initialization, the initialNonce remains without a value.
-	// On the selection side, a virtual account record that has an initial nonce without a value
-	// will lead to an incorrect skip of a specific tx where the account is a sender.
-	record, err := newVirtualAccountRecord(initialNonce, initialBalance)
+	record, err := newVirtualAccountRecord(nonce, accountBalance)
 	if err != nil {
-		log.Debug("virtualSessionComputer.fromGlobalBreadcrumbToVirtualRecord",
-			"err", err,
-			"address", address,
-			"accountBalance", accountBalance,
-		)
-		return err
+		return nil, err
 	}
 
-	record.accumulateConsumedBalance(globalBreadcrumb.consumedBalance)
-	computer.virtualAccountsByAddress[address] = record
-	return nil
-}
-
-// createBlockedVirtualRecord creates a virtual record with an unset nonce (blocked) for an account
-// whose global breadcrumb is discontinuous with the session nonce.
-// This prevents the selection logic from selecting transactions for this sender,
-// because detectSkippableSender will see errNonceNotSet and skip the sender entirely.
-// The consumed balance from the global breadcrumb is still preserved for correct relayer balance tracking.
-func (computer *virtualSessionComputer) createBlockedVirtualRecord(
-	address string,
-	accountBalance *big.Int,
-	globalBreadcrumb *globalAccountBreadcrumb,
-) error {
-	_, ok := computer.virtualAccountsByAddress[address]
-	if ok {
-		return nil
-	}
-
-	blockedNonce := core.OptionalUint64{
-		HasValue: false,
-	}
-
-	record, err := newVirtualAccountRecord(blockedNonce, accountBalance)
-	if err != nil {
-		log.Debug("virtualSessionComputer.createBlockedVirtualRecord",
-			"err", err,
-			"address", address,
-			"accountBalance", accountBalance,
-		)
-		return err
-	}
-
-	record.accumulateConsumedBalance(globalBreadcrumb.consumedBalance)
-	computer.virtualAccountsByAddress[address] = record
-	return nil
+	record.accumulateConsumedBalance(bc.consumedBalance)
+	return record, nil
 }

@@ -3,19 +3,19 @@ package state
 import (
 	"errors"
 	"math/big"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
-// AccountsEphemeralProvider acts as an "ephemeral" provider for accounts.
-// Make sure such a provider isn't reused among multiple transactions selections or multiple processing (of blocks) phases,
-// since it contains a **never-invalidating cache** (deliberate, by design).
-// Create it privately (don't receive it in constructors), use it privately, make sure it's forgotten afterwards. Don't keep lasting references to it.
-// Note: this structure is exported on purpose (less ceremonious code where it's being used, no extra interfaces needed).
+// AccountsEphemeralProvider is an ephemeral, never-invalidating cache over AccountsAdapter.
+// Thread-safe: mutCache allows concurrent reads during parallel txpool selection.
+// Usage contract: create privately per selection/processing phase, never reuse across phases
+// (cache never invalidates — stale nonces will cause incorrect tx selection).
 type AccountsEphemeralProvider struct {
 	accounts AccountsAdapter
-	// Not concurrency-safe, but should never be accessed concurrently.
-	cache map[string]UserAccountHandler
+	mutCache sync.RWMutex
+	cache    map[string]UserAccountHandler
 }
 
 // NewAccountsEphemeralProvider creates a new "ephemeral" provider for accounts.
@@ -65,31 +65,39 @@ func (provider *AccountsEphemeralProvider) GetAccountNonceAndBalance(address []b
 	return account.GetNonce(), account.GetBalance(), true, nil
 }
 
-// GetUserAccount returns the user account, as found on blockchain. If missing (account not found), nil is returned (with no error).
+// GetUserAccount returns the user account. Thread-safe via RWMutex on cache.
 func (provider *AccountsEphemeralProvider) GetUserAccount(address []byte) (UserAccountHandler, error) {
-	account, ok := provider.cache[string(address)]
+	addrKey := string(address)
+
+	provider.mutCache.RLock()
+	account, ok := provider.cache[addrKey]
+	provider.mutCache.RUnlock()
 	if ok {
-		// Existing or new (unknown) account, previously-cached.
 		return account, nil
 	}
 
-	account, err := provider.getExistingAccountTypedAsUserAccount(address)
+	provider.mutCache.Lock()
+	// Re-check under write lock to avoid duplicate trie reads
+	account, ok = provider.cache[addrKey]
+	if ok {
+		provider.mutCache.Unlock()
+		return account, nil
+	}
+
+	fetched, err := provider.getExistingAccountTypedAsUserAccount(address)
 
 	var errAccountNotFoundAtBlock *ErrAccountNotFoundAtBlock
 	isAccountNotFoundError := errors.Is(err, ErrAccNotFound) || errors.As(err, &errAccountNotFoundAtBlock)
 
 	if err != nil && !isAccountNotFoundError {
-		// Unexpected failure (error different from "ErrAccNotFound").
-		// Account won't be cached.
+		provider.mutCache.Unlock()
 		return nil, err
 	}
 
-	// Existing account or new (unknown), we'll cache it (actual object or nil).
-	provider.cache[string(address)] = account
+	provider.cache[addrKey] = fetched
+	provider.mutCache.Unlock()
 
-	// Generally speaking, this isn't a good pattern: returning both nil (for unknown accounts), and a nil error.
-	// However, this is a non-exported method, which should only be called with care, within this struct only.
-	return account, nil
+	return fetched, nil
 }
 
 func (provider *AccountsEphemeralProvider) getExistingAccountTypedAsUserAccount(address []byte) (UserAccountHandler, error) {

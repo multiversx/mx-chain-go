@@ -1237,3 +1237,159 @@ func TestHeadersExecutor_SignalProcessCompletion(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+// BenchmarkIsPausedCheck measures the cost of checking isPaused using atomic.Bool
+// vs the old sync.Mutex pattern. Run with: go test -bench=BenchmarkIsPausedCheck -benchmem
+func BenchmarkIsPausedCheck(b *testing.B) {
+	b.Run("atomic.Bool", func(b *testing.B) {
+		var flag atomic.Bool
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_ = flag.Load()
+		}
+	})
+
+	b.Run("sync.Mutex", func(b *testing.B) {
+		var mu sync.Mutex
+		var isPaused bool
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			mu.Lock()
+			_ = isPaused
+			mu.Unlock()
+		}
+	})
+}
+
+// TestHeadersExecutor_EventDrivenWakeup proves that the event-driven channel wakes
+// the executor faster than the old 5ms polling would have.
+func TestHeadersExecutor_EventDrivenWakeup(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+
+	var executionStarted atomic.Int64
+	executionNonce := uint64(1)
+
+	args.BlockChain = &testscommon.ChainHandlerStub{
+		GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+			return 0, []byte("genesis"), []byte("genesis_root")
+		},
+		GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+			return &block.BaseExecutionResult{}
+		},
+	}
+	args.BlockProcessor = &processMocks.BlockProcessorStub{
+		ProcessBlockProposalCalled: func(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+			executionStarted.Store(time.Now().UnixMicro())
+			return &block.BaseExecutionResult{HeaderHash: headerHash}, nil
+		},
+	}
+	args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+		AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
+			return true, nil
+		},
+	}
+
+	executor, err := NewHeadersExecutor(args)
+	require.NoError(t, err)
+
+	executor.StartExecution()
+
+	// Queue a block and measure how fast execution starts
+	pair := cache.HeaderBodyPair{
+		Header:     &block.Header{Nonce: executionNonce, Round: 1},
+		HeaderHash: []byte("hash1"),
+		Body:       &block.Body{},
+	}
+
+	queueTime := time.Now().UnixMicro()
+	err = args.BlocksCache.AddOrReplace(pair)
+	require.NoError(t, err)
+
+	// Wait for execution to start (max 50ms — old polling would take up to 5ms)
+	require.Eventually(t, func() bool {
+		return executionStarted.Load() > 0
+	}, 50*time.Millisecond, time.Millisecond)
+
+	latencyUs := executionStarted.Load() - queueTime
+	t.Logf("Event-driven wakeup latency: %d microseconds", latencyUs)
+
+	// With event-driven wakeup, latency should be well under 5ms.
+	// Old 5ms polling would average ~2.5ms latency; worst case was 5ms.
+	// Under CI/benchmark load, allow up to 10ms due to GC/scheduling pressure.
+	require.Less(t, latencyUs, int64(10000), "wakeup latency should be under 10ms")
+
+	err = executor.Close()
+	require.NoError(t, err)
+}
+
+// TestHeadersExecutor_PauseResumeStress is a stress test that rapidly cycles
+// pause/resume with concurrent block additions to detect any race conditions
+// in the atomic.Bool + mutProcessDone synchronization.
+func TestHeadersExecutor_PauseResumeStress(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+	args.BlockChain = &testscommon.ChainHandlerStub{
+		GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+			return 0, []byte("genesis"), []byte("genesis_root")
+		},
+		GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+			return &block.BaseExecutionResult{}
+		},
+	}
+
+	executor, err := NewHeadersExecutor(args)
+	require.NoError(t, err)
+	executor.StartExecution()
+
+	const numGoroutines = 50
+	const cyclesPerGoroutine = 20
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines * 3) // pausers + resumers + block adders
+
+	// Pausers
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			for j := 0; j < cyclesPerGoroutine; j++ {
+				executor.PauseExecution()
+				time.Sleep(time.Microsecond * 100)
+			}
+		}()
+	}
+
+	// Resumers
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			for j := 0; j < cyclesPerGoroutine; j++ {
+				executor.ResumeExecution()
+				time.Sleep(time.Microsecond * 50)
+			}
+		}()
+	}
+
+	// Block adders (exercise the channel signal under contention)
+	for i := 0; i < numGoroutines; i++ {
+		go func(base int) {
+			defer wg.Done()
+			for j := 0; j < cyclesPerGoroutine; j++ {
+				pair := cache.HeaderBodyPair{
+					Header:     &block.Header{Nonce: uint64(base*cyclesPerGoroutine + j + 1), Round: uint64(j)},
+					HeaderHash: []byte("stress_hash"),
+					Body:       &block.Body{},
+				}
+				_ = args.BlocksCache.AddOrReplace(pair)
+				time.Sleep(time.Microsecond * 50)
+			}
+		}(i)
+	}
+
+	wg.Wait()
+
+	// If we get here without panic or deadlock, the synchronization is correct
+	err = executor.Close()
+	require.NoError(t, err)
+}

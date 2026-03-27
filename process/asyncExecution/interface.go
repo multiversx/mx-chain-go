@@ -11,6 +11,7 @@ type BlocksCache interface {
 	GetByNonce(nonce uint64) (cache.HeaderBodyPair, bool)
 	AddOrReplace(pair cache.HeaderBodyPair) error
 	Remove(nonce uint64)
+	GetSignalBlockAddedChan() <-chan struct{}
 	IsInterfaceNil() bool
 }
 

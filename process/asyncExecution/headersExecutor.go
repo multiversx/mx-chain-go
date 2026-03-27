@@ -17,7 +17,7 @@ import (
 
 var log = logger.GetOrCreate("process/asyncExecution")
 
-const timeToSleep = time.Millisecond * 5
+const maxIdleWait = 5 * time.Millisecond
 const timeToSleepOnError = time.Millisecond * 300
 const maxRetryAttempts = 10
 const maxBackoffTime = time.Second * 5
@@ -37,9 +37,10 @@ type headersExecutor struct {
 	blockProcessor              BlockProcessor
 	blockChain                  data.ChainHandler
 	cancelFunc                  context.CancelFunc
-	mutPaused                   sync.Mutex
 	isPaused                    bool
+	mutPaused                   sync.Mutex   // protects isPaused + processingDone
 	processingDone              chan struct{}
+	blockAddedChan              <-chan struct{}
 	signalProcessCompletionChan chan uint64
 }
 
@@ -63,6 +64,7 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 		executionTracker:            args.ExecutionTracker,
 		blockProcessor:              args.BlockProcessor,
 		blockChain:                  args.BlockChain,
+		blockAddedChan:              args.BlocksCache.GetSignalBlockAddedChan(),
 		signalProcessCompletionChan: args.SignalProcessCompletionChan,
 	}
 
@@ -78,14 +80,11 @@ func (he *headersExecutor) StartExecution() {
 	go he.start(ctx)
 }
 
-// PauseExecution pauses the execution and waits for any ongoing block processing to complete.
-// It returns only after the processing loop has acknowledged the pause, guaranteeing
-// that no block execution is in flight.
+// PauseExecution blocks until the processing loop acknowledges the pause.
 func (he *headersExecutor) PauseExecution() {
-	log.Debug("headersExecutor.PauseExecution: pausing execution")
+	log.Debug("headersExecutor.PauseExecution")
 
 	if he.cancelFunc == nil {
-		log.Debug("headersExecutor.PauseExecution: execution not started yet or already closed")
 		return
 	}
 
@@ -94,37 +93,27 @@ func (he *headersExecutor) PauseExecution() {
 		he.mutPaused.Unlock()
 		return
 	}
-
 	he.isPaused = true
 	ch := make(chan struct{})
 	he.processingDone = ch
 	he.mutPaused.Unlock()
 
-	// Block until the processing loop acknowledges the pause by closing this channel.
-	// This guarantees no block execution is in flight when PauseExecution returns.
 	<-ch
 }
 
-// ResumeExecution resumes the execution
+// ResumeExecution resumes the execution loop.
 func (he *headersExecutor) ResumeExecution() {
-	log.Debug("headersExecutor.ResumeExecution: resuming execution")
-
+	log.Debug("headersExecutor.ResumeExecution")
 	he.mutPaused.Lock()
 	defer he.mutPaused.Unlock()
 
 	he.isPaused = false
-
-	// If PauseExecution is waiting for acknowledgement but we're resuming first,
-	// close the channel to unblock it.
 	if he.processingDone != nil {
 		close(he.processingDone)
 		he.processingDone = nil
 	}
 }
 
-// acknowledgePause checks if a pause has been requested and, if so, closes the
-// processingDone channel to unblock PauseExecution. This must only be called
-// between block processing iterations, ensuring no execution is in flight.
 func (he *headersExecutor) acknowledgePause() {
 	he.mutPaused.Lock()
 	defer he.mutPaused.Unlock()
@@ -132,11 +121,16 @@ func (he *headersExecutor) acknowledgePause() {
 	if !he.isPaused {
 		return
 	}
-
 	if he.processingDone != nil {
 		close(he.processingDone)
 		he.processingDone = nil
 	}
+}
+
+func (he *headersExecutor) isPausedFlag() bool {
+	he.mutPaused.Lock()
+	defer he.mutPaused.Unlock()
+	return he.isPaused
 }
 
 func (he *headersExecutor) start(ctx context.Context) {
@@ -151,19 +145,16 @@ func (he *headersExecutor) start(ctx context.Context) {
 		}
 
 		he.acknowledgePause()
-		he.mutPaused.Lock()
-		isPaused := he.isPaused
-		he.mutPaused.Unlock()
 
-		if isPaused {
-			time.Sleep(timeToSleep)
+		if he.isPausedFlag() {
+			time.Sleep(time.Millisecond)
 			continue
 		}
 
 		lastExecutedNonce, lastExecutedHeaderHash, _ := he.blockChain.GetLastExecutedBlockInfo()
 		if len(lastExecutedHeaderHash) == 0 {
 			he.acknowledgePause()
-			time.Sleep(timeToSleep)
+			he.waitForBlockOrTimeout(ctx)
 			continue
 		}
 
@@ -175,7 +166,7 @@ func (he *headersExecutor) start(ctx context.Context) {
 			headerBodyPair, ok = he.blocksCache.GetByNonce(lastExecutedNonce + 1)
 			if !ok {
 				he.acknowledgePause()
-				time.Sleep(timeToSleep)
+				he.waitForBlockOrTimeout(ctx)
 				continue
 			}
 		}
@@ -194,7 +185,7 @@ func (he *headersExecutor) start(ctx context.Context) {
 			headerBodyPair, ok = he.blocksCache.GetByNonce(lastExecutedNonce + 1)
 			if !ok {
 				he.acknowledgePause()
-				time.Sleep(timeToSleep)
+				he.waitForBlockOrTimeout(ctx)
 				continue
 			}
 		}
@@ -203,11 +194,22 @@ func (he *headersExecutor) start(ctx context.Context) {
 		if err != nil {
 			if errors.Is(err, ErrContextMismatch) {
 				he.acknowledgePause()
-				time.Sleep(timeToSleep)
+				he.waitForBlockOrTimeout(ctx)
 				continue
 			}
 			he.handleProcessError(ctx, headerBodyPair)
 		}
+	}
+}
+
+func (he *headersExecutor) waitForBlockOrTimeout(ctx context.Context) {
+	timer := time.NewTimer(maxIdleWait)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+	case <-he.blockAddedChan:
+	case <-timer.C:
 	}
 }
 
@@ -216,11 +218,7 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 	backoffTime := timeToSleepOnError
 
 	for retryCount < maxRetryAttempts {
-		he.mutPaused.Lock()
-		isPaused := he.isPaused
-		he.mutPaused.Unlock()
-
-		if isPaused {
+		if he.isPausedFlag() {
 			return
 		}
 
@@ -234,26 +232,26 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 		case <-ctx.Done():
 			return
 		default:
-			he.mutPaused.Lock()
-			isPausedRetry := he.isPaused
-			he.mutPaused.Unlock()
-
-			if isPausedRetry {
+			if he.isPausedFlag() {
 				return
 			}
 
-			// Exponential backoff with maximum limit
-			time.Sleep(backoffTime)
+			// Exponential backoff — also wake early if a replacement block arrives
+			backoffTimer := time.NewTimer(backoffTime)
+			select {
+			case <-ctx.Done():
+				backoffTimer.Stop()
+				return
+			case <-he.blockAddedChan:
+				backoffTimer.Stop()
+			case <-backoffTimer.C:
+			}
 			backoffTime = backoffTime * 2
 			if backoffTime > maxBackoffTime {
 				backoffTime = maxBackoffTime
 			}
 
-			he.mutPaused.Lock()
-			isPausedRetry = he.isPaused
-			he.mutPaused.Unlock()
-
-			if isPausedRetry {
+			if he.isPausedFlag() {
 				return
 			}
 

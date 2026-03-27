@@ -1,6 +1,8 @@
 package processMocks
 
 import (
+	"sync"
+
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
@@ -10,6 +12,8 @@ type BlocksCacheMock struct {
 	RemoveAtNonceAndHigherCalled func(nonce uint64) []uint64
 	CleanCalled                  func()
 	GetByNonceCalled             func(nonce uint64) (cache.HeaderBodyPair, bool)
+	signalOnce                   sync.Once
+	signalChan                   chan struct{}
 }
 
 // GetByNonce -
@@ -46,6 +50,14 @@ func (bqm *BlocksCacheMock) Clean() {
 	if bqm.CleanCalled != nil {
 		bqm.CleanCalled()
 	}
+}
+
+// GetSignalBlockAddedChan -
+func (bqm *BlocksCacheMock) GetSignalBlockAddedChan() <-chan struct{} {
+	bqm.signalOnce.Do(func() {
+		bqm.signalChan = make(chan struct{}, 1)
+	})
+	return bqm.signalChan
 }
 
 // IsInterfaceNil -

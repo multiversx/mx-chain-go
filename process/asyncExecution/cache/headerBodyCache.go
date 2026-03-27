@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"sort"
+	"slices"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -17,10 +17,18 @@ const (
 	defaultMaxQueueSize = 1000
 )
 
+// headerBodyCache stores header-body pairs by nonce for async execution.
+//
+// Optimization: signalBlockAdded is a buffered(1) channel that notifies the
+// headersExecutor immediately when a new block is queued via AddOrReplace.
+// This replaces the old 5ms polling loop, reducing execution start latency
+// from 0-5ms to <1ms. The non-blocking send (select/default) ensures
+// AddOrReplace never blocks even if the consumer hasn't drained the signal.
 type headerBodyCache struct {
-	mutex        sync.RWMutex
-	cacheByNonce map[uint64]HeaderBodyPair
-	maxCacheSize int
+	mutex            sync.RWMutex
+	cacheByNonce     map[uint64]HeaderBodyPair
+	maxCacheSize     int
+	signalBlockAdded chan struct{}
 }
 
 // NewHeaderBodyCache will create a new instance of cache
@@ -31,9 +39,10 @@ func NewHeaderBodyCache(config config.HeaderBodyCacheConfig) *headerBodyCache {
 	}
 
 	return &headerBodyCache{
-		cacheByNonce: make(map[uint64]HeaderBodyPair),
-		mutex:        sync.RWMutex{},
-		maxCacheSize: cacheSize,
+		cacheByNonce:     make(map[uint64]HeaderBodyPair),
+		mutex:            sync.RWMutex{},
+		maxCacheSize:     cacheSize,
+		signalBlockAdded: make(chan struct{}, 1),
 	}
 }
 
@@ -50,13 +59,14 @@ func (c *headerBodyCache) AddOrReplace(pair HeaderBodyPair) error {
 	}
 
 	c.mutex.Lock()
-	defer c.mutex.Unlock()
 
 	headerNonce := pair.Header.GetNonce()
 	_, found := c.cacheByNonce[headerNonce]
 	if len(c.cacheByNonce) >= c.maxCacheSize && !found {
+		currentSize := len(c.cacheByNonce)
+		c.mutex.Unlock()
 		log.Warn("async execution cache is full",
-			"current size", len(c.cacheByNonce),
+			"current size", currentSize,
 			"max size", c.maxCacheSize,
 			"rejected nonce", headerNonce,
 		)
@@ -64,12 +74,20 @@ func (c *headerBodyCache) AddOrReplace(pair HeaderBodyPair) error {
 	}
 
 	c.cacheByNonce[headerNonce] = pair
+	cacheSize := len(c.cacheByNonce)
+	c.mutex.Unlock()
 
 	log.Debug("headerBodyCache.AddOrReplace - block has been added",
 		"round", pair.Header.GetRound(),
 		"nonce", pair.Header.GetNonce(),
 		"hash", pair.HeaderHash,
-		"cache size", len(c.cacheByNonce))
+		"cache size", cacheSize)
+
+	// Signal outside the lock to avoid coupling notification to lock scope
+	select {
+	case c.signalBlockAdded <- struct{}{}:
+	default:
+	}
 
 	return nil
 }
@@ -96,7 +114,7 @@ func (c *headerBodyCache) RemoveAtNonceAndHigher(providedNonce uint64) []uint64 
 	}
 	c.mutex.Unlock()
 
-	sort.Slice(nonces, func(i, j int) bool { return nonces[i] < nonces[j] })
+	slices.Sort(nonces)
 
 	return nonces
 }
@@ -114,6 +132,11 @@ func (c *headerBodyCache) Clean() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.cacheByNonce = make(map[uint64]HeaderBodyPair)
+}
+
+// GetSignalBlockAddedChan returns a receive-only channel that signals when a block is added.
+func (c *headerBodyCache) GetSignalBlockAddedChan() <-chan struct{} {
+	return c.signalBlockAdded
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

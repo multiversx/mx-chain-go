@@ -331,6 +331,7 @@ type BlocksCache interface {
 	Remove(nonce uint64)
 	Clean()
 	RemoveAtNonceAndHigher(providedNonce uint64) []uint64
+	GetSignalBlockAddedChan() <-chan struct{}
 	IsInterfaceNil() bool
 }
 
