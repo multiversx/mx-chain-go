@@ -76,10 +76,6 @@ func (spm *storagePruningManager) markForEviction(
 	}
 
 	rootHash = append(rootHash, byte(identifier))
-
-	// Evict stale entry at this key from a previously dismissed block (no-op if absent).
-	spm.cancelPrune(rootHash)
-
 	err := spm.dbEvictionWaitingList.Put(rootHash, hashes)
 	if err != nil {
 		return err

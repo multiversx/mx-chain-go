@@ -295,7 +295,7 @@ func TestStoragePruningManager_Reset(t *testing.T) {
 	assert.Equal(t, 0, spm.pruningBuffer.Len())
 }
 
-func TestStoragePruningManager_EvictBeforePut(t *testing.T) {
+func TestStoragePruningManager_DuplicateKeyIncrementsNumReferences(t *testing.T) {
 	t.Parallel()
 
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
@@ -305,48 +305,29 @@ func TestStoragePruningManager_EvictBeforePut(t *testing.T) {
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := NewStoragePruningManager(ewl, 1000)
 
-	// Simulate dismissed block: MarkForEviction from oldRoot=R0 to newRoot=R1
-	dismissedOldHashes := map[string]struct{}{"old_dismissed_1": {}, "old_dismissed_2": {}}
-	dismissedNewHashes := map[string]struct{}{"new_dismissed_1": {}}
-	err := spm.MarkForEviction([]byte("R0"), []byte("R1"), dismissedOldHashes, dismissedNewHashes)
+	// Put R0|OldRoot twice (simulates delayed pruning with recycled root hash)
+	oldHashes1 := map[string]struct{}{"h1": {}, "h2": {}}
+	newHashes1 := map[string]struct{}{"h3": {}}
+	err := spm.MarkForEviction([]byte("R0"), []byte("R1"), oldHashes1, newHashes1)
 	assert.Nil(t, err)
-
-	// Verify EWL has 2 entries (R0|OldRoot and R1|NewRoot)
 	assert.Equal(t, 2, spm.EvictionWaitingListCacheLen())
 
-	// Simulate replacement block with SAME oldRoot: MarkForEviction from oldRoot=R0 to newRoot=R2
-	// The evict-before-put should clear the stale R0|OldRoot entry before writing the new one
-	replacementOldHashes := map[string]struct{}{"old_replacement_1": {}, "old_replacement_3": {}}
-	replacementNewHashes := map[string]struct{}{"new_replacement_1": {}}
-	err = spm.MarkForEviction([]byte("R0"), []byte("R2"), replacementOldHashes, replacementNewHashes)
+	// Second MarkForEviction with same oldRoot R0 increments numReferences
+	oldHashes2 := map[string]struct{}{"h4": {}, "h5": {}}
+	newHashes2 := map[string]struct{}{"h6": {}}
+	err = spm.MarkForEviction([]byte("R0"), []byte("R2"), oldHashes2, newHashes2)
 	assert.Nil(t, err)
+	assert.Equal(t, 3, spm.EvictionWaitingListCacheLen()) // R0|OldRoot, R1|NewRoot, R2|NewRoot
 
-	// EWL should have 3 entries: R1|NewRoot (from dismissed), R0|OldRoot (replacement), R2|NewRoot (replacement)
-	// The stale R0|OldRoot entry from the dismissed block was evicted before the replacement's Put
-	assert.Equal(t, 3, spm.EvictionWaitingListCacheLen())
-
-	// Now simulate pruning the replacement block's old state:
-	// CancelPrune(R0, NewRoot) - cancel the "new" marking from the previous block
-	// The R0|NewRoot was set by the DISMISSED block's MarkForEviction (removeDuplicatedKeys already ran)
-	// PruneTrie(R0, OldRoot) - prune old state
-	// The key R0|OldRoot should return the REPLACEMENT's hashes, not the dismissed block's
-	evictedOld, errEvict := ewl.Evict(append([]byte("R0"), byte(state.OldRoot)))
+	// First Evict decrements numReferences, returns empty (entry still alive)
+	evicted, errEvict := ewl.Evict(append([]byte("R0"), byte(state.OldRoot)))
 	assert.Nil(t, errEvict)
+	assert.Equal(t, 0, len(evicted))
 
-	// The evicted hashes must be from the replacement block, not the dismissed block
-	_, hasReplacementHash := evictedOld["old_replacement_1"]
-	assert.True(t, hasReplacementHash, "should contain replacement hashes")
-	_, hasDismissedHash := evictedOld["old_dismissed_1"]
-	assert.False(t, hasDismissedHash, "should NOT contain dismissed hashes")
-
-	// The dismissed block's NewRoot entry (R1|NewRoot) should still be in EWL
-	evictedDismissedNew, errEvict2 := ewl.Evict(append([]byte("R1"), byte(state.NewRoot)))
-	assert.Nil(t, errEvict2)
-	_, hasDismissedNewHash := evictedDismissedNew["new_dismissed_1"]
-	assert.True(t, hasDismissedNewHash, "dismissed NewRoot entry should still exist")
-
-	// After evicting both R0|OldRoot and R1|NewRoot, only R2|NewRoot should remain
-	assert.Equal(t, 1, spm.EvictionWaitingListCacheLen())
+	// Second Evict removes entry and returns hashes
+	evicted, errEvict = ewl.Evict(append([]byte("R0"), byte(state.OldRoot)))
+	assert.Nil(t, errEvict)
+	assert.True(t, len(evicted) > 0)
 }
 
 func TestStoragePruningManager_EvictionWaitingListCacheLen(t *testing.T) {
