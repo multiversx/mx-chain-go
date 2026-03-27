@@ -1189,6 +1189,8 @@ type RoundTimeDurationHandler interface {
 type RoundHandler interface {
 	Index() int64
 	TimeDuration() time.Duration
+	RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
+	TimeStamp() time.Time
 	IsInterfaceNil() bool
 }
 

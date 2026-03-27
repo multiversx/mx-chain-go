@@ -11,6 +11,7 @@ type RoundHandlerMock struct {
 	RoundTimeStamp      time.Time
 	RoundTimeDuration   time.Duration
 	BeforeGenesisCalled func() bool
+	RemainingTimeCalled func(startTime time.Time, maxTime time.Duration) time.Duration
 }
 
 // BeforeGenesis -
@@ -55,7 +56,10 @@ func (rndm *RoundHandlerMock) UpdateRound(genesisRoundTimeStamp time.Time, timeS
 }
 
 // RemainingTime -
-func (rndm *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
+func (rndm *RoundHandlerMock) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
+	if rndm.RemainingTimeCalled != nil {
+		return rndm.RemainingTimeCalled(startTime, maxTime)
+	}
 	return rndm.RoundTimeDuration
 }
 
