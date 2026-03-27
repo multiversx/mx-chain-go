@@ -1230,6 +1230,13 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdenti
 	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.mainTrie.GetStorageManager())
 }
 
+// GetEvictionWaitingListSize returns the number of entries in the eviction waiting list cache
+func (adb *AccountsDB) GetEvictionWaitingListSize() int {
+	adb.mutOp.RLock()
+	defer adb.mutOp.RUnlock()
+	return adb.storagePruningManager.EvictionWaitingListCacheLen()
+}
+
 // ResetPruning will reset all collected data needed for pruning
 func (adb *AccountsDB) ResetPruning() {
 	adb.mutOp.Lock()

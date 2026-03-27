@@ -294,3 +294,57 @@ func TestStoragePruningManager_Reset(t *testing.T) {
 	trieStorage.ExitPruningBufferingMode()
 	assert.Equal(t, 0, spm.pruningBuffer.Len())
 }
+
+func TestStoragePruningManager_DuplicateKeyIncrementsNumReferences(t *testing.T) {
+	t.Parallel()
+
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
+	spm, _ := NewStoragePruningManager(ewl, 1000)
+
+	// Put R0|OldRoot twice (simulates delayed pruning with recycled root hash)
+	oldHashes1 := map[string]struct{}{"h1": {}, "h2": {}}
+	newHashes1 := map[string]struct{}{"h3": {}}
+	err := spm.MarkForEviction([]byte("R0"), []byte("R1"), oldHashes1, newHashes1)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, spm.EvictionWaitingListCacheLen())
+
+	// Second MarkForEviction with same oldRoot R0 increments numReferences
+	oldHashes2 := map[string]struct{}{"h4": {}, "h5": {}}
+	newHashes2 := map[string]struct{}{"h6": {}}
+	err = spm.MarkForEviction([]byte("R0"), []byte("R2"), oldHashes2, newHashes2)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, spm.EvictionWaitingListCacheLen()) // R0|OldRoot, R1|NewRoot, R2|NewRoot
+
+	// First Evict decrements numReferences, returns empty (entry still alive)
+	evicted, errEvict := ewl.Evict(append([]byte("R0"), byte(state.OldRoot)))
+	assert.Nil(t, errEvict)
+	assert.Equal(t, 0, len(evicted))
+
+	// Second Evict removes entry and returns hashes
+	evicted, errEvict = ewl.Evict(append([]byte("R0"), byte(state.OldRoot)))
+	assert.Nil(t, errEvict)
+	assert.True(t, len(evicted) > 0)
+}
+
+func TestStoragePruningManager_EvictionWaitingListCacheLen(t *testing.T) {
+	t.Parallel()
+
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
+	spm, _ := NewStoragePruningManager(ewl, 1000)
+
+	assert.Equal(t, 0, spm.EvictionWaitingListCacheLen())
+
+	err := spm.MarkForEviction([]byte("old"), []byte("new"),
+		map[string]struct{}{"h1": {}},
+		map[string]struct{}{"h2": {}})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, spm.EvictionWaitingListCacheLen())
+}

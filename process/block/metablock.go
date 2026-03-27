@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -1714,6 +1715,65 @@ func (mp *metaProcessor) resetPruning() {
 	if peerAccountsDb.IsPruningEnabled() {
 		peerAccountsDb.ResetPruning()
 	}
+}
+
+func (mp *metaProcessor) cancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch) {
+	accountsDb := mp.accountsDB[state.UserAccountsState]
+	peerAccountsDb := mp.accountsDB[state.PeerAccountsState]
+	userPruningEnabled := accountsDb.IsPruningEnabled()
+	peerPruningEnabled := peerAccountsDb.IsPruningEnabled()
+	if !userPruningEnabled && !peerPruningEnabled {
+		return
+	}
+
+	for _, batch := range batches {
+		mp.cancelPruneForDismissedBatch(accountsDb, peerAccountsDb, batch, userPruningEnabled, peerPruningEnabled)
+	}
+}
+
+func (mp *metaProcessor) cancelPruneForDismissedBatch(
+	accountsDb state.AccountsAdapter,
+	peerAccountsDb state.AccountsAdapter,
+	batch executionTrack.DismissedBatch,
+	userPruningEnabled bool,
+	peerPruningEnabled bool,
+) {
+	if batch.AnchorResult == nil {
+		return
+	}
+
+	prevUserRootHash := batch.AnchorResult.GetRootHash()
+	prevValidatorRootHash := mp.extractValidatorStatsRootHash(batch.AnchorResult, peerPruningEnabled, "anchor")
+
+	for _, result := range batch.Results {
+		currentUserRootHash := result.GetRootHash()
+		currentValidatorRootHash := mp.extractValidatorStatsRootHash(result, peerPruningEnabled, "result")
+
+		if userPruningEnabled {
+			cancelPruneForRootHashTransition(accountsDb, prevUserRootHash, currentUserRootHash)
+		}
+		if peerPruningEnabled {
+			cancelPruneForRootHashTransition(peerAccountsDb, prevValidatorRootHash, currentValidatorRootHash)
+		}
+
+		prevUserRootHash = currentUserRootHash
+		prevValidatorRootHash = currentValidatorRootHash
+	}
+}
+
+func (mp *metaProcessor) extractValidatorStatsRootHash(
+	result data.BaseExecutionResultHandler,
+	peerPruningEnabled bool,
+	context string,
+) []byte {
+	metaResult, ok := result.(data.BaseMetaExecutionResultHandler)
+	if ok {
+		return metaResult.GetValidatorStatsRootHash()
+	}
+	if peerPruningEnabled {
+		log.Warn("cancelPruneForDismissedExecutionResults: " + context + " does not implement BaseMetaExecutionResultHandler")
+	}
+	return nil
 }
 
 func (mp *metaProcessor) getPreviousExecutionResult(

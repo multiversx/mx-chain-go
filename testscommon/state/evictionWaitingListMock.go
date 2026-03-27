@@ -88,6 +88,13 @@ func (ewl *EvictionWaitingListMock) Reset() {
 	ewl.OpMutex.Unlock()
 }
 
+// CacheLen -
+func (ewl *EvictionWaitingListMock) CacheLen() int {
+	ewl.OpMutex.RLock()
+	defer ewl.OpMutex.RUnlock()
+	return len(ewl.Cache)
+}
+
 // Close -
 func (ewl *EvictionWaitingListMock) Close() error {
 	return nil

@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -1314,6 +1315,30 @@ func (sp *shardProcessor) resetPruning() {
 	}
 
 	accountsDb.ResetPruning()
+}
+
+func (sp *shardProcessor) cancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch) {
+	accountsDb := sp.accountsDB[state.UserAccountsState]
+	if !accountsDb.IsPruningEnabled() {
+		return
+	}
+
+	for _, batch := range batches {
+		sp.cancelPruneForDismissedBatch(accountsDb, batch)
+	}
+}
+
+func (sp *shardProcessor) cancelPruneForDismissedBatch(accountsDb state.AccountsAdapter, batch executionTrack.DismissedBatch) {
+	if batch.AnchorResult == nil {
+		return
+	}
+
+	prevRootHash := batch.AnchorResult.GetRootHash()
+	for _, result := range batch.Results {
+		currentRootHash := result.GetRootHash()
+		cancelPruneForRootHashTransition(accountsDb, prevRootHash, currentRootHash)
+		prevRootHash = currentRootHash
+	}
 }
 
 func (sp *shardProcessor) getPreviousExecutionResult(

@@ -52,6 +52,11 @@ import (
 const (
 	cleanupHeadersDelta                  = 5
 	waitForExecutionResultsCheckInterval = 5 * time.Millisecond
+
+	maxGapForEWLThreshold   = 250 // cap to prevent pathological configs
+	ewlEntriesPerResult     = 2   // OldRoot + NewRoot per commit
+	ewlTolerancePercent     = 130 // 30% tolerance over expected size
+	ewlThresholdMinBaseline = 10  // minimum baseline to avoid false resets on small gaps
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -151,6 +156,7 @@ type baseProcessor struct {
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
 	aotSelector                        process.AOTTransactionSelector
 	maxProposalNonceGap                uint64
+	ewlResetThreshold                  int
 	closingNodeStarted                 *atomic.Bool
 
 	lastPrunedHeaderHash  []byte
@@ -190,6 +196,8 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	if maxProposalNonceGap < defaultMaxProposalNonceGap {
 		maxProposalNonceGap = defaultMaxProposalNonceGap
 	}
+
+	ewlResetThreshold := computeEWLResetThreshold(maxProposalNonceGap)
 
 	base := &baseProcessor{
 		accountsDB:                         arguments.AccountsDB,
@@ -252,6 +260,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
 		aotSelector:                        arguments.AOTSelector,
 		maxProposalNonceGap:                maxProposalNonceGap,
+		ewlResetThreshold:                  ewlResetThreshold,
 		closingNodeStarted:                 arguments.CoreComponents.ClosingNodeStarted(),
 	}
 
@@ -2225,7 +2234,9 @@ func (bp *baseProcessor) commitInEpoch(currentEpoch uint32, epochToCommit uint32
 	return nil
 }
 
-// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided headers
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided headers.
+// Not called for V3 headers: shouldAllowRollback returns false for V3 in baseSync.go.
+// V3 block dismissal is handled via cancelPruneForDismissedExecutionResults.
 func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte) {
 	for key := range bp.accountsDB {
 		if !bp.accountsDB[key].IsPruningEnabled() {
@@ -4035,6 +4046,75 @@ func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data
 
 	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.GetAccumulatedFeesInEpoch().String())
 	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.GetDevFeesInEpoch().String())
+}
+
+func (bp *baseProcessor) cleanupDismissedEWLEntries() {
+	dismissedBatches := bp.executionManager.PopDismissedResults()
+
+	if len(dismissedBatches) > 0 {
+		totalDismissed := 0
+		for _, batch := range dismissedBatches {
+			totalDismissed += len(batch.Results)
+		}
+		log.Debug("cleanupDismissedEWLEntries: draining dismissed batches",
+			"batches", len(dismissedBatches),
+			"totalDismissed", totalDismissed,
+		)
+
+		bp.blockProcessor.cancelPruneForDismissedExecutionResults(dismissedBatches)
+		bp.resetLastPrunedHeader()
+	}
+
+	bp.checkEWLSizeAndReset()
+}
+
+// checkEWLSizeAndReset is a safety net (Layer 3). If the EWL size exceeds the
+// precomputed threshold, it resets pruning to prevent unbounded memory growth.
+func (bp *baseProcessor) checkEWLSizeAndReset() {
+	for key, accountsDb := range bp.accountsDB {
+		if !accountsDb.IsPruningEnabled() {
+			continue
+		}
+		ewlSize := accountsDb.GetEvictionWaitingListSize()
+		if ewlSize > bp.ewlResetThreshold {
+			log.Warn("EWL cache size exceeds threshold, resetting pruning",
+				"accountsDB", key,
+				"ewlSize", ewlSize,
+				"threshold", bp.ewlResetThreshold,
+			)
+			accountsDb.ResetPruning()
+			bp.resetLastPrunedHeader()
+		}
+	}
+}
+
+func computeEWLResetThreshold(maxProposalNonceGap uint64) int {
+	gap := maxProposalNonceGap
+	if gap > maxGapForEWLThreshold {
+		gap = maxGapForEWLThreshold
+	}
+	expected := gap * ewlEntriesPerResult
+	return int(expected*ewlTolerancePercent/100) + ewlThresholdMinBaseline
+}
+
+// cancelPruneForRootHashTransition cancels pruning for a root hash transition from prev to current.
+// It issues CancelPrune for currentRootHash as NewRoot and prevRootHash as OldRoot.
+func cancelPruneForRootHashTransition(accountsDb state.AccountsAdapter, prevRootHash, currentRootHash []byte) {
+	if len(prevRootHash) == 0 || len(currentRootHash) == 0 {
+		return
+	}
+	if bytes.Equal(prevRootHash, currentRootHash) {
+		return
+	}
+	accountsDb.CancelPrune(currentRootHash, state.NewRoot)
+	accountsDb.CancelPrune(prevRootHash, state.OldRoot)
+}
+
+func (bp *baseProcessor) resetLastPrunedHeader() {
+	bp.mutLastPrunedHeader.Lock()
+	bp.lastPrunedHeaderHash = nil
+	bp.lastPrunedHeaderNonce = 0
+	bp.mutLastPrunedHeader.Unlock()
 }
 
 // PruneTrieAsyncHeader will trigger trie pruning for header from async execution flow
