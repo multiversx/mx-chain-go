@@ -3540,7 +3540,10 @@ func (tpn *TestProcessorNode) MiniBlocksPresent(hashes [][]byte) bool {
 }
 
 func (tpn *TestProcessorNode) initRoundHandler(roundTime time.Duration) {
-	tpn.RoundHandler = &mock.RoundHandlerMock{TimeDurationField: roundTime}
+	tpn.RoundHandler = &mock.RoundHandlerMock{
+		TimeDurationField:  roundTime,
+		RemainingTimeField: roundTime,
+	}
 }
 
 func (tpn *TestProcessorNode) initRequestedItemsHandler() {
