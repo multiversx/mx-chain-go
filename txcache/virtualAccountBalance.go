@@ -34,9 +34,8 @@ func (virtualBalance *virtualAccountBalance) accumulateConsumedBalance(consumedB
 	virtualBalance.mutex.Lock()
 	defer virtualBalance.mutex.Unlock()
 
-	// defensive copy to prevent aliasing issues if consumedBalance is modified externally later
-	toAdd := new(big.Int).Set(consumedBalance)
-	_ = virtualBalance.consumedBalance.Add(virtualBalance.consumedBalance, toAdd)
+	// big.Int.Add(x, y) does not mutate y, so no defensive copy is needed.
+	_ = virtualBalance.consumedBalance.Add(virtualBalance.consumedBalance, consumedBalance)
 }
 
 // validateBalance is used in ONLY one place: the validation of a proposed block

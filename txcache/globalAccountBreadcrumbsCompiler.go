@@ -91,12 +91,12 @@ func (gabc *globalAccountBreadcrumbsCompiler) getGlobalBreadcrumbByAddress(addre
 	gabc.mutCompiler.RLock()
 	defer gabc.mutCompiler.RUnlock()
 
-	_, ok := gabc.globalAccountBreadcrumbs[address]
+	gab, ok := gabc.globalAccountBreadcrumbs[address]
 	if !ok {
 		return nil, errGlobalBreadcrumbDoesNotExist
 	}
 
-	return gabc.globalAccountBreadcrumbs[address].getSnapshotOfGlobalBreadcrumb(), nil
+	return gab.getSnapshotOfGlobalBreadcrumb(), nil
 }
 
 // getGlobalBreadcrumbs returns a deep copy of the map of global accounts breadcrumbs

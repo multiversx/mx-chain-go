@@ -327,11 +327,13 @@ func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint
 		return err
 	}
 
-	// find all execution results with nonce >= nonceToRemove
+	// The results are already sorted by nonce (from getPendingExecutionResults).
+	// Split into results to keep (nonce < target) and results to remove (nonce >= target).
 	var resultsToRemove []data.BaseExecutionResultHandler
+	var lastKeptResult data.BaseExecutionResultHandler
 	for _, result := range pendingExecutionResult {
-		resultNonce := result.GetHeaderNonce()
-		if resultNonce < nonce {
+		if result.GetHeaderNonce() < nonce {
+			lastKeptResult = result
 			continue
 		}
 
@@ -346,20 +348,14 @@ func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint
 	// to continue blocking stale results from being added for these nonces
 	ert.removeExecutionResultsFromMaps(resultsToRemove)
 
-	pendingExecutionResults, err := ert.getPendingExecutionResults()
-	if err != nil {
-		return err
+	// Determine lastExecutedResultHash from the already-sorted first pass,
+	// avoiding a second call to getPendingExecutionResults (which re-sorts).
+	if lastKeptResult != nil {
+		ert.lastExecutedResultHash = lastKeptResult.GetHeaderHash()
+	} else {
+		// if no pending left, set the last executed as the last notarized
+		ert.lastExecutedResultHash = ert.lastNotarizedResult.GetHeaderHash()
 	}
-
-	if len(pendingExecutionResults) > 0 {
-		lastPendingExecResult := pendingExecutionResults[len(pendingExecutionResults)-1]
-		ert.lastExecutedResultHash = lastPendingExecResult.GetHeaderHash()
-
-		return nil
-	}
-
-	// if no pending left, set the last executed as the last notarized
-	ert.lastExecutedResultHash = ert.lastNotarizedResult.GetHeaderHash()
 
 	return nil
 }

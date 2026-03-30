@@ -168,13 +168,13 @@ func (gab *globalAccountBreadcrumb) isContinuousWithSessionNonce(sessionNonce ui
 	return gab.firstNonce.Value == sessionNonce
 }
 
-// getSnapshotOfGlobalBreadcrumb creates a deep copy of a global account breadcrumb
+// getSnapshotOfGlobalBreadcrumb creates a deep copy of a global account breadcrumb.
+// Constructs the copy directly instead of using newGlobalAccountBreadcrumb() to avoid
+// allocating an intermediate big.Int(0) that would be immediately overwritten.
 func (gab *globalAccountBreadcrumb) getSnapshotOfGlobalBreadcrumb() *globalAccountBreadcrumb {
-	gabCopy := newGlobalAccountBreadcrumb()
-
-	gabCopy.firstNonce = gab.firstNonce
-	gabCopy.lastNonce = gab.lastNonce
-	gabCopy.consumedBalance = big.NewInt(0).Set(gab.consumedBalance)
-
-	return gabCopy
+	return &globalAccountBreadcrumb{
+		firstNonce:      gab.firstNonce,
+		lastNonce:       gab.lastNonce,
+		consumedBalance: new(big.Int).Set(gab.consumedBalance),
+	}
 }
