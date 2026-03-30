@@ -94,9 +94,17 @@ func (st *selectionTracker) OnProposedBlock(
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
-	err = st.checkUniqueAccountsLimit(blockBody)
-	if err != nil {
-		return err
+	// Extract transactions once and reuse for both unique accounts check and breadcrumb compilation.
+	// If extraction fails (e.g., tx not in cache), skip the unique accounts check — preserving previous
+	// behavior where checkUniqueAccountsLimit swallowed extraction errors and let checkReceivedBlockNoLock
+	// handle the rejection.
+	txsInBlock, txsErr := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
+
+	if txsErr == nil {
+		err = st.checkUniqueAccountsLimit(txsInBlock)
+		if err != nil {
+			return err
+		}
 	}
 
 	if !bytes.Equal(st.latestRootHash, accountsRootHash) {
@@ -126,7 +134,15 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	lastNoncePerSender, err := st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, latestExecutedHash)
+	// If transaction extraction failed earlier (e.g., tx not in cache), propagate the error now.
+	// This preserves previous behavior where validateTrackedBlocksAndCompileBreadcrumbsNoLock
+	// called getTransactionsInBlock internally and returned its error.
+	if txsErr != nil {
+		log.Debug("selectionTracker.OnProposedBlock: error getting transactions from block", "err", txsErr)
+		return txsErr
+	}
+
+	lastNoncePerSender, err := st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(txsInBlock, tBlock, accountsProvider, latestExecutedHash)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
 		return err
@@ -253,7 +269,7 @@ func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, bloc
 // Then, it validates the entire chain (by nonce and balance of each breadcrumb).
 // Returns lastNoncePerSender map for updating selection offsets.
 func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
-	blockBody *block.Body,
+	txsInBlock []*WrappedTransaction,
 	blockToTrack *trackedBlock,
 	accountsProvider common.AccountNonceAndBalanceProvider,
 	latestExecutedHash []byte,
@@ -268,14 +284,7 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 		return nil, err
 	}
 
-	// if we pass the first validation, only then we extract the txs to compile the breadcrumbs
-	txs, err := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
-	if err != nil {
-		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error getting transactions from block", "err", err)
-		return nil, err
-	}
-
-	lastNoncePerSender, err := blockToTrack.compileBreadcrumbs(txs)
+	lastNoncePerSender, err := blockToTrack.compileBreadcrumbs(txsInBlock)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error compiling breadcrumbs",
 			"error", err)
@@ -493,12 +502,7 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	st.latestNonce = receivedNonce
 }
 
-func (st *selectionTracker) checkUniqueAccountsLimit(blockBody *block.Body) error {
-	txsInBlock, err := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
-	if err != nil {
-		return nil
-	}
-
+func (st *selectionTracker) checkUniqueAccountsLimit(txsInBlock []*WrappedTransaction) error {
 	uniqueAccounts := make(map[string]struct{})
 	for _, tx := range txsInBlock {
 		uniqueAccounts[string(tx.Tx.GetSndAddr())] = struct{}{}
