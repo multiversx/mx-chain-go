@@ -1000,54 +1000,55 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHashForEpoch(headerSh
 // RequestEquivalentProofByNonce asks for equivalent proof for the provided header nonce
 func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64) {
 	epoch := rrh.getEpoch()
-	go func(requestEpoch uint32) {
-		time.Sleep(rrh.requestProofByNonceDelay)
-		rrh.RequestEquivalentProofByNonceForEpoch(headerShard, headerNonce, requestEpoch)
-	}(epoch)
+	rrh.RequestEquivalentProofByNonceForEpoch(headerShard, headerNonce, epoch)
 }
 
 // RequestEquivalentProofByNonceForEpoch asks for equivalent proof for the provided header nonce and epoch
 func (rrh *resolverRequestHandler) RequestEquivalentProofByNonceForEpoch(headerShard uint32, headerNonce uint64, epoch uint32) {
-	key := common.GetEquivalentProofNonceShardKey(headerNonce, headerShard)
-	if !rrh.testIfRequestIsNeeded([]byte(key), uniqueEquivalentProofSuffix) {
-		return
-	}
+	go func(requestEpoch uint32) {
+		key := common.GetEquivalentProofNonceShardKey(headerNonce, headerShard)
+		if !rrh.testIfRequestIsNeeded([]byte(key), uniqueEquivalentProofSuffix) {
+			return
+		}
 
-	log.Debug("requesting equivalent proof by nonce from network",
-		"headerNonce", headerNonce,
-		"headerShard", headerShard,
-		"epoch", epoch,
-	)
+		time.Sleep(rrh.requestProofByNonceDelay)
 
-	requester, err := rrh.getEquivalentProofsRequester(headerShard)
-	if err != nil {
-		log.Error("RequestEquivalentProofByNonceForEpoch.getEquivalentProofsRequester",
-			"error", err.Error(),
-			"headerNonce", headerNonce,
-		)
-		return
-	}
-
-	proofsRequester, ok := requester.(EquivalentProofsRequester)
-	if !ok {
-		log.Warn("wrong assertion type when creating equivalent proofs requester")
-		return
-	}
-
-	rrh.whiteList.Add([][]byte{[]byte(key)})
-
-	err = proofsRequester.RequestDataFromNonce([]byte(key), epoch)
-	if err != nil {
-		log.Debug("RequestEquivalentProofByNonceForEpoch.RequestDataFromNonce",
-			"error", err.Error(),
+		log.Debug("requesting equivalent proof by nonce from network",
 			"headerNonce", headerNonce,
 			"headerShard", headerShard,
 			"epoch", epoch,
 		)
-		return
-	}
 
-	rrh.addRequestedItems([][]byte{[]byte(key)}, uniqueEquivalentProofSuffix)
+		requester, err := rrh.getEquivalentProofsRequester(headerShard)
+		if err != nil {
+			log.Error("RequestEquivalentProofByNonceForEpoch.getEquivalentProofsRequester",
+				"error", err.Error(),
+				"headerNonce", headerNonce,
+			)
+			return
+		}
+
+		proofsRequester, ok := requester.(EquivalentProofsRequester)
+		if !ok {
+			log.Warn("wrong assertion type when creating equivalent proofs requester")
+			return
+		}
+
+		rrh.whiteList.Add([][]byte{[]byte(key)})
+
+		err = proofsRequester.RequestDataFromNonce([]byte(key), epoch)
+		if err != nil {
+			log.Debug("RequestEquivalentProofByNonceForEpoch.RequestDataFromNonce",
+				"error", err.Error(),
+				"headerNonce", headerNonce,
+				"headerShard", headerShard,
+				"epoch", epoch,
+			)
+			return
+		}
+
+		rrh.addRequestedItems([][]byte{[]byte(key)}, uniqueEquivalentProofSuffix)
+	}(epoch)
 }
 
 func (rrh *resolverRequestHandler) getEquivalentProofsRequester(headerShard uint32) (dataRetriever.Requester, error) {

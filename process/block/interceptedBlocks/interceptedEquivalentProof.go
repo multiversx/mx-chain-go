@@ -179,7 +179,7 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return err
 	}
 
-	if header.GetRound() != iep.proof.GetHeaderRound() {
+	if !check.IfNil(header) && header.GetRound() != iep.proof.GetHeaderRound() {
 		return fmt.Errorf("%w, rounds mismatch: header round = %d, proof round = %d",
 			ErrInvalidProof,
 			header.GetRound(),

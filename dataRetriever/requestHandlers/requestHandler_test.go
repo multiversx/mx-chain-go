@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -2698,11 +2699,11 @@ func TestResolverRequestHandler_RequestEquivalentProofByNonce(t *testing.T) {
 		shardID := uint32(0)
 		requestNonce := uint64(10)
 		expectedRequestKey := common.GetEquivalentProofNonceShardKey(requestNonce, shardID)
-		wasCalled := false
+		wasCalled := atomicCore.Flag{}
 		res := &dataRetrieverMocks.EquivalentProofRequesterStub{
 			RequestDataFromNonceCalled: func(nonceShardKey []byte, epoch uint32) error {
 				require.Equal(t, []byte(expectedRequestKey), nonceShardKey)
-				wasCalled = true
+				wasCalled.SetValue(true)
 				return nil
 			},
 		}
@@ -2723,6 +2724,6 @@ func TestResolverRequestHandler_RequestEquivalentProofByNonce(t *testing.T) {
 
 		rrh.RequestEquivalentProofByNonce(shardID, requestNonce)
 		time.Sleep(time.Millisecond * 5)
-		require.True(t, wasCalled)
+		require.True(t, wasCalled.IsSet())
 	})
 }
