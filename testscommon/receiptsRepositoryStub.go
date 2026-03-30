@@ -11,7 +11,7 @@ import (
 type ReceiptsRepositoryStub struct {
 	SaveReceiptsCalled              func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
 	SaveReceiptsForExecResultCalled func(holder common.ReceiptsHolder, execResult data.BaseExecutionResultHandler) error
-	LoadReceiptsCalled              func(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
+	LoadReceiptsCalled              func(receiptsHash []byte, header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 }
 
 // SaveReceipts -
@@ -33,9 +33,9 @@ func (stub *ReceiptsRepositoryStub) SaveReceiptsForExecResult(holder common.Rece
 }
 
 // LoadReceipts -
-func (stub *ReceiptsRepositoryStub) LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
+func (stub *ReceiptsRepositoryStub) LoadReceipts(receiptsHash []byte, header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
 	if stub.LoadReceiptsCalled != nil {
-		return stub.LoadReceiptsCalled(header, headerHash)
+		return stub.LoadReceiptsCalled(receiptsHash, header, headerHash)
 	}
 
 	return holders.NewReceiptsHolder(nil), nil
