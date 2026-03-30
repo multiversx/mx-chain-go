@@ -194,6 +194,7 @@ func indexRoundInfo(
 
 	roundsInfo := make([]*outportcore.RoundInfo, 0)
 	roundsInfo = append(roundsInfo, roundInfo)
+	epoch := header.GetEpoch()
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		var ok bool
 		signersIndexes, ok = getSignersIndices(header, enableEpochsHandler, lastHeader, i, nodesCoordinator)
@@ -202,15 +203,18 @@ func indexRoundInfo(
 		}
 
 		roundTimestamp := uint64(time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)))
-		roundTimestampMs := common.ConvertTimeStampSecToMs(roundTimestamp)
+		roundTimestampSec, roundTimestampMs, errP := common.PrepareTimestampBasedOnHeaderData(roundTimestamp, epoch, enableEpochsHandler)
+		if errP != nil {
+			continue
+		}
 
 		roundInfo = &outportcore.RoundInfo{
 			Round:            i,
 			SignersIndexes:   signersIndexes,
 			BlockWasProposed: false,
 			ShardId:          shardId,
-			Epoch:            header.GetEpoch(),
-			Timestamp:        roundTimestamp,
+			Epoch:            epoch,
+			Timestamp:        roundTimestampSec,
 			TimestampMs:      roundTimestampMs,
 		}
 
