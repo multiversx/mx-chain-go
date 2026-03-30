@@ -26,7 +26,8 @@ var log = logger.GetOrCreate("process/track")
 
 const maxNonceDifference = 3 // TODO move this to a config file
 
-// receivedProofDelay is the fraction of the full round time to accept a proof
+// receivedProofDelay is the extra fraction of one full round time during which
+// a proof is still accepted, i.e. total allowed time = roundDuration * (1 + receivedProofDelay)
 const receivedProofDelay = 0.5
 
 // HeaderInfo holds the information about a header
