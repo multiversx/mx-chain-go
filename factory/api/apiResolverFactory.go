@@ -742,6 +742,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		EnableEpochsHandler:          args.CoreComponents.EnableEpochsHandler(),
 		ProofsPool:                   args.DataComponents.Datapool().Proofs(),
 		BlockChain:                   args.DataComponents.Blockchain(),
+		EnableRoundsHandler:          args.CoreComponents.EnableRoundsHandler(),
 	}
 
 	return blockApiArgs, nil
