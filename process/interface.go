@@ -1190,7 +1190,7 @@ type RoundHandler interface {
 	Index() int64
 	TimeDuration() time.Duration
 	RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
-	TimeStamp() time.Time
+	GetTimeStampForRound(round uint64) uint64
 	IsInterfaceNil() bool
 }
 

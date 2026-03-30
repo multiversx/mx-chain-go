@@ -499,15 +499,15 @@ func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
 			nextRound)
 	}
 
-	currentRoundStart := bbt.roundHandler.TimeStamp()
+	roundTimestamp := time.UnixMilli(int64(bbt.roundHandler.GetTimeStampForRound(round)))
 	roundDuration := float64(bbt.roundHandler.TimeDuration())
 	maxTimeToAcceptProof := time.Duration(roundDuration + roundDuration*receivedProofDelay)
-	timeLeftToAcceptProof := bbt.roundHandler.RemainingTime(currentRoundStart, maxTimeToAcceptProof)
+	timeLeftToAcceptProof := bbt.roundHandler.RemainingTime(roundTimestamp, maxTimeToAcceptProof)
 	if timeLeftToAcceptProof <= 0 {
 		return fmt.Errorf("%w header round: %d, current round timestamp: %d, time left to accept proof: %d",
 			process.ErrHigherRoundInBlock,
 			round,
-			currentRoundStart.UnixMilli(),
+			roundTimestamp.UnixMilli(),
 			timeLeftToAcceptProof.Milliseconds())
 	}
 
