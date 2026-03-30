@@ -2415,7 +2415,7 @@ func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldFailOnInvalidWindow(t
 	timeToSleep := roundDuration + time.Duration(float64(roundDuration)*0.6)
 	time.Sleep(timeToSleep)
 	err := bbt.CheckBlockAgainstRoundHandler(hdr)
-	require.ErrorIs(t, err, process.ErrHigherRoundInBlock)
+	require.ErrorIs(t, err, process.ErrInvalidRound)
 	require.Contains(t, err.Error(), "current round timestamp")
 }
 

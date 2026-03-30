@@ -505,7 +505,7 @@ func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
 	timeLeftToAcceptProof := bbt.roundHandler.RemainingTime(roundTimestamp, maxTimeToAcceptProof)
 	if timeLeftToAcceptProof <= 0 {
 		return fmt.Errorf("%w header round: %d, current round timestamp: %d, time left to accept proof: %d",
-			process.ErrHigherRoundInBlock,
+			process.ErrInvalidRound,
 			round,
 			roundTimestamp.UnixMilli(),
 			timeLeftToAcceptProof.Milliseconds())
