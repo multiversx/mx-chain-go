@@ -36,6 +36,9 @@ type shardDataHandler interface {
 type ArgsDelayedBlockBroadcaster struct {
 	InterceptorsContainer process.InterceptorsContainer
 	HeadersSubscriber     consensus.HeadersPoolSubscriber
+	HeadersPool           consensus.HeadersPoolGetter
+	ProofsPool            consensus.EquivalentProofsPool
+	EnableEpochsHandler   common.EnableEpochsHandler
 	ShardCoordinator      sharding.Coordinator
 	LeaderCacheSize       uint32
 	ValidatorCacheSize    uint32
@@ -60,6 +63,9 @@ type delayedBlockBroadcaster struct {
 	interceptorsContainer      process.InterceptorsContainer
 	shardCoordinator           sharding.Coordinator
 	headersSubscriber          consensus.HeadersPoolSubscriber
+	headersPool                consensus.HeadersPoolGetter
+	proofsPool                 consensus.EquivalentProofsPool
+	enableEpochsHandler        common.EnableEpochsHandler
 	valHeaderBroadcastData     []*shared.ValidatorHeaderBroadcastData
 	valBroadcastData           []*shared.DelayedBroadcastData
 	delayedBroadcastData       []*shared.DelayedBroadcastData
@@ -85,6 +91,15 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 	if check.IfNil(args.HeadersSubscriber) {
 		return nil, spos.ErrNilHeadersSubscriber
 	}
+	if check.IfNil(args.HeadersPool) {
+		return nil, spos.ErrNilHeadersPool
+	}
+	if check.IfNil(args.ProofsPool) {
+		return nil, spos.ErrNilEquivalentProofPool
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, spos.ErrNilEnableEpochsHandler
+	}
 	if check.IfNil(args.AlarmScheduler) {
 		return nil, spos.ErrNilAlarmScheduler
 	}
@@ -99,6 +114,9 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		shardCoordinator:           args.ShardCoordinator,
 		interceptorsContainer:      args.InterceptorsContainer,
 		headersSubscriber:          args.HeadersSubscriber,
+		headersPool:                args.HeadersPool,
+		proofsPool:                 args.ProofsPool,
+		enableEpochsHandler:        args.EnableEpochsHandler,
 		valHeaderBroadcastData:     make([]*shared.ValidatorHeaderBroadcastData, 0),
 		valBroadcastData:           make([]*shared.DelayedBroadcastData, 0),
 		delayedBroadcastData:       make([]*shared.DelayedBroadcastData, 0),
@@ -110,6 +128,7 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 	}
 
 	dbb.headersSubscriber.RegisterHandler(dbb.headerReceived)
+	dbb.proofsPool.RegisterHandler(dbb.receivedProof)
 	err = dbb.registerHeaderInterceptorCallback(dbb.interceptedHeader)
 	if err != nil {
 		return nil, err
@@ -266,13 +285,44 @@ func (dbb *delayedBlockBroadcaster) Close() {
 }
 
 func (dbb *delayedBlockBroadcaster) headerReceived(headerHandler data.HeaderHandler, headerHash []byte) {
+	if headerHandler.GetShardID() != core.MetachainShardId {
+		return
+	}
+
+	if common.IsProofsFlagEnabledForHeader(dbb.enableEpochsHandler, headerHandler) {
+		if !dbb.proofsPool.HasProof(headerHandler.GetShardID(), headerHash) {
+			return
+		}
+	}
+
+	dbb.processMetachainHeaderBroadcast(headerHandler, headerHash)
+}
+
+func (dbb *delayedBlockBroadcaster) receivedProof(proof data.HeaderProofHandler) {
+	if check.IfNil(proof) {
+		return
+	}
+	if proof.GetHeaderShardId() != core.MetachainShardId {
+		return
+	}
+
+	headerHash := proof.GetHeaderHash()
+	header, err := dbb.headersPool.GetHeaderByHash(headerHash)
+	if err != nil {
+		log.Trace("delayedBlockBroadcaster.receivedProof: header not found in pool, will be handled by headerReceived",
+			"headerHash", headerHash,
+		)
+		return
+	}
+
+	dbb.processMetachainHeaderBroadcast(header, headerHash)
+}
+
+func (dbb *delayedBlockBroadcaster) processMetachainHeaderBroadcast(headerHandler data.HeaderHandler, headerHash []byte) {
 	dbb.mutDataForBroadcast.RLock()
 	defer dbb.mutDataForBroadcast.RUnlock()
 
 	if len(dbb.delayedBroadcastData) == 0 && len(dbb.valBroadcastData) == 0 {
-		return
-	}
-	if headerHandler.GetShardID() != core.MetachainShardId {
 		return
 	}
 
@@ -281,21 +331,21 @@ func (dbb *delayedBlockBroadcaster) headerReceived(headerHandler data.HeaderHand
 		dbb.shardCoordinator.SelfId(),
 	)
 	if err != nil {
-		log.Error("delayedBlockBroadcaster.headerReceived", "error", err.Error(),
+		log.Error("delayedBlockBroadcaster.processMetachainHeaderBroadcast", "error", err.Error(),
 			"headerHash", headerHash,
 		)
 		return
 	}
 	if len(headerHashes) == 0 {
-		log.Trace("delayedBlockBroadcaster.headerReceived: header received with no shardData for current shard",
+		log.Trace("delayedBlockBroadcaster.processMetachainHeaderBroadcast: no shardData for current shard",
 			"headerHash", headerHash,
 		)
 		return
 	}
 
-	log.Trace("delayedBlockBroadcaster.headerReceived", "nbHeaderHashes", len(headerHashes))
+	log.Trace("delayedBlockBroadcaster.processMetachainHeaderBroadcast", "nbHeaderHashes", len(headerHashes))
 	for i := range headerHashes {
-		log.Trace("delayedBlockBroadcaster.headerReceived", "headerHash", headerHashes[i])
+		log.Trace("delayedBlockBroadcaster.processMetachainHeaderBroadcast", "headerHash", headerHashes[i])
 	}
 
 	go dbb.scheduleValidatorBroadcast(dataForValidators)
