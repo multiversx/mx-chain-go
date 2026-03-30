@@ -106,9 +106,9 @@ func (erc *executionResultsVerifier) setLastVerifiedHeaderWithErrorIfNeeded(head
 	lastVerifiedHeader := erc.lastVerifiedHeaderWithError
 	erc.mutLastVerifiedHeaderWithError.RUnlock()
 
-	sameNonce := !check.IfNil(lastVerifiedHeader) && lastVerifiedHeader.GetNonce() == header.GetNonce()
-	sameRound := !check.IfNil(lastVerifiedHeader) && lastVerifiedHeader.GetRound() == header.GetRound()
-	if sameNonce && sameRound {
+	if !check.IfNil(lastVerifiedHeader) &&
+		lastVerifiedHeader.GetNonce() == header.GetNonce() &&
+		lastVerifiedHeader.GetRound() == header.GetRound() {
 		return false
 	}
 
