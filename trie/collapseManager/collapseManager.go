@@ -105,7 +105,7 @@ func (cm *collapseManager) ShouldCollapseTrie() bool {
 // GetCollapsibleLeaves returns a list of keys that can be collapsed to free memory
 func (cm *collapseManager) GetCollapsibleLeaves() ([][]byte, error) {
 	if uint64(cm.sizeInMemory) < cm.maxSizeInMem {
-		return nil, nil
+		return make([][]byte, 0), nil
 	}
 
 	evictedKeys := make([][]byte, 0)

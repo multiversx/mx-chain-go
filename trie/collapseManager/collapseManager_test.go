@@ -121,14 +121,14 @@ func TestCollapseManager_ShouldCollapseTrie(t *testing.T) {
 func TestCollapseManager_GetCollapsibleLeaves(t *testing.T) {
 	t.Parallel()
 
-	t.Run("sizeInMemory below limit should return nil", func(t *testing.T) {
+	t.Run("sizeInMemory below limit should return empty", func(t *testing.T) {
 		t.Parallel()
 
 		cm, _ := NewCollapseManager(minSizeInMemory, common.NumLeavesToCollapseSingleRun)
 		cm.MarkKeyAsAccessed([]byte("key1"), 500)
 		leaves, err := cm.GetCollapsibleLeaves()
 		assert.Nil(t, err)
-		assert.Nil(t, leaves)
+		assert.Equal(t, 0, len(leaves))
 	})
 	t.Run("should return evicted keys until sizeInMemory is below limit", func(t *testing.T) {
 		t.Parallel()
