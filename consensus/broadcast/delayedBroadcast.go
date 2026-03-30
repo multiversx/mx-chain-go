@@ -25,6 +25,7 @@ import (
 const prefixHeaderAlarm = "header_"
 const prefixDelayDataAlarm = "delay_"
 const sizeHeadersCache = 1000 // 1000 hashes in cache
+const sizeProcessedMetaHeadersCache = 1000
 
 type shardDataHandler interface {
 	GetHeaderHash() []byte
@@ -77,6 +78,7 @@ type delayedBlockBroadcaster struct {
 	broadcastHeader            func(header data.HeaderHandler, pkBytes []byte) error
 	broadcastConsensusMessage  func(message *consensus.Message) error
 	cacheHeaders               storage.Cacher
+	cacheProcessedMetaHeaders  storage.Cacher
 	mutHeadersCache            sync.RWMutex
 }
 
@@ -109,6 +111,11 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		return nil, err
 	}
 
+	cacheProcessedMetaHeaders, err := cache.NewLRUCache(sizeProcessedMetaHeadersCache)
+	if err != nil {
+		return nil, err
+	}
+
 	dbb := &delayedBlockBroadcaster{
 		alarm:                      args.AlarmScheduler,
 		shardCoordinator:           args.ShardCoordinator,
@@ -124,6 +131,7 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		maxValidatorDelayCacheSize: args.ValidatorCacheSize,
 		mutDataForBroadcast:        sync.RWMutex{},
 		cacheHeaders:               cacheHeaders,
+		cacheProcessedMetaHeaders:  cacheProcessedMetaHeaders,
 		mutHeadersCache:            sync.RWMutex{},
 	}
 
@@ -319,6 +327,14 @@ func (dbb *delayedBlockBroadcaster) receivedProof(proof data.HeaderProofHandler)
 }
 
 func (dbb *delayedBlockBroadcaster) processMetachainHeaderBroadcast(headerHandler data.HeaderHandler, headerHash []byte) {
+	has, _ := dbb.cacheProcessedMetaHeaders.HasOrAdd(headerHash, struct{}{}, 0)
+	if has {
+		log.Trace("delayedBlockBroadcaster.processMetachainHeaderBroadcast: already processed, skipping",
+			"headerHash", headerHash,
+		)
+		return
+	}
+
 	dbb.mutDataForBroadcast.RLock()
 	defer dbb.mutDataForBroadcast.RUnlock()
 
