@@ -171,10 +171,15 @@ func (pp *proofsPool) GetProof(
 	if headerHash == nil {
 		return nil, fmt.Errorf("nil header hash")
 	}
-	log.Trace("trying to get proof",
-		"headerHash", headerHash,
-		"shardID", shardID,
-	)
+
+	// Guard log.Trace to avoid variadic slice allocation when trace logging is disabled.
+	// This is called from HasProof in hot polling loops (~300 times per consensus round).
+	if log.GetLevel() <= logger.LogTrace {
+		log.Trace("trying to get proof",
+			"headerHash", headerHash,
+			"shardID", shardID,
+		)
+	}
 
 	pp.mutCache.RLock()
 	proofsPerShard, ok := pp.cache[shardID]
@@ -188,10 +193,12 @@ func (pp *proofsPool) GetProof(
 
 // GetProofByNonce will get the proof from pool for the provided header nonce, searching through all shards
 func (pp *proofsPool) GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
-	log.Trace("trying to get proof",
-		"headerNonce", headerNonce,
-		"shardID", shardID,
-	)
+	if log.GetLevel() <= logger.LogTrace {
+		log.Trace("trying to get proof",
+			"headerNonce", headerNonce,
+			"shardID", shardID,
+		)
+	}
 
 	pp.mutCache.RLock()
 	proofsPerShard, ok := pp.cache[shardID]

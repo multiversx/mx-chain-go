@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -653,10 +655,13 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
 
-	// log the header output for debugging purposes
-	headerOutput, err := common.PrettifyStruct(headerHandler)
-	if err == nil {
-		log.Debug("proposed header received", "header", headerOutput)
+	// log the header output for debugging purposes — PrettifyStruct uses reflection + JSON
+	// marshal which is expensive; guard with log level check to avoid the cost when debug is disabled
+	if log.GetLevel() <= logger.LogDebug {
+		headerOutput, err := common.PrettifyStruct(headerHandler)
+		if err == nil {
+			log.Debug("proposed header received", "header", headerOutput)
+		}
 	}
 }
 
