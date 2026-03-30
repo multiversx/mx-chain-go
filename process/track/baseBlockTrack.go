@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -24,6 +25,10 @@ var _ process.ValidityAttester = (*baseBlockTrack)(nil)
 var log = logger.GetOrCreate("process/track")
 
 const maxNonceDifference = 3 // TODO move this to a config file
+
+// receivedProofDelay is the extra fraction of one full round time during which
+// a proof is still accepted, i.e. total allowed time = roundDuration * (1 + receivedProofDelay)
+const receivedProofDelay = 0.5
 
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {
@@ -492,6 +497,18 @@ func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
 			process.ErrHigherRoundInBlock,
 			round,
 			nextRound)
+	}
+
+	roundTimestamp := time.UnixMilli(int64(bbt.roundHandler.GetTimeStampForRound(round)))
+	roundDuration := float64(bbt.roundHandler.TimeDuration())
+	maxTimeToAcceptProof := time.Duration(roundDuration + roundDuration*receivedProofDelay)
+	timeLeftToAcceptProof := bbt.roundHandler.RemainingTime(roundTimestamp, maxTimeToAcceptProof)
+	if timeLeftToAcceptProof <= 0 {
+		return fmt.Errorf("%w header round: %d, current round timestamp: %d, time left to accept proof: %d",
+			process.ErrInvalidRound,
+			round,
+			roundTimestamp.UnixMilli(),
+			timeLeftToAcceptProof.Milliseconds())
 	}
 
 	return nil
