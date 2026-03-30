@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -15,6 +16,9 @@ import (
 type executionResultsVerifier struct {
 	blockChain       data.ChainHandler
 	executionManager process.ExecutionManager
+
+	lastVerifiedHeaderWithError    data.HeaderHandler
+	mutLastVerifiedHeaderWithError sync.RWMutex
 }
 
 // NewExecutionResultsVerifier creates a new instance of executionResultsVerifier
@@ -63,11 +67,13 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 	}
 
 	if len(pendingExecutionResults) < len(executionResults) {
-		log.Debug("verifyExecutionResults",
-			"pendingExecutionResults", len(pendingExecutionResults),
-			"header executionResults", len(executionResults),
-			"header nonce", header.GetNonce(),
-		)
+		if erc.setLastVerifiedHeaderWithErrorIfNeeded(header) {
+			log.Debug("verifyExecutionResults",
+				"pendingExecutionResults", len(pendingExecutionResults),
+				"header executionResults", len(executionResults),
+				"header nonce", header.GetNonce(),
+			)
+		}
 		return process.ErrExecutionResultsNumberMismatch
 	}
 
@@ -93,6 +99,23 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 	}
 
 	return nil
+}
+
+func (erc *executionResultsVerifier) setLastVerifiedHeaderWithErrorIfNeeded(header data.HeaderHandler) bool {
+	erc.mutLastVerifiedHeaderWithError.RLock()
+	lastVerifiedHeader := erc.lastVerifiedHeaderWithError
+	erc.mutLastVerifiedHeaderWithError.RUnlock()
+
+	if !check.IfNil(lastVerifiedHeader) &&
+		lastVerifiedHeader.GetNonce() == header.GetNonce() &&
+		lastVerifiedHeader.GetRound() == header.GetRound() {
+		return false
+	}
+
+	erc.mutLastVerifiedHeaderWithError.Lock()
+	erc.lastVerifiedHeaderWithError = header
+	erc.mutLastVerifiedHeaderWithError.Unlock()
+	return true
 }
 
 func (erc *executionResultsVerifier) verifyLastExecutionResultInfoMatchesLastExecutionResult(
