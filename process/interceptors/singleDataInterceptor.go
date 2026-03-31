@@ -94,7 +94,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return nil, err
 	}
 
-	interceptedData, err := sdi.factory.Create(message.Data(), message.Peer())
+	interceptedData, err := sdi.factory.Create(message.Data(), message.Peer(), message.BroadcastMethod())
 	if err != nil {
 		sdi.throttler.EndProcessing()
 

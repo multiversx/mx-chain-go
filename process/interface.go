@@ -132,7 +132,7 @@ type HdrValidatorHandler interface {
 
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
-	Create(buff []byte, messageOriginator core.PeerID) (InterceptedData, error)
+	Create(buff []byte, messageOriginator core.PeerID, broadcastMethod p2p.BroadcastMethod) (InterceptedData, error)
 	IsInterfaceNil() bool
 }
 

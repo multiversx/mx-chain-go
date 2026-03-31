@@ -69,7 +69,7 @@ func TestInterceptedEquivalentProofsFactory_Create(t *testing.T) {
 		HeaderShardId:       0,
 	}
 	providedDataBuff, _ := args.CoreComponents.InternalMarshalizer().Marshal(providedProof)
-	interceptedData, err := factory.Create(providedDataBuff, "")
+	interceptedData, err := factory.Create(providedDataBuff, "", "")
 	require.NoError(t, err)
 	require.NotNil(t, interceptedData)
 

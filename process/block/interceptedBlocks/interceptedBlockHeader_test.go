@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,6 +46,7 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
 		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EpochChangeGracePeriodHandler: gracePeriod,
+		BroadcastMethod:               p2p.Broadcast,
 	}
 
 	hdr := createMockShardHeader()
@@ -65,6 +67,7 @@ func createDefaultShardArgumentWithV2Support() *interceptedBlocks.ArgIntercepted
 		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
 		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EpochChangeGracePeriodHandler: gracePeriod,
+		BroadcastMethod:               p2p.Broadcast,
 	}
 	hdr := createMockShardHeader()
 	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)
@@ -113,6 +116,7 @@ func createDefaultShardArgumentWithV3Support() *interceptedBlocks.ArgIntercepted
 			},
 		},
 		EpochChangeGracePeriodHandler: gracePeriod,
+		BroadcastMethod:               p2p.Broadcast,
 	}
 	hdr := createMockShardHeaderV3()
 	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)
@@ -639,6 +643,13 @@ func TestInterceptedHeader_CheckValidityShouldWorkHeaderV3(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultShardArgumentWithV3Support()
+	arg.BroadcastMethod = p2p.Direct
+	arg.ValidityAttester = &mock.ValidityAttesterStub{
+		CheckBlockAgainstRoundHandlerCalled: func(headerHandler data.HeaderHandler) error {
+			require.Fail(t, "should not be called")
+			return nil
+		},
+	}
 	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
 	assert.Nil(t, err)
 	assert.NotNil(t, inHdr)

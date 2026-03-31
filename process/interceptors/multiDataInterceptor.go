@@ -258,7 +258,7 @@ func (mdi *MultiDataInterceptor) interceptedData(
 	topic string,
 	broadcastMethod p2p.BroadcastMethod,
 ) (process.InterceptedData, error) {
-	interceptedData, err := mdi.factory.Create(dataBuff, originator)
+	interceptedData, err := mdi.factory.Create(dataBuff, originator, broadcastMethod)
 	if err != nil {
 		// this situation is so severe that we need to black list de peers
 		reason := "can not create object from received bytes, topic " + mdi.topic + ", error " + err.Error()
