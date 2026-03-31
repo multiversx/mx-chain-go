@@ -2664,8 +2664,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		mockProcessHandler.SetIdleCalled = func() {
 			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
+		mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+			return true
 		}
 
 		scheduledTxsExec := &testscommon.ScheduledTxsExecutionStub{
@@ -2694,8 +2695,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		mockProcessHandler.SetIdleCalled = func() {
 			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
+		mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+			return true
 		}
 
 		accounts := &stateMock.AccountsStub{
@@ -2775,8 +2777,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
 	mockProcessHandler.SetIdleCalled = func() {
 		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		return true
 	}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts

@@ -2580,7 +2580,9 @@ func (bp *baseProcessor) Close() error {
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
-	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
+	if !bp.processStatusHandler.TrySetBusy("baseProcessor.ProcessScheduledBlock") {
+		return process.ErrBlockProcessorBusy
+	}
 	defer func() {
 		if err != nil {
 			bp.RevertCurrentBlock()
@@ -3505,14 +3507,16 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 func (bp *baseProcessor) getLastExecutedRootHash(
 	header data.HeaderHandler,
 ) []byte {
-	rootHash := bp.getRootHash()
+	var rootHash []byte
 	if !header.IsHeaderV3() {
+		rootHash = bp.getRootHash()
 		return rootHash
 	}
 
 	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
 	if err != nil {
 		log.Warn("failed to get last execution result for header", "err", err)
+		_, _, rootHash = bp.blockChain.GetLastExecutedBlockInfo()
 		return rootHash
 	}
 
