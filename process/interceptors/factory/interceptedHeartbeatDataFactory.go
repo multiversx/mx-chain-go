@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/heartbeat"
 )
@@ -29,7 +30,7 @@ func NewInterceptedHeartbeatDataFactory(arg ArgInterceptedDataFactory) (*interce
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (ihdf *interceptedHeartbeatDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
+func (ihdf *interceptedHeartbeatDataFactory) Create(buff []byte, _ core.PeerID, _ p2p.BroadcastMethod) (process.InterceptedData, error) {
 	arg := heartbeat.ArgBaseInterceptedHeartbeat{
 		DataBuff:   buff,
 		Marshaller: ihdf.marshalizer,

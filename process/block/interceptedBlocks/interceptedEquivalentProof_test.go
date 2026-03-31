@@ -10,6 +10,7 @@ import (
 	coreSync "github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
@@ -77,6 +78,7 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		ProofSizeChecker:  &testscommon.FieldsSizeCheckerMock{},
 		KeyRWMutexHandler: coreSync.NewKeyRWMutex(),
 		ValidityAttester:  &processMock.ValidityAttesterStub{},
+		BroadcastMethod:   p2p.Broadcast,
 	}
 }
 
@@ -335,7 +337,21 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		iep, err := NewInterceptedEquivalentProof(createMockArgInterceptedEquivalentProof())
+		args := createMockArgInterceptedEquivalentProof()
+		args.BroadcastMethod = p2p.Direct // should skip round check
+		args.ValidityAttester = &processMock.ValidityAttesterStub{
+			CheckAgainstWhitelistCalled: func(interceptedData process.InterceptedData) bool {
+				return true
+			},
+			CheckProofAgainstFinalCalled: func(proof data.HeaderProofHandler) error {
+				return nil
+			},
+			CheckProofAgainstRoundHandlerCalled: func(proof data.HeaderProofHandler) error {
+				require.Fail(t, "should not be called")
+				return nil
+			},
+		}
+		iep, err := NewInterceptedEquivalentProof(args)
 		require.NoError(t, err)
 
 		err = iep.CheckValidity()

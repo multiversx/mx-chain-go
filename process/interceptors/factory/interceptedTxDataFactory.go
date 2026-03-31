@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -113,7 +114,7 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (itdf *interceptedTxDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
+func (itdf *interceptedTxDataFactory) Create(buff []byte, _ core.PeerID, _ p2p.BroadcastMethod) (process.InterceptedData, error) {
 	return transaction.NewInterceptedTransaction(
 		buff,
 		itdf.protoMarshalizer,

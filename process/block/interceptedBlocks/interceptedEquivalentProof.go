@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -34,6 +35,7 @@ type ArgInterceptedEquivalentProof struct {
 	ProofSizeChecker  common.FieldsSizeChecker
 	KeyRWMutexHandler sync.KeyRWMutexHandler
 	ValidityAttester  process.ValidityAttester
+	BroadcastMethod   p2p.BroadcastMethod
 }
 
 type interceptedEquivalentProof struct {
@@ -48,6 +50,7 @@ type interceptedEquivalentProof struct {
 	proofSizeChecker  common.FieldsSizeChecker
 	km                sync.KeyRWMutexHandler
 	validityAttester  process.ValidityAttester
+	broadcastMethod   p2p.BroadcastMethod
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -57,7 +60,7 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		return nil, err
 	}
 
-	equivalentProof, err := createEquivalentProof(args.Marshaller, args.DataBuff)
+	equivalentProof, err := createEquivalentProof(args.Marshaller, args.DataBuff, args.BroadcastMethod)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +79,7 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		hash:              hash,
 		km:                args.KeyRWMutexHandler,
 		validityAttester:  args.ValidityAttester,
+		broadcastMethod:   args.BroadcastMethod,
 	}, nil
 }
 
@@ -114,7 +118,7 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	return nil
 }
 
-func createEquivalentProof(marshaller marshal.Marshalizer, buff []byte) (*block.HeaderProof, error) {
+func createEquivalentProof(marshaller marshal.Marshalizer, buff []byte, broadcastMethod p2p.BroadcastMethod) (*block.HeaderProof, error) {
 	headerProof := &block.HeaderProof{}
 	err := marshaller.Unmarshal(headerProof, buff)
 	if err != nil {
@@ -130,6 +134,7 @@ func createEquivalentProof(marshaller marshal.Marshalizer, buff []byte) (*block.
 		"bitmap", logger.DisplayByteSlice(headerProof.PubKeysBitmap),
 		"signature", logger.DisplayByteSlice(headerProof.AggregatedSignature),
 		"isEpochStart", headerProof.IsStartOfEpoch,
+		"broadcastMethod", broadcastMethod,
 	)
 
 	return headerProof, nil
@@ -164,9 +169,11 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		}
 	}
 
-	err = iep.validityAttester.CheckProofAgainstRoundHandler(iep.proof)
-	if err != nil {
-		return err
+	if iep.broadcastMethod == p2p.Broadcast {
+		err = iep.validityAttester.CheckProofAgainstRoundHandler(iep.proof)
+		if err != nil {
+			return err
+		}
 	}
 
 	headerHash := string(iep.proof.GetHeaderHash())

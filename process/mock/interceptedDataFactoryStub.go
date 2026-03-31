@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -11,7 +12,7 @@ type InterceptedDataFactoryStub struct {
 }
 
 // Create -
-func (idfs *InterceptedDataFactoryStub) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
+func (idfs *InterceptedDataFactoryStub) Create(buff []byte, messageOriginator core.PeerID, broadcastMethod p2p.BroadcastMethod) (process.InterceptedData, error) {
 	return idfs.CreateCalled(buff)
 }
 

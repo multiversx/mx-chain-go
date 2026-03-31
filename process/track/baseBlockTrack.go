@@ -501,14 +501,14 @@ func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
 
 	roundTimestamp := time.UnixMilli(int64(bbt.roundHandler.GetTimeStampForRound(round)))
 	roundDuration := float64(bbt.roundHandler.TimeDuration())
-	maxTimeToAcceptProof := time.Duration(roundDuration + roundDuration*receivedProofDelay)
-	timeLeftToAcceptProof := bbt.roundHandler.RemainingTime(roundTimestamp, maxTimeToAcceptProof)
-	if timeLeftToAcceptProof <= 0 {
+	maxTimeToAccept := time.Duration(roundDuration + roundDuration*receivedProofDelay)
+	timeLeftToAccept := bbt.roundHandler.RemainingTime(roundTimestamp, maxTimeToAccept)
+	if timeLeftToAccept <= 0 {
 		return fmt.Errorf("%w header round: %d, current round timestamp: %d, time left to accept proof: %d",
 			process.ErrInvalidRound,
 			round,
 			roundTimestamp.UnixMilli(),
-			timeLeftToAcceptProof.Milliseconds())
+			timeLeftToAccept.Milliseconds())
 	}
 
 	return nil

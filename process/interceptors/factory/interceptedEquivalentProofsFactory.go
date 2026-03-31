@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -49,7 +50,7 @@ func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFa
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
+func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, _ core.PeerID, broadcastMethod p2p.BroadcastMethod) (process.InterceptedData, error) {
 	args := interceptedBlocks.ArgInterceptedEquivalentProof{
 		DataBuff:          buff,
 		Marshaller:        factory.marshaller,
