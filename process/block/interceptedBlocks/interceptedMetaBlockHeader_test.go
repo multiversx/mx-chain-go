@@ -301,6 +301,58 @@ func TestInterceptedMetaHeader_isMetaHeaderEpochOutOfRange(t *testing.T) {
 	})
 }
 
+func TestInterceptedMetaHeader_DuplicateMiniBlockHeaderHashesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdr := createMockMetaHeader()
+	hdr.MiniBlockHeaders = []dataBlock.MiniBlockHeader{
+		{
+			Hash:            []byte("hash1"),
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+		},
+		{
+			Hash:            []byte("hash1"),
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+		},
+	}
+	buff, _ := testMarshalizer.Marshal(hdr)
+
+	arg := createDefaultMetaArgument()
+	arg.HdrBuff = buff
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+	assert.Equal(t, process.ErrDuplicatedHashInBlock, err)
+}
+
+func TestInterceptedMetaHeader_UniqueMiniBlockHeaderHashesShouldWork(t *testing.T) {
+	t.Parallel()
+
+	hdr := createMockMetaHeader()
+	hdr.MiniBlockHeaders = []dataBlock.MiniBlockHeader{
+		{
+			Hash:            []byte("hash1"),
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+		},
+		{
+			Hash:            []byte("hash2"),
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+		},
+	}
+	buff, _ := testMarshalizer.Marshal(hdr)
+
+	arg := createDefaultMetaArgument()
+	arg.HdrBuff = buff
+	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
+
+	err := inHdr.CheckValidity()
+	assert.Nil(t, err)
+}
+
 // ------- IsInterfaceNil
 
 func TestInterceptedMetaHeader_IsInterfaceNil(t *testing.T) {
