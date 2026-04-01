@@ -169,7 +169,9 @@ func (chr *chronology) startRounds(ctx context.Context) {
 
 // startRound calls the current subround, given by the finished tasks in this round
 func (chr *chronology) startRound(ctx context.Context) {
-	chr.updateRound()
+	if chr.subroundId == srBeforeStartRound {
+		chr.updateRound()
+	}
 
 	if chr.roundHandler.BeforeGenesis() {
 		return
