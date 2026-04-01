@@ -2375,6 +2375,9 @@ func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldWork(t *testing.T) {
 			RoundIndex:        currentRound,
 			RoundTimeStamp:    time.Now(),
 			RoundTimeDuration: time.Second,
+			ComputeCurrentRoundCalled: func() int64 {
+				return currentRound
+			},
 		},
 	)
 
@@ -2403,6 +2406,9 @@ func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldFailOnInvalidWindow(t
 				remainingTime := maxTime - elapsedTime
 
 				return remainingTime
+			},
+			ComputeCurrentRoundCalled: func() int64 {
+				return currentRound
 			},
 		},
 	)

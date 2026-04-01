@@ -18,6 +18,7 @@ type RoundHandlerMock struct {
 	BeforeGenesisCalled        func() bool
 	IncrementIndexCalled       func()
 	GetTimeStampForRoundCalled func(round uint64) uint64
+	ComputeCurrentRoundCalled  func() int64
 }
 
 // BeforeGenesis -
@@ -93,6 +94,15 @@ func (rndm *RoundHandlerMock) IncrementIndex() {
 func (rndm *RoundHandlerMock) GetTimeStampForRound(round uint64) uint64 {
 	if rndm.GetTimeStampForRoundCalled != nil {
 		return rndm.GetTimeStampForRoundCalled(round)
+	}
+
+	return 0
+}
+
+// ComputeCurrentRound -
+func (rndm *RoundHandlerMock) ComputeCurrentRound() int64 {
+	if rndm.ComputeCurrentRoundCalled != nil {
+		return rndm.ComputeCurrentRoundCalled()
 	}
 
 	return 0

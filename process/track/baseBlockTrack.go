@@ -491,7 +491,7 @@ func (bbt *baseBlockTrack) CheckProofAgainstRoundHandler(proof data.HeaderProofH
 }
 
 func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
-	nextRound := bbt.roundHandler.Index() + 1
+	nextRound := bbt.roundHandler.ComputeCurrentRound() + 1
 	if int64(round) > nextRound {
 		return fmt.Errorf("%w header round: %d, next chronology round: %d",
 			process.ErrHigherRoundInBlock,
