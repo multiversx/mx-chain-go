@@ -14,6 +14,7 @@ type RoundHandlerStub struct {
 	UpdateRoundCalled          func(time.Time, time.Time)
 	RemainingTimeCalled        func(startTime time.Time, maxTime time.Duration) time.Duration
 	GetTimeStampForRoundCalled func(round uint64) uint64
+	ComputeCurrentRoundCalled  func() int64
 }
 
 // Index -
@@ -69,6 +70,15 @@ func (rndm *RoundHandlerStub) GetTimeStampForRound(round uint64) uint64 {
 	}
 
 	return uint64(time.Unix(0, 0).UnixMilli())
+}
+
+// ComputeCurrentRound -
+func (rndm *RoundHandlerStub) ComputeCurrentRound() int64 {
+	if rndm.ComputeCurrentRoundCalled != nil {
+		return rndm.ComputeCurrentRoundCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

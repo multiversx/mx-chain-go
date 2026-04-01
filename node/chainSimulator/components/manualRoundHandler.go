@@ -124,6 +124,11 @@ func (handler *manualRoundHandler) GetTimeStampForRound(round uint64) uint64 {
 
 }
 
+// ComputeCurrentRound returns the current index
+func (handler *manualRoundHandler) ComputeCurrentRound() int64 {
+	return handler.index
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *manualRoundHandler) IsInterfaceNil() bool {
 	return handler == nil

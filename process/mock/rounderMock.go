@@ -7,11 +7,12 @@ import (
 
 // RoundHandlerMock -
 type RoundHandlerMock struct {
-	RoundIndex          int64
-	RoundTimeStamp      time.Time
-	RoundTimeDuration   time.Duration
-	BeforeGenesisCalled func() bool
-	RemainingTimeCalled func(startTime time.Time, maxTime time.Duration) time.Duration
+	RoundIndex                int64
+	RoundTimeStamp            time.Time
+	RoundTimeDuration         time.Duration
+	BeforeGenesisCalled       func() bool
+	RemainingTimeCalled       func(startTime time.Time, maxTime time.Duration) time.Duration
+	ComputeCurrentRoundCalled func() int64
 }
 
 // BeforeGenesis -
@@ -65,6 +66,15 @@ func (rndm *RoundHandlerMock) RemainingTime(startTime time.Time, maxTime time.Du
 
 // GetTimeStampForRound -
 func (rndm *RoundHandlerMock) GetTimeStampForRound(round uint64) uint64 {
+	return 0
+}
+
+// ComputeCurrentRound -
+func (rndm *RoundHandlerMock) ComputeCurrentRound() int64 {
+	if rndm.ComputeCurrentRoundCalled != nil {
+		return rndm.ComputeCurrentRoundCalled()
+	}
+
 	return 0
 }
 

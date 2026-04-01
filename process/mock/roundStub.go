@@ -12,6 +12,7 @@ type RoundStub struct {
 	UpdateRoundCalled          func(time.Time, time.Time)
 	RemainingTimeCalled        func(time.Time, time.Duration) time.Duration
 	GetTimeStampForRoundCalled func(round uint64) uint64
+	ComputeCurrentRoundCalled  func() int64
 }
 
 // Index -
@@ -46,6 +47,15 @@ func (rnds *RoundStub) GetTimeStampForRound(round uint64) uint64 {
 	}
 
 	return uint64(time.Unix(0, 0).UnixMilli())
+}
+
+// ComputeCurrentRound -
+func (rnds *RoundStub) ComputeCurrentRound() int64 {
+	if rnds.ComputeCurrentRoundCalled != nil {
+		return rnds.ComputeCurrentRoundCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil --
