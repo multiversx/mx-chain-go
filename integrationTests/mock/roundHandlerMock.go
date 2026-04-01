@@ -65,7 +65,7 @@ func (mock *RoundHandlerMock) ComputeCurrentRound() int64 {
 		return mock.ComputeCurrentRoundCalled()
 	}
 
-	return 0
+	return mock.IndexField
 }
 
 // IsInterfaceNil -

@@ -75,7 +75,7 @@ func (rndm *RoundHandlerMock) ComputeCurrentRound() int64 {
 		return rndm.ComputeCurrentRoundCalled()
 	}
 
-	return 0
+	return rndm.RoundIndex
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
