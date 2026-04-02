@@ -144,7 +144,7 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 		return false
 	}
 
-	log.Debug("step 2: signature has been sent", "pk", pkBytes)
+	//log.Debug("step 2: signature has been sent", "pk", pkBytes)
 
 	return true
 }
