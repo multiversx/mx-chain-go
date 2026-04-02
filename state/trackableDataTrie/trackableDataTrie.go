@@ -34,35 +34,60 @@ type dirtyData struct {
 type trackableDataTrie struct {
 	dirtyData              map[string]dirtyData
 	tr                     common.Trie
+	rootHash               []byte
 	hasher                 hashing.Hasher
 	marshaller             marshal.Marshalizer
 	enableEpochsHandler    common.EnableEpochsHandler
 	identifier             []byte
 	stateAccessesCollector state.StateAccessesCollector
+	dataTriesHolder        common.TriesHolder
+	dataTrieCreator        common.DataTrieCreator
+}
+
+// TrackableDataTrieArgs represent the args needed to create a new trackableDataTrie
+type TrackableDataTrieArgs struct {
+	Identifier             []byte
+	Hasher                 hashing.Hasher
+	Marshaller             marshal.Marshalizer
+	EnableEpochsHandler    common.EnableEpochsHandler
+	StateAccessesCollector state.StateAccessesCollector
+	DataTriesHolder        common.TriesHolder
+	DataTrieCreator        common.DataTrieCreator
+}
+
+func checkTrackableDataTrieArgs(args TrackableDataTrieArgs) error {
+	if check.IfNil(args.Hasher) {
+		return state.ErrNilHasher
+	}
+	if check.IfNil(args.Marshaller) {
+		return state.ErrNilMarshalizer
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return state.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(args.StateAccessesCollector) {
+		return state.ErrNilStateAccessesCollector
+	}
+	if check.IfNil(args.DataTriesHolder) {
+		return errorsCommon.ErrNilDataTriesHolder
+	}
+	if check.IfNil(args.DataTrieCreator) {
+		return errorsCommon.ErrNilDataTrieCreator
+	}
+
+	return nil
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
 func NewTrackableDataTrie(
-	identifier []byte,
-	hasher hashing.Hasher,
-	marshaller marshal.Marshalizer,
-	enableEpochsHandler common.EnableEpochsHandler,
-	stateAccessesCollector state.StateAccessesCollector,
+	args TrackableDataTrieArgs,
 ) (*trackableDataTrie, error) {
-	if check.IfNil(hasher) {
-		return nil, state.ErrNilHasher
-	}
-	if check.IfNil(marshaller) {
-		return nil, state.ErrNilMarshalizer
-	}
-	if check.IfNil(enableEpochsHandler) {
-		return nil, state.ErrNilEnableEpochsHandler
-	}
-	if check.IfNil(stateAccessesCollector) {
-		return nil, state.ErrNilStateAccessesCollector
+	err := checkTrackableDataTrieArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
-	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+	err = core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.AutoBalanceDataTriesFlag,
 	})
 	if err != nil {
@@ -70,14 +95,45 @@ func NewTrackableDataTrie(
 	}
 
 	return &trackableDataTrie{
-		tr:                     nil,
-		hasher:                 hasher,
-		marshaller:             marshaller,
 		dirtyData:              make(map[string]dirtyData),
-		identifier:             identifier,
-		enableEpochsHandler:    enableEpochsHandler,
-		stateAccessesCollector: stateAccessesCollector,
+		tr:                     nil,
+		hasher:                 args.Hasher,
+		marshaller:             args.Marshaller,
+		enableEpochsHandler:    args.EnableEpochsHandler,
+		identifier:             args.Identifier,
+		stateAccessesCollector: args.StateAccessesCollector,
+		dataTriesHolder:        args.DataTriesHolder,
+		dataTrieCreator:        args.DataTrieCreator,
 	}, nil
+}
+
+func (tdt *trackableDataTrie) loadTrie() error {
+	// the trie is already loaded
+	if !check.IfNil(tdt.tr) {
+		return nil
+	}
+
+	// check the cache for the trie, and load it from there if found
+	tr := tdt.dataTriesHolder.Get(tdt.identifier)
+	if !check.IfNil(tr) {
+		tdt.tr = tr
+		return nil
+	}
+
+	// try to recreate the trie from db
+	if common.IsEmptyTrie(tdt.rootHash) {
+		return state.ErrNilTrie
+	}
+
+	tr, err := tdt.dataTrieCreator.Recreate(holders.NewDefaultRootHashesHolder(tdt.rootHash))
+	if err != nil {
+		return err
+	}
+
+	tdt.tr = tr
+	tdt.dataTriesHolder.Put(tdt.identifier, tr)
+
+	return nil
 }
 
 // RetrieveValue fetches the value from a particular key searching the account data store
@@ -92,8 +148,9 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	}
 
 	// ok, not in cache, retrieve from trie
-	if check.IfNil(tdt.tr) {
-		return nil, 0, state.ErrNilTrie
+	err := tdt.loadTrie()
+	if err != nil {
+		return nil, 0, err
 	}
 	trieValue, depth, err := tdt.retrieveValueFromTrie(key)
 	if err != nil {
@@ -129,8 +186,9 @@ func (tdt *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 
 // MigrateDataTrieLeaves migrates the data trie leaves from oldVersion to newVersion
 func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error {
-	if check.IfNil(tdt.tr) {
-		return state.ErrNilTrie
+	err := tdt.loadTrie()
+	if err != nil {
+		return err
 	}
 	if check.IfNil(args.TrieMigrator) {
 		return errorsCommon.ErrNilTrieMigrator
@@ -141,7 +199,7 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 		return fmt.Errorf("invalid trie, type is %T", tdt.tr)
 	}
 
-	err := dtr.CollectLeavesForMigration(args)
+	err = dtr.CollectLeavesForMigration(args)
 	if err != nil {
 		return err
 	}
@@ -224,13 +282,14 @@ func (tdt *trackableDataTrie) getValueForVersion(key []byte, value []byte, versi
 	return valueWithAppendedData, nil
 }
 
-// SetDataTrie sets the internal data trie
-func (tdt *trackableDataTrie) SetDataTrie(tr common.Trie) {
-	tdt.tr = tr
+// SetRootHash sets the internal root hash from which to recreate the data trie
+func (tdt *trackableDataTrie) SetRootHash(rootHash []byte) {
+	tdt.rootHash = rootHash
 }
 
 // DataTrie sets the internal data trie
 func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
+	_ = tdt.loadTrie()
 	return tdt.tr
 }
 
@@ -240,6 +299,7 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 		return make([]*stateChange.DataTrieChange, 0), make([]core.TrieData, 0), nil
 	}
 
+	_ = tdt.loadTrie()
 	if check.IfNil(tdt.tr) {
 		emptyRootHash := holders.NewDefaultRootHashesHolder(make([]byte, 0))
 		newDataTrie, err := mainTrie.Recreate(emptyRootHash)
@@ -248,6 +308,7 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 		}
 
 		tdt.tr = newDataTrie
+		tdt.dataTriesHolder.Put(tdt.identifier, newDataTrie)
 	}
 
 	dtr, ok := tdt.tr.(state.DataTrie)

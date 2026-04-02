@@ -42,6 +42,7 @@ type AccountsStub struct {
 	SetSyncerCalled                       func(syncer state.AccountsDBSyncer) error
 	StartSnapshotIfNeededCalled           func() error
 	SetTxHashForLatestStateAccessesCalled func(txHash []byte)
+	GetAccountsFactoryCalled              func() state.AccountFactory
 }
 
 // CleanCache -
@@ -265,6 +266,14 @@ func (as *AccountsStub) SetTxHashForLatestStateAccesses(txHash []byte) {
 	if as.SetTxHashForLatestStateAccessesCalled != nil {
 		as.SetTxHashForLatestStateAccessesCalled(txHash)
 	}
+}
+
+// GetAccountsFactory -
+func (as *AccountsStub) GetAccountsFactory() state.AccountFactory {
+	if as.GetAccountsFactoryCalled != nil {
+		return as.GetAccountsFactoryCalled()
+	}
+	return nil
 }
 
 // Close -

@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
@@ -273,13 +274,16 @@ func TestRewardTxProcessor_ProcessRewardTransactionMissingTrieNode(t *testing.T)
 	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-			acc := stateMock.NewAccountWrapMock(address)
-			acc.SetDataTrie(&trie.TrieStub{
-				GetCalled: func(key []byte) ([]byte, uint32, error) {
-					return nil, 0, missingNodeErr
+			dth := &trie.TriesHolderStub{
+				GetCalled: func(_ []byte) common.Trie {
+					return &trie.TrieStub{
+						GetCalled: func(key []byte) ([]byte, uint32, error) {
+							return nil, 0, missingNodeErr
+						},
+					}
 				},
-			},
-			)
+			}
+			acc := stateMock.NewAccountWrapMockWithDataTrieHolder(dth)
 
 			return acc, nil
 		},
@@ -311,13 +315,16 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 
 	address := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6}
 
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(
-		address,
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&stateMock.StateAccessesCollectorStub{},
-	)
+	args := trackableDataTrie.TrackableDataTrieArgs{
+		Identifier:             address,
+		Hasher:                 &hashingMocks.HasherMock{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        &trie.TriesHolderStub{},
+		DataTrieCreator:        &trie.TrieStub{},
+	}
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(args)
 	userAccount, _ := accounts.NewUserAccount(address, dtt, &trie.TrieLeafParserStub{})
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {

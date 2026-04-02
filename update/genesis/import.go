@@ -21,6 +21,8 @@ import (
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
+	trieTestComponents "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/update"
@@ -281,23 +283,35 @@ func (si *stateImport) importMiniBlocks(identifier string, keys [][]byte) error 
 
 func newAccountCreator(
 	accType Type,
+	tr common.Trie,
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
 	handler common.EnableEpochsHandler,
-) (state.AccountFactory, error) {
+) (state.AccountFactory, common.TriesHolder, error) {
 	switch accType {
 	case UserAccount:
+		dth, err := triesHolder.NewDataTriesHolder(tenMBSize)
+		if err != nil {
+			return nil, nil, err
+		}
 		args := factory.ArgsAccountCreator{
 			Hasher:                 hasher,
 			Marshaller:             marshaller,
 			EnableEpochsHandler:    handler,
 			StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+			DataTriesHolder:        dth,
+			DataTrieCreator:        tr,
 		}
-		return factory.NewAccountCreator(args)
+		accCreator, err := factory.NewAccountCreator(args)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return accCreator, dth, nil
 	case ValidatorAccount:
-		return factory.NewPeerAccountCreator(), nil
+		return factory.NewPeerAccountCreator(), &trieTestComponents.TriesHolderStub{}, nil
 	}
-	return nil, update.ErrUnknownType
+	return nil, nil, update.ErrUnknownType
 }
 
 func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error) {
@@ -406,24 +420,19 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 	return nil
 }
 
-func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactory state.AccountFactory) (state.AccountsDBImporter, common.Trie, error) {
-	currentTrie, err := si.getTrie(shardID, accType)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func (si *stateImport) getAccountsDB(accType Type, currentTrie common.Trie, dth common.TriesHolder, shardID uint32, accountFactory state.AccountFactory) (state.AccountsDBImporter, common.Trie, error) {
 	if accType == ValidatorAccount {
 		if check.IfNil(si.validatorDB) {
 			argsAccountDB := state.ArgsAccountsDB{
-				Trie:                     currentTrie,
-				Hasher:                   si.hasher,
-				Marshaller:               si.marshalizer,
-				AccountFactory:           accountFactory,
-				StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
-				AddressConverter:         si.addressConverter,
-				SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
-				StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-				MaxDataTriesSizeInMemory: tenMBSize,
+				Trie:                   currentTrie,
+				Hasher:                 si.hasher,
+				Marshaller:             si.marshalizer,
+				AccountFactory:         accountFactory,
+				StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
+				AddressConverter:       si.addressConverter,
+				SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+				StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+				DataTriesHolder:        dth,
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -431,7 +440,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 			}
 			si.validatorDB = accountsDB
 		}
-		return si.validatorDB, currentTrie, err
+		return si.validatorDB, currentTrie, nil
 	}
 
 	accountsDB, ok := si.accountDBsMap[shardID]
@@ -440,17 +449,17 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 	}
 
 	argsAccountDB := state.ArgsAccountsDB{
-		Trie:                     currentTrie,
-		Hasher:                   si.hasher,
-		Marshaller:               si.marshalizer,
-		AccountFactory:           accountFactory,
-		StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:         si.addressConverter,
-		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
-		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-		MaxDataTriesSizeInMemory: tenMBSize,
+		Trie:                   currentTrie,
+		Hasher:                 si.hasher,
+		Marshaller:             si.marshalizer,
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:       si.addressConverter,
+		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
 	}
-	accountsDB, err = state.NewAccountsDB(argsAccountDB)
+	accountsDB, err := state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB
 	return accountsDB, currentTrie, err
 }
@@ -470,12 +479,17 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 		return si.importDataTrie(identifier, shId, keys)
 	}
 
-	accountFactory, err := newAccountCreator(accType, si.hasher, si.marshalizer, si.enableEpochsHandler)
+	currentTrie, err := si.getTrie(shId, accType)
 	if err != nil {
 		return err
 	}
 
-	accountsDB, mainTrie, err := si.getAccountsDB(accType, shId, accountFactory)
+	accountFactory, dth, err := newAccountCreator(accType, currentTrie, si.hasher, si.marshalizer, si.enableEpochsHandler)
+	if err != nil {
+		return err
+	}
+
+	accountsDB, mainTrie, err := si.getAccountsDB(accType, currentTrie, dth, shId, accountFactory)
 	if err != nil {
 		return err
 	}

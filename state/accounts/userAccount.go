@@ -147,6 +147,7 @@ func (a *userAccount) SetCodeHash(codeHash []byte) {
 // SetRootHash sets the root hash associated with the account
 func (a *userAccount) SetRootHash(roothash []byte) {
 	a.RootHash = roothash
+	a.dataTrieInteractor.SetRootHash(roothash)
 }
 
 // SetCodeMetadata sets the code metadata

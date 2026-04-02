@@ -174,3 +174,6 @@ var ErrStateAccessesIndexOutOfBounds = errors.New("state access index out of bou
 
 // ErrNilStateAccessesStorer signals that a nil state accesses storer has been given
 var ErrNilStateAccessesStorer = errors.New("nil state accesses storer")
+
+// ErrNilDataTriesHolder signals that a nil data tries holder has been given
+var ErrNilDataTriesHolder = errors.New("nil data tries holder")

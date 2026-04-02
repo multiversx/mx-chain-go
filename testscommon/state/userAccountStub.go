@@ -31,7 +31,7 @@ type UserAccountStub struct {
 	IsGuardedCalled          func() bool
 	AccountDataHandlerCalled func() vmcommon.AccountDataHandler
 	RetrieveValueCalled      func(_ []byte) ([]byte, uint32, error)
-	SetDataTrieCalled        func(dataTrie common.Trie)
+	SetRootHashCalled        func(rootHash []byte)
 	GetRootHashCalled        func() []byte
 	SaveKeyValueCalled       func(key []byte, value []byte) error
 }
@@ -155,9 +155,9 @@ func (u *UserAccountStub) GetRootHash() []byte {
 }
 
 // SetDataTrie -
-func (u *UserAccountStub) SetDataTrie(dataTrie common.Trie) {
-	if u.SetDataTrieCalled != nil {
-		u.SetDataTrieCalled(dataTrie)
+func (u *UserAccountStub) SetDataTrie(rootHash []byte) {
+	if u.SetRootHashCalled != nil {
+		u.SetRootHashCalled(rootHash)
 	}
 }
 

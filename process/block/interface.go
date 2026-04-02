@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
@@ -82,4 +83,9 @@ type MissingDataResolver interface {
 	RequestMissingShardHeaders(metaHeader data.MetaHeaderHandler) error
 	Reset()
 	IsInterfaceNil() bool
+}
+
+type adbWithAccountsFactory interface {
+	state.AccountsAdapter
+	GetAccountsFactory() state.AccountFactory
 }

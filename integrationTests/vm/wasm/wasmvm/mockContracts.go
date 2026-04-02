@@ -19,11 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
-	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 )
 
@@ -38,6 +33,12 @@ var InitialEsdt = uint64(100)
 
 // EsdtTokenIdentifier is the token identifier in tests
 var EsdtTokenIdentifier = []byte("TTT-010101")
+
+// AdbWithAccountsFactory -
+type AdbWithAccountsFactory interface {
+	state.AccountsAdapter
+	GetAccountsFactory() state.AccountFactory
+}
 
 // InitializeMockContracts -
 func InitializeMockContracts(
@@ -107,15 +108,11 @@ func GetAddressForNewAccountOnWalletAndNodeWithVM(
 	require.Nil(t, err)
 
 	address := net.NewAddressWithVM(wallet, vmType)
-	argsAccCreation := stateFactory.ArgsAccountCreator{
-		Hasher:                 &hashingMocks.HasherMock{},
-		Marshaller:             &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
-	}
-	accountFactory, _ := stateFactory.NewAccountCreator(argsAccCreation)
 
-	account, _ := accountFactory.CreateAccount(address)
+	adb, ok := node.AccntState.(AdbWithAccountsFactory)
+	require.True(t, ok)
+
+	account, _ := adb.GetAccountsFactory().CreateAccount(address)
 	userAccount := account.(state.UserAccountHandler)
 	_ = userAccount.AddToBalance(MockInitialBalance)
 	userAccount.SetCode(address)

@@ -69,10 +69,6 @@ func (uam *UserAccountMock) GetRootHash() []byte {
 	return uam.rootHash
 }
 
-// SetDataTrie -
-func (uam *UserAccountMock) SetDataTrie(_ common.Trie) {
-}
-
 // DataTrie -
 func (uam *UserAccountMock) DataTrie() common.DataTrieHandler {
 	return nil
