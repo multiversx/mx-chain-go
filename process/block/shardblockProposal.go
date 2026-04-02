@@ -286,7 +286,9 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, process.ErrInvalidHeader
 	}
 
-	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlockProposal")
+	if !sp.processStatusHandler.TrySetBusy("shardProcessor.ProcessBlockProposal") {
+		return nil, process.ErrBlockProcessorBusy
+	}
 	defer sp.processStatusHandler.SetIdle()
 
 	sp.roundNotifier.CheckRound(headerHandler)

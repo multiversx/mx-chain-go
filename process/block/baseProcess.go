@@ -1149,8 +1149,21 @@ func isPartiallyExecuted(
 
 // check if header has the same mini blocks as presented in body
 func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+	mbHashesFromHdr := make(map[string]struct{}, len(miniBlockHeaders))
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		if miniBlockHeaders[i] == nil {
+			return process.ErrNilMiniBlockHeader
+		}
+
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = struct{}{}
+	}
+
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch
+	}
+
+	if len(mbHashesFromHdr) != len(miniBlockHeaders) {
+		return process.ErrDuplicatedHashInBlock
 	}
 
 	var mbHdr data.MiniBlockHeaderHandler
@@ -1170,10 +1183,18 @@ func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []d
 			return err
 		}
 
+		mbHashStr := string(mbHash)
+		_, ok := mbHashesFromHdr[mbHashStr]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
 		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
 		if err != nil {
 			return err
 		}
+
+		delete(mbHashesFromHdr, mbHashStr)
 	}
 
 	return bp.checkMiniBlocksConstructionProposal(miniBlockHeaders)
@@ -1213,8 +1234,21 @@ func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeader
 
 // check if header has the same mini blocks as presented in body
 func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+	mbHashesFromHdr := make(map[string]struct{}, len(miniBlockHeaders))
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		if miniBlockHeaders[i] == nil {
+			return process.ErrNilMiniBlockHeader
+		}
+
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = struct{}{}
+	}
+
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch
+	}
+
+	if len(mbHashesFromHdr) != len(miniBlockHeaders) {
+		return process.ErrDuplicatedHashInBlock
 	}
 
 	var mbHdr data.MiniBlockHeaderHandler
@@ -1233,6 +1267,12 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return err
 		}
 
+		mbHashStr := string(mbHash)
+		_, ok := mbHashesFromHdr[mbHashStr]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
 		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
 		if err != nil {
 			return err
@@ -1246,6 +1286,8 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if err != nil {
 			return err
 		}
+
+		delete(mbHashesFromHdr, mbHashStr)
 	}
 
 	return nil
@@ -2595,7 +2637,9 @@ func (bp *baseProcessor) Close() error {
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
-	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
+	if !bp.processStatusHandler.TrySetBusy("baseProcessor.ProcessScheduledBlock") {
+		return process.ErrBlockProcessorBusy
+	}
 	defer func() {
 		if err != nil {
 			bp.RevertCurrentBlock()
@@ -3520,14 +3564,16 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 func (bp *baseProcessor) getLastExecutedRootHash(
 	header data.HeaderHandler,
 ) []byte {
-	rootHash := bp.getRootHash()
+	var rootHash []byte
 	if !header.IsHeaderV3() {
+		rootHash = bp.getRootHash()
 		return rootHash
 	}
 
 	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
 	if err != nil {
 		log.Warn("failed to get last execution result for header", "err", err)
+		_, _, rootHash = bp.blockChain.GetLastExecutedBlockInfo()
 		return rootHash
 	}
 
@@ -3714,16 +3760,6 @@ func (bp *baseProcessor) getTransactionsForMiniBlock(
 	}
 
 	return txs, nil
-}
-
-// getCurrentBlockHeader returns the current block header from blockchain.
-func (bp *baseProcessor) getCurrentBlockHeader() data.HeaderHandler {
-	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
-	if !check.IfNil(currentBlockHeader) {
-		return currentBlockHeader
-	}
-
-	return bp.blockChain.GetGenesisHeader()
 }
 
 func (bp *baseProcessor) getLastExecutionResultHeader(
