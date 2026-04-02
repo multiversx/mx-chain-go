@@ -953,6 +953,10 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		return process.ErrHeaderBodyMismatch
 	}
 
+	if len(mbHashesFromHdr) != len(miniBlockHeaders) {
+		return process.ErrDuplicatedHashInBlock
+	}
+
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		if miniBlock == nil {
@@ -964,7 +968,8 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return err
 		}
 
-		mbHdr, ok := mbHashesFromHdr[string(mbHash)]
+		mbHashStr := string(mbHash)
+		mbHdr, ok := mbHashesFromHdr[mbHashStr]
 		if !ok {
 			return process.ErrHeaderBodyMismatch
 		}
@@ -990,6 +995,8 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if err != nil {
 			return err
 		}
+
+		delete(mbHashesFromHdr, mbHashStr)
 	}
 
 	return nil
