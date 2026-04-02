@@ -3762,16 +3762,6 @@ func (bp *baseProcessor) getTransactionsForMiniBlock(
 	return txs, nil
 }
 
-// getCurrentBlockHeader returns the current block header from blockchain.
-func (bp *baseProcessor) getCurrentBlockHeader() data.HeaderHandler {
-	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
-	if !check.IfNil(currentBlockHeader) {
-		return currentBlockHeader
-	}
-
-	return bp.blockChain.GetGenesisHeader()
-}
-
 func (bp *baseProcessor) getLastExecutionResultHeader(
 	currentHeader data.HeaderHandler,
 ) (data.HeaderHandler, error) {
