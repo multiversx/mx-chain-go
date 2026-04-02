@@ -33,7 +33,7 @@ var _ process.PreProcessor = (*transactions)(nil)
 var log = logger.GetOrCreate("process/block/preprocess")
 
 // 200% bandwidth to allow 100% overshooting estimations
-const selectionGasBandwidthIncreasePercent = 400
+const selectionGasBandwidthIncreasePercent = 800
 
 // 130% to allow 30% overshooting estimations for scheduled SC calls
 const selectionGasBandwidthIncreaseScheduledPercent = 260
@@ -1018,6 +1018,17 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	}
 
 	sortedTxs, remainingTxsForScheduled, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth, randomness)
+
+	sortedTxsGasSum := uint64(0)
+	for _, tx := range sortedTxs {
+		sortedTxsGasSum += tx.Tx.GetGasLimit()
+	}
+
+	remainTxsForScheduledGasSum := uint64(0)
+	for _, tx := range remainingTxsForScheduled {
+		remainTxsForScheduledGasSum += tx.Tx.GetGasLimit()
+	}
+
 	elapsedTime := time.Since(startTime)
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())
@@ -1066,6 +1077,11 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
+	remainingTxsGasSum := uint64(0)
+	for _, tx := range remainingTxs {
+		remainingTxsGasSum += tx.Tx.GetGasLimit()
+	}
+
 	sortedTxsForScheduled := append(remainingTxs, remainingTxsForScheduled...)
 	sortedTxsForScheduled, _ = txs.prefilterTransactions(nil, sortedTxsForScheduled, 0, gasBandwidthForScheduled)
 	txs.sortTransactionsBySenderAndNonce(sortedTxsForScheduled, randomness)
@@ -1083,6 +1099,8 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	}
 
 	miniBlocks = append(miniBlocks, scheduledMiniBlocks...)
+
+	log.Debug("createAndProcessMiniBlocks - gasUsageInMillion", "sortedTxsGasSum", sortedTxsGasSum/1e6, "remainTxsForScheduledGasSum", remainTxsForScheduledGasSum/1e6, "remainingTxsGasSum from normal", remainingTxsGasSum/1e6)
 
 	return miniBlocks, nil
 }
