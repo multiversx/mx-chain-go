@@ -16,8 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var errExpected = errors.New("expected error")
-
 func TestNewPendingMiniBlocks(t *testing.T) {
 	t.Parallel()
 
