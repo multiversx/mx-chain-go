@@ -1350,6 +1350,9 @@ var ErrZeroDurationForEpoch = errors.New("zero duration for epoch")
 // ErrInvalidChainParameters signals that invalid chain parameters has been provided
 var ErrInvalidChainParameters = errors.New("invalid chain parameters")
 
+// ErrDuplicatedHashInBlock signals that the same hash appears more than once where uniqueness is expected
+var ErrDuplicatedHashInBlock = errors.New("duplicated hash in block")
+
 // ErrBadSelectionGasBandwidthIncreasePercent signals a bad txcache config
 var ErrBadSelectionGasBandwidthIncreasePercent = errors.New("bad selection gas bandwidth increase percent")
 
