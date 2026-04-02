@@ -2,6 +2,7 @@ package executionTrack
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -580,4 +581,480 @@ func TestExecutionResultsTracker_Clean(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, newLast, lastExec)
 	})
+}
+
+func TestExecutionResultsTracker_PopDismissedResults_EmptyByDefault(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewExecutionResultsTracker()
+	batches := tracker.PopDismissedResults()
+	require.Nil(t, batches)
+}
+
+func TestExecutionResultsTracker_PopDismissedResults_OnCleanOnConsensusReached(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewExecutionResultsTracker()
+
+	lastNotarized := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash0"),
+			HeaderNonce: 10,
+			RootHash:    []byte("rootHash0"),
+		},
+	}
+	_ = tracker.SetLastNotarizedResult(lastNotarized)
+
+	exec1 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash1"),
+			HeaderNonce: 11,
+			RootHash:    []byte("rootHash1"),
+		},
+	}
+	exec2 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash2"),
+			HeaderNonce: 12,
+			RootHash:    []byte("rootHash2"),
+		},
+	}
+	_, _ = tracker.AddExecutionResult(exec1)
+	_, _ = tracker.AddExecutionResult(exec2)
+
+	// Consensus commits nonce 11 with a different hash - dismisses nonce 11 and higher
+	header := &block.HeaderV3{
+		Nonce: 11,
+	}
+	tracker.CleanOnConsensusReached([]byte("different_hash"), header)
+
+	batches := tracker.PopDismissedResults()
+	require.Len(t, batches, 1)
+	require.Len(t, batches[0].Results, 2)
+	// Anchor should be lastNotarized (no pending results before nonce 11)
+	require.Equal(t, lastNotarized.GetRootHash(), batches[0].AnchorResult.GetRootHash())
+	require.Equal(t, exec1.GetRootHash(), batches[0].Results[0].GetRootHash())
+	require.Equal(t, exec2.GetRootHash(), batches[0].Results[1].GetRootHash())
+
+	// Second pop should return nil (queue drained)
+	require.Nil(t, tracker.PopDismissedResults())
+}
+
+func TestExecutionResultsTracker_PopDismissedResults_AnchorIsLastPendingBeforeDismissal(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewExecutionResultsTracker()
+
+	lastNotarized := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash0"),
+			HeaderNonce: 10,
+			RootHash:    []byte("rootHash0"),
+		},
+	}
+	_ = tracker.SetLastNotarizedResult(lastNotarized)
+
+	exec1 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash1"),
+			HeaderNonce: 11,
+			RootHash:    []byte("rootHash1"),
+		},
+	}
+	exec2 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash2"),
+			HeaderNonce: 12,
+			RootHash:    []byte("rootHash2"),
+		},
+	}
+	exec3 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash3"),
+			HeaderNonce: 13,
+			RootHash:    []byte("rootHash3"),
+		},
+	}
+	_, _ = tracker.AddExecutionResult(exec1)
+	_, _ = tracker.AddExecutionResult(exec2)
+	_, _ = tracker.AddExecutionResult(exec3)
+
+	// RemoveFromNonce(12) should dismiss exec2 and exec3, keeping exec1
+	_ = tracker.RemoveFromNonce(12)
+
+	batches := tracker.PopDismissedResults()
+	require.Len(t, batches, 1)
+	require.Len(t, batches[0].Results, 2)
+	// Anchor should be exec1 (last pending result before nonce 12)
+	require.Equal(t, exec1.GetRootHash(), batches[0].AnchorResult.GetRootHash())
+	require.Equal(t, exec2.GetRootHash(), batches[0].Results[0].GetRootHash())
+	require.Equal(t, exec3.GetRootHash(), batches[0].Results[1].GetRootHash())
+}
+
+func TestExecutionResultsTracker_PopDismissedResults_OnCleanConfirmedMismatch(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewExecutionResultsTracker()
+
+	lastNotarized := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash0"),
+			HeaderNonce: 10,
+			RootHash:    []byte("rootHash0"),
+		},
+	}
+	_ = tracker.SetLastNotarizedResult(lastNotarized)
+
+	exec1 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash1"),
+			HeaderNonce: 11,
+			RootHash:    []byte("rootHash1"),
+		},
+	}
+	exec2 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash2"),
+			HeaderNonce: 12,
+			RootHash:    []byte("rootHash2"),
+		},
+	}
+	exec3 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash3"),
+			HeaderNonce: 13,
+			RootHash:    []byte("rootHash3"),
+		},
+	}
+	_, _ = tracker.AddExecutionResult(exec1)
+	_, _ = tracker.AddExecutionResult(exec2)
+	_, _ = tracker.AddExecutionResult(exec3)
+
+	// Header confirms exec1 matches, but exec2 mismatches at idx=1
+	header := &block.HeaderV3{
+		ExecutionResults: []*block.ExecutionResult{
+			exec1,
+			{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("different"),
+					HeaderNonce: 12,
+					RootHash:    []byte("differentRoot"),
+				},
+			},
+		},
+	}
+	err := tracker.CleanConfirmedExecutionResults(header)
+	require.ErrorIs(t, err, ErrExecutionResultMismatch)
+
+	batches := tracker.PopDismissedResults()
+	require.Len(t, batches, 1)
+	require.Len(t, batches[0].Results, 2) // exec2 and exec3 dismissed
+	// Anchor should be exec1 (last matching result, at idx=0 the preceding pending result)
+	require.Equal(t, exec1.GetRootHash(), batches[0].AnchorResult.GetRootHash())
+	require.Equal(t, exec2.GetRootHash(), batches[0].Results[0].GetRootHash())
+	require.Equal(t, exec3.GetRootHash(), batches[0].Results[1].GetRootHash())
+}
+
+func TestExecutionResultsTracker_PopDismissedResults_OnCleanConfirmedMismatchAtFirstIndex(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewExecutionResultsTracker()
+
+	lastNotarized := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash0"),
+			HeaderNonce: 10,
+			RootHash:    []byte("rootHash0"),
+		},
+	}
+	_ = tracker.SetLastNotarizedResult(lastNotarized)
+
+	exec1 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash1"),
+			HeaderNonce: 11,
+			RootHash:    []byte("rootHash1"),
+		},
+	}
+	_, _ = tracker.AddExecutionResult(exec1)
+
+	// Header has mismatch at idx=0
+	header := &block.HeaderV3{
+		ExecutionResults: []*block.ExecutionResult{
+			{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("different"),
+					HeaderNonce: 11,
+					RootHash:    []byte("differentRoot"),
+				},
+			},
+		},
+	}
+	err := tracker.CleanConfirmedExecutionResults(header)
+	require.ErrorIs(t, err, ErrExecutionResultMismatch)
+
+	batches := tracker.PopDismissedResults()
+	require.Len(t, batches, 1)
+	require.Len(t, batches[0].Results, 1)
+	// Anchor should be lastNotarized (mismatch at idx=0)
+	require.Equal(t, lastNotarized.GetRootHash(), batches[0].AnchorResult.GetRootHash())
+	require.Equal(t, exec1.GetRootHash(), batches[0].Results[0].GetRootHash())
+}
+
+func TestExecutionResultsTracker_PopDismissedResults_OnClean(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewExecutionResultsTracker()
+
+	lastNotarized := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash0"),
+			HeaderNonce: 10,
+			RootHash:    []byte("rootHash0"),
+		},
+	}
+	_ = tracker.SetLastNotarizedResult(lastNotarized)
+
+	exec1 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash1"),
+			HeaderNonce: 11,
+			RootHash:    []byte("rootHash1"),
+		},
+	}
+	exec2 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash2"),
+			HeaderNonce: 12,
+			RootHash:    []byte("rootHash2"),
+		},
+	}
+	_, _ = tracker.AddExecutionResult(exec1)
+	_, _ = tracker.AddExecutionResult(exec2)
+
+	newNotarized := &block.BaseExecutionResult{
+		HeaderHash:  []byte("new"),
+		HeaderNonce: 50,
+		RootHash:    []byte("newRoot"),
+	}
+	tracker.Clean(newNotarized)
+
+	batches := tracker.PopDismissedResults()
+	require.Len(t, batches, 1)
+	require.Len(t, batches[0].Results, 2)
+	// Anchor should be the OLD lastNotarized (before Clean overwrote it)
+	require.Equal(t, lastNotarized.GetRootHash(), batches[0].AnchorResult.GetRootHash())
+	require.Equal(t, exec1.GetRootHash(), batches[0].Results[0].GetRootHash())
+	require.Equal(t, exec2.GetRootHash(), batches[0].Results[1].GetRootHash())
+}
+
+func TestExecutionResultsTracker_PopDismissedResults_ConfirmedNotDismissed(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewExecutionResultsTracker()
+
+	lastNotarized := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash0"),
+			HeaderNonce: 10,
+			RootHash:    []byte("rootHash0"),
+		},
+	}
+	_ = tracker.SetLastNotarizedResult(lastNotarized)
+
+	exec1 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash1"),
+			HeaderNonce: 11,
+			RootHash:    []byte("rootHash1"),
+		},
+	}
+	_, _ = tracker.AddExecutionResult(exec1)
+
+	// Confirm exec1 successfully - should NOT appear in dismissed
+	header := &block.HeaderV3{
+		ExecutionResults: []*block.ExecutionResult{exec1},
+	}
+	err := tracker.CleanConfirmedExecutionResults(header)
+	require.NoError(t, err)
+
+	batches := tracker.PopDismissedResults()
+	require.Nil(t, batches)
+}
+
+func TestExecutionResultsTracker_PopDismissedResults_MultipleBatches(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewExecutionResultsTracker()
+
+	lastNotarized := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash0"),
+			HeaderNonce: 10,
+			RootHash:    []byte("rootHash0"),
+		},
+	}
+	_ = tracker.SetLastNotarizedResult(lastNotarized)
+
+	exec1 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash1"),
+			HeaderNonce: 11,
+			RootHash:    []byte("rootHash1"),
+		},
+	}
+	exec2 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash2"),
+			HeaderNonce: 12,
+			RootHash:    []byte("rootHash2"),
+		},
+	}
+	exec3 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash3"),
+			HeaderNonce: 13,
+			RootHash:    []byte("rootHash3"),
+		},
+	}
+	_, _ = tracker.AddExecutionResult(exec1)
+	_, _ = tracker.AddExecutionResult(exec2)
+	_, _ = tracker.AddExecutionResult(exec3)
+
+	// First dismissal: remove nonce 13 and higher - dismisses exec3
+	_ = tracker.RemoveFromNonce(13)
+
+	// Second dismissal: remove nonce 12 and higher - dismisses exec2
+	_ = tracker.RemoveFromNonce(12)
+
+	// Should get 2 separate batches with different anchors
+	batches := tracker.PopDismissedResults()
+	require.Len(t, batches, 2)
+
+	// Batch 1: exec3 dismissed, anchor = exec2 (last pending before nonce 13)
+	require.Equal(t, exec2.GetRootHash(), batches[0].AnchorResult.GetRootHash())
+	require.Len(t, batches[0].Results, 1)
+	require.Equal(t, exec3.GetRootHash(), batches[0].Results[0].GetRootHash())
+
+	// Batch 2: exec2 dismissed, anchor = exec1 (last pending before nonce 12)
+	require.Equal(t, exec1.GetRootHash(), batches[1].AnchorResult.GetRootHash())
+	require.Len(t, batches[1].Results, 1)
+	require.Equal(t, exec2.GetRootHash(), batches[1].Results[0].GetRootHash())
+}
+
+func TestExecutionResultsTracker_PopDismissedResults_IndependentSources(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewExecutionResultsTracker()
+
+	lastNotarized := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash0"),
+			HeaderNonce: 10,
+			RootHash:    []byte("rootHash0"),
+		},
+	}
+	_ = tracker.SetLastNotarizedResult(lastNotarized)
+
+	exec1 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash1"),
+			HeaderNonce: 11,
+			RootHash:    []byte("rootHash1"),
+		},
+	}
+	exec2 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash2"),
+			HeaderNonce: 12,
+			RootHash:    []byte("rootHash2"),
+		},
+	}
+	exec3 := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash3"),
+			HeaderNonce: 13,
+			RootHash:    []byte("rootHash3"),
+		},
+	}
+	_, _ = tracker.AddExecutionResult(exec1)
+	_, _ = tracker.AddExecutionResult(exec2)
+	_, _ = tracker.AddExecutionResult(exec3)
+
+	// Source 1: CleanOnConsensusReached dismisses nonce 12+ (consensus committed different hash for 12)
+	header := &block.HeaderV3{Nonce: 12}
+	tracker.CleanOnConsensusReached([]byte("different_hash"), header)
+
+	// Source 2: RemoveFromNonce dismisses the remaining exec1
+	_ = tracker.RemoveFromNonce(11)
+
+	batches := tracker.PopDismissedResults()
+	require.Len(t, batches, 2)
+
+	// Batch 0: from CleanOnConsensusReached - dismissed exec2+exec3, anchor = exec1
+	require.Equal(t, exec1.GetRootHash(), batches[0].AnchorResult.GetRootHash())
+	require.Len(t, batches[0].Results, 2)
+	require.Equal(t, exec2.GetRootHash(), batches[0].Results[0].GetRootHash())
+	require.Equal(t, exec3.GetRootHash(), batches[0].Results[1].GetRootHash())
+
+	// Batch 1: from RemoveFromNonce - dismissed exec1, anchor = lastNotarized
+	require.Equal(t, lastNotarized.GetRootHash(), batches[1].AnchorResult.GetRootHash())
+	require.Len(t, batches[1].Results, 1)
+	require.Equal(t, exec1.GetRootHash(), batches[1].Results[0].GetRootHash())
+}
+
+func TestExecutionResultsTracker_DismissedBatchesOverflow(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewExecutionResultsTracker()
+
+	lastNotarized := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash0"),
+			HeaderNonce: 10,
+			RootHash:    []byte("rootHash0"),
+		},
+	}
+	_ = tracker.SetLastNotarizedResult(lastNotarized)
+
+	// Fill the queue to capacity by repeatedly adding+removing execution results
+	for i := 0; i < maxDismissedBatches+5; i++ {
+		nonce := uint64(11)
+		exec := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte(fmt.Sprintf("hash_%d", i)),
+				HeaderNonce: nonce,
+				RootHash:    []byte(fmt.Sprintf("root_%d", i)),
+			},
+		}
+		_, _ = tracker.AddExecutionResult(exec)
+		_ = tracker.RemoveFromNonce(nonce)
+	}
+
+	batches := tracker.PopDismissedResults()
+	// Should be capped at maxDismissedBatches, oldest batches dropped
+	require.Len(t, batches, maxDismissedBatches)
+
+	// The surviving batches should be the last maxDismissedBatches ones (oldest dropped)
+	// The first surviving batch should be from iteration index 5 (0-4 were dropped)
+	firstSurvivingIdx := 5
+	require.Equal(t,
+		[]byte(fmt.Sprintf("root_%d", firstSurvivingIdx)),
+		batches[0].Results[0].GetRootHash(),
+	)
+	// All anchors should be lastNotarized (no pending results with nonce < 11 exist)
+	for i, batch := range batches {
+		require.Equal(t, lastNotarized.GetRootHash(), batch.AnchorResult.GetRootHash(),
+			"batch %d should have lastNotarized as anchor", i)
+	}
+
+	// The last surviving batch should be from the last iteration
+	lastIdx := maxDismissedBatches + 5 - 1
+	require.Equal(t,
+		[]byte(fmt.Sprintf("root_%d", lastIdx)),
+		batches[maxDismissedBatches-1].Results[0].GetRootHash(),
+	)
+
+	// After pop, queue should be empty
+	require.Nil(t, tracker.PopDismissedResults())
 }
