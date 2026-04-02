@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -1247,7 +1248,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	if !currentHeader.IsHeaderV3() {
 		sp.pruneTrieLegacy(headers)
 	} else {
-		sp.pruneTrieHeaderV3(currentHeader.GetExecutionResultsHandlers())
+		// for header v3, trie pruning is triggered in async mode from headers executor
 
 		if currentHeader.IsStartOfEpochBlock() {
 			sp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
@@ -1265,7 +1266,11 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
 }
 
-func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
+func (sp *shardProcessor) pruneTrieHeaderV3(
+	header data.HeaderHandler,
+) {
+	executionResultsHandlers := header.GetExecutionResultsHandlers()
+
 	accountsDb := sp.accountsDB[state.UserAccountsState]
 	if !accountsDb.IsPruningEnabled() {
 		return
@@ -1273,7 +1278,7 @@ func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.Base
 
 	for i := range executionResultsHandlers {
 		currentExecRes := executionResultsHandlers[i]
-		prevExecRes, err := sp.getPreviousExecutionResult(i, executionResultsHandlers)
+		prevExecRes, err := sp.getPreviousExecutionResult(i, executionResultsHandlers, header.GetPrevHash())
 		if err != nil {
 			log.Warn("failed to get previous execution result for pruning",
 				"err", err,
@@ -1303,12 +1308,48 @@ func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.Base
 	}
 }
 
-func (sp *shardProcessor) getPreviousExecutionResult(index int, executionResultsHandlers []data.BaseExecutionResultHandler) (data.BaseExecutionResultHandler, error) {
+func (sp *shardProcessor) resetPruning() {
+	accountsDb := sp.accountsDB[state.UserAccountsState]
+	if !accountsDb.IsPruningEnabled() {
+		return
+	}
+
+	accountsDb.ResetPruning()
+}
+
+func (sp *shardProcessor) cancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch) {
+	accountsDb := sp.accountsDB[state.UserAccountsState]
+	if !accountsDb.IsPruningEnabled() {
+		return
+	}
+
+	for _, batch := range batches {
+		sp.cancelPruneForDismissedBatch(accountsDb, batch)
+	}
+}
+
+func (sp *shardProcessor) cancelPruneForDismissedBatch(accountsDb state.AccountsAdapter, batch executionTrack.DismissedBatch) {
+	if batch.AnchorResult == nil {
+		return
+	}
+
+	prevRootHash := batch.AnchorResult.GetRootHash()
+	for _, result := range batch.Results {
+		currentRootHash := result.GetRootHash()
+		cancelPruneForRootHashTransition(accountsDb, prevRootHash, currentRootHash)
+		prevRootHash = currentRootHash
+	}
+}
+
+func (sp *shardProcessor) getPreviousExecutionResult(
+	index int,
+	executionResultsHandlers []data.BaseExecutionResultHandler,
+	prevHeaderHash []byte,
+) (data.BaseExecutionResultHandler, error) {
 	if index > 0 {
 		return executionResultsHandlers[index-1], nil
 	}
 
-	prevHeaderHash := sp.getCurrentBlockHeader().GetPrevHash()
 	prevHeader, err := process.GetShardHeader(prevHeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 	if err != nil {
 		return nil, err

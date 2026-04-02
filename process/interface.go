@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -319,6 +320,7 @@ type BlockProcessor interface {
 	) error
 	OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error
 	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte
+	PruneTrieAsyncHeader()
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -356,6 +358,7 @@ type ExecutionManager interface {
 	RemoveAtNonceAndHigher(nonce uint64) error
 	ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
+	PopDismissedResults() []executionTrack.DismissedBatch
 	GetSignalProcessCompletionChan() chan uint64
 	Close() error
 	IsInterfaceNil() bool
@@ -1660,6 +1663,7 @@ type ExecutionResultsTracker interface {
 	Clean(lastNotarizedResult data.BaseExecutionResultHandler)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
 	CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler)
+	PopDismissedResults() []executionTrack.DismissedBatch
 	IsInterfaceNil() bool
 }
 
