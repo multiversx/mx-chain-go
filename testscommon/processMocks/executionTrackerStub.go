@@ -2,6 +2,8 @@ package processMocks
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 )
 
 // ExecutionTrackerStub -
@@ -16,6 +18,16 @@ type ExecutionTrackerStub struct {
 	CleanCalled                            func(lastNotarizedResult data.BaseExecutionResultHandler)
 	CleanConfirmedExecutionResultsCalled   func(header data.HeaderHandler) error
 	CleanOnConsensusReachedCalled          func(headerHash []byte, header data.HeaderHandler)
+	PopDismissedResultsCalled              func() []executionTrack.DismissedBatch
+}
+
+// PopDismissedResults -
+func (e *ExecutionTrackerStub) PopDismissedResults() []executionTrack.DismissedBatch {
+	if e.PopDismissedResultsCalled != nil {
+		return e.PopDismissedResultsCalled()
+	}
+
+	return nil
 }
 
 // AddExecutionResult -

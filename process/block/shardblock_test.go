@@ -33,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -7320,5 +7321,205 @@ func TestShardProcessor_CommitBlockV3FailAfterHeadMutationShouldRestoreChainHead
 			"currentBlockHeader should be restored to previous header after failed V3 commit")
 		assert.Equal(t, prevHeaderHash, testBlockchain.GetCurrentBlockHeaderHash(),
 			"currentBlockHeaderHash should be restored to previous hash after failed V3 commit")
+	})
+}
+
+func TestShardProcessor_CancelPruneForDismissedExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("pruning disabled should not call CancelPrune", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return false },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called when pruning is disabled")
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R0")},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R1")},
+					},
+				},
+			},
+		}
+		sp.CancelPruneForDismissedExecutionResults(batches)
+	})
+	t.Run("nil anchor should skip batch", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called for nil anchor batch")
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		batches := []executionTrack.DismissedBatch{
+			{AnchorResult: nil, Results: []data.BaseExecutionResultHandler{
+				&block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R1")},
+				},
+			}},
+		}
+		sp.CancelPruneForDismissedExecutionResults(batches)
+	})
+	t.Run("single batch with multiple results should cancel prune for each transition", func(t *testing.T) {
+		t.Parallel()
+
+		type cancelPruneCall struct {
+			rootHash   []byte
+			identifier state.TriePruningIdentifier
+		}
+		calls := make([]cancelPruneCall, 0)
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				calls = append(calls, cancelPruneCall{rootHash: rootHash, identifier: identifier})
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		// Dismissed chain: anchor(R0) -> R1 -> R2 -> R3
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R0")},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R1")},
+					},
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R2")},
+					},
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R3")},
+					},
+				},
+			},
+		}
+		sp.CancelPruneForDismissedExecutionResults(batches)
+
+		// 3 transitions: R0->R1, R1->R2, R2->R3, 2 CancelPrune calls each = 6 total
+		require.Len(t, calls, 6)
+		// Transition R0->R1
+		require.Equal(t, []byte("R1"), calls[0].rootHash)
+		require.Equal(t, state.NewRoot, calls[0].identifier)
+		require.Equal(t, []byte("R0"), calls[1].rootHash)
+		require.Equal(t, state.OldRoot, calls[1].identifier)
+		// Transition R1->R2
+		require.Equal(t, []byte("R2"), calls[2].rootHash)
+		require.Equal(t, state.NewRoot, calls[2].identifier)
+		require.Equal(t, []byte("R1"), calls[3].rootHash)
+		require.Equal(t, state.OldRoot, calls[3].identifier)
+		// Transition R2->R3
+		require.Equal(t, []byte("R3"), calls[4].rootHash)
+		require.Equal(t, state.NewRoot, calls[4].identifier)
+		require.Equal(t, []byte("R2"), calls[5].rootHash)
+		require.Equal(t, state.OldRoot, calls[5].identifier)
+	})
+	t.Run("equal consecutive root hashes should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneCalls := 0
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalls++
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		// anchor(R0) -> R0 (same hash, no state change) -> R1
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R0")},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R0")},
+					},
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R1")},
+					},
+				},
+			},
+		}
+		sp.CancelPruneForDismissedExecutionResults(batches)
+
+		// R0->R0 is skipped (equal), R0->R1 produces 2 calls
+		require.Equal(t, 2, cancelPruneCalls)
+	})
+	t.Run("multiple batches should all be processed", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneCalls := 0
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalls++
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("A0")},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("A1")},
+					},
+				},
+			},
+			{
+				AnchorResult: &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("B0")},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("B1")},
+					},
+				},
+			},
+		}
+		sp.CancelPruneForDismissedExecutionResults(batches)
+
+		// 2 batches, 1 transition each, 2 CancelPrune calls = 4 total
+		require.Equal(t, 4, cancelPruneCalls)
 	})
 }

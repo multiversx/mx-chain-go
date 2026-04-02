@@ -85,6 +85,7 @@ type AccountsAdapter interface {
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	ResetPruning()
+	GetEvictionWaitingListSize() int
 	SnapshotState(rootHash []byte, epoch uint32)
 	IsPruningEnabled() bool
 	GetAllLeaves(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
@@ -179,6 +180,7 @@ type DBRemoveCacher interface {
 	Put([]byte, common.ModifiedHashes) error
 	Evict([]byte) (common.ModifiedHashes, error)
 	ShouldKeepHash(hash string, identifier TriePruningIdentifier) (bool, error)
+	CacheLen() int
 	Reset()
 	IsInterfaceNil() bool
 	Close() error
@@ -196,6 +198,7 @@ type StoragePruningManager interface {
 	MarkForEviction([]byte, []byte, common.ModifiedHashes, common.ModifiedHashes) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager)
+	EvictionWaitingListCacheLen() int
 	Reset()
 	Close() error
 	IsInterfaceNil() bool

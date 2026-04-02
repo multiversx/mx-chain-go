@@ -246,6 +246,11 @@ func (accountsDB *accountsDBApiWithHistory) recreateTrieUnprotected(options comm
 	return nil
 }
 
+// GetEvictionWaitingListSize returns 0 for the API accounts adapter with history
+func (adb *accountsDBApiWithHistory) GetEvictionWaitingListSize() int {
+	return 0
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (accountsDB *accountsDBApiWithHistory) IsInterfaceNil() bool {
 	return accountsDB == nil

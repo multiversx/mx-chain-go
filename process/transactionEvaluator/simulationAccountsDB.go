@@ -6,9 +6,10 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // simulationAccountsDB is a wrapper over an accounts db which works read-only. write operation are disabled
@@ -191,6 +192,11 @@ func (r *simulationAccountsDB) SetTxHashForLatestStateAccesses(txHash []byte) {
 // Close will handle the closing of the underlying components
 func (r *simulationAccountsDB) Close() error {
 	return nil
+}
+
+// GetEvictionWaitingListSize returns 0 for the simulation accounts DB
+func (adb *simulationAccountsDB) GetEvictionWaitingListSize() int {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

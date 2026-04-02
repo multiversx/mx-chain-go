@@ -6,9 +6,10 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("state/evictionWaitingList")
@@ -216,6 +217,13 @@ func (mewl *memoryEvictionWaitingList) Reset() {
 	mewl.cache = make(map[string]*rootHashData)
 	mewl.reversedCache = make(map[string]*hashInfo)
 	mewl.opMutex.Unlock()
+}
+
+// CacheLen returns the number of entries in the cache
+func (mewl *memoryEvictionWaitingList) CacheLen() int {
+	mewl.opMutex.RLock()
+	defer mewl.opMutex.RUnlock()
+	return len(mewl.cache)
 }
 
 // Close returns nil

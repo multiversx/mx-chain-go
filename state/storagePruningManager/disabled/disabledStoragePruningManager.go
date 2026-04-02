@@ -14,27 +14,32 @@ func NewDisabledStoragePruningManager() *disabledStoragePruningManager {
 }
 
 // MarkForEviction does nothing for this implementation
-func (i *disabledStoragePruningManager) MarkForEviction(_ []byte, _ []byte, _ common.ModifiedHashes, _ common.ModifiedHashes) error {
+func (d *disabledStoragePruningManager) MarkForEviction(_ []byte, _ []byte, _ common.ModifiedHashes, _ common.ModifiedHashes) error {
 	return nil
 }
 
 // PruneTrie does nothing for this implementation
-func (i *disabledStoragePruningManager) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ common.StorageManager, _ state.PruningHandler) {
+func (d *disabledStoragePruningManager) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ common.StorageManager, _ state.PruningHandler) {
 }
 
 // CancelPrune does nothing for this implementation
-func (i *disabledStoragePruningManager) CancelPrune(_ []byte, _ state.TriePruningIdentifier, _ common.StorageManager) {
+func (d *disabledStoragePruningManager) CancelPrune(_ []byte, _ state.TriePruningIdentifier, _ common.StorageManager) {
 }
 
 // Reset does nothing for this implementation
-func (i *disabledStoragePruningManager) Reset() {}
+func (d *disabledStoragePruningManager) Reset() {}
 
 // Close does nothing for this implementation
-func (i *disabledStoragePruningManager) Close() error {
+func (d *disabledStoragePruningManager) Close() error {
 	return nil
 }
 
+// EvictionWaitingListCacheLen returns 0 for the disabled storage pruning manager
+func (d *disabledStoragePruningManager) EvictionWaitingListCacheLen() int {
+	return 0
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
-func (i *disabledStoragePruningManager) IsInterfaceNil() bool {
-	return i == nil
+func (d *disabledStoragePruningManager) IsInterfaceNil() bool {
+	return d == nil
 }
