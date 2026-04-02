@@ -443,6 +443,8 @@ func (mp *metaProcessor) CommitBlockProposalState(headerHandler data.HeaderHandl
 		return process.ErrNilBlockHeader
 	}
 
+	mp.cleanupDismissedEWLEntries()
+
 	err := mp.commitState(headerHandler)
 	if err != nil {
 		return err

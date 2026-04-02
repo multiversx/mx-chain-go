@@ -402,6 +402,8 @@ func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHand
 		return process.ErrNilBlockHeader
 	}
 
+	sp.cleanupDismissedEWLEntries()
+
 	err := sp.commitState(headerHandler)
 	if err != nil {
 		return err
