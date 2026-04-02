@@ -308,7 +308,9 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, process.ErrInvalidHeader
 	}
 
-	mp.processStatusHandler.SetBusy("metaProcessor.ProcessBlockProposal")
+	if !mp.processStatusHandler.TrySetBusy("metaProcessor.ProcessBlockProposal") {
+		return nil, process.ErrBlockProcessorBusy
+	}
 	defer mp.processStatusHandler.SetIdle()
 
 	mp.roundNotifier.CheckRound(headerHandler)

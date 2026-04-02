@@ -13,6 +13,9 @@ func NewProcessStatusHandler() *processStatusHandler {
 // SetBusy does nothing
 func (psh *processStatusHandler) SetBusy(_ string) {}
 
+// TrySetBusy returns true
+func (psh *processStatusHandler) TrySetBusy(_ string) bool { return true }
+
 // SetIdle does nothing
 func (psh *processStatusHandler) SetIdle() {}
 

@@ -2148,6 +2148,36 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 	assert.True(t, requestDataWasCalled)
 }
 
+func TestShardBootstrap_DoJobOnSyncBlockFailShouldSkipWhenBlockProcessorBusy(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+
+	forkDetectorMock := &mock.ForkDetectorMock{
+		ResetProbableHighestNonceCalled: func() {
+			require.Fail(t, "should not have called ResetProbableHighestNonce")
+		},
+	}
+	args.ForkDetector = forkDetectorMock
+	args.ChainHandler = &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 1}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+
+	bs, _ := sync.NewShardBootstrap(args)
+
+	initialSyncErrors := bs.GetNumSyncedWithErrorsForNonce(2)
+
+	bs.DoJobOnSyncBlockFail(&block.Body{}, &block.Header{Nonce: 2}, process.ErrBlockProcessorBusy)
+
+	afterSyncErrors := bs.GetNumSyncedWithErrorsForNonce(2)
+	assert.Equal(t, initialSyncErrors, afterSyncErrors, "sync error counter should not be incremented for busy processor")
+}
+
 func TestShardBootstrap_DoJobOnSyncBlockFailShouldNotResetProbableHighestNonceWhenAreNotEnoughErrorsPerNonce(t *testing.T) {
 	t.Parallel()
 
