@@ -4059,6 +4059,79 @@ func TestShardProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {
 	assert.Equal(t, process.ErrNilMiniBlock, err)
 }
 
+func TestShardProcessor_CheckHeaderBodyCorrelationDuplicateHeaderHashesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	// duplicate the miniblock in both header and body: [MB_X, MB_X]
+	hdr.MiniBlockHeaders = append(hdr.MiniBlockHeaders, hdr.MiniBlockHeaders[0])
+	body.MiniBlocks = append(body.MiniBlocks, body.MiniBlocks[0])
+
+	err := sp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.Equal(t, process.ErrDuplicatedHashInBlock, err)
+}
+
+func TestShardProcessor_CheckHeaderBodyCorrelationDuplicateBodyMiniBlocksShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	hasher := &hashingMocks.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	miniblock1 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        [][]byte{[]byte("tx_hash1")},
+	}
+	miniblock2 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   2,
+		TxHashes:        [][]byte{[]byte("tx_hash2")},
+	}
+
+	mb1Bytes, _ := marshalizer.Marshal(&miniblock1)
+	mb1Hash := hasher.Compute(string(mb1Bytes))
+	mb2Bytes, _ := marshalizer.Marshal(&miniblock2)
+	mb2Hash := hasher.Compute(string(mb2Bytes))
+
+	// header has [A, B] but body has [A, A]
+	hdr := &block.Header{
+		Nonce:         1,
+		PrevHash:      []byte(""),
+		Signature:     []byte("signature"),
+		PubKeysBitmap: []byte("00110"),
+		ShardID:       0,
+		RootHash:      []byte("rootHash"),
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:            mb1Hash,
+				ReceiverShardID: 0,
+				SenderShardID:   1,
+				TxCount:         1,
+			},
+			{
+				Hash:            mb2Hash,
+				ReceiverShardID: 0,
+				SenderShardID:   2,
+				TxCount:         1,
+			},
+		},
+	}
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{&miniblock1, &miniblock1},
+	}
+
+	err := sp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+}
+
 func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	t.Parallel()
 
