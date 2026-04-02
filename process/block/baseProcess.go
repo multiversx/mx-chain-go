@@ -1149,8 +1149,21 @@ func isPartiallyExecuted(
 
 // check if header has the same mini blocks as presented in body
 func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+	mbHashesFromHdr := make(map[string]struct{}, len(miniBlockHeaders))
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		if miniBlockHeaders[i] == nil {
+			return process.ErrNilMiniBlockHeader
+		}
+
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = struct{}{}
+	}
+
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch
+	}
+
+	if len(mbHashesFromHdr) != len(miniBlockHeaders) {
+		return process.ErrDuplicatedHashInBlock
 	}
 
 	var mbHdr data.MiniBlockHeaderHandler
@@ -1170,10 +1183,18 @@ func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []d
 			return err
 		}
 
+		mbHashStr := string(mbHash)
+		_, ok := mbHashesFromHdr[mbHashStr]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
 		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
 		if err != nil {
 			return err
 		}
+
+		delete(mbHashesFromHdr, mbHashStr)
 	}
 
 	return bp.checkMiniBlocksConstructionProposal(miniBlockHeaders)
@@ -1213,8 +1234,21 @@ func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeader
 
 // check if header has the same mini blocks as presented in body
 func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+	mbHashesFromHdr := make(map[string]struct{}, len(miniBlockHeaders))
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		if miniBlockHeaders[i] == nil {
+			return process.ErrNilMiniBlockHeader
+		}
+
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = struct{}{}
+	}
+
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch
+	}
+
+	if len(mbHashesFromHdr) != len(miniBlockHeaders) {
+		return process.ErrDuplicatedHashInBlock
 	}
 
 	var mbHdr data.MiniBlockHeaderHandler
@@ -1233,6 +1267,12 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return err
 		}
 
+		mbHashStr := string(mbHash)
+		_, ok := mbHashesFromHdr[mbHashStr]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
 		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
 		if err != nil {
 			return err
@@ -1246,6 +1286,8 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if err != nil {
 			return err
 		}
+
+		delete(mbHashesFromHdr, mbHashStr)
 	}
 
 	return nil
