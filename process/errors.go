@@ -134,6 +134,9 @@ var ErrValidatorStatsRootHashDoesNotMatch = errors.New("root hash for validator 
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modification
 var ErrAccountStateDirty = errors.New("accountState was dirty before starting to change")
 
+// ErrBlockProcessorBusy signals that the block processor is already busy processing another block
+var ErrBlockProcessorBusy = errors.New("block processor is busy")
+
 // ErrInvalidShardId signals that the shard id is invalid
 var ErrInvalidShardId = errors.New("invalid shard id")
 

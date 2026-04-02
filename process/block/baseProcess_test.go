@@ -2651,6 +2651,29 @@ func TestBaseProcessor_updateState(t *testing.T) {
 	assert.Equal(t, []byte(strconv.Itoa(len(headers)-2)), cancelPruneRootHash)
 }
 
+func TestBaseProcessor_ProcessScheduledBlockShouldErrWhenProcessorBusy(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
+		return false
+	}
+	setIdleCalled := false
+	mockProcessHandler.SetIdleCalled = func() {
+		setIdleCalled = true
+	}
+
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	err := bp.ProcessScheduledBlock(
+		&block.MetaBlock{}, &block.Body{}, haveTime,
+	)
+	require.Equal(t, process.ErrBlockProcessorBusy, err)
+	require.False(t, setIdleCalled, "SetIdle should not be called when TrySetBusy fails")
+}
+
 func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -2664,8 +2687,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		mockProcessHandler.SetIdleCalled = func() {
 			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
+		mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+			return true
 		}
 
 		scheduledTxsExec := &testscommon.ScheduledTxsExecutionStub{
@@ -2694,8 +2718,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		mockProcessHandler.SetIdleCalled = func() {
 			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
+		mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+			return true
 		}
 
 		accounts := &stateMock.AccountsStub{
@@ -2775,8 +2800,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
 	mockProcessHandler.SetIdleCalled = func() {
 		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		return true
 	}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts
