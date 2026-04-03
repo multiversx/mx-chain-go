@@ -21,6 +21,7 @@ func TestProcessStatusHandler_MethodsShouldNotPanic(t *testing.T) {
 	psh := NewProcessStatusHandler()
 	assert.False(t, check.IfNil(psh))
 	psh.SetBusy("")
+	assert.True(t, psh.TrySetBusy(""))
 	psh.SetIdle()
 	assert.True(t, psh.IsIdle())
 }

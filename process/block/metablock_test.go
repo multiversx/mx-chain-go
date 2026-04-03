@@ -803,6 +803,49 @@ func TestMetaProcessor_ProcessBlockWithNilHaveTimeFuncShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHaveTimeHandler, err)
 }
 
+func TestMetaProcessor_ProcessBlockShouldErrWhenProcessorBusy(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments(createMockComponentHolders())
+
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
+		return false
+	}
+
+	mp, _ := processBlock.NewMetaProcessor(arguments)
+	blk := &block.Body{}
+
+	err := mp.ProcessBlock(&block.MetaBlock{
+		Nonce:         1,
+		PubKeysBitmap: []byte("0100101"),
+		PrevHash:      []byte(""),
+		Signature:     []byte("signature"),
+		RootHash:      []byte("roothash"),
+	}, blk, haveTime)
+	assert.Equal(t, process.ErrBlockProcessorBusy, err)
+}
+
+func TestMetaProcessor_CreateBlockShouldErrWhenProcessorBusy(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockMetaArguments(createMockComponentHolders())
+
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
+		return false
+	}
+
+	mp, _ := processBlock.NewMetaProcessor(arguments)
+
+	hdr, body, err := mp.CreateBlock(&block.MetaBlock{Round: 1}, func() bool { return true })
+	assert.Equal(t, process.ErrBlockProcessorBusy, err)
+	assert.Nil(t, hdr)
+	assert.Nil(t, body)
+}
+
 func TestMetaProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -1053,8 +1096,9 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 	mockProcessHandler.SetIdleCalled = func() {
 		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		return true
 	}
 
 	arguments.HeadersForBlock.AddHeaderUsedInBlock("hdr_hash1", &block.Header{})
@@ -3275,8 +3319,9 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	mockProcessHandler.SetIdleCalled = func() {
 		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		return true
 	}
 
 	mp, _ := processBlock.NewMetaProcessor(arguments)
@@ -4061,6 +4106,41 @@ func TestMetaProcessor_CrossChecksBlockHeightsMetrics(t *testing.T) {
 	requireInstance.Equal(uint64(39), savedMetrics["erd_cross_check_block_height_2"])
 }
 
+func TestMetaProcessor_PruneTrieAsyncHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("prune trie for headerV3, prev header is headerV2", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash1 := []byte("state root hash 1")
+		validatorStatsRootHash1 := []byte("validator stats root hash 1")
+
+		prevHeader := &block.MetaBlock{
+			RootHash:               rootHash1,
+			ValidatorStatsRootHash: validatorStatsRootHash1,
+		}
+		pruneTrieForHeaderV3Test(t, prevHeader, rootHash1, validatorStatsRootHash1)
+	})
+
+	t.Run("prune trie for headerV3, prev header is headerV3", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash1 := []byte("state root hash 1")
+		validatorStatsRootHash1 := []byte("validator stats root hash 1")
+		prevHeader := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						RootHash: rootHash1,
+					},
+					ValidatorStatsRootHash: validatorStatsRootHash1,
+				},
+			},
+		}
+		pruneTrieForHeaderV3Test(t, prevHeader, rootHash1, validatorStatsRootHash1)
+	})
+}
+
 func TestMetaProcessor_UpdateState(t *testing.T) {
 	t.Parallel()
 
@@ -4126,36 +4206,6 @@ func TestMetaProcessor_UpdateState(t *testing.T) {
 		assert.True(t, pruneCalledForPeerAccounts)
 		assert.True(t, cancelPruneCalledForUserAccounts)
 		assert.True(t, cancelPruneCalledForPeerAccounts)
-	})
-	t.Run("prune trie for headerV3, prev header is headerV2", func(t *testing.T) {
-		t.Parallel()
-
-		rootHash1 := []byte("state root hash 1")
-		validatorStatsRootHash1 := []byte("validator stats root hash 1")
-
-		prevHeader := &block.MetaBlock{
-			RootHash:               rootHash1,
-			ValidatorStatsRootHash: validatorStatsRootHash1,
-		}
-		pruneTrieForHeaderV3Test(t, prevHeader, rootHash1, validatorStatsRootHash1)
-
-	})
-	t.Run("prune trie for headerV3, prev header is headerV3", func(t *testing.T) {
-		t.Parallel()
-
-		rootHash1 := []byte("state root hash 1")
-		validatorStatsRootHash1 := []byte("validator stats root hash 1")
-		prevHeader := &block.MetaBlockV3{
-			LastExecutionResult: &block.MetaExecutionResultInfo{
-				ExecutionResult: &block.BaseMetaExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						RootHash: rootHash1,
-					},
-					ValidatorStatsRootHash: validatorStatsRootHash1,
-				},
-			},
-		}
-		pruneTrieForHeaderV3Test(t, prevHeader, rootHash1, validatorStatsRootHash1)
 	})
 }
 
@@ -4236,9 +4286,6 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 		},
 	}
 
-	mp, _ := processBlock.NewMetaProcessor(arguments)
-
-	metaBlockHash := []byte("meta block hash")
 	metaBlock := &block.MetaBlockV3{
 		PrevHash: []byte("hash"),
 		ExecutionResults: []*block.MetaExecutionResult{
@@ -4269,7 +4316,18 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 		},
 	}
 
-	mp.UpdateState(metaBlock, metaBlockHash)
+	blkc := createTestBlockchain()
+	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+		return metaBlock
+	}
+	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+		return []byte("metaHash")
+	}
+	dataComponents.BlockChain = blkc
+
+	mp, _ := processBlock.NewMetaProcessor(arguments)
+
+	mp.PruneTrieAsyncHeader()
 
 	assert.Equal(t, 2, pruneCalledForUserAccounts)
 	assert.Equal(t, 2, pruneCalledForPeerAccounts)
@@ -5039,5 +5097,217 @@ func TestMetaProcessor_CommitBlockV3FailAfterHeadMutationShouldRestoreChainHead(
 			"currentBlockHeader should be restored to previous header after failed V3 commit")
 		assert.Equal(t, prevHeaderHash, testBlockchain.GetCurrentBlockHeaderHash(),
 			"currentBlockHeaderHash should be restored to previous hash after failed V3 commit")
+	})
+}
+
+func TestMetaProcessor_CancelPruneForDismissedExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("both pruning disabled should not call CancelPrune", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return false },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called on user accounts")
+			},
+		}
+		arguments.AccountsDB[state.PeerAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return false },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called on peer accounts")
+			},
+		}
+
+		mp, err := processBlock.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult:    &block.BaseExecutionResult{RootHash: []byte("R0")},
+						ValidatorStatsRootHash: []byte("V0"),
+					},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.MetaExecutionResult{
+						ExecutionResult: &block.BaseMetaExecutionResult{
+							BaseExecutionResult:    &block.BaseExecutionResult{RootHash: []byte("R1")},
+							ValidatorStatsRootHash: []byte("V1"),
+						},
+					},
+				},
+			},
+		}
+		mp.CancelPruneForDismissedExecutionResults(batches)
+	})
+	t.Run("user and peer pruning enabled should cancel prune for both", func(t *testing.T) {
+		t.Parallel()
+
+		type cancelPruneCall struct {
+			rootHash   []byte
+			identifier state.TriePruningIdentifier
+		}
+		userCalls := make([]cancelPruneCall, 0)
+		peerCalls := make([]cancelPruneCall, 0)
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				userCalls = append(userCalls, cancelPruneCall{rootHash: rootHash, identifier: identifier})
+			},
+		}
+		arguments.AccountsDB[state.PeerAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				peerCalls = append(peerCalls, cancelPruneCall{rootHash: rootHash, identifier: identifier})
+			},
+		}
+
+		mp, err := processBlock.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		// Dismissed chain: anchor(R0,V0) -> (R1,V1) -> (R2,V2)
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult:    &block.BaseExecutionResult{RootHash: []byte("R0")},
+						ValidatorStatsRootHash: []byte("V0"),
+					},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.MetaExecutionResult{
+						ExecutionResult: &block.BaseMetaExecutionResult{
+							BaseExecutionResult:    &block.BaseExecutionResult{RootHash: []byte("R1")},
+							ValidatorStatsRootHash: []byte("V1"),
+						},
+					},
+					&block.MetaExecutionResult{
+						ExecutionResult: &block.BaseMetaExecutionResult{
+							BaseExecutionResult:    &block.BaseExecutionResult{RootHash: []byte("R2")},
+							ValidatorStatsRootHash: []byte("V2"),
+						},
+					},
+				},
+			},
+		}
+		mp.CancelPruneForDismissedExecutionResults(batches)
+
+		// User accounts: 2 transitions, 2 CancelPrune calls each = 4
+		require.Len(t, userCalls, 4)
+		require.Equal(t, []byte("R1"), userCalls[0].rootHash)
+		require.Equal(t, state.NewRoot, userCalls[0].identifier)
+		require.Equal(t, []byte("R0"), userCalls[1].rootHash)
+		require.Equal(t, state.OldRoot, userCalls[1].identifier)
+		require.Equal(t, []byte("R2"), userCalls[2].rootHash)
+		require.Equal(t, state.NewRoot, userCalls[2].identifier)
+		require.Equal(t, []byte("R1"), userCalls[3].rootHash)
+		require.Equal(t, state.OldRoot, userCalls[3].identifier)
+
+		// Peer accounts: 2 transitions, 2 CancelPrune calls each = 4
+		require.Len(t, peerCalls, 4)
+		require.Equal(t, []byte("V1"), peerCalls[0].rootHash)
+		require.Equal(t, state.NewRoot, peerCalls[0].identifier)
+		require.Equal(t, []byte("V0"), peerCalls[1].rootHash)
+		require.Equal(t, state.OldRoot, peerCalls[1].identifier)
+		require.Equal(t, []byte("V2"), peerCalls[2].rootHash)
+		require.Equal(t, state.NewRoot, peerCalls[2].identifier)
+		require.Equal(t, []byte("V1"), peerCalls[3].rootHash)
+		require.Equal(t, state.OldRoot, peerCalls[3].identifier)
+	})
+	t.Run("result not implementing BaseMetaExecutionResultHandler should skip peer cancel prune", func(t *testing.T) {
+		t.Parallel()
+
+		userCancelCalls := 0
+		peerCancelCalls := 0
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				userCancelCalls++
+			},
+		}
+		arguments.AccountsDB[state.PeerAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				peerCancelCalls++
+			},
+		}
+
+		mp, err := processBlock.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		// Use ExecutionResult (not MetaExecutionResult) - does NOT implement BaseMetaExecutionResultHandler
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R0")},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R1")},
+					},
+				},
+			},
+		}
+		mp.CancelPruneForDismissedExecutionResults(batches)
+
+		// User accounts should still get CancelPrune (R0->R1 = 2 calls)
+		require.Equal(t, 2, userCancelCalls)
+		// Peer accounts should get 0 calls (validator root hashes are nil from non-meta results)
+		require.Equal(t, 0, peerCancelCalls)
+	})
+	t.Run("only user pruning enabled should skip peer operations", func(t *testing.T) {
+		t.Parallel()
+
+		userCancelCalls := 0
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				userCancelCalls++
+			},
+		}
+		arguments.AccountsDB[state.PeerAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return false },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called on peer accounts when pruning disabled")
+			},
+		}
+
+		mp, err := processBlock.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult:    &block.BaseExecutionResult{RootHash: []byte("R0")},
+						ValidatorStatsRootHash: []byte("V0"),
+					},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.MetaExecutionResult{
+						ExecutionResult: &block.BaseMetaExecutionResult{
+							BaseExecutionResult:    &block.BaseExecutionResult{RootHash: []byte("R1")},
+							ValidatorStatsRootHash: []byte("V1"),
+						},
+					},
+				},
+			},
+		}
+		mp.CancelPruneForDismissedExecutionResults(batches)
+
+		require.Equal(t, 2, userCancelCalls)
 	})
 }
