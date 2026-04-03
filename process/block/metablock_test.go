@@ -2056,16 +2056,26 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	shDataCurr = block.ShardData{
 		ShardID:         0,
 		HeaderHash:      currHash,
+		Round:           currHdr.Round,
+		Nonce:           currHdr.Nonce,
+		PrevRandSeed:    currHdr.PrevRandSeed,
+		PrevHash:        currHdr.PrevHash,
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
+		TxCount:         currHdr.TxCount,
 	}
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
 	shDataPrev = block.ShardData{
 		ShardID:         0,
 		HeaderHash:      prevHash,
+		Round:           prevHdr.Round,
+		Nonce:           prevHdr.Nonce,
+		PrevRandSeed:    prevHdr.PrevRandSeed,
+		PrevHash:        prevHdr.PrevHash,
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
+		TxCount:         prevHdr.TxCount,
 	}
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataPrev)
 
@@ -2182,10 +2192,17 @@ func TestMetaProcessor_CheckShardHeadersValidityRoundZeroLastNoted(t *testing.T)
 	metaHdr := &block.MetaBlock{Round: 20}
 
 	shDataCurr := block.ShardData{
-		ShardID:         0,
-		HeaderHash:      currHash,
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
+		ShardID:               0,
+		HeaderHash:            currHash,
+		Round:                 currHdr.Round,
+		Nonce:                 currHdr.Nonce,
+		PrevRandSeed:          currHdr.PrevRandSeed,
+		PrevHash:              currHdr.PrevHash,
+		AccumulatedFees:       big.NewInt(0),
+		DeveloperFees:         big.NewInt(0),
+		NumPendingMiniBlocks:  0,
+		LastIncludedMetaNonce: 0,
+		TxCount:               currHdr.TxCount,
 	}
 	metaHdr.ShardInfo = make([]block.ShardData, 0)
 	metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)

@@ -576,7 +576,7 @@ func (mp *metaProcessor) CreateEpochStartBody(metaBlock *block.MetaBlock) (data.
 }
 
 // GetIndexOfFirstMiniBlockToBeExecuted -
-func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
+func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) (int, error) {
 	return bp.getIndexOfFirstMiniBlockToBeExecuted(header)
 }
 
