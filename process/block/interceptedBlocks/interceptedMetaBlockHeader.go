@@ -149,6 +149,7 @@ func (imh *InterceptedMetaHeader) integrity() error {
 	if err != nil {
 		return err
 	}
+
 	err = checkMiniBlocksHeaders(imh.hdr.GetMiniBlockHeaderHandlers(), imh.shardCoordinator)
 	if err != nil {
 		return err

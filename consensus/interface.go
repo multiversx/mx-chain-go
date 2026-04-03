@@ -116,6 +116,12 @@ type HeadersPoolSubscriber interface {
 	IsInterfaceNil() bool
 }
 
+// HeadersPoolGetter can retrieve a header by its hash from the headers pool
+type HeadersPoolGetter interface {
+	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+	IsInterfaceNil() bool
+}
+
 // PeerHonestyHandler defines the behaivour of a component able to handle/monitor the peer honesty of nodes which are
 // participating in consensus
 type PeerHonestyHandler interface {
