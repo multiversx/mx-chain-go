@@ -33,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -323,14 +324,63 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	mockProcessHandler.SetIdleCalled = func() {
 		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		return true
 	}
 
 	err = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Nil(t, err)
 	require.Equal(t, int64(2), checkRoundCt.Get())
 	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
+}
+
+func TestShardProcessor_ProcessBlockShouldErrWhenProcessorBusy(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
+		return false
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	header := &block.Header{
+		Nonce:         1,
+		PubKeysBitmap: []byte("0100101"),
+		PrevHash:      []byte(""),
+		PrevRandSeed:  []byte("rand seed"),
+		Signature:     []byte("signature"),
+		RootHash:      []byte("roothash"),
+	}
+	body := &block.Body{}
+
+	err := sp.ProcessBlock(header, body, func() time.Duration { return time.Second })
+	require.Equal(t, process.ErrBlockProcessorBusy, err)
+}
+
+func TestShardProcessor_CreateBlockShouldErrWhenProcessorBusy(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
+		return false
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	header := &block.Header{Round: 1}
+
+	hdr, body, err := sp.CreateBlock(header, func() bool { return true })
+	require.Equal(t, process.ErrBlockProcessorBusy, err)
+	require.Nil(t, hdr)
+	require.Nil(t, body)
 }
 
 func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
@@ -2013,8 +2063,9 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	mockProcessHandler.SetIdleCalled = func() {
 		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		return true
 	}
 	expectedFirstNonce := core.OptionalUint64{
 		HasValue: false,
@@ -4510,6 +4561,79 @@ func TestShardProcessor_CheckHeaderBodyCorrelationNilMiniBlock(t *testing.T) {
 	assert.Equal(t, process.ErrNilMiniBlock, err)
 }
 
+func TestShardProcessor_CheckHeaderBodyCorrelationDuplicateHeaderHashesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdr, body := createOneHeaderOneBody()
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	// duplicate the miniblock in both header and body: [MB_X, MB_X]
+	hdr.MiniBlockHeaders = append(hdr.MiniBlockHeaders, hdr.MiniBlockHeaders[0])
+	body.MiniBlocks = append(body.MiniBlocks, body.MiniBlocks[0])
+
+	err := sp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.Equal(t, process.ErrDuplicatedHashInBlock, err)
+}
+
+func TestShardProcessor_CheckHeaderBodyCorrelationDuplicateBodyMiniBlocksShouldErr(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	hasher := &hashingMocks.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	miniblock1 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        [][]byte{[]byte("tx_hash1")},
+	}
+	miniblock2 := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   2,
+		TxHashes:        [][]byte{[]byte("tx_hash2")},
+	}
+
+	mb1Bytes, _ := marshalizer.Marshal(&miniblock1)
+	mb1Hash := hasher.Compute(string(mb1Bytes))
+	mb2Bytes, _ := marshalizer.Marshal(&miniblock2)
+	mb2Hash := hasher.Compute(string(mb2Bytes))
+
+	// header has [A, B] but body has [A, A]
+	hdr := &block.Header{
+		Nonce:         1,
+		PrevHash:      []byte(""),
+		Signature:     []byte("signature"),
+		PubKeysBitmap: []byte("00110"),
+		ShardID:       0,
+		RootHash:      []byte("rootHash"),
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:            mb1Hash,
+				ReceiverShardID: 0,
+				SenderShardID:   1,
+				TxCount:         1,
+			},
+			{
+				Hash:            mb2Hash,
+				ReceiverShardID: 0,
+				SenderShardID:   2,
+				TxCount:         1,
+			},
+		},
+	}
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{&miniblock1, &miniblock1},
+	}
+
+	err := sp.CheckHeaderBodyCorrelation(hdr, body)
+	assert.Equal(t, process.ErrHeaderBodyMismatch, err)
+}
+
 func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	t.Parallel()
 
@@ -6171,8 +6295,9 @@ func TestShardProcessor_CreateBlock(t *testing.T) {
 	mockProcessHandler.SetIdleCalled = func() {
 		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		return true
 	}
 
 	expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
@@ -7044,6 +7169,87 @@ func TestShardProcessor_GetLastExecutedRootHash(t *testing.T) {
 		retRootHash := sp.GetLastExecutedRootHash(header)
 		require.Equal(t, rootHash2, retRootHash)
 	})
+
+	t.Run("with header v3 and nil last execution result, should fallback to blockchain last executed info", func(t *testing.T) {
+		t.Parallel()
+
+		accountsRootHash := []byte("accountsRootHash")
+		blockchainRootHash := []byte("blockchainRootHash")
+
+		header := &block.HeaderV3{
+			LastExecutionResult: nil,
+		}
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:  initStore(),
+			DataPool: initDataPool(),
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{}
+				},
+				GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+					return 0, nil, blockchainRootHash
+				},
+			},
+		}
+
+		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+		accounts := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return accountsRootHash, nil
+			},
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+		accountsDb[state.UserAccountsState] = accounts
+		arguments.AccountsDB = accountsDb
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+		retRootHash := sp.GetLastExecutedRootHash(header)
+		require.Equal(t, blockchainRootHash, retRootHash)
+	})
+
+	t.Run("with header v3, should not call getRootHash from accounts db", func(t *testing.T) {
+		t.Parallel()
+
+		rootHashCalled := false
+		execRootHash := []byte("execRootHash")
+
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					RootHash: execRootHash,
+				},
+			},
+		}
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:    initStore(),
+			DataPool:   initDataPool(),
+			BlockChain: arguments.DataComponents.Blockchain(),
+		}
+
+		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+		accounts := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				rootHashCalled = true
+				return []byte("should-not-be-used"), nil
+			},
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+		accountsDb[state.UserAccountsState] = accounts
+		arguments.AccountsDB = accountsDb
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+		retRootHash := sp.GetLastExecutedRootHash(header)
+		require.Equal(t, execRootHash, retRootHash)
+		require.False(t, rootHashCalled, "getRootHash should not be called for v3 headers")
+	})
 }
 
 func TestShardProcessor_PruneTrieHeaderV3(t *testing.T) {
@@ -7097,7 +7303,7 @@ func pruneTrieHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootHash
 		}
 	}
 	dataComponents.DataPool = dataPool
-	_ = dataComponents.BlockChain.SetCurrentBlockHeader(&block.Header{PrevHash: prevHeaderHash})
+
 	arguments := CreateMockArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
 	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 		state.UserAccountsState: &stateMock.AccountsStub{
@@ -7143,8 +7349,12 @@ func pruneTrieHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootHash
 			},
 		},
 	}
+	header1 := &block.HeaderV3{
+		PrevHash: prevHeaderHash,
+	}
+	_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
 
-	sp.PruneTrieHeaderV3(executionResultsHandlers)
+	sp.PruneTrieHeaderV3(header1)
 
 	assert.Equal(t, 2, pruneCalled)
 	assert.Equal(t, 2, cancelPruneCalled)
@@ -7316,5 +7526,205 @@ func TestShardProcessor_CommitBlockV3FailAfterHeadMutationShouldRestoreChainHead
 			"currentBlockHeader should be restored to previous header after failed V3 commit")
 		assert.Equal(t, prevHeaderHash, testBlockchain.GetCurrentBlockHeaderHash(),
 			"currentBlockHeaderHash should be restored to previous hash after failed V3 commit")
+	})
+}
+
+func TestShardProcessor_CancelPruneForDismissedExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("pruning disabled should not call CancelPrune", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return false },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called when pruning is disabled")
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R0")},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R1")},
+					},
+				},
+			},
+		}
+		sp.CancelPruneForDismissedExecutionResults(batches)
+	})
+	t.Run("nil anchor should skip batch", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called for nil anchor batch")
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		batches := []executionTrack.DismissedBatch{
+			{AnchorResult: nil, Results: []data.BaseExecutionResultHandler{
+				&block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R1")},
+				},
+			}},
+		}
+		sp.CancelPruneForDismissedExecutionResults(batches)
+	})
+	t.Run("single batch with multiple results should cancel prune for each transition", func(t *testing.T) {
+		t.Parallel()
+
+		type cancelPruneCall struct {
+			rootHash   []byte
+			identifier state.TriePruningIdentifier
+		}
+		calls := make([]cancelPruneCall, 0)
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				calls = append(calls, cancelPruneCall{rootHash: rootHash, identifier: identifier})
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		// Dismissed chain: anchor(R0) -> R1 -> R2 -> R3
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R0")},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R1")},
+					},
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R2")},
+					},
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R3")},
+					},
+				},
+			},
+		}
+		sp.CancelPruneForDismissedExecutionResults(batches)
+
+		// 3 transitions: R0->R1, R1->R2, R2->R3, 2 CancelPrune calls each = 6 total
+		require.Len(t, calls, 6)
+		// Transition R0->R1
+		require.Equal(t, []byte("R1"), calls[0].rootHash)
+		require.Equal(t, state.NewRoot, calls[0].identifier)
+		require.Equal(t, []byte("R0"), calls[1].rootHash)
+		require.Equal(t, state.OldRoot, calls[1].identifier)
+		// Transition R1->R2
+		require.Equal(t, []byte("R2"), calls[2].rootHash)
+		require.Equal(t, state.NewRoot, calls[2].identifier)
+		require.Equal(t, []byte("R1"), calls[3].rootHash)
+		require.Equal(t, state.OldRoot, calls[3].identifier)
+		// Transition R2->R3
+		require.Equal(t, []byte("R3"), calls[4].rootHash)
+		require.Equal(t, state.NewRoot, calls[4].identifier)
+		require.Equal(t, []byte("R2"), calls[5].rootHash)
+		require.Equal(t, state.OldRoot, calls[5].identifier)
+	})
+	t.Run("equal consecutive root hashes should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneCalls := 0
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalls++
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		// anchor(R0) -> R0 (same hash, no state change) -> R1
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R0")},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R0")},
+					},
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R1")},
+					},
+				},
+			},
+		}
+		sp.CancelPruneForDismissedExecutionResults(batches)
+
+		// R0->R0 is skipped (equal), R0->R1 produces 2 calls
+		require.Equal(t, 2, cancelPruneCalls)
+	})
+	t.Run("multiple batches should all be processed", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneCalls := 0
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalls++
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		batches := []executionTrack.DismissedBatch{
+			{
+				AnchorResult: &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("A0")},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("A1")},
+					},
+				},
+			},
+			{
+				AnchorResult: &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("B0")},
+				},
+				Results: []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("B1")},
+					},
+				},
+			},
+		}
+		sp.CancelPruneForDismissedExecutionResults(batches)
+
+		// 2 batches, 1 transition each, 2 CancelPrune calls = 4 total
+		require.Equal(t, 4, cancelPruneCalls)
 	})
 }
