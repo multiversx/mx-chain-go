@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -52,20 +53,56 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						MetachainMinNumNodes:        1,
 						Hysteresis:                  0,
 						Adaptivity:                  false,
+						RoundsPerEpoch:              200,
+						MinRoundsBetweenEpochs:      20,
 					},
 				},
 				EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}},
+				ProcessConfigsByEpoch: []config.ProcessConfigByEpoch{{
+					EnableEpoch:                       0,
+					MaxMetaNoncesBehind:               15,
+					MaxMetaNoncesBehindForGlobalStuck: 30,
+					MaxShardNoncesBehind:              15,
+				}},
+				ProcessConfigsByRound: []config.ProcessConfigByRound{
+					{
+						EnableRound:                            0,
+						MaxRoundsWithoutNewBlockReceived:       10,
+						MaxRoundsWithoutCommittedBlock:         10,
+						MaxRoundsToKeepUnprocessedTransactions: 50,
+						MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+						NumFloodingRoundsSlowReacting:          20,
+						NumFloodingRoundsFastReacting:          30,
+						NumFloodingRoundsOutOfSpecs:            40,
+						MaxConsecutiveRoundsOfRatingDecrease:   600,
+						MaxBlockProcessingTimeMs:               1000,
+						NumHeadersToRequestInAdvance:           10,
+					},
+				},
+				EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
+					{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+				},
+				EpochStartConfigsByRound: []config.EpochStartConfigByRound{
+					{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
+				},
+				ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
+					{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+				},
 			},
 			Hardfork: config.HardforkConfig{
 				PublicKeyToListenFrom: components.DummyPk,
 			},
-			EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400},
+			EpochStartConfig: config.EpochStartConfig{},
+			Antiflood:        testscommon.GetDefaultAntifloodConfig(),
 		},
 		EnableEpochsConfig: config.EnableEpochs{},
 		RoundsConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
 					Round: "18446744073709551615",
+				},
+				"SupernovaEnableRound": {
+					Round: "9999999",
 				},
 			},
 		},

@@ -5,6 +5,8 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -16,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/update"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ factory.ComponentHandler = (*managedProcessComponents)(nil)
@@ -114,6 +115,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.blockProcessor) {
 		return errors.ErrNilBlockProcessor
 	}
+	if check.IfNil(m.processComponents.executionManager) {
+		return errors.ErrNilExecutionManager
+	}
 	if check.IfNil(m.processComponents.blackListHandler) {
 		return errors.ErrNilBlackListHandler
 	}
@@ -179,6 +183,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(m.processComponents.epochSystemSCProcessor) {
 		return errors.ErrNilEpochSystemSCProcessor
+	}
+	if check.IfNil(m.processComponents.aotSelector) {
+		return errors.ErrNilAOTSelector
 	}
 
 	return nil
@@ -314,6 +321,18 @@ func (m *managedProcessComponents) BlockProcessor() process.BlockProcessor {
 	}
 
 	return m.processComponents.blockProcessor
+}
+
+// ExecutionManager returns the execution manager
+func (m *managedProcessComponents) ExecutionManager() process.ExecutionManager {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.executionManager
 }
 
 // BlockchainHook returns the block chain hook
@@ -702,6 +721,18 @@ func (m *managedProcessComponents) EpochSystemSCProcessor() process.EpochStartSy
 	}
 
 	return m.processComponents.epochSystemSCProcessor
+}
+
+// AOTSelector returns the AOT (Ahead-of-Time) transaction selector
+func (m *managedProcessComponents) AOTSelector() process.AOTTransactionSelector {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.aotSelector
 }
 
 // IsInterfaceNil returns true if the interface is nil

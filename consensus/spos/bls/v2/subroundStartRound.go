@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -103,6 +104,8 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	sr.worker.ResetConsensusMessages()
 	sr.worker.ResetInvalidSignersCache()
 
+	sr.worker.ConsensusMetrics().ResetInstanceValues()
+
 	return true
 }
 
@@ -127,6 +130,18 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	nodeState := sr.BootStrapper().GetNodeState()
 	if nodeState != common.NsSynchronized { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
+	}
+
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) && int64(currentHeader.GetRound()) == sr.RoundHandler().Index() {
+		log.Debug("initCurrentRound: header for current consensus already committed, setting all subrounds as finished")
+
+		sr.SetStatus(sr.Current(), spos.SsFinished)
+		sr.SetStatus(bls.SrBlock, spos.SsFinished)
+		sr.SetStatus(bls.SrSignature, spos.SsFinished)
+		sr.SetStatus(bls.SrEndRound, spos.SsFinished)
+
+		return true
 	}
 
 	sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "")
@@ -268,13 +283,21 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 	round := sr.RoundHandler().Index()
 
+	headerTimestamp := sr.GetUnixTimestampForHeader(epoch)
+	timestampSec, timestampMs, err := common.PrepareTimestampBasedOnHeaderData(headerTimestamp, epoch, sr.EnableEpochsHandler())
+	if err != nil {
+		log.Debug("subroundStartRound.indexRoundIfNeeded cannot prepare timestamp", "error", err.Error(), "epoch", epoch, "round", round)
+		return
+	}
+
 	roundInfo := &outportcore.RoundInfo{
 		Round:            uint64(round),
 		SignersIndexes:   make([]uint64, 0),
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
-		Timestamp:        uint64(sr.GetRoundTimeStamp().Unix()),
+		Timestamp:        timestampSec,
+		TimestampMs:      timestampMs,
 	}
 	roundsInfo := &outportcore.RoundsInfo{
 		ShardID:    shardId,
@@ -342,8 +365,11 @@ func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
 func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
 	epochNodes, err := sr.NodesCoordinator().GetConsensusWhitelistedNodes(currentEpoch)
 	if err != nil {
-		panic(fmt.Sprintf("consensus changing epoch failed with error %s", err.Error()))
+		log.Error("consensus changing epoch failed", "error", err.Error())
+		return
 	}
+
+	sr.worker.ConsensusMetrics().ResetAverages()
 
 	sr.SetEligibleList(epochNodes)
 }

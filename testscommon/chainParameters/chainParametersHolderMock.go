@@ -5,6 +5,7 @@ import (
 )
 
 var testChainParams = config.ChainParametersByEpochConfig{
+	RoundsPerEpoch:              14400,
 	RoundDuration:               6000,
 	Hysteresis:                  0,
 	EnableEpoch:                 0,

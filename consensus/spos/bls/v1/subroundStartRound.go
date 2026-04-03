@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -173,7 +174,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	if sr.IsKeyManagedBySelf([]byte(leader)) {
 		msg = " (my turn in multi-key)"
 	}
-	if leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus() {
+	if leader == sr.SelfPubKey() && consensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
 		msg = " (my turn)"
 	}
 	if len(msg) != 0 {
@@ -192,7 +193,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	sr.indexRoundIfNeeded(pubKeys)
 
-	isSingleKeyLeader := leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus()
+	isSingleKeyLeader := leader == sr.SelfPubKey() && consensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	isLeader := isSingleKeyLeader || sr.IsKeyManagedBySelf([]byte(leader))
 	isSelfInConsensus := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || numMultiKeysInConsensusGroup > 0
 	if !isSelfInConsensus {
@@ -298,7 +299,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
-		Timestamp:        uint64(sr.GetRoundTimeStamp().Unix()),
+		Timestamp:        sr.GetUnixTimestampForHeader(epoch),
 	}
 	roundsInfo := &outportcore.RoundsInfo{
 		ShardID:    shardId,
@@ -366,7 +367,8 @@ func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
 func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
 	epochNodes, err := sr.NodesCoordinator().GetConsensusWhitelistedNodes(currentEpoch)
 	if err != nil {
-		panic(fmt.Sprintf("consensus changing epoch failed with error %s", err.Error()))
+		log.Error("consensus changing epoch failed", "error", err.Error())
+		return
 	}
 
 	sr.SetEligibleList(epochNodes)

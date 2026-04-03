@@ -3,6 +3,11 @@ package processing
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
+
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	bootstrapDisabled "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -23,9 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 func (pcf *processComponentsFactory) createAPITransactionEvaluator(epochStartTrigger process.EpochStartTriggerHandler) (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
@@ -54,8 +56,9 @@ func (pcf *processComponentsFactory) createAPITransactionEvaluator(epochStartTri
 	}
 
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
-		AddressLength: pcf.coreData.AddressPubKeyConverter().Len(),
-		Marshalizer:   pcf.coreData.InternalMarshalizer(),
+		AddressLength:                       pcf.coreData.AddressPubKeyConverter().Len(),
+		Marshalizer:                         pcf.coreData.InternalMarshalizer(),
+		RelayedTransactionsV1V2DisableEpoch: pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag),
 	})
 	if err != nil {
 		return nil, nil, err

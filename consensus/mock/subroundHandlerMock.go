@@ -2,6 +2,7 @@ package mock
 
 import (
 	"context"
+	"time"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 )
@@ -14,6 +15,7 @@ type SubroundHandlerMock struct {
 	CurrentCalled          func() int
 	StartTimeCalled        func() int64
 	EndTimeCalled          func() int64
+	SetBaseDurationCalled  func(baseDuration time.Duration)
 	NameCalled             func() string
 	JobCalled              func() bool
 	CheckCalled            func() bool
@@ -48,6 +50,13 @@ func (srm *SubroundHandlerMock) StartTime() int64 {
 // EndTime -
 func (srm *SubroundHandlerMock) EndTime() int64 {
 	return srm.EndTimeCalled()
+}
+
+// SetBaseDuration -
+func (srm *SubroundHandlerMock) SetBaseDuration(baseDuration time.Duration) {
+	if srm.SetBaseDurationCalled != nil {
+		srm.SetBaseDurationCalled(baseDuration)
+	}
 }
 
 // Name -

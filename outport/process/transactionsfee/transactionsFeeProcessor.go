@@ -51,8 +51,9 @@ func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactions
 	}
 
 	parser, err := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
-		AddressLength: arg.PubKeyConverter.Len(),
-		Marshalizer:   arg.Marshaller,
+		AddressLength:                       arg.PubKeyConverter.Len(),
+		Marshalizer:                         arg.Marshaller,
+		RelayedTransactionsV1V2DisableEpoch: arg.EnableEpochsHandler.GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag),
 	})
 	if err != nil {
 		return nil, err
@@ -169,6 +170,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(
 	}
 
 	if totalRefunds.Cmp(big.NewInt(0)) > 0 {
+		txWithResults.GetFeeInfo().SetHadRefund()
 		tep.setGasUsedAndFeeBasedOnRefundValue(txWithResults, userTx, totalRefunds, epoch)
 
 	}
@@ -259,12 +261,12 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 		return
 	}
 
-	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
+	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards(), epoch)
 	if check.IfNilReflect(txWithResults.log) || (res.Function == "" && res.Operation == datafield.OperationTransfer) {
 		return
 	}
 
-	for _, event := range txWithResults.log.GetLogEvents() {
+	for _, event := range txWithResults.log.GetLogHandler().GetLogEvents() {
 		if core.WriteLogIdentifier == string(event.GetIdentifier()) && !hasRefund {
 			tep.setGasUsedAndFeeBasedOnRefundValue(txWithResults, userTx, big.NewInt(0), epoch)
 			continue
@@ -283,8 +285,6 @@ func (tep *transactionsFeeProcessor) setGasUsedAndFeeBasedOnRefundValue(
 	refund *big.Int,
 	epoch uint32,
 ) {
-	txWithResults.GetFeeInfo().SetHadRefund()
-
 	isValidUserTxAfterBaseCostActivation := !check.IfNil(userTx) && tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch)
 	if isValidUserTxAfterBaseCostActivation && !common.IsValidRelayedTxV3(txWithResults.GetTxHandler()) {
 		gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, refund)

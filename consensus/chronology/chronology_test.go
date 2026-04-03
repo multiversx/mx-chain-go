@@ -1,17 +1,24 @@
 package chronology_test
 
 import (
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -76,6 +83,39 @@ func TestChronology_NewChronologyNilAppStatusHandlerShouldFail(t *testing.T) {
 	assert.Equal(t, err, chronology.ErrNilAppStatusHandler)
 }
 
+func TestChronology_NewChronologyNilEnableEpochsHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	arg := getDefaultChronologyArg()
+	arg.EnableEpochsHandler = nil
+	chr, err := chronology.NewChronology(arg)
+
+	assert.Nil(t, chr)
+	assert.Equal(t, err, errors.ErrNilEnableEpochsHandler)
+}
+
+func TestChronology_NewChronologyNilEnableRoundsHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	arg := getDefaultChronologyArg()
+	arg.EnableRoundsHandler = nil
+	chr, err := chronology.NewChronology(arg)
+
+	assert.Nil(t, chr)
+	assert.Equal(t, err, errors.ErrNilEnableRoundsHandler)
+}
+
+func TestChronology_NewChronologyNilConfigsHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	arg := getDefaultChronologyArg()
+	arg.ConfigsHandler = nil
+	chr, err := chronology.NewChronology(arg)
+
+	assert.Nil(t, chr)
+	assert.Equal(t, err, common.ErrNilCommonConfigsHandler)
+}
+
 func TestChronology_NewChronologyShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -118,7 +158,7 @@ func TestChronology_StartRoundShouldReturnWhenRoundIndexIsNegative(t *testing.T)
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.IndexCalled = func() int64 {
 		return -1
 	}
@@ -152,7 +192,7 @@ func TestChronology_StartRoundShouldReturnWhenDoWorkReturnsFalse(t *testing.T) {
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.UpdateRound(roundHandlerMock.TimeStamp(), roundHandlerMock.TimeStamp().Add(roundHandlerMock.TimeDuration()))
 	arg.RoundHandler = roundHandlerMock
 	chr, _ := chronology.NewChronology(arg)
@@ -169,7 +209,7 @@ func TestChronology_StartRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.UpdateRound(roundHandlerMock.TimeStamp(), roundHandlerMock.TimeStamp().Add(roundHandlerMock.TimeDuration()))
 	arg.RoundHandler = roundHandlerMock
 	chr, _ := chronology.NewChronology(arg)
@@ -189,13 +229,36 @@ func TestChronology_UpdateRoundShouldInitRound(t *testing.T) {
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
+	arg.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
+			return 2
+		},
+	}
+	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.SupernovaFlag
+		},
+	}
 	chr, _ := chronology.NewChronology(arg)
 
 	srm := initSubroundHandlerMock()
+	wasSetBaseDurationCalled := false
+	srm.SetBaseDurationCalled = func(baseDuration time.Duration) {
+		wasSetBaseDurationCalled = true
+	}
 	chr.AddSubround(srm)
-	chr.UpdateRound()
 
+	// first call, supernova not yet active
+	chr.UpdateRound()
+	require.False(t, wasSetBaseDurationCalled)
+
+	// second call, supernova activation round
+	chr.UpdateRound()
 	assert.Equal(t, srm.Current(), chr.SubroundId())
+	require.True(t, wasSetBaseDurationCalled)
+
+	// third call, coverage only after supernova
+	chr.UpdateRound()
 }
 
 func TestChronology_LoadSubroundHandlerShouldReturnNilWhenSubroundHandlerNotExists(t *testing.T) {
@@ -222,7 +285,7 @@ func TestChronology_InitRoundShouldNotSetSubroundWhenRoundIndexIsNegative(t *tes
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	arg.RoundHandler = roundHandlerMock
 	arg.GenesisTime = arg.SyncTimer.CurrentTime()
 	chr, _ := chronology.NewChronology(arg)
@@ -243,7 +306,7 @@ func TestChronology_InitRoundShouldSetSubroundWhenRoundIndexIsPositive(t *testin
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.UpdateRound(roundHandlerMock.TimeStamp(), roundHandlerMock.TimeStamp().Add(roundHandlerMock.TimeDuration()))
 	arg.RoundHandler = roundHandlerMock
 	arg.GenesisTime = arg.SyncTimer.CurrentTime()
@@ -260,7 +323,7 @@ func TestChronology_StartRoundShouldNotUpdateRoundWhenCurrentRoundIsNotFinished(
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	arg.RoundHandler = roundHandlerMock
 	arg.GenesisTime = arg.SyncTimer.CurrentTime()
 	chr, _ := chronology.NewChronology(arg)
@@ -274,7 +337,7 @@ func TestChronology_StartRoundShouldNotUpdateRoundWhenCurrentRoundIsNotFinished(
 func TestChronology_StartRoundShouldUpdateRoundWhenCurrentRoundIsFinished(t *testing.T) {
 	t.Parallel()
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	arg.RoundHandler = roundHandlerMock
 	arg.GenesisTime = arg.SyncTimer.CurrentTime()
 	chr, _ := chronology.NewChronology(arg)
@@ -317,11 +380,14 @@ func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 
 func getDefaultChronologyArg() chronology.ArgChronology {
 	return chronology.ArgChronology{
-		GenesisTime:      time.Now(),
-		RoundHandler:     &consensusMocks.RoundHandlerMock{},
-		SyncTimer:        &consensusMocks.SyncTimerMock{},
-		AppStatusHandler: statusHandlerMock.NewAppStatusHandlerMock(),
-		Watchdog:         &mock.WatchdogMock{},
+		GenesisTime:         time.Now(),
+		RoundHandler:        &round.RoundHandlerMock{},
+		SyncTimer:           &consensusMocks.SyncTimerMock{},
+		AppStatusHandler:    statusHandlerMock.NewAppStatusHandlerMock(),
+		Watchdog:            &mock.WatchdogMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		ConfigsHandler:      testscommon.GetDefaultCommonConfigsHandler(),
 	}
 }
 
@@ -373,29 +439,62 @@ func TestChronology_Close(t *testing.T) {
 func TestChronology_StartRounds(t *testing.T) {
 	t.Parallel()
 
-	arg := getDefaultChronologyArg()
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	chr, err := chronology.NewChronology(arg)
-	require.Nil(t, err)
-	doneFuncCalled := false
+		arg := getDefaultChronologyArg()
 
-	ctx := &mock.ContextMock{
-		DoneFunc: func() <-chan struct{} {
-			done := make(chan struct{})
-			close(done)
-			doneFuncCalled = true
-			return done
-		},
-	}
-	chr.StartRoundsTest(ctx)
-	assert.True(t, doneFuncCalled)
+		chr, err := chronology.NewChronology(arg)
+		require.Nil(t, err)
+		doneFuncCalled := false
+
+		ctx := &mock.ContextMock{
+			DoneFunc: func() <-chan struct{} {
+				done := make(chan struct{})
+				close(done)
+				doneFuncCalled = true
+				return done
+			},
+		}
+		chr.StartRoundsTest(ctx)
+		assert.True(t, doneFuncCalled)
+	})
+
+	t.Run("with goroutine call, after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		arg := getDefaultChronologyArg()
+		arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+
+		updateRoundCalled := &atomic.Bool{}
+		updateRoundCalled.Store(false)
+
+		arg.RoundHandler = &round.RoundHandlerMock{
+			UpdateRoundCalled: func(t1, t2 time.Time) {
+				updateRoundCalled.Store(true)
+			},
+		}
+
+		chr, err := chronology.NewChronology(arg)
+		require.Nil(t, err)
+
+		chr.StartRounds()
+
+		time.Sleep(5 * time.Millisecond)
+
+		require.True(t, updateRoundCalled.Load())
+	})
 }
 
 func TestChronology_StartRoundsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.UpdateRound(roundHandlerMock.TimeStamp(), roundHandlerMock.TimeStamp().Add(roundHandlerMock.TimeDuration()))
 	arg.RoundHandler = roundHandlerMock
 	chr, _ := chronology.NewChronology(arg)

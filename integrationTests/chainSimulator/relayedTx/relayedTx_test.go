@@ -8,14 +8,14 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -41,7 +41,7 @@ const (
 	mockTxSignature                         = "ssig"
 	mockRelayerTxSignature                  = "rsig"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
-	roundsPerEpoch                          = 30
+	roundsPerEpoch                          = 40
 	guardAccountCost                        = 250_000
 	extraGasLimitForGuarded                 = minGasLimit
 	extraGasESDTTransfer                    = 250000
@@ -54,6 +54,8 @@ var (
 )
 
 func TestRelayedV3WithChainSimulator(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1014,6 +1016,8 @@ func testRelayedV3MetaInteraction() func(t *testing.T) {
 }
 
 func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1325,21 +1329,27 @@ func startChainSimulator(
 		HasValue: true,
 		Value:    roundsPerEpoch,
 	}
+	supernovaRoundsPerEpochOpt := core.OptionalUint64{
+		HasValue: true,
+		Value:    roundsPerEpoch * 10,
+	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              3,
-		GenesisTimestamp:         time.Now().Unix(),
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpochOpt,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  3,
-		NumNodesWaitingListShard: 3,
-		AlterConfigsFunction:     alterConfigsFunction,
+		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    3,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
+		RoundsPerEpoch:                 roundsPerEpochOpt,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		NumNodesWaitingListMeta:        3,
+		NumNodesWaitingListShard:       3,
+		AlterConfigsFunction:           alterConfigsFunction,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cs)
@@ -1527,4 +1537,50 @@ func checkSCRSucceeded(
 
 		require.Equal(t, core.CompletedTxEventIdentifier, event.Identifier)
 	}
+}
+
+func TestSupernovaRelayedV3Txs(t *testing.T) {
+	providedActivationEpoch := uint32(1)
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
+		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "0",
+			},
+		}
+	}
+
+	cs := startChainSimulator(t, alterConfigsFunc)
+	defer cs.Close()
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+	relayer1, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	sender, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	relayer2, err := cs.GenerateAndMintWalletAddress(2, initialBalance)
+	require.NoError(t, err)
+
+	// receiverB shard 2
+	receiverB := "erd1wg0kx4ntn0p0sactdyvuw3zn389sq0uz3502386wtu588srnqxhqqy8uk3"
+	receiverBytes, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(receiverB)
+
+	// generate one block so the minting has effect
+	err = cs.GenerateBlocksUntilEpochIsReached(2)
+	require.NoError(t, err)
+	relayedTx := generateRelayedV3Transaction(sender.Bytes, 0, receiverBytes, relayer1.Bytes, oneEGLD, "", uint64(100_000))
+
+	_, _ = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, 4)
+
+	relayedTx = generateRelayedV3Transaction(receiverBytes, 0, receiverBytes, relayer2.Bytes, big.NewInt(0), "", uint64(100_000))
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+	require.Equal(t, transaction.TxStatusSuccess, result.Status)
 }

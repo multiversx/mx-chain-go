@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
@@ -21,6 +22,7 @@ type baseDataInterceptor struct {
 	debugHandler            process.InterceptedDebugger
 	preferredPeersHolder    process.PreferredPeersHolderHandler
 	interceptedDataVerifier process.InterceptedDataVerifier
+	managedPeersHolder      common.ManagedPeersHolder
 }
 
 func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -59,12 +61,28 @@ func (bdi *baseDataInterceptor) shouldSkipAntifloodChecks(fromConnectedPeer core
 }
 
 func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.PeerID, message p2p.MessageP2P) bool {
-	return bytes.Equal(message.Signature(), message.From()) &&
-		bytes.Equal(message.From(), bdi.currentPeerId.Bytes()) &&
-		fromConnectedPeer == bdi.currentPeerId
+	isPidManagedByCurrentNode := bdi.managedPeersHolder.IsPidManagedByCurrentNode(fromConnectedPeer)
+	isSelfPidSingleKey := bytes.Equal(message.From(), bdi.currentPeerId.Bytes())
+	isPidManagedBySelf := isPidManagedByCurrentNode || isSelfPidSingleKey
+	isSamePid := bytes.Equal(message.From(), fromConnectedPeer.Bytes())
+	sigEqualsFrom := bytes.Equal(message.Signature(), message.From())
+	return isPidManagedBySelf && isSamePid && sigEqualsFrom
 }
 
-func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedData, msg p2p.MessageP2P) {
+func (bdi *baseDataInterceptor) isMessageFromSelfOriginator(message p2p.MessageP2P) bool {
+	pidFrom := core.PeerID(message.From())
+	isPidManagedByCurrentNode := bdi.managedPeersHolder.IsPidManagedByCurrentNode(pidFrom)
+	isSelfSingleKey := bytes.Equal(message.From(), bdi.currentPeerId.Bytes())
+	return isPidManagedByCurrentNode || isSelfSingleKey
+}
+
+func (bdi *baseDataInterceptor) processInterceptedData(
+	data process.InterceptedData,
+	msg p2p.MessageP2P,
+	fromConnectedPeer core.PeerID,
+) bool {
+	bdi.processDebugInterceptedDataSuccess(data, msg, fromConnectedPeer)
+
 	err := bdi.processor.Validate(data, msg.Peer())
 	if err != nil {
 		log.Trace("intercepted data is not valid",
@@ -77,10 +95,10 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		)
 		bdi.processDebugInterceptedData(data, err)
 
-		return
+		return false
 	}
 
-	err = bdi.processor.Save(data, msg.Peer(), bdi.topic)
+	savedData, err := bdi.processor.Save(data, msg.Peer(), bdi.topic, msg.BroadcastMethod())
 	if err != nil {
 		log.Trace("intercepted data can not be processed",
 			"hash", data.Hash(),
@@ -92,7 +110,11 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		)
 		bdi.processDebugInterceptedData(data, err)
 
-		return
+		return savedData
+	}
+
+	if savedData {
+		bdi.interceptedDataVerifier.MarkVerified(data, msg.BroadcastMethod())
 	}
 
 	log.Trace("intercepted data is processed",
@@ -102,7 +124,10 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		"seq no", p2p.MessageOriginatorSeq(msg),
 		"intercepted data", data.String(),
 	)
+
 	bdi.processDebugInterceptedData(data, err)
+
+	return savedData
 }
 
 func (bdi *baseDataInterceptor) processDebugInterceptedData(interceptedData process.InterceptedData, err error) {
@@ -110,6 +135,12 @@ func (bdi *baseDataInterceptor) processDebugInterceptedData(interceptedData proc
 
 	bdi.mutDebugHandler.RLock()
 	bdi.debugHandler.LogProcessedHashes(bdi.topic, identifiers, err)
+	bdi.mutDebugHandler.RUnlock()
+}
+
+func (bdi *baseDataInterceptor) processDebugInterceptedDataSuccess(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
+	bdi.mutDebugHandler.RLock()
+	bdi.debugHandler.LogReceivedData(data, msg, fromConnectedPeer)
 	bdi.mutDebugHandler.RUnlock()
 }
 

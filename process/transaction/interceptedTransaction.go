@@ -217,6 +217,11 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 	return nil
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (inTx *InterceptedTransaction) ShouldAllowDuplicates() bool {
+	return false
+}
+
 func (inTx *InterceptedTransaction) checkRecursiveRelayed(userTx *transaction.Transaction) error {
 	if common.IsValidRelayedTxV3(userTx) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed

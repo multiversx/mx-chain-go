@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -25,8 +26,10 @@ type BlockTrackerMock struct {
 	AddCrossNotarizedHeaderCalled                      func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
 	AddSelfNotarizedHeaderCalled                       func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
 	CheckBlockAgainstFinalCalled                       func(headerHandler data.HeaderHandler) error
+	CheckProofAgainstFinalCalled                       func(proof data.HeaderProofHandler) error
 	CheckBlockAgainstRoundHandlerCalled                func(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelistCalled                   func(interceptedData process.InterceptedData) bool
+	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
+	CheckAgainstWhitelistCalled                        func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarizedCalled     func() ([]data.HeaderHandler, [][]byte, error)
@@ -42,6 +45,7 @@ type BlockTrackerMock struct {
 	GetTrackedHeadersWithNonceCalled                   func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	ShouldSkipMiniBlocksCreationFromSelfCalled         func() bool
 	IsShardStuckCalled                                 func(shardId uint32) bool
+	IsOwnShardStuckCalled                              func() bool
 	RegisterCrossNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedFromCrossHeadersHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedHeadersHandlerCalled          func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
@@ -49,6 +53,7 @@ type BlockTrackerMock struct {
 	RemoveLastNotarizedHeadersCalled                   func()
 	RestoreToGenesisCalled                             func()
 	ShouldAddHeaderCalled                              func(headerHandler data.HeaderHandler) bool
+	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 
 	shardCoordinator sharding.Coordinator
 
@@ -181,10 +186,28 @@ func (btm *BlockTrackerMock) CheckBlockAgainstFinal(headerHandler data.HeaderHan
 	return nil
 }
 
-// CheckBlockAgainstWhitelist -
-func (btm *BlockTrackerMock) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
-	if btm.CheckBlockAgainstWhitelistCalled != nil {
-		return btm.CheckBlockAgainstWhitelistCalled(interceptedData)
+// CheckProofAgainstFinal -
+func (btm *BlockTrackerMock) CheckProofAgainstFinal(proof data.HeaderProofHandler) error {
+	if btm.CheckProofAgainstFinalCalled != nil {
+		return btm.CheckProofAgainstFinalCalled(proof)
+	}
+
+	return nil
+}
+
+// CheckProofAgainstRoundHandler -
+func (btm *BlockTrackerMock) CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error {
+	if btm.CheckProofAgainstRoundHandlerCalled != nil {
+		return btm.CheckProofAgainstRoundHandlerCalled(proof)
+	}
+
+	return nil
+}
+
+// CheckAgainstWhitelist -
+func (btm *BlockTrackerMock) CheckAgainstWhitelist(interceptedData process.InterceptedData) bool {
+	if btm.CheckAgainstWhitelistCalled != nil {
+		return btm.CheckAgainstWhitelistCalled(interceptedData)
 	}
 
 	return false
@@ -226,6 +249,10 @@ func (btm *BlockTrackerMock) ComputeLongestChain(shardID uint32, header data.Hea
 
 // ComputeLongestMetaChainFromLastNotarized -
 func (btm *BlockTrackerMock) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
+	if btm.ComputeLongestMetaChainFromLastNotarizedCalled != nil {
+		return btm.ComputeLongestMetaChainFromLastNotarizedCalled()
+	}
+
 	lastCrossNotarizedHeader, _, err := btm.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
@@ -238,6 +265,10 @@ func (btm *BlockTrackerMock) ComputeLongestMetaChainFromLastNotarized() ([]data.
 
 // ComputeLongestShardsChainsFromLastNotarized -
 func (btm *BlockTrackerMock) ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+	if btm.ComputeLongestShardsChainsFromLastNotarizedCalled != nil {
+		return btm.ComputeLongestShardsChainsFromLastNotarizedCalled()
+	}
+
 	hdrsMap := make(map[uint32][]data.HeaderHandler)
 	hdrsHashesMap := make(map[uint32][][]byte)
 
@@ -454,6 +485,15 @@ func (btm *BlockTrackerMock) IsShardStuck(shardId uint32) bool {
 	return false
 }
 
+// IsOwnShardStuck -
+func (btm *BlockTrackerMock) IsOwnShardStuck() bool {
+	if btm.IsOwnShardStuckCalled != nil {
+		return btm.IsOwnShardStuckCalled()
+	}
+
+	return false
+}
+
 // ShouldSkipMiniBlocksCreationFromSelf -
 func (btm *BlockTrackerMock) ShouldSkipMiniBlocksCreationFromSelf() bool {
 	if btm.ShouldSkipMiniBlocksCreationFromSelfCalled != nil {
@@ -512,6 +552,13 @@ func (btm *BlockTrackerMock) ShouldAddHeader(headerHandler data.HeaderHandler) b
 	}
 
 	return true
+}
+
+// ComputeOwnShardStuck -
+func (btm *BlockTrackerMock) ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64) {
+	if btm.ComputeOwnShardStuckCalled != nil {
+		btm.ComputeOwnShardStuckCalled(lastExecutionResultsInfo, currentNonce)
+	}
 }
 
 // IsInterfaceNil -

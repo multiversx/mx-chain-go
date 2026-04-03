@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,7 +41,7 @@ func TestNewInterceptorResolver_InvalidSizeShouldErr(t *testing.T) {
 
 	cfg := createWorkableConfig()
 	cfg.CacheSize = -1
-	idh, err := NewInterceptorDebugHandler(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg, &testscommon.SyncTimerStub{})
 
 	assert.True(t, check.IfNil(idh))
 	assert.NotNil(t, err)
@@ -52,7 +53,7 @@ func TestNewInterceptorResolver_InvalidIntervalShouldErr(t *testing.T) {
 	cfg := createWorkableConfig()
 	cfg.EnablePrint = true
 	cfg.IntervalAutoPrintInSeconds = 0
-	idh, err := NewInterceptorDebugHandler(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg, &testscommon.SyncTimerStub{})
 
 	assert.True(t, check.IfNil(idh))
 	assert.True(t, errors.Is(err, debug.ErrInvalidValue))
@@ -66,7 +67,7 @@ func TestNewInterceptorResolver_NumResolveFailureThresholdShouldErr(t *testing.T
 	cfg.IntervalAutoPrintInSeconds = 1
 	cfg.NumResolveFailureThreshold = 0
 	cfg.NumRequestsThreshold = 1
-	idh, err := NewInterceptorDebugHandler(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg, &testscommon.SyncTimerStub{})
 
 	assert.True(t, check.IfNil(idh))
 	assert.True(t, errors.Is(err, debug.ErrInvalidValue))
@@ -80,7 +81,7 @@ func TestNewInterceptorResolver_NumRequestsThresholdShouldErr(t *testing.T) {
 	cfg.IntervalAutoPrintInSeconds = 1
 	cfg.NumResolveFailureThreshold = 1
 	cfg.NumRequestsThreshold = 0
-	idh, err := NewInterceptorDebugHandler(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg, &testscommon.SyncTimerStub{})
 
 	assert.True(t, check.IfNil(idh))
 	assert.True(t, errors.Is(err, debug.ErrInvalidValue))
@@ -95,7 +96,7 @@ func TestNewInterceptorResolver_DebugLineExpirationShouldErr(t *testing.T) {
 	cfg.NumResolveFailureThreshold = 1
 	cfg.NumRequestsThreshold = 1
 	cfg.DebugLineExpiration = 0
-	idh, err := NewInterceptorDebugHandler(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg, &testscommon.SyncTimerStub{})
 
 	assert.True(t, check.IfNil(idh))
 	assert.True(t, errors.Is(err, debug.ErrInvalidValue))
@@ -104,7 +105,7 @@ func TestNewInterceptorResolver_DebugLineExpirationShouldErr(t *testing.T) {
 func TestNewInterceptorResolver_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	idh, err := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, err := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 
 	assert.False(t, check.IfNil(idh))
 	assert.Nil(t, err)
@@ -119,7 +120,7 @@ func TestNewInterceptorResolver_EnablePrintShouldWork(t *testing.T) {
 	cfg.NumResolveFailureThreshold = 1
 	cfg.NumRequestsThreshold = 1
 	cfg.DebugLineExpiration = 100
-	idh, err := NewInterceptorDebugHandler(cfg)
+	idh, err := NewInterceptorDebugHandler(cfg, &testscommon.SyncTimerStub{})
 
 	assert.False(t, check.IfNil(idh))
 	assert.Nil(t, err)
@@ -128,7 +129,7 @@ func TestNewInterceptorResolver_EnablePrintShouldWork(t *testing.T) {
 func TestInterceptorResolver_LogRequestedDataWithFiveIdentifiersShouldWork(t *testing.T) {
 	t.Parallel()
 
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 	idh.SetTimeHandler(mockTimestampHandler)
 	numIdentifiers := 5
 	foundMap := make(map[string]struct{})
@@ -155,7 +156,7 @@ func TestInterceptorResolver_LogRequestedDataWithFiveIdentifiersShouldWork(t *te
 func TestInterceptorResolver_LogRequestedDataSameIdentifierShouldAddRequested(t *testing.T) {
 	t.Parallel()
 
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 	idh.SetTimeHandler(mockTimestampHandler)
 	idh.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
 	events := idh.Events()
@@ -192,7 +193,7 @@ func TestInterceptorResolver_LogRequestedDataSameIdentifierShouldAddRequested(t 
 func TestInterceptorResolver_LogProcessedHashesNotFoundShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 
 	idh.LogProcessedHashes(topic, [][]byte{hash}, nil)
 
@@ -202,7 +203,7 @@ func TestInterceptorResolver_LogProcessedHashesNotFoundShouldNotAdd(t *testing.T
 func TestInterceptorResolver_LogProcessedHashesExistingNoErrorShouldRemove(t *testing.T) {
 	t.Parallel()
 
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 	idh.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
 	require.Equal(t, 1, len(idh.Events()))
 
@@ -214,7 +215,7 @@ func TestInterceptorResolver_LogProcessedHashesExistingNoErrorShouldRemove(t *te
 func TestInterceptorResolver_LogProcessedHashesExistingWithErrorShouldIncrementProcessed(t *testing.T) {
 	t.Parallel()
 
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 	idh.SetTimeHandler(mockTimestampHandler)
 	idh.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
 	require.Equal(t, 1, len(idh.Events()))
@@ -246,7 +247,7 @@ func TestInterceptorResolver_LogProcessedHashesExistingWithErrorShouldIncrementP
 func TestInterceptorResolver_LogReceivedHashesNotFoundShouldNotAdd(t *testing.T) {
 	t.Parallel()
 
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 
 	idh.LogReceivedHashes(topic, [][]byte{hash})
 
@@ -256,7 +257,7 @@ func TestInterceptorResolver_LogReceivedHashesNotFoundShouldNotAdd(t *testing.T)
 func TestInterceptorResolver_LogReceivedHashesExistingShouldIncrementReceived(t *testing.T) {
 	t.Parallel()
 
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 	idh.SetTimeHandler(mockTimestampHandler)
 	idh.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
 	require.Equal(t, 1, len(idh.Events()))
@@ -286,7 +287,7 @@ func TestInterceptorResolver_LogReceivedHashesExistingShouldIncrementReceived(t 
 func TestInterceptorResolver_LogFailedToResolveDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 	idh.SetTimeHandler(mockTimestampHandler)
 	idh.LogFailedToResolveData(topic, hash, nil)
 
@@ -323,7 +324,7 @@ func TestInterceptorResolver_LogFailedToResolveDataShouldWork(t *testing.T) {
 func TestInterceptorResolver_LogFailedToResolveDataAndRequestedDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 	idh.LogFailedToResolveData(topic, hash, nil)
 
 	assert.Equal(t, 1, len(idh.Events()))
@@ -339,7 +340,7 @@ func TestInterceptorResolver_LogFailedToResolveDataAndRequestedDataShouldWork(t 
 func TestInterceptorResolver_LogSucceededToResolveDataShouldWork(t *testing.T) {
 	t.Parallel()
 
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 	idh.SetTimeHandler(mockTimestampHandler)
 	idh.LogFailedToResolveData(topic, hash, nil)
 
@@ -368,7 +369,7 @@ func TestInterceptorResolver_Query(t *testing.T) {
 
 	topic1 := "topic1"
 	topic2 := "aaaa"
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 	idh.LogRequestedData(topic1, [][]byte{hash}, numIntra, numCross)
 	idh.LogRequestedData(topic2, [][]byte{hash}, numIntra, numCross)
 
@@ -381,7 +382,7 @@ func TestInterceptorResolver_Query(t *testing.T) {
 func TestInterceptorResolver_GetStringEventsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	idh, _ := NewInterceptorDebugHandler(createWorkableConfig())
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
 	assert.Equal(t, 0, len(idh.getStringEvents(100)))
 
 	idh.LogFailedToResolveData(topic, hash, nil)
@@ -404,7 +405,7 @@ func TestInterceptorResolver_NumPrintsShouldWork(t *testing.T) {
 	cfg.NumResolveFailureThreshold = 1
 	cfg.NumRequestsThreshold = 1
 	cfg.DebugLineExpiration = 2
-	idh, _ := NewInterceptorDebugHandler(cfg)
+	idh, _ := NewInterceptorDebugHandler(cfg, &testscommon.SyncTimerStub{})
 	idh.printEventFunc = func(data string) {
 		atomic.AddUint32(&numPrintCalls, 1)
 	}

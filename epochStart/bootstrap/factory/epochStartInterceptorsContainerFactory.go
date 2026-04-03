@@ -111,6 +111,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		HardforkTrigger:                hardforkTrigger,
 		NodeOperationMode:              args.NodeOperationMode,
 		InterceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
+		Config:                         args.Config,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

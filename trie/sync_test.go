@@ -225,7 +225,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 
-	err = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	err = bn.commitDirty(0, 5, db, db)
 	require.Nil(t, err)
 
 	leaves, err := bn.getChildren(db)

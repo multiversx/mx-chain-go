@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewGenericEpochNotifier(t *testing.T) {
@@ -183,4 +184,13 @@ func TestGenericEpochNotifier_ConcurrentOperations(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestGetEpoch(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, uint32(5), getEpoch(&block.MetaBlock{Epoch: 5}))
+	require.Equal(t, uint32(5), getEpoch(&block.HeaderV3{Epoch: 5}))
+	require.Equal(t, uint32(5), getEpoch(&block.MetaBlockV3{Epoch: 5, EpochChangeProposed: false}))
+	require.Equal(t, uint32(6), getEpoch(&block.MetaBlockV3{Epoch: 5, EpochChangeProposed: true}))
 }

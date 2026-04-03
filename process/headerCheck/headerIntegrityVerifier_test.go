@@ -99,7 +99,7 @@ func TestHeaderIntegrityVerifier_GetVersionShouldWork(t *testing.T) {
 	t.Parallel()
 
 	hvh := &testscommon.HeaderVersionHandlerStub{
-		GetVersionCalled: func(epoch uint32) string {
+		GetVersionCalled: func(epoch uint32, _ uint64) string {
 			return "v1"
 		},
 	}
@@ -108,5 +108,5 @@ func TestHeaderIntegrityVerifier_GetVersionShouldWork(t *testing.T) {
 		hvh,
 	)
 
-	assert.Equal(t, "v1", hdrIntVer.GetVersion(1))
+	assert.Equal(t, "v1", hdrIntVer.GetVersion(1, 1))
 }
