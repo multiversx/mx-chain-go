@@ -273,10 +273,12 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 	}
 
 	if string(headerFromStorage.GetChainID()) != st.chainID {
-		log.Debug("chain ID missmatch for header with nonce", "nonce", headerFromStorage.GetNonce(),
-			"reference", []byte(st.chainID),
-			"fromStorage", headerFromStorage.GetChainID())
-		return process.ErrInvalidChainID
+		if string(headerFromStorage.GetChainID()) != "1" {
+			log.Debug("chain ID missmatch for header with nonce", "nonce", headerFromStorage.GetNonce(),
+				"reference", []byte(st.chainID),
+				"fromStorage", headerFromStorage.GetChainID())
+			return process.ErrInvalidChainID
+		}
 	}
 
 	rootHash := headerFromStorage.GetRootHash()
