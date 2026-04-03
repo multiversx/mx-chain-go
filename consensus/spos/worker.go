@@ -37,7 +37,7 @@ const sleepTime = 5 * time.Millisecond
 const redundancySingleKeySteppedIn = "single-key node stepped in"
 
 type blockProcessorWithPool interface {
-	RemoveHeaderFromPool(headerHash []byte)
+	RemoveHeaderFromPool(headerNonce uint64)
 }
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
@@ -909,7 +909,7 @@ func (wrk *Worker) removeConsensusHeaderFromPool() {
 		return
 	}
 
-	blockProcessorWithPoolAccess.RemoveHeaderFromPool(headerHash)
+	blockProcessorWithPoolAccess.RemoveHeaderFromPool(header.GetNonce())
 	wrk.forkDetector.RemoveHeader(header.GetNonce(), headerHash)
 }
 
