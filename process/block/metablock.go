@@ -407,6 +407,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	err = mp.verifyShardInfo(header)
+	if err != nil {
+		return err
+	}
+
 	err = mp.scToProtocol.UpdateProtocol(&block.Body{MiniBlocks: miniBlocks}, header.Nonce)
 	if err != nil {
 		return err
@@ -1875,38 +1880,141 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		}
 	}
 
+	err = mp.verifyShardDataAgainstHeaders(metaHdr)
+	if err != nil {
+		return nil, err
+	}
+
+	return highestNonceHdrs, nil
+}
+
+// verifyShardDataAgainstHeaders performs a fast check of header-derived fields in ShardInfo
+// against the actual shard headers. This is called before processing, so it only checks fields
+// that are deterministically derived from the shard headers themselves.
+func (mp *metaProcessor) verifyShardDataAgainstHeaders(metaHdr *block.MetaBlock) error {
+	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
+	usedCount := 0
+	for _, headerInfo := range mp.hdrsForCurrBlock.hdrHashAndInfo {
+		if headerInfo.usedInBlock {
+			usedCount++
+		}
+	}
+	if usedCount != len(metaHdr.ShardInfo) {
+		return fmt.Errorf("%w : used headers count %d, received shard info count %d",
+			process.ErrHeaderShardDataMismatch, usedCount, len(metaHdr.ShardInfo))
+	}
+
+	for _, shardData := range metaHdr.ShardInfo {
+		headerInfo, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
+		if !ok {
+			return fmt.Errorf("%w : hash not found %s",
+				process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
+		}
+
+		shardHdr, ok := headerInfo.hdr.(data.ShardHeaderHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		if shardData.Round != shardHdr.GetRound() {
+			return fmt.Errorf("%w : round mismatch for hash %s",
+				process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
+		}
+		if shardData.Nonce != shardHdr.GetNonce() {
+			return fmt.Errorf("%w : nonce mismatch for hash %s",
+				process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
+		}
+		if shardData.TxCount != shardHdr.GetTxCount() {
+			return fmt.Errorf("%w : tx count mismatch for hash %s",
+				process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
+		}
+		if !bytes.Equal(shardData.PrevHash, shardHdr.GetPrevHash()) {
+			return fmt.Errorf("%w : prev hash mismatch for hash %s",
+				process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
+		}
+		if !bytes.Equal(shardData.PrevRandSeed, shardHdr.GetPrevRandSeed()) {
+			return fmt.Errorf("%w : prev rand seed mismatch for hash %s",
+				process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
+		}
+		if !bytes.Equal(shardData.PubKeysBitmap, shardHdr.GetPubKeysBitmap()) {
+			return fmt.Errorf("%w : pub keys bitmap mismatch for hash %s",
+				process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
+		}
+		if shardData.AccumulatedFees.Cmp(shardHdr.GetAccumulatedFees()) != 0 {
+			return fmt.Errorf("%w for hash %s",
+				process.ErrAccumulatedFeesDoNotMatch, hex.EncodeToString(shardData.HeaderHash))
+		}
+		if shardData.DeveloperFees.Cmp(shardHdr.GetDeveloperFees()) != 0 {
+			return fmt.Errorf("%w for hash %s",
+				process.ErrDeveloperFeesDoNotMatch, hex.EncodeToString(shardData.HeaderHash))
+		}
+		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, shardHdr.GetEpoch()) {
+			if shardData.Epoch != shardHdr.GetEpoch() {
+				return fmt.Errorf("%w for hash %s",
+					process.ErrEpochMismatch, hex.EncodeToString(shardData.HeaderHash))
+			}
+		}
+
+		finalMiniBlockHeaders := mp.getFinalMiniBlockHeaders(shardHdr.GetMiniBlockHeaderHandlers())
+		if len(shardData.ShardMiniBlockHeaders) != len(finalMiniBlockHeaders) {
+			return fmt.Errorf("%w : mini block headers count mismatch for hash %s",
+				process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
+		}
+
+		mapMiniBlockHeadersInMetaBlock := make(map[string]struct{})
+		for _, shardMiniBlockHdr := range shardData.ShardMiniBlockHeaders {
+			mapMiniBlockHeadersInMetaBlock[string(shardMiniBlockHdr.Hash)] = struct{}{}
+		}
+		for _, actualMiniBlockHdr := range finalMiniBlockHeaders {
+			if _, hashExists := mapMiniBlockHeadersInMetaBlock[string(actualMiniBlockHdr.GetHash())]; !hashExists {
+				return fmt.Errorf("%w : mini block hash not found for hash %s",
+					process.ErrHeaderShardDataMismatch, hex.EncodeToString(shardData.HeaderHash))
+			}
+		}
+	}
+
+	return nil
+}
+
+// verifyShardInfo performs a full check of all ShardData fields by calling createShardInfo
+// (which computes state-dependent fields like NumPendingMiniBlocks and LastIncludedMetaNonce)
+// and comparing the result with the received metablock's ShardInfo using Equal.
+// This must be called after processing, when the local state matches the proposer's state.
+func (mp *metaProcessor) verifyShardInfo(metaHdr *block.MetaBlock) error {
 	createdShardInfo, err := mp.createShardInfo()
 	if err != nil {
-		return nil, fmt.Errorf("%w : checkShardHeadersValidity -> createShardInfo", err)
+		return fmt.Errorf("%w : verifyShardInfo -> createShardInfo", err)
 	}
 
 	if len(createdShardInfo) != len(metaHdr.ShardInfo) {
-		return nil, fmt.Errorf("%w : created shard info length %d, received %d",
+		return fmt.Errorf("%w : created shard info length %d, received %d",
 			process.ErrHeaderShardDataMismatch, len(createdShardInfo), len(metaHdr.ShardInfo))
 	}
 
 	sort.Slice(createdShardInfo, func(i, j int) bool {
-		return string(createdShardInfo[i].GetHeaderHash()) < string(createdShardInfo[j].GetHeaderHash())
+		return bytes.Compare(createdShardInfo[i].GetHeaderHash(), createdShardInfo[j].GetHeaderHash()) < 0
 	})
 
 	receivedShardInfo := make([]block.ShardData, len(metaHdr.ShardInfo))
 	copy(receivedShardInfo, metaHdr.ShardInfo)
 	sort.Slice(receivedShardInfo, func(i, j int) bool {
-		return string(receivedShardInfo[i].HeaderHash) < string(receivedShardInfo[j].HeaderHash)
+		return bytes.Compare(receivedShardInfo[i].HeaderHash, receivedShardInfo[j].HeaderHash) < 0
 	})
 
 	for i := range createdShardInfo {
 		created, ok := createdShardInfo[i].(*block.ShardData)
 		if !ok {
-			return nil, process.ErrWrongTypeAssertion
+			return process.ErrWrongTypeAssertion
 		}
 		if !created.Equal(&receivedShardInfo[i]) {
-			return nil, fmt.Errorf("%w for shard data item %d, hash %s",
+			return fmt.Errorf("%w for shard data item %d, hash %s",
 				process.ErrHeaderShardDataMismatch, i, hex.EncodeToString(receivedShardInfo[i].HeaderHash))
 		}
 	}
 
-	return highestNonceHdrs, nil
+	return nil
 }
 
 func (mp *metaProcessor) getFinalMiniBlockHeaders(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) []data.MiniBlockHeaderHandler {
