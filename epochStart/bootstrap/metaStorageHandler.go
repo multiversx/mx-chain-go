@@ -131,6 +131,11 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
+	err = msh.saveIntermediateMetaBlocksToStorage(components.EpochStartMetaBlock, components.Headers)
+	if err != nil {
+		return err
+	}
+
 	bootStrapData := bootstrapStorage.BootstrapData{
 		LastHeader:                 lastHeader,
 		LastCrossNotarizedHeaders:  lastCrossNotarizedHeader,
@@ -199,6 +204,33 @@ func (msh *metaStorageHandler) getLastSelfNotarizedHeaders(
 	return lastSelfNotarizedHeaders, nil
 }
 
+func (msh *metaStorageHandler) saveIntermediateMetaBlocksToStorage(
+	epochStartMeta data.MetaHeaderHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) error {
+	prevHash := epochStartMeta.GetPrevHash()
+
+	for len(prevHash) > 0 {
+		metaBlock, ok := syncedHeaders[string(prevHash)]
+		if !ok {
+			break
+		}
+
+		_, err := msh.saveMetaHdrToStorage(metaBlock)
+		if err != nil {
+			return err
+		}
+
+		if metaBlock.GetNonce() == 0 {
+			break
+		}
+
+		prevHash = metaBlock.GetPrevHash()
+	}
+
+	return nil
+}
+
 func (msh *metaStorageHandler) getSelfNotarizedMetaForShard(
 	epochStartData data.EpochStartShardDataHandler,
 	syncedHeaders map[string]data.HeaderHandler,
@@ -232,6 +264,10 @@ func (msh *metaStorageHandler) getSelfNotarizedMetaForShard(
 		prevShardHeader, ok := prevHeader.(data.ShardHeaderHandler)
 		if !ok {
 			return nil, nil, false
+		}
+
+		if prevShardHeader.GetNonce() >= currentHdr.GetNonce() {
+			break
 		}
 
 		currentHdr = prevShardHeader

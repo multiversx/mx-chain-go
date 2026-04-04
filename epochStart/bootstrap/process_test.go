@@ -2675,7 +2675,7 @@ func TestSyncLastReferencedMetaBlock(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 		e, _ := NewEpochStartBootstrap(args)
 
-		err := e.syncLastReferencedMetaBlock(
+		_, err := e.syncLastReferencedMetaBlock(
 			make(map[string]data.HeaderHandler),
 			&block.MetaBlock{Nonce: 5},
 		)
@@ -2689,11 +2689,12 @@ func TestSyncLastReferencedMetaBlock(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 		e, _ := NewEpochStartBootstrap(args)
 
-		err := e.syncLastReferencedMetaBlock(
+		result, err := e.syncLastReferencedMetaBlock(
 			make(map[string]data.HeaderHandler),
 			&block.Header{Nonce: 0},
 		)
 		require.Nil(t, err)
+		require.Nil(t, result)
 	})
 
 	t.Run("direct meta reference syncs meta block", func(t *testing.T) {
@@ -2719,8 +2720,9 @@ func TestSyncLastReferencedMetaBlock(t *testing.T) {
 		}
 
 		syncedHeaders := make(map[string]data.HeaderHandler)
-		err := e.syncLastReferencedMetaBlock(syncedHeaders, shardHdr)
+		result, err := e.syncLastReferencedMetaBlock(syncedHeaders, shardHdr)
 		require.Nil(t, err)
+		assert.Equal(t, metaHdr, result)
 		assert.Equal(t, metaHdr, syncedHeaders[string(metaHash)])
 	})
 
@@ -2757,8 +2759,9 @@ func TestSyncLastReferencedMetaBlock(t *testing.T) {
 		}
 
 		syncedHeaders := make(map[string]data.HeaderHandler)
-		err := e.syncLastReferencedMetaBlock(syncedHeaders, shardHdr)
+		result, err := e.syncLastReferencedMetaBlock(syncedHeaders, shardHdr)
 		require.Nil(t, err)
+		assert.Equal(t, metaHdr, result)
 		assert.Equal(t, metaHdr, syncedHeaders[string(metaHash)])
 		assert.Equal(t, prevHdr, syncedHeaders[string(prevHash)])
 	})
@@ -2781,7 +2784,7 @@ func TestSyncLastReferencedMetaBlock(t *testing.T) {
 			},
 		}
 
-		err := e.syncLastReferencedMetaBlock(make(map[string]data.HeaderHandler), shardHdr)
+		_, err := e.syncLastReferencedMetaBlock(make(map[string]data.HeaderHandler), shardHdr)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -2808,7 +2811,7 @@ func TestSyncLastReferencedMetaBlock(t *testing.T) {
 			},
 		}
 
-		err := e.syncLastReferencedMetaBlock(make(map[string]data.HeaderHandler), shardHdr)
+		_, err := e.syncLastReferencedMetaBlock(make(map[string]data.HeaderHandler), shardHdr)
 		require.ErrorIs(t, err, epochStart.ErrWrongTypeAssertion)
 	})
 
@@ -2836,8 +2839,9 @@ func TestSyncLastReferencedMetaBlock(t *testing.T) {
 		}
 
 		syncedHeaders := make(map[string]data.HeaderHandler)
-		err := e.syncLastReferencedMetaBlock(syncedHeaders, shardHdr)
+		result, err := e.syncLastReferencedMetaBlock(syncedHeaders, shardHdr)
 		require.Nil(t, err)
+		assert.Equal(t, metaHdr2, result)
 		assert.Equal(t, metaHdr2, syncedHeaders[string(metaHash2)])
 	})
 }
@@ -2931,5 +2935,174 @@ func TestSyncSelfNotarizedMetaHeaders(t *testing.T) {
 		require.Nil(t, err)
 		assert.Equal(t, metaHdr0, syncedHeaders[string(metaHash0)])
 		assert.Equal(t, metaHdr1, syncedHeaders[string(metaHash1)])
+	})
+
+	t.Run("intermediate meta blocks are synced down to min referenced nonce", func(t *testing.T) {
+		t.Parallel()
+
+		metaHash10 := []byte("meta-hash-10")
+		metaHash12 := []byte("meta-hash-12")
+		shardHash0 := []byte("shard-hash-0")
+		shardHash1 := []byte("shard-hash-1")
+
+		hash17 := []byte("hash-17")
+		hash16 := []byte("hash-16")
+		hash15 := []byte("hash-15")
+		hash14 := []byte("hash-14")
+		hash13 := []byte("hash-13")
+		hash12 := []byte("hash-12")
+		hash11 := []byte("hash-11")
+
+		meta10 := &block.MetaBlock{Nonce: 10}
+		meta12 := &block.MetaBlock{Nonce: 12}
+
+		syncedHeaders := map[string]data.HeaderHandler{
+			string(shardHash0): &block.Header{Nonce: 500, MetaBlockHashes: [][]byte{metaHash10}},
+			string(shardHash1): &block.Header{Nonce: 501, MetaBlockHashes: [][]byte{metaHash12}},
+			string(metaHash10): meta10,
+			string(metaHash12): meta12,
+		}
+
+		syncCallCount := 0
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		e, _ := NewEpochStartBootstrap(args)
+		e.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			SyncMissingHeadersByHashCalled: func(_ []uint32, hashes [][]byte, _ context.Context) error {
+				syncCallCount++
+				return nil
+			},
+			GetHeadersCalled: func() (map[string]data.HeaderHandler, error) {
+				headers := map[string]data.HeaderHandler{
+					string(hash17): &block.MetaBlock{Nonce: 17, PrevHash: hash16},
+					string(hash16): &block.MetaBlock{Nonce: 16, PrevHash: hash15},
+					string(hash15): &block.MetaBlock{Nonce: 15, PrevHash: hash14},
+					string(hash14): &block.MetaBlock{Nonce: 14, PrevHash: hash13},
+					string(hash13): &block.MetaBlock{Nonce: 13, PrevHash: hash12},
+					string(hash12): &block.MetaBlock{Nonce: 12, PrevHash: hash11},
+					string(hash11): &block.MetaBlock{Nonce: 11, PrevHash: metaHash10},
+				}
+				result := make(map[string]data.HeaderHandler)
+				for h, hdr := range headers {
+					result[h] = hdr
+				}
+				return result, nil
+			},
+		}
+
+		meta := &block.MetaBlock{
+			Nonce:    18,
+			PrevHash: hash17,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{HeaderHash: shardHash0, ShardID: 0},
+					{HeaderHash: shardHash1, ShardID: 1},
+				},
+			},
+		}
+
+		err := e.syncSelfNotarizedMetaHeaders(meta, syncedHeaders)
+		require.Nil(t, err)
+
+		for _, h := range [][]byte{hash17, hash16, hash15, hash14, hash13, hash12, hash11} {
+			_, ok := syncedHeaders[string(h)]
+			assert.True(t, ok, "meta block %s should be in synced headers", string(h))
+		}
+	})
+}
+
+func TestSyncIntermediateMetaBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("walks back and syncs down to target nonce", func(t *testing.T) {
+		t.Parallel()
+
+		hash597 := []byte("hash-597")
+		hash596 := []byte("hash-596")
+		hash595 := []byte("hash-595")
+		meta597 := &block.MetaBlock{Nonce: 597, PrevHash: hash596}
+		meta596 := &block.MetaBlock{Nonce: 596, PrevHash: hash595}
+		meta595 := &block.MetaBlock{Nonce: 595}
+
+		syncCallCount := 0
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		e, _ := NewEpochStartBootstrap(args)
+		e.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			SyncMissingHeadersByHashCalled: func(_ []uint32, hashes [][]byte, _ context.Context) error {
+				syncCallCount++
+				return nil
+			},
+			GetHeadersCalled: func() (map[string]data.HeaderHandler, error) {
+				return map[string]data.HeaderHandler{
+					string(hash597): meta597,
+					string(hash596): meta596,
+					string(hash595): meta595,
+				}, nil
+			},
+		}
+
+		syncedHeaders := make(map[string]data.HeaderHandler)
+		meta := &block.MetaBlock{Nonce: 598, PrevHash: hash597}
+		err := e.syncIntermediateMetaBlocks(meta, syncedHeaders, 595)
+		require.Nil(t, err)
+		assert.Equal(t, meta597, syncedHeaders[string(hash597)])
+		assert.Equal(t, meta596, syncedHeaders[string(hash596)])
+		assert.Equal(t, meta595, syncedHeaders[string(hash595)])
+	})
+
+	t.Run("stops at target nonce even if header already known", func(t *testing.T) {
+		t.Parallel()
+
+		hash597 := []byte("hash-597")
+		meta597 := &block.MetaBlock{Nonce: 597}
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		e, _ := NewEpochStartBootstrap(args)
+		e.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			SyncMissingHeadersByHashCalled: func(_ []uint32, _ [][]byte, _ context.Context) error {
+				require.Fail(t, "should not have been called")
+				return nil
+			},
+		}
+
+		syncedHeaders := map[string]data.HeaderHandler{
+			string(hash597): meta597,
+		}
+
+		meta := &block.MetaBlock{Nonce: 598, PrevHash: hash597}
+		err := e.syncIntermediateMetaBlocks(meta, syncedHeaders, 597)
+		require.Nil(t, err)
+	})
+
+	t.Run("empty prev hash returns nil", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		e, _ := NewEpochStartBootstrap(args)
+
+		meta := &block.MetaBlock{Nonce: 598}
+		err := e.syncIntermediateMetaBlocks(meta, make(map[string]data.HeaderHandler), 590)
+		require.Nil(t, err)
+	})
+
+	t.Run("sync error is propagated", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("sync error")
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		e, _ := NewEpochStartBootstrap(args)
+		e.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			SyncMissingHeadersByHashCalled: func(_ []uint32, _ [][]byte, _ context.Context) error {
+				return expectedErr
+			},
+		}
+
+		meta := &block.MetaBlock{Nonce: 598, PrevHash: []byte("missing")}
+		err := e.syncIntermediateMetaBlocks(meta, make(map[string]data.HeaderHandler), 590)
+		require.Equal(t, expectedErr, err)
 	})
 }

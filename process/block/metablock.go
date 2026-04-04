@@ -200,7 +200,7 @@ func (mp *metaProcessor) detectStaleSelfNotarizedHeaders() bool {
 		}
 
 		selfNotarized, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardID)
-		if err != nil || selfNotarized.GetNonce() == 0 {
+		if err != nil || check.IfNil(selfNotarized) || selfNotarized.GetNonce() == 0 {
 			log.Debug("detected stale self-notarized headers after bootstrap",
 				"shardID", shardID,
 				"crossNotarizedNonce", crossNotarized.GetNonce())
@@ -1986,7 +1986,7 @@ func (mp *metaProcessor) buildShardDataFromHeader(shardHdr data.ShardHeaderHandl
 		if mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 			miniBlockHeader := shardHdr.GetMiniBlockHeaderHandlers()[i]
 			if !miniBlockHeader.IsFinal() {
-				log.Debug("metaProcessor.createShardInfo: do not create shard data with mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+				log.Debug("metaProcessor.buildShardDataFromHeader: do not create shard data with mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 				continue
 			}
 		}
