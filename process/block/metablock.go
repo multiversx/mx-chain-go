@@ -34,18 +34,19 @@ var _ process.BlockProcessor = (*metaProcessor)(nil)
 // metaProcessor implements metaProcessor interface, and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	scToProtocol                 process.SmartContractToProtocolHandler
-	epochStartDataCreator        process.EpochStartDataCreator
-	epochEconomics               process.EndOfEpochEconomics
-	epochRewardsCreator          process.RewardsCreator
-	validatorInfoCreator         process.EpochStartValidatorInfoCreator
-	epochSystemSCProcessor       process.EpochStartSystemSCProcessor
-	pendingMiniBlocksHandler     process.PendingMiniBlocksHandler
-	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	shardsHeadersNonce           *sync.Map
-	shardBlockFinality           uint32
-	headersCounter               *headersCounter
-	selfNotarizedHeadersStale    bool
+	scToProtocol                  process.SmartContractToProtocolHandler
+	epochStartDataCreator         process.EpochStartDataCreator
+	epochEconomics                process.EndOfEpochEconomics
+	epochRewardsCreator           process.RewardsCreator
+	validatorInfoCreator          process.EpochStartValidatorInfoCreator
+	epochSystemSCProcessor        process.EpochStartSystemSCProcessor
+	pendingMiniBlocksHandler      process.PendingMiniBlocksHandler
+	validatorStatisticsProcessor  process.ValidatorStatisticsProcessor
+	shardsHeadersNonce            *sync.Map
+	shardBlockFinality            uint32
+	headersCounter                *headersCounter
+	selfNotarizedHeadersStale     bool
+	selfNotarizedHeadersStaleOnce sync.Once
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -186,14 +187,11 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	mp.shardsHeadersNonce = &sync.Map{}
 
-	mp.selfNotarizedHeadersStale = mp.detectStaleSelfNotarizedHeaders()
-
 	return &mp, nil
 }
 
-// detectStaleSelfNotarizedHeaders checks if per-shard self-notarized headers are at nonce 0
-// while cross-notarized headers for the same shard have progressed past genesis.
-// This indicates bootstrap data saved by a version that used the wrong ShardId.
+// detectStaleSelfNotarizedHeaders returns true when bootstrap data has stale self-notarized
+// headers (nonce 0) while cross-notarized headers have progressed past genesis.
 func (mp *metaProcessor) detectStaleSelfNotarizedHeaders() bool {
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
 		crossNotarized, _, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
@@ -1911,11 +1909,11 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	return highestNonceHdrs, nil
 }
 
-// verifyShardDataAgainstHeaders checks all ShardData fields in ShardInfo via Equal.
-// All fields are verified: header-derived fields are built from the shard header,
-// and state-dependent fields (NumPendingMiniBlocks, LastIncludedMetaNonce) are computed
-// from pendingMiniBlocksHandler and blockTracker, which are only mutated during CommitBlock.
 func (mp *metaProcessor) verifyShardDataAgainstHeaders(metaHdr *block.MetaBlock) error {
+	mp.selfNotarizedHeadersStaleOnce.Do(func() {
+		mp.selfNotarizedHeadersStale = mp.detectStaleSelfNotarizedHeaders()
+	})
+
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -1968,8 +1966,6 @@ func (mp *metaProcessor) verifyShardDataAgainstHeaders(metaHdr *block.MetaBlock)
 	return nil
 }
 
-// buildShardDataFromHeader builds a ShardData from a shard header with all header-derived fields.
-// Used by both createShardInfo and verifyShardDataAgainstHeaders.
 func (mp *metaProcessor) buildShardDataFromHeader(shardHdr data.ShardHeaderHandler, headerHash []byte) block.ShardData {
 	shardData := block.ShardData{}
 	shardData.TxCount = shardHdr.GetTxCount()

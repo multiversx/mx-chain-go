@@ -213,7 +213,7 @@ func (msh *metaStorageHandler) getSelfNotarizedMetaForShard(
 			return firstPendingMetaBlockHash, header, true
 		}
 
-		log.Warn("getLastSelfNotarizedHeaders: first pending meta block not found",
+		log.Warn("getSelfNotarizedMetaForShard: first pending meta block not found",
 			"hash", firstPendingMetaBlockHash,
 			"shardID", epochStartData.GetShardID())
 	}
@@ -225,7 +225,7 @@ func (msh *metaStorageHandler) getSelfNotarizedMetaForShard(
 
 	header, ok := syncedHeaders[string(lastFinishedMetaBlockHash)]
 	if !ok {
-		log.Warn("getLastSelfNotarizedHeaders: last finished meta block not found",
+		log.Warn("getSelfNotarizedMetaForShard: last finished meta block not found",
 			"hash", lastFinishedMetaBlockHash,
 			"shardID", epochStartData.GetShardID())
 		return nil, nil, false

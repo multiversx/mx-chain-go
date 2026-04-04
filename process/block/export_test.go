@@ -831,3 +831,29 @@ func DisplayHeader(
 ) []*display.LineData {
 	return displayHeader(headerHandler, headerProof)
 }
+
+// DetectStaleSelfNotarizedHeaders -
+func (mp *metaProcessor) DetectStaleSelfNotarizedHeaders() bool {
+	return mp.detectStaleSelfNotarizedHeaders()
+}
+
+// SetSelfNotarizedHeadersStale -
+func (mp *metaProcessor) SetSelfNotarizedHeadersStale(stale bool) {
+	mp.selfNotarizedHeadersStale = stale
+	mp.selfNotarizedHeadersStaleOnce.Do(func() {})
+}
+
+// GetSelfNotarizedHeadersStale -
+func (mp *metaProcessor) GetSelfNotarizedHeadersStale() bool {
+	return mp.selfNotarizedHeadersStale
+}
+
+// VerifyShardDataAgainstHeaders -
+func (mp *metaProcessor) VerifyShardDataAgainstHeaders(metaHdr *block.MetaBlock) error {
+	return mp.verifyShardDataAgainstHeaders(metaHdr)
+}
+
+// BuildShardDataFromHeader -
+func (mp *metaProcessor) BuildShardDataFromHeader(shardHdr data.ShardHeaderHandler, headerHash []byte) block.ShardData {
+	return mp.buildShardDataFromHeader(shardHdr, headerHash)
+}
