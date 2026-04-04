@@ -203,35 +203,41 @@ func (msh *metaStorageHandler) getSelfNotarizedMetaForShard(
 	epochStartData data.EpochStartShardDataHandler,
 	syncedHeaders map[string]data.HeaderHandler,
 ) ([]byte, data.HeaderHandler, bool) {
-	// If no pending miniblocks, FirstPendingMetaBlock is actually fully finished
-	noPendingMiniBlocks := len(epochStartData.GetPendingMiniBlockHeaderHandlers()) == 0
-	firstPendingMetaBlockHash := epochStartData.GetFirstPendingMetaBlock()
+	shardHeader, ok := syncedHeaders[string(epochStartData.GetHeaderHash())]
+	if !ok {
+		return nil, nil, false
+	}
 
-	if noPendingMiniBlocks && len(firstPendingMetaBlockHash) > 0 {
-		header, ok := syncedHeaders[string(firstPendingMetaBlockHash)]
-		if ok {
-			return firstPendingMetaBlockHash, header, true
+	currentHdr, ok := shardHeader.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, nil, false
+	}
+
+	for currentHdr.GetNonce() > 0 {
+		metaBlockHashes := currentHdr.GetMetaBlockHashes()
+		if len(metaBlockHashes) > 0 {
+			lastMetaHash := metaBlockHashes[len(metaBlockHashes)-1]
+			metaBlock, found := syncedHeaders[string(lastMetaHash)]
+			if !found {
+				return nil, nil, false
+			}
+			return lastMetaHash, metaBlock, true
 		}
 
-		log.Warn("getSelfNotarizedMetaForShard: first pending meta block not found",
-			"hash", firstPendingMetaBlockHash,
-			"shardID", epochStartData.GetShardID())
+		prevHeader, found := syncedHeaders[string(currentHdr.GetPrevHash())]
+		if !found {
+			return nil, nil, false
+		}
+
+		prevShardHeader, ok := prevHeader.(data.ShardHeaderHandler)
+		if !ok {
+			return nil, nil, false
+		}
+
+		currentHdr = prevShardHeader
 	}
 
-	lastFinishedMetaBlockHash := epochStartData.GetLastFinishedMetaBlock()
-	if len(lastFinishedMetaBlockHash) == 0 {
-		return nil, nil, false
-	}
-
-	header, ok := syncedHeaders[string(lastFinishedMetaBlockHash)]
-	if !ok {
-		log.Warn("getSelfNotarizedMetaForShard: last finished meta block not found",
-			"hash", lastFinishedMetaBlockHash,
-			"shardID", epochStartData.GetShardID())
-		return nil, nil, false
-	}
-
-	return lastFinishedMetaBlockHash, header, true
+	return nil, nil, false
 }
 
 func (msh *metaStorageHandler) saveLastCrossNotarizedHeaders(

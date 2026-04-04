@@ -203,112 +203,97 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 	}
 }
 
-func TestGetSelfNotarizedMetaForShard_NoPendingUsesFirstPending(t *testing.T) {
+func TestGetSelfNotarizedMetaForShard_ShardHeaderReferencesMetaBlock(t *testing.T) {
 	t.Parallel()
 
-	firstPendingHash := []byte("first-pending-hash")
-	firstPendingHeader := &block.MetaBlock{Nonce: 140}
+	metaHash := []byte("meta-hash")
+	metaHdr := &block.MetaBlock{Nonce: 593}
+	shardHdrHash := []byte("shard-hdr-hash")
+	shardHdr := &block.Header{
+		Nonce:           602,
+		MetaBlockHashes: [][]byte{[]byte("older-meta"), metaHash},
+	}
+
 	syncedHeaders := map[string]data.HeaderHandler{
-		string(firstPendingHash): firstPendingHeader,
+		string(shardHdrHash): shardHdr,
+		string(metaHash):     metaHdr,
 	}
 
 	epochStartData := &epochStartMocks.EpochStartShardDataStub{
-		GetPendingMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler {
-			return nil
-		},
-		GetFirstPendingMetaBlockCalled: func() []byte {
-			return firstPendingHash
-		},
-		GetShardIDCalled: func() uint32 {
-			return 0
-		},
+		GetHeaderHashCalled: func() []byte { return shardHdrHash },
+		GetShardIDCalled:    func() uint32 { return 0 },
 	}
 
 	msh := &metaStorageHandler{}
 	hash, hdr, found := msh.getSelfNotarizedMetaForShard(epochStartData, syncedHeaders)
 	require.True(t, found)
-	assert.Equal(t, firstPendingHash, hash)
-	assert.Equal(t, uint64(140), hdr.GetNonce())
+	assert.Equal(t, metaHash, hash)
+	assert.Equal(t, uint64(593), hdr.GetNonce())
 }
 
-func TestGetSelfNotarizedMetaForShard_WithPendingUsesLastFinished(t *testing.T) {
+func TestGetSelfNotarizedMetaForShard_WalksBackToPreviousHeader(t *testing.T) {
 	t.Parallel()
 
-	lastFinishedHash := []byte("last-finished-hash")
-	lastFinishedHeader := &block.MetaBlock{Nonce: 139}
+	metaHash := []byte("meta-hash")
+	metaHdr := &block.MetaBlock{Nonce: 591}
+	prevShardHdrHash := []byte("prev-shard-hash")
+	prevShardHdr := &block.Header{
+		Nonce:           601,
+		MetaBlockHashes: [][]byte{metaHash},
+	}
+	shardHdrHash := []byte("shard-hdr-hash")
+	shardHdr := &block.Header{
+		Nonce:    602,
+		PrevHash: prevShardHdrHash,
+	}
+
 	syncedHeaders := map[string]data.HeaderHandler{
-		string(lastFinishedHash): lastFinishedHeader,
+		string(shardHdrHash):     shardHdr,
+		string(prevShardHdrHash): prevShardHdr,
+		string(metaHash):         metaHdr,
 	}
 
 	epochStartData := &epochStartMocks.EpochStartShardDataStub{
-		GetPendingMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler {
-			return []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{}}
-		},
-		GetFirstPendingMetaBlockCalled: func() []byte {
-			return []byte("first-pending-hash")
-		},
-		GetLastFinishedMetaBlockCalled: func() []byte {
-			return lastFinishedHash
-		},
-		GetShardIDCalled: func() uint32 {
-			return 0
-		},
+		GetHeaderHashCalled: func() []byte { return shardHdrHash },
+		GetShardIDCalled:    func() uint32 { return 0 },
 	}
 
 	msh := &metaStorageHandler{}
 	hash, hdr, found := msh.getSelfNotarizedMetaForShard(epochStartData, syncedHeaders)
 	require.True(t, found)
-	assert.Equal(t, lastFinishedHash, hash)
-	assert.Equal(t, uint64(139), hdr.GetNonce())
+	assert.Equal(t, metaHash, hash)
+	assert.Equal(t, uint64(591), hdr.GetNonce())
 }
 
-func TestGetSelfNotarizedMetaForShard_NoPendingFirstPendingMissingFallsBack(t *testing.T) {
-	t.Parallel()
-
-	lastFinishedHash := []byte("last-finished-hash")
-	lastFinishedHeader := &block.MetaBlock{Nonce: 139}
-	syncedHeaders := map[string]data.HeaderHandler{
-		string(lastFinishedHash): lastFinishedHeader,
-	}
-
-	epochStartData := &epochStartMocks.EpochStartShardDataStub{
-		GetPendingMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler {
-			return nil
-		},
-		GetFirstPendingMetaBlockCalled: func() []byte {
-			return []byte("missing-hash")
-		},
-		GetLastFinishedMetaBlockCalled: func() []byte {
-			return lastFinishedHash
-		},
-		GetShardIDCalled: func() uint32 {
-			return 0
-		},
-	}
-
-	msh := &metaStorageHandler{}
-	hash, hdr, found := msh.getSelfNotarizedMetaForShard(epochStartData, syncedHeaders)
-	require.True(t, found)
-	assert.Equal(t, lastFinishedHash, hash)
-	assert.Equal(t, uint64(139), hdr.GetNonce())
-}
-
-func TestGetSelfNotarizedMetaForShard_BothEmptyReturnsNotFound(t *testing.T) {
+func TestGetSelfNotarizedMetaForShard_ShardHeaderNotFound(t *testing.T) {
 	t.Parallel()
 
 	epochStartData := &epochStartMocks.EpochStartShardDataStub{
-		GetPendingMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler {
-			return nil
-		},
-		GetFirstPendingMetaBlockCalled: func() []byte {
-			return nil
-		},
-		GetLastFinishedMetaBlockCalled: func() []byte {
-			return nil
-		},
+		GetHeaderHashCalled: func() []byte { return []byte("missing") },
+		GetShardIDCalled:    func() uint32 { return 0 },
 	}
 
 	msh := &metaStorageHandler{}
 	_, _, found := msh.getSelfNotarizedMetaForShard(epochStartData, map[string]data.HeaderHandler{})
+	require.False(t, found)
+}
+
+func TestGetSelfNotarizedMetaForShard_GenesisNonceReturnsNotFound(t *testing.T) {
+	t.Parallel()
+
+	shardHdrHash := []byte("shard-hdr-hash")
+	shardHdr := &block.Header{Nonce: 0}
+
+	syncedHeaders := map[string]data.HeaderHandler{
+		string(shardHdrHash): shardHdr,
+	}
+
+	epochStartData := &epochStartMocks.EpochStartShardDataStub{
+		GetHeaderHashCalled: func() []byte { return shardHdrHash },
+		GetShardIDCalled:    func() uint32 { return 0 },
+	}
+
+	msh := &metaStorageHandler{}
+	_, _, found := msh.getSelfNotarizedMetaForShard(epochStartData, syncedHeaders)
 	require.False(t, found)
 }
