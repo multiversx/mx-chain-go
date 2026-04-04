@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -125,10 +126,15 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
+	lastSelfNotarizedHeaders, err := msh.getLastSelfNotarizedHeaders(components.EpochStartMetaBlock, lastHeader, components.Headers)
+	if err != nil {
+		return err
+	}
+
 	bootStrapData := bootstrapStorage.BootstrapData{
 		LastHeader:                 lastHeader,
 		LastCrossNotarizedHeaders:  lastCrossNotarizedHeader,
-		LastSelfNotarizedHeaders:   []bootstrapStorage.BootstrapHeaderInfo{lastHeader},
+		LastSelfNotarizedHeaders:   lastSelfNotarizedHeaders,
 		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
 		PendingMiniBlocks:          miniBlocks,
 		NodesCoordinatorConfigKey:  nodesCoordinatorConfigKey,
@@ -160,6 +166,72 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 
 	log.Debug("saved bootstrap data to storage", "round", roundToUseAsKey)
 	return nil
+}
+
+func (msh *metaStorageHandler) getLastSelfNotarizedHeaders(
+	epochStartMeta data.MetaHeaderHandler,
+	epochStartMetaBootstrapInfo bootstrapStorage.BootstrapHeaderInfo,
+	syncedHeaders map[string]data.HeaderHandler,
+) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
+	lastSelfNotarizedHeaders := []bootstrapStorage.BootstrapHeaderInfo{epochStartMetaBootstrapInfo}
+
+	for _, epochStartData := range epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		selfNotarizedMetaHash, selfNotarizedMetaBlock, found := msh.getSelfNotarizedMetaForShard(epochStartData, syncedHeaders)
+		if !found {
+			continue
+		}
+
+		_, err := msh.saveMetaHdrToStorage(selfNotarizedMetaBlock)
+		if err != nil {
+			return nil, err
+		}
+
+		bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: epochStartData.GetShardID(),
+			Epoch:   selfNotarizedMetaBlock.GetEpoch(),
+			Nonce:   selfNotarizedMetaBlock.GetNonce(),
+			Hash:    selfNotarizedMetaHash,
+		}
+
+		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, bootstrapHdrInfo)
+	}
+
+	return lastSelfNotarizedHeaders, nil
+}
+
+func (msh *metaStorageHandler) getSelfNotarizedMetaForShard(
+	epochStartData data.EpochStartShardDataHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) ([]byte, data.HeaderHandler, bool) {
+	// If no pending miniblocks, FirstPendingMetaBlock is actually fully finished
+	noPendingMiniBlocks := len(epochStartData.GetPendingMiniBlockHeaderHandlers()) == 0
+	firstPendingMetaBlockHash := epochStartData.GetFirstPendingMetaBlock()
+
+	if noPendingMiniBlocks && len(firstPendingMetaBlockHash) > 0 {
+		header, ok := syncedHeaders[string(firstPendingMetaBlockHash)]
+		if ok {
+			return firstPendingMetaBlockHash, header, true
+		}
+
+		log.Warn("getLastSelfNotarizedHeaders: first pending meta block not found",
+			"hash", firstPendingMetaBlockHash,
+			"shardID", epochStartData.GetShardID())
+	}
+
+	lastFinishedMetaBlockHash := epochStartData.GetLastFinishedMetaBlock()
+	if len(lastFinishedMetaBlockHash) == 0 {
+		return nil, nil, false
+	}
+
+	header, ok := syncedHeaders[string(lastFinishedMetaBlockHash)]
+	if !ok {
+		log.Warn("getLastSelfNotarizedHeaders: last finished meta block not found",
+			"hash", lastFinishedMetaBlockHash,
+			"shardID", epochStartData.GetShardID())
+		return nil, nil, false
+	}
+
+	return lastFinishedMetaBlockHash, header, true
 }
 
 func (msh *metaStorageHandler) saveLastCrossNotarizedHeaders(

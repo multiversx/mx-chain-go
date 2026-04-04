@@ -45,6 +45,7 @@ type metaProcessor struct {
 	shardsHeadersNonce           *sync.Map
 	shardBlockFinality           uint32
 	headersCounter               *headersCounter
+	selfNotarizedHeadersStale    bool
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -185,7 +186,31 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	mp.shardsHeadersNonce = &sync.Map{}
 
+	mp.selfNotarizedHeadersStale = mp.detectStaleSelfNotarizedHeaders()
+
 	return &mp, nil
+}
+
+// detectStaleSelfNotarizedHeaders checks if per-shard self-notarized headers are at nonce 0
+// while cross-notarized headers for the same shard have progressed past genesis.
+// This indicates bootstrap data saved by a version that used the wrong ShardId.
+func (mp *metaProcessor) detectStaleSelfNotarizedHeaders() bool {
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		crossNotarized, _, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
+		if err != nil || check.IfNil(crossNotarized) || crossNotarized.GetNonce() == 0 {
+			continue
+		}
+
+		selfNotarized, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardID)
+		if err != nil || selfNotarized.GetNonce() == 0 {
+			log.Debug("detected stale self-notarized headers after bootstrap",
+				"shardID", shardID,
+				"crossNotarizedNonce", crossNotarized.GetNonce())
+			return true
+		}
+	}
+
+	return false
 }
 
 func (mp *metaProcessor) isRewardsV2Enabled(headerHandler data.HeaderHandler) bool {
@@ -1435,6 +1460,10 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
+	if mp.selfNotarizedHeadersStale {
+		mp.selfNotarizedHeadersStale = mp.detectStaleSelfNotarizedHeaders()
+	}
+
 	return nil
 }
 
@@ -1915,11 +1944,16 @@ func (mp *metaProcessor) verifyShardDataAgainstHeaders(metaHdr *block.MetaBlock)
 
 		expected := mp.buildShardDataFromHeader(shardHdr, shardData.HeaderHash)
 		expected.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(expected.ShardID)))
-		lastSelfNotarizedHeader, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())
-		if err != nil {
-			return err
+
+		if mp.selfNotarizedHeadersStale {
+			expected.LastIncludedMetaNonce = shardData.LastIncludedMetaNonce
+		} else {
+			lastSelfNotarizedHeader, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())
+			if err != nil {
+				return err
+			}
+			expected.LastIncludedMetaNonce = lastSelfNotarizedHeader.GetNonce()
 		}
-		expected.LastIncludedMetaNonce = lastSelfNotarizedHeader.GetNonce()
 
 		if !expected.Equal(&shardData) {
 			log.Debug("shard data mismatch",
