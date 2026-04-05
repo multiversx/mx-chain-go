@@ -42,6 +42,12 @@
     # marshalled structures in block events data
     MarshallerType = "json"
 
+[[GRPCDriversConfig]]
+    Enabled = true
+    URL = "localhost:50051"
+    MarshallerType = "json"
+
+
 [[HostDriversConfig]]
     # This flag shall only be used for observer nodes
     Enabled = false

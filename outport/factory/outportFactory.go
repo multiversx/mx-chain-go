@@ -5,9 +5,13 @@ import (
 	"time"
 
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/outport/grpc"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/outport"
+	grpc2 "github.com/multiversx/mx-chain-go/outport/grpc"
 )
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
@@ -18,6 +22,7 @@ type OutportFactoryArgs struct {
 	ElasticIndexerFactoryArgs indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs  *EventNotifierFactoryArgs
 	HostDriversArgs           []ArgsHostDriverFactory
+	GRPCDriversArgs           []ArgsGRPCDriverFactory
 	EnableEpochsHandler       common.EnableEpochsHandler
 	EnableRoundsHandler       common.EnableRoundsHandler
 }
@@ -67,6 +72,13 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 		err = createAndSubscribeHostDriverIfNeeded(outport, args.HostDriversArgs[idx])
 		if err != nil {
 			return fmt.Errorf("%w when calling createAndSubscribeHostDriverIfNeeded, host driver index %d", err, idx)
+		}
+	}
+
+	for idx := 0; idx < len(args.GRPCDriversArgs); idx++ {
+		err = createAndSubscribeGRPCDriverIfNeeded(outport, args.GRPCDriversArgs[idx])
+		if err != nil {
+			return fmt.Errorf("%w when calling createAndSubscribeGRPCDriverIfNeeded, grpc driver index %d", err, idx)
 		}
 	}
 
@@ -127,4 +139,30 @@ func createAndSubscribeHostDriverIfNeeded(
 	}
 
 	return outport.SubscribeDriver(hostDriver)
+}
+
+type ArgsGRPCDriverFactory struct {
+	GRPCClient config.GRPCDriversConfig
+	Marshaller marshal.Marshalizer
+}
+
+func createAndSubscribeGRPCDriverIfNeeded(
+	outport outport.OutportHandler,
+	args ArgsGRPCDriverFactory,
+) error {
+	if !args.GRPCClient.Enabled {
+		return nil
+	}
+
+	grpcClient, err := grpc.NewOutportGRPCClient(args.GRPCClient.URL)
+	if err != nil {
+		return err
+	}
+
+	grpcDriver, err := grpc2.NewGRPCDriver(grpcClient, args.Marshaller)
+	if err != nil {
+		return err
+	}
+
+	return outport.SubscribeDriver(grpcDriver)
 }

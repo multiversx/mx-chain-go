@@ -5,6 +5,7 @@ type ExternalConfig struct {
 	ElasticSearchConnector ElasticSearchConfig
 	EventNotifierConnector EventNotifierConfig
 	HostDriversConfig      []HostDriversConfig
+	GRPCDriversConfig      []GRPCDriversConfig
 }
 
 // ElasticSearchConfig will hold the configuration for the elastic search
@@ -50,4 +51,10 @@ type HostDriversConfig struct {
 	RetryDurationInSec         int
 	AcknowledgeTimeoutInSec    int
 	Version                    uint32
+}
+
+type GRPCDriversConfig struct {
+	Enabled        bool
+	URL            string
+	MarshallerType string
 }
