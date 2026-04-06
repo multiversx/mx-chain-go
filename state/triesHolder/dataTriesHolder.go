@@ -63,19 +63,16 @@ func (dth *dataTriesHolder) putNoLock(key []byte, tr common.Trie) {
 		return
 	}
 
+	dth.clearFromEvictedBuffer(key)
+
 	keyString := string(key)
-
-	if len(dth.evictedBuffer) > 0 {
-		// this means that this trie was evicted while being dirty
-		delete(dth.evictedBuffer, keyString)
-		log.Trace("removed trie from evicted buffer", "key", key)
-	}
-
 	evicted := dth.cacher.AddSizedAndReturnEvicted(keyString, tr, int64(tr.SizeInMemory()))
 	dth.dirtyTries[keyString] = struct{}{}
 	dth.touchedTries[keyString] = struct{}{}
 
-	log.Trace("put trie in data tries holder", "key", key, "trieSize", tr.SizeInMemory(), "totalCacheSize", dth.cacher.SizeInBytesContained())
+	if log.GetLevel() == logger.LogTrace {
+		log.Trace("put trie in data tries holder", "key", key, "trieSize", tr.SizeInMemory(), "totalCacheSize", dth.cacher.SizeInBytesContained())
+	}
 
 	if len(evicted) == 0 {
 		return
@@ -102,6 +99,21 @@ func (dth *dataTriesHolder) putNoLock(key []byte, tr common.Trie) {
 		log.Trace("storing evicted dirty trie in evicted buffer", "key", []byte(evictedKeyString))
 		dth.evictedBuffer[evictedKeyString] = evictedTrie
 	}
+}
+
+func (dth *dataTriesHolder) clearFromEvictedBuffer(key []byte) {
+	if len(dth.evictedBuffer) == 0 {
+		return
+	}
+
+	_, ok := dth.evictedBuffer[string(key)]
+	if !ok {
+		return
+	}
+
+	// this means that this trie was evicted while being dirty
+	delete(dth.evictedBuffer, string(key))
+	log.Trace("removed trie from evicted buffer", "key", key)
 }
 
 // Get returns the trie pointer that is stored in the map at the given key

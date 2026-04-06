@@ -45,9 +45,9 @@ func (ths *TriesHolderStub) Reset() {
 }
 
 // MarkAsDirty -
-func (ths *TriesHolderStub) MarkAsDirty(_ []byte) {
+func (ths *TriesHolderStub) MarkAsDirty(key []byte) {
 	if ths.MarkAsDirtyCalled != nil {
-		ths.MarkAsDirtyCalled(nil)
+		ths.MarkAsDirtyCalled(key)
 	}
 }
 

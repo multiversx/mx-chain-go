@@ -351,8 +351,3 @@ func commitSnapshot(
 
 	return db.PutInEpochWithoutCache(hash, encChild)
 }
-
-func isLeafNode(n node) bool {
-	_, ok := n.(*leafNode)
-	return ok
-}
