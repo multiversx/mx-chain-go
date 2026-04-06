@@ -230,6 +230,8 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 	sr.SetBody(bodyHandler)
 	sr.SetHeader(headerHandler)
 
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(headerHandler, "sent", "v1")
 	return true
 }
 
@@ -448,6 +450,9 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
+
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(sr.GetHeader(), "received", "v1")
 
 	return blockProcessedWithSuccess
 }
