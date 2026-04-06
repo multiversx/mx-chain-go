@@ -266,7 +266,7 @@ func TestStoragePruningManager_MarkForEviction_removeDuplicatedKeys(t *testing.T
 func TestStoragePruningManager_Reset(t *testing.T) {
 	t.Parallel()
 
-	args := storage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
