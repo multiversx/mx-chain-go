@@ -337,13 +337,28 @@ func (sr *subroundStartRound) IndexRoundIfNeeded(pubKeys []string) {
 }
 
 // SendSignatureForManagedKey calls the unexported sendSignatureForManagedKey function
-func (sr *subroundSignature) SendSignatureForManagedKey(idx int, pk string) bool {
-	return sr.sendSignatureForManagedKey(idx, pk)
+func (sr *subroundSignature) SendSignatureForManagedKey(ctx context.Context, idx int, pk string) bool {
+	return sr.sendSignatureForManagedKey(ctx, idx, pk)
 }
 
 // DoSignatureJobForManagedKeys calls the unexported doSignatureJobForManagedKeys function
 func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) bool {
 	return sr.doSignatureJobForManagedKeys(ctx)
+}
+
+// WaitIfCompetingBlock calls the unexported waitIfCompetingBlock function
+func (sr *subroundSignature) WaitIfCompetingBlock(ctx context.Context, pkBytes []byte, nonce uint64, currentHash []byte) bool {
+	return sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
+}
+
+// WaitIfCompetingBlockForNode calls the unexported waitIfCompetingBlockForNode function
+func (sr *subroundSignature) WaitIfCompetingBlockForNode(ctx context.Context, nonce uint64, currentHash []byte) bool {
+	return sr.waitIfCompetingBlockForNode(ctx, nonce, currentHash)
+}
+
+// ShouldSendProof calls the unexported shouldSendProof function
+func (sr *subroundEndRound) ShouldSendProof() bool {
+	return sr.shouldSendProof()
 }
 
 // ReceivedSignature method is called when a signature is received through the signature channel
@@ -369,4 +384,14 @@ func (sr *subroundEndRound) SendProof() (bool, error) {
 // UpdateConsensusMetricsProof -
 func (sr *subroundEndRound) UpdateConsensusMetricsProof() {
 	sr.updateConsensusMetricsProof()
+}
+
+// UpdateNonceDeltaMetrics -
+func (sr *subroundEndRound) UpdateNonceDeltaMetrics() {
+	sr.updateNonceDeltaMetrics()
+}
+
+// PrepareBlockForExecution prepares the block for execution
+func (sr *subroundBlock) PrepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
+	return sr.prepareBlockForExecution(header, body)
 }

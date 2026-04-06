@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -119,6 +120,8 @@ type coreComponents struct {
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 	processConfigsHandler         common.ProcessConfigsHandler
 	epochStartConfigsHandler      common.CommonConfigsHandler
+	antifloodConfigsHandler       common.AntifloodConfigsHandler
+	closingNodeStarted            *atomic.Bool
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -181,14 +184,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, fmt.Errorf("%w for epochChangeGracePeriod", err)
 	}
 
-	processConfigs, err := commonConfigs.NewProcessConfigsHandler(
-		ccf.config.GeneralSettings.ProcessConfigsByEpoch,
-		ccf.config.GeneralSettings.ProcessConfigsByRound,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
-	}
-
 	commonConfigsHandler, err := commonConfigs.NewCommonConfigsHandler(
 		ccf.config.GeneralSettings.EpochStartConfigsByEpoch,
 		ccf.config.GeneralSettings.EpochStartConfigsByRound,
@@ -230,6 +225,23 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig, roundNotifier)
 	if err != nil {
 		return nil, err
+	}
+
+	processConfigs, err := commonConfigs.NewProcessConfigsHandler(
+		ccf.config.GeneralSettings.ProcessConfigsByEpoch,
+		ccf.config.GeneralSettings.ProcessConfigsByRound,
+		roundNotifier,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
+	}
+
+	antifloodConfigsHandler, err := commonConfigs.NewAntifloodConfigsHandler(
+		ccf.config.Antiflood,
+		roundNotifier,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w for antifloodConfigsHandler", err)
 	}
 
 	genesisNodesConfig, err := sharding.NewNodesSetup(
@@ -277,6 +289,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
 	supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRound * genesisRoundDuration.Nanoseconds()))
 
+	if supernovaStartRound < startRound {
+		return nil, fmt.Errorf("supernovaStartRound %d lower then startRound %d",
+			supernovaStartRound,
+			startRound,
+		)
+	}
+
 	if supernovaGenesisTime.Compare(genesisTime) < 0 {
 		return nil, fmt.Errorf("supernovaGenesisTime %d lower then genesisTime %d",
 			supernovaGenesisTime.UnixMilli(),
@@ -302,6 +321,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		StartRound:                startRound,
 		SupernovaStartRound:       supernovaStartRound,
 		EnableRoundsHandler:       enableRoundsHandler,
+		ImportDBMode:              ccf.importDbConfig.IsImportDBMode,
 	}
 	roundHandler, err := round.NewRound(roundArgs)
 	if err != nil {
@@ -359,7 +379,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	rater, err := rating.NewBlockSigningRater(ratingsData)
+	rater, err := rating.NewBlockSigningRater(ratingsData, enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -437,6 +457,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochChangeGracePeriodHandler: epochChangeGracePeriodHandler,
 		processConfigsHandler:         processConfigs,
 		epochStartConfigsHandler:      commonConfigsHandler,
+		antifloodConfigsHandler:       antifloodConfigsHandler,
+		closingNodeStarted:            &atomic.Bool{},
 	}, nil
 }
 

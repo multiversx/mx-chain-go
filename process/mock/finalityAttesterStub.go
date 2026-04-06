@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -9,7 +10,9 @@ import (
 type ValidityAttesterStub struct {
 	CheckBlockAgainstRoundHandlerCalled func(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstFinalCalled        func(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelistCalled    func(interceptedData process.InterceptedData) bool
+	CheckAgainstWhitelistCalled         func(interceptedData process.InterceptedData) bool
+	CheckProofAgainstFinalCalled        func(proof data.HeaderProofHandler) error
+	CheckProofAgainstRoundHandlerCalled func(proof data.HeaderProofHandler) error
 }
 
 // CheckBlockAgainstRoundHandler -
@@ -30,13 +33,31 @@ func (vas *ValidityAttesterStub) CheckBlockAgainstFinal(headerHandler data.Heade
 	return nil
 }
 
-// CheckBlockAgainstWhitelist -
-func (vas *ValidityAttesterStub) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
-	if vas.CheckBlockAgainstWhitelistCalled != nil {
-		return vas.CheckBlockAgainstWhitelistCalled(interceptedData)
+// CheckAgainstWhitelist -
+func (vas *ValidityAttesterStub) CheckAgainstWhitelist(interceptedData process.InterceptedData) bool {
+	if vas.CheckAgainstWhitelistCalled != nil {
+		return vas.CheckAgainstWhitelistCalled(interceptedData)
 	}
 
 	return false
+}
+
+// CheckProofAgainstFinal -
+func (vas *ValidityAttesterStub) CheckProofAgainstFinal(proof data.HeaderProofHandler) error {
+	if vas.CheckProofAgainstFinalCalled != nil {
+		return vas.CheckProofAgainstFinalCalled(proof)
+	}
+
+	return nil
+}
+
+// CheckProofAgainstRoundHandler -
+func (vas *ValidityAttesterStub) CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error {
+	if vas.CheckProofAgainstRoundHandlerCalled != nil {
+		return vas.CheckProofAgainstRoundHandlerCalled(proof)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

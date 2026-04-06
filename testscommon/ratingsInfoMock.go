@@ -52,6 +52,16 @@ func (rd *RatingsInfoMock) ShardChainRatingsStepHandler() process.RatingsStepHan
 	return rd.ShardRatingsStepDataProperty
 }
 
+// ShardChainRatingsStepHandlerForEpoch -
+func (rd *RatingsInfoMock) ShardChainRatingsStepHandlerForEpoch(_ uint32) process.RatingsStepHandler {
+	return rd.ShardRatingsStepDataProperty
+}
+
+// MetaChainRatingsStepHandlerForEpoch -
+func (rd *RatingsInfoMock) MetaChainRatingsStepHandlerForEpoch(_ uint32) process.RatingsStepHandler {
+	return rd.MetaRatingsStepDataProperty
+}
+
 // SetStatusHandler -
 func (rd *RatingsInfoMock) SetStatusHandler(handler core.AppStatusHandler) error {
 	if rd.SetStatusHandlerCalled != nil {

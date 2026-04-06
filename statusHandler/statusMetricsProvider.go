@@ -5,6 +5,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -18,15 +20,27 @@ type statusMetrics struct {
 
 	int64Metrics       map[string]int64
 	mutInt64Operations sync.RWMutex
+
+	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 }
 
 // NewStatusMetrics will return an instance of the struct
-func NewStatusMetrics() *statusMetrics {
-	return &statusMetrics{
-		uint64Metrics: make(map[string]uint64),
-		stringMetrics: make(map[string]string),
-		int64Metrics:  make(map[string]int64),
+func NewStatusMetrics(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) (*statusMetrics, error) {
+	if check.IfNil(enableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(enableRoundsHandler) {
+		return nil, ErrNilEnableRoundsHandler
+	}
+
+	return &statusMetrics{
+		uint64Metrics:       make(map[string]uint64),
+		stringMetrics:       make(map[string]string),
+		int64Metrics:        make(map[string]int64),
+		enableEpochsHandler: enableEpochsHandler,
+		enableRoundsHandler: enableRoundsHandler,
+	}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -328,7 +342,6 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricIsPayableBySCEnableEpoch] = sm.uint64Metrics[common.MetricIsPayableBySCEnableEpoch]
 	enableEpochsMetrics[common.MetricCleanUpInformativeSCRsEnableEpoch] = sm.uint64Metrics[common.MetricCleanUpInformativeSCRsEnableEpoch]
 	enableEpochsMetrics[common.MetricStorageAPICostOptimizationEnableEpoch] = sm.uint64Metrics[common.MetricStorageAPICostOptimizationEnableEpoch]
-	enableEpochsMetrics[common.MetricTransformToMultiShardCreateEnableEpoch] = sm.uint64Metrics[common.MetricTransformToMultiShardCreateEnableEpoch]
 	enableEpochsMetrics[common.MetricESDTRegisterAndSetAllRolesEnableEpoch] = sm.uint64Metrics[common.MetricESDTRegisterAndSetAllRolesEnableEpoch]
 	enableEpochsMetrics[common.MetricDoNotReturnOldBlockInBlockchainHookEnableEpoch] = sm.uint64Metrics[common.MetricDoNotReturnOldBlockInBlockchainHookEnableEpoch]
 	enableEpochsMetrics[common.MetricAddFailedRelayedTxToInvalidMBsDisableEpoch] = sm.uint64Metrics[common.MetricAddFailedRelayedTxToInvalidMBsDisableEpoch]
@@ -390,6 +403,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricAutomaticActivationOfNodesDisableEpoch] = sm.uint64Metrics[common.MetricAutomaticActivationOfNodesDisableEpoch]
 	enableEpochsMetrics[common.MetricFixGetBalanceEnableEpoch] = sm.uint64Metrics[common.MetricFixGetBalanceEnableEpoch]
 	enableEpochsMetrics[common.MetricTailInflationEnableEpoch] = sm.uint64Metrics[common.MetricTailInflationEnableEpoch]
+	enableEpochsMetrics[common.MetricSupernovaEnableEpoch] = sm.uint64Metrics[common.MetricSupernovaEnableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 
@@ -414,6 +428,16 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	return enableEpochsMetrics, nil
 }
 
+// EnableEpochsMetricsV2 returns all enable epoch flags with their activation epochs
+func (sm *statusMetrics) EnableEpochsMetricsV2() map[string]uint32 {
+	return sm.enableEpochsHandler.GetAllEnableEpochs()
+}
+
+// EnableRoundsMetrics returns all enable round flags with their activation rounds
+func (sm *statusMetrics) EnableRoundsMetrics() map[string]uint64 {
+	return sm.enableRoundsHandler.GetAllEnableRounds()
+}
+
 // NetworkMetrics will return metrics related to current configuration
 func (sm *statusMetrics) NetworkMetrics() (map[string]interface{}, error) {
 	networkMetrics := make(map[string]interface{})
@@ -434,6 +458,7 @@ func (sm *statusMetrics) saveUint64NetworkMetricsInMap(networkMetrics map[string
 	currentNonce := sm.uint64Metrics[common.MetricNonce]
 	nonceAtEpochStart := sm.uint64Metrics[common.MetricNonceAtEpochStart]
 	networkMetrics[common.MetricNonce] = currentNonce
+	networkMetrics[common.MetricLastExecutedNonce] = sm.uint64Metrics[common.MetricLastExecutedNonce]
 	networkMetrics[common.MetricBlockTimestamp] = sm.uint64Metrics[common.MetricBlockTimestamp]
 	networkMetrics[common.MetricBlockTimestampMs] = sm.uint64Metrics[common.MetricBlockTimestampMs]
 	networkMetrics[common.MetricHighestFinalBlock] = sm.uint64Metrics[common.MetricHighestFinalBlock]
@@ -444,6 +469,7 @@ func (sm *statusMetrics) saveUint64NetworkMetricsInMap(networkMetrics map[string
 	networkMetrics[common.MetricRoundsPerEpoch] = sm.uint64Metrics[common.MetricRoundsPerEpoch]
 	networkMetrics[common.MetricRoundsPassedInCurrentEpoch] = computeDelta(currentRound, roundNumberAtEpochStart)
 	networkMetrics[common.MetricNoncesPassedInCurrentEpoch] = computeDelta(currentNonce, nonceAtEpochStart)
+	networkMetrics[common.MetricProposedNonce] = sm.uint64Metrics[common.MetricProposedNonce]
 }
 
 func (sm *statusMetrics) saveStringNetworkMetricsInMap(networkMetrics map[string]interface{}) {

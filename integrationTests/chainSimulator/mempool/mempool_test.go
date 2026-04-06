@@ -1,26 +1,29 @@
 package mempool
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/holders"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/storage"
 )
-
-// TODO add some integration tests for forks scenarios
 
 func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	if testing.Short() {
@@ -78,6 +81,7 @@ func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	require.Equal(t, 50_000*(30_000-27_756), int(gas))
 }
 
+// TODO should activate Supernova for this test
 func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelayedV3(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -85,7 +89,19 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 
 	shard := 0
 
-	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = 2
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 3
+		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 2
+		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = 2
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+		}
+	}
+
+	simulator := startChainSimulator(t, alterConfigsFunc)
 	defer simulator.Close()
 
 	err := simulator.GenerateBlocksUntilEpochIsReached(2)
@@ -146,16 +162,13 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 	require.Equal(t, 2, getNumTransactionsInPool(simulator, shard))
 
 	selectedTransactions, _ := selectTransactions(t, simulator, shard)
-	require.Equal(t, 2, len(selectedTransactions))
-	require.Equal(t, alice.Bytes, selectedTransactions[0].Tx.GetSndAddr())
-	require.Equal(t, bob.Bytes, selectedTransactions[1].Tx.GetSndAddr())
+	require.Equal(t, 1, len(selectedTransactions))
+	require.Equal(t, bob.Bytes, selectedTransactions[0].Tx.GetSndAddr())
 
 	err = simulator.GenerateBlocks(1)
 	require.Nil(t, err)
-	require.Equal(t, 2, getNumTransactionsInCurrentBlock(simulator, shard))
-
-	require.Equal(t, "invalid", getTransaction(t, simulator, shard, selectedTransactions[0].TxHash).Status.String())
-	require.Equal(t, "success", getTransaction(t, simulator, shard, selectedTransactions[1].TxHash).Status.String())
+	require.Equal(t, 1, getNumTransactionsInCurrentBlock(simulator, shard))
+	require.Equal(t, "success", getTransaction(t, simulator, shard, selectedTransactions[0].TxHash).Status.String())
 }
 
 func TestMempoolWithChainSimulator_Selection_WhenInsufficientBalanceForFee_WithRelayedV3(t *testing.T) {
@@ -492,7 +505,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -510,14 +523,24 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
 	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	maxNumTxs := 2
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		maxNumTxs,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numPoolTxs := maxNumTxs * 2
@@ -565,10 +588,10 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	require.Equal(t, "txHash1", string(selectedTransactions[1].TxHash))
 
 	// propose the block
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &blockBody, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), &blockBody, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -576,19 +599,18 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	require.Nil(t, err)
 
 	// do the second selection. should not return same txs
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
-	require.Equal(t, 2, len(selectedTransactions))
+	require.Equal(t, 1, len(selectedTransactions))
 	require.Equal(t, "txHash2", string(selectedTransactions[0].TxHash))
-	require.Equal(t, "txHash3", string(selectedTransactions[1].TxHash))
 }
 
 func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -610,13 +632,23 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
 
-	options := holders.NewTxSelectionOptions(
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		2,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	nonceTracker := newNoncesTracker()
@@ -698,11 +730,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	require.Equal(t, "txHash1", string(selectedTransactions[1].TxHash))
 
 	// propose the selected transactions
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &blockBody,
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), &blockBody,
 		&block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -710,8 +742,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	require.Nil(t, err)
 
 	// do the second selection. should not return same txs
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(selectedTransactions))
 	require.Equal(t, "txHash2", string(selectedTransactions[0].TxHash))
@@ -722,7 +754,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -747,13 +779,23 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
 
-	options := holders.NewTxSelectionOptions(
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numTxs := numTxsPerSender * len(senders)
@@ -770,10 +812,10 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -781,18 +823,18 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	require.Nil(t, err)
 
 	// do the second selection (the rest of the transactions should be selected)
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
 	// propose the second block
 	proposedBlock2 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2,
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2,
 		&block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -800,8 +842,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	require.Nil(t, err)
 
 	// do the last selection (no tx should be returned)
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 }
@@ -810,7 +852,7 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -835,12 +877,23 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
 
-	options := holders.NewTxSelectionOptions(
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numTxs := numTxsPerSender * len(senders)
@@ -857,10 +910,10 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -868,11 +921,11 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// propose some empty blocks
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &block.Body{},
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), &block.Body{},
 		&block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -882,8 +935,8 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	err = txpool.OnProposedBlock([]byte("blockHash3"), &block.Body{},
 		&block.Header{
 			Nonce:    3,
-			PrevHash: []byte("blockHash2"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			PrevHash: []byte(testBlockHash2),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -891,8 +944,8 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the second selection (the rest of the transactions should be selected)
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 4)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -902,7 +955,7 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 		&block.Header{
 			Nonce:    4,
 			PrevHash: []byte("blockHash3"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -910,8 +963,8 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the last selection (no tx should be returned)
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 4)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 5)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 }
@@ -921,7 +974,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 
 	t.Run("should work with only one proposed block being replaced", func(t *testing.T) {
 		host := txcachemocks.NewMempoolHostMock()
-		txpool, err := txcache.NewTxCache(configSourceMe, host)
+		txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 		require.Nil(t, err)
 		require.NotNil(t, txpool)
@@ -946,12 +999,23 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		}
 
 		selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+		selectionSession.GetRootHashCalled = func() ([]byte, error) {
+			return []byte(testRootHash), nil
+		}
 
-		options := holders.NewTxSelectionOptions(
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+		accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+			return []byte(testRootHash), nil
+		}
+
+		err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+		require.Nil(t, err)
+
+		options, _ := holders.NewTxSelectionOptions(
 			10_000_000_000,
 			numTxsPerSender,
-			int(selectionLoopMaximumDuration.Milliseconds()),
 			10,
+			haveTimeTrue,
 		)
 
 		numTxs := numTxsPerSender * len(senders)
@@ -968,10 +1032,10 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 
 		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		proposedBlock1 := createProposedBlock(selectedTransactions)
-		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+		err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -979,11 +1043,11 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		require.Nil(t, err)
 
 		// propose an empty block with same nonce as the previous one
-		err = txpool.OnProposedBlock([]byte("blockHash1"), &block.Body{},
+		err = txpool.OnProposedBlock([]byte(testBlockHash1), &block.Body{},
 			&block.Header{
 				Nonce:    1,
-				PrevHash: []byte("blockHash0"),
-				RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+				PrevHash: []byte(testBlockHash0),
+				RootHash: []byte(testRootHash),
 			},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -991,17 +1055,17 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		require.Nil(t, err)
 
 		// because the first one was replaced, the same transactions should be selected again
-		// the currentNonce should represent here the nonce of the block on which the selection is built
-		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+		// the currentNonce should represent here the nonce of the block for which the selection is built
+		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 		require.Nil(t, err)
 		require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
 		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		proposedBlock2 := createProposedBlock(selectedTransactions)
-		err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2, &block.Header{
+		err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2, &block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1009,8 +1073,8 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		require.Nil(t, err)
 
 		// do the second selection (the rest of the transactions should be selected)
-		// the currentNonce should represent here the nonce of the block on which the selection is built
-		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
+		// the currentNonce should represent here the nonce of the block for which the selection is built
+		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
 		require.Nil(t, err)
 		require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1019,8 +1083,8 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		err = txpool.OnProposedBlock([]byte("blockHash3"), proposedBlock3,
 			&block.Header{
 				Nonce:    3,
-				PrevHash: []byte("blockHash2"),
-				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+				PrevHash: []byte(testBlockHash2),
+				RootHash: []byte(testRootHash),
 			},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1028,15 +1092,15 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		require.Nil(t, err)
 
 		// do the last selection (no tx should be returned)
-		// the currentNonce should represent here the nonce of the block on which the selection is built
-		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
+		// the currentNonce should represent here the nonce of the block for which the selection is built
+		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 4)
 		require.Nil(t, err)
 		require.Equal(t, 0, len(selectedTransactions))
 	})
 
 	t.Run("should work with many proposed blocks being replaced", func(t *testing.T) {
 		host := txcachemocks.NewMempoolHostMock()
-		txpool, err := txcache.NewTxCache(configSourceMe, host)
+		txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 		require.Nil(t, err)
 		require.NotNil(t, txpool)
@@ -1065,12 +1129,23 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		}
 
 		selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+		selectionSession.GetRootHashCalled = func() ([]byte, error) {
+			return []byte(testRootHash), nil
+		}
 
-		options := holders.NewTxSelectionOptions(
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+		accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+			return []byte(testRootHash), nil
+		}
+
+		err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+		require.Nil(t, err)
+
+		options, _ := holders.NewTxSelectionOptions(
 			10_000_000_000,
 			numTxsPerSender,
-			int(selectionLoopMaximumDuration.Milliseconds()),
 			10,
+			haveTimeTrue,
 		)
 
 		numTxs := numTxsPerSender * len(senders)
@@ -1087,10 +1162,10 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 
 		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		proposedBlock1 := createProposedBlock(selectedTransactions)
-		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+		err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1098,17 +1173,17 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		require.Nil(t, err)
 
 		// do the second selection
-		// the currentNonce should represent here the nonce of the block on which the selection is built
-		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+		// the currentNonce should represent here the nonce of the block for which the selection is built
+		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 		require.Nil(t, err)
 		require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
 		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		proposedBlock2 := createProposedBlock(selectedTransactions)
-		err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2, &block.Header{
+		err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2, &block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1116,8 +1191,8 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		require.Nil(t, err)
 
 		// do the third selection (the rest of the transactions should be selected)
-		// the currentNonce should represent here the nonce of the block on which the selection is built
-		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
+		// the currentNonce should represent here the nonce of the block for which the selection is built
+		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
 		require.Nil(t, err)
 		require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1126,8 +1201,8 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		err = txpool.OnProposedBlock([]byte("blockHash3"), proposedBlock3,
 			&block.Header{
 				Nonce:    3,
-				PrevHash: []byte("blockHash2"),
-				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+				PrevHash: []byte(testBlockHash2),
+				RootHash: []byte(testRootHash),
 			},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1135,16 +1210,16 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		require.Nil(t, err)
 
 		// do the last selection (no tx should be returned)
-		// the currentNonce should represent here the nonce of the block on which the selection is built
-		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
+		// the currentNonce should represent here the nonce of the block for which the selection is built
+		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 4)
 		require.Nil(t, err)
 		require.Equal(t, 0, len(selectedTransactions))
 
 		// now, generate a fork by replacing the block with nonce 2
 		err = txpool.OnProposedBlock([]byte("blockHashF1"), &block.Body{}, &block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1152,8 +1227,8 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		require.Nil(t, err)
 
 		// because the block with nonce 2 was replaced, we expect to still have two non-empty selections
-		// the currentNonce should represent here the nonce of the block on which the selection is built
-		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
+		// the currentNonce should represent here the nonce of the block for which the selection is built
+		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
 		require.Nil(t, err)
 		require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1163,7 +1238,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 			&block.Header{
 				Nonce:    3,
 				PrevHash: []byte("blockHashF1"),
-				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+				RootHash: []byte(testRootHash),
 			},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1171,8 +1246,8 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		require.Nil(t, err)
 
 		// expect one more non-empty selection
-		// the currentNonce should represent here the nonce of the block on which the selection is built
-		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
+		// the currentNonce should represent here the nonce of the block for which the selection is built
+		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 4)
 		require.Nil(t, err)
 		require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1182,7 +1257,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 			&block.Header{
 				Nonce:    4,
 				PrevHash: []byte("blockHashF2"),
-				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+				RootHash: []byte(testRootHash),
 			},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1190,8 +1265,8 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		require.Nil(t, err)
 
 		// no txs should be returned for the last selection
-		// the currentNonce should represent here the nonce of the block on which the selection is built
-		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 4)
+		// the currentNonce should represent here the nonce of the block for which the selection is built
+		selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 5)
 		require.Nil(t, err)
 		require.Equal(t, 0, len(selectedTransactions))
 	})
@@ -1201,7 +1276,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1224,13 +1299,23 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
 
-	options := holders.NewTxSelectionOptions(
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		30_000,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	nonceTracker := newNoncesTracker()
@@ -1247,11 +1332,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -1259,17 +1344,16 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	require.Nil(t, err)
 
 	// do the second selection (the rest of the transactions should be selected)
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
 	require.Equal(t, 30_000, len(selectedTransactions))
 
 	// execute the first proposed block
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+		PrevHash: []byte(testBlockHash0),
+	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
 	// remove the executed txs from the pool
@@ -1280,25 +1364,28 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	// update the state of the account on the blockchain
 	selectionSession.SetNonce([]byte("alice"), 30_000)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
-		return []byte("rootHash0"), nil
+		return []byte("rootHash1"), nil
+	}
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte("rootHash1"), nil
 	}
 
 	// propose the second block
 	proposedBlock2 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2,
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2,
 		&block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
+			PrevHash: []byte(testBlockHash1),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		accountsProvider,
-		[]byte("blockHash1"),
+		[]byte(testBlockHash1),
 	)
 	require.Nil(t, err)
 
-	// the currentNonce should represent here the nonce of the block on which the selection is built
+	// the currentNonce should represent here the nonce of the block for which the selection is built
 	// no transactions should be returned
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 
@@ -1311,7 +1398,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1331,12 +1418,23 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
 
-	options := holders.NewTxSelectionOptions(
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		30_000,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	nonceTracker := newNoncesTracker()
@@ -1353,11 +1451,11 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1365,11 +1463,11 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	require.Nil(t, err)
 
 	// propose empty blocks
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &block.Body{},
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), &block.Body{},
 		&block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1379,8 +1477,8 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	err = txpool.OnProposedBlock([]byte("blockHash3"), &block.Body{},
 		&block.Header{
 			Nonce:    3,
-			PrevHash: []byte("blockHash2"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash2),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1388,17 +1486,16 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	require.Nil(t, err)
 
 	// do the second selection (the rest of the transactions should be selected)
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 4)
 	require.Nil(t, err)
 	require.Equal(t, 30_000, len(selectedTransactions))
 
 	// execute the first proposed block
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+		PrevHash: []byte(testBlockHash0),
+	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
 	// remove the executed txs from the pool
@@ -1409,7 +1506,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	// update the state of the account on the blockchain
 	selectionSession.SetNonce([]byte("alice"), 30_000)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
-		return []byte("rootHash0"), nil
+		return []byte("rootHash1"), nil
 	}
 
 	// propose the second block
@@ -1421,33 +1518,31 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		[]byte("blockHash1"),
+		[]byte(testBlockHash1),
 	)
 	require.Nil(t, err)
 
 	// execute the empty proposed blocks
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    2,
-		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
-	})
+		PrevHash: []byte(testBlockHash1),
+	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
 	// execute the empty proposed blocks
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    3,
-		PrevHash: []byte("blockHash2"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
-	})
+		PrevHash: []byte(testBlockHash2),
+	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte("rootHash1"), nil
 	}
 
-	// the currentNonce should represent here the nonce of the block on which the selection is built
+	// the currentNonce should represent here the nonce of the block for which the selection is built
 	// no transactions should be returned
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 4)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 5)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 
@@ -1460,7 +1555,7 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1489,12 +1584,23 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
 
-	options := holders.NewTxSelectionOptions(
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numTxs := numTxsPerSender * len(senders)
@@ -1511,10 +1617,10 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1528,10 +1634,10 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock2 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2, &block.Header{
 		Nonce:    2,
-		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash1),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1540,8 +1646,7 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 
 	// now, suppose we want to re-select again for the block with nonce 2
 	// this means we do not want to use the second proposed block
-	// to do this, we have to call the SelectTransactions with other nonce - 1.
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1549,8 +1654,8 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	proposedBlock2 = createProposedBlock(selectedTransactions)
 	err = txpool.OnProposedBlock([]byte("blockHash3"), proposedBlock2, &block.Header{
 		Nonce:    2,
-		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash1),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1558,7 +1663,7 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// now, we should have one more non-empty selection
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1567,7 +1672,7 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	err = txpool.OnProposedBlock([]byte("blockHash4"), proposedBlock2, &block.Header{
 		Nonce:    3,
 		PrevHash: []byte("blockHash3"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1575,7 +1680,7 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// now, do the last selection and expect an empty one
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 4)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 }
@@ -1584,7 +1689,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1613,12 +1718,23 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
 
-	options := holders.NewTxSelectionOptions(
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numTxs := numTxsPerSender * len(senders)
@@ -1629,16 +1745,16 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selection
-	selectedTransactions, _, err := txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err := txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1646,16 +1762,16 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the second selection
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock2 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2, &block.Header{
 		Nonce:    2,
-		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash1),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1663,7 +1779,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// because it is only a simulation, we should have only one more non-empty selection.
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1671,8 +1787,8 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	proposedBlock2 = createProposedBlock(selectedTransactions)
 	err = txpool.OnProposedBlock([]byte("blockHash3"), proposedBlock2, &block.Header{
 		Nonce:    3,
-		PrevHash: []byte("blockHash2"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash2),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1681,7 +1797,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 
 	// now, do the last selection and expect an empty one
 	// used a lower nonce to highlight that the proposed blocks will not be removed
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 }
@@ -1703,7 +1819,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 			MaxTrackedBlocks:               3,
 		},
-	}, host)
+	}, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1728,12 +1844,23 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
 
-	options := holders.NewTxSelectionOptions(
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numTxs := numTxsPerSender * len(senders)
@@ -1749,10 +1876,10 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1760,18 +1887,18 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the second selection (the rest of the transactions should be selected)
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
 	// propose the second block
 	proposedBlock2 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2,
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2,
 		&block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1779,8 +1906,8 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the last selection (no tx should be returned)
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 
@@ -1788,8 +1915,8 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	err = txpool.OnProposedBlock([]byte("blockHash3"), &block.Body{},
 		&block.Header{
 			Nonce:    3,
-			PrevHash: []byte("blockHash2"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			PrevHash: []byte(testBlockHash2),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1801,7 +1928,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 		&block.Header{
 			Nonce:    4,
 			PrevHash: []byte("blockHash3"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1817,7 +1944,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 		&block.Header{
 			Nonce:    4,
 			PrevHash: []byte("blockHash3"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1847,7 +1974,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1876,13 +2003,23 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
 
-	options := holders.NewTxSelectionOptions(
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		3,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	// Consume most of relayer's balance. Keep an amount that is enough for the fee of two simple transfer transactions.
@@ -1963,8 +2100,8 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	require.Equal(t, txpool.CountTx(), uint64(4))
 
 	// do the first selection: first 3 transactions should be returned
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 0)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 1)
 	require.Nil(t, err)
 	require.Equal(t, 3, len(selectedTransactions))
 	require.Equal(t, "relayer", string(selectedTransactions[0].Tx.GetSndAddr()))
@@ -1973,11 +2110,11 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -1985,8 +2122,8 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the second selection, last tx should not be returned (relayer has insufficient balance)
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 }
@@ -1995,7 +2132,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -2024,13 +2161,23 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
 
-	options := holders.NewTxSelectionOptions(
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		2,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	// Consume most of relayer's balance. Keep an amount that is enough for the fee of two simple transfer transactions.
@@ -2111,8 +2258,8 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	require.Equal(t, txpool.CountTx(), uint64(4))
 
 	// do the first selection: first 3 transactions should be returned
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 0)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 1)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(selectedTransactions))
 	require.Equal(t, "relayer", string(selectedTransactions[0].Tx.GetSndAddr()))
@@ -2120,11 +2267,11 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -2132,9 +2279,619 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the second selection, last tx should not be returned (relayer has insufficient balance)
-	// the currentNonce should represent here the nonce of the block on which the selection is built
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	// the currentNonce should represent here the nonce of the block for which the selection is built
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(selectedTransactions))
 	require.Equal(t, "bob", string(selectedTransactions[0].Tx.GetSndAddr()))
+}
+
+func Test_SelectionWithRootHashMismatch(t *testing.T) {
+	t.Parallel()
+
+	host := txcachemocks.NewMempoolHostMock()
+	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             false,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               3,
+		},
+	}, host, 0)
+
+	require.Nil(t, err)
+	require.NotNil(t, txpool)
+
+	numTxsPerSender := 30_000
+	initialAmount := big.NewInt(int64(numTxsPerSender) * 50_000 * 1_000_000_000)
+
+	senders := []string{"alice", "bob"}
+	accounts := map[string]*stateMock.UserAccountStub{
+		"alice": {
+			Balance: initialAmount,
+			Nonce:   0,
+		},
+		"bob": {
+			Balance: initialAmount,
+			Nonce:   0,
+		},
+		"receiver": {
+			Balance: big.NewInt(0),
+			Nonce:   0,
+		},
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	// keep the same root hash with the one used on the OnExecutedBlock to avoid root hash mismatch on selection
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options, _ := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		numTxsPerSender,
+		10,
+		haveTimeTrue,
+	)
+
+	numTxs := numTxsPerSender * len(senders)
+	nonceTracker := newNoncesTracker()
+
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
+	require.Equal(t, txpool.CountTx(), uint64(numTxs))
+
+	// do the first selections
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 0)
+	require.Nil(t, err)
+	require.Equal(t, numTxsPerSender, len(selectedTransactions))
+
+	// change the returned root hash on selection session to trigger root hash mismatch
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte("rootHashX"), nil
+	}
+	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
+		Nonce:    1,
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
+	},
+		selectionSession,
+		defaultLatestExecutedHash,
+	)
+	require.ErrorContains(t, err, "root hash mismatch")
+}
+
+func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
+	t.Parallel()
+
+	host := txcachemocks.NewMempoolHostMock()
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
+
+	require.Nil(t, err)
+	require.NotNil(t, txpool)
+
+	// calculate the fee for transfer
+	feeForTransfer := int64(100_000 * 1_000_000_000)
+	accounts := map[string]*stateMock.UserAccountStub{
+		"alice": {
+			// alice has enough balance for one transaction
+			Balance: big.NewInt(0).Add(oneEGLD, big.NewInt(feeForTransfer)),
+			Nonce:   0,
+		},
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	// keep the same root hash with the one used on the OnExecutedBlock to avoid root hash mismatch on selection
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	nonceTracker := newNoncesTracker()
+
+	// create two transactions.
+	// both transactions have alice as sender and relayer
+	// alice has enough balance only for this transaction
+	tx := &transaction.Transaction{
+		Nonce:       nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:       oneEGLD,
+		SndAddr:     []byte("alice"),
+		RcvAddr:     []byte("receiver"),
+		Data:        []byte{},
+		GasLimit:    100_000,
+		GasPrice:    1_000_000_000,
+		ChainID:     []byte(configs.ChainID),
+		Version:     2,
+		Signature:   []byte("signature"),
+		RelayerAddr: []byte("alice"),
+	}
+
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:     tx,
+		TxHash: []byte("txHash1"),
+	})
+
+	// the second transaction has alice as sender and as relayer.
+	// this transaction should not be selected
+	tx = &transaction.Transaction{
+		Nonce:       nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:       big.NewInt(0),
+		SndAddr:     []byte("alice"),
+		RcvAddr:     []byte("receiver"),
+		Data:        []byte{},
+		GasLimit:    100_000,
+		GasPrice:    1_000_000_000,
+		ChainID:     []byte(configs.ChainID),
+		Version:     2,
+		Signature:   []byte("signature"),
+		RelayerAddr: []byte("alice"),
+	}
+
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:     tx,
+		TxHash: []byte("txHash2"),
+	})
+
+	options, _ := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		1,
+		10,
+		haveTimeTrue,
+	)
+
+	// do the first selection
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 1)
+	require.Nil(t, err)
+	require.Len(t, selectedTransactions, 1)
+	require.Equal(t, selectedTransactions[0].TxHash, []byte("txHash1"))
+
+	// propose the block
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	// the second tx should not be selected, because alice has insufficient funds
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
+	require.Nil(t, err)
+	require.Len(t, selectedTransactions, 0)
+}
+
+func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
+	t.Parallel()
+
+	host := txcachemocks.NewMempoolHostMock()
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
+
+	require.Nil(t, err)
+	require.NotNil(t, txpool)
+
+	// calculate the fee for transfer
+	feeForTransfer := int64(100_000 * 1_000_000_000)
+	accounts := map[string]*stateMock.UserAccountStub{
+		"alice": {
+			// alice has enough balance for one transaction
+			Balance: big.NewInt(feeForTransfer),
+			Nonce:   0,
+		},
+		"bob": {
+			Balance: big.NewInt(0),
+			Nonce:   0,
+		},
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	// keep the same root hash with the one used on the OnExecutedBlock to avoid root hash mismatch on selection
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	nonceTracker := newNoncesTracker()
+
+	// the first transaction has alice as sender and its own relayer
+	tx := &transaction.Transaction{
+		Nonce:       nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:       big.NewInt(0),
+		SndAddr:     []byte("alice"),
+		RcvAddr:     []byte("receiver"),
+		Data:        []byte{},
+		GasLimit:    100_000,
+		GasPrice:    1_000_000_000,
+		ChainID:     []byte(configs.ChainID),
+		Version:     2,
+		Signature:   []byte("signature"),
+		RelayerAddr: []byte("alice"),
+	}
+
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:     tx,
+		TxHash: []byte("txHash1"),
+	})
+
+	// the second transaction has bob as sender and alice as relayer.
+	// this transaction should not be selected
+	tx = &transaction.Transaction{
+		Nonce:       nonceTracker.getThenIncrementNonceByStringAddress("bob"),
+		Value:       big.NewInt(0),
+		SndAddr:     []byte("bob"),
+		RcvAddr:     []byte("receiver"),
+		Data:        []byte{},
+		GasLimit:    100_000,
+		GasPrice:    1_000_000_000,
+		ChainID:     []byte(configs.ChainID),
+		Version:     2,
+		Signature:   []byte("signature"),
+		RelayerAddr: []byte("alice"),
+	}
+
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:     tx,
+		TxHash: []byte("txHash2"),
+	})
+
+	options, _ := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		// select max 2 txs
+		2,
+		10,
+		haveTimeTrue,
+	)
+
+	// do the first selection
+	// only one should be selected
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 1)
+	require.Nil(t, err)
+	require.Len(t, selectedTransactions, 1)
+	require.Equal(t, selectedTransactions[0].TxHash, []byte("txHash1"))
+
+	// propose the block
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	// the second tx should not be selected, because alice has insufficient funds
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
+	require.Nil(t, err)
+	require.Len(t, selectedTransactions, 0)
+}
+
+func TestMempoolWithChainSimulator_Selection_InstantChangeGuardian(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numSenders := 2
+	shard := 0
+
+	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
+	defer simulator.Close()
+
+	err := simulator.GenerateBlocksUntilEpochIsReached(2)
+	require.NoError(t, err)
+
+	participants := createParticipants(t, simulator, numSenders)
+	noncesTracker := newNoncesTracker()
+
+	alice := participants.sendersByShard[shard][0]
+	bob := participants.sendersByShard[shard][1]
+	receiver := participants.receiverByShard[shard]
+
+	transactions := make([]*transaction.Transaction, 0)
+
+	// Guard Alice's account
+	setGuardianTxData := "SetGuardian@" + hex.EncodeToString(bob.Bytes) + "@" + hex.EncodeToString([]byte("uuid"))
+	setGuardianTx := &transaction.Transaction{
+		Nonce:     noncesTracker.getThenIncrementNonce(alice),
+		Value:     big.NewInt(0),
+		SndAddr:   alice.Bytes,
+		RcvAddr:   alice.Bytes,
+		Data:      []byte(setGuardianTxData),
+		GasLimit:  600_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	}
+	_, err = simulator.SendTxAndGenerateBlockTilTxIsExecuted(setGuardianTx, 10)
+	require.NoError(t, err)
+
+	// fast-forward until the guardian becomes active
+	err = simulator.GenerateBlocks(int(simulator.GetNodeHandler(uint32(shard)).GetCoreComponents().ChainParametersHandler().CurrentChainParameters().RoundsPerEpoch * 20))
+	require.NoError(t, err)
+
+	guardAccountTx := &transaction.Transaction{
+		Nonce:     noncesTracker.getThenIncrementNonce(alice),
+		Value:     big.NewInt(0),
+		SndAddr:   alice.Bytes,
+		RcvAddr:   alice.Bytes,
+		Data:      []byte("GuardAccount"),
+		GasLimit:  400_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	}
+	_, err = simulator.SendTxAndGenerateBlockTilTxIsExecuted(guardAccountTx, 10)
+	require.NoError(t, err)
+
+	guardianData, _, err := simulator.GetNodeHandler(uint32(shard)).GetFacadeHandler().GetGuardianData(alice.Bech32, api.AccountQueryOptions{})
+	require.NoError(t, err)
+
+	require.NotNil(t, guardianData)
+	require.True(t, guardianData.Guarded)
+	require.NotNil(t, guardianData.ActiveGuardian)
+	require.Equal(t, bob.Bech32, guardianData.ActiveGuardian.Address)
+
+	// Transfer from Alice to receiver -> should be selected
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:             noncesTracker.getThenIncrementNonce(alice),
+		Value:             oneQuarterOfEGLD,
+		SndAddr:           alice.Bytes,
+		RcvAddr:           receiver.Bytes,
+		Data:              []byte{},
+		GasLimit:          100_000,
+		GasPrice:          1_000_000_002,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      bob.Bytes,
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	})
+
+	// Change guardian -> should be selected
+	setGuardianTxData = "SetGuardian@" + hex.EncodeToString(receiver.Bytes) + "@" + hex.EncodeToString([]byte("uuid"))
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:             noncesTracker.getThenIncrementNonce(alice),
+		Value:             big.NewInt(0),
+		SndAddr:           alice.Bytes,
+		RcvAddr:           alice.Bytes,
+		Data:              []byte(setGuardianTxData),
+		GasLimit:          600_000,
+		GasPrice:          1_000_000_002,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      bob.Bytes,
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	})
+
+	// Transfer from Alice to receiver -> should NOT be selected
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:             noncesTracker.getThenIncrementNonce(alice),
+		Value:             oneQuarterOfEGLD,
+		SndAddr:           alice.Bytes,
+		RcvAddr:           receiver.Bytes,
+		Data:              []byte{},
+		GasLimit:          100_000,
+		GasPrice:          1_000_000_002,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      bob.Bytes, // guarded by the old guardian
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	})
+
+	sendTransactions(t, simulator, transactions)
+	time.Sleep(durationWaitAfterSendSome)
+	require.Equal(t, 3, getNumTransactionsInPool(simulator, shard))
+
+	// Propose the header with initial 2 transactions
+	err = simulator.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	currentHeader := simulator.GetNodeHandler(uint32(shard)).GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.Equal(t, uint32(2), currentHeader.GetTxCount())
+
+	// Propose one more header, will select the 3rd transaction
+	err = simulator.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	currentHeader = simulator.GetNodeHandler(uint32(shard)).GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.Equal(t, uint32(1), currentHeader.GetTxCount())
+
+	require.Equal(t, 1, getNumTransactionsInPool(simulator, shard))
+
+	// Propose one more header, should not select anything (empty pool)
+	err = simulator.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	currentHeader = simulator.GetNodeHandler(uint32(shard)).GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.Equal(t, uint32(0), currentHeader.GetTxCount())
+
+	require.Equal(t, 0, getNumTransactionsInPool(simulator, shard))
+}
+
+func TestMempoolWithChainSimulator_Selection_InstantChangeGuardian_ReplaceHeader(t *testing.T) {
+	t.Parallel()
+
+	host := txcachemocks.NewMempoolHostMock()
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
+
+	require.Nil(t, err)
+	require.NotNil(t, txpool)
+
+	// calculate the fee for transfer
+	accounts := map[string]*stateMock.UserAccountStub{
+		"alice": {
+			// alice has enough balance for transactions
+			Balance: core.SafeMul(oneEGLD.Uint64(), 100),
+			Nonce:   0,
+		},
+		"bob": {
+			Balance: big.NewInt(0),
+			Nonce:   0,
+		},
+		"receiver": {
+			Balance: big.NewInt(0),
+			Nonce:   0,
+		},
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	// all transactions are correctly guarded, except the last one
+	selectionSession.IsGuardedCalled = func(tx data.TransactionHandler) bool {
+		return true
+	}
+	selectionSession.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
+		return tx.GetNonce() == 4
+	}
+	// keep the same root hash with the one used on the OnExecutedBlock to avoid root hash mismatch on selection
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{
+		Nonce: 0,
+	}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	nonceTracker := newNoncesTracker()
+
+	// Transfer from Alice to receiver -> should be selected
+	tx1 := &transaction.Transaction{
+		Nonce:             nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:             oneQuarterOfEGLD,
+		SndAddr:           []byte("alice"),
+		RcvAddr:           []byte("receiver"),
+		Data:              []byte{},
+		GasLimit:          100_000,
+		GasPrice:          1_000_000_000,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      []byte("bob"),
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	}
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:     tx1,
+		TxHash: []byte("txHash1"),
+	})
+
+	// Change guardian -> should be selected
+	setGuardianTxData := "SetGuardian@" + hex.EncodeToString([]byte("receiver")) + "@" + hex.EncodeToString([]byte("uuid"))
+	tx2 := &transaction.Transaction{
+		Nonce:             nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:             big.NewInt(0),
+		SndAddr:           []byte("alice"),
+		RcvAddr:           []byte("alice"),
+		Data:              []byte(setGuardianTxData),
+		GasLimit:          600_000,
+		GasPrice:          1_000_000_000,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      []byte("bob"),
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	}
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:     tx2,
+		TxHash: []byte("txHash2"),
+	})
+
+	// Transfer from Alice to receiver -> should NOT be selected
+	tx3 := &transaction.Transaction{
+		Nonce:             nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:             oneQuarterOfEGLD,
+		SndAddr:           []byte("alice"),
+		RcvAddr:           []byte("receiver"),
+		Data:              []byte{},
+		GasLimit:          100_000,
+		GasPrice:          1_000_000_000,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      []byte("bob"), // guarded by the old guardian
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	}
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:     tx3,
+		TxHash: []byte("txHash3"),
+	})
+
+	options, _ := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		// select max 3 txs
+		3,
+		10,
+		haveTimeTrue,
+	)
+
+	// do the first selection
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 1)
+	require.Nil(t, err)
+	require.Len(t, selectedTransactions, 2)
+	require.Equal(t, selectedTransactions[0].TxHash, []byte("txHash1"))
+	require.Equal(t, selectedTransactions[1].TxHash, []byte("txHash2"))
+
+	// propose the block
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	// do the second selection with the same block nonce
+	// should select the same txs
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	require.Nil(t, err)
+	require.Len(t, selectedTransactions, 2)
+	require.Equal(t, selectedTransactions[0].TxHash, []byte("txHash1"))
+	require.Equal(t, selectedTransactions[1].TxHash, []byte("txHash2"))
 }

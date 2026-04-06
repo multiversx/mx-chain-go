@@ -10,10 +10,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
-	"github.com/stretchr/testify/require"
 )
 
 func proposeBlocks(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, accountsProvider common.AccountNonceAndBalanceProvider) {
@@ -42,12 +44,13 @@ func executeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *
 		go func(index int) {
 			defer wg.Done()
 
+			rootHash := []byte("rootHash0")
+
 			blockHeader := &block.Header{
 				Nonce:    uint64(index),
 				PrevHash: []byte(fmt.Sprintf("prevHash%d", index-1)),
-				RootHash: []byte("rootHash0"),
 			}
-			err := selectionTracker.OnExecutedBlock(blockHeader)
+			err := selectionTracker.OnExecutedBlock(blockHeader, rootHash)
 			require.Nil(t, err)
 		}(i)
 	}
@@ -62,14 +65,14 @@ func TestNewSelectionTracker(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		_, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		_, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 	})
 
 	t.Run("should fail because of nil TxCache", func(t *testing.T) {
 		t.Parallel()
 
-		tracker, err := NewSelectionTracker(nil, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(nil, 0, maxTrackedBlocks)
 		require.Equal(t, errNilTxCache, err)
 		require.Nil(t, tracker)
 	})
@@ -78,7 +81,7 @@ func TestNewSelectionTracker(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, 0)
+		tracker, err := NewSelectionTracker(txCache, 0, 0)
 		require.Equal(t, errInvalidMaxTrackedBlocks, err)
 		require.Nil(t, tracker)
 	})
@@ -91,7 +94,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		err = tracker.OnProposedBlock(nil, &block.Body{}, nil, nil, nil)
@@ -102,7 +105,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		blockBody := block.Body{}
@@ -115,7 +118,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
 
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		err = tracker.OnProposedBlock([]byte("hash1"), nil, &block.Header{}, nil, defaultLatestExecutedHash)
@@ -127,7 +130,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		err = tracker.OnProposedBlock([]byte("hash1"), &block.Body{}, &block.Header{}, nil, nil)
@@ -141,7 +144,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		txCache.txByHash.addTx(createTx([]byte("txHash1"), "alice", 1))
 		txCache.txByHash.addTx(createTx([]byte("txHash2"), "alice", 5))
 
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		blockBody := block.Body{
@@ -179,7 +182,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		txCache.txByHash.addTx(createTx([]byte("txHash3"), "alice", 4))
 		txCache.txByHash.addTx(createTx([]byte("txHash4"), "alice", 5))
 
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		blockBody1 := block.Body{
@@ -234,7 +237,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		txCache.txByHash.addTx(createTx([]byte("txHash3"), "alice", 3).withTransferredValue(big.NewInt(5)))
 		txCache.txByHash.addTx(createTx([]byte("txHash4"), "alice", 4).withTransferredValue(big.NewInt(6)))
 
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		blockBody1 := block.Body{
@@ -288,7 +291,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
 		txCache.txByHash.addTx(createTx([]byte("txHash1"), "alice", 1))
 
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		blockBody1 := block.Body{
@@ -314,13 +317,48 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		}, accountsProvider, []byte("prevHash0"))
 		require.Equal(t, expectedErr, err)
 	})
+
+	t.Run("should return errRootHashMismatch in case of different root hashes", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		txCache.txByHash.addTx(createTx([]byte("txHash1"), "alice", 1))
+
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		blockBody1 := block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+					},
+				},
+			},
+		}
+
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+			GetRootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash1"), nil
+			},
+		}
+
+		tracker.latestRootHash = []byte("rootHashX")
+
+		err = tracker.OnProposedBlock([]byte("hash1"), &blockBody1, &block.Header{
+			Nonce:    uint64(0),
+			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		}, accountsProvider, []byte("prevHash0"))
+		require.Equal(t, errRootHashMismatch, err)
+	})
 }
 
 func TestSelectionTracker_OnProposedBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
 	numOfBlocks := 20
@@ -334,7 +372,7 @@ func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testin
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, 3)
+	tracker, err := NewSelectionTracker(txCache, 0, 3)
 	require.Nil(t, err)
 
 	numOfBlocks := 3
@@ -429,28 +467,28 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 
 	host := txcachemocks.NewMempoolHostMock()
 
-	cache, err := NewTxCache(config, host)
+	cache, err := NewTxCache(config, host, 0)
 	require.Nil(t, err)
 
 	txs := []*WrappedTransaction{
 		// txs for first block
-		createTx([]byte("txHash1"), "alice", 11).withRelayer([]byte("bob")).withGasLimit(100_000), // the fee is 100000000000000
-		createTx([]byte("txHash2"), "alice", 12),                                                  // the fee is 50000000000000
-		createTx([]byte("txHash3"), "alice", 13),
-		createTx([]byte("txHash4"), "bob", 11),
-		createTx([]byte("txHash5"), "carol", 11),
-		createTx([]byte("txHash6"), "carol", 12).withRelayer([]byte("bob")).withGasLimit(100_000),
-		createTx([]byte("txHash7"), "carol", 13).withRelayer([]byte("alice")).withGasLimit(100_000),
-		createTx([]byte("txHash8"), "carol", 14).withRelayer([]byte("eve")).withGasLimit(100_000),
+		createTx([]byte("txHash1"), "alice", 11).withValue(big.NewInt(0)).withRelayer([]byte("bob")).withGasLimit(100_000), // the fee is 100000000000000
+		createTx([]byte("txHash2"), "alice", 12).withValue(big.NewInt(0)),                                                  // the fee is 50000000000000
+		createTx([]byte("txHash3"), "alice", 13).withValue(big.NewInt(0)),
+		createTx([]byte("txHash4"), "bob", 11).withValue(big.NewInt(0)),
+		createTx([]byte("txHash5"), "carol", 11).withValue(big.NewInt(0)),
+		createTx([]byte("txHash6"), "carol", 12).withValue(big.NewInt(0)).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash7"), "carol", 13).withValue(big.NewInt(0)).withRelayer([]byte("alice")).withGasLimit(100_000),
+		createTx([]byte("txHash8"), "carol", 14).withValue(big.NewInt(0)).withRelayer([]byte("eve")).withGasLimit(100_000),
 
 		// txs for second block
-		createTx([]byte("txHash9"), "carol", 15),
-		createTx([]byte("txHash10"), "eve", 11).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash9"), "carol", 15).withValue(big.NewInt(0)),
+		createTx([]byte("txHash10"), "eve", 11).withValue(big.NewInt(0)).withRelayer([]byte("bob")).withGasLimit(100_000),
 
 		// tx to be selected
-		createTx([]byte("txHash11"), "bob", 12),
-		createTx([]byte("txHash12"), "carol", 13), // this one should not be selected
-		createTx([]byte("txHash13"), "eve", 14),   // this one should not be selected
+		createTx([]byte("txHash11"), "bob", 12).withValue(big.NewInt(0)),
+		createTx([]byte("txHash12"), "carol", 13).withValue(big.NewInt(0)), // this one should not be selected
+		createTx([]byte("txHash13"), "eve", 14).withValue(big.NewInt(0)),   // this one should not be selected
 	}
 	for _, tx := range txs {
 		cache.AddTx(tx)
@@ -554,8 +592,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	err = cache.OnExecutedBlock(&block.Header{
 		Nonce:    uint64(0),
 		PrevHash: []byte("hash0"),
-		RootHash: []byte("rootHash0"),
-	})
+	}, []byte("rootHash0"))
 	require.Nil(t, err)
 
 	for _, txHash := range proposedBlock1 {
@@ -594,11 +631,11 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	}
 	require.Equal(t, expectedVirtualRecords, virtualSession.virtualAccountsByAddress)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		10,
-		selectionLoopMaximumDuration,
 		10,
+		haveTimeTrueForSelection,
 	)
 
 	selectedTxs, _, err := cache.SelectTransactions(
@@ -615,10 +652,10 @@ func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
-	err = tracker.OnExecutedBlock(nil)
+	err = tracker.OnExecutedBlock(nil, []byte{})
 	require.Equal(t, errNilBlockHeader, err)
 }
 
@@ -626,7 +663,7 @@ func TestSelectionTracker_OnExecutedBlockShouldWork(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
 	numOfBlocks := 20
@@ -646,7 +683,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
 	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
 	err = tracker.OnProposedBlock(
@@ -704,16 +741,14 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 	err = tracker.OnExecutedBlock(&block.Header{
 		Nonce:    2,
 		PrevHash: []byte(fmt.Sprintf("blockHash%d", 1)),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 0)))
 	require.Nil(t, err)
 	require.Equal(t, 1, len(tracker.blocks))
 
 	err = tracker.OnExecutedBlock(&block.Header{
 		Nonce:    3,
 		PrevHash: []byte(fmt.Sprintf("blockHash%d", 2)),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 0)))
 	require.Nil(t, err)
 	require.Equal(t, 0, len(tracker.blocks))
 }
@@ -725,7 +760,7 @@ func TestSelectionTracker_updateLatestRoothash(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		tracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
@@ -737,7 +772,7 @@ func TestSelectionTracker_updateLatestRoothash(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		tracker.updateLatestRootHashNoLock(2, []byte("rootHash2"))
@@ -753,7 +788,7 @@ func TestSelectionTracker_updateLatestRoothash(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		tracker.updateLatestRootHashNoLock(1, []byte("rootHash1"))
@@ -770,12 +805,12 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
-	expectedTrackedBlock := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("prevHash2"))
-	b1 := newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"))
-	b2 := newTrackedBlock(0, []byte("blockHash3"), []byte("rootHash3"), []byte("prevHash1"))
+	expectedTrackedBlock := newTrackedBlock(1, []byte("blockHash2"), []byte("prevHash2"))
+	b1 := newTrackedBlock(0, []byte("blockHash1"), []byte("prevHash1"))
+	b2 := newTrackedBlock(0, []byte("blockHash3"), []byte("prevHash1"))
 
 	tracker.blocks = map[string]*trackedBlock{
 		string(b1.hash):                   b1,
@@ -785,7 +820,7 @@ func TestSelectionTracker_removeFromTrackedBlocks(t *testing.T) {
 
 	require.Equal(t, 3, len(tracker.blocks))
 
-	r := newTrackedBlock(0, nil, nil, []byte("prevHash1"))
+	r := newTrackedBlock(0, nil, []byte("prevHash1"))
 
 	err = tracker.removeUpToBlockNoLock(r)
 	require.Nil(t, err)
@@ -805,34 +840,34 @@ func TestSelectionTracker_getChainOfTrackedBlocks(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
 	// create a slice of tracked block which aren't ordered
 	tracker.blocks = make(map[string]*trackedBlock)
-	b := newTrackedBlock(7, []byte("blockHash8"), []byte("rootHash8"), []byte("blockHash7"))
+	b := newTrackedBlock(7, []byte("blockHash8"), []byte("blockHash7"))
 	tracker.blocks[string(b.hash)] = b
 
-	b = newTrackedBlock(5, []byte("blockHash6"), []byte("rootHash6"), []byte("blockHash5"))
+	b = newTrackedBlock(5, []byte("blockHash6"), []byte("blockHash5"))
 	tracker.blocks[string(b.hash)] = b
 
-	b = newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash2"), []byte("blockHash1"))
+	b = newTrackedBlock(1, []byte("blockHash2"), []byte("blockHash1"))
 	tracker.blocks[string(b.hash)] = b
 
-	b = newTrackedBlock(0, []byte("blockHash1"), []byte("rootHash1"), []byte("prevHash1"))
+	b = newTrackedBlock(0, []byte("blockHash1"), []byte("prevHash1"))
 	tracker.blocks[string(b.hash)] = b
 
-	b = newTrackedBlock(3, []byte("blockHash4"), []byte("rootHash4"), []byte("blockHash3"))
+	b = newTrackedBlock(3, []byte("blockHash4"), []byte("blockHash3"))
 	tracker.blocks[string(b.hash)] = b
 
-	b = newTrackedBlock(2, []byte("blockHash3"), []byte("rootHash3"), []byte("blockHash2"))
+	b = newTrackedBlock(2, []byte("blockHash3"), []byte("blockHash2"))
 	tracker.blocks[string(b.hash)] = b
 
 	// create a block with a wrong previous hash
-	b = newTrackedBlock(4, []byte("blockHash5"), []byte("rootHash5"), []byte("blockHashY"))
+	b = newTrackedBlock(4, []byte("blockHash5"), []byte("blockHashY"))
 	tracker.blocks[string(b.hash)] = b
 
-	b = newTrackedBlock(6, []byte("blockHash7"), []byte("rootHash7"), []byte("blockHash6"))
+	b = newTrackedBlock(6, []byte("blockHash7"), []byte("blockHash6"))
 	tracker.blocks[string(b.hash)] = b
 
 	t.Run("check order to be from head to tail", func(t *testing.T) {
@@ -888,37 +923,80 @@ func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
-	expectedErr := errors.New("expected err")
+	// should do the tests sequentially
+	t.Run("get roothash returns error, should error", func(t *testing.T) {
+		expectedErr := errors.New("expected err")
 
-	session := txcachemocks.SelectionSessionMock{}
-	session.GetRootHashCalled = func() ([]byte, error) {
-		return nil, expectedErr
-	}
-	virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, 0, false)
-	require.Nil(t, virtualSession)
-	require.Equal(t, expectedErr, actualErr)
+		session := txcachemocks.SelectionSessionMock{}
+		session.GetRootHashCalled = func() ([]byte, error) {
+			return nil, expectedErr
+		}
+		virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, 0, false)
+		require.Nil(t, virtualSession)
+		require.Equal(t, expectedErr, actualErr)
+	})
+	t.Run("cannot do simulation error on wrong nonce, returns error", func(t *testing.T) {
+		session := txcachemocks.SelectionSessionMock{}
+		session.GetRootHashCalled = func() ([]byte, error) {
+			return []byte("root hash"), nil
+		}
+		virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, 10, true)
+		require.Nil(t, virtualSession)
+		require.Equal(t, errSimulateSelectionContextInvalid, actualErr)
+	})
+}
+
+func TestSelectionTracker_canDoSimulateSelection(t *testing.T) {
+	t.Parallel()
+
+	t.Run("OK - matching nonce", func(t *testing.T) {
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+		tracker.latestNonce = 9
+		require.Nil(t, err)
+		require.True(t, tracker.canDoSimulateSelection(10))
+
+		// matching on top of tracked blocks
+		tracker.blocks["blockHash1"] = newTrackedBlock(10, []byte("blockHash1"), []byte("prevHash1"))
+		require.True(t, tracker.canDoSimulateSelection(11))
+	})
+	t.Run("simulation trial with lower nonce than last nonce should return false", func(t *testing.T) {
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		tracker.latestNonce = 9
+		require.False(t, tracker.canDoSimulateSelection(8))
+	})
+	t.Run("simulation trial when having tracked blocks", func(t *testing.T) {
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+		require.Nil(t, err)
+		tracker.latestNonce = 9
+		tracker.blocks["blockHash1"] = newTrackedBlock(10, []byte("blockHash1"), []byte("prevHash1"))
+		// same as last tracked block
+		require.False(t, tracker.canDoSimulateSelection(10))
+
+		// previous nonce to last tracked block
+		tracker.blocks["blockHash2"] = newTrackedBlock(11, []byte("blockHash2"), []byte("blockHash1"))
+		require.False(t, tracker.canDoSimulateSelection(10))
+
+		// above and with gap compared to last tracked block
+		require.False(t, tracker.canDoSimulateSelection(13))
+	})
 }
 
 func TestSelectionTracker_deriveVirtualSelectionSessionShouldDeleteProposedBlocks(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-	tracker.blocks = map[string]*trackedBlock{
-		"hash1": {
-			nonce: 1,
-		},
-		"hash2": {
-			nonce: 2,
-		},
-		"hash3": {
-			nonce: 3,
-		},
-	}
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
+
+	tracker.blocks = createDummyTrackedBlocks()
 	require.Equal(t, 3, len(tracker.blocks))
 
 	session := txcachemocks.SelectionSessionMock{}
@@ -935,18 +1013,9 @@ func TestSelectionTracker_deriveVirtualSelectionSessionShouldNotDeleteProposedBl
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-	tracker.blocks = map[string]*trackedBlock{
-		"hash1": {
-			nonce: 1,
-		},
-		"hash2": {
-			nonce: 2,
-		},
-		"hash3": {
-			nonce: 3,
-		},
-	}
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+	require.Nil(t, err)
+	tracker.blocks = createDummyTrackedBlocks()
 	require.Nil(t, err)
 	require.Equal(t, 3, len(tracker.blocks))
 
@@ -988,7 +1057,6 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 			{
 				nonce:    0,
 				hash:     []byte("hash1"),
-				rootHash: []byte("rootHash1"),
 				prevHash: []byte("prevHash1"),
 				breadcrumbsByAddress: map[string]*accountBreadcrumb{
 					"alice": breadcrumbAlice1,
@@ -997,7 +1065,6 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 			{
 				nonce:    0,
 				hash:     []byte("hash2"),
-				rootHash: []byte("rootHash2"),
 				prevHash: []byte("prevHash2"),
 				breadcrumbsByAddress: map[string]*accountBreadcrumb{
 					"alice": breadcrumbAlice2,
@@ -1012,7 +1079,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		}
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		err = tracker.validateBreadcrumbsOfTrackedBlocks(trackedBlocks, &mockSelectionSession)
@@ -1046,7 +1113,6 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 			{
 				nonce:    0,
 				hash:     []byte("hash1"),
-				rootHash: []byte("rootHash1"),
 				prevHash: []byte("prevHash1"),
 				breadcrumbsByAddress: map[string]*accountBreadcrumb{
 					"alice": breadcrumbAlice1,
@@ -1055,7 +1121,6 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 			{
 				nonce:    0,
 				hash:     []byte("hash2"),
-				rootHash: []byte("rootHash2"),
 				prevHash: []byte("prevHash2"),
 				breadcrumbsByAddress: map[string]*accountBreadcrumb{
 					"alice": breadcrumbAlice2,
@@ -1070,7 +1135,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		}
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		err = tracker.validateBreadcrumbsOfTrackedBlocks(trackedBlocks, &mockSelectionSession)
@@ -1104,7 +1169,6 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 			{
 				nonce:    0,
 				hash:     []byte("hash1"),
-				rootHash: []byte("rootHash1"),
 				prevHash: []byte("prevHash1"),
 				breadcrumbsByAddress: map[string]*accountBreadcrumb{
 					"alice": breadcrumbAlice1,
@@ -1113,7 +1177,6 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 			{
 				nonce:    0,
 				hash:     []byte("hash2"),
-				rootHash: []byte("rootHash2"),
 				prevHash: []byte("prevHash2"),
 				breadcrumbsByAddress: map[string]*accountBreadcrumb{
 					"alice": breadcrumbAlice2,
@@ -1128,7 +1191,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 		}
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		err = tracker.validateBreadcrumbsOfTrackedBlocks(trackedBlocks, &mockSelectionSession)
@@ -1140,12 +1203,12 @@ func TestSelectionTracker_addNewBlockNoLock(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
-	tb0 := newTrackedBlock(0, []byte("blockHash0"), []byte("rootHash0"), []byte("blockHash"))
-	tb1 := newTrackedBlock(1, []byte("blockHash1"), []byte("rootHash0"), []byte("blockHash0"))
-	tb2 := newTrackedBlock(1, []byte("blockHash2"), []byte("rootHash0"), []byte("blockHash0"))
+	tb0 := newTrackedBlock(0, []byte("blockHash0"), []byte("blockHash"))
+	tb1 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockHash0"))
+	tb2 := newTrackedBlock(1, []byte("blockHash2"), []byte("blockHash0"))
 
 	err = tracker.addNewTrackedBlockNoLock([]byte("blockHash0"), tb0)
 	require.Nil(t, err)
@@ -1167,10 +1230,10 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
-		tracker.blocks["hash2"] = newTrackedBlock(0, []byte("hash2"), []byte("rootHash0"), []byte("hash1"))
+		tracker.blocks["hash2"] = newTrackedBlock(0, []byte("hash2"), []byte("hash1"))
 
 		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"))
 		require.Equal(t, errGlobalBreadcrumbDoesNotExist, err)
@@ -1180,7 +1243,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 
 		breadcrumb := newAccountBreadcrumb(core.OptionalUint64{HasValue: true, Value: 10})
@@ -1190,7 +1253,7 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		tb := newTrackedBlock(0, []byte("hash2"), []byte("rootHash0"), []byte("hash1"))
+		tb := newTrackedBlock(0, []byte("hash2"), []byte("hash1"))
 		tb.breadcrumbsByAddress["alice"] = breadcrumb
 
 		tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(tb)
@@ -1205,9 +1268,8 @@ func Test_isTransactionTracked(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
-
 	txCache.tracker = tracker
 
 	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
@@ -1348,7 +1410,7 @@ func TestSelectionTracker_IsTransactionTracked(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
 	txCache.tracker = tracker
@@ -1412,16 +1474,12 @@ func TestSelectionTracker_ResetTracker(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
 	txCache.tracker = tracker
 
-	tracker.blocks = map[string]*trackedBlock{
-		"hash1": {},
-		"hash2": {},
-	}
-
+	tracker.blocks = createDummyTrackedBlocks()
 	tracker.globalBreadcrumbsCompiler.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
 		"alice": {},
 		"bob":   {},
@@ -1434,7 +1492,7 @@ func TestSelectionTracker_ResetTracker(t *testing.T) {
 	require.Equal(t, []byte("rootHash0"), tracker.latestRootHash)
 	require.Equal(t, uint64(10), tracker.latestNonce)
 
-	require.Equal(t, 2, len(tracker.blocks))
+	require.Equal(t, 3, len(tracker.blocks))
 	require.Equal(t, 3, len(tracker.globalBreadcrumbsCompiler.globalAccountBreadcrumbs))
 
 	tracker.ResetTrackedBlocks()
@@ -1452,7 +1510,7 @@ func Test_getDimensionOfTrackedBlocks(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 		require.Nil(t, err)
 		txCache.tracker = tracker
 
@@ -1461,11 +1519,7 @@ func Test_getDimensionOfTrackedBlocks(t *testing.T) {
 		require.Equal(t, uint64(0), trackerDiagnosis.GetNumTrackedBlocks())
 		require.Equal(t, uint64(0), trackerDiagnosis.GetNumTrackedAccounts())
 
-		tracker.blocks = map[string]*trackedBlock{
-			"hash1": {},
-			"hash2": {},
-			"hash3": {},
-		}
+		tracker.blocks = createDummyTrackedBlocks()
 		tracker.globalBreadcrumbsCompiler.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
 			"alice": {},
 			"bob":   {},
@@ -1481,34 +1535,16 @@ func TestSelectionTracker_addNewTrackedBlockNoLock(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
 	txCache.tracker = tracker
-
-	tracker.blocks = map[string]*trackedBlock{
-		"hash1": {
-			nonce:    1,
-			hash:     []byte("hash1"),
-			rootHash: []byte("rootHash"),
-		},
-		"hash2": {
-			nonce:    2,
-			hash:     []byte("hash2"),
-			rootHash: []byte("rootHash"),
-		},
-		"hash3": {
-			nonce:    3,
-			hash:     []byte("hash3"),
-			rootHash: []byte("rootHash"),
-		},
-	}
+	tracker.blocks = createDummyTrackedBlocks()
 
 	require.Equal(t, 3, len(txCache.tracker.blocks))
 	err = tracker.addNewTrackedBlockNoLock([]byte("hashX"), &trackedBlock{
-		nonce:    1,
-		hash:     []byte("hashX"),
-		rootHash: []byte("rootHash"),
+		nonce: 1,
+		hash:  []byte("hashX"),
 	})
 	require.Nil(t, err)
 
@@ -1517,74 +1553,826 @@ func TestSelectionTracker_addNewTrackedBlockNoLock(t *testing.T) {
 	require.True(t, ok)
 }
 
-func TestSelectionTracker_removeBlockAboveOrEqualToNoLock(t *testing.T) {
+func TestSelectionTracker_removeBlocksAboveNonce(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
 	txCache.tracker = tracker
 
-	tracker.blocks = map[string]*trackedBlock{
-		"hash1": {
-			nonce:    1,
-			hash:     []byte("hash1"),
-			rootHash: []byte("rootHash"),
-		},
-		"hash2": {
-			nonce:    2,
-			hash:     []byte("hash2"),
-			rootHash: []byte("rootHash"),
-		},
-		"hash3": {
-			nonce:    3,
-			hash:     []byte("hash3"),
-			rootHash: []byte("rootHash"),
-		},
-	}
+	tracker.blocks = createDummyTrackedBlocks()
 
 	require.Equal(t, 3, len(txCache.tracker.blocks))
-	err = tracker.removeBlockEqualOrAboveNoLock([]byte("hash1"), &trackedBlock{
-		nonce:    1,
-		hash:     []byte("hash3"),
-		rootHash: []byte("rootHash"),
-	})
+	err = tracker.removeBlocksAboveOrEqualToNonceNoLock(1)
 	require.Nil(t, err)
 
 	require.Equal(t, 0, len(txCache.tracker.blocks))
 }
 
-func TestSelectionTracker_removeBlocksAboveNonce(t *testing.T) {
+func TestSelectionTracker_MaxUniqueAccounts(t *testing.T) {
 	t.Parallel()
 
-	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	st, err := NewSelectionTracker(txCache, 0, 100)
 	require.Nil(t, err)
 
-	txCache.tracker = tracker
+	count := maxAccountsPerBlock + 1
+	txs := make([][]byte, count)
 
-	tracker.blocks = map[string]*trackedBlock{
-		"hash1": {
-			nonce:    1,
-			hash:     []byte("hash1"),
-			rootHash: []byte("rootHash"),
+	for i := 0; i < count; i++ {
+		sender := fmt.Sprintf("sender%d", i)
+		hash := []byte(fmt.Sprintf("tx%d", i))
+
+		wTx := &WrappedTransaction{
+			Tx: &transaction.Transaction{
+				SndAddr: []byte(sender),
+				RcvAddr: []byte("receiver"),
+				Nonce:   uint64(i),
+			},
+			TxHash: hash,
+		}
+		txCache.txByHash.addTx(wTx)
+		txs[i] = hash
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{TxHashes: txs, Type: block.TxBlock},
 		},
-		"hash2": {
-			nonce:    2,
-			hash:     []byte("hash2"),
-			rootHash: []byte("rootHash"),
-		},
-		"hash3": {
-			nonce:    3,
-			hash:     []byte("hash3"),
-			rootHash: []byte("rootHash"),
+	}
+	header := &block.Header{
+		Nonce: 10,
+	}
+
+	accProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetRootHashCalled: func() ([]byte, error) {
+			return defaultLatestExecutedHash, nil
 		},
 	}
 
-	require.Equal(t, 3, len(txCache.tracker.blocks))
-	err = tracker.removeBlocksAboveNonceNoLock(1)
+	err = st.OnProposedBlock([]byte("blockHash"), body, header, accProvider, defaultLatestExecutedHash)
+	require.Equal(t, errToManyUniqueAccountsInBlock, err)
+}
+
+type twoBlockTrackerSetup struct {
+	tracker       *selectionTracker
+	blockNonce1   uint64
+	blockNonce2   uint64
+	blockHashPrev string
+}
+
+// buildTrackerWithTwoSharedSenderBlocks creates a tracker with two consecutive tracked blocks
+// that share a common sender (alice) with contiguous nonce ranges and breadcrumbs.
+// Block1 (nonce=100): alice nonces 5-7, balance=10
+// Block2 (nonce=101): alice nonces 8-10, balance=10
+func buildTrackerWithTwoSharedSenderBlocks(t *testing.T) *twoBlockTrackerSetup {
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
-	require.Equal(t, 1, len(txCache.tracker.blocks))
+	aliceFirstNonceBlock1 := uint64(5)
+	aliceLastNonceBlock1 := uint64(7)
+	aliceFirstNonceBlock2 := uint64(8)
+	aliceLastNonceBlock2 := uint64(10)
+	balancePerBlock := big.NewInt(10)
+
+	blockNonce1 := uint64(100)
+	blockNonce2 := uint64(101)
+	blockHash1 := "blockHash100"
+	blockHash2 := "blockHash101"
+	blockHashPrev := "blockHash99"
+	alice := "alice"
+
+	breadcrumbAlice1 := &accountBreadcrumb{
+		firstNonce:      core.OptionalUint64{Value: aliceFirstNonceBlock1, HasValue: true},
+		lastNonce:       core.OptionalUint64{Value: aliceLastNonceBlock1, HasValue: true},
+		consumedBalance: new(big.Int).Set(balancePerBlock),
+	}
+	breadcrumbAlice2 := &accountBreadcrumb{
+		firstNonce:      core.OptionalUint64{Value: aliceFirstNonceBlock2, HasValue: true},
+		lastNonce:       core.OptionalUint64{Value: aliceLastNonceBlock2, HasValue: true},
+		consumedBalance: new(big.Int).Set(balancePerBlock),
+	}
+
+	block1 := &trackedBlock{
+		nonce:    blockNonce1,
+		hash:     []byte(blockHash1),
+		prevHash: []byte(blockHashPrev),
+		breadcrumbsByAddress: map[string]*accountBreadcrumb{
+			alice: breadcrumbAlice1,
+		},
+	}
+	block2 := &trackedBlock{
+		nonce:    blockNonce2,
+		hash:     []byte(blockHash2),
+		prevHash: []byte(blockHash1),
+		breadcrumbsByAddress: map[string]*accountBreadcrumb{
+			alice: breadcrumbAlice2,
+		},
+	}
+
+	tracker.blocks[blockHash1] = block1
+	tracker.blocks[blockHash2] = block2
+
+	tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(block1)
+	tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(block2)
+
+	// Verify the setup is correct
+	globalBreadcrumbs := tracker.globalBreadcrumbsCompiler.getGlobalBreadcrumbs()
+	require.Equal(t, aliceFirstNonceBlock1, globalBreadcrumbs[alice].firstNonce.Value)
+	require.Equal(t, aliceLastNonceBlock2, globalBreadcrumbs[alice].lastNonce.Value)
+	expectedTotalBalance := new(big.Int).Mul(balancePerBlock, big.NewInt(2))
+	require.Equal(t, expectedTotalBalance, globalBreadcrumbs[alice].consumedBalance)
+	require.Equal(t, 2, len(tracker.blocks))
+	require.Equal(t, uint64(1), tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+
+	return &twoBlockTrackerSetup{
+		tracker:       tracker,
+		blockNonce1:   blockNonce1,
+		blockNonce2:   blockNonce2,
+		blockHashPrev: blockHashPrev,
+	}
+}
+
+func TestSelectionTracker_removeUpToBlockNoLock_orderedRemoval(t *testing.T) {
+	t.Parallel()
+
+	setup := buildTrackerWithTwoSharedSenderBlocks(t)
+
+	// Remove both blocks at once (nonce <= blockNonce2)
+	searchedBlock := newTrackedBlock(setup.blockNonce2, nil, nil)
+	err := setup.tracker.removeUpToBlockNoLock(searchedBlock)
+	require.Nil(t, err)
+
+	require.Equal(t, 0, len(setup.tracker.blocks))
+	require.Equal(t, uint64(0), setup.tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+}
+
+func TestSelectionTracker_removeBlocksAboveOrEqualToNonceNoLock_orderedRemoval(t *testing.T) {
+	t.Parallel()
+
+	setup := buildTrackerWithTwoSharedSenderBlocks(t)
+
+	// Same scenario as removeBlockEqualOrAboveNoLock but triggered from deriveVirtualSelectionSession path
+	err := setup.tracker.removeBlocksAboveOrEqualToNonceNoLock(setup.blockNonce1)
+	require.Nil(t, err)
+
+	require.Equal(t, 0, len(setup.tracker.blocks))
+	require.Equal(t, uint64(0), setup.tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+}
+
+func TestSelectionTracker_OnExecutedBlock_multipleBlocksWithSharedSender(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+	require.Nil(t, err)
+	txCache.tracker = tracker
+
+	aliceInitialNonce := uint64(1)
+	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return aliceInitialNonce, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	txHash1 := []byte("txHash1")
+	txHash2 := []byte("txHash2")
+	txHash3 := []byte("txHash3")
+	txHash4 := []byte("txHash4")
+	blockHash1 := []byte("hash1")
+	blockHash2 := []byte("hash2")
+	rootHash0 := []byte("rootHash0")
+	rootHash1 := []byte("rootHash1")
+	alice := "alice"
+
+	// Add transactions for alice across two blocks
+	txCache.txByHash.addTx(createTx(txHash1, alice, 1))
+	txCache.txByHash.addTx(createTx(txHash2, alice, 2))
+	txCache.txByHash.addTx(createTx(txHash3, alice, 3))
+	txCache.txByHash.addTx(createTx(txHash4, alice, 4))
+
+	// Propose block 1 with alice's tx nonces 1-2
+	err = tracker.OnProposedBlock(
+		blockHash1,
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{TxHashes: [][]byte{txHash1, txHash2}},
+			},
+		},
+		&block.Header{
+			Nonce:    1,
+			PrevHash: defaultLatestExecutedHash,
+			RootHash: rootHash0,
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	// Propose block 2 with alice's tx nonces 3-4
+	err = tracker.OnProposedBlock(
+		blockHash2,
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{TxHashes: [][]byte{txHash3, txHash4}},
+			},
+		},
+		&block.Header{
+			Nonce:    2,
+			PrevHash: blockHash1,
+			RootHash: rootHash0,
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, 2, len(tracker.blocks))
+	require.Equal(t, uint64(1), tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+
+	// Execute block 2, which removes both blocks at once (nonce <= 2)
+	err = tracker.OnExecutedBlock(&block.Header{
+		Nonce:    2,
+		PrevHash: blockHash1,
+	}, rootHash1)
+	require.Nil(t, err)
+
+	require.Equal(t, 0, len(tracker.blocks))
+	require.Equal(t, uint64(0), tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+}
+
+func TestSelectionTracker_removeUpToBlockNoLock_orderedRemovalWithRelayer(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	// Test with an account that appears as both sender and relayer across blocks.
+	// Bob is a sender in block1 and a relayer in block2.
+	bobFirstNonce := uint64(5)
+	bobLastNonce := uint64(7)
+	bobSenderBalance := big.NewInt(10)
+	bobRelayerBalance := big.NewInt(5)
+	aliceFirstNonce := uint64(10)
+	aliceLastNonce := uint64(12)
+	aliceBalance := big.NewInt(10)
+
+	blockNonce1 := uint64(100)
+	blockNonce2 := uint64(101)
+	blockHash1 := "blockHash100"
+	blockHash2 := "blockHash101"
+	blockHashPrev := "blockHash99"
+	alice := "alice"
+	bob := "bob"
+
+	breadcrumbBobAsSender := &accountBreadcrumb{
+		firstNonce:      core.OptionalUint64{Value: bobFirstNonce, HasValue: true},
+		lastNonce:       core.OptionalUint64{Value: bobLastNonce, HasValue: true},
+		consumedBalance: new(big.Int).Set(bobSenderBalance),
+	}
+	breadcrumbBobAsRelayer := &accountBreadcrumb{
+		firstNonce:      core.OptionalUint64{Value: 0, HasValue: false},
+		lastNonce:       core.OptionalUint64{Value: 0, HasValue: false},
+		consumedBalance: new(big.Int).Set(bobRelayerBalance),
+	}
+	breadcrumbAlice := &accountBreadcrumb{
+		firstNonce:      core.OptionalUint64{Value: aliceFirstNonce, HasValue: true},
+		lastNonce:       core.OptionalUint64{Value: aliceLastNonce, HasValue: true},
+		consumedBalance: new(big.Int).Set(aliceBalance),
+	}
+
+	block1 := &trackedBlock{
+		nonce:    blockNonce1,
+		hash:     []byte(blockHash1),
+		prevHash: []byte(blockHashPrev),
+		breadcrumbsByAddress: map[string]*accountBreadcrumb{
+			bob: breadcrumbBobAsSender,
+		},
+	}
+	block2 := &trackedBlock{
+		nonce:    blockNonce2,
+		hash:     []byte(blockHash2),
+		prevHash: []byte(blockHash1),
+		breadcrumbsByAddress: map[string]*accountBreadcrumb{
+			bob:   breadcrumbBobAsRelayer,
+			alice: breadcrumbAlice,
+		},
+	}
+
+	tracker.blocks[blockHash1] = block1
+	tracker.blocks[blockHash2] = block2
+
+	tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(block1)
+	tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(block2)
+
+	// Remove both blocks
+	searchedBlock := newTrackedBlock(blockNonce2, nil, nil)
+	err = tracker.removeUpToBlockNoLock(searchedBlock)
+	require.Nil(t, err)
+
+	require.Equal(t, 0, len(tracker.blocks))
+	require.Equal(t, uint64(0), tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+}
+
+func TestSelectionTracker_validateBreadcrumbsToleratesPredecessorDiscontinuity(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should tolerate discontinuous breadcrumbs in predecessor block when new block has no txs for that account", func(t *testing.T) {
+		t.Parallel()
+
+		// Predecessor block has discontinuous breadcrumbs for alice (firstNonce=52, but sessionNonce=0)
+		// New block has no breadcrumbs for alice - should be tolerated
+		breadcrumbAlicePredecessor := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    52,
+			HasValue: true,
+		})
+		breadcrumbAlicePredecessor.lastNonce = core.OptionalUint64{
+			Value:    55,
+			HasValue: true,
+		}
+
+		// Bob is continuous in both blocks
+		breadcrumbBobPredecessor := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    0,
+			HasValue: true,
+		})
+		breadcrumbBobPredecessor.lastNonce = core.OptionalUint64{
+			Value:    2,
+			HasValue: true,
+		}
+
+		breadcrumbBobNewBlock := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    3,
+			HasValue: true,
+		})
+		breadcrumbBobNewBlock.lastNonce = core.OptionalUint64{
+			Value:    5,
+			HasValue: true,
+		}
+
+		trackedBlocks := []*trackedBlock{
+			{
+				nonce:    100,
+				hash:     []byte("predecessorHash"),
+				prevHash: []byte("prevHash"),
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{
+					"alice": breadcrumbAlicePredecessor,
+					"bob":   breadcrumbBobPredecessor,
+				},
+			},
+			{
+				nonce:    101,
+				hash:     []byte("newBlockHash"),
+				prevHash: []byte("predecessorHash"),
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{
+					"bob": breadcrumbBobNewBlock,
+				},
+			},
+		}
+
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, big.NewInt(1000), true, nil
+			},
+		}
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		err = tracker.validateBreadcrumbsOfTrackedBlocks(trackedBlocks, accountsProvider)
+		require.Nil(t, err)
+	})
+
+	t.Run("should reject when new block has breadcrumbs for an address that is discontinuous in predecessor", func(t *testing.T) {
+		t.Parallel()
+
+		// Predecessor block has discontinuous breadcrumbs for alice (firstNonce=52, but sessionNonce=0)
+		breadcrumbAlicePredecessor := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    52,
+			HasValue: true,
+		})
+		breadcrumbAlicePredecessor.lastNonce = core.OptionalUint64{
+			Value:    55,
+			HasValue: true,
+		}
+
+		// New block also has breadcrumbs for alice - should be rejected
+		breadcrumbAliceNewBlock := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    56,
+			HasValue: true,
+		})
+		breadcrumbAliceNewBlock.lastNonce = core.OptionalUint64{
+			Value:    58,
+			HasValue: true,
+		}
+
+		trackedBlocks := []*trackedBlock{
+			{
+				nonce:    100,
+				hash:     []byte("predecessorHash"),
+				prevHash: []byte("prevHash"),
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{
+					"alice": breadcrumbAlicePredecessor,
+				},
+			},
+			{
+				nonce:    101,
+				hash:     []byte("newBlockHash"),
+				prevHash: []byte("predecessorHash"),
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{
+					"alice": breadcrumbAliceNewBlock,
+				},
+			},
+		}
+
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, big.NewInt(1000), true, nil
+			},
+		}
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		err = tracker.validateBreadcrumbsOfTrackedBlocks(trackedBlocks, accountsProvider)
+		require.Equal(t, errDiscontinuousBreadcrumbs, err)
+	})
+
+	t.Run("should still reject when new block itself has discontinuous breadcrumbs (no predecessor)", func(t *testing.T) {
+		t.Parallel()
+
+		// Single block (the new block) has discontinuous breadcrumbs for alice
+		breadcrumbAlice := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    52,
+			HasValue: true,
+		})
+		breadcrumbAlice.lastNonce = core.OptionalUint64{
+			Value:    55,
+			HasValue: true,
+		}
+
+		trackedBlocks := []*trackedBlock{
+			{
+				nonce:    100,
+				hash:     []byte("newBlockHash"),
+				prevHash: []byte("prevHash"),
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{
+					"alice": breadcrumbAlice,
+				},
+			},
+		}
+
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, big.NewInt(1000), true, nil
+			},
+		}
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		err = tracker.validateBreadcrumbsOfTrackedBlocks(trackedBlocks, accountsProvider)
+		require.Equal(t, errDiscontinuousBreadcrumbs, err)
+	})
+
+	t.Run("should tolerate discontinuous breadcrumbs in multiple predecessors", func(t *testing.T) {
+		t.Parallel()
+
+		// Two predecessor blocks with discontinuous breadcrumbs for alice
+		// New block has no breadcrumbs for alice - should be tolerated
+		breadcrumbAlice1 := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    52,
+			HasValue: true,
+		})
+		breadcrumbAlice1.lastNonce = core.OptionalUint64{
+			Value:    55,
+			HasValue: true,
+		}
+
+		breadcrumbAlice2 := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    56,
+			HasValue: true,
+		})
+		breadcrumbAlice2.lastNonce = core.OptionalUint64{
+			Value:    58,
+			HasValue: true,
+		}
+
+		// Bob is continuous everywhere
+		breadcrumbBob := newAccountBreadcrumb(core.OptionalUint64{
+			Value:    0,
+			HasValue: true,
+		})
+		breadcrumbBob.lastNonce = core.OptionalUint64{
+			Value:    1,
+			HasValue: true,
+		}
+
+		trackedBlocks := []*trackedBlock{
+			{
+				nonce:    100,
+				hash:     []byte("predecessorHash1"),
+				prevHash: []byte("prevHash"),
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{
+					"alice": breadcrumbAlice1,
+					"bob":   breadcrumbBob,
+				},
+			},
+			{
+				nonce:    101,
+				hash:     []byte("predecessorHash2"),
+				prevHash: []byte("predecessorHash1"),
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{
+					"alice": breadcrumbAlice2,
+				},
+			},
+			{
+				nonce:                102,
+				hash:                 []byte("newBlockHash"),
+				prevHash:             []byte("predecessorHash2"),
+				breadcrumbsByAddress: map[string]*accountBreadcrumb{},
+			},
+		}
+
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, big.NewInt(1000), true, nil
+			},
+		}
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		err = tracker.validateBreadcrumbsOfTrackedBlocks(trackedBlocks, accountsProvider)
+		require.Nil(t, err)
+	})
+}
+
+func TestSelectionTracker_SelectionSkipsDiscontinuousAccounts(t *testing.T) {
+	t.Parallel()
+
+	t.Run("selection should skip sender with discontinuous breadcrumbs and select other senders", func(t *testing.T) {
+		t.Parallel()
+
+		// Setup:
+		// - alice has discontinuous breadcrumbs in a tracked block (firstNonce=52, sessionNonce=0)
+		// - bob has continuous breadcrumbs (firstNonce=0, sessionNonce=0)
+		// - Both have transactions in the pool
+		// Expected: selection should skip alice's transactions, select bob's
+
+		config := ConfigSourceMe{
+			Name:                        "test",
+			NumChunks:                   16,
+			NumBytesThreshold:           maxNumBytesUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+			CountThreshold:              math.MaxUint32,
+			CountPerSenderThreshold:     math.MaxUint32,
+			EvictionEnabled:             false,
+			NumItemsToPreemptivelyEvict: 1,
+			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
+		}
+
+		host := txcachemocks.NewMempoolHostMock()
+		cache, err := NewTxCache(config, host, 0)
+		require.Nil(t, err)
+
+		// Add transactions for both alice and bob
+		// Alice: nonces 0, 1, 2 (these would be selected if not blocked)
+		// Bob: nonces 0, 1, 2
+		txs := []*WrappedTransaction{
+			createTx([]byte("txAlice0"), "alice", 0).withValue(big.NewInt(0)),
+			createTx([]byte("txAlice1"), "alice", 1).withValue(big.NewInt(0)),
+			createTx([]byte("txAlice2"), "alice", 2).withValue(big.NewInt(0)),
+			createTx([]byte("txBob0"), "bob", 0).withValue(big.NewInt(0)),
+			createTx([]byte("txBob1"), "bob", 1).withValue(big.NewInt(0)),
+			createTx([]byte("txBob2"), "bob", 2).withValue(big.NewInt(0)),
+		}
+
+		for _, tx := range txs {
+			cache.AddTx(tx)
+		}
+
+		// Manually set up a tracked block with discontinuous breadcrumbs for alice
+		// alice: firstNonce=52 (but sessionNonce=0, so discontinuous)
+		// bob: firstNonce=0 (continuous)
+		breadcrumbAlice := &accountBreadcrumb{
+			firstNonce:      core.OptionalUint64{Value: 52, HasValue: true},
+			lastNonce:       core.OptionalUint64{Value: 55, HasValue: true},
+			consumedBalance: big.NewInt(0),
+		}
+		breadcrumbBob := &accountBreadcrumb{
+			firstNonce:      core.OptionalUint64{Value: 0, HasValue: true},
+			lastNonce:       core.OptionalUint64{Value: 2, HasValue: true},
+			consumedBalance: big.NewInt(0),
+		}
+
+		tb := &trackedBlock{
+			nonce:    100,
+			hash:     []byte("trackedBlockHash"),
+			prevHash: []byte("prevBlockHash"),
+			breadcrumbsByAddress: map[string]*accountBreadcrumb{
+				"alice": breadcrumbAlice,
+				"bob":   breadcrumbBob,
+			},
+		}
+
+		cache.tracker.blocks["trackedBlockHash"] = tb
+		cache.tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(tb)
+		cache.tracker.latestRootHash = []byte("rootHash0")
+		cache.tracker.latestNonce = 99
+
+		selectionSession := &txcachemocks.SelectionSessionMock{
+			GetRootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash0"), nil
+			},
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 0, big.NewInt(8 * 100000 * oneBillion), true, nil
+			},
+		}
+
+		options, _ := holders.NewTxSelectionOptions(
+			10_000_000_000,
+			100,
+			10,
+			haveTimeTrueForSelection,
+		)
+
+		selectedTxs, _, err := cache.SelectTransactions(selectionSession, options, 101)
+		require.Nil(t, err)
+
+		// Alice should be skipped entirely (discontinuous breadcrumbs \u2192 blocked virtual record)
+		// Bob's nonces 0-2 are in the tracked block, so selection starts from nonce 3+, but bob has no nonce 3
+		// So no transactions should be selected for bob either (they're already proposed)
+		// Let's verify alice's txs are NOT selected
+		for _, tx := range selectedTxs {
+			sender := string(tx.Tx.GetSndAddr())
+			require.NotEqual(t, "alice", sender, "alice's transactions should not be selected due to discontinuous breadcrumbs")
+		}
+	})
+}
+
+func TestSelectionTracker_RecoveryFromDiscontinuousBreadcrumbs(t *testing.T) {
+	t.Parallel()
+
+	// End-to-end scenario:
+	// 1. A tracked block has discontinuous breadcrumbs for alice
+	// 2. Selection skips alice (creates blocked virtual record)
+	// 3. OnProposedBlock succeeds (new block has no txs for alice, predecessor discontinuity is tolerated)
+	// 4. OnExecutedBlock removes the stale predecessor block
+	// 5. After cleanup, alice's transactions can be selected again
+
+	accountNonces := map[string]uint64{
+		"alice": 0,
+		"bob":   0,
+	}
+
+	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			nonce := accountNonces[string(address)]
+			return nonce, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash0"), nil
+		},
+	}
+
+	config := ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             false,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
+	}
+
+	host := txcachemocks.NewMempoolHostMock()
+	cache, err := NewTxCache(config, host, 0)
+	require.Nil(t, err)
+
+	// Add alice's and bob's transactions
+	txs := []*WrappedTransaction{
+		createTx([]byte("txAlice0"), "alice", 0).withValue(big.NewInt(0)),
+		createTx([]byte("txAlice1"), "alice", 1).withValue(big.NewInt(0)),
+		createTx([]byte("txBob0"), "bob", 0).withValue(big.NewInt(0)),
+		createTx([]byte("txBob1"), "bob", 1).withValue(big.NewInt(0)),
+	}
+	for _, tx := range txs {
+		cache.AddTx(tx)
+	}
+
+	// Step 1: Manually create a stale tracked block with discontinuous breadcrumbs for alice
+	// (simulates the effect of a block replacement that made alice's breadcrumbs stale)
+	staleBlock := &trackedBlock{
+		nonce:    100,
+		hash:     []byte("staleBlockHash"),
+		prevHash: []byte("prevBlockHash"),
+		breadcrumbsByAddress: map[string]*accountBreadcrumb{
+			"alice": {
+				firstNonce:      core.OptionalUint64{Value: 52, HasValue: true},
+				lastNonce:       core.OptionalUint64{Value: 55, HasValue: true},
+				consumedBalance: big.NewInt(0),
+			},
+		},
+	}
+
+	cache.tracker.blocks["staleBlockHash"] = staleBlock
+	cache.tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(staleBlock)
+	cache.tracker.latestRootHash = []byte("rootHash0")
+	cache.tracker.latestNonce = 99
+
+	// Step 2: Propose a new block with only bob's transactions
+	// This should succeed because:
+	// - alice's discontinuous breadcrumbs in predecessor are tolerated
+	// - new block has no txs for alice
+	cache.txByHash.addTx(createTx([]byte("txBob0_proposed"), "bob", 0).withValue(big.NewInt(0)))
+
+	err = cache.OnProposedBlock(
+		[]byte("newBlockHash"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txBob0_proposed"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    101,
+			PrevHash: []byte("staleBlockHash"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		[]byte("prevBlockHash"),
+	)
+	require.Nil(t, err)
+	require.Equal(t, 2, len(cache.tracker.blocks))
+
+	// Step 3: Execute the stale block (simulates OnExecutedBlock removing it)
+	err = cache.OnExecutedBlock(&block.Header{
+		Nonce:    100,
+		PrevHash: []byte("prevBlockHash"),
+	}, []byte("rootHash1"))
+	require.Nil(t, err)
+	require.Equal(t, 1, len(cache.tracker.blocks))
+
+	// Step 4: After the stale block is removed, alice's breadcrumbs are no longer in any tracked block
+	// Now verify alice can be selected in the next selection
+	selectionSession := &txcachemocks.SelectionSessionMock{
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash1"), nil
+		},
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			nonce := accountNonces[string(address)]
+			return nonce, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	options, _ := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		100,
+		10,
+		haveTimeTrueForSelection,
+	)
+
+	selectedTxs, _, err := cache.SelectTransactions(selectionSession, options, 102)
+	require.Nil(t, err)
+
+	// Alice should now be selectable since the stale block was removed
+	hasAliceTx := false
+	for _, tx := range selectedTxs {
+		if string(tx.Tx.GetSndAddr()) == "alice" {
+			hasAliceTx = true
+			break
+		}
+	}
+	require.True(t, hasAliceTx, "alice should be selectable after stale tracked block is removed")
+}
+
+func createDummyTrackedBlocks() map[string]*trackedBlock {
+	return map[string]*trackedBlock{
+		"hash1": {
+			nonce: 1,
+			hash:  []byte("hash1"),
+		},
+		"hash2": {
+			nonce: 2,
+			hash:  []byte("hash2"),
+		},
+		"hash3": {
+			nonce: 3,
+			hash:  []byte("hash3"),
+		},
+	}
 }

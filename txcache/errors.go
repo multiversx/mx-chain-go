@@ -1,11 +1,12 @@
 package txcache
 
-import "errors"
+import (
+	"errors"
+)
 
 var errNilMempoolHost = errors.New("nil mempool host")
 var errNilSelectionSession = errors.New("nil selection session")
 var errNilAccountNonceAndBalanceProvider = errors.New("nil account nonce and balance provider")
-var errItemAlreadyInCache = errors.New("item already in cache")
 var errEmptyBunchOfTransactions = errors.New("empty bunch of transactions")
 var errNilBlockBody = errors.New("nil block body")
 var errNilBlockHeader = errors.New("nil block header")
@@ -27,3 +28,6 @@ var errNilBalance = errors.New("nil balance")
 var errGlobalBreadcrumbDoesNotExist = errors.New("global breadcrumb does not exist")
 var errRootHashMismatch = errors.New("root hash mismatch")
 var errWrongTypeAssertion = errors.New("wrong type assertion")
+var errToManyUniqueAccountsInBlock = errors.New("too many unique accounts in block")
+var errSimulateSelectionContextInvalid = errors.New("simulate selection context invalid")
+var errNilTrackedBlock = errors.New("nil tracked block")

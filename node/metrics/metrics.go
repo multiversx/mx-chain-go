@@ -29,6 +29,7 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 
 	appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNonce, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricLastExecutedNonce, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricBlockTimestampMs, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountConsensus, initUint)
@@ -150,7 +151,6 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricFrontRunningProtectionEnableEpoch, uint64(enableEpochs.FrontRunningProtectionEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricIsPayableBySCEnableEpoch, uint64(enableEpochs.IsPayableBySCEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricStorageAPICostOptimizationEnableEpoch, uint64(enableEpochs.StorageAPICostOptimizationEnableEpoch))
-	appStatusHandler.SetUInt64Value(common.MetricTransformToMultiShardCreateEnableEpoch, uint64(enableEpochs.TransformToMultiShardCreateEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricESDTRegisterAndSetAllRolesEnableEpoch, uint64(enableEpochs.ESDTRegisterAndSetAllRolesEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricDoNotReturnOldBlockInBlockchainHookEnableEpoch, uint64(enableEpochs.DoNotReturnOldBlockInBlockchainHookEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricAddFailedRelayedTxToInvalidMBsDisableEpoch, uint64(enableEpochs.AddFailedRelayedTxToInvalidMBsDisableEpoch))
@@ -213,6 +213,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricFixGetBalanceEnableEpoch, uint64(enableEpochs.FixGetBalanceEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV1V2DisableEpoch, uint64(enableEpochs.RelayedTransactionsV1V2DisableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricTailInflationEnableEpoch, uint64(economicsConfig.GlobalSettings.TailInflation.EnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricSupernovaEnableEpoch, uint64(enableEpochs.SupernovaEnableEpoch))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
@@ -270,6 +271,53 @@ func InitRatingsMetrics(appStatusHandler core.AppStatusHandler, ratingsConfig co
 	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyMinScore, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.MinScore))
 	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyBadPeerThreshold, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.BadPeerThreshold))
 	appStatusHandler.SetStringValue(common.MetricRatingsPeerHonestyUnitValue, fmt.Sprintf("%f", ratingsConfig.PeerHonesty.UnitValue))
+
+	return nil
+}
+
+// InitInitialMetrics will set initial metrics for status handler (before bootstrapping process is completed)
+func InitInitialMetrics(
+	appStatusHandler core.AppStatusHandler,
+	pubkeyStr string,
+	nodesConfig sharding.GenesisNodesSetupHandler,
+	version string,
+	economicsConfig *config.EconomicsConfig,
+	minTransactionVersion uint32,
+) error {
+	if check.IfNil(appStatusHandler) {
+		return ErrNilAppStatusHandler
+	}
+	if nodesConfig == nil {
+		return fmt.Errorf("nil nodes config when initializing metrics")
+	}
+	if economicsConfig == nil {
+		return fmt.Errorf("nil economics config when initializing metrics")
+	}
+
+	isSyncing := uint64(1)
+
+	leaderPercentage := float64(0)
+	rewardsConfigs := make([]config.EpochRewardSettings, len(economicsConfig.RewardsSettings.RewardsConfigByEpoch))
+	_ = copy(rewardsConfigs, economicsConfig.RewardsSettings.RewardsConfigByEpoch)
+
+	sort.Slice(rewardsConfigs, func(i, j int) bool {
+		return rewardsConfigs[i].EpochEnable < rewardsConfigs[j].EpochEnable
+	})
+
+	if len(rewardsConfigs) > 0 {
+		leaderPercentage = rewardsConfigs[0].LeaderPercentage
+	}
+
+	appStatusHandler.SetStringValue(common.MetricPublicKeyBlockSign, pubkeyStr)
+	appStatusHandler.SetStringValue(common.MetricAppVersion, version)
+	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, "N/A")
+	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, 0)
+	appStatusHandler.SetUInt64Value(common.MetricIsSyncing, isSyncing)
+	appStatusHandler.SetStringValue(common.MetricLeaderPercentage, fmt.Sprintf("%f", leaderPercentage))
+	appStatusHandler.SetUInt64Value(common.MetricDenomination, uint64(economicsConfig.GlobalSettings.Denomination))
+
+	appStatusHandler.SetUInt64Value(common.MetricStartTime, uint64(nodesConfig.GetStartTime()))
+	appStatusHandler.SetUInt64Value(common.MetricMinTransactionVersion, uint64(minTransactionVersion))
 
 	return nil
 }

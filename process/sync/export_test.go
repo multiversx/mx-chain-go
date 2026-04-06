@@ -352,3 +352,16 @@ func (boot *baseBootstrap) IsInImportMode() bool {
 func (boot *baseBootstrap) ProcessWaitTime() time.Duration {
 	return boot.processWaitTime
 }
+
+// PrepareForSyncAtBoostrapIfNeeded -
+func (boot *baseBootstrap) PrepareForSyncAtBoostrapIfNeeded() error {
+	return boot.prepareForSyncAtBoostrapIfNeeded()
+}
+
+// SaveProposedTxsToPool -
+func (boot *baseBootstrap) SaveProposedTxsToPool(
+	header data.HeaderHandler,
+	body data.BodyHandler,
+) error {
+	return boot.saveProposedTxsToPool(header, body)
+}

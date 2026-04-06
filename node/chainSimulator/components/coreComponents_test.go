@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -64,7 +65,19 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 					MaxShardNoncesBehind:              15,
 				}},
 				ProcessConfigsByRound: []config.ProcessConfigByRound{
-					{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsWithoutCommittedBlock: 10},
+					{
+						EnableRound:                            0,
+						MaxRoundsWithoutNewBlockReceived:       10,
+						MaxRoundsWithoutCommittedBlock:         10,
+						MaxRoundsToKeepUnprocessedTransactions: 50,
+						MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+						NumFloodingRoundsSlowReacting:          20,
+						NumFloodingRoundsFastReacting:          30,
+						NumFloodingRoundsOutOfSpecs:            40,
+						MaxConsecutiveRoundsOfRatingDecrease:   600,
+						MaxBlockProcessingTimeMs:               1000,
+						NumHeadersToRequestInAdvance:           10,
+					},
 				},
 				EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
 					{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
@@ -80,6 +93,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 				PublicKeyToListenFrom: components.DummyPk,
 			},
 			EpochStartConfig: config.EpochStartConfig{},
+			Antiflood:        testscommon.GetDefaultAntifloodConfig(),
 		},
 		EnableEpochsConfig: config.EnableEpochs{},
 		RoundsConfig: config.RoundConfig{

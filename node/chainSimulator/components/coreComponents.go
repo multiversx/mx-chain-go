@@ -3,6 +3,7 @@ package components
 import (
 	"bytes"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -84,6 +85,8 @@ type coreComponentsHolder struct {
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 	processConfigsHandler         common.ProcessConfigsHandler
 	epochStartConfigsHandler      common.CommonConfigsHandler
+	antifloodConfigsHandler       common.AntifloodConfigsHandler
+	closingNodeStarted            *atomic.Bool
 }
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
@@ -112,7 +115,8 @@ type ArgsCoreComponentsHolder struct {
 func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder, error) {
 	var err error
 	instance := &coreComponentsHolder{
-		closeHandler: NewCloseHandler(),
+		closeHandler:       NewCloseHandler(),
+		closingNodeStarted: &atomic.Bool{},
 	}
 
 	instance.internalMarshaller, err = marshalFactory.NewMarshalizer(args.Config.Marshalizer.Type)
@@ -208,11 +212,12 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
+	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
+
 	log.Debug("chain simulator start time",
 		"startTime", instance.genesisNodesSetup.GetStartTime(),
 		"nodesSetup start time", nodesSetup.StartTime,
 	)
-	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
 
 	instance.roundNotifier = forking.NewGenericRoundNotifier()
 	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
@@ -223,6 +228,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
 	supernovaRound := instance.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
 
+	startTime = instance.genesisTime
 	instance.supernovaGenesisTime = startTime.Add(time.Duration(supernovaRound-uint64(args.InitialRound)) * roundDuration)
 	if instance.supernovaGenesisTime.Before(instance.genesisTime) {
 		instance.supernovaGenesisTime = instance.genesisTime
@@ -236,11 +242,12 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 
 	argsManualRoundHandler := ArgManualRoundHandler{
 		EnableRoundsHandler:       instance.enableRoundsHandler,
-		GenesisTimeStamp:          startTime.UnixMilli(),
+		GenesisTimeStamp:          instance.genesisTime.UnixMilli(),
 		SupernovaGenesisTimeStamp: instance.supernovaGenesisTime.UnixMilli(),
 		RoundDuration:             roundDuration,
 		SupernovaRoundDuration:    time.Duration(chainParamsForSupernova.RoundDuration) * time.Millisecond,
 		InitialRound:              args.InitialRound,
+		SupernovaStartRound:       int64(supernovaRound),
 	}
 	instance.roundHandler, err = NewManualRoundHandler(argsManualRoundHandler)
 	if err != nil {
@@ -275,7 +282,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	instance.rater, err = rating.NewBlockSigningRater(instance.ratingsData)
+	instance.rater, err = rating.NewBlockSigningRater(instance.ratingsData, instance.enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -316,6 +323,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.processConfigsHandler, err = commonConfigs.NewProcessConfigsHandler(
 		args.Config.GeneralSettings.ProcessConfigsByEpoch,
 		args.Config.GeneralSettings.ProcessConfigsByRound,
+		instance.roundNotifier,
 	)
 	if err != nil {
 		return nil, err
@@ -325,6 +333,14 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		args.Config.GeneralSettings.EpochStartConfigsByEpoch,
 		args.Config.GeneralSettings.EpochStartConfigsByRound,
 		args.Config.GeneralSettings.ConsensusConfigsByEpoch,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.antifloodConfigsHandler, err = commonConfigs.NewAntifloodConfigsHandler(
+		args.Config.Antiflood,
+		instance.roundNotifier,
 	)
 	if err != nil {
 		return nil, err
@@ -567,6 +583,16 @@ func (c *coreComponentsHolder) ProcessConfigsHandler() common.ProcessConfigsHand
 // CommonConfigsHandler returns epoch start configs handler component
 func (c *coreComponentsHolder) CommonConfigsHandler() common.CommonConfigsHandler {
 	return c.epochStartConfigsHandler
+}
+
+// AntifloodConfigsHandler returns epoch start configs handler component
+func (c *coreComponentsHolder) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	return c.antifloodConfigsHandler
+}
+
+// ClosingNodeStarted returns the atomic bool that signals if the closing of the node has started
+func (c *coreComponentsHolder) ClosingNodeStarted() *atomic.Bool {
+	return c.closingNodeStarted
 }
 
 func (c *coreComponentsHolder) collectClosableComponents() {

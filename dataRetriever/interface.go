@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -186,7 +187,20 @@ type ShardedDataCacherNotifier interface {
 	CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
 	GetNumTrackedBlocks() uint64
 	GetNumTrackedAccounts() uint64
-	OnExecutedBlock(blockHeader data.HeaderHandler) error
+	OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error
+	OnProposedBlock(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+		accountsProvider common.AccountNonceAndBalanceProvider,
+		latestExecutedHash []byte,
+	) error
+	OnBackfilledBlock(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+	) error
+	ResetTracker()
 }
 
 // ShardIdHashMap represents a map for shardId and hash
@@ -247,6 +261,9 @@ type PoolsHolder interface {
 	Heartbeats() storage.Cacher
 	ValidatorsInfo() ShardedDataCacherNotifier
 	Proofs() ProofsPool
+	ExecutedMiniBlocks() storage.Cacher
+	PostProcessTransactions() storage.Cacher
+	DirectSentTransactions() storage.Cacher
 	Close() error
 	IsInterfaceNil() bool
 }

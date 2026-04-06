@@ -414,6 +414,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ProofsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.ExecutionResultsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -498,6 +499,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       snapshotsManager,
 		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		PruningEnabled:         trieStorageManager.IsPruningEnabled(),
 	}
 	adb, _ := state.NewAccountsDB(args)
 
@@ -543,21 +545,19 @@ func CreateMetaChain() data.ChainHandler {
 }
 
 // CreateSimpleGenesisBlocks creates empty genesis blocks for all known shards, including metachain
-func CreateSimpleGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
+func CreateSimpleGenesisBlocks(shardCoordinator sharding.Coordinator, rootHash []byte) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId, rootHash)
 	}
 
-	genesisBlocks[core.MetachainShardId] = CreateSimpleGenesisMetaBlock()
+	genesisBlocks[core.MetachainShardId] = CreateSimpleGenesisMetaBlock(rootHash)
 
 	return genesisBlocks
 }
 
 // CreateSimpleGenesisBlock creates a new mock shard genesis block
-func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
-	rootHash := []byte("root hash")
-
+func CreateSimpleGenesisBlock(shardId uint32, rootHash []byte) *dataBlock.Header {
 	return &dataBlock.Header{
 		Nonce:           0,
 		Round:           0,
@@ -574,9 +574,7 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 }
 
 // CreateSimpleGenesisMetaBlock creates a new mock meta genesis block
-func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
-	rootHash := []byte("root hash")
-
+func CreateSimpleGenesisMetaBlock(rootHash []byte) *dataBlock.MetaBlock {
 	return &dataBlock.MetaBlock{
 		Nonce:                  0,
 		Epoch:                  0,
@@ -620,7 +618,11 @@ func CreateGenesisBlocks(
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+		rootHash, err := accounts.RootHash()
+		if err != nil {
+			log.Debug("Creating genesis block for shard ", "shardId", shardId, "err", err)
+		}
+		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId, rootHash)
 	}
 
 	genesisBlocks[core.MetachainShardId] = CreateGenesisMetaBlock(
@@ -688,6 +690,7 @@ func CreateFullGenesisBlocks(
 		GenesisTime:       0,
 		StartEpochNum:     0,
 		Accounts:          accounts,
+		AccountsProposal:  accounts,
 		InitialNodesSetup: nodesSetup,
 		Economics:         economics,
 		ShardCoordinator:  shardCoordinator,
@@ -726,6 +729,7 @@ func CreateFullGenesisBlocks(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -757,6 +761,10 @@ func CreateFullGenesisBlocks(
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		FeeSettings: config.FeeSettings{
+			BlockCapacityOverestimationFactor: 200,
+			PercentDecreaseLimitsStep:         10,
+		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
@@ -766,7 +774,6 @@ func CreateFullGenesisBlocks(
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionGasRequested:                         10_000_000_000,
 			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
 	}
@@ -816,6 +823,7 @@ func CreateGenesisMetaBlock(
 		Data:                dataComponents,
 		GenesisTime:         0,
 		Accounts:            accounts,
+		AccountsProposal:    accounts,
 		TrieStorageManagers: trieStorageManagers,
 		InitialNodesSetup:   nodesSetup,
 		ShardCoordinator:    shardCoordinator,
@@ -855,6 +863,7 @@ func CreateGenesisMetaBlock(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -885,6 +894,10 @@ func CreateGenesisMetaBlock(
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		FeeSettings: config.FeeSettings{
+			BlockCapacityOverestimationFactor: 200,
+			PercentDecreaseLimitsStep:         10,
+		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
@@ -894,7 +907,6 @@ func CreateGenesisMetaBlock(
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionGasRequested:                         10_000_000_000,
 			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
 	}
@@ -931,6 +943,42 @@ func CreateGenesisMetaBlock(
 	)
 
 	return metaHdr
+}
+
+// SetRootHashOfGenesisBlocks updates the root hash of the genesis block of each node and calls the OnGenesisExecutedBlock method
+func SetRootHashOfGenesisBlocks(nodes []*TestProcessorNode) {
+	for _, tpn := range nodes {
+		rootHash, err := tpn.Node.GetStateComponents().AccountsAdapter().RootHash()
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
+
+		shardID := tpn.ShardCoordinator.SelfId()
+		genesisBlock := tpn.GenesisBlocks[shardID]
+		err = genesisBlock.SetRootHash(rootHash)
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
+
+		err = tpn.Node.GetDataComponents().Blockchain().SetGenesisHeader(genesisBlock)
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
+
+		err = OnGenesisExecutedBlock(tpn)
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
+	}
+}
+
+// OnGenesisExecutedBlock resets the tracker and calls the OnGenesisExecutedBlock with the genesis block
+func OnGenesisExecutedBlock(node *TestProcessorNode) error {
+	shardID := node.ShardCoordinator.SelfId()
+	genesisBlock := node.GenesisBlocks[shardID]
+	node.DataPool.Transactions().ResetTracker()
+
+	return node.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
 }
 
 // CreateRandomAddress creates a random byte array with fixed size
@@ -2345,6 +2393,7 @@ func generateValidTx(
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = accnts
+	stateComponents.AccountsProposal = accnts
 	stateComponents.AccountsAPI = accnts
 
 	mockNode, _ := node.NewNode(

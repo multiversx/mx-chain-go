@@ -3,9 +3,10 @@ package disabled
 import (
 	"context"
 
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type accountsAdapter struct {
@@ -90,8 +91,17 @@ func (a *accountsAdapter) RecreateTrie(_ common.RootHashHolder) error {
 	return nil
 }
 
+// RecreateTrieIfNeeded -
+func (a *accountsAdapter) RecreateTrieIfNeeded(_ common.RootHashHolder) error {
+	return nil
+}
+
 // CancelPrune -
 func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
+}
+
+// ResetPruning -
+func (a *accountsAdapter) ResetPruning() {
 }
 
 // SnapshotState -
@@ -135,6 +145,11 @@ func (a *accountsAdapter) SetTxHashForLatestStateAccesses(_ []byte) {
 // Close -
 func (a *accountsAdapter) Close() error {
 	return nil
+}
+
+// GetEvictionWaitingListSize returns 0 for the disabled accounts adapter
+func (a *accountsAdapter) GetEvictionWaitingListSize() int {
+	return 0
 }
 
 // IsInterfaceNil -

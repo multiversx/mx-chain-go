@@ -7,45 +7,93 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 )
 
+// HeaderHandlerWithExecutionResultsStub -
+type HeaderHandlerWithExecutionResultsStub struct {
+	HeaderHandlerStub
+	GetExecutionResultsCalled func() []data.ExecutionResultHandler
+}
+
+// GetExecutionResults -
+func (hh *HeaderHandlerWithExecutionResultsStub) GetExecutionResults() []data.ExecutionResultHandler {
+	if hh.GetExecutionResultsCalled != nil {
+		return hh.GetExecutionResultsCalled()
+	}
+
+	return nil
+}
+
 // HeaderHandlerStub -
 type HeaderHandlerStub struct {
-	EpochField                             uint32
-	RoundField                             uint64
-	TimestampField                         uint64
-	BlockBodyTypeInt32Field                int32
-	GetMiniBlockHeadersWithDstCalled       func(destId uint32) map[string]uint32
-	GetOrderedCrossMiniblocksWithDstCalled func(destId uint32) []*data.MiniBlockInfo
-	GetPubKeysBitmapCalled                 func() []byte
-	GetSignatureCalled                     func() []byte
-	GetRootHashCalled                      func() []byte
-	GetRandSeedCalled                      func() []byte
-	GetPrevRandSeedCalled                  func() []byte
-	GetPrevHashCalled                      func() []byte
-	CloneCalled                            func() data.HeaderHandler
-	GetChainIDCalled                       func() []byte
-	CheckChainIDCalled                     func(reference []byte) error
-	GetReservedCalled                      func() []byte
-	IsStartOfEpochBlockCalled              func() bool
-	HasScheduledMiniBlocksCalled           func() bool
-	GetNonceCalled                         func() uint64
-	CheckFieldsForNilCalled                func() error
-	SetShardIDCalled                       func(shardID uint32) error
-	SetPrevHashCalled                      func(hash []byte) error
-	SetPrevRandSeedCalled                  func(seed []byte) error
-	SetPubKeysBitmapCalled                 func(bitmap []byte) error
-	SetChainIDCalled                       func(chainID []byte) error
-	SetTimeStampCalled                     func(timestamp uint64) error
-	SetRandSeedCalled                      func(seed []byte) error
-	SetSignatureCalled                     func(signature []byte) error
-	SetLeaderSignatureCalled               func(signature []byte) error
-	GetShardIDCalled                       func() uint32
-	SetRootHashCalled                      func(hash []byte) error
-	GetLastExecutionResultHandlerCalled    func() data.LastExecutionResultHandler
-	GetExecutionResultsHandlersCalled      func() []data.BaseExecutionResultHandler
-	IsHeaderV3Called                       func() bool
-	GetGasLimitCalled                      func() uint32
-	SetLastExecutionResultHandlerCalled    func(resultHandler data.LastExecutionResultHandler) error
-	SetExecutionResultsHandlersCalled      func(resultHandlers []data.BaseExecutionResultHandler) error
+	EpochField                               uint32
+	RoundField                               uint64
+	TimestampField                           uint64
+	BlockBodyTypeInt32Field                  int32
+	GetMiniBlockHeadersWithDstCalled         func(destId uint32) map[string]uint32
+	GetProposedMiniBlockHeadersWithDstCalled func(destId uint32) map[string]uint32
+	GetOrderedCrossMiniblocksWithDstCalled   func(destId uint32) []*data.MiniBlockInfo
+	GetPubKeysBitmapCalled                   func() []byte
+	GetSignatureCalled                       func() []byte
+	GetRootHashCalled                        func() []byte
+	GetRandSeedCalled                        func() []byte
+	GetPrevRandSeedCalled                    func() []byte
+	GetPrevHashCalled                        func() []byte
+	CloneCalled                              func() data.HeaderHandler
+	GetChainIDCalled                         func() []byte
+	CheckChainIDCalled                       func(reference []byte) error
+	GetReservedCalled                        func() []byte
+	IsStartOfEpochBlockCalled                func() bool
+	HasScheduledMiniBlocksCalled             func() bool
+	GetNonceCalled                           func() uint64
+	CheckFieldsForNilCalled                  func() error
+	CheckFieldsIntegrityCalled               func() error
+	SetShardIDCalled                         func(shardID uint32) error
+	SetPrevHashCalled                        func(hash []byte) error
+	SetPrevRandSeedCalled                    func(seed []byte) error
+	SetPubKeysBitmapCalled                   func(bitmap []byte) error
+	SetChainIDCalled                         func(chainID []byte) error
+	SetTimeStampCalled                       func(timestamp uint64) error
+	SetRandSeedCalled                        func(seed []byte) error
+	SetSignatureCalled                       func(signature []byte) error
+	SetLeaderSignatureCalled                 func(signature []byte) error
+	GetShardIDCalled                         func() uint32
+	SetRootHashCalled                        func(hash []byte) error
+	GetGasLimitCalled                        func() uint32
+	GetLastExecutionResultHandlerCalled      func() data.LastExecutionResultHandler
+	GetExecutionResultsHandlersCalled        func() []data.BaseExecutionResultHandler
+	IsHeaderV3Called                         func() bool
+	GetMiniBlockHeaderHandlersCalled         func() []data.MiniBlockHeaderHandler
+	SetEpochStartMetaHashCalled              func(hash []byte) error
+	GetShardInfoHandlersCalled               func() []data.ShardDataHandler
+	SetLastExecutionResultHandlerCalled      func(resultHandler data.LastExecutionResultHandler) error
+	SetExecutionResultsHandlersCalled        func(resultHandlers []data.BaseExecutionResultHandler) error
+	SetEpochCalled                           func(epoch uint32) error
+	SetMiniBlockHeaderHandlersCalled         func(mbsHandlers []data.MiniBlockHeaderHandler) error
+	SetTxCountCalled                         func(count uint32) error
+	SetMetaBlockHashesCalled                 func(hashes [][]byte) error
+	SetEpochStartHandlerCalled               func(epochStartHandler data.EpochStartHandler) error
+	SetRoundCalled                           func(round uint64) error
+	SetNonceCalled                           func(nonce uint64) error
+	SetShardInfoHandlersCalled               func(shardInfo []data.ShardDataHandler) error
+	GetShardInfoProposalHandlersCalled       func() []data.ShardDataProposalHandler
+	SetShardInfoProposalHandlersCalled       func(shardInfo []data.ShardDataProposalHandler) error
+	IsEpochChangeProposedCalled              func() bool
+	GetEpochStartHandlerCalled               func() data.EpochStartHandler
+}
+
+// SetEpochStartHandler -
+func (hhs *HeaderHandlerStub) SetEpochStartHandler(epochStartHandler data.EpochStartHandler) error {
+	if hhs.SetEpochStartHandlerCalled != nil {
+		return hhs.SetEpochStartHandlerCalled(epochStartHandler)
+	}
+	return nil
+}
+
+// IsHeaderV3 - checks if the header is a V3 header
+func (hhs *HeaderHandlerStub) IsHeaderV3() bool {
+	if hhs.IsHeaderV3Called != nil {
+		return hhs.IsHeaderV3Called()
+	}
+	return false
 }
 
 // GetAccumulatedFees -
@@ -128,12 +176,19 @@ func (hhs *HeaderHandlerStub) GetTimeStamp() uint64 {
 
 // GetRootHash -
 func (hhs *HeaderHandlerStub) GetRootHash() []byte {
-	return hhs.GetRootHashCalled()
+	if hhs.GetRootHashCalled != nil {
+		return hhs.GetRootHashCalled()
+	}
+
+	return nil
 }
 
 // GetPrevHash -
 func (hhs *HeaderHandlerStub) GetPrevHash() []byte {
-	return hhs.GetPrevHashCalled()
+	if hhs.GetPrevHashCalled != nil {
+		return hhs.GetPrevHashCalled()
+	}
+	return nil
 }
 
 // GetPrevRandSeed -
@@ -159,17 +214,29 @@ func (hhs *HeaderHandlerStub) GetPubKeysBitmap() []byte {
 
 // GetSignature -
 func (hhs *HeaderHandlerStub) GetSignature() []byte {
-	return hhs.GetSignatureCalled()
+	if hhs.GetSignatureCalled != nil {
+		return hhs.GetSignatureCalled()
+	}
+
+	return nil
 }
 
 // GetLeaderSignature -
 func (hhs *HeaderHandlerStub) GetLeaderSignature() []byte {
-	return hhs.GetSignatureCalled()
+	if hhs.GetSignatureCalled != nil {
+		return hhs.GetSignatureCalled()
+	}
+
+	return nil
 }
 
 // GetChainID -
 func (hhs *HeaderHandlerStub) GetChainID() []byte {
-	return hhs.GetChainIDCalled()
+	if hhs.GetChainIDCalled != nil {
+		return hhs.GetChainIDCalled()
+	}
+
+	return nil
 }
 
 // GetTxCount -
@@ -187,18 +254,27 @@ func (hhs *HeaderHandlerStub) GetReserved() []byte {
 }
 
 // SetNonce -
-func (hhs *HeaderHandlerStub) SetNonce(_ uint64) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetNonce(nonce uint64) error {
+	if hhs.SetNonceCalled != nil {
+		return hhs.SetNonceCalled(nonce)
+	}
+	return nil
 }
 
 // SetEpoch -
-func (hhs *HeaderHandlerStub) SetEpoch(_ uint32) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetEpoch(epoch uint32) error {
+	if hhs.SetEpochCalled != nil {
+		return hhs.SetEpochCalled(epoch)
+	}
+	return nil
 }
 
 // SetRound -
-func (hhs *HeaderHandlerStub) SetRound(_ uint64) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetRound(round uint64) error {
+	if hhs.SetRoundCalled != nil {
+		return hhs.SetRoundCalled(round)
+	}
+	return nil
 }
 
 // SetTimeStamp -
@@ -274,13 +350,29 @@ func (hhs *HeaderHandlerStub) SetChainID(chainID []byte) error {
 }
 
 // SetTxCount -
-func (hhs *HeaderHandlerStub) SetTxCount(_ uint32) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetTxCount(count uint32) error {
+	if hhs.SetTxCountCalled != nil {
+		return hhs.SetTxCountCalled(count)
+	}
+	return nil
 }
 
 // GetMiniBlockHeadersWithDst -
 func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
-	return hhs.GetMiniBlockHeadersWithDstCalled(destId)
+	if hhs.GetMiniBlockHeadersWithDstCalled(destId) != nil {
+		return hhs.GetMiniBlockHeadersWithDstCalled(destId)
+	}
+
+	return make(map[string]uint32)
+}
+
+// GetProposedMiniBlockHeadersWithDst -
+func (hhs *HeaderHandlerStub) GetProposedMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
+	if hhs.GetProposedMiniBlockHeadersWithDstCalled != nil {
+		return hhs.GetProposedMiniBlockHeadersWithDstCalled(destId)
+	}
+
+	return make(map[string]uint32)
 }
 
 // GetOrderedCrossMiniblocksWithDst -
@@ -295,7 +387,10 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersHashes() [][]byte {
 
 // GetMiniBlockHeaderHandlers -
 func (hhs *HeaderHandlerStub) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
-	panic("implement me")
+	if hhs.GetMiniBlockHeaderHandlersCalled != nil {
+		return hhs.GetMiniBlockHeaderHandlersCalled()
+	}
+	return make([]data.MiniBlockHeaderHandler, 0)
 }
 
 // GetMetaBlockHashes -
@@ -319,8 +414,11 @@ func (hhs *HeaderHandlerStub) SetValidatorStatsRootHash(_ []byte) error {
 }
 
 // SetMiniBlockHeaderHandlers -
-func (hhs *HeaderHandlerStub) SetMiniBlockHeaderHandlers(_ []data.MiniBlockHeaderHandler) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetMiniBlockHeaderHandlers(mbsHandlers []data.MiniBlockHeaderHandler) error {
+	if hhs.SetMiniBlockHeaderHandlersCalled != nil {
+		return hhs.SetMiniBlockHeaderHandlersCalled(mbsHandlers)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -349,18 +447,27 @@ func (hhs *HeaderHandlerStub) SetReceiptsHash(_ []byte) error {
 }
 
 // SetMetaBlockHashes -
-func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) error {
+func (hhs *HeaderHandlerStub) SetMetaBlockHashes(hashes [][]byte) error {
+	if hhs.SetMetaBlockHashesCalled != nil {
+		return hhs.SetMetaBlockHashesCalled(hashes)
+	}
 	return nil
 }
 
 // SetEpochStartMetaHash -
-func (hhs *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
+func (hhs *HeaderHandlerStub) SetEpochStartMetaHash(hash []byte) error {
+	if hhs.SetEpochStartMetaHashCalled != nil {
+		return hhs.SetEpochStartMetaHashCalled(hash)
+	}
 	return nil
 }
 
 // GetShardInfoHandlers -
 func (hhs *HeaderHandlerStub) GetShardInfoHandlers() []data.ShardDataHandler {
-	panic("implement me")
+	if hhs.GetShardInfoHandlersCalled != nil {
+		return hhs.GetShardInfoHandlersCalled()
+	}
+	return make([]data.ShardDataHandler, 0)
 }
 
 // GetEpochStartHandler -
@@ -379,8 +486,11 @@ func (hhs *HeaderHandlerStub) SetDevFeesInEpoch(_ *big.Int) error {
 }
 
 // SetShardInfoHandlers -
-func (hhs *HeaderHandlerStub) SetShardInfoHandlers(_ []data.ShardDataHandler) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetShardInfoHandlers(shardInfo []data.ShardDataHandler) error {
+	if hhs.SetShardInfoHandlersCalled != nil {
+		return hhs.SetShardInfoHandlersCalled(shardInfo)
+	}
+	return nil
 }
 
 // SetAccumulatedFeesInEpoch -
@@ -422,6 +532,15 @@ func (hhs *HeaderHandlerStub) MapMiniBlockHashesToShards() map[string]uint32 {
 func (hhs *HeaderHandlerStub) CheckFieldsForNil() error {
 	if hhs.CheckFieldsForNilCalled != nil {
 		return hhs.CheckFieldsForNilCalled()
+	}
+
+	return nil
+}
+
+// CheckFieldsIntegrity -
+func (hhs *HeaderHandlerStub) CheckFieldsIntegrity() error {
+	if hhs.CheckFieldsIntegrityCalled != nil {
+		return hhs.CheckFieldsIntegrityCalled()
 	}
 
 	return nil
@@ -477,12 +596,19 @@ func (hhs *HeaderHandlerStub) SetExecutionResultsHandlers(resultHandlers []data.
 	return nil
 }
 
-// IsHeaderV3 -
-func (hhs *HeaderHandlerStub) IsHeaderV3() bool {
-	if hhs.IsHeaderV3Called != nil {
-		return hhs.IsHeaderV3Called()
-	}
+// GetAccumulatedFeesInEpoch -
+func (hhs *HeaderHandlerStub) GetAccumulatedFeesInEpoch() *big.Int {
+	return nil
+}
 
+// SetEpochChangeProposed -
+func (hhs *HeaderHandlerStub) SetEpochChangeProposed(_ bool) {}
+
+// IsEpochChangeProposed -
+func (hhs *HeaderHandlerStub) IsEpochChangeProposed() bool {
+	if hhs.IsEpochChangeProposedCalled != nil {
+		return hhs.IsEpochChangeProposedCalled()
+	}
 	return false
 }
 
@@ -493,4 +619,20 @@ func (hhs *HeaderHandlerStub) GetGasLimit() uint32 {
 	}
 
 	return 0
+}
+
+// GetShardInfoProposalHandlers -
+func (hhs *HeaderHandlerStub) GetShardInfoProposalHandlers() []data.ShardDataProposalHandler {
+	if hhs.GetShardInfoProposalHandlersCalled != nil {
+		return hhs.GetShardInfoProposalHandlersCalled()
+	}
+	return nil
+}
+
+// SetShardInfoProposalHandlers -
+func (hhs *HeaderHandlerStub) SetShardInfoProposalHandlers(shardInfo []data.ShardDataProposalHandler) error {
+	if hhs.SetShardInfoProposalHandlersCalled != nil {
+		return hhs.SetShardInfoProposalHandlersCalled(shardInfo)
+	}
+	return nil
 }

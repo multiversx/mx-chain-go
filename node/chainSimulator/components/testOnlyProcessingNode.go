@@ -8,7 +8,13 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+
 	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
@@ -26,10 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
@@ -372,6 +374,9 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.ProcessComponentsHolder.ShardCoordinator(),
 		node.CryptoComponentsHolder.PeerSignatureHandler(),
 		node.DataComponentsHolder.Datapool().Headers(),
+		node.DataComponentsHolder.Datapool().Headers(),
+		node.DataComponentsHolder.Datapool().Proofs(),
+		node.CoreComponentsHolder.EnableEpochsHandler(),
 		node.ProcessComponentsHolder.InterceptorsContainer(),
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),
@@ -537,8 +542,48 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 		return err
 	}
 
-	_, err = accountsAdapter.Commit()
+	newRootHash, err := accountsAdapter.Commit()
+	node.setBlockchainRootHashIfSupernovaIsActive(newRootHash)
+
 	return err
+}
+
+func (node *testOnlyProcessingNode) setBlockchainRootHashIfSupernovaIsActive(
+	rootHash []byte,
+) {
+	if !node.CoreComponentsHolder.EnableRoundsHandler().IsFlagEnabled(common.SupernovaRoundFlag) {
+		return
+	}
+
+	header := node.ChainHandler.GetLastExecutedBlockHeader()
+	_, hash, _ := node.ChainHandler.GetLastExecutedBlockInfo()
+	node.ChainHandler.SetLastExecutedBlockHeaderAndRootHash(header, hash, rootHash)
+
+	lastExecutionResult := node.ChainHandler.GetLastExecutionResult()
+
+	metaResult, isMeta := lastExecutionResult.(*block.MetaExecutionResult)
+	if isMeta {
+		metaResult.ExecutionResult.BaseExecutionResult.RootHash = rootHash
+		node.ChainHandler.SetLastExecutionResult(metaResult)
+		return
+	}
+
+	shardResult, isShard := lastExecutionResult.(*block.ExecutionResult)
+	if isShard {
+		shardResult.BaseExecutionResult.RootHash = rootHash
+		node.ChainHandler.SetLastExecutionResult(shardResult)
+		return
+	}
+
+	updatedLastExecutionResult := &block.BaseExecutionResult{
+		HeaderHash:  lastExecutionResult.GetHeaderHash(),
+		HeaderNonce: lastExecutionResult.GetHeaderNonce(),
+		HeaderRound: lastExecutionResult.GetHeaderRound(),
+		HeaderEpoch: lastExecutionResult.GetHeaderEpoch(),
+		RootHash:    rootHash,
+		GasUsed:     lastExecutionResult.GetGasUsed(),
+	}
+	node.ChainHandler.SetLastExecutionResult(updatedLastExecutionResult)
 }
 
 // RemoveAccount will remove the account for the given address

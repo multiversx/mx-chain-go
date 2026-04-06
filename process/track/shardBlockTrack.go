@@ -5,7 +5,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -75,29 +74,29 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 func (sbt *shardBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*HeaderInfo {
 	selfHeadersInfo := make([]*HeaderInfo, 0)
 
-	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	metaBlock, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		log.Debug("GetSelfHeaders", "error", process.ErrWrongTypeAssertion)
 		return selfHeadersInfo
 	}
 
-	for _, shardInfo := range metaBlock.ShardInfo {
-		if shardInfo.ShardID != sbt.shardCoordinator.SelfId() {
+	for _, shardInfo := range metaBlock.GetShardInfoHandlers() {
+		if shardInfo.GetShardID() != sbt.shardCoordinator.SelfId() {
 			continue
 		}
 
-		header, err := process.GetShardHeader(shardInfo.HeaderHash, sbt.headersPool, sbt.marshalizer, sbt.store)
+		header, err := process.GetShardHeader(shardInfo.GetHeaderHash(), sbt.headersPool, sbt.marshalizer, sbt.store)
 		if err != nil {
 			log.Trace("GetSelfHeaders.GetShardHeader", "error", err.Error())
 
-			header, err = sbt.getTrackedShardHeaderWithNonceAndHash(shardInfo.ShardID, shardInfo.Nonce, shardInfo.HeaderHash)
+			header, err = sbt.getTrackedShardHeaderWithNonceAndHash(shardInfo.GetShardID(), shardInfo.GetNonce(), shardInfo.GetHeaderHash())
 			if err != nil {
 				log.Trace("GetSelfHeaders.getTrackedShardHeaderWithNonceAndHash", "error", err.Error())
 				continue
 			}
 		}
 
-		selfHeadersInfo = append(selfHeadersInfo, &HeaderInfo{Hash: shardInfo.HeaderHash, Header: header})
+		selfHeadersInfo = append(selfHeadersInfo, &HeaderInfo{Hash: shardInfo.GetHeaderHash(), Header: header})
 	}
 
 	return selfHeadersInfo
@@ -150,21 +149,21 @@ func (sbt *shardBlockTrack) ComputeCrossInfo(headers []data.HeaderHandler) {
 		return
 	}
 
-	metaBlock, ok := headers[lenHeaders-1].(*block.MetaBlock)
+	metaBlock, ok := headers[lenHeaders-1].(data.MetaHeaderHandler)
 	if !ok {
 		log.Debug("ComputeCrossInfo", "error", process.ErrWrongTypeAssertion)
 		return
 	}
 
-	for _, shardInfo := range metaBlock.ShardInfo {
-		sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfo.ShardID, shardInfo.NumPendingMiniBlocks)
-		sbt.blockBalancer.SetLastShardProcessedMetaNonce(shardInfo.ShardID, shardInfo.LastIncludedMetaNonce)
+	for _, shardInfo := range metaBlock.GetShardInfoHandlers() {
+		sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfo.GetShardID(), shardInfo.GetNumPendingMiniBlocks())
+		sbt.blockBalancer.SetLastShardProcessedMetaNonce(shardInfo.GetShardID(), shardInfo.GetLastIncludedMetaNonce())
 	}
 
 	log.Debug("compute cross info from meta block",
-		"epoch", metaBlock.Epoch,
-		"round", metaBlock.Round,
-		"nonce", metaBlock.Nonce,
+		"epoch", metaBlock.GetEpoch(),
+		"round", metaBlock.GetRound(),
+		"nonce", metaBlock.GetNonce(),
 	)
 
 	for shardID := uint32(0); shardID < sbt.shardCoordinator.NumberOfShards(); shardID++ {

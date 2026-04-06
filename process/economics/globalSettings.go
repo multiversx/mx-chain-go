@@ -1,11 +1,11 @@
 package economics
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"math"
 	"sort"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 )

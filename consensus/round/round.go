@@ -29,6 +29,7 @@ type ArgsRound struct {
 	StartRound                int64
 	SupernovaStartRound       int64
 	EnableRoundsHandler       common.EnableRoundsHandler
+	ImportDBMode              bool
 }
 
 // round defines the data needed by the roundHandler
@@ -38,9 +39,11 @@ type round struct {
 	supernovaGenesisTimeStamp time.Time     // time duration between genesis and the time duration change
 	timeDuration              time.Duration // represents the duration of the round in current chronology
 	supernovaTimeDuration     time.Duration
+	genesisTimeStamp          time.Time
 	syncTimer                 ntp.SyncTimer
 	startRound                int64
 	supernovaStartRound       int64
+	importDBMode              bool
 
 	*sync.RWMutex
 
@@ -66,8 +69,10 @@ func NewRound(args ArgsRound) (*round, error) {
 		syncTimer:                 args.SyncTimer,
 		startRound:                args.StartRound,
 		supernovaStartRound:       args.SupernovaStartRound,
+		genesisTimeStamp:          args.GenesisTimeStamp,
 		RWMutex:                   &sync.RWMutex{},
 		enableRoundsHandler:       args.EnableRoundsHandler,
+		importDBMode:              args.ImportDBMode,
 	}
 	rnd.UpdateRound(args.GenesisTimeStamp, args.CurrentTimeStamp)
 
@@ -113,7 +118,7 @@ func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
 
 	currentTimeAfterSupernova := currentTimeStamp.UnixMilli() >= rnd.supernovaGenesisTimeStamp.UnixMilli()
 
-	if currentTimeAfterSupernova {
+	if currentTimeAfterSupernova && !rnd.importDBMode {
 		log.Debug("isSupernovaActivated: force set supernovaActivated",
 			"currentTimeAfterSupernova", currentTimeAfterSupernova,
 		)
@@ -208,6 +213,17 @@ func (rnd *round) RevertOneRound() {
 	rnd.timeStamp = rnd.timeStamp.Add(-timeDuration)
 
 	rnd.Unlock()
+}
+
+// GetTimeStampForRound returns unix milliseconds timestamp for the specified round
+func (rnd *round) GetTimeStampForRound(round uint64) uint64 {
+	if int64(round) <= rnd.supernovaStartRound {
+		roundTimeStampMs := rnd.genesisTimeStamp.Add(time.Duration(int64(round)-rnd.startRound) * rnd.timeDuration).UnixMilli()
+		return uint64(roundTimeStampMs)
+	}
+
+	roundTimeStampMs := rnd.supernovaGenesisTimeStamp.Add(time.Duration(int64(round)-rnd.supernovaStartRound) * rnd.supernovaTimeDuration).UnixMilli()
+	return uint64(roundTimeStampMs)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

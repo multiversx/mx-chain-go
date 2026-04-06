@@ -8,16 +8,18 @@ import (
 
 // StateComponentsMock -
 type StateComponentsMock struct {
-	PeersAcc                 state.AccountsAdapter
-	Accounts                 state.AccountsAdapter
-	AccountsAPI              state.AccountsAdapter
-	AccountsAdapterAPICalled func() state.AccountsAdapter
-	AccountsRepo             state.AccountsRepository
-	Tries                    common.TriesHolder
-	StorageManagers          map[string]common.StorageManager
-	MissingNodesNotifier     common.MissingTrieNodesNotifier
-	LeavesRetriever          common.TrieLeavesRetriever
-	ChangesCollector         state.StateAccessesCollector
+	PeersAcc                      state.AccountsAdapter
+	Accounts                      state.AccountsAdapter
+	AccountsAPI                   state.AccountsAdapter
+	AccountsProposal              state.AccountsAdapter
+	AccountsAdapterAPICalled      func() state.AccountsAdapter
+	AccountsAdapterProposalCalled func() state.AccountsAdapter
+	AccountsRepo                  state.AccountsRepository
+	Tries                         common.TriesHolder
+	StorageManagers               map[string]common.StorageManager
+	MissingNodesNotifier          common.MissingTrieNodesNotifier
+	LeavesRetriever               common.TrieLeavesRetriever
+	ChangesCollector              state.StateAccessesCollector
 }
 
 // NewStateComponentsMockFromRealComponent -
@@ -26,11 +28,13 @@ func NewStateComponentsMockFromRealComponent(stateComponents factory.StateCompon
 		PeersAcc:             stateComponents.PeerAccounts(),
 		Accounts:             stateComponents.AccountsAdapter(),
 		AccountsAPI:          stateComponents.AccountsAdapterAPI(),
+		AccountsProposal:     stateComponents.AccountsAdapterProposal(),
 		AccountsRepo:         stateComponents.AccountsRepository(),
 		Tries:                stateComponents.TriesContainer(),
 		StorageManagers:      stateComponents.TrieStorageManagers(),
 		MissingNodesNotifier: stateComponents.MissingTrieNodesNotifier(),
 		LeavesRetriever:      stateComponents.TrieLeavesRetriever(),
+		ChangesCollector:     stateComponents.StateAccessesCollector(),
 	}
 }
 
@@ -65,6 +69,14 @@ func (scm *StateComponentsMock) AccountsAdapterAPI() state.AccountsAdapter {
 		return scm.AccountsAdapterAPICalled()
 	}
 	return scm.AccountsAPI
+}
+
+// AccountsAdapterProposal -
+func (scm *StateComponentsMock) AccountsAdapterProposal() state.AccountsAdapter {
+	if scm.AccountsAdapterProposalCalled != nil {
+		return scm.AccountsAdapterProposalCalled()
+	}
+	return scm.AccountsProposal
 }
 
 // AccountsRepository -

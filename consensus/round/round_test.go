@@ -253,6 +253,50 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 		assert.Equal(t, int64(7), rnd.Index())
 		assert.Equal(t, currentTime.Add(supernovaRoundDuration).UnixMilli(), rnd.TimeStamp().UnixMilli())
 	})
+
+	t.Run("after supernova genesis time, in import db mode", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		roundDuration := 10 * time.Millisecond
+
+		supernovaRoundDuration := 5 * time.Millisecond
+		supernovaStartRond := int64(5)
+		supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRond) * roundDuration)
+
+		args := createDefaultRoundArgs()
+		args.RoundTimeDuration = roundDuration
+		args.SupernovaTimeDuration = supernovaRoundDuration
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag != common.SupernovaRoundFlag && round >= uint64(supernovaStartRond)
+			},
+		}
+		args.ImportDBMode = true
+
+		args.SupernovaStartRound = supernovaStartRond
+		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = supernovaGenesisTime
+
+		// set current time 2 rounds ahead
+		currentTime := genesisTime.Add(roundDuration * 2)
+
+		args.CurrentTimeStamp = currentTime
+
+		rnd, _ := round.NewRound(args)
+
+		assert.Equal(t, roundDuration, rnd.TimeDuration())
+		assert.Equal(t, int64(2), rnd.Index())
+
+		rnd.UpdateRound(genesisTime, genesisTime.Add(roundDuration*6))
+
+		// if in import db and supernova enable flag not enabled, do not activate
+		// supernova even if supernova genesis time was reached
+
+		assert.Equal(t, roundDuration, rnd.TimeDuration())
+		assert.Equal(t, int64(6), rnd.Index())
+	})
 }
 
 func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {
@@ -651,4 +695,46 @@ func TestRound_Concurrency(t *testing.T) {
 
 		wg.Wait()
 	})
+}
+
+func TestRound_GetTimeStampForRound(t *testing.T) {
+	t.Parallel()
+
+	genesisTime := time.Now()
+	supernovaGenesisTimeStamp := genesisTime.Add(10 * roundTimeDuration)
+
+	roundTimeDuration := 10 * time.Millisecond
+	supernovaRoundTimeDuration := 5 * time.Millisecond
+
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
+
+	startRound := int64(0)
+	supernovaStartRound := int64(10)
+
+	args := createDefaultRoundArgs()
+	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = supernovaGenesisTimeStamp
+	args.SyncTimer = syncTimerMock
+	args.StartRound = startRound
+	args.RoundTimeDuration = roundTimeDuration
+	args.SupernovaTimeDuration = supernovaRoundTimeDuration
+	args.SupernovaStartRound = supernovaStartRound
+	rnd, _ := round.NewRound(args)
+	require.True(t, rnd.BeforeGenesis())
+
+	roundTimeStamp := rnd.GetTimeStampForRound(0)
+	expRoundTimeStamp := genesisTime.Add(0 * roundTimeDuration)
+	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
+
+	roundTimeStamp = rnd.GetTimeStampForRound(10)
+	expRoundTimeStamp = genesisTime.Add(10 * roundTimeDuration)
+	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
+
+	roundTimeStamp = rnd.GetTimeStampForRound(20)
+	expRoundTimeStamp = supernovaGenesisTimeStamp.Add((20 - 10) * supernovaRoundTimeDuration)
+	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
+
+	roundTimeStamp = rnd.GetTimeStampForRound(1000)
+	expRoundTimeStamp = supernovaGenesisTimeStamp.Add((1000 - 10) * supernovaRoundTimeDuration)
+	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
 }

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -95,6 +96,9 @@ func CreateTestConfigs(tempDir string, originalConfigsPath string) (*config.Conf
 	mainP2PConfig.Node.ThresholdMinConnectedPeers = 0
 	fullArchiveP2PConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
 	fullArchiveP2PConfig.Node.ThresholdMinConnectedPeers = 0
+
+	// also for txpool selection, ignore the propagation grace period
+	generalConfig.TxCacheBounds.PropagationGracePeriodMs = 0
 
 	return &config.Configs{
 		GeneralConfig:        generalConfig,

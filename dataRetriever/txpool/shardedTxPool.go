@@ -9,12 +9,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
@@ -146,7 +147,7 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	if isForSenderMe {
 		config := txPool.configPrototypeSourceMe
 		config.Name = cacheID
-		cache, err := txcache.NewTxCache(config, txPool.host)
+		cache, err := txcache.NewTxCache(config, txPool.host, txPool.selfShardID)
 		if err != nil {
 			log.Error("shardedTxPool.createTxCache()", "err", err)
 			return txcache.NewDisabledCache()
@@ -435,8 +436,20 @@ func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.
 	return cache.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 }
 
-// OnExecutedBlock notifies the underlying TxCache
-func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+// OnBackfilledBlock notifies the underlying TxCache
+func (txPool *shardedTxPool) OnBackfilledBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler) error {
 	cache := txPool.getSelfShardTxCache()
-	return cache.OnExecutedBlock(blockHeader)
+	return cache.OnBackfilledBlock(blockHash, blockBody, blockHeader)
+}
+
+// OnExecutedBlock notifies the underlying TxCache
+func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
+	cache := txPool.getSelfShardTxCache()
+	return cache.OnExecutedBlock(blockHeader, rootHash)
+}
+
+// ResetTracker resets the underlying TxCache
+func (txPool *shardedTxPool) ResetTracker() {
+	cache := txPool.getSelfShardTxCache()
+	cache.ResetTracker()
 }

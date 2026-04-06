@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -17,6 +18,11 @@ type TxCoordinator struct {
 // CreatePostProcessMiniBlocks does nothing as it is disabled
 func (txCoordinator *TxCoordinator) CreatePostProcessMiniBlocks() block.MiniBlockSlice {
 	return make(block.MiniBlockSlice, 0)
+}
+
+// GetUnExecutableTransactions does nothing as it is disabled
+func (txCoordinator *TxCoordinator) GetUnExecutableTransactions() map[string]struct{} {
+	return make(map[string]struct{})
 }
 
 // CreateReceiptsHash does nothing as it is disabled
@@ -62,7 +68,7 @@ func (txCoordinator *TxCoordinator) RemoveBlockDataFromPool(_ *block.Body) error
 }
 
 // RemoveTxsFromPool does nothing as it is disabled
-func (txCoordinator *TxCoordinator) RemoveTxsFromPool(_ *block.Body) error {
+func (txCoordinator *TxCoordinator) RemoveTxsFromPool(_ *block.Body, _ common.RootHashHolder) error {
 	return nil
 }
 
@@ -71,8 +77,21 @@ func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler
 	return nil
 }
 
+// GetCreatedMiniBlocksFromMe does nothing as it is disabled
+func (txCoordinator *TxCoordinator) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	return make(block.MiniBlockSlice, 0)
+}
+
 // CreateBlockStarted does nothing as it is disabled
 func (txCoordinator *TxCoordinator) CreateBlockStarted() {
+}
+
+// CreateMbsCrossShardDstMe does nothing as it is disabled
+func (txCoordinator *TxCoordinator) CreateMbsCrossShardDstMe(
+	_ data.HeaderHandler,
+	_ map[string]*processedMb.ProcessedMiniBlockInfo,
+) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+	return make([]block.MiniblockAndHash, 0), make([]block.MiniblockAndHash, 0), 0, false, false, nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe does nothing as it is disabled
@@ -86,6 +105,11 @@ func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDst
 	return make(block.MiniBlockSlice, 0), 0, false, nil
 }
 
+// SelectOutgoingTransactions does nothing as it is disabled
+func (txCoordinator *TxCoordinator) SelectOutgoingTransactions(_ uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
+	return make([][]byte, 0), make([]data.MiniBlockHeaderHandler, 0)
+}
+
 // CreateMbsAndProcessTransactionsFromMe does nothing as it is disabled
 func (txCoordinator *TxCoordinator) CreateMbsAndProcessTransactionsFromMe(_ func() bool, _ []byte) block.MiniBlockSlice {
 	return make(block.MiniBlockSlice, 0)
@@ -93,6 +117,11 @@ func (txCoordinator *TxCoordinator) CreateMbsAndProcessTransactionsFromMe(_ func
 
 // CreateMarshalizedData does nothing as it is disabled
 func (txCoordinator *TxCoordinator) CreateMarshalizedData(_ *block.Body) map[string][][]byte {
+	return make(map[string][][]byte)
+}
+
+// CreateMarshalledDataForHeader does nothing as it is disabled
+func (txCoordinator *TxCoordinator) CreateMarshalledDataForHeader(_ data.HeaderHandler, _ *block.Body, _ map[string]block.MiniBlockSlice) map[string][][]byte {
 	return make(map[string][][]byte)
 }
 
@@ -135,8 +164,13 @@ func (txCoordinator *TxCoordinator) AddTransactions(_ []data.TransactionHandler,
 }
 
 // GetAllCurrentLogs returns empty logs map
-func (txCoordinator *TxCoordinator) GetAllCurrentLogs() []*data.LogData {
-	return make([]*data.LogData, 0)
+func (txCoordinator *TxCoordinator) GetAllCurrentLogs() []data.LogDataHandler {
+	return make([]data.LogDataHandler, 0)
+}
+
+// ProposedDirectSentTransactionsToBroadcast returns an empty map
+func (txCoordinator *TxCoordinator) ProposedDirectSentTransactionsToBroadcast(_ data.BodyHandler) map[string][][]byte {
+	return make(map[string][][]byte)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

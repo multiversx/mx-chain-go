@@ -67,6 +67,9 @@ var ErrNilBlockChainHandler = errors.New("blockchain handler is nil")
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
 
+// ErrNilExecutionManager is raised when a valid execution manager is expected but nil used
+var ErrNilExecutionManager = errors.New("execution manager is nil")
+
 // ErrNilBlockSigner signals the nil block signer was provided
 var ErrNilBlockSigner = errors.New("nil block signer")
 
@@ -610,3 +613,6 @@ var ErrNilFieldsSizeChecker = errors.New("nil fields size checker")
 
 // ErrNilTrieLeavesRetriever defines the error for setting a nil TrieLeavesRetriever
 var ErrNilTrieLeavesRetriever = errors.New("nil trie leaves retriever")
+
+// ErrNilAOTSelector signals that a nil AOT selector has been provided
+var ErrNilAOTSelector = errors.New("nil AOT selector")

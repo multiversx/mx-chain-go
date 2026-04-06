@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -281,7 +282,7 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 	})
 }
 
-func Test_detectWillFeeExceedBalance(t *testing.T) {
+func Test_detectWillBalanceBeExceeded(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should exceed balance", func(t *testing.T) {
@@ -305,11 +306,15 @@ func Test_detectWillFeeExceedBalance(t *testing.T) {
 		}
 
 		tx := WrappedTransaction{
+			TransferredValue: big.NewInt(0),
+			Tx: &transaction.Transaction{
+				SndAddr: []byte("alice"),
+			},
 			Fee:      big.NewInt(2),
 			FeePayer: []byte("alice"),
 		}
 
-		actualRes := virtualSession.detectWillFeeExceedBalance(&tx)
+		actualRes := virtualSession.detectWillBalanceBeExceeded(&tx)
 		require.True(t, actualRes)
 	})
 
@@ -334,11 +339,15 @@ func Test_detectWillFeeExceedBalance(t *testing.T) {
 		}
 
 		tx := WrappedTransaction{
-			Fee:      big.NewInt(2),
-			FeePayer: []byte("alice"),
+			Tx: &transaction.Transaction{
+				SndAddr: []byte("bob"),
+			},
+			TransferredValue: big.NewInt(0),
+			Fee:              big.NewInt(2),
+			FeePayer:         []byte("alice"),
 		}
 
-		actualRes := virtualSession.detectWillFeeExceedBalance(&tx)
+		actualRes := virtualSession.detectWillBalanceBeExceeded(&tx)
 		require.False(t, actualRes)
 	})
 }
@@ -465,4 +474,38 @@ func TestBenchmarkVirtualSelectionSession_getRecord(t *testing.T) {
 	// 0.011677s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_300,_numTransactionsPerAccount=_100)
 	// 0.016253s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_10_000,_numTransactionsPerAccount=_3)
 	// 0.028861s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_30_000,_numTransactionsPerAccount=_1)
+}
+
+func Test_setChangeGuardianIfNeeded(t *testing.T) {
+	a := createTx([]byte("tx-1"), "alice", 42)
+	b := createTx([]byte("tx-2"), "alice", 43)
+	c := createTx([]byte("tx-3"), "alice", 44).withData([]byte("SetGuardian@newGuardian")).withGasLimit(100000)
+
+	session := txcachemocks.NewSelectionSessionMock()
+	session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
+		return tx.GetNonce() == b.Tx.GetNonce() // for coverage
+	}
+	session.IsGuardedCalled = func(tx data.TransactionHandler) bool {
+		return tx.GetNonce() == b.Tx.GetNonce() ||
+			tx.GetNonce() == c.Tx.GetNonce()
+	}
+	virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
+
+	// regular tx, not guarded
+	virtualSession.setChangeGuardianIfNeeded(a.Tx)
+	virtualRecord1, err := virtualSession.getRecord([]byte("alice"))
+	require.NoError(t, err)
+	require.False(t, virtualRecord1.hasPendingChangeGuardian())
+
+	// incorrectly guarded
+	virtualSession.setChangeGuardianIfNeeded(b.Tx)
+	virtualRecord1, err = virtualSession.getRecord([]byte("alice"))
+	require.NoError(t, err)
+	require.False(t, virtualRecord1.hasPendingChangeGuardian())
+
+	// correctly guarded
+	virtualSession.setChangeGuardianIfNeeded(c.Tx)
+	virtualRecord1, err = virtualSession.getRecord([]byte("alice"))
+	require.NoError(t, err)
+	require.True(t, virtualRecord1.hasPendingChangeGuardian())
 }

@@ -219,7 +219,7 @@ func createTopicAndAssignHandlerOnMessenger(
 	return messenger.RegisterMessageProcessor(topic, common.DefaultInterceptorsIdentifier, interceptor)
 }
 
-// ------- Tx interceptors
+// ------- tx interceptors
 
 func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	shardC := bicf.shardCoordinator
@@ -281,8 +281,9 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: bicf.dataPool.Transactions(),
-		TxValidator:      txValidator,
+		ShardedDataCache:            bicf.dataPool.Transactions(),
+		TxValidator:                 txValidator,
+		DirectSentTransactionsCache: bicf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -313,6 +314,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -338,8 +340,9 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: bicf.dataPool.UnsignedTransactions(),
-		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardedDataCache:            bicf.dataPool.UnsignedTransactions(),
+		TxValidator:                 dataValidators.NewDisabledTxValidator(),
+		DirectSentTransactionsCache: bicf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -370,6 +373,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -395,8 +399,9 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: bicf.dataPool.RewardTransactions(),
-		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardedDataCache:            bicf.dataPool.RewardTransactions(),
+		TxValidator:                 dataValidators.NewDisabledTxValidator(),
+		DirectSentTransactionsCache: bicf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -427,6 +432,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -484,6 +490,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -581,6 +588,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -665,6 +673,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -709,6 +718,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -809,6 +819,7 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -873,6 +884,7 @@ func (bicf *baseInterceptorsContainerFactory) createHeartbeatV2Interceptor(
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -928,6 +940,7 @@ func (bicf *baseInterceptorsContainerFactory) createPeerShardInterceptor(
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -973,6 +986,7 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -1015,6 +1029,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInte
 			CurrentPeerId:           bicf.mainMessenger.ID(),
 			PreferredPeersHolder:    bicf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
