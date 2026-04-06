@@ -216,7 +216,7 @@ func checkExistingProofForHeader(
 		return nil // proof does not exist, keep header
 	}
 
-	if bytes.Equal(proof.GetHeaderHash(), headerHash) {
+	if !bytes.Equal(proof.GetHeaderHash(), headerHash) {
 		return ErrProofAlreadyExistsForNonce
 	}
 
