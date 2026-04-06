@@ -1367,6 +1367,41 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		// cleanup all unexecuted transaction from txpool
 		bp.cleanupUnexecutableTxsFromPool(executionResultHeaderHash)
 	}
+
+	if headerHandler.GetRound()%50 == 0 {
+		go bp.logPoolsSize()
+	}
+}
+
+func (bp *baseProcessor) logPoolsSize() {
+	dp := bp.dataPool
+
+	log.Debug("logPoolsSize",
+		"postProcessTxs", "len", dp.PostProcessTransactions().Len(), "size", dp.PostProcessTransactions().SizeInBytesContained(),
+		"executedMiniBlocksCache", "len", dp.ExecutedMiniBlocks().Len(), "size", dp.ExecutedMiniBlocks().SizeInBytesContained(),
+		"miniblocks", "len", dp.MiniBlocks().Len(), "size", dp.MiniBlocks().SizeInBytesContained(),
+		"proofs", "len", dp.Proofs().Len(),
+	)
+
+	log.Debug("logPoolsSize headers",
+		"headers", "len", dp.Headers().Len(),
+	)
+	for i := uint32(0); i < bp.shardCoordinator.NumberOfShards(); i++ {
+		log.Debug("per shard",
+			"shardID", i, "numHeaders", dp.Headers().GetNumHeaders(i),
+		)
+	}
+	log.Debug("per shard",
+		"shardID", core.MetachainShardId, "numHeaders", dp.Headers().GetNumHeaders(core.MetachainShardId),
+	)
+
+	txPoolCounts := dp.Transactions().GetCounts()
+
+	log.Debug("logPoolsSize txPool",
+		"numTrackedBlocks", dp.Transactions().GetNumTrackedBlocks(),
+		"numTrackedAccounts", dp.Transactions().GetNumTrackedAccounts(),
+		"id", txPoolCounts.String(), "total", txPoolCounts.GetTotal(), "total size", txPoolCounts.GetTotalSize(),
+	)
 }
 
 func (bp *baseProcessor) cleanupUnexecutableTxsFromPool(headerHash []byte) {

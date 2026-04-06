@@ -224,6 +224,18 @@ func (pp *proofsPool) RegisterHandler(handler func(headerProof data.HeaderProofH
 	pp.mutAddedProofSubscribers.Unlock()
 }
 
+func (pp *proofsPool) Len() int {
+	pp.mutCache.RLock()
+	defer pp.mutCache.RUnlock()
+
+	numProofsByHash := 0
+	for _, proofsPerShard := range pp.cache {
+		numProofsByHash += proofsPerShard.getNumProofsByHash()
+	}
+
+	return numProofsByHash
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (pp *proofsPool) IsInterfaceNil() bool {
 	return pp == nil

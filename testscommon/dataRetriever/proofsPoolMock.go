@@ -87,6 +87,10 @@ func (p *ProofsPoolMock) RegisterHandler(handler func(headerProof data.HeaderPro
 	}
 }
 
+func (p *ProofsPoolMock) Len() int {
+	return 0
+}
+
 // IsInterfaceNil -
 func (p *ProofsPoolMock) IsInterfaceNil() bool {
 	return p == nil
