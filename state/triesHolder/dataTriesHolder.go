@@ -214,6 +214,25 @@ func (dth *dataTriesHolder) recomputeTotalSize() {
 	dth.touchedTries = make(map[string]struct{})
 }
 
+// Remove evicts the trie associated with the given key from the holder.
+// This must be called when an account is deleted so that a subsequent recreation
+// of the same account does not inherit the stale data trie from the previous incarnation.
+func (dth *dataTriesHolder) Remove(key []byte) {
+	if len(key) == 0 {
+		return
+	}
+
+	dth.mutex.Lock()
+	defer dth.mutex.Unlock()
+
+	keyString := string(key)
+	dth.cacher.Remove(keyString)
+	delete(dth.dirtyTries, keyString)
+	delete(dth.touchedTries, keyString)
+	delete(dth.evictedBuffer, keyString)
+	log.Trace("removed trie from data tries holder", "key", key)
+}
+
 // Reset clears the tries map
 func (dth *dataTriesHolder) Reset() {
 	dth.mutex.Lock()

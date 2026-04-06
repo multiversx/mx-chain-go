@@ -679,6 +679,11 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
+	// Evict the cached trie for this address so that a subsequent recreation of
+	// the account at the same address cannot inherit the stale data trie from
+	// this deleted incarnation (see loadDataTrieConcurrentSafe / saveDataTrie).
+	adb.dataTries.Remove(baseAcc.AddressBytes())
+
 	return nil
 }
 

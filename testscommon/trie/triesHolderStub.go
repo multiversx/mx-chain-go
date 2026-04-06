@@ -7,7 +7,7 @@ import (
 // TriesHolderStub -
 type TriesHolderStub struct {
 	PutCalled         func([]byte, common.Trie)
-	RemoveCalled      func([]byte, common.Trie)
+	RemoveCalled      func([]byte)
 	GetCalled         func([]byte) common.Trie
 	GetAllCalled      func() []common.Trie
 	ResetCalled       func()
@@ -18,6 +18,13 @@ type TriesHolderStub struct {
 func (ths *TriesHolderStub) Put(key []byte, trie common.Trie) {
 	if ths.PutCalled != nil {
 		ths.PutCalled(key, trie)
+	}
+}
+
+// Remove -
+func (ths *TriesHolderStub) Remove(key []byte) {
+	if ths.RemoveCalled != nil {
+		ths.RemoveCalled(key)
 	}
 }
 

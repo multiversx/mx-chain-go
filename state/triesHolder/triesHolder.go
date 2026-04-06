@@ -49,6 +49,13 @@ func (dth *triesHolder) GetAll() []common.Trie {
 	return tries
 }
 
+// Remove deletes the trie associated with the given key from the holder
+func (dth *triesHolder) Remove(key []byte) {
+	dth.mutex.Lock()
+	delete(dth.tries, string(key))
+	dth.mutex.Unlock()
+}
+
 // Reset clears the tries map
 func (dth *triesHolder) Reset() {
 	dth.mutex.Lock()
