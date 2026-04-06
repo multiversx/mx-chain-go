@@ -128,12 +128,20 @@ func (st *storageBootstrapper) loadBlocks() error {
 			break
 		}
 
-		storageHeadersInfo = append(storageHeadersInfo, headerInfo)
-
 		if uint64(round) > st.bootstrapRoundIndex {
+			log.Debug("loadBlocks: removing round info",
+				"round", round,
+				"last header nonce", headerInfo.LastHeader.GetNonce(),
+				"lastRound", headerInfo.GetLastRound(),
+			)
+
+			st.cleanupStorage(headerInfo.LastHeader)
+			st.bootstrapper.cleanupNotarizedStorage(headerInfo.LastHeader.Hash)
 			round = headerInfo.LastRound
 			continue
 		}
+
+		storageHeadersInfo = append(storageHeadersInfo, headerInfo)
 
 		_, numHdrs := metricsLoader.UpdateMetricsFromStorage(st.store, st.uint64Converter, st.marshalizer, st.appStatusHandler, headerInfo.LastHeader.Nonce)
 		st.blkExecutor.SetNumProcessedObj(numHdrs)
@@ -531,7 +539,7 @@ func (st *storageBootstrapper) setCurrentBlockInfo(
 
 	// set also last executed block info and header
 	// this will be useful at transition to Supernova with headers v3
-	st.blkc.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, header.GetRootHash())
+	st.blkc.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
 
 	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
 	if err != nil {
@@ -671,6 +679,8 @@ func (st *storageBootstrapper) restoreBlockChainToGenesis() {
 	}
 
 	st.blkc.SetCurrentBlockHeaderHash(nil)
+	// keep last executed block header in sync when reverting to genesis
+	st.blkc.SetLastExecutedBlockHeaderAndRootHash(nil, nil, nil)
 }
 
 func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) error {
