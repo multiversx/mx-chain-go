@@ -61,9 +61,9 @@ func TestChainSimulatorCheckSupernova(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               3,
 		MetaChainMinNodes:              3,
-		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.ExternalConfig.GRPCDriversConfig[0].Enabled = true
-		},
+		//AlterConfigsFunction: func(cfg *config.Configs) {
+		//	cfg.ExternalConfig.GRPCDriversConfig[0].Enabled = true
+		//},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)

@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -11,7 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/outport"
-	grpc2 "github.com/multiversx/mx-chain-go/outport/grpc"
+	"github.com/multiversx/mx-chain-go/outport/grpcdriver"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // OutportFactoryArgs holds the factory arguments of different outport drivers
@@ -154,15 +157,34 @@ func createAndSubscribeGRPCDriverIfNeeded(
 		return nil
 	}
 
-	grpcClient, err := grpcadapter.NewOutportGRPCClient(args.GRPCClient.URL)
+	grpcClient, err := grpcadapter.NewOutportGRPCClient(
+		args.GRPCClient.URL,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(logGRPCOutportCalls),
+	)
 	if err != nil {
 		return err
 	}
 
-	grpcDriver, err := grpc2.NewGRPCDriver(grpcClient, args.Marshaller)
+	grpcDriver, err := grpcdriver.NewGRPCDriver(grpcClient, args.Marshaller)
 	if err != nil {
 		return err
 	}
 
 	return outport.SubscribeDriver(grpcDriver)
+}
+
+func logGRPCOutportCalls(
+	ctx context.Context,
+	method string,
+	req any,
+	reply any,
+	cc *grpc.ClientConn,
+	invoker grpc.UnaryInvoker,
+	opts ...grpc.CallOption,
+) error {
+	start := time.Now()
+	err := invoker(ctx, method, req, reply, cc, opts...)
+	log.Debug("grpc call", "method", method, "duration", time.Since(start))
+	return err
 }
