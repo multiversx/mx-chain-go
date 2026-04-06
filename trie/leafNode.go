@@ -119,7 +119,7 @@ func (ln *leafNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(ln)
 }
 
-func (ln *leafNode) commitDirty(_ common.TrieStorageInteractor, targetDb common.BaseStorer, _ MetricsCollector) error {
+func (ln *leafNode) commitDirty(_ common.TrieStorageInteractor, targetDb common.BaseStorer) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
@@ -133,6 +133,13 @@ func (ln *leafNode) commitDirty(_ common.TrieStorageInteractor, targetDb common.
 	_, err = encodeNodeAndCommitToDB(ln, targetDb)
 
 	return err
+}
+
+func (ln *leafNode) shouldCollapseChild(hexKey []byte, _ MetricsCollector) bool {
+	if bytes.Equal(hexKey, ln.Key) && !ln.dirty {
+		return true
+	}
+	return false
 }
 
 func (ln *leafNode) commitSnapshot(

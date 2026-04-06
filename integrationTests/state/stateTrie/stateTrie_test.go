@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-storage-go/types"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -276,7 +277,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	args.Hasher = hasher
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
+	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
@@ -1058,7 +1059,7 @@ func createAccounts(
 	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:                 integrationTests.TestHasher,
@@ -2735,7 +2736,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	args := testCommon.GetStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
+	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:                 integrationTests.TestHasher,
@@ -2791,7 +2792,7 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = mainStorer
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
+	tr, _ := trie.NewTrie(trieStorage, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	defer func() {
 		_ = trieStorage.Close()
 	}()

@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,8 +38,6 @@ import (
 
 var emptyTrieHash = make([]byte, 32)
 
-const tenMBSize = uint64(10485760)
-
 func emptyTrie() common.Trie {
 	tr, _ := trie.NewTrie(getDefaultTrieParameters())
 
@@ -52,11 +51,11 @@ func emptyTrieWithCustomEnableEpochsHandler(handler common.EnableEpochsHandler) 
 	return tr
 }
 
-func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint64) {
+func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, common.TrieCollapseManager) {
 	args := trie.GetDefaultTrieStorageManagerParameters()
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
-	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize
+	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager()
 }
 
 func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
@@ -89,8 +88,8 @@ func addDefaultDataToTrie(tr common.Trie) {
 func TestNewTrieWithNilTrieStorage(t *testing.T) {
 	t.Parallel()
 
-	_, marshalizer, hasher, enableEpochsHandler, maxSizeInMem := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(nil, marshalizer, hasher, enableEpochsHandler, maxSizeInMem)
+	_, marshalizer, hasher, enableEpochsHandler, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(nil, marshalizer, hasher, enableEpochsHandler, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilTrieStorage, err)
@@ -99,8 +98,8 @@ func TestNewTrieWithNilTrieStorage(t *testing.T) {
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, _, hasher, enableEpochsHandler, maxSizeInMem := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, nil, hasher, enableEpochsHandler, maxSizeInMem)
+	trieStorage, _, hasher, enableEpochsHandler, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, nil, hasher, enableEpochsHandler, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -109,8 +108,8 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, _, enableEpochsHandler, maxSizeInMem := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, enableEpochsHandler, maxSizeInMem)
+	trieStorage, marshalizer, _, enableEpochsHandler, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, enableEpochsHandler, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
@@ -119,21 +118,21 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 func TestNewTrieWithNilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, hasher, _, maxSizeInMem := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, nil, maxSizeInMem)
+	trieStorage, marshalizer, hasher, _, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, nil, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, errorsCommon.ErrNilEnableEpochsHandler, err)
 }
 
-func TestNewTrieWithInvalidMaxSizeInMemory(t *testing.T) {
+func TestNewTrieWithNilCollapseManager(t *testing.T) {
 	t.Parallel()
 
 	trieStorage, marshalizer, hasher, enableEpochsHandler, _ := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, enableEpochsHandler, 0)
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, enableEpochsHandler, nil)
 
 	assert.Nil(t, tr)
-	assert.True(t, errors.Is(err, trie.ErrInvalidMaxSizeInMemory))
+	assert.True(t, errors.Is(err, trie.ErrNilCollapseManager))
 }
 
 func TestPatriciaMerkleTree_Get(t *testing.T) {
@@ -1064,7 +1063,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesShouldSerializeTheCalls(t *testing
 		},
 	}
 
-	tr, _ := trie.NewTrie(testTrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+	tr, _ := trie.NewTrie(testTrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	numGoRoutines := 100
 	wg := sync.WaitGroup{}
 	wg.Add(numGoRoutines)
@@ -1486,13 +1485,13 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	t.Run("not migrated", func(t *testing.T) {
 		t.Parallel()
 
-		tsm, marshaller, hasher, _, maxSizeInMem := getDefaultTrieParameters()
+		tsm, marshaller, hasher, _, cm := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
-		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxSizeInMem)
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, cm)
 
 		_ = tr.Update([]byte("dog"), []byte("reindeer"))
 		isMigrated, err := tr.IsMigratedToLatestVersion()
@@ -1503,13 +1502,13 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	t.Run("migrated", func(t *testing.T) {
 		t.Parallel()
 
-		tsm, marshaller, hasher, _, maxSizeInMem := getDefaultTrieParameters()
+		tsm, marshaller, hasher, _, cm := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
-		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxSizeInMem)
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, cm)
 
 		_ = tr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
 		isMigrated, err := tr.IsMigratedToLatestVersion()
@@ -1554,26 +1553,28 @@ func TestGetNodeDataFromHash(t *testing.T) {
 func TestPatriciaMerkleTree_SizeInMemory(t *testing.T) {
 	t.Parallel()
 
-	tr := emptyTrie()
+	db, msh, hsh, epochs, _ := getDefaultTrieParameters()
+	cm, err := collapseManager.NewCollapseManager(common.TenMbSize, common.NumLeavesToCollapseSingleRun)
+	assert.Nil(t, err)
+	tr, _ := trie.NewTrie(db, msh, hsh, epochs, cm)
+
 	assert.Equal(t, 0, tr.SizeInMemory())
 	addDefaultDataToTrie(tr)
 
 	assert.Equal(t, 779, tr.SizeInMemory()) // 3 leaves + 2 branch nodes + 1 extension node
-	err := tr.Commit()
+	err = tr.Commit()
 	assert.Nil(t, err)
-	assert.Equal(t, 596, tr.SizeInMemory()) // leaves are collapsed
 
 	err = tr.Delete([]byte("dog"))
 	assert.Nil(t, err)
-	assert.Equal(t, 313, tr.SizeInMemory()) // 1 branch node + 2 leaves
+	assert.Equal(t, 380, tr.SizeInMemory()) // 1 branch node + 2 leaves
 
 	err = tr.Commit()
 	assert.Nil(t, err)
-	assert.Equal(t, 249, tr.SizeInMemory()) // collapse leaf
 
 	err = tr.Update([]byte("dog"), []byte("puppy"))
 	assert.Nil(t, err)
-	assert.Equal(t, 712, tr.SizeInMemory())
+	assert.Equal(t, 779, tr.SizeInMemory())
 
 	rootHash, err := tr.RootHash()
 	assert.Nil(t, err)
@@ -1596,6 +1597,34 @@ func TestPatriciaMerkleTree_SizeInMemory(t *testing.T) {
 	err = tr.Delete([]byte("doe")) // delete collapsed node
 	assert.Nil(t, err)
 	assert.Equal(t, 464, tr.SizeInMemory())
+}
+
+func TestPatriciaMerkleTree_CollapseTrie(t *testing.T) {
+	t.Parallel()
+
+	db, msh, hsh, epochs, _ := getDefaultTrieParameters()
+	oneMbSize := uint64(1048576)
+	cm, _ := collapseManager.NewCollapseManager(oneMbSize, common.NumLeavesToCollapseSingleRun)
+	tr, _ := trie.NewTrie(db, msh, hsh, epochs, cm)
+
+	for uint64(tr.SizeInMemory()) < oneMbSize {
+		randomKey := make([]byte, 32)
+		_, _ = cryptoRand.Read(randomKey)
+		_ = tr.Update(randomKey, randomKey)
+	}
+
+	sizeBeforeCollapse := tr.SizeInMemory()
+	numCollapsed, err := tr.GetNumCollapsedNodes()
+	assert.Nil(t, err)
+	assert.Equal(t, 0, numCollapsed)
+	err = tr.Commit()
+	assert.Nil(t, err)
+	sizeAfterCollapse := tr.SizeInMemory()
+	assert.Less(t, sizeAfterCollapse, sizeBeforeCollapse)
+	assert.Less(t, sizeAfterCollapse, int(oneMbSize))
+	numCollapsed, err = tr.GetNumCollapsedNodes()
+	assert.Nil(t, err)
+	assert.Equal(t, 100, numCollapsed)
 }
 
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {

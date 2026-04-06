@@ -227,7 +227,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 
-	err = bn.commitDirty(db, db, dtmc)
+	err = bn.commitDirty(db, db)
 	require.Nil(t, err)
 
 	leaves, err := bn.getChildren(trieMetricsCollector.NewDisabledTrieMetricsCollector(), db)

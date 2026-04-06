@@ -173,7 +173,7 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targetDb common.BaseStorer, tmc MetricsCollector) error {
+func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
@@ -184,7 +184,7 @@ func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targ
 	}
 
 	if en.child != nil {
-		err = en.child.commitDirty(originDb, targetDb, tmc)
+		err = en.child.commitDirty(originDb, targetDb)
 		if err != nil {
 			return err
 		}
@@ -197,6 +197,25 @@ func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targ
 	}
 
 	return nil
+}
+
+func (en *extensionNode) shouldCollapseChild(hexKey []byte, tmc MetricsCollector) bool {
+	keyTooShort := len(hexKey) < len(en.Key)
+	if keyTooShort {
+		return false
+	}
+	keysDontMatch := !bytes.Equal(en.Key, hexKey[:len(en.Key)])
+	if keysDontMatch {
+		return false
+	}
+	hexKey = hexKey[len(en.Key):]
+	if en.child == nil {
+		return false
+	}
+
+	// an extension node can not have a leaf as child, so no need to check for that
+	_ = en.child.shouldCollapseChild(hexKey, tmc)
+	return false
 }
 
 func (en *extensionNode) commitSnapshot(

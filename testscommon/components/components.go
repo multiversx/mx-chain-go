@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/state/triesHolder"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
@@ -373,9 +374,8 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, statusCore
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
 	triesContainer := triesHolder.NewTriesHolder()
-	tenMBSize := uint64(10485760)
-	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), tenMBSize)
-	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), tenMBSize)
+	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), collapseManager.NewDisabledCollapseManager())
+	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), collapseManager.NewDisabledCollapseManager())
 	triesContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
 	triesContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
 

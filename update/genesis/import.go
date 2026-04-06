@@ -22,10 +22,9 @@ import (
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/update"
 )
-
-const tenMBSize = uint64(10485760)
 
 var _ update.ImportHandler = (*stateImport)(nil)
 
@@ -315,7 +314,7 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error
 		trieStorageManager = si.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	}
 
-	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, si.enableEpochsHandler, tenMBSize)
+	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, si.enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	if err != nil {
 		return nil, err
 	}
@@ -347,7 +346,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()], si.marshalizer, si.hasher, si.enableEpochsHandler, tenMBSize)
+	dataTrie, err := trie.NewTrie(si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()], si.marshalizer, si.hasher, si.enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	if err != nil {
 		return err
 	}
@@ -422,7 +421,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 				AddressConverter:         si.addressConverter,
 				SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
 				StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-				MaxDataTriesSizeInMemory: tenMBSize,
+				MaxDataTriesSizeInMemory: common.TenMbSize,
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -447,7 +446,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 		AddressConverter:         si.addressConverter,
 		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
 		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-		MaxDataTriesSizeInMemory: tenMBSize,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB

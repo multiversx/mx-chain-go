@@ -132,3 +132,6 @@ var ErrInvalidIteratorState = errors.New("invalid iterator state")
 
 // ErrInvalidMaxSizeInMemory signals that the provided max trie size value is invalid
 var ErrInvalidMaxSizeInMemory = errors.New("invalid max size in memory")
+
+// ErrNilCollapseManager signals that a nil collapse manager has been provided
+var ErrNilCollapseManager = errors.New("nil collapse manager")

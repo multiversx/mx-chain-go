@@ -39,7 +39,6 @@ import (
 
 const (
 	unreachableStep = 10000
-	tenMBSize       = uint64(10485760)
 )
 
 type failingSteps struct {
@@ -309,9 +308,9 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 				SnapshotsGoroutineNum: 1,
 			},
 			StateTriesConfig: config.StateTriesConfig{
-				MaxUserTrieSizeInMemory: tenMBSize,
-				MaxPeerTrieSizeInMemory: tenMBSize,
-				DataTriesSizeInMemory:   tenMBSize,
+				MaxUserTrieSizeInMemory: common.TenMbSize,
+				MaxPeerTrieSizeInMemory: common.TenMbSize,
+				DataTriesSizeInMemory:   common.TenMbSize,
 			},
 			VirtualMachine: config.VirtualMachineServicesConfig{
 				Querying: config.QueryVirtualMachineConfig{

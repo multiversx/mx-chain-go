@@ -28,8 +28,13 @@ const (
 	nonceIndex     = 0
 )
 
-// TenMbSize defines the size of 10 megabytes in bytes, used as a constant for memory limits or buffer sizes
-const TenMbSize = uint64(10485760)
+const (
+	// TenMbSize defines the size of 10 megabytes in bytes, used as a constant for memory limits or buffer sizes
+	TenMbSize = uint64(10485760)
+
+	// NumLeavesToCollapseSingleRun defines the number of leaves to collapse in a single run, used in trie collapsing operations to manage performance and resource usage
+	NumLeavesToCollapseSingleRun = 100
+)
 
 type executionResultHandler interface {
 	GetMiniBlockHeadersHandlers() []data.MiniBlockHeaderHandler

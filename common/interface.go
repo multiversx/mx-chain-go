@@ -526,3 +526,15 @@ type AOTSelectionPreempter interface {
 	CancelOngoingSelection()
 	IsInterfaceNil() bool
 }
+
+// TrieCollapseManager defines the behavior of a trie collapse manager
+type TrieCollapseManager interface {
+	MarkKeyAsAccessed(key []byte, sizeLoadedInMemory int)
+	RemoveKey(key []byte, sizeLoadedInMemory int)
+	ShouldCollapseTrie() bool
+	GetCollapsibleLeaves() ([][]byte, error)
+	AddSizeInMemory(size int)
+	GetSizeInMemory() int
+	CloneWithoutState() TrieCollapseManager
+	IsInterfaceNil() bool
+}

@@ -17,7 +17,6 @@ import (
 )
 
 func createMockAccountsArgs() state.ArgsAccountsDB {
-	tenMbSize := uint64(10 * 1024 * 1024)
 	return state.ArgsAccountsDB{
 		Trie: &mockTrie.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
@@ -31,7 +30,7 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:         &mockState.SnapshotsManagerStub{},
 		StateAccessesCollector:   &mockState.StateAccessesCollectorStub{},
-		MaxDataTriesSizeInMemory: tenMbSize,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 }
 

@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -37,7 +38,7 @@ func createTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 func createInMemoryTrie() (common.Trie, storage.Storer) {
 	memUnit := testscommon.CreateMemUnit()
 	tsm, _ := createTrieStorageManager(memUnit)
-	tr, _ := NewTrie(tsm, marshalizer, hasherMock, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+	tr, _ := NewTrie(tsm, marshalizer, hasherMock, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 
 	return tr, memUnit
 }
@@ -50,7 +51,7 @@ func createInMemoryTrieFromDB(db storage.Persister) (common.Trie, storage.Storer
 	unit, _ := storageunit.NewStorageUnit(cache, db)
 
 	tsm, _ := createTrieStorageManager(unit)
-	tr, _ := NewTrie(tsm, marshalizer, hasherMock, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+	tr, _ := NewTrie(tsm, marshalizer, hasherMock, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 
 	return tr, unit
 }
