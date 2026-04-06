@@ -12,8 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
-const tenMbSize = uint64(10485760)
-
 func createAccountAdapter(
 	marshaller marshal.Marshalizer,
 	hasher hashing.Hasher,
@@ -36,7 +34,7 @@ func createAccountAdapter(
 		AddressConverter:         addressConverter,
 		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
 		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-		MaxDataTriesSizeInMemory: tenMbSize,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 
 	adb, err := state.NewAccountsDB(args)

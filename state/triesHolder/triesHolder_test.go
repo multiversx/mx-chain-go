@@ -62,20 +62,27 @@ func TestTriesHolder_Concurrency(t *testing.T) {
 	t.Parallel()
 
 	dth := NewTriesHolder()
-	numTries := 50
+	numCalls := 5000
 
 	wg := sync.WaitGroup{}
-	wg.Add(numTries)
+	wg.Add(numCalls)
 
-	for i := 0; i < numTries; i++ {
+	for i := 0; i < numCalls; i++ {
 		go func(key int) {
-			dth.Put([]byte(strconv.Itoa(key)), &trieMock.TrieStub{})
-			wg.Done()
+			defer wg.Done()
+
+			switch key % 4 {
+			case 0:
+				dth.Put([]byte(strconv.Itoa(key)), &trieMock.TrieStub{})
+			case 1:
+				dth.Get([]byte(strconv.Itoa(key)))
+			case 2:
+				dth.GetAll()
+			case 3:
+				dth.Reset()
+			}
 		}(i)
 	}
 
 	wg.Wait()
-
-	tries := dth.GetAll()
-	assert.Equal(t, numTries, len(tries))
 }

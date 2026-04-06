@@ -24,8 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const tenMBSize = uint64(10485760)
-
 var dtmc = trieMetricsCollector.NewDisabledTrieMetricsCollector()
 
 func getTestMarshalizerAndHasher() (marshal.Marshalizer, hashing.Hasher) {

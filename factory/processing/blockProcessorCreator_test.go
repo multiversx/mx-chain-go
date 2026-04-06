@@ -210,7 +210,6 @@ func createAccountAdapter(
 	trieStorage common.StorageManager,
 	handler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tenMbSize := uint64(10485760)
 	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, collapseManager.NewDisabledCollapseManager())
 	if err != nil {
 		return nil, err
@@ -225,7 +224,7 @@ func createAccountAdapter(
 		AddressConverter:         &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
 		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-		MaxDataTriesSizeInMemory: tenMbSize,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

@@ -38,8 +38,6 @@ import (
 
 var emptyTrieHash = make([]byte, 32)
 
-const tenMBSize = uint64(10485760)
-
 func emptyTrie() common.Trie {
 	tr, _ := trie.NewTrie(getDefaultTrieParameters())
 
@@ -1556,7 +1554,7 @@ func TestPatriciaMerkleTree_SizeInMemory(t *testing.T) {
 	t.Parallel()
 
 	db, msh, hsh, epochs, _ := getDefaultTrieParameters()
-	cm, err := collapseManager.NewCollapseManager(tenMBSize)
+	cm, err := collapseManager.NewCollapseManager(common.TenMbSize, common.NumLeavesToCollapseSingleRun)
 	assert.Nil(t, err)
 	tr, _ := trie.NewTrie(db, msh, hsh, epochs, cm)
 
@@ -1606,7 +1604,7 @@ func TestPatriciaMerkleTree_CollapseTrie(t *testing.T) {
 
 	db, msh, hsh, epochs, _ := getDefaultTrieParameters()
 	oneMbSize := uint64(1048576)
-	cm, _ := collapseManager.NewCollapseManager(oneMbSize)
+	cm, _ := collapseManager.NewCollapseManager(oneMbSize, common.NumLeavesToCollapseSingleRun)
 	tr, _ := trie.NewTrie(db, msh, hsh, epochs, cm)
 
 	for uint64(tr.SizeInMemory()) < oneMbSize {

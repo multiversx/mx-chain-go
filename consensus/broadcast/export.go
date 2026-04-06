@@ -81,6 +81,12 @@ func (dbb *delayedBlockBroadcaster) HeaderReceived(headerHandler data.HeaderHand
 	dbb.headerReceived(headerHandler, hash)
 }
 
+// ReceivedProof is the callback registered on the proofs pool
+// to be called when a proof is added to the proofs pool
+func (dbb *delayedBlockBroadcaster) ReceivedProof(proof data.HeaderProofHandler) {
+	dbb.receivedProof(proof)
+}
+
 // GetValidatorBroadcastData returns the set validator delayed broadcast data
 func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*shared.DelayedBroadcastData {
 	dbb.mutDataForBroadcast.RLock()

@@ -14,10 +14,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/errors"
 )
 
 const (
@@ -26,6 +26,14 @@ const (
 	hashIndex      = 0
 	shardIndex     = 1
 	nonceIndex     = 0
+)
+
+const (
+	// TenMbSize defines the size of 10 megabytes in bytes, used as a constant for memory limits or buffer sizes
+	TenMbSize = uint64(10485760)
+
+	// NumLeavesToCollapseSingleRun defines the number of leaves to collapse in a single run, used in trie collapsing operations to manage performance and resource usage
+	NumLeavesToCollapseSingleRun = 100
 )
 
 type executionResultHandler interface {
@@ -268,16 +276,20 @@ func GetHeaderTimestamps(
 	if check.IfNil(header) {
 		return 0, 0, ErrNilHeaderHandler
 	}
+
+	headerTimestamp := header.GetTimeStamp()
+	return PrepareTimestampBasedOnHeaderData(headerTimestamp, header.GetEpoch(), enableEpochsHandler)
+}
+
+// PrepareTimestampBasedOnHeaderData will prepare timestamp based on the provided data
+func PrepareTimestampBasedOnHeaderData(headerTimestamp uint64, headerEpoch uint32, enableEpochsHandler EnableEpochsHandler) (uint64, uint64, error) {
 	if check.IfNil(enableEpochsHandler) {
 		return 0, 0, errors.ErrNilEnableEpochsHandler
 	}
-
-	headerTimestamp := header.GetTimeStamp()
-
 	timestampSec := headerTimestamp
 	timestampMs := headerTimestamp
 
-	if !enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, header.GetEpoch()) {
+	if !enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, headerEpoch) {
 		timestampMs = ConvertTimeStampSecToMs(headerTimestamp)
 		return timestampSec, timestampMs, nil
 	}

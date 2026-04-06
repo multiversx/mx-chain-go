@@ -169,13 +169,15 @@ func TestTomlParser(t *testing.T) {
 			},
 		},
 		StateTriesConfig: StateTriesConfig{
-			SnapshotsEnabled:            true,
-			AccountsStatePruningEnabled: true,
-			PeerStatePruningEnabled:     true,
+			SnapshotsEnabled:             true,
+			AccountsStatePruningEnabled:  true,
+			PeerStatePruningEnabled:      true,
+			NumLeavesToCollapseSingleRun: 100,
 		},
 		TxCacheBounds: TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               100,
+			PropagationGracePeriodMs:       200,
 		},
 		TxCacheSelection: TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
@@ -434,6 +436,7 @@ func TestTomlParser(t *testing.T) {
 [TxCacheBounds]
 	MaxNumBytesPerSenderUpperBound = 33_554_432
 	MaxTrackedBlocks = 100
+	PropagationGracePeriodMs = 200
 
 [TxCacheSelection]
 	SelectionMaxNumTxs = 30000
@@ -628,6 +631,7 @@ func TestTomlParser(t *testing.T) {
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = true
     PeerStatePruningEnabled = true
+	NumLeavesToCollapseSingleRun = 100
 `
 	cfg := Config{}
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	storage2 "github.com/multiversx/mx-chain-go/testscommon/storage"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/stretchr/testify/assert"
 )
@@ -72,7 +72,7 @@ func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 
 		_, trieStorage := newEmptyTrie()
 		getFromEpochCalled := false
-		trieStorage.mainStorer = &storage2.SnapshotPruningStorerStub{
+		trieStorage.mainStorer = &testCommon.SnapshotPruningStorerStub{
 			GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
 				getFromEpochCalled = true
 				return nil, nil
@@ -89,7 +89,7 @@ func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 
 		_, trieStorage := newEmptyTrie()
 		getFromEpochCalled := false
-		trieStorage.mainStorer = &storage2.SnapshotPruningStorerStub{
+		trieStorage.mainStorer = &testCommon.SnapshotPruningStorerStub{
 			GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
 				getFromEpochCalled = true
 				return nil, storage.ErrDBIsClosed
@@ -107,7 +107,7 @@ func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 
 		_, trieStorage := newEmptyTrie()
 		getFromEpochCalled := false
-		trieStorage.mainStorer = &storage2.SnapshotPruningStorerStub{
+		trieStorage.mainStorer = &testCommon.SnapshotPruningStorerStub{
 			GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
 				getFromEpochCalled = true
 				return nil, errors.New("not closing error")
@@ -128,7 +128,7 @@ func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 		getFromPreviousEpochCalled := false
 		currentEpoch := uint32(5)
 		expectedKey := []byte("key")
-		trieStorage.mainStorer = &storage2.SnapshotPruningStorerStub{
+		trieStorage.mainStorer = &testCommon.SnapshotPruningStorerStub{
 			GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
 				assert.Equal(t, expectedKey, key)
 				if epoch == currentEpoch {

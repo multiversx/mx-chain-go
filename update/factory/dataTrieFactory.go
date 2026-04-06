@@ -22,8 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/update/genesis"
 )
 
-const tenMBSize = uint64(10485760)
-
 // ArgsNewDataTrieFactory is the argument structure for the new data trie factory
 type ArgsNewDataTrieFactory struct {
 	StorageConfig       config.StorageConfig

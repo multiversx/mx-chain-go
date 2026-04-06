@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,18 +14,31 @@ func TestNewCollapseManager(t *testing.T) {
 	t.Run("invalid maxSizeInMem should error", func(t *testing.T) {
 		t.Parallel()
 
-		cm, err := NewCollapseManager(0)
+		cm, err := NewCollapseManager(0, common.NumLeavesToCollapseSingleRun)
 		assert.Nil(t, cm)
 		assert.NotNil(t, err)
 	})
-	t.Run("should work", func(t *testing.T) {
+	t.Run("invalid numLeavesToCollapseSingleRun should default to defaultNumLeavesToCollapseSingleRun", func(t *testing.T) {
 		t.Parallel()
 
-		cm, err := NewCollapseManager(2 * minSizeInMemory)
+		cm, err := NewCollapseManager(2*minSizeInMemory, 0)
 		assert.False(t, check.IfNil(cm))
 		assert.Nil(t, err)
 		assert.Equal(t, 0, cm.sizeInMemory)
 		assert.Equal(t, 2*minSizeInMemory, int(cm.maxSizeInMem))
+		assert.Equal(t, defaultNumLeavesToCollapseSingleRun, cm.numLeavesToCollapseSingleRun)
+		assert.Equal(t, 0, len(cm.accessedKeys))
+		assert.Equal(t, 0, cm.orderAccess.Len())
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		cm, err := NewCollapseManager(2*minSizeInMemory, common.NumLeavesToCollapseSingleRun)
+		assert.False(t, check.IfNil(cm))
+		assert.Nil(t, err)
+		assert.Equal(t, 0, cm.sizeInMemory)
+		assert.Equal(t, 2*minSizeInMemory, int(cm.maxSizeInMem))
+		assert.Equal(t, common.NumLeavesToCollapseSingleRun, cm.numLeavesToCollapseSingleRun)
 		assert.Equal(t, 0, len(cm.accessedKeys))
 		assert.Equal(t, 0, cm.orderAccess.Len())
 	})
@@ -33,7 +47,7 @@ func TestNewCollapseManager(t *testing.T) {
 func TestCollapseManager_MarkKeyAsAccessed(t *testing.T) {
 	t.Parallel()
 
-	cm, _ := NewCollapseManager(2 * minSizeInMemory)
+	cm, _ := NewCollapseManager(2*minSizeInMemory, common.NumLeavesToCollapseSingleRun)
 	cm.MarkKeyAsAccessed([]byte("key1"), 500)
 	assert.Equal(t, 500, cm.sizeInMemory)
 	assert.Equal(t, 1, len(cm.accessedKeys))
@@ -57,7 +71,7 @@ func TestCollapseManager_MarkKeyAsAccessed(t *testing.T) {
 func TestCollapseManager_RemoveKey(t *testing.T) {
 	t.Parallel()
 
-	cm, _ := NewCollapseManager(2 * minSizeInMemory)
+	cm, _ := NewCollapseManager(2*minSizeInMemory, common.NumLeavesToCollapseSingleRun)
 	cm.MarkKeyAsAccessed([]byte("key1"), 500)
 	cm.MarkKeyAsAccessed([]byte("key2"), 600)
 	assert.Equal(t, 1100, cm.sizeInMemory)
@@ -79,7 +93,7 @@ func TestCollapseManager_RemoveKey(t *testing.T) {
 func TestCollapseManager_AddSizeInMemory(t *testing.T) {
 	t.Parallel()
 
-	cm, _ := NewCollapseManager(2 * minSizeInMemory)
+	cm, _ := NewCollapseManager(2*minSizeInMemory, common.NumLeavesToCollapseSingleRun)
 	cm.AddSizeInMemory(700)
 	assert.Equal(t, 700, cm.GetSizeInMemory())
 
@@ -97,7 +111,7 @@ func TestCollapseManager_AddSizeInMemory(t *testing.T) {
 func TestCollapseManager_ShouldCollapseTrie(t *testing.T) {
 	t.Parallel()
 
-	cm, _ := NewCollapseManager(minSizeInMemory)
+	cm, _ := NewCollapseManager(minSizeInMemory, common.NumLeavesToCollapseSingleRun)
 	assert.False(t, cm.ShouldCollapseTrie())
 
 	cm.AddSizeInMemory(minSizeInMemory + 1)
@@ -107,19 +121,19 @@ func TestCollapseManager_ShouldCollapseTrie(t *testing.T) {
 func TestCollapseManager_GetCollapsibleLeaves(t *testing.T) {
 	t.Parallel()
 
-	t.Run("sizeInMemory below limit should return nil", func(t *testing.T) {
+	t.Run("sizeInMemory below limit should return empty", func(t *testing.T) {
 		t.Parallel()
 
-		cm, _ := NewCollapseManager(minSizeInMemory)
+		cm, _ := NewCollapseManager(minSizeInMemory, common.NumLeavesToCollapseSingleRun)
 		cm.MarkKeyAsAccessed([]byte("key1"), 500)
 		leaves, err := cm.GetCollapsibleLeaves()
 		assert.Nil(t, err)
-		assert.Nil(t, leaves)
+		assert.Equal(t, 0, len(leaves))
 	})
 	t.Run("should return evicted keys until sizeInMemory is below limit", func(t *testing.T) {
 		t.Parallel()
 
-		cm, _ := NewCollapseManager(minSizeInMemory)
+		cm, _ := NewCollapseManager(minSizeInMemory, common.NumLeavesToCollapseSingleRun)
 		cm.MarkKeyAsAccessed([]byte("key1"), 700)
 		cm.MarkKeyAsAccessed([]byte("key2"), 600)
 		cm.MarkKeyAsAccessed([]byte("key3"), 500)
@@ -143,8 +157,9 @@ func TestCollapseManager_GetCollapsibleLeaves(t *testing.T) {
 	t.Run("should return up to numLeavesToCollapseSingleRun evicted keys", func(t *testing.T) {
 		t.Parallel()
 
-		cm, _ := NewCollapseManager(minSizeInMemory)
-		for i := 0; i < numLeavesToCollapseSingleRun+2; i++ {
+		numLeavesToCollapseSingleRun := uint32(5)
+		cm, _ := NewCollapseManager(minSizeInMemory, numLeavesToCollapseSingleRun)
+		for i := 0; i < int(numLeavesToCollapseSingleRun)+2; i++ {
 			key := []byte("key" + string(rune(i)))
 			cm.MarkKeyAsAccessed(key, 500)
 		}
@@ -152,8 +167,8 @@ func TestCollapseManager_GetCollapsibleLeaves(t *testing.T) {
 
 		leaves, err := cm.GetCollapsibleLeaves()
 		assert.Nil(t, err)
-		assert.Equal(t, numLeavesToCollapseSingleRun, len(leaves))
-		for i := 0; i < numLeavesToCollapseSingleRun; i++ {
+		assert.Equal(t, int(numLeavesToCollapseSingleRun), len(leaves))
+		for i := 0; i < int(numLeavesToCollapseSingleRun); i++ {
 			expectedKey := "key" + string(rune(i))
 			assert.Equal(t, expectedKey, string(leaves[i]))
 		}
@@ -165,7 +180,7 @@ func TestCollapseManager_GetCollapsibleLeaves(t *testing.T) {
 func TestCollapseManager_CloneWithoutState(t *testing.T) {
 	t.Parallel()
 
-	cm, _ := NewCollapseManager(2 * minSizeInMemory)
+	cm, _ := NewCollapseManager(2*minSizeInMemory, common.NumLeavesToCollapseSingleRun)
 	cm.MarkKeyAsAccessed([]byte("key1"), 500)
 	assert.Equal(t, 500, cm.sizeInMemory)
 	assert.Equal(t, 1, len(cm.accessedKeys))
@@ -175,6 +190,7 @@ func TestCollapseManager_CloneWithoutState(t *testing.T) {
 	assert.False(t, check.IfNil(clone))
 	clonedCM := clone.(*collapseManager)
 	assert.Equal(t, 2*minSizeInMemory, int(clonedCM.maxSizeInMem))
+	assert.Equal(t, common.NumLeavesToCollapseSingleRun, clonedCM.numLeavesToCollapseSingleRun)
 	assert.Equal(t, 0, len(clonedCM.accessedKeys))
 	assert.Equal(t, 0, clonedCM.orderAccess.Len())
 	assert.Equal(t, 0, clone.GetSizeInMemory())

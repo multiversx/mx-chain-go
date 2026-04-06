@@ -15,14 +15,15 @@ import (
 
 // TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
 type TrieCreateArgs struct {
-	MainStorer          storage.Storer
-	PruningEnabled      bool
-	SnapshotsEnabled    bool
-	IdleProvider        trie.IdleNodeProvider
-	Identifier          string
-	EnableEpochsHandler common.EnableEpochsHandler
-	StatsCollector      common.StateStatisticsHandler
-	MaxSizeInMemory     uint64
+	MainStorer                   storage.Storer
+	PruningEnabled               bool
+	SnapshotsEnabled             bool
+	IdleProvider                 trie.IdleNodeProvider
+	Identifier                   string
+	EnableEpochsHandler          common.EnableEpochsHandler
+	StatsCollector               common.StateStatisticsHandler
+	MaxSizeInMemory              uint64
+	NumLeavesToCollapseSingleRun uint32
 }
 
 type trieCreator struct {
@@ -79,7 +80,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		return nil, nil, err
 	}
 
-	cm, err := collapseManager.NewCollapseManager(args.MaxSizeInMemory)
+	cm, err := collapseManager.NewCollapseManager(args.MaxSizeInMemory, args.NumLeavesToCollapseSingleRun)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -121,14 +122,15 @@ func CreateTriesComponentsForShardId(
 	}
 
 	args := TrieCreateArgs{
-		MainStorer:          mainStorer,
-		PruningEnabled:      generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		SnapshotsEnabled:    generalConfig.StateTriesConfig.SnapshotsEnabled,
-		IdleProvider:        coreComponentsHolder.ProcessStatusHandler(),
-		Identifier:          dataRetriever.UserAccountsUnit.String(),
-		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
-		StatsCollector:      stateStatsHandler,
-		MaxSizeInMemory:     generalConfig.StateTriesConfig.MaxUserTrieSizeInMemory,
+		MainStorer:                   mainStorer,
+		PruningEnabled:               generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		SnapshotsEnabled:             generalConfig.StateTriesConfig.SnapshotsEnabled,
+		IdleProvider:                 coreComponentsHolder.ProcessStatusHandler(),
+		Identifier:                   dataRetriever.UserAccountsUnit.String(),
+		EnableEpochsHandler:          coreComponentsHolder.EnableEpochsHandler(),
+		StatsCollector:               stateStatsHandler,
+		MaxSizeInMemory:              generalConfig.StateTriesConfig.MaxUserTrieSizeInMemory,
+		NumLeavesToCollapseSingleRun: generalConfig.StateTriesConfig.NumLeavesToCollapseSingleRun,
 	}
 	userStorageManager, userAccountTrie, err := trFactory.Create(args)
 	if err != nil {
@@ -147,14 +149,15 @@ func CreateTriesComponentsForShardId(
 	}
 
 	args = TrieCreateArgs{
-		MainStorer:          mainStorer,
-		PruningEnabled:      generalConfig.StateTriesConfig.PeerStatePruningEnabled,
-		SnapshotsEnabled:    generalConfig.StateTriesConfig.SnapshotsEnabled,
-		IdleProvider:        coreComponentsHolder.ProcessStatusHandler(),
-		Identifier:          dataRetriever.PeerAccountsUnit.String(),
-		EnableEpochsHandler: coreComponentsHolder.EnableEpochsHandler(),
-		StatsCollector:      stateStatsHandler,
-		MaxSizeInMemory:     generalConfig.StateTriesConfig.MaxPeerTrieSizeInMemory,
+		MainStorer:                   mainStorer,
+		PruningEnabled:               generalConfig.StateTriesConfig.PeerStatePruningEnabled,
+		SnapshotsEnabled:             generalConfig.StateTriesConfig.SnapshotsEnabled,
+		IdleProvider:                 coreComponentsHolder.ProcessStatusHandler(),
+		Identifier:                   dataRetriever.PeerAccountsUnit.String(),
+		EnableEpochsHandler:          coreComponentsHolder.EnableEpochsHandler(),
+		StatsCollector:               stateStatsHandler,
+		MaxSizeInMemory:              generalConfig.StateTriesConfig.MaxPeerTrieSizeInMemory,
+		NumLeavesToCollapseSingleRun: generalConfig.StateTriesConfig.NumLeavesToCollapseSingleRun,
 	}
 	peerStorageManager, peerAccountsTrie, err := trFactory.Create(args)
 	if err != nil {
