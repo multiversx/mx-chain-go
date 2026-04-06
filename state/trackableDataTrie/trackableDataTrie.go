@@ -301,7 +301,7 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 	}
 
 	err := tdt.loadTrie()
-	if !errors.Is(err, state.ErrNilTrie) {
+	if err != nil && !errors.Is(err, state.ErrNilTrie) {
 		return nil, nil, err
 	}
 	if check.IfNil(tdt.tr) {
