@@ -958,6 +958,9 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
+		tpn.DataPool.Headers(),
+		tpn.DataPool.Proofs(),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		tpn.MainInterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
 		testscommon.NewKeysHandlerSingleSignerMock(
@@ -1188,6 +1191,9 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		tpn.ShardCoordinator,
 		tpn.OwnAccount.PeerSigHandler,
 		tpn.DataPool.Headers(),
+		tpn.DataPool.Headers(),
+		tpn.DataPool.Proofs(),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		tpn.MainInterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
 		testscommon.NewKeysHandlerSingleSignerMock(

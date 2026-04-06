@@ -710,7 +710,9 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(fromNonce uint64) {
 	toNonce := core.MinUint64(fromNonce+process.MaxHeadersToRequestInAdvance-1, boot.forkDetector.ProbableHighestNonce())
 
 	if fromNonce > toNonce {
-		return
+		// request at least the next header so the fork detector
+		// can discover blocks beyond probableHighestNonce
+		toNonce = fromNonce
 	}
 
 	log.Debug("requestHeadersFromNonceIfMissing",
@@ -775,6 +777,12 @@ func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
+	if errors.Is(err, process.ErrBlockProcessorBusy) {
+		// block processor is busy with another call (e.g. consensus processing the same block);
+		// no processing started, nothing to track or roll back - just retry on next sync iteration
+		return
+	}
+
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
 	isProcessWithError := processBlockStarted && !errors.Is(err, process.ErrTimeIsOut)
 
@@ -2023,6 +2031,11 @@ func (boot *baseBootstrap) restoreState(
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
+	// for legacy (non-V3) headers, keep last executed block header in sync with current block header
+	if check.IfNil(currHeader) || !currHeader.IsHeaderV3() {
+		boot.chainHandler.SetLastExecutedBlockHeaderAndRootHash(currHeader, currHeaderHash, currRootHash)
+	}
+
 	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 	if err != nil {
 		scheduledInfo := &process.ScheduledInfo{
@@ -2052,6 +2065,11 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 	}
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(headerHash)
+
+	// for legacy (non-V3) headers, keep last executed block header in sync with current block header
+	if check.IfNil(header) || !header.IsHeaderV3() {
+		boot.chainHandler.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
+	}
 
 	return nil
 }

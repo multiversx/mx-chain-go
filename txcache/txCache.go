@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
@@ -17,15 +18,16 @@ var _ types.Cacher = (*TxCache)(nil)
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	name                 string
-	txListBySender       *txListBySenderMap
-	txByHash             *txByHashMap
-	config               ConfigSourceMe
-	host                 MempoolHost
-	evictionMutex        sync.Mutex
-	isEvictionInProgress atomic.Flag
-	mutTxOperation       sync.Mutex
-	tracker              *selectionTracker
+	name                   string
+	txListBySender         *txListBySenderMap
+	txByHash               *txByHashMap
+	config                 ConfigSourceMe
+	host                   MempoolHost
+	evictionMutex          sync.Mutex
+	isEvictionInProgress   atomic.Flag
+	mutTxOperation         sync.Mutex
+	tracker                *selectionTracker
+	propagationGracePeriod time.Duration
 }
 
 // NewTxCache creates a new transaction cache
@@ -44,13 +46,16 @@ func NewTxCache(config ConfigSourceMe, host MempoolHost, selfShardId uint32) (*T
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
 	numChunks := config.NumChunks
 	senderConstraintsObj := config.getSenderConstraints()
+	gracePeriodMs := config.TxCacheBoundsConfig.PropagationGracePeriodMs
+	propagationGracePeriod := time.Duration(gracePeriodMs) * time.Millisecond
 
 	txCache := &TxCache{
-		name:           config.Name,
-		txListBySender: newTxListBySenderMap(numChunks, senderConstraintsObj),
-		txByHash:       newTxByHashMap(numChunks),
-		config:         config,
-		host:           host,
+		name:                   config.Name,
+		txListBySender:         newTxListBySenderMap(numChunks, senderConstraintsObj),
+		txByHash:               newTxByHashMap(numChunks),
+		config:                 config,
+		host:                   host,
+		propagationGracePeriod: propagationGracePeriod,
 	}
 
 	tracker, err := NewSelectionTracker(
@@ -81,6 +86,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	}
 
 	tx.precomputeFields(cache.host)
+	tx.ReceivedAt = time.Now()
 
 	if cache.config.EvictionEnabled {
 		_ = cache.doEviction()
