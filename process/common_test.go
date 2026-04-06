@@ -3147,10 +3147,16 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			},
 		}
 
+		// current execution result must have a different hash so CleanCachesForExecutionResult is called
 		blockChain := &testscommon.ChainHandlerStub{
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.ExecutionResult{
-					BaseExecutionResult: lastNotarizedResult,
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("differentHash"),
+						HeaderNonce: 6,
+						HeaderRound: 6,
+						RootHash:    []byte("differentRoot"),
+					},
 				}
 			},
 		}
@@ -3167,6 +3173,83 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			0,
 		)
 		require.Equal(t, process.ErrNilPostProcessTransactionsCache, err)
+	})
+
+	t.Run("should skip cache cleanup when current and target execution results have same header hash", func(t *testing.T) {
+		t.Parallel()
+
+		lastNotarizedResult := &block.BaseExecutionResult{
+			HeaderHash:  []byte("sameHash"),
+			HeaderNonce: 5,
+			HeaderRound: 5,
+			RootHash:    []byte("root"),
+		}
+
+		setExecutedCalled := false
+		setExecutionResultCalled := false
+		removePendingCalled := false
+
+		executionManager := &processMocks.ExecutionManagerMock{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{}, nil
+			},
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return lastNotarizedResult, nil
+			},
+			RemovePendingExecutionResultsFromNonceCalled: func(nonce uint64) error {
+				removePendingCalled = true
+				return nil
+			},
+		}
+
+		header := &block.HeaderV3{
+			Nonce:    6,
+			PrevHash: []byte("sameHash"),
+		}
+
+		headerToSet := &block.HeaderV3{
+			Nonce: 5,
+		}
+
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("sameHash")) {
+					return headerToSet, nil
+				}
+				return nil, errors.New("not found")
+			},
+		}
+
+		// same header hash as target - cleanup should be skipped, so nil caches must not error
+		blockChain := &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: lastNotarizedResult,
+				}
+			},
+			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, headerHash []byte, rootHash []byte) {
+				setExecutedCalled = true
+			},
+			SetLastExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) {
+				setExecutionResultCalled = true
+			},
+		}
+
+		err := process.UpdateContextForReplacedHeader(
+			header,
+			executionManager,
+			blockChain,
+			headersPool,
+			nil, // would fail if CleanCachesForExecutionResult were called
+			nil, // would fail if CleanCachesForExecutionResult were called
+			&storageStubs.ChainStorerStub{},
+			&mock.MarshalizerMock{},
+			0,
+		)
+		require.Nil(t, err)
+		require.True(t, setExecutedCalled)
+		require.True(t, setExecutionResultCalled)
+		require.True(t, removePendingCalled)
 	})
 
 	t.Run("nil storage should error", func(t *testing.T) {
