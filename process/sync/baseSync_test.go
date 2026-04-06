@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -9,10 +10,20 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -251,6 +262,7 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 				return *firstBlockNonce
 			},
 		},
+		executionManager: &processMocks.ExecutionManagerMock{},
 	}
 
 	t.Run("should allow rollback nonces above final", func(t *testing.T) {
@@ -354,4 +366,279 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
 		require.False(t, boot.shouldAllowRollback(header, notFinalBlockHash))
 	})
+
+	t.Run("should not allow rollback of a header v3", func(t *testing.T) {
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 11
+			},
+			IsHeaderV3Called: func() bool {
+				return true
+			},
+		}
+		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
+	})
+}
+
+func TestBaseBootstrap_PrepareForSyncAtBootstrapIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should run only once", func(t *testing.T) {
+		t.Parallel()
+
+		lastExecHeaderHash := []byte("lastExecHeaderHash")
+
+		lastHeader := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  lastExecHeaderHash,
+					HeaderNonce: 9,
+				},
+			},
+			Nonce: 10,
+		}
+
+		numCalls := 0
+		boot := &baseBootstrap{
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					numCalls++
+					return lastHeader
+				},
+			},
+			preparedForSync: true, // prepared for sync already called, we are not testing here
+			// the behaviour of preparedForSyncIfNeeded
+		}
+
+		err := boot.PrepareForSyncAtBoostrapIfNeeded()
+		require.Nil(t, err)
+
+		require.Equal(t, 1, numCalls)
+
+		err = boot.PrepareForSyncAtBoostrapIfNeeded()
+		require.Nil(t, err)
+
+		require.Equal(t, 1, numCalls) // still 1 call
+	})
+
+	t.Run("should not trigger for non header v3", func(t *testing.T) {
+		t.Parallel()
+
+		lastHeader := &block.Header{
+			Nonce: 10,
+		}
+
+		numCalls := 0
+		boot := &baseBootstrap{
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					numCalls++
+					return lastHeader
+				},
+			},
+			preparedForSync: false,
+		}
+
+		err := boot.PrepareForSyncAtBoostrapIfNeeded()
+		require.Nil(t, err)
+
+		require.Equal(t, 1, numCalls)
+
+		err = boot.PrepareForSyncAtBoostrapIfNeeded()
+		require.Nil(t, err)
+
+		require.Equal(t, 1, numCalls) // still 1 call
+	})
+}
+
+func TestBaseBootstrap_SaveProposedTxsToPool(t *testing.T) {
+	t.Parallel()
+
+	marshaller := &marshal.GogoProtoMarshalizer{}
+
+	txCalls := 0
+	scCalls := 0
+	rwCalls := 0
+	peerCalls := 0
+
+	boot := &baseBootstrap{
+		marshalizer: marshaller,
+		dataPool: &dataRetrieverMock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+						txCalls++
+					},
+				}
+			},
+			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+						scCalls++
+					},
+				}
+			},
+			RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+						rwCalls++
+					},
+				}
+			},
+			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+						peerCalls++
+					},
+				}
+			},
+		},
+		store: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						switch string(key) {
+						case "txHash1":
+							tx := &transaction.Transaction{
+								Nonce: 1,
+							}
+							txBytes, _ := marshaller.Marshal(tx)
+							return txBytes, nil
+						case "txHash2":
+							tx := &transaction.Transaction{
+								Nonce: 2,
+							}
+							txBytes, _ := marshaller.Marshal(tx)
+							return txBytes, nil
+						case "txHash3":
+							tx := &smartContractResult.SmartContractResult{
+								Nonce:        3,
+								CodeMetadata: []byte("codeMetadata"),
+							}
+							txBytes, _ := marshaller.Marshal(tx)
+							return txBytes, nil
+						case "txHash4":
+							tx := &rewardTx.RewardTx{
+								Round: 1,
+							}
+							txBytes, _ := marshaller.Marshal(tx)
+							return txBytes, nil
+						case "txHash5":
+							tx := &state.ShardValidatorInfo{
+								PublicKey: []byte("pubKey"),
+							}
+							txBytes, _ := marshaller.Marshal(tx)
+							return txBytes, nil
+						default:
+							return nil, errors.New("err")
+						}
+					},
+				}, nil
+			},
+		},
+	}
+
+	header := &block.HeaderV3{}
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				TxHashes: [][]byte{[]byte("txHash1")},
+				Type:     block.TxBlock,
+			},
+			&block.MiniBlock{
+				TxHashes: [][]byte{[]byte("txHash2")},
+				Type:     block.InvalidBlock,
+			},
+			&block.MiniBlock{
+				TxHashes: [][]byte{[]byte("txHash3")},
+				Type:     block.SmartContractResultBlock,
+			},
+			&block.MiniBlock{
+				TxHashes: [][]byte{[]byte("txHash4")},
+				Type:     block.RewardsBlock,
+			},
+			&block.MiniBlock{
+				TxHashes: [][]byte{[]byte("txHash5")},
+				Type:     block.PeerBlock,
+			},
+		},
+	}
+
+	err := boot.SaveProposedTxsToPool(header, body)
+	require.Nil(t, err)
+
+	require.Equal(t, 2, txCalls)
+	require.Equal(t, 1, scCalls)
+	require.Equal(t, 1, rwCalls)
+	require.Equal(t, 1, peerCalls)
+}
+
+func TestBaseBootstrap_SyncBlocksWakesUpOnSignal(t *testing.T) {
+	t.Parallel()
+
+	signalChan := make(chan uint64, 1)
+	var numCalls uint32
+	syncError := errors.New("sync error to trigger wait")
+
+	boot := &baseBootstrap{
+		chStopSync:                  make(chan bool),
+		signalProcessCompletionChan: signalChan,
+		syncStarter: &mock.SyncStarterStub{
+			SyncBlockCalled: func() error {
+				atomic.AddUint32(&numCalls, 1)
+				return syncError
+			},
+		},
+		networkWatcher: &mock.NetworkConnectionWatcherStub{
+			IsConnectedToTheNetworkCalled: func() bool {
+				return true
+			},
+		},
+		roundHandler: &mock.RoundHandlerMock{
+			BeforeGenesisCalled: func() bool {
+				return false
+			},
+		},
+	}
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	go boot.syncBlocks(ctx)
+
+	// Wait for first sync call
+	time.Sleep(50 * time.Millisecond)
+	initialCalls := atomic.LoadUint32(&numCalls)
+	require.GreaterOrEqual(t, initialCalls, uint32(1))
+
+	// Signal the channel - this should wake up the loop immediately
+	signalChan <- 42
+
+	// Wait a short time - much less than sleepTimeOnFail (400ms)
+	time.Sleep(50 * time.Millisecond)
+
+	// Should have made another call due to signal wakeup
+	finalCalls := atomic.LoadUint32(&numCalls)
+	require.Greater(t, finalCalls, initialCalls)
+
+	cancelFunc()
+}
+
+func TestBaseBootstrap_CleanChannelsDrainsSignalChannel(t *testing.T) {
+	t.Parallel()
+
+	signalChan := make(chan uint64, 5)
+	signalChan <- 1
+	signalChan <- 2
+	signalChan <- 3
+
+	boot := &baseBootstrap{
+		chRcvHdrNonce:               make(chan bool, 1),
+		chRcvHdrHash:                make(chan bool, 1),
+		chRcvMiniBlocks:             make(chan bool, 1),
+		signalProcessCompletionChan: signalChan,
+	}
+
+	boot.cleanChannels()
+
+	assert.Equal(t, 0, len(signalChan))
 }

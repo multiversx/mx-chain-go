@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -26,8 +27,11 @@ type AccountsStub struct {
 	RevertToSnapshotCalled                func(snapshot int) error
 	RootHashCalled                        func() ([]byte, error)
 	RecreateTrieCalled                    func(options common.RootHashHolder) error
+	RecreateTrieIfNeededCalled            func(options common.RootHashHolder) error
 	PruneTrieCalled                       func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
 	CancelPruneCalled                     func(rootHash []byte, identifier state.TriePruningIdentifier)
+	ResetPruningCalled                    func()
+	GetEvictionWaitingListSizeCalled      func() int
 	SnapshotStateCalled                   func(rootHash []byte, epoch uint32)
 	IsPruningEnabledCalled                func() bool
 	GetAllLeavesCalled                    func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
@@ -186,6 +190,15 @@ func (as *AccountsStub) RecreateTrie(options common.RootHashHolder) error {
 	return errNotImplemented
 }
 
+// RecreateTrieIfNeeded -
+func (as *AccountsStub) RecreateTrieIfNeeded(options common.RootHashHolder) error {
+	if as.RecreateTrieIfNeededCalled != nil {
+		return as.RecreateTrieIfNeededCalled(options)
+	}
+
+	return errNotImplemented
+}
+
 // PruneTrie -
 func (as *AccountsStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
 	as.PruneTrieCalled(rootHash, identifier, handler)
@@ -195,6 +208,13 @@ func (as *AccountsStub) PruneTrie(rootHash []byte, identifier state.TriePruningI
 func (as *AccountsStub) CancelPrune(rootHash []byte, identifier state.TriePruningIdentifier) {
 	if as.CancelPruneCalled != nil {
 		as.CancelPruneCalled(rootHash, identifier)
+	}
+}
+
+// ResetPruning -
+func (as *AccountsStub) ResetPruning() {
+	if as.ResetPruningCalled != nil {
+		as.ResetPruningCalled()
 	}
 }
 
@@ -264,6 +284,14 @@ func (as *AccountsStub) Close() error {
 	}
 
 	return nil
+}
+
+// GetEvictionWaitingListSize -
+func (as *AccountsStub) GetEvictionWaitingListSize() int {
+	if as.GetEvictionWaitingListSizeCalled != nil {
+		return as.GetEvictionWaitingListSizeCalled()
+	}
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

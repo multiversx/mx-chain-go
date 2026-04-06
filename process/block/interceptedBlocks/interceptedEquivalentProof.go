@@ -32,6 +32,7 @@ type ArgInterceptedEquivalentProof struct {
 	Proofs            dataRetriever.ProofsPool
 	ProofSizeChecker  common.FieldsSizeChecker
 	KeyRWMutexHandler sync.KeyRWMutexHandler
+	ValidityAttester  process.ValidityAttester
 }
 
 type interceptedEquivalentProof struct {
@@ -44,6 +45,7 @@ type interceptedEquivalentProof struct {
 	hash              []byte
 	proofSizeChecker  common.FieldsSizeChecker
 	km                sync.KeyRWMutexHandler
+	validityAttester  process.ValidityAttester
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -70,6 +72,7 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		proofSizeChecker:  args.ProofSizeChecker,
 		hash:              hash,
 		km:                args.KeyRWMutexHandler,
+		validityAttester:  args.ValidityAttester,
 	}, nil
 }
 
@@ -97,6 +100,9 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.KeyRWMutexHandler) {
 		return process.ErrNilKeyRWMutexHandler
+	}
+	if check.IfNil(args.ValidityAttester) {
+		return process.ErrNilValidityAttester
 	}
 
 	return nil
@@ -144,6 +150,18 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return err
 	}
 
+	if !iep.validityAttester.CheckAgainstWhitelist(iep) {
+		err = iep.validityAttester.CheckProofAgainstFinal(iep.proof)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = iep.validityAttester.CheckProofAgainstRoundHandler(iep.proof)
+	if err != nil {
+		return err
+	}
+
 	headerHash := string(iep.proof.GetHeaderHash())
 	iep.km.Lock(headerHash)
 	defer iep.km.Unlock(headerHash)
@@ -166,6 +184,11 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 	}
 
 	return nil
+}
+
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (iep *interceptedEquivalentProof) ShouldAllowDuplicates() bool {
+	return true // duplicates are treated separately
 }
 
 func (iep *interceptedEquivalentProof) integrity() error {

@@ -14,8 +14,8 @@ import (
 
 // HeaderDataForValidator -
 type HeaderDataForValidator struct {
-	Round        uint64
-	PrevRandSeed []byte
+	Round      uint64
+	HeaderHash []byte
 }
 
 // ExtractMetaMiniBlocksAndTransactions -
@@ -81,6 +81,12 @@ func (dbb *delayedBlockBroadcaster) HeaderReceived(headerHandler data.HeaderHand
 	dbb.headerReceived(headerHandler, hash)
 }
 
+// ReceivedProof is the callback registered on the proofs pool
+// to be called when a proof is added to the proofs pool
+func (dbb *delayedBlockBroadcaster) ReceivedProof(proof data.HeaderProofHandler) {
+	dbb.receivedProof(proof)
+}
+
 // GetValidatorBroadcastData returns the set validator delayed broadcast data
 func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*shared.DelayedBroadcastData {
 	dbb.mutDataForBroadcast.RLock()
@@ -121,8 +127,8 @@ func (dbb *delayedBlockBroadcaster) ScheduleValidatorBroadcast(dataForValidators
 	dfv := make([]*headerDataForValidator, len(dataForValidators))
 	for i, d := range dataForValidators {
 		convDfv := &headerDataForValidator{
-			round:        d.Round,
-			prevRandSeed: d.PrevRandSeed,
+			round:      d.Round,
+			headerHash: d.HeaderHash,
 		}
 		dfv[i] = convDfv
 	}
@@ -149,8 +155,8 @@ func GetShardDataFromMetaChainBlock(
 	dfv := make([]*HeaderDataForValidator, len(dataForValidators))
 	for i, d := range dataForValidators {
 		convDfv := &HeaderDataForValidator{
-			Round:        d.round,
-			PrevRandSeed: d.prevRandSeed,
+			Round:      d.round,
+			HeaderHash: d.headerHash,
 		}
 		dfv[i] = convDfv
 	}

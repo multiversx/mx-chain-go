@@ -290,6 +290,7 @@ func testESDTWithTransferRoleAndForwarder(t *testing.T, numShards int) {
 
 	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)

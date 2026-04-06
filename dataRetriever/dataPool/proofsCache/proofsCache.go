@@ -65,9 +65,15 @@ func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
 	pc.mutProofsCache.Lock()
 	defer pc.mutProofsCache.Unlock()
 
-	pc.insertProofByNonce(proof)
+	oldHash := pc.insertProofByNonce(proof)
+	newHash := string(proof.GetHeaderHash())
 
-	pc.proofsByHash[string(proof.GetHeaderHash())] = proof
+	// Delete the old hash from proofsByHash if it's different from the new hash
+	if len(oldHash) != 0 && oldHash != newHash {
+		delete(pc.proofsByHash, oldHash)
+	}
+
+	pc.proofsByHash[newHash] = proof
 }
 
 // getBucketKey will return bucket key as lower bound window value
@@ -75,7 +81,7 @@ func (pc *proofsCache) getBucketKey(index uint64) uint64 {
 	return (index / pc.bucketSize) * pc.bucketSize
 }
 
-func (pc *proofsCache) insertProofByNonce(proof data.HeaderProofHandler) {
+func (pc *proofsCache) insertProofByNonce(proof data.HeaderProofHandler) string {
 	bucketKey := pc.getBucketKey(proof.GetHeaderNonce())
 
 	bucket, ok := pc.proofsByNonceBuckets[bucketKey]
@@ -84,7 +90,7 @@ func (pc *proofsCache) insertProofByNonce(proof data.HeaderProofHandler) {
 		pc.proofsByNonceBuckets[bucketKey] = bucket
 	}
 
-	bucket.insert(proof)
+	return bucket.insert(proof)
 }
 
 func (pc *proofsCache) cleanupProofsBehindNonce(nonce uint64) {

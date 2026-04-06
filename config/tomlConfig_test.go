@@ -59,6 +59,22 @@ func TestTomlParser(t *testing.T) {
 					MetachainConsensusGroupSize: 5,
 					Hysteresis:                  0.0,
 					Adaptivity:                  false,
+					Offset:                      2,
+				},
+			},
+			ProcessConfigsByRound: []ProcessConfigByRound{
+				{
+					EnableRound:                            1,
+					MaxRoundsWithoutNewBlockReceived:       2,
+					MaxRoundsWithoutCommittedBlock:         3,
+					RoundModulusTriggerWhenSyncIsStuck:     4,
+					MaxSyncWithErrorsAllowed:               5,
+					MaxRoundsToKeepUnprocessedMiniBlocks:   6,
+					MaxRoundsToKeepUnprocessedTransactions: 7,
+					MaxConsecutiveRoundsOfRatingDecrease:   11,
+					MaxRoundsOfInactivityAccepted:          12,
+					MaxBlockProcessingTimeMs:               13,
+					NumHeadersToRequestInAdvance:           14,
 				},
 			},
 		},
@@ -159,15 +175,219 @@ func TestTomlParser(t *testing.T) {
 			MaxStateTrieLevelInMemory:   38,
 			MaxPeerTrieLevelInMemory:    39,
 		},
-		Redundancy: RedundancyConfig{
-			MaxRoundsOfInactivityAccepted: 3,
+		TxCacheBounds: TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               100,
+			PropagationGracePeriodMs:       200,
+		},
+		TxCacheSelection: TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopDurationCheckInterval:            10,
+		},
+		Antiflood: AntifloodConfig{
+			Enabled: true,
+			ConfigsByRound: []AntifloodConfigByRound{
+				{
+					Round:                               0,
+					NumConcurrentResolverJobs:           50,
+					NumConcurrentResolvingTrieNodesJobs: 3,
+					FastReacting: FloodPreventerConfig{
+						IntervalInSeconds: 1,
+						ReservedPercent:   20.0,
+						PeerMaxInput: AntifloodLimitsConfig{
+							BaseMessagesPerInterval: 280,
+							TotalSizePerInterval:    4194304,
+							IncreaseFactor: IncreaseFactorConfig{
+								Threshold: 10,
+								Factor:    1.0,
+							},
+						},
+						BlackList: BlackListConfig{
+							ThresholdNumMessagesPerInterval: 1000,
+							ThresholdSizePerInterval:        8388608,
+							NumFloodingRounds:               10,
+							PeerBanDurationInSeconds:        300,
+						},
+					},
+					SlowReacting: FloodPreventerConfig{
+						IntervalInSeconds: 30,
+						ReservedPercent:   20.0,
+						PeerMaxInput: AntifloodLimitsConfig{
+							BaseMessagesPerInterval: 6000,
+							TotalSizePerInterval:    18874368,
+							IncreaseFactor: IncreaseFactorConfig{
+								Threshold: 10,
+								Factor:    0.0,
+							},
+						},
+						BlackList: BlackListConfig{
+							ThresholdNumMessagesPerInterval: 10000,
+							ThresholdSizePerInterval:        37748736,
+							NumFloodingRounds:               2,
+							PeerBanDurationInSeconds:        3600,
+						},
+					},
+					OutOfSpecs: FloodPreventerConfig{
+						IntervalInSeconds: 1,
+						ReservedPercent:   0.0,
+						PeerMaxInput: AntifloodLimitsConfig{
+							BaseMessagesPerInterval: 2000,
+							TotalSizePerInterval:    10485760,
+							IncreaseFactor: IncreaseFactorConfig{
+								Threshold: 0,
+								Factor:    0.0,
+							},
+						},
+						BlackList: BlackListConfig{
+							ThresholdNumMessagesPerInterval: 3600,
+							ThresholdSizePerInterval:        12582912,
+							NumFloodingRounds:               2,
+							PeerBanDurationInSeconds:        3600,
+						},
+					},
+					PeerMaxOutput: FloodPreventerConfig{
+						PeerMaxInput: AntifloodLimitsConfig{
+							BaseMessagesPerInterval: 150,
+							TotalSizePerInterval:    2097152,
+						},
+					},
+					Cache: CacheConfig{
+						Name:     "Antiflood",
+						Capacity: 7000,
+						Type:     "LRU",
+					},
+					Topic: TopicAntifloodConfig{
+						DefaultMaxMessagesPerSec: 15000,
+						MaxMessages: []TopicMaxMessagesConfig{
+							{
+								Topic:             "shardBlocks*",
+								NumMessagesPerSec: 30,
+							},
+							{
+								Topic:             "metachainBlocks",
+								NumMessagesPerSec: 30,
+							},
+						},
+					},
+					TxAccumulator: TxAccumulatorConfig{
+						MaxAllowedTimeInMilliseconds:   250,
+						MaxDeviationTimeInMilliseconds: 25,
+					},
+				},
+				{
+					Round:                               440,
+					NumConcurrentResolverJobs:           50,
+					NumConcurrentResolvingTrieNodesJobs: 3,
+					FastReacting: FloodPreventerConfig{
+						IntervalInSeconds: 1,
+						ReservedPercent:   20.0,
+						PeerMaxInput: AntifloodLimitsConfig{
+							BaseMessagesPerInterval: 280,
+							TotalSizePerInterval:    4194304,
+							IncreaseFactor: IncreaseFactorConfig{
+								Threshold: 10,
+								Factor:    1.0,
+							},
+						},
+						BlackList: BlackListConfig{
+							ThresholdNumMessagesPerInterval: 10000,
+							ThresholdSizePerInterval:        12388608,
+							NumFloodingRounds:               100,
+							PeerBanDurationInSeconds:        300,
+						},
+					},
+					SlowReacting: FloodPreventerConfig{
+						IntervalInSeconds: 30,
+						ReservedPercent:   20.0,
+						PeerMaxInput: AntifloodLimitsConfig{
+							BaseMessagesPerInterval: 6000,
+							TotalSizePerInterval:    18874368,
+							IncreaseFactor: IncreaseFactorConfig{
+								Threshold: 10,
+								Factor:    0.0,
+							},
+						},
+						BlackList: BlackListConfig{
+							ThresholdNumMessagesPerInterval: 100000,
+							ThresholdSizePerInterval:        60748736,
+							NumFloodingRounds:               20,
+							PeerBanDurationInSeconds:        3600,
+						},
+					},
+					OutOfSpecs: FloodPreventerConfig{
+						IntervalInSeconds: 1,
+						ReservedPercent:   0.0,
+						PeerMaxInput: AntifloodLimitsConfig{
+							BaseMessagesPerInterval: 20000,
+							TotalSizePerInterval:    104857600,
+							IncreaseFactor: IncreaseFactorConfig{
+								Threshold: 0,
+								Factor:    0.0,
+							},
+						},
+						BlackList: BlackListConfig{
+							ThresholdNumMessagesPerInterval: 36000,
+							ThresholdSizePerInterval:        18582912,
+							NumFloodingRounds:               20,
+							PeerBanDurationInSeconds:        3600,
+						},
+					},
+					PeerMaxOutput: FloodPreventerConfig{
+						PeerMaxInput: AntifloodLimitsConfig{
+							BaseMessagesPerInterval: 150,
+							TotalSizePerInterval:    2097152,
+						},
+					},
+					Cache: CacheConfig{
+						Name:     "Antiflood",
+						Capacity: 7000,
+						Type:     "LRU",
+					},
+					Topic: TopicAntifloodConfig{
+						DefaultMaxMessagesPerSec: 15000,
+						MaxMessages: []TopicMaxMessagesConfig{
+							{
+								Topic:             "shardBlocks*",
+								NumMessagesPerSec: 30,
+							},
+							{
+								Topic:             "metachainBlocks",
+								NumMessagesPerSec: 30,
+							},
+						},
+					},
+					TxAccumulator: TxAccumulatorConfig{
+						MaxAllowedTimeInMilliseconds:   80,
+						MaxDeviationTimeInMilliseconds: 25,
+					},
+				},
+			},
 		},
 	}
 	testString := `
 [GeneralSettings]
 	ChainParametersByEpoch = [
-        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 4, MetachainConsensusGroupSize = 5, MetachainMinNumNodes = 6, Hysteresis = 0.0, Adaptivity = false }
+        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 4, MetachainConsensusGroupSize = 5, MetachainMinNumNodes = 6, Hysteresis = 0.0, Adaptivity = false, Offset = 2 }
     ]
+    ProcessConfigsByRound = [
+        {
+        EnableRound = 1,
+        MaxRoundsWithoutNewBlockReceived = 2,
+        MaxRoundsWithoutCommittedBlock = 3,
+        RoundModulusTriggerWhenSyncIsStuck = 4,
+        MaxSyncWithErrorsAllowed = 5,
+        MaxRoundsToKeepUnprocessedMiniBlocks = 6,
+        MaxRoundsToKeepUnprocessedTransactions = 7,
+        MaxConsecutiveRoundsOfRatingDecrease = 11,
+        MaxRoundsOfInactivityAccepted = 12,
+		MaxBlockProcessingTimeMs = 13,
+        NumHeadersToRequestInAdvance = 14
+        }
+    ]
+
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Capacity = ` + strconv.Itoa(txBlockBodyStorageSize) + `
@@ -213,6 +433,157 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
     Type = "` + consensusType + `"
+
+[TxCacheBounds]
+	MaxNumBytesPerSenderUpperBound = 33_554_432
+	MaxTrackedBlocks = 100
+	PropagationGracePeriodMs = 200
+
+[TxCacheSelection]
+	SelectionMaxNumTxs = 30000
+	SelectionGasRequested = 10_000_000_000
+	SelectionGasBandwidthIncreasePercent = 400
+	SelectionGasBandwidthIncreaseScheduledPercent = 260
+	SelectionLoopDurationCheckInterval = 10
+
+[Antiflood]
+    Enabled = true
+
+    [[Antiflood.ConfigsByRound]]
+        Round = 0
+        NumConcurrentResolverJobs = 50
+        NumConcurrentResolvingTrieNodesJobs = 3
+
+        [Antiflood.ConfigsByRound.FastReacting]
+            IntervalInSeconds = 1
+            ReservedPercent   = 20.0
+            [Antiflood.ConfigsByRound.FastReacting.PeerMaxInput]
+                BaseMessagesPerInterval  = 280
+                TotalSizePerInterval = 4194304
+                [Antiflood.ConfigsByRound.FastReacting.PeerMaxInput.IncreaseFactor]
+                    Threshold = 10
+                    Factor = 1.0
+            [Antiflood.ConfigsByRound.FastReacting.BlackList]
+                ThresholdNumMessagesPerInterval = 1000
+                ThresholdSizePerInterval = 8388608
+                NumFloodingRounds = 10
+                PeerBanDurationInSeconds = 300
+
+        [Antiflood.ConfigsByRound.SlowReacting]
+            IntervalInSeconds = 30
+            ReservedPercent   = 20.0
+            [Antiflood.ConfigsByRound.SlowReacting.PeerMaxInput]
+                BaseMessagesPerInterval = 6000
+                TotalSizePerInterval = 18874368
+                [Antiflood.ConfigsByRound.SlowReacting.PeerMaxInput.IncreaseFactor]
+                    Threshold = 10
+                    Factor = 0.0
+            [Antiflood.ConfigsByRound.SlowReacting.BlackList]
+                ThresholdNumMessagesPerInterval = 10000
+                ThresholdSizePerInterval = 37748736
+                NumFloodingRounds = 2
+                PeerBanDurationInSeconds = 3600
+
+        [Antiflood.ConfigsByRound.OutOfSpecs]
+            IntervalInSeconds = 1
+            ReservedPercent   = 0.0
+            [Antiflood.ConfigsByRound.OutOfSpecs.PeerMaxInput]
+                BaseMessagesPerInterval = 2000
+                TotalSizePerInterval = 10485760
+                [Antiflood.ConfigsByRound.OutOfSpecs.PeerMaxInput.IncreaseFactor]
+                    Threshold = 0
+                    Factor = 0.0
+            [Antiflood.ConfigsByRound.OutOfSpecs.BlackList]
+                ThresholdNumMessagesPerInterval = 3600
+                ThresholdSizePerInterval = 12582912
+                NumFloodingRounds = 2
+                PeerBanDurationInSeconds = 3600
+
+        [Antiflood.ConfigsByRound.PeerMaxOutput]
+            [Antiflood.ConfigsByRound.PeerMaxOutput.PeerMaxInput]
+				BaseMessagesPerInterval  = 150
+				TotalSizePerInterval     = 2097152 #2MB/s
+
+        [Antiflood.ConfigsByRound.Cache]
+            Name = "Antiflood"
+            Capacity = 7000
+            Type = "LRU"
+        [Antiflood.ConfigsByRound.Topic]
+            DefaultMaxMessagesPerSec = 15000
+            MaxMessages = [{ Topic = "shardBlocks*", NumMessagesPerSec = 30 },
+                           { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
+
+        [Antiflood.ConfigsByRound.TxAccumulator]
+            MaxAllowedTimeInMilliseconds = 250
+            MaxDeviationTimeInMilliseconds = 25
+
+    [[Antiflood.ConfigsByRound]]
+        Round = 440
+        NumConcurrentResolverJobs = 50
+        NumConcurrentResolvingTrieNodesJobs = 3
+
+        [Antiflood.ConfigsByRound.FastReacting]
+            IntervalInSeconds = 1
+            ReservedPercent   = 20.0
+            [Antiflood.ConfigsByRound.FastReacting.PeerMaxInput]
+                BaseMessagesPerInterval  = 280
+                TotalSizePerInterval = 4194304
+                [Antiflood.ConfigsByRound.FastReacting.PeerMaxInput.IncreaseFactor]
+                    Threshold = 10
+                    Factor = 1.0
+            [Antiflood.ConfigsByRound.FastReacting.BlackList]
+                ThresholdNumMessagesPerInterval = 10000
+                ThresholdSizePerInterval = 12388608
+                NumFloodingRounds = 100
+                PeerBanDurationInSeconds = 300
+
+        [Antiflood.ConfigsByRound.SlowReacting]
+            IntervalInSeconds = 30
+            ReservedPercent   = 20.0
+            [Antiflood.ConfigsByRound.SlowReacting.PeerMaxInput]
+                BaseMessagesPerInterval = 6000
+                TotalSizePerInterval = 18874368
+                [Antiflood.ConfigsByRound.SlowReacting.PeerMaxInput.IncreaseFactor]
+                    Threshold = 10
+                    Factor = 0.0
+            [Antiflood.ConfigsByRound.SlowReacting.BlackList]
+                ThresholdNumMessagesPerInterval = 100000
+                ThresholdSizePerInterval = 60748736
+                NumFloodingRounds = 20
+                PeerBanDurationInSeconds = 3600
+
+        [Antiflood.ConfigsByRound.OutOfSpecs]
+            IntervalInSeconds = 1
+            ReservedPercent   = 0.0
+            [Antiflood.ConfigsByRound.OutOfSpecs.PeerMaxInput]
+                BaseMessagesPerInterval = 20000
+                TotalSizePerInterval = 104857600
+                [Antiflood.ConfigsByRound.OutOfSpecs.PeerMaxInput.IncreaseFactor]
+                    Threshold = 0
+                    Factor = 0.0
+            [Antiflood.ConfigsByRound.OutOfSpecs.BlackList]
+                ThresholdNumMessagesPerInterval = 36000
+                ThresholdSizePerInterval = 18582912
+                NumFloodingRounds = 20
+                PeerBanDurationInSeconds = 3600
+
+        [Antiflood.ConfigsByRound.PeerMaxOutput]
+            [Antiflood.ConfigsByRound.PeerMaxOutput.PeerMaxInput]
+				BaseMessagesPerInterval  = 150
+				TotalSizePerInterval     = 2097152
+
+        [Antiflood.ConfigsByRound.Cache]
+            Name = "Antiflood"
+            Capacity = 7000
+            Type = "LRU"
+        [Antiflood.ConfigsByRound.Topic]
+            DefaultMaxMessagesPerSec = 15000
+            MaxMessages = [{ Topic = "shardBlocks*", NumMessagesPerSec = 30 },
+                           { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
+
+        [Antiflood.ConfigsByRound.TxAccumulator]
+            MaxAllowedTimeInMilliseconds = 80
+            MaxDeviationTimeInMilliseconds = 25
 
 [VirtualMachine]
     [VirtualMachine.Execution]
@@ -263,11 +634,6 @@ func TestTomlParser(t *testing.T) {
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 38
     MaxPeerTrieLevelInMemory = 39
-
-[Redundancy]
-    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
-    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
-    MaxRoundsOfInactivityAccepted = 3
 `
 	cfg := Config{}
 
@@ -760,9 +1126,6 @@ func TestEnableEpochConfig(t *testing.T) {
     # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Wasm VM
     StorageAPICostOptimizationEnableEpoch = 54
 
-    # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
-    TransformToMultiShardCreateEnableEpoch = 55
-
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
     ESDTRegisterAndSetAllRolesEnableEpoch = 56
 
@@ -944,6 +1307,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # RelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
     RelayedTransactionsV1V2DisableEpoch = 113
 
+    # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
+    SupernovaEnableEpoch = 114
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1018,7 +1384,6 @@ func TestEnableEpochConfig(t *testing.T) {
 			IsPayableBySCEnableEpoch:                                 52,
 			CleanUpInformativeSCRsEnableEpoch:                        53,
 			StorageAPICostOptimizationEnableEpoch:                    54,
-			TransformToMultiShardCreateEnableEpoch:                   55,
 			ESDTRegisterAndSetAllRolesEnableEpoch:                    56,
 			ScheduledMiniBlocksEnableEpoch:                           57,
 			CorrectJailedNotUnstakedEmptyQueueEpoch:                  58,
@@ -1077,6 +1442,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			AutomaticActivationOfNodesDisableEpoch:                   111,
 			FixGetBalanceEnableEpoch:                                 112,
 			RelayedTransactionsV1V2DisableEpoch:                      113,
+			SupernovaEnableEpoch:                                     114,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
@@ -1117,6 +1483,38 @@ func TestEnableEpochConfig(t *testing.T) {
 		},
 	}
 	cfg := EpochConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCfg, cfg)
+}
+
+func TestEnableRoundsConfig(t *testing.T) {
+	testString := `
+[RoundActivations]
+    [RoundActivations.DisableAsyncCallV1]
+        Options = []
+        Round = "0"
+
+    [RoundActivations.SupernovaEnableRound]
+        Options = []
+        Round = "75"
+`
+
+	expectedCfg := RoundConfig{
+		RoundActivations: map[string]ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round:   "0",
+				Options: []string{},
+			},
+			"SupernovaEnableRound": {
+				Round:   "75",
+				Options: []string{},
+			},
+		},
+	}
+	cfg := RoundConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 

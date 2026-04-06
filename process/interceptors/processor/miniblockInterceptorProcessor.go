@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -71,10 +72,10 @@ func (mip *MiniblockInterceptorProcessor) Validate(_ process.InterceptedData, _ 
 
 // Save will save the received miniblocks inside the miniblock cacher after a new validation round
 // that will be done on each miniblock
-func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string) error {
+func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string, _ p2p.BroadcastMethod) (bool, error) {
 	interceptedMiniblock, ok := data.(*interceptedBlocks.InterceptedMiniblock)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return false, process.ErrWrongTypeAssertion
 	}
 
 	miniblock := interceptedMiniblock.Miniblock()
@@ -90,12 +91,12 @@ func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ c
 			"receiver shard", miniblock.ReceiverShardID,
 			"hash", hash,
 		)
-		return nil
+		return false, nil
 	}
 
 	mip.miniblockCache.HasOrAdd(hash, miniblock, miniblock.Size())
 
-	return nil
+	return true, nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming miniBlocks

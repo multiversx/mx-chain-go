@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 )
@@ -55,7 +54,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		Marshaller:           marshaller,
 		AddressConverter:     &testscommon.PubkeyConverterMock{},
 		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
-		StateMetrics:         &testStorage.StateMetricsStub{},
+		StateMetrics:         &stateMock.StateMetricsStub{},
 		AccountFactory:       accCreator,
 		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
@@ -260,4 +259,92 @@ func TestStoragePruningManager_MarkForEviction_removeDuplicatedKeys(t *testing.T
 	assert.False(t, ok)
 	_, ok = map2["hash4"]
 	assert.False(t, ok)
+}
+
+func TestStoragePruningManager_Reset(t *testing.T) {
+	t.Parallel()
+
+	args := storage.GetStorageManagerArgs()
+	trieStorage, _ := trie.NewTrieStorageManager(args)
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
+	spm, _ := NewStoragePruningManager(ewl, 1000)
+
+	err := spm.MarkForEviction([]byte("rootHash"), []byte("newRootHash"), map[string]struct{}{"hash1": {}, "hash2": {}}, map[string]struct{}{"hash3": {}, "hash4": {}})
+	assert.Nil(t, err)
+	err = spm.markForEviction([]byte("rootHash2"), map[string]struct{}{"hash5": {}, "hash6": {}}, state.NewRoot)
+	assert.Nil(t, err)
+
+	trieStorage.EnterPruningBufferingMode()
+	spm.PruneTrie([]byte("rootHash"), state.OldRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
+	spm.CancelPrune([]byte("newRootHash"), state.NewRoot, trieStorage)
+	trieStorage.ExitPruningBufferingMode()
+
+	assert.Equal(t, 2, spm.pruningBuffer.Len())
+
+	spm.Reset()
+	assert.Equal(t, 0, spm.pruningBuffer.Len())
+
+	// rootHash2 should not be added to the pruning buffer because ewl was also reset when spm.Reset() was called
+	trieStorage.EnterPruningBufferingMode()
+	spm.PruneTrie([]byte("rootHash2"), state.NewRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
+	trieStorage.ExitPruningBufferingMode()
+	assert.Equal(t, 0, spm.pruningBuffer.Len())
+}
+
+func TestStoragePruningManager_DuplicateKeyIncrementsNumReferences(t *testing.T) {
+	t.Parallel()
+
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
+	spm, _ := NewStoragePruningManager(ewl, 1000)
+
+	// Put R0|OldRoot twice (simulates delayed pruning with recycled root hash)
+	oldHashes1 := map[string]struct{}{"h1": {}, "h2": {}}
+	newHashes1 := map[string]struct{}{"h3": {}}
+	err := spm.MarkForEviction([]byte("R0"), []byte("R1"), oldHashes1, newHashes1)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, spm.EvictionWaitingListCacheLen())
+
+	// Second MarkForEviction with same oldRoot R0 increments numReferences
+	oldHashes2 := map[string]struct{}{"h4": {}, "h5": {}}
+	newHashes2 := map[string]struct{}{"h6": {}}
+	err = spm.MarkForEviction([]byte("R0"), []byte("R2"), oldHashes2, newHashes2)
+	assert.Nil(t, err)
+	assert.Equal(t, 3, spm.EvictionWaitingListCacheLen()) // R0|OldRoot, R1|NewRoot, R2|NewRoot
+
+	// First Evict decrements numReferences, returns empty (entry still alive)
+	evicted, errEvict := ewl.Evict(append([]byte("R0"), byte(state.OldRoot)))
+	assert.Nil(t, errEvict)
+	assert.Equal(t, 0, len(evicted))
+
+	// Second Evict removes entry and returns hashes
+	evicted, errEvict = ewl.Evict(append([]byte("R0"), byte(state.OldRoot)))
+	assert.Nil(t, errEvict)
+	assert.True(t, len(evicted) > 0)
+}
+
+func TestStoragePruningManager_EvictionWaitingListCacheLen(t *testing.T) {
+	t.Parallel()
+
+	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
+		RootHashesSize: 100,
+		HashesSize:     10000,
+	}
+	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
+	spm, _ := NewStoragePruningManager(ewl, 1000)
+
+	assert.Equal(t, 0, spm.EvictionWaitingListCacheLen())
+
+	err := spm.MarkForEviction([]byte("old"), []byte("new"),
+		map[string]struct{}{"h1": {}},
+		map[string]struct{}{"h2": {}})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, spm.EvictionWaitingListCacheLen())
 }

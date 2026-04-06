@@ -20,7 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/factory"
 )
 
-var peerAuthDuration = 10 * time.Second
+var timeCacheDuration = 10 * time.Second
 
 func panicIfError(message string, err error) {
 	if err != nil {
@@ -43,6 +43,10 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 			SelfShardID:    selfShard,
 			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 			Marshalizer:    &marshal.GogoProtoMarshalizer{},
+			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+				MaxNumBytesPerSenderUpperBound: 33_554_432,
+				MaxTrackedBlocks:               100,
+			},
 		},
 	)
 }
@@ -122,6 +126,20 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 
 	proofsPool := proofscache.NewProofsPool(3, 100)
 
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	executedMiniBlocks, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolder", err)
+
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	postProcessTransactions, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolder", err)
+
+	directSentTransactions, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: timeCacheDuration,
+		CacheExpiry: timeCacheDuration,
+	})
+	panicIfError("CreatePoolsHolder", err)
+
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
@@ -140,6 +158,9 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
 		Proofs:                    proofsPool,
+		ExecutedMiniBlocks:        executedMiniBlocks,
+		PostProcessTransactions:   postProcessTransactions,
+		DirectSentTransactions:    directSentTransactions,
 	}
 
 	return dataPoolArgs
@@ -221,8 +242,8 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	peerAuthPool, err := cache.NewTimeCacher(cache.ArgTimeCacher{
-		DefaultSpan: peerAuthDuration,
-		CacheExpiry: peerAuthDuration,
+		DefaultSpan: timeCacheDuration,
+		CacheExpiry: timeCacheDuration,
 	})
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
@@ -231,6 +252,20 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	proofsPool := proofscache.NewProofsPool(3, 100)
+
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	executedMiniBlocks, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	postProcessTransactions, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
+	directSentTransactions, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: timeCacheDuration,
+		CacheExpiry: timeCacheDuration,
+	})
+	panicIfError("CreatePoolsHolderWithTxPool", err)
 
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
@@ -250,6 +285,9 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
 		Proofs:                    proofsPool,
+		ExecutedMiniBlocks:        executedMiniBlocks,
+		PostProcessTransactions:   postProcessTransactions,
+		DirectSentTransactions:    directSentTransactions,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
