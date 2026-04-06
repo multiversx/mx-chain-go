@@ -592,8 +592,8 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 	}
 
 	// TODO use different dataTriesSizeInMem for accountsDbApi
-	dth, err_ := triesHolder.NewDataTriesHolder(args.generalConfig.StateTriesConfig.DataTriesSizeInMemory)
-	if err_ != nil {
+	dth, err := triesHolder.NewDataTriesHolder(args.generalConfig.StateTriesConfig.DataTriesSizeInMemory)
+	if err != nil {
 		return nil, nil, err
 	}
 

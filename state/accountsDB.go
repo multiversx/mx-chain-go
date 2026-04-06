@@ -720,6 +720,8 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 	if !ok {
 		return acnt, nil
 	}
+	// This will also set the rootHash inside the trackableDataTrie. It is needed in case the data trie needs to be
+	// accessed so that the trackableDataTrie knows the rootHash from which to recreate the data trie.
 	baseAcc.SetRootHash(baseAcc.GetRootHash())
 
 	return baseAcc, nil

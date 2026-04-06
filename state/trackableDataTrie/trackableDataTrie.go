@@ -2,6 +2,7 @@ package trackableDataTrie
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sort"
 
@@ -69,7 +70,7 @@ func checkTrackableDataTrieArgs(args TrackableDataTrieArgs) error {
 		return state.ErrNilStateAccessesCollector
 	}
 	if check.IfNil(args.DataTriesHolder) {
-		return errorsCommon.ErrNilDataTriesHolder
+		return state.ErrNilDataTriesHolder
 	}
 	if check.IfNil(args.DataTrieCreator) {
 		return errorsCommon.ErrNilDataTrieCreator
@@ -299,7 +300,10 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 		return make([]*stateChange.DataTrieChange, 0), make([]core.TrieData, 0), nil
 	}
 
-	_ = tdt.loadTrie()
+	err := tdt.loadTrie()
+	if !errors.Is(err, state.ErrNilTrie) {
+		return nil, nil, err
+	}
 	if check.IfNil(tdt.tr) {
 		emptyRootHash := holders.NewDefaultRootHashesHolder(make([]byte, 0))
 		newDataTrie, err := mainTrie.Recreate(emptyRootHash)

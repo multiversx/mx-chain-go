@@ -22,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/state/triesHolder"
-	trieTestComponents "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/update"
@@ -309,7 +308,7 @@ func newAccountCreator(
 
 		return accCreator, dth, nil
 	case ValidatorAccount:
-		return factory.NewPeerAccountCreator(), &trieTestComponents.TriesHolderStub{}, nil
+		return factory.NewPeerAccountCreator(), triesHolder.NewDisabledDataTriesHolder(), nil
 	}
 	return nil, nil, update.ErrUnknownType
 }
