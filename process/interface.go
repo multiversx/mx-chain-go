@@ -1600,6 +1600,7 @@ type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
+	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	IsInterfaceNil() bool
 }
 

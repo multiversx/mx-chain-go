@@ -11,6 +11,7 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,6 +48,7 @@ func createDefaultShardArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EpochChangeGracePeriodHandler: gracePeriod,
 		BroadcastMethod:               p2p.Broadcast,
+		ProofsPool:                    &dataRetriever.ProofsPoolMock{},
 	}
 
 	hdr := createMockShardHeader()
@@ -68,6 +70,7 @@ func createDefaultShardArgumentWithV2Support() *interceptedBlocks.ArgIntercepted
 		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EpochChangeGracePeriodHandler: gracePeriod,
 		BroadcastMethod:               p2p.Broadcast,
+		ProofsPool:                    &dataRetriever.ProofsPoolMock{},
 	}
 	hdr := createMockShardHeader()
 	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)
@@ -117,6 +120,7 @@ func createDefaultShardArgumentWithV3Support() *interceptedBlocks.ArgIntercepted
 		},
 		EpochChangeGracePeriodHandler: gracePeriod,
 		BroadcastMethod:               p2p.Broadcast,
+		ProofsPool:                    &dataRetriever.ProofsPoolMock{},
 	}
 	hdr := createMockShardHeaderV3()
 	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)

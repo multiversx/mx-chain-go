@@ -98,6 +98,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		ValidityAttester:        disabled.NewValidityAttester(),
 		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
 		ArgsParser:              args.ArgsParser,
+		ProofsPool:              args.ProofsPool,
 	}
 	argsInterceptedMetaHeaderFactory := interceptorsFactory.ArgInterceptedMetaHeaderFactory{
 		ArgInterceptedDataFactory: argsInterceptedDataFactory,

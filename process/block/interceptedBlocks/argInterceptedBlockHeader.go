@@ -23,4 +23,5 @@ type ArgInterceptedBlockHeader struct {
 	EnableEpochsHandler           common.EnableEpochsHandler
 	EpochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 	BroadcastMethod               p2p.BroadcastMethod
+	ProofsPool                    process.ProofsPool
 }
