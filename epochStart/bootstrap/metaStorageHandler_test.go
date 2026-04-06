@@ -10,6 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -18,14 +21,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createStorageHandlerArgs() StorageHandlerArgs {
@@ -199,4 +201,200 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 	}
+}
+
+func TestGetSelfNotarizedMetaForShard_ShardHeaderReferencesMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	metaHash := []byte("meta-hash")
+	metaHdr := &block.MetaBlock{Nonce: 593}
+	shardHdrHash := []byte("shard-hdr-hash")
+	shardHdr := &block.Header{
+		Nonce:           602,
+		MetaBlockHashes: [][]byte{[]byte("older-meta"), metaHash},
+	}
+
+	syncedHeaders := map[string]data.HeaderHandler{
+		string(shardHdrHash): shardHdr,
+		string(metaHash):     metaHdr,
+	}
+
+	epochStartData := &epochStartMocks.EpochStartShardDataStub{
+		GetHeaderHashCalled: func() []byte { return shardHdrHash },
+		GetShardIDCalled:    func() uint32 { return 0 },
+	}
+
+	msh := &metaStorageHandler{}
+	hash, hdr, found := msh.getSelfNotarizedMetaForShard(epochStartData, syncedHeaders)
+	require.True(t, found)
+	assert.Equal(t, metaHash, hash)
+	assert.Equal(t, uint64(593), hdr.GetNonce())
+}
+
+func TestGetSelfNotarizedMetaForShard_WalksBackToPreviousHeader(t *testing.T) {
+	t.Parallel()
+
+	metaHash := []byte("meta-hash")
+	metaHdr := &block.MetaBlock{Nonce: 591}
+	prevShardHdrHash := []byte("prev-shard-hash")
+	prevShardHdr := &block.Header{
+		Nonce:           601,
+		MetaBlockHashes: [][]byte{metaHash},
+	}
+	shardHdrHash := []byte("shard-hdr-hash")
+	shardHdr := &block.Header{
+		Nonce:    602,
+		PrevHash: prevShardHdrHash,
+	}
+
+	syncedHeaders := map[string]data.HeaderHandler{
+		string(shardHdrHash):     shardHdr,
+		string(prevShardHdrHash): prevShardHdr,
+		string(metaHash):         metaHdr,
+	}
+
+	epochStartData := &epochStartMocks.EpochStartShardDataStub{
+		GetHeaderHashCalled: func() []byte { return shardHdrHash },
+		GetShardIDCalled:    func() uint32 { return 0 },
+	}
+
+	msh := &metaStorageHandler{}
+	hash, hdr, found := msh.getSelfNotarizedMetaForShard(epochStartData, syncedHeaders)
+	require.True(t, found)
+	assert.Equal(t, metaHash, hash)
+	assert.Equal(t, uint64(591), hdr.GetNonce())
+}
+
+func TestGetSelfNotarizedMetaForShard_ShardHeaderNotFound(t *testing.T) {
+	t.Parallel()
+
+	epochStartData := &epochStartMocks.EpochStartShardDataStub{
+		GetHeaderHashCalled: func() []byte { return []byte("missing") },
+		GetShardIDCalled:    func() uint32 { return 0 },
+	}
+
+	msh := &metaStorageHandler{}
+	_, _, found := msh.getSelfNotarizedMetaForShard(epochStartData, map[string]data.HeaderHandler{})
+	require.False(t, found)
+}
+
+func TestGetSelfNotarizedMetaForShard_GenesisNonceReturnsNotFound(t *testing.T) {
+	t.Parallel()
+
+	shardHdrHash := []byte("shard-hdr-hash")
+	shardHdr := &block.Header{Nonce: 0}
+
+	syncedHeaders := map[string]data.HeaderHandler{
+		string(shardHdrHash): shardHdr,
+	}
+
+	epochStartData := &epochStartMocks.EpochStartShardDataStub{
+		GetHeaderHashCalled: func() []byte { return shardHdrHash },
+		GetShardIDCalled:    func() uint32 { return 0 },
+	}
+
+	msh := &metaStorageHandler{}
+	_, _, found := msh.getSelfNotarizedMetaForShard(epochStartData, syncedHeaders)
+	require.False(t, found)
+}
+
+func TestSaveIntermediateMetaBlocksToStorage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("saves chain of meta blocks to storage", func(t *testing.T) {
+		t.Parallel()
+
+		hash597 := []byte("hash-597")
+		hash596 := []byte("hash-596")
+		hash595 := []byte("hash-595")
+		meta597 := &block.MetaBlock{Nonce: 597, PrevHash: hash596}
+		meta596 := &block.MetaBlock{Nonce: 596, PrevHash: hash595}
+		meta595 := &block.MetaBlock{Nonce: 595}
+
+		syncedHeaders := map[string]data.HeaderHandler{
+			string(hash597): meta597,
+			string(hash596): meta596,
+			string(hash595): meta595,
+		}
+
+		epochStartMeta := &block.MetaBlock{Nonce: 598, PrevHash: hash597}
+
+		putCount := 0
+		msh := &metaStorageHandler{
+			baseStorageHandler: &baseStorageHandler{
+				marshalizer:         &mock.MarshalizerMock{},
+				hasher:              &hashingMocks.HasherMock{},
+				uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
+				enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				proofsPool:          &dataRetrieverMocks.ProofsPoolMock{},
+				storageService: &storageStubs.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return &storageStubs.StorerStub{
+							PutCalled: func(key, data []byte) error {
+								putCount++
+								return nil
+							},
+						}, nil
+					},
+				},
+			},
+		}
+
+		err := msh.saveIntermediateMetaBlocksToStorage(epochStartMeta, syncedHeaders)
+		require.Nil(t, err)
+		assert.True(t, putCount > 0)
+	})
+
+	t.Run("stops at missing header", func(t *testing.T) {
+		t.Parallel()
+
+		epochStartMeta := &block.MetaBlock{Nonce: 598, PrevHash: []byte("missing")}
+
+		msh := &metaStorageHandler{baseStorageHandler: &baseStorageHandler{}}
+		err := msh.saveIntermediateMetaBlocksToStorage(epochStartMeta, make(map[string]data.HeaderHandler))
+		require.Nil(t, err)
+	})
+
+	t.Run("stops at genesis nonce", func(t *testing.T) {
+		t.Parallel()
+
+		genesisHash := []byte("genesis-hash")
+		genesisMeta := &block.MetaBlock{Nonce: 0}
+
+		syncedHeaders := map[string]data.HeaderHandler{
+			string(genesisHash): genesisMeta,
+		}
+
+		epochStartMeta := &block.MetaBlock{Nonce: 1, PrevHash: genesisHash}
+
+		msh := &metaStorageHandler{
+			baseStorageHandler: &baseStorageHandler{
+				marshalizer:         &mock.MarshalizerMock{},
+				hasher:              &hashingMocks.HasherMock{},
+				uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
+				enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				proofsPool:          &dataRetrieverMocks.ProofsPoolMock{},
+				storageService: &storageStubs.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return &storageStubs.StorerStub{
+							PutCalled: func(key, data []byte) error { return nil },
+						}, nil
+					},
+				},
+			},
+		}
+
+		err := msh.saveIntermediateMetaBlocksToStorage(epochStartMeta, syncedHeaders)
+		require.Nil(t, err)
+	})
+
+	t.Run("empty prev hash returns nil", func(t *testing.T) {
+		t.Parallel()
+
+		epochStartMeta := &block.MetaBlock{Nonce: 1}
+
+		msh := &metaStorageHandler{baseStorageHandler: &baseStorageHandler{}}
+		err := msh.saveIntermediateMetaBlocksToStorage(epochStartMeta, make(map[string]data.HeaderHandler))
+		require.Nil(t, err)
+	})
 }

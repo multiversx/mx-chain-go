@@ -675,6 +675,18 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
 		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
 		shardIds = append(shardIds, epochStartData.GetShardID())
+
+		lastFinishedMetaBlock := epochStartData.GetLastFinishedMetaBlock()
+		if len(lastFinishedMetaBlock) > 0 {
+			hashesToRequest = append(hashesToRequest, lastFinishedMetaBlock)
+			shardIds = append(shardIds, core.MetachainShardId)
+		}
+
+		firstPendingMetaBlock := epochStartData.GetFirstPendingMetaBlock()
+		if len(firstPendingMetaBlock) > 0 {
+			hashesToRequest = append(hashesToRequest, firstPendingMetaBlock)
+			shardIds = append(shardIds, core.MetachainShardId)
+		}
 	}
 
 	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
@@ -703,7 +715,131 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
 	}
 
+	err = e.syncSelfNotarizedMetaHeaders(meta, syncedHeaders)
+	if err != nil {
+		return nil, err
+	}
+
 	return syncedHeaders, nil
+}
+
+func (e *epochStartBootstrap) syncSelfNotarizedMetaHeaders(
+	meta data.MetaHeaderHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) error {
+	minReferencedNonce := meta.GetNonce()
+
+	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		shardHeader, ok := syncedHeaders[string(epochStartData.GetHeaderHash())]
+		if !ok {
+			continue
+		}
+
+		referencedMeta, err := e.syncLastReferencedMetaBlock(syncedHeaders, shardHeader)
+		if err != nil {
+			return err
+		}
+
+		if referencedMeta != nil && referencedMeta.GetNonce() < minReferencedNonce {
+			minReferencedNonce = referencedMeta.GetNonce()
+		}
+	}
+
+	return e.syncIntermediateMetaBlocks(meta, syncedHeaders, minReferencedNonce)
+}
+
+func (e *epochStartBootstrap) syncIntermediateMetaBlocks(
+	meta data.MetaHeaderHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+	minTargetNonce uint64,
+) error {
+	prevHash := meta.GetPrevHash()
+
+	for len(prevHash) > 0 {
+		err := e.syncOneHeader(syncedHeaders, prevHash, core.MetachainShardId)
+		if err != nil {
+			return err
+		}
+
+		prevMeta, ok := syncedHeaders[string(prevHash)]
+		if !ok || prevMeta.GetNonce() <= minTargetNonce {
+			break
+		}
+
+		prevHash = prevMeta.GetPrevHash()
+	}
+
+	return nil
+}
+
+func (e *epochStartBootstrap) syncLastReferencedMetaBlock(
+	syncedHeaders map[string]data.HeaderHandler,
+	header data.HeaderHandler,
+) (data.HeaderHandler, error) {
+	currentHdr, ok := header.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
+	for currentHdr.GetNonce() > 0 {
+		metaBlockHashes := currentHdr.GetMetaBlockHashes()
+		if len(metaBlockHashes) > 0 {
+			lastMetaHash := metaBlockHashes[len(metaBlockHashes)-1]
+			err := e.syncOneHeader(syncedHeaders, lastMetaHash, core.MetachainShardId)
+			if err != nil {
+				return nil, err
+			}
+			return syncedHeaders[string(lastMetaHash)], nil
+		}
+
+		prevHash := currentHdr.GetPrevHash()
+		err := e.syncOneHeader(syncedHeaders, prevHash, currentHdr.GetShardID())
+		if err != nil {
+			return nil, err
+		}
+
+		prevHeader, ok := syncedHeaders[string(prevHash)].(data.ShardHeaderHandler)
+		if !ok {
+			return nil, epochStart.ErrWrongTypeAssertion
+		}
+
+		if prevHeader.GetNonce() >= currentHdr.GetNonce() {
+			break
+		}
+
+		currentHdr = prevHeader
+	}
+
+	return nil, nil
+}
+
+func (e *epochStartBootstrap) syncOneHeader(
+	syncedHeaders map[string]data.HeaderHandler,
+	hash []byte,
+	shardID uint32,
+) error {
+	if _, exists := syncedHeaders[string(hash)]; exists {
+		return nil
+	}
+
+	e.headersSyncer.ClearFields()
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	err := e.headersSyncer.SyncMissingHeadersByHash([]uint32{shardID}, [][]byte{hash}, ctx)
+	cancel()
+	if err != nil {
+		return err
+	}
+
+	headers, err := e.headersSyncer.GetHeaders()
+	if err != nil {
+		return err
+	}
+
+	for h, hdr := range headers {
+		syncedHeaders[h] = hdr
+	}
+
+	return nil
 }
 
 // requestAndProcessing will handle requesting and receiving the needed information the node will bootstrap from
