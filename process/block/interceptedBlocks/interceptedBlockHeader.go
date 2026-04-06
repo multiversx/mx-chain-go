@@ -31,6 +31,7 @@ type InterceptedHeader struct {
 	epochStartTrigger             process.EpochStartTriggerHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	proofsPool                    process.ProofsPool
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -55,6 +56,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		epochStartTrigger:             arg.EpochStartTrigger,
 		enableEpochsHandler:           arg.EnableEpochsHandler,
 		epochChangeGracePeriodHandler: arg.EpochChangeGracePeriodHandler,
+		proofsPool:                    arg.ProofsPool,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -143,6 +145,11 @@ func (inHdr *InterceptedHeader) integrity() error {
 	}
 
 	err := checkHeaderHandler(inHdr.HeaderHandler(), inHdr.enableEpochsHandler)
+	if err != nil {
+		return err
+	}
+
+	err = checkExistingProofForHeader(inHdr.proofsPool, inHdr.hdr, inHdr.hash)
 	if err != nil {
 		return err
 	}

@@ -156,6 +156,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		EpochStartTrigger:       args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		ArgsParser:              smartContract.NewArgumentParser(),
+		ProofsPool:              args.DataPool.Proofs(),
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
