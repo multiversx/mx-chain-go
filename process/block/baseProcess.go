@@ -2410,9 +2410,9 @@ func (bp *baseProcessor) restoreBlockBody(headerHandler data.HeaderHandler, body
 }
 
 // RemoveHeaderFromPool removes the header from the pool
-func (bp *baseProcessor) RemoveHeaderFromPool(headerHash []byte) {
+func (bp *baseProcessor) RemoveHeaderFromPool(headerNonce uint64) {
 	headersPool := bp.dataPool.Headers()
-	headersPool.RemoveHeaderByHash(headerHash)
+	headersPool.RemoveHeaderByNonceAndShardId(headerNonce, bp.shardCoordinator.SelfId())
 }
 
 // RestoreBlockBodyIntoPools restores the block body into associated pools

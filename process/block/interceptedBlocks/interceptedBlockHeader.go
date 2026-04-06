@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-go/p2p"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -31,6 +32,7 @@ type InterceptedHeader struct {
 	epochStartTrigger             process.EpochStartTriggerHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	broadcastMethod               p2p.BroadcastMethod
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -55,6 +57,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		epochStartTrigger:             arg.EpochStartTrigger,
 		enableEpochsHandler:           arg.EnableEpochsHandler,
 		epochChangeGracePeriodHandler: arg.EpochChangeGracePeriodHandler,
+		broadcastMethod:               arg.BroadcastMethod,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -154,9 +157,11 @@ func (inHdr *InterceptedHeader) integrity() error {
 		}
 	}
 
-	err = inHdr.validityAttester.CheckBlockAgainstRoundHandler(inHdr.HeaderHandler())
-	if err != nil {
-		return err
+	if inHdr.broadcastMethod == p2p.Broadcast {
+		err = inHdr.validityAttester.CheckBlockAgainstRoundHandler(inHdr.HeaderHandler())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = checkMiniBlocksHeaders(inHdr.hdr.GetMiniBlockHeaderHandlers(), inHdr.shardCoordinator)

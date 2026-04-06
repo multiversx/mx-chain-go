@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -44,7 +45,7 @@ func NewInterceptedMiniblockDataFactory(argument *ArgInterceptedDataFactory) (*i
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (imfd *interceptedMiniblockDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
+func (imfd *interceptedMiniblockDataFactory) Create(buff []byte, _ core.PeerID, _ p2p.BroadcastMethod) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedMiniblock{
 		MiniblockBuff:    buff,
 		Marshalizer:      imfd.marshalizer,

@@ -8,11 +8,13 @@ import (
 type RoundHandlerStub struct {
 	RoundIndex int64
 
-	IndexCalled         func() int64
-	TimeDurationCalled  func() time.Duration
-	TimeStampCalled     func() time.Time
-	UpdateRoundCalled   func(time.Time, time.Time)
-	RemainingTimeCalled func(startTime time.Time, maxTime time.Duration) time.Duration
+	IndexCalled                func() int64
+	TimeDurationCalled         func() time.Duration
+	TimeStampCalled            func() time.Time
+	UpdateRoundCalled          func(time.Time, time.Time)
+	RemainingTimeCalled        func(startTime time.Time, maxTime time.Duration) time.Duration
+	GetTimeStampForRoundCalled func(round uint64) uint64
+	ComputeCurrentRoundCalled  func() int64
 }
 
 // Index -
@@ -59,6 +61,24 @@ func (rndm *RoundHandlerStub) RemainingTime(startTime time.Time, maxTime time.Du
 	}
 
 	return 4000 * time.Millisecond
+}
+
+// GetTimeStampForRound -
+func (rndm *RoundHandlerStub) GetTimeStampForRound(round uint64) uint64 {
+	if rndm.GetTimeStampForRoundCalled != nil {
+		return rndm.GetTimeStampForRoundCalled(round)
+	}
+
+	return uint64(time.Unix(0, 0).UnixMilli())
+}
+
+// ComputeCurrentRound -
+func (rndm *RoundHandlerStub) ComputeCurrentRound() int64 {
+	if rndm.ComputeCurrentRoundCalled != nil {
+		return rndm.ComputeCurrentRoundCalled()
+	}
+
+	return rndm.RoundIndex
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -133,7 +133,7 @@ type HdrValidatorHandler interface {
 
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
-	Create(buff []byte, messageOriginator core.PeerID) (InterceptedData, error)
+	Create(buff []byte, messageOriginator core.PeerID, broadcastMethod p2p.BroadcastMethod) (InterceptedData, error)
 	IsInterfaceNil() bool
 }
 
@@ -1192,6 +1192,9 @@ type RoundTimeDurationHandler interface {
 type RoundHandler interface {
 	Index() int64
 	TimeDuration() time.Duration
+	RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
+	GetTimeStampForRound(round uint64) uint64
+	ComputeCurrentRound() int64
 	IsInterfaceNil() bool
 }
 

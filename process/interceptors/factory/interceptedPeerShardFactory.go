@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	p "github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/p2p"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -42,7 +43,7 @@ func checkInterceptedDirectConnectionInfoFactoryArgs(args ArgInterceptedDataFact
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (ipsf *interceptedPeerShardFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
+func (ipsf *interceptedPeerShardFactory) Create(buff []byte, _ core.PeerID, _ p.BroadcastMethod) (process.InterceptedData, error) {
 	args := p2p.ArgInterceptedPeerShard{
 		Marshaller:  ipsf.marshaller,
 		DataBuff:    buff,

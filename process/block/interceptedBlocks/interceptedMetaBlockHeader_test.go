@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -54,6 +55,7 @@ func createMetaArgumentWithShardCoordinatorAndHeader(shardCoordinator sharding.C
 		},
 		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EpochChangeGracePeriodHandler: gracePeriod,
+		BroadcastMethod:               p2p.Broadcast,
 	}
 	arg.HdrBuff, _ = testMarshalizer.Marshal(hdr)
 

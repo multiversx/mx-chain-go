@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-go/p2p"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -30,6 +31,7 @@ type InterceptedMetaHeader struct {
 	validityAttester    process.ValidityAttester
 	epochStartTrigger   process.EpochStartTriggerHandler
 	enableEpochsHandler common.EnableEpochsHandler
+	broadcastMethod     p2p.BroadcastMethod
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -53,6 +55,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		validityAttester:    arg.ValidityAttester,
 		epochStartTrigger:   arg.EpochStartTrigger,
 		enableEpochsHandler: arg.EnableEpochsHandler,
+		broadcastMethod:     arg.BroadcastMethod,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -98,9 +101,11 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		}
 	}
 
-	err = imh.validityAttester.CheckBlockAgainstRoundHandler(imh.HeaderHandler())
-	if err != nil {
-		return err
+	if imh.broadcastMethod == p2p.Broadcast {
+		err = imh.validityAttester.CheckBlockAgainstRoundHandler(imh.HeaderHandler())
+		if err != nil {
+			return err
+		}
 	}
 
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)

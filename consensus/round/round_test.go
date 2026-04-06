@@ -697,6 +697,74 @@ func TestRound_Concurrency(t *testing.T) {
 	})
 }
 
+func TestRound_ComputeCurrentRound(t *testing.T) {
+	t.Parallel()
+
+	t.Run("before supernova should return correct round", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+		currentTime := genesisTime.Add(3 * roundTimeDuration)
+
+		syncTimerMock := &consensusMocks.SyncTimerMock{
+			CurrentTimeCalled: func() time.Time {
+				return currentTime
+			},
+		}
+
+		args := createDefaultRoundArgs()
+		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = genesisTime.Add(10 * roundTimeDuration)
+		args.SyncTimer = syncTimerMock
+
+		rnd, err := round.NewRound(args)
+		require.Nil(t, err)
+
+		computedRound := rnd.ComputeCurrentRound()
+		assert.Equal(t, int64(3), computedRound)
+	})
+
+	t.Run("after supernova should return correct round", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+		roundDuration := 10 * time.Millisecond
+		supernovaRoundDuration := 5 * time.Millisecond
+		supernovaStartRound := int64(5)
+		supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRound) * roundDuration)
+
+		// current time is 3 supernova rounds after supernova genesis
+		currentTime := supernovaGenesisTime.Add(3 * supernovaRoundDuration)
+
+		syncTimerMock := &consensusMocks.SyncTimerMock{
+			CurrentTimeCalled: func() time.Time {
+				return currentTime
+			},
+		}
+
+		args := createDefaultRoundArgs()
+		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = supernovaGenesisTime
+		args.RoundTimeDuration = roundDuration
+		args.SupernovaTimeDuration = supernovaRoundDuration
+		args.SupernovaStartRound = supernovaStartRound
+		args.CurrentTimeStamp = currentTime
+		args.SyncTimer = syncTimerMock
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round >= uint64(supernovaStartRound)
+			},
+		}
+
+		rnd, err := round.NewRound(args)
+		require.Nil(t, err)
+
+		// delta from supernovaGenesis = 3*5ms = 15ms, index = floor(15ms/5ms) + 5 = 3 + 5 = 8
+		computedRound := rnd.ComputeCurrentRound()
+		assert.Equal(t, int64(8), computedRound)
+	})
+}
+
 func TestRound_GetTimeStampForRound(t *testing.T) {
 	t.Parallel()
 

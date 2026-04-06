@@ -7,10 +7,12 @@ import (
 
 // RoundHandlerMock -
 type RoundHandlerMock struct {
-	RoundIndex          int64
-	RoundTimeStamp      time.Time
-	RoundTimeDuration   time.Duration
-	BeforeGenesisCalled func() bool
+	RoundIndex                int64
+	RoundTimeStamp            time.Time
+	RoundTimeDuration         time.Duration
+	BeforeGenesisCalled       func() bool
+	RemainingTimeCalled       func(startTime time.Time, maxTime time.Duration) time.Duration
+	ComputeCurrentRoundCalled func() int64
 }
 
 // BeforeGenesis -
@@ -55,13 +57,25 @@ func (rndm *RoundHandlerMock) UpdateRound(genesisRoundTimeStamp time.Time, timeS
 }
 
 // RemainingTime -
-func (rndm *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
+func (rndm *RoundHandlerMock) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
+	if rndm.RemainingTimeCalled != nil {
+		return rndm.RemainingTimeCalled(startTime, maxTime)
+	}
 	return rndm.RoundTimeDuration
 }
 
 // GetTimeStampForRound -
 func (rndm *RoundHandlerMock) GetTimeStampForRound(round uint64) uint64 {
 	return 0
+}
+
+// ComputeCurrentRound -
+func (rndm *RoundHandlerMock) ComputeCurrentRound() int64 {
+	if rndm.ComputeCurrentRoundCalled != nil {
+		return rndm.ComputeCurrentRoundCalled()
+	}
+
+	return rndm.RoundIndex
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

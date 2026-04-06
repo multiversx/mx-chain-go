@@ -4,11 +4,12 @@ import "time"
 
 // RoundHandlerMock -
 type RoundHandlerMock struct {
-	IndexField          int64
-	TimeStampField      time.Time
-	TimeDurationField   time.Duration
-	RemainingTimeField  time.Duration
-	BeforeGenesisCalled func() bool
+	IndexField                int64
+	TimeStampField            time.Time
+	TimeDurationField         time.Duration
+	RemainingTimeField        time.Duration
+	BeforeGenesisCalled       func() bool
+	ComputeCurrentRoundCalled func() int64
 }
 
 // BeforeGenesis -
@@ -56,6 +57,15 @@ func (mock *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.D
 // GetTimeStampForRound -
 func (mock *RoundHandlerMock) GetTimeStampForRound(round uint64) uint64 {
 	return round * uint64(mock.TimeDuration().Milliseconds())
+}
+
+// ComputeCurrentRound -
+func (mock *RoundHandlerMock) ComputeCurrentRound() int64 {
+	if mock.ComputeCurrentRoundCalled != nil {
+		return mock.ComputeCurrentRoundCalled()
+	}
+
+	return mock.IndexField
 }
 
 // IsInterfaceNil -

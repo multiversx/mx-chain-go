@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/unsigned"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -52,7 +53,7 @@ func NewInterceptedUnsignedTxDataFactory(argument *ArgInterceptedDataFactory) (*
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (iutdf *interceptedUnsignedTxDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
+func (iutdf *interceptedUnsignedTxDataFactory) Create(buff []byte, _ core.PeerID, _ p2p.BroadcastMethod) (process.InterceptedData, error) {
 	return unsigned.NewInterceptedUnsignedTransaction(
 		buff,
 		iutdf.protoMarshalizer,

@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
@@ -76,7 +77,7 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
+func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte, _ core.PeerID, broadcastMethod p2p.BroadcastMethod) (process.InterceptedData, error) {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
 		HdrBuff:                       buff,
 		Marshalizer:                   ishdf.marshalizer,
@@ -88,6 +89,7 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte, _ core.PeerI
 		EpochStartTrigger:             ishdf.epochStartTrigger,
 		EnableEpochsHandler:           ishdf.enableEpochsHandler,
 		EpochChangeGracePeriodHandler: ishdf.epochChangeGracePeriodHandler,
+		BroadcastMethod:               broadcastMethod,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

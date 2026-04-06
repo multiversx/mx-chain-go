@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -2371,7 +2372,12 @@ func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldWork(t *testing.T) {
 	currentRound := int64(50)
 	bbt.SetRoundHandler(
 		&mock.RoundHandlerMock{
-			RoundIndex: currentRound,
+			RoundIndex:        currentRound,
+			RoundTimeStamp:    time.Now(),
+			RoundTimeDuration: time.Second,
+			ComputeCurrentRoundCalled: func() int64 {
+				return currentRound
+			},
 		},
 	)
 
@@ -2381,6 +2387,42 @@ func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldWork(t *testing.T) {
 	err := bbt.CheckBlockAgainstRoundHandler(hdr)
 
 	assert.Nil(t, err)
+}
+
+func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldFailOnInvalidWindow(t *testing.T) {
+	t.Parallel()
+
+	bbt := track.NewBaseBlockTrack()
+	currentRound := int64(50)
+	roundDuration := time.Millisecond * 200
+	bbt.SetRoundHandler(
+		&mock.RoundHandlerMock{
+			RoundIndex:        currentRound,
+			RoundTimeStamp:    time.Now(),
+			RoundTimeDuration: roundDuration,
+			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+				currentTime := time.Now()
+				elapsedTime := currentTime.Sub(startTime)
+				remainingTime := maxTime - elapsedTime
+
+				return remainingTime
+			},
+			ComputeCurrentRoundCalled: func() int64 {
+				return currentRound
+			},
+		},
+	)
+
+	hdr := &block.Header{
+		Round: uint64(currentRound + 1), // proper round but received too late
+	}
+
+	// wait until after half of the next round passed
+	timeToSleep := roundDuration + time.Duration(float64(roundDuration)*0.6)
+	time.Sleep(timeToSleep)
+	err := bbt.CheckBlockAgainstRoundHandler(hdr)
+	require.ErrorIs(t, err, process.ErrInvalidRound)
+	require.Contains(t, err.Error(), "current round timestamp")
 }
 
 // ------- CheckBlockAgainstFinal

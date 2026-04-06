@@ -18,6 +18,7 @@ type RoundHandlerMock struct {
 	BeforeGenesisCalled        func() bool
 	IncrementIndexCalled       func()
 	GetTimeStampForRoundCalled func(round uint64) uint64
+	ComputeCurrentRoundCalled  func() int64
 }
 
 // BeforeGenesis -
@@ -96,6 +97,19 @@ func (rndm *RoundHandlerMock) GetTimeStampForRound(round uint64) uint64 {
 	}
 
 	return 0
+}
+
+// ComputeCurrentRound -
+func (rndm *RoundHandlerMock) ComputeCurrentRound() int64 {
+	if rndm.ComputeCurrentRoundCalled != nil {
+		return rndm.ComputeCurrentRoundCalled()
+	}
+
+	rndm.indexMut.RLock()
+	idx := rndm.index
+	rndm.indexMut.RUnlock()
+
+	return idx
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

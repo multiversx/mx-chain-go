@@ -3,6 +3,7 @@ package interceptedBlocks
 import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
@@ -21,4 +22,5 @@ type ArgInterceptedBlockHeader struct {
 	EpochStartTrigger             process.EpochStartTriggerHandler
 	EnableEpochsHandler           common.EnableEpochsHandler
 	EpochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	BroadcastMethod               p2p.BroadcastMethod
 }

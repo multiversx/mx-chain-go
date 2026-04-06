@@ -83,6 +83,14 @@ func NewRound(args ArgsRound) (*round, error) {
 
 // UpdateRound updates the index and the time stamp of the round depending on the genesis time and the current time given
 func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
+	baseTimeStamp, roundDuration, startRound := rnd.getBaseInfo(genesisTimeStamp, currentTimeStamp)
+	rnd.updateRound(baseTimeStamp, currentTimeStamp, startRound, roundDuration)
+}
+
+func (rnd *round) getBaseInfo(
+	genesisTimeStamp time.Time,
+	currentTimeStamp time.Time,
+) (time.Time, time.Duration, int64) {
 	baseTimeStamp := rnd.supernovaGenesisTimeStamp
 	roundDuration := rnd.supernovaTimeDuration
 	startRound := rnd.supernovaStartRound
@@ -95,7 +103,20 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 		startRound = rnd.startRound
 	}
 
-	rnd.updateRound(baseTimeStamp, currentTimeStamp, startRound, roundDuration)
+	return baseTimeStamp, roundDuration, startRound
+}
+
+func getIndex(
+	genesisTimeStamp time.Time,
+	currentTimeStamp time.Time,
+	roundDuration time.Duration,
+	startRound int64,
+) (int64, int64) {
+	delta := currentTimeStamp.Sub(genesisTimeStamp).Nanoseconds()
+
+	index := int64(math.Floor(float64(delta)/float64(roundDuration.Nanoseconds()))) + startRound
+
+	return index, delta
 }
 
 func (rnd *round) isSupernovaRoundActivated() bool {
@@ -134,9 +155,7 @@ func (rnd *round) updateRound(
 	startRound int64,
 	roundDuration time.Duration,
 ) {
-	delta := currentTimeStamp.Sub(genesisTimeStamp).Nanoseconds()
-
-	index := int64(math.Floor(float64(delta)/float64(roundDuration.Nanoseconds()))) + startRound
+	index, delta := getIndex(genesisTimeStamp, currentTimeStamp, roundDuration, startRound)
 
 	rnd.Lock()
 	if rnd.index != index {
@@ -224,6 +243,16 @@ func (rnd *round) GetTimeStampForRound(round uint64) uint64 {
 
 	roundTimeStampMs := rnd.supernovaGenesisTimeStamp.Add(time.Duration(int64(round)-rnd.supernovaStartRound) * rnd.supernovaTimeDuration).UnixMilli()
 	return uint64(roundTimeStampMs)
+}
+
+// ComputeCurrentRound computes the round that should match the current timestamp
+func (rnd *round) ComputeCurrentRound() int64 {
+	genesisTimeStamp := rnd.genesisTimeStamp
+	currentTimeStamp := rnd.syncTimer.CurrentTime()
+	timeStamp, roundDuration, startRound := rnd.getBaseInfo(genesisTimeStamp, currentTimeStamp)
+	index, _ := getIndex(timeStamp, currentTimeStamp, roundDuration, startRound)
+
+	return index
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

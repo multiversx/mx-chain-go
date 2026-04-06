@@ -1496,3 +1496,6 @@ var ErrInvalidShardInfo = errors.New("invalid shard info")
 
 // ErrNilClosingNodeStartedFlag signals that the closing node started flag is nil
 var ErrNilClosingNodeStartedFlag = errors.New("closing node started flag is nil")
+
+// ErrInvalidRound signals that an invalid round has been provided
+var ErrInvalidRound = errors.New("invalid round")
