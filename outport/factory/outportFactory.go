@@ -5,7 +5,7 @@ import (
 	"time"
 
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-core-go/data/outport/grpc"
+	"github.com/multiversx/mx-chain-core-go/data/outport/grpcadapter"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/common"
@@ -154,7 +154,7 @@ func createAndSubscribeGRPCDriverIfNeeded(
 		return nil
 	}
 
-	grpcClient, err := grpc.NewOutportGRPCClient(args.GRPCClient.URL)
+	grpcClient, err := grpcadapter.NewOutportGRPCClient(args.GRPCClient.URL)
 	if err != nil {
 		return err
 	}

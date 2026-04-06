@@ -5,7 +5,7 @@ import (
 	"time"
 
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-core-go/data/outport/grpc"
+	"github.com/multiversx/mx-chain-core-go/data/outport/grpcadapter"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/outport"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -14,11 +14,11 @@ import (
 var log = logger.GetOrCreate("grpcDriver")
 
 type grpcDriver struct {
-	client     grpc.OutportClient
+	client     grpcadapter.OutportClient
 	marshaller marshal.Marshalizer
 }
 
-func NewGRPCDriver(client grpc.OutportClient, marshaller marshal.Marshalizer) (outport.Driver, error) {
+func NewGRPCDriver(client grpcadapter.OutportClient, marshaller marshal.Marshalizer) (outport.Driver, error) {
 	return &grpcDriver{
 		client:     client,
 		marshaller: marshaller,
