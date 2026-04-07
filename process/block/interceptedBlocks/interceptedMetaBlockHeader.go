@@ -150,11 +150,6 @@ func (imh *InterceptedMetaHeader) integrity() error {
 		return err
 	}
 
-	err = checkExistingProofForHeader(imh.proofsPool, imh.hdr, imh.hash)
-	if err != nil {
-		return err
-	}
-
 	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator)
 	if err != nil {
 		return err

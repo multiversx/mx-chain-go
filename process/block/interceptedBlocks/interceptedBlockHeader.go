@@ -143,11 +143,6 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
-	err = checkExistingProofForHeader(inHdr.proofsPool, inHdr.hdr, inHdr.hash)
-	if err != nil {
-		return err
-	}
-
 	if !inHdr.validityAttester.CheckBlockAgainstWhitelist(inHdr) {
 		err = inHdr.validityAttester.CheckBlockAgainstFinal(inHdr.HeaderHandler())
 		if err != nil {
