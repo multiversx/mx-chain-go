@@ -51,6 +51,11 @@ import (
 const (
 	cleanupHeadersDelta                  = 5
 	waitForExecutionResultsCheckInterval = 5 * time.Millisecond
+
+	maxGapForEWLThreshold   = 250 // cap to prevent pathological configs
+	ewlEntriesPerResult     = 2   // OldRoot + NewRoot per commit
+	ewlTolerancePercent     = 130 // 30% tolerance over expected size
+	ewlThresholdMinBaseline = 10  // minimum baseline to avoid false resets on small gaps
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -150,7 +155,12 @@ type baseProcessor struct {
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
 	aotSelector                        process.AOTTransactionSelector
 	maxProposalNonceGap                uint64
+	ewlResetThreshold                  int
 	closingNodeStarted                 *atomic.Bool
+
+	lastPrunedHeaderHash  []byte
+	lastPrunedHeaderNonce uint64
+	mutLastPrunedHeader   sync.RWMutex
 }
 
 type bootStorerDataArgs struct {
@@ -185,6 +195,8 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	if maxProposalNonceGap < defaultMaxProposalNonceGap {
 		maxProposalNonceGap = defaultMaxProposalNonceGap
 	}
+
+	ewlResetThreshold := computeEWLResetThreshold(maxProposalNonceGap)
 
 	base := &baseProcessor{
 		accountsDB:                         arguments.AccountsDB,
@@ -247,6 +259,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
 		aotSelector:                        arguments.AOTSelector,
 		maxProposalNonceGap:                maxProposalNonceGap,
+		ewlResetThreshold:                  ewlResetThreshold,
 		closingNodeStarted:                 arguments.CoreComponents.ClosingNodeStarted(),
 	}
 
@@ -1135,8 +1148,21 @@ func isPartiallyExecuted(
 
 // check if header has the same mini blocks as presented in body
 func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+	mbHashesFromHdr := make(map[string]struct{}, len(miniBlockHeaders))
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		if miniBlockHeaders[i] == nil {
+			return process.ErrNilMiniBlockHeader
+		}
+
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = struct{}{}
+	}
+
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch
+	}
+
+	if len(mbHashesFromHdr) != len(miniBlockHeaders) {
+		return process.ErrDuplicatedHashInBlock
 	}
 
 	var mbHdr data.MiniBlockHeaderHandler
@@ -1156,10 +1182,18 @@ func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []d
 			return err
 		}
 
+		mbHashStr := string(mbHash)
+		_, ok := mbHashesFromHdr[mbHashStr]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
 		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
 		if err != nil {
 			return err
 		}
+
+		delete(mbHashesFromHdr, mbHashStr)
 	}
 
 	return bp.checkMiniBlocksConstructionProposal(miniBlockHeaders)
@@ -1199,8 +1233,21 @@ func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeader
 
 // check if header has the same mini blocks as presented in body
 func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+	mbHashesFromHdr := make(map[string]struct{}, len(miniBlockHeaders))
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		if miniBlockHeaders[i] == nil {
+			return process.ErrNilMiniBlockHeader
+		}
+
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = struct{}{}
+	}
+
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch
+	}
+
+	if len(mbHashesFromHdr) != len(miniBlockHeaders) {
+		return process.ErrDuplicatedHashInBlock
 	}
 
 	var mbHdr data.MiniBlockHeaderHandler
@@ -1219,6 +1266,12 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return err
 		}
 
+		mbHashStr := string(mbHash)
+		_, ok := mbHashesFromHdr[mbHashStr]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
 		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
 		if err != nil {
 			return err
@@ -1232,6 +1285,8 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if err != nil {
 			return err
 		}
+
+		delete(mbHashesFromHdr, mbHashStr)
 	}
 
 	return nil
@@ -2220,7 +2275,9 @@ func (bp *baseProcessor) commitInEpoch(currentEpoch uint32, epochToCommit uint32
 	return nil
 }
 
-// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided headers
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided headers.
+// Not called for V3 headers: shouldAllowRollback returns false for V3 in baseSync.go.
+// V3 block dismissal is handled via cancelPruneForDismissedExecutionResults.
 func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte) {
 	for key := range bp.accountsDB {
 		if !bp.accountsDB[key].IsPruningEnabled() {
@@ -2574,7 +2631,9 @@ func (bp *baseProcessor) Close() error {
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
-	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
+	if !bp.processStatusHandler.TrySetBusy("baseProcessor.ProcessScheduledBlock") {
+		return process.ErrBlockProcessorBusy
+	}
 	defer func() {
 		if err != nil {
 			bp.RevertCurrentBlock()
@@ -3499,14 +3558,16 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 func (bp *baseProcessor) getLastExecutedRootHash(
 	header data.HeaderHandler,
 ) []byte {
-	rootHash := bp.getRootHash()
+	var rootHash []byte
 	if !header.IsHeaderV3() {
+		rootHash = bp.getRootHash()
 		return rootHash
 	}
 
 	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
 	if err != nil {
 		log.Warn("failed to get last execution result for header", "err", err)
+		_, _, rootHash = bp.blockChain.GetLastExecutedBlockInfo()
 		return rootHash
 	}
 
@@ -3693,16 +3754,6 @@ func (bp *baseProcessor) getTransactionsForMiniBlock(
 	}
 
 	return txs, nil
-}
-
-// getCurrentBlockHeader returns the current block header from blockchain.
-func (bp *baseProcessor) getCurrentBlockHeader() data.HeaderHandler {
-	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
-	if !check.IfNil(currentBlockHeader) {
-		return currentBlockHeader
-	}
-
-	return bp.blockChain.GetGenesisHeader()
 }
 
 func (bp *baseProcessor) getLastExecutionResultHeader(
@@ -4025,4 +4076,150 @@ func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data
 
 	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.GetAccumulatedFeesInEpoch().String())
 	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.GetDevFeesInEpoch().String())
+}
+
+func (bp *baseProcessor) cleanupDismissedEWLEntries() {
+	dismissedBatches := bp.executionManager.PopDismissedResults()
+
+	if len(dismissedBatches) > 0 {
+		totalDismissed := 0
+		for _, batch := range dismissedBatches {
+			totalDismissed += len(batch.Results)
+		}
+		log.Debug("cleanupDismissedEWLEntries: draining dismissed batches",
+			"batches", len(dismissedBatches),
+			"totalDismissed", totalDismissed,
+		)
+
+		bp.blockProcessor.cancelPruneForDismissedExecutionResults(dismissedBatches)
+		bp.resetLastPrunedHeader()
+	}
+
+	bp.checkEWLSizeAndReset()
+}
+
+// checkEWLSizeAndReset is a safety net (Layer 3). If the EWL size exceeds the
+// precomputed threshold, it resets pruning to prevent unbounded memory growth.
+func (bp *baseProcessor) checkEWLSizeAndReset() {
+	for key, accountsDb := range bp.accountsDB {
+		if !accountsDb.IsPruningEnabled() {
+			continue
+		}
+		ewlSize := accountsDb.GetEvictionWaitingListSize()
+		if ewlSize > bp.ewlResetThreshold {
+			log.Warn("EWL cache size exceeds threshold, resetting pruning",
+				"accountsDB", key,
+				"ewlSize", ewlSize,
+				"threshold", bp.ewlResetThreshold,
+			)
+			accountsDb.ResetPruning()
+			bp.resetLastPrunedHeader()
+		}
+	}
+}
+
+func computeEWLResetThreshold(maxProposalNonceGap uint64) int {
+	gap := maxProposalNonceGap
+	if gap > maxGapForEWLThreshold {
+		gap = maxGapForEWLThreshold
+	}
+	expected := gap * ewlEntriesPerResult
+	return int(expected*ewlTolerancePercent/100) + ewlThresholdMinBaseline
+}
+
+// cancelPruneForRootHashTransition cancels pruning for a root hash transition from prev to current.
+// It issues CancelPrune for currentRootHash as NewRoot and prevRootHash as OldRoot.
+func cancelPruneForRootHashTransition(accountsDb state.AccountsAdapter, prevRootHash, currentRootHash []byte) {
+	if len(prevRootHash) == 0 || len(currentRootHash) == 0 {
+		return
+	}
+	if bytes.Equal(prevRootHash, currentRootHash) {
+		return
+	}
+	accountsDb.CancelPrune(currentRootHash, state.NewRoot)
+	accountsDb.CancelPrune(prevRootHash, state.OldRoot)
+}
+
+func (bp *baseProcessor) resetLastPrunedHeader() {
+	bp.mutLastPrunedHeader.Lock()
+	bp.lastPrunedHeaderHash = nil
+	bp.lastPrunedHeaderNonce = 0
+	bp.mutLastPrunedHeader.Unlock()
+}
+
+// PruneTrieAsyncHeader will trigger trie pruning for header from async execution flow
+func (bp *baseProcessor) PruneTrieAsyncHeader() {
+	bp.mutLastPrunedHeader.Lock()
+	defer bp.mutLastPrunedHeader.Unlock()
+
+	header := bp.blockChain.GetCurrentBlockHeader()
+	headerHash := bp.blockChain.GetCurrentBlockHeaderHash()
+
+	if len(bp.lastPrunedHeaderHash) == 0 {
+		// last pruned header hash not set, trigger prune trie for the provided header
+		bp.blockProcessor.pruneTrieHeaderV3(header)
+		bp.lastPrunedHeaderHash = headerHash
+		bp.lastPrunedHeaderNonce = header.GetNonce()
+		return
+	}
+
+	// extra check by nonce
+	if header.GetNonce() <= bp.lastPrunedHeaderNonce {
+		return
+	}
+
+	err := bp.pruneTrieForHeadersUnprotected(headerHash, header)
+	if err != nil {
+		// there was an error while fetching intermediate headers
+		// reset pruning context
+		bp.blockProcessor.resetPruning()
+	}
+
+	bp.lastPrunedHeaderHash = headerHash
+	bp.lastPrunedHeaderNonce = header.GetNonce()
+}
+
+func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
+	headerHash []byte,
+	header data.HeaderHandler,
+) error {
+	if bytes.Equal(headerHash, bp.lastPrunedHeaderHash) {
+		return nil
+	}
+
+	headersToPrune := make([]data.HeaderHandler, 0)
+	headersToPrune = append(headersToPrune, header)
+
+	lastPrunedHeaderHash := bp.lastPrunedHeaderHash
+	walkerHash := header.GetPrevHash()
+
+	for !bytes.Equal(walkerHash, lastPrunedHeaderHash) {
+		// headers pool is cleaned on consensus flow based on last execution result
+		// included on the committed header (plus some delta), so intermediate headers
+		// should be available in pool, since trie pruning is triggered from
+		// execution flow; if there are no included blocks from execution flow
+		// (and not pruning triggered) headers will not be removed from pool
+		header, err := process.GetHeader(
+			walkerHash,
+			bp.dataPool.Headers(),
+			bp.store,
+			bp.marshalizer,
+			header.GetShardID(),
+		)
+		if err != nil {
+			log.Warn("failed to get intermediate header for pruning", "error", err)
+			return err
+		}
+
+		headersToPrune = append(headersToPrune, header)
+
+		walkerHash = header.GetPrevHash()
+	}
+
+	for i := len(headersToPrune) - 1; i >= 0; i-- {
+		header := headersToPrune[i]
+		bp.blockProcessor.pruneTrieHeaderV3(header)
+	}
+
+	return nil
 }

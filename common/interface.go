@@ -154,6 +154,7 @@ type TriesHolder interface {
 	Put([]byte, Trie)
 	Get([]byte) Trie
 	GetAll() []Trie
+	Remove([]byte)
 	MarkAsDirty([]byte)
 	Reset()
 	IsInterfaceNil() bool
@@ -262,6 +263,7 @@ type StateStatisticsHandler interface {
 // able to tell if the node is idle or processing/committing a block
 type ProcessStatusHandler interface {
 	SetBusy(reason string)
+	TrySetBusy(reason string) bool
 	SetIdle()
 	IsIdle() bool
 	IsInterfaceNil() bool

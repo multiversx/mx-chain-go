@@ -18,8 +18,7 @@ import (
 )
 
 func createMockAccountsArgs() state.ArgsAccountsDB {
-	tenMbSize := uint64(10 * 1024 * 1024)
-	dth, _ := triesHolder.NewDataTriesHolder(tenMbSize)
+	dth, _ := triesHolder.NewDataTriesHolder(common.TenMbSize)
 	return state.ArgsAccountsDB{
 		Trie: &mockTrie.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {

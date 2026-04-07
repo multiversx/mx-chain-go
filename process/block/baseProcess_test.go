@@ -2659,6 +2659,29 @@ func TestBaseProcessor_updateState(t *testing.T) {
 	assert.Equal(t, []byte(strconv.Itoa(len(headers)-2)), cancelPruneRootHash)
 }
 
+func TestBaseProcessor_ProcessScheduledBlockShouldErrWhenProcessorBusy(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
+		return false
+	}
+	setIdleCalled := false
+	mockProcessHandler.SetIdleCalled = func() {
+		setIdleCalled = true
+	}
+
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	err := bp.ProcessScheduledBlock(
+		&block.MetaBlock{}, &block.Body{}, haveTime,
+	)
+	require.Equal(t, process.ErrBlockProcessorBusy, err)
+	require.False(t, setIdleCalled, "SetIdle should not be called when TrySetBusy fails")
+}
+
 func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -2672,8 +2695,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		mockProcessHandler.SetIdleCalled = func() {
 			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
+		mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+			return true
 		}
 
 		scheduledTxsExec := &testscommon.ScheduledTxsExecutionStub{
@@ -2702,8 +2726,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		mockProcessHandler.SetIdleCalled = func() {
 			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
+		mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+			return true
 		}
 
 		accounts := &stateMock.AccountsStub{
@@ -2783,8 +2808,9 @@ func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
 	mockProcessHandler.SetIdleCalled = func() {
 		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		return true
 	}
 
 	arguments.AccountsDB[state.UserAccountsState] = accounts
@@ -5910,5 +5936,787 @@ func TestBaseProcessor_WaitForExecutionResultsVerification(t *testing.T) {
 		err = bp.WaitForExecutionResultsVerification(header, func() time.Duration { return -time.Second })
 		require.ErrorIs(t, err, process.ErrExecutionResultsNumberMismatch)
 		require.Equal(t, int32(1), callCount.Load())
+	})
+}
+
+func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
+	t.Parallel()
+
+	// header 1
+
+	headerHash1 := []byte("headerHash1")
+	rootHash10 := []byte("rootHash10")
+	rootHash11 := []byte("rootHash11")
+
+	baseExecRes10 := &block.BaseExecutionResult{RootHash: rootHash10}
+	baseExecRes11 := &block.BaseExecutionResult{RootHash: rootHash11}
+	executionResultsHandlers := []data.BaseExecutionResultHandler{
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes10,
+		},
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes11,
+		},
+	}
+	header1 := &block.HeaderV3{
+		Nonce: 8,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: baseExecRes11,
+		},
+	}
+	_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
+
+	// header 2
+
+	headerHash2 := []byte("headerHash2")
+	rootHash20 := []byte("rootHash20")
+	rootHash21 := []byte("rootHash21")
+	rootHash22 := []byte("rootHash22")
+	rootHash23 := []byte("rootHash23")
+
+	baseExecRes20 := &block.BaseExecutionResult{RootHash: rootHash20}
+	baseExecRes21 := &block.BaseExecutionResult{RootHash: rootHash21}
+	baseExecRes22 := &block.BaseExecutionResult{RootHash: rootHash22}
+	baseExecRes23 := &block.BaseExecutionResult{RootHash: rootHash23}
+	executionResultsHandlers2 := []data.BaseExecutionResultHandler{
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes20,
+		},
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes21,
+		},
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes22,
+		},
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes23,
+		},
+	}
+
+	header2 := &block.HeaderV3{
+		Nonce:    9,
+		PrevHash: headerHash1,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: baseExecRes23,
+		},
+	}
+	_ = header2.SetExecutionResultsHandlers(executionResultsHandlers2)
+
+	// header 3
+
+	headerHash3 := []byte("headerHash3")
+	rootHash30 := []byte("rootHash30")
+	rootHash31 := []byte("rootHash31")
+
+	baseExecRes30 := &block.BaseExecutionResult{RootHash: rootHash30}
+	baseExecRes31 := &block.BaseExecutionResult{RootHash: rootHash31}
+	executionResultsHandlers3 := []data.BaseExecutionResultHandler{
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes30,
+		},
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes31,
+		},
+	}
+
+	header3 := &block.HeaderV3{
+		Nonce:    10,
+		PrevHash: headerHash2,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: baseExecRes31,
+		},
+	}
+	_ = header3.SetExecutionResultsHandlers(executionResultsHandlers3)
+
+	// header 4
+
+	headerHash4 := []byte("headerHash4")
+	header4 := &block.HeaderV3{
+		Nonce:    11,
+		PrevHash: headerHash3,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: baseExecRes31,
+		},
+	}
+
+	// header 5
+
+	headerHash5 := []byte("headerHash5")
+	header5 := &block.HeaderV3{
+		Nonce:    12,
+		PrevHash: headerHash4,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: baseExecRes31,
+		},
+	}
+
+	// header 6
+
+	headerHash6 := []byte("headerHash6")
+	rootHash60 := []byte("rootHash60")
+	rootHash61 := []byte("rootHash61")
+
+	baseExecRes60 := &block.BaseExecutionResult{RootHash: rootHash60}
+	baseExecRes61 := &block.BaseExecutionResult{RootHash: rootHash61}
+	executionResultsHandlers6 := []data.BaseExecutionResultHandler{
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes60,
+		},
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes61,
+		},
+	}
+
+	header6 := &block.HeaderV3{
+		Nonce:    13,
+		PrevHash: headerHash5,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: baseExecRes61,
+		},
+	}
+	_ = header6.SetExecutionResultsHandlers(executionResultsHandlers6)
+
+	// header 7
+
+	headerHash7 := []byte("headerHash7")
+	rootHash70 := []byte("rootHash70")
+
+	baseExecRes70 := &block.BaseExecutionResult{RootHash: rootHash70}
+	baseExecRes71 := &block.BaseExecutionResult{RootHash: rootHash70} // no roothash change
+	executionResultsHandlers7 := []data.BaseExecutionResultHandler{
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes70,
+		},
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes71,
+		},
+	}
+
+	header7 := &block.HeaderV3{
+		Nonce:    14,
+		PrevHash: headerHash6,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: baseExecRes71,
+		},
+	}
+	_ = header7.SetExecutionResultsHandlers(executionResultsHandlers7)
+
+	// header 8
+
+	headerHash8 := []byte("headerHash8")
+
+	baseExecRes80 := &block.BaseExecutionResult{RootHash: rootHash70} // not roothash change
+	header8 := &block.HeaderV3{
+		Nonce:    15,
+		PrevHash: headerHash7,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: baseExecRes80,
+		},
+	}
+
+	// header 9
+
+	headerHash9 := []byte("headerHash9")
+	rootHash91 := []byte("rootHash91")
+
+	baseExecRes90 := &block.BaseExecutionResult{RootHash: rootHash70} // no roothash change
+	baseExecRes91 := &block.BaseExecutionResult{RootHash: rootHash91} // roothash changed
+	executionResultsHandlers9 := []data.BaseExecutionResultHandler{
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes90,
+		},
+		&block.ExecutionResult{
+			BaseExecutionResult: baseExecRes91,
+		},
+	}
+
+	header9 := &block.HeaderV3{
+		Nonce:    16,
+		PrevHash: headerHash8,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: baseExecRes91,
+		},
+	}
+	_ = header9.SetExecutionResultsHandlers(executionResultsHandlers9)
+
+	t.Run("last pruned header not set, should trigger provided header", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneCalled := false
+		pruneTrieCalled := false
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalled = true
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				pruneTrieCalled = true
+			},
+		}
+
+		blkc := createTestBlockchain()
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return header1
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return headerHash1
+		}
+		dataComponents.BlockChain = blkc
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		require.Nil(t, bp.GetLastPrunedHash())
+
+		_ = header1.SetExecutionResultsHandlers(executionResultsHandlers)
+		bp.PruneTrieAsyncHeader()
+
+		require.True(t, cancelPruneCalled)
+		require.True(t, pruneTrieCalled)
+
+		require.Equal(t, headerHash1, bp.GetLastPrunedHash())
+	})
+
+	t.Run("header nonce lower than last pruned header, should not trigger", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneCalled := false
+		pruneTrieCalled := false
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalled = true
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				pruneTrieCalled = true
+			},
+		}
+
+		blkc := createTestBlockchain()
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return header2
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return headerHash2
+		}
+		dataComponents.BlockChain = blkc
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.SetLastPrunedNonce(10)
+		bp.SetLastPrunedHash(headerHash3)
+
+		bp.PruneTrieAsyncHeader()
+		require.False(t, cancelPruneCalled)
+		require.False(t, pruneTrieCalled)
+
+		require.Equal(t, headerHash3, bp.GetLastPrunedHash())
+	})
+
+	t.Run("intermediate headers with included execution results", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneRootHashes := make([][]byte, 0)
+		pruneTrieRootHashes := make([][]byte, 0)
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneRootHashes = append(cancelPruneRootHashes, rootHash)
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				pruneTrieRootHashes = append(pruneTrieRootHashes, rootHash)
+			},
+		}
+
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, headerHash1) {
+					return header1, nil
+				}
+				if bytes.Equal(hash, headerHash2) {
+					return header2, nil
+				}
+				if bytes.Equal(hash, headerHash3) {
+					return header3, nil
+				}
+
+				return nil, errors.New("header not found")
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return headersPool
+		}
+		dataComponents.DataPool = dataPool
+
+		blkc := createTestBlockchain()
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return header3
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return headerHash3
+		}
+		dataComponents.BlockChain = blkc
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.SetLastPrunedHash(headerHash1)
+
+		bp.PruneTrieAsyncHeader()
+
+		require.Equal(t, 6, len(cancelPruneRootHashes))
+		require.Equal(t, rootHash11, cancelPruneRootHashes[0])
+		require.Equal(t, rootHash20, cancelPruneRootHashes[1])
+		require.Equal(t, rootHash21, cancelPruneRootHashes[2])
+		require.Equal(t, rootHash22, cancelPruneRootHashes[3])
+		require.Equal(t, rootHash23, cancelPruneRootHashes[4])
+		require.Equal(t, rootHash30, cancelPruneRootHashes[5])
+
+		require.Equal(t, 6, len(pruneTrieRootHashes))
+		require.Equal(t, rootHash11, pruneTrieRootHashes[0])
+		require.Equal(t, rootHash20, pruneTrieRootHashes[1])
+		require.Equal(t, rootHash21, pruneTrieRootHashes[2])
+		require.Equal(t, rootHash22, pruneTrieRootHashes[3])
+		require.Equal(t, rootHash23, pruneTrieRootHashes[4])
+		require.Equal(t, rootHash30, pruneTrieRootHashes[5])
+
+		require.Equal(t, headerHash3, bp.GetLastPrunedHash())
+
+		// another call for the same current header should not trigger prune
+		bp.PruneTrieAsyncHeader()
+
+		require.Equal(t, 6, len(cancelPruneRootHashes))
+		require.Equal(t, 6, len(pruneTrieRootHashes))
+		require.Equal(t, headerHash3, bp.GetLastPrunedHash())
+	})
+
+	t.Run("intermediate headers without included execution results", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneRootHashes := make([][]byte, 0)
+		pruneTrieRootHashes := make([][]byte, 0)
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneRootHashes = append(cancelPruneRootHashes, rootHash)
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				pruneTrieRootHashes = append(pruneTrieRootHashes, rootHash)
+			},
+		}
+
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, headerHash3) {
+					return header3, nil
+				}
+				if bytes.Equal(hash, headerHash4) {
+					return header4, nil
+				}
+				if bytes.Equal(hash, headerHash5) {
+					return header5, nil
+				}
+				if bytes.Equal(hash, headerHash6) {
+					return header6, nil
+				}
+
+				return nil, errors.New("header not found")
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return headersPool
+		}
+		dataComponents.DataPool = dataPool
+
+		blkc := createTestBlockchain()
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return header6
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return headerHash6
+		}
+		dataComponents.BlockChain = blkc
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.SetLastPrunedHash(headerHash3)
+
+		bp.PruneTrieAsyncHeader()
+
+		require.Equal(t, 2, len(cancelPruneRootHashes))
+		require.Equal(t, rootHash31, cancelPruneRootHashes[0])
+		require.Equal(t, rootHash60, cancelPruneRootHashes[1])
+
+		require.Equal(t, 2, len(pruneTrieRootHashes))
+		require.Equal(t, rootHash31, pruneTrieRootHashes[0])
+		require.Equal(t, rootHash60, pruneTrieRootHashes[1])
+
+		require.Equal(t, headerHash6, bp.GetLastPrunedHash())
+
+		// another call for the same current header should not trigger prune
+		bp.PruneTrieAsyncHeader()
+
+		require.Equal(t, 2, len(cancelPruneRootHashes))
+		require.Equal(t, 2, len(pruneTrieRootHashes))
+		require.Equal(t, headerHash6, bp.GetLastPrunedHash())
+	})
+
+	t.Run("intermediate headers with included execution results, no roothash change", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneRootHashes := make([][]byte, 0)
+		pruneTrieRootHashes := make([][]byte, 0)
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneRootHashes = append(cancelPruneRootHashes, rootHash)
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				pruneTrieRootHashes = append(pruneTrieRootHashes, rootHash)
+			},
+		}
+
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, headerHash6) {
+					return header6, nil
+				}
+				if bytes.Equal(hash, headerHash7) {
+					return header7, nil
+				}
+				if bytes.Equal(hash, headerHash8) {
+					return header8, nil
+				}
+				if bytes.Equal(hash, headerHash9) {
+					return header9, nil
+				}
+
+				return nil, errors.New("header not found")
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return headersPool
+		}
+		dataComponents.DataPool = dataPool
+
+		blkc := createTestBlockchain()
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return header9
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return headerHash9
+		}
+		dataComponents.BlockChain = blkc
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.SetLastPrunedHash(headerHash5)
+
+		bp.PruneTrieAsyncHeader()
+
+		require.Equal(t, 3, len(cancelPruneRootHashes))
+		require.Equal(t, rootHash60, cancelPruneRootHashes[0])
+		require.Equal(t, rootHash61, cancelPruneRootHashes[1])
+		require.Equal(t, rootHash70, cancelPruneRootHashes[2])
+
+		require.Equal(t, 3, len(pruneTrieRootHashes))
+		require.Equal(t, rootHash60, pruneTrieRootHashes[0])
+		require.Equal(t, rootHash61, pruneTrieRootHashes[1])
+		require.Equal(t, rootHash70, pruneTrieRootHashes[2])
+
+		require.Equal(t, headerHash9, bp.GetLastPrunedHash())
+
+		// another call for the same current header should not trigger prune
+		bp.PruneTrieAsyncHeader()
+
+		require.Equal(t, 3, len(cancelPruneRootHashes))
+		require.Equal(t, 3, len(pruneTrieRootHashes))
+		require.Equal(t, headerHash9, bp.GetLastPrunedHash())
+	})
+}
+
+func TestComputeEWLResetThreshold(t *testing.T) {
+	t.Parallel()
+
+	t.Run("gap 0 should return minimum baseline", func(t *testing.T) {
+		t.Parallel()
+		// gap=0 -> expected=0*2=0, 0*130/100=0, +10 = 10
+		require.Equal(t, 10, blproc.ComputeEWLResetThreshold(0))
+	})
+	t.Run("gap 1", func(t *testing.T) {
+		t.Parallel()
+		// gap=1 -> expected=1*2=2, 2*130/100=2, +10 = 12
+		require.Equal(t, 12, blproc.ComputeEWLResetThreshold(1))
+	})
+	t.Run("default gap 10", func(t *testing.T) {
+		t.Parallel()
+		// gap=10 -> expected=10*2=20, 20*130/100=26, +10 = 36
+		require.Equal(t, 36, blproc.ComputeEWLResetThreshold(10))
+	})
+	t.Run("gap above cap should be clamped", func(t *testing.T) {
+		t.Parallel()
+		// gap=500 clamped to 250 -> expected=250*2=500, 500*130/100=650, +10 = 660
+		require.Equal(t, 660, blproc.ComputeEWLResetThreshold(500))
+		require.Equal(t, 660, blproc.ComputeEWLResetThreshold(1000))
+	})
+	t.Run("gap at cap boundary", func(t *testing.T) {
+		t.Parallel()
+		require.Equal(t, 660, blproc.ComputeEWLResetThreshold(250))
+		require.Equal(t, blproc.ComputeEWLResetThreshold(250), blproc.ComputeEWLResetThreshold(251))
+	})
+}
+
+func TestCancelPruneForRootHashTransition(t *testing.T) {
+	t.Parallel()
+
+	t.Run("different hashes should call CancelPrune for both", func(t *testing.T) {
+		t.Parallel()
+		cancelPruneCalls := make([]struct {
+			rootHash   []byte
+			identifier state.TriePruningIdentifier
+		}, 0)
+		accountsStub := &stateMock.AccountsStub{
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalls = append(cancelPruneCalls, struct {
+					rootHash   []byte
+					identifier state.TriePruningIdentifier
+				}{rootHash, identifier})
+			},
+		}
+
+		blproc.CancelPruneForRootHashTransition(accountsStub, []byte("prev"), []byte("curr"))
+
+		require.Len(t, cancelPruneCalls, 2)
+		require.Equal(t, []byte("curr"), cancelPruneCalls[0].rootHash)
+		require.Equal(t, state.NewRoot, cancelPruneCalls[0].identifier)
+		require.Equal(t, []byte("prev"), cancelPruneCalls[1].rootHash)
+		require.Equal(t, state.OldRoot, cancelPruneCalls[1].identifier)
+	})
+	t.Run("equal hashes should not call CancelPrune", func(t *testing.T) {
+		t.Parallel()
+		accountsStub := &stateMock.AccountsStub{
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called for equal hashes")
+			},
+		}
+		blproc.CancelPruneForRootHashTransition(accountsStub, []byte("same"), []byte("same"))
+	})
+	t.Run("empty prev hash should not call CancelPrune", func(t *testing.T) {
+		t.Parallel()
+		accountsStub := &stateMock.AccountsStub{
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called when prev is empty")
+			},
+		}
+		blproc.CancelPruneForRootHashTransition(accountsStub, nil, []byte("curr"))
+		blproc.CancelPruneForRootHashTransition(accountsStub, []byte{}, []byte("curr"))
+	})
+	t.Run("empty current hash should not call CancelPrune", func(t *testing.T) {
+		t.Parallel()
+		accountsStub := &stateMock.AccountsStub{
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				require.Fail(t, "CancelPrune should not be called when current is empty")
+			},
+		}
+		blproc.CancelPruneForRootHashTransition(accountsStub, []byte("prev"), nil)
+		blproc.CancelPruneForRootHashTransition(accountsStub, []byte("prev"), []byte{})
+	})
+}
+
+func TestCleanupDismissedEWLEntries(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty dismissed queue should only run size check", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled:           func() bool { return true },
+			GetEvictionWaitingListSizeCalled: func() int { return 0 },
+		}
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+			PopDismissedResultsCalled: func() []executionTrack.DismissedBatch { return nil },
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		// should not panic, should not call CancelPrune
+		sp.CleanupDismissedEWLEntries()
+	})
+	t.Run("dismissed batches should trigger CancelPrune and reset last pruned header", func(t *testing.T) {
+		t.Parallel()
+
+		cancelPruneCalls := 0
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return true },
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				cancelPruneCalls++
+			},
+			GetEvictionWaitingListSizeCalled: func() int { return 0 },
+		}
+		popCalled := false
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+			PopDismissedResultsCalled: func() []executionTrack.DismissedBatch {
+				if popCalled {
+					return nil
+				}
+				popCalled = true
+				return []executionTrack.DismissedBatch{
+					{
+						AnchorResult: &block.ExecutionResult{
+							BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R0")},
+						},
+						Results: []data.BaseExecutionResultHandler{
+							&block.ExecutionResult{
+								BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R1")},
+							},
+							&block.ExecutionResult{
+								BaseExecutionResult: &block.BaseExecutionResult{RootHash: []byte("R2")},
+							},
+						},
+					},
+				}
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		sp.SetLastPrunedHash([]byte("someHash"))
+		sp.SetLastPrunedNonce(100)
+
+		sp.CleanupDismissedEWLEntries()
+
+		// Two transitions: R0->R1 and R1->R2, each producing 2 CancelPrune calls = 4 total
+		require.Equal(t, 4, cancelPruneCalls)
+		// Last pruned header should be reset
+		require.Nil(t, sp.GetLastPrunedHash())
+	})
+}
+
+func TestCheckEWLSizeAndReset(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ewl size below threshold should not trigger reset", func(t *testing.T) {
+		t.Parallel()
+
+		resetCalled := false
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled:           func() bool { return true },
+			GetEvictionWaitingListSizeCalled: func() int { return 5 },
+			ResetPruningCalled: func() {
+				resetCalled = true
+			},
+		}
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+			PopDismissedResultsCalled: func() []executionTrack.DismissedBatch { return nil },
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		// default gap=10 -> threshold=36, ewlSize=5 < 36
+		sp.CheckEWLSizeAndReset()
+		require.False(t, resetCalled)
+	})
+	t.Run("ewl size above threshold should trigger reset and clear last pruned header", func(t *testing.T) {
+		t.Parallel()
+
+		resetCalled := false
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled:           func() bool { return true },
+			GetEvictionWaitingListSizeCalled: func() int { return 1000 },
+			ResetPruningCalled: func() {
+				resetCalled = true
+			},
+		}
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+			PopDismissedResultsCalled: func() []executionTrack.DismissedBatch { return nil },
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		sp.SetLastPrunedHash([]byte("someHash"))
+		sp.SetLastPrunedNonce(50)
+
+		// default gap=10 -> threshold=36, ewlSize=1000 > 36
+		sp.CheckEWLSizeAndReset()
+		require.True(t, resetCalled)
+		require.Nil(t, sp.GetLastPrunedHash())
+	})
+	t.Run("pruning disabled should skip reset even if size would exceed", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool { return false },
+			GetEvictionWaitingListSizeCalled: func() int {
+				require.Fail(t, "should not check EWL size when pruning is disabled")
+				return 0
+			},
+			ResetPruningCalled: func() {
+				require.Fail(t, "should not reset when pruning is disabled")
+			},
+		}
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+			PopDismissedResultsCalled: func() []executionTrack.DismissedBatch { return nil },
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		sp.CheckEWLSizeAndReset()
 	})
 }

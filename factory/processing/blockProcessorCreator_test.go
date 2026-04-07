@@ -202,8 +202,7 @@ func createAccountAdapter(
 		return nil, err
 	}
 
-	tenMbSize := uint64(10485760)
-	dth, _ := triesHolder.NewDataTriesHolder(tenMbSize)
+	dth, _ := triesHolder.NewDataTriesHolder(common.TenMbSize)
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
 		Hasher:                 coreComponents.Hasher(),

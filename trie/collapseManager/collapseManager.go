@@ -12,29 +12,35 @@ var log = logger.GetOrCreate("trie/collapseManager")
 
 const (
 	// TODO calibrate these values
-	numLeavesToCollapseSingleRun = 100
-	minNumLeavesToCollapseTrie   = 1000
-	minSizeInMemory              = 1048576 // 1 MB
+	defaultNumLeavesToCollapseSingleRun = 100
+	minNumLeavesToCollapseTrie          = 1000
+	minSizeInMemory                     = 1048576 // 1 MB
 )
 
 type collapseManager struct {
-	accessedKeys map[string]*list.Element
-	orderAccess  *list.List
-	sizeInMemory int
-	maxSizeInMem uint64
+	accessedKeys                 map[string]*list.Element
+	orderAccess                  *list.List
+	sizeInMemory                 int
+	maxSizeInMem                 uint64
+	numLeavesToCollapseSingleRun int
 }
 
 // NewCollapseManager creates a new collapse manager
-func NewCollapseManager(maxSize uint64) (*collapseManager, error) {
+func NewCollapseManager(maxSize uint64, numLeavesToCollapseSingleRun uint32) (*collapseManager, error) {
 	if maxSize < minSizeInMemory {
 		return nil, fmt.Errorf("invalid max size provided: %d, minimum %d", maxSize, minSizeInMemory)
 	}
 
+	if numLeavesToCollapseSingleRun == 0 {
+		numLeavesToCollapseSingleRun = defaultNumLeavesToCollapseSingleRun
+	}
+
 	return &collapseManager{
-		accessedKeys: make(map[string]*list.Element),
-		orderAccess:  list.New(),
-		sizeInMemory: 0,
-		maxSizeInMem: maxSize,
+		accessedKeys:                 make(map[string]*list.Element),
+		orderAccess:                  list.New(),
+		sizeInMemory:                 0,
+		maxSizeInMem:                 maxSize,
+		numLeavesToCollapseSingleRun: int(numLeavesToCollapseSingleRun),
 	}, nil
 }
 
@@ -99,11 +105,11 @@ func (cm *collapseManager) ShouldCollapseTrie() bool {
 // GetCollapsibleLeaves returns a list of keys that can be collapsed to free memory
 func (cm *collapseManager) GetCollapsibleLeaves() ([][]byte, error) {
 	if uint64(cm.sizeInMemory) < cm.maxSizeInMem {
-		return nil, nil
+		return make([][]byte, 0), nil
 	}
 
 	evictedKeys := make([][]byte, 0)
-	for i := 0; i < numLeavesToCollapseSingleRun; i++ {
+	for i := 0; i < cm.numLeavesToCollapseSingleRun; i++ {
 		if cm.orderAccess.Len() == 0 {
 			break
 		}
@@ -127,10 +133,11 @@ func (cm *collapseManager) GetCollapsibleLeaves() ([][]byte, error) {
 // CloneWithoutState creates a new collapse manager with the same configuration but without the current state
 func (cm *collapseManager) CloneWithoutState() common.TrieCollapseManager {
 	return &collapseManager{
-		accessedKeys: make(map[string]*list.Element),
-		orderAccess:  list.New(),
-		sizeInMemory: 0,
-		maxSizeInMem: cm.maxSizeInMem,
+		accessedKeys:                 make(map[string]*list.Element),
+		orderAccess:                  list.New(),
+		sizeInMemory:                 0,
+		maxSizeInMem:                 cm.maxSizeInMem,
+		numLeavesToCollapseSingleRun: cm.numLeavesToCollapseSingleRun,
 	}
 }
 

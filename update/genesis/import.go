@@ -27,8 +27,6 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 )
 
-const tenMBSize = uint64(10485760)
-
 var _ update.ImportHandler = (*stateImport)(nil)
 
 // ArgsNewStateImport is the arguments structure to create a new state importer

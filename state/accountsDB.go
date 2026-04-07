@@ -649,6 +649,11 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
+	// Evict the cached trie for this address so that a subsequent recreation of
+	// the account at the same address cannot inherit the stale data trie from
+	// this deleted incarnation (see loadDataTrieConcurrentSafe / saveDataTrie).
+	adb.dataTries.Remove(baseAcc.AddressBytes())
+
 	return nil
 }
 
@@ -1193,6 +1198,21 @@ func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdenti
 	defer adb.mutOp.Unlock()
 
 	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.mainTrie.GetStorageManager())
+}
+
+// GetEvictionWaitingListSize returns the number of entries in the eviction waiting list cache
+func (adb *AccountsDB) GetEvictionWaitingListSize() int {
+	adb.mutOp.RLock()
+	defer adb.mutOp.RUnlock()
+	return adb.storagePruningManager.EvictionWaitingListCacheLen()
+}
+
+// ResetPruning will reset all collected data needed for pruning
+func (adb *AccountsDB) ResetPruning() {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	adb.storagePruningManager.Reset()
 }
 
 // SnapshotState triggers the snapshotting process of the state trie

@@ -389,6 +389,30 @@ func TestDataTriesHolder_Reset(t *testing.T) {
 	assert.Equal(t, 0, len(dth.evictedBuffer))
 }
 
+func TestDataTriesHolder_MarkAsDirty(t *testing.T) {
+	t.Parallel()
+
+	t.Run("mark existing trie as dirty should track key once and return trie on get all", func(t *testing.T) {
+		t.Parallel()
+
+		dth, _ := NewDataTriesHolder(dthSize)
+		entry := getTestTries(1)[0]
+		dth.Put(entry.key, entry.trie)
+		dth.dirtyTries = make(map[string]struct{})
+		dth.touchedTries = make(map[string]struct{})
+
+		dth.MarkAsDirty(entry.key)
+
+		assert.Equal(t, 1, len(dth.dirtyTries))
+		assert.Equal(t, 1, len(dth.touchedTries))
+
+		dirtyTries := dth.GetAll()
+		assert.Equal(t, []common.Trie{entry.trie}, dirtyTries)
+		assert.Equal(t, 0, len(dth.dirtyTries))
+		assert.Equal(t, 0, len(dth.touchedTries))
+	})
+}
+
 func TestDataTriesHolder_Concurrency(t *testing.T) {
 	t.Parallel()
 

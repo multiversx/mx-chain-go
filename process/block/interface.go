@@ -8,11 +8,15 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 )
 
 type blockProcessor interface {
 	removeStartOfEpochBlockDataFromPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error
+	pruneTrieHeaderV3(header data.HeaderHandler)
+	resetPruning()
+	cancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch)
 }
 
 type gasConsumedProvider interface {

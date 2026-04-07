@@ -513,6 +513,7 @@
 [TxCacheBounds]
     MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
     MaxTrackedBlocks = 100
+    PropagationGracePeriodMs = 200
 
 [TxCacheSelection]
     SelectionMaxNumTxs = 30000
@@ -890,6 +891,7 @@
     MaxUserTrieSizeInMemory = 524288000 #500MB
     MaxPeerTrieSizeInMemory = 104857600 #100MB
     DataTriesSizeInMemory = 524288000 #500MB
+    NumLeavesToCollapseSingleRun = 100
 
 [TrieLeavesRetrieverConfig]
     Enabled = false

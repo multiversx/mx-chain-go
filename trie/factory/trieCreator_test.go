@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -33,14 +34,15 @@ func getArgs() factory.TrieFactoryArgs {
 
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
-		MainStorer:          testscommon.CreateMemUnit(),
-		PruningEnabled:      false,
-		SnapshotsEnabled:    true,
-		IdleProvider:        &testscommon.ProcessStatusHandlerStub{},
-		Identifier:          dataRetriever.UserAccountsUnit.String(),
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StatsCollector:      disabled.NewStateStatistics(),
-		MaxSizeInMemory:     10 * 1024 * 1024, // 10 MB
+		MainStorer:                   testscommon.CreateMemUnit(),
+		PruningEnabled:               false,
+		SnapshotsEnabled:             true,
+		IdleProvider:                 &testscommon.ProcessStatusHandlerStub{},
+		Identifier:                   dataRetriever.UserAccountsUnit.String(),
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StatsCollector:               disabled.NewStateStatistics(),
+		MaxSizeInMemory:              common.TenMbSize,
+		NumLeavesToCollapseSingleRun: common.NumLeavesToCollapseSingleRun,
 	}
 }
 

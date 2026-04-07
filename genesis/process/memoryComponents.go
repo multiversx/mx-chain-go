@@ -22,8 +22,7 @@ func createAccountAdapter(
 		return nil, err
 	}
 
-	tenMbSize := uint64(10485760)
-	dth, err := triesHolder.NewDataTriesHolder(tenMbSize)
+	dth, err := triesHolder.NewDataTriesHolder(common.TenMbSize)
 	if err != nil {
 		return nil, err
 	}

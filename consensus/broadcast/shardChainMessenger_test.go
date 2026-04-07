@@ -26,6 +26,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 )
@@ -572,6 +574,9 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 	argsDelayedBroadcaster := broadcast.ArgsDelayedBlockBroadcaster{
 		InterceptorsContainer: args.InterceptorsContainer,
 		HeadersSubscriber:     args.HeadersSubscriber,
+		HeadersPool:           &pool.HeadersPoolStub{},
+		ProofsPool:            &dataRetrieverMock.ProofsPoolMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ShardCoordinator:      args.ShardCoordinator,
 		LeaderCacheSize:       args.MaxDelayCacheSize,
 		ValidatorCacheSize:    args.MaxDelayCacheSize,

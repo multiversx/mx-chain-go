@@ -11,7 +11,7 @@ import (
 func (cache *TxCache) doSelectTransactions(virtualSession *virtualSelectionSession, options common.TxSelectionOptions) (bunchOfTransactions, uint64) {
 	bunches := cache.acquireBunchesOfTransactions()
 
-	return selectTransactionsFromBunches(virtualSession, bunches, options)
+	return selectTransactionsFromBunches(virtualSession, bunches, options, cache.propagationGracePeriod)
 }
 
 func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
@@ -33,6 +33,7 @@ func selectTransactionsFromBunches(
 	virtualSession *virtualSelectionSession,
 	bunches []bunchOfTransactions,
 	options common.TxSelectionOptions,
+	propagationGracePeriod time.Duration,
 ) (bunchOfTransactions, uint64) {
 	gasRequested := options.GetGasRequested()
 	maxNumTxs := options.GetMaxNumTxs()
@@ -64,6 +65,7 @@ func selectTransactionsFromBunches(
 
 	accumulatedGas := uint64(0)
 	selectionLoopStartTime := time.Now()
+	selectionCutoff := selectionLoopStartTime.Add(-propagationGracePeriod)
 	uniqueSenderCount := 0
 
 	var currentTransaction *WrappedTransaction
@@ -86,6 +88,11 @@ func selectTransactionsFromBunches(
 				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
 				break
 			}
+		}
+
+		// Skip transactions that haven't had enough time to propagate
+		if propagationGracePeriod > 0 && item.currentTransaction.ReceivedAt.After(selectionCutoff) {
+			continue
 		}
 
 		senderRecord, err := virtualSession.getRecord(item.sender)

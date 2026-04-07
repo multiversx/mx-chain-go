@@ -17,6 +17,7 @@ type CacheConfig struct {
 type TxCacheBoundsConfig struct {
 	MaxNumBytesPerSenderUpperBound uint32
 	MaxTrackedBlocks               uint32
+	PropagationGracePeriodMs       uint32
 }
 
 // TxCacheSelectionConfig will map the mempool selection config
@@ -454,13 +455,14 @@ type FacadeConfig struct {
 
 // StateTriesConfig will hold information about state tries
 type StateTriesConfig struct {
-	SnapshotsEnabled            bool
-	AccountsStatePruningEnabled bool
-	PeerStatePruningEnabled     bool
-	StateStatisticsEnabled      bool
-	MaxUserTrieSizeInMemory     uint64
-	MaxPeerTrieSizeInMemory     uint64
-	DataTriesSizeInMemory       uint64
+	SnapshotsEnabled             bool
+	AccountsStatePruningEnabled  bool
+	PeerStatePruningEnabled      bool
+	StateStatisticsEnabled       bool
+	MaxUserTrieSizeInMemory      uint64
+	MaxPeerTrieSizeInMemory      uint64
+	DataTriesSizeInMemory        uint64
+	NumLeavesToCollapseSingleRun uint32
 }
 
 // StateAccessesCollectorConfig will hold information about state accesses collector

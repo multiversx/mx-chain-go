@@ -125,8 +125,7 @@ func (tr *patriciaMerkleTrie) GetNumCollapsedNodes() (int, error) {
 			for i := range current.children {
 				if current.children[i] != nil {
 					nextNodes = append(nextNodes, current.children[i])
-				}
-				if current.children[i] == nil && len(current.EncodedChildren[i]) != 0 {
+				} else if len(current.EncodedChildren[i]) != 0 {
 					count++
 				}
 			}
