@@ -287,7 +287,7 @@ func newAccountCreator(
 ) (state.AccountFactory, common.TriesHolder, error) {
 	switch accType {
 	case UserAccount:
-		dth, err := triesHolder.NewDataTriesHolder(tenMBSize)
+		dth, err := triesHolder.NewDataTriesHolder(common.TenMbSize)
 		if err != nil {
 			return nil, nil, err
 		}

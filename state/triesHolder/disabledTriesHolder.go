@@ -31,6 +31,10 @@ func (d *disabledDataTriesHolder) MarkAsDirty(_ []byte) {
 func (d *disabledDataTriesHolder) Reset() {
 }
 
+// Remove does nothing for the disabled implementation
+func (d *disabledDataTriesHolder) Remove(_ []byte) {
+}
+
 // IsInterfaceNil returns true if the underlying object is nil.
 func (d *disabledDataTriesHolder) IsInterfaceNil() bool {
 	return d == nil

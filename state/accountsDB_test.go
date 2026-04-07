@@ -2788,7 +2788,7 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 }
 
 func getAccountsCreator(args state.ArgsAccountsDB) (state.AccountFactory, common.TriesHolder) {
-	dth, _ := triesHolder.NewDataTriesHolder(tenMbSize)
+	dth, _ := triesHolder.NewDataTriesHolder(common.TenMbSize)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:                 args.Hasher,
 		Marshaller:             args.Marshaller,
