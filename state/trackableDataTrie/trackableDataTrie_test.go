@@ -193,7 +193,7 @@ func TestTrackableDataTrie_RetrieveValue(t *testing.T) {
 			},
 		}
 		tdt, err := trackableDataTrie.NewTrackableDataTrie(args)
-
+		assert.Nil(t, err)
 		assert.NotNil(t, tdt)
 
 		valRecovered, _, err := tdt.RetrieveValue(key)
