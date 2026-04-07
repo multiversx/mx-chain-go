@@ -287,10 +287,12 @@ func (t *trigger) setEpochChange(round uint64, epoch uint32, isEpochStart bool) 
 	t.currEpochStartRound = round
 
 	msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currEpochStartRound)
+	common.SetSuperNovaActivationRound(t.epoch, round)
 	log.Debug(display.Headline(msg, "", "#"))
 	log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
 	logger.SetCorrelationEpoch(t.epoch)
 	t.nextEpochStartRound = disabledRoundForForceEpochStart
+
 }
 
 // SetProcessed sets start of epoch to false and cleans underlying structure

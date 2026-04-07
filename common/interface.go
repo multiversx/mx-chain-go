@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
@@ -499,6 +500,8 @@ type ProcessConfigsHandler interface {
 
 	GetValue(variable dto.ConfigVariable) uint64
 
+	SetActivationRound(round uint64, log logger.Logger)
+
 	IsInterfaceNil() bool
 }
 
@@ -509,6 +512,8 @@ type CommonConfigsHandler interface {
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round uint64) uint32
 	GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32
 
+	SetActivationRound(round uint64, log logger.Logger)
+
 	IsInterfaceNil() bool
 }
 
@@ -517,6 +522,7 @@ type AntifloodConfigsHandler interface {
 	GetCurrentConfig() config.AntifloodConfigByRound
 	GetFloodPreventerConfigByType(configType FloodPreventerType) config.FloodPreventerConfig
 	IsEnabled() bool
+	SetActivationRound(round uint64, log logger.Logger)
 	IsInterfaceNil() bool
 }
 

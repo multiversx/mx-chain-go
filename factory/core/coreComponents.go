@@ -415,6 +415,14 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	common.SetEnableEpochsHandler(enableEpochsHandler)
+	common.SetEnableRoundsHandler(enableRoundsHandler)
+	common.SetVersionsConfigHandler(&ccf.config.Versions)
+	common.SetProcessConfigsHandler(processConfigs)
+	common.SetCommonConfigsHandler(commonConfigsHandler)
+	common.SetAntifloodConfigsHandler(antifloodConfigsHandler)
+	common.SetConfigPaths(ccf.configPathsHolder.MainConfig, ccf.configPathsHolder.RoundActivation)
+
 	return &coreComponents{
 		hasher:                        hasher,
 		txSignHasher:                  txSignHasher,

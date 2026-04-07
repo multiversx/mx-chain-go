@@ -1,6 +1,8 @@
 package testscommon
 
 import (
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -10,6 +12,7 @@ type AntifloodConfigsHandlerStub struct {
 	GetCurrentConfigCalled              func() config.AntifloodConfigByRound
 	IsEnabledCalled                     func() bool
 	GetFloodPreventerConfigByTypeCalled func(configType common.FloodPreventerType) config.FloodPreventerConfig
+	SetActivationRoundCalled            func(round uint64, log logger.Logger)
 }
 
 // GetCurrentConfig -
@@ -37,6 +40,13 @@ func (stub *AntifloodConfigsHandlerStub) GetFloodPreventerConfigByType(configTyp
 	}
 
 	return config.FloodPreventerConfig{}
+}
+
+// SetActivationRound -
+func (stub *AntifloodConfigsHandlerStub) SetActivationRound(round uint64, log logger.Logger) {
+	if stub.SetActivationRoundCalled != nil {
+		stub.SetActivationRoundCalled(round, log)
+	}
 }
 
 // IsInterfaceNil -

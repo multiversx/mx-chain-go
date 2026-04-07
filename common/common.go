@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/bits"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -615,4 +616,122 @@ func GetFeePayer(tx data.TransactionHandler) []byte {
 	}
 
 	return tx.GetSndAddr()
+}
+
+type EnableEpochsHandlerWithSet interface {
+	SetActivationRound(flag EnableRoundFlag, round uint64)
+}
+
+type ProcessConfigsHandlerWithSet interface {
+	SetActivationRound(round uint64, log logger.Logger)
+}
+
+type CommonConfigsHandlerWithSet interface {
+	SetActivationRound(round uint64, log logger.Logger)
+}
+
+type VersionsConfigWithSet interface {
+	SetActivationRound(round uint64, log logger.Logger)
+}
+
+type AntifloodConfigsHandlerWithSet interface {
+	SetActivationRound(round uint64, log logger.Logger)
+}
+
+var erh EnableEpochsHandlerWithSet
+var eeh EnableEpochsHandler
+var pch ProcessConfigsHandlerWithSet
+var cch CommonConfigsHandlerWithSet
+var vch VersionsConfigWithSet
+var ach AntifloodConfigsHandlerWithSet
+
+var mainConfigPath string
+var roundConfigPath string
+
+func SetEnableRoundsHandler(enableRoundsHandler EnableEpochsHandlerWithSet) {
+	erh = enableRoundsHandler
+}
+
+func SetProcessConfigsHandler(pcHandler ProcessConfigsHandler) {
+	pch = pcHandler
+}
+
+func SetCommonConfigsHandler(ccHandler CommonConfigsHandler) {
+	cch = ccHandler
+}
+
+func SetEnableEpochsHandler(enableEpochsHandler EnableEpochsHandler) {
+	eeh = enableEpochsHandler
+}
+
+func SetVersionsConfigHandler(versions *config.VersionsConfig) {
+	vch = versions
+}
+
+func SetAntifloodConfigsHandler(handler AntifloodConfigsHandler) {
+	ach = handler
+}
+
+// SetConfigPaths sets the file paths for the main config and round activation config files
+func SetConfigPaths(mainPath, roundPath string) {
+	mainConfigPath = mainPath
+	roundConfigPath = roundPath
+}
+
+func SetSuperNovaActivationRound(epoch uint32, round uint64) {
+	isEnabled := eeh.GetActivationEpoch(SupernovaFlag) == epoch && eeh.IsFlagEnabledInEpoch(SupernovaFlag, epoch)
+	log.Info("SetSuperNovaActivationRound", "currentRound", round, "activationRound", round+20, "epoch", epoch, "is enabled in current round", isEnabled)
+	if isEnabled {
+		supernovaRound := round + 20
+		erh.SetActivationRound(SupernovaRoundFlag, supernovaRound)
+		pch.SetActivationRound(supernovaRound, log)
+		cch.SetActivationRound(supernovaRound, log)
+		vch.SetActivationRound(supernovaRound, log)
+		ach.SetActivationRound(supernovaRound, log)
+		persistSupernovaRoundToConfigs(supernovaRound)
+	}
+}
+
+func persistSupernovaRoundToConfigs(round uint64) {
+	roundStr := strconv.FormatUint(round, 10)
+
+	if mainConfigPath != "" {
+		patchFileRoundValues(mainConfigPath, roundStr, false)
+	}
+
+	if roundConfigPath != "" {
+		patchFileRoundValues(roundConfigPath, roundStr, true)
+	}
+}
+
+func patchFileRoundValues(filePath string, roundStr string, isRoundConfig bool) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		log.Warn("failed to read config file for round persistence", "path", filePath, "error", err)
+		return
+	}
+
+	original := string(data)
+	modified := original
+
+	if isRoundConfig {
+		modified = strings.ReplaceAll(modified, `Round = "99999999"`, `Round = "`+roundStr+`"`)
+	} else {
+		modified = strings.ReplaceAll(modified, "EnableRound = 99999999", "EnableRound = "+roundStr)
+		modified = strings.ReplaceAll(modified, "StartRound = 99999999", "StartRound = "+roundStr)
+		modified = strings.ReplaceAll(modified, "Round = 99999999", "Round = "+roundStr)
+	}
+
+	if modified == original {
+		log.Debug("no round placeholder found to replace", "path", filePath)
+		return
+	}
+
+	err = os.WriteFile(filePath, []byte(modified), 0644)
+	if err != nil {
+		log.Warn("failed to write config file for round persistence", "path", filePath, "error", err)
+		return
+	}
+
+	log.Info("persisted supernova round to config file", "path", filePath, "round", roundStr)
 }

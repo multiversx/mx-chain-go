@@ -314,3 +314,10 @@ func (pce *processConfigsByEpoch) getValueByRound(
 func (pce *processConfigsByEpoch) IsInterfaceNil() bool {
 	return pce == nil
 }
+
+// SetActivationRound -
+func (pce *processConfigsByEpoch) SetActivationRound(round uint64, log logger.Logger) {
+	nr := len(pce.orderedConfigByRound)
+	log.Info("processConfigsByEpoch.SetActivationRound", "enableRound", round, "oldRound", pce.orderedConfigByRound[nr-1].EnableRound)
+	pce.orderedConfigByRound[nr-1].EnableRound = round
+}
