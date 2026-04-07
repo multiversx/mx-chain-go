@@ -13,33 +13,32 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/genesis"
 )
 
 // ArgsNewDataTrieFactory is the argument structure for the new data trie factory
 type ArgsNewDataTrieFactory struct {
-	StorageConfig        config.StorageConfig
-	SyncFolder           string
-	Marshalizer          marshal.Marshalizer
-	Hasher               hashing.Hasher
-	ShardCoordinator     sharding.Coordinator
-	EnableEpochsHandler  common.EnableEpochsHandler
-	StateStatsCollector  common.StateStatisticsHandler
-	MaxTrieLevelInMemory uint
+	StorageConfig       config.StorageConfig
+	SyncFolder          string
+	Marshalizer         marshal.Marshalizer
+	Hasher              hashing.Hasher
+	ShardCoordinator    sharding.Coordinator
+	EnableEpochsHandler common.EnableEpochsHandler
+	StateStatsCollector common.StateStatisticsHandler
 }
 
 type dataTrieFactory struct {
-	shardCoordinator     sharding.Coordinator
-	trieStorage          common.StorageManager
-	marshalizer          marshal.Marshalizer
-	hasher               hashing.Hasher
-	enableEpochsHandler  common.EnableEpochsHandler
-	maxTrieLevelInMemory uint
+	shardCoordinator    sharding.Coordinator
+	trieStorage         common.StorageManager
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewDataTrieFactory creates a data trie factory
@@ -100,12 +99,11 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	}
 
 	d := &dataTrieFactory{
-		shardCoordinator:     args.ShardCoordinator,
-		trieStorage:          trieStorage,
-		marshalizer:          args.Marshalizer,
-		hasher:               args.Hasher,
-		maxTrieLevelInMemory: args.MaxTrieLevelInMemory,
-		enableEpochsHandler:  args.EnableEpochsHandler,
+		shardCoordinator:    args.ShardCoordinator,
+		trieStorage:         trieStorage,
+		marshalizer:         args.Marshalizer,
+		hasher:              args.Hasher,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 
 	return d, nil
@@ -118,7 +116,7 @@ func (d *dataTrieFactory) TrieStorageManager() common.StorageManager {
 
 // Create creates a TriesHolder container to hold all the states
 func (d *dataTrieFactory) Create() (common.TriesHolder, error) {
-	container := state.NewDataTriesHolder()
+	container := triesHolder.NewTriesHolder()
 
 	for i := uint32(0); i < d.shardCoordinator.NumberOfShards(); i++ {
 		err := d.createAndAddOneTrie(i, genesis.UserAccount, container)
@@ -141,7 +139,7 @@ func (d *dataTrieFactory) Create() (common.TriesHolder, error) {
 }
 
 func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType genesis.Type, container common.TriesHolder) error {
-	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher, d.enableEpochsHandler, d.maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher, d.enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	if err != nil {
 		return err
 	}

@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/pkg/errors"
@@ -81,7 +82,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -104,6 +104,9 @@ var InitialRating = uint32(50)
 // AdditionalGasLimit is the value that can be added on a transaction in the GasLimit
 var AdditionalGasLimit = uint64(999000)
 
+// TenMbSize represents 10 MB in bytes
+const TenMbSize = uint64(10485760)
+
 // GasSchedulePath --
 const GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml"
 
@@ -114,7 +117,6 @@ const (
 	shuffleBetweenShards    = false
 	adaptivity              = false
 	hysteresis              = float32(0.2)
-	maxTrieLevelInMemory    = uint(5)
 	delegationContractsList = "delegationContracts"
 )
 
@@ -431,7 +433,7 @@ func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator,
 		fmt.Println("err creating main storer" + err.Error())
 	}
 
-	args := testcommonStorage.GetStorageManagerArgs()
+	args := commonMocks.GetStorageManagerArgs()
 	args.MainStorer = mainStorer
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
@@ -443,7 +445,7 @@ func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator,
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
 func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
-	args := testcommonStorage.GetStorageManagerArgs()
+	args := commonMocks.GetStorageManagerArgs()
 	args.MainStorer = store
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
@@ -467,7 +469,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 	trieStorageManager common.StorageManager,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (*state.AccountsDB, common.Trie) {
-	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, enableEpochsHandler, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
@@ -491,15 +493,16 @@ func CreateAccountsDBWithEnableEpochsHandler(
 	_ = snapshotsManager.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	args := state.ArgsAccountsDB{
-		Trie:                   tr,
-		Hasher:                 sha256.NewSha256(),
-		Marshaller:             TestMarshalizer,
-		AccountFactory:         accountFactory,
-		StoragePruningManager:  spm,
-		AddressConverter:       &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:       snapshotsManager,
-		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
-		PruningEnabled:         trieStorageManager.IsPruningEnabled(),
+		Trie:                     tr,
+		Hasher:                   sha256.NewSha256(),
+		Marshaller:               TestMarshalizer,
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    spm,
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         snapshotsManager,
+		StateAccessesCollector:   disabled.NewDisabledStateAccessesCollector(),
+		PruningEnabled:           trieStorageManager.IsPruningEnabled(),
+		MaxDataTriesSizeInMemory: TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(args)
 
@@ -1158,13 +1161,13 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() common.Trie {
-	args := testcommonStorage.GetStorageManagerArgs()
+	args := commonMocks.GetStorageManagerArgs()
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	return tr
 }
 

@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	common2 "github.com/multiversx/mx-chain-go/testscommon/common"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 
@@ -26,7 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 )
@@ -91,13 +92,13 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 
-	storageManagerArgs := storageManager.GetStorageManagerArgs()
+	storageManagerArgs := common2.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
 	storageManagerArgs.Hasher = coreComponents.Hasher()
-	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
+	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, common2.GetStorageManagerOptions())
 
 	storageManagerArgs.MainStorer = mock.NewMemDbMock()
-	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
+	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, common2.GetStorageManagerOptions())
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
@@ -209,20 +210,21 @@ func createAccountAdapter(
 	trieStorage common.StorageManager,
 	handler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, 5)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, collapseManager.NewDisabledCollapseManager())
 	if err != nil {
 		return nil, err
 	}
 
 	args := state.ArgsAccountsDB{
-		Trie:                   tr,
-		Hasher:                 hasher,
-		Marshaller:             marshaller,
-		AccountFactory:         accountFactory,
-		StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:       &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
-		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		Trie:                     tr,
+		Hasher:                   hasher,
+		Marshaller:               marshaller,
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

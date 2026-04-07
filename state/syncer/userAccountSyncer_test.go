@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
@@ -29,7 +30,6 @@ func getDefaultBaseAccSyncerArgs() ArgsNewBaseAccountsSyncer {
 		Cacher:                            cache.NewCacherMock(),
 		UserAccountsSyncStatisticsHandler: &testscommon.SizeSyncStatisticsHandlerStub{},
 		AppStatusHandler:                  &statusHandler.AppStatusHandlerStub{},
-		MaxTrieLevelInMemory:              0,
 		MaxHardCapForMissingNodes:         100,
 		TrieSyncerVersion:                 2,
 		CheckNodesOnDisk:                  false,
@@ -90,7 +90,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	key := []byte("key")
 	value := []byte("value")
 	_ = tr.Update(key, value)

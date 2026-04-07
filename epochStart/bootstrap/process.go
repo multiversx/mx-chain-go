@@ -15,9 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	logger "github.com/multiversx/mx-chain-logger-go"
-
-	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
@@ -42,11 +41,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	disabledInterceptors "github.com/multiversx/mx-chain-go/process/interceptors/disabled"
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/redundancy"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -283,7 +282,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		return nil, err
 	}
 
-	epochStartProvider.trieContainer = state.NewDataTriesHolder()
+	epochStartProvider.trieContainer = triesHolder.NewTriesHolder()
 	epochStartProvider.trieStorageManagers = make(map[string]common.StorageManager)
 
 	if epochStartProvider.generalConfig.Hardfork.AfterHardFork {
@@ -1573,7 +1572,6 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 			RequestHandler:                    e.requestHandler,
 			Timeout:                           common.TimeoutGettingTrieNodes,
 			Cacher:                            e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory:              e.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 e.trieSyncerVersion,
 			CheckNodesOnDisk:                  e.checkNodesOnDisk,
@@ -1647,7 +1645,6 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			RequestHandler:                    e.requestHandler,
 			Timeout:                           common.TimeoutGettingTrieNodes,
 			Cacher:                            e.dataPool.TrieNodes(),
-			MaxTrieLevelInMemory:              e.generalConfig.StateTriesConfig.MaxPeerTrieLevelInMemory,
 			MaxHardCapForMissingNodes:         e.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 e.trieSyncerVersion,
 			CheckNodesOnDisk:                  e.checkNodesOnDisk,

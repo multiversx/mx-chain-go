@@ -587,14 +587,15 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 	}
 
 	trieCreatorArgs := trieFactory.TrieCreateArgs{
-		MainStorer:          trieStorer,
-		PruningEnabled:      args.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		MaxTrieLevelInMem:   args.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:    args.generalConfig.StateTriesConfig.SnapshotsEnabled,
-		IdleProvider:        args.coreComponents.ProcessStatusHandler(),
-		Identifier:          dataRetriever.UserAccountsUnit.String(),
-		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
-		StatsCollector:      args.statusCoreComponents.StateStatsHandler(),
+		MainStorer:                   trieStorer,
+		PruningEnabled:               args.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		SnapshotsEnabled:             args.generalConfig.StateTriesConfig.SnapshotsEnabled,
+		IdleProvider:                 args.coreComponents.ProcessStatusHandler(),
+		Identifier:                   dataRetriever.UserAccountsUnit.String(),
+		EnableEpochsHandler:          args.coreComponents.EnableEpochsHandler(),
+		StatsCollector:               args.statusCoreComponents.StateStatsHandler(),
+		MaxSizeInMemory:              args.generalConfig.StateTriesConfig.MaxUserTrieSizeInMemory,
+		NumLeavesToCollapseSingleRun: args.generalConfig.StateTriesConfig.NumLeavesToCollapseSingleRun,
 	}
 	trieStorageManager, merkleTrie, err := trFactory.Create(trieCreatorArgs)
 	if err != nil {
@@ -610,6 +611,8 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 		AddressConverter:       args.coreComponents.AddressPubKeyConverter(),
 		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
 		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		// TODO check if this should be lower than in the processing adb
+		MaxDataTriesSizeInMemory: args.generalConfig.StateTriesConfig.DataTriesSizeInMemory,
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)

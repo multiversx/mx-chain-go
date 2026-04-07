@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
@@ -37,13 +39,11 @@ import (
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
@@ -364,20 +364,20 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 
 // GetStateFactoryArgs -
 func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, statusCoreComp factory.StatusCoreComponentsHolder) stateComp.StateComponentsFactoryArgs {
-	tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+	tsm, _ := trie.NewTrieStorageManager(commonMocks.GetStorageManagerArgs())
 	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
-	tsm, _ = trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+	tsm, _ = trie.NewTrieStorageManager(commonMocks.GetStorageManagerArgs())
 	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
-	triesHolder := state.NewDataTriesHolder()
-	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), 5)
-	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), 5)
-	triesHolder.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
-	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
+	triesContainer := triesHolder.NewTriesHolder()
+	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), collapseManager.NewDisabledCollapseManager())
+	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), collapseManager.NewDisabledCollapseManager())
+	triesContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
+	triesContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
 
 	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
 		Config:         GetGeneralConfig(),

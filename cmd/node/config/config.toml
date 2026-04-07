@@ -887,9 +887,11 @@
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
-    MaxStateTrieLevelInMemory = 5
-    MaxPeerTrieLevelInMemory = 5
     StateStatisticsEnabled = false
+    MaxUserTrieSizeInMemory = 524288000 #500MB
+    MaxPeerTrieSizeInMemory = 104857600 #100MB
+    DataTriesSizeInMemory = 524288000 #500MB
+    NumLeavesToCollapseSingleRun = 100
 
 [TrieLeavesRetrieverConfig]
     Enabled = false

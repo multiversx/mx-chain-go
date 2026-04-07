@@ -119,7 +119,7 @@ func (ln *leafNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(ln)
 }
 
-func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.TrieStorageInteractor, targetDb common.BaseStorer) error {
+func (ln *leafNode) commitDirty(_ common.TrieStorageInteractor, targetDb common.BaseStorer) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
@@ -135,6 +135,13 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.TrieStorageInteractor, 
 	return err
 }
 
+func (ln *leafNode) shouldCollapseChild(hexKey []byte, _ MetricsCollector) bool {
+	if bytes.Equal(hexKey, ln.Key) && !ln.dirty {
+		return true
+	}
+	return false
+}
+
 func (ln *leafNode) commitSnapshot(
 	_ snapshotDb,
 	_ uint32,
@@ -144,7 +151,7 @@ func (ln *leafNode) commitSnapshot(
 	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
 	nodeBytes []byte,
-	depthLevel int,
+	tmc MetricsCollector,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return core.ErrContextClosing
@@ -160,7 +167,7 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	stats.AddLeafNode(depthLevel, uint64(len(nodeBytes)), version)
+	stats.AddLeafNode(int(tmc.GetCurrentDepth()), uint64(len(nodeBytes)), version)
 
 	return nil
 }
@@ -194,7 +201,7 @@ func (ln *leafNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) resolveCollapsed(_ byte, _ common.TrieStorageInteractor) error {
+func (ln *leafNode) resolveCollapsed(_ byte, _ MetricsCollector, _ common.TrieStorageInteractor) error {
 	return nil
 }
 
@@ -206,19 +213,19 @@ func (ln *leafNode) isPosCollapsed(_ int) bool {
 	return false
 }
 
-func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.TrieStorageInteractor) (value []byte, maxDepth uint32, err error) {
+func (ln *leafNode) tryGet(key []byte, _ MetricsCollector, _ common.TrieStorageInteractor) (value []byte, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
-		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
+		return nil, fmt.Errorf("tryGet error %w", err)
 	}
 	if bytes.Equal(key, ln.Key) {
-		return ln.Value, currentDepth, nil
+		return ln.Value, nil
 	}
 
-	return nil, currentDepth, nil
+	return nil, nil
 }
 
-func (ln *leafNode) getNext(key []byte, _ common.TrieStorageInteractor) (node, []byte, error) {
+func (ln *leafNode) getNext(key []byte, _ MetricsCollector, _ common.TrieStorageInteractor) (node, []byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getNext error %w", err)
@@ -228,7 +235,7 @@ func (ln *leafNode) getNext(key []byte, _ common.TrieStorageInteractor) (node, [
 	}
 	return nil, nil, ErrNodeNotFound
 }
-func (ln *leafNode) insert(newData core.TrieData, _ common.TrieStorageInteractor) (node, [][]byte, error) {
+func (ln *leafNode) insert(newData core.TrieData, tmc MetricsCollector, _ common.TrieStorageInteractor) (node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
@@ -242,14 +249,15 @@ func (ln *leafNode) insert(newData core.TrieData, _ common.TrieStorageInteractor
 	nodeKey := ln.Key
 
 	if bytes.Equal(newData.Key, nodeKey) {
-		return ln.insertInSameLn(newData, oldHash)
+		return ln.insertInSameLn(newData, oldHash, tmc)
 	}
 
 	keyMatchLen := prefixLen(newData.Key, nodeKey)
-	bn, err := ln.insertInNewBn(newData, keyMatchLen)
+	bn, err := ln.insertInNewBn(newData, keyMatchLen, tmc)
 	if err != nil {
 		return nil, [][]byte{}, err
 	}
+	tmc.AddSizeLoadedInMem(bn.sizeInBytes())
 
 	if keyMatchLen == 0 {
 		return bn, oldHash, nil
@@ -259,14 +267,18 @@ func (ln *leafNode) insert(newData core.TrieData, _ common.TrieStorageInteractor
 	if err != nil {
 		return nil, [][]byte{}, err
 	}
+	tmc.AddSizeLoadedInMem(newEn.sizeInBytes())
 
 	return newEn, oldHash, nil
 }
 
-func (ln *leafNode) insertInSameLn(newData core.TrieData, oldHashes [][]byte) (node, [][]byte, error) {
+func (ln *leafNode) insertInSameLn(newData core.TrieData, oldHashes [][]byte, tmc MetricsCollector) (node, [][]byte, error) {
 	if bytes.Equal(ln.Value, newData.Value) {
 		return nil, [][]byte{}, nil
 	}
+
+	sizeDiff := len(newData.Value) - len(ln.Value)
+	tmc.AddSizeLoadedInMem(sizeDiff)
 
 	ln.Value = newData.Value
 	ln.Version = uint32(newData.Version)
@@ -275,12 +287,13 @@ func (ln *leafNode) insertInSameLn(newData core.TrieData, oldHashes [][]byte) (n
 	return ln, oldHashes, nil
 }
 
-func (ln *leafNode) insertInNewBn(newData core.TrieData, keyMatchLen int) (node, error) {
+func (ln *leafNode) insertInNewBn(newData core.TrieData, keyMatchLen int, tmc MetricsCollector) (node, error) {
 	bn, err := newBranchNode(ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
 	}
 
+	originalSize := ln.sizeInBytes()
 	oldChildPos := ln.Key[keyMatchLen]
 	newChildPos := newData.Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
@@ -303,6 +316,7 @@ func (ln *leafNode) insertInNewBn(newData core.TrieData, keyMatchLen int) (node,
 	}
 	bn.children[oldChildPos] = newLnOldChildPos
 	bn.setVersionForChild(oldLnVersion, oldChildPos)
+	newSize := newLnOldChildPos.sizeInBytes()
 
 	newData.Key = newData.Key[keyMatchLen+1:]
 	newLnNewChildPos, err := newLeafNode(newData, ln.marsh, ln.hasher)
@@ -311,24 +325,28 @@ func (ln *leafNode) insertInNewBn(newData core.TrieData, keyMatchLen int) (node,
 	}
 	bn.children[newChildPos] = newLnNewChildPos
 	bn.setVersionForChild(newData.Version, newChildPos)
+	newSize += newLnNewChildPos.sizeInBytes()
+	tmc.AddSizeLoadedInMem(newSize - originalSize)
 
 	return bn, nil
 }
 
-func (ln *leafNode) delete(key []byte, _ common.TrieStorageInteractor) (bool, node, [][]byte, error) {
+func (ln *leafNode) delete(key []byte, tmc MetricsCollector, _ common.TrieStorageInteractor) (bool, node, [][]byte, error) {
 	if bytes.Equal(key, ln.Key) {
 		oldHash := make([][]byte, 0)
 		if !ln.dirty {
 			oldHash = append(oldHash, ln.hash)
 		}
 
+		tmc.AddSizeLoadedInMem(-ln.sizeInBytes())
 		return true, nil, oldHash, nil
 	}
 	return false, ln, [][]byte{}, nil
 }
 
-func (ln *leafNode) reduceNode(pos int) (node, bool, error) {
-	k := append([]byte{byte(pos)}, ln.Key...)
+func (ln *leafNode) reduceNode(pos int, tmc MetricsCollector) (node, bool, error) {
+	extraKey := []byte{byte(pos)}
+	k := append(extraKey, ln.Key...)
 
 	oldLnVersion, err := ln.getVersion()
 	if err != nil {
@@ -345,6 +363,7 @@ func (ln *leafNode) reduceNode(pos int) (node, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
+	tmc.AddSizeLoadedInMem(len(extraKey))
 
 	return newLn, true, nil
 }
@@ -359,7 +378,7 @@ func (ln *leafNode) isEmptyOrNil() error {
 	return nil
 }
 
-func (ln *leafNode) print(writer io.Writer, _ int, _ common.TrieStorageInteractor) {
+func (ln *leafNode) print(writer io.Writer, _ int, _ MetricsCollector, _ common.TrieStorageInteractor) {
 	if ln == nil {
 		return
 	}
@@ -391,7 +410,7 @@ func (ln *leafNode) getDirtyHashes(hashes common.ModifiedHashes) error {
 	return nil
 }
 
-func (ln *leafNode) getChildren(_ common.TrieStorageInteractor) ([]node, error) {
+func (ln *leafNode) getChildren(_ MetricsCollector, _ common.TrieStorageInteractor) ([]node, error) {
 	return nil, nil
 }
 
@@ -415,6 +434,7 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	_ marshal.Marshalizer,
 	chanClose chan struct{},
 	ctx context.Context,
+	_ MetricsCollector,
 ) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
@@ -451,7 +471,7 @@ func (ln *leafNode) getAllLeavesOnChannel(
 	}
 }
 
-func (ln *leafNode) getAllHashes(_ common.TrieStorageInteractor) ([][]byte, error) {
+func (ln *leafNode) getAllHashes(_ MetricsCollector, _ common.TrieStorageInteractor) ([][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, fmt.Errorf("getAllHashes error: %w", err)
@@ -477,8 +497,7 @@ func (ln *leafNode) sizeInBytes() int {
 		return 0
 	}
 
-	// hasher + marshalizer  + dirty flag = numNodeInnerPointers * pointerSizeInBytes + 1
-	nodeSize := len(ln.hash) + len(ln.Key) + len(ln.Value) + numNodeInnerPointers*pointerSizeInBytes + 1
+	nodeSize := baseNodeSizeInBytes + len(ln.Key) + len(ln.Value) + nodeVersionSizeInBytes
 
 	return nodeSize
 }
@@ -487,7 +506,7 @@ func (ln *leafNode) getValue() []byte {
 	return ln.Value
 }
 
-func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, _ common.TrieStorageInteractor) error {
+func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, tmc MetricsCollector, _ common.TrieStorageInteractor) error {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("collectStats error %w", err)
@@ -503,7 +522,7 @@ func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int
 		return err
 	}
 
-	ts.AddLeafNode(depthLevel, uint64(len(val)), version)
+	ts.AddLeafNode(int(tmc.GetCurrentDepth()), uint64(len(val)), version)
 	return nil
 }
 
@@ -518,6 +537,7 @@ func (ln *leafNode) getVersion() (core.TrieNodeVersion, error) {
 
 func (ln *leafNode) collectLeavesForMigration(
 	migrationArgs vmcommon.ArgsMigrateDataTrieLeaves,
+	_ MetricsCollector,
 	_ common.TrieStorageInteractor,
 	keyBuilder common.KeyBuilder,
 ) (bool, error) {

@@ -182,8 +182,9 @@ func createMockEpochStartBootstrapArgs(
 				AccountsStatePruningEnabled: true,
 				SnapshotsEnabled:            true,
 				PeerStatePruningEnabled:     true,
-				MaxStateTrieLevelInMemory:   5,
-				MaxPeerTrieLevelInMemory:    5,
+				MaxUserTrieSizeInMemory:     generalCfg.StateTriesConfig.MaxUserTrieSizeInMemory,
+				MaxPeerTrieSizeInMemory:     generalCfg.StateTriesConfig.MaxPeerTrieSizeInMemory,
+				DataTriesSizeInMemory:       generalCfg.StateTriesConfig.DataTriesSizeInMemory,
 			},
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 				PruningBufferLen:      1000,

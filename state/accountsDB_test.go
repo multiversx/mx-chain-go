@@ -41,17 +41,20 @@ import (
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
-const trieDbOperationDelay = time.Second
+const (
+	trieDbOperationDelay = time.Second
+)
 
 func createMockAccountsDBArgs() state.ArgsAccountsDB {
 	accCreator := &stateMock.AccountsFactoryStub{
@@ -78,13 +81,14 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 				return &storageManager.StorageManagerStub{}
 			},
 		},
-		Hasher:                 &hashingMocks.HasherMock{},
-		Marshaller:             &marshallerMock.MarshalizerMock{},
-		AccountFactory:         accCreator,
-		StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:       &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:       snapshotsManager,
-		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		Hasher:                   &hashingMocks.HasherMock{},
+		Marshaller:               &marshallerMock.MarshalizerMock{},
+		AccountFactory:           accCreator,
+		StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         snapshotsManager,
+		StateAccessesCollector:   &stateMock.StateAccessesCollectorStub{},
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 }
 
@@ -141,10 +145,10 @@ func getDefaultStateComponents(
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 
-	args := storage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = db
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, 5)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
@@ -173,15 +177,16 @@ func getDefaultStateComponents(
 
 	collector, _ := stateAccesses.NewCollector(stateDisabled.NewDisabledStateAccessesStorer(), stateAccesses.WithCollectWrite())
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                   tr,
-		Hasher:                 hasher,
-		Marshaller:             marshaller,
-		AccountFactory:         accCreator,
-		StoragePruningManager:  spm,
-		AddressConverter:       &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:       snapshotsManager,
-		StateAccessesCollector: collector,
-		PruningEnabled:         true,
+		Trie:                     tr,
+		Hasher:                   hasher,
+		Marshaller:               marshaller,
+		AccountFactory:           accCreator,
+		StoragePruningManager:    spm,
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         snapshotsManager,
+		StateAccessesCollector:   collector,
+		PruningEnabled:           true,
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -739,6 +744,55 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 2, adb.JournalLen())
+}
+
+func TestAccountsDB_RemoveAccountCommitAndRecreateSameAddressShouldNotReuseOldDataTrie(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+	address := generateRandomByteArray(32)
+	oldKey := []byte("old-key")
+	oldValue := []byte("old-value")
+	newKey := []byte("new-key")
+	newValue := []byte("new-value")
+
+	acc, err := adb.LoadAccount(address)
+	require.NoError(t, err)
+	userAcc := acc.(state.UserAccountHandler)
+
+	err = userAcc.SaveKeyValue(oldKey, oldValue)
+	require.NoError(t, err)
+	err = adb.SaveAccount(userAcc)
+	require.NoError(t, err)
+	_, err = adb.Commit()
+	require.NoError(t, err)
+
+	err = adb.RemoveAccount(address)
+	require.NoError(t, err)
+	_, err = adb.Commit()
+	require.NoError(t, err)
+
+	acc, err = adb.LoadAccount(address)
+	require.NoError(t, err)
+	userAcc = acc.(state.UserAccountHandler)
+	err = userAcc.SaveKeyValue(newKey, newValue)
+	require.NoError(t, err)
+	err = adb.SaveAccount(userAcc)
+	require.NoError(t, err)
+	_, err = adb.Commit()
+	require.NoError(t, err)
+
+	acc, err = adb.LoadAccount(address)
+	require.NoError(t, err)
+	userAcc = acc.(state.UserAccountHandler)
+
+	val, _, err := userAcc.RetrieveValue(oldKey)
+	require.NoError(t, err)
+	assert.Len(t, val, 0)
+
+	val, _, err = userAcc.RetrieveValue(newKey)
+	require.NoError(t, err)
+	assert.Equal(t, newValue, val)
 }
 
 // ------- LoadAccount
@@ -2126,10 +2180,9 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	ewl := stateMock.NewEvictionWaitingListMock(100)
-	args := storage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	tsm, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
@@ -2205,14 +2258,13 @@ func TestAccountsDB_RemoveAccountSetsObsoleteHashes(t *testing.T) {
 func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	t.Parallel()
 
-	maxTrieLevelInMemory := uint(5)
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 
 	ewl := stateMock.NewEvictionWaitingListMock(100)
-	args := storage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	tsm, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
@@ -2411,13 +2463,12 @@ func modifyDataTries(t *testing.T, accountsAddresses [][]byte, adb *state.Accoun
 func TestAccountsDB_GetCode(t *testing.T) {
 	t.Parallel()
 
-	maxTrieLevelInMemory := uint(5)
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 
-	args := storage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	tsm, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm := disabled.NewDisabledStoragePruningManager()
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr
@@ -2867,13 +2918,12 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 }
 
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
-	maxTrieLevelInMemory := uint(5)
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 
-	args := storage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	tsm, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm := disabled.NewDisabledStoragePruningManager()
 
 	argsAccountsDB := createMockAccountsDBArgs()
@@ -3196,8 +3246,8 @@ func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
-	tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochsHandler, uint(5))
+	tsm, _ := trie.NewTrieStorageManager(testCommon.GetStorageManagerArgs())
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	spm := &stateMock.StoragePruningManagerStub{}
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.PruningEnabled = true

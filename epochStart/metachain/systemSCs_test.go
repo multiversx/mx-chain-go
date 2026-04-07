@@ -45,6 +45,7 @@ import (
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -57,6 +58,7 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -748,7 +750,7 @@ func createAccountsDB(
 	trieStorageManager common.StorageManager,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) *state.AccountsDB {
-	tr, _ := trie.NewTrie(trieStorageManager, marshaller, hasher, enableEpochsHandler, 5)
+	tr, _ := trie.NewTrie(trieStorageManager, marshaller, hasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
@@ -757,14 +759,15 @@ func createAccountsDB(
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	args := state.ArgsAccountsDB{
-		Trie:                   tr,
-		Hasher:                 hasher,
-		Marshaller:             marshaller,
-		AccountFactory:         accountFactory,
-		StoragePruningManager:  spm,
-		AddressConverter:       &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
-		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		Trie:                     tr,
+		Hasher:                   hasher,
+		Marshaller:               marshaller,
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    spm,
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(args)
 	return adb
@@ -773,12 +776,12 @@ func createAccountsDB(
 func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEpochs, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
-	storageManagerArgs := storageMock.GetStorageManagerArgs()
+	storageManagerArgs := testCommon.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 	storageManagerArgs.MainStorer = trieStorer
 
-	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageMock.GetStorageManagerOptions())
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, testCommon.GetStorageManagerOptions())
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:                 hasher,
 		Marshaller:             marshalizer,

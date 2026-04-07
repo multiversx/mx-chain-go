@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -209,7 +210,7 @@ func createAccountsDB(
 		coreComponents.InternalMarshalizer(),
 		coreComponents.Hasher(),
 		coreComponents.EnableEpochsHandler(),
-		5,
+		collapseManager.NewDisabledCollapseManager(),
 	)
 
 	argsEvictionWaitingList := evictionWaitingList.MemoryEvictionWaitingListArgs{
@@ -219,14 +220,15 @@ func createAccountsDB(
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(argsEvictionWaitingList)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccountsDb := state.ArgsAccountsDB{
-		Trie:                   tr,
-		Hasher:                 coreComponents.Hasher(),
-		Marshaller:             coreComponents.InternalMarshalizer(),
-		AccountFactory:         accountFactory,
-		StoragePruningManager:  spm,
-		AddressConverter:       coreComponents.AddressPubKeyConverter(),
-		SnapshotsManager:       &stateTests.SnapshotsManagerStub{},
-		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		Trie:                     tr,
+		Hasher:                   coreComponents.Hasher(),
+		Marshaller:               coreComponents.InternalMarshalizer(),
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    spm,
+		AddressConverter:         coreComponents.AddressPubKeyConverter(),
+		SnapshotsManager:         &stateTests.SnapshotsManagerStub{},
+		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
+		MaxDataTriesSizeInMemory: integrationTests.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDb)
 	return adb

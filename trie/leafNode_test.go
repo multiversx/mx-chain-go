@@ -1,6 +1,7 @@
 package trie
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"math"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/mock"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -158,7 +160,7 @@ func TestLeafNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(ln)
 	_ = ln.setHash()
 
-	err := ln.commitDirty(0, 5, db, db)
+	err := ln.commitDirty(db, db)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -173,7 +175,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 
 	ln := &leafNode{}
 
-	err := ln.commitDirty(0, 5, nil, nil)
+	err := ln.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 }
 
@@ -182,7 +184,7 @@ func TestLeafNode_commitNilNode(t *testing.T) {
 
 	var ln *leafNode
 
-	err := ln.commitDirty(0, 5, nil, nil)
+	err := ln.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 }
 
@@ -223,7 +225,7 @@ func TestLeafNode_resolveCollapsed(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 
-	assert.Nil(t, ln.resolveCollapsed(0, nil))
+	assert.Nil(t, ln.resolveCollapsed(0, nil, nil))
 }
 
 func TestLeafNode_isCollapsed(t *testing.T) {
@@ -239,10 +241,11 @@ func TestLeafNode_tryGet(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	val, maxDepth, err := ln.tryGet(key, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := ln.tryGet(key, tmc, nil)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestLeafNode_tryGetWrongKey(t *testing.T) {
@@ -251,10 +254,11 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	wrongKey := []byte{1, 2, 3}
 
-	val, maxDepth, err := ln.tryGet(wrongKey, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := ln.tryGet(wrongKey, tmc, nil)
 	assert.Nil(t, val)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestLeafNode_tryGetEmptyNode(t *testing.T) {
@@ -263,10 +267,11 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 	ln := &leafNode{}
 
 	key := []byte("dog")
-	val, maxDepth, err := ln.tryGet(key, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := ln.tryGet(key, tmc, nil)
 	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestLeafNode_tryGetNilNode(t *testing.T) {
@@ -275,10 +280,11 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 	var ln *leafNode
 	key := []byte("dog")
 
-	val, maxDepth, err := ln.tryGet(key, 0, nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := ln.tryGet(key, tmc, nil)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
+	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
 }
 
 func TestLeafNode_getNext(t *testing.T) {
@@ -287,7 +293,7 @@ func TestLeafNode_getNext(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	n, key, err := ln.getNext(key, nil)
+	n, key, err := ln.getNext(key, nil, nil)
 	assert.Nil(t, n)
 	assert.Nil(t, key)
 	assert.Nil(t, err)
@@ -299,7 +305,7 @@ func TestLeafNode_getNextWrongKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	wrongKey := append([]byte{2}, []byte("dog")...)
 
-	n, key, err := ln.getNext(wrongKey, nil)
+	n, key, err := ln.getNext(wrongKey, nil, nil)
 	assert.Nil(t, n)
 	assert.Nil(t, key)
 	assert.Equal(t, ErrNodeNotFound, err)
@@ -311,7 +317,7 @@ func TestLeafNode_getNextNilNode(t *testing.T) {
 	var ln *leafNode
 	key := []byte("dog")
 
-	n, key, err := ln.getNext(key, nil)
+	n, key, err := ln.getNext(key, nil, nil)
 	assert.Nil(t, n)
 	assert.Nil(t, key)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
@@ -324,11 +330,13 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	key := "dog"
 	expectedVal := "dogs"
 
-	newNode, _, err := ln.insert(getTrieDataWithDefaultVersion(key, expectedVal), nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	newNode, _, err := ln.insert(getTrieDataWithDefaultVersion(key, expectedVal), tmc, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
+	assert.Equal(t, 1, tmc.GetSizeLoadedInMem())
 
-	val, _, _ := newNode.tryGet([]byte(key), 0, nil)
+	val, _ := newNode.tryGet([]byte(key), dtmc, nil)
 	assert.Equal(t, []byte(expectedVal), val)
 }
 
@@ -343,11 +351,14 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	nodeKey := []byte{3, 4, 5}
 	nodeVal := []byte{3, 4, 5}
 
-	newNode, _, err := ln.insert(getTrieDataWithDefaultVersion(string(nodeKey), string(nodeVal)), nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	newNode, _, err := ln.insert(getTrieDataWithDefaultVersion(string(nodeKey), string(nodeVal)), tmc, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
+	expectedSize := newNode.sizeInBytes() + newNode.(*branchNode).children[3].sizeInBytes() - 1
+	assert.Equal(t, expectedSize, tmc.GetSizeLoadedInMem())
 
-	val, _, _ := newNode.tryGet(nodeKey, 0, nil)
+	val, _ := newNode.tryGet(nodeKey, trieMetricsCollector.NewTrieMetricsCollector(), nil)
 	assert.Equal(t, nodeVal, val)
 	assert.IsType(t, &branchNode{}, newNode)
 }
@@ -357,13 +368,15 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
+	_ = ln.commitDirty(db, db)
 	lnHash := ln.getHash()
 
-	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion("dog", "dogs"), db)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion("dog", "dogs"), tmc, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
+	assert.Equal(t, 1, tmc.GetSizeLoadedInMem())
 }
 
 func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
@@ -372,13 +385,16 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	marsh, hasher := getTestMarshalizerAndHasher()
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3}), "dog"), marsh, hasher)
-	_ = ln.commitDirty(0, 5, db, db)
+	_ = ln.commitDirty(db, db)
 	lnHash := ln.getHash()
 
-	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs"), db)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs"), tmc, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
+	expectedSize := newNode.sizeInBytes() + newNode.(*branchNode).children[4].sizeInBytes() - 1
+	assert.Equal(t, expectedSize, tmc.GetSizeLoadedInMem())
 }
 
 func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
@@ -386,7 +402,7 @@ func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 
-	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion("dog", "dogs"), nil)
+	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion("dog", "dogs"), dtmc, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -398,7 +414,7 @@ func TestLeafNode_insertInDirtyLnAtDifferentKey(t *testing.T) {
 	marsh, hasher := getTestMarshalizerAndHasher()
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3}), "dog"), marsh, hasher)
 
-	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs"), nil)
+	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs"), dtmc, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -409,7 +425,7 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 
 	var ln *leafNode
 
-	newNode, _, err := ln.insert(getTrieDataWithDefaultVersion("dog", "dogs"), nil)
+	newNode, _, err := ln.insert(getTrieDataWithDefaultVersion("dog", "dogs"), nil, nil)
 	assert.Nil(t, newNode)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, newNode)
@@ -420,10 +436,12 @@ func TestLeafNode_deletePresent(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 
-	dirty, newNode, _, err := ln.delete([]byte("dog"), nil)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	dirty, newNode, _, err := ln.delete([]byte("dog"), tmc, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Nil(t, newNode)
+	assert.Equal(t, -ln.sizeInBytes(), tmc.GetSizeLoadedInMem())
 }
 
 func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
@@ -431,10 +449,10 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
+	_ = ln.commitDirty(db, db)
 	lnHash := ln.getHash()
 
-	dirty, _, oldHashes, err := ln.delete([]byte("dog"), db)
+	dirty, _, oldHashes, err := ln.delete([]byte("dog"), dtmc, db)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
@@ -445,13 +463,15 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
+	_ = ln.commitDirty(db, db)
 	wrongKey := []byte{1, 2, 3}
 
-	dirty, _, oldHashes, err := ln.delete(wrongKey, db)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	dirty, _, oldHashes, err := ln.delete(wrongKey, tmc, db)
 	assert.False(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
+	assert.Equal(t, 0, tmc.GetSizeLoadedInMem())
 }
 
 func TestLeafNode_deleteFromDirtyLnAtSameKey(t *testing.T) {
@@ -459,7 +479,7 @@ func TestLeafNode_deleteFromDirtyLnAtSameKey(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 
-	dirty, _, oldHashes, err := ln.delete([]byte("dog"), nil)
+	dirty, _, oldHashes, err := ln.delete([]byte("dog"), dtmc, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -471,7 +491,7 @@ func TestLeafNode_deleteNotPresent(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	wrongKey := []byte{1, 2, 3}
 
-	dirty, newNode, _, err := ln.delete(wrongKey, nil)
+	dirty, newNode, _, err := ln.delete(wrongKey, dtmc, nil)
 	assert.False(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, ln, newNode)
@@ -485,7 +505,7 @@ func TestLeafNode_reduceNode(t *testing.T) {
 	expected, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{2, 100, 111, 103}), ""), marsh, hasher)
 	expected.dirty = true
 
-	n, newChildHash, err := ln.reduceNode(2)
+	n, newChildHash, err := ln.reduceNode(2, dtmc)
 	assert.Equal(t, expected, n)
 	assert.Nil(t, err)
 	assert.True(t, newChildHash)
@@ -506,7 +526,7 @@ func TestLeafNode_getChildren(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 
-	children, err := ln.getChildren(nil)
+	children, err := ln.getChildren(nil, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(children))
 }
@@ -654,7 +674,7 @@ func TestLeafNode_getAllHashes(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestMarshalizerAndHasher())
-	hashes, err := ln.getAllHashes(testscommon.NewMemDbMock())
+	hashes, err := ln.getAllHashes(nil, testscommon.NewMemDbMock())
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(hashes))
 	assert.Equal(t, ln.hash, hashes[0])
@@ -690,7 +710,7 @@ func TestLeafNode_SizeInBytes(t *testing.T) {
 
 	value := []byte("value")
 	key := []byte("key")
-	hash := []byte("hash")
+	hash := bytes.Repeat([]byte{1}, 32)
 	ln = &leafNode{
 		CollapsedLn: CollapsedLn{
 			Key:   key,
@@ -703,7 +723,7 @@ func TestLeafNode_SizeInBytes(t *testing.T) {
 			hasher: nil,
 		},
 	}
-	assert.Equal(t, len(key)+len(value)+len(hash)+1+2*pointerSizeInBytes, ln.sizeInBytes())
+	assert.Equal(t, len(key)+len(value)+len(hash)+1+2*pointerSizeInBytes+nodeVersionSizeInBytes, ln.sizeInBytes())
 }
 
 func TestLeafNode_writeNodeOnChannel(t *testing.T) {
@@ -729,7 +749,7 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := ln.commitSnapshot(db, 0, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte{}, 0)
+	err := ln.commitSnapshot(db, 0, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte{}, dtmc)
 	assert.Equal(t, core.ErrContextClosing, err)
 }
 
@@ -803,4 +823,15 @@ func TestLeafNode_getNodeData(t *testing.T) {
 		assert.Equal(t, uint64(len(val)+len(val)), nodeData[0].Size())
 		assert.True(t, nodeData[0].IsLeaf())
 	})
+}
+
+func TestLeafNode_shouldCollapse(t *testing.T) {
+	t.Parallel()
+
+	ln := getLn(getTestMarshalizerAndHasher())
+	ln.setDirty(false)
+	shouldCollapse := ln.shouldCollapseChild([]byte("doge"), nil)
+	assert.False(t, shouldCollapse)
+	shouldCollapse = ln.shouldCollapseChild([]byte("dog"), nil)
+	assert.True(t, shouldCollapse)
 }

@@ -18,10 +18,11 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
-	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 // TestMarshalizer -
@@ -29,9 +30,6 @@ var TestMarshalizer = &marshal.GogoProtoMarshalizer{}
 
 // TestHasher -
 var TestHasher = sha256.NewSha256()
-
-// MaxTrieLevelInMemory -
-const MaxTrieLevelInMemory = uint(5)
 
 // CreateMemUnit -
 func CreateMemUnit() storage.Storer {
@@ -94,14 +92,14 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 
-	args := testcommonStorage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = db
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, MaxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccCreator := accountFactory.ArgsAccountCreator{
@@ -125,14 +123,15 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	})
 
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                   tr,
-		Hasher:                 TestHasher,
-		Marshaller:             TestMarshalizer,
-		AccountFactory:         accCreator,
-		StoragePruningManager:  spm,
-		AddressConverter:       &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:       snapshotsManager,
-		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		Trie:                     tr,
+		Hasher:                   TestHasher,
+		Marshaller:               TestMarshalizer,
+		AccountFactory:           accCreator,
+		StoragePruningManager:    spm,
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         snapshotsManager,
+		StateAccessesCollector:   disabled.NewDisabledStateAccessesCollector(),
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

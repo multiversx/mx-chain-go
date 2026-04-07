@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
@@ -98,15 +99,16 @@ var log = logger.GetOrCreate("state")
 
 // ArgsAccountsDB is the arguments DTO for the AccountsDB instance
 type ArgsAccountsDB struct {
-	Trie                   common.Trie
-	Hasher                 hashing.Hasher
-	Marshaller             marshal.Marshalizer
-	AccountFactory         AccountFactory
-	StoragePruningManager  StoragePruningManager
-	AddressConverter       core.PubkeyConverter
-	SnapshotsManager       SnapshotsManager
-	StateAccessesCollector StateAccessesCollector
-	PruningEnabled         bool
+	Trie                     common.Trie
+	Hasher                   hashing.Hasher
+	Marshaller               marshal.Marshalizer
+	AccountFactory           AccountFactory
+	StoragePruningManager    StoragePruningManager
+	AddressConverter         core.PubkeyConverter
+	SnapshotsManager         SnapshotsManager
+	StateAccessesCollector   StateAccessesCollector
+	PruningEnabled           bool
+	MaxDataTriesSizeInMemory uint64
 }
 
 // NewAccountsDB creates a new account manager
@@ -116,10 +118,15 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	return createAccountsDb(args), nil
+	return createAccountsDb(args)
 }
 
-func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
+func createAccountsDb(args ArgsAccountsDB) (*AccountsDB, error) {
+	dth, err := triesHolder.NewDataTriesHolder(args.MaxDataTriesSizeInMemory)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create data tries holder: %w", err)
+	}
+
 	return &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
@@ -128,7 +135,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		storagePruningManager:  args.StoragePruningManager,
 		entries:                make([]JournalEntry, 0),
 		mutOp:                  sync.RWMutex{},
-		dataTries:              NewDataTriesHolder(),
+		dataTries:              dth,
 		obsoleteDataTrieHashes: make(map[string][][]byte),
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
@@ -137,7 +144,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		snapshotsManger:        args.SnapshotsManager,
 		stateAccessesCollector: args.StateAccessesCollector,
 		pruningEnabled:         args.PruningEnabled,
-	}
+	}, nil
 }
 
 func checkArgsAccountsDB(args ArgsAccountsDB) error {
@@ -553,16 +560,17 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*state
 	accountHandler.SetRootHash(rootHash)
 	log.Trace("saveDataTrie: rootHash changed", "address", accountHandler.AddressBytes(), "rootHash", rootHash)
 
-	if check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
-		trie, ok := accountHandler.DataTrie().(common.Trie)
-		if !ok {
-			log.Warn("wrong type conversion", "trie type", fmt.Sprintf("%T", accountHandler.DataTrie()))
-			return nil, nil
-		}
-
-		adb.dataTries.Put(accountHandler.AddressBytes(), trie)
+	if !check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
+		adb.dataTries.MarkAsDirty(accountHandler.AddressBytes())
+		return newValues, nil
 	}
 
+	trie, ok := accountHandler.DataTrie().(common.Trie)
+	if !ok {
+		return nil, fmt.Errorf("wrong type conversion, trie type %T", accountHandler.DataTrie())
+	}
+
+	adb.dataTries.Put(accountHandler.AddressBytes(), trie)
 	return newValues, nil
 }
 
@@ -670,6 +678,11 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 		return err
 	}
 	adb.journalize(entry)
+
+	// Evict the cached trie for this address so that a subsequent recreation of
+	// the account at the same address cannot inherit the stale data trie from
+	// this deleted incarnation (see loadDataTrieConcurrentSafe / saveDataTrie).
+	adb.dataTries.Remove(baseAcc.AddressBytes())
 
 	return nil
 }
@@ -924,7 +937,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
-	// Step 1. commit all data tries
+	// Step 1. commit all data tries. GetAll returns only the dirty tries for the dataTriesHolder implementation
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
 		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
@@ -932,7 +945,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 			return nil, err
 		}
 	}
-	adb.dataTries.Reset()
 
 	oldRoot := adb.mainTrie.GetOldRoot()
 

@@ -455,12 +455,14 @@ type FacadeConfig struct {
 
 // StateTriesConfig will hold information about state tries
 type StateTriesConfig struct {
-	SnapshotsEnabled            bool
-	AccountsStatePruningEnabled bool
-	PeerStatePruningEnabled     bool
-	MaxStateTrieLevelInMemory   uint
-	MaxPeerTrieLevelInMemory    uint
-	StateStatisticsEnabled      bool
+	SnapshotsEnabled             bool
+	AccountsStatePruningEnabled  bool
+	PeerStatePruningEnabled      bool
+	StateStatisticsEnabled       bool
+	MaxUserTrieSizeInMemory      uint64
+	MaxPeerTrieSizeInMemory      uint64
+	DataTriesSizeInMemory        uint64
+	NumLeavesToCollapseSingleRun uint32
 }
 
 // StateAccessesCollectorConfig will hold information about state accesses collector

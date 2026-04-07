@@ -9,9 +9,8 @@ import (
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
-
-const maxTrieLevelInMemory = uint(5)
 
 func createAccountAdapter(
 	marshaller marshal.Marshalizer,
@@ -21,20 +20,21 @@ func createAccountAdapter(
 	addressConverter core.PubkeyConverter,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, maxTrieLevelInMemory)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	if err != nil {
 		return nil, err
 	}
 
 	args := state.ArgsAccountsDB{
-		Trie:                   tr,
-		Hasher:                 hasher,
-		Marshaller:             marshaller,
-		AccountFactory:         accountFactory,
-		StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:       addressConverter,
-		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
-		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		Trie:                     tr,
+		Hasher:                   hasher,
+		Marshaller:               marshaller,
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:         addressConverter,
+		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
+		MaxDataTriesSizeInMemory: common.TenMbSize,
 	}
 
 	adb, err := state.NewAccountsDB(args)

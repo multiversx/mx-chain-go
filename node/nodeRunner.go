@@ -653,7 +653,6 @@ func getUserAccountSyncer(
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
-	maxTrieLevelInMemory := config.StateTriesConfig.MaxStateTrieLevelInMemory
 	userTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	storageManager := userTrie.GetStorageManager()
 
@@ -669,7 +668,6 @@ func getUserAccountSyncer(
 			dataComponents,
 			processComponents,
 			storageManager,
-			maxTrieLevelInMemory,
 		),
 		ShardId:                bootstrapComponents.ShardCoordinator().SelfId(),
 		Throttler:              thr,
@@ -686,7 +684,6 @@ func getValidatorAccountSyncer(
 	stateComponents mainFactory.StateComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
-	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
 	peerTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	storageManager := peerTrie.GetStorageManager()
 
@@ -697,7 +694,6 @@ func getValidatorAccountSyncer(
 			dataComponents,
 			processComponents,
 			storageManager,
-			maxTrieLevelInMemory,
 		),
 	}
 
@@ -710,7 +706,6 @@ func getBaseAccountSyncerArgs(
 	dataComponents mainFactory.DataComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	storageManager common.StorageManager,
-	maxTrieLevelInMemory uint,
 ) syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
 		Hasher:                            coreComponents.Hasher(),
@@ -719,7 +714,6 @@ func getBaseAccountSyncerArgs(
 		RequestHandler:                    processComponents.RequestHandler(),
 		Timeout:                           common.TimeoutGettingTrieNodes,
 		Cacher:                            dataComponents.Datapool().TrieNodes(),
-		MaxTrieLevelInMemory:              maxTrieLevelInMemory,
 		MaxHardCapForMissingNodes:         config.TrieSync.MaxHardCapForMissingNodes,
 		TrieSyncerVersion:                 config.TrieSync.TrieSyncerVersion,
 		CheckNodesOnDisk:                  true,

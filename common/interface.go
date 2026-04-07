@@ -59,6 +59,7 @@ type Trie interface {
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager
 	IsMigratedToLatestVersion() (bool, error)
+	SizeInMemory() int
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -151,9 +152,10 @@ type SnapshotDbHandler interface {
 // TriesHolder is used to store multiple tries
 type TriesHolder interface {
 	Put([]byte, Trie)
-	Replace(key []byte, tr Trie)
 	Get([]byte) Trie
 	GetAll() []Trie
+	Remove([]byte)
+	MarkAsDirty([]byte)
 	Reset()
 	IsInterfaceNil() bool
 }
@@ -525,5 +527,17 @@ type AOTSelectionPreempter interface {
 	// CancelOngoingSelection aborts ongoing AOT selection if one is in progress
 	// Called before OnProposed/OnExecuted to avoid conflicts
 	CancelOngoingSelection()
+	IsInterfaceNil() bool
+}
+
+// TrieCollapseManager defines the behavior of a trie collapse manager
+type TrieCollapseManager interface {
+	MarkKeyAsAccessed(key []byte, sizeLoadedInMemory int)
+	RemoveKey(key []byte, sizeLoadedInMemory int)
+	ShouldCollapseTrie() bool
+	GetCollapsibleLeaves() ([][]byte, error)
+	AddSizeInMemory(size int)
+	GetSizeInMemory() int
+	CloneWithoutState() TrieCollapseManager
 	IsInterfaceNil() bool
 }

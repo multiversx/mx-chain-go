@@ -207,7 +207,7 @@ func TestTrieStorageManager_RemoveFromAllActiveEpochs(t *testing.T) {
 
 	RemoveFromAllActiveEpochsCalled := false
 	args := trie.GetDefaultTrieStorageManagerParameters()
-	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+	args.MainStorer = &storage.SnapshotPruningStorerStub{
 		MemDbMock: testscommon.NewMemDbMock(),
 		RemoveFromAllActiveEpochsCalled: func(key []byte) error {
 			RemoveFromAllActiveEpochsCalled = true
@@ -237,7 +237,7 @@ func TestTrieStorageManager_PutInEpoch(t *testing.T) {
 
 	putInEpochCalled := false
 	args := trie.GetDefaultTrieStorageManagerParameters()
-	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+	args.MainStorer = &storage.SnapshotPruningStorerStub{
 		MemDbMock: testscommon.NewMemDbMock(),
 		PutInEpochCalled: func(key []byte, data []byte, epoch uint32) error {
 			putInEpochCalled = true
@@ -268,7 +268,7 @@ func TestTrieStorageManager_GetLatestStorageEpoch(t *testing.T) {
 
 	getLatestSorageCalled := false
 	args := trie.GetDefaultTrieStorageManagerParameters()
-	args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+	args.MainStorer = &storage.SnapshotPruningStorerStub{
 		MemDbMock: testscommon.NewMemDbMock(),
 		GetLatestStorageEpochCalled: func() (uint32, error) {
 			getLatestSorageCalled = true
@@ -384,7 +384,7 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		args.MainStorer = &storage.SnapshotPruningStorerStub{
 			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
 				return []byte(common.TrieSyncedVal), nil
 			},
@@ -398,7 +398,7 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		args.MainStorer = &storage.SnapshotPruningStorerStub{
 			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
 				return []byte("invalid marker"), nil
 			},
@@ -412,7 +412,7 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		args.MainStorer = &storage.SnapshotPruningStorerStub{
 			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
 				return nil, expectedErr // isTrieSynced returns false
 			},
@@ -477,7 +477,7 @@ func TestNewSnapshotTrieStorageManager_GetFromCurrentEpoch(t *testing.T) {
 
 		getFromCurrentEpochCalled := false
 		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.MainStorer = &trieMock.SnapshotPruningStorerStub{
+		args.MainStorer = &storage.SnapshotPruningStorerStub{
 			MemDbMock: testscommon.NewMemDbMock(),
 			GetFromCurrentEpochCalled: func(_ []byte) ([]byte, error) {
 				getFromCurrentEpochCalled = true
