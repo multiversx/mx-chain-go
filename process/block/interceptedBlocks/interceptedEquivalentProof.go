@@ -162,8 +162,8 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 	}
 
 	if !check.IfNil(header) &&
-		header.GetRound() != iep.proof.GetHeaderRound() &&
-		header.GetNonce() != iep.proof.GetHeaderNonce() &&
+		header.GetRound() != iep.proof.GetHeaderRound() ||
+		header.GetNonce() != iep.proof.GetHeaderNonce() ||
 		header.GetEpoch() != iep.proof.GetHeaderEpoch() {
 		return fmt.Errorf("%w header round = %d, proof round = %d header epoch = %d, proof epoch = %d",
 			ErrInvalidProof,
