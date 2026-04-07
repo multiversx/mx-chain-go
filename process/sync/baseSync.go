@@ -283,7 +283,11 @@ func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.Heade
 
 		if hasProof {
 			boot.chRcvHdrNonce <- true
+			return
 		}
+
+		boot.requestHandler.SetEpoch(headerHandler.GetEpoch())
+		boot.requestHandler.RequestEquivalentProofByHash(headerHandler.GetShardID(), hdrHash)
 
 		return
 	}
@@ -329,7 +333,11 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 
 		if hasProof {
 			boot.chRcvHdrHash <- true
+			return
 		}
+
+		boot.requestHandler.SetEpoch(headerHandler.GetEpoch())
+		boot.requestHandler.RequestEquivalentProofByHash(headerHandler.GetShardID(), hdrHash)
 
 		return
 	}
