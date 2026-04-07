@@ -63,16 +63,16 @@ func (dth *dataTriesHolder) putNoLock(key []byte, tr common.Trie) {
 		return
 	}
 
+	dth.clearFromEvictedBuffer(key)
+
 	keyString := string(key)
-
-	if len(dth.evictedBuffer) > 0 {
-		// this means that this trie was evicted while being dirty
-		delete(dth.evictedBuffer, keyString)
-	}
-
 	evicted := dth.cacher.AddSizedAndReturnEvicted(keyString, tr, int64(tr.SizeInMemory()))
 	dth.dirtyTries[keyString] = struct{}{}
 	dth.touchedTries[keyString] = struct{}{}
+
+	if log.GetLevel() == logger.LogTrace {
+		log.Trace("put trie in data tries holder", "key", key, "trieSize", tr.SizeInMemory(), "totalCacheSize", dth.cacher.SizeInBytesContained())
+	}
 
 	if len(evicted) == 0 {
 		return
@@ -84,6 +84,8 @@ func (dth *dataTriesHolder) putNoLock(key []byte, tr common.Trie) {
 			log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", evictedKey))
 			continue
 		}
+		log.Trace("trie evicted from dataTriesHolder cache", "key", []byte(evictedKeyString))
+
 		_, ok = dth.dirtyTries[evictedKeyString]
 		if !ok {
 			continue
@@ -94,8 +96,24 @@ func (dth *dataTriesHolder) putNoLock(key []byte, tr common.Trie) {
 			log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", evictedValue))
 			continue
 		}
+		log.Trace("storing evicted dirty trie in evicted buffer", "key", []byte(evictedKeyString))
 		dth.evictedBuffer[evictedKeyString] = evictedTrie
 	}
+}
+
+func (dth *dataTriesHolder) clearFromEvictedBuffer(key []byte) {
+	if len(dth.evictedBuffer) == 0 {
+		return
+	}
+
+	_, ok := dth.evictedBuffer[string(key)]
+	if !ok {
+		return
+	}
+
+	// this means that this trie was evicted while being dirty
+	delete(dth.evictedBuffer, string(key))
+	log.Trace("removed trie from evicted buffer", "key", key)
 }
 
 // Get returns the trie pointer that is stored in the map at the given key
@@ -114,9 +132,11 @@ func (dth *dataTriesHolder) Get(key []byte) common.Trie {
 		// maybe it was evicted while being dirty
 		evictedTr, exists := dth.evictedBuffer[keyString]
 		if !exists {
+			log.Trace("trie not found in data tries holder", "key", key)
 			return nil
 		}
 
+		log.Trace("trie found in evicted buffer of data tries holder, cancel eviction", "key", key)
 		delete(dth.evictedBuffer, keyString)
 		dth.putNoLock(key, evictedTr)
 		return evictedTr
@@ -128,6 +148,7 @@ func (dth *dataTriesHolder) Get(key []byte) common.Trie {
 		log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", val))
 		return nil
 	}
+	log.Trace("trie found in data tries holder cache", "key", key)
 
 	return tr
 }
@@ -144,11 +165,13 @@ func (dth *dataTriesHolder) GetAll() []common.Trie {
 		if check.IfNil(tr) {
 			continue
 		}
+		log.Trace("getting dirty trie from data tries holder", "key", []byte(keyString))
 		tries = append(tries, tr)
 	}
 	dth.dirtyTries = make(map[string]struct{})
 	dth.evictedBuffer = make(map[string]common.Trie)
 	dth.recomputeTotalSize()
+	log.Trace("data tries holder returned all dirty tries", "numTries", len(tries), "totalCacheSize", dth.cacher.SizeInBytesContained())
 	return tries
 }
 
@@ -191,10 +214,40 @@ func (dth *dataTriesHolder) recomputeTotalSize() {
 	dth.touchedTries = make(map[string]struct{})
 }
 
+// Remove evicts the trie associated with the given key from the holder.
+// This must be called when an account is deleted so that a subsequent recreation
+// of the same account does not inherit the stale data trie from the previous incarnation.
+func (dth *dataTriesHolder) Remove(key []byte) {
+	if len(key) == 0 {
+		return
+	}
+
+	dth.mutex.Lock()
+	defer dth.mutex.Unlock()
+
+	keyString := string(key)
+	dth.cacher.Remove(keyString)
+	delete(dth.dirtyTries, keyString)
+	delete(dth.touchedTries, keyString)
+	delete(dth.evictedBuffer, keyString)
+	log.Trace("removed trie from data tries holder", "key", key)
+}
+
 // Reset clears the tries map
 func (dth *dataTriesHolder) Reset() {
 	dth.mutex.Lock()
 	dth.reset()
+	log.Trace("data tries holder reset")
+	dth.mutex.Unlock()
+}
+
+// MarkAsDirty marks the trie at the given key as dirty
+func (dth *dataTriesHolder) MarkAsDirty(key []byte) {
+	dth.mutex.Lock()
+	stringKey := string(key)
+	dth.dirtyTries[stringKey] = struct{}{}
+	dth.touchedTries[stringKey] = struct{}{}
+	log.Trace("marked trie as dirty in data tries holder", "key", key)
 	dth.mutex.Unlock()
 }
 

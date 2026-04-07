@@ -154,6 +154,8 @@ type TriesHolder interface {
 	Put([]byte, Trie)
 	Get([]byte) Trie
 	GetAll() []Trie
+	Remove([]byte)
+	MarkAsDirty([]byte)
 	Reset()
 	IsInterfaceNil() bool
 }

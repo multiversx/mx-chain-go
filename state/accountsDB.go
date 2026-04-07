@@ -560,16 +560,17 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*state
 	accountHandler.SetRootHash(rootHash)
 	log.Trace("saveDataTrie: rootHash changed", "address", accountHandler.AddressBytes(), "rootHash", rootHash)
 
-	if check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
-		trie, ok := accountHandler.DataTrie().(common.Trie)
-		if !ok {
-			log.Warn("wrong type conversion", "trie type", fmt.Sprintf("%T", accountHandler.DataTrie()))
-			return nil, nil
-		}
-
-		adb.dataTries.Put(accountHandler.AddressBytes(), trie)
+	if !check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
+		adb.dataTries.MarkAsDirty(accountHandler.AddressBytes())
+		return newValues, nil
 	}
 
+	trie, ok := accountHandler.DataTrie().(common.Trie)
+	if !ok {
+		return nil, fmt.Errorf("wrong type conversion, trie type %T", accountHandler.DataTrie())
+	}
+
+	adb.dataTries.Put(accountHandler.AddressBytes(), trie)
 	return newValues, nil
 }
 
@@ -677,6 +678,11 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 		return err
 	}
 	adb.journalize(entry)
+
+	// Evict the cached trie for this address so that a subsequent recreation of
+	// the account at the same address cannot inherit the stale data trie from
+	// this deleted incarnation (see loadDataTrieConcurrentSafe / saveDataTrie).
+	adb.dataTries.Remove(baseAcc.AddressBytes())
 
 	return nil
 }
@@ -939,7 +945,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 			return nil, err
 		}
 	}
-	adb.dataTries.Reset()
 
 	oldRoot := adb.mainTrie.GetOldRoot()
 

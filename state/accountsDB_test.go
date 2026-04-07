@@ -746,6 +746,55 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 	assert.Equal(t, 2, adb.JournalLen())
 }
 
+func TestAccountsDB_RemoveAccountCommitAndRecreateSameAddressShouldNotReuseOldDataTrie(t *testing.T) {
+	t.Parallel()
+
+	_, adb := getDefaultTrieAndAccountsDb()
+	address := generateRandomByteArray(32)
+	oldKey := []byte("old-key")
+	oldValue := []byte("old-value")
+	newKey := []byte("new-key")
+	newValue := []byte("new-value")
+
+	acc, err := adb.LoadAccount(address)
+	require.NoError(t, err)
+	userAcc := acc.(state.UserAccountHandler)
+
+	err = userAcc.SaveKeyValue(oldKey, oldValue)
+	require.NoError(t, err)
+	err = adb.SaveAccount(userAcc)
+	require.NoError(t, err)
+	_, err = adb.Commit()
+	require.NoError(t, err)
+
+	err = adb.RemoveAccount(address)
+	require.NoError(t, err)
+	_, err = adb.Commit()
+	require.NoError(t, err)
+
+	acc, err = adb.LoadAccount(address)
+	require.NoError(t, err)
+	userAcc = acc.(state.UserAccountHandler)
+	err = userAcc.SaveKeyValue(newKey, newValue)
+	require.NoError(t, err)
+	err = adb.SaveAccount(userAcc)
+	require.NoError(t, err)
+	_, err = adb.Commit()
+	require.NoError(t, err)
+
+	acc, err = adb.LoadAccount(address)
+	require.NoError(t, err)
+	userAcc = acc.(state.UserAccountHandler)
+
+	val, _, err := userAcc.RetrieveValue(oldKey)
+	require.NoError(t, err)
+	assert.Len(t, val, 0)
+
+	val, _, err = userAcc.RetrieveValue(newKey)
+	require.NoError(t, err)
+	assert.Equal(t, newValue, val)
+}
+
 // ------- LoadAccount
 
 func TestAccountsDB_LoadAccountMalfunctionTrieShouldErr(t *testing.T) {
