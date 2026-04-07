@@ -5,7 +5,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
@@ -24,6 +23,7 @@ type interceptedShardHeaderDataFactory struct {
 	epochStartTrigger             process.EpochStartTriggerHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	proofsPool                    process.ProofsPool
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -72,6 +72,7 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		epochStartTrigger:             argument.EpochStartTrigger,
 		enableEpochsHandler:           argument.CoreComponents.EnableEpochsHandler(),
 		epochChangeGracePeriodHandler: argument.CoreComponents.EpochChangeGracePeriodHandler(),
+		proofsPool:                    argument.ProofsPool,
 	}, nil
 }
 
@@ -88,6 +89,7 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte, _ core.PeerI
 		EpochStartTrigger:             ishdf.epochStartTrigger,
 		EnableEpochsHandler:           ishdf.enableEpochsHandler,
 		EpochChangeGracePeriodHandler: ishdf.epochChangeGracePeriodHandler,
+		ProofsPool:                    ishdf.proofsPool,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

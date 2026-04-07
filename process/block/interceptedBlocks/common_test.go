@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
@@ -31,6 +32,7 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
 		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EpochChangeGracePeriodHandler: gracePeriod,
+		ProofsPool:                    &dataRetriever.ProofsPoolMock{},
 	}
 
 	return arg
@@ -177,6 +179,17 @@ func TestCheckBlockHeaderArgument_NilEnableEpochsHandlerShouldErr(t *testing.T) 
 	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestCheckBlockHeaderArgument_NilProofsPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.ProofsPool = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilProofsPool, err)
 }
 
 func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {

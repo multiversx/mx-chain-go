@@ -104,6 +104,7 @@ func NewShardInterceptorsContainerFactory(
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
 		PeerID:                       args.MainMessenger.ID(),
+		ProofsPool:                   args.DataPool.Proofs(),
 	}
 
 	base := &baseInterceptorsContainerFactory{

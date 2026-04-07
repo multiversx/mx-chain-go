@@ -21,4 +21,5 @@ type ArgInterceptedBlockHeader struct {
 	EpochStartTrigger             process.EpochStartTriggerHandler
 	EnableEpochsHandler           common.EnableEpochsHandler
 	EpochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	ProofsPool                    process.ProofsPool
 }

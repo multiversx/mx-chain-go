@@ -1,6 +1,8 @@
 package interceptedBlocks
 
 import (
+	"bytes"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -58,6 +60,9 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	}
 	if check.IfNil(arg.EpochChangeGracePeriodHandler) {
 		return process.ErrNilEpochChangeGracePeriodHandler
+	}
+	if check.IfNil(arg.ProofsPool) {
+		return process.ErrNilProofsPool
 	}
 
 	return nil
@@ -192,6 +197,23 @@ func checkMiniBlocksHeaders(mbHeaders []data.MiniBlockHeaderHandler, coordinator
 		if len(mbHeader.GetReserved()) > maxLenMiniBlockHeaderReservedField {
 			return process.ErrReservedFieldInvalid
 		}
+	}
+
+	return nil
+}
+
+func checkExistingProofForHeader(
+	proofsPool process.ProofsPool,
+	header data.HeaderHandler,
+	headerHash []byte,
+) error {
+	proof, err := proofsPool.GetProofByNonce(header.GetNonce(), header.GetShardID())
+	if err != nil {
+		return nil // proof does not exist, keep header
+	}
+
+	if !bytes.Equal(proof.GetHeaderHash(), headerHash) {
+		return ErrProofAlreadyExistsForNonce
 	}
 
 	return nil

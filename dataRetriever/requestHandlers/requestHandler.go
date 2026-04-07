@@ -37,16 +37,17 @@ const uniqueEquivalentProofSuffix = "eqp"
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
 type resolverRequestHandler struct {
-	mutEpoch              sync.RWMutex
-	epoch                 uint32
-	shardID               uint32
-	maxTxsToRequest       int
-	requestersFinder      dataRetriever.RequestersFinder
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
-	whiteList             dataRetriever.WhiteListHandler
-	sweepTime             time.Time
-	requestInterval       time.Duration
-	mutSweepTime          sync.Mutex
+	mutEpoch                 sync.RWMutex
+	epoch                    uint32
+	shardID                  uint32
+	maxTxsToRequest          int
+	requestersFinder         dataRetriever.RequestersFinder
+	requestedItemsHandler    dataRetriever.RequestedItemsHandler
+	whiteList                dataRetriever.WhiteListHandler
+	sweepTime                time.Time
+	requestInterval          time.Duration
+	requestProofByNonceDelay time.Duration
+	mutSweepTime             sync.Mutex
 
 	trieHashesAccumulator map[string]struct{}
 	lastTrieRequestTime   time.Time
@@ -61,6 +62,7 @@ func NewResolverRequestHandler(
 	maxTxsToRequest int,
 	shardID uint32,
 	requestInterval time.Duration,
+	requestProofByNonceDelay time.Duration,
 ) (*resolverRequestHandler, error) {
 
 	if check.IfNil(finder) {
@@ -80,14 +82,15 @@ func NewResolverRequestHandler(
 	}
 
 	rrh := &resolverRequestHandler{
-		requestersFinder:      finder,
-		requestedItemsHandler: requestedItemsHandler,
-		epoch:                 uint32(0), // will be updated after creation of the request handler
-		shardID:               shardID,
-		maxTxsToRequest:       maxTxsToRequest,
-		whiteList:             whiteList,
-		requestInterval:       requestInterval,
-		trieHashesAccumulator: make(map[string]struct{}),
+		requestersFinder:         finder,
+		requestedItemsHandler:    requestedItemsHandler,
+		epoch:                    uint32(0), // will be updated after creation of the request handler
+		shardID:                  shardID,
+		maxTxsToRequest:          maxTxsToRequest,
+		whiteList:                whiteList,
+		requestInterval:          requestInterval,
+		requestProofByNonceDelay: requestProofByNonceDelay,
+		trieHashesAccumulator:    make(map[string]struct{}),
 	}
 
 	rrh.sweepTime = time.Now()
@@ -914,47 +917,56 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 
 // RequestEquivalentProofByNonce asks for equivalent proof for the provided header nonce
 func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64) {
-	key := common.GetEquivalentProofNonceShardKey(headerNonce, headerShard)
-	if !rrh.testIfRequestIsNeeded([]byte(key), uniqueEquivalentProofSuffix) {
-		return
-	}
-
 	epoch := rrh.getEpoch()
-	log.Debug("requesting equivalent proof by nonce from network",
-		"headerNonce", headerNonce,
-		"headerShard", headerShard,
-		"epoch", epoch,
-	)
+	rrh.RequestEquivalentProofByNonceForEpoch(headerShard, headerNonce, epoch)
+}
 
-	requester, err := rrh.getEquivalentProofsRequester(headerShard)
-	if err != nil {
-		log.Error("RequestEquivalentProofByNonce.getEquivalentProofsRequester",
-			"error", err.Error(),
-			"headerNonce", headerNonce,
-		)
-		return
-	}
+// RequestEquivalentProofByNonceForEpoch asks for equivalent proof for the provided header nonce and epoch
+func (rrh *resolverRequestHandler) RequestEquivalentProofByNonceForEpoch(headerShard uint32, headerNonce uint64, epoch uint32) {
+	go func(requestEpoch uint32) {
+		key := common.GetEquivalentProofNonceShardKey(headerNonce, headerShard)
+		if !rrh.testIfRequestIsNeeded([]byte(key), uniqueEquivalentProofSuffix) {
+			return
+		}
 
-	proofsRequester, ok := requester.(EquivalentProofsRequester)
-	if !ok {
-		log.Warn("wrong assertion type when creating equivalent proofs requester")
-		return
-	}
+		time.Sleep(rrh.requestProofByNonceDelay)
 
-	rrh.whiteList.Add([][]byte{[]byte(key)})
-
-	err = proofsRequester.RequestDataFromNonce([]byte(key), epoch)
-	if err != nil {
-		log.Debug("RequestEquivalentProofByNonce.RequestDataFromNonce",
-			"error", err.Error(),
+		log.Debug("requesting equivalent proof by nonce from network",
 			"headerNonce", headerNonce,
 			"headerShard", headerShard,
 			"epoch", epoch,
 		)
-		return
-	}
 
-	rrh.addRequestedItems([][]byte{[]byte(key)}, uniqueEquivalentProofSuffix)
+		requester, err := rrh.getEquivalentProofsRequester(headerShard)
+		if err != nil {
+			log.Error("RequestEquivalentProofByNonceForEpoch.getEquivalentProofsRequester",
+				"error", err.Error(),
+				"headerNonce", headerNonce,
+			)
+			return
+		}
+
+		proofsRequester, ok := requester.(EquivalentProofsRequester)
+		if !ok {
+			log.Warn("wrong assertion type when creating equivalent proofs requester")
+			return
+		}
+
+		rrh.whiteList.Add([][]byte{[]byte(key)})
+
+		err = proofsRequester.RequestDataFromNonce([]byte(key), epoch)
+		if err != nil {
+			log.Debug("RequestEquivalentProofByNonceForEpoch.RequestDataFromNonce",
+				"error", err.Error(),
+				"headerNonce", headerNonce,
+				"headerShard", headerShard,
+				"epoch", epoch,
+			)
+			return
+		}
+
+		rrh.addRequestedItems([][]byte{[]byte(key)}, uniqueEquivalentProofSuffix)
+	}(epoch)
 }
 
 func (rrh *resolverRequestHandler) getEquivalentProofsRequester(headerShard uint32) (dataRetriever.Requester, error) {

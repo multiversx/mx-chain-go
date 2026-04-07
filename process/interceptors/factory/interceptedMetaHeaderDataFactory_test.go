@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
@@ -114,6 +115,7 @@ func createMockArgMetaHeaderFactoryArgument(
 			SignaturesHandler:            &processMocks.SignaturesHandlerStub{},
 			HeartbeatExpiryTimespanInSec: 30,
 			PeerID:                       "pid",
+			ProofsPool:                   &dataRetriever.ProofsPoolMock{},
 		},
 	}
 }
@@ -138,6 +140,7 @@ func createMockArgument(
 		SignaturesHandler:            &processMocks.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerID:                       "pid",
+		ProofsPool:                   &dataRetriever.ProofsPoolMock{},
 	}
 }
 
