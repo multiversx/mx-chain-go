@@ -58,6 +58,8 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.roundHandler = t.roundHandler
 	rt.enableEpochsHandler = t.enableEpochsHandler
 	rt.epochStartConfigsHandler = t.epochStartConfigsHandler
+	rt.chanMetaBlockReceived = t.chanMetaBlockReceived
+	rt.mapPreparedEpochStartHdrs = t.mapPreparedEpochStartHdrs
 	return rt
 }
 
@@ -72,7 +74,9 @@ func createDummyEpochStartTriggers(arguments *ArgsShardEpochStartTrigger, key []
 	epochStartTrigger1.currentRoundIndex = 800
 	epochStartTrigger1.epochStartRound = 650
 	epochStartTrigger1.epochMetaBlockHash = []byte("meta block hash")
+	epochStartTrigger1.mutTrigger.Lock()
 	epochStartTrigger1.isEpochStart = false
+	epochStartTrigger1.mutTrigger.Unlock()
 	epochStartTrigger1.epochFinalityAttestingRound = 680
 	epochStartTrigger1.cancelFunc = nil
 	epochStartTrigger1.epochStartShardHeader = &block.Header{}

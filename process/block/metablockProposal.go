@@ -241,8 +241,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	// TODO: analyse if it should be enforced that execution results on start of epoch block include only start of epoch execution results
-	err = mp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
+	err = mp.waitForExecutionResultsVerification(header, haveTime)
 	if err != nil {
 		return err
 	}
@@ -309,7 +308,9 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, process.ErrInvalidHeader
 	}
 
-	mp.processStatusHandler.SetBusy("metaProcessor.ProcessBlockProposal")
+	if !mp.processStatusHandler.TrySetBusy("metaProcessor.ProcessBlockProposal") {
+		return nil, process.ErrBlockProcessorBusy
+	}
 	defer mp.processStatusHandler.SetIdle()
 
 	mp.roundNotifier.CheckRound(headerHandler)
@@ -441,6 +442,8 @@ func (mp *metaProcessor) CommitBlockProposalState(headerHandler data.HeaderHandl
 	if check.IfNil(headerHandler) {
 		return process.ErrNilBlockHeader
 	}
+
+	mp.cleanupDismissedEWLEntries()
 
 	err := mp.commitState(headerHandler)
 	if err != nil {

@@ -272,10 +272,8 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		}
 
 		proofSent, err := sr.sendProof()
-		shouldWaitForMoreSignatures := errors.Is(err, spos.ErrInvalidNumSigShares)
-		// if not enough valid signatures were detected, wait a bit more
-		// either more signatures will be received, either proof from another participant
-		if shouldWaitForMoreSignatures {
+		// Not enough valid signatures: wait for more or for a proof from another participant
+		if errors.Is(err, spos.ErrInvalidNumSigShares) {
 			continue
 		}
 
@@ -389,6 +387,11 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 		return false, err
 	}
 
+	// Re-check grace period after aggregation which may have been slow under CPU contention
+	if !sr.shouldSendProof() {
+		return false, nil
+	}
+
 	// broadcast header proof
 	err = sr.createAndBroadcastProof(sig, bitmap, currentSender)
 	if err != nil && !errors.Is(err, ErrProofAlreadyPropagated) {
@@ -400,6 +403,20 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 }
 
 func (sr *subroundEndRound) shouldSendProof() bool {
+	// Allow proof sending with a grace period into the next round so the proof can
+	// reach nodes delaying before signing a competing block (equivocation prevention).
+	consensusRoundStart := sr.GetRoundTimeStamp()
+	roundDuration := sr.RoundHandler().TimeDuration()
+	graceDuration := time.Duration(float64(roundDuration) * competingProofSendDelay)
+	maxDuration := roundDuration + graceDuration
+	remaining := sr.RoundHandler().RemainingTime(consensusRoundStart, maxDuration)
+	if remaining <= 0 {
+		log.Debug("shouldSendProof: grace period expired, not sending proof",
+			"consensus round", sr.GetRoundIndex(),
+			"current round", sr.RoundHandler().Index())
+		return false
+	}
+
 	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		log.Debug("shouldSendProof: equivalent message already processed")
 		return false

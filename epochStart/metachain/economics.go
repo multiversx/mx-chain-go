@@ -542,7 +542,7 @@ func (e *economics) computeInflationRateAfterSupernova(currentTimestampMs uint64
 	}
 
 	if currentTimestampMs < genesisTimestamp {
-		return 1 // years index are defined starting from 1
+		return e.rewardsHandler.MaxInflationRate(1, epoch) // years index are defined starting from 1
 	}
 
 	yearsIndex := (currentTimestampMs-genesisTimestamp)/numberOfMillisecondsInYear + 1
@@ -591,6 +591,11 @@ func (e *economics) computeInflationForEpoch(
 	inflationRatePerDay := inflationRate / numberOfDaysInYear
 	roundsPerDay := common.ComputeRoundsPerDay(roundDuration, e.enableEpochsHandler, epoch)
 	maxBlocksInADay := core.MaxUint64(1, roundsPerDay*uint64(e.shardCoordinator.NumberOfShards()+1))
+
+	if maxBlocksInADay == 0 {
+		log.Warn("computeInflationForEpoch: max block in a day is zero, return inflation rate directly")
+		return inflationRate
+	}
 
 	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
 

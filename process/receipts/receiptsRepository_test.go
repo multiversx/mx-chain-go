@@ -213,19 +213,19 @@ func TestReceiptsRepository_LoadReceipts(t *testing.T) {
 	_ = store.Put(dataRetriever.ReceiptsUnit, nonEmptyReceiptsHash, receiptsAtKeyReceiptsHashBytes)
 
 	t.Run("when header.GetReceiptsHash() == emptyReceiptsHash", func(t *testing.T) {
-		loaded, err := repository.LoadReceipts(&block.Header{ReceiptsHash: emptyReceiptsHash}, headerHash)
+		loaded, err := repository.LoadReceipts(emptyReceiptsHash, &block.Header{ReceiptsHash: emptyReceiptsHash}, headerHash)
 		require.Nil(t, err)
 		require.Equal(t, receiptsAtKeyHeaderHash, loaded)
 	})
 
 	t.Run("when header.GetReceiptsHash() != emptyReceiptsHash", func(t *testing.T) {
-		loaded, err := repository.LoadReceipts(&block.Header{ReceiptsHash: nonEmptyReceiptsHash}, headerHash)
+		loaded, err := repository.LoadReceipts(nonEmptyReceiptsHash, &block.Header{ReceiptsHash: nonEmptyReceiptsHash}, headerHash)
 		require.Nil(t, err)
 		require.Equal(t, receiptsAtKeyReceiptsHash, loaded)
 	})
 
 	t.Run("when no receipts for given header", func(t *testing.T) {
-		loadedHolder, err := repository.LoadReceipts(&block.Header{ReceiptsHash: emptyReceiptsHash}, []byte("abba"))
+		loadedHolder, err := repository.LoadReceipts(emptyReceiptsHash, &block.Header{ReceiptsHash: emptyReceiptsHash}, []byte("abba"))
 		require.Nil(t, err)
 		require.Equal(t, createEmptyReceiptsHolder(), loadedHolder)
 	})
@@ -261,7 +261,7 @@ func TestReceiptsRepository_NoPanicOnSaveOrLoadWhenBadStorage(t *testing.T) {
 
 	t.Run("load from bad storage", func(t *testing.T) {
 		header := &block.Header{ReceiptsHash: []byte("aaaa")}
-		loaded, err := repository.LoadReceipts(header, []byte("bbbb"))
+		loaded, err := repository.LoadReceipts(header.ReceiptsHash, header, []byte("bbbb"))
 		require.NotNil(t, err)
 		require.ErrorIs(t, err, errCannotLoadReceipts)
 		require.Nil(t, loaded)

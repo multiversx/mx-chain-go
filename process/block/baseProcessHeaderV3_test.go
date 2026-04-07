@@ -653,6 +653,14 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 						},
 					}, nil
 				},
+				PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
+					if unitType == dataRetriever.ExecutionResultsUnit {
+						cntPutCalled++
+						return nil
+					}
+
+					return nil
+				},
 			},
 			dataPool: &dataRetrieverMock.PoolsHolderStub{
 				PostProcessTransactionsCalled: func() storage.Cacher {
@@ -711,7 +719,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 		err := bp.saveExecutedData(header)
 		require.NoError(t, err)
 		require.False(t, wasRemoveCalledForTxs)
-		require.Equal(t, 4, cntPutCalled) // 3 types of tx blocks + one for mbs
+		require.Equal(t, 5, cntPutCalled) // 3 types of tx blocks + one for mbs + one for exec result
 	})
 }
 
@@ -861,4 +869,48 @@ func TestBaseProcessor_setCurrentBlockInfoV3CallsCleanOnConsensusReached(t *test
 		require.True(t, setHeaderCalled)
 		require.Equal(t, uint64(10), receivedNonce)
 	})
+}
+
+func TestBaseProcessor_saveExecutionResult(t *testing.T) {
+	t.Parallel()
+
+	cntPutCalled := 0
+
+	bp := &baseProcessor{
+		marshalizer: &marshallerMock.MarshalizerMock{},
+		store: &commonStorage.ChainStorerStub{
+			PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
+				if unitType == dataRetriever.ExecutionResultsUnit {
+					cntPutCalled++
+					return nil
+				}
+
+				return nil
+			},
+		},
+	}
+
+	execRes := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderNonce: 1,
+			HeaderRound: 2,
+		},
+	}
+
+	err := bp.SaveExecutionResult(execRes)
+	require.NoError(t, err)
+
+	execResMeta := &block.MetaExecutionResult{
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 1,
+				HeaderRound: 2,
+			},
+		},
+	}
+
+	err = bp.SaveExecutionResult(execResMeta)
+	require.NoError(t, err)
+
+	require.Equal(t, 2, cntPutCalled)
 }

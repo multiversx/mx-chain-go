@@ -135,8 +135,8 @@ func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, 
 }
 
 // PruneTrieHeaderV3 -
-func (sp *shardProcessor) PruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
-	sp.pruneTrieHeaderV3(executionResultsHandlers)
+func (sp *shardProcessor) PruneTrieHeaderV3(header data.HeaderHandler) {
+	sp.pruneTrieHeaderV3(header)
 }
 
 // NewShardProcessorEmptyWith3shards -
@@ -1172,4 +1172,72 @@ func (bp *baseProcessor) ExcludeRevertedExecutionResultsForHeader(
 	pendingExecutionResults []data.BaseExecutionResultHandler,
 ) []data.BaseExecutionResultHandler {
 	return bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
+}
+
+// SaveExecutionResult -
+func (bp *baseProcessor) SaveExecutionResult(
+	execResult data.BaseExecutionResultHandler,
+) error {
+	return bp.saveExecutionResult(execResult)
+}
+
+// WaitForExecutionResultsVerification -
+func (bp *baseProcessor) WaitForExecutionResultsVerification(
+	header data.HeaderHandler,
+	haveTime func() time.Duration,
+) error {
+	return bp.waitForExecutionResultsVerification(header, haveTime)
+}
+
+// SetLastPrunedNonce -
+func (bp *baseProcessor) SetLastPrunedNonce(nonce uint64) {
+	bp.mutLastPrunedHeader.Lock()
+	bp.lastPrunedHeaderNonce = nonce
+	bp.mutLastPrunedHeader.Unlock()
+}
+
+// SetLastPrunedHash -
+func (bp *baseProcessor) SetLastPrunedHash(hash []byte) {
+	bp.mutLastPrunedHeader.Lock()
+	bp.lastPrunedHeaderHash = hash
+	bp.mutLastPrunedHeader.Unlock()
+}
+
+// GetLastPrunedHash -
+func (bp *baseProcessor) GetLastPrunedHash() []byte {
+	bp.mutLastPrunedHeader.RLock()
+	lastPrunedHeaderHash := bp.lastPrunedHeaderHash
+	bp.mutLastPrunedHeader.RUnlock()
+
+	return lastPrunedHeaderHash
+}
+
+// CleanupDismissedEWLEntries -
+func (bp *baseProcessor) CleanupDismissedEWLEntries() {
+	bp.cleanupDismissedEWLEntries()
+}
+
+// CheckEWLSizeAndReset -
+func (bp *baseProcessor) CheckEWLSizeAndReset() {
+	bp.checkEWLSizeAndReset()
+}
+
+// ComputeEWLResetThreshold -
+func ComputeEWLResetThreshold(maxProposalNonceGap uint64) int {
+	return computeEWLResetThreshold(maxProposalNonceGap)
+}
+
+// CancelPruneForRootHashTransition -
+func CancelPruneForRootHashTransition(accountsDb state.AccountsAdapter, prevRootHash, currentRootHash []byte) {
+	cancelPruneForRootHashTransition(accountsDb, prevRootHash, currentRootHash)
+}
+
+// CancelPruneForDismissedExecutionResults -
+func (sp *shardProcessor) CancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch) {
+	sp.cancelPruneForDismissedExecutionResults(batches)
+}
+
+// CancelPruneForDismissedExecutionResults -
+func (mp *metaProcessor) CancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch) {
+	mp.cancelPruneForDismissedExecutionResults(batches)
 }

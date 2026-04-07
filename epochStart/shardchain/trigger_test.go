@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -15,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -66,12 +70,12 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				}, nil
 			},
 		},
-		RequestHandler:           &testscommon.RequestHandlerStub{},
-		EpochStartNotifier:       &mock.EpochStartNotifierStub{},
-		PeerMiniBlocksSyncer:     &mock.ValidatorInfoSyncerStub{},
-		RoundHandler:             &mock.RoundHandlerStub{},
-		AppStatusHandler:         &statusHandlerMock.AppStatusHandlerStub{},
-		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		RequestHandler:       &testscommon.RequestHandlerStub{},
+		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
+		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
+		RoundHandler:         &mock.RoundHandlerStub{},
+		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 	}
 }
@@ -760,11 +764,11 @@ func TestTrigger_ReceivedHeaderChangeEpochWithoutPrevHeader(t *testing.T) {
 
 	epochStartTrigger.receivedMetaBlock(epochStartHeader, epochStartHash)
 
-	require.False(t, epochStartTrigger.isEpochStart)
+	require.False(t, epochStartTrigger.IsEpochStart())
 
 	epochStartTrigger.receivedMetaBlock(epochStartHeader, epochStartHash)
 
-	require.True(t, epochStartTrigger.isEpochStart)
+	require.True(t, epochStartTrigger.IsEpochStart())
 }
 
 func TestTrigger_ClearMissingValidatorsInfoMapShouldWork(t *testing.T) {
@@ -1060,5 +1064,337 @@ func TestTrigger_ReceivedProof(t *testing.T) {
 		})
 
 		require.True(t, wasCalled)
+	})
+}
+
+func TestTrigger_WatchdogRequestEpochStartMetaBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("fires after timeout", func(t *testing.T) {
+		t.Parallel()
+
+		var requestedEpoch atomic.Uint32
+		var called atomic.Int32
+		args := createMockShardEpochStartTriggerArguments()
+		args.RoundHandler = &mock.RoundHandlerStub{
+			TimeDurationCalled: func() time.Duration {
+				return 10 * time.Millisecond
+			},
+		}
+		args.Epoch = 5
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
+				requestedEpoch.Store(epoch)
+				called.Add(1)
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+
+		et, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = et.Close()
+		}()
+
+		time.Sleep(200 * time.Millisecond)
+
+		require.Greater(t, called.Load(), int32(0))
+		require.Equal(t, uint32(6), requestedEpoch.Load())
+	})
+
+	t.Run("resets timer on any metablock reception", func(t *testing.T) {
+		t.Parallel()
+
+		var called atomic.Int32
+		args := createMockShardEpochStartTriggerArguments()
+		args.RoundHandler = &mock.RoundHandlerStub{
+			TimeDurationCalled: func() time.Duration {
+				return 30 * time.Millisecond
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
+				called.Add(1)
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+
+		et, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = et.Close()
+		}()
+
+		for i := 0; i < 10; i++ {
+			select {
+			case et.chanMetaBlockReceived <- struct{}{}:
+			default:
+			}
+			time.Sleep(20 * time.Millisecond)
+		}
+
+		require.Equal(t, int32(0), called.Load())
+	})
+
+	t.Run("skips when epoch start already detected", func(t *testing.T) {
+		t.Parallel()
+
+		var called atomic.Int32
+		args := createMockShardEpochStartTriggerArguments()
+		args.RoundHandler = &mock.RoundHandlerStub{
+			TimeDurationCalled: func() time.Duration {
+				return 10 * time.Millisecond
+			},
+			IndexCalled: func() int64 {
+				return 100
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
+				called.Add(1)
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+
+		et, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = et.Close()
+		}()
+
+		et.mutTrigger.Lock()
+		et.isEpochStart = true
+		et.mutTrigger.Unlock()
+
+		time.Sleep(200 * time.Millisecond)
+
+		require.Equal(t, int32(0), called.Load())
+	})
+
+	t.Run("skips when Andromeda disabled", func(t *testing.T) {
+		t.Parallel()
+
+		var called atomic.Int32
+		args := createMockShardEpochStartTriggerArguments()
+		args.RoundHandler = &mock.RoundHandlerStub{
+			TimeDurationCalled: func() time.Duration {
+				return 10 * time.Millisecond
+			},
+			IndexCalled: func() int64 {
+				return 100
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
+				called.Add(1)
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+
+		et, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = et.Close()
+		}()
+
+		time.Sleep(200 * time.Millisecond)
+
+		require.Equal(t, int32(0), called.Load())
+	})
+
+	t.Run("stops on context cancellation", func(t *testing.T) {
+		t.Parallel()
+
+		var called atomic.Int32
+		args := createMockShardEpochStartTriggerArguments()
+		args.RoundHandler = &mock.RoundHandlerStub{
+			TimeDurationCalled: func() time.Duration {
+				return 10 * time.Millisecond
+			},
+			IndexCalled: func() int64 {
+				return 100
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
+				called.Add(1)
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+
+		et, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+
+		err = et.Close()
+		require.Nil(t, err)
+
+		calledBefore := called.Load()
+		time.Sleep(200 * time.Millisecond)
+
+		require.Equal(t, calledBefore, called.Load())
+	})
+
+	t.Run("does not start when TimeDuration is zero", func(t *testing.T) {
+		t.Parallel()
+
+		var called atomic.Int32
+		args := createMockShardEpochStartTriggerArguments()
+		args.RoundHandler = &mock.RoundHandlerStub{
+			TimeDurationCalled: func() time.Duration {
+				return 0
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
+				called.Add(1)
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+
+		et, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = et.Close()
+		}()
+
+		time.Sleep(100 * time.Millisecond)
+
+		require.Equal(t, int32(0), called.Load())
+	})
+
+	t.Run("receivedMetaBlock signals watchdog", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardEpochStartTriggerArguments()
+		// zero TimeDuration prevents the watchdog goroutine from starting
+		args.RoundHandler = &mock.RoundHandlerStub{
+			TimeDurationCalled: func() time.Duration {
+				return 0
+			},
+		}
+		et, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = et.Close()
+		}()
+
+		et.receivedMetaBlock(&block.MetaBlock{
+			Nonce: 10,
+			Round: 42,
+		}, []byte("hash"))
+
+		select {
+		case <-et.chanMetaBlockReceived:
+			// expected
+		default:
+			require.Fail(t, "channel should have been signaled")
+		}
+	})
+
+	t.Run("receivedMetaBlock requests proof when missing in Andromeda", func(t *testing.T) {
+		t.Parallel()
+
+		var proofRequested atomic.Int32
+		var requestedHashMut sync.Mutex
+		var requestedHash []byte
+		args := createMockShardEpochStartTriggerArguments()
+		args.Epoch = 5
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+				requestedHashMut.Lock()
+				requestedHash = headerHash
+				requestedHashMut.Unlock()
+				proofRequested.Add(1)
+			},
+		}
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{}
+			},
+			MiniBlocksCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vic.ValidatorInfoCacherStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{
+					GetProofCalled: func(_ uint32, _ []byte) (data.HeaderProofHandler, error) {
+						return nil, errors.New("proof not found")
+					},
+				}
+			},
+		}
+
+		et, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = et.Close()
+		}()
+
+		metaBlockHash := []byte("metablock-hash")
+		et.receivedMetaBlock(&block.MetaBlock{
+			Nonce:      10,
+			Round:      42,
+			Epoch:      6,
+			EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		}, metaBlockHash)
+
+		time.Sleep(50 * time.Millisecond)
+
+		require.Equal(t, int32(1), proofRequested.Load())
+		requestedHashMut.Lock()
+		require.Equal(t, metaBlockHash, requestedHash)
+		requestedHashMut.Unlock()
+
+		proofRequested.Store(0)
+		et.receivedMetaBlock(&block.MetaBlock{
+			Nonce: 11,
+			Round: 43,
+			Epoch: 6,
+		}, []byte("regular-metablock-hash"))
+
+		time.Sleep(50 * time.Millisecond)
+		require.Equal(t, int32(0), proofRequested.Load())
+
+		proofRequested.Store(0)
+		et.receivedMetaBlock(&block.MetaBlock{
+			Nonce:      5,
+			Round:      30,
+			Epoch:      5,
+			EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		}, []byte("old-epoch-start-hash"))
+
+		time.Sleep(50 * time.Millisecond)
+		require.Equal(t, int32(0), proofRequested.Load())
 	})
 }
