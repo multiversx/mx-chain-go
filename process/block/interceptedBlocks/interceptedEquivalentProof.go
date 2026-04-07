@@ -163,7 +163,7 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 
 	err = common.VerifyProofAgainstHeader(iep.proof, header)
 	if err != nil {
-		return fmt.Errorf("failed to verify proof agains header, %W", err)
+		return fmt.Errorf("failed to verify proof agains header, %w", err)
 	}
 
 	ok := iep.proofsPool.HasProof(iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash())

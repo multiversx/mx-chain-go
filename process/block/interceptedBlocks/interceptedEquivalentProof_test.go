@@ -244,7 +244,20 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 				return true
 			},
 		}
-
+		args.HeadersPool = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return providedNonce
+					},
+					GetShardIDCalled: func() uint32 {
+						return providedShard
+					},
+					EpochField: providedEpoch,
+					RoundField: providedRound,
+				}, nil
+			},
+		}
 		iep, err := NewInterceptedEquivalentProof(args)
 		require.NoError(t, err)
 
@@ -254,7 +267,22 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		iep, err := NewInterceptedEquivalentProof(createMockArgInterceptedEquivalentProof())
+		args := createMockArgInterceptedEquivalentProof()
+		args.HeadersPool = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return providedNonce
+					},
+					GetShardIDCalled: func() uint32 {
+						return providedShard
+					},
+					EpochField: providedEpoch,
+					RoundField: providedRound,
+				}, nil
+			},
+		}
+		iep, err := NewInterceptedEquivalentProof(args)
 		require.NoError(t, err)
 
 		err = iep.CheckValidity()
