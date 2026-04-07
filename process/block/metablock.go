@@ -2270,12 +2270,12 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 
 		mp.requestProofIfNeeded(shardData.HeaderHash, hdr)
 
-		if common.IsEpochChangeBlockForFlagActivation(hdr, mp.enableEpochsHandler, common.AndromedaFlag) {
-			continue
-		}
-
 		if hdr.GetNonce() > mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] {
 			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] = hdr.GetNonce()
+		}
+
+		if common.IsEpochChangeBlockForFlagActivation(hdr, mp.enableEpochsHandler, common.AndromedaFlag) {
+			continue
 		}
 
 		mp.updateLastNotarizedBlockForShard(hdr, shardData.HeaderHash)
