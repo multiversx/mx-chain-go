@@ -462,3 +462,82 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 }
+
+func TestTrigger_UpdateShouldNotStartEpochWithLessThanMinimumBlocks(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(0)
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.Settings.RoundsPerEpoch = 2
+	arguments.Settings.MinRoundsBetweenEpochs = 1
+	arguments.Epoch = epoch
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	require.Nil(t, err)
+
+	epochStartNonce := uint64(100)
+	epochStartRound := uint64(50)
+
+	// simulate an epoch start block already processed
+	epochStartTrigger.SetProcessed(&block.MetaBlock{
+		Nonce: epochStartNonce,
+		Round: epochStartRound,
+		Epoch: epoch,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}},
+		},
+	}, nil)
+	require.False(t, epochStartTrigger.IsEpochStart())
+	require.Equal(t, epoch, epochStartTrigger.Epoch())
+
+	// round condition is met but nonce is only epochStartNonce+1 (1 block in epoch)
+	// this should NOT trigger a new epoch because minimumBlocksPerEpoch = 2
+	nextRound := epochStartRound + uint64(arguments.Settings.RoundsPerEpoch) + 1
+	epochStartTrigger.Update(nextRound, epochStartNonce+1)
+	assert.False(t, epochStartTrigger.IsEpochStart(),
+		"epoch should not start with only 1 block in the current epoch")
+	assert.Equal(t, epoch, epochStartTrigger.Epoch())
+
+	// now with nonce = epochStartNonce+2 (2 blocks in epoch), it should trigger
+	epochStartTrigger.Update(nextRound+1, epochStartNonce+2)
+	assert.True(t, epochStartTrigger.IsEpochStart(),
+		"epoch should start once minimum blocks per epoch is reached")
+	assert.Equal(t, epoch+1, epochStartTrigger.Epoch())
+}
+
+func TestTrigger_ForceEpochStartShouldRespectMinimumBlocks(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(0)
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.Settings.RoundsPerEpoch = 200
+	arguments.Settings.MinRoundsBetweenEpochs = 20
+	arguments.Epoch = epoch
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	require.Nil(t, err)
+
+	epochStartNonce := uint64(500)
+	epochStartRound := uint64(1000)
+
+	// simulate an epoch start block already processed
+	epochStartTrigger.SetProcessed(&block.MetaBlock{
+		Nonce: epochStartNonce,
+		Round: epochStartRound,
+		Epoch: epoch,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}},
+		},
+	}, nil)
+
+	// force epoch start at round 1025
+	epochStartTrigger.ForceEpochStart(epochStartRound + 25)
+
+	// round condition met via force, but only 1 block since epoch start
+	epochStartTrigger.Update(epochStartRound+25, epochStartNonce+1)
+	assert.False(t, epochStartTrigger.IsEpochStart(),
+		"forced epoch should not start with only 1 block in the current epoch")
+
+	// with 2 blocks, the forced epoch start should proceed
+	epochStartTrigger.Update(epochStartRound+26, epochStartNonce+2)
+	assert.True(t, epochStartTrigger.IsEpochStart(),
+		"forced epoch should start once minimum blocks per epoch is reached")
+}
