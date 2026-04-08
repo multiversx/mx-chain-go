@@ -3,6 +3,7 @@ package storageBootstrap
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -181,6 +182,103 @@ func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(
 	}
 
 	return make([]data.HeaderHandler, 0), make([][]byte, 0), nil
+}
+
+const maxSelfNotarizedLookback = 50
+
+func (msb *metaStorageBootstrapper) completeSelfNotarizedHeaders(lastMetaBlockHash []byte) error {
+	numShards := msb.shardCoordinator.NumberOfShards()
+	missingShards := make(map[uint32]bool)
+
+	for shardID := uint32(0); shardID < numShards; shardID++ {
+		lastSelfNotarized, _, err := msb.blockTracker.GetLastSelfNotarizedHeader(shardID)
+		if err != nil || check.IfNil(lastSelfNotarized) || lastSelfNotarized.GetNonce() == 0 {
+			missingShards[shardID] = true
+		}
+	}
+
+	if len(missingShards) == 0 {
+		return nil
+	}
+
+	log.Debug("completeSelfNotarizedHeaders: deriving missing per-shard headers",
+		"numMissing", len(missingShards))
+
+	currentHash := lastMetaBlockHash
+	for i := 0; i < maxSelfNotarizedLookback && len(missingShards) > 0 && len(currentHash) > 0; i++ {
+		metaBlock, err := process.GetMetaHeaderFromStorage(currentHash, msb.marshalizer, msb.store)
+		if err != nil {
+			log.Debug("completeSelfNotarizedHeaders: could not load metablock",
+				"hash", currentHash, "error", err.Error())
+			break
+		}
+
+		msb.findSelfNotarizedForMissingShards(metaBlock, missingShards)
+
+		currentHash = metaBlock.GetPrevHash()
+	}
+
+	if len(missingShards) > 0 {
+		log.Warn("completeSelfNotarizedHeaders: could not derive all self-notarized headers",
+			"numStillMissing", len(missingShards))
+	}
+
+	return nil
+}
+
+func (msb *metaStorageBootstrapper) findSelfNotarizedForMissingShards(
+	metaBlock *block.MetaBlock,
+	missingShards map[uint32]bool,
+) {
+	for shardID := range missingShards {
+		var bestNonce uint64
+		var bestHeader data.HeaderHandler
+		var bestHash []byte
+		hadLoadErrors := false
+
+		for i := range metaBlock.ShardInfo {
+			if metaBlock.ShardInfo[i].ShardID != shardID {
+				continue
+			}
+
+			shardHeader, err := process.GetShardHeaderFromStorage(metaBlock.ShardInfo[i].HeaderHash, msb.marshalizer, msb.store)
+			if err != nil {
+				log.Warn("completeSelfNotarizedHeaders: could not load shard header",
+					"shardID", shardID,
+					"headerHash", metaBlock.ShardInfo[i].HeaderHash,
+					"error", err.Error())
+				hadLoadErrors = true
+				continue
+			}
+
+			for _, metaHash := range shardHeader.GetMetaBlockHashes() {
+				metaHeader, err := process.GetMetaHeaderFromStorage(metaHash, msb.marshalizer, msb.store)
+				if err != nil {
+					continue
+				}
+
+				if metaHeader.GetNonce() > bestNonce {
+					bestNonce = metaHeader.GetNonce()
+					bestHeader = metaHeader
+					bestHash = metaHash
+				}
+			}
+		}
+
+		if hadLoadErrors {
+			continue
+		}
+
+		if bestHeader != nil {
+			log.Debug("completeSelfNotarizedHeaders: derived self-notarized header for shard",
+				"shardID", shardID,
+				"metaNonce", bestNonce,
+				"metaHash", bestHash)
+
+			msb.blockTracker.AddSelfNotarizedHeader(shardID, bestHeader, bestHash)
+			delete(missingShards, shardID)
+		}
+	}
 }
 
 func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocksInfo []bootstrapStorage.PendingMiniBlocksInfo) {
