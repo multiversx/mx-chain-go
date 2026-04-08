@@ -33,7 +33,6 @@ var _ process.EpochBootstrapper = (*trigger)(nil)
 var _ closing.Closer = (*trigger)(nil)
 
 const minimumNonceToStartEpoch = 4
-const minimumBlocksPerEpoch = 2
 const disabledRoundForForceEpochStart = math.MaxUint64
 
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
@@ -211,7 +210,7 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 
 	isZeroEpochEdgeCase := nonce < minimumNonceToStartEpoch
 	epochStartNonce := t.epochStartMeta.GetNonce()
-	hasMinBlocksInEpoch := nonce >= epochStartNonce+minimumBlocksPerEpoch
+	hasMinBlocksInEpoch := nonce >= epochStartNonce+minimumNonceToStartEpoch
 	isNormalEpochStart := t.currentRound > t.currEpochStartRound+t.roundsPerEpoch
 	isWithEarlyEndOfEpoch := t.currentRound >= t.nextEpochStartRound
 	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase && hasMinBlocksInEpoch
