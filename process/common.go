@@ -27,6 +27,7 @@ import (
 
 var log = logger.GetOrCreate("process")
 
+const maxSelfNotarizedLookback = 50
 const VMStoragePrefix = "VM@"
 
 // ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
@@ -962,4 +963,103 @@ func CheckIfIndexesAreOutOfBound(
 	}
 
 	return nil
+}
+
+// CompleteMissingSelfNotarizedHeaders walks backward through metablocks from startHash
+// and derives self-notarized headers for shards that are still at genesis (nonce 0).
+func CompleteMissingSelfNotarizedHeaders(
+	startHash []byte,
+	numShards uint32,
+	blockTracker BlockTracker,
+	marshalizer marshal.Marshalizer,
+	store dataRetriever.StorageService,
+) {
+	missingShards := make(map[uint32]bool)
+	for shardID := uint32(0); shardID < numShards; shardID++ {
+		lastSelfNotarized, _, err := blockTracker.GetLastSelfNotarizedHeader(shardID)
+		if err != nil || check.IfNil(lastSelfNotarized) || lastSelfNotarized.GetNonce() == 0 {
+			missingShards[shardID] = true
+		}
+	}
+
+	if len(missingShards) == 0 {
+		return
+	}
+
+	log.Debug("CompleteMissingSelfNotarizedHeaders",
+		"numMissing", len(missingShards))
+
+	currentHash := startHash
+	for i := 0; i < maxSelfNotarizedLookback && len(missingShards) > 0 && len(currentHash) > 0; i++ {
+		metaBlock, err := GetMetaHeaderFromStorage(currentHash, marshalizer, store)
+		if err != nil {
+			break
+		}
+
+		for shardID := range missingShards {
+			bestNonce, bestHeader, bestHash := findSelfNotarizedMetaHeaderInBlock(metaBlock, shardID, marshalizer, store)
+			if bestHeader != nil {
+				log.Debug("CompleteMissingSelfNotarizedHeaders: derived self-notarized header",
+					"shardID", shardID,
+					"metaNonce", bestNonce,
+					"metaHash", bestHash)
+				blockTracker.AddSelfNotarizedHeader(shardID, bestHeader, bestHash)
+				delete(missingShards, shardID)
+			}
+		}
+
+		currentHash = metaBlock.GetPrevHash()
+	}
+
+	if len(missingShards) > 0 {
+		log.Warn("CompleteMissingSelfNotarizedHeaders: could not derive all self-notarized headers",
+			"numStillMissing", len(missingShards))
+	}
+}
+
+func findSelfNotarizedMetaHeaderInBlock(
+	metaBlock *block.MetaBlock,
+	shardID uint32,
+	marshalizer marshal.Marshalizer,
+	store dataRetriever.StorageService,
+) (uint64, data.HeaderHandler, []byte) {
+	var bestNonce uint64
+	var bestHeader data.HeaderHandler
+	var bestHash []byte
+	hadLoadErrors := false
+
+	for i := range metaBlock.ShardInfo {
+		if metaBlock.ShardInfo[i].ShardID != shardID {
+			continue
+		}
+
+		shardHeader, err := GetShardHeaderFromStorage(metaBlock.ShardInfo[i].HeaderHash, marshalizer, store)
+		if err != nil {
+			log.Warn("findSelfNotarizedMetaHeaderInBlock: could not load shard header",
+				"shardID", shardID,
+				"headerHash", metaBlock.ShardInfo[i].HeaderHash,
+				"error", err.Error())
+			hadLoadErrors = true
+			continue
+		}
+
+		for _, metaHash := range shardHeader.GetMetaBlockHashes() {
+			metaHeader, errGet := GetMetaHeaderFromStorage(metaHash, marshalizer, store)
+			if errGet != nil {
+				continue
+			}
+
+			if metaHeader.GetNonce() > bestNonce {
+				bestNonce = metaHeader.GetNonce()
+				bestHeader = metaHeader
+				bestHash = metaHash
+			}
+		}
+	}
+
+	if hadLoadErrors {
+		return 0, nil, nil
+	}
+
+	return bestNonce, bestHeader, bestHash
 }

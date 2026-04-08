@@ -183,6 +183,17 @@ func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(
 	return make([]data.HeaderHandler, 0), make([][]byte, 0), nil
 }
 
+func (msb *metaStorageBootstrapper) completeSelfNotarizedHeaders(lastMetaBlockHash []byte) error {
+	process.CompleteMissingSelfNotarizedHeaders(
+		lastMetaBlockHash,
+		msb.shardCoordinator.NumberOfShards(),
+		msb.blockTracker,
+		msb.marshalizer,
+		msb.store,
+	)
+	return nil
+}
+
 func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocksInfo []bootstrapStorage.PendingMiniBlocksInfo) {
 	for _, pendingMiniBlockInfo := range pendingMiniBlocksInfo {
 		msb.pendingMiniBlocksHandler.SetPendingMiniBlocks(pendingMiniBlockInfo.ShardID, pendingMiniBlockInfo.MiniBlocksHashes)
