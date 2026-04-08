@@ -497,8 +497,8 @@ func TestTrigger_UpdateShouldNotStartEpochWithLessThanMinimumBlocks(t *testing.T
 		"epoch should not start with only 1 block in the current epoch")
 	assert.Equal(t, epoch, epochStartTrigger.Epoch())
 
-	// now with nonce = epochStartNonce+2 (2 blocks in epoch), it should trigger
-	epochStartTrigger.Update(nextRound+1, epochStartNonce+2)
+	// now with nonce = epochStartNonce+4 (4 blocks in epoch), it should trigger
+	epochStartTrigger.Update(nextRound+1, epochStartNonce+4)
 	assert.True(t, epochStartTrigger.IsEpochStart(),
 		"epoch should start once minimum blocks per epoch is reached")
 	assert.Equal(t, epoch+1, epochStartTrigger.Epoch())
@@ -536,8 +536,8 @@ func TestTrigger_ForceEpochStartShouldRespectMinimumBlocks(t *testing.T) {
 	assert.False(t, epochStartTrigger.IsEpochStart(),
 		"forced epoch should not start with only 1 block in the current epoch")
 
-	// with 2 blocks, the forced epoch start should proceed
-	epochStartTrigger.Update(epochStartRound+26, epochStartNonce+2)
+	// with 4 blocks, the forced epoch start should proceed
+	epochStartTrigger.Update(epochStartRound+26, epochStartNonce+4)
 	assert.True(t, epochStartTrigger.IsEpochStart(),
 		"forced epoch should start once minimum blocks per epoch is reached")
 }
