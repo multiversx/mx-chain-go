@@ -772,7 +772,7 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 		return acnt, nil
 	}
 
-	baseAcc.SetRootHash(baseAcc.GetRootHash())
+	baseAcc.SetDataTrieRootHash()
 	return baseAcc, nil
 }
 
