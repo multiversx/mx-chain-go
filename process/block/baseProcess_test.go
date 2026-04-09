@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -2560,6 +2561,13 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeededShouldUseDataTrieIfNeededW
 					}()
 
 					return nil
+				},
+				GetAccountsFactoryCalled: func() state.AccountFactory {
+					return &stateMock.AccountsFactoryStub{
+						CreateAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+							return stateMock.NewAccountWrapMock([]byte("address")), nil
+						},
+					}
 				},
 			},
 		}

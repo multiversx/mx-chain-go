@@ -2,39 +2,54 @@ package process
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
+	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 func createAccountAdapter(
-	marshaller marshal.Marshalizer,
-	hasher hashing.Hasher,
-	accountFactory state.AccountFactory,
+	coreComp coreComponentsHandler,
 	trieStorage common.StorageManager,
 	addressConverter core.PubkeyConverter,
-	enableEpochsHandler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
+	tr, err := trie.NewTrie(trieStorage, coreComp.InternalMarshalizer(), coreComp.Hasher(), coreComp.EnableEpochsHandler(), collapseManager.NewDisabledCollapseManager())
+	if err != nil {
+		return nil, err
+	}
+
+	dth, err := triesHolder.NewDataTriesHolder(common.TenMbSize)
+	if err != nil {
+		return nil, err
+	}
+
+	argsAccCreator := factoryState.ArgsAccountCreator{
+		Hasher:                 coreComp.Hasher(),
+		Marshaller:             coreComp.InternalMarshalizer(),
+		EnableEpochsHandler:    coreComp.EnableEpochsHandler(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
+		DataTrieCreator:        tr,
+	}
+	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {
 		return nil, err
 	}
 
 	args := state.ArgsAccountsDB{
-		Trie:                     tr,
-		Hasher:                   hasher,
-		Marshaller:               marshaller,
-		AccountFactory:           accountFactory,
-		StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:         addressConverter,
-		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
-		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-		MaxDataTriesSizeInMemory: common.TenMbSize,
+		Trie:                   tr,
+		Hasher:                 coreComp.Hasher(),
+		Marshaller:             coreComp.InternalMarshalizer(),
+		AccountFactory:         accCreator,
+		StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:       addressConverter,
+		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
 	}
 
 	adb, err := state.NewAccountsDB(args)

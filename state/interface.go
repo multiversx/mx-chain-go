@@ -161,8 +161,8 @@ type baseAccountHandler interface {
 	SetCodeHash([]byte)
 	GetCodeHash() []byte
 	SetRootHash([]byte)
+	SetDataTrieRootHash()
 	GetRootHash() []byte
-	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
 	SaveDirtyData(trie common.Trie) ([]*data.DataTrieChange, []core.TrieData, error)
 	IsInterfaceNil() bool
@@ -240,7 +240,6 @@ type UserAccountHandler interface {
 	GetCodeHash() []byte
 	SetRootHash([]byte)
 	GetRootHash() []byte
-	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
 	RetrieveValue(key []byte) ([]byte, uint32, error)
 	SaveKeyValue(key []byte, value []byte) error
@@ -264,7 +263,7 @@ type UserAccountHandler interface {
 type DataTrieTracker interface {
 	RetrieveValue(key []byte) ([]byte, uint32, error)
 	SaveKeyValue(key []byte, value []byte) error
-	SetDataTrie(tr common.Trie)
+	SetRootHash(rootHash []byte)
 	DataTrie() common.DataTrieHandler
 	SaveDirtyData(common.Trie) ([]*data.DataTrieChange, []core.TrieData, error)
 	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error

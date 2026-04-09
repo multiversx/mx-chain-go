@@ -41,6 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -743,14 +744,23 @@ func prepareStakingContractWithData(
 	log.LogIfError(err)
 }
 
-func createAccountsDB(
+func createAccountsDBArgs(
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
-	accountFactory state.AccountFactory,
 	trieStorageManager common.StorageManager,
 	enableEpochsHandler common.EnableEpochsHandler,
-) *state.AccountsDB {
+) state.ArgsAccountsDB {
+	dth, _ := triesHolder.NewDataTriesHolder(common.TenMbSize)
 	tr, _ := trie.NewTrie(trieStorageManager, marshaller, hasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
+	argsAccCreator := factory.ArgsAccountCreator{
+		Hasher:                 hasher,
+		Marshaller:             marshaller,
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        dth,
+		DataTrieCreator:        tr,
+	}
+	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
@@ -758,19 +768,17 @@ func createAccountsDB(
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
-	args := state.ArgsAccountsDB{
-		Trie:                     tr,
-		Hasher:                   hasher,
-		Marshaller:               marshaller,
-		AccountFactory:           accountFactory,
-		StoragePruningManager:    spm,
-		AddressConverter:         &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
-		StateAccessesCollector:   disabledState.NewDisabledStateAccessesCollector(),
-		MaxDataTriesSizeInMemory: common.TenMbSize,
+	return state.ArgsAccountsDB{
+		Trie:                   tr,
+		Hasher:                 hasher,
+		Marshaller:             marshaller,
+		AccountFactory:         accCreator,
+		StoragePruningManager:  spm,
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
 	}
-	adb, _ := state.NewAccountsDB(args)
-	return adb
 }
 
 func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEpochs, trieStorer storage.Storer) (ArgsNewEpochStartSystemSCProcessing, vm.SystemSCContainer) {
@@ -782,14 +790,6 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	storageManagerArgs.MainStorer = trieStorer
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, testCommon.GetStorageManagerOptions())
-	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:                 hasher,
-		Marshaller:             marshalizer,
-		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
-	}
-	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
-	peerAccCreator := factory.NewPeerAccountCreator()
 	en := forking.NewGenericEpochNotifier()
 	enableEpochsConfig.StakeLimitsEnableEpoch = 10
 	enableEpochsConfig.StakingV4Step1EnableEpoch = 444
@@ -798,8 +798,12 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		EnableEpochs: enableEpochsConfig,
 	}
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(epochsConfig.EnableEpochs, en)
-	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager, enableEpochsHandler)
-	peerAccountsDB := createAccountsDB(hasher, marshalizer, peerAccCreator, trieFactoryManager, enableEpochsHandler)
+	userAccountsDBArgs := createAccountsDBArgs(hasher, marshalizer, trieFactoryManager, enableEpochsHandler)
+	userAccountsDB, _ := state.NewAccountsDB(userAccountsDBArgs)
+
+	peerAccountsDBArgs := createAccountsDBArgs(hasher, marshalizer, trieFactoryManager, enableEpochsHandler)
+	peerAccountsDBArgs.AccountFactory = factory.NewPeerAccountCreator()
+	peerAccountsDB, _ := state.NewAccountsDB(peerAccountsDBArgs)
 
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
 		Marshalizer:         marshalizer,

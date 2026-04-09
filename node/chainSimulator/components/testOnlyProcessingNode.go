@@ -1,6 +1,7 @@
 package components
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -528,18 +529,18 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 		return err
 	}
 
-	rootHash, err := base64.StdEncoding.DecodeString(addressState.RootHash)
-	if err != nil {
-		return err
-	}
-	if len(rootHash) != 0 {
-		userAccount.SetRootHash(rootHash)
-	}
-
 	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
 	err = accountsAdapter.SaveAccount(userAccount)
 	if err != nil {
 		return err
+	}
+
+	rootHash, err := base64.StdEncoding.DecodeString(addressState.RootHash)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(userAccount.GetRootHash(), rootHash) && len(rootHash) != 0 {
+		return fmt.Errorf("account root hash does not match the provided one, expected: %s, got: %s", rootHash, userAccount.GetRootHash())
 	}
 
 	newRootHash, err := accountsAdapter.Commit()

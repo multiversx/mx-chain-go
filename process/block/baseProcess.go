@@ -43,7 +43,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -2507,16 +2506,11 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock data.MetaHead
 	totalSizeAccountsDataTries := 0
 	totalSizeCodeLeaves := 0
 
-	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:                 bp.hasher,
-		Marshaller:             bp.marshalizer,
-		EnableEpochsHandler:    bp.enableEpochsHandler,
-		StateAccessesCollector: bp.stateAccessesCollector,
+	adb, ok := userAccountsDb.(adbWithAccountsFactory)
+	if !ok {
+		return fmt.Errorf("%w: cannot assert accountsDB to have account factory: %T", process.ErrWrongTypeAssertion, userAccountsDb)
 	}
-	accountCreator, err := factory.NewAccountCreator(argsAccCreator)
-	if err != nil {
-		return err
-	}
+	accountCreator := adb.GetAccountsFactory()
 
 	for leaf := range iteratorChannels.LeavesChan {
 		userAccount, errUnmarshal := bp.unmarshalUserAccount(accountCreator, leaf.Key(), leaf.Value())

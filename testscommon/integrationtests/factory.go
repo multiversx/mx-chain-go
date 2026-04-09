@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/factory"
@@ -101,12 +102,14 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 
 	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-
+	dth, _ := triesHolder.NewDataTriesHolder(common.TenMbSize)
 	argsAccCreator := accountFactory.ArgsAccountCreator{
 		Hasher:                 TestHasher,
 		Marshaller:             TestMarshalizer,
 		EnableEpochsHandler:    enableEpochs,
 		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
+		DataTrieCreator:        tr,
 	}
 	accCreator, _ := accountFactory.NewAccountCreator(argsAccCreator)
 
@@ -123,15 +126,15 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	})
 
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                     tr,
-		Hasher:                   TestHasher,
-		Marshaller:               TestMarshalizer,
-		AccountFactory:           accCreator,
-		StoragePruningManager:    spm,
-		AddressConverter:         &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:         snapshotsManager,
-		StateAccessesCollector:   disabled.NewDisabledStateAccessesCollector(),
-		MaxDataTriesSizeInMemory: common.TenMbSize,
+		Trie:                   tr,
+		Hasher:                 TestHasher,
+		Marshaller:             TestMarshalizer,
+		AccountFactory:         accCreator,
+		StoragePruningManager:  spm,
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       snapshotsManager,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
