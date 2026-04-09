@@ -145,6 +145,10 @@ func (u *UserAccountStub) SetRootHash([]byte) {
 
 }
 
+// SetDataTrieRootHash -
+func (u *UserAccountStub) SetDataTrieRootHash() {
+}
+
 // GetRootHash -
 func (u *UserAccountStub) GetRootHash() []byte {
 	if u.GetRootHashCalled != nil {

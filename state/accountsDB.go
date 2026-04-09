@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -167,7 +168,7 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 		return ErrNilStateAccessesCollector
 	}
 	if check.IfNil(args.DataTriesHolder) {
-		return ErrNilDataTriesHolder
+		return errors.ErrNilDataTriesHolder
 	}
 
 	return nil
@@ -725,9 +726,7 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 	if !ok {
 		return acnt, nil
 	}
-	// This will also set the rootHash inside the trackableDataTrie. It is needed in case the data trie needs to be
-	// accessed so that the trackableDataTrie knows the rootHash from which to recreate the data trie.
-	baseAcc.SetRootHash(baseAcc.GetRootHash())
+	baseAcc.SetDataTrieRootHash()
 
 	return baseAcc, nil
 }

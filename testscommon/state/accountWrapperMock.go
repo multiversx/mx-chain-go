@@ -213,6 +213,12 @@ func (awm *AccountWrapMock) GetRootHash() []byte {
 // SetRootHash -
 func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
 	awm.RootHash = rootHash
+	awm.trackableDataTrie.SetRootHash(rootHash)
+}
+
+// SetDataTrieRootHash -
+func (awm *AccountWrapMock) SetDataTrieRootHash() {
+	awm.trackableDataTrie.SetRootHash(awm.RootHash)
 }
 
 // AddressBytes -

@@ -70,7 +70,7 @@ func checkTrackableDataTrieArgs(args TrackableDataTrieArgs) error {
 		return state.ErrNilStateAccessesCollector
 	}
 	if check.IfNil(args.DataTriesHolder) {
-		return state.ErrNilDataTriesHolder
+		return errorsCommon.ErrNilDataTriesHolder
 	}
 	if check.IfNil(args.DataTrieCreator) {
 		return errorsCommon.ErrNilDataTrieCreator
@@ -109,8 +109,8 @@ func NewTrackableDataTrie(
 }
 
 func (tdt *trackableDataTrie) loadTrie() error {
-	// the trie is already loaded
 	if !check.IfNil(tdt.tr) {
+		// the trie is already loaded
 		return nil
 	}
 
@@ -290,7 +290,10 @@ func (tdt *trackableDataTrie) SetRootHash(rootHash []byte) {
 
 // DataTrie sets the internal data trie
 func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
-	_ = tdt.loadTrie()
+	err := tdt.loadTrie()
+	if err != nil {
+		log.Error("failed to load data trie", "error", err, "account", tdt.identifier)
+	}
 	return tdt.tr
 }
 

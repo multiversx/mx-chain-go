@@ -161,6 +161,7 @@ type baseAccountHandler interface {
 	SetCodeHash([]byte)
 	GetCodeHash() []byte
 	SetRootHash([]byte)
+	SetDataTrieRootHash()
 	GetRootHash() []byte
 	DataTrie() common.DataTrieHandler
 	SaveDirtyData(trie common.Trie) ([]*data.DataTrieChange, []core.TrieData, error)

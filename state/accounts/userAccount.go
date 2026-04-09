@@ -150,6 +150,11 @@ func (a *userAccount) SetRootHash(roothash []byte) {
 	a.dataTrieInteractor.SetRootHash(roothash)
 }
 
+// SetDataTrieRootHash sets the root hash of the data trie to the one stored in the account
+func (a *userAccount) SetDataTrieRootHash() {
+	a.dataTrieInteractor.SetRootHash(a.RootHash)
+}
+
 // SetCodeMetadata sets the code metadata
 func (a *userAccount) SetCodeMetadata(codeMetadata []byte) {
 	a.CodeMetadata = codeMetadata

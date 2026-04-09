@@ -95,7 +95,7 @@ func TestNewTrackableDataTrie(t *testing.T) {
 		args := getDefaultArgs()
 		args.DataTriesHolder = nil
 		tdt, err := trackableDataTrie.NewTrackableDataTrie(args)
-		assert.Equal(t, state.ErrNilDataTriesHolder, err)
+		assert.Equal(t, errorsCommon.ErrNilDataTriesHolder, err)
 		assert.True(t, check.IfNil(tdt))
 	})
 
@@ -1208,4 +1208,170 @@ func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {
 	tdt, _ := trackableDataTrie.NewTrackableDataTrie(argsTdt)
 
 	assert.Equal(t, newTrie, tdt.DataTrie())
+}
+
+func TestTrackableDataTrie_loadTrie(t *testing.T) {
+	t.Parallel()
+
+	t.Run("trie already loaded", func(t *testing.T) {
+		t.Parallel()
+
+		cachedTrie := &trieMock.TrieStub{}
+		numGetCalls := 0
+		numRecreateCalls := 0
+		argsTdt := getDefaultArgs()
+		argsTdt.DataTriesHolder = &trieMock.TriesHolderStub{
+			GetCalled: func(key []byte) common.Trie {
+				numGetCalls++
+				assert.Equal(t, argsTdt.Identifier, key)
+				return cachedTrie
+			},
+		}
+		argsTdt.DataTrieCreator = &trieMock.TrieStub{
+			RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+				numRecreateCalls++
+				return nil, nil
+			},
+		}
+
+		tdt, err := trackableDataTrie.NewTrackableDataTrie(argsTdt)
+		assert.Nil(t, err)
+
+		loadedTrie := tdt.DataTrie()
+		assert.Equal(t, cachedTrie, loadedTrie)
+		assert.Equal(t, cachedTrie, tdt.GetDataTrie())
+
+		err = tdt.LoadTrie()
+		assert.Nil(t, err)
+		assert.Equal(t, 1, numGetCalls)
+		assert.Equal(t, 0, numRecreateCalls)
+	})
+	t.Run("trie found in cache", func(t *testing.T) {
+		t.Parallel()
+
+		cachedTrie := &trieMock.TrieStub{}
+		numRecreateCalls := 0
+		numGetCalls := 0
+		argsTdt := getDefaultArgs()
+		argsTdt.DataTriesHolder = &trieMock.TriesHolderStub{
+			GetCalled: func(key []byte) common.Trie {
+				assert.Equal(t, argsTdt.Identifier, key)
+				numGetCalls++
+				return cachedTrie
+			},
+		}
+		argsTdt.DataTrieCreator = &trieMock.TrieStub{
+			RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+				numRecreateCalls++
+				return nil, nil
+			},
+		}
+
+		tdt, err := trackableDataTrie.NewTrackableDataTrie(argsTdt)
+		assert.Nil(t, err)
+		assert.Nil(t, tdt.GetDataTrie())
+
+		err = tdt.LoadTrie()
+		assert.Nil(t, err)
+		assert.Equal(t, 1, numGetCalls)
+		assert.Equal(t, 0, numRecreateCalls)
+		assert.Equal(t, cachedTrie, tdt.GetDataTrie())
+	})
+	t.Run("empty root hash", func(t *testing.T) {
+		t.Parallel()
+
+		numRecreateCalls := 0
+		numGetCalls := 0
+		argsTdt := getDefaultArgs()
+		argsTdt.DataTriesHolder = &trieMock.TriesHolderStub{
+			GetCalled: func(_ []byte) common.Trie {
+				numGetCalls++
+				return nil
+			},
+		}
+		argsTdt.DataTrieCreator = &trieMock.TrieStub{
+			RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+				numRecreateCalls++
+				return nil, nil
+			},
+		}
+		tdt, err := trackableDataTrie.NewTrackableDataTrie(argsTdt)
+		assert.Nil(t, err)
+		assert.Nil(t, tdt.GetDataTrie())
+
+		err = tdt.LoadTrie()
+		assert.Equal(t, state.ErrNilTrie, err)
+		assert.Equal(t, 1, numGetCalls)
+		assert.Equal(t, 0, numRecreateCalls)
+		assert.Nil(t, tdt.GetDataTrie())
+	})
+	t.Run("recreate trie from db returns error", func(t *testing.T) {
+		t.Parallel()
+
+		errExpected := errors.New("expected error")
+		numPutCalls := 0
+		numRecreateCalls := 0
+		expectedRootHash := []byte("root hash")
+		argsTdt := getDefaultArgs()
+		argsTdt.DataTriesHolder = &trieMock.TriesHolderStub{
+			GetCalled: func(_ []byte) common.Trie {
+				return nil
+			},
+		}
+		argsTdt.DataTrieCreator = &trieMock.TrieStub{
+			RecreateCalled: func(rootHolder common.RootHashHolder) (common.Trie, error) {
+				numRecreateCalls++
+				assert.Equal(t, expectedRootHash, rootHolder.GetRootHash())
+				return nil, errExpected
+			},
+		}
+
+		tdt, err := trackableDataTrie.NewTrackableDataTrie(argsTdt)
+		assert.Nil(t, err)
+		tdt.SetRootHash(expectedRootHash)
+		assert.Nil(t, tdt.GetDataTrie())
+
+		_, _, err = tdt.RetrieveValue([]byte("key"))
+		assert.Equal(t, errExpected, err)
+		assert.Equal(t, 1, numRecreateCalls)
+		assert.Equal(t, 0, numPutCalls)
+		assert.Nil(t, tdt.GetDataTrie())
+	})
+	t.Run("recreate trie from db", func(t *testing.T) {
+		t.Parallel()
+
+		recreatedTrie := &trieMock.TrieStub{}
+		expectedRootHash := []byte("root hash")
+		numRecreateCalls := 0
+		numPutCalls := 0
+		argsTdt := getDefaultArgs()
+		argsTdt.DataTriesHolder = &trieMock.TriesHolderStub{
+			GetCalled: func(_ []byte) common.Trie {
+				return nil
+			},
+			PutCalled: func(key []byte, trie common.Trie) {
+				numPutCalls++
+				assert.Equal(t, argsTdt.Identifier, key)
+				assert.Equal(t, recreatedTrie, trie)
+			},
+		}
+		argsTdt.DataTrieCreator = &trieMock.TrieStub{
+			RecreateCalled: func(rootHolder common.RootHashHolder) (common.Trie, error) {
+				numRecreateCalls++
+				assert.Equal(t, expectedRootHash, rootHolder.GetRootHash())
+				return recreatedTrie, nil
+			},
+		}
+
+		tdt, err := trackableDataTrie.NewTrackableDataTrie(argsTdt)
+		assert.Nil(t, err)
+		tdt.SetRootHash(expectedRootHash)
+		assert.Nil(t, tdt.GetDataTrie())
+
+		loadedTrie := tdt.DataTrie()
+		assert.Equal(t, recreatedTrie, loadedTrie)
+		assert.Equal(t, 1, numRecreateCalls)
+		assert.Equal(t, 1, numPutCalls)
+		assert.Equal(t, recreatedTrie, tdt.GetDataTrie())
+	})
 }
