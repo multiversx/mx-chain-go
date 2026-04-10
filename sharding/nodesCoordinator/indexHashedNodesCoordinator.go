@@ -33,8 +33,9 @@ const (
 	leaderSelectionSize     = 1
 )
 
+// NodesCoordinatorStoredEpochs defines the maximum number of epoch configs kept in memory and on disk.
 // TODO: move this to config parameters
-const nodesCoordinatorStoredEpochs = 4
+const NodesCoordinatorStoredEpochs = 10
 
 type validatorWithShardID struct {
 	validator Validator
@@ -118,7 +119,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		return nil, err
 	}
 
-	nodesConfig := make(map[uint32]*epochNodesConfig, nodesCoordinatorStoredEpochs)
+	nodesConfig := make(map[uint32]*epochNodesConfig, NodesCoordinatorStoredEpochs)
 
 	nodesConfig[arguments.Epoch] = &epochNodesConfig{
 		nbShards:       arguments.NbShards,
@@ -682,7 +683,7 @@ func (ihnc *indexHashedNodesCoordinator) GetValidatorsIndexes(
 
 // GetCachedEpochs returns all epochs cached
 func (ihnc *indexHashedNodesCoordinator) GetCachedEpochs() map[uint32]struct{} {
-	cachedEpochs := make(map[uint32]struct{}, nodesCoordinatorStoredEpochs)
+	cachedEpochs := make(map[uint32]struct{}, NodesCoordinatorStoredEpochs)
 
 	ihnc.mutNodesConfig.RLock()
 	for epoch := range ihnc.nodesConfig {
@@ -988,7 +989,7 @@ func (ihnc *indexHashedNodesCoordinator) handleErrorLog(err error, message strin
 // NodeCoordinator has to get the nodes assignment to shards using the shuffler.
 func (ihnc *indexHashedNodesCoordinator) EpochStartAction(hdr data.HeaderHandler) {
 	newEpoch := hdr.GetEpoch()
-	epochToRemove := int32(newEpoch) - nodesCoordinatorStoredEpochs
+	epochToRemove := int32(newEpoch) - NodesCoordinatorStoredEpochs
 	needToRemove := epochToRemove >= 0
 	ihnc.currentEpoch = newEpoch
 

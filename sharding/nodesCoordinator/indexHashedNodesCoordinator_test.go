@@ -1905,42 +1905,17 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEp
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
 
-	header := &block.MetaBlock{
-		PrevRandSeed: []byte("rand seed"),
-		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
-		Epoch:        1,
+	// advance through enough epochs so that epoch 0 gets pruned (need epoch >= NodesCoordinatorStoredEpochs)
+	for e := uint32(1); e <= NodesCoordinatorStoredEpochs; e++ {
+		body := createBlockBodyFromNodesCoordinator(ihnc, e-1, ihnc.validatorInfoCacher)
+		header := &block.MetaBlock{
+			PrevRandSeed: []byte("rand seed"),
+			EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+			Epoch:        e,
+		}
+		ihnc.EpochStartPrepare(header, body)
+		ihnc.EpochStartAction(header)
 	}
-
-	body := createBlockBodyFromNodesCoordinator(ihnc, 0, ihnc.validatorInfoCacher)
-	ihnc.EpochStartPrepare(header, body)
-	ihnc.EpochStartAction(header)
-
-	body = createBlockBodyFromNodesCoordinator(ihnc, 1, ihnc.validatorInfoCacher)
-	header = &block.MetaBlock{
-		PrevRandSeed: []byte("rand seed"),
-		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
-		Epoch:        2,
-	}
-	ihnc.EpochStartPrepare(header, body)
-	ihnc.EpochStartAction(header)
-
-	body = createBlockBodyFromNodesCoordinator(ihnc, 2, ihnc.validatorInfoCacher)
-	header = &block.MetaBlock{
-		PrevRandSeed: []byte("rand seed"),
-		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
-		Epoch:        3,
-	}
-	ihnc.EpochStartPrepare(header, body)
-	ihnc.EpochStartAction(header)
-
-	body = createBlockBodyFromNodesCoordinator(ihnc, 3, ihnc.validatorInfoCacher)
-	header = &block.MetaBlock{
-		PrevRandSeed: []byte("rand seed"),
-		EpochStart:   block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
-		Epoch:        4,
-	}
-	ihnc.EpochStartPrepare(header, body)
-	ihnc.EpochStartAction(header)
 
 	nodesEpoch1, err := ihnc.GetAllEligibleValidatorsPublicKeys(1)
 	require.Nil(t, err)

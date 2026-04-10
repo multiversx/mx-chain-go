@@ -6,11 +6,12 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createDummyValidatorsInfo() []*state.ShardValidatorInfo {
@@ -127,7 +128,8 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpo
 	ihnc, err := NewIndexHashedNodesCoordinator(arguments)
 	require.Nil(t, err)
 
-	epoch := uint32(1)
+	// start at an epoch >= NodesCoordinatorStoredEpochs to avoid uint32 underflow in removeOlderEpochs
+	epoch := uint32(NodesCoordinatorStoredEpochs)
 	randomness := []byte("rand seed")
 
 	validatorsInfo1 := createDummyValidatorsInfo()
@@ -147,7 +149,13 @@ func TestIndexHashedNodesCoordinator_SetNodesConfigFromValidatorsInfoMultipleEpo
 	assert.True(t, ok)
 	verifyEligibleValidators(t, validatorsInfo2, epochConfig.eligibleMap)
 
-	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch+nodesCoordinatorStoredEpochs, randomness, validatorsInfo1)
+	// fill intermediate epochs so that len(nodesConfig) >= NodesCoordinatorStoredEpochs
+	for e := epoch + 2; e < epoch+NodesCoordinatorStoredEpochs; e++ {
+		err = ihnc.SetNodesConfigFromValidatorsInfo(e, randomness, validatorsInfo1)
+		require.Nil(t, err)
+	}
+
+	err = ihnc.SetNodesConfigFromValidatorsInfo(epoch+NodesCoordinatorStoredEpochs, randomness, validatorsInfo1)
 	assert.Nil(t, err)
 
 	_, ok = ihnc.nodesConfig[epoch]

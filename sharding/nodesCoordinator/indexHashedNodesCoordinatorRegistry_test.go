@@ -245,7 +245,7 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsIn
 	nc := nodesCoordinator.nodesConfig
 
 	require.Equal(t, nodesCoordinator.currentEpoch, ncr.GetCurrentEpoch())
-	require.Equal(t, nodesCoordinatorStoredEpochs, len(ncr.GetEpochsConfig()))
+	require.Equal(t, NodesCoordinatorStoredEpochs, len(ncr.GetEpochsConfig()))
 
 	for epochStr := range ncr.GetEpochsConfig() {
 		epoch, err := strconv.Atoi(epochStr)
@@ -308,5 +308,180 @@ func TestIndexHashedNodesCoordinator_serializableValidatorArrayToValidatorArray(
 		valArray, err := serializableValidatorArrayToValidatorArray(sValidators)
 		assert.Nil(t, err)
 		assert.True(t, sameValidators(validatorsArray, valArray))
+	}
+}
+
+func createArgsForStateTests() ArgNodesCoordinator {
+	args := createArguments()
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			if flag == common.StakingV4Step2Flag {
+				return stakingV4Epoch
+			}
+			return 0
+		},
+	}
+	return args
+}
+
+func TestIndexHashedNodesCoordinator_MergeStateAddsOnlyMissingEpochs(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForStateTests()
+	nc, err := NewIndexHashedNodesCoordinator(args)
+	require.Nil(t, err)
+
+	err = nc.saveState([]byte("old"), 0)
+	require.Nil(t, err)
+
+	nc.nodesConfig[5] = nc.nodesConfig[0]
+	delete(nc.nodesConfig, 0)
+	require.Nil(t, nc.nodesConfig[0])
+	require.NotNil(t, nc.nodesConfig[5])
+
+	err = nc.MergeState([]byte("old"))
+	require.Nil(t, err)
+	require.NotNil(t, nc.nodesConfig[0])
+	require.NotNil(t, nc.nodesConfig[5])
+}
+
+func TestIndexHashedNodesCoordinator_MergeStateDoesNotOverwriteExisting(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForStateTests()
+	nc, err := NewIndexHashedNodesCoordinator(args)
+	require.Nil(t, err)
+
+	err = nc.saveState([]byte("backup"), 0)
+	require.Nil(t, err)
+
+	nc.nodesConfig[0].shardID = 99
+
+	err = nc.MergeState([]byte("backup"))
+	require.Nil(t, err)
+	require.Equal(t, uint32(99), nc.nodesConfig[0].shardID)
+}
+
+func TestIndexHashedNodesCoordinator_MergeStateKeyNotFound(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForStateTests()
+	nc, err := NewIndexHashedNodesCoordinator(args)
+	require.Nil(t, err)
+
+	err = nc.MergeState([]byte("nonexistent"))
+	require.NotNil(t, err)
+	require.NotNil(t, nc.nodesConfig[0])
+}
+
+func TestIndexHashedNodesCoordinator_MergeStatePreservesValidators(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForStateTests()
+	nc, err := NewIndexHashedNodesCoordinator(args)
+	require.Nil(t, err)
+
+	expectedEligible := nc.nodesConfig[0].eligibleMap
+	expectedWaiting := nc.nodesConfig[0].waitingMap
+	expectedNbShards := nc.nodesConfig[0].nbShards
+
+	err = nc.saveState([]byte("key1"), 0)
+	require.Nil(t, err)
+
+	delete(nc.nodesConfig, 0)
+
+	err = nc.MergeState([]byte("key1"))
+	require.Nil(t, err)
+
+	actual := nc.nodesConfig[0]
+	require.NotNil(t, actual)
+	require.Equal(t, expectedNbShards, actual.nbShards)
+	require.True(t, sameValidatorsMaps(expectedEligible, actual.eligibleMap))
+	require.True(t, sameValidatorsMaps(expectedWaiting, actual.waitingMap))
+	require.NotNil(t, actual.selectors)
+}
+
+func TestIndexHashedNodesCoordinator_LoadStateThenMergeOlderEpochs(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForStateTests()
+	args.Epoch = 10
+	nc, err := NewIndexHashedNodesCoordinator(args)
+	require.Nil(t, err)
+
+	for e := uint32(5); e <= 10; e++ {
+		nc.nodesConfig[e] = &epochNodesConfig{
+			nbShards:       args.NbShards,
+			shardID:        args.ShardIDAsObserver,
+			eligibleMap:    createDummyNodesMap(10, args.NbShards, fmt.Sprintf("eligible_%d", e)),
+			waitingMap:     createDummyNodesMap(3, args.NbShards, fmt.Sprintf("waiting_%d", e)),
+			selectors:      make(map[uint32]RandomSelector),
+			leavingMap:     make(map[uint32][]Validator),
+			shuffledOutMap: make(map[uint32][]Validator),
+			newList:        make([]Validator, 0),
+			auctionList:    make([]Validator, 0),
+		}
+		nc.nodesConfig[e].selectors, _ = nc.createSelectors(nc.nodesConfig[e])
+	}
+
+	nc.currentEpoch = 7
+	err = nc.saveState([]byte("old_key"), 7)
+	require.Nil(t, err)
+
+	nc.currentEpoch = 10
+	err = nc.saveState([]byte("current_key"), 10)
+	require.Nil(t, err)
+
+	nc.nodesConfig = make(map[uint32]*epochNodesConfig)
+	err = nc.LoadState([]byte("current_key"))
+	require.Nil(t, err)
+
+	epochsBeforeMerge := nc.GetCachedEpochs()
+	require.True(t, len(epochsBeforeMerge) > 0)
+
+	err = nc.MergeState([]byte("old_key"))
+	require.Nil(t, err)
+
+	epochsAfterMerge := nc.GetCachedEpochs()
+	require.True(t, len(epochsAfterMerge) >= len(epochsBeforeMerge))
+}
+
+func TestIndexHashedNodesCoordinator_SaveStateAfterMergeOnlyKeepsWindow(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForStateTests()
+	args.Epoch = 15
+	nc, err := NewIndexHashedNodesCoordinator(args)
+	require.Nil(t, err)
+
+	for e := uint32(5); e <= 15; e++ {
+		nc.nodesConfig[e] = &epochNodesConfig{
+			nbShards:       args.NbShards,
+			shardID:        args.ShardIDAsObserver,
+			eligibleMap:    createDummyNodesMap(10, args.NbShards, fmt.Sprintf("eligible_%d", e)),
+			waitingMap:     createDummyNodesMap(3, args.NbShards, fmt.Sprintf("waiting_%d", e)),
+			selectors:      make(map[uint32]RandomSelector),
+			leavingMap:     make(map[uint32][]Validator),
+			shuffledOutMap: make(map[uint32][]Validator),
+			newList:        make([]Validator, 0),
+			auctionList:    make([]Validator, 0),
+		}
+		nc.nodesConfig[e].selectors, _ = nc.createSelectors(nc.nodesConfig[e])
+	}
+	nc.currentEpoch = 15
+
+	err = nc.saveState([]byte("save_key"), 15)
+	require.Nil(t, err)
+
+	nc.nodesConfig = make(map[uint32]*epochNodesConfig)
+	err = nc.LoadState([]byte("save_key"))
+	require.Nil(t, err)
+
+	loadedEpochs := nc.GetCachedEpochs()
+	require.Equal(t, NodesCoordinatorStoredEpochs, len(loadedEpochs))
+
+	for e := uint32(15 - NodesCoordinatorStoredEpochs + 1); e <= 15; e++ {
+		_, exists := loadedEpochs[e]
+		require.True(t, exists, fmt.Sprintf("epoch %d should be in saved state", e))
 	}
 }

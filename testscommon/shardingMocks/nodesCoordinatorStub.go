@@ -171,6 +171,11 @@ func (ncm *NodesCoordinatorStub) LoadState(_ []byte) error {
 	return nil
 }
 
+// MergeState -
+func (ncm *NodesCoordinatorStub) MergeState(_ []byte) error {
+	return nil
+}
+
 // GetSavedStateKey -
 func (ncm *NodesCoordinatorStub) GetSavedStateKey() []byte {
 	return []byte("key")

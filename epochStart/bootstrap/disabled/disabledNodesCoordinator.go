@@ -89,6 +89,11 @@ func (n *nodesCoordinator) LoadState(_ []byte) error {
 	return nil
 }
 
+// MergeState -
+func (n *nodesCoordinator) MergeState(_ []byte) error {
+	return nil
+}
+
 // GetSavedStateKey -
 func (n *nodesCoordinator) GetSavedStateKey() []byte {
 	return nil

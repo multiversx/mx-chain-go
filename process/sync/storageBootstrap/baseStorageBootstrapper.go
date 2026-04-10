@@ -3,6 +3,7 @@ package storageBootstrap
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -462,6 +463,8 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		return err
 	}
 
+	st.loadOlderNodesCoordinatorConfigs()
+
 	if len(bootInfos) > 1 {
 		err = st.restoreBlockBodyIntoPools(bootInfos[0].LastHeader.Hash)
 		if err != nil {
@@ -471,6 +474,54 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 	}
 
 	return nil
+}
+
+func (st *storageBootstrapper) loadOlderNodesCoordinatorConfigs() {
+	cachedEpochs := st.nodesCoordinator.GetCachedEpochs()
+	totalCached := len(cachedEpochs)
+	if totalCached == 0 || totalCached >= nodesCoordinator.NodesCoordinatorStoredEpochs {
+		return
+	}
+
+	oldestEpoch := uint32(math.MaxUint32)
+	for epoch := range cachedEpochs {
+		if epoch < oldestEpoch {
+			oldestEpoch = epoch
+		}
+	}
+
+	if oldestEpoch == 0 {
+		return
+	}
+
+	additionalEpochsLoaded := 0
+	for epoch := int64(oldestEpoch) - 1; epoch >= 1; epoch-- {
+		if totalCached+additionalEpochsLoaded >= nodesCoordinator.NodesCoordinatorStoredEpochs {
+			break
+		}
+
+		hdr, errGet := st.epochStartTrigger.GetEpochStartHdrFromStorage(uint32(epoch))
+		if errGet != nil {
+			log.Debug("loadOlderNodesCoordinatorConfigs: could not get epoch start header from storage",
+				"epoch", epoch, "error", errGet)
+			break
+		}
+
+		prevRandSeed := hdr.GetPrevRandSeed()
+		errMerge := st.nodesCoordinator.MergeState(prevRandSeed)
+		if errMerge != nil {
+			log.Debug("loadOlderNodesCoordinatorConfigs: could not merge state",
+				"epoch", epoch, "error", errMerge)
+			continue
+		}
+
+		additionalEpochsLoaded++
+	}
+
+	if additionalEpochsLoaded > 0 {
+		log.Debug("loadOlderNodesCoordinatorConfigs: loaded additional epoch configs",
+			"count", additionalEpochsLoaded, "total cached", totalCached+additionalEpochsLoaded)
+	}
 }
 
 func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.BootstrapHeaderInfo) {

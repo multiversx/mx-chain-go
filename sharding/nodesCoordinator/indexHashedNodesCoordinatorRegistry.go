@@ -12,6 +12,67 @@ func (ihnc *indexHashedNodesCoordinator) LoadState(key []byte) error {
 	return ihnc.baseLoadState(key)
 }
 
+// MergeState loads a nodes coordinator registry from storage and merges epoch configs
+// that are not already present in the current in-memory nodesConfig map.
+func (ihnc *indexHashedNodesCoordinator) MergeState(key []byte) error {
+	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
+
+	log.Debug("merging nodes coordinator config", "key", ncInternalkey)
+
+	data, err := ihnc.bootStorer.SearchFirst(ncInternalkey)
+	if err != nil {
+		return err
+	}
+
+	config, err := ihnc.nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry(data)
+	if err != nil {
+		return err
+	}
+
+	ihnc.mutNodesConfig.Lock()
+	defer ihnc.mutNodesConfig.Unlock()
+
+	for epochStr, epochValidators := range config.GetEpochsConfig() {
+		epoch, errParse := strconv.ParseInt(epochStr, 10, 64)
+		if errParse != nil {
+			log.Warn("MergeState: could not parse epoch", "epochStr", epochStr, "error", errParse)
+			continue
+		}
+		epoch32 := uint32(epoch)
+
+		if _, exists := ihnc.nodesConfig[epoch32]; exists {
+			continue
+		}
+
+		nodesConfig, errConvert := epochValidatorsToEpochNodesConfig(epochValidators)
+		if errConvert != nil {
+			log.Warn("MergeState: could not convert epoch validators", "epoch", epoch32, "error", errConvert)
+			continue
+		}
+
+		nbShards := uint32(len(nodesConfig.eligibleMap))
+		if nbShards < 2 {
+			log.Warn("MergeState: invalid number of shards", "epoch", epoch32)
+			continue
+		}
+
+		nodesConfig.nbShards = nbShards - 1
+		nodesConfig.shardID, _ = ihnc.computeShardForSelfPublicKey(nodesConfig)
+
+		var errSelectors error
+		nodesConfig.selectors, errSelectors = ihnc.createSelectors(nodesConfig)
+		if errSelectors != nil {
+			log.Warn("MergeState: could not create selectors", "epoch", epoch32, "error", errSelectors)
+			continue
+		}
+
+		ihnc.nodesConfig[epoch32] = nodesConfig
+		log.Debug("MergeState: loaded older epoch config", "epoch", epoch32)
+	}
+
+	return nil
+}
+
 func (ihnc *indexHashedNodesCoordinator) baseLoadState(key []byte) error {
 	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), key...)
 
@@ -108,8 +169,8 @@ func (ihnc *indexHashedNodesCoordinator) nodesCoordinatorToOldRegistry() NodesCo
 func (ihnc *indexHashedNodesCoordinator) getMinAndLastEpoch() (uint32, uint32) {
 	minEpoch := 0
 	lastEpoch := ihnc.getLastEpochConfig()
-	if lastEpoch >= nodesCoordinatorStoredEpochs {
-		minEpoch = int(lastEpoch) - nodesCoordinatorStoredEpochs + 1
+	if lastEpoch >= NodesCoordinatorStoredEpochs {
+		minEpoch = int(lastEpoch) - NodesCoordinatorStoredEpochs + 1
 	}
 
 	return uint32(minEpoch), lastEpoch

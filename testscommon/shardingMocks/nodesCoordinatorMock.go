@@ -290,6 +290,11 @@ func (ncm *NodesCoordinatorMock) LoadState(_ []byte) error {
 	return nil
 }
 
+// MergeState -
+func (ncm *NodesCoordinatorMock) MergeState(_ []byte) error {
+	return nil
+}
+
 // GetSavedStateKey -
 func (ncm *NodesCoordinatorMock) GetSavedStateKey() []byte {
 	return []byte("key")
