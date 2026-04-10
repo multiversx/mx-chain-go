@@ -504,7 +504,7 @@ func (st *storageBootstrapper) loadOlderNodesCoordinatorConfigs() {
 		if errGet != nil {
 			log.Debug("loadOlderNodesCoordinatorConfigs: could not get epoch start header from storage",
 				"epoch", epoch, "error", errGet)
-			break
+			continue
 		}
 
 		prevRandSeed := hdr.GetPrevRandSeed()
