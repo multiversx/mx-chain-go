@@ -127,6 +127,10 @@ func trySetTheNewValue(value *reflect.Value, newValue interface{}) error {
 		mapValue := reflect.ValueOf(newValue)
 
 		return trySetMapValue(value, mapValue)
+	case reflect.Ptr:
+		ptrValue := reflect.ValueOf(newValue)
+
+		return trySetPtrValue(value, ptrValue)
 	default:
 		return fmt.Errorf("unsupported type <%s> when trying to set the value '%v' of type <%s>", valueKind, newValue, reflect.TypeOf(newValue))
 	}
@@ -185,6 +189,27 @@ func trySetMapValue(value *reflect.Value, newValue reflect.Value) error {
 
 			value.SetMapIndex(key, newItem)
 		}
+	default:
+		return fmt.Errorf("unsupported type <%s> when trying to add value in type <%s>", newValue.Kind(), value.Kind())
+	}
+
+	return nil
+}
+
+func trySetPtrValue(value *reflect.Value, newValue reflect.Value) error {
+	switch newValue.Kind() {
+	case reflect.Ptr:
+		value.Set(newValue)
+	case reflect.Map:
+		newPtr := reflect.New(value.Type().Elem())
+		elem := newPtr.Elem()
+
+		err := trySetTheNewValue(&elem, newValue.Interface())
+		if err != nil {
+			return err
+		}
+
+		value.Set(newPtr)
 	default:
 		return fmt.Errorf("unsupported type <%s> when trying to add value in type <%s>", newValue.Kind(), value.Kind())
 	}

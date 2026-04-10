@@ -163,4 +163,65 @@ func TestOverrideConfigValues(t *testing.T) {
 		require.Equal(t, len(configs.GeneralConfig.VirtualMachine.Execution.WasmVMVersions), 1)
 		require.Equal(t, newWasmVMVersion, configs.GeneralConfig.VirtualMachine.Execution.WasmVMVersions)
 	})
+
+	t.Run("should work for economics override", func(t *testing.T) {
+		t.Parallel()
+
+		configs := &config.Configs{
+			EconomicsConfig: &config.EconomicsConfig{
+				GlobalSettings: config.GlobalSettings{
+					YearSettings: []*config.YearSetting{
+						{
+							Year:             1,
+							MaximumInflation: 0.192,
+						},
+					},
+				},
+			},
+		}
+
+		newYearSettings := []*config.YearSetting{
+			{
+				Year:             1,
+				MaximumInflation: 0.99,
+			},
+		}
+
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "GlobalSettings.YearSettings", Value: newYearSettings, File: "economics.toml"}}, configs)
+		require.NoError(t, err)
+		require.Equal(t, len(configs.EconomicsConfig.GlobalSettings.YearSettings), 1)
+		require.Equal(t, newYearSettings, configs.EconomicsConfig.GlobalSettings.YearSettings)
+	})
+
+	t.Run("should work for full economics", func(t *testing.T) {
+		t.Parallel()
+
+		configs := &config.Configs{
+			EconomicsConfig: &config.EconomicsConfig{
+				GlobalSettings: config.GlobalSettings{
+					YearSettings: []*config.YearSetting{
+						{
+							Year:             0,
+							MaximumInflation: 0.192,
+						},
+					},
+				},
+			},
+		}
+
+		newYearSettings := config.GlobalSettings{
+			GenesisTotalSupply: "111",
+			YearSettings: []*config.YearSetting{
+				{
+					Year:             1,
+					MaximumInflation: 0.99,
+				},
+			},
+		}
+
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "GlobalSettings", Value: newYearSettings, File: "economics.toml"}}, configs)
+		require.NoError(t, err)
+		require.Equal(t, len(configs.EconomicsConfig.GlobalSettings.YearSettings), 1)
+		require.Equal(t, newYearSettings, configs.EconomicsConfig.GlobalSettings)
+	})
 }

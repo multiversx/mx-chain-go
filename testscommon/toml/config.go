@@ -17,6 +17,7 @@ type Config struct {
 	TestMap
 	TestInterface
 	TestArray
+	TestPtr
 }
 
 // TestConfigI8 will hold an int8 value for testing
@@ -186,4 +187,16 @@ type TestInterface struct {
 type TestArray struct {
 	Strings []string
 	Ints    []int
+}
+
+// TestPtr will hold a struct for ptr testing
+type TestPtr struct {
+	String   string
+	PtrArray []*TestPtrArray
+}
+
+// TestPtrArray will hold array ptr data
+type TestPtrArray struct {
+	Int   uint32
+	Float float64
 }
