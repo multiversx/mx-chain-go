@@ -40,4 +40,14 @@ OverridableConfigTomlValues = [
    { File = "config.toml", Path = "TestArray.Strings", Value = ["x", "y", "z"] },
    { File = "config.toml", Path = "TestArray.Ints", Value = [10, 20, 30] },
    { File = "config.toml", Path = "TestArray", Value = { Strings = ["x", "y", "z"], Ints = [10, 20, 30] } },
+   
+   # Smart merge examples for HostDriversConfig - partial field override preserving existing values
+   { File = "external.toml", Path = "HostDriversConfig", Value = [
+      { URL = "ws://example.com:8080", Enabled = true, MarshallerType = "gogo protobuf" },
+   ]},
+   
+   # Example with multiple HostDriversConfig elements, only first gets overridden
+   { File = "external.toml", Path = "HostDriversConfig", Value = [
+      { URL = "ws://first-override.com:8080", Enabled = true },
+   ]},
 ]
