@@ -2002,8 +2002,9 @@ func (boot *baseBootstrap) rollBackOneBlockForced() {
 
 	boot.forkDetector.ResetFork()
 	boot.removeHeadersHigherThanNonceFromPool(boot.getNonceForCurrentBlock())
-	// force request for header (+ proof)
-	_, _, _ = boot.getNextHeaderRequestingIfMissing()
+	// force request for proof
+	nonce := boot.getNonceForNextBlock()
+	boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce)
 }
 
 func (boot *baseBootstrap) rollBackToNonceForced() {
