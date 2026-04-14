@@ -1281,16 +1281,14 @@ func (sc *scProcessor) prepareExecutionAfterBuiltInFunc(
 		newVMInput.ESDTTransfers = in.parsedTransfer.ESDTTransfers
 	}
 
-	newDestSC, err := sc.getAccountFromAddress(in.vmInput.RecipientAddr)
+	newDestSC, err := sc.getAccountFromAddress(newVMInput.RecipientAddr)
 	if err != nil {
-		in.failureContext.setMessages(err.Error(), []byte(""))
-		return newVMInput, newDestSC, nil
+		return newVMInput, newDestSC, err
 	}
 	err = sc.checkUpgradePermission(newDestSC, newVMInput)
 	if err != nil {
 		log.Debug("checkUpgradePermission", "error", err.Error())
-		in.failureContext.setMessages(err.Error(), []byte(""))
-		return newVMInput, newDestSC, nil
+		return newVMInput, newDestSC, err
 	}
 
 	return newVMInput, newDestSC, nil
@@ -2031,7 +2029,7 @@ func (sc *scProcessor) processVMOutput(
 
 	errCheck := sc.checkSCRSizeInvariant(scrTxs)
 	if errCheck != nil {
-		return nil, err
+		return nil, errCheck
 	}
 
 	return scrTxs, nil

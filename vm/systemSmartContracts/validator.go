@@ -663,7 +663,7 @@ func (v *validatorSC) registerBLSKeys(
 			v.eei.AddReturnMessage("cannot do register: " + errExec.Error())
 			v.eei.Finish(blsKey)
 			v.eei.Finish([]byte{failed})
-			return nil, nil, err
+			return nil, nil, errExec
 		}
 
 		if vmOutput.ReturnCode != vmcommon.Ok {
