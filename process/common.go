@@ -965,15 +965,17 @@ func CheckIfIndexesAreOutOfBound(
 	return nil
 }
 
-// CompleteMissingSelfNotarizedHeaders walks backward through metablocks from startHash
-// and derives self-notarized headers for shards that are still at genesis (nonce 0).
+// CompleteMissingSelfNotarizedHeaders fills self-notarized headers for shards still at
+// nonce 0. Fast path uses FirstPendingMetaBlock on epoch start metablocks; fallback walks
+// back from startHash inspecting ShardInfo. Returns an error if any shard remains
+// unresolved and the walk did not reach genesis (legitimate empty state).
 func CompleteMissingSelfNotarizedHeaders(
 	startHash []byte,
 	numShards uint32,
 	blockTracker BlockTracker,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
-) {
+) error {
 	missingShards := make(map[uint32]bool)
 	for shardID := uint32(0); shardID < numShards; shardID++ {
 		lastSelfNotarized, _, err := blockTracker.GetLastSelfNotarizedHeader(shardID)
@@ -983,16 +985,30 @@ func CompleteMissingSelfNotarizedHeaders(
 	}
 
 	if len(missingShards) == 0 {
-		return
+		return nil
 	}
 
 	log.Debug("CompleteMissingSelfNotarizedHeaders",
 		"numMissing", len(missingShards))
 
+	startMetaBlock, err := GetMetaHeaderFromStorage(startHash, marshalizer, store)
+	if err != nil {
+		return fmt.Errorf("%w: could not load start metablock %s: %s",
+			ErrMissingHeader, hex.EncodeToString(startHash), err.Error())
+	}
+
+	if startMetaBlock.IsStartOfEpochBlock() {
+		deriveSelfNotarizedFromEpochStartData(startMetaBlock, missingShards, blockTracker, marshalizer, store)
+		if len(missingShards) == 0 {
+			return nil
+		}
+	}
+
+	reachedGenesis := false
 	currentHash := startHash
 	for i := 0; i < maxSelfNotarizedLookback && len(missingShards) > 0 && len(currentHash) > 0; i++ {
-		metaBlock, err := GetMetaHeaderFromStorage(currentHash, marshalizer, store)
-		if err != nil {
+		metaBlock, errGet := GetMetaHeaderFromStorage(currentHash, marshalizer, store)
+		if errGet != nil {
 			break
 		}
 
@@ -1008,17 +1024,72 @@ func CompleteMissingSelfNotarizedHeaders(
 			}
 		}
 
+		if metaBlock.GetNonce() == 0 {
+			reachedGenesis = true
+			break
+		}
 		currentHash = metaBlock.GetPrevHash()
 	}
 
-	if len(missingShards) > 0 {
-		log.Warn("CompleteMissingSelfNotarizedHeaders: could not derive all self-notarized headers",
+	if len(missingShards) == 0 {
+		return nil
+	}
+
+	if reachedGenesis {
+		log.Debug("CompleteMissingSelfNotarizedHeaders: reached genesis, nothing to derive",
 			"numStillMissing", len(missingShards))
+		return nil
+	}
+
+	log.Warn("CompleteMissingSelfNotarizedHeaders: could not derive all self-notarized headers",
+		"numStillMissing", len(missingShards))
+	return fmt.Errorf("%w: could not derive self-notarized headers for %d shards",
+		ErrMissingHeader, len(missingShards))
+}
+
+func deriveSelfNotarizedFromEpochStartData(
+	epochStartMetaBlock data.MetaHeaderHandler,
+	missingShards map[uint32]bool,
+	blockTracker BlockTracker,
+	marshalizer marshal.Marshalizer,
+	store dataRetriever.StorageService,
+) {
+	epochStartHandler := epochStartMetaBlock.GetEpochStartHandler()
+	if epochStartHandler == nil {
+		return
+	}
+
+	for _, shardData := range epochStartHandler.GetLastFinalizedHeaderHandlers() {
+		shardID := shardData.GetShardID()
+		if !missingShards[shardID] {
+			continue
+		}
+
+		metaHash := shardData.GetFirstPendingMetaBlock()
+		if len(metaHash) == 0 {
+			continue
+		}
+
+		selfNotarizedMeta, err := GetMetaHeaderFromStorage(metaHash, marshalizer, store)
+		if err != nil {
+			log.Debug("deriveSelfNotarizedFromEpochStartData: could not load meta block",
+				"shardID", shardID,
+				"metaHash", metaHash,
+				"error", err.Error())
+			continue
+		}
+
+		log.Debug("deriveSelfNotarizedFromEpochStartData: derived self-notarized header",
+			"shardID", shardID,
+			"metaNonce", selfNotarizedMeta.GetNonce(),
+			"metaHash", metaHash)
+		blockTracker.AddSelfNotarizedHeader(shardID, selfNotarizedMeta, metaHash)
+		delete(missingShards, shardID)
 	}
 }
 
 func findSelfNotarizedMetaHeaderInBlock(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 	shardID uint32,
 	marshalizer marshal.Marshalizer,
 	store dataRetriever.StorageService,
@@ -1028,16 +1099,18 @@ func findSelfNotarizedMetaHeaderInBlock(
 	var bestHash []byte
 	hadLoadErrors := false
 
-	for i := range metaBlock.ShardInfo {
-		if metaBlock.ShardInfo[i].ShardID != shardID {
+	shardInfoHandlers := metaBlock.GetShardInfoHandlers()
+	for i := range shardInfoHandlers {
+		if shardInfoHandlers[i].GetShardID() != shardID {
 			continue
 		}
 
-		shardHeader, err := GetShardHeaderFromStorage(metaBlock.ShardInfo[i].HeaderHash, marshalizer, store)
+		headerHash := shardInfoHandlers[i].GetHeaderHash()
+		shardHeader, err := GetShardHeaderFromStorage(headerHash, marshalizer, store)
 		if err != nil {
-			log.Warn("findSelfNotarizedMetaHeaderInBlock: could not load shard header",
+			log.Debug("findSelfNotarizedMetaHeaderInBlock: could not load shard header",
 				"shardID", shardID,
-				"headerHash", metaBlock.ShardInfo[i].HeaderHash,
+				"headerHash", headerHash,
 				"error", err.Error())
 			hadLoadErrors = true
 			continue

@@ -1348,8 +1348,6 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.AddSelfNotarizedHeader(shardID, lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash)
 	}
 
-	mp.completeMissingSelfNotarizedHeaders(header)
-
 	go mp.historyRepo.OnNotarizedBlocks(mp.shardCoordinator.SelfId(), []data.HeaderHandler{currentHeader}, [][]byte{currentHeaderHash})
 
 	log.Debug("highest final meta block",
@@ -1669,16 +1667,6 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	}
 
 	return lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash
-}
-
-func (mp *metaProcessor) completeMissingSelfNotarizedHeaders(currentHeader *block.MetaBlock) {
-	process.CompleteMissingSelfNotarizedHeaders(
-		currentHeader.GetPrevHash(),
-		mp.shardCoordinator.NumberOfShards(),
-		mp.blockTracker,
-		mp.marshalizer,
-		mp.store,
-	)
 }
 
 // getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage

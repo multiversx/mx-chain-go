@@ -409,9 +409,9 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		st.blockTracker.AddTrackedHeader(header, bootInfos[i].LastHeader.Hash)
 	}
 
-	errComplete := st.bootstrapper.completeSelfNotarizedHeaders(bootInfos[0].LastHeader.Hash)
-	if errComplete != nil {
-		log.Warn("could not complete self notarized headers", "error", errComplete.Error())
+	err = st.bootstrapper.completeSelfNotarizedHeaders(bootInfos[0].LastHeader.Hash)
+	if err != nil {
+		return err
 	}
 
 	if len(bootInfos) == 1 {
