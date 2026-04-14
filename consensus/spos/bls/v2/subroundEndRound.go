@@ -322,6 +322,7 @@ func (sr *subroundEndRound) waitForProof() bool {
 				return false
 			}
 		case <-ctx.Done():
+			log.Debug("waitForProof: context timed out")
 			return false
 		}
 	}
