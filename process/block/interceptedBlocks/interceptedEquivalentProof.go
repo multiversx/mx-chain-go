@@ -13,6 +13,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/hardfork"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -145,6 +146,12 @@ func extractIsForCurrentShard(shardCoordinator sharding.Coordinator, equivalentP
 // CheckValidity checks if the received proof is valid
 func (iep *interceptedEquivalentProof) CheckValidity() error {
 	log.Trace("Checking intercepted equivalent proof validity", "proof header hash", iep.proof.HeaderHash)
+
+	if iv := hardfork.IntervalForRound(iep.proof.GetHeaderShardId(), iep.proof.GetHeaderRound()); iv != nil {
+		return fmt.Errorf("proof is in excluded range, shard %d, round %d, low %d, high %d",
+			iep.proof.GetHeaderShardId(), iep.proof.GetHeaderRound(), iv.Low, iv.High)
+	}
+
 	err := iep.integrity()
 	if err != nil {
 		return err

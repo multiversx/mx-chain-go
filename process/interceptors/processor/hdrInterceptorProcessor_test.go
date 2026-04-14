@@ -198,22 +198,22 @@ func TestHdrInterceptorProcessor_ValidateInExcludedIntervals(t *testing.T) {
 			hdr.Round = 6076600
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 0, round 6076600, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 0, round 6076600, low 6076600, high 6630000", err.Error())
 		})
 		t.Run("round == 6300000 should error", func(t *testing.T) {
 			hdr.Round = 6300000
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 0, round 6300000, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 0, round 6300000, low 6076600, high 6630000", err.Error())
 		})
-		t.Run("round == 6630115 should error", func(t *testing.T) {
-			hdr.Round = 6630115
+		t.Run("round == 6630000 should error", func(t *testing.T) {
+			hdr.Round = 6630000
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 0, round 6630115, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 0, round 6630000, low 6076600, high 6630000", err.Error())
 		})
-		t.Run("round == 6630116 should not error", func(t *testing.T) {
-			hdr.Round = 6630116
+		t.Run("round == 6630001 should not error", func(t *testing.T) {
+			hdr.Round = 6630001
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.Nil(t, err)
 		})
@@ -257,22 +257,22 @@ func TestHdrInterceptorProcessor_ValidateInExcludedIntervals(t *testing.T) {
 			hdr.Round = 6076600
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 1, round 6076600, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 1, round 6076600, low 6076600, high 6630000", err.Error())
 		})
 		t.Run("round == 6300000 should error", func(t *testing.T) {
 			hdr.Round = 6300000
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 1, round 6300000, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 1, round 6300000, low 6076600, high 6630000", err.Error())
 		})
-		t.Run("round == 6630115 should error", func(t *testing.T) {
-			hdr.Round = 6630115
+		t.Run("round == 6630000 should error", func(t *testing.T) {
+			hdr.Round = 6630000
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 1, round 6630115, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 1, round 6630000, low 6076600, high 6630000", err.Error())
 		})
-		t.Run("round == 6630116 should not error", func(t *testing.T) {
-			hdr.Round = 6630116
+		t.Run("round == 6630001 should not error", func(t *testing.T) {
+			hdr.Round = 6630001
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.Nil(t, err)
 		})
@@ -316,22 +316,22 @@ func TestHdrInterceptorProcessor_ValidateInExcludedIntervals(t *testing.T) {
 			hdr.Round = 6076600
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 2, round 6076600, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 2, round 6076600, low 6076600, high 6630000", err.Error())
 		})
 		t.Run("round == 6300000 should error", func(t *testing.T) {
 			hdr.Round = 6300000
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 2, round 6300000, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 2, round 6300000, low 6076600, high 6630000", err.Error())
 		})
-		t.Run("round == 6630115 should error", func(t *testing.T) {
-			hdr.Round = 6630115
+		t.Run("round == 6630000 should error", func(t *testing.T) {
+			hdr.Round = 6630000
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 2, round 6630115, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 2, round 6630000, low 6076600, high 6630000", err.Error())
 		})
-		t.Run("round == 6630116 should not error", func(t *testing.T) {
-			hdr.Round = 6630116
+		t.Run("round == 6630001 should not error", func(t *testing.T) {
+			hdr.Round = 6630001
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.Nil(t, err)
 		})
@@ -373,22 +373,22 @@ func TestHdrInterceptorProcessor_ValidateInExcludedIntervals(t *testing.T) {
 			hdr.Round = 6076600
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 4294967295, round 6076600, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 4294967295, round 6076600, low 6076600, high 6630000", err.Error())
 		})
 		t.Run("round == 6300000 should error", func(t *testing.T) {
 			hdr.Round = 6300000
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 4294967295, round 6300000, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 4294967295, round 6300000, low 6076600, high 6630000", err.Error())
 		})
-		t.Run("round == 6630115 should error", func(t *testing.T) {
-			hdr.Round = 6630115
+		t.Run("round == 6630000 should error", func(t *testing.T) {
+			hdr.Round = 6630000
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.NotNil(t, err)
-			assert.Equal(t, "header is in excluded range, shard 4294967295, round 6630115, low 6076600, high 6630115", err.Error())
+			assert.Equal(t, "header is in excluded range, shard 4294967295, round 6630000, low 6076600, high 6630000", err.Error())
 		})
-		t.Run("round == 6630116 should not error", func(t *testing.T) {
-			hdr.Round = 6630116
+		t.Run("round == 6630001 should not error", func(t *testing.T) {
+			hdr.Round = 6630001
 			err := hip.Validate(hdrInterceptedData, "")
 			assert.Nil(t, err)
 		})

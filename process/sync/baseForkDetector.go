@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/hardfork"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -61,6 +62,10 @@ type baseForkDetector struct {
 	proofsPool             process.ProofsPool
 	chainParametersHandler common.ChainParametersHandler
 	processConfigsHandler  common.ProcessConfigsHandler
+}
+
+func (bfd *baseForkDetector) isRoundExcluded(round uint64) bool {
+	return hardfork.IsRoundExcluded(bfd.shardID, round)
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -214,6 +219,9 @@ func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 		}
 
 		for _, hInfo := range headers {
+			if bfd.isRoundExcluded(hInfo.round) {
+				continue
+			}
 			if hInfo.hasProof {
 				probableHighestNonce = nonce
 				break
@@ -301,6 +309,12 @@ func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
 // append adds a new header in the slice found in nonce position
 // it not adds the header if its hash is already stored in the slice
 func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
+	if bfd.isRoundExcluded(hdrInfo.round) {
+		log.Debug("baseForkDetector.append: header round in excluded range, skipping",
+			"shard", bfd.shardID, "nonce", hdrInfo.nonce, "round", hdrInfo.round)
+		return false
+	}
+
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
@@ -878,6 +892,12 @@ func (bfd *baseForkDetector) ReceivedProof(proof data.HeaderProofHandler) {
 }
 
 func (bfd *baseForkDetector) processReceivedProof(proof data.HeaderProofHandler) {
+	if bfd.isRoundExcluded(proof.GetHeaderRound()) {
+		log.Debug("forkDetector.processReceivedProof: proof round in excluded range, skipping",
+			"shard", bfd.shardID, "nonce", proof.GetHeaderNonce(), "round", proof.GetHeaderRound())
+		return
+	}
+
 	bfd.setHighestNonceReceived(proof.GetHeaderNonce())
 
 	hInfo := &headerInfo{
@@ -913,6 +933,12 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	selfNotarizedHeadersHashes [][]byte,
 	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
 ) {
+	if bfd.isRoundExcluded(header.GetRound()) {
+		log.Debug("forkDetector.processReceivedBlock: header round in excluded range, skipping",
+			"shard", bfd.shardID, "nonce", header.GetNonce(), "round", header.GetRound())
+		return
+	}
+
 	hasProof := true // old blocks have consensus proof on them
 	if common.IsProofsFlagEnabledForHeader(bfd.enableEpochsHandler, header) {
 		hasProof = bfd.proofsPool.HasProof(header.GetShardID(), headerHash)
