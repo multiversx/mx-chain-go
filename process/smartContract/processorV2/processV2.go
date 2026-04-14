@@ -1283,12 +1283,20 @@ func (sc *scProcessor) prepareExecutionAfterBuiltInFunc(
 
 	newDestSC, err := sc.getAccountFromAddress(newVMInput.RecipientAddr)
 	if err != nil {
-		return newVMInput, newDestSC, err
+		if !sc.enableEpochsHandler.IsFlagEnabled(common.ConsumedGasInEconomicsFlag) {
+			in.failureContext.setMessages(err.Error(), []byte(""))
+			return newVMInput, newDestSC, nil
+		}
+		return nil, nil, err
 	}
 	err = sc.checkUpgradePermission(newDestSC, newVMInput)
 	if err != nil {
 		log.Debug("checkUpgradePermission", "error", err.Error())
-		return newVMInput, newDestSC, err
+		if !sc.enableEpochsHandler.IsFlagEnabled(common.ConsumedGasInEconomicsFlag) {
+			in.failureContext.setMessages(err.Error(), []byte(""))
+			return newVMInput, newDestSC, nil
+		}
+		return nil, nil, err
 	}
 
 	return newVMInput, newDestSC, nil
@@ -1515,11 +1523,15 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 		log.Debug("scProcessor.ProcessIfError() save log", "error", ignorableError.Error())
 	}
 
-	txType, _, _ := sc.txTypeHandler.ComputeTransactionType(tx)
-	isCrossShardMoveBalance := txType == process.MoveBalance && check.IfNil(acntSnd)
+	sndTxType, dstTxType, _ := sc.txTypeHandler.ComputeTransactionType(tx)
+	isCrossShardMoveBalance := sndTxType == process.MoveBalance && check.IfNil(acntSnd)
 	if isCrossShardMoveBalance {
 		// move balance was already consumed in sender shard
 		return nil
+	}
+	if sc.enableEpochsHandler.IsFlagEnabled(common.ConsumedGasInEconomicsFlag) &&
+		sndTxType == process.MoveBalance && dstTxType == process.MoveBalance {
+		consumedFee = sc.economicsFee.ComputeMoveBalanceFee(tx)
 	}
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), failureContext.txHash)
@@ -2029,6 +2041,9 @@ func (sc *scProcessor) processVMOutput(
 
 	errCheck := sc.checkSCRSizeInvariant(scrTxs)
 	if errCheck != nil {
+		if !sc.enableEpochsHandler.IsFlagEnabled(common.ConsumedGasInEconomicsFlag) {
+			return nil, err
+		}
 		return nil, errCheck
 	}
 

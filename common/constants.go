@@ -779,6 +779,9 @@ const (
 	// MetricRelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
 	MetricRelayedTransactionsV1V2DisableEpoch = "erd_relayed_transactions_v1_v2_disable_epoch"
 
+	// MetricConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas for accumulated fees is fixed
+	MetricConsumedGasInEconomicsFixEnableEpoch = "erd_consumed_gas_in_economics_fix_enable_epoch"
+
 	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
 	MetricEpochEnable = "erd_epoch_enable"
 
@@ -1290,5 +1293,6 @@ const (
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
 	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
 	RelayedTransactionsV1V2DisableFlag                  core.EnableEpochFlag = "RelayedTransactionsV1V2DisableFlag"
+	ConsumedGasInEconomicsFlag                          core.EnableEpochFlag = "ConsumedGasInEconomicsFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

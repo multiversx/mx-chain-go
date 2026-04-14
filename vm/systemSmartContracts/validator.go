@@ -663,6 +663,9 @@ func (v *validatorSC) registerBLSKeys(
 			v.eei.AddReturnMessage("cannot do register: " + errExec.Error())
 			v.eei.Finish(blsKey)
 			v.eei.Finish([]byte{failed})
+			if !v.enableEpochsHandler.IsFlagEnabled(common.ConsumedGasInEconomicsFlag) {
+				return nil, nil, err
+			}
 			return nil, nil, errExec
 		}
 
