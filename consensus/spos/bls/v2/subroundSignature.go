@@ -111,22 +111,23 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
 
-	shouldConsiderCompetingBlock := sr.waitForCompetingBlockEarlyChecks(nonce, currentHash)
-	if shouldConsiderCompetingBlock {
+	pkBytes := sr.getPkForCompetingBlock(nonce, currentHash)
+	hasCompetingBlockForPk := len(pkBytes) != 0
+	if hasCompetingBlockForPk {
 		// create signature shares optimistically only if there might be a competing block to be analyzed
 		// otherwise create signatures only before sending, to avoid goroutines overhead
 		if !sr.createSignaturesForManagedKeys(ctx) {
 			log.Debug("step 2: subround cannot proceed, cannot create signatures for managed keys")
 			return false
 		}
+
+		shouldAbort := sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
+		if shouldAbort {
+			return false
+		}
 	}
 
 	// Wait once for the entire node if competing block detected
-	shouldAbort := sr.waitIfCompetingBlockForNode(ctx, nonce, currentHash)
-	if shouldAbort {
-		return false
-	}
-
 	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if isSelfSingleKeyInConsensusGroup {
 		if !sr.doSignatureJobForSingleKey(ctx) {
@@ -248,6 +249,13 @@ func (sr *subroundSignature) createSignaturesForManagedKeys(ctx context.Context)
 
 		go func(ctx context.Context, idx int, pk string) {
 			defer sr.signatureThrottler.EndProcessing()
+			defer wg.Done()
+
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
 
 			pkBytes := []byte(pk)
 			currentHash := sr.GetData()
@@ -260,11 +268,10 @@ func (sr *subroundSignature) createSignaturesForManagedKeys(ctx context.Context)
 			)
 			if err != nil {
 				log.Debug("createSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
-			} else {
-				atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
+				return
 			}
 
-			wg.Done()
+			atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
 		}(ctx, idx, pk)
 	}
 
@@ -409,8 +416,13 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(_ context.Context) bool 
 	return sr.completeSignatureSubRound(sr.SelfPubKey())
 }
 
-func (sr *subroundSignature) waitForCompetingBlockEarlyChecks(nonce uint64, currentHash []byte) bool {
-	// do not check for self key, no need for optimistic signature creation if single-key node
+func (sr *subroundSignature) getPkForCompetingBlock(nonce uint64, currentHash []byte) []byte {
+	// check self key
+	selfPk := []byte(sr.SelfPubKey())
+	previousHash, exists := sr.sentSignatureTracker.GetSignedHash(selfPk, nonce)
+	if exists && !bytes.Equal(previousHash, currentHash) {
+		return selfPk
+	}
 
 	// check managed keys
 	for _, pk := range sr.ConsensusGroup() {
@@ -418,13 +430,14 @@ func (sr *subroundSignature) waitForCompetingBlockEarlyChecks(nonce uint64, curr
 		if !sr.IsKeyManagedBySelf(pkBytes) {
 			continue
 		}
+
 		previousHash, exists := sr.sentSignatureTracker.GetSignedHash(pkBytes, nonce)
 		if exists && !bytes.Equal(previousHash, currentHash) {
-			return true
+			return pkBytes
 		}
 	}
 
-	return false
+	return nil
 }
 
 // waitIfCompetingBlockForNode checks if any key managed by this node previously signed a different
