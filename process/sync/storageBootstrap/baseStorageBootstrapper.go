@@ -397,9 +397,9 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			"epoch", bootInfos[i].LastHeader.Epoch,
 			"nonce", bootInfos[i].LastHeader.Nonce)
 
-		for _, h := range bootInfos[i].LastCrossNotarizedHeaders {
+		for k, h := range bootInfos[i].LastCrossNotarizedHeaders {
 			if h.ShardId == 1 && h.Nonce == 5513601 {
-				h.Nonce = 5513600
+				bootInfos[i].LastCrossNotarizedHeaders[k].Nonce = 5513600
 				log.Debug("apply old header", "nonce", h.Nonce)
 			}
 		}
