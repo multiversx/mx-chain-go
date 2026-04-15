@@ -1,6 +1,7 @@
 package storageBootstrap
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -400,7 +401,9 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		for k, h := range bootInfos[i].LastCrossNotarizedHeaders {
 			if h.ShardId == 1 && h.Nonce == 5513601 {
 				bootInfos[i].LastCrossNotarizedHeaders[k].Nonce = 5513600
-				log.Debug("apply old header", "nonce", h.Nonce)
+				hash, _ := hex.DecodeString("9d8c219b469101fbb93ef330c8ec02df3e3964859bf8860219a476d6b2feaba9")
+				bootInfos[i].LastCrossNotarizedHeaders[k].Hash = hash
+				log.Debug("apply old header", "nonce", bootInfos[i].LastCrossNotarizedHeaders[k].Nonce)
 			}
 		}
 
