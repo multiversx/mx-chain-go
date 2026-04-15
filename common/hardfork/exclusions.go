@@ -15,7 +15,7 @@ type ExcludedInterval struct {
 // baseForkDetector (processReceivedBlock, processReceivedProof, append, computeProbableHighestNonce).
 var HfExcludedIntervals = map[uint32][]ExcludedInterval{
 	0:                     {{Low: 6649700, High: 6649700}},
-	1:                     {{Low: 5536883, High: 5536885}},
+	1:                     {{Low: 5536884, High: 5536885}},
 	2:                     {{Low: 6649700, High: 6649700}},
 	core.MetachainShardId: {{Low: 5609515, High: 6649700}},
 }
