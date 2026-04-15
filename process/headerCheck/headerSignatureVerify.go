@@ -167,17 +167,21 @@ func (hsv *HeaderSigVerifier) getConsensusSignersForEquivalentProofs(proof data.
 		return nil, err
 	}
 
-	header, err := hsv.headersPool.GetHeaderByHash(proof.GetHeaderHash())
-	if err != nil {
-		return nil, err
-	}
+	shouldApplyFallbackValidation := false
+	if proof.GetIsStartOfEpoch() && proof.GetHeaderShardId() == core.MetachainShardId {
+		log.Debug("getConsensusSignersForEquivalentProofs: header is start of epoch, will apply fallback validation")
+		header, err := hsv.headersPool.GetHeaderByHash(proof.GetHeaderHash())
+		if err != nil {
+			return nil, err
+		}
 
-	shouldApplyFallbackValidation := hsv.fallbackHeaderValidator.ShouldApplyFallbackValidationForHeaderWith(
-		proof.GetHeaderShardId(),
-		proof.GetIsStartOfEpoch(),
-		proof.GetHeaderRound(),
-		header.GetPrevHash(),
-	)
+		shouldApplyFallbackValidation = hsv.fallbackHeaderValidator.ShouldApplyFallbackValidationForHeaderWith(
+			proof.GetHeaderShardId(),
+			proof.GetIsStartOfEpoch(),
+			proof.GetHeaderRound(),
+			header.GetPrevHash(),
+		)
+	}
 
 	err = common.IsConsensusBitmapValid(
 		log,
