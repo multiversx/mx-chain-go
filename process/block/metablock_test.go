@@ -941,6 +941,9 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 		return &block.Header{}, []byte("hash"), nil
 	}
+	blockTrackerMock.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
+		return &block.MetaBlock{Nonce: 1}, []byte("hash"), nil
+	}
 	arguments.BlockTracker = blockTrackerMock
 	arguments.StateAccessesCollector = &stateMock.StateAccessesCollectorStub{}
 	mp, _ := blproc.NewMetaProcessor(arguments)
@@ -1066,6 +1069,9 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	blockTrackerMock := mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), createGenesisBlocks(bootstrapComponents.ShardCoordinator()))
 	blockTrackerMock.GetCrossNotarizedHeaderCalled = func(shardID uint32, offset uint64) (data.HeaderHandler, []byte, error) {
 		return &block.Header{}, []byte("hash"), nil
+	}
+	blockTrackerMock.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
+		return &block.MetaBlock{Nonce: 1}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
 	resetCountersForManagedBlockSignerCalled := false

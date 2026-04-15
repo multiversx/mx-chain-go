@@ -235,45 +235,17 @@ func (msh *metaStorageHandler) getSelfNotarizedMetaForShard(
 	epochStartData data.EpochStartShardDataHandler,
 	syncedHeaders map[string]data.HeaderHandler,
 ) ([]byte, data.HeaderHandler, bool) {
-	shardHeader, ok := syncedHeaders[string(epochStartData.GetHeaderHash())]
-	if !ok {
+	metaHash := epochStartData.GetFirstPendingMetaBlock()
+	if len(metaHash) == 0 {
 		return nil, nil, false
 	}
 
-	currentHdr, ok := shardHeader.(data.ShardHeaderHandler)
-	if !ok {
+	metaBlock, found := syncedHeaders[string(metaHash)]
+	if !found {
 		return nil, nil, false
 	}
 
-	for currentHdr.GetNonce() > 0 {
-		metaBlockHashes := currentHdr.GetMetaBlockHashes()
-		if len(metaBlockHashes) > 0 {
-			lastMetaHash := metaBlockHashes[len(metaBlockHashes)-1]
-			metaBlock, found := syncedHeaders[string(lastMetaHash)]
-			if !found {
-				return nil, nil, false
-			}
-			return lastMetaHash, metaBlock, true
-		}
-
-		prevHeader, found := syncedHeaders[string(currentHdr.GetPrevHash())]
-		if !found {
-			return nil, nil, false
-		}
-
-		prevShardHeader, ok := prevHeader.(data.ShardHeaderHandler)
-		if !ok {
-			return nil, nil, false
-		}
-
-		if prevShardHeader.GetNonce() >= currentHdr.GetNonce() {
-			break
-		}
-
-		currentHdr = prevShardHeader
-	}
-
-	return nil, nil, false
+	return metaHash, metaBlock, true
 }
 
 func (msh *metaStorageHandler) saveLastCrossNotarizedHeaders(
