@@ -108,9 +108,20 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 		return false
 	}
 
-	// Wait once for the entire node if competing block detected
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
+
+	shouldConsiderCompetingBlock := sr.waitForCompetingBlockEarlyChecks(nonce, currentHash)
+	if shouldConsiderCompetingBlock {
+		// create signature shares optimistically only if there might be a competing block to be analyzed
+		// otherwise create signatures only before sending, to avoid goroutines overhead
+		if !sr.createSignaturesForManagedKeys(ctx) {
+			log.Debug("step 2: subround cannot proceed, cannot create signatures for managed keys")
+			return false
+		}
+	}
+
+	// Wait once for the entire node if competing block detected
 	shouldAbort := sr.waitIfCompetingBlockForNode(ctx, nonce, currentHash)
 	if shouldAbort {
 		return false
@@ -213,6 +224,59 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	return false
 }
 
+func (sr *subroundSignature) createSignaturesForManagedKeys(ctx context.Context) bool {
+	numMultiKeysSignaturesCreated := int32(0)
+
+	wg := sync.WaitGroup{}
+
+	for idx, pk := range sr.ConsensusGroup() {
+		pkBytes := []byte(pk)
+		if !sr.IsKeyManagedBySelf(pkBytes) {
+			continue
+		}
+
+		if sr.IsJobDone(pk, sr.Current()) {
+			continue
+		}
+
+		err := sr.checkGoRoutinesThrottler(ctx)
+		if err != nil {
+			return false
+		}
+		sr.signatureThrottler.StartProcessing()
+		wg.Add(1)
+
+		go func(ctx context.Context, idx int, pk string) {
+			defer sr.signatureThrottler.EndProcessing()
+
+			pkBytes := []byte(pk)
+			currentHash := sr.GetData()
+
+			_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+				currentHash,
+				uint16(idx),
+				sr.GetHeader().GetEpoch(),
+				pkBytes,
+			)
+			if err != nil {
+				log.Debug("createSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
+			} else {
+				atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
+			}
+
+			wg.Done()
+		}(ctx, idx, pk)
+	}
+
+	wg.Wait()
+
+	if numMultiKeysSignaturesCreated > 0 {
+		log.Debug("step 2: multi keys signatures have been created", "num", numMultiKeysSignaturesCreated)
+	}
+
+	return true
+}
+
 func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) bool {
 	numMultiKeysSignaturesSent := int32(0)
 	sentSigForAllKeys := atomicCore.Flag{}
@@ -264,15 +328,21 @@ func (sr *subroundSignature) sendSignatureForManagedKey(_ context.Context, idx i
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
 
-	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-		currentHash,
-		uint16(idx),
-		sr.GetHeader().GetEpoch(),
-		pkBytes,
-	)
+	signatureShare, err := sr.SigningHandler().SignatureShare(uint16(idx))
 	if err != nil {
-		log.Debug("sendSignatureForManagedKey.CreateSignatureShareForPublicKey", "error", err.Error())
-		return false
+		// signature share not found (optimistic signature share creation was not triggered)
+		// will try to create it
+
+		signatureShare, err = sr.SigningHandler().CreateSignatureShareForPublicKey(
+			currentHash,
+			uint16(idx),
+			sr.GetHeader().GetEpoch(),
+			pkBytes,
+		)
+		if err != nil {
+			log.Debug("sendSignatureForManagedKey.CreateSignatureShareForPublicKey", "error", err.Error())
+			return false
+		}
 	}
 
 	// Record the signed nonce before broadcast so competing block detection works
@@ -337,6 +407,24 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(_ context.Context) bool 
 	}
 
 	return sr.completeSignatureSubRound(sr.SelfPubKey())
+}
+
+func (sr *subroundSignature) waitForCompetingBlockEarlyChecks(nonce uint64, currentHash []byte) bool {
+	// do not check for self key, no need for optimistic signature creation if single-key node
+
+	// check managed keys
+	for _, pk := range sr.ConsensusGroup() {
+		pkBytes := []byte(pk)
+		if !sr.IsKeyManagedBySelf(pkBytes) {
+			continue
+		}
+		previousHash, exists := sr.sentSignatureTracker.GetSignedHash(pkBytes, nonce)
+		if exists && !bytes.Equal(previousHash, currentHash) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // waitIfCompetingBlockForNode checks if any key managed by this node previously signed a different
