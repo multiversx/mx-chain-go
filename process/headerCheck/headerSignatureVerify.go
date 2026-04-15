@@ -167,11 +167,16 @@ func (hsv *HeaderSigVerifier) getConsensusSignersForEquivalentProofs(proof data.
 		return nil, err
 	}
 
+	header, err := hsv.headersPool.GetHeaderByHash(proof.GetHeaderHash())
+	if err != nil {
+		return nil, err
+	}
+
 	shouldApplyFallbackValidation := hsv.fallbackHeaderValidator.ShouldApplyFallbackValidationForHeaderWith(
 		proof.GetHeaderShardId(),
 		proof.GetIsStartOfEpoch(),
 		proof.GetHeaderRound(),
-		proof.GetHeaderHash(),
+		header.GetPrevHash(),
 	)
 
 	err = common.IsConsensusBitmapValid(

@@ -874,9 +874,8 @@ func (wrk *Worker) Extend(subroundId int) {
 	if !wrk.isAsyncExecEnabled() {
 		wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
 		wrk.blockProcessor.RevertCurrentBlock()
+		wrk.removeConsensusHeaderFromPool()
 	}
-
-	wrk.removeConsensusHeaderFromPool()
 }
 
 func (wrk *Worker) isAsyncExecEnabled() bool {
