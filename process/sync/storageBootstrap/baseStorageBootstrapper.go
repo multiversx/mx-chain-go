@@ -397,6 +397,13 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			"epoch", bootInfos[i].LastHeader.Epoch,
 			"nonce", bootInfos[i].LastHeader.Nonce)
 
+		for _, h := range bootInfos[i].LastCrossNotarizedHeaders {
+			if h.ShardId == 1 && h.Nonce == 5513601 {
+				h.Nonce = 5513600
+				log.Debug("apply old header", "nonce", h.Nonce)
+			}
+		}
+
 		err = st.bootstrapper.applyCrossNotarizedHeaders(bootInfos[i].LastCrossNotarizedHeaders)
 		if err != nil {
 			log.Debug("cannot apply cross notarized headers", "error", err.Error())

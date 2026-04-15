@@ -129,11 +129,11 @@ func (bn *blockNotarizer) DisplayNotarizedHeaders(shardID uint32, message string
 		"shard", shardID,
 		"nb", len(notarizedHeaders))
 
-	for _, hdrInfo := range notarizedHeaders {
+	for i := range notarizedHeaders {
 		log.Trace("notarized header info",
-			"round", hdrInfo.Header.GetRound(),
-			"nonce", hdrInfo.Header.GetNonce(),
-			"hash", hdrInfo.Hash)
+			"round", notarizedHeaders[i].Header.GetRound(),
+			"nonce", notarizedHeaders[i].Header.GetNonce(),
+			"hash", notarizedHeaders[i].Hash)
 	}
 }
 
