@@ -442,7 +442,12 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return process.ErrShardInfoOnEpochStartBlock
 	}
 
-	err := mp.verifyAccumulatedFeesInEpochOnEpochStart(header)
+	err := mp.verifyEpochStartMiniBlocks(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.verifyAccumulatedFeesInEpochOnEpochStart(header)
 	if err != nil {
 		return err
 	}
@@ -529,7 +534,23 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	err = mp.txCoordinator.VerifyCreatedBlockTransactions(header, &block.Body{MiniBlocks: body.MiniBlocks})
+	if err != nil {
+		return err
+	}
+
 	saveEpochStartEconomicsMetrics(mp.appStatusHandler, header)
+
+	return nil
+}
+
+func (mp *metaProcessor) verifyEpochStartMiniBlocks(metaBlock *block.MetaBlock) error {
+	for _, miniBlockHeader := range metaBlock.MiniBlockHeaders {
+		if miniBlockHeader.GetType() != block.PeerBlock &&
+			miniBlockHeader.GetType() != block.RewardsBlock {
+			return process.ErrInvalidMiniBlockType
+		}
+	}
 
 	return nil
 }
@@ -573,7 +594,14 @@ func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(metaBlock *block.MetaBlo
 
 	mapMetaMiniBlockHeaders := make(map[string]struct{}, len(metaBlock.MiniBlockHeaders))
 	for _, miniBlockHeader := range metaBlock.MiniBlockHeaders {
-		mapMetaMiniBlockHeaders[string(miniBlockHeader.Hash)] = struct{}{}
+		if miniBlockHeader.GetSenderShardID() != core.MetachainShardId &&
+			miniBlockHeader.GetReceiverShardID() == core.MetachainShardId {
+			mapMetaMiniBlockHeaders[string(miniBlockHeader.Hash)] = struct{}{}
+		}
+	}
+
+	if len(miniBlockShardsHashes) != len(mapMetaMiniBlockHeaders) {
+		return process.ErrMiniBlockNumMissMatch
 	}
 
 	for hash := range miniBlockShardsHashes {
