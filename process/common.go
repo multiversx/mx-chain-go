@@ -1009,6 +1009,7 @@ func CompleteMissingSelfNotarizedHeaders(
 	for i := 0; i < maxSelfNotarizedLookback && len(missingShards) > 0 && len(currentHash) > 0; i++ {
 		metaBlock, errGet := GetMetaHeaderFromStorage(currentHash, marshalizer, store)
 		if errGet != nil {
+			log.Debug("CompleteMissingSelfNotarizedHeaders: could not load meta block during walk back", "error", errGet.Error())
 			break
 		}
 
