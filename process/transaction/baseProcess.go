@@ -384,10 +384,6 @@ func (txProc *baseTxProcessor) VerifyGuardian(tx *transaction.Transaction, accou
 		return nil
 	}
 
-	if true {
-		return nil
-	}
-
 	isTransactionGuarded := txProc.txVersionChecker.IsGuardedTransaction(tx)
 	if !account.IsGuarded() {
 		if isTransactionGuarded {

@@ -470,10 +470,6 @@ func (inTx *InterceptedTransaction) VerifyGuardianSig(tx *transaction.Transactio
 		return verifyConsistencyForNotGuardedTx(tx)
 	}
 
-	if true {
-		return nil
-	}
-
 	guardianPubKey, err := inTx.keyGen.PublicKeyFromByteArray(tx.GuardianAddr)
 	if err != nil {
 		return err
