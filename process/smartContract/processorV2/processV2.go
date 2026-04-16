@@ -1105,7 +1105,7 @@ func (sc *scProcessor) extractAsyncCallParamsFromTxData(data string) (*vmcommon.
 		return nil, nil, err
 	}
 
-	if len(args) < 2 {
+	if len(args) < 4 {
 		log.Trace("scProcessor.createSCRsWhenError()", "no async params found", data)
 		return nil, nil, err
 	}
