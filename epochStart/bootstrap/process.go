@@ -561,6 +561,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
 		e.enableEpochsHandler,
 		e.dataPool.Proofs(),
+		e.dataPool.Headers(),
 	)
 	if err != nil {
 		return err
