@@ -293,6 +293,17 @@ func PrepareTimestampBasedOnHeaderData(headerTimestamp uint64, headerEpoch uint3
 	return timestampSec, timestampMs, nil
 }
 
+// LogPrettifiedHeader logs the prettified representation of the provided header or an error if prettification fails
+func LogPrettifiedHeader(header data.HeaderHandler, sentOrReceived string, version string) {
+	headerOutput, err := PrettifyStruct(header)
+	message := fmt.Sprintf("Proposed header %s %s", sentOrReceived, version)
+	if err != nil {
+		log.Debug(message, "error", err)
+	} else {
+		log.Debug(message, "header", headerOutput)
+	}
+}
+
 // PrettifyStruct returns a JSON string representation of a struct, converting byte slices to hex
 // and formatting big number values into readable strings. Useful for logging or debugging.
 func PrettifyStruct(x interface{}) (string, error) {

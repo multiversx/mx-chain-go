@@ -214,10 +214,7 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 			return nil, err
 		}
 
-		headerOutput, err := common.PrettifyStruct(header)
-		if err == nil {
-			log.Debug("Proposed header sent", "header", headerOutput)
-		}
+		common.LogPrettifiedHeader(header, "sent", "v3")
 
 		err = creator.nodeHandler.GetProcessComponents().BlockProcessor().VerifyBlockProposal(header, block, func() time.Duration {
 			return time.Second
