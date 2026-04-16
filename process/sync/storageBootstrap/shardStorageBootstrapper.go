@@ -282,6 +282,10 @@ func (ssb *shardStorageBootstrapper) applySelfNotarizedHeaders(
 func (ssb *shardStorageBootstrapper) applyNumPendingMiniBlocks(_ []bootstrapStorage.PendingMiniBlocksInfo) {
 }
 
+func (ssb *shardStorageBootstrapper) completeSelfNotarizedHeaders(_ []byte) error {
+	return nil
+}
+
 func (ssb *shardStorageBootstrapper) getRootHash(shardHeaderHash []byte) []byte {
 	shardHeader, err := process.GetShardHeaderFromStorage(shardHeaderHash, ssb.marshalizer, ssb.store)
 	if err != nil {

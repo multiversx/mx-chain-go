@@ -2,9 +2,11 @@ package bootstrap
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
@@ -13,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 )
 
@@ -106,7 +109,7 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 
 	msh.saveMiniblocksFromComponents(components)
 
-	miniBlocks, err := msh.groupMiniBlocksByShard(components.PendingMiniBlocks)
+	miniBlocks, err := computePendingMiniBlocks(components)
 	if err != nil {
 		return err
 	}
@@ -231,49 +234,108 @@ func (msh *metaStorageHandler) saveIntermediateMetaBlocksToStorage(
 	return nil
 }
 
+// computePendingMiniBlocks replays the intermediate metablocks on a fresh handler
+// to derive the correct pending state, matching the AddProcessedHeader sequence
+// that a continuously-running node executes.
+func computePendingMiniBlocks(
+	components *ComponentsNeededForBootstrap,
+) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
+	handler, err := pendingMb.NewPendingMiniBlocks()
+	if err != nil {
+		return nil, err
+	}
+
+	if !check.IfNil(components.PreviousEpochStart) {
+		err = handler.AddProcessedHeader(components.PreviousEpochStart)
+		if err != nil {
+			log.Debug("computePendingMiniBlocks: could not process previous epoch start", "error", err)
+		}
+	}
+
+	intermediateBlocks := collectIntermediateMetaBlocks(
+		components.EpochStartMetaBlock,
+		components.PreviousEpochStart,
+		components.Headers,
+	)
+	sort.Slice(intermediateBlocks, func(i, j int) bool {
+		return intermediateBlocks[i].GetNonce() < intermediateBlocks[j].GetNonce()
+	})
+
+	for _, metaBlock := range intermediateBlocks {
+		errProcess := handler.AddProcessedHeader(metaBlock)
+		if errProcess != nil {
+			log.Debug("computePendingMiniBlocks: could not process intermediate block",
+				"nonce", metaBlock.GetNonce(), "error", errProcess)
+		}
+	}
+
+	err = handler.AddProcessedHeader(components.EpochStartMetaBlock)
+	if err != nil {
+		return nil, fmt.Errorf("could not process epoch start meta block: %w", err)
+	}
+
+	numShards := uint32(len(components.EpochStartMetaBlock.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
+	pendingMbs := make([]bootstrapStorage.PendingMiniBlocksInfo, 0, numShards)
+	for shardID := uint32(0); shardID < numShards; shardID++ {
+		hashes := handler.GetPendingMiniBlocks(shardID)
+		if len(hashes) == 0 {
+			continue
+		}
+		pendingMbs = append(pendingMbs, bootstrapStorage.PendingMiniBlocksInfo{
+			ShardID:          shardID,
+			MiniBlocksHashes: hashes,
+		})
+	}
+
+	log.Debug("computePendingMiniBlocks",
+		"numIntermediateBlocks", len(intermediateBlocks),
+		"numShardsWithPending", len(pendingMbs))
+
+	return pendingMbs, nil
+}
+
+func collectIntermediateMetaBlocks(
+	epochStartMeta data.MetaHeaderHandler,
+	previousEpochStart data.MetaHeaderHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) []data.HeaderHandler {
+	prevNonce := uint64(0)
+	if !check.IfNil(previousEpochStart) {
+		prevNonce = previousEpochStart.GetNonce()
+	}
+
+	blocks := make([]data.HeaderHandler, 0)
+	prevHash := epochStartMeta.GetPrevHash()
+	for len(prevHash) > 0 {
+		meta, ok := syncedHeaders[string(prevHash)]
+		if !ok {
+			break
+		}
+		if meta.GetNonce() <= prevNonce {
+			break
+		}
+		blocks = append(blocks, meta)
+		prevHash = meta.GetPrevHash()
+	}
+
+	return blocks
+}
+
 func (msh *metaStorageHandler) getSelfNotarizedMetaForShard(
 	epochStartData data.EpochStartShardDataHandler,
 	syncedHeaders map[string]data.HeaderHandler,
 ) ([]byte, data.HeaderHandler, bool) {
-	shardHeader, ok := syncedHeaders[string(epochStartData.GetHeaderHash())]
-	if !ok {
+	metaHash := epochStartData.GetFirstPendingMetaBlock()
+	if len(metaHash) == 0 {
 		return nil, nil, false
 	}
 
-	currentHdr, ok := shardHeader.(data.ShardHeaderHandler)
-	if !ok {
+	metaBlock, found := syncedHeaders[string(metaHash)]
+	if !found {
 		return nil, nil, false
 	}
 
-	for currentHdr.GetNonce() > 0 {
-		metaBlockHashes := currentHdr.GetMetaBlockHashes()
-		if len(metaBlockHashes) > 0 {
-			lastMetaHash := metaBlockHashes[len(metaBlockHashes)-1]
-			metaBlock, found := syncedHeaders[string(lastMetaHash)]
-			if !found {
-				return nil, nil, false
-			}
-			return lastMetaHash, metaBlock, true
-		}
-
-		prevHeader, found := syncedHeaders[string(currentHdr.GetPrevHash())]
-		if !found {
-			return nil, nil, false
-		}
-
-		prevShardHeader, ok := prevHeader.(data.ShardHeaderHandler)
-		if !ok {
-			return nil, nil, false
-		}
-
-		if prevShardHeader.GetNonce() >= currentHdr.GetNonce() {
-			break
-		}
-
-		currentHdr = prevShardHeader
-	}
-
-	return nil, nil, false
+	return metaHash, metaBlock, true
 }
 
 func (msh *metaStorageHandler) saveLastCrossNotarizedHeaders(
