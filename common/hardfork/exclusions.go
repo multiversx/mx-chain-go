@@ -78,3 +78,26 @@ func IntervalForRound(shardID uint32, round uint64) *ExcludedInterval {
 func IsRoundExcluded(shardID uint32, round uint64) bool {
 	return IntervalForRound(shardID, round) != nil
 }
+
+// IntervalForRoundAnyShard returns the first interval, across every configured shard,
+// that contains `round`. Returns nil if no configured interval covers `round`.
+// Use this when the caller has no shard context and wants "is this round poisoned anywhere".
+func IntervalForRoundAnyShard(round uint64) *ExcludedInterval {
+	mutHfExcludedIntervals.RLock()
+	defer mutHfExcludedIntervals.RUnlock()
+
+	for shardID := range HfExcludedIntervals {
+		for i := range HfExcludedIntervals[shardID] {
+			iv := &HfExcludedIntervals[shardID][i]
+			if round >= iv.Low && round <= iv.High {
+				return iv
+			}
+		}
+	}
+	return nil
+}
+
+// IsRoundExcludedAnyShard reports whether `round` falls inside any configured interval, regardless of shard.
+func IsRoundExcludedAnyShard(round uint64) bool {
+	return IntervalForRoundAnyShard(round) != nil
+}
