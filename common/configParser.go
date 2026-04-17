@@ -148,10 +148,34 @@ func LoadHardforkExclusionsConfig(filePath string) (*hardfork.HardforkExclusions
 	err := core.LoadTomlFile(cfg, filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
+			log.Warn("hardfork exclusions config file not found; no rounds will be excluded",
+				"file", filePath)
 			hardfork.ApplyConfig(cfg)
 			return cfg, nil
 		}
 		return nil, err
+	}
+
+	shards := 0
+	intervals := 0
+	for _, se := range cfg.HardforkExclusions.Exclusions {
+		if len(se.Intervals) == 0 {
+			continue
+		}
+		shards++
+		intervals += len(se.Intervals)
+	}
+	log.Info("loaded hardfork exclusions config",
+		"file", filePath,
+		"shards", shards,
+		"intervals", intervals)
+	for _, se := range cfg.HardforkExclusions.Exclusions {
+		for _, iv := range se.Intervals {
+			log.Info("hardfork exclusion",
+				"shard", se.ShardID,
+				"low", iv.Low,
+				"high", iv.High)
+		}
 	}
 
 	hardfork.ApplyConfig(cfg)

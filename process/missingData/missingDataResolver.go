@@ -243,6 +243,14 @@ func (r *Resolver) WaitForMissingData(timeout time.Duration) error {
 				"missingProofs", numMissingProofs,
 				"IsDataPreparedError", err)
 
+			for mh := range r.missingHeaders {
+				log.Debug("missingDataResolver.WaitForMissingData: missing header", "headerHash", mh)
+			}
+
+			for mp := range r.missingProofs {
+				log.Debug("missingDataResolver.WaitForMissingData: missing proof", "proofHash", mp)
+			}
+
 			return process.ErrTimeIsOut
 		}
 
