@@ -286,6 +286,10 @@ func (ssb *shardStorageBootstrapper) completeSelfNotarizedHeaders(_ []byte) erro
 	return nil
 }
 
+func (ssb *shardStorageBootstrapper) repairPendingMiniBlocks(_ []byte) error {
+	return nil
+}
+
 func (ssb *shardStorageBootstrapper) getRootHash(shardHeaderHash []byte) []byte {
 	shardHeader, err := process.GetShardHeaderFromStorage(shardHeaderHash, ssb.marshalizer, ssb.store)
 	if err != nil {

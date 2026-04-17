@@ -7,8 +7,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var _ process.PendingMiniBlocksHandler = (*pendingMiniBlocks)(nil)
@@ -210,6 +211,22 @@ func (p *pendingMiniBlocks) SetPendingMiniBlocks(shardID uint32, mbHashes [][]by
 	p.mutPendingMbShard.Lock()
 	defer p.mutPendingMbShard.Unlock()
 
+	for _, mbHash := range mbHashes {
+		p.mapPendingMbShard[string(mbHash)] = shardID
+	}
+}
+
+// ReplacePendingMiniBlocksForShard clears all current entries for the given shard
+// and sets the provided hashes as the new pending entries for it.
+func (p *pendingMiniBlocks) ReplacePendingMiniBlocksForShard(shardID uint32, mbHashes [][]byte) {
+	p.mutPendingMbShard.Lock()
+	defer p.mutPendingMbShard.Unlock()
+
+	for hash, existingShardID := range p.mapPendingMbShard {
+		if existingShardID == shardID {
+			delete(p.mapPendingMbShard, hash)
+		}
+	}
 	for _, mbHash := range mbHashes {
 		p.mapPendingMbShard[string(mbHash)] = shardID
 	}

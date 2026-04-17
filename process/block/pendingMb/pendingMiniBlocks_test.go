@@ -7,10 +7,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
 )
 
 func TestNewPendingMiniBlocks_ShouldWork(t *testing.T) {
@@ -380,4 +381,33 @@ func TestPendingMiniBlockHeaders_SetPendingMiniBlocks(t *testing.T) {
 
 	pendingMiniblocks = pmb.GetPendingMiniBlocks(0)
 	assert.Equal(t, 0, len(pendingMiniblocks))
+}
+
+func TestPendingMiniBlockHeaders_ReplacePendingMiniBlocksForShardClearsAndSets(t *testing.T) {
+	t.Parallel()
+
+	pmb, _ := pendingMb.NewPendingMiniBlocks()
+	pmb.SetPendingMiniBlocks(1, [][]byte{[]byte("old1"), []byte("old2")})
+	pmb.SetPendingMiniBlocks(2, [][]byte{[]byte("keep")})
+
+	pmb.ReplacePendingMiniBlocksForShard(1, [][]byte{[]byte("new1")})
+
+	got := pmb.GetPendingMiniBlocks(1)
+	require.Len(t, got, 1)
+	assert.Equal(t, []byte("new1"), got[0])
+
+	otherShard := pmb.GetPendingMiniBlocks(2)
+	require.Len(t, otherShard, 1)
+	assert.Equal(t, []byte("keep"), otherShard[0])
+}
+
+func TestPendingMiniBlockHeaders_ReplacePendingMiniBlocksForShardEmptyClears(t *testing.T) {
+	t.Parallel()
+
+	pmb, _ := pendingMb.NewPendingMiniBlocks()
+	pmb.SetPendingMiniBlocks(1, [][]byte{[]byte("old1"), []byte("old2")})
+
+	pmb.ReplacePendingMiniBlocksForShard(1, nil)
+
+	assert.Empty(t, pmb.GetPendingMiniBlocks(1))
 }

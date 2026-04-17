@@ -352,103 +352,10 @@ func TestSaveIntermediateMetaBlocksToStorage(t *testing.T) {
 	})
 }
 
-func TestCollectIntermediateMetaBlocks(t *testing.T) {
-	t.Parallel()
-
-	t.Run("nil previous epoch start", func(t *testing.T) {
-		t.Parallel()
-
-		meta2Hash := []byte("meta2hash")
-		meta2 := &block.MetaBlock{Nonce: 2}
-
-		epochStart := &block.MetaBlock{Nonce: 3, PrevHash: meta2Hash}
-		headers := map[string]data.HeaderHandler{
-			string(meta2Hash): meta2,
-		}
-
-		blocks := collectIntermediateMetaBlocks(epochStart, nil, headers)
-		require.Len(t, blocks, 1)
-		assert.Equal(t, uint64(2), blocks[0].GetNonce())
-	})
-
-	t.Run("no intermediate blocks", func(t *testing.T) {
-		t.Parallel()
-
-		prevEpochStart := &block.MetaBlock{Nonce: 5}
-		epochStart := &block.MetaBlock{Nonce: 6, PrevHash: []byte("missing")}
-
-		blocks := collectIntermediateMetaBlocks(epochStart, prevEpochStart, map[string]data.HeaderHandler{})
-		require.Empty(t, blocks)
-	})
-
-	t.Run("stops at previous epoch start nonce", func(t *testing.T) {
-		t.Parallel()
-
-		prevHash := []byte("prev")
-		prevEpochStart := &block.MetaBlock{Nonce: 10}
-		intermediateBlock := &block.MetaBlock{Nonce: 10, PrevHash: []byte("older")}
-		epochStart := &block.MetaBlock{Nonce: 12, PrevHash: prevHash}
-
-		headers := map[string]data.HeaderHandler{
-			string(prevHash): intermediateBlock,
-		}
-
-		blocks := collectIntermediateMetaBlocks(epochStart, prevEpochStart, headers)
-		require.Empty(t, blocks)
-	})
-
-	t.Run("collects chain of intermediate blocks", func(t *testing.T) {
-		t.Parallel()
-
-		hash11 := []byte("h11")
-		hash12 := []byte("h12")
-		hash13 := []byte("h13")
-
-		prevEpochStart := &block.MetaBlock{Nonce: 10}
-		meta11 := &block.MetaBlock{Nonce: 11, PrevHash: []byte("prevEpochHash")}
-		meta12 := &block.MetaBlock{Nonce: 12, PrevHash: hash11}
-		meta13 := &block.MetaBlock{Nonce: 13, PrevHash: hash12}
-		epochStart := &block.MetaBlock{Nonce: 14, PrevHash: hash13}
-
-		headers := map[string]data.HeaderHandler{
-			string(hash11): meta11,
-			string(hash12): meta12,
-			string(hash13): meta13,
-		}
-
-		blocks := collectIntermediateMetaBlocks(epochStart, prevEpochStart, headers)
-		require.Len(t, blocks, 3)
-	})
-
-	t.Run("stops when header not in map", func(t *testing.T) {
-		t.Parallel()
-
-		hash12 := []byte("h12")
-		meta12 := &block.MetaBlock{Nonce: 12, PrevHash: []byte("missing")}
-		epochStart := &block.MetaBlock{Nonce: 14, PrevHash: hash12}
-
-		headers := map[string]data.HeaderHandler{
-			string(hash12): meta12,
-		}
-
-		blocks := collectIntermediateMetaBlocks(epochStart, nil, headers)
-		require.Len(t, blocks, 1)
-		assert.Equal(t, uint64(12), blocks[0].GetNonce())
-	})
-
-	t.Run("empty prev hash on epoch start", func(t *testing.T) {
-		t.Parallel()
-
-		epochStart := &block.MetaBlock{Nonce: 5}
-		blocks := collectIntermediateMetaBlocks(epochStart, nil, map[string]data.HeaderHandler{})
-		require.Empty(t, blocks)
-	})
-}
-
 func TestComputePendingMiniBlocks(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil previous epoch start with empty epoch start", func(t *testing.T) {
+	t.Run("empty epoch start shard data", func(t *testing.T) {
 		t.Parallel()
 
 		epochStart := &block.MetaBlock{
@@ -461,11 +368,7 @@ func TestComputePendingMiniBlocks(t *testing.T) {
 			},
 		}
 
-		components := &ComponentsNeededForBootstrap{
-			EpochStartMetaBlock: epochStart,
-			PreviousEpochStart:  nil,
-			Headers:             map[string]data.HeaderHandler{},
-		}
+		components := &ComponentsNeededForBootstrap{EpochStartMetaBlock: epochStart}
 
 		result, err := computePendingMiniBlocks(components)
 		require.Nil(t, err)
@@ -486,18 +389,12 @@ func TestComputePendingMiniBlocks(t *testing.T) {
 							{Hash: []byte("mb2"), SenderShardID: 2, ReceiverShardID: 0},
 						},
 					},
-					{
-						ShardID: 1,
-					},
+					{ShardID: 1},
 				},
 			},
 		}
 
-		components := &ComponentsNeededForBootstrap{
-			EpochStartMetaBlock: epochStart,
-			PreviousEpochStart:  nil,
-			Headers:             map[string]data.HeaderHandler{},
-		}
+		components := &ComponentsNeededForBootstrap{EpochStartMetaBlock: epochStart}
 
 		result, err := computePendingMiniBlocks(components)
 		require.Nil(t, err)
@@ -506,163 +403,33 @@ func TestComputePendingMiniBlocks(t *testing.T) {
 		assert.Len(t, result[0].MiniBlocksHashes, 2)
 	})
 
-	t.Run("intermediate blocks build up pending state via toggle", func(t *testing.T) {
-		t.Parallel()
-
-		mbHash := []byte("crossShardMb")
-		intermediateHash := []byte("interHash")
-
-		// intermediate block creates a cross-shard miniblock (shard1 -> shard0)
-		intermediate := &block.MetaBlock{
-			Nonce: 11,
-			ShardInfo: []block.ShardData{
-				{
-					ShardMiniBlockHeaders: []block.MiniBlockHeader{
-						{Hash: mbHash, SenderShardID: 1, ReceiverShardID: 0},
-					},
-				},
-			},
-		}
-
-		epochStart := &block.MetaBlock{
-			Nonce:    12,
-			PrevHash: intermediateHash,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{
-						ShardID: 0,
-						PendingMiniBlockHeaders: []block.MiniBlockHeader{
-							{Hash: mbHash, SenderShardID: 1, ReceiverShardID: 0},
-						},
-					},
-					{ShardID: 1},
-				},
-			},
-		}
-
-		prevEpochStart := &block.MetaBlock{Nonce: 10}
-
-		components := &ComponentsNeededForBootstrap{
-			EpochStartMetaBlock: epochStart,
-			PreviousEpochStart:  prevEpochStart,
-			Headers: map[string]data.HeaderHandler{
-				string(intermediateHash): intermediate,
-			},
-		}
-
-		result, err := computePendingMiniBlocks(components)
-		require.Nil(t, err)
-		require.Len(t, result, 1)
-		assert.Equal(t, uint32(0), result[0].ShardID)
-		assert.Len(t, result[0].MiniBlocksHashes, 1)
-	})
-
-	t.Run("toggle removes miniblock that appears twice", func(t *testing.T) {
-		t.Parallel()
-
-		mbHash := []byte("mb")
-		hash11 := []byte("h11")
-		hash12 := []byte("h12")
-
-		prevEpochStart := &block.MetaBlock{Nonce: 10}
-
-		// block 11: MB created (added to pending)
-		meta11 := &block.MetaBlock{
-			Nonce:    11,
-			PrevHash: []byte("prevEpoch"),
-			ShardInfo: []block.ShardData{
-				{
-					ShardMiniBlockHeaders: []block.MiniBlockHeader{
-						{Hash: mbHash, SenderShardID: 1, ReceiverShardID: 0},
-					},
-				},
-			},
-		}
-
-		// block 12: same MB executed (removed from pending)
-		meta12 := &block.MetaBlock{
-			Nonce:    12,
-			PrevHash: hash11,
-			ShardInfo: []block.ShardData{
-				{
-					ShardMiniBlockHeaders: []block.MiniBlockHeader{
-						{Hash: mbHash, SenderShardID: 1, ReceiverShardID: 0},
-					},
-				},
-			},
-		}
-
-		// epoch start: no pending left
-		epochStart := &block.MetaBlock{
-			Nonce:    13,
-			PrevHash: hash12,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{ShardID: 0},
-					{ShardID: 1},
-				},
-			},
-		}
-
-		components := &ComponentsNeededForBootstrap{
-			EpochStartMetaBlock: epochStart,
-			PreviousEpochStart:  prevEpochStart,
-			Headers: map[string]data.HeaderHandler{
-				string(hash11): meta11,
-				string(hash12): meta12,
-			},
-		}
-
-		result, err := computePendingMiniBlocks(components)
-		require.Nil(t, err)
-		require.Empty(t, result)
-	})
-
-	t.Run("missing intermediate blocks does not panic", func(t *testing.T) {
-		t.Parallel()
-
-		epochStart := &block.MetaBlock{
-			Nonce:    5,
-			PrevHash: []byte("missing"),
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{ShardID: 0},
-				},
-			},
-		}
-
-		components := &ComponentsNeededForBootstrap{
-			EpochStartMetaBlock: epochStart,
-			PreviousEpochStart:  &block.MetaBlock{Nonce: 3},
-			Headers:             map[string]data.HeaderHandler{},
-		}
-
-		result, err := computePendingMiniBlocks(components)
-		require.Nil(t, err)
-		require.Empty(t, result)
-	})
-
-	t.Run("nil headers map does not panic", func(t *testing.T) {
+	t.Run("filters same-shard and shard->meta and meta->all entries", func(t *testing.T) {
 		t.Parallel()
 
 		epochStart := &block.MetaBlock{
 			Nonce: 5,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
-					{ShardID: 0},
+					{
+						ShardID: 0,
+						PendingMiniBlockHeaders: []block.MiniBlockHeader{
+							{Hash: []byte("same"), SenderShardID: 0, ReceiverShardID: 0},
+							{Hash: []byte("toMeta"), SenderShardID: 0, ReceiverShardID: core.MetachainShardId},
+							{Hash: []byte("metaToAll"), SenderShardID: core.MetachainShardId, ReceiverShardID: core.AllShardId},
+							{Hash: []byte("good"), SenderShardID: 1, ReceiverShardID: 0},
+						},
+					},
 				},
 			},
 		}
 
-		components := &ComponentsNeededForBootstrap{
-			EpochStartMetaBlock: epochStart,
-			PreviousEpochStart:  nil,
-			Headers:             nil,
-		}
+		components := &ComponentsNeededForBootstrap{EpochStartMetaBlock: epochStart}
 
 		result, err := computePendingMiniBlocks(components)
 		require.Nil(t, err)
-		require.Empty(t, result)
+		require.Len(t, result, 1)
+		require.Len(t, result[0].MiniBlocksHashes, 1)
+		assert.Equal(t, []byte("good"), result[0].MiniBlocksHashes[0])
 	})
 
 	t.Run("multiple shards with pending", func(t *testing.T) {
@@ -685,18 +452,12 @@ func TestComputePendingMiniBlocks(t *testing.T) {
 							{Hash: []byte("mb3"), SenderShardID: 2, ReceiverShardID: 1},
 						},
 					},
-					{
-						ShardID: 2,
-					},
+					{ShardID: 2},
 				},
 			},
 		}
 
-		components := &ComponentsNeededForBootstrap{
-			EpochStartMetaBlock: epochStart,
-			PreviousEpochStart:  nil,
-			Headers:             map[string]data.HeaderHandler{},
-		}
+		components := &ComponentsNeededForBootstrap{EpochStartMetaBlock: epochStart}
 
 		result, err := computePendingMiniBlocks(components)
 		require.Nil(t, err)

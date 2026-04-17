@@ -499,6 +499,7 @@ type PendingMiniBlocksHandler interface {
 	RevertHeader(handler data.HeaderHandler) error
 	GetPendingMiniBlocks(shardID uint32) [][]byte
 	SetPendingMiniBlocks(shardID uint32, mbHashes [][]byte)
+	ReplacePendingMiniBlocksForShard(shardID uint32, mbHashes [][]byte)
 	IsInterfaceNil() bool
 }
 

@@ -193,6 +193,65 @@ func (msb *metaStorageBootstrapper) completeSelfNotarizedHeaders(lastMetaBlockHa
 	)
 }
 
+// repairPendingMiniBlocks recomputes the pending cross-shard miniblocks at the
+// bootstrap point and, only when the result differs from what the saved record
+// already loaded into the handler, overrides the handler's per-shard entries
+// with the computed set. A warning is logged on override so future occurrences
+// are visible - under the fix, this should only fire for importdb runs against
+// a DB written by a binary that did not maintain the pending-miniblocks record
+// correctly.
+func (msb *metaStorageBootstrapper) repairPendingMiniBlocks(lastMetaBlockHash []byte) error {
+	numShards := msb.shardCoordinator.NumberOfShards()
+	computed, err := process.RepairPendingMiniBlocks(
+		lastMetaBlockHash,
+		numShards,
+		msb.blockTracker,
+		msb.marshalizer,
+		msb.store,
+	)
+	if err != nil {
+		log.Debug("repairPendingMiniBlocks: could not compute pending miniblocks",
+			"lastMetaBlockHash", lastMetaBlockHash,
+			"error", err.Error())
+		return err
+	}
+
+	for shardID := uint32(0); shardID < numShards; shardID++ {
+		current := msb.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardID)
+		computedForShard := computed[shardID]
+		if pendingMiniBlocksEqual(current, computedForShard) {
+			continue
+		}
+
+		log.Warn("repairPendingMiniBlocks: overriding saved pending miniblocks for shard",
+			"shardID", shardID,
+			"loadedCount", len(current),
+			"computedCount", len(computedForShard),
+			"lastMetaBlockHash", lastMetaBlockHash)
+
+		msb.pendingMiniBlocksHandler.ReplacePendingMiniBlocksForShard(shardID, computedForShard)
+	}
+
+	return nil
+}
+
+// pendingMiniBlocksEqual compares two lists of MB hashes as sets (order-agnostic).
+func pendingMiniBlocksEqual(a, b [][]byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	seen := make(map[string]struct{}, len(a))
+	for _, h := range a {
+		seen[string(h)] = struct{}{}
+	}
+	for _, h := range b {
+		if _, ok := seen[string(h)]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
 func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocksInfo []bootstrapStorage.PendingMiniBlocksInfo) {
 	for _, pendingMiniBlockInfo := range pendingMiniBlocksInfo {
 		msb.pendingMiniBlocksHandler.SetPendingMiniBlocks(pendingMiniBlockInfo.ShardID, pendingMiniBlockInfo.MiniBlocksHashes)

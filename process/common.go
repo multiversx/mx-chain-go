@@ -30,6 +30,11 @@ var log = logger.GetOrCreate("process")
 const maxSelfNotarizedLookback = 50
 const VMStoragePrefix = "VM@"
 
+// maxForwardPendingWalkIter bounds the backward meta walk during repair. In a
+// healthy chain nonces decrease monotonically via PrevHash and the loop exits
+// on the nonce check; the bound only matters if storage is corrupt or cyclic.
+const maxForwardPendingWalkIter = 100000
+
 // ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
 type ShardedCacheSearchMethod byte
 
@@ -1136,4 +1141,346 @@ func findSelfNotarizedMetaHeaderInBlock(
 	}
 
 	return bestNonce, bestHeader, bestHash
+}
+
+// RepairPendingMiniBlocks recomputes, from chain state, the pending cross-shard
+// miniblocks that should be held by the pending-miniblocks handler at the bootstrap
+// point (last committed meta block). Per shard, it anchors the computation at the
+// last meta that shard has referenced (block tracker's self-notarized meta header),
+// combining:
+//   - miniblocks inside the anchor meta destined for that shard that are not yet
+//     marked final in the shard headers that reference it, and
+//   - every cross-shard miniblock destined for that shard in meta blocks strictly
+//     newer than the shard's anchor, up to lastCommittedMetaHash.
+//
+// If lastCommittedMetaHash itself is an epoch-start meta block, the anchor-based
+// computation is skipped and the pending set is read directly from the epoch-start
+// shard data (that is the post-reset handler state every running node has).
+//
+// Returns hashes grouped by receiver shard.
+func RepairPendingMiniBlocks(
+	lastCommittedMetaHash []byte,
+	numShards uint32,
+	blockTracker BlockTracker,
+	marshalizer marshal.Marshalizer,
+	store dataRetriever.StorageService,
+) (map[uint32][][]byte, error) {
+	lastMeta, err := GetMetaHeaderFromStorage(lastCommittedMetaHash, marshalizer, store)
+	if err != nil {
+		return nil, fmt.Errorf("%w: could not load last meta block %s: %s",
+			ErrMissingHeader, hex.EncodeToString(lastCommittedMetaHash), err.Error())
+	}
+
+	if lastMeta.IsStartOfEpochBlock() {
+		return pendingFromEpochStart(lastMeta), nil
+	}
+
+	anchorByShard := make(map[uint32]data.HeaderHandler, numShards)
+	anchorHashByShard := make(map[uint32][]byte, numShards)
+	for shardID := uint32(0); shardID < numShards; shardID++ {
+		anchorMeta, anchorHash, errAnchor := blockTracker.GetLastSelfNotarizedHeader(shardID)
+		if errAnchor != nil || check.IfNil(anchorMeta) {
+			log.Debug("RepairPendingMiniBlocks: no anchor for shard, skipping",
+				"shardID", shardID,
+				"error", errAnchor)
+			continue
+		}
+		anchorByShard[shardID] = anchorMeta
+		anchorHashByShard[shardID] = anchorHash
+	}
+
+	pendingByShard := make(map[uint32][][]byte, numShards)
+
+	for shardID, anchorMeta := range anchorByShard {
+		shardHdrs := collectShardHeadersReferencingAnchor(shardID, anchorHashByShard[shardID], blockTracker, marshalizer, store)
+		pending := computePendingMBsAtAnchor(anchorMeta, shardID, shardHdrs)
+		for hash := range pending {
+			pendingByShard[shardID] = append(pendingByShard[shardID], []byte(hash))
+		}
+	}
+
+	forward, err := collectForwardPendingMBsByShard(lastMeta, anchorByShard, marshalizer, store)
+	if err != nil {
+		return nil, err
+	}
+	for shardID, hashes := range forward {
+		existing := make(map[string]struct{}, len(pendingByShard[shardID]))
+		for _, h := range pendingByShard[shardID] {
+			existing[string(h)] = struct{}{}
+		}
+		for _, h := range hashes {
+			if _, ok := existing[string(h)]; ok {
+				continue
+			}
+			pendingByShard[shardID] = append(pendingByShard[shardID], h)
+		}
+	}
+
+	return pendingByShard, nil
+}
+
+func pendingFromEpochStart(epochStartMeta data.MetaHeaderHandler) map[uint32][][]byte {
+	out := make(map[uint32][][]byte)
+	epochStartHandler := epochStartMeta.GetEpochStartHandler()
+	if epochStartHandler == nil {
+		return out
+	}
+	for _, shardData := range epochStartHandler.GetLastFinalizedHeaderHandlers() {
+		for _, mbh := range shardData.GetPendingMiniBlockHeaderHandlers() {
+			if !shouldConsiderCrossShardMiniBlockForRepair(mbh.GetSenderShardID(), mbh.GetReceiverShardID()) {
+				continue
+			}
+			out[mbh.GetReceiverShardID()] = append(out[mbh.GetReceiverShardID()], mbh.GetHash())
+		}
+	}
+	return out
+}
+
+// shouldConsiderCrossShardMiniBlockForRepair mirrors the filter applied by the
+// pending-miniblocks handler when building its map: same-shard, shard->meta and
+// meta->all miniblocks are not tracked as cross-shard pending entries.
+func shouldConsiderCrossShardMiniBlockForRepair(senderShardID uint32, receiverShardID uint32) bool {
+	if senderShardID == receiverShardID {
+		return false
+	}
+	if senderShardID != core.MetachainShardId && receiverShardID == core.MetachainShardId {
+		return false
+	}
+	if senderShardID == core.MetachainShardId && receiverShardID == core.AllShardId {
+		return false
+	}
+	return true
+}
+
+// collectShardHeadersReferencingAnchor walks the shard chain backward from the
+// last cross-notarized shard header, returning the contiguous run of shard
+// headers that still reference the anchor meta among their MetaBlockHashes.
+// The shard cannot advance past a meta without processing every MB it owes to
+// itself in that meta, so only those shard headers can have "drained" MBs from
+// the anchor.
+func collectShardHeadersReferencingAnchor(
+	shardID uint32,
+	anchorMetaHash []byte,
+	blockTracker BlockTracker,
+	marshalizer marshal.Marshalizer,
+	store dataRetriever.StorageService,
+) []data.HeaderHandler {
+	shardHdrs := make([]data.HeaderHandler, 0)
+	if len(anchorMetaHash) == 0 {
+		return shardHdrs
+	}
+
+	currShardHdr, _, err := blockTracker.GetLastCrossNotarizedHeader(shardID)
+	if err != nil || check.IfNil(currShardHdr) {
+		return shardHdrs
+	}
+
+	for i := 0; i < maxSelfNotarizedLookback; i++ {
+		if !shardHeaderReferencesMeta(currShardHdr, anchorMetaHash) {
+			break
+		}
+		shardHdrs = append(shardHdrs, currShardHdr)
+
+		prevHash := currShardHdr.GetPrevHash()
+		if len(prevHash) == 0 {
+			break
+		}
+		prevShardHdr, errLoad := GetShardHeaderFromStorage(prevHash, marshalizer, store)
+		if errLoad != nil {
+			log.Debug("collectShardHeadersReferencingAnchor: could not load previous shard header",
+				"shardID", shardID,
+				"prevHash", prevHash,
+				"error", errLoad.Error())
+			break
+		}
+		currShardHdr = prevShardHdr
+	}
+
+	return shardHdrs
+}
+
+func shardHeaderReferencesMeta(shardHdr data.HeaderHandler, metaHash []byte) bool {
+	shardHeader, ok := shardHdr.(data.ShardHeaderHandler)
+	if !ok {
+		return false
+	}
+	for _, h := range shardHeader.GetMetaBlockHashes() {
+		if bytes.Equal(h, metaHash) {
+			return true
+		}
+	}
+	return false
+}
+
+// computePendingMBsAtAnchor returns cross-shard miniblocks inside anchorMeta that
+// target shardID and have not been marked final by any of the given shard headers.
+func computePendingMBsAtAnchor(
+	anchorMeta data.HeaderHandler,
+	shardID uint32,
+	shardHdrs []data.HeaderHandler,
+) map[string]struct{} {
+	pending := getAllCrossShardMBsForShardInMeta(anchorMeta, shardID)
+
+	for _, shardHdr := range shardHdrs {
+		for _, smbh := range shardHdr.GetMiniBlockHeaderHandlers() {
+			hash := string(smbh.GetHash())
+			if _, ok := pending[hash]; !ok {
+				continue
+			}
+			if smbh.IsFinal() {
+				delete(pending, hash)
+			}
+		}
+	}
+
+	return pending
+}
+
+// getAllCrossShardMBsForShardInMeta returns cross-shard MB hashes destined for
+// dstShardID in a meta block: meta-body MBs (e.g. rewards meta->shard) and
+// outgoing MBs in other shards' notarized headers. ShardInfo[dstShardID] is
+// skipped so the destination's own block's already-consumed incoming MBs are
+// not misclassified as freshly produced.
+func getAllCrossShardMBsForShardInMeta(metaBlock data.HeaderHandler, dstShardID uint32) map[string]struct{} {
+	result := make(map[string]struct{})
+
+	metaHdr, ok := metaBlock.(data.MetaHeaderHandler)
+	if !ok {
+		return result
+	}
+
+	for _, shardData := range metaHdr.GetShardInfoHandlers() {
+		if shardData.GetShardID() == dstShardID {
+			continue
+		}
+		for _, mbh := range shardData.GetShardMiniBlockHeaderHandlers() {
+			if mbh.GetReceiverShardID() != dstShardID {
+				continue
+			}
+			if !shouldConsiderCrossShardMiniBlockForRepair(mbh.GetSenderShardID(), mbh.GetReceiverShardID()) {
+				continue
+			}
+			result[string(mbh.GetHash())] = struct{}{}
+		}
+	}
+
+	for _, mbh := range metaHdr.GetMiniBlockHeaderHandlers() {
+		if mbh.GetReceiverShardID() != dstShardID {
+			continue
+		}
+		if !shouldConsiderCrossShardMiniBlockForRepair(mbh.GetSenderShardID(), mbh.GetReceiverShardID()) {
+			continue
+		}
+		result[string(mbh.GetHash())] = struct{}{}
+	}
+
+	return result
+}
+
+// collectForwardPendingMBsByShard walks meta blocks backward from lastMeta via
+// PrevHash, stopping when the nonce drops at or below the oldest anchor. For
+// each visited meta, it adds cross-shard MBs to each receiver shard's bucket
+// when the meta's nonce is strictly greater than that shard's anchor nonce.
+// ShardInfo entries where the source shard equals the receiver are skipped so
+// a shard's own block notarization (consumption side) is not mistaken for a
+// fresh production.
+func collectForwardPendingMBsByShard(
+	lastMeta data.MetaHeaderHandler,
+	anchorByShard map[uint32]data.HeaderHandler,
+	marshalizer marshal.Marshalizer,
+	store dataRetriever.StorageService,
+) (map[uint32][][]byte, error) {
+	out := make(map[uint32][][]byte)
+	if len(anchorByShard) == 0 {
+		return out, nil
+	}
+
+	anchorNonceByShard := make(map[uint32]uint64, len(anchorByShard))
+	oldestAnchorNonce := ^uint64(0)
+	for shardID, anchor := range anchorByShard {
+		nonce := anchor.GetNonce()
+		anchorNonceByShard[shardID] = nonce
+		if nonce < oldestAnchorNonce {
+			oldestAnchorNonce = nonce
+		}
+	}
+
+	setByShard := make(map[uint32]map[string]struct{}, len(anchorByShard))
+
+	currMeta := lastMeta
+	for i := 0; i < maxForwardPendingWalkIter; i++ {
+		if currMeta.GetNonce() <= oldestAnchorNonce {
+			break
+		}
+		appendForwardPendingFromMeta(currMeta, anchorNonceByShard, setByShard)
+
+		prevHash := currMeta.GetPrevHash()
+		if len(prevHash) == 0 {
+			break
+		}
+		prevMeta, err := GetMetaHeaderFromStorage(prevHash, marshalizer, store)
+		if err != nil {
+			return nil, fmt.Errorf("%w: could not load meta %s during forward-pending walk: %s",
+				ErrMissingHeader, hex.EncodeToString(prevHash), err.Error())
+		}
+		currMeta = prevMeta
+	}
+
+	for shardID, set := range setByShard {
+		for hash := range set {
+			out[shardID] = append(out[shardID], []byte(hash))
+		}
+	}
+	return out, nil
+}
+
+func appendForwardPendingFromMeta(
+	meta data.MetaHeaderHandler,
+	anchorNonceByShard map[uint32]uint64,
+	setByShard map[uint32]map[string]struct{},
+) {
+	metaNonce := meta.GetNonce()
+
+	for _, shardData := range meta.GetShardInfoHandlers() {
+		sourceShard := shardData.GetShardID()
+		for _, mbh := range shardData.GetShardMiniBlockHeaderHandlers() {
+			recv := mbh.GetReceiverShardID()
+			if sourceShard == recv {
+				continue
+			}
+			anchorNonce, ok := anchorNonceByShard[recv]
+			if !ok {
+				continue
+			}
+			if metaNonce <= anchorNonce {
+				continue
+			}
+			if !shouldConsiderCrossShardMiniBlockForRepair(mbh.GetSenderShardID(), recv) {
+				continue
+			}
+			addToSet(setByShard, recv, string(mbh.GetHash()))
+		}
+	}
+
+	for _, mbh := range meta.GetMiniBlockHeaderHandlers() {
+		recv := mbh.GetReceiverShardID()
+		anchorNonce, ok := anchorNonceByShard[recv]
+		if !ok {
+			continue
+		}
+		if metaNonce <= anchorNonce {
+			continue
+		}
+		if !shouldConsiderCrossShardMiniBlockForRepair(mbh.GetSenderShardID(), recv) {
+			continue
+		}
+		addToSet(setByShard, recv, string(mbh.GetHash()))
+	}
+}
+
+func addToSet(m map[uint32]map[string]struct{}, key uint32, value string) {
+	if m[key] == nil {
+		m[key] = make(map[string]struct{})
+	}
+	m[key][value] = struct{}{}
 }

@@ -2,6 +2,7 @@ package pendingMb
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -32,6 +33,10 @@ func (p *nilPendingMiniBlocks) GetPendingMiniBlocks(_ uint32) [][]byte {
 
 // SetPendingMiniBlocks will set the pending miniblocks hashes for a given shard
 func (p *nilPendingMiniBlocks) SetPendingMiniBlocks(_ uint32, _ [][]byte) {
+}
+
+// ReplacePendingMiniBlocksForShard is a no-op for the nil implementation
+func (p *nilPendingMiniBlocks) ReplacePendingMiniBlocksForShard(_ uint32, _ [][]byte) {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

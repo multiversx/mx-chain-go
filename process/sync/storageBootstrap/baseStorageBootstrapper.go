@@ -414,6 +414,13 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		return err
 	}
 
+	err = st.bootstrapper.repairPendingMiniBlocks(bootInfos[0].LastHeader.Hash)
+	if err != nil {
+		log.Debug("repairPendingMiniBlocks failed, continuing with saved record",
+			"hash", bootInfos[0].LastHeader.Hash,
+			"error", err.Error())
+	}
+
 	if len(bootInfos) == 1 {
 		st.forkDetector.SetFinalToLastCheckpoint()
 	}
