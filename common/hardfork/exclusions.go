@@ -14,10 +14,10 @@ type ExcludedInterval struct {
 // Consumers: hdrInterceptorProcessor.checkTestNetHardfork, interceptedEquivalentProof.CheckValidity and
 // baseForkDetector (processReceivedBlock, processReceivedProof, append, computeProbableHighestNonce).
 var HfExcludedIntervals = map[uint32][]ExcludedInterval{
-	0:                     {{Low: 6785500, High: 6785500}},
-	1:                     {{Low: 5536884, High: 5536885}},
-	2:                     {{Low: 6785500, High: 6785500}},
-	core.MetachainShardId: {{Low: 5609515, High: 6785500}},
+	0:                     {{Low: 5535999, High: 7031200}},
+	1:                     {{Low: 5535999, High: 7031200}},
+	2:                     {{Low: 5535999, High: 7031200}},
+	core.MetachainShardId: {{Low: 5535999, High: 7031200}},
 }
 
 // IntervalForRound returns the first interval defined for `shardID` that contains `round`, or nil.
