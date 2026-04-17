@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common/hardfork"
 	"github.com/multiversx/mx-chain-go/config"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 )
@@ -135,6 +136,25 @@ func LoadRoundConfig(filePath string) (*config.RoundConfig, error) {
 		return nil, err
 	}
 
+	return cfg, nil
+}
+
+// LoadHardforkExclusionsConfig reads the TOML file at filePath and installs the parsed
+// exclusion intervals into the hardfork package's in-memory map.
+// A missing file is treated as "no exclusions": IsRoundExcluded will return false for every
+// round, so all rounds are accepted.
+func LoadHardforkExclusionsConfig(filePath string) (*hardfork.HardforkExclusionsConfig, error) {
+	cfg := &hardfork.HardforkExclusionsConfig{}
+	err := core.LoadTomlFile(cfg, filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			hardfork.ApplyConfig(cfg)
+			return cfg, nil
+		}
+		return nil, err
+	}
+
+	hardfork.ApplyConfig(cfg)
 	return cfg, nil
 }
 

@@ -1,0 +1,27 @@
+# HardforkExclusions defines round ranges per shard during which incoming headers and proofs must be rejected.
+# Each entry maps a ShardID to one or more [Low, High] round ranges (both bounds inclusive).
+# ShardID 4294967295 corresponds to the metachain.
+
+[[HardforkExclusions.Exclusions]]
+    ShardID = 0
+    [[HardforkExclusions.Exclusions.Intervals]]
+        Low = 5535999
+        High = 7031200
+
+[[HardforkExclusions.Exclusions]]
+    ShardID = 1
+    [[HardforkExclusions.Exclusions.Intervals]]
+        Low = 5535999
+        High = 7031200
+
+[[HardforkExclusions.Exclusions]]
+    ShardID = 2
+    [[HardforkExclusions.Exclusions.Intervals]]
+        Low = 5535999
+        High = 7031200
+
+[[HardforkExclusions.Exclusions]]
+    ShardID = 4294967295
+    [[HardforkExclusions.Exclusions.Intervals]]
+        Low = 5535999
+        High = 7031200

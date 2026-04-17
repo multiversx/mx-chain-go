@@ -795,6 +795,7 @@ type ConfigurationPathsHolder struct {
 	AllValidatorKeys         string
 	Epoch                    string
 	RoundActivation          string
+	HardforkExclusions       string
 	P2pKey                   string
 }
 

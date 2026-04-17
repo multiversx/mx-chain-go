@@ -238,6 +238,13 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	}
 	log.Debug("config", "file", configurationPaths.RoundActivation)
 
+	configurationPaths.HardforkExclusions = ctx.GlobalString(hardforkExclusionsConfigurationFile.Name)
+	_, err = common.LoadHardforkExclusionsConfig(configurationPaths.HardforkExclusions)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config", "file", configurationPaths.HardforkExclusions)
+
 	var nodesSetup config.NodesConfig
 	configurationPaths.Nodes = ctx.GlobalString(nodesFile.Name)
 	err = core.LoadJsonFile(&nodesSetup, configurationPaths.Nodes)

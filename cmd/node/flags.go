@@ -113,6 +113,14 @@ var (
 			" activation round configurations",
 		Value: "./config/enableRounds.toml",
 	}
+	// hardforkExclusionsConfigurationFile defines a flag for the path to the toml file listing round ranges
+	// per shard that must be ignored (excluded) by header/proof consumers.
+	hardforkExclusionsConfigurationFile = cli.StringFlag{
+		Name: "hardfork-exclusions-config",
+		Usage: "The `" + filePathPlaceholder + "` for the hardfork exclusions configuration file. This TOML" +
+			" file contains per-shard round ranges during which incoming headers and proofs are rejected",
+		Value: "./config/hardforkExclusions.toml",
+	}
 	// gasScheduleConfigurationDirectory defines a flag for the path to the directory containing the gas costs used in execution
 	gasScheduleConfigurationDirectory = cli.StringFlag{
 		Name:  "gas-costs-config",
@@ -434,6 +442,7 @@ func getFlags() []cli.Flag {
 		fullArchiveP2PConfigurationFile,
 		epochConfigurationFile,
 		roundConfigurationFile,
+		hardforkExclusionsConfigurationFile,
 		gasScheduleConfigurationDirectory,
 		validatorKeyIndex,
 		validatorKeyPemFile,
