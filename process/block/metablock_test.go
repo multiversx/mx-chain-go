@@ -3780,3 +3780,118 @@ func TestMetaProcessor_CrossChecksBlockHeightsMetrics(t *testing.T) {
 	requireInstance.Equal(uint64(38), savedMetrics["erd_cross_check_block_height_1"])
 	requireInstance.Equal(uint64(39), savedMetrics["erd_cross_check_block_height_2"])
 }
+
+func TestMetaProcessor_VerifyShardDataAgainstHeadersFlagGating(t *testing.T) {
+	t.Parallel()
+
+	shardHeaderHash := []byte("shard_hdr_hash_1")
+	makeShardHeader := func() *block.Header {
+		return &block.Header{
+			Nonce:           42,
+			Round:           7,
+			ShardID:         0,
+			PrevHash:        []byte("prev"),
+			PrevRandSeed:    []byte("prs"),
+			PubKeysBitmap:   []byte("pkb"),
+			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
+		}
+	}
+
+	buildArguments := func(flagEnabled bool, pendingCount int, lastSelfNotarizedNonce uint64) blproc.ArgMetaProcessor {
+		coreC, dataC, bootstrapC, statusC := createMockComponentHolders()
+		handler, _ := coreC.EnableEpochsHandlerField.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+		handler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, _ uint32) bool {
+			return flagEnabled && flag == common.FullShardDataValidationFlag
+		}
+
+		arguments := createMockMetaArguments(coreC, dataC, bootstrapC, statusC)
+
+		hashes := make([][]byte, pendingCount)
+		for i := range hashes {
+			hashes[i] = []byte{byte(i)}
+		}
+		arguments.PendingMiniBlocksHandler = &mock.PendingMiniBlocksHandlerStub{
+			GetPendingMiniBlocksCalled: func(uint32) [][]byte { return hashes },
+		}
+
+		bt := mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), nil)
+		bt.GetLastSelfNotarizedHeaderCalled = func(uint32) (data.HeaderHandler, []byte, error) {
+			return &block.MetaBlock{Nonce: lastSelfNotarizedNonce}, nil, nil
+		}
+		arguments.BlockTracker = bt
+		return arguments
+	}
+
+	t.Run("flag disabled ignores NumPendingMiniBlocks and LastIncludedMetaNonce", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.NewMetaProcessor(buildArguments(false, 2, 999))
+		require.NoError(t, err)
+
+		shardHdr := makeShardHeader()
+		mp.AddHdrHashToRequestedList(shardHdr, shardHeaderHash)
+
+		sd := mp.BuildShardDataFromHeader(shardHdr, shardHeaderHash)
+		sd.NumPendingMiniBlocks = 77
+		sd.LastIncludedMetaNonce = 88
+
+		metaHdr := &block.MetaBlock{ShardInfo: []block.ShardData{sd}}
+
+		require.NoError(t, mp.VerifyShardDataAgainstHeaders(metaHdr))
+	})
+
+	t.Run("flag enabled matches computed NumPendingMiniBlocks and LastIncludedMetaNonce", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.NewMetaProcessor(buildArguments(true, 2, 999))
+		require.NoError(t, err)
+
+		shardHdr := makeShardHeader()
+		mp.AddHdrHashToRequestedList(shardHdr, shardHeaderHash)
+
+		sd := mp.BuildShardDataFromHeader(shardHdr, shardHeaderHash)
+		sd.NumPendingMiniBlocks = 2
+		sd.LastIncludedMetaNonce = 999
+
+		metaHdr := &block.MetaBlock{ShardInfo: []block.ShardData{sd}}
+
+		require.NoError(t, mp.VerifyShardDataAgainstHeaders(metaHdr))
+	})
+
+	t.Run("flag enabled rejects mismatched NumPendingMiniBlocks", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.NewMetaProcessor(buildArguments(true, 2, 999))
+		require.NoError(t, err)
+
+		shardHdr := makeShardHeader()
+		mp.AddHdrHashToRequestedList(shardHdr, shardHeaderHash)
+
+		sd := mp.BuildShardDataFromHeader(shardHdr, shardHeaderHash)
+		sd.NumPendingMiniBlocks = 5
+		sd.LastIncludedMetaNonce = 999
+
+		metaHdr := &block.MetaBlock{ShardInfo: []block.ShardData{sd}}
+
+		require.ErrorIs(t, mp.VerifyShardDataAgainstHeaders(metaHdr), process.ErrHeaderShardDataMismatch)
+	})
+
+	t.Run("flag enabled rejects mismatched LastIncludedMetaNonce", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.NewMetaProcessor(buildArguments(true, 2, 999))
+		require.NoError(t, err)
+
+		shardHdr := makeShardHeader()
+		mp.AddHdrHashToRequestedList(shardHdr, shardHeaderHash)
+
+		sd := mp.BuildShardDataFromHeader(shardHdr, shardHeaderHash)
+		sd.NumPendingMiniBlocks = 2
+		sd.LastIncludedMetaNonce = 1234
+
+		metaHdr := &block.MetaBlock{ShardInfo: []block.ShardData{sd}}
+
+		require.ErrorIs(t, mp.VerifyShardDataAgainstHeaders(metaHdr), process.ErrHeaderShardDataMismatch)
+	})
+}

@@ -14,7 +14,6 @@ type storageBootstrapperHandler interface {
 	applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo)
 	applySelfNotarizedHeaders(selfNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) ([]data.HeaderHandler, [][]byte, error)
 	completeSelfNotarizedHeaders(lastMetaBlockHash []byte) error
-	repairPendingMiniBlocks(lastMetaBlockHash []byte) error
 	cleanupNotarizedStorage(hash []byte)
 	cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo)
 	getRootHash(hash []byte) []byte

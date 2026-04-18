@@ -6,11 +6,10 @@ import (
 
 // PendingMiniBlocksHandlerStub -
 type PendingMiniBlocksHandlerStub struct {
-	AddProcessedHeaderCalled               func(handler data.HeaderHandler) error
-	RevertHeaderCalled                     func(handler data.HeaderHandler) error
-	GetPendingMiniBlocksCalled             func(shardID uint32) [][]byte
-	SetPendingMiniBlocksCalled             func(shardID uint32, mbHashes [][]byte)
-	ReplacePendingMiniBlocksForShardCalled func(shardID uint32, mbHashes [][]byte)
+	AddProcessedHeaderCalled   func(handler data.HeaderHandler) error
+	RevertHeaderCalled         func(handler data.HeaderHandler) error
+	GetPendingMiniBlocksCalled func(shardID uint32) [][]byte
+	SetPendingMiniBlocksCalled func(shardID uint32, mbHashes [][]byte)
 }
 
 // AddProcessedHeader -
@@ -41,13 +40,6 @@ func (p *PendingMiniBlocksHandlerStub) GetPendingMiniBlocks(shardID uint32) [][]
 func (p *PendingMiniBlocksHandlerStub) SetPendingMiniBlocks(shardID uint32, mbHashes [][]byte) {
 	if p.SetPendingMiniBlocksCalled != nil {
 		p.SetPendingMiniBlocksCalled(shardID, mbHashes)
-	}
-}
-
-// ReplacePendingMiniBlocksForShard -
-func (p *PendingMiniBlocksHandlerStub) ReplacePendingMiniBlocksForShard(shardID uint32, mbHashes [][]byte) {
-	if p.ReplacePendingMiniBlocksForShardCalled != nil {
-		p.ReplacePendingMiniBlocksForShardCalled(shardID, mbHashes)
 	}
 }
 

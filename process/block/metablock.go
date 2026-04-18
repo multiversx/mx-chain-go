@@ -1913,13 +1913,19 @@ func (mp *metaProcessor) verifyShardDataAgainstHeaders(metaHdr *block.MetaBlock)
 		}
 
 		expected := mp.buildShardDataFromHeader(shardHdr, shardData.HeaderHash)
-		expected.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(expected.ShardID)))
 
-		lastSelfNotarizedHeader, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())
-		if err != nil {
-			return err
+		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FullShardDataValidationFlag, metaHdr.GetEpoch()) {
+			expected.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(expected.ShardID)))
+
+			lastSelfNotarizedHeader, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())
+			if err != nil {
+				return err
+			}
+			expected.LastIncludedMetaNonce = lastSelfNotarizedHeader.GetNonce()
+		} else {
+			expected.NumPendingMiniBlocks = shardData.NumPendingMiniBlocks
+			expected.LastIncludedMetaNonce = shardData.LastIncludedMetaNonce
 		}
-		expected.LastIncludedMetaNonce = lastSelfNotarizedHeader.GetNonce()
 
 		if !expected.Equal(&shardData) {
 			log.Debug("shard data mismatch",

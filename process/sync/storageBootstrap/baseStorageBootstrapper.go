@@ -179,13 +179,6 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	st.bootstrapper.applyNumPendingMiniBlocks(headerInfo.PendingMiniBlocks)
 
-	errRepair := st.bootstrapper.repairPendingMiniBlocks(headerInfo.LastHeader.Hash)
-	if errRepair != nil {
-		log.Debug("repairPendingMiniBlocks failed, continuing with saved record",
-			"hash", headerInfo.LastHeader.Hash,
-			"error", errRepair.Error())
-	}
-
 	st.processedMiniBlocksTracker.ConvertSliceToProcessedMiniBlocksMap(headerInfo.ProcessedMiniBlocks)
 	st.processedMiniBlocksTracker.DisplayProcessedMiniBlocks()
 

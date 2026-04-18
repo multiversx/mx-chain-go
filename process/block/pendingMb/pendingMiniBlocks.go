@@ -216,22 +216,6 @@ func (p *pendingMiniBlocks) SetPendingMiniBlocks(shardID uint32, mbHashes [][]by
 	}
 }
 
-// ReplacePendingMiniBlocksForShard clears all current entries for the given shard
-// and sets the provided hashes as the new pending entries for it.
-func (p *pendingMiniBlocks) ReplacePendingMiniBlocksForShard(shardID uint32, mbHashes [][]byte) {
-	p.mutPendingMbShard.Lock()
-	defer p.mutPendingMbShard.Unlock()
-
-	for hash, existingShardID := range p.mapPendingMbShard {
-		if existingShardID == shardID {
-			delete(p.mapPendingMbShard, hash)
-		}
-	}
-	for _, mbHash := range mbHashes {
-		p.mapPendingMbShard[string(mbHash)] = shardID
-	}
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (p *pendingMiniBlocks) IsInterfaceNil() bool {
 	return p == nil

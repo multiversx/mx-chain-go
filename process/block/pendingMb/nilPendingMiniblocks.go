@@ -35,10 +35,6 @@ func (p *nilPendingMiniBlocks) GetPendingMiniBlocks(_ uint32) [][]byte {
 func (p *nilPendingMiniBlocks) SetPendingMiniBlocks(_ uint32, _ [][]byte) {
 }
 
-// ReplacePendingMiniBlocksForShard is a no-op for the nil implementation
-func (p *nilPendingMiniBlocks) ReplacePendingMiniBlocksForShard(_ uint32, _ [][]byte) {
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (p *nilPendingMiniBlocks) IsInterfaceNil() bool {
 	return p == nil
