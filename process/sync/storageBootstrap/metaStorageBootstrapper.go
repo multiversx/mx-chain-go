@@ -193,17 +193,18 @@ func (msb *metaStorageBootstrapper) completeSelfNotarizedHeaders(lastMetaBlockHa
 	)
 }
 
-// repairPendingMiniBlocks recomputes the pending cross-shard miniblocks at the
-// bootstrap point and, only when the result differs from what the saved record
-// already loaded into the handler, overrides the handler's per-shard entries
-// with the computed set. A warning is logged on override so future occurrences
-// are visible - under the fix, this should only fire for importdb runs against
-// a DB written by a binary that did not maintain the pending-miniblocks record
-// correctly.
+// repairPendingMiniBlocks overrides the saved per-shard pending miniblocks
+// entries when the chain-derived computation differs. A warning is logged on
+// override so importdb runs against a DB written by an older binary are
+// visible. Shards for which repair did not produce a result (no anchor) are
+// left untouched so a transient tracker miss does not clear a correct saved
+// record.
 func (msb *metaStorageBootstrapper) repairPendingMiniBlocks(lastMetaBlockHash []byte) error {
 	numShards := msb.shardCoordinator.NumberOfShards()
+	epochStartHash := msb.epochStartTrigger.EpochStartMetaHdrHash()
 	computed, err := process.RepairPendingMiniBlocks(
 		lastMetaBlockHash,
+		epochStartHash,
 		numShards,
 		msb.blockTracker,
 		msb.marshalizer,
@@ -217,8 +218,11 @@ func (msb *metaStorageBootstrapper) repairPendingMiniBlocks(lastMetaBlockHash []
 	}
 
 	for shardID := uint32(0); shardID < numShards; shardID++ {
+		computedForShard, computedOk := computed[shardID]
+		if !computedOk {
+			continue
+		}
 		current := msb.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardID)
-		computedForShard := computed[shardID]
 		if pendingMiniBlocksEqual(current, computedForShard) {
 			continue
 		}
