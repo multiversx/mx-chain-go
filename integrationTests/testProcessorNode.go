@@ -1857,7 +1857,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TransactionsLogProcessor:     tpn.TransactionLogProcessor,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      tpn.TxExecutionOrderHandler,
 	}
@@ -2128,7 +2128,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		TransactionsLogProcessor:     tpn.TransactionLogProcessor,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      tpn.TxExecutionOrderHandler,
 	}
