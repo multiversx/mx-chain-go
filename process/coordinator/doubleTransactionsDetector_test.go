@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgsPrintDoubleTransactionsDetector() ArgsDoubleTransactionsDetector {
+func createMockArgsDoubleTransactionsDetector() ArgsDoubleTransactionsDetector {
 	return ArgsDoubleTransactionsDetector{
 		Marshaller:          &marshallerMock.MarshalizerMock{},
 		Hasher:              &testscommon.HasherStub{},
@@ -24,13 +24,13 @@ func createMockArgsPrintDoubleTransactionsDetector() ArgsDoubleTransactionsDetec
 	}
 }
 
-func TestNewPrintDoubleTransactionsDetector(t *testing.T) {
+func TestNewDoubleTransactionsDetector(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsPrintDoubleTransactionsDetector()
+		args := createMockArgsDoubleTransactionsDetector()
 		args.Marshaller = nil
 
 		detector, err := NewDoubleTransactionsDetector(args)
@@ -40,7 +40,7 @@ func TestNewPrintDoubleTransactionsDetector(t *testing.T) {
 	t.Run("nil hasher should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsPrintDoubleTransactionsDetector()
+		args := createMockArgsDoubleTransactionsDetector()
 		args.Hasher = nil
 
 		detector, err := NewDoubleTransactionsDetector(args)
@@ -50,7 +50,7 @@ func TestNewPrintDoubleTransactionsDetector(t *testing.T) {
 	t.Run("nil enable epochs handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsPrintDoubleTransactionsDetector()
+		args := createMockArgsDoubleTransactionsDetector()
 		args.EnableEpochsHandler = nil
 
 		detector, err := NewDoubleTransactionsDetector(args)
@@ -60,7 +60,7 @@ func TestNewPrintDoubleTransactionsDetector(t *testing.T) {
 	t.Run("invalid enable epochs handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsPrintDoubleTransactionsDetector()
+		args := createMockArgsDoubleTransactionsDetector()
 		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
 
 		detector, err := NewDoubleTransactionsDetector(args)
@@ -70,7 +70,7 @@ func TestNewPrintDoubleTransactionsDetector(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockArgsPrintDoubleTransactionsDetector()
+		args := createMockArgsDoubleTransactionsDetector()
 
 		detector, err := NewDoubleTransactionsDetector(args)
 		assert.False(t, check.IfNil(detector))
@@ -78,14 +78,14 @@ func TestNewPrintDoubleTransactionsDetector(t *testing.T) {
 	})
 }
 
-func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
+func TestDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil block body", func(t *testing.T) {
 		t.Parallel()
 
 		errorCalled := false
-		args := createMockArgsPrintDoubleTransactionsDetector()
+		args := createMockArgsDoubleTransactionsDetector()
 		detector, _ := NewDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {
@@ -101,7 +101,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 		t.Parallel()
 
 		debugCalled := false
-		args := createMockArgsPrintDoubleTransactionsDetector()
+		args := createMockArgsDoubleTransactionsDetector()
 		detector, _ := NewDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {
@@ -120,7 +120,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 		t.Parallel()
 
 		debugCalled := false
-		args := createMockArgsPrintDoubleTransactionsDetector()
+		args := createMockArgsDoubleTransactionsDetector()
 		detector, _ := NewDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {
@@ -149,7 +149,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 		t.Parallel()
 
 		debugCalled := false
-		args := createMockArgsPrintDoubleTransactionsDetector()
+		args := createMockArgsDoubleTransactionsDetector()
 		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AddFailedRelayedTxToInvalidMBsFlag)
 		detector, _ := NewDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{
@@ -186,7 +186,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
   tx hash 7478206861736831
   tx hash 7478206861736834
 `
-		args := createMockArgsPrintDoubleTransactionsDetector()
+		args := createMockArgsDoubleTransactionsDetector()
 		detector, _ := NewDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {
@@ -223,7 +223,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
   tx hash 7478206861736832
   tx hash 7478206861736834
 `
-		args := createMockArgsPrintDoubleTransactionsDetector()
+		args := createMockArgsDoubleTransactionsDetector()
 		detector, _ := NewDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {
