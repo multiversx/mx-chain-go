@@ -59,6 +59,9 @@ func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if check.IfNil(arg.EpochChangeGracePeriodHandler) {
 		return process.ErrNilEpochChangeGracePeriodHandler
 	}
+	if check.IfNil(arg.ProofsPool) {
+		return process.ErrNilProofsPool
+	}
 
 	return nil
 }

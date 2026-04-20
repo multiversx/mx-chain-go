@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -43,6 +44,7 @@ func createMetaArgumentWithShardCoordinator(shardCoordinator sharding.Coordinato
 		},
 		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EpochChangeGracePeriodHandler: gracePeriod,
+		ProofsPool:                    &dataRetriever.ProofsPoolMock{},
 	}
 
 	hdr := createMockMetaHeader()

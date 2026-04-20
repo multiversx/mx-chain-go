@@ -34,6 +34,7 @@ type epochStartMetaBlockProcessor struct {
 	hasher              hashing.Hasher
 	enableEpochsHandler common.EnableEpochsHandler
 	proofsPool          ProofsPool
+	headersPool         HeadersPool
 
 	mutReceivedMetaBlocks  sync.RWMutex
 	mapReceivedMetaBlocks  map[string]data.MetaHeaderHandler
@@ -59,6 +60,7 @@ func NewEpochStartMetaBlockProcessor(
 	minNumOfPeersToConsiderBlockValidConfig int,
 	enableEpochsHandler common.EnableEpochsHandler,
 	proofsPool ProofsPool,
+	headersPool HeadersPool,
 ) (*epochStartMetaBlockProcessor, error) {
 	if check.IfNil(messenger) {
 		return nil, epochStart.ErrNilMessenger
@@ -87,6 +89,9 @@ func NewEpochStartMetaBlockProcessor(
 	if check.IfNil(proofsPool) {
 		return nil, epochStart.ErrNilProofsPool
 	}
+	if check.IfNil(headersPool) {
+		return nil, epochStart.ErrNilHeadersDataPool
+	}
 
 	processor := &epochStartMetaBlockProcessor{
 		messenger:                         messenger,
@@ -102,6 +107,7 @@ func NewEpochStartMetaBlockProcessor(
 		chanMetaBlockProofReached:         make(chan bool, 1),
 		chanMetaBlockReached:              make(chan bool, 1),
 		proofsPool:                        proofsPool,
+		headersPool:                       headersPool,
 	}
 
 	proofsPool.RegisterHandler(processor.receivedProof)
@@ -207,6 +213,8 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 
 	e.requestHandler.SetEpoch(metaBlock.GetEpoch())
 	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.GetEpoch()) {
+		e.headersPool.AddHeader([]byte(metaBlockHash), metaBlock)
+
 		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash))
 		if err != nil {
 			return nil, err

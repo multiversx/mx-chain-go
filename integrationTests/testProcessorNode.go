@@ -1576,6 +1576,7 @@ func (tpn *TestProcessorNode) initRequesters() {
 		100,
 		tpn.ShardCoordinator.SelfId(),
 		time.Second,
+		time.Millisecond,
 	)
 }
 
