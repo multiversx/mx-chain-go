@@ -28,7 +28,6 @@ type interceptedMetaHeaderDataFactory struct {
 	epochStartTrigger             process.EpochStartTriggerHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
-	proofsPool                    process.ProofsPool
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -77,7 +76,6 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFacto
 		epochStartTrigger:             argument.EpochStartTrigger,
 		enableEpochsHandler:           argument.CoreComponents.EnableEpochsHandler(),
 		epochChangeGracePeriodHandler: argument.CoreComponents.EpochChangeGracePeriodHandler(),
-		proofsPool:                    argument.ProofsPool,
 	}, nil
 }
 
@@ -94,7 +92,6 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte, _ core.PeerID
 		EpochStartTrigger:             imhdf.epochStartTrigger,
 		EnableEpochsHandler:           imhdf.enableEpochsHandler,
 		EpochChangeGracePeriodHandler: imhdf.epochChangeGracePeriodHandler,
-		ProofsPool:                    imhdf.proofsPool,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)
