@@ -2,11 +2,9 @@ package bootstrap
 
 import (
 	"fmt"
-	"sort"
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
@@ -15,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
-	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 )
 
@@ -234,51 +231,34 @@ func (msh *metaStorageHandler) saveIntermediateMetaBlocksToStorage(
 	return nil
 }
 
-// computePendingMiniBlocks replays the intermediate metablocks on a fresh handler
-// to derive the correct pending state, matching the AddProcessedHeader sequence
-// that a continuously-running node executes.
+// computePendingMiniBlocks derives the per-shard pending miniblocks at the epoch
+// start meta block, matching the state every running node has right after
+// committing it via processStartOfEpochMeta. This is simply the receiver-indexed,
+// filtered view of EpochStart.LastFinalizedHeaders[*].PendingMiniBlockHeaders.
 func computePendingMiniBlocks(
 	components *ComponentsNeededForBootstrap,
 ) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
-	handler, err := pendingMb.NewPendingMiniBlocks()
-	if err != nil {
-		return nil, err
+	epochStartHandler := components.EpochStartMetaBlock.GetEpochStartHandler()
+	if epochStartHandler == nil {
+		return nil, fmt.Errorf("computePendingMiniBlocks: nil epoch start handler")
 	}
 
-	if !check.IfNil(components.PreviousEpochStart) {
-		err = handler.AddProcessedHeader(components.PreviousEpochStart)
-		if err != nil {
-			log.Debug("computePendingMiniBlocks: could not process previous epoch start", "error", err)
+	byShard := make(map[uint32][][]byte)
+	for _, shardData := range epochStartHandler.GetLastFinalizedHeaderHandlers() {
+		for _, mbh := range shardData.GetPendingMiniBlockHeaderHandlers() {
+			if !shouldConsiderCrossShardMiniBlock(mbh.GetSenderShardID(), mbh.GetReceiverShardID()) {
+				continue
+			}
+			recv := mbh.GetReceiverShardID()
+			byShard[recv] = append(byShard[recv], mbh.GetHash())
 		}
 	}
 
-	intermediateBlocks := collectIntermediateMetaBlocks(
-		components.EpochStartMetaBlock,
-		components.PreviousEpochStart,
-		components.Headers,
-	)
-	sort.Slice(intermediateBlocks, func(i, j int) bool {
-		return intermediateBlocks[i].GetNonce() < intermediateBlocks[j].GetNonce()
-	})
-
-	for _, metaBlock := range intermediateBlocks {
-		errProcess := handler.AddProcessedHeader(metaBlock)
-		if errProcess != nil {
-			log.Debug("computePendingMiniBlocks: could not process intermediate block",
-				"nonce", metaBlock.GetNonce(), "error", errProcess)
-		}
-	}
-
-	err = handler.AddProcessedHeader(components.EpochStartMetaBlock)
-	if err != nil {
-		return nil, fmt.Errorf("could not process epoch start meta block: %w", err)
-	}
-
-	numShards := uint32(len(components.EpochStartMetaBlock.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
-	pendingMbs := make([]bootstrapStorage.PendingMiniBlocksInfo, 0, numShards)
+	numShards := uint32(len(epochStartHandler.GetLastFinalizedHeaderHandlers()))
+	pendingMbs := make([]bootstrapStorage.PendingMiniBlocksInfo, 0, len(byShard))
 	for shardID := uint32(0); shardID < numShards; shardID++ {
-		hashes := handler.GetPendingMiniBlocks(shardID)
-		if len(hashes) == 0 {
+		hashes, ok := byShard[shardID]
+		if !ok || len(hashes) == 0 {
 			continue
 		}
 		pendingMbs = append(pendingMbs, bootstrapStorage.PendingMiniBlocksInfo{
@@ -287,38 +267,25 @@ func computePendingMiniBlocks(
 		})
 	}
 
-	log.Debug("computePendingMiniBlocks",
-		"numIntermediateBlocks", len(intermediateBlocks),
-		"numShardsWithPending", len(pendingMbs))
+	log.Debug("computePendingMiniBlocks", "numShardsWithPending", len(pendingMbs))
 
 	return pendingMbs, nil
 }
 
-func collectIntermediateMetaBlocks(
-	epochStartMeta data.MetaHeaderHandler,
-	previousEpochStart data.MetaHeaderHandler,
-	syncedHeaders map[string]data.HeaderHandler,
-) []data.HeaderHandler {
-	prevNonce := uint64(0)
-	if !check.IfNil(previousEpochStart) {
-		prevNonce = previousEpochStart.GetNonce()
+// shouldConsiderCrossShardMiniBlock mirrors the filter applied by the pending
+// miniblocks handler when building its map: same-shard, shard->meta and meta->all
+// miniblocks are not tracked as cross-shard pending entries.
+func shouldConsiderCrossShardMiniBlock(senderShardID uint32, receiverShardID uint32) bool {
+	if senderShardID == receiverShardID {
+		return false
 	}
-
-	blocks := make([]data.HeaderHandler, 0)
-	prevHash := epochStartMeta.GetPrevHash()
-	for len(prevHash) > 0 {
-		meta, ok := syncedHeaders[string(prevHash)]
-		if !ok {
-			break
-		}
-		if meta.GetNonce() <= prevNonce {
-			break
-		}
-		blocks = append(blocks, meta)
-		prevHash = meta.GetPrevHash()
+	if senderShardID != core.MetachainShardId && receiverShardID == core.MetachainShardId {
+		return false
 	}
-
-	return blocks
+	if senderShardID == core.MetachainShardId && receiverShardID == core.AllShardId {
+		return false
+	}
+	return true
 }
 
 func (msh *metaStorageHandler) getSelfNotarizedMetaForShard(
