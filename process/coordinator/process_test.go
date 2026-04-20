@@ -245,7 +245,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -1824,26 +1824,28 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	err = tc.ProcessBlockTransaction(&block.Header{}, &block.Body{}, haveTime)
 	assert.Nil(t, err)
 
+	selfShardID := tc.shardCoordinator.SelfId()
+
 	body := &block.Body{}
-	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
+	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: selfShardID, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
 	miniBlockHash1, _ := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}}}, body, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1, ReceiverShardID: selfShardID}}}, body, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	noTime := func() time.Duration {
 		return 0
 	}
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}}}, body, noTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1, ReceiverShardID: selfShardID}}}, body, noTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	miniBlockHash2, _ := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}, {Hash: miniBlockHash2, TxCount: 1}}}, body, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1, ReceiverShardID: selfShardID}, {Hash: miniBlockHash2, TxCount: 1, ReceiverShardID: selfShardID}}}, body, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -2659,7 +2661,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldReturnWhenEpochIsNo
 			},
 		},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -2709,7 +2711,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxGasLimitPerMi
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -2783,7 +2785,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxAccumulatedFe
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -2862,7 +2864,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldErrMaxDeveloperFees
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -2941,7 +2943,7 @@ func TestTransactionCoordinator_VerifyCreatedMiniBlocksShouldWork(t *testing.T) 
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3003,7 +3005,7 @@ func TestTransactionCoordinator_GetAllTransactionsShouldWork(t *testing.T) {
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3088,7 +3090,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldErrMaxGasLimitPerMiniBlockIn
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3183,7 +3185,7 @@ func TestTransactionCoordinator_VerifyGasLimitShouldWork(t *testing.T) {
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3264,7 +3266,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3316,7 +3318,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3375,7 +3377,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3441,7 +3443,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3510,7 +3512,7 @@ func TestTransactionCoordinator_CheckGasProvidedByMiniBlockInReceiverShardShould
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3566,7 +3568,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMissingTransaction(t *testing
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3627,7 +3629,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceeded(t 
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3698,7 +3700,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceeded(t *t
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3777,7 +3779,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxAccumulatedFeesExceededWhe
 				}
 			},
 		},
-		DoubleTransactionsDetector: &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector: &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:    &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3863,7 +3865,7 @@ func TestTransactionCoordinator_VerifyFeesShouldErrMaxDeveloperFeesExceededWhenS
 				}
 			},
 		},
-		DoubleTransactionsDetector: &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector: &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:    &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -3949,7 +3951,7 @@ func TestTransactionCoordinator_VerifyFeesShouldWork(t *testing.T) {
 				}
 			},
 		},
-		DoubleTransactionsDetector: &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector: &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:    &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -4027,7 +4029,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldErr(t *te
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -4085,7 +4087,7 @@ func TestTransactionCoordinator_GetMaxAccumulatedAndDeveloperFeesShouldWork(t *t
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}
@@ -4157,7 +4159,7 @@ func TestTransactionCoordinator_RevertIfNeededShouldWork(t *testing.T) {
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 	}

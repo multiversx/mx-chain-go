@@ -1379,7 +1379,7 @@ type GuardedAccountHandler interface {
 
 // DoubleTransactionDetector is able to detect if a transaction hash is present more than once in a block body
 type DoubleTransactionDetector interface {
-	ProcessBlockBody(body *block.Body)
+	ProcessBlockBody(body *block.Body) error
 	IsInterfaceNil() bool
 }
 
