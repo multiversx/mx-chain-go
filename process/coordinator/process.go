@@ -529,7 +529,7 @@ func (tc *transactionCoordinator) checkMiniBlock(
 ) error {
 	// there are checks for non existing shard id at interceptors level
 
-	if miniBlock.SenderShardID != tc.shardCoordinator.SelfId() && miniBlock.ReceiverShardID != tc.shardCoordinator.SelfId() && miniBlock.ReceiverShardID != core.AllShardId {
+	if miniBlock.SenderShardID != tc.shardCoordinator.SelfId() && miniBlock.GetReceiverShardID() != tc.shardCoordinator.SelfId() && miniBlock.GetReceiverShardID() != core.AllShardId {
 		return fmt.Errorf("%w - not valid shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
 			process.ErrInvalidShardId,
 			miniBlock.Type,
@@ -537,15 +537,16 @@ func (tc *transactionCoordinator) checkMiniBlock(
 			miniBlock.ReceiverShardID)
 	}
 
-	if miniBlock.GetType() == block.PeerBlock && miniBlock.GetReceiverShardID() != core.AllShardId {
-		return fmt.Errorf("%w - peer blocks receiver shard ID: block type: %s, sender shard id: %d, receiver shard id: %d",
+	if miniBlock.GetType() == block.PeerBlock &&
+		(miniBlock.GetSenderShardID() != core.MetachainShardId || miniBlock.GetReceiverShardID() != core.AllShardId) {
+		return fmt.Errorf("%w - peer blocks: block type: %s, sender shard id: %d, receiver shard id: %d",
 			process.ErrInvalidShardId,
 			miniBlock.Type,
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 	}
 
-	if miniBlock.GetType() != block.PeerBlock && miniBlock.ReceiverShardID == core.AllShardId {
+	if miniBlock.GetType() != block.PeerBlock && miniBlock.GetReceiverShardID() == core.AllShardId {
 		return fmt.Errorf("%w - invalid all shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
 			process.ErrInvalidShardId,
 			miniBlock.Type,
