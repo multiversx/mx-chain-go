@@ -1105,9 +1105,9 @@ func (sc *scProcessor) extractAsyncCallParamsFromTxData(data string) (*vmcommon.
 		return nil, nil, err
 	}
 
-	if len(args) < 4 {
+	if len(args) < 3 {
 		log.Trace("scProcessor.createSCRsWhenError()", "no async params found", data)
-		return nil, nil, err
+		return nil, nil, process.ErrInvalidAsyncArguments
 	}
 
 	callIDIndex := len(args) - 3
