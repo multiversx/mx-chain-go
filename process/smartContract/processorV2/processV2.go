@@ -2236,6 +2236,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		PrevTxHash:    txHash,
 		ReturnMessage: returnMessage,
 	}
+	consumedFee := sc.economicsFee.ComputeTxFee(tx)
 
 	txData := tx.GetData()
 	var asyncArgs *vmcommon.AsyncArguments
@@ -2243,7 +2244,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		var err error
 		asyncArgs, txData, err = sc.extractAsyncCallParamsFromTxData(string(txData))
 		if err != nil {
-			return nil, nil
+			return scr, consumedFee
 		}
 	}
 
@@ -2252,8 +2253,6 @@ func (sc *scProcessor) createSCRsWhenError(
 	if callType != vmData.AsynchronousCallBack && isCrossShardESDTCall {
 		accumulatedSCRData += esdtReturnData
 	}
-
-	consumedFee := sc.economicsFee.ComputeTxFee(tx)
 
 	if callType == vmData.AsynchronousCall {
 		scr.CallType = vmData.AsynchronousCallBack
@@ -2269,7 +2268,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		var err error
 		accumulatedSCRData, err = sc.reAppendAsyncParamsToTxCallbackData(accumulatedSCRData, isCrossShardESDTCall, asyncArgs)
 		if err != nil {
-			return nil, nil
+			return scr, consumedFee
 		}
 	} else {
 		accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode))
