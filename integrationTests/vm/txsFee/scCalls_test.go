@@ -136,7 +136,7 @@ func TestScCallShouldWork(t *testing.T) {
 	tx := vm.CreateTransaction(10, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte(""))
 
 	_, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
-	require.NotNil(t, errProcess)
+	require.Nil(t, errProcess)
 
 	_, errCommit := testContext.Accounts.Commit()
 	require.Nil(t, errCommit)
