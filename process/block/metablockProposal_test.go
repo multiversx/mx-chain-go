@@ -3839,7 +3839,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -3864,7 +3864,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -3901,7 +3901,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -3942,7 +3942,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -3984,7 +3984,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err = blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -4013,7 +4013,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)

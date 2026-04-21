@@ -30,8 +30,13 @@ func (mock *ChainHandlerMock) GetLastExecutionResult() data.BaseExecutionResultH
 }
 
 // SetLastExecutionResult -
-func (mock *ChainHandlerMock) SetLastExecutionResult(result data.BaseExecutionResultHandler) {
+func (mock *ChainHandlerMock) SetLastExecutionInfo(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 	mock.lastExecutedResult = result
+	mock.lastExecutedBlockHeader = header
+	mock.lastExecutedBlockNonce = header.GetNonce()
+	mock.lastExecutedBlockHash = result.GetHeaderHash()
+	mock.lastExecutedBlockRootHash = result.GetRootHash()
+	mock.SetFinalBlockInfo(header.GetNonce(), result.GetHeaderHash(), result.GetRootHash())
 }
 
 // GetGenesisHeader -

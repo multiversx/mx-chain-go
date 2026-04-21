@@ -487,7 +487,7 @@ func TestBaseStorageBootstrapper_setCurrentBlockInfoV3(t *testing.T) {
 		counter := 0
 		ssb, _ := NewShardStorageBootstrapper(args)
 		ssb.blkc = &testscommon.ChainHandlerStub{
-			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 				counter += 1
 			},
 			SetCurrentBlockHeaderHashCalled: func(bytes []byte) {
