@@ -657,7 +657,7 @@ func GetSCCode(fileName string) string {
 
 // CreateDeployTxData -
 func CreateDeployTxData(scCode string) string {
-	return CreateDeployTxDataWithCodeMetadata(scCode, "0000")
+	return CreateDeployTxDataWithCodeMetadata(scCode, DummyCodeMetadataHex)
 }
 
 // CreateDeployTxDataWithCodeMetadata -

@@ -2807,7 +2807,6 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	returnCode := vmcommon.UserError
 	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)
 	if err != nil {
-		log.Debug("CalculateHash error", "error", err)
 		return returnCode, err
 	}
 
