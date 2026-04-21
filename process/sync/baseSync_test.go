@@ -276,7 +276,11 @@ func TestBaseBootstrap_confirmHeaderReceivedByHashShouldRequestMissingProof(t *t
 				return false
 			},
 		},
-		enableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		},
 	}
 	boot.setRequestedHeaderHash(headerHash)
 
@@ -324,7 +328,11 @@ func TestBaseBootstrap_confirmHeaderReceivedByNonceShouldRequestMissingProof(t *
 				return false
 			},
 		},
-		enableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		},
 	}
 	boot.setRequestedHeaderNonce(&expectedNonce)
 
