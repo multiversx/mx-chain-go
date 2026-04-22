@@ -75,6 +75,18 @@ func (bbc *baseBlockChain) GetCurrentBlockHeaderHash() []byte {
 	return bbc.currentBlockHeaderHash
 }
 
+// GetCurrentBlockHeaderAndHash returns the current block header and hash
+func (bbc *baseBlockChain) GetCurrentBlockHeaderAndHash() (data.HeaderHandler, []byte) {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	if check.IfNil(bbc.currentBlockHeader) || len(bbc.currentBlockHeaderHash) == 0 {
+		return nil, nil
+	}
+
+	return bbc.currentBlockHeader.ShallowClone(), bbc.currentBlockHeaderHash
+}
+
 // SetCurrentBlockHeaderHash returns the current block header hash
 func (bbc *baseBlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 	bbc.mut.Lock()
@@ -173,6 +185,7 @@ func (bbc *baseBlockChain) GetLastExecutionResult() data.BaseExecutionResultHand
 	return bbc.lastExecutionResult
 }
 
+// SetLastExecutionInfo sets header, execution result and final block info atomically
 func (bbc *baseBlockChain) SetLastExecutionInfo(
 	header data.HeaderHandler,
 	result data.BaseExecutionResultHandler,

@@ -765,13 +765,10 @@ func TestHeadersExecutor_Process(t *testing.T) {
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.BaseExecutionResult{}
 			},
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
 				return &block.Header{
 					Nonce: testNonce,
-				}
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return testCommittedHash
+				}, testCommittedHash
 			},
 		}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{

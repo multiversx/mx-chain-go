@@ -566,8 +566,7 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 		return err
 	}
 
-	st.blkc.SetCurrentBlockHeaderHash(headerHash)
-	err = st.blkc.SetCurrentBlockHeader(header)
+	err = st.blkc.SetCurrentBlockHeaderAndHash(headerHash, header)
 	if err != nil {
 		return err
 	}

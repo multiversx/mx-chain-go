@@ -50,11 +50,23 @@ func (mc *metaChain) SetGenesisHeader(header data.HeaderHandler) error {
 	return nil
 }
 
-// SetCurrentBlockHeader sets current block header pointer
+// SetCurrentBlockHeader sets current block header pointer.
 func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	mc.mut.Lock()
 	defer mc.mut.Unlock()
 
+	return mc.setCurrentBlockHeaderUnprotected(header)
+}
+
+// SetCurrentBlockHeaderAndHash sets header and hash atomically
+func (mc *metaChain) SetCurrentBlockHeaderAndHash(
+	headerHash []byte,
+	header data.HeaderHandler,
+) error {
+	mc.mut.Lock()
+	defer mc.mut.Unlock()
+
+	mc.currentBlockHeaderHash = headerHash
 	return mc.setCurrentBlockHeaderUnprotected(header)
 }
 

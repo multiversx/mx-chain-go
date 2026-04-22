@@ -959,8 +959,7 @@ func (sp *shardProcessor) CommitBlock(
 		defer func() {
 			if err != nil {
 				sp.RevertHeaderV3OnCommit(headerHandler)
-				_ = sp.blockChain.SetCurrentBlockHeader(prevBlockHeader)
-				sp.blockChain.SetCurrentBlockHeaderHash(prevBlockHeaderHash)
+				_ = sp.blockChain.SetCurrentBlockHeaderAndHash(prevBlockHeaderHash, prevBlockHeader)
 			}
 		}()
 	}

@@ -310,8 +310,7 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 		return nil
 	}
 
-	lastCommittedBlockHash := he.blockChain.GetCurrentBlockHeaderHash()
-	lastCommittedBlockHeader := he.blockChain.GetCurrentBlockHeader()
+	lastCommittedBlockHeader, lastCommittedBlockHash := he.blockChain.GetCurrentBlockHeaderAndHash()
 	if !check.IfNil(lastCommittedBlockHeader) &&
 		executionResult.GetHeaderNonce() == lastCommittedBlockHeader.GetNonce() &&
 		!bytes.Equal(executionResult.GetHeaderHash(), lastCommittedBlockHash) {

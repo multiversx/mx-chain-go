@@ -65,6 +65,11 @@ func (mock *ChainHandlerMock) GetCurrentBlockHeader() data.HeaderHandler {
 	return mock.currentBlockHeader
 }
 
+// GetCurrentBlockHeaderAndHash -
+func (mock *ChainHandlerMock) GetCurrentBlockHeaderAndHash() (data.HeaderHandler, []byte) {
+	return mock.currentBlockHeader, mock.currentBlockHash
+}
+
 // SetCurrentBlockHeaderAndRootHash -
 func (mock *ChainHandlerMock) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
 	mock.currentBlockHeader = header
@@ -107,6 +112,13 @@ func (mock *ChainHandlerMock) GetLastExecutedBlockInfo() (nonce uint64, blockHas
 // SetCurrentBlockHeader -
 func (mock *ChainHandlerMock) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	mock.currentBlockHeader = header
+	return nil
+}
+
+// SetCurrentBlockHeaderAndHash -
+func (mock *ChainHandlerMock) SetCurrentBlockHeaderAndHash(headerHash []byte, header data.HeaderHandler) error {
+	mock.currentBlockHeader = header
+	mock.currentBlockHash = headerHash
 	return nil
 }
 
