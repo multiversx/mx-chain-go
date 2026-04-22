@@ -346,6 +346,11 @@ func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) b
 	return sr.doSignatureJobForManagedKeys(ctx)
 }
 
+// CreateSignaturesForManagedKeys -
+func (sr *subroundSignature) CreateSignaturesForManagedKeys(ctx context.Context) bool {
+	return sr.createSignaturesForManagedKeys(ctx)
+}
+
 // WaitIfCompetingBlock calls the unexported waitIfCompetingBlock function
 func (sr *subroundSignature) WaitIfCompetingBlock(ctx context.Context, pkBytes []byte, nonce uint64, currentHash []byte) bool {
 	return sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
