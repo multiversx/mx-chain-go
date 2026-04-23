@@ -60,4 +60,5 @@ type ArgInterceptedDataFactory struct {
 	SignaturesHandler            process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec int64
 	PeerID                       core.PeerID
+	PeerShardMapper              process.PeerShardMapper
 }

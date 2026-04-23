@@ -21,6 +21,7 @@ type ArgInterceptedPeerAuthentication struct {
 	PeerSignatureHandler  crypto.PeerSignatureHandler
 	PayloadValidator      process.PeerAuthenticationPayloadValidator
 	HardforkTriggerPubKey []byte
+	PeerShardMapper       process.PeerShardMapper
 }
 
 // interceptedPeerAuthentication is a wrapper over PeerAuthentication
@@ -33,6 +34,7 @@ type interceptedPeerAuthentication struct {
 	peerSignatureHandler  crypto.PeerSignatureHandler
 	payloadValidator      process.PeerAuthenticationPayloadValidator
 	hardforkTriggerPubKey []byte
+	peerShardMapper       process.PeerShardMapper
 }
 
 // NewInterceptedPeerAuthentication tries to create a new intercepted peer authentication instance
@@ -55,6 +57,7 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 		peerSignatureHandler:  arg.PeerSignatureHandler,
 		payloadValidator:      arg.PayloadValidator,
 		hardforkTriggerPubKey: arg.HardforkTriggerPubKey,
+		peerShardMapper:       arg.PeerShardMapper,
 	}
 	intercepted.peerId = core.PeerID(intercepted.peerAuthentication.Pid)
 
@@ -80,6 +83,9 @@ func checkArg(arg ArgInterceptedPeerAuthentication) error {
 	}
 	if len(arg.HardforkTriggerPubKey) == 0 {
 		return fmt.Errorf("%w hardfork trigger public key bytes length is 0", process.ErrInvalidValue)
+	}
+	if check.IfNil(arg.PeerShardMapper) {
+		return process.ErrNilPeerShardMapper
 	}
 
 	return nil
@@ -133,6 +139,12 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// Early exit if mapping already exists
+	existingInfo := ipa.peerShardMapper.GetPeerInfo(ipa.peerId)
+	if string(existingInfo.PkBytes) == string(ipa.Pubkey()) {
+		return nil
 	}
 
 	// Verify payload signature
