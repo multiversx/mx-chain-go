@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var expectedErr = errors.New("expected error")
@@ -59,6 +60,7 @@ func createMockInterceptedPeerAuthenticationArg(interceptedData *heartbeat.PeerA
 		PeerSignatureHandler:  &cryptoMocks.PeerSignatureHandlerStub{},
 		PayloadValidator:      &testscommon.PeerAuthenticationPayloadValidatorStub{},
 		HardforkTriggerPubKey: providedHardforkPubKey,
+		PeerShardMapper:       &processMocks.PeerShardMapperStub{},
 	}
 	arg.DataBuff, _ = arg.Marshaller.Marshal(interceptedData)
 
@@ -127,6 +129,16 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		ipa, err := NewInterceptedPeerAuthentication(arg)
 		assert.True(t, check.IfNil(ipa))
 		assert.Equal(t, process.ErrNilPeerSignatureHandler, err)
+	})
+	t.Run("nil peer shard mapper should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
+		arg.PeerShardMapper = nil
+
+		ipa, err := NewInterceptedPeerAuthentication(arg)
+		assert.True(t, check.IfNil(ipa))
+		assert.Equal(t, process.ErrNilPeerShardMapper, err)
 	})
 	t.Run("unmarshal returns error", func(t *testing.T) {
 		t.Parallel()
@@ -255,6 +267,30 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 
 		err = ipa.CheckValidity()
 		assert.True(t, errors.Is(err, expectedErr))
+	})
+	t.Run("peer already authenticated with same pubkey should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		providedPA := createDefaultInterceptedPeerAuthentication()
+		arg := createMockInterceptedPeerAuthenticationArg(providedPA)
+
+		arg.SignaturesHandler = &processMocks.SignaturesHandlerStub{
+			VerifyCalled: func(payload []byte, pid core.PeerID, signature []byte) error {
+				require.Fail(t, "should have not been called")
+				return expectedErr
+			},
+		}
+		arg.PeerShardMapper = &processMocks.PeerShardMapperStub{
+			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+				return core.P2PPeerInfo{
+					PkBytes: providedPA.Pubkey,
+				}
+			},
+		}
+
+		ipa, _ := NewInterceptedPeerAuthentication(arg)
+		err := ipa.CheckValidity()
+		assert.Nil(t, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

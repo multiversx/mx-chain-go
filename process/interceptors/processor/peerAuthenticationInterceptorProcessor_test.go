@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	heartbeatMessages "github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
@@ -63,6 +64,7 @@ func createMockInterceptedPeerAuthentication() process.InterceptedData {
 		PeerSignatureHandler:  &mock.PeerSignatureHandlerStub{},
 		PayloadValidator:      payloadValidator,
 		HardforkTriggerPubKey: []byte("provided hardfork pub key"),
+		PeerShardMapper:       &mock.PeerShardMapperStub{},
 	}
 	arg.DataBuff, _ = arg.Marshaller.Marshal(createInterceptedPeerAuthentication())
 	ipa, _ := heartbeat.NewInterceptedPeerAuthentication(arg)
@@ -180,6 +182,39 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 
 		err = paip.Save(createMockInterceptedPeerAuthentication(), "", "")
 		assert.Equal(t, expectedError, err)
+	})
+	t.Run("peer info already saved should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		providedIPA := createMockInterceptedPeerAuthentication()
+		providedIPAHandler := providedIPA.(interceptedDataHandler)
+		providedIPAMessage := providedIPAHandler.Message().(*heartbeatMessages.PeerAuthentication)
+
+		arg := createPeerAuthenticationInterceptorProcessArg()
+		arg.PeerAuthenticationCacher = &cache.CacherStub{
+			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+				require.Fail(t, "should have not been called")
+				return false
+			},
+		}
+		wasGetPeerInfoCalled := false
+		arg.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
+			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+				wasGetPeerInfoCalled = true
+				assert.Equal(t, providedIPAMessage.Pid, pid.Bytes())
+				return core.P2PPeerInfo{
+					PkBytes: providedIPAMessage.Pubkey,
+				}
+			},
+		}
+
+		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(arg)
+		assert.Nil(t, err)
+		assert.False(t, paip.IsInterfaceNil())
+
+		err = paip.Save(providedIPA, "", "")
+		assert.Nil(t, err)
+		assert.True(t, wasGetPeerInfoCalled)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
