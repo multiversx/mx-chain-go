@@ -1319,3 +1319,6 @@ var ErrInvalidChainParameters = errors.New("invalid chain parameters")
 
 // ErrDuplicatedHashInBlock signals that the same hash appears more than once where uniqueness is expected
 var ErrDuplicatedHashInBlock = errors.New("duplicated hash in block")
+
+// ErrPeerAlreadyAuthenticated signals that a peer authentication message was received for a peer that already has an existing mapping
+var ErrPeerAlreadyAuthenticated = errors.New("peer already authenticated")

@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type interceptedDataHandler interface {
@@ -181,36 +180,6 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 
 		err = paip.Save(createMockInterceptedPeerAuthentication(), "", "")
 		assert.Equal(t, expectedError, err)
-	})
-	t.Run("peer info already saved should early exit", func(t *testing.T) {
-		t.Parallel()
-
-		providedIPA := createMockInterceptedPeerAuthentication()
-		providedIPAHandler := providedIPA.(interceptedDataHandler)
-		providedIPAMessage := providedIPAHandler.Message().(*heartbeatMessages.PeerAuthentication)
-
-		arg := createPeerAuthenticationInterceptorProcessArg()
-		wasGetPeerInfoCalled := false
-		arg.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
-			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
-				wasGetPeerInfoCalled = true
-				assert.Equal(t, providedIPAMessage.Pid, pid.Bytes())
-				return core.P2PPeerInfo{
-					PkBytes: providedIPAMessage.Pubkey,
-				}
-			},
-			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte) {
-				require.Fail(t, "should not have been called")
-			},
-		}
-
-		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(arg)
-		assert.Nil(t, err)
-		assert.False(t, paip.IsInterfaceNil())
-
-		err = paip.Save(providedIPA, "", "")
-		assert.Nil(t, err)
-		assert.True(t, wasGetPeerInfoCalled)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

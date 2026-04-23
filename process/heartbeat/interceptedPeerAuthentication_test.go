@@ -268,7 +268,7 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		err = ipa.CheckValidity()
 		assert.True(t, errors.Is(err, expectedErr))
 	})
-	t.Run("peer already authenticated with same pubkey should early exit", func(t *testing.T) {
+	t.Run("peer already authenticated with same pubkey should return error", func(t *testing.T) {
 		t.Parallel()
 
 		providedPA := createDefaultInterceptedPeerAuthentication()
@@ -290,7 +290,7 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
 		err := ipa.CheckValidity()
-		assert.Nil(t, err)
+		assert.Equal(t, process.ErrPeerAlreadyAuthenticated, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
