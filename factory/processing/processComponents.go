@@ -351,6 +351,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		common.MaxTxsToRequest,
 		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
 		time.Second,
+		time.Duration(pcf.config.Requesters.RequestProofByNonceDelayMs)*time.Millisecond,
 	)
 	if err != nil {
 		return nil, err

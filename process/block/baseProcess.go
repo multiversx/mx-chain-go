@@ -581,6 +581,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		common.StakingV2Flag,
 		common.CurrentRandomnessOnSortingFlag,
 		common.AndromedaFlag,
+		common.FullShardDataValidationFlag,
 	})
 	if err != nil {
 		return err

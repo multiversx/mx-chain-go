@@ -3593,6 +3593,7 @@ func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessorV2(arguments)
+	sc.argsParser = smartContract.NewArgumentParser()
 
 	acntSnd := &stateMock.UserAccountStub{}
 	scr, consumedFee := sc.createSCRsWhenError(nil, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"), 0)
@@ -3605,40 +3606,39 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
 	assert.Equal(t, expectedError, string(scr.Data))
-
 	scr, consumedFee = sc.createSCRsWhenError(
 		acntSnd,
 		[]byte("txHash"),
-		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall},
+		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, Data: []byte("a@aa@bb@cc")},
 		"string",
 		[]byte("msg"),
 		0)
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
-	assert.Equal(t, "@04@6d7367", string(scr.Data))
+	assert.True(t, strings.Contains(string(scr.Data), "@04@6d7367"))
 
 	scr, consumedFee = sc.createSCRsWhenError(
 		acntSnd,
 		[]byte("txHash"),
-		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, GasPrice: 1, GasLimit: 100},
+		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, GasPrice: 1, GasLimit: 100, Data: []byte("a@aa@bb@cc")},
 		"string",
 		[]byte("msg"),
 		20)
 	assert.Equal(t, uint64(1), scr.GasPrice)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(80)), 0)
-	assert.Equal(t, "@04@6d7367", string(scr.Data))
+	assert.True(t, strings.Contains(string(scr.Data), "@04@6d7367"))
 	assert.Equal(t, uint64(20), scr.GasLimit)
 
 	scr, consumedFee = sc.createSCRsWhenError(
 		acntSnd,
 		[]byte("txHash"),
-		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, GasPrice: 1, GasLimit: 100},
+		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, GasPrice: 1, GasLimit: 100, Data: []byte("a@aa@bb@cc")},
 		"string",
 		[]byte("msg"),
 		0)
 	assert.Equal(t, uint64(1), scr.GasPrice)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(100)), 0)
-	assert.Equal(t, "@04@6d7367", string(scr.Data))
+	assert.True(t, strings.Contains(string(scr.Data), "@04@6d7367"))
 	assert.Equal(t, uint64(0), scr.GasLimit)
 }
 

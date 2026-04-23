@@ -561,6 +561,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
 		e.enableEpochsHandler,
 		e.dataPool.Proofs(),
+		e.dataPool.Headers(),
 	)
 	if err != nil {
 		return err
@@ -579,6 +580,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		MetaBlockProcessor:             metaBlockProcessor,
 		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
 		ProofsPool:                     e.dataPool.Proofs(),
+		HeadersPool:                    e.dataPool.Headers(),
 		ProofsInterceptorProcessor:     processor.NewEquivalentProofsInterceptorProcessor(),
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
@@ -1535,6 +1537,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		maxToRequest,
 		core.MetachainShardId,
 		timeBetweenRequests,
+		time.Duration(e.generalConfig.Requesters.RequestProofByNonceDelayMs)*time.Millisecond,
 	)
 	return err
 }

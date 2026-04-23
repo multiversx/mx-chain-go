@@ -615,12 +615,12 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+	argsDetector := coordinator.ArgsDoubleTransactionsDetector{
 		Marshaller:          arg.Core.InternalMarshalizer(),
 		Hasher:              arg.Core.Hasher(),
 		EnableEpochsHandler: enableEpochsHandler,
 	}
-	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	doubleTransactionsDetector, err := coordinator.NewDoubleTransactionsDetector(argsDetector)
 	if err != nil {
 		return nil, err
 	}

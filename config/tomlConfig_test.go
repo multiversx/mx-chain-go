@@ -944,6 +944,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # RelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
     RelayedTransactionsV1V2DisableEpoch = 113
 
+    # ConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas in accumulated economics is fixed
+    ConsumedGasInEconomicsFixEnableEpoch = 114
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1077,6 +1080,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			AutomaticActivationOfNodesDisableEpoch:                   111,
 			FixGetBalanceEnableEpoch:                                 112,
 			RelayedTransactionsV1V2DisableEpoch:                      113,
+			ConsumedGasInEconomicsFixEnableEpoch:                     114,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

@@ -15,33 +15,34 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-const printReportHeader = "double transactions found (this is not critical, thus)\nshowing the whole block body:\n"
-const nilBlockBodyMessage = "nil block body in printDoubleTransactionsDetector.ProcessBlockBody"
+const printReportHeaderNotCritical = "double transactions found (this is not critical, thus)\nshowing the whole block body:\n"
+const printReportHeader = "double transactions found \nshowing the whole block body:\n"
+const nilBlockBodyMessage = "nil block body in doubleTransactionsDetector.ProcessBlockBody"
 const noDoubledTransactionsFoundMessage = "no double transactions found"
 const doubledTransactionsFoundButFlagActive = "double transactions found but this is expected until the AddFailedRelayedTxToInvalidMBsDisableEpoch is deactivated"
 
-// ArgsPrintDoubleTransactionsDetector is the argument DTO structure used in the NewPrintDoubleTransactionsDetector function
-type ArgsPrintDoubleTransactionsDetector struct {
+// ArgsDoubleTransactionsDetector is the argument DTO structure used in the NewDoubleTransactionsDetector function
+type ArgsDoubleTransactionsDetector struct {
 	Marshaller          marshal.Marshalizer
 	Hasher              hashing.Hasher
 	EnableEpochsHandler common.EnableEpochsHandler
 }
 
-type printDoubleTransactionsDetector struct {
+type doubleTransactionsDetector struct {
 	marshaller          marshal.Marshalizer
 	hasher              hashing.Hasher
 	logger              logger.Logger
 	enableEpochsHandler common.EnableEpochsHandler
 }
 
-// NewPrintDoubleTransactionsDetector creates a new instance of printDoubleTransactionsDetector
-func NewPrintDoubleTransactionsDetector(args ArgsPrintDoubleTransactionsDetector) (*printDoubleTransactionsDetector, error) {
-	err := checkArgsPrintDoubleTransactionsDetector(args)
+// NewDoubleTransactionsDetector creates a new instance of doubleTransactionsDetector
+func NewDoubleTransactionsDetector(args ArgsDoubleTransactionsDetector) (*doubleTransactionsDetector, error) {
+	err := checkArgsDoubleTransactionsDetector(args)
 	if err != nil {
 		return nil, err
 	}
 
-	detector := &printDoubleTransactionsDetector{
+	detector := &doubleTransactionsDetector{
 		marshaller:          args.Marshaller,
 		hasher:              args.Hasher,
 		enableEpochsHandler: args.EnableEpochsHandler,
@@ -51,7 +52,7 @@ func NewPrintDoubleTransactionsDetector(args ArgsPrintDoubleTransactionsDetector
 	return detector, nil
 }
 
-func checkArgsPrintDoubleTransactionsDetector(args ArgsPrintDoubleTransactionsDetector) error {
+func checkArgsDoubleTransactionsDetector(args ArgsDoubleTransactionsDetector) error {
 	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer
 	}
@@ -68,10 +69,10 @@ func checkArgsPrintDoubleTransactionsDetector(args ArgsPrintDoubleTransactionsDe
 
 // ProcessBlockBody processes the block body provided in search of doubled transactions. If there are doubled transactions,
 // this method will log as error the event providing as much information as possible
-func (detector *printDoubleTransactionsDetector) ProcessBlockBody(body *block.Body) {
+func (detector *doubleTransactionsDetector) ProcessBlockBody(body *block.Body) error {
 	if body == nil {
 		detector.logger.Error(nilBlockBodyMessage)
-		return
+		return nil
 	}
 
 	transactions := make(map[string]int)
@@ -99,17 +100,26 @@ func (detector *printDoubleTransactionsDetector) ProcessBlockBody(body *block.Bo
 
 	if !doubleTransactionsExist {
 		detector.logger.Debug(noDoubledTransactionsFoundMessage)
-		return
+		return nil
 	}
-	if detector.enableEpochsHandler.IsFlagEnabled(common.AddFailedRelayedTxToInvalidMBsFlag) {
-		detector.logger.Debug(doubledTransactionsFoundButFlagActive)
-		return
+
+	relayedV1V2Disabled := detector.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV1V2DisableFlag)
+
+	if !relayedV1V2Disabled {
+		if detector.enableEpochsHandler.IsFlagEnabled(common.AddFailedRelayedTxToInvalidMBsFlag) {
+			detector.logger.Debug(doubledTransactionsFoundButFlagActive)
+			return nil
+		}
+
+		detector.logger.Error(printReportHeaderNotCritical + printReport.String())
+		return nil
 	}
 
 	detector.logger.Error(printReportHeader + printReport.String())
+	return process.ErrDoubleTransactionsFound
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (detector *printDoubleTransactionsDetector) IsInterfaceNil() bool {
+func (detector *doubleTransactionsDetector) IsInterfaceNil() bool {
 	return detector == nil
 }
