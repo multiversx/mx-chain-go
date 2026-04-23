@@ -35,7 +35,9 @@ const whitelistedAddress = "whitelistedAddress"
 const changeOwner = "changeOwner"
 const withdraw = "withdraw"
 const claimRewards = "claimRewards"
+const claimRewardsOf = "claimRewardsOf"
 const reDelegateRewards = "reDelegateRewards"
+const reDelegateRewardsOf = "reDelegateRewardsOf"
 const delegate = "delegate"
 
 const (
@@ -128,6 +130,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		common.StakingV2FlagAfterEpoch,
 		common.FixDelegationChangeOwnerOnAccountFlag,
 		common.MultiClaimOnDelegationFlag,
+		common.DelegationOnBehalfFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -235,6 +238,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.updateRewards(args)
 	case claimRewards:
 		return d.claimRewards(args)
+	case claimRewardsOf:
+		return d.claimRewardsOf(args)
 	case "getRewardData":
 		return d.getRewardData(args)
 	case "getClaimableRewards":
@@ -265,6 +270,8 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.unStakeAtEndOfEpoch(args)
 	case reDelegateRewards:
 		return d.reDelegateRewards(args)
+	case reDelegateRewardsOf:
+		return d.reDelegateRewardsOf(args)
 	case "reStakeUnStakedNodes":
 		return d.reStakeUnStakedNodes(args)
 	case "isDelegator":
@@ -1489,8 +1496,14 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
 	}
+	return d.reDelegateRewardsInternal(args, args.CallerAddr)
+}
 
-	isNew, delegator, err := d.getOrCreateDelegatorData(args.CallerAddr)
+func (d *delegation) reDelegateRewardsInternal(
+	args *vmcommon.ContractCallInput,
+	delegatorAddress []byte,
+) vmcommon.ReturnCode {
+	isNew, delegator, err := d.getOrCreateDelegatorData(delegatorAddress)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1500,7 +1513,7 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
-	err = d.computeAndUpdateRewards(args.CallerAddr, delegator)
+	err = d.computeAndUpdateRewards(delegatorAddress, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1512,7 +1525,7 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 		return vmcommon.UserError
 	}
 
-	err = d.checkAndUpdateOwnerInitialFunds(dConfig, args.CallerAddr, delegator.UnClaimedRewards)
+	err = d.checkAndUpdateOwnerInitialFunds(dConfig, delegatorAddress, delegator.UnClaimedRewards)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -1539,10 +1552,40 @@ func (d *delegation) reDelegateRewards(args *vmcommon.ContractCallInput) vmcommo
 	delegateValue := big.NewInt(0).Set(delegator.UnClaimedRewards)
 	delegator.UnClaimedRewards.SetUint64(0)
 
-	d.createAndAddLogEntryForDelegate(args, delegateValue, globalFund, delegator, dStatus, isNew)
+	cloneArgs := *args
+	cloneArgs.CallerAddr = delegatorAddress
+	d.createAndAddLogEntryForDelegate(&cloneArgs, delegateValue, globalFund, delegator, dStatus, isNew)
 
-	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus, args.CallerAddr,
+	return d.finishDelegateUser(globalFund, delegator, dConfig, dStatus, delegatorAddress,
 		args.RecipientAddr, delegateValue, delegateValue, false, dConfig.CheckCapOnReDelegateRewards)
+}
+
+func (d *delegation) reDelegateRewardsOf(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.ensureDelegationOnBehalfFeatureEnabled() {
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("wrong number of arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+
+	targetDelegator := args.Arguments[0]
+	if !d.canCallerActForDelegator(targetDelegator, args.CallerAddr) {
+		d.eei.AddReturnMessage("caller is not authorized for delegator")
+		return vmcommon.UserError
+	}
+
+	return d.reDelegateRewardsInternal(args, targetDelegator)
 }
 
 func (d *delegation) finishDelegateUser(
@@ -2105,6 +2148,70 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	}
 
 	d.createAndAddLogEntry(args, unclaimedRewardsBytes, boolToSlice(wasDeleted), args.RecipientAddr)
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) claimRewardsOf(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.ensureDelegationOnBehalfFeatureEnabled() {
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("wrong number of arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+
+	targetDelegator := args.Arguments[0]
+	if !d.canCallerActForDelegator(targetDelegator, args.CallerAddr) {
+		d.eei.AddReturnMessage("caller is not authorized for delegator")
+		return vmcommon.UserError
+	}
+
+	isNew, delegator, err := d.getOrCreateDelegatorData(targetDelegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if isNew {
+		d.eei.AddReturnMessage("delegator is not registered")
+		return vmcommon.UserError
+	}
+
+	err = d.computeAndUpdateRewards(targetDelegator, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	d.eei.Transfer(args.CallerAddr, args.RecipientAddr, delegator.UnClaimedRewards, nil, 0)
+
+	unclaimedRewardsBytes := delegator.UnClaimedRewards.Bytes()
+	delegator.TotalCumulatedRewards.Add(delegator.TotalCumulatedRewards, delegator.UnClaimedRewards)
+	delegator.UnClaimedRewards.SetUint64(0)
+	err = d.saveDelegatorData(targetDelegator, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	var wasDeleted bool
+	if d.enableEpochsHandler.IsFlagEnabled(common.DeleteDelegatorAfterClaimRewardsFlag) {
+		wasDeleted, err = d.deleteDelegatorOnClaimRewardsIfNeeded(targetDelegator, delegator)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	cloneArgs := *args
+	cloneArgs.CallerAddr = targetDelegator
+	d.createAndAddLogEntry(&cloneArgs, unclaimedRewardsBytes, boolToSlice(wasDeleted), args.RecipientAddr)
 
 	return vmcommon.Ok
 }
@@ -3182,6 +3289,35 @@ func (d *delegation) checkAndUpdateOwnerInitialFunds(delegationConfig *Delegatio
 	}
 
 	return nil
+}
+
+func (d *delegation) canCallerActForDelegator(delegatorAddress []byte, callerAddress []byte) bool {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.DelegationOnBehalfFlag) {
+		return false
+	}
+	if len(delegatorAddress) == 0 || len(callerAddress) == 0 {
+		return false
+	}
+
+	if bytes.Equal(delegatorAddress, callerAddress) {
+		return true
+	}
+
+	storedDelegatedWallet := getDelegatedWalletForUserFromManager(d.eei, d.delegationMgrSCAddress, delegatorAddress)
+	if len(storedDelegatedWallet) == 0 {
+		return false
+	}
+
+	return bytes.Equal(storedDelegatedWallet, callerAddress)
+}
+
+func (d *delegation) ensureDelegationOnBehalfFeatureEnabled() bool {
+	if d.enableEpochsHandler.IsFlagEnabled(common.DelegationOnBehalfFlag) {
+		return true
+	}
+
+	d.eei.AddReturnMessage("delegation on behalf feature is not enabled")
+	return false
 }
 
 func getDelegationManagement(

@@ -618,6 +618,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.MultiClaimOnDelegationEnableEpoch,
 		},
+		common.DelegationOnBehalfFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.DelegationOnBehalfEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.DelegationOnBehalfEnableEpoch,
+		},
 		common.ChangeUsernameFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.ChangeUsernameEnableEpoch
