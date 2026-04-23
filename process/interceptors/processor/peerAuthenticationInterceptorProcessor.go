@@ -94,14 +94,11 @@ func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message inter
 	pidBytes := peerAuthenticationData.GetPid()
 	pid := core.PeerID(pidBytes)
 
-	// early exit if info already saved
-	existingInfo := paip.peerShardMapper.GetPeerInfo(pid)
-	if string(existingInfo.PkBytes) == string(peerAuthenticationData.GetPubkey()) {
-		return nil
-	}
-
 	paip.peerAuthenticationCacher.Put(peerAuthenticationData.Pubkey, message, messageSize)
-	paip.peerShardMapper.UpdatePeerIDPublicKeyPair(pid, peerAuthenticationData.GetPubkey())
+	existingInfo := paip.peerShardMapper.GetPeerInfo(pid)
+	if string(existingInfo.PkBytes) != string(peerAuthenticationData.GetPubkey()) {
+		paip.peerShardMapper.UpdatePeerIDPublicKeyPair(pid, peerAuthenticationData.GetPubkey())
+	}
 
 	log.Trace("PeerAuthentication message saved")
 

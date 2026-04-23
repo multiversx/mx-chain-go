@@ -6,9 +6,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	heartbeatMessages "github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/heartbeat"
@@ -19,6 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type interceptedDataHandler interface {
@@ -191,12 +190,6 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		providedIPAMessage := providedIPAHandler.Message().(*heartbeatMessages.PeerAuthentication)
 
 		arg := createPeerAuthenticationInterceptorProcessArg()
-		arg.PeerAuthenticationCacher = &cache.CacherStub{
-			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
-				require.Fail(t, "should have not been called")
-				return false
-			},
-		}
 		wasGetPeerInfoCalled := false
 		arg.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
 			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
@@ -205,6 +198,9 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 				return core.P2PPeerInfo{
 					PkBytes: providedIPAMessage.Pubkey,
 				}
+			},
+			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte) {
+				require.Fail(t, "should not have been called")
 			},
 		}
 
