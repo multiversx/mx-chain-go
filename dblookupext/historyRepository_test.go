@@ -25,7 +25,7 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 		GetCalled: func(key []byte) ([]byte, error) {
 			return nil, storage.ErrKeyNotFound
 		},
-	}, &storageStubs.StorerStub{})
+	}, &storageStubs.StorerStub{}, nil, 0)
 
 	args := HistoryRepositoryArguments{
 		SelfShardID:                 0,
