@@ -249,7 +249,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	if len(largeBuff)%core.MaxBufferSizeToSendTrieNodes != 0 {
 		maxChunks++
 	}
-	chunkIndexOutOfBounds := chunkIndex < 0 || chunkIndex > maxChunks
+	chunkIndexOutOfBounds := chunkIndex < 0 || chunkIndex >= maxChunks
 	if chunkIndexOutOfBounds {
 		return nil
 	}
