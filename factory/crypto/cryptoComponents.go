@@ -153,7 +153,16 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}
 
 	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
-	txSingleSigner := &singlesig.Ed25519Signer{}
+	txSingleSignerOrig := &singlesig.Ed25519Signer{}
+	txSingleSigner, err := NewWhiteListEd25519Signer(ArgsWhiteListedSingleSigner{
+		KeyGen:                txSignKeyGen,
+		SingleSigner:          txSingleSignerOrig,
+		WhitelistedAddressHex: "e7b75955a997dc845bc01ca7fd1090d3e2212985b450781ee0200ed27f3af632", // erd1u7m4j4dfjlwggk7qrjnl6yys603zz2v9k3g8s8hqyq8dyle67ceq3uru9s - god mode address
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	processingSingleSigner, err := ccf.createSingleSigner(false)
 	if err != nil {
 		return nil, err
