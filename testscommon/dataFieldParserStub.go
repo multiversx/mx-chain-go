@@ -8,7 +8,7 @@ type DataFieldParserStub struct {
 }
 
 // Parse -
-func (df *DataFieldParserStub) Parse(dataField []byte, sender, receiver []byte, numOfShards uint32) *datafield.ResponseParseData {
+func (df *DataFieldParserStub) Parse(dataField []byte, sender, receiver []byte, numOfShards uint32, _ uint32) *datafield.ResponseParseData {
 	if df.ParseCalled != nil {
 		return df.ParseCalled(dataField, sender, receiver, numOfShards)
 	}
