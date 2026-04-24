@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -167,8 +168,9 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	log.LogIfError(err)
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
-		AddressLength: TestAddressPubkeyConverter.Len(),
-		Marshalizer:   TestMarshalizer,
+		AddressLength:                       TestAddressPubkeyConverter.Len(),
+		Marshalizer:                         TestMarshalizer,
+		RelayedTransactionsV1V2DisableEpoch: tpn.EnableEpochsHandler.GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag),
 	}
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
 	log.LogIfError(err)

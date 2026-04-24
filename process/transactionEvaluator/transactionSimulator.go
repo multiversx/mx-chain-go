@@ -270,7 +270,9 @@ func (ts *transactionSimulator) adaptSmartContractResult(scr *smartContractResul
 		ReturnMessage: string(scr.ReturnMessage),
 		GasLimit:      scr.GasLimit,
 	})
-	res := ts.dataFieldParser.Parse(scr.Data, scr.SndAddr, scr.RcvAddr, ts.shardCoordinator.NumberOfShards())
+
+	currentEpoch := ts.blockChainHook.CurrentEpoch()
+	res := ts.dataFieldParser.Parse(scr.Data, scr.SndAddr, scr.RcvAddr, ts.shardCoordinator.NumberOfShards(), currentEpoch)
 
 	receiversEncoded, err := ts.addressPubKeyConverter.EncodeSlice(res.Receivers)
 	if err != nil {
