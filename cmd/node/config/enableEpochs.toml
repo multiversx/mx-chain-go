@@ -374,10 +374,10 @@
 
     # FullShardDataValidationEnableEpoch represents the epoch when NumPendingMiniBlocks and LastIncludedMetaNonce
     # in meta ShardData are enforced during verification; before it, these two fields are skipped.
-    FullShardDataValidationEnableEpoch = 2
+    FullShardDataValidationEnableEpoch = 1
 
     # ConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas in accumulated economics is fixed
-    ConsumedGasInEconomicsFixEnableEpoch = 2
+    ConsumedGasInEconomicsFixEnableEpoch = 1
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
