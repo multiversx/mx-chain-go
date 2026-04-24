@@ -478,12 +478,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+	argsDetector := coordinator.ArgsDoubleTransactionsDetector{
 		Marshaller:          pcf.coreData.InternalMarshalizer(),
 		Hasher:              pcf.coreData.Hasher(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
-	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	doubleTransactionsDetector, err := coordinator.NewDoubleTransactionsDetector(argsDetector)
 	if err != nil {
 		return nil, err
 	}
@@ -688,7 +688,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		blockProcessor:         blockProcessor,
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: factoryDisabled.NewDisabledEpochStartSystemSC(),
-		aotSelector:            aotSelector,
 	}
 
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
@@ -712,7 +711,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockProcessingCutoffhandler cutoff.BlockProcessingCutoffHandler,
 	sentSignaturesTracker process.SentSignaturesTracker,
-	executionManager process.ExecutionManager,
 ) (*blockProcessorAndVmFactories, error) {
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
@@ -934,12 +932,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+	argsDetector := coordinator.ArgsDoubleTransactionsDetector{
 		Marshaller:          pcf.coreData.InternalMarshalizer(),
 		Hasher:              pcf.coreData.Hasher(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
-	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	doubleTransactionsDetector, err := coordinator.NewDoubleTransactionsDetector(argsDetector)
 	if err != nil {
 		return nil, err
 	}
