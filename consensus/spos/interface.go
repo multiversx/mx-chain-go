@@ -2,6 +2,7 @@ package spos
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -231,6 +232,7 @@ type ConsensusStateHandler interface {
 	SetHeader(header data.HeaderHandler)
 	GetWaitingAllSignaturesTimeOut() bool
 	SetWaitingAllSignaturesTimeOut(bool)
+	SignaturesWaitGroup() *sync.WaitGroup
 	RoundConsensusHandler
 	RoundStatusHandler
 	RoundThresholdHandler

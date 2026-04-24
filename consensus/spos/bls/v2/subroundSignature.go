@@ -3,7 +3,6 @@ package v2
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -114,13 +113,6 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 	pkBytes := sr.getPkForCompetingBlock(nonce, currentHash)
 	hasCompetingBlockForPk := len(pkBytes) != 0
 	if hasCompetingBlockForPk {
-		// create signature shares optimistically only if there might be a competing block to be analyzed
-		// otherwise create signatures only before sending, to avoid goroutines overhead
-		if !sr.createSignaturesForManagedKeys(ctx) {
-			log.Debug("step 2: subround cannot proceed, cannot create signatures for managed keys")
-			return false
-		}
-
 		shouldAbort := sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
 		if shouldAbort {
 			return false
@@ -225,66 +217,29 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	return false
 }
 
-func (sr *subroundSignature) createSignaturesForManagedKeys(ctx context.Context) bool {
-	numMultiKeysSignaturesCreated := int32(0)
+func (sr *subroundSignature) waitForSingatures() {
+	done := make(chan struct{})
+	go func() {
+		sr.SignaturesWaitGroup().Wait()
+		close(done)
+	}()
 
-	wg := sync.WaitGroup{}
+	// TODO: analyse this more
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sr.RoundHandler().TimeDuration())
 
-	for idx, pk := range sr.ConsensusGroup() {
-		pkBytes := []byte(pk)
-		if !sr.IsKeyManagedBySelf(pkBytes) {
-			continue
-		}
-
-		if sr.IsJobDone(pk, sr.Current()) {
-			continue
-		}
-
-		err := sr.checkGoRoutinesThrottler(ctx)
-		if err != nil {
-			return false
-		}
-		sr.signatureThrottler.StartProcessing()
-		wg.Add(1)
-
-		go func(ctx context.Context, idx int, pk string) {
-			defer sr.signatureThrottler.EndProcessing()
-			defer wg.Done()
-
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-
-			pkBytes := []byte(pk)
-			currentHash := sr.GetData()
-
-			_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-				currentHash,
-				uint16(idx),
-				sr.GetHeader().GetEpoch(),
-				pkBytes,
-			)
-			if err != nil {
-				log.Debug("createSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
-				return
-			}
-
-			atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
-		}(ctx, idx, pk)
+	select {
+	case <-done:
+		return
+	case <-time.After(timeLeft):
+		log.Debug("timeout while waiting for signatures to be created")
+		return
 	}
-
-	wg.Wait()
-
-	if numMultiKeysSignaturesCreated > 0 {
-		log.Debug("step 2: multi keys signatures have been created", "num", numMultiKeysSignaturesCreated)
-	}
-
-	return true
 }
 
 func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) bool {
+	// wait for optimistic signatures creation to finish
+	sr.waitForSingatures()
+
 	numMultiKeysSignaturesSent := int32(0)
 	sentSigForAllKeys := atomicCore.Flag{}
 	sentSigForAllKeys.SetValue(true)
@@ -301,7 +256,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 			continue
 		}
 
-		err := sr.checkGoRoutinesThrottler(ctx)
+		err := checkGoRoutinesThrottler(ctx, sr.signatureThrottler)
 		if err != nil {
 			return false
 		}
@@ -364,21 +319,6 @@ func (sr *subroundSignature) sendSignatureForManagedKey(_ context.Context, idx i
 	sr.sentSignatureTracker.SignatureSent(pkBytes)
 
 	return sr.completeSignatureSubRound(pk)
-}
-
-func (sr *subroundSignature) checkGoRoutinesThrottler(ctx context.Context) error {
-	for {
-		if sr.signatureThrottler.CanProcess() {
-			break
-		}
-		select {
-		case <-time.After(timeSpentBetweenChecks):
-			continue
-		case <-ctx.Done():
-			return fmt.Errorf("%w while checking the throttler", spos.ErrTimeIsOut)
-		}
-	}
-	return nil
 }
 
 func (sr *subroundSignature) doSignatureJobForSingleKey(_ context.Context) bool {

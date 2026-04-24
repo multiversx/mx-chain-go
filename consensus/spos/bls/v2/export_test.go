@@ -203,7 +203,7 @@ func (sr *subroundBlock) SendBlockBody(body data.BodyHandler, marshalizedBody []
 
 // SendBlockHeader method sends the proposed block header in the subround Block
 func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte) bool {
-	return sr.sendBlockHeader(header, marshalizedHeader)
+	return sr.sendBlockHeader(context.TODO(), header, marshalizedHeader)
 }
 
 // ComputeSubroundProcessingMetric computes processing metric related to the subround Block
@@ -346,11 +346,6 @@ func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) b
 	return sr.doSignatureJobForManagedKeys(ctx)
 }
 
-// CreateSignaturesForManagedKeys -
-func (sr *subroundSignature) CreateSignaturesForManagedKeys(ctx context.Context) bool {
-	return sr.createSignaturesForManagedKeys(ctx)
-}
-
 // WaitIfCompetingBlock calls the unexported waitIfCompetingBlock function
 func (sr *subroundSignature) WaitIfCompetingBlock(ctx context.Context, pkBytes []byte, nonce uint64, currentHash []byte) bool {
 	return sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
@@ -399,4 +394,9 @@ func (sr *subroundEndRound) UpdateNonceDeltaMetrics() {
 // PrepareBlockForExecution prepares the block for execution
 func (sr *subroundBlock) PrepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
 	return sr.prepareBlockForExecution(header, body)
+}
+
+// TriggerCreateSignaturesForManagedKeys -
+func (sr *subroundBlock) TriggerCreateSignaturesForManagedKeys(ctx context.Context) bool {
+	return sr.triggerCreateSignaturesForManagedKeys(ctx)
 }

@@ -44,6 +44,8 @@ type ConsensusState struct {
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
 
+	signaturesWaitGroup *sync.WaitGroup
+
 	*roundConsensus
 	*roundThreshold
 	*roundStatus
@@ -79,6 +81,7 @@ func (cns *ConsensusState) ResetConsensusRoundState() {
 	cns.roundCanceled = false
 	cns.extendedCalled = false
 	cns.waitingAllSignaturesTimeOut = false
+	cns.signaturesWaitGroup = &sync.WaitGroup{}
 	cns.mutState.Unlock()
 
 	cns.ResetRoundStatus()
@@ -518,6 +521,11 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 	defer cns.mutState.Unlock()
 
 	cns.waitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
+}
+
+// SignaturesWaitGroup returns wait group for optimistic signatures handling
+func (cns *ConsensusState) SignaturesWaitGroup() *sync.WaitGroup {
+	return cns.signaturesWaitGroup
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
