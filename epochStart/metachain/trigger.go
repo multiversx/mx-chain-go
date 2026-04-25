@@ -15,13 +15,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/metachain")
@@ -209,9 +209,11 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 	}
 
 	isZeroEpochEdgeCase := nonce < minimumNonceToStartEpoch
+	epochStartNonce := t.epochStartMeta.GetNonce()
+	hasMinBlocksInEpoch := nonce >= epochStartNonce+minimumNonceToStartEpoch
 	isNormalEpochStart := t.currentRound > t.currEpochStartRound+t.roundsPerEpoch
 	isWithEarlyEndOfEpoch := t.currentRound >= t.nextEpochStartRound
-	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
+	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase && hasMinBlocksInEpoch
 	if shouldTriggerEpochStart {
 		t.epoch += 1
 		t.isEpochStart = true
