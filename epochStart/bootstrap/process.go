@@ -735,19 +735,14 @@ func (e *epochStartBootstrap) syncIntermediateBlocksIfNeeded(
 	}
 
 	for currNonce > startNonce {
-		// check if not already synced (when handled for the other shards)
-		header, ok := syncedHeaders[string(hashToSync)]
-		if ok {
-			hashToSync = header.GetPrevHash()
-			currNonce = header.GetNonce()
-			continue
-		}
-
-		header, err := e.syncOneHeader(hashToSync, shardID)
+		err := e.syncOneHeader(syncedHeaders, hashToSync, shardID)
 		if err != nil {
 			return err
 		}
-		syncedHeaders[string(hashToSync)] = header
+		header, ok := syncedHeaders[string(hashToSync)]
+		if !ok {
+			return epochStart.ErrMissingHeader
+		}
 
 		hashToSync = header.GetPrevHash()
 		currNonce = header.GetNonce()
@@ -761,11 +756,15 @@ func (e *epochStartBootstrap) syncEpochStartDataInfo(
 	epochStartData data.EpochStartShardDataHandler,
 	syncedHeaders map[string]data.HeaderHandler,
 ) error {
-	syncedHeader, err := e.syncOneHeader(epochStartData.GetHeaderHash(), epochStartData.GetShardID())
+	err := e.syncOneHeader(syncedHeaders, epochStartData.GetHeaderHash(), epochStartData.GetShardID())
 	if err != nil {
 		return err
 	}
-	syncedHeaders[string(epochStartData.GetHeaderHash())] = syncedHeader
+
+	syncedHeader, ok := syncedHeaders[string(epochStartData.GetHeaderHash())]
+	if !ok {
+		return process.ErrMissingHeader
+	}
 
 	if !syncedHeader.IsHeaderV3() {
 		return nil
@@ -783,11 +782,15 @@ func (e *epochStartBootstrap) syncEpochStartDataInfo(
 		return err
 	}
 
-	lastFinishedMetaBlockForShard, err := e.syncOneHeader(epochStartData.GetLastFinishedMetaBlock(), core.MetachainShardId)
+	err = e.syncOneHeader(syncedHeaders, epochStartData.GetLastFinishedMetaBlock(), core.MetachainShardId)
 	if err != nil {
 		return err
 	}
-	syncedHeaders[string(epochStartData.GetLastFinishedMetaBlock())] = lastFinishedMetaBlockForShard
+
+	lastFinishedMetaBlockForShard, ok := syncedHeaders[string(epochStartData.GetLastFinishedMetaBlock())]
+	if !ok {
+		return process.ErrMissingHeader
+	}
 
 	// sync meta blocks from epoch start meta blocks up to last finished metablock referenced on shard
 	return e.syncIntermediateBlocksIfNeeded(syncedHeaders, epochStartMeta, lastFinishedMetaBlockForShard.GetNonce())
@@ -802,13 +805,7 @@ func (e *epochStartBootstrap) syncLastNotarizedMetaForEpochStartData(
 		return err
 	}
 
-	syncedHeader, err := e.syncOneHeader(lastReferencedMetaHash, core.MetachainShardId)
-	if err != nil {
-		return err
-	}
-	syncedHeaders[string(lastReferencedMetaHash)] = syncedHeader
-
-	return nil
+	return e.syncOneHeader(syncedHeaders, lastReferencedMetaHash, core.MetachainShardId)
 }
 
 func getLastReferencedMetaHash(
@@ -861,11 +858,15 @@ func (e *epochStartBootstrap) syncPrevShardHeaderHandler(
 	header data.HeaderHandler,
 ) (data.ShardHeaderHandler, error) {
 	prevHash := header.GetPrevHash()
-	syncedHeader, err := e.syncOneHeader(prevHash, header.GetShardID())
+	err := e.syncOneHeader(syncedHeaders, prevHash, header.GetShardID())
 	if err != nil {
 		return nil, err
 	}
-	syncedHeaders[string(prevHash)] = syncedHeader
+
+	syncedHeader, ok := syncedHeaders[string(prevHash)]
+	if !ok {
+		return nil, epochStart.ErrMissingHeader
+	}
 
 	shardHeader, ok := syncedHeader.(data.ShardHeaderHandler)
 	if !ok {
@@ -1011,27 +1012,31 @@ func (e *epochStartBootstrap) syncBlocksUpToEpochChangeProposed(
 }
 
 func (e *epochStartBootstrap) syncOneHeader(
+	syncedHeaders map[string]data.HeaderHandler,
 	headerHash []byte,
 	shardID uint32,
-) (data.HeaderHandler, error) {
+) error {
+	if _, exists := syncedHeaders[string(headerHash)]; exists {
+		return nil
+	}
+
 	e.headersSyncer.ClearFields()
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
 	err := e.headersSyncer.SyncMissingHeadersByHash([]uint32{shardID}, [][]byte{headerHash}, ctx)
 	cancel()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	syncedHeadersTmp, err := e.headersSyncer.GetHeaders()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	syncedHeader, ok := syncedHeadersTmp[string(headerHash)]
-	if !ok {
-		return nil, epochStart.ErrMissingHeader
+	for h, hdr := range syncedHeadersTmp {
+		syncedHeaders[h] = hdr
 	}
 
-	return syncedHeader, nil
+	return nil
 }
 
 func (e *epochStartBootstrap) syncSelfNotarizedMetaHeaders(
@@ -1073,7 +1078,11 @@ func (e *epochStartBootstrap) syncIntermediateMetaBlocks(
 		}
 
 		prevMeta, ok := syncedHeaders[string(prevHash)]
-		if !ok || prevMeta.GetNonce() <= minTargetNonce {
+		if !ok {
+			return epochStart.ErrMissingHeader
+		}
+
+		if prevMeta.GetNonce() <= minTargetNonce {
 			break
 		}
 
@@ -1100,6 +1109,7 @@ func (e *epochStartBootstrap) syncLastReferencedMetaBlock(
 			if err != nil {
 				return nil, err
 			}
+
 			return syncedHeaders[string(lastMetaHash)], nil
 		}
 
@@ -1108,49 +1118,24 @@ func (e *epochStartBootstrap) syncLastReferencedMetaBlock(
 		if err != nil {
 			return nil, err
 		}
-
-		prevHeader, ok := syncedHeaders[string(prevHash)].(data.ShardHeaderHandler)
+		prevHeader, ok := syncedHeaders[string(prevHash)]
 		if !ok {
-			return nil, epochStart.ErrWrongTypeAssertion
+			return nil, epochStart.ErrMissingHeader
 		}
 
 		if prevHeader.GetNonce() >= currentHdr.GetNonce() {
 			break
 		}
 
-		currentHdr = prevHeader
+		prevShardHeader, ok := prevHeader.(data.ShardHeaderHandler)
+		if !ok {
+			return nil, epochStart.ErrWrongTypeAssertion
+		}
+
+		currentHdr = prevShardHeader
 	}
 
 	return nil, nil
-}
-
-func (e *epochStartBootstrap) syncOneHeader(
-	syncedHeaders map[string]data.HeaderHandler,
-	hash []byte,
-	shardID uint32,
-) error {
-	if _, exists := syncedHeaders[string(hash)]; exists {
-		return nil
-	}
-
-	e.headersSyncer.ClearFields()
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err := e.headersSyncer.SyncMissingHeadersByHash([]uint32{shardID}, [][]byte{hash}, ctx)
-	cancel()
-	if err != nil {
-		return err
-	}
-
-	headers, err := e.headersSyncer.GetHeaders()
-	if err != nil {
-		return err
-	}
-
-	for h, hdr := range headers {
-		syncedHeaders[h] = hdr
-	}
-
-	return nil
 }
 
 // requestAndProcessing will handle requesting and receiving the needed information the node will bootstrap from

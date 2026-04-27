@@ -2722,6 +2722,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByNonce(t *testing.T) {
 		)
 
 		rrh.RequestEquivalentProofByNonce(shardID, requestNonce)
+		time.Sleep(time.Millisecond * 20)
 		require.True(t, wasCalled)
 	})
 }

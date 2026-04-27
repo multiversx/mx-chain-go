@@ -1006,13 +1006,15 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.FullShardDataValidationEnableEpoch
 			},
-			activationEpoch: handler.enableEpochsConfig.FullShardDataValidationEnableEpoch,
+			activationEpoch:     handler.enableEpochsConfig.FullShardDataValidationEnableEpoch,
+			activationEpochName: "FullShardDataValidationEnableEpoch",
 		},
 		common.ConsumedGasInEconomicsFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.ConsumedGasInEconomicsFixEnableEpoch
 			},
-			activationEpoch: handler.enableEpochsConfig.ConsumedGasInEconomicsFixEnableEpoch,
+			activationEpoch:     handler.enableEpochsConfig.ConsumedGasInEconomicsFixEnableEpoch,
+			activationEpochName: "ConsumedGasInEconomicsFixEnableEpoch",
 		},
 	}
 }
