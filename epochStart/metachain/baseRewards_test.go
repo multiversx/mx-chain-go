@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -1144,15 +1144,9 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	storageManagerArgs.Hasher = hasher
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, txExecOrderStub.GetStorageManagerOptions())
-	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:                 hasher,
-		Marshaller:             marshalizer,
-		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
-	}
-	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
-	userAccountsDB := createAccountsDB(hasher, marshalizer, accCreator, trieFactoryManager, enableEpochsHandler)
+	userAccountsDBArgs := createAccountsDBArgs(hasher, marshalizer, trieFactoryManager, enableEpochsHandler)
+	userAccountsDB, _ := state.NewAccountsDB(userAccountsDBArgs)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	shardCoordinator.CurrentShard = core.MetachainShardId
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {

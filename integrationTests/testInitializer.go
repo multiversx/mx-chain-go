@@ -29,6 +29,8 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
+	trieTestComponents "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -476,7 +478,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 		HashesSize:     10000,
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
-	accountFactory, _ := getAccountFactory(accountType, enableEpochsHandler)
+	accountFactory, dth, _ := getAccountFactory(accountType, enableEpochsHandler, tr)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
@@ -493,36 +495,52 @@ func CreateAccountsDBWithEnableEpochsHandler(
 	_ = snapshotsManager.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	args := state.ArgsAccountsDB{
-		Trie:                     tr,
-		Hasher:                   sha256.NewSha256(),
-		Marshaller:               TestMarshalizer,
-		AccountFactory:           accountFactory,
-		StoragePruningManager:    spm,
-		AddressConverter:         &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:         snapshotsManager,
-		StateAccessesCollector:   disabled.NewDisabledStateAccessesCollector(),
-		PruningEnabled:           trieStorageManager.IsPruningEnabled(),
-		MaxDataTriesSizeInMemory: TenMbSize,
+		Trie:                   tr,
+		Hasher:                 sha256.NewSha256(),
+		Marshaller:             TestMarshalizer,
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  spm,
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       snapshotsManager,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		PruningEnabled:         trieStorageManager.IsPruningEnabled(),
+		DataTriesHolder:        dth,
 	}
 	adb, _ := state.NewAccountsDB(args)
 
 	return adb, tr
 }
 
-func getAccountFactory(accountType Type, enableEpochsHandler common.EnableEpochsHandler) (state.AccountFactory, error) {
+func getAccountFactory(
+	accountType Type,
+	enableEpochsHandler common.EnableEpochsHandler,
+	tr common.Trie,
+) (state.AccountFactory, common.TriesHolder, error) {
 	switch accountType {
 	case UserAccount:
+		dth, err := triesHolder.NewDataTriesHolder(TenMbSize)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		argsAccCreator := factory.ArgsAccountCreator{
 			Hasher:                 TestHasher,
 			Marshaller:             TestMarshalizer,
 			EnableEpochsHandler:    enableEpochsHandler,
 			StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+			DataTriesHolder:        dth,
+			DataTrieCreator:        tr,
 		}
-		return factory.NewAccountCreator(argsAccCreator)
+		accCreator, err := factory.NewAccountCreator(argsAccCreator)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return accCreator, dth, nil
 	case ValidatorAccount:
-		return factory.NewPeerAccountCreator(), nil
+		return factory.NewPeerAccountCreator(), &trieTestComponents.TriesHolderStub{}, nil
 	default:
-		return nil, fmt.Errorf("invalid account type provided")
+		return nil, nil, fmt.Errorf("invalid account type provided")
 	}
 }
 
@@ -1059,7 +1077,16 @@ func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
 
 	dtlp, _ := parsers.NewDataTrieLeafParser(adr, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(adr, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, disabled.NewDisabledStateAccessesCollector())
+	args := trackableDataTrie.TrackableDataTrieArgs{
+		Identifier:             adr,
+		Hasher:                 &testscommon.HasherStub{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        &trieTestComponents.TriesHolderStub{},
+		DataTrieCreator:        &trieTestComponents.TrieStub{},
+	}
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(args)
 
 	account, _ := accounts.NewUserAccount(adr, dtt, dtlp)
 

@@ -160,6 +160,12 @@ type TriesHolder interface {
 	IsInterfaceNil() bool
 }
 
+// DataTrieCreator is an adapter for the Trie interface used only for recreating tries
+type DataTrieCreator interface {
+	Recreate(options RootHashHolder) (Trie, error)
+	IsInterfaceNil() bool
+}
+
 // Locker defines the operations used to lock different critical areas. Implemented by the RWMutex.
 type Locker interface {
 	Lock()

@@ -29,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
-	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
@@ -213,25 +212,14 @@ func createMockArgument(
 		SelfShardId: 0,
 	}
 
-	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:                 &hashingMocks.HasherMock{},
-		Marshaller:             &mock.MarshalizerMock{},
-		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
-	}
-	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
-	require.Nil(t, err)
-
-	arg.Accounts, err = createAccountAdapter(
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		accCreator,
+	acc, err := createAccountAdapter(
+		arg.Core,
 		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		&testscommon.PubkeyConverterMock{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 	require.Nil(t, err)
-	arg.AccountsProposal = arg.Accounts
+	arg.Accounts = acc
+	arg.AccountsProposal = acc
 
 	arg.ValidatorAccounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {

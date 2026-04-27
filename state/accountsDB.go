@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -23,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state/parsers"
-	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
@@ -99,16 +99,16 @@ var log = logger.GetOrCreate("state")
 
 // ArgsAccountsDB is the arguments DTO for the AccountsDB instance
 type ArgsAccountsDB struct {
-	Trie                     common.Trie
-	Hasher                   hashing.Hasher
-	Marshaller               marshal.Marshalizer
-	AccountFactory           AccountFactory
-	StoragePruningManager    StoragePruningManager
-	AddressConverter         core.PubkeyConverter
-	SnapshotsManager         SnapshotsManager
-	StateAccessesCollector   StateAccessesCollector
-	PruningEnabled           bool
-	MaxDataTriesSizeInMemory uint64
+	Trie                   common.Trie
+	Hasher                 hashing.Hasher
+	Marshaller             marshal.Marshalizer
+	AccountFactory         AccountFactory
+	StoragePruningManager  StoragePruningManager
+	AddressConverter       core.PubkeyConverter
+	SnapshotsManager       SnapshotsManager
+	StateAccessesCollector StateAccessesCollector
+	PruningEnabled         bool
+	DataTriesHolder        common.TriesHolder
 }
 
 // NewAccountsDB creates a new account manager
@@ -118,15 +118,10 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	return createAccountsDb(args)
+	return createAccountsDb(args), nil
 }
 
-func createAccountsDb(args ArgsAccountsDB) (*AccountsDB, error) {
-	dth, err := triesHolder.NewDataTriesHolder(args.MaxDataTriesSizeInMemory)
-	if err != nil {
-		return nil, fmt.Errorf("cannot create data tries holder: %w", err)
-	}
-
+func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 	return &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
@@ -135,7 +130,7 @@ func createAccountsDb(args ArgsAccountsDB) (*AccountsDB, error) {
 		storagePruningManager:  args.StoragePruningManager,
 		entries:                make([]JournalEntry, 0),
 		mutOp:                  sync.RWMutex{},
-		dataTries:              dth,
+		dataTries:              args.DataTriesHolder,
 		obsoleteDataTrieHashes: make(map[string][][]byte),
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
@@ -144,7 +139,7 @@ func createAccountsDb(args ArgsAccountsDB) (*AccountsDB, error) {
 		snapshotsManger:        args.SnapshotsManager,
 		stateAccessesCollector: args.StateAccessesCollector,
 		pruningEnabled:         args.PruningEnabled,
-	}, nil
+	}
 }
 
 func checkArgsAccountsDB(args ArgsAccountsDB) error {
@@ -171,6 +166,9 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	}
 	if check.IfNil(args.StateAccessesCollector) {
 		return ErrNilStateAccessesCollector
+	}
+	if check.IfNil(args.DataTriesHolder) {
+		return errors.ErrNilDataTriesHolder
 	}
 
 	return nil
@@ -509,33 +507,6 @@ func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer 
 	return codeEntry, nil
 }
 
-// loadDataTrieConcurrentSafe retrieves and saves the SC data inside accountHandler object.
-// Errors if something went wrong
-func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHandler, mainTrie common.Trie) error {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
-	dataTrie := adb.dataTries.Get(accountHandler.AddressBytes())
-	if dataTrie != nil {
-		accountHandler.SetDataTrie(dataTrie)
-		return nil
-	}
-
-	if len(accountHandler.GetRootHash()) == 0 {
-		return nil
-	}
-
-	rootHashHolder := holders.NewDefaultRootHashesHolder(accountHandler.GetRootHash())
-	dataTrie, err := mainTrie.Recreate(rootHashHolder)
-	if err != nil {
-		return fmt.Errorf("trie was not found for hash, rootHash = %s, err = %w", hex.EncodeToString(accountHandler.GetRootHash()), err)
-	}
-
-	accountHandler.SetDataTrie(dataTrie)
-	adb.dataTries.Put(accountHandler.AddressBytes(), dataTrie)
-	return nil
-}
-
 // saveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*stateChange.DataTrieChange, error) {
@@ -720,14 +691,6 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 		return adb.accountFactory.CreateAccount(address)
 	}
 
-	baseAcc, ok := acnt.(baseAccountHandler)
-	if ok {
-		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return acnt, nil
 }
 
@@ -759,7 +722,13 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 		return nil, err
 	}
 
-	return acnt, nil
+	baseAcc, ok := acnt.(baseAccountHandler)
+	if !ok {
+		return acnt, nil
+	}
+	baseAcc.SetDataTrieRootHash()
+
+	return baseAcc, nil
 }
 
 // GetExistingAccount returns an existing account if exists or nil if missing
@@ -777,14 +746,6 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 	}
 	if check.IfNil(acnt) {
 		return nil, ErrAccNotFound
-	}
-
-	baseAcc, ok := acnt.(baseAccountHandler)
-	if ok {
-		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return acnt, nil
@@ -811,12 +772,8 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 		return acnt, nil
 	}
 
-	err = adb.loadDataTrieConcurrentSafe(baseAcc, adb.getMainTrie())
-	if err != nil {
-		return nil, err
-	}
-
-	return acnt, nil
+	baseAcc.SetDataTrieRootHash()
+	return baseAcc, nil
 }
 
 // loadCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
@@ -1384,6 +1341,11 @@ func (adb *AccountsDB) SetTxHashForLatestStateAccesses(txHash []byte) {
 // IsSnapshotInProgress returns true if there is a snapshot in progress
 func (adb *AccountsDB) IsSnapshotInProgress() bool {
 	return adb.snapshotsManger.IsSnapshotInProgress()
+}
+
+// GetAccountsFactory returns the accounts factory used by the accountsDB
+func (adb *AccountsDB) GetAccountsFactory() AccountFactory {
+	return adb.accountFactory
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
