@@ -224,7 +224,6 @@ func (sr *subroundSignature) waitForSingatures() {
 		close(done)
 	}()
 
-	// TODO: analyse this more
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sr.RoundHandler().TimeDuration())
 
 	select {

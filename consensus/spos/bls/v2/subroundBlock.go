@@ -349,7 +349,10 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
-	sr.triggerCreateSignaturesForManagedKeys(ctx)
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sr.RoundHandler().TimeDuration())
+	sigsCtx, cancel := context.WithTimeout(context.Background(), timeLeft)
+	defer cancel()
+	sr.triggerCreateSignaturesForManagedKeys(sigsCtx)
 
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(headerHandler)
@@ -709,10 +712,13 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	sr.AddReceivedHeader(headerHandler)
 
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sr.RoundHandler().TimeDuration())
+	sigsCtx, cancel := context.WithTimeout(context.Background(), timeLeft)
+	defer cancel()
+	sr.triggerCreateSignaturesForManagedKeys(sigsCtx)
+
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()
-
-	sr.triggerCreateSignaturesForManagedKeys(ctx)
 
 	_ = sr.processReceivedBlock(ctx, int64(headerHandler.GetRound()), []byte(sr.Leader()))
 	sr.PeerHonestyHandler().ChangeScore(
