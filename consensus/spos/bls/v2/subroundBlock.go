@@ -404,8 +404,8 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 		}(ctx, idx, pk)
 	}
 
-	if numMultiKeysSignaturesCreated > 0 {
-		log.Debug("step 1: multi keys signatures creation has been triggered", "num", numMultiKeysSignaturesCreated)
+	if atomic.LoadInt32(&numMultiKeysSignaturesCreated) > 0 {
+		log.Debug("step 1: multi keys signatures creation has been triggered", "num", atomic.LoadInt32(&numMultiKeysSignaturesCreated))
 	}
 
 	return true
