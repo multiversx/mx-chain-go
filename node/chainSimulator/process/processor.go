@@ -172,6 +172,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	if !check.IfNil(headerProof) {
+		time.Sleep(time.Millisecond * 5) // small delay to ensure proof is not dropped as being received before header
 		err = messenger.BroadcastEquivalentProof(headerProof, leader.PubKey())
 		if err != nil {
 			return err
