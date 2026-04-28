@@ -103,6 +103,11 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
+	err = msh.saveEpochStartMetaHdrs(components)
+	if err != nil {
+		return err
+	}
+
 	msh.saveMiniblocksFromComponents(components)
 
 	miniBlocks, err := computePendingMiniBlocks(components)
@@ -373,6 +378,27 @@ func (msh *metaStorageHandler) getLastNotarizedBootstrapInfoForEpochStartData(
 	}
 
 	return bootstrapHdrInfo, nil
+}
+
+func (msh *metaStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeededForBootstrap) error {
+	for _, hdr := range components.Headers {
+		isForCurrentShard := hdr.GetShardID() == msh.shardCoordinator.SelfId()
+		if !isForCurrentShard {
+			_, err := msh.saveShardHdrToStorage(hdr)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		_, err := msh.saveMetaHdrToStorage(hdr)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (msh *metaStorageHandler) saveLastCrossNotarizedHeaders(
