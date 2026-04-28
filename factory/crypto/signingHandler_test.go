@@ -1,6 +1,7 @@
 package crypto_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -164,7 +165,7 @@ func TestSigningHandler_CreateSignatureShareForPublicKey(t *testing.T) {
 		t.Parallel()
 
 		signer, _ := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
-		sigShare, err := signer.CreateSignatureShareForPublicKey(nil, selfIndex, epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey(context.TODO(), nil, selfIndex, epoch, pkBytes)
 		require.Nil(t, sigShare)
 		require.Equal(t, cryptoFactory.ErrNilMessage, err)
 	})
@@ -182,7 +183,7 @@ func TestSigningHandler_CreateSignatureShareForPublicKey(t *testing.T) {
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := cryptoFactory.NewSigningHandler(args)
-		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("msg1"), selfIndex, epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey(context.TODO(), []byte("msg1"), selfIndex, epoch, pkBytes)
 		require.Nil(t, sigShare)
 		require.Equal(t, expectedErr, err)
 	})
@@ -200,7 +201,7 @@ func TestSigningHandler_CreateSignatureShareForPublicKey(t *testing.T) {
 
 		signer, _ := cryptoFactory.NewSigningHandler(args)
 
-		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("message"), uint16(0), epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey(context.TODO(), []byte("message"), uint16(0), epoch, pkBytes)
 		require.Nil(t, sigShare)
 		require.Equal(t, expectedErr, err)
 	})
@@ -227,7 +228,7 @@ func TestSigningHandler_CreateSignatureShareForPublicKey(t *testing.T) {
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := cryptoFactory.NewSigningHandler(args)
-		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("msg1"), selfIndex, epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey(context.TODO(), []byte("msg1"), selfIndex, epoch, pkBytes)
 		require.Nil(t, err)
 		require.Equal(t, expectedSigShare, sigShare)
 		assert.True(t, getHandledPrivateKeyCalled)

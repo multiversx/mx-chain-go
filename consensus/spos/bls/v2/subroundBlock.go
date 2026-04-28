@@ -361,6 +361,10 @@ func (sr *subroundBlock) sendBlockHeader(
 }
 
 func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Context) bool {
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sr.RoundHandler().TimeDuration())
+	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
+	sr.SetSignaturesCtxCancelFunc(cancel)
+
 	numMultiKeysSignaturesCreated := int32(0)
 
 	for idx, pk := range sr.ConsensusGroup() {
@@ -376,12 +380,12 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 		sr.signatureThrottler.StartProcessing()
 		sr.SignaturesWaitGroup().Add(1)
 
-		go func(ctx context.Context, idx int, pk string) {
+		go func(sigCtx context.Context, idx int, pk string) {
 			defer sr.signatureThrottler.EndProcessing()
 			defer sr.SignaturesWaitGroup().Done()
 
 			select {
-			case <-ctx.Done():
+			case <-sigCtx.Done():
 				return
 			default:
 			}
@@ -390,6 +394,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 			currentHash := sr.GetData()
 
 			_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+				sigCtx,
 				currentHash,
 				uint16(idx),
 				sr.GetHeader().GetEpoch(),
@@ -401,7 +406,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 			}
 
 			atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
-		}(ctx, idx, pk)
+		}(sigCtx, idx, pk)
 	}
 
 	if atomic.LoadInt32(&numMultiKeysSignaturesCreated) > 0 {

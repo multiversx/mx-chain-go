@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"context"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -135,9 +136,21 @@ func (sh *signingHandler) Reset(pubKeys []string) error {
 
 // CreateSignatureShareForPublicKey returns a signature over a message using the managed private key that was selected based on the provided
 // publicKeyBytes argument
-func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+func (sh *signingHandler) CreateSignatureShareForPublicKey(
+	ctx context.Context,
+	message []byte,
+	index uint16,
+	epoch uint32,
+	publicKeyBytes []byte,
+) ([]byte, error) {
 	if message == nil {
 		return nil, ErrNilMessage
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil, ErrTimeIsOut
+	default:
 	}
 
 	privateKey := sh.keysHandler.GetHandledPrivateKey(publicKeyBytes)
@@ -157,6 +170,12 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index
 	sigShareBytes, err := multiSigner.CreateSignatureShare(privateKeyBytes, message)
 	if err != nil {
 		return nil, err
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil, ErrTimeIsOut
+	default:
 	}
 
 	sh.data.sigShares[index] = sigShareBytes

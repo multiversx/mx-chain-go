@@ -507,7 +507,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 
 		signingHandler := &consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				return []byte("SIG"), nil
 			},
 		}
@@ -597,7 +597,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				return make([]byte, 0), expErr
 			},
 		})
@@ -652,7 +652,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				return []byte("SIG"), nil
 			},
 		})
@@ -720,7 +720,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				return []byte("SIG"), nil
 			},
 		})
@@ -790,7 +790,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				assert.Fail(t, "should not have been called")
 				return []byte(""), nil
 			},
@@ -874,7 +874,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		container.SetEnableEpochsHandler(enableEpochsHandler)
 
 		signingHandler := &consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				return []byte("SIG"), nil
 			},
 		}

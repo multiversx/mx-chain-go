@@ -228,6 +228,7 @@ func (sr *subroundSignature) waitForSingatures() {
 
 	select {
 	case <-done:
+		sr.SignaturesCtxCancel()
 		return
 	case <-time.After(timeLeft):
 		log.Debug("timeout while waiting for signatures to be created")
@@ -284,7 +285,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 	return sentSigForAllKeys.IsSet()
 }
 
-func (sr *subroundSignature) sendSignatureForManagedKey(_ context.Context, idx int, pk string) bool {
+func (sr *subroundSignature) sendSignatureForManagedKey(ctx context.Context, idx int, pk string) bool {
 	pkBytes := []byte(pk)
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
@@ -295,6 +296,7 @@ func (sr *subroundSignature) sendSignatureForManagedKey(_ context.Context, idx i
 		// will try to create it
 
 		signatureShare, err = sr.SigningHandler().CreateSignatureShareForPublicKey(
+			ctx,
 			currentHash,
 			uint16(idx),
 			sr.GetHeader().GetEpoch(),
@@ -320,7 +322,7 @@ func (sr *subroundSignature) sendSignatureForManagedKey(_ context.Context, idx i
 	return sr.completeSignatureSubRound(pk)
 }
 
-func (sr *subroundSignature) doSignatureJobForSingleKey(_ context.Context) bool {
+func (sr *subroundSignature) doSignatureJobForSingleKey(ctx context.Context) bool {
 	pkBytes := []byte(sr.SelfPubKey())
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
@@ -332,6 +334,7 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(_ context.Context) bool 
 	}
 
 	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+		ctx,
 		currentHash,
 		uint16(selfIndex),
 		sr.GetHeader().GetEpoch(),

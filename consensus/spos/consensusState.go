@@ -2,6 +2,7 @@ package spos
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"time"
 
@@ -44,7 +45,8 @@ type ConsensusState struct {
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
 
-	signaturesWaitGroup *sync.WaitGroup
+	signaturesWaitGroup        *sync.WaitGroup
+	signaturesTimeoutCtxCancel context.CancelFunc
 
 	*roundConsensus
 	*roundThreshold
@@ -526,6 +528,24 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 // SignaturesWaitGroup returns wait group for optimistic signatures handling
 func (cns *ConsensusState) SignaturesWaitGroup() *sync.WaitGroup {
 	return cns.signaturesWaitGroup
+}
+
+// SetSignaturesCtxCancelFunc will set signatures context cancel function
+func (cns *ConsensusState) SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc) {
+	cns.mutState.Lock()
+	defer cns.mutState.Unlock()
+
+	cns.signaturesTimeoutCtxCancel = cancelFunc
+}
+
+// SignaturesCtxCancel will cancel signatures context
+func (cns *ConsensusState) SignaturesCtxCancel() {
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
+
+	if cns.signaturesTimeoutCtxCancel != nil {
+		cns.signaturesTimeoutCtxCancel()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

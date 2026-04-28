@@ -233,6 +233,8 @@ type ConsensusStateHandler interface {
 	GetWaitingAllSignaturesTimeOut() bool
 	SetWaitingAllSignaturesTimeOut(bool)
 	SignaturesWaitGroup() *sync.WaitGroup
+	SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc)
+	SignaturesCtxCancel()
 	RoundConsensusHandler
 	RoundStatusHandler
 	RoundThresholdHandler

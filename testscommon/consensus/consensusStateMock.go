@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"context"
 	"sync"
 	"time"
 
@@ -88,6 +89,8 @@ type ConsensusStateMock struct {
 	SetFallbackThresholdCalled                   func(subroundId int, threshold int)
 	ResetConsensusRoundStateCalled               func()
 	SignaturesWaitGroupCalled                    func() *sync.WaitGroup
+	SetSignaturesCtxCancelFuncCalled             func(cancelFunc context.CancelFunc)
+	SignaturesCtxCancelCalled                    func()
 }
 
 // AddReceivedHeader -
@@ -663,6 +666,20 @@ func (cnsm *ConsensusStateMock) SignaturesWaitGroup() *sync.WaitGroup {
 	}
 
 	return nil
+}
+
+// SetSignaturesCtxCancelFunc -
+func (cnsm *ConsensusStateMock) SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc) {
+	if cnsm.SetSignaturesCtxCancelFuncCalled != nil {
+		cnsm.SetSignaturesCtxCancelFuncCalled(cancelFunc)
+	}
+}
+
+// SignaturesCtxCancel -
+func (cnsm *ConsensusStateMock) SignaturesCtxCancel() {
+	if cnsm.SignaturesCtxCancelCalled != nil {
+		cnsm.SignaturesCtxCancelCalled()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

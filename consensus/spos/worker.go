@@ -856,6 +856,8 @@ func (wrk *Worker) callReceivedHeaderCallbacks(message *consensus.Message) {
 // Extend does an extension for the subround with subroundId
 func (wrk *Worker) Extend(subroundId int) {
 	wrk.consensusState.SetExtendedCalled(true)
+	wrk.consensusState.SignaturesCtxCancel()
+
 	log.Debug("extend function is called",
 		"subround", wrk.consensusService.GetSubroundName(subroundId))
 

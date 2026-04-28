@@ -1855,7 +1855,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 		numMultiKeysSignaturesCreated := int32(0)
 
 		signingHandler := &consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
 				return []byte("SIG"), nil
 			},
@@ -1920,7 +1920,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 		numMultiKeysSignaturesCreated := int32(0)
 
 		signingHandler := &consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
 				return []byte("SIG"), nil
 			},
