@@ -1229,6 +1229,11 @@ func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeader
 	if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
 		return fmt.Errorf("%w: different mb sender shard ID", process.ErrHeaderBodyMismatch)
 	}
+
+	if mbHdr.GetTypeInt32() != int32(miniBlock.Type) {
+		return fmt.Errorf("%w: different mb sender type", process.ErrHeaderBodyMismatch)
+	}
+
 	return nil
 }
 
