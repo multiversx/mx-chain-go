@@ -20,6 +20,7 @@ type chunkHandler interface {
 	TryAssembleAllChunks() []byte
 	GetAllMissingChunkIndexes() []uint32
 	MaxChunks() uint32
+	LastUpdated() time.Time
 	Size() int
 	IsInterfaceNil() bool
 }
@@ -31,24 +32,26 @@ type checkRequest struct {
 
 // TrieNodesChunksProcessorArgs is the argument DTO used in the trieNodeChunksProcessor constructor
 type TrieNodesChunksProcessorArgs struct {
-	Hasher           hashing.Hasher
-	ChunksCacher     storage.Cacher
-	RequestInterval  time.Duration
-	RequestHandler   process.RequestHandler
-	Topic            string
-	MaxAllowedChunks uint32
+	Hasher                 hashing.Hasher
+	ChunksCacher           storage.Cacher
+	RequestInterval        time.Duration
+	RequestHandler         process.RequestHandler
+	Topic                  string
+	MaxAllowedChunks       uint32
+	ChunkInactivityTimeout time.Duration
 }
 
 type trieNodeChunksProcessor struct {
-	hasher            hashing.Hasher
-	chunksCacher      storage.Cacher
-	chanCheckRequests chan checkRequest
-	requestInterval   time.Duration
-	requestHandler    process.RequestHandler
-	topic             string
-	maxAllowedChunks  uint32
-	cancel            func()
-	chanClose         chan struct{}
+	hasher                 hashing.Hasher
+	chunksCacher           storage.Cacher
+	chanCheckRequests      chan checkRequest
+	requestInterval        time.Duration
+	requestHandler         process.RequestHandler
+	topic                  string
+	maxAllowedChunks       uint32
+	chunkInactivityTimeout time.Duration
+	cancel                 func()
+	chanClose              chan struct{}
 }
 
 // NewTrieNodeChunksProcessor creates a new trieNodeChunksProcessor instance
@@ -72,16 +75,20 @@ func NewTrieNodeChunksProcessor(arg TrieNodesChunksProcessorArgs) (*trieNodeChun
 	if arg.MaxAllowedChunks < 2 {
 		return nil, fmt.Errorf("%w in NewTrieNodeChunksProcessor, MaxAllowedChunks should be at least 2", process.ErrInvalidValue)
 	}
+	if arg.ChunkInactivityTimeout <= 0 {
+		return nil, fmt.Errorf("%w in NewTrieNodeChunksProcessor, ChunkInactivityTimeout should be greater than 0", process.ErrInvalidValue)
+	}
 
 	tncp := &trieNodeChunksProcessor{
-		hasher:            arg.Hasher,
-		chunksCacher:      arg.ChunksCacher,
-		chanCheckRequests: make(chan checkRequest),
-		requestInterval:   arg.RequestInterval,
-		requestHandler:    arg.RequestHandler,
-		topic:             arg.Topic,
-		maxAllowedChunks:  arg.MaxAllowedChunks,
-		chanClose:         make(chan struct{}),
+		hasher:                 arg.Hasher,
+		chunksCacher:           arg.ChunksCacher,
+		chanCheckRequests:      make(chan checkRequest),
+		requestInterval:        arg.RequestInterval,
+		requestHandler:         arg.RequestHandler,
+		topic:                  arg.Topic,
+		maxAllowedChunks:       arg.MaxAllowedChunks,
+		chunkInactivityTimeout: arg.ChunkInactivityTimeout,
+		chanClose:              make(chan struct{}),
 	}
 	var ctx context.Context
 	ctx, tncp.cancel = context.WithCancel(context.Background())
@@ -245,6 +252,15 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 			"reference", reference,
 			"maxChunks", chunkData.MaxChunks(),
 			"configuredLimit", proc.maxAllowedChunks,
+		)
+		proc.chunksCacher.Remove(reference)
+		return
+	}
+	if time.Since(chunkData.LastUpdated()) > proc.chunkInactivityTimeout {
+		log.Warn("dropping stale trie node chunk tracker after inactivity timeout",
+			"reference", reference,
+			"lastUpdated", chunkData.LastUpdated(),
+			"inactivityTimeout", proc.chunkInactivityTimeout,
 		)
 		proc.chunksCacher.Remove(reference)
 		return

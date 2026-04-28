@@ -228,7 +228,8 @@ func createMockEpochStartBootstrapArgs(
 			},
 			Requesters: generalCfg.Requesters,
 			Antiflood: config.AntifloodConfig{
-				MaxAllowedTrieNodeChunks: 400,
+				TrieNodeChunksInactivityTimeoutInSec: 10,
+				MaxAllowedTrieNodeChunks:             10,
 			},
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerMock{

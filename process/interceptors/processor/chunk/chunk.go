@@ -1,25 +1,29 @@
 package chunk
 
 import (
+	"time"
+
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/interceptors/processor")
 
 type chunk struct {
-	reference []byte
-	maxChunks uint32
-	data      map[uint32][]byte
-	size      int
+	reference   []byte
+	maxChunks   uint32
+	data        map[uint32][]byte
+	size        int
+	lastUpdated time.Time
 }
 
 // NewChunk creates a new chunk instance able to account for the existing and missing chunks of a larger buffer
 // Not a concurrent safe component
 func NewChunk(maxChunks uint32, reference []byte) *chunk {
 	return &chunk{
-		reference: reference,
-		data:      make(map[uint32][]byte),
-		maxChunks: maxChunks,
+		reference:   reference,
+		data:        make(map[uint32][]byte),
+		maxChunks:   maxChunks,
+		lastUpdated: time.Now(),
 	}
 }
 
@@ -32,6 +36,7 @@ func (c *chunk) Put(chunkIndex uint32, buff []byte) {
 	existing := c.data[chunkIndex]
 	c.data[chunkIndex] = buff
 	c.size = c.size - len(existing) + len(buff)
+	c.lastUpdated = time.Now()
 }
 
 // TryAssembleAllChunks will try to assemble the original payload by iterating all available chunks
@@ -70,6 +75,11 @@ func (c *chunk) GetAllMissingChunkIndexes() []uint32 {
 // MaxChunks returns the configured number of chunks for this chunked payload.
 func (c *chunk) MaxChunks() uint32 {
 	return c.maxChunks
+}
+
+// LastUpdated returns the time when the latest chunk was recorded for this payload.
+func (c *chunk) LastUpdated() time.Time {
+	return c.lastUpdated
 }
 
 // Size returns the size in bytes stored in the values of the inner map

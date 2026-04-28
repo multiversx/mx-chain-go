@@ -36,11 +36,12 @@ func createMockTrieNodesChunksProcessorArgs() TrieNodesChunksProcessorArgs {
 				return 32
 			},
 		},
-		ChunksCacher:     cache.NewCacherMock(),
-		RequestInterval:  time.Second,
-		RequestHandler:   &testscommon.RequestHandlerStub{},
-		Topic:            "topic",
-		MaxAllowedChunks: 3,
+		ChunksCacher:           cache.NewCacherMock(),
+		RequestInterval:        time.Second,
+		RequestHandler:         &testscommon.RequestHandlerStub{},
+		Topic:                  "topic",
+		MaxAllowedChunks:       3,
+		ChunkInactivityTimeout: 10 * time.Second,
 	}
 }
 
@@ -99,6 +100,16 @@ func TestNewTrieNodeChunksProcessor_InvalidMaxAllowedChunks(t *testing.T) {
 
 	args := createMockTrieNodesChunksProcessorArgs()
 	args.MaxAllowedChunks = 1
+	tncp, err := NewTrieNodeChunksProcessor(args)
+	assert.True(t, errors.Is(err, process.ErrInvalidValue))
+	assert.True(t, check.IfNil(tncp))
+}
+
+func TestNewTrieNodeChunksProcessor_InvalidChunkInactivityTimeout(t *testing.T) {
+	t.Parallel()
+
+	args := createMockTrieNodesChunksProcessorArgs()
+	args.ChunkInactivityTimeout = 0
 	tncp, err := NewTrieNodeChunksProcessor(args)
 	assert.True(t, errors.Is(err, process.ErrInvalidValue))
 	assert.True(t, check.IfNil(tncp))
@@ -315,6 +326,32 @@ func TestTrieNodeChunksProcessor_RequestMissingForReferenceShouldDropCachedChunk
 	tncp, _ := NewTrieNodeChunksProcessor(args)
 	args.ChunksCacher.Put(reference, chunk.NewChunk(args.MaxAllowedChunks+1, reference), 0)
 
+	tncp.requestMissingForReference(reference, context.Background())
+
+	assert.Equal(t, 0, args.ChunksCacher.Len())
+	assert.Equal(t, uint32(0), atomic.LoadUint32(&numRequested))
+
+	_ = tncp.Close()
+}
+
+func TestTrieNodeChunksProcessor_RequestMissingForReferenceShouldDropStaleCachedChunk(t *testing.T) {
+	t.Parallel()
+
+	args := createMockTrieNodesChunksProcessorArgs()
+	args.ChunkInactivityTimeout = 10 * time.Millisecond
+	numRequested := uint32(0)
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestTrieNodeCalled: func(_ []byte, _ string, _ uint32) {
+			atomic.AddUint32(&numRequested, 1)
+		},
+	}
+
+	tncp, _ := NewTrieNodeChunksProcessor(args)
+	staleChunk := chunk.NewChunk(args.MaxAllowedChunks, reference)
+	staleChunk.Put(0, []byte("buff1"))
+	args.ChunksCacher.Put(reference, staleChunk, staleChunk.Size())
+
+	time.Sleep(args.ChunkInactivityTimeout + 5*time.Millisecond)
 	tncp.requestMissingForReference(reference, context.Background())
 
 	assert.Equal(t, 0, args.ChunksCacher.Len())
