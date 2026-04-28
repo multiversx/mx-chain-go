@@ -2259,7 +2259,12 @@ func (mp *metaProcessor) verifyShardDataAgainstHeaders(metaHdr data.MetaHeaderHa
 			expected.LastIncludedMetaNonce = shardData.GetLastIncludedMetaNonce()
 		}
 
-		if !expected.Equal(&shardData) {
+		shardDataPtr, ok := shardData.(*block.ShardData)
+		if !ok {
+			return fmt.Errorf("%w : shard data is not a ShardData", process.ErrWrongTypeAssertion)
+		}
+
+		if !expected.Equal(shardDataPtr) {
 			log.Debug("shard data mismatch",
 				"hash", hex.EncodeToString(shardData.GetHeaderHash()),
 				"expected", fmt.Sprintf("%+v", expected),

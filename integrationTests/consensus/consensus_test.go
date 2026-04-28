@@ -111,14 +111,6 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	f, _ := core.CreateFile(core.ArgCreateFileArgument{
-		Directory:     ".",
-		Prefix:        "",
-		FileExtension: ".log",
-	})
-	logger.AddLogObserver(f, &logger.PlainFormatter{})
-	logger.SetLogLevel("*:DEBUG")
-
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
 	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
