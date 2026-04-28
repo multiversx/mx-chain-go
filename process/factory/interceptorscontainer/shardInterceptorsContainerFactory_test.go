@@ -763,6 +763,7 @@ func getArgumentsShard(
 		PeerSignatureHandler:           &mock.PeerSignatureHandlerStub{},
 		SignaturesHandler:              &mock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec:   30,
+		MaxAllowedTrieNodeChunks:       400,
 		MainPeerShardMapper:            &p2pmocks.NetworkShardingCollectorStub{},
 		FullArchivePeerShardMapper:     &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:                &testscommon.HardforkTriggerStub{},

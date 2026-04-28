@@ -125,6 +125,7 @@ func NewShardInterceptorsContainerFactory(
 		preferredPeersHolder:           args.PreferredPeersHolder,
 		hasher:                         args.CoreComponents.Hasher(),
 		requestHandler:                 args.RequestHandler,
+		maxAllowedTrieNodeChunks:       args.MaxAllowedTrieNodeChunks,
 		mainPeerShardMapper:            args.MainPeerShardMapper,
 		fullArchivePeerShardMapper:     args.FullArchivePeerShardMapper,
 		hardforkTrigger:                args.HardforkTrigger,

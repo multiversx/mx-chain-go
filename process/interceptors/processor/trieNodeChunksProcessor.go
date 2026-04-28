@@ -19,6 +19,7 @@ type chunkHandler interface {
 	Put(chunkIndex uint32, buff []byte)
 	TryAssembleAllChunks() []byte
 	GetAllMissingChunkIndexes() []uint32
+	MaxChunks() uint32
 	Size() int
 	IsInterfaceNil() bool
 }
@@ -30,11 +31,12 @@ type checkRequest struct {
 
 // TrieNodesChunksProcessorArgs is the argument DTO used in the trieNodeChunksProcessor constructor
 type TrieNodesChunksProcessorArgs struct {
-	Hasher          hashing.Hasher
-	ChunksCacher    storage.Cacher
-	RequestInterval time.Duration
-	RequestHandler  process.RequestHandler
-	Topic           string
+	Hasher           hashing.Hasher
+	ChunksCacher     storage.Cacher
+	RequestInterval  time.Duration
+	RequestHandler   process.RequestHandler
+	Topic            string
+	MaxAllowedChunks uint32
 }
 
 type trieNodeChunksProcessor struct {
@@ -44,6 +46,7 @@ type trieNodeChunksProcessor struct {
 	requestInterval   time.Duration
 	requestHandler    process.RequestHandler
 	topic             string
+	maxAllowedChunks  uint32
 	cancel            func()
 	chanClose         chan struct{}
 }
@@ -66,6 +69,9 @@ func NewTrieNodeChunksProcessor(arg TrieNodesChunksProcessorArgs) (*trieNodeChun
 	if len(arg.Topic) == 0 {
 		return nil, fmt.Errorf("%w in NewTrieNodeChunksProcessor", process.ErrEmptyTopic)
 	}
+	if arg.MaxAllowedChunks < 2 {
+		return nil, fmt.Errorf("%w in NewTrieNodeChunksProcessor, MaxAllowedChunks should be at least 2", process.ErrInvalidValue)
+	}
 
 	tncp := &trieNodeChunksProcessor{
 		hasher:            arg.Hasher,
@@ -74,6 +80,7 @@ func NewTrieNodeChunksProcessor(arg TrieNodesChunksProcessorArgs) (*trieNodeChun
 		requestInterval:   arg.RequestInterval,
 		requestHandler:    arg.RequestHandler,
 		topic:             arg.Topic,
+		maxAllowedChunks:  arg.MaxAllowedChunks,
 		chanClose:         make(chan struct{}),
 	}
 	var ctx context.Context
@@ -184,6 +191,10 @@ func (proc *trieNodeChunksProcessor) batchIsValid(b *batch.Batch, whiteListHandl
 	if b.MaxChunks < 2 {
 		return false, nil
 	}
+	if b.MaxChunks > proc.maxAllowedChunks {
+		return false, fmt.Errorf("%w, trie node batch max chunks %d exceeds configured limit %d",
+			process.ErrInvalidValue, b.MaxChunks, proc.maxAllowedChunks)
+	}
 	if len(b.Reference) != proc.hasher.Size() {
 		return false, process.ErrIncompatibleReference
 	}
@@ -227,6 +238,15 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 
 	chunkData, ok := data.(chunkHandler)
 	if !ok {
+		return
+	}
+	if chunkData.MaxChunks() > proc.maxAllowedChunks {
+		log.Warn("dropping cached trie node chunk tracker above configured limit",
+			"reference", reference,
+			"maxChunks", chunkData.MaxChunks(),
+			"configuredLimit", proc.maxAllowedChunks,
+		)
+		proc.chunksCacher.Remove(reference)
 		return
 	}
 

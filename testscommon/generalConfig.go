@@ -388,6 +388,7 @@ func GetGeneralConfig() config.Config {
 		Antiflood: config.AntifloodConfig{
 			NumConcurrentResolverJobs:           2,
 			NumConcurrentResolvingTrieNodesJobs: 1,
+			MaxAllowedTrieNodeChunks:            400,
 			TxAccumulator: config.TxAccumulatorConfig{
 				MaxAllowedTimeInMilliseconds:   10,
 				MaxDeviationTimeInMilliseconds: 1,

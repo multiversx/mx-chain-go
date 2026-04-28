@@ -106,6 +106,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		PeerSignatureHandler:           cryptoComponents.PeerSignatureHandler(),
 		SignaturesHandler:              args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec:   args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
+		MaxAllowedTrieNodeChunks:       args.Config.Antiflood.MaxAllowedTrieNodeChunks,
 		MainPeerShardMapper:            peerShardMapper,
 		FullArchivePeerShardMapper:     fullArchivePeerShardMapper,
 		HardforkTrigger:                hardforkTrigger,

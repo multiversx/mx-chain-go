@@ -40,6 +40,7 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	PeerSignatureHandler           crypto.PeerSignatureHandler
 	SignaturesHandler              process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec   int64
+	MaxAllowedTrieNodeChunks       uint32
 	MainPeerShardMapper            process.PeerShardMapper
 	FullArchivePeerShardMapper     process.PeerShardMapper
 	HardforkTrigger                heartbeat.HardforkTrigger

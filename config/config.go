@@ -398,6 +398,7 @@ type AntifloodConfig struct {
 	Enabled                             bool
 	NumConcurrentResolverJobs           int32
 	NumConcurrentResolvingTrieNodesJobs int32
+	MaxAllowedTrieNodeChunks            uint32
 	OutOfSpecs                          FloodPreventerConfig
 	FastReacting                        FloodPreventerConfig
 	SlowReacting                        FloodPreventerConfig

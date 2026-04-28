@@ -51,6 +51,7 @@ type baseInterceptorsContainerFactory struct {
 	preferredPeersHolder           process.PreferredPeersHolderHandler
 	hasher                         hashing.Hasher
 	requestHandler                 process.RequestHandler
+	maxAllowedTrieNodeChunks       uint32
 	mainPeerShardMapper            process.PeerShardMapper
 	fullArchivePeerShardMapper     process.PeerShardMapper
 	hardforkTrigger                heartbeat.HardforkTrigger
@@ -653,11 +654,12 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 	}
 
 	argChunkProcessor := processor.TrieNodesChunksProcessorArgs{
-		Hasher:          bicf.hasher,
-		ChunksCacher:    bicf.dataPool.TrieNodesChunks(),
-		RequestInterval: chunksProcessorRequestInterval,
-		RequestHandler:  bicf.requestHandler,
-		Topic:           topic,
+		Hasher:           bicf.hasher,
+		ChunksCacher:     bicf.dataPool.TrieNodesChunks(),
+		RequestInterval:  chunksProcessorRequestInterval,
+		RequestHandler:   bicf.requestHandler,
+		Topic:            topic,
+		MaxAllowedChunks: bicf.maxAllowedTrieNodeChunks,
 	}
 
 	chunkProcessor, err := processor.NewTrieNodeChunksProcessor(argChunkProcessor)

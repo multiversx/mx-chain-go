@@ -67,6 +67,11 @@ func (c *chunk) GetAllMissingChunkIndexes() []uint32 {
 	return missing
 }
 
+// MaxChunks returns the configured number of chunks for this chunked payload.
+func (c *chunk) MaxChunks() uint32 {
+	return c.maxChunks
+}
+
 // Size returns the size in bytes stored in the values of the inner map
 func (c *chunk) Size() int {
 	return c.size

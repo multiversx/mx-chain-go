@@ -1389,6 +1389,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HardforkTrigger:                tpn.HardforkTrigger,
 			NodeOperationMode:              tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+			MaxAllowedTrieNodeChunks:       400,
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1458,6 +1459,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HardforkTrigger:                tpn.HardforkTrigger,
 			NodeOperationMode:              tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+			MaxAllowedTrieNodeChunks:       400,
 		}
 
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)

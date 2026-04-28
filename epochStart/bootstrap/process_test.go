@@ -227,6 +227,9 @@ func createMockEpochStartBootstrapArgs(
 				Shards:   10,
 			},
 			Requesters: generalCfg.Requesters,
+			Antiflood: config.AntifloodConfig{
+				MaxAllowedTrieNodeChunks: 400,
+			},
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerMock{
 			MinGasPriceCalled: func() uint64 {
