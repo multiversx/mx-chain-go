@@ -1,6 +1,7 @@
 package process_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -390,7 +391,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			return &mock.CryptoComponentsStub{
 				KeysHandlerField: kh,
 				SigHandler: &testsConsensus.SigningHandlerStub{
-					CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+					CreateSignatureShareForPublicKeyCalled: func(_ context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 						return nil, expectedErr
 					},
 				},
