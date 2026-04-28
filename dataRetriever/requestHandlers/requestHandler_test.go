@@ -2698,11 +2698,11 @@ func TestResolverRequestHandler_RequestEquivalentProofByNonce(t *testing.T) {
 		shardID := uint32(0)
 		requestNonce := uint64(10)
 		expectedRequestKey := common.GetEquivalentProofNonceShardKey(requestNonce, shardID)
-		wasCalled := false
+		wasCalled := atomic.Bool{}
 		res := &dataRetrieverMocks.EquivalentProofRequesterStub{
 			RequestDataFromNonceCalled: func(nonceShardKey []byte, epoch uint32) error {
 				require.Equal(t, []byte(expectedRequestKey), nonceShardKey)
-				wasCalled = true
+				wasCalled.Store(true)
 				return nil
 			},
 		}
@@ -2723,6 +2723,6 @@ func TestResolverRequestHandler_RequestEquivalentProofByNonce(t *testing.T) {
 
 		rrh.RequestEquivalentProofByNonce(shardID, requestNonce)
 		time.Sleep(time.Millisecond * 20)
-		require.True(t, wasCalled)
+		require.True(t, wasCalled.Load())
 	})
 }
