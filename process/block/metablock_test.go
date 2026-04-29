@@ -4807,9 +4807,9 @@ func Test_getCurrentlyAccumulatedFees(t *testing.T) {
 
 		metaBlock := &block.MetaBlockV3{}
 		currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, err := mp.GetCurrentlyAccumulatedFees(metaBlock)
-		require.Nil(t, currentlyAccumulatedFeesInEpoch)
-		require.Nil(t, currentDevFeesInEpoch)
-		require.Equal(t, common.ErrNilLastExecutionResultHandler, err)
+		require.Equal(t, big.NewInt(0), currentlyAccumulatedFeesInEpoch)
+		require.Equal(t, big.NewInt(0), currentDevFeesInEpoch)
+		require.Nil(t, err)
 	})
 
 	t.Run("should return accumulated fees for v3 from last executed block", func(t *testing.T) {
