@@ -252,9 +252,11 @@ func (t *trigger) GetEpochChangeProposed() bool {
 
 func (t *trigger) shouldTriggerEpochStart(currentRound uint64, currentNonce uint64) bool {
 	isZeroEpochEdgeCase := currentNonce < minimumNonceToStartEpoch
+	epochStartNonce := t.epochStartMeta.GetNonce()
+	hasMinBlocksInEpoch := currentNonce >= epochStartNonce+10000000
 	isNormalEpochStart := currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)-t.getOffsetPerEpoch(t.epoch)
 	isWithEarlyEndOfEpoch := currentRound >= t.nextEpochStartRound
-	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
+	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase && hasMinBlocksInEpoch
 
 	return shouldTriggerEpochStart
 }
