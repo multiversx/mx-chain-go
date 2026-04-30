@@ -2113,7 +2113,9 @@ func (bp *baseProcessor) Close() error {
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
-	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
+	if !bp.processStatusHandler.TrySetBusy("baseProcessor.ProcessScheduledBlock") {
+		return process.ErrBlockProcessorBusy
+	}
 	defer func() {
 		if err != nil {
 			bp.RevertCurrentBlock()

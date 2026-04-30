@@ -173,7 +173,9 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
-	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlock")
+	if !sp.processStatusHandler.TrySetBusy("shardProcessor.ProcessBlock") {
+		return process.ErrBlockProcessorBusy
+	}
 	defer sp.processStatusHandler.SetIdle()
 
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
@@ -911,7 +913,9 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	sp.processStatusHandler.SetBusy("shardProcessor.CreateBlock")
+	if !sp.processStatusHandler.TrySetBusy("shardProcessor.CreateBlock") {
+		return nil, nil, process.ErrBlockProcessorBusy
+	}
 	defer sp.processStatusHandler.SetIdle()
 
 	err := sp.createBlockStarted()
@@ -997,8 +1001,11 @@ func (sp *shardProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
+	if !sp.processStatusHandler.TrySetBusy("shardProcessor.CommitBlock") {
+		return process.ErrBlockProcessorBusy
+	}
+
 	var err error
-	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 	defer func() {
 		if err != nil {
 			sp.RevertCurrentBlock()
