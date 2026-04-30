@@ -484,6 +484,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	return nil
 }
 
+// TODO consider calling this from VerifyBlockProposal instead of ProcessBlockProposal
 func (tc *transactionCoordinator) checkMiniBlock(
 	miniBlock *block.MiniBlock,
 ) error {
