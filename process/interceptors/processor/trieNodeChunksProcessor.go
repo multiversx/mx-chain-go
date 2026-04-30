@@ -13,7 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
-const minimumRequestTimeInterval = time.Millisecond * 200
+const (
+	minimumRequestTimeInterval = time.Millisecond * 200
+	minNumChunks               = 2
+)
 
 type chunkHandler interface {
 	Put(chunkIndex uint32, buff []byte)
@@ -72,8 +75,8 @@ func NewTrieNodeChunksProcessor(arg TrieNodesChunksProcessorArgs) (*trieNodeChun
 	if len(arg.Topic) == 0 {
 		return nil, fmt.Errorf("%w in NewTrieNodeChunksProcessor", process.ErrEmptyTopic)
 	}
-	if arg.MaxAllowedChunks < 2 {
-		return nil, fmt.Errorf("%w in NewTrieNodeChunksProcessor, MaxAllowedChunks should be at least 2", process.ErrInvalidValue)
+	if arg.MaxAllowedChunks < minNumChunks {
+		return nil, fmt.Errorf("%w in NewTrieNodeChunksProcessor, MaxAllowedChunks should be at least %v", process.ErrInvalidValue, minNumChunks)
 	}
 	if arg.ChunkInactivityTimeout <= 0 {
 		return nil, fmt.Errorf("%w in NewTrieNodeChunksProcessor, ChunkInactivityTimeout should be greater than 0", process.ErrInvalidValue)
