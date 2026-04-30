@@ -43,11 +43,12 @@ func (pc *persisterCreator) CreateBasePersister(path string) (storage.Persister,
 	var dbType = storageunit.DBType(pc.conf.Type)
 
 	argsDB := factory.ArgDB{
-		DBType:            dbType,
-		Path:              path,
-		BatchDelaySeconds: pc.conf.BatchDelaySeconds,
-		MaxBatchSize:      pc.conf.MaxBatchSize,
-		MaxOpenFiles:      pc.conf.MaxOpenFiles,
+		DBType:               dbType,
+		Path:                 path,
+		BatchDelaySeconds:    pc.conf.BatchDelaySeconds,
+		MaxBatchSize:         pc.conf.MaxBatchSize,
+		MaxOpenFiles:         pc.conf.MaxOpenFiles,
+		BloomFilterBtsPerKey: pc.conf.BloomFilterBtsPerKey,
 	}
 
 	return storageunit.NewDB(argsDB)

@@ -119,6 +119,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [ReceiptsStorage]
     [ReceiptsStorage.Cache]
@@ -132,6 +133,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [ScheduledSCRsStorage]
     [ScheduledSCRsStorage.Cache]
@@ -145,6 +147,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [PeerBlockBodyStorage]
     [PeerBlockBodyStorage.Cache]
@@ -158,6 +161,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [BlockHeaderStorage]
     [BlockHeaderStorage.Cache]
@@ -171,6 +175,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [BootstrapStorage]
     [BootstrapStorage.Cache]
@@ -184,6 +189,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [MetaBlockStorage]
     [MetaBlockStorage.Cache]
@@ -197,6 +203,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [ProofsStorage]
     [ProofsStorage.Cache]
@@ -210,6 +217,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [TxStorage]
     [TxStorage.Cache]
@@ -223,6 +231,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 30000
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
@@ -236,6 +245,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [RewardTxStorage]
     [RewardTxStorage.Cache]
@@ -249,6 +259,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [SmartContractsStorage]
     [SmartContractsStorage.Cache]
@@ -262,6 +273,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [SmartContractsStorageSimulate]
     [SmartContractsStorageSimulate.Cache]
@@ -275,6 +287,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [SmartContractsStorageForSCQuery]
     [SmartContractsStorageForSCQuery.Cache]
@@ -288,6 +301,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [StatusMetricsStorage]
     [StatusMetricsStorage.Cache]
@@ -300,6 +314,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [TrieEpochRootHashStorage]
     [TrieEpochRootHashStorage.Cache]
@@ -313,6 +328,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 500
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [ShardHdrNonceHashStorage]
     [ShardHdrNonceHashStorage.Cache]
@@ -326,6 +342,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [MetaHdrNonceHashStorage]
     [MetaHdrNonceHashStorage.Cache]
@@ -339,6 +356,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [AccountsTrieStorage]
     [AccountsTrieStorage.Cache]
@@ -367,6 +385,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
@@ -393,6 +412,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
@@ -530,6 +550,7 @@
         MaxBatchSize = 45000
         MaxOpenFiles = 10
         UseTmpAsFilePath = true
+        BloomFilterBtsPerKey = 10
 
 [Antiflood]
     Enabled = true
@@ -780,6 +801,7 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
+            BloomFilterBtsPerKey = 10
     [Hardfork.ExportKeysStorageConfig]
         [Hardfork.ExportKeysStorageConfig.Cache]
             Name = "HardFork.ExportKeysStorageConfig"
@@ -791,6 +813,7 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
+            BloomFilterBtsPerKey = 10
     [Hardfork.ExportTriesStorageConfig]
         [Hardfork.ExportTriesStorageConfig.Cache]
             Name = "HardFork.ExportTriesStorageConfig"
@@ -802,6 +825,7 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
+            BloomFilterBtsPerKey = 10
     [Hardfork.ImportStateStorageConfig]
         [Hardfork.ImportStateStorageConfig.Cache]
             Name = "HardFork.ImportStateStorageConfig"
@@ -813,6 +837,7 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
+            BloomFilterBtsPerKey = 10
     [Hardfork.ImportKeysStorageConfig]
         [Hardfork.ImportKeysStorageConfig.Cache]
             Name = "HardFork.ImportKeysStorageConfig"
@@ -824,6 +849,7 @@
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
+            BloomFilterBtsPerKey = 10
 
 [Debug]
     [Debug.InterceptorResolver]
@@ -882,6 +908,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [DbLookupExtensions]
     Enabled = false
@@ -896,6 +923,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
     [DbLookupExtensions.MiniblockHashByTxHashStorageConfig.Cache]
         Name = "DbLookupExtensions.MiniblockHashByTxHashStorage"
         Capacity = 20000
@@ -906,6 +934,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
     [DbLookupExtensions.EpochByHashStorageConfig.Cache]
         Name = "DbLookupExtensions.EpochByHashStorage"
         Capacity = 20000
@@ -916,6 +945,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
     [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.Cache]
         Name = "DbLookupExtensions.ResultsHashesByTxHashStorage"
         Capacity = 20000
@@ -926,6 +956,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
     [DbLookupExtensions.ESDTSuppliesStorageConfig.Cache]
         Name = "DbLookupExtensions.ESDTSuppliesStorage"
         Capacity = 20000
@@ -936,6 +967,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
     [DbLookupExtensions.RoundHashStorageConfig.Cache]
         Name = "DbLookupExtensions.RoundHashStorage"
         Capacity = 20000
@@ -946,6 +978,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        BloomFilterBtsPerKey = 10
 
 [Logs]
     LogFileLifeSpanInMB = 1024 # 1GB
