@@ -34,19 +34,17 @@ var _ process.BlockProcessor = (*metaProcessor)(nil)
 // metaProcessor implements metaProcessor interface, and actually it tries to execute block
 type metaProcessor struct {
 	*baseProcessor
-	scToProtocol                  process.SmartContractToProtocolHandler
-	epochStartDataCreator         process.EpochStartDataCreator
-	epochEconomics                process.EndOfEpochEconomics
-	epochRewardsCreator           process.RewardsCreator
-	validatorInfoCreator          process.EpochStartValidatorInfoCreator
-	epochSystemSCProcessor        process.EpochStartSystemSCProcessor
-	pendingMiniBlocksHandler      process.PendingMiniBlocksHandler
-	validatorStatisticsProcessor  process.ValidatorStatisticsProcessor
-	shardsHeadersNonce            *sync.Map
-	shardBlockFinality            uint32
-	headersCounter                *headersCounter
-	selfNotarizedHeadersStale     bool
-	selfNotarizedHeadersStaleOnce sync.Once
+	scToProtocol                 process.SmartContractToProtocolHandler
+	epochStartDataCreator        process.EpochStartDataCreator
+	epochEconomics               process.EndOfEpochEconomics
+	epochRewardsCreator          process.RewardsCreator
+	validatorInfoCreator         process.EpochStartValidatorInfoCreator
+	epochSystemSCProcessor       process.EpochStartSystemSCProcessor
+	pendingMiniBlocksHandler     process.PendingMiniBlocksHandler
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	shardsHeadersNonce           *sync.Map
+	shardBlockFinality           uint32
+	headersCounter               *headersCounter
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -188,27 +186,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardsHeadersNonce = &sync.Map{}
 
 	return &mp, nil
-}
-
-// detectStaleSelfNotarizedHeaders returns true when bootstrap data has stale self-notarized
-// headers (nonce 0) while cross-notarized headers have progressed past genesis.
-func (mp *metaProcessor) detectStaleSelfNotarizedHeaders() bool {
-	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		crossNotarized, _, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
-		if err != nil || check.IfNil(crossNotarized) || crossNotarized.GetNonce() == 0 {
-			continue
-		}
-
-		selfNotarized, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardID)
-		if err != nil || check.IfNil(selfNotarized) || selfNotarized.GetNonce() == 0 {
-			log.Debug("detected stale self-notarized headers after bootstrap",
-				"shardID", shardID,
-				"crossNotarizedNonce", crossNotarized.GetNonce())
-			return true
-		}
-	}
-
-	return false
 }
 
 func (mp *metaProcessor) isRewardsV2Enabled(headerHandler data.HeaderHandler) bool {
@@ -465,7 +442,12 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return process.ErrShardInfoOnEpochStartBlock
 	}
 
-	err := mp.verifyAccumulatedFeesInEpochOnEpochStart(header)
+	err := mp.verifyEpochStartMiniBlocks(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.verifyAccumulatedFeesInEpochOnEpochStart(header)
 	if err != nil {
 		return err
 	}
@@ -552,7 +534,23 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	err = mp.txCoordinator.VerifyCreatedBlockTransactions(header, &block.Body{MiniBlocks: body.MiniBlocks})
+	if err != nil {
+		return err
+	}
+
 	saveEpochStartEconomicsMetrics(mp.appStatusHandler, header)
+
+	return nil
+}
+
+func (mp *metaProcessor) verifyEpochStartMiniBlocks(metaBlock *block.MetaBlock) error {
+	for _, miniBlockHeader := range metaBlock.MiniBlockHeaders {
+		if miniBlockHeader.GetType() != block.PeerBlock &&
+			miniBlockHeader.GetType() != block.RewardsBlock {
+			return process.ErrInvalidMiniBlockType
+		}
+	}
 
 	return nil
 }
@@ -596,7 +594,14 @@ func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(metaBlock *block.MetaBlo
 
 	mapMetaMiniBlockHeaders := make(map[string]struct{}, len(metaBlock.MiniBlockHeaders))
 	for _, miniBlockHeader := range metaBlock.MiniBlockHeaders {
-		mapMetaMiniBlockHeaders[string(miniBlockHeader.Hash)] = struct{}{}
+		if miniBlockHeader.GetSenderShardID() != core.MetachainShardId &&
+			miniBlockHeader.GetReceiverShardID() == core.MetachainShardId {
+			mapMetaMiniBlockHeaders[string(miniBlockHeader.Hash)] = struct{}{}
+		}
+	}
+
+	if len(miniBlockShardsHashes) != len(mapMetaMiniBlockHeaders) {
+		return process.ErrMiniBlockNumMissMatch
 	}
 
 	for hash := range miniBlockShardsHashes {
@@ -1458,10 +1463,6 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
-	if mp.selfNotarizedHeadersStale {
-		mp.selfNotarizedHeadersStale = mp.detectStaleSelfNotarizedHeaders()
-	}
-
 	return nil
 }
 
@@ -1668,7 +1669,10 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 				mp.store,
 			)
 			if errGet != nil {
-				log.Trace("getLastSelfNotarizedHeaderByShard.GetMetaHeader", "error", errGet.Error())
+				log.Warn("getLastSelfNotarizedHeaderByShard: could not get referenced meta header, self notarized may not be updated",
+					"shardID", shardID,
+					"metaHash", metaHash,
+					"error", errGet.Error())
 				continue
 			}
 
@@ -1910,10 +1914,6 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 }
 
 func (mp *metaProcessor) verifyShardDataAgainstHeaders(metaHdr *block.MetaBlock) error {
-	mp.selfNotarizedHeadersStaleOnce.Do(func() {
-		mp.selfNotarizedHeadersStale = mp.detectStaleSelfNotarizedHeaders()
-	})
-
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -1941,16 +1941,18 @@ func (mp *metaProcessor) verifyShardDataAgainstHeaders(metaHdr *block.MetaBlock)
 		}
 
 		expected := mp.buildShardDataFromHeader(shardHdr, shardData.HeaderHash)
-		expected.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(expected.ShardID)))
 
-		if mp.selfNotarizedHeadersStale {
-			expected.LastIncludedMetaNonce = shardData.LastIncludedMetaNonce
-		} else {
+		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FullShardDataValidationFlag, metaHdr.GetEpoch()) {
+			expected.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(expected.ShardID)))
+
 			lastSelfNotarizedHeader, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())
 			if err != nil {
 				return err
 			}
 			expected.LastIncludedMetaNonce = lastSelfNotarizedHeader.GetNonce()
+		} else {
+			expected.NumPendingMiniBlocks = shardData.NumPendingMiniBlocks
+			expected.LastIncludedMetaNonce = shardData.LastIncludedMetaNonce
 		}
 
 		if !expected.Equal(&shardData) {
@@ -2270,12 +2272,12 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 
 		mp.requestProofIfNeeded(shardData.HeaderHash, hdr)
 
-		if common.IsEpochChangeBlockForFlagActivation(hdr, mp.enableEpochsHandler, common.AndromedaFlag) {
-			continue
-		}
-
 		if hdr.GetNonce() > mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] {
 			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] = hdr.GetNonce()
+		}
+
+		if common.IsEpochChangeBlockForFlagActivation(hdr, mp.enableEpochsHandler, common.AndromedaFlag) {
+			continue
 		}
 
 		mp.updateLastNotarizedBlockForShard(hdr, shardData.HeaderHash)

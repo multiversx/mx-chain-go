@@ -670,9 +670,10 @@ type TrieSyncConfig struct {
 
 // RequesterConfig represents the config options to be used when setting up the requester instances
 type RequesterConfig struct {
-	NumCrossShardPeers  uint32
-	NumTotalPeers       uint32
-	NumFullHistoryPeers uint32
+	NumCrossShardPeers         uint32
+	NumTotalPeers              uint32
+	NumFullHistoryPeers        uint32
+	RequestProofByNonceDelayMs uint32
 }
 
 // PoolsCleanersConfig represents the config options to be used by the pools cleaners

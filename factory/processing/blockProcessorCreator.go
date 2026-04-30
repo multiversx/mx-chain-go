@@ -365,12 +365,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+	argsDetector := coordinator.ArgsDoubleTransactionsDetector{
 		Marshaller:          pcf.coreData.InternalMarshalizer(),
 		Hasher:              pcf.coreData.Hasher(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
-	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	doubleTransactionsDetector, err := coordinator.NewDoubleTransactionsDetector(argsDetector)
 	if err != nil {
 		return nil, err
 	}
@@ -675,12 +675,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+	argsDetector := coordinator.ArgsDoubleTransactionsDetector{
 		Marshaller:          pcf.coreData.InternalMarshalizer(),
 		Hasher:              pcf.coreData.Hasher(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
-	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	doubleTransactionsDetector, err := coordinator.NewDoubleTransactionsDetector(argsDetector)
 	if err != nil {
 		return nil, err
 	}

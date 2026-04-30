@@ -1379,7 +1379,7 @@ type GuardedAccountHandler interface {
 
 // DoubleTransactionDetector is able to detect if a transaction hash is present more than once in a block body
 type DoubleTransactionDetector interface {
-	ProcessBlockBody(body *block.Body)
+	ProcessBlockBody(body *block.Body) error
 	IsInterfaceNil() bool
 }
 
@@ -1451,5 +1451,6 @@ type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
+	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	IsInterfaceNil() bool
 }

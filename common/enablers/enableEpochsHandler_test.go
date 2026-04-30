@@ -135,6 +135,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		BarnardOpcodesEnableEpoch:                                116,
 		AutomaticActivationOfNodesDisableEpoch:                   117,
 		RelayedTransactionsV1V2DisableEpoch:                      118,
+		FullShardDataValidationEnableEpoch:                       119,
+		ConsumedGasInEconomicsFixEnableEpoch:                     120,
 	}
 }
 
@@ -342,6 +344,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.AndromedaFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 	require.True(t, handler.IsFlagEnabled(common.RelayedTransactionsV1V2DisableFlag))
+	require.True(t, handler.IsFlagEnabled(common.FullShardDataValidationFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -478,6 +481,8 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.AutomaticActivationOfNodesDisableEpoch, handler.GetActivationEpoch(common.AutomaticActivationOfNodesDisableFlag))
 	require.Equal(t, cfg.FixGetBalanceEnableEpoch, handler.GetActivationEpoch(common.FixGetBalanceFlag))
 	require.Equal(t, cfg.RelayedTransactionsV1V2DisableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag))
+	require.Equal(t, cfg.FullShardDataValidationEnableEpoch, handler.GetActivationEpoch(common.FullShardDataValidationFlag))
+	require.Equal(t, cfg.ConsumedGasInEconomicsFixEnableEpoch, handler.GetActivationEpoch(common.ConsumedGasInEconomicsFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {
