@@ -33,7 +33,7 @@ func NewNetworkShardingCollectorMock() *networkShardingCollectorMock {
 }
 
 // UpdatePeerIDPublicKeyPair -
-func (nscm *networkShardingCollectorMock) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte) {
+func (nscm *networkShardingCollectorMock) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte, _ int64) {
 	nscm.mutMaps.Lock()
 	nscm.peerIdPkMap[pid] = pk
 	nscm.pkPeerIdMap[string(pk)] = pid

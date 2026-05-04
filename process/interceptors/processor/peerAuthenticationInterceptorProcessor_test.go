@@ -136,7 +136,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		wasCalled := false
 		args := createPeerAuthenticationInterceptorProcessArg()
 		args.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
-			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte) {
+			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte, timestamp int64) {
 				wasCalled = true
 			},
 		}
@@ -205,7 +205,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		}
 		wasUpdatePeerIDPublicKeyPairCalled := false
 		arg.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
-			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte) {
+			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte, timestamp int64) {
 				wasUpdatePeerIDPublicKeyPairCalled = true
 				assert.Equal(t, providedIPAMessage.Pid, pid.Bytes())
 				assert.Equal(t, providedIPAMessage.Pubkey, pk)

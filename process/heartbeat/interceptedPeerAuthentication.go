@@ -139,22 +139,26 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 		if err != nil {
 			return err
 		}
-	}
 
-	// Early exit if mapping already exists
-	existingInfo := ipa.peerShardMapper.GetPeerInfo(ipa.peerId)
-	if string(existingInfo.PkBytes) == string(ipa.Pubkey()) {
-		return process.ErrPeerAlreadyAuthenticated
-	}
+		// Early exit if mapping already exists
+		existingInfo := ipa.peerShardMapper.GetPeerInfo(ipa.peerId)
+		if string(existingInfo.PkBytes) == string(ipa.Pubkey()) {
+			return process.ErrPeerAlreadyAuthenticated
+		}
 
-	// Verify payload signature
-	err = ipa.signaturesHandler.Verify(ipa.peerAuthentication.Payload, ipa.peerId, ipa.peerAuthentication.PayloadSignature)
-	if err != nil {
-		return err
+		if existingInfo.AuthenticationTimestamp > ipa.payload.Timestamp {
+			return fmt.Errorf("%w, received timestamp %d while the last one saved is %d", process.ErrPeerAlreadyAuthenticated, ipa.payload.Timestamp, existingInfo.AuthenticationTimestamp)
+		}
 	}
 
 	// Verify payload
 	err = ipa.payloadValidator.ValidateTimestamp(ipa.payload.Timestamp)
+	if err != nil {
+		return err
+	}
+
+	// Verify payload signature
+	err = ipa.signaturesHandler.Verify(ipa.peerAuthentication.Payload, ipa.peerId, ipa.peerAuthentication.PayloadSignature)
 	if err != nil {
 		return err
 	}

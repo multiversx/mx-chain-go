@@ -504,12 +504,12 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		return nil, err
 	}
 
-	wrk.consensusState.ResetRoundsWithoutReceivedMessages(cnsMsg.GetPubKey(), message.Peer())
-
 	err = wrk.checkValidityAndProcessFinalInfo(cnsMsg, message)
 	if err != nil {
 		return nil, err
 	}
+
+	wrk.consensusState.ResetRoundsWithoutReceivedMessages(cnsMsg.GetPubKey(), message.Peer())
 
 	if wrk.nodeRedundancyHandler.IsRedundancyNode() {
 		wrk.nodeRedundancyHandler.ResetInactivityIfNeeded(

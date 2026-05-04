@@ -789,7 +789,7 @@ type PeerBlackListCacher interface {
 
 // PeerShardMapper can return the public key of a provided peer ID
 type PeerShardMapper interface {
-	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte, timestamp int64)
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
