@@ -33,10 +33,12 @@ func (c *chunk) Put(chunkIndex uint32, buff []byte) {
 		return
 	}
 
-	existing := c.data[chunkIndex]
+	existingData, ok := c.data[chunkIndex]
+	if !ok {
+		c.lastUpdated = time.Now()
+	}
 	c.data[chunkIndex] = buff
-	c.size = c.size - len(existing) + len(buff)
-	c.lastUpdated = time.Now()
+	c.size = c.size - len(existingData) + len(buff)
 }
 
 // TryAssembleAllChunks will try to assemble the original payload by iterating all available chunks
