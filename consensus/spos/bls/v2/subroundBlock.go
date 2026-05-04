@@ -375,6 +375,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 
 		err := checkGoRoutinesThrottler(ctx, sr.signatureThrottler)
 		if err != nil {
+			log.Debug("triggerCreateSignaturesForManagedKeys.checkGoRoutinesThrottler", "err", err)
 			return false
 		}
 		sr.signatureThrottler.StartProcessing()
@@ -386,6 +387,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 
 			select {
 			case <-sigCtx.Done():
+				log.Debug("triggerCreateSignaturesForManagedKeys: context done", "timeLeft", timeLeft)
 				return
 			default:
 			}
@@ -401,7 +403,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 				pkBytes,
 			)
 			if err != nil {
-				log.Debug("createSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
+				log.Debug("triggerCreateSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
 				return
 			}
 
