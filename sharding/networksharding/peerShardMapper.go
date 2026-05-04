@@ -231,7 +231,7 @@ func (psm *PeerShardMapper) getPeerInfoSearchingPidInFallbackCache(pid core.Peer
 // UpdatePeerIDPublicKeyPair updates the public key - peer ID pair in the corresponding maps
 // It also uses the intermediate pkPeerId cache that will prevent having thousands of peer ID's with
 // the same MultiversX PK that will make the node prone to an eclipse attack
-func (psm *PeerShardMapper) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte) {
+func (psm *PeerShardMapper) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte, _ int64) {
 	isNew := psm.updatePeerIDPublicKey(pid, pk)
 	if isNew {
 		peerLog.Trace("new peer mapping", "pid", pid.Pretty(), "pk", pk)
