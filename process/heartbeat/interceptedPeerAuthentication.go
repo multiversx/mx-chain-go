@@ -146,8 +146,8 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 			return process.ErrPeerAlreadyAuthenticated
 		}
 
-		if existingInfo.AuthenticationTimestamp > ipa.payload.Timestamp {
-			return fmt.Errorf("%w, received timestamp %d while the last one saved is %d", process.ErrPeerAlreadyAuthenticated, ipa.payload.Timestamp, existingInfo.AuthenticationTimestamp)
+		if existingInfo.AuthTimestamp > ipa.payload.Timestamp {
+			return fmt.Errorf("%w, received timestamp %d while the last one saved is %d", process.ErrPeerAlreadyAuthenticated, ipa.payload.Timestamp, existingInfo.AuthTimestamp)
 		}
 	}
 

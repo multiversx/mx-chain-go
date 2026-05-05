@@ -309,7 +309,7 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		arg.PeerShardMapper = &processMocks.PeerShardMapperStub{
 			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 				return core.P2PPeerInfo{
-					AuthenticationTimestamp: authTimestamp,
+					AuthTimestamp: authTimestamp,
 				}
 			},
 		}
