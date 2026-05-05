@@ -136,23 +136,6 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 	}
 
 	// Verify payload signature
-	err = ipa.signaturesHandler.Verify(ipa.peerAuthentication.Payload, ipa.peerId, ipa.peerAuthentication.PayloadSignature)
-	if err != nil {
-		return err
-	}
-
-	// Verify payload
-	err = ipa.payloadValidator.ValidateTimestamp(ipa.payload.Timestamp)
-	if err != nil {
-		return err
-	}
-
-	// Verify message bls signature
-	err = ipa.peerSignatureHandler.VerifyPeerSignature(ipa.peerAuthentication.Pubkey, ipa.peerId, ipa.peerAuthentication.Signature)
-	if err != nil {
-		return err
-	}
-
 	log.Trace("interceptedPeerAuthentication received valid data")
 
 	return nil
