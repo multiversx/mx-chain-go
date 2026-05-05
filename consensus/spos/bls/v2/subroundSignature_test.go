@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -964,15 +965,16 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
 
-		numCalls := 0
+		numCalls := int32(0)
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, expectedErr
 			},
 			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
-				numCalls++
-				if numCalls >= 3 {
+				atomic.AddInt32(&numCalls, 1)
+				if atomic.LoadInt32(&numCalls) > 3 {
 					cancel()
+					return nil, expectedErr
 				}
 
 				return []byte("SIG"), nil
