@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -367,8 +366,6 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
 	sr.SetSignaturesCtxCancelFunc(cancel)
 
-	numMultiKeysSignaturesCreated := int32(0)
-
 	for idx, pk := range sr.ConsensusGroup() {
 		pkBytes := []byte(pk)
 		if !sr.IsKeyManagedBySelf(pkBytes) {
@@ -408,14 +405,10 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 				log.Debug("triggerCreateSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
 				return
 			}
-
-			atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
 		}(sigCtx, idx, pk)
 	}
 
-	if atomic.LoadInt32(&numMultiKeysSignaturesCreated) > 0 {
-		log.Debug("step 1: multi keys signatures creation has been triggered", "num", atomic.LoadInt32(&numMultiKeysSignaturesCreated))
-	}
+	log.Debug("step 1: multi keys signatures creation has been triggered")
 
 	return true
 }

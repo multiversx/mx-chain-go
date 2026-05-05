@@ -294,6 +294,7 @@ func (sr *subroundSignature) sendSignatureForManagedKey(ctx context.Context, idx
 	if err != nil {
 		// signature share not found (optimistic signature share creation was not triggered)
 		// will try to create it
+		log.Debug("sendSignatureForManagedKey.SignatureShare: sig not already created, will try to create it", "error", err)
 
 		signatureShare, err = sr.SigningHandler().CreateSignatureShareForPublicKey(
 			ctx,
