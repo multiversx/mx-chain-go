@@ -361,7 +361,9 @@ func (sr *subroundBlock) sendBlockHeader(
 }
 
 func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Context) bool {
-	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sr.RoundHandler().TimeDuration())
+	sigSubroundEndTime := time.Duration(float64(sr.RoundHandler().TimeDuration()) * srSignatureEndTime)
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
+
 	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
 	sr.SetSignaturesCtxCancelFunc(cancel)
 
