@@ -2368,18 +2368,19 @@ func TestShardedCacheSearchMethod_ToString(t *testing.T) {
 func TestCheckMiniBlock(t *testing.T) {
 	t.Parallel()
 
+	selfShardID := uint32(1)
+
+	shardCoordinator := &mock.ShardCoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return selfShardID
+		},
+		NumberOfShardsCalled: func() uint32 {
+			return 3
+		},
+	}
+
 	t.Run("not related to self shard, should fail", func(t *testing.T) {
 		t.Parallel()
-
-		selfShardID := uint32(1)
-		shardCoordinator := &mock.ShardCoordinatorStub{
-			SelfIdCalled: func() uint32 {
-				return selfShardID
-			},
-			NumberOfShardsCalled: func() uint32 {
-				return 3
-			},
-		}
 
 		mb := &block.MiniBlock{SenderShardID: 2, ReceiverShardID: 3, Type: block.TxBlock}
 		err := process.CheckMiniBlock(mb, shardCoordinator)
@@ -2422,17 +2423,6 @@ func TestCheckMiniBlock(t *testing.T) {
 
 	t.Run("rewards miniblock should be from meta", func(t *testing.T) {
 		t.Parallel()
-
-		selfShardID := uint32(1)
-
-		shardCoordinator := &mock.ShardCoordinatorStub{
-			SelfIdCalled: func() uint32 {
-				return selfShardID
-			},
-			NumberOfShardsCalled: func() uint32 {
-				return 3
-			},
-		}
 
 		mb := &block.MiniBlock{
 			SenderShardID:   core.MetachainShardId,
@@ -2526,12 +2516,6 @@ func TestCheckMiniBlock(t *testing.T) {
 	t.Run("nil tx hash, should fail", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := &mock.ShardCoordinatorStub{
-			NumberOfShardsCalled: func() uint32 {
-				return 3
-			},
-		}
-
 		mb := &block.MiniBlock{
 			SenderShardID: shardCoordinator.SelfId(), ReceiverShardID: 1,
 			Type:     block.TxBlock,
@@ -2545,12 +2529,6 @@ func TestCheckMiniBlock(t *testing.T) {
 	t.Run("invalid reserved field, should fail", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := &mock.ShardCoordinatorStub{
-			NumberOfShardsCalled: func() uint32 {
-				return 3
-			},
-		}
-
 		mb := &block.MiniBlock{
 			SenderShardID: shardCoordinator.SelfId(), ReceiverShardID: 1,
 			Type:     block.TxBlock,
@@ -2561,19 +2539,108 @@ func TestCheckMiniBlock(t *testing.T) {
 		require.ErrorIs(t, err, process.ErrReservedFieldInvalid)
 	})
 
-	t.Run("should work", func(t *testing.T) {
+	t.Run("tx block should be from shards", func(t *testing.T) {
 		t.Parallel()
 
-		selfShardID := uint32(1)
-
-		shardCoordinator := &mock.ShardCoordinatorStub{
-			SelfIdCalled: func() uint32 {
-				return selfShardID
-			},
-			NumberOfShardsCalled: func() uint32 {
-				return 3
-			},
+		mb := &block.MiniBlock{
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: selfShardID,
+			Type:            block.TxBlock,
 		}
+		err := process.CheckMiniBlock(mb, shardCoordinator)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{
+			SenderShardID:   selfShardID,
+			ReceiverShardID: 2,
+			Type:            block.TxBlock,
+		}
+		err = process.CheckMiniBlock(mb, shardCoordinator)
+		require.Nil(t, err)
+	})
+
+	t.Run("scr block should be to specific shard", func(t *testing.T) {
+		t.Parallel()
+
+		mb := &block.MiniBlock{
+			SenderShardID:   selfShardID,
+			ReceiverShardID: core.AllShardId,
+			Type:            block.SmartContractResultBlock,
+		}
+		err := process.CheckMiniBlock(mb, shardCoordinator)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{
+			SenderShardID:   selfShardID,
+			ReceiverShardID: 2,
+			Type:            block.SmartContractResultBlock,
+		}
+		err = process.CheckMiniBlock(mb, shardCoordinator)
+		require.Nil(t, err)
+
+		mb = &block.MiniBlock{
+			SenderShardID:   selfShardID,
+			ReceiverShardID: core.MetachainShardId,
+			Type:            block.SmartContractResultBlock,
+		}
+		err = process.CheckMiniBlock(mb, shardCoordinator)
+		require.Nil(t, err)
+	})
+
+	t.Run("invalid and receipts blocks must be intra shard", func(t *testing.T) {
+		t.Parallel()
+
+		mb := &block.MiniBlock{
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: selfShardID,
+			Type:            block.ReceiptBlock,
+		}
+		err := process.CheckMiniBlock(mb, shardCoordinator)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{
+			SenderShardID:   selfShardID,
+			ReceiverShardID: 2,
+			Type:            block.ReceiptBlock,
+		}
+		err = process.CheckMiniBlock(mb, shardCoordinator)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{
+			SenderShardID:   selfShardID,
+			ReceiverShardID: selfShardID,
+			Type:            block.ReceiptBlock,
+		}
+		err = process.CheckMiniBlock(mb, shardCoordinator)
+		require.Nil(t, err)
+
+		mb = &block.MiniBlock{
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: selfShardID,
+			Type:            block.InvalidBlock,
+		}
+		err = process.CheckMiniBlock(mb, shardCoordinator)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{
+			SenderShardID:   selfShardID,
+			ReceiverShardID: 2,
+			Type:            block.InvalidBlock,
+		}
+		err = process.CheckMiniBlock(mb, shardCoordinator)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{
+			SenderShardID:   selfShardID,
+			ReceiverShardID: selfShardID,
+			Type:            block.InvalidBlock,
+		}
+		err = process.CheckMiniBlock(mb, shardCoordinator)
+		require.Nil(t, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
 		mb := &block.MiniBlock{
 			SenderShardID:   2,
@@ -2592,9 +2659,25 @@ func TestCheckMiniBlock(t *testing.T) {
 		require.Nil(t, err)
 
 		mb = &block.MiniBlock{
-			SenderShardID:   core.MetachainShardId,
+			SenderShardID:   selfShardID,
 			ReceiverShardID: selfShardID,
-			Type:            block.TxBlock,
+			Type:            block.InvalidBlock,
+		}
+		err = process.CheckMiniBlock(mb, shardCoordinator)
+		require.Nil(t, err)
+
+		mb = &block.MiniBlock{
+			SenderShardID:   selfShardID,
+			ReceiverShardID: selfShardID,
+			Type:            block.ReceiptBlock,
+		}
+		err = process.CheckMiniBlock(mb, shardCoordinator)
+		require.Nil(t, err)
+
+		mb = &block.MiniBlock{
+			SenderShardID:   selfShardID,
+			ReceiverShardID: core.MetachainShardId,
+			Type:            block.SmartContractResultBlock,
 		}
 		err = process.CheckMiniBlock(mb, shardCoordinator)
 		require.Nil(t, err)

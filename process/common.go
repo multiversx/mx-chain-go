@@ -1174,30 +1174,9 @@ func CheckMiniBlock(
 			miniBlock.ReceiverShardID)
 	}
 
-	// type checks
-	if miniBlock.GetType() == block.PeerBlock &&
-		(miniBlock.GetSenderShardID() != core.MetachainShardId || miniBlock.GetReceiverShardID() != core.AllShardId) {
-		return fmt.Errorf("%w - peer blocks: block type: %s, sender shard id: %d, receiver shard id: %d",
-			ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
-	}
-
-	if miniBlock.GetType() != block.PeerBlock && miniBlock.GetReceiverShardID() == core.AllShardId {
-		return fmt.Errorf("%w - invalid all shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
-			ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
-	}
-
-	if miniBlock.GetType() == block.RewardsBlock && miniBlock.GetSenderShardID() != core.MetachainShardId {
-		return fmt.Errorf("%w - invalid rewards block: block type: %s, sender shard id: %d, receiver shard id: %d",
-			ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
+	err := checkMiniBlockByType(miniBlock, shardCoordinator)
+	if err != nil {
+		return err
 	}
 
 	for _, txHash := range miniBlock.TxHashes {
@@ -1208,6 +1187,73 @@ func CheckMiniBlock(
 
 	if len(miniBlock.GetReserved()) > maxLenMiniBlockReservedField {
 		return ErrReservedFieldInvalid
+	}
+
+	return nil
+}
+
+func checkMiniBlockByType(
+	miniBlock *block.MiniBlock,
+	shardCoordinator sharding.Coordinator,
+) error {
+	selfId := shardCoordinator.SelfId()
+	sender := miniBlock.GetSenderShardID()
+	receiver := miniBlock.GetReceiverShardID()
+	mbType := miniBlock.GetType()
+
+	switch mbType {
+	case block.TxBlock:
+		if sender == core.MetachainShardId || receiver == core.AllShardId {
+			return fmt.Errorf("%w - TxBlock must be from shard to specific shard id: block type: %s, sender shard id: %d, receiver shard id: %d",
+				ErrInvalidShardId,
+				mbType,
+				sender,
+				receiver,
+			)
+		}
+
+	case block.SmartContractResultBlock:
+		if receiver == core.AllShardId {
+			return fmt.Errorf("%w - SCResultBlock cannot target AllShardId: block type: %s, sender shard id: %d, receiver shard id: %d",
+				ErrInvalidShardId,
+				mbType,
+				sender,
+				receiver,
+			)
+		}
+
+	case block.InvalidBlock, block.ReceiptBlock:
+		if sender != selfId || receiver != selfId {
+			return fmt.Errorf("%w - must be intra-shard: block type: %s, sender shard id: %d, receiver shard id: %d",
+				ErrInvalidShardId,
+				mbType,
+				sender,
+				receiver,
+			)
+		}
+
+	case block.PeerBlock:
+		if sender != core.MetachainShardId || receiver != core.AllShardId {
+			return fmt.Errorf("%w - PeerBlock must be from metachain to all shards: block type: %s, sender shard id: %d, receiver shard id: %d",
+				ErrInvalidShardId,
+				mbType,
+				sender,
+				receiver,
+			)
+		}
+
+	case block.RewardsBlock:
+		if sender != core.MetachainShardId || receiver == core.AllShardId {
+			return fmt.Errorf("%w - RewardsBlock must be from metachain to specific shard: block type: %s, sender shard id: %d, receiver shard id: %d",
+				ErrInvalidShardId,
+				mbType,
+				sender,
+				receiver,
+			)
+		}
+
+	default:
+		return fmt.Errorf("%w - unknown miniblock type %d", ErrInvalidShardId, int32(mbType))
 	}
 
 	return nil
