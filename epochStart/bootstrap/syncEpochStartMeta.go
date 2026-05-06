@@ -50,6 +50,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	MetaBlockProcessor             EpochStartMetaBlockInterceptorProcessor
 	InterceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 	ProofsPool                     dataRetriever.ProofsPool
+	HeadersPool                    dataRetriever.HeadersPool
 	ProofsInterceptorProcessor     process.InterceptorProcessor
 }
 
@@ -133,6 +134,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	argsInterceptedEquivalentProofsFactory := interceptorsFactory.ArgInterceptedEquivalentProofsFactory{
 		ArgInterceptedDataFactory: argsInterceptedDataFactory,
 		ProofsPool:                args.ProofsPool,
+		HeadersPool:               args.HeadersPool,
 	}
 	interceptedEquivalentProofsFactory := interceptorsFactory.NewInterceptedEquivalentProofsFactory(argsInterceptedEquivalentProofsFactory)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -14,12 +15,12 @@ const printReportHeader = "double transactions found (this is not critical, thus
 
 var log = logger.GetOrCreate("testcommon")
 
-// PanicDoubleTransactionsDetector -
-type PanicDoubleTransactionsDetector struct {
+// DoubleTransactionsDetector -
+type DoubleTransactionsDetector struct {
 }
 
 // ProcessBlockBody -
-func (detector *PanicDoubleTransactionsDetector) ProcessBlockBody(body *block.Body) {
+func (detector *DoubleTransactionsDetector) ProcessBlockBody(body *block.Body) error {
 	transactions := make(map[string]int)
 	doubleTransactionsExist := false
 	printReport := strings.Builder{}
@@ -43,14 +44,15 @@ func (detector *PanicDoubleTransactionsDetector) ProcessBlockBody(body *block.Bo
 
 	if !doubleTransactionsExist {
 		log.Debug(noDoubledTransactionsFoundMessage)
-		return
+		return nil
 	}
 
 	log.Error(printReportHeader + printReport.String())
-	panic("PanicDoubleTransactionsDetector.ProcessBlockBody - test failed")
+
+	return process.ErrDoubleTransactionsFound
 }
 
 // IsInterfaceNil -
-func (detector *PanicDoubleTransactionsDetector) IsInterfaceNil() bool {
+func (detector *DoubleTransactionsDetector) IsInterfaceNil() bool {
 	return detector == nil
 }
