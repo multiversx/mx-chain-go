@@ -2565,6 +2565,86 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
+	t.Run("should remove stale header from pool when max proof requests reached", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.MaxNumOfRequestsForHeaderProof = 2
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+
+		hdr := block.Header{Nonce: 1}
+		blkc := &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &hdr
+			},
+		}
+		args.ChainHandler = blkc
+
+		forkDetector := &mock.ForkDetectorMock{}
+		forkDetector.CheckForkCalled = func() *process.ForkInfo {
+			return process.NewForkInfo()
+		}
+		forkDetector.ProbableHighestNonceCalled = func() uint64 {
+			return 100
+		}
+		forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+			return nil
+		}
+		args.ForkDetector = forkDetector
+		args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
+		args.BlockProcessor = createBlockProcessor(args.ChainHandler)
+
+		pools := createMockPools()
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+					return nil, errors.New("missing proof")
+				},
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return false
+				},
+			}
+		}
+
+		staleHash := []byte("stale-hash")
+		removeCount := 0
+		var removedHash []byte
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			hcs := &mock.HeadersCacherStub{}
+			hcs.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				return []data.HeaderHandler{
+					&block.Header{Nonce: 2, Round: 1, RootHash: []byte("stale")},
+				}, [][]byte{staleHash}, nil
+			}
+			hcs.RemoveHeaderByHashCalled = func(headerHash []byte) {
+				removeCount++
+				removedHash = headerHash
+			}
+			return hcs
+		}
+		args.PoolsHolder = pools
+
+		bs, _ := sync.NewShardBootstrap(args)
+
+		_ = bs.SyncBlock(context.Background())
+		require.Equal(t, 0, removeCount)
+
+		_ = bs.SyncBlock(context.Background())
+		require.Equal(t, 0, removeCount)
+
+		_ = bs.SyncBlock(context.Background())
+		require.Equal(t, 1, removeCount)
+		require.Equal(t, staleHash, removedHash)
+	})
+
 	t.Run("should receive header and proof if missing, requesting by hash", func(t *testing.T) {
 		t.Parallel()
 
