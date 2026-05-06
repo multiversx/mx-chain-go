@@ -40,6 +40,7 @@ type shuffleNodesArg struct {
 	nbShards                           uint32
 	maxNodesToSwapPerShard             uint32
 	maxNumNodes                        uint32
+	epoch                              uint32
 	flagBalanceWaitingLists            bool
 	flagStakingV4Step2                 bool
 	flagStakingV4Step3                 bool
@@ -182,6 +183,7 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 		nbShards:                           args.NbShards,
 		distributor:                        rhs.validatorDistributor,
 		maxNodesToSwapPerShard:             rhs.activeNodesConfig.NodesToShufflePerShard,
+		epoch:                              args.Epoch,
 		flagBalanceWaitingLists:            rhs.enableEpochsHandler.IsFlagEnabledInEpoch(common.BalanceWaitingListsFlag, args.Epoch),
 		flagStakingV4Step2:                 rhs.flagStakingV4Step2.IsSet(),
 		flagStakingV4Step3:                 rhs.flagStakingV4Step3.IsSet(),
@@ -246,7 +248,27 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	createListsForAllShards(waitingCopy, arg.nbShards)
 
-	numToRemove, err := computeNumToRemove(arg)
+	logShuffleInput(arg, eligibleCopy, waitingCopy)
+
+	// Epoch 4266 patch: eligible+waiting dropped below the shard minimum due to mass
+	// jailing/inactivity. Pre-distribute selected auction validators into waiting so
+	// computeNumToRemove passes and moveMaxNumNodesToMap can promote them to eligible
+	// within this same epoch.
+	auctionDistributedEarly := false
+	if arg.epoch == 4266 && arg.flagStakingV4Step3 && len(arg.auction) > 0 &&
+		isAnyShardBelowMinimum(eligibleCopy, waitingCopy, arg.nodesPerShard, arg.nodesMeta, arg.nbShards) {
+		log.Warn("shuffleNodes: epoch 4266 shard below minimum, distributing auction nodes into waiting early",
+			"num auction nodes", len(arg.auction))
+		err := distributeValidators(waitingCopy, arg.auction, arg.randomness, arg.flagBalanceWaitingLists)
+		if err != nil {
+			return nil, fmt.Errorf("distributeValidators auction early failed: %w", err)
+		}
+		auctionDistributedEarly = true
+	}
+
+	argForCompute := arg
+	argForCompute.waiting = waitingCopy
+	numToRemove, err := computeNumToRemove(argForCompute)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +317,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 	}
 
 	lowWaitingList := shouldDistributeShuffledToWaitingInStakingV4(shuffledNodesCfg)
-	if arg.flagStakingV4Step3 || lowWaitingList {
+	if (arg.flagStakingV4Step3 || lowWaitingList) && !auctionDistributedEarly {
 		log.Debug("distributing selected nodes from auction to waiting",
 			"num auction nodes", len(arg.auction), "num waiting nodes", shuffledNodesCfg.numNewWaiting)
 
@@ -332,6 +354,33 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		StillRemaining: stillRemainingInLeaving,
 		LowWaitingList: shouldCleanupAuction,
 	}, nil
+}
+
+func logShuffleInput(arg shuffleNodesArg, eligible, waiting map[uint32][]Validator) {
+	// cross-shard totals logged once
+	log.Debug("shuffleNodes input",
+		"epoch", arg.epoch,
+		"auction selected total (not yet shard-assigned)", len(arg.auction),
+		"unstake leaving", len(arg.unstakeLeaving),
+		"additional leaving", len(arg.additionalLeaving),
+	)
+	for _, shardID := range sortKeys(eligible) {
+		log.Debug("shuffleNodes input",
+			"epoch", arg.epoch,
+			"shardID", shardID,
+			"eligible", len(eligible[shardID]),
+			"waiting", len(waiting[shardID]),
+		)
+	}
+}
+
+func isAnyShardBelowMinimum(eligible, waiting map[uint32][]Validator, nodesPerShard, nodesMeta, nbShards uint32) bool {
+	for shardId := uint32(0); shardId < nbShards; shardId++ {
+		if len(eligible[shardId])+len(waiting[shardId]) < int(nodesPerShard) {
+			return true
+		}
+	}
+	return len(eligible[core.MetachainShardId])+len(waiting[core.MetachainShardId]) < int(nodesMeta)
 }
 
 func createListsForAllShards(shardMap map[uint32][]Validator, shards uint32) {

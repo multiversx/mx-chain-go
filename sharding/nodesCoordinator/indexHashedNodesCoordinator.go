@@ -730,6 +730,8 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
+	logNodesConfigPerShard(newEpoch, newNodesConfig)
+
 	additionalLeavingMap, err := ihnc.nodesCoordinatorHelper.ComputeAdditionalLeaving(allValidatorInfo)
 	if err != nil {
 		log.Error("could not compute additionalLeaving Nodes  - do nothing on nodesCoordinator epochStartPrepare")
@@ -1466,4 +1468,28 @@ func (ihnc *indexHashedNodesCoordinator) getMinHysteresisNodes(shardId uint32) u
 	}
 
 	return ihnc.genesisNodesSetupHandler.MinShardHysteresisNodes()
+}
+
+func logNodesConfigPerShard(epoch uint32, cfg *epochNodesConfig) {
+	sortedShards := make([]uint32, 0, len(cfg.eligibleMap))
+	for shardID := range cfg.eligibleMap {
+		sortedShards = append(sortedShards, shardID)
+	}
+	sort.Slice(sortedShards, func(i, j int) bool { return sortedShards[i] < sortedShards[j] })
+
+	// auction list is cross-shard at this point; log it once before the per-shard loop
+	log.Debug("EpochStartPrepare nodes config",
+		"epoch", epoch,
+		"auction selected total (not yet shard-assigned)", len(cfg.auctionList),
+	)
+
+	for _, shardID := range sortedShards {
+		log.Debug("EpochStartPrepare nodes config",
+			"epoch", epoch,
+			"shardID", shardID,
+			"eligible", len(cfg.eligibleMap[shardID]),
+			"waiting", len(cfg.waitingMap[shardID]),
+			"leaving", len(cfg.leavingMap[shardID]),
+		)
+	}
 }
