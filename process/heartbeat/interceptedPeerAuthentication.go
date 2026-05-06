@@ -144,7 +144,7 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 	// Early exit if mapping already exists
 	existingInfo := ipa.peerShardMapper.GetPeerInfo(ipa.peerId)
 	if string(existingInfo.PkBytes) == string(ipa.Pubkey()) {
-		return nil
+		return process.ErrPeerAlreadyAuthenticated
 	}
 
 	// Verify payload signature
