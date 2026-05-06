@@ -123,6 +123,10 @@ type baseBootstrap struct {
 	mapNonceSyncedWithErrors map[uint64]uint32
 	mutNonceSyncedWithErrors sync.RWMutex
 
+	mapNonceProofRequests          map[uint64]uint32
+	mutNonceProofRequests          sync.RWMutex
+	maxNumOfRequestsForHeaderProof uint32
+
 	requestMiniBlocks func(headerHandler data.HeaderHandler)
 
 	networkWatcher process.NetworkConnectionWatcher
@@ -696,6 +700,9 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	if arguments.ProcessWaitTimeSupernova < minimumProcessWaitTime {
 		return fmt.Errorf("%w for Supernova, minimum is %v, provided is %v", process.ErrInvalidProcessWaitTime, minimumProcessWaitTime, arguments.ProcessWaitTimeSupernova)
 	}
+	if arguments.MaxNumOfRequestsForHeaderProof == 0 {
+		return process.ErrInvalidMaxNumOfRequestsForHeaderProof
+	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
@@ -821,6 +828,19 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 	boot.mutNonceSyncedWithErrors.Unlock()
 
 	return numSyncedWithErrors
+}
+
+func (boot *baseBootstrap) incrementProofRequestsForNonce(nonce uint64) uint32 {
+	boot.mutNonceProofRequests.Lock()
+	defer boot.mutNonceProofRequests.Unlock()
+	boot.mapNonceProofRequests[nonce]++
+	return boot.mapNonceProofRequests[nonce]
+}
+
+func (boot *baseBootstrap) resetProofRequestsForNonce(nonce uint64) {
+	boot.mutNonceProofRequests.Lock()
+	delete(boot.mapNonceProofRequests, nonce)
+	boot.mutNonceProofRequests.Unlock()
 }
 
 func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
@@ -1800,10 +1820,26 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 	hasHeader := err == nil
 
 	if hasHeader && boot.hasProof(hash, hdr) {
+		boot.resetProofRequestsForNonce(nonce)
 		return hdr, hash, nil
 	}
 
 	needsProof := boot.checkNeedsProofByNonce(nonce, hdr, hash)
+
+	if hasHeader && needsProof {
+		numRequests := boot.incrementProofRequestsForNonce(nonce)
+		if numRequests > boot.maxNumOfRequestsForHeaderProof {
+			log.Debug("getHeaderWithNonceRequestingIfMissing: max proof requests reached, removing potentially stale header from pool",
+				"nonce", nonce,
+				"hash", hex.EncodeToString(hash),
+				"numRequests", numRequests,
+			)
+
+			boot.headers.RemoveHeaderByHash(hash)
+			boot.resetProofRequestsForNonce(nonce)
+			hasHeader = false
+		}
+	}
 
 	if hasHeader {
 		boot.requestHandler.SetEpoch(hdr.GetEpoch())
@@ -1826,6 +1862,7 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 		return nil, nil, process.ErrMissingHeaderProof
 	}
 
+	boot.resetProofRequestsForNonce(nonce)
 	return hdr, hash, nil
 }
 
@@ -2208,6 +2245,7 @@ func (boot *baseBootstrap) init() {
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
 	boot.mapNonceSyncedWithErrors = make(map[uint64]uint32)
+	boot.mapNonceProofRequests = make(map[uint64]uint32)
 }
 
 func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {

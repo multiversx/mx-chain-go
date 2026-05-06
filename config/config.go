@@ -429,6 +429,7 @@ type GeneralSettingsConfig struct {
 	GenesisMaxNumberOfShards         uint32
 	SyncProcessTimeInMillis          uint32
 	SyncProcessTimeSupernovaInMillis uint32
+	MaxNumOfRequestsForHeaderProof   uint32
 	SetGuardianEpochsDelay           uint32
 	MaxProposalNonceGap              uint64
 	ChainParametersByEpoch           []ChainParametersByEpochConfig

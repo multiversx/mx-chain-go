@@ -1143,6 +1143,9 @@ var ErrNilHeartbeatCacher = errors.New("nil heartbeat cacher")
 // ErrInvalidProcessWaitTime signals that an invalid process wait time was provided
 var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")
 
+// ErrInvalidMaxNumOfRequestsForHeaderProof signals that an invalid max number of requests for header proof was provided
+var ErrInvalidMaxNumOfRequestsForHeaderProof = errors.New("invalid max num of requests for header proof")
+
 // ErrMetaHeaderEpochOutOfRange signals that the given header is out of accepted range
 var ErrMetaHeaderEpochOutOfRange = errors.New("epoch out of range for meta block header")
 

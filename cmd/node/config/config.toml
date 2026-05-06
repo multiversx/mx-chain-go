@@ -33,6 +33,11 @@
     # SyncProcessTimeSupernovaInMillis is the value in milliseconds used when processing blocks while synchronizing blocks after Supernova
     SyncProcessTimeSupernovaInMillis = 6000
 
+    # MaxNumOfRequestsForHeaderProof represents how many times the sync process will request the proof
+    # for a header already cached in the pool before evicting that header. Eviction allows the next
+    # sync iteration to fetch a fresh header+proof pair by nonce
+    MaxNumOfRequestsForHeaderProof = 10
+
     # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
     # the activation of the configured guardian.
     # Make sure that this is greater than the unbonding period!

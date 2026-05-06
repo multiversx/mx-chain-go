@@ -55,6 +55,7 @@ func GetGeneralConfig() config.Config {
 			MaxComputableRounds:              1000,
 			SyncProcessTimeInMillis:          6000,
 			SyncProcessTimeSupernovaInMillis: 3000,
+			MaxNumOfRequestsForHeaderProof:   10,
 			SetGuardianEpochsDelay:           20,
 			StatusPollingIntervalSec:         10,
 			MaxProposalNonceGap:              10,

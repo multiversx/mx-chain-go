@@ -351,37 +351,38 @@ func initRoundHandler() consensus.RoundHandler {
 
 func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
-		PoolsHolder:                  createMockPools(),
-		Store:                        createStore(),
-		ChainHandler:                 initBlockchain(),
-		RoundHandler:                 &mock.RoundHandlerMock{},
-		BlockProcessor:               &testscommon.BlockProcessorStub{},
-		ExecutionManager:             &processMocks.ExecutionManagerMock{},
-		Hasher:                       &hashingMocks.HasherMock{},
-		Marshalizer:                  &mock.MarshalizerMock{},
-		ForkDetector:                 &mock.ForkDetectorMock{},
-		RequestHandler:               &testscommon.RequestHandlerStub{},
-		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
-		Accounts:                     &stateMock.AccountsStub{},
-		BlackListHandler:             &testscommon.TimeCacheStub{},
-		NetworkWatcher:               initNetworkWatcher(),
-		BootStorer:                   &mock.BoostrapStorerMock{},
-		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
-		EpochHandler:                 &mock.EpochStartTriggerStub{},
-		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
-		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
-		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerStub{},
-		OutportHandler:               &outport.OutportStub{},
-		AccountsDBSyncer:             &mock.AccountsDBSyncerStub{},
-		CurrentEpochProvider:         &testscommon.CurrentEpochProviderStub{},
-		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		ProcessWaitTime:              testProcessWaitTime,
-		ProcessWaitTimeSupernova:     testProcessWaitTime,
-		RepopulateTokensSupplies:     false,
-		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
-		ProcessConfigsHandler:        testscommon.GetDefaultProcessConfigsHandler(),
+		PoolsHolder:                    createMockPools(),
+		Store:                          createStore(),
+		ChainHandler:                   initBlockchain(),
+		RoundHandler:                   &mock.RoundHandlerMock{},
+		BlockProcessor:                 &testscommon.BlockProcessorStub{},
+		ExecutionManager:               &processMocks.ExecutionManagerMock{},
+		Hasher:                         &hashingMocks.HasherMock{},
+		Marshalizer:                    &mock.MarshalizerMock{},
+		ForkDetector:                   &mock.ForkDetectorMock{},
+		RequestHandler:                 &testscommon.RequestHandlerStub{},
+		ShardCoordinator:               mock.NewOneShardCoordinatorMock(),
+		Accounts:                       &stateMock.AccountsStub{},
+		BlackListHandler:               &testscommon.TimeCacheStub{},
+		NetworkWatcher:                 initNetworkWatcher(),
+		BootStorer:                     &mock.BoostrapStorerMock{},
+		StorageBootstrapper:            &mock.StorageBootstrapperMock{},
+		EpochHandler:                   &mock.EpochStartTriggerStub{},
+		MiniblocksProvider:             &mock.MiniBlocksProviderStub{},
+		Uint64Converter:                &mock.Uint64ByteSliceConverterMock{},
+		AppStatusHandler:               &statusHandlerMock.AppStatusHandlerStub{},
+		OutportHandler:                 &outport.OutportStub{},
+		AccountsDBSyncer:               &mock.AccountsDBSyncerStub{},
+		CurrentEpochProvider:           &testscommon.CurrentEpochProviderStub{},
+		HistoryRepo:                    &dblookupext.HistoryRepositoryStub{},
+		ScheduledTxsExecutionHandler:   &testscommon.ScheduledTxsExecutionStub{},
+		ProcessWaitTime:                testProcessWaitTime,
+		ProcessWaitTimeSupernova:       testProcessWaitTime,
+		MaxNumOfRequestsForHeaderProof: 10,
+		RepopulateTokensSupplies:       false,
+		EnableEpochsHandler:            &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:            &testscommon.EnableRoundsHandlerStub{},
+		ProcessConfigsHandler:          testscommon.GetDefaultProcessConfigsHandler(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -632,6 +633,18 @@ func TestNewShardBootstrap_InvalidProcessWaitTimeSupernovaShouldErr(t *testing.T
 	assert.True(t, check.IfNil(bs))
 	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
 	assert.Contains(t, err.Error(), "Supernova")
+}
+
+func TestNewShardBootstrap_InvalidMaxNumOfRequestsForHeaderProofShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.MaxNumOfRequestsForHeaderProof = 0
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.True(t, errors.Is(err, process.ErrInvalidMaxNumOfRequestsForHeaderProof))
 }
 
 func TestNewShardBootstrap_NilEnableEpochsHandlerShouldErr(t *testing.T) {
