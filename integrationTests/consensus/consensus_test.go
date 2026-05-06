@@ -521,6 +521,7 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 				GeneralSettings: config.GeneralSettingsConfig{
 					SyncProcessTimeInMillis:          6000,
 					SyncProcessTimeSupernovaInMillis: 3000,
+					MaxNumOfRequestsForHeaderProof:   10,
 				},
 			},
 			BootstrapRoundIndex:  0,
