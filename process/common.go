@@ -22,6 +22,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -29,6 +30,7 @@ var log = logger.GetOrCreate("process")
 
 const maxSelfNotarizedLookback = 50
 const VMStoragePrefix = "VM@"
+const maxLenMiniBlockReservedField = 10
 
 // ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
 type ShardedCacheSearchMethod byte
@@ -1136,4 +1138,77 @@ func findSelfNotarizedMetaHeaderInBlock(
 	}
 
 	return bestNonce, bestHeader, bestHash
+}
+
+// CheckMiniBlock will check miniblock validity
+func CheckMiniBlock(
+	miniBlock *block.MiniBlock,
+	shardCoordinator sharding.Coordinator,
+) error {
+	// shard id checks
+	receiverNotCurrentShard := miniBlock.ReceiverShardID >= shardCoordinator.NumberOfShards() &&
+		(miniBlock.ReceiverShardID != core.MetachainShardId && miniBlock.ReceiverShardID != core.AllShardId)
+	if receiverNotCurrentShard {
+		return fmt.Errorf("%w - receiver not for current shard: block type: %s, sender shard id: %d, receiver shard id: %d",
+			ErrInvalidShardId,
+			miniBlock.Type,
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID)
+	}
+
+	senderNotCurrentShard := miniBlock.SenderShardID >= shardCoordinator.NumberOfShards() &&
+		miniBlock.SenderShardID != core.MetachainShardId
+	if senderNotCurrentShard {
+		return fmt.Errorf("%w - sender not for current shard: block type: %s, sender shard id: %d, receiver shard id: %d",
+			ErrInvalidShardId,
+			miniBlock.Type,
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID)
+	}
+
+	if miniBlock.SenderShardID != shardCoordinator.SelfId() && miniBlock.GetReceiverShardID() != shardCoordinator.SelfId() && miniBlock.GetReceiverShardID() != core.AllShardId {
+		return fmt.Errorf("%w - not valid shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
+			ErrInvalidShardId,
+			miniBlock.Type,
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID)
+	}
+
+	// type checks
+	if miniBlock.GetType() == block.PeerBlock &&
+		(miniBlock.GetSenderShardID() != core.MetachainShardId || miniBlock.GetReceiverShardID() != core.AllShardId) {
+		return fmt.Errorf("%w - peer blocks: block type: %s, sender shard id: %d, receiver shard id: %d",
+			ErrInvalidShardId,
+			miniBlock.Type,
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID)
+	}
+
+	if miniBlock.GetType() != block.PeerBlock && miniBlock.GetReceiverShardID() == core.AllShardId {
+		return fmt.Errorf("%w - invalid all shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
+			ErrInvalidShardId,
+			miniBlock.Type,
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID)
+	}
+
+	if miniBlock.GetType() == block.RewardsBlock && miniBlock.GetSenderShardID() != core.MetachainShardId {
+		return fmt.Errorf("%w - invalid rewards block: block type: %s, sender shard id: %d, receiver shard id: %d",
+			ErrInvalidShardId,
+			miniBlock.Type,
+			miniBlock.SenderShardID,
+			miniBlock.ReceiverShardID)
+	}
+
+	for _, txHash := range miniBlock.TxHashes {
+		if txHash == nil {
+			return ErrNilTxHash
+		}
+	}
+
+	if len(miniBlock.GetReserved()) > maxLenMiniBlockReservedField {
+		return ErrReservedFieldInvalid
+	}
+
+	return nil
 }
