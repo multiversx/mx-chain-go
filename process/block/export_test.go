@@ -267,6 +267,7 @@ func NewShardProcessorEmptyWith3shards(
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BlockTracker:                      &mock.BlockTrackerMock{},
 	}
 	gasComputation, _ := NewGasConsumption(argsGasConsumption)
 

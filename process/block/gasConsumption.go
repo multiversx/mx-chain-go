@@ -40,6 +40,7 @@ type ArgsGasConsumption struct {
 	BlockCapacityOverestimationFactor uint64
 	PercentDecreaseLimitsStep         uint64
 	BlockSizeComputation              preprocess.BlockSizeComputationHandler
+	BlockTracker                      preprocess.BlockTracker
 }
 
 // gasConsumption implements the GasComputation interface for managing gas limits during block creation
@@ -49,6 +50,7 @@ type gasConsumption struct {
 	shardCoordinator                 process.ShardCoordinator
 	gasHandler                       process.GasHandler
 	blockSizeComputation             preprocess.BlockSizeComputationHandler
+	blockTracker                     preprocess.BlockTracker
 	totalGasConsumed                 map[string]uint64
 	gasConsumedByMiniBlock           map[string]uint64
 	numTxsPerMiniBlock               map[string]uint32
@@ -75,6 +77,9 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 	if check.IfNil(args.BlockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
 	}
+	if check.IfNil(args.BlockTracker) {
+		return nil, process.ErrNilBlockTracker
+	}
 	if args.BlockCapacityOverestimationFactor <= minPercentLimitsFactor || args.BlockCapacityOverestimationFactor > maxPercentLimitsFactor {
 		return nil, fmt.Errorf("%w for BlockCapacityOverestimationFactor, received %d, min allowed %d, max allowed %d",
 			process.ErrInvalidValue,
@@ -88,6 +93,7 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 		shardCoordinator:                 args.ShardCoordinator,
 		gasHandler:                       args.GasHandler,
 		blockSizeComputation:             args.BlockSizeComputation,
+		blockTracker:                     args.BlockTracker,
 		totalGasConsumed:                 make(map[string]uint64),
 		gasConsumedByMiniBlock:           make(map[string]uint64),
 		numTxsPerMiniBlock:               make(map[string]uint32),
@@ -443,6 +449,12 @@ func (gc *gasConsumption) addOutgoingTransaction(
 
 	senderShard := gc.shardCoordinator.SelfId()
 	receiverShard := gc.shardCoordinator.ComputeId(tx.GetRcvAddr())
+
+	if senderShard != receiverShard && gc.blockTracker.IsShardStuck(receiverShard) {
+		log.Trace("shard is stuck", "shard", receiverShard)
+		return true
+	}
+
 	gasConsumedInSenderShard, gasConsumedInReceiverShard, err := gc.checkGasConsumedByTx(senderShard, receiverShard, tx)
 	if err != nil {
 		log.Warn("addOutgoingTransaction.checkGasConsumedByTx failed", "error", err)

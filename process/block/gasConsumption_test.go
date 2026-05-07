@@ -1,6 +1,7 @@
 package block_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -52,6 +53,7 @@ func getMockArgsGasConsumption() block.ArgsGasConsumption {
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BlockTracker:                      &mock.BlockTrackerMock{},
 	}
 }
 
@@ -131,6 +133,15 @@ func TestNewGasConsumption(t *testing.T) {
 		gc, err := block.NewGasConsumption(args)
 		require.Nil(t, gc)
 		require.True(t, errors.Is(err, process.ErrInvalidValue))
+	})
+	t.Run("nil gas handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgsGasConsumption()
+		args.BlockTracker = nil
+		gc, err := block.NewGasConsumption(args)
+		require.Nil(t, gc)
+		require.True(t, errors.Is(err, process.ErrNilBlockTracker))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -761,6 +772,60 @@ func TestGasConsumption_ZeroIncomingLimit(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, lastMBIndex) // added all
 	require.Zero(t, pendingMBs)      // added all
+}
+
+func TestGasConsumption_CrossShardStuck(t *testing.T) {
+	t.Parallel()
+
+	args := getMockArgsGasConsumption()
+
+	stuckShard := uint32(2)
+	notStuckShard := uint32(1)
+
+	args.BlockTracker = &mock.BlockTrackerMock{
+		IsShardStuckCalled: func(shardId uint32) bool {
+			if shardId == stuckShard {
+				return true
+			}
+
+			return false
+		},
+	}
+
+	rcvAddr1 := []byte("rcv1")
+
+	args.ShardCoordinator = &mock.ShardCoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			if bytes.Equal(address, rcvAddr1) {
+				return stuckShard
+			}
+
+			return notStuckShard
+		},
+		SelfIdCalled: func() uint32 {
+			return notStuckShard
+		},
+	}
+
+	gc, _ := block.NewGasConsumption(args)
+	require.NotNil(t, gc)
+
+	txs := make([]data.TransactionHandler, 0)
+	txHashes := make([][]byte, 0)
+	txs = append(txs, &transaction.Transaction{
+		GasLimit: maxGasLimitPerTx,
+	})
+	txHashes = append(txHashes, []byte(fmt.Sprintf("hash_%d", 0)))
+
+	txs = append(txs, &transaction.Transaction{
+		GasLimit: maxGasLimitPerTx,
+		RcvAddr:  rcvAddr1,
+	})
+	txHashes = append(txHashes, []byte(fmt.Sprintf("hash_%d", 1)))
+
+	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(addedTxs)) // added only one
 }
 
 func TestGasConsumption_RevertIncomingMiniBlocks(t *testing.T) {
