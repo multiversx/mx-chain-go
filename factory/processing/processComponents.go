@@ -520,6 +520,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	_, err = track.NewMiniBlockTrack(
 		pcf.data.Datapool(),
+		blockTracker,
 		pcf.bootstrapComponents.ShardCoordinator(),
 		pcf.whiteListHandler,
 	)

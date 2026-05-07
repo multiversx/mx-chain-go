@@ -162,10 +162,16 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	return cache
 }
 
-// ImmunizeSetOfDataAgainstEviction marks the items as non-evictable
-func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
+// ImmunizeSetOfDataAgainstEviction marks the items as non-evictable for the provided confirmation nonce
+func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string, nonce uint64) {
 	shard := txPool.getOrCreateShard(cacheID)
-	shard.Cache.ImmunizeTxsAgainstEviction(keys)
+	shard.Cache.ImmunizeTxsAgainstEviction(keys, nonce)
+}
+
+// SetOldestImmuneNonce deactivates immunity below the provided nonce
+func (txPool *shardedTxPool) SetOldestImmuneNonce(cacheID string, nonce uint64) {
+	shard := txPool.getOrCreateShard(cacheID)
+	shard.Cache.SetOldestImmuneNonce(nonce)
 }
 
 // AddData adds the transaction to the cache

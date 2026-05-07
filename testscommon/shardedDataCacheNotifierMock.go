@@ -76,7 +76,11 @@ func (mock *ShardedDataCacheNotifierMock) RemoveSetOfDataFromPool(keys [][]byte,
 }
 
 // ImmunizeSetOfDataAgainstEviction -
-func (mock *ShardedDataCacheNotifierMock) ImmunizeSetOfDataAgainstEviction(_ [][]byte, _ string) {
+func (mock *ShardedDataCacheNotifierMock) ImmunizeSetOfDataAgainstEviction(_ [][]byte, _ string, _ uint64) {
+}
+
+// SetOldestImmuneNonce -
+func (mock *ShardedDataCacheNotifierMock) SetOldestImmuneNonce(_ string, _ uint64) {
 }
 
 // RemoveDataFromAllShards -

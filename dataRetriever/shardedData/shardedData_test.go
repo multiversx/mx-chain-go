@@ -330,7 +330,8 @@ func TestShardedData_ImmunizeSetOfDataAgainstEviction(t *testing.T) {
 	t.Parallel()
 
 	sd, _ := NewShardedData("", defaultTestConfig)
-	sd.ImmunizeSetOfDataAgainstEviction([][]byte{[]byte("aaa")}, "0")
+	sd.ImmunizeSetOfDataAgainstEviction([][]byte{[]byte("aaa")}, "0", 7)
+	sd.SetOldestImmuneNonce("0", 7)
 }
 
 func TestShardedData_GetCounts(t *testing.T) {
