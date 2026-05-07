@@ -3479,6 +3479,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		CurrentEpochProviderInternal: &testscommon.CurrentEpochProviderStub{},
 		HistoryRepositoryInternal:    &dblookupextMock.HistoryRepositoryStub{},
 		HardforkTriggerField:         &testscommon.HardforkTriggerStub{},
+		WhiteListHandlerInternal:     &testscommon.WhiteListHandlerStub{},
 	}
 }
 

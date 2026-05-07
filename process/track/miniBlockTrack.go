@@ -205,6 +205,7 @@ func (mbt *miniBlockTrack) tryProcessStoredMiniBlock(miniBlockHash []byte, confi
 }
 
 func (mbt *miniBlockTrack) immunizeMiniBlock(miniBlockHash []byte, miniBlock *block.MiniBlock, confirmationInfo confirmedMiniBlockInfo) {
+	// TODO - stop reusing miniBlock.TxHashes for peer changes, add new fields
 	transactionPool := mbt.getTransactionPool(miniBlock.Type)
 	if check.IfNil(transactionPool) {
 		return
