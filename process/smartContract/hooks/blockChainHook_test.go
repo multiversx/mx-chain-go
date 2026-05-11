@@ -1118,11 +1118,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 
 		enableEpochsHandlerMock := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SupernovaFlag)
 		enableEpochsHandlerMock.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
-			if flag == common.SupernovaFlag {
-				return true
-			}
-
-			return false
+			return flag == common.SupernovaFlag
 		}
 		args.EnableEpochsHandler = enableEpochsHandlerMock
 
