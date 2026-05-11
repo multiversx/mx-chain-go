@@ -696,6 +696,7 @@ func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
 		}
 		if miniblock.SenderShardID != wrk.shardCoordinator.SelfId() &&
 			!wrk.whiteListHandler.IsWhiteListedAtLeastOne([][]byte{hash}) {
+			log.Trace("addBlockToPool: skipping non-whitelisted cross-shard mini block", "hash", hash)
 			continue
 		}
 		wrk.poolAdder.Put(hash, miniblock, miniblock.Size())

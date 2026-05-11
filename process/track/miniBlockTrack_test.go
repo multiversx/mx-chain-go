@@ -370,3 +370,98 @@ func createDataPool() dataRetriever.PoolsHolder {
 		},
 	}
 }
+
+func TestRegisterConfirmedMiniBlocksForHeader_ShouldImmunizeStoredMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	miniBlockHash := []byte("mb_hash")
+	txHashes := [][]byte{[]byte("txHash")}
+	storedMiniBlock := &block.MiniBlock{
+		SenderShardID:   1,
+		ReceiverShardID: 0,
+		Type:            block.TxBlock,
+		TxHashes:        txHashes,
+	}
+
+	miniBlocksPool := cache.NewCacherStub()
+	miniBlocksPool.PeekCalled = func(key []byte) (value interface{}, ok bool) {
+		if string(key) != string(miniBlockHash) {
+			return nil, false
+		}
+
+		return storedMiniBlock, true
+	}
+
+	dataPool := &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			return miniBlocksPool
+		},
+	}
+
+	blockTracker := &mock.BlockTrackerMock{}
+	var finalMetachainHeadersHandler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
+	blockTracker.RegisterFinalMetachainHeadersHandlerCalled = func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
+		finalMetachainHeadersHandler = handler
+	}
+
+	var whitelistedKeys [][]byte
+	whiteListHandler := &testscommon.WhiteListHandlerStub{
+		AddCalled: func(keys [][]byte) {
+			whitelistedKeys = keys
+		},
+	}
+	var immunizedKeys [][]byte
+	var setOldestImmuneNonceCacheID string
+	var immunizedCacheID string
+	var setOldestImmuneNonceNonce uint64
+	var immunizedNonce uint64
+	blockTransactionsPool := &testscommon.ShardedDataStub{
+		SetOldestImmuneNonceCalled: func(cacheID string, nonce uint64) {
+			setOldestImmuneNonceCacheID = cacheID
+			setOldestImmuneNonceNonce = nonce
+		},
+		ImmunizeSetOfDataAgainstEvictionCalled: func(keys [][]byte, destCacheID string, nonce uint64) {
+			immunizedKeys = keys
+			immunizedCacheID = destCacheID
+			immunizedNonce = nonce
+		},
+	}
+
+	mbt, _ := track.NewMiniBlockTrack(dataPool, blockTracker, mock.NewMultipleShardsCoordinatorMock(), whiteListHandler)
+	mbt.SetBlockTransactionsPool(blockTransactionsPool)
+
+	finalMetachainHeadersHandler(core.MetachainShardId, []data.HeaderHandler{
+		&block.MetaBlock{
+			Nonce: 7,
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 1,
+					ShardMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash:            miniBlockHash,
+							SenderShardID:   1,
+							ReceiverShardID: 0,
+							Type:            block.TxBlock,
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+
+	assert.Equal(t, txHashes, whitelistedKeys)
+	assert.Equal(t, txHashes, immunizedKeys)
+	assert.Equal(t, process.ShardCacherIdentifier(1, 0), setOldestImmuneNonceCacheID)
+	assert.Equal(t, process.ShardCacherIdentifier(1, 0), immunizedCacheID)
+	assert.Equal(t, uint64(7), setOldestImmuneNonceNonce)
+	assert.Equal(t, uint64(7), immunizedNonce)
+}

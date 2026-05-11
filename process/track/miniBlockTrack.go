@@ -165,9 +165,15 @@ func (mbt *miniBlockTrack) registerFromMiniBlockHeaders(
 	selfShardID := mbt.shardCoordinator.SelfId()
 	for _, miniBlockHeader := range miniBlockHeaders {
 		receiverShard := miniBlockHeader.GetReceiverShardID()
-		receiverIsSelfShard := receiverShard == selfShardID || (receiverShard == core.AllShardId && processingShard == core.MetachainShardId)
+		receiverIsAllShardsMiniBlockFromMetaHeader := receiverShard == core.AllShardId && processingShard == core.MetachainShardId
+		receiverIsRelevantForCurrentShard := receiverShard == selfShardID || receiverIsAllShardsMiniBlockFromMetaHeader
 		senderShard := miniBlockHeader.GetSenderShardID()
-		if !receiverIsSelfShard || senderShard == selfShardID {
+		senderIsSelfShard := senderShard == selfShardID
+		// Track only miniblocks that are relevant for this shard and come from another shard.
+		// This includes direct cross-shard miniblocks addressed to this shard and the
+		// special metachain-header case where the receiver is AllShardId.
+		// Intra-shard miniblocks are produced and processed locally, so they are skipped here.
+		if !receiverIsRelevantForCurrentShard || senderIsSelfShard {
 			continue
 		}
 
@@ -178,12 +184,12 @@ func (mbt *miniBlockTrack) registerFromMiniBlockHeaders(
 			nonce:   nonce,
 		}
 
-		mbt.storeConfirmedMiniBlockInfo(miniBlockHeader.GetHash(), mbInfo)
 		transactionPool := mbt.getTransactionPool(mbInfo.mbType)
 		if check.IfNil(transactionPool) {
 			continue
 		}
 
+		mbt.storeConfirmedMiniBlockInfo(miniBlockHeader.GetHash(), mbInfo)
 		transactionPool.SetOldestImmuneNonce(cacheID, nonce)
 		mbt.cleanupConfirmedMiniBlocks(cacheID, nonce)
 		mbt.tryProcessStoredMiniBlock(miniBlockHeader.GetHash(), mbInfo)
