@@ -503,7 +503,9 @@ func (bh *BlockChainHookImpl) CurrentTimeStamp() uint64 {
 	bh.mutCurrentHdr.RLock()
 	defer bh.mutCurrentHdr.RUnlock()
 
-	return bh.currentHdr.GetTimeStamp()
+	timestampSec, _, _ := common.GetHeaderTimestamps(bh.currentHdr, bh.enableEpochsHandler)
+
+	return timestampSec
 }
 
 // CurrentTimeStampMs return the timestamp in milliseconds from the current block
