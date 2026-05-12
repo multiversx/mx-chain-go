@@ -684,6 +684,14 @@ func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
 	}
 
 	for _, miniblock := range body.MiniBlocks {
+		err := process.CheckMiniBlock(miniblock, wrk.shardCoordinator)
+		if err != nil {
+			log.Debug("addBlockToPool: invalid miniblock in received consensus body", "error", err.Error())
+			return
+		}
+	}
+
+	for _, miniblock := range body.MiniBlocks {
 		hash, err := core.CalculateHash(wrk.marshalizer, wrk.hasher, miniblock)
 		if err != nil {
 			return

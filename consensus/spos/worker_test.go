@@ -412,6 +412,45 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(wrk))
 }
 
+func TestWorker_AddBlockToPoolShouldNotAddIfOneInvalidMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				Type:            block.TxBlock,
+				SenderShardID:   0,
+				ReceiverShardID: 1,
+			},
+			{
+				Type:            block.TxBlock,
+				SenderShardID:   1,
+				ReceiverShardID: 0,
+			},
+			// Invalid miniBlock
+			{
+				Type:            block.TxBlock,
+				SenderShardID:   1,
+				ReceiverShardID: 0,
+				Reserved:        bytes.Repeat([]byte{1}, 11),
+			},
+		},
+	}
+	workerArgs.BlockProcessor = &testscommon.BlockProcessorStub{
+		DecodeBlockBodyCalled: func(_ []byte) data.BodyHandler {
+			return body
+		},
+	}
+
+	wrk, err := spos.NewWorker(workerArgs)
+	require.NoError(t, err)
+
+	wrk.AddBlockToPool(nil)
+
+	require.Equal(t, 0, workerArgs.PoolAdder.(*cache.CacherMock).Len())
+}
+
 func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testing.T) {
 	t.Parallel()
 
