@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -14,6 +15,14 @@ import (
 )
 
 var _ dataRetriever.TopicRequestSender = (*topicRequestSender)(nil)
+
+const (
+	shardBlocksTopicPrefix = "shardBlocks"
+	// Keep below the resolver-side shardBlocks* topic antiflood limit of 30 messages/sec.
+	maxShardBlockRequestsPerPeerPerSecond = 25
+	shardBlockRequestRateLimitWindow      = time.Second
+	requestRateLimiterMapKeySeparator     = "|"
+)
 
 // ArgTopicRequestSender is the argument structure used to create new topic request sender instance
 type ArgTopicRequestSender struct {
@@ -41,6 +50,20 @@ type topicRequestSender struct {
 	currentNetworkEpochProviderHandler dataRetriever.CurrentNetworkEpochProviderHandler
 	peersRatingHandler                 dataRetriever.PeersRatingHandler
 	selfShardId                        uint32
+	requestRateLimiter                 *requestRateLimiter
+}
+
+type sendOnTopicResult struct {
+	numSent      int
+	numThrottled int
+}
+
+type requestRateLimiter struct {
+	mut      sync.Mutex
+	requests map[string][]time.Time
+	limit    int
+	window   time.Duration
+	now      func() time.Time
 }
 
 // NewTopicRequestSender returns a new topic request sender instance
@@ -61,7 +84,44 @@ func NewTopicRequestSender(args ArgTopicRequestSender) (*topicRequestSender, err
 		currentNetworkEpochProviderHandler: args.CurrentNetworkEpochProvider,
 		peersRatingHandler:                 args.PeersRatingHandler,
 		selfShardId:                        args.SelfShardIdProvider.SelfId(),
+		requestRateLimiter:                 newRequestRateLimiter(maxShardBlockRequestsPerPeerPerSecond, shardBlockRequestRateLimitWindow),
 	}, nil
+}
+
+func newRequestRateLimiter(limit int, window time.Duration) *requestRateLimiter {
+	return &requestRateLimiter{
+		requests: make(map[string][]time.Time),
+		limit:    limit,
+		window:   window,
+		now:      time.Now,
+	}
+}
+
+func (rl *requestRateLimiter) allow(topic string, peer core.PeerID) bool {
+	rl.mut.Lock()
+	defer rl.mut.Unlock()
+
+	now := rl.now()
+	cutoff := now.Add(-rl.window)
+	key := string(peer) + requestRateLimiterMapKeySeparator + topic
+	requests := rl.requests[key]
+
+	firstValidIndex := 0
+	for firstValidIndex < len(requests) && !requests[firstValidIndex].After(cutoff) {
+		firstValidIndex++
+	}
+	if firstValidIndex > 0 {
+		requests = requests[firstValidIndex:]
+	}
+
+	if len(requests) >= rl.limit {
+		rl.requests[key] = requests
+		return false
+	}
+
+	requests = append(requests, now)
+	rl.requests[key] = requests
+	return true
 }
 
 func checkArgs(args ArgTopicRequestSender) error {
@@ -117,6 +177,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 	topicToSendRequest := trs.topicName + core.TopicRequestSuffix
 
 	var numSentIntra, numSentCross int
+	var numThrottledFullHistory int
 	var intraPeers, crossPeers []core.PeerID
 	fullHistoryPeers := make([]core.PeerID, 0)
 	requestedNetworks := make([]string, 0)
@@ -124,7 +185,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 		preferredPeer := trs.getPreferredFullArchivePeer()
 		fullHistoryPeers = trs.fullArchiveMessenger.ConnectedPeers()
 
-		numSentIntra = trs.sendOnTopic(
+		result := trs.sendOnTopic(
 			fullHistoryPeers,
 			preferredPeer,
 			topicToSendRequest,
@@ -132,14 +193,16 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			trs.numFullHistoryPeers,
 			core.FullHistoryPeer.String(),
 			trs.fullArchiveMessenger)
+		numSentIntra = result.numSent
+		numThrottledFullHistory = result.numThrottled
 
 		requestedNetworks = append(requestedNetworks, "full archive network")
 	}
 
-	if numSentCross+numSentIntra == 0 {
+	if numSentCross+numSentIntra == 0 && numThrottledFullHistory == 0 {
 		crossPeers = trs.peerListCreator.CrossShardPeerList()
 		preferredPeer := trs.getPreferredPeer(trs.targetShardId)
-		numSentCross = trs.sendOnTopic(
+		result := trs.sendOnTopic(
 			crossPeers,
 			preferredPeer,
 			topicToSendRequest,
@@ -147,10 +210,11 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			trs.numCrossShardPeers,
 			core.CrossShardPeer.String(),
 			trs.mainMessenger)
+		numSentCross = result.numSent
 
 		intraPeers = trs.peerListCreator.IntraShardPeerList()
 		preferredPeer = trs.getPreferredPeer(trs.selfShardId)
-		numSentIntra = trs.sendOnTopic(
+		result = trs.sendOnTopic(
 			intraPeers,
 			preferredPeer,
 			topicToSendRequest,
@@ -158,6 +222,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			trs.numIntraShardPeers,
 			core.IntraShardPeer.String(),
 			trs.mainMessenger)
+		numSentIntra = result.numSent
 
 		requestedNetworks = append(requestedNetworks, "main network")
 	}
@@ -202,19 +267,20 @@ func (trs *topicRequestSender) sendOnTopic(
 	maxToSend int,
 	peerType string,
 	messenger p2p.MessageHandler,
-) int {
+) sendOnTopicResult {
 	if len(peerList) == 0 || maxToSend == 0 {
-		return 0
+		return sendOnTopicResult{}
 	}
 
 	histogramMap := make(map[string]int)
 
-	topRatedPeersList := trs.peersRatingHandler.GetTopRatedPeersFromList(peerList, maxToSend)
+	topRatedPeersList := trs.peersRatingHandler.GetTopRatedPeersFromList(peerList, len(peerList))
 
 	indexes := createIndexList(len(topRatedPeersList))
 	shuffledIndexes := random.FisherYatesShuffle(indexes, trs.randomizer)
 	logData := make([]interface{}, 0)
 	msgSentCounter := 0
+	numThrottled := 0
 	shouldSendToPreferredPeer := preferredPeer != "" && maxToSend > 1
 	if shouldSendToPreferredPeer {
 		shuffledIndexes = append([]int{preferredPeerIndex}, shuffledIndexes...)
@@ -222,6 +288,16 @@ func (trs *topicRequestSender) sendOnTopic(
 
 	for idx := 0; idx < len(shuffledIndexes); idx++ {
 		peer := getPeerID(shuffledIndexes[idx], topRatedPeersList, preferredPeer, peerType, topicToSendRequest, histogramMap)
+
+		if !trs.canSendRequestToPeer(topicToSendRequest, peer) {
+			numThrottled++
+			log.Debug("request to peer throttled",
+				"topic", topicToSendRequest,
+				"peer", peer.Pretty(),
+				"peer type", peerType,
+			)
+			continue
+		}
 
 		// no matter the outcome of sendToConnectedPeer, decrease the peer's rating
 		// this way we avoid(decreasing) peers with invalid connections or blacklisted by antiflooder
@@ -245,9 +321,27 @@ func (trs *topicRequestSender) sendOnTopic(
 		}
 	}
 	log.Trace("requests are sent to", logData...)
+	if numThrottled > 0 {
+		histogramMap["throttled"] = numThrottled
+	}
 	log.Trace("request peers histogram", "max peers to send", maxToSend, "topic", topicToSendRequest, "histogram", histogramMap)
 
-	return msgSentCounter
+	return sendOnTopicResult{
+		numSent:      msgSentCounter,
+		numThrottled: numThrottled,
+	}
+}
+
+func (trs *topicRequestSender) canSendRequestToPeer(topic string, peer core.PeerID) bool {
+	if !isShardBlocksRequestTopic(topic) {
+		return true
+	}
+
+	return trs.requestRateLimiter.allow(topic, peer)
+}
+
+func isShardBlocksRequestTopic(topic string) bool {
+	return strings.HasPrefix(topic, shardBlocksTopicPrefix) && strings.HasSuffix(topic, core.TopicRequestSuffix)
 }
 
 func getPeerID(index int, peersList []core.PeerID, preferredPeer core.PeerID, peerType string, topic string, histogramMap map[string]int) core.PeerID {
