@@ -242,6 +242,52 @@ func TestChainSimulator_VerifyBlockTimestampSupernova(t *testing.T) {
 	require.Equal(t, defaultSupernovaRoundDurationInMillis, uint64(diff))
 }
 
+func TestChainSimulator_EpochStartMetaBlockV3ShouldUseTimestampMs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	initialEpoch := uint32(100)
+	initialRound := int64(200)
+
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 defaultRoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        defaultSupernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               defaultMinNodesPerShard,
+		MetaChainMinNodes:              defaultMetaChainMinNodes,
+		InitialRound:                   initialRound,
+		InitialEpoch:                   initialEpoch,
+		InitialNonce:                   100,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			// we need to enable this as this test skips a lot of epoch activations events, and it will fail otherwise
+			// because the owner of a BLS key coming from genesis is not set
+			// (the owner is not set at genesis anymore because we do not enable the staking v2 in that phase)
+			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = initialEpoch
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+	defer chainSimulator.Close()
+
+	shardNode := chainSimulator.GetNodeHandler(0)
+	expectedTimestampMs := uint64(shardNode.GetCoreComponents().RoundHandler().TimeStamp().UnixMilli())
+	expectedTimestampSec := uint64(shardNode.GetCoreComponents().RoundHandler().TimeStamp().Unix())
+
+	epochStartTimestampMs := shardNode.GetProcessComponents().BlockchainHook().EpochStartBlockTimeStampMs()
+
+	require.Equal(t, expectedTimestampMs, epochStartTimestampMs)
+	require.NotEqual(t, expectedTimestampSec, epochStartTimestampMs)
+}
+
 func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")

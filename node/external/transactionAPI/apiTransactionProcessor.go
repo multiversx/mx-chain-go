@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -21,6 +20,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/factory/disabled"
@@ -36,8 +36,7 @@ import (
 var log = logger.GetOrCreate("node/transactionAPI")
 
 type apiTransactionProcessor struct {
-	roundDuration               uint64
-	genesisTime                 time.Time
+	roundHandler                consensus.RoundHandler
 	marshalizer                 marshal.Marshalizer
 	addressPubKeyConverter      core.PubkeyConverter
 	shardCoordinator            sharding.Coordinator
@@ -92,8 +91,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	)
 
 	return &apiTransactionProcessor{
-		roundDuration:               args.RoundDuration,
-		genesisTime:                 args.GenesisTime,
+		roundHandler:                args.RoundHandler,
 		marshalizer:                 args.Marshalizer,
 		addressPubKeyConverter:      args.AddressPubKeyConverter,
 		shardCoordinator:            args.ShardCoordinator,
@@ -732,29 +730,24 @@ func (atp *apiTransactionProcessor) getApiResultFromObj(txObj interface{}, txTyp
 
 // computeTimestampForRound will return the timestamp for the given round
 func (atp *apiTransactionProcessor) computeTimestampForRound(round uint64) int64 {
-	if round == 0 {
-		return 0
-	}
-
-	secondsSinceGenesis := round * atp.roundDuration
-	timestamp := atp.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
-
-	if atp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
-		return timestamp.UnixMilli()
-	}
-
-	return timestamp.Unix()
+	timestampSec, _ := atp.computeTimestampsForRound(round)
+	return timestampSec
 }
 
 func (atp *apiTransactionProcessor) computeTimestampForRoundAsMs(round uint64) int64 {
+	_, timestampMs := atp.computeTimestampsForRound(round)
+	return timestampMs
+}
+
+func (atp *apiTransactionProcessor) computeTimestampsForRound(round uint64) (int64, int64) {
 	if round == 0 {
-		return 0
+		return 0, 0
 	}
 
-	secondsSinceGenesis := round * atp.roundDuration
-	timestamp := atp.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
+	timestampMs := int64(atp.roundHandler.GetTimeStampForRound(round))
+	timestampSec := timestampMs / 1000
 
-	return timestamp.UnixMilli()
+	return timestampSec, timestampMs
 }
 
 func (atp *apiTransactionProcessor) checkExecutionResultAndTx(miniblockMetadata *dblookupext.MiniblockMetadata) (bool, error) {
@@ -837,8 +830,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
-	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
-	tx.TimestampMs = atp.computeTimestampForRoundAsMs(tx.Round)
+	tx.Timestamp, tx.TimestampMs = atp.computeTimestampsForRound(tx.Round)
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
@@ -905,8 +897,7 @@ func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*tra
 		return nil, err
 	}
 
-	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
-	tx.TimestampMs = atp.computeTimestampForRoundAsMs(tx.Round)
+	tx.Timestamp, tx.TimestampMs = atp.computeTimestampsForRound(tx.Round)
 
 	// TODO: take care of this when integrating the adaptivity
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
