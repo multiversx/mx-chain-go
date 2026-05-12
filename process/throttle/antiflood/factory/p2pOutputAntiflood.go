@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
@@ -55,7 +54,7 @@ func initP2POutputAntiFlood(
 	}
 
 	topicFloodPreventer := disabled.NewNilTopicFloodPreventer()
-	startResettingTopicFloodPreventer(ctx, topicFloodPreventer, make([]config.TopicMaxMessagesConfig, 0), floodPreventer)
+	startResettingTopicFloodPreventer(ctx, topicFloodPreventer, antifloodConfigsHandler, floodPreventer)
 
 	return antiflood.NewP2PAntiflood(&disabled.PeerBlacklistCacher{}, topicFloodPreventer, floodPreventer)
 }

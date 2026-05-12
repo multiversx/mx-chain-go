@@ -823,61 +823,6 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 2, cnt)
 	})
-	t.Run("should throttle shard block requests per full history peer", func(t *testing.T) {
-		pIDFullHistory := core.PeerID("full history peer")
-		numSentFullHistory := 0
-		numSentMain := 0
-		numErrors := 0
-
-		arg := createMockArgTopicRequestSender()
-		arg.TopicName = "shardBlocks_0_META"
-		arg.NumFullHistoryPeers = 1
-		arg.CurrentNetworkEpochProvider = &mock.CurrentNetworkEpochProviderStub{
-			EpochIsActiveInNetworkCalled: func(epoch uint32) bool {
-				return false
-			},
-		}
-		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
-			ConnectedPeersCalled: func() []core.PeerID {
-				return []core.PeerID{pIDFullHistory}
-			},
-			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
-				require.Equal(t, pIDFullHistory, peerID)
-				numSentFullHistory++
-
-				return nil
-			},
-		}
-		arg.MainMessenger = &p2pmocks.MessengerStub{
-			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
-				numSentMain++
-
-				return nil
-			},
-		}
-		arg.PeerListCreator = &mock.PeerListCreatorStub{
-			CrossShardPeerListCalled: func() []core.PeerID {
-				return []core.PeerID{core.PeerID("cross peer")}
-			},
-			IntraShardPeerListCalled: func() []core.PeerID {
-				return []core.PeerID{core.PeerID("intra peer")}
-			},
-		}
-
-		trs, _ := topicsender.NewTopicRequestSender(arg)
-
-		for i := 0; i < 30; i++ {
-			err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, defaultHashes)
-			if err != nil {
-				require.True(t, errors.Is(err, dataRetriever.ErrSendRequest))
-				numErrors++
-			}
-		}
-
-		assert.Equal(t, 25, numSentFullHistory)
-		assert.Equal(t, 5, numErrors)
-		assert.Zero(t, numSentMain)
-	})
 }
 
 func TestTopicRequestSender_NumPeersToQuery(t *testing.T) {

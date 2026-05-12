@@ -4,9 +4,10 @@ import "github.com/multiversx/mx-chain-core-go/core"
 
 // TopicAntiFloodStub -
 type TopicAntiFloodStub struct {
-	IncreaseLoadCalled           func(pid core.PeerID, topic string, numMessages uint32) error
-	ResetForTopicCalled          func(topic string)
-	SetMaxMessagesForTopicCalled func(topic string, num uint32)
+	IncreaseLoadCalled                  func(pid core.PeerID, topic string, numMessages uint32) error
+	ResetForTopicCalled                 func(topic string)
+	SetMaxMessagesForTopicCalled        func(topic string, num uint32)
+	SetDefaultMaxMessagesForTopicCalled func(num uint32)
 }
 
 // IncreaseLoad -
@@ -33,6 +34,13 @@ func (t *TopicAntiFloodStub) ResetForNotRegisteredTopics() {
 func (t *TopicAntiFloodStub) SetMaxMessagesForTopic(topic string, num uint32) {
 	if t.SetMaxMessagesForTopicCalled != nil {
 		t.SetMaxMessagesForTopicCalled(topic, num)
+	}
+}
+
+// SetDefaultMaxMessagesForTopic -
+func (t *TopicAntiFloodStub) SetDefaultMaxMessagesForTopic(num uint32) {
+	if t.SetDefaultMaxMessagesForTopicCalled != nil {
+		t.SetDefaultMaxMessagesForTopicCalled(num)
 	}
 }
 

@@ -34,6 +34,10 @@ func (ntfp *nilTopicFloodPreventer) ResetForNotRegisteredTopics() {
 func (ntfp *nilTopicFloodPreventer) SetMaxMessagesForTopic(_ string, _ uint32) {
 }
 
+// SetDefaultMaxMessagesForTopic does nothing
+func (ntfp *nilTopicFloodPreventer) SetDefaultMaxMessagesForTopic(_ uint32) {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ntfp *nilTopicFloodPreventer) IsInterfaceNil() bool {
 	return ntfp == nil

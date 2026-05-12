@@ -245,6 +245,55 @@ func TestTopicFloodPreventer_MaxMessagesOnWildcardTopicCachesTheValue(t *testing
 	assert.True(t, ok)
 }
 
+func TestTopicFloodPreventer_SetMaxMessagesOnWildcardTopicInvalidatesCachedValue(t *testing.T) {
+	t.Parallel()
+
+	defaultMaxMessages := uint32(2)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
+
+	headersTopic := "headers"
+	oldHeadersMaxMessages := uint32(100)
+	newHeadersMaxMessages := uint32(300)
+	tfp.SetMaxMessagesForTopic(headersTopic+floodPreventers.WildcardCharacter, oldHeadersMaxMessages)
+
+	assert.Equal(t, oldHeadersMaxMessages, tfp.MaxMessagesForTopic(headersTopic+"_REQUEST"))
+
+	tfp.SetMaxMessagesForTopic(headersTopic+floodPreventers.WildcardCharacter, newHeadersMaxMessages)
+
+	assert.Equal(t, newHeadersMaxMessages, tfp.MaxMessagesForTopic(headersTopic+"_REQUEST"))
+}
+
+func TestTopicFloodPreventer_SetDefaultMaxMessagesForTopicShouldWork(t *testing.T) {
+	t.Parallel()
+
+	defaultMaxMessages := uint32(2)
+	newDefaultMaxMessages := uint32(3)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
+
+	tfp.SetDefaultMaxMessagesForTopic(newDefaultMaxMessages)
+
+	err := tfp.IncreaseLoad("identifier", "unregistered topic", newDefaultMaxMessages)
+	assert.Nil(t, err)
+
+	err = tfp.IncreaseLoad("identifier", "unregistered topic", 1)
+	assert.Equal(t, process.ErrSystemBusy, err)
+}
+
+func TestTopicFloodPreventer_SetDefaultMaxMessagesForTopicInvalidatesCachedDefaultValue(t *testing.T) {
+	t.Parallel()
+
+	defaultMaxMessages := uint32(2)
+	newDefaultMaxMessages := uint32(3)
+	tfp, _ := floodPreventers.NewTopicFloodPreventer(defaultMaxMessages)
+
+	unregisteredTopic := "unregistered topic"
+	assert.Equal(t, defaultMaxMessages, tfp.MaxMessagesForTopic(unregisteredTopic))
+
+	tfp.SetDefaultMaxMessagesForTopic(newDefaultMaxMessages)
+
+	assert.Equal(t, newDefaultMaxMessages, tfp.MaxMessagesForTopic(unregisteredTopic))
+}
+
 func TestTopicFloodPreventer_ResetForNotRegisteredTopics(t *testing.T) {
 	t.Parallel()
 

@@ -62,8 +62,17 @@ func (tfp *topicFloodPreventer) IncreaseLoad(pid core.PeerID, topic string, numM
 
 	tfp.counterMap[topic][pid] += numMessages
 
-	limitExceeded := tfp.counterMap[topic][pid] > tfp.maxMessagesForTopic(topic)
+	currentCount := tfp.counterMap[topic][pid]
+	maxMessages := tfp.maxMessagesForTopic(topic)
+	limitExceeded := currentCount > maxMessages
 	if limitExceeded {
+		log.Debug("topic flood limit exceeded",
+			"pid", pid.Pretty(),
+			"topic", topic,
+			"count", currentCount,
+			"max messages", maxMessages,
+			"new messages", numMessages,
+		)
 		return process.ErrSystemBusy
 	}
 
@@ -72,11 +81,53 @@ func (tfp *topicFloodPreventer) IncreaseLoad(pid core.PeerID, topic string, numM
 
 // SetMaxMessagesForTopic will update the maximum number of messages that can be received from a peer in a topic
 func (tfp *topicFloodPreventer) SetMaxMessagesForTopic(topic string, numMessages uint32) {
-	log.Debug("SetMaxMessagesForTopic", "topic", topic, "num messages", numMessages)
+	if numMessages < topicMinMessages {
+		log.Warn("SetMaxMessagesForTopic received invalid value",
+			"topic", topic,
+			"num messages", numMessages,
+		)
+		return
+	}
+
 	tfp.mutTopicMaxMessages.Lock()
+	oldNumMessages, oldTopicFound := tfp.topicMaxMessages[topic]
 	tfp.topicMaxMessages[topic] = numMessages
 	tfp.registeredTopics[topic] = struct{}{}
+	if strings.Contains(topic, WildcardCharacter) && (!oldTopicFound || oldNumMessages != numMessages) {
+		tfp.invalidateCachedMaxMessagesForWildcardNoLock(topic)
+	}
 	tfp.mutTopicMaxMessages.Unlock()
+
+	if !oldTopicFound || oldNumMessages != numMessages {
+		log.Debug("SetMaxMessagesForTopic",
+			"topic", topic,
+			"old num messages", oldNumMessages,
+			"num messages", numMessages,
+		)
+	}
+}
+
+// SetDefaultMaxMessagesForTopic updates the default maximum number of messages that can be received from a peer.
+func (tfp *topicFloodPreventer) SetDefaultMaxMessagesForTopic(numMessages uint32) {
+	if numMessages < topicMinMessages {
+		log.Warn("SetDefaultMaxMessagesForTopic received invalid value", "num messages", numMessages)
+		return
+	}
+
+	tfp.mutTopicMaxMessages.Lock()
+	oldNumMessages := tfp.defaultMaxMessagesPerPeer
+	tfp.defaultMaxMessagesPerPeer = numMessages
+	if oldNumMessages != numMessages {
+		tfp.invalidateCachedDefaultMaxMessagesNoLock()
+	}
+	tfp.mutTopicMaxMessages.Unlock()
+
+	if oldNumMessages != numMessages {
+		log.Debug("SetDefaultMaxMessagesForTopic",
+			"old num messages", oldNumMessages,
+			"num messages", numMessages,
+		)
+	}
 }
 
 // ResetForTopic clears all map values for a given topic
@@ -130,6 +181,30 @@ func (tfp *topicFloodPreventer) resetTopicWithWildCard(topic string) {
 		if strings.Contains(topicKey, topicWithoutWildcard) {
 			tfp.counterMap[topicKey] = make(map[core.PeerID]uint32)
 		}
+	}
+}
+
+func (tfp *topicFloodPreventer) invalidateCachedMaxMessagesForWildcardNoLock(topic string) {
+	topicWithoutWildcard := strings.Replace(topic, WildcardCharacter, "", 1)
+	for topicKey := range tfp.topicMaxMessages {
+		if topicKey == topic {
+			continue
+		}
+		if _, isRegisteredTopic := tfp.registeredTopics[topicKey]; isRegisteredTopic {
+			continue
+		}
+		if strings.Contains(topicKey, topicWithoutWildcard) {
+			delete(tfp.topicMaxMessages, topicKey)
+		}
+	}
+}
+
+func (tfp *topicFloodPreventer) invalidateCachedDefaultMaxMessagesNoLock() {
+	for topicKey := range tfp.topicMaxMessages {
+		if _, isRegisteredTopic := tfp.registeredTopics[topicKey]; isRegisteredTopic {
+			continue
+		}
+		delete(tfp.topicMaxMessages, topicKey)
 	}
 }
 

@@ -123,8 +123,8 @@ func initP2PAntiFloodComponents(
 		return nil, err
 	}
 
-	topicMaxMessages := initialAntifloodConf.Topic.MaxMessages
-	setMaxMessages(topicFloodPreventer, topicMaxMessages)
+	topicAntifloodConfig := initialAntifloodConf.Topic
+	applyTopicAntifloodConfig(topicFloodPreventer, topicAntifloodConfig)
 
 	p2pAntiflood, err := antiflood.NewP2PAntiflood(
 		p2pPeerBlackList,
@@ -149,7 +149,7 @@ func initP2PAntiFloodComponents(
 		}
 	}
 
-	startResettingTopicFloodPreventer(ctx, topicFloodPreventer, topicMaxMessages)
+	startResettingTopicFloodPreventer(ctx, topicFloodPreventer, antifloodConfigsHandler)
 	startSweepingTimeCaches(ctx, p2pPeerBlackList, publicKeysCache)
 
 	return &AntiFloodComponents{
@@ -171,14 +171,18 @@ func setMaxMessages(topicFloodPreventer process.TopicFloodPreventer, topicMaxMes
 	}
 }
 
+func applyTopicAntifloodConfig(topicFloodPreventer process.TopicFloodPreventer, topicConfig config.TopicAntifloodConfig) {
+	topicFloodPreventer.SetDefaultMaxMessagesForTopic(topicConfig.DefaultMaxMessagesPerSec)
+	setMaxMessages(topicFloodPreventer, topicConfig.MaxMessages)
+}
+
 func startResettingTopicFloodPreventer(
 	ctx context.Context,
 	topicFloodPreventer process.TopicFloodPreventer,
-	topicMaxMessages []config.TopicMaxMessagesConfig,
+	antifloodConfigsHandler common.AntifloodConfigsHandler,
 	floodPreventers ...process.FloodPreventer,
 ) {
-	localTopicMaxMessages := make([]config.TopicMaxMessagesConfig, len(topicMaxMessages))
-	copy(localTopicMaxMessages, topicMaxMessages)
+	localTopicConfig := cloneTopicAntifloodConfig(antifloodConfigsHandler.GetCurrentConfig().Topic)
 
 	go func() {
 		for {
@@ -189,15 +193,51 @@ func startResettingTopicFloodPreventer(
 			case <-time.After(time.Second):
 			}
 
+			currentTopicConfig := antifloodConfigsHandler.GetCurrentConfig().Topic
+			if !topicAntifloodConfigsEqual(localTopicConfig, currentTopicConfig) {
+				applyTopicAntifloodConfig(topicFloodPreventer, currentTopicConfig)
+				localTopicConfig = cloneTopicAntifloodConfig(currentTopicConfig)
+				log.Debug("topic antiflood config updated",
+					"default max messages per sec", currentTopicConfig.DefaultMaxMessagesPerSec,
+					"max messages", currentTopicConfig.MaxMessages,
+				)
+			}
+
 			for _, fp := range floodPreventers {
 				fp.Reset()
 			}
-			for _, topicMaxMsg := range localTopicMaxMessages {
+			for _, topicMaxMsg := range localTopicConfig.MaxMessages {
 				topicFloodPreventer.ResetForTopic(topicMaxMsg.Topic)
 			}
 			topicFloodPreventer.ResetForNotRegisteredTopics()
 		}
 	}()
+}
+
+func cloneTopicAntifloodConfig(topicConfig config.TopicAntifloodConfig) config.TopicAntifloodConfig {
+	clonedConfig := config.TopicAntifloodConfig{
+		DefaultMaxMessagesPerSec: topicConfig.DefaultMaxMessagesPerSec,
+		MaxMessages:              make([]config.TopicMaxMessagesConfig, len(topicConfig.MaxMessages)),
+	}
+	copy(clonedConfig.MaxMessages, topicConfig.MaxMessages)
+
+	return clonedConfig
+}
+
+func topicAntifloodConfigsEqual(first config.TopicAntifloodConfig, second config.TopicAntifloodConfig) bool {
+	if first.DefaultMaxMessagesPerSec != second.DefaultMaxMessagesPerSec {
+		return false
+	}
+	if len(first.MaxMessages) != len(second.MaxMessages) {
+		return false
+	}
+	for index := range first.MaxMessages {
+		if first.MaxMessages[index] != second.MaxMessages[index] {
+			return false
+		}
+	}
+
+	return true
 }
 
 func startSweepingTimeCaches(ctx context.Context, p2pPeerBlackList process.PeerBlackListCacher, publicKeysCache process.TimeCacher) {

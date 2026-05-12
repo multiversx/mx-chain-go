@@ -1066,6 +1066,7 @@ type TopicFloodPreventer interface {
 	ResetForTopic(topic string)
 	ResetForNotRegisteredTopics()
 	SetMaxMessagesForTopic(topic string, maxNum uint32)
+	SetDefaultMaxMessagesForTopic(maxNum uint32)
 	IsInterfaceNil() bool
 }
 
