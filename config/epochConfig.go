@@ -135,6 +135,8 @@ type EnableEpochs struct {
 	FixGetBalanceEnableEpoch                                 uint32
 	AutomaticActivationOfNodesDisableEpoch                   uint32
 	RelayedTransactionsV1V2DisableEpoch                      uint32
+	FullShardDataValidationEnableEpoch                       uint32
+	ConsumedGasInEconomicsFixEnableEpoch                     uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

@@ -344,7 +344,8 @@ func (txs *transactions) computeTxsToMe(
 
 	allTxs := make([]*txcache.WrappedTransaction, 0)
 	for _, miniBlock := range body.MiniBlocks {
-		shouldSkipMiniblock := miniBlock.SenderShardID == txs.shardCoordinator.SelfId() || !txs.isMiniBlockCorrect(miniBlock.Type)
+		shouldSkipMiniblock := miniBlock.SenderShardID == txs.shardCoordinator.SelfId() ||
+			!txs.isMiniBlockCorrect(miniBlock.Type)
 		if shouldSkipMiniblock {
 			continue
 		}

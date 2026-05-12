@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
@@ -52,6 +53,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, rrh)
@@ -67,6 +69,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, rrh)
@@ -82,6 +85,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, rrh)
@@ -97,6 +101,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			0,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, rrh)
@@ -112,6 +117,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			1,
 			0,
 			time.Millisecond-time.Nanosecond,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, rrh)
@@ -127,6 +133,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		assert.Nil(t, err)
@@ -159,6 +166,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTransaction(0, make([][]byte, 0))
@@ -184,6 +192,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
@@ -211,6 +220,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
@@ -237,6 +247,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
@@ -273,6 +284,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
@@ -321,6 +333,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTransaction(0, [][]byte{[]byte("txHash")})
@@ -364,6 +377,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlock(0, make([]byte, 0))
@@ -389,6 +403,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlock(0, make([]byte, 0))
@@ -420,6 +435,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlock(0, []byte("mbHash"))
@@ -446,6 +462,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlock(0, []byte("mbHash"))
@@ -474,6 +491,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.SetEpoch(expectedEpoch)
@@ -499,6 +517,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeader(0, make([]byte, 0))
@@ -513,6 +532,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeader(1, make([]byte, 0))
@@ -537,6 +557,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeader(0, []byte("hdrHash"))
@@ -563,6 +584,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeader(0, []byte("hdrHash"))
@@ -588,6 +610,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeader([]byte("hdrHash"))
@@ -613,6 +636,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeader([]byte("hdrHash"))
@@ -631,6 +655,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeader([]byte("hdrHash"))
@@ -655,6 +680,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeader([]byte("hdrHash"))
@@ -681,6 +707,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeader([]byte("hdrHash"))
@@ -708,6 +735,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(0, 0)
@@ -729,6 +757,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			core.MetachainShardId,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(1, 0)
@@ -755,6 +784,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(0, 0)
@@ -782,6 +812,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(0, 0)
@@ -813,6 +844,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(0, 0)
@@ -839,6 +871,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestShardHeaderByNonce(0, 0)
@@ -864,6 +897,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeaderByNonce(0)
@@ -886,6 +920,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeaderByNonce(0)
@@ -910,6 +945,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeaderByNonce(0)
@@ -936,6 +972,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMetaHeaderByNonce(0)
@@ -965,6 +1002,7 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardRequesterSho
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestUnsignedTransactions(0, make([][]byte, 0))
@@ -993,6 +1031,7 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestUnsignedTransactions(0, make([][]byte, 0))
@@ -1020,6 +1059,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestUnsignedTransactions(0, [][]byte{[]byte("txHash")})
@@ -1062,6 +1102,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestUnsignedTransactions(0, [][]byte{[]byte("txHash")})
@@ -1097,6 +1138,7 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestRewardTransactions(0, [][]byte{[]byte("txHash")})
@@ -1135,6 +1177,7 @@ func TestRequestTrieNodes(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTrieNodes(0, [][]byte{[]byte("hash")}, "topic")
@@ -1163,6 +1206,7 @@ func TestRequestTrieNodes(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTrieNodes(core.MetachainShardId, [][]byte{[]byte("hash")}, "topic")
@@ -1183,6 +1227,7 @@ func TestRequestTrieNodes(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestTrieNodes(core.MetachainShardId, [][]byte{}, "topic")
@@ -1211,6 +1256,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestStartOfEpochMetaBlock(0)
@@ -1231,6 +1277,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestStartOfEpochMetaBlock(0)
@@ -1252,6 +1299,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestStartOfEpochMetaBlock(0)
@@ -1279,6 +1327,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestStartOfEpochMetaBlock(0)
@@ -1310,6 +1359,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestStartOfEpochMetaBlock(0)
@@ -1338,6 +1388,7 @@ func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
@@ -1370,6 +1421,7 @@ func TestResolverRequestHandler_RequestTrieNodeShouldWork(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
@@ -1397,6 +1449,7 @@ func TestResolverRequestHandler_RequestTrieNodeNilResolver(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
@@ -1419,6 +1472,7 @@ func TestResolverRequestHandler_RequestTrieNodeNotAValidResolver(t *testing.T) {
 		1,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 
 	rrh.RequestTrieNode([]byte("hash"), "topic", 1)
@@ -1452,6 +1506,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
@@ -1473,6 +1528,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
@@ -1505,6 +1561,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
@@ -1540,6 +1597,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			1,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
@@ -1570,6 +1628,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorInfo(providedHash)
@@ -1597,6 +1656,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorInfo(providedHash)
@@ -1628,6 +1688,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorInfo(providedHash)
@@ -1657,6 +1718,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorInfo(providedHash)
@@ -1682,6 +1744,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorsInfo([][]byte{})
@@ -1709,6 +1772,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorsInfo([][]byte{providedHash})
@@ -1740,6 +1804,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorsInfo([][]byte{providedHash})
@@ -1765,6 +1830,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorsInfo([][]byte{providedHash})
@@ -1795,6 +1861,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestValidatorsInfo(providedHashes)
@@ -1820,6 +1887,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlocks(0, [][]byte{})
@@ -1838,6 +1906,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlocks(0, [][]byte{[]byte("mbHash")})
@@ -1861,6 +1930,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlocks(0, [][]byte{[]byte("mbHash")})
@@ -1884,6 +1954,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlocks(0, [][]byte{[]byte("mbHash")})
@@ -1902,6 +1973,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestMiniBlocks(0, [][]byte{[]byte("mbHash")})
@@ -1918,6 +1990,7 @@ func TestResolverRequestHandler_RequestInterval(t *testing.T) {
 		100,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 	require.Equal(t, time.Second, rrh.RequestInterval())
 }
@@ -1939,6 +2012,7 @@ func TestResolverRequestHandler_NumPeersToQuery(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		_, _, err := rrh.GetNumPeersToQuery("key")
@@ -1971,6 +2045,7 @@ func TestResolverRequestHandler_NumPeersToQuery(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		intra, cross, err := rrh.GetNumPeersToQuery("key")
@@ -1996,6 +2071,7 @@ func TestResolverRequestHandler_IsInterfaceNil(t *testing.T) {
 		100,
 		0,
 		time.Second,
+		time.Millisecond,
 	)
 	require.False(t, rrh.IsInterfaceNil())
 }
@@ -2027,6 +2103,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
@@ -2046,6 +2123,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(1, providedHash)
@@ -2069,6 +2147,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			core.MetachainShardId,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
@@ -2092,6 +2171,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(1, providedHash)
@@ -2119,6 +2199,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			core.MetachainShardId,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
@@ -2145,6 +2226,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(0, providedHash)
@@ -2175,6 +2257,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			core.MetachainShardId,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(core.MetachainShardId, providedHash)
@@ -2204,6 +2287,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			0,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(0, providedHash)
@@ -2234,6 +2318,7 @@ func TestResolverRequestHandler_RequestEquivalentProofByHash(t *testing.T) {
 			100,
 			core.MetachainShardId,
 			time.Second,
+			time.Millisecond,
 		)
 
 		rrh.RequestEquivalentProofByHash(0, providedHash)
