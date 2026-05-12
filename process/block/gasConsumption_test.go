@@ -784,11 +784,7 @@ func TestGasConsumption_CrossShardStuck(t *testing.T) {
 
 	args.BlockTracker = &mock.BlockTrackerMock{
 		IsShardStuckCalled: func(shardId uint32) bool {
-			if shardId == stuckShard {
-				return true
-			}
-
-			return false
+			return shardId == stuckShard
 		},
 	}
 
