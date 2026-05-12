@@ -867,6 +867,8 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 			tpn.NodeKeys.MainKey.Sk,
 			tpn.MainMessenger.ID(),
 		),
+		tpn.DataPool.Proofs(),
+		tpn.EnableEpochsHandler,
 	)
 
 	if args.WithSync {
@@ -1095,6 +1097,8 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 			tpn.NodeKeys.MainKey.Sk,
 			tpn.MainMessenger.ID(),
 		),
+		tpn.DataPool.Proofs(),
+		tpn.EnableEpochsHandler,
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()

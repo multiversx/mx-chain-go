@@ -14,8 +14,9 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
-	"github.com/multiversx/mx-chain-go/state/disabled"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+
+	"github.com/multiversx/mx-chain-go/state/disabled"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -343,6 +344,8 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 			tpn.NodeKeys.MainKey.Sk,
 			tpn.MainMessenger.ID(),
 		),
+		tpn.DataPool.Proofs(),
+		tpn.EnableEpochsHandler,
 	)
 
 	if args.WithSync {
@@ -600,7 +603,7 @@ func (tpn *TestFullNode) initNode(
 }
 
 func (tfn *TestFullNode) createForkDetector(
-	startTime int64,
+	_ int64,
 	roundHandler consensus.RoundHandler,
 ) process.ForkDetector {
 	var err error
@@ -631,7 +634,7 @@ func (tfn *TestFullNode) createForkDetector(
 	return forkDetector
 }
 
-func (tfn *TestFullNode) createEpochStartTrigger(startTime int64) TestEpochStartTrigger {
+func (tfn *TestFullNode) createEpochStartTrigger(_ int64) TestEpochStartTrigger {
 	var epochTrigger TestEpochStartTrigger
 	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
@@ -753,6 +756,7 @@ func (tcn *TestFullNode) initInterceptors(
 		interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(interceptorContainerFactoryArgs)
 		if err != nil {
 			fmt.Println(err.Error())
+			return
 		}
 
 		tcn.MainInterceptorsContainer, _, err = interceptorContainerFactory.Create()
@@ -788,6 +792,7 @@ func (tcn *TestFullNode) initInterceptors(
 		interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(interceptorContainerFactoryArgs)
 		if err != nil {
 			fmt.Println(err.Error())
+			return
 		}
 
 		tcn.MainInterceptorsContainer, _, err = interceptorContainerFactory.Create()
@@ -800,7 +805,7 @@ func (tcn *TestFullNode) initInterceptors(
 func (tpn *TestFullNode) initBlockProcessor(
 	coreComponents *mock.CoreComponentsStub,
 	dataComponents *mock.DataComponentsStub,
-	args ArgsTestFullNode,
+	_ ArgsTestFullNode,
 	roundHandler consensus.RoundHandler,
 ) {
 	var err error
@@ -1041,7 +1046,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 func (tpn *TestFullNode) initBlockProcessorWithSync(
 	coreComponents *mock.CoreComponentsStub,
 	dataComponents *mock.DataComponentsStub,
-	roundHandler consensus.RoundHandler,
+	_ consensus.RoundHandler,
 ) {
 	var err error
 
