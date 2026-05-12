@@ -806,6 +806,250 @@ func TestMetaProcessor_ProcessBlockWithErrOnVerifyStateRootCallShouldRevertState
 	assert.True(t, wasCalled)
 }
 
+func TestMetaProcessor_ProcessBlock_MiniBlockChecks(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash1")
+	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
+
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
+		},
+	}
+
+	blkc := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.MetaBlock{Nonce: 0, AccumulatedFeesInEpoch: big.NewInt(0), DevFeesInEpoch: big.NewInt(0)}
+		},
+		GetCurrentBlockHeaderHashCalled: func() []byte {
+			return hash
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
+	}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	coreComponents.Hash = &hashingMocks.HasherMock{}
+	dataComponents.BlockChain = blkc
+	bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+		CreateCalled: func(epoch uint32) data.HeaderHandler {
+			return &block.MetaBlock{
+				Epoch: 0,
+			}
+		},
+	}
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = txCoordinator
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	t.Run("should work with valid miniblocks", func(t *testing.T) {
+		mb1 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: 1,
+			Type:            block.TxBlock,
+		}
+
+		mbHash, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, mb1)
+
+		metaBlock := &block.MetaBlock{
+			Nonce:                  1,
+			Round:                  1,
+			PrevHash:               hash,
+			AccumulatedFees:        big.NewInt(0),
+			AccumulatedFeesInEpoch: big.NewInt(0),
+			DeveloperFees:          big.NewInt(0),
+			DevFeesInEpoch:         big.NewInt(0),
+			TxCount:                1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash:            mbHash,
+					SenderShardID:   core.MetachainShardId,
+					ReceiverShardID: 1,
+					Type:            block.TxBlock,
+					TxCount:         1,
+				},
+			},
+		}
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				mb1,
+			},
+		}
+
+		err := mp.ProcessBlock(metaBlock, body, func() time.Duration { return time.Second })
+		require.Nil(t, err)
+	})
+
+	t.Run("non epoch start should not have rewards mb", func(t *testing.T) {
+		mb1 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: 1,
+			Type:            block.RewardsBlock,
+		}
+
+		mbHash, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, mb1)
+
+		metaBlock := &block.MetaBlock{
+			Nonce:                  1,
+			Round:                  1,
+			PrevHash:               hash,
+			AccumulatedFees:        big.NewInt(0),
+			AccumulatedFeesInEpoch: big.NewInt(0),
+			DeveloperFees:          big.NewInt(0),
+			DevFeesInEpoch:         big.NewInt(0),
+			TxCount:                1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash:            mbHash,
+					SenderShardID:   core.MetachainShardId,
+					ReceiverShardID: 1,
+					Type:            block.RewardsBlock,
+					TxCount:         1,
+				},
+			},
+		}
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				mb1,
+			},
+		}
+
+		err := mp.ProcessBlock(metaBlock, body, func() time.Duration { return time.Second })
+		require.Equal(t, process.ErrInvalidMiniBlockType, err)
+	})
+
+	t.Run("epoch start should have rewards or peer mb", func(t *testing.T) {
+		mb1 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: 1,
+			Type:            block.RewardsBlock,
+		}
+		mb2 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash2")},
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: core.AllShardId,
+			Type:            block.PeerBlock,
+		}
+
+		mbHash, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, mb1)
+		mbHash2, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, mb2)
+
+		metaBlock := &block.MetaBlock{
+			Nonce:                  1,
+			Round:                  1,
+			PrevHash:               hash,
+			AccumulatedFees:        big.NewInt(0),
+			AccumulatedFeesInEpoch: big.NewInt(0),
+			DeveloperFees:          big.NewInt(0),
+			DevFeesInEpoch:         big.NewInt(0),
+			TxCount:                1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash:            mbHash,
+					SenderShardID:   core.MetachainShardId,
+					ReceiverShardID: 1,
+					Type:            block.RewardsBlock,
+					TxCount:         1,
+				},
+				{
+					Hash:            mbHash2,
+					SenderShardID:   core.MetachainShardId,
+					ReceiverShardID: core.AllShardId,
+					Type:            block.PeerBlock,
+					TxCount:         1,
+				},
+			},
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{
+						ShardID: 1,
+					},
+				},
+			},
+		}
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				mb1,
+				mb2,
+			},
+		}
+
+		err := mp.ProcessBlock(metaBlock, body, func() time.Duration { return time.Second })
+		require.Nil(t, err)
+	})
+
+	t.Run("epoch start should not have other mb types", func(t *testing.T) {
+		mb1 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: 1,
+			Type:            block.TxBlock,
+		}
+		mb2 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash2")},
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: 1,
+			Type:            block.ReceiptBlock,
+		}
+
+		mbHash, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, mb1)
+		mbHash2, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, mb2)
+
+		metaBlock := &block.MetaBlock{
+			Nonce:                  1,
+			Round:                  1,
+			PrevHash:               hash,
+			AccumulatedFees:        big.NewInt(0),
+			AccumulatedFeesInEpoch: big.NewInt(0),
+			DeveloperFees:          big.NewInt(0),
+			DevFeesInEpoch:         big.NewInt(0),
+			TxCount:                1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash:            mbHash,
+					SenderShardID:   core.MetachainShardId,
+					ReceiverShardID: 1,
+					Type:            block.TxBlock,
+					TxCount:         1,
+				},
+				{
+					Hash:            mbHash2,
+					SenderShardID:   core.MetachainShardId,
+					ReceiverShardID: 1,
+					Type:            block.ReceiptBlock,
+					TxCount:         1,
+				},
+			},
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{
+						ShardID: 1,
+					},
+				},
+			},
+		}
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				mb1,
+				mb2,
+			},
+		}
+
+		err := mp.ProcessBlock(metaBlock, body, func() time.Duration { return time.Second })
+		require.Equal(t, process.ErrInvalidMiniBlockType, err)
+	})
+}
+
 // ------- requestFinalMissingHeader
 func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 	t.Parallel()
