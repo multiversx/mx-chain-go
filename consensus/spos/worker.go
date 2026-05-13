@@ -528,7 +528,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	isMessageWithInvalidSigners := wrk.consensusService.IsMessageWithInvalidSigners(msgType)
 
 	if isMessageWithBlockBody || isMessageWithBlockBodyAndHeader {
-		wrk.doJobOnMessageWithBlockBody(cnsMsg)
+		err = wrk.doJobOnMessageWithBlockBody(cnsMsg)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if isMessageWithBlockHeader || isMessageWithBlockBodyAndHeader {
@@ -579,8 +582,8 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 	return true
 }
 
-func (wrk *Worker) doJobOnMessageWithBlockBody(cnsMsg *consensus.Message) {
-	wrk.addBlockToPool(cnsMsg.GetBody())
+func (wrk *Worker) doJobOnMessageWithBlockBody(cnsMsg *consensus.Message) error {
+	return wrk.addBlockToPool(cnsMsg.GetBody())
 }
 
 func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
@@ -676,28 +679,30 @@ func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg
 	)
 }
 
-func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
+func (wrk *Worker) addBlockToPool(bodyBytes []byte) error {
 	bodyHandler := wrk.blockProcessor.DecodeBlockBody(bodyBytes)
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
-		return
+		return ErrInvalidBody
 	}
 
 	for _, miniblock := range body.MiniBlocks {
 		err := process.CheckMiniBlock(miniblock, wrk.shardCoordinator)
 		if err != nil {
 			log.Debug("addBlockToPool: invalid miniblock in received consensus body", "error", err.Error())
-			return
+			return err
 		}
 	}
 
 	for _, miniblock := range body.MiniBlocks {
 		hash, err := core.CalculateHash(wrk.marshalizer, wrk.hasher, miniblock)
 		if err != nil {
-			return
+			return err
 		}
 		wrk.poolAdder.Put(hash, miniblock, miniblock.Size())
 	}
+
+	return nil
 }
 
 func (wrk *Worker) processReceivedHeaderMetricForConsensusMessage(cnsDta *consensus.Message) {

@@ -60,7 +60,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		RevertCurrentBlockCalled: func() {
 		},
 		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
-			return nil
+			return &block.Body{}
 		},
 	}
 	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
@@ -563,6 +563,7 @@ func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	t.Parallel()
+
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -584,13 +585,76 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
+
 	msg := &p2pmocks.P2PMessageMock{
 		DataField:      buff,
 		PeerField:      currentPid,
 		SignatureField: []byte("signature"),
 	}
+
 	msgID, err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	assert.Nil(t, err)
+	assert.Len(t, msgID, 0)
+}
+
+func TestWorker_ProcessReceivedMessage_InvalidBody_ShouldFail(t *testing.T) {
+	t.Parallel()
+
+	blk := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				SenderShardID:   1,
+				ReceiverShardID: 2,
+				Type:            block.TxBlock,
+			},
+			&block.MiniBlock{
+				SenderShardID:   1, // invalid sender shard id
+				ReceiverShardID: 0,
+				Type:            block.RewardsBlock,
+			},
+		},
+	}
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	blockProcessor := &testscommon.BlockProcessorStub{
+		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
+			return blk
+		},
+	}
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	workerArgs.BlockProcessor = blockProcessor
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+	cnsMsg := consensus.NewConsensusMessage(
+		nil,
+		nil,
+		blkStr,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		signature,
+		int(bls.MtBlockBody),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+		nil,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+	time.Sleep(time.Second)
+
+	msg := &p2pmocks.P2PMessageMock{
+		DataField:      buff,
+		PeerField:      currentPid,
+		SignatureField: []byte("signature"),
+	}
+
+	msgID, err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	assert.ErrorIs(t, err, process.ErrInvalidShardId)
 	assert.Len(t, msgID, 0)
 }
 
