@@ -728,17 +728,6 @@ func (atp *apiTransactionProcessor) getApiResultFromObj(txObj interface{}, txTyp
 	return tx
 }
 
-// computeTimestampForRound will return the timestamp for the given round
-func (atp *apiTransactionProcessor) computeTimestampForRound(round uint64) int64 {
-	timestampSec, _ := atp.computeTimestampsForRound(round)
-	return timestampSec
-}
-
-func (atp *apiTransactionProcessor) computeTimestampForRoundAsMs(round uint64) int64 {
-	_, timestampMs := atp.computeTimestampsForRound(round)
-	return timestampMs
-}
-
 func (atp *apiTransactionProcessor) computeTimestampsForRound(round uint64) (int64, int64) {
 	if round == 0 {
 		return 0, 0

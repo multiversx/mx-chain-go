@@ -1949,26 +1949,7 @@ func TestPrepareUnsignedTx(t *testing.T) {
 	assert.Equal(t, scrResult2, expectedScr2)
 }
 
-func TestNode_ComputeTimestampForRound(t *testing.T) {
-	n, _, _, _ := createAPITransactionProc(t, 0, false)
-	n.roundHandler = &mock.RoundHandlerMock{
-		GetTimeStampForRoundCalled: func(round uint64) uint64 {
-			require.Equal(t, uint64(4837403), round)
-			return 1625142018000
-		},
-	}
-
-	res := n.computeTimestampForRound(0)
-	require.Equal(t, int64(0), res)
-
-	res = n.computeTimestampForRound(4837403)
-	require.Equal(t, int64(1625142018), res)
-
-	res = n.computeTimestampForRoundAsMs(4837403)
-	require.Equal(t, int64(1625142018000), res)
-}
-
-func TestNode_ComputeTimestampForRoundShouldUseRoundHandlerAfterSupernova(t *testing.T) {
+func TestNode_ComputeTimestampsForRoundShouldUseRoundHandler(t *testing.T) {
 	n, _, _, _ := createAPITransactionProc(t, 0, false)
 	n.roundHandler = &mock.RoundHandlerMock{
 		GetTimeStampForRoundCalled: func(round uint64) uint64 {
@@ -1977,7 +1958,11 @@ func TestNode_ComputeTimestampForRoundShouldUseRoundHandlerAfterSupernova(t *tes
 		},
 	}
 
-	timestampSec, timestampMs := n.computeTimestampsForRound(10395974)
+	timestampSec, timestampMs := n.computeTimestampsForRound(0)
+	require.Equal(t, int64(0), timestampSec)
+	require.Equal(t, int64(0), timestampMs)
+
+	timestampSec, timestampMs = n.computeTimestampsForRound(10395974)
 
 	require.Equal(t, int64(1778425406), timestampSec)
 	require.Equal(t, int64(1778425406400), timestampMs)
