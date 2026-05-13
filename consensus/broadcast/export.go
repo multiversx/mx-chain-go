@@ -88,8 +88,8 @@ func (dbb *delayedBlockBroadcaster) ProofReceived(proof data.HeaderProofHandler)
 
 // GetPendingMetaHeadersCount returns the number of pending meta headers
 func (dbb *delayedBlockBroadcaster) GetPendingMetaHeadersCount() int {
-	dbb.mutPendingMetaHeaders.Lock()
-	defer dbb.mutPendingMetaHeaders.Unlock()
+	dbb.mutPendingMetaHeaders.RLock()
+	defer dbb.mutPendingMetaHeaders.RUnlock()
 	return len(dbb.pendingMetaHeaders)
 }
 

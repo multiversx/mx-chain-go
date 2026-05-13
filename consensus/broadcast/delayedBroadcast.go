@@ -83,7 +83,7 @@ type delayedBlockBroadcaster struct {
 	// pendingMetaHeaders stores metachain headers waiting for proof arrival before broadcast.
 	// mutPendingMetaHeaders and mutDataForBroadcast are never held simultaneously.
 	pendingMetaHeaders        map[string]*pendingHeaderInfo
-	mutPendingMetaHeaders     sync.Mutex
+	mutPendingMetaHeaders     sync.RWMutex
 	cacheProcessedMetaHeaders storage.Cacher
 }
 
@@ -299,18 +299,13 @@ func (dbb *delayedBlockBroadcaster) headerReceived(headerHandler data.HeaderHand
 		return
 	}
 
-	if common.IsProofsFlagEnabledForHeader(dbb.enableEpochsHandler, headerHandler) {
-		if !dbb.proofsPool.HasProof(headerHandler.GetShardID(), headerHash) {
-			dbb.addPendingMetaHeader(headerHandler, headerHash)
-			log.Trace("delayedBlockBroadcaster.headerReceived: proof not yet available, deferring broadcast",
-				"headerHash", headerHash,
-				"nonce", headerHandler.GetNonce(),
-			)
-			return
-		}
+	if !common.IsProofsFlagEnabledForHeader(dbb.enableEpochsHandler, headerHandler) {
+		dbb.processMetachainHeader(headerHandler, headerHash)
+		return
 	}
 
-	dbb.processMetachainHeader(headerHandler, headerHash)
+	dbb.addPendingMetaHeader(headerHandler, headerHash)
+	dbb.tryProcessPendingMetaHeader(headerHash)
 }
 
 func (dbb *delayedBlockBroadcaster) proofReceived(proof data.HeaderProofHandler) {
@@ -322,24 +317,27 @@ func (dbb *delayedBlockBroadcaster) proofReceived(proof data.HeaderProofHandler)
 	}
 
 	headerHash := proof.GetHeaderHash()
-	hashStr := string(headerHash)
+	dbb.tryProcessPendingMetaHeader(headerHash)
 
 	dbb.mutPendingMetaHeaders.Lock()
-	pending, found := dbb.pendingMetaHeaders[hashStr]
-	if found {
-		delete(dbb.pendingMetaHeaders, hashStr)
-	}
 	dbb.evictPendingMetaHeadersUpToNonce(proof.GetHeaderNonce())
 	dbb.mutPendingMetaHeaders.Unlock()
+}
 
+func (dbb *delayedBlockBroadcaster) tryProcessPendingMetaHeader(headerHash []byte) {
+	dbb.mutPendingMetaHeaders.Lock()
+	hashStr := string(headerHash)
+	pending, found := dbb.pendingMetaHeaders[hashStr]
 	if !found {
+		dbb.mutPendingMetaHeaders.Unlock()
 		return
 	}
-
-	log.Trace("delayedBlockBroadcaster.proofReceived: proof arrived, triggering deferred broadcast",
-		"headerHash", headerHash,
-		"nonce", pending.nonce,
-	)
+	if !dbb.proofsPool.HasProof(core.MetachainShardId, headerHash) {
+		dbb.mutPendingMetaHeaders.Unlock()
+		return
+	}
+	delete(dbb.pendingMetaHeaders, hashStr)
+	dbb.mutPendingMetaHeaders.Unlock()
 
 	dbb.processMetachainHeader(pending.header, pending.hash)
 }
