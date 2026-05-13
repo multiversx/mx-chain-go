@@ -379,9 +379,9 @@ func TestInitConfigMetrics(t *testing.T) {
 
 	systemSmartContractsConfig := config.SystemSmartContractsConfig{
 		StakingSystemSCConfig: config.StakingSystemSCConfig{
-			UnBondPeriod:          250,
-			UnBondPeriodSupernova: 2500,
-			UnBondPeriodInEpochs:  3,
+			UnBondPeriod:          119,
+			UnBondPeriodSupernova: 120,
+			UnBondPeriodInEpochs:  121,
 		},
 	}
 
