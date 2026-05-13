@@ -101,21 +101,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	}
 
 	sdi.receivedDebugInterceptedData(interceptedData)
-	err = sdi.interceptedDataVerifier.Verify(interceptedData)
-	if err != nil {
-		sdi.throttler.EndProcessing()
-		sdi.processDebugInterceptedData(interceptedData, err)
-
-		isWrongVersion := errors.Is(err, process.ErrInvalidTransactionVersion) || errors.Is(err, process.ErrInvalidChainID)
-		if isWrongVersion {
-			// this situation is so severe that we need to black list de peers
-			reason := "wrong version of received intercepted data, topic " + sdi.topic + ", error " + err.Error()
-			sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
-			sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
-		}
-
-		return nil, err
-	}
 
 	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
 	isWhiteListed := sdi.whiteListRequest.IsWhiteListed(interceptedData)
@@ -141,7 +126,23 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 			"is white listed", isWhiteListed,
 		)
 
-		return messageID, nil
+		return messageID, process.ErrInterceptedDataNotForCurrentShard
+	}
+
+	err = sdi.interceptedDataVerifier.Verify(interceptedData)
+	if err != nil {
+		sdi.throttler.EndProcessing()
+		sdi.processDebugInterceptedData(interceptedData, err)
+
+		isWrongVersion := errors.Is(err, process.ErrInvalidTransactionVersion) || errors.Is(err, process.ErrInvalidChainID)
+		if isWrongVersion {
+			// this situation is so severe that we need to black list de peers
+			reason := "wrong version of received intercepted data, topic " + sdi.topic + ", error " + err.Error()
+			sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
+			sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
+		}
+
+		return nil, err
 	}
 
 	go func() {
