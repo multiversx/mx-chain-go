@@ -355,6 +355,9 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_relayed_transactions_v1_v2_disable_epoch":                         uint32(116),
 		"erd_tail_inflation_enable_epoch":                                      uint32(117),
 		"erd_supernova_enable_epoch":                                           uint32(118),
+		"erd_un_bond_period":                                                   uint32(119),
+		"erd_un_bond_period_supernova":                                         uint32(120),
+		"erd_un_bond_period_in_epochs":                                         uint32(121),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",
@@ -371,6 +374,14 @@ func TestInitConfigMetrics(t *testing.T) {
 			TailInflation: config.TailInflationSettings{
 				EnableEpoch: 117,
 			},
+		},
+	}
+
+	systemSmartContractsConfig := config.SystemSmartContractsConfig{
+		StakingSystemSCConfig: config.StakingSystemSCConfig{
+			UnBondPeriod:          250,
+			UnBondPeriodSupernova: 2500,
+			UnBondPeriodInEpochs:  3,
 		},
 	}
 
@@ -394,10 +405,10 @@ func TestInitConfigMetrics(t *testing.T) {
 		},
 	}
 
-	err := InitConfigMetrics(nil, cfg, economicsConfig, genesisNodesConfig, lastSnapshotTrieNodesConfig)
+	err := InitConfigMetrics(nil, cfg, economicsConfig, genesisNodesConfig, lastSnapshotTrieNodesConfig, systemSmartContractsConfig)
 	require.Equal(t, ErrNilAppStatusHandler, err)
 
-	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig, lastSnapshotTrieNodesConfig)
+	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig, lastSnapshotTrieNodesConfig, systemSmartContractsConfig)
 	require.Nil(t, err)
 
 	assert.Equal(t, len(expectedValues), len(keys))
@@ -416,7 +427,7 @@ func TestInitConfigMetrics(t *testing.T) {
 	expectedValues["erd_adaptivity"] = "false"
 	expectedValues["erd_hysteresis"] = "0.000000"
 
-	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig, lastSnapshotTrieNodesConfig)
+	err = InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig, lastSnapshotTrieNodesConfig, systemSmartContractsConfig)
 	require.Nil(t, err)
 
 	assert.Equal(t, expectedValues["erd_adaptivity"], keys["erd_adaptivity"])

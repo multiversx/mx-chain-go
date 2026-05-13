@@ -220,6 +220,9 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	sm.SetUInt64Value(common.MetricRoundsPerEpoch, uint64(144))
 	sm.SetStringValue(common.MetricAdaptivity, fmt.Sprintf("%t", true))
 	sm.SetStringValue(common.MetricHysteresis, fmt.Sprintf("%f", 0.0))
+	sm.SetUInt64Value(common.MetricUnBondPeriod, 150)
+	sm.SetUInt64Value(common.MetricUnBondPeriodSupernova, 1500)
+	sm.SetUInt64Value(common.MetricUnBondPeriodInEpochs, 7)
 
 	expectedConfig := map[string]interface{}{
 		"erd_chain_id":                      "local-id",
@@ -245,6 +248,9 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_max_gas_per_transaction":       uint64(15000),
 		"erd_adaptivity":                    "true",
 		"erd_hysteresis":                    "0.000000",
+		"erd_un_bond_period":                uint64(150),
+		"erd_un_bond_period_supernova":      uint64(1500),
+		"erd_un_bond_period_in_epochs":      uint64(7),
 	}
 
 	configMetrics, _ := sm.ConfigMetrics()

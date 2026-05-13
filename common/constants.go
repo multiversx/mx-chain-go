@@ -821,6 +821,15 @@ const (
 	// MetricSupernovaEnableEpoch represents the epoch when supernova is enabled
 	MetricSupernovaEnableEpoch = "erd_supernova_enable_epoch"
 
+	// MetricUnBondPeriod represents the unbond period in rounds from StakingSystemSCConfig
+	MetricUnBondPeriod = "erd_un_bond_period"
+
+	// MetricUnBondPeriodSupernova represents the unbond period in rounds for supernova from StakingSystemSCConfig
+	MetricUnBondPeriodSupernova = "erd_un_bond_period_supernova"
+
+	// MetricUnBondPeriodInEpochs represents the unbond period in epochs from StakingSystemSCConfig
+	MetricUnBondPeriodInEpochs = "erd_un_bond_period_in_epochs"
+
 	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
 	MetricEpochEnable = "erd_epoch_enable"
 
