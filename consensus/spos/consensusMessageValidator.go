@@ -500,16 +500,18 @@ func (cmv *consensusMessageValidator) isMessageTypeLimitReached(pk []byte, round
 
 	mapMsgType, ok := cmv.mapPkConsensusMessages[key]
 	if !ok {
-		cmv.addMessageTypeToPublicKey(pk, round, msgType)
-		return false
+		return cmv.checkLimitReached(0, pk, round, msgType)
 	}
 
 	numMsgType, ok := mapMsgType[msgType]
 	if !ok {
-		cmv.addMessageTypeToPublicKey(pk, round, msgType)
-		return false
+		return cmv.checkLimitReached(numMsgType, pk, round, msgType)
 	}
 
+	return cmv.checkLimitReached(numMsgType, pk, round, msgType)
+}
+
+func (cmv *consensusMessageValidator) checkLimitReached(numMsgType uint32, pk []byte, round int64, msgType consensus.MessageType) bool {
 	isLimitReached := numMsgType >= cmv.consensusService.GetMaxNumOfMessageTypeAccepted(msgType)
 	if !isLimitReached {
 		cmv.addMessageTypeToPublicKey(pk, round, msgType)
