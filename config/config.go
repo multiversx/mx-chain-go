@@ -35,9 +35,9 @@ type DBConfig struct {
 	UseTmpAsFilePath    bool
 	ShardIDProviderType string
 	NumShards           int32
-	// BloomFilterBtsPerKey == 0, the Bloom filter is disabled.
+	// BloomFilterBitsPerKey == 0, the Bloom filter is disabled.
 	// Otherwise, it specifies the number of bits per key used by the Bloom filter.
-	BloomFilterBtsPerKey int
+	BloomFilterBitsPerKey int
 }
 
 // StorageConfig will map the storage unit configuration
