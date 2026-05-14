@@ -531,8 +531,8 @@ func (cmv *consensusMessageValidator) addMessageTypeToPublicKey(pk []byte, round
 }
 
 func (cmv *consensusMessageValidator) removeMessageTypeToPublicKey(pk []byte, round int64, msgType consensus.MessageType) {
-	cmv.mutPkConsensusMessages.RLock()
-	defer cmv.mutPkConsensusMessages.RUnlock()
+	cmv.mutPkConsensusMessages.Lock()
+	defer cmv.mutPkConsensusMessages.Unlock()
 
 	key := fmt.Sprintf("%s_%d", string(pk), round)
 
