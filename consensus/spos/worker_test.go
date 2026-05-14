@@ -2550,6 +2550,8 @@ func TestWorker_Concurrency(t *testing.T) {
 				wrk.ResetInvalidSignersCache()
 			case 16:
 				wrk.StartWorking()
+			default:
+				require.Fail(t, "should have not been called")
 			}
 
 			wg.Done()
