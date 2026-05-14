@@ -103,7 +103,7 @@ func (g *grpcDriver) SetCurrentSettings(_ outportcore.OutportConfig) error {
 	return nil
 }
 
-// RegisterHandler does nothings
+// RegisterHandler does nothing
 func (g *grpcDriver) RegisterHandler(_ func() error, _ string) error {
 	return nil
 }
