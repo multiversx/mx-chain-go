@@ -825,7 +825,10 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 		msgType := consensus.MessageType(rcvDta.MsgType)
 
 		wrk.mutReceivedMessagesCalls.RLock()
-		if receivedMessageCallbacks, exist := wrk.receivedMessagesCalls[msgType]; exist {
+		receivedMessageCallbacks, exist := wrk.receivedMessagesCalls[msgType]
+		wrk.mutReceivedMessagesCalls.RUnlock()
+
+		if exist {
 			for _, callReceivedMessage := range receivedMessageCallbacks {
 				if callReceivedMessage(ctx, rcvDta) {
 					select {
@@ -835,7 +838,6 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 				}
 			}
 		}
-		wrk.mutReceivedMessagesCalls.RUnlock()
 
 		wrk.callReceivedHeaderCallbacks(rcvDta)
 	}

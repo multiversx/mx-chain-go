@@ -2511,6 +2511,10 @@ func TestCheckMiniBlock(t *testing.T) {
 		mb := &block.MiniBlock{SenderShardID: wrongShardId, ReceiverShardID: 1, Type: block.TxBlock}
 		err := process.CheckMiniBlock(mb, shardCoordinator)
 		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{SenderShardID: core.AllShardId, ReceiverShardID: 1, Type: block.TxBlock}
+		err = process.CheckMiniBlock(mb, shardCoordinator)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
 	})
 
 	t.Run("nil tx hash, should fail", func(t *testing.T) {
