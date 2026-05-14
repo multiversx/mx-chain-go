@@ -83,7 +83,9 @@ type Worker struct {
 	antifloodHandler consensus.P2PAntifloodHandler
 	poolAdder        PoolAdder
 
-	cancelFunc                func()
+	cancelFunc func()
+	mutWorker  sync.RWMutex
+
 	consensusMessageValidator *consensusMessageValidator
 	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 	peerBlacklistHandler      consensus.PeerBlacklistHandler
@@ -197,7 +199,11 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 // StartWorking actually starts the consensus working mechanism
 func (wrk *Worker) StartWorking() {
 	var ctx context.Context
+
+	wrk.mutWorker.Lock()
 	ctx, wrk.cancelFunc = context.WithCancel(context.Background())
+	wrk.mutWorker.Unlock()
+
 	go wrk.checkChannels(ctx)
 }
 
@@ -818,6 +824,7 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 
 		msgType := consensus.MessageType(rcvDta.MsgType)
 
+		wrk.mutReceivedMessagesCalls.RLock()
 		if receivedMessageCallbacks, exist := wrk.receivedMessagesCalls[msgType]; exist {
 			for _, callReceivedMessage := range receivedMessageCallbacks {
 				if callReceivedMessage(ctx, rcvDta) {
@@ -828,6 +835,7 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 				}
 			}
 		}
+		wrk.mutReceivedMessagesCalls.RUnlock()
 
 		wrk.callReceivedHeaderCallbacks(rcvDta)
 	}
@@ -943,9 +951,11 @@ func (wrk *Worker) Close() error {
 	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer wrk.closer.Close()
 
+	wrk.mutWorker.RLock()
 	if wrk.cancelFunc != nil {
 		wrk.cancelFunc()
 	}
+	wrk.mutWorker.RUnlock()
 
 	wrk.cleanChannels()
 

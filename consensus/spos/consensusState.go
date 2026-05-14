@@ -70,9 +70,12 @@ func NewConsensusState(
 
 // ResetConsensusRoundState method resets all the consensus round data (except messages received)
 func (cns *ConsensusState) ResetConsensusRoundState() {
+	cns.mutState.Lock()
 	cns.RoundCanceled = false
 	cns.ExtendedCalled = false
 	cns.WaitingAllSignaturesTimeOut = false
+	cns.mutState.Unlock()
+
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
 }
@@ -444,11 +447,17 @@ func (cns *ConsensusState) SetRoundTimeStamp(roundTimeStamp time.Time) {
 
 // GetExtendedCalled returns the state of the extended called
 func (cns *ConsensusState) GetExtendedCalled() bool {
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
+
 	return cns.ExtendedCalled
 }
 
 // SetExtendedCalled sets the state of the extended called
 func (cns *ConsensusState) SetExtendedCalled(extendedCalled bool) {
+	cns.mutState.Lock()
+	defer cns.mutState.Unlock()
+
 	cns.ExtendedCalled = extendedCalled
 }
 

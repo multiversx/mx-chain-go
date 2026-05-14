@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2496,4 +2497,64 @@ func TestWorker_ReceivedProof(t *testing.T) {
 		wrk.ReceivedProof(&block.HeaderProof{})
 		require.True(t, wasHandlerCalled)
 	})
+}
+
+func TestWorker_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	wg := sync.WaitGroup{}
+
+	numOperations := 500
+	wg.Add(numOperations)
+
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx {
+			case 0:
+				wrk.AddReceivedHeaderHandler(func(handler data.HeaderHandler) {})
+			case 1:
+				wrk.AddReceivedMessageCall(bls.MtBlockBody, nil)
+			case 2:
+				wrk.AddReceivedProofHandler(func(proof consensus.ProofHandler) {})
+			case 3:
+				_ = wrk.Close()
+			case 4:
+				wrk.DisplayStatistics()
+			case 5:
+				wrk.ExecuteStoredMessages()
+			case 6:
+				wrk.Extend(0)
+			case 7:
+				_ = wrk.GetConsensusStateChangedChannel()
+			case 8:
+				_, _ = wrk.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{}, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+			case 9:
+				wrk.ReceivedHeader(&block.Header{
+					ShardID: workerArgs.ShardCoordinator.SelfId(),
+					Round:   uint64(workerArgs.RoundHandler.Index()),
+				}, nil)
+			case 10:
+				wrk.ReceivedProof(&block.HeaderProof{})
+			case 11:
+				wrk.RemoveAllReceivedHeaderHandlers()
+			case 12:
+				wrk.RemoveAllReceivedMessagesCalls()
+			case 13:
+				wrk.ResetConsensusMessages()
+			case 14:
+				wrk.ResetConsensusRoundState()
+			case 15:
+				wrk.ResetInvalidSignersCache()
+			case 16:
+				wrk.StartWorking()
+			}
+
+			wg.Done()
+		}(i % 17)
+	}
+
+	wg.Wait()
 }
