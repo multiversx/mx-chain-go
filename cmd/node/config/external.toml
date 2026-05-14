@@ -43,7 +43,7 @@
     MarshallerType = "json"
 
 [[GRPCDriversConfig]]
-    Enabled = true
+    Enabled = false
     URL = "localhost:50051"
     MarshallerType = "json"
 
