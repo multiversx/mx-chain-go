@@ -235,15 +235,13 @@ func (mdi *MultiDataInterceptor) interceptedData(
 	}
 
 	isForCurrentShard := interceptedData.IsForCurrentShard()
-	shouldProcess := isForCurrentShard || isWhiteListed
-	if !shouldProcess {
+	if !isForCurrentShard {
 		log.Trace("intercepted data should not be processed",
 			"pid", p2p.MessageOriginatorPid(message),
 			"seq no", p2p.MessageOriginatorSeq(message),
 			"topic", message.Topic(),
 			"hash", interceptedData.Hash(),
 			"is for this shard", isForCurrentShard,
-			"is white listed", isWhiteListed,
 		)
 		return nil, process.ErrInterceptedDataNotForCurrentShard
 	}

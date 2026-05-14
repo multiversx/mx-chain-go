@@ -297,7 +297,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 		HashCalled: func() []byte {
 			return msgHash
@@ -355,7 +355,7 @@ func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr er
 			return expectedErr
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 	}
 
@@ -411,7 +411,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 		HashCalled: func() []byte {
 			return msgHash

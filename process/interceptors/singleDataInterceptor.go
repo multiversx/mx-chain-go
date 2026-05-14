@@ -114,8 +114,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	messageID := interceptedData.Hash()
 	isForCurrentShard := interceptedData.IsForCurrentShard()
-	shouldProcess := isForCurrentShard || isWhiteListed
-	if !shouldProcess {
+	if !isForCurrentShard {
 		sdi.throttler.EndProcessing()
 		log.Trace("intercepted data is for other shards",
 			"pid", p2p.MessageOriginatorPid(message),
@@ -123,7 +122,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 			"topic", message.Topic(),
 			"hash", interceptedData.Hash(),
 			"is for current shard", isForCurrentShard,
-			"is white listed", isWhiteListed,
 		)
 
 		return messageID, process.ErrInterceptedDataNotForCurrentShard
