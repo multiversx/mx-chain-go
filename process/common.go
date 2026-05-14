@@ -1145,33 +1145,36 @@ func CheckMiniBlock(
 	miniBlock *block.MiniBlock,
 	shardCoordinator sharding.Coordinator,
 ) error {
+	senderShard := miniBlock.GetSenderShardID()
+	receiverShard := miniBlock.GetReceiverShardID()
+
 	// shard id checks
-	receiverNotCurrentShard := miniBlock.ReceiverShardID >= shardCoordinator.NumberOfShards() &&
-		(miniBlock.ReceiverShardID != core.MetachainShardId && miniBlock.ReceiverShardID != core.AllShardId)
-	if receiverNotCurrentShard {
+	receiverShardInvalid := receiverShard >= shardCoordinator.NumberOfShards() &&
+		(receiverShard != core.MetachainShardId && receiverShard != core.AllShardId)
+	if receiverShardInvalid {
 		return fmt.Errorf("%w - receiver not for current shard: block type: %s, sender shard id: %d, receiver shard id: %d",
 			ErrInvalidShardId,
 			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
+			senderShard,
+			receiverShard)
 	}
 
-	senderNotCurrentShard := miniBlock.SenderShardID >= shardCoordinator.NumberOfShards() &&
-		miniBlock.SenderShardID != core.MetachainShardId
-	if senderNotCurrentShard {
+	senderShardInvalid := senderShard >= shardCoordinator.NumberOfShards() &&
+		senderShard != core.MetachainShardId
+	if senderShardInvalid {
 		return fmt.Errorf("%w - sender not for current shard: block type: %s, sender shard id: %d, receiver shard id: %d",
 			ErrInvalidShardId,
 			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
+			senderShard,
+			receiverShard)
 	}
 
-	if miniBlock.SenderShardID != shardCoordinator.SelfId() && miniBlock.GetReceiverShardID() != shardCoordinator.SelfId() && miniBlock.GetReceiverShardID() != core.AllShardId {
+	if senderShard != shardCoordinator.SelfId() && receiverShard != shardCoordinator.SelfId() && receiverShard != core.AllShardId {
 		return fmt.Errorf("%w - not valid shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
 			ErrInvalidShardId,
 			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
+			senderShard,
+			receiverShard)
 	}
 
 	err := checkMiniBlockByType(miniBlock, shardCoordinator)
