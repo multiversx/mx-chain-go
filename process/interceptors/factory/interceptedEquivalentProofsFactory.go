@@ -17,7 +17,8 @@ import (
 // ArgInterceptedEquivalentProofsFactory is the DTO used to create a new instance of interceptedEquivalentProofsFactory
 type ArgInterceptedEquivalentProofsFactory struct {
 	ArgInterceptedDataFactory
-	ProofsPool dataRetriever.ProofsPool
+	ProofsPool  dataRetriever.ProofsPool
+	HeadersPool dataRetriever.HeadersPool
 }
 
 type interceptedEquivalentProofsFactory struct {
@@ -25,6 +26,7 @@ type interceptedEquivalentProofsFactory struct {
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
+	headersPool       dataRetriever.HeadersPool
 	hasher            hashing.Hasher
 	proofSizeChecker  common.FieldsSizeChecker
 	km                sync.KeyRWMutexHandler
@@ -37,6 +39,7 @@ func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFa
 		shardCoordinator:  args.ShardCoordinator,
 		headerSigVerifier: args.HeaderSigVerifier,
 		proofsPool:        args.ProofsPool,
+		headersPool:       args.HeadersPool,
 		hasher:            args.CoreComponents.Hasher(),
 		proofSizeChecker:  args.CoreComponents.FieldsSizeChecker(),
 		km:                sync.NewKeyRWMutex(),
@@ -51,6 +54,7 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, _ core.Pe
 		ShardCoordinator:  factory.shardCoordinator,
 		HeaderSigVerifier: factory.headerSigVerifier,
 		Proofs:            factory.proofsPool,
+		HeadersPool:       factory.headersPool,
 		Hasher:            factory.hasher,
 		ProofSizeChecker:  factory.proofSizeChecker,
 		KeyRWMutexHandler: factory.km,
