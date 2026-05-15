@@ -39,6 +39,8 @@ require (
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
+replace github.com/multiversx/mx-chain-vm-common-go v1.6.6 => github.com/multiversx/mx-chain-vm-common-go-ghsa-7cf5-cp7g-c42h v1.6.7-0.20260515121036-1c5e258de15a
+
 require (
 	github.com/TwiN/go-color v1.1.0 // indirect
 	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
