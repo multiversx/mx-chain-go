@@ -386,8 +386,10 @@ func GetGeneralConfig() config.Config {
 			CheckNodesOnDisk:          false,
 		},
 		Antiflood: config.AntifloodConfig{
-			NumConcurrentResolverJobs:           2,
-			NumConcurrentResolvingTrieNodesJobs: 1,
+			NumConcurrentResolverJobs:            2,
+			NumConcurrentResolvingTrieNodesJobs:  1,
+			MaxAllowedTrieNodeChunks:             10,
+			TrieNodeChunksInactivityTimeoutInSec: 10,
 			TxAccumulator: config.TxAccumulatorConfig{
 				MaxAllowedTimeInMilliseconds:   10,
 				MaxDeviationTimeInMilliseconds: 1,
