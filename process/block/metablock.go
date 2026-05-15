@@ -308,6 +308,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
+	err = mp.verifyNonEpochStartMiniBlocks(header)
+	if err != nil {
+		return err
+	}
+
 	mp.txCoordinator.RequestBlockTransactions(body)
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs, requestedProofs := mp.requestShardHeaders(header)
 
@@ -550,6 +555,16 @@ func (mp *metaProcessor) verifyEpochStartMiniBlocks(metaBlock *block.MetaBlock) 
 	for _, miniBlockHeader := range metaBlock.MiniBlockHeaders {
 		if miniBlockHeader.GetType() != block.PeerBlock &&
 			miniBlockHeader.GetType() != block.RewardsBlock {
+			return process.ErrInvalidMiniBlockType
+		}
+	}
+
+	return nil
+}
+
+func (mp *metaProcessor) verifyNonEpochStartMiniBlocks(metaBlock *block.MetaBlock) error {
+	for _, miniBlockHeader := range metaBlock.MiniBlockHeaders {
+		if miniBlockHeader.GetType() == block.RewardsBlock {
 			return process.ErrInvalidMiniBlockType
 		}
 	}

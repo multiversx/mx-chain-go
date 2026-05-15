@@ -83,7 +83,9 @@ type Worker struct {
 	antifloodHandler consensus.P2PAntifloodHandler
 	poolAdder        PoolAdder
 
-	cancelFunc                func()
+	cancelFunc func()
+	mutWorker  sync.RWMutex
+
 	consensusMessageValidator *consensusMessageValidator
 	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 	peerBlacklistHandler      consensus.PeerBlacklistHandler
@@ -197,7 +199,11 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 // StartWorking actually starts the consensus working mechanism
 func (wrk *Worker) StartWorking() {
 	var ctx context.Context
+
+	wrk.mutWorker.Lock()
 	ctx, wrk.cancelFunc = context.WithCancel(context.Background())
+	wrk.mutWorker.Unlock()
+
 	go wrk.checkChannels(ctx)
 }
 
@@ -528,7 +534,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	isMessageWithInvalidSigners := wrk.consensusService.IsMessageWithInvalidSigners(msgType)
 
 	if isMessageWithBlockBody || isMessageWithBlockBodyAndHeader {
-		wrk.doJobOnMessageWithBlockBody(cnsMsg)
+		err = wrk.doJobOnMessageWithBlockBody(cnsMsg)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if isMessageWithBlockHeader || isMessageWithBlockBodyAndHeader {
@@ -579,8 +588,8 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 	return true
 }
 
-func (wrk *Worker) doJobOnMessageWithBlockBody(cnsMsg *consensus.Message) {
-	wrk.addBlockToPool(cnsMsg.GetBody())
+func (wrk *Worker) doJobOnMessageWithBlockBody(cnsMsg *consensus.Message) error {
+	return wrk.addBlockToPool(cnsMsg.GetBody())
 }
 
 func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
@@ -676,20 +685,30 @@ func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg
 	)
 }
 
-func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
+func (wrk *Worker) addBlockToPool(bodyBytes []byte) error {
 	bodyHandler := wrk.blockProcessor.DecodeBlockBody(bodyBytes)
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
-		return
+		return ErrInvalidBody
+	}
+
+	for _, miniblock := range body.MiniBlocks {
+		err := process.CheckMiniBlock(miniblock, wrk.shardCoordinator)
+		if err != nil {
+			log.Debug("addBlockToPool: invalid miniblock in received consensus body", "error", err.Error())
+			return err
+		}
 	}
 
 	for _, miniblock := range body.MiniBlocks {
 		hash, err := core.CalculateHash(wrk.marshalizer, wrk.hasher, miniblock)
 		if err != nil {
-			return
+			return err
 		}
 		wrk.poolAdder.Put(hash, miniblock, miniblock.Size())
 	}
+
+	return nil
 }
 
 func (wrk *Worker) processReceivedHeaderMetricForConsensusMessage(cnsDta *consensus.Message) {
@@ -805,7 +824,11 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 
 		msgType := consensus.MessageType(rcvDta.MsgType)
 
-		if receivedMessageCallbacks, exist := wrk.receivedMessagesCalls[msgType]; exist {
+		wrk.mutReceivedMessagesCalls.RLock()
+		receivedMessageCallbacks, exist := wrk.receivedMessagesCalls[msgType]
+		wrk.mutReceivedMessagesCalls.RUnlock()
+
+		if exist {
 			for _, callReceivedMessage := range receivedMessageCallbacks {
 				if callReceivedMessage(ctx, rcvDta) {
 					select {
@@ -930,9 +953,11 @@ func (wrk *Worker) Close() error {
 	// (just to close some go routines started as edge cases that would otherwise hang)
 	defer wrk.closer.Close()
 
+	wrk.mutWorker.RLock()
 	if wrk.cancelFunc != nil {
 		wrk.cancelFunc()
 	}
+	wrk.mutWorker.RUnlock()
 
 	wrk.cleanChannels()
 

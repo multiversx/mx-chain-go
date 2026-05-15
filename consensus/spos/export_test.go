@@ -186,6 +186,11 @@ func (wrk *Worker) SetEnableEpochsHandler(enableEpochsHandler common.EnableEpoch
 	wrk.enableEpochsHandler = enableEpochsHandler
 }
 
+// AddBlockToPool -
+func (wrk *Worker) AddBlockToPool(bodyBytes []byte) {
+	wrk.addBlockToPool(bodyBytes)
+}
+
 // AddFutureHeaderToProcessIfNeeded -
 func (wrk *Worker) AddFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
 	wrk.addFutureHeaderToProcessIfNeeded(header)

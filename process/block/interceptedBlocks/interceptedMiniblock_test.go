@@ -86,7 +86,7 @@ func TestInterceptedMiniblock_InvalidReceiverShardIdShouldErr(t *testing.T) {
 
 	err := inMb.CheckValidity()
 
-	assert.Equal(t, process.ErrInvalidShardId, err)
+	assert.ErrorIs(t, err, process.ErrInvalidShardId)
 }
 
 func TestInterceptedMiniblock_InvalidSenderShardIdShouldErr(t *testing.T) {
@@ -103,7 +103,7 @@ func TestInterceptedMiniblock_InvalidSenderShardIdShouldErr(t *testing.T) {
 
 	err := inMb.CheckValidity()
 
-	assert.Equal(t, process.ErrInvalidShardId, err)
+	assert.ErrorIs(t, err, process.ErrInvalidShardId)
 }
 
 func TestInterceptedMiniblock_ContainsNilHashShouldErr(t *testing.T) {
