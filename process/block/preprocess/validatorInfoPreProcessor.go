@@ -259,7 +259,7 @@ func (vip *validatorInfoPreprocessor) ProcessMiniBlock(
 	if miniBlock.Type != block.PeerBlock {
 		return nil, indexOfLastTxProcessed, false, process.ErrWrongTypeInMiniBlock
 	}
-	if miniBlock.SenderShardID != core.MetachainShardId {
+	if miniBlock.SenderShardID != core.MetachainShardId || miniBlock.ReceiverShardID != core.AllShardId {
 		return nil, indexOfLastTxProcessed, false, process.ErrValidatorInfoMiniBlockNotFromMeta
 	}
 

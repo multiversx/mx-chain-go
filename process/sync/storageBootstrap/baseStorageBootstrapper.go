@@ -409,6 +409,11 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		st.blockTracker.AddTrackedHeader(header, bootInfos[i].LastHeader.Hash)
 	}
 
+	err = st.bootstrapper.completeSelfNotarizedHeaders(bootInfos[0].LastHeader.Hash)
+	if err != nil {
+		return err
+	}
+
 	if len(bootInfos) == 1 {
 		st.forkDetector.SetFinalToLastCheckpoint()
 	}

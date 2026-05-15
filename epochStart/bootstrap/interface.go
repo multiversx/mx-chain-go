@@ -73,3 +73,9 @@ type ProofsPool interface {
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsInterfaceNil() bool
 }
+
+// HeadersPool defines what a headers pool structure can perform
+type HeadersPool interface {
+	AddHeader(headerHash []byte, header data.HeaderHandler)
+	IsInterfaceNil() bool
+}

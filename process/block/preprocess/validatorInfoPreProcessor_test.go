@@ -222,7 +222,7 @@ func TestNewValidatorInfoPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	txHashes := make([][]byte, 0)
 	mb1 := block.MiniBlock{
 		TxHashes:        txHashes,
-		ReceiverShardID: 1,
+		ReceiverShardID: core.AllShardId,
 		SenderShardID:   core.MetachainShardId,
 		Type:            block.PeerBlock,
 	}
