@@ -213,6 +213,11 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 	return sicf.mainContainer, sicf.fullArchiveContainer, nil
 }
 
+// AddShardTrieNodeInterceptors returns nil
+func (sicf *shardInterceptorsContainerFactory) AddShardTrieNodeInterceptors(_ process.InterceptorsContainer) error {
+	return nil
+}
+
 func (sicf *shardInterceptorsContainerFactory) generateTrieNodesInterceptors() error {
 	shardC := sicf.shardCoordinator
 

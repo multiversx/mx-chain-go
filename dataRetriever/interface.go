@@ -85,6 +85,7 @@ type RequestersFinder interface {
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	AddShardTrieNodeResolvers(container ResolversContainer) error
 	IsInterfaceNil() bool
 }
 
@@ -117,6 +118,7 @@ type RequestersContainer interface {
 // RequestersContainerFactory defines the functionality to create a requesters container
 type RequestersContainerFactory interface {
 	Create() (RequestersContainer, error)
+	AddShardTrieNodeRequesters(container RequestersContainer) error
 	IsInterfaceNil() bool
 }
 

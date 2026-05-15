@@ -115,7 +115,12 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		InterceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 	}
 
-	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
+	var interceptorsContainerFactory process.InterceptorsContainerFactory
+	if args.ShardCoordinator.SelfId() == core.MetachainShardId {
+		interceptorsContainerFactory, err = interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
+	} else {
+		interceptorsContainerFactory, err = interceptorscontainer.NewShardInterceptorsContainerFactory(containerFactoryArgs)
+	}
 	if err != nil {
 		return nil, nil, err
 	}

@@ -407,6 +407,7 @@ type InterceptorsContainer interface {
 // InterceptorsContainerFactory defines the functionality to create an interceptors container
 type InterceptorsContainerFactory interface {
 	Create() (InterceptorsContainer, InterceptorsContainer, error)
+	AddShardTrieNodeInterceptors(container InterceptorsContainer) error
 	IsInterfaceNil() bool
 }
 
