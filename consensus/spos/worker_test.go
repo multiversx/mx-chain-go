@@ -607,10 +607,30 @@ func TestWorker_ProcessReceivedMessageRedundancyNodeShouldResetInactivityIfNeede
 		},
 	}
 	wrk.SetNodeRedundancyHandler(nodeRedundancyMock)
-	buff, _ := wrk.Marshalizer().Marshal(&consensus.Message{})
+	hdr := &block.Header{ChainID: chainID}
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
+	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	cnsMsg := consensus.NewConsensusMessage(
+		hdrHash,
+		nil,
+		nil,
+		hdrStr,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		signature,
+		int(bls.MtBlockHeader),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+		nil,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	_, _ = wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
 			DataField:      buff,
+			PeerField:      currentPid,
 			SignatureField: []byte("signature"),
 		},
 		fromConnectedPeerId,

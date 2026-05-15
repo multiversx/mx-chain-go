@@ -138,6 +138,7 @@ func createMockArgument(
 		SignaturesHandler:            &processMocks.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerID:                       "pid",
+		PeerShardMapper:              &processMocks.PeerShardMapperStub{},
 	}
 }
 

@@ -504,6 +504,11 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		return nil, err
 	}
 
+	err = wrk.checkValidityAndProcessFinalInfo(cnsMsg, message)
+	if err != nil {
+		return nil, err
+	}
+
 	wrk.consensusState.ResetRoundsWithoutReceivedMessages(cnsMsg.GetPubKey(), message.Peer())
 
 	if wrk.nodeRedundancyHandler.IsRedundancyNode() {
@@ -512,11 +517,6 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 			string(cnsMsg.PubKey),
 			message.Peer(),
 		)
-	}
-
-	err = wrk.checkValidityAndProcessFinalInfo(cnsMsg, message)
-	if err != nil {
-		return nil, err
 	}
 
 	wrk.networkShardingCollector.UpdatePeerIDInfo(message.Peer(), cnsMsg.PubKey, wrk.shardCoordinator.SelfId())
