@@ -83,6 +83,10 @@ func (mock *ShardedDataCacheNotifierMock) ImmunizeSetOfDataAgainstEviction(_ [][
 func (mock *ShardedDataCacheNotifierMock) SetOldestImmuneNonce(_ string, _ uint64) {
 }
 
+// SetOldestImmuneNonceForAllCaches -
+func (mock *ShardedDataCacheNotifierMock) SetOldestImmuneNonceForAllCaches(_ uint64) {
+}
+
 // RemoveDataFromAllShards -
 func (mock *ShardedDataCacheNotifierMock) RemoveDataFromAllShards(key []byte) {
 	mock.mutCaches.RLock()

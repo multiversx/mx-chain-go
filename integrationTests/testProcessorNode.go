@@ -2284,6 +2284,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			},
 		},
 		BlockTracker:                 tpn.BlockTracker,
+		MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
 		BlockSizeThrottler:           TestBlockSizeThrottler,
 		HistoryRepository:            tpn.HistoryRepository,
 		GasHandler:                   tpn.GasHandler,

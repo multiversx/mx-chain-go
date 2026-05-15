@@ -10,8 +10,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 var timeoutWaitForWaitGroups = time.Second * 2
@@ -112,7 +113,7 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 
 	wg.Wait()
 
-	//checking
+	// checking
 	for i := 0; i < vals; i++ {
 		key := []byte(strconv.Itoa(i))
 		assert.True(t, sd.shardStore("1").cache.Has(key), fmt.Sprintf("for val %d", i))
@@ -271,10 +272,10 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 
 	sd, _ := NewShardedData("", defaultTestConfig)
 
-	//first add, no call
+	// first add, no call
 	sd.AddData([]byte("aaaa"), "bbbb", 4, "0")
 	sd.RegisterOnAdded(f)
-	//second add, should not call as the data was found
+	// second add, should not call as the data was found
 	sd.AddData([]byte("aaaa"), "bbbb", 4, "0")
 
 	select {
