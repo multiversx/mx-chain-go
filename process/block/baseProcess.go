@@ -2426,3 +2426,14 @@ func (bp *baseProcessor) checkReceivedProofIfAttestingIsNeeded(proof data.Header
 		bp.chRcvAllHdrs <- true
 	}
 }
+
+func (bp *baseProcessor) verifyNonEpochStartMiniBlocks(header data.HeaderHandler) error {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeader.GetTypeInt32() == int32(block.RewardsBlock) ||
+			miniBlockHeader.GetTypeInt32() == int32(block.PeerBlock) {
+			return process.ErrInvalidMiniBlockType
+		}
+	}
+
+	return nil
+}
