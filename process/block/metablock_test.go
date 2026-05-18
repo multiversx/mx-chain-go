@@ -968,6 +968,46 @@ func TestMetaProcessor_ProcessBlock_MiniBlockChecks(t *testing.T) {
 		require.Equal(t, process.ErrInvalidMiniBlockType, err)
 	})
 
+	t.Run("non epoch start should not have peer mb", func(t *testing.T) {
+		mb1 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: 1,
+			Type:            block.PeerBlock,
+		}
+
+		mbHash, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, mb1)
+
+		metaBlock := &block.MetaBlock{
+			Nonce:                  1,
+			Round:                  1,
+			PrevHash:               hash,
+			AccumulatedFees:        big.NewInt(0),
+			AccumulatedFeesInEpoch: big.NewInt(0),
+			DeveloperFees:          big.NewInt(0),
+			DevFeesInEpoch:         big.NewInt(0),
+			TxCount:                1,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash:            mbHash,
+					SenderShardID:   core.MetachainShardId,
+					ReceiverShardID: 1,
+					Type:            block.PeerBlock,
+					TxCount:         1,
+				},
+			},
+		}
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				mb1,
+			},
+		}
+
+		err := mp.ProcessBlock(metaBlock, body, func() time.Duration { return time.Second })
+		require.Equal(t, process.ErrInvalidMiniBlockType, err)
+	})
+
 	t.Run("epoch start should have rewards or peer mb", func(t *testing.T) {
 		mb1 := &block.MiniBlock{
 			TxHashes:        [][]byte{[]byte("txHash1")},

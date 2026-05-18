@@ -567,6 +567,10 @@ func (mp *metaProcessor) verifyNonEpochStartMiniBlocks(metaBlock *block.MetaBloc
 		if miniBlockHeader.GetType() == block.RewardsBlock {
 			return process.ErrInvalidMiniBlockType
 		}
+
+		if miniBlockHeader.GetType() == block.PeerBlock {
+			return process.ErrInvalidMiniBlockType
+		}
 	}
 
 	return nil
