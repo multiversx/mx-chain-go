@@ -363,6 +363,35 @@ func TestShardedTxPool_ImmunizeSetOfDataAgainstEviction(t *testing.T) {
 	pool.SetOldestImmuneNonce("0", 7)
 }
 
+func TestShardedTxPool_SetOldestImmuneNonceForAllCaches(t *testing.T) {
+	t.Parallel()
+
+	poolAsInterface, _ := newTxPoolToTest()
+	pool := poolAsInterface.(*shardedTxPool)
+
+	cacheIDs := []string{"0", "1_0", "2_0"}
+	received := make(map[string]uint64)
+	var mu sync.Mutex
+	for _, id := range cacheIDs {
+		idCopy := id
+		mock := txcachemocks.NewTxCacheStub()
+		mock.SetOldestImmuneNonceCalled = func(nonce uint64) {
+			mu.Lock()
+			received[idCopy] = nonce
+			mu.Unlock()
+		}
+		pool.backingMap[id] = &txPoolShard{CacheID: id, Cache: mock}
+	}
+
+	pool.SetOldestImmuneNonceForAllCaches(42)
+
+	require.Equal(t, len(cacheIDs), len(pool.backingMap), "no new caches should be created")
+	require.Equal(t, len(cacheIDs), len(received), "every cache should receive the threshold once")
+	for _, id := range cacheIDs {
+		require.Equal(t, uint64(42), received[id], "cache %s did not receive the threshold", id)
+	}
+}
+
 func Test_IsInterfaceNil(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	require.False(t, check.IfNil(poolAsInterface))

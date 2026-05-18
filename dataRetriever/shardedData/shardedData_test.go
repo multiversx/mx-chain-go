@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	cacheStubs "github.com/multiversx/mx-chain-go/testscommon/cache"
 )
 
 var timeoutWaitForWaitGroups = time.Second * 2
@@ -333,6 +334,36 @@ func TestShardedData_ImmunizeSetOfDataAgainstEviction(t *testing.T) {
 	sd, _ := NewShardedData("", defaultTestConfig)
 	sd.ImmunizeSetOfDataAgainstEviction([][]byte{[]byte("aaa")}, "0", 7)
 	sd.SetOldestImmuneNonce("0", 7)
+}
+
+func TestShardedData_SetOldestImmuneNonceForAllCaches(t *testing.T) {
+	t.Parallel()
+
+	sd, _ := NewShardedData("", defaultTestConfig)
+
+	cacheIDs := []string{"0", "1", "2_0"}
+	received := make(map[string]uint64)
+	var mu sync.Mutex
+	for _, id := range cacheIDs {
+		idCopy := id
+		spy := &cacheStubs.ImmunityCacheSpy{
+			CacherStub: cacheStubs.NewCacherStub(),
+			SetOldestImmuneNonceCalled: func(nonce uint64) {
+				mu.Lock()
+				received[idCopy] = nonce
+				mu.Unlock()
+			},
+		}
+		sd.shardedDataStore[id] = &shardStore{cacheID: id, cache: spy}
+	}
+
+	sd.SetOldestImmuneNonceForAllCaches(42)
+
+	assert.Equal(t, len(cacheIDs), len(sd.shardedDataStore), "no new stores should be created")
+	assert.Equal(t, len(cacheIDs), len(received), "every store should receive the threshold once")
+	for _, id := range cacheIDs {
+		assert.Equal(t, uint64(42), received[id], "store %s did not receive the threshold", id)
+	}
 }
 
 func TestShardedData_GetCounts(t *testing.T) {
