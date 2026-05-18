@@ -209,4 +209,4 @@ require (
 
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
 
-replace github.com/multiversx/mx-chain-storage-go => github.com/multiversx/mx-chain-storage-go-private v0.0.0-20260513084840-22d627716370
+replace github.com/multiversx/mx-chain-storage-go => github.com/multiversx/mx-chain-storage-go-private v0.0.0-20260515145423-6fa5d611f6b6

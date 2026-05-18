@@ -14,8 +14,9 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
-	"github.com/multiversx/mx-chain-go/state/disabled"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+
+	"github.com/multiversx/mx-chain-go/state/disabled"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -845,6 +846,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 			},
 		},
 		BlockTracker:                 tpn.BlockTracker,
+		MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
 		BlockSizeThrottler:           TestBlockSizeThrottler,
 		HistoryRepository:            tpn.HistoryRepository,
 		GasHandler:                   tpn.GasHandler,
@@ -1086,6 +1088,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 			},
 		},
 		BlockTracker:                 tpn.BlockTracker,
+		MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
 		BlockSizeThrottler:           TestBlockSizeThrottler,
 		HistoryRepository:            tpn.HistoryRepository,
 		GasHandler:                   tpn.GasHandler,
