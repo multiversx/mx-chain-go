@@ -387,17 +387,6 @@ func (sp *shardProcessor) ProcessBlock(
 	return nil
 }
 
-func (sp *shardProcessor) verifyNonEpochStartMiniBlocks(header data.HeaderHandler) error {
-	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
-		if miniBlockHeader.GetTypeInt32() == int32(block.RewardsBlock) ||
-			miniBlockHeader.GetTypeInt32() == int32(block.PeerBlock) {
-			return process.ErrInvalidMiniBlockType
-		}
-	}
-
-	return nil
-}
-
 func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
 	if !header.IsStartOfEpochBlock() {
 		return nil
