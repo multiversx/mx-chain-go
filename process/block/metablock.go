@@ -562,6 +562,17 @@ func (mp *metaProcessor) verifyEpochStartMiniBlocks(metaBlock *block.MetaBlock) 
 	return nil
 }
 
+func (mp *metaProcessor) verifyNonEpochStartMiniBlocks(header data.HeaderHandler) error {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeader.GetTypeInt32() == int32(block.RewardsBlock) ||
+			miniBlockHeader.GetTypeInt32() == int32(block.PeerBlock) {
+			return process.ErrInvalidMiniBlockType
+		}
+	}
+
+	return nil
+}
+
 // SetNumProcessedObj will set the num of processed headers
 func (mp *metaProcessor) SetNumProcessedObj(numObj uint64) {
 	mp.headersCounter.shardMBHeadersTotalProcessed = numObj
