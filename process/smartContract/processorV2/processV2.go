@@ -1105,9 +1105,9 @@ func (sc *scProcessor) extractAsyncCallParamsFromTxData(data string) (*vmcommon.
 		return nil, nil, err
 	}
 
-	if len(args) < 2 {
+	if len(args) < 3 {
 		log.Trace("scProcessor.createSCRsWhenError()", "no async params found", data)
-		return nil, nil, err
+		return nil, nil, process.ErrInvalidAsyncArguments
 	}
 
 	callIDIndex := len(args) - 3
@@ -1281,16 +1281,22 @@ func (sc *scProcessor) prepareExecutionAfterBuiltInFunc(
 		newVMInput.ESDTTransfers = in.parsedTransfer.ESDTTransfers
 	}
 
-	newDestSC, err := sc.getAccountFromAddress(in.vmInput.RecipientAddr)
+	newDestSC, err := sc.getAccountFromAddress(newVMInput.RecipientAddr)
 	if err != nil {
-		in.failureContext.setMessages(err.Error(), []byte(""))
-		return newVMInput, newDestSC, nil
+		if !sc.enableEpochsHandler.IsFlagEnabled(common.ConsumedGasInEconomicsFlag) {
+			in.failureContext.setMessages(err.Error(), []byte(""))
+			return newVMInput, newDestSC, nil
+		}
+		return nil, nil, err
 	}
 	err = sc.checkUpgradePermission(newDestSC, newVMInput)
 	if err != nil {
 		log.Debug("checkUpgradePermission", "error", err.Error())
-		in.failureContext.setMessages(err.Error(), []byte(""))
-		return newVMInput, newDestSC, nil
+		if !sc.enableEpochsHandler.IsFlagEnabled(common.ConsumedGasInEconomicsFlag) {
+			in.failureContext.setMessages(err.Error(), []byte(""))
+			return newVMInput, newDestSC, nil
+		}
+		return nil, nil, err
 	}
 
 	return newVMInput, newDestSC, nil
@@ -1517,11 +1523,15 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 		log.Debug("scProcessor.ProcessIfError() save log", "error", ignorableError.Error())
 	}
 
-	txType, _, _ := sc.txTypeHandler.ComputeTransactionType(tx)
-	isCrossShardMoveBalance := txType == process.MoveBalance && check.IfNil(acntSnd)
+	sndTxType, dstTxType, _ := sc.txTypeHandler.ComputeTransactionType(tx)
+	isCrossShardMoveBalance := sndTxType == process.MoveBalance && check.IfNil(acntSnd)
 	if isCrossShardMoveBalance {
 		// move balance was already consumed in sender shard
 		return nil
+	}
+	if sc.enableEpochsHandler.IsFlagEnabled(common.ConsumedGasInEconomicsFlag) &&
+		sndTxType == process.MoveBalance && dstTxType == process.MoveBalance {
+		consumedFee = sc.economicsFee.ComputeMoveBalanceFee(tx)
 	}
 
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), failureContext.txHash)
@@ -2031,7 +2041,10 @@ func (sc *scProcessor) processVMOutput(
 
 	errCheck := sc.checkSCRSizeInvariant(scrTxs)
 	if errCheck != nil {
-		return nil, err
+		if !sc.enableEpochsHandler.IsFlagEnabled(common.ConsumedGasInEconomicsFlag) {
+			return nil, err
+		}
+		return nil, errCheck
 	}
 
 	return scrTxs, nil
@@ -2223,6 +2236,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		PrevTxHash:    txHash,
 		ReturnMessage: returnMessage,
 	}
+	consumedFee := sc.economicsFee.ComputeTxFee(tx)
 
 	txData := tx.GetData()
 	var asyncArgs *vmcommon.AsyncArguments
@@ -2230,7 +2244,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		var err error
 		asyncArgs, txData, err = sc.extractAsyncCallParamsFromTxData(string(txData))
 		if err != nil {
-			return nil, nil
+			return scr, consumedFee
 		}
 	}
 
@@ -2239,8 +2253,6 @@ func (sc *scProcessor) createSCRsWhenError(
 	if callType != vmData.AsynchronousCallBack && isCrossShardESDTCall {
 		accumulatedSCRData += esdtReturnData
 	}
-
-	consumedFee := sc.economicsFee.ComputeTxFee(tx)
 
 	if callType == vmData.AsynchronousCall {
 		scr.CallType = vmData.AsynchronousCallBack
@@ -2256,7 +2268,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		var err error
 		accumulatedSCRData, err = sc.reAppendAsyncParamsToTxCallbackData(accumulatedSCRData, isCrossShardESDTCall, asyncArgs)
 		if err != nil {
-			return nil, nil
+			return scr, consumedFee
 		}
 	} else {
 		accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode))
@@ -2795,7 +2807,6 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 	returnCode := vmcommon.UserError
 	txHash, err := core.CalculateHash(sc.marshalizer, sc.hasher, scr)
 	if err != nil {
-		log.Debug("CalculateHash error", "error", err)
 		return returnCode, err
 	}
 

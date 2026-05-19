@@ -424,13 +424,6 @@ func (s *simulator) allNodesCreateBlocks() error {
 			return err
 		}
 
-		if !check.IfNil(pair.Proof) {
-			err = s.nodes[shardID].GetBroadcastMessenger().BroadcastEquivalentProof(pair.Proof, pair.LeaderKey)
-			if err != nil {
-				return err
-			}
-		}
-
 		err = messenger.BroadcastMiniBlocks(pair.MiniBlocksBytes, pair.LeaderKey)
 		if err != nil {
 			return err
@@ -439,6 +432,14 @@ func (s *simulator) allNodesCreateBlocks() error {
 		err = messenger.BroadcastTransactions(pair.TransactionsBytes, pair.LeaderKey)
 		if err != nil {
 			return err
+		}
+
+		if !check.IfNil(pair.Proof) {
+			time.Sleep(time.Millisecond * 5) // small delay to ensure proof is not dropped as being received before header
+			err = s.nodes[shardID].GetBroadcastMessenger().BroadcastEquivalentProof(pair.Proof, pair.LeaderKey)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
