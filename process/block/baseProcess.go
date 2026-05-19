@@ -970,7 +970,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 
 		mbHashStr := string(mbHash)
 		mbHdr, ok := mbHashesFromHdr[mbHashStr]
-		if !ok {
+		if !ok || !bytes.Equal(miniBlockHeaders[i].GetHash(), mbHash) {
 			return process.ErrHeaderBodyMismatch
 		}
 
