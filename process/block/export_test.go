@@ -344,6 +344,11 @@ func (mp *metaProcessor) GetDataPool() dataRetriever.PoolsHolder {
 	return mp.dataPool
 }
 
+// AddHdrHashToRequestedList -
+func (mp *metaProcessor) AddHdrHashToRequestedList(hdr data.HeaderHandler, hdrHash []byte) {
+	mp.hdrsForCurrBlock.AddHeaderUsedInBlock(string(hdrHash), hdr)
+}
+
 // IsHdrMissing -
 func (mp *metaProcessor) IsHdrMissing(hdrHash []byte) bool {
 	hdrInfoValue, ok := mp.hdrsForCurrBlock.GetHeaderInfo(string(hdrHash))
@@ -635,7 +640,7 @@ func (mp *metaProcessor) CreateEpochStartBody(metaBlock *block.MetaBlock) (data.
 }
 
 // GetIndexOfFirstMiniBlockToBeExecuted -
-func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
+func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) (int, error) {
 	return bp.getIndexOfFirstMiniBlockToBeExecuted(header)
 }
 
@@ -791,6 +796,16 @@ func DisplayHeader(
 	headerProof data.HeaderProofHandler,
 ) []*display.LineData {
 	return displayHeader(headerHandler, headerProof)
+}
+
+// VerifyShardDataAgainstHeaders -
+func (mp *metaProcessor) VerifyShardDataAgainstHeaders(metaHdr *block.MetaBlock) error {
+	return mp.verifyShardDataAgainstHeaders(metaHdr)
+}
+
+// BuildShardDataFromHeader -
+func (mp *metaProcessor) BuildShardDataFromHeader(shardHdr data.ShardHeaderHandler, headerHash []byte) block.ShardData {
+	return mp.buildShardDataFromHeader(shardHdr, headerHash)
 }
 
 // CreateBaseProcessorWithMockedTracker -

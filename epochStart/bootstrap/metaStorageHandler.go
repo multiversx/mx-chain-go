@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -111,7 +110,7 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 
 	msh.saveMiniblocksFromComponents(components)
 
-	miniBlocks, err := msh.groupMiniBlocksByShard(components.PendingMiniBlocks)
+	miniBlocks, err := computePendingMiniBlocks(components)
 	if err != nil {
 		return err
 	}
@@ -206,6 +205,107 @@ func (msh *metaStorageHandler) getLastSelfNotarizedHeaders(
 	lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, bootstrapHdrInfoMeta)
 
 	return lastSelfNotarizedHeaders, nil
+}
+
+func (msh *metaStorageHandler) saveIntermediateMetaBlocksToStorage(
+	epochStartMeta data.MetaHeaderHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) error {
+	prevHash := epochStartMeta.GetPrevHash()
+
+	for len(prevHash) > 0 {
+		metaBlock, ok := syncedHeaders[string(prevHash)]
+		if !ok {
+			break
+		}
+
+		_, err := msh.saveMetaHdrToStorage(metaBlock)
+		if err != nil {
+			return err
+		}
+
+		if metaBlock.GetNonce() == 0 {
+			break
+		}
+
+		prevHash = metaBlock.GetPrevHash()
+	}
+
+	return nil
+}
+
+// computePendingMiniBlocks derives the per-shard pending miniblocks at the epoch
+// start meta block, matching the state every running node has right after
+// committing it via processStartOfEpochMeta. This is simply the receiver-indexed,
+// filtered view of EpochStart.LastFinalizedHeaders[*].PendingMiniBlockHeaders.
+func computePendingMiniBlocks(
+	components *ComponentsNeededForBootstrap,
+) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
+	epochStartHandler := components.EpochStartMetaBlock.GetEpochStartHandler()
+	if epochStartHandler == nil {
+		return nil, fmt.Errorf("computePendingMiniBlocks: nil epoch start handler")
+	}
+
+	byShard := make(map[uint32][][]byte)
+	for _, shardData := range epochStartHandler.GetLastFinalizedHeaderHandlers() {
+		for _, mbh := range shardData.GetPendingMiniBlockHeaderHandlers() {
+			if !shouldConsiderCrossShardMiniBlock(mbh.GetSenderShardID(), mbh.GetReceiverShardID()) {
+				continue
+			}
+			recv := mbh.GetReceiverShardID()
+			byShard[recv] = append(byShard[recv], mbh.GetHash())
+		}
+	}
+
+	numShards := uint32(len(epochStartHandler.GetLastFinalizedHeaderHandlers()))
+	pendingMbs := make([]bootstrapStorage.PendingMiniBlocksInfo, 0, len(byShard))
+	for shardID := uint32(0); shardID < numShards; shardID++ {
+		hashes, ok := byShard[shardID]
+		if !ok || len(hashes) == 0 {
+			continue
+		}
+		pendingMbs = append(pendingMbs, bootstrapStorage.PendingMiniBlocksInfo{
+			ShardID:          shardID,
+			MiniBlocksHashes: hashes,
+		})
+	}
+
+	log.Debug("computePendingMiniBlocks", "numShardsWithPending", len(pendingMbs))
+
+	return pendingMbs, nil
+}
+
+// shouldConsiderCrossShardMiniBlock mirrors the filter applied by the pending
+// miniblocks handler when building its map: same-shard, shard->meta and meta->all
+// miniblocks are not tracked as cross-shard pending entries.
+func shouldConsiderCrossShardMiniBlock(senderShardID uint32, receiverShardID uint32) bool {
+	if senderShardID == receiverShardID {
+		return false
+	}
+	if senderShardID != core.MetachainShardId && receiverShardID == core.MetachainShardId {
+		return false
+	}
+	if senderShardID == core.MetachainShardId && receiverShardID == core.AllShardId {
+		return false
+	}
+	return true
+}
+
+func (msh *metaStorageHandler) getSelfNotarizedMetaForShard(
+	epochStartData data.EpochStartShardDataHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) ([]byte, data.HeaderHandler, bool) {
+	metaHash := epochStartData.GetFirstPendingMetaBlock()
+	if len(metaHash) == 0 {
+		return nil, nil, false
+	}
+
+	metaBlock, found := syncedHeaders[string(metaHash)]
+	if !found {
+		return nil, nil, false
+	}
+
+	return metaHash, metaBlock, true
 }
 
 func (msh *metaStorageHandler) getLastMetaBootstrapInfo(

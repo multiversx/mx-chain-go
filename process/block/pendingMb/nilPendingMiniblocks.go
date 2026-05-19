@@ -2,6 +2,7 @@ package pendingMb
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
