@@ -368,13 +368,13 @@ jobs:
             TIMESTAMP=$(date +'%d%m%Y-%H%M%S')
             echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
             REPORT_DIR="reports/${BRANCH_NAME}/${TIMESTAMP}"
-            mkdir -p $REPORT_DIR
+            mkdir -p "$REPORT_DIR"
 
             # Move the report into the new directory
-            cp ../reports/report.html $REPORT_DIR/index.html
+            cp ../reports/report.html "$REPORT_DIR/index.html"
 
             # Add and commit only the new report
-            git add $REPORT_DIR/index.html
+            git add -f "$REPORT_DIR/index.html"
             git commit -m "Deploy Test Report at $BRANCH_NAME/$TIMESTAMP"
 
             # Set remote URL with authentication token
