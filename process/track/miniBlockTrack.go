@@ -102,12 +102,7 @@ func (mbt *miniBlockTrack) receivedMiniBlock(key []byte, value interface{}) {
 		return
 	}
 
-	confirmationInfo, ok := mbt.getConfirmedMiniBlockInfo(key)
-	if !ok {
-		return
-	}
-
-	mbt.immunizeMiniBlock(key, miniBlock, confirmationInfo)
+	mbt.immunizeMiniBlock(key, miniBlock)
 }
 
 func (mbt *miniBlockTrack) getTransactionPool(mbType block.Type) dataRetriever.ShardedDataCacherNotifier {
@@ -190,11 +185,11 @@ func (mbt *miniBlockTrack) registerFromMiniBlockHeaders(
 		// Threshold advance is deferred to commit (see ReleaseImmunityForCommittedMetaBlocks).
 		// Advancing here would release items from older metablocks before this shard executes them.
 		mbt.storeConfirmedMiniBlockInfo(miniBlockHeader.GetHash(), mbInfo)
-		mbt.tryProcessStoredMiniBlock(miniBlockHeader.GetHash(), mbInfo)
+		mbt.tryProcessStoredMiniBlock(miniBlockHeader.GetHash())
 	}
 }
 
-func (mbt *miniBlockTrack) tryProcessStoredMiniBlock(miniBlockHash []byte, confirmationInfo confirmedMiniBlockInfo) {
+func (mbt *miniBlockTrack) tryProcessStoredMiniBlock(miniBlockHash []byte) {
 	value, ok := mbt.miniBlocksPool.Peek(miniBlockHash)
 	if !ok {
 		return
@@ -205,19 +200,24 @@ func (mbt *miniBlockTrack) tryProcessStoredMiniBlock(miniBlockHash []byte, confi
 		return
 	}
 
-	mbt.immunizeMiniBlock(miniBlockHash, miniBlock, confirmationInfo)
+	mbt.immunizeMiniBlock(miniBlockHash, miniBlock)
 }
 
-func (mbt *miniBlockTrack) immunizeMiniBlock(miniBlockHash []byte, miniBlock *block.MiniBlock, confirmationInfo confirmedMiniBlockInfo) {
+func (mbt *miniBlockTrack) immunizeMiniBlock(miniBlockHash []byte, miniBlock *block.MiniBlock) {
 	// TODO - stop reusing miniBlock.TxHashes for peer changes, add new fields
 	transactionPool := mbt.getTransactionPool(miniBlock.Type)
 	if check.IfNil(transactionPool) {
 		return
 	}
 
+	confirmationInfo, ok := mbt.getConfirmedMiniBlockInfo(miniBlockHash)
+	if !ok {
+		return
+	}
+
 	mbt.whitelistHandler.Add(miniBlock.TxHashes)
 	transactionPool.ImmunizeSetOfDataAgainstEviction(miniBlock.TxHashes, confirmationInfo.cacheID, confirmationInfo.nonce)
-	mbt.removeConfirmedMiniBlockInfo(miniBlockHash)
+	mbt.removeConfirmedMiniBlockInfo(miniBlockHash, confirmationInfo.nonce)
 }
 
 func (mbt *miniBlockTrack) storeConfirmedMiniBlockInfo(miniBlockHash []byte, info confirmedMiniBlockInfo) {
@@ -241,10 +241,20 @@ func (mbt *miniBlockTrack) getConfirmedMiniBlockInfo(miniBlockHash []byte) (conf
 	return info, ok
 }
 
-func (mbt *miniBlockTrack) removeConfirmedMiniBlockInfo(miniBlockHash []byte) {
+func (mbt *miniBlockTrack) removeConfirmedMiniBlockInfo(miniBlockHash []byte, nonce uint64) {
 	mbt.mutConfirmedMiniBlocks.Lock()
-	delete(mbt.confirmedMiniBlocks, string(miniBlockHash))
-	mbt.mutConfirmedMiniBlocks.Unlock()
+	defer mbt.mutConfirmedMiniBlocks.Unlock()
+
+	key := string(miniBlockHash)
+	info, ok := mbt.confirmedMiniBlocks[key]
+	if !ok {
+		return
+	}
+	if info.nonce > nonce {
+		return
+	}
+
+	delete(mbt.confirmedMiniBlocks, key)
 }
 
 // CleanupConfirmedMiniBlocksBelow drops every tracked confirmation whose nonce
