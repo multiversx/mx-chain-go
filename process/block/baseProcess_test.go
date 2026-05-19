@@ -2361,6 +2361,102 @@ func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
 	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 }
 
+func TestBaseProcessor_CheckScheduledData(t *testing.T) {
+	t.Parallel()
+
+	scheduledGasAndFees := scheduled.GasAndFees{
+		AccumulatedFees: big.NewInt(11),
+		DeveloperFees:   big.NewInt(12),
+		GasProvided:     13,
+		GasPenalized:    14,
+		GasRefunded:     15,
+	}
+
+	createProcessorAndHeader := func(t *testing.T) (interface {
+		CheckScheduledData(data.HeaderHandler) error
+	}, *block.HeaderV2) { t.Helper(); coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks(); coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag); arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents); arguments.ArgBaseProcessor.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("scheduled-root"), nil
+		},
+	}; arguments.ArgBaseProcessor.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+		GetScheduledGasAndFeesCalled: func() scheduled.GasAndFees {
+			return scheduledGasAndFees
+		},
+	}; processor, err := blproc.NewShardProcessor(arguments); require.NoError(t, err); header := &block.HeaderV2{
+		Header:                   &block.Header{},
+		ScheduledRootHash:        []byte("scheduled-root"),
+		ScheduledAccumulatedFees: big.NewInt(11),
+		ScheduledDeveloperFees:   big.NewInt(12),
+		ScheduledGasProvided:     13,
+		ScheduledGasPenalized:    14,
+		ScheduledGasRefunded:     15,
+	}; return processor, header }
+
+	t.Run("should work when scheduled data matches", func(t *testing.T) {
+		t.Parallel()
+
+		processor, header := createProcessorAndHeader(t)
+		err := processor.CheckScheduledData(header)
+
+		require.NoError(t, err)
+	})
+
+	t.Run("should fail when scheduled accumulated fees mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		processor, header := createProcessorAndHeader(t)
+		header.ScheduledAccumulatedFees = big.NewInt(111)
+
+		err := processor.CheckScheduledData(header)
+
+		require.ErrorIs(t, err, process.ErrScheduledGasAndFeesDoesNotMatch)
+	})
+
+	t.Run("should fail when scheduled developer fees mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		processor, header := createProcessorAndHeader(t)
+		header.ScheduledDeveloperFees = big.NewInt(112)
+
+		err := processor.CheckScheduledData(header)
+
+		require.ErrorIs(t, err, process.ErrScheduledGasAndFeesDoesNotMatch)
+	})
+
+	t.Run("should fail when scheduled gas provided mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		processor, header := createProcessorAndHeader(t)
+		header.ScheduledGasProvided++
+
+		err := processor.CheckScheduledData(header)
+
+		require.ErrorIs(t, err, process.ErrScheduledGasAndFeesDoesNotMatch)
+	})
+
+	t.Run("should fail when scheduled gas penalized mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		processor, header := createProcessorAndHeader(t)
+		header.ScheduledGasPenalized++
+
+		err := processor.CheckScheduledData(header)
+
+		require.ErrorIs(t, err, process.ErrScheduledGasAndFeesDoesNotMatch)
+	})
+
+	t.Run("should fail when scheduled gas refunded mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		processor, header := createProcessorAndHeader(t)
+		header.ScheduledGasRefunded++
+
+		err := processor.CheckScheduledData(header)
+
+		require.ErrorIs(t, err, process.ErrScheduledGasAndFeesDoesNotMatch)
+	})
+}
+
 // get initial fees on first getGasAndFees call and final fees on second call
 func createFeeHandlerMockForProcessScheduledBlock(initial, final scheduled.GasAndFees) process.TransactionFeeHandler {
 	runCount := 0

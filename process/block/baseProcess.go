@@ -230,8 +230,8 @@ func (bp *baseProcessor) checkBlockValidity(
 	return nil
 }
 
-// checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
-func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
+// checkScheduledData checks if the scheduled data from the given header matches the locally computed scheduled data
+func (bp *baseProcessor) checkScheduledData(headerHandler data.HeaderHandler) error {
 	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
@@ -250,6 +250,26 @@ func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler
 			"current root hash", bp.getRootHash(),
 			"header scheduled root hash", additionalData.GetScheduledRootHash())
 		return process.ErrScheduledRootHashDoesNotMatch
+	}
+
+	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
+	if additionalData.GetScheduledAccumulatedFees().Cmp(scheduledGasAndFees.AccumulatedFees) != 0 ||
+		additionalData.GetScheduledDeveloperFees().Cmp(scheduledGasAndFees.DeveloperFees) != 0 ||
+		additionalData.GetScheduledGasProvided() != scheduledGasAndFees.GasProvided ||
+		additionalData.GetScheduledGasPenalized() != scheduledGasAndFees.GasPenalized ||
+		additionalData.GetScheduledGasRefunded() != scheduledGasAndFees.GasRefunded {
+		log.Debug("scheduled gas and fees do not match",
+			"header accumulated fees", additionalData.GetScheduledAccumulatedFees(),
+			"computed accumulated fees", scheduledGasAndFees.AccumulatedFees,
+			"header developer fees", additionalData.GetScheduledDeveloperFees(),
+			"computed developer fees", scheduledGasAndFees.DeveloperFees,
+			"header gas provided", additionalData.GetScheduledGasProvided(),
+			"computed gas provided", scheduledGasAndFees.GasProvided,
+			"header gas penalized", additionalData.GetScheduledGasPenalized(),
+			"computed gas penalized", scheduledGasAndFees.GasPenalized,
+			"header gas refunded", additionalData.GetScheduledGasRefunded(),
+			"computed gas refunded", scheduledGasAndFees.GasRefunded)
+		return process.ErrScheduledGasAndFeesDoesNotMatch
 	}
 
 	return nil

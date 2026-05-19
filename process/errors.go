@@ -1086,6 +1086,9 @@ var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
 // ErrScheduledRootHashDoesNotMatch signals that scheduled root hash does not match
 var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not match")
 
+// ErrScheduledGasAndFeesDoesNotMatch signals that scheduled gas and fees do not match
+var ErrScheduledGasAndFeesDoesNotMatch = errors.New("scheduled gas and fees do not match")
+
 // ErrNilAdditionalData signals that additional data is nil
 var ErrNilAdditionalData = errors.New("nil additional data")
 

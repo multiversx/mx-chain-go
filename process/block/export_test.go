@@ -547,6 +547,11 @@ func (bp *baseProcessor) UpdateState(
 	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts)
 }
 
+// CheckScheduledData -
+func (bp *baseProcessor) CheckScheduledData(headerHandler data.HeaderHandler) error {
+	return bp.checkScheduledData(headerHandler)
+}
+
 // GasAndFeesDelta -
 func GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
 	return gasAndFeesDelta(initialGasAndFees, finalGasAndFees)
