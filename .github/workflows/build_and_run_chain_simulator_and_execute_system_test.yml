@@ -34,6 +34,8 @@ jobs:
 
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
+      PYTEST_WORKERS: "16"
+
     steps:
       - name: Determine Target Branches
         id: target_branch
@@ -288,7 +290,7 @@ jobs:
       - name: Run tests and generate HTML report
         run: |
           set +e
-          pytest mx-chain-testing-suite/scenarios/ --html=report.html --self-contained-html --continue-on-collection-errors
+          pytest mx-chain-testing-suite/scenarios/ -m with_supernova -n "${PYTEST_WORKERS}" --html=report.html --self-contained-html --continue-on-collection-errors
           PYTEST_EXIT_CODE=$?
           set -e
           
