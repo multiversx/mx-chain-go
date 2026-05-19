@@ -943,6 +943,120 @@ func TestBaseProcessor_SetIndexOfFirstTxProcessed(t *testing.T) {
 	assert.Equal(t, int32(9), miniBlockHeader.GetIndexOfFirstTxProcessed())
 }
 
+func TestBaseProcessor_CheckHeaderBodyCorrelationIndexOfFirstTxProcessed(t *testing.T) {
+	t.Parallel()
+
+	hasher := &mock.HasherStub{}
+	marshaller := &mock.MarshalizerMock{}
+
+	t.Run("fresh incoming mb with non-zero IndexOfFirstTxProcessed should error", func(t *testing.T) {
+		t.Parallel()
+
+		hdr, body := createOneHeaderOneBody()
+		hdr.MiniBlockHeaders[0].TxCount = 3
+		body.MiniBlocks[0].TxHashes = [][]byte{[]byte("tx1"), []byte("tx2"), []byte("tx3")}
+		mbBytes, _ := marshaller.Marshal(body.MiniBlocks[0])
+		hdr.MiniBlockHeaders[0].Hash = hasher.Compute(string(mbBytes))
+		_ = hdr.MiniBlockHeaders[0].SetIndexOfFirstTxProcessed(2)
+		_ = hdr.MiniBlockHeaders[0].SetIndexOfLastTxProcessed(2)
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ProcessedMiniBlocksTracker = processedMb.NewProcessedMiniBlocksTracker()
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		err := sp.CheckHeaderBodyCorrelation(hdr, body)
+		assert.Equal(t, process.ErrIndexOfFirstTxProcessedMismatch, err)
+	})
+
+	t.Run("fresh incoming mb with IndexOfFirstTxProcessed=0 should pass", func(t *testing.T) {
+		t.Parallel()
+
+		hdr, body := createOneHeaderOneBody()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ProcessedMiniBlocksTracker = processedMb.NewProcessedMiniBlocksTracker()
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		err := sp.CheckHeaderBodyCorrelation(hdr, body)
+		assert.Nil(t, err)
+	})
+
+	t.Run("partially processed mb with matching continuation should pass", func(t *testing.T) {
+		t.Parallel()
+
+		hdr, body := createOneHeaderOneBody()
+		hdr.MiniBlockHeaders[0].TxCount = 5
+		body.MiniBlocks[0].TxHashes = [][]byte{[]byte("tx1"), []byte("tx2"), []byte("tx3"), []byte("tx4"), []byte("tx5")}
+		mbBytes, _ := marshaller.Marshal(body.MiniBlocks[0])
+		mbHash := hasher.Compute(string(mbBytes))
+		hdr.MiniBlockHeaders[0].Hash = mbHash
+		// tracker says we already processed indices 0, 1, 2 so next first must be 3
+		_ = hdr.MiniBlockHeaders[0].SetIndexOfFirstTxProcessed(3)
+		_ = hdr.MiniBlockHeaders[0].SetIndexOfLastTxProcessed(4)
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		tracker := processedMb.NewProcessedMiniBlocksTracker()
+		tracker.SetProcessedMiniBlockInfo([]byte("meta_hash"), mbHash, &processedMb.ProcessedMiniBlockInfo{
+			FullyProcessed:         false,
+			IndexOfLastTxProcessed: 2,
+		})
+		arguments.ProcessedMiniBlocksTracker = tracker
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		err := sp.CheckHeaderBodyCorrelation(hdr, body)
+		assert.Nil(t, err)
+	})
+
+	t.Run("partially processed mb with mismatched continuation should error", func(t *testing.T) {
+		t.Parallel()
+
+		hdr, body := createOneHeaderOneBody()
+		hdr.MiniBlockHeaders[0].TxCount = 5
+		body.MiniBlocks[0].TxHashes = [][]byte{[]byte("tx1"), []byte("tx2"), []byte("tx3"), []byte("tx4"), []byte("tx5")}
+		mbBytes, _ := marshaller.Marshal(body.MiniBlocks[0])
+		mbHash := hasher.Compute(string(mbBytes))
+		hdr.MiniBlockHeaders[0].Hash = mbHash
+		// tracker says next first must be 3, but proposer forged 0
+		_ = hdr.MiniBlockHeaders[0].SetIndexOfFirstTxProcessed(0)
+		_ = hdr.MiniBlockHeaders[0].SetIndexOfLastTxProcessed(4)
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		tracker := processedMb.NewProcessedMiniBlocksTracker()
+		tracker.SetProcessedMiniBlockInfo([]byte("meta_hash"), mbHash, &processedMb.ProcessedMiniBlockInfo{
+			FullyProcessed:         false,
+			IndexOfLastTxProcessed: 2,
+		})
+		arguments.ProcessedMiniBlocksTracker = tracker
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		err := sp.CheckHeaderBodyCorrelation(hdr, body)
+		assert.Equal(t, process.ErrIndexOfFirstTxProcessedMismatch, err)
+	})
+
+	t.Run("intra shard mb should skip the tracker check", func(t *testing.T) {
+		t.Parallel()
+
+		hdr, body := createOneHeaderOneBody()
+		hdr.MiniBlockHeaders[0].TxCount = 3
+		body.MiniBlocks[0].TxHashes = [][]byte{[]byte("tx1"), []byte("tx2"), []byte("tx3")}
+		body.MiniBlocks[0].SenderShardID = 0
+		body.MiniBlocks[0].ReceiverShardID = 0
+		hdr.MiniBlockHeaders[0].SenderShardID = 0
+		hdr.MiniBlockHeaders[0].ReceiverShardID = 0
+		mbBytes, _ := marshaller.Marshal(body.MiniBlocks[0])
+		hdr.MiniBlockHeaders[0].Hash = hasher.Compute(string(mbBytes))
+		_ = hdr.MiniBlockHeaders[0].SetIndexOfFirstTxProcessed(1)
+		_ = hdr.MiniBlockHeaders[0].SetIndexOfLastTxProcessed(2)
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ProcessedMiniBlocksTracker = processedMb.NewProcessedMiniBlocksTracker()
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		err := sp.CheckHeaderBodyCorrelation(hdr, body)
+		assert.Nil(t, err)
+	})
+}
+
 func TestBaseProcessor_SetIndexOfLastTxProcessed(t *testing.T) {
 	t.Parallel()
 

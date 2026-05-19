@@ -1146,6 +1146,9 @@ var ErrIndexDoesNotMatchWithPartialExecutedMiniBlock = errors.New("index does no
 // ErrIndexDoesNotMatchWithFullyExecutedMiniBlock signals that the given index does not match with a fully executed mini block
 var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not match with a fully executed mini block")
 
+// ErrIndexOfFirstTxProcessedMismatch signals that the index of first tx processed from the header does not match the local processed mini blocks tracker
+var ErrIndexOfFirstTxProcessedMismatch = errors.New("index of first tx processed does not match the local processed mini blocks tracker")
+
 // ErrNilProcessedMiniBlocksTracker signals that a nil processed mini blocks tracker has been provided
 var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tracker")
 

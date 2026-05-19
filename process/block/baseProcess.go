@@ -1000,6 +1000,11 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return err
 		}
 
+		err = bp.checkIndexOfFirstTxProcessedAgainstTracker(mbHdr, mbHash)
+		if err != nil {
+			return err
+		}
+
 		delete(mbHashesFromHdr, mbHashStr)
 	}
 
@@ -1013,6 +1018,29 @@ func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler
 	}
 	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() != int32(mbh.GetTxCount())-1 {
 		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) checkIndexOfFirstTxProcessedAgainstTracker(mbHdr data.MiniBlockHeaderHandler, miniBlockHash []byte) error {
+	selfShardID := bp.shardCoordinator.SelfId()
+	isIncomingCross := mbHdr.GetReceiverShardID() == selfShardID && mbHdr.GetSenderShardID() != selfShardID
+	if !isIncomingCross {
+		return nil
+	}
+
+	processedMiniBlockInfo, _ := bp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHash)
+	expectedIndexOfFirstTxProcessed := processedMiniBlockInfo.IndexOfLastTxProcessed + 1
+	if mbHdr.GetIndexOfFirstTxProcessed() != expectedIndexOfFirstTxProcessed {
+		log.Debug("checkIndexOfFirstTxProcessedAgainstTracker: mismatch",
+			"mb hash", miniBlockHash,
+			"sender shard", mbHdr.GetSenderShardID(),
+			"receiver shard", mbHdr.GetReceiverShardID(),
+			"header index of first tx processed", mbHdr.GetIndexOfFirstTxProcessed(),
+			"expected index of first tx processed", expectedIndexOfFirstTxProcessed,
+		)
+		return process.ErrIndexOfFirstTxProcessedMismatch
 	}
 
 	return nil
