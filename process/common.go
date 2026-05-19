@@ -19,9 +19,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/storage"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -1332,9 +1333,12 @@ func UpdateContextForReplacedHeader(
 		return err
 	}
 
-	err = CleanCachesForExecutionResult(blockChain.GetLastExecutionResult(), postProcessTransactions, executedMiniBlocks)
-	if err != nil {
-		return err
+	currentExecResult := blockChain.GetLastExecutionResult()
+	if !check.IfNil(currentExecResult) && !bytes.Equal(currentExecResult.GetHeaderHash(), executionResultToSet.GetHeaderHash()) {
+		err = CleanCachesForExecutionResult(currentExecResult, postProcessTransactions, executedMiniBlocks)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Debug("UpdateContextForReplacedHeader last executed header",
