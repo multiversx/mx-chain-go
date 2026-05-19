@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"sync/atomic"
@@ -21,12 +22,27 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	testscommonDataRetriever "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type requestHandlerWithSetEpochStub struct {
+	testscommon.RequestHandlerStub
+	SetEpochCalled func(epoch uint32)
+}
+
+func (rhs *requestHandlerWithSetEpochStub) SetEpoch(epoch uint32) {
+	if rhs.SetEpochCalled != nil {
+		rhs.SetEpochCalled(epoch)
+		return
+	}
+
+	rhs.RequestHandlerStub.SetEpoch(epoch)
+}
 
 func getMockChainHandler() data.ChainHandler {
 	return &testscommon.ChainHandlerStub{
@@ -237,6 +253,110 @@ func TestBaseSync_getEpochOfCurrentBlockHeader(t *testing.T) {
 
 	epoch := boot.getEpochOfCurrentBlock()
 	assert.Equal(t, headerEpoch, epoch)
+}
+
+func TestBaseBootstrap_confirmHeaderReceivedByHashShouldRequestMissingProof(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("requested-hash")
+	expectedEpoch := uint32(7)
+	expectedShardID := uint32(1)
+	expectedNonce := uint64(42)
+
+	var requestedEpoch uint32
+	var requestedShardID uint32
+	var requestedHash []byte
+
+	requestHandler := &requestHandlerWithSetEpochStub{
+		RequestHandlerStub: testscommon.RequestHandlerStub{
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, hash []byte) {
+				requestedShardID = headerShard
+				requestedHash = append([]byte(nil), hash...)
+			},
+		},
+		SetEpochCalled: func(epoch uint32) {
+			requestedEpoch = epoch
+		},
+	}
+
+	boot := &baseBootstrap{
+		requestHandler: requestHandler,
+		proofs: &testscommonDataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, hash []byte) bool {
+				return false
+			},
+		},
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		},
+	}
+	boot.setRequestedHeaderHash(headerHash)
+
+	header := &block.Header{
+		ShardID: expectedShardID,
+		Epoch:   expectedEpoch,
+		Nonce:   expectedNonce,
+	}
+
+	boot.confirmHeaderReceivedByHash(header, headerHash)
+
+	require.Equal(t, expectedEpoch, requestedEpoch)
+	require.Equal(t, expectedShardID, requestedShardID)
+	require.True(t, bytes.Equal(headerHash, requestedHash))
+}
+
+func TestBaseBootstrap_confirmHeaderReceivedByNonceShouldRequestMissingProof(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("requested-hash")
+	expectedEpoch := uint32(9)
+	expectedShardID := uint32(2)
+	expectedNonce := uint64(64)
+
+	var requestedEpoch uint32
+	var requestedShardID uint32
+	var requestedHash []byte
+
+	requestHandler := &requestHandlerWithSetEpochStub{
+		RequestHandlerStub: testscommon.RequestHandlerStub{
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, hash []byte) {
+				requestedShardID = headerShard
+				requestedHash = append([]byte(nil), hash...)
+			},
+		},
+		SetEpochCalled: func(epoch uint32) {
+			requestedEpoch = epoch
+		},
+	}
+
+	boot := &baseBootstrap{
+		requestHandler: requestHandler,
+		proofs: &testscommonDataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, hash []byte) bool {
+				return false
+			},
+		},
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		},
+	}
+	boot.setRequestedHeaderNonce(&expectedNonce)
+
+	header := &block.Header{
+		ShardID: expectedShardID,
+		Epoch:   expectedEpoch,
+		Nonce:   expectedNonce,
+	}
+
+	boot.confirmHeaderReceivedByNonce(header, headerHash)
+
+	require.Equal(t, expectedEpoch, requestedEpoch)
+	require.Equal(t, expectedShardID, requestedShardID)
+	require.True(t, bytes.Equal(headerHash, requestedHash))
 }
 
 func TestBaseSync_shouldAllowRollback(t *testing.T) {
@@ -463,7 +583,7 @@ func TestBaseBootstrap_SaveProposedTxsToPool(t *testing.T) {
 
 	boot := &baseBootstrap{
 		marshalizer: marshaller,
-		dataPool: &dataRetrieverMock.PoolsHolderStub{
+		dataPool: &testscommonDataRetriever.PoolsHolderStub{
 			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{
 					AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
