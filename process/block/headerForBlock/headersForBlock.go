@@ -490,12 +490,12 @@ func (hfb *headersForBlock) requestMissingAndUpdateBasedOnCrossShardData(cd cros
 
 	hfb.requestProofIfNeeded(cd.GetHeaderHash(), hdr)
 
-	if common.IsEpochChangeBlockForFlagActivation(hdr, hfb.enableEpochsHandler, common.AndromedaFlag) {
-		return
-	}
-
 	if hdr.GetNonce() > hfb.highestHdrNonce[cd.GetShardID()] {
 		hfb.highestHdrNonce[cd.GetShardID()] = hdr.GetNonce()
+	}
+
+	if common.IsEpochChangeBlockForFlagActivation(hdr, hfb.enableEpochsHandler, common.AndromedaFlag) {
+		return
 	}
 
 	hfb.updateLastNotarizedBlockForShard(hdr, cd.GetHeaderHash())
