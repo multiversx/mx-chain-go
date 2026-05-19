@@ -522,7 +522,7 @@ func createMockTransactionCoordinatorArguments(
 		EnableEpochsHandler:          enableEpochsHandler,
 		EnableRoundsHandler:          enableRoundsHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
 		BlockDataRequester:           blockDataRequester,
@@ -3005,7 +3005,8 @@ func TestBaseProcessor_getIndexOfFirstMiniBlockToBeExecuted(t *testing.T) {
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		index := bp.GetIndexOfFirstMiniBlockToBeExecuted(&block.MetaBlock{})
+		index, err := bp.GetIndexOfFirstMiniBlockToBeExecuted(&block.MetaBlock{})
+		assert.Nil(t, err)
 		assert.Equal(t, 0, index)
 	})
 
@@ -3017,7 +3018,8 @@ func TestBaseProcessor_getIndexOfFirstMiniBlockToBeExecuted(t *testing.T) {
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		index := bp.GetIndexOfFirstMiniBlockToBeExecuted(&block.MetaBlock{})
+		index, err := bp.GetIndexOfFirstMiniBlockToBeExecuted(&block.MetaBlock{})
+		assert.Nil(t, err)
 		assert.Equal(t, 0, index)
 	})
 
@@ -3027,6 +3029,11 @@ func TestBaseProcessor_getIndexOfFirstMiniBlockToBeExecuted(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsMiniBlockExecutedCalled: func(_ []byte) bool {
+				return true
+			},
+		}
 		bp, _ := blproc.NewShardProcessor(arguments)
 
 		mbh1 := block.MiniBlockHeader{}
@@ -3044,7 +3051,8 @@ func TestBaseProcessor_getIndexOfFirstMiniBlockToBeExecuted(t *testing.T) {
 			},
 		}
 
-		index := bp.GetIndexOfFirstMiniBlockToBeExecuted(metaBlock)
+		index, err := bp.GetIndexOfFirstMiniBlockToBeExecuted(metaBlock)
+		assert.Nil(t, err)
 		assert.Equal(t, 1, index)
 	})
 }
