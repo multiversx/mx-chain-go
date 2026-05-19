@@ -943,7 +943,7 @@ func isPartiallyExecuted(
 }
 
 // check if header has the same miniblocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32) error {
 	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
 		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = miniBlockHeaders[i]
@@ -995,7 +995,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return err
 		}
 
-		err = checkConstructionStateAndIndexesCorrectness(mbHdr)
+		err = checkConstructionStateProcessingTypeAndIndexesCorrectness(mbHdr, miniBlock, blockShardID)
 		if err != nil {
 			return err
 		}
@@ -1012,6 +1012,94 @@ func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler
 
 	}
 	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() != int32(mbh.GetTxCount())-1 {
+		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
+	}
+
+	return nil
+}
+
+// checkConstructionStateProcessingTypeAndIndexesCorrectness validates the (miniBlock,
+// miniBlockHeader) pair belonging to a block of shard blockShardID against the legal
+// (hdrPT, sender == blockShardID?, allowed state) rows:
+//
+//	Normal,    *   -> Final
+//	Scheduled, yes -> Proposed
+//	Scheduled, no  -> Final
+//	Processed, yes -> Final
+//	Processed, no  -> impossible
+//
+// It also checks body PT validity, type-vs-scheduling, body-vs-header PT consistency,
+// and IndexOfLastTxProcessed vs ConstructionState.
+func checkConstructionStateProcessingTypeAndIndexesCorrectness(
+	mbh data.MiniBlockHeaderHandler,
+	miniBlock *block.MiniBlock,
+	blockShardID uint32,
+) error {
+	bodyPT := miniBlock.GetProcessingType()
+	hdrPT := mbh.GetProcessingType()
+	mbType := miniBlock.Type
+	senderIsBlockShard := mbh.GetSenderShardID() == blockShardID
+
+	// Processed is a header-only re-inclusion tag and must never appear on the body.
+	if bodyPT != int32(block.Normal) && bodyPT != int32(block.Scheduled) {
+		return fmt.Errorf("%w: body has invalid processing type %d",
+			process.ErrInvalidMiniBlockProcessingType, bodyPT)
+	}
+
+	if mbType != block.TxBlock {
+		if bodyPT != int32(block.Normal) || hdrPT != int32(block.Normal) {
+			return fmt.Errorf("%w: miniblock type %s cannot be scheduled (body=%d, header=%d)",
+				process.ErrInvalidMiniBlockProcessingTypeForType, mbType, bodyPT, hdrPT)
+		}
+	}
+
+	state := mbh.GetConstructionState()
+	switch hdrPT {
+	case int32(block.Normal):
+		if state != int32(block.Final) {
+			return fmt.Errorf("%w: Normal header requires Final, got %d",
+				process.ErrInvalidConstructionState, state)
+		}
+	case int32(block.Scheduled):
+		if bodyPT != int32(block.Scheduled) {
+			return fmt.Errorf("%w: header=Scheduled requires body=Scheduled, got body=%d",
+				process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
+		}
+		if senderIsBlockShard {
+			if state != int32(block.Proposed) {
+				return fmt.Errorf("%w: Scheduled header at sender shard requires Proposed, got %d",
+					process.ErrInvalidConstructionState, state)
+			}
+		} else {
+			if state != int32(block.Final) {
+				return fmt.Errorf("%w: cross-shard incoming Scheduled requires Final, got %d",
+					process.ErrInvalidConstructionState, state)
+			}
+		}
+	case int32(block.Processed):
+		if bodyPT != int32(block.Scheduled) {
+			return fmt.Errorf("%w: header=Processed requires body=Scheduled, got body=%d",
+				process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
+		}
+		if !senderIsBlockShard {
+			return fmt.Errorf("%w: Processed header requires sender == blockShard",
+				process.ErrInvalidMiniBlockShardRole)
+		}
+		if state != int32(block.Final) {
+			return fmt.Errorf("%w: Processed header requires Final, got %d",
+				process.ErrInvalidConstructionState, state)
+		}
+	default:
+		return fmt.Errorf("%w: unknown header processing type %d",
+			process.ErrInvalidMiniBlockProcessingType, hdrPT)
+	}
+
+	lastIdx := mbh.GetIndexOfLastTxProcessed()
+	finalIdx := int32(mbh.GetTxCount()) - 1
+	if state == int32(block.PartialExecuted) && lastIdx == finalIdx {
+		return process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock
+	}
+	if state != int32(block.PartialExecuted) && lastIdx != finalIdx {
 		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
 	}
 

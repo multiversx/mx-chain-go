@@ -3121,6 +3121,143 @@ func TestBaseProcessor_checkConstructionStateAndIndexesCorrectness(t *testing.T)
 	assert.Nil(t, err)
 }
 
+func TestCheckConstructionStateProcessingTypeAndIndexesCorrectness(t *testing.T) {
+	t.Parallel()
+
+	const blockShard = uint32(1)
+	const otherShard = uint32(2)
+
+	makeMb := func(sender, receiver uint32, mbType block.Type, bodyScheduled bool, txCount int) *block.MiniBlock {
+		mb := &block.MiniBlock{
+			SenderShardID:   sender,
+			ReceiverShardID: receiver,
+			Type:            mbType,
+			TxHashes:        make([][]byte, txCount),
+		}
+		for i := range mb.TxHashes {
+			mb.TxHashes[i] = []byte{byte(i)}
+		}
+		if bodyScheduled {
+			reserved, _ := (&block.MiniBlockReserved{ExecutionType: block.Scheduled}).Marshal()
+			mb.Reserved = reserved
+		}
+		return mb
+	}
+
+	makeMbh := func(mb *block.MiniBlock, hdrPT block.ProcessingType, state block.MiniBlockState, lastIdx int32) *block.MiniBlockHeader {
+		mbh := &block.MiniBlockHeader{
+			SenderShardID:   mb.SenderShardID,
+			ReceiverShardID: mb.ReceiverShardID,
+			Type:            mb.Type,
+			TxCount:         uint32(len(mb.TxHashes)),
+		}
+		_ = mbh.SetProcessingType(int32(hdrPT))
+		_ = mbh.SetConstructionState(int32(state))
+		_ = mbh.SetIndexOfLastTxProcessed(lastIdx)
+		return mbh
+	}
+
+	t.Run("legal cells pass", func(t *testing.T) {
+		t.Parallel()
+
+		cases := []struct {
+			name     string
+			sender   uint32
+			receiver uint32
+			body     bool
+			hdrPT    block.ProcessingType
+			state    block.MiniBlockState
+			txCount  int
+			lastIdx  int32
+		}{
+			{"normal intra", blockShard, blockShard, false, block.Normal, block.Final, 3, 2},
+			{"normal outgoing", blockShard, otherShard, false, block.Normal, block.Final, 3, 2},
+			{"normal incoming", otherShard, blockShard, false, block.Normal, block.Final, 3, 2},
+			{"normal incoming with scheduled body", otherShard, blockShard, true, block.Normal, block.Final, 3, 2},
+			{"scheduled intra", blockShard, blockShard, true, block.Scheduled, block.Proposed, 3, 2},
+			{"scheduled outgoing", blockShard, otherShard, true, block.Scheduled, block.Proposed, 3, 2},
+			{"scheduled incoming", otherShard, blockShard, true, block.Scheduled, block.Final, 3, 2},
+			{"processed intra", blockShard, blockShard, true, block.Processed, block.Final, 3, 2},
+			{"processed outgoing", blockShard, otherShard, true, block.Processed, block.Final, 3, 2},
+			{"broadcast peer mb", blockShard, core.AllShardId, false, block.Normal, block.Final, 1, 0},
+		}
+		for _, tc := range cases {
+			tc := tc
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				mb := makeMb(tc.sender, tc.receiver, block.TxBlock, tc.body, tc.txCount)
+				mbh := makeMbh(mb, tc.hdrPT, tc.state, tc.lastIdx)
+				err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+				assert.NoError(t, err)
+			})
+		}
+	})
+
+	t.Run("scheduled plus partial executed rejected at sender", func(t *testing.T) {
+		t.Parallel()
+		mb := makeMb(blockShard, blockShard, block.TxBlock, true, 3)
+		mbh := makeMbh(mb, block.Scheduled, block.PartialExecuted, 1)
+		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+		assert.ErrorIs(t, err, process.ErrInvalidConstructionState)
+	})
+
+	t.Run("scheduled plus partial executed rejected at incoming", func(t *testing.T) {
+		t.Parallel()
+		mb := makeMb(otherShard, blockShard, block.TxBlock, true, 3)
+		mbh := makeMbh(mb, block.Scheduled, block.PartialExecuted, 1)
+		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+		assert.ErrorIs(t, err, process.ErrInvalidConstructionState)
+	})
+
+	t.Run("scheduled body required when header is scheduled", func(t *testing.T) {
+		t.Parallel()
+		mb := makeMb(blockShard, blockShard, block.TxBlock, false, 3)
+		mbh := makeMbh(mb, block.Scheduled, block.Proposed, 2)
+		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+		assert.ErrorIs(t, err, process.ErrProcessingTypeBodyHeaderMismatch)
+	})
+
+	t.Run("processed must have sender equal block shard", func(t *testing.T) {
+		t.Parallel()
+		mb := makeMb(otherShard, blockShard, block.TxBlock, true, 3)
+		mbh := makeMbh(mb, block.Processed, block.Final, 2)
+		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+		assert.ErrorIs(t, err, process.ErrInvalidMiniBlockShardRole)
+	})
+
+	t.Run("processed requires scheduled body", func(t *testing.T) {
+		t.Parallel()
+		mb := makeMb(blockShard, blockShard, block.TxBlock, false, 3)
+		mbh := makeMbh(mb, block.Processed, block.Final, 2)
+		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+		assert.ErrorIs(t, err, process.ErrProcessingTypeBodyHeaderMismatch)
+	})
+
+	t.Run("normal incoming with partial state rejected by destination invariant", func(t *testing.T) {
+		t.Parallel()
+		mb := makeMb(otherShard, blockShard, block.TxBlock, false, 3)
+		mbh := makeMbh(mb, block.Normal, block.PartialExecuted, 1)
+		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+		assert.ErrorIs(t, err, process.ErrInvalidConstructionState)
+	})
+
+	t.Run("non TxBlock cannot be scheduled", func(t *testing.T) {
+		t.Parallel()
+		mb := makeMb(blockShard, blockShard, block.SmartContractResultBlock, true, 2)
+		mbh := makeMbh(mb, block.Scheduled, block.Proposed, 1)
+		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+		assert.ErrorIs(t, err, process.ErrInvalidMiniBlockProcessingTypeForType)
+	})
+
+	t.Run("index inconsistency with partial executed", func(t *testing.T) {
+		t.Parallel()
+		mb := makeMb(blockShard, blockShard, block.TxBlock, true, 3)
+		mbh := makeMbh(mb, block.Processed, block.PartialExecuted, 2)
+		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+		assert.ErrorIs(t, err, process.ErrInvalidConstructionState)
+	})
+}
+
 func TestBaseProcessor_ConcurrentCallsNonceOfFirstCommittedBlock(t *testing.T) {
 	t.Parallel()
 

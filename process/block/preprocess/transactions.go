@@ -1562,7 +1562,7 @@ func (txs *transactions) ProcessMiniBlock(
 		numTXsProcessed++
 	}
 
-	if err != nil && !partialMbExecutionMode {
+	if err != nil && (!partialMbExecutionMode || scheduledMode) {
 		return processedTxHashes, txIndex - 1, true, err
 	}
 

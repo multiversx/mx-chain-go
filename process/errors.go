@@ -1146,6 +1146,21 @@ var ErrIndexDoesNotMatchWithPartialExecutedMiniBlock = errors.New("index does no
 // ErrIndexDoesNotMatchWithFullyExecutedMiniBlock signals that the given index does not match with a fully executed mini block
 var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not match with a fully executed mini block")
 
+// ErrInvalidMiniBlockProcessingType signals that a miniblock has an invalid ProcessingType value
+var ErrInvalidMiniBlockProcessingType = errors.New("invalid miniblock processing type")
+
+// ErrInvalidMiniBlockProcessingTypeForType signals that the ProcessingType is not allowed for the miniblock's Type
+var ErrInvalidMiniBlockProcessingTypeForType = errors.New("invalid miniblock processing type for miniblock type")
+
+// ErrProcessingTypeBodyHeaderMismatch signals that the ProcessingType in the body and the header do not agree
+var ErrProcessingTypeBodyHeaderMismatch = errors.New("processing type mismatch between miniblock body and miniblock header")
+
+// ErrInvalidConstructionState signals that the ConstructionState is not allowed given the ProcessingType and shard role
+var ErrInvalidConstructionState = errors.New("invalid construction state for the given processing type and shard role")
+
+// ErrInvalidMiniBlockShardRole signals that the miniblock's shard role is not allowed for the given ProcessingType
+var ErrInvalidMiniBlockShardRole = errors.New("invalid miniblock shard role for the given processing type")
+
 // ErrNilProcessedMiniBlocksTracker signals that a nil processed mini blocks tracker has been provided
 var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tracker")
 
