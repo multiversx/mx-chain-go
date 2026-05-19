@@ -434,6 +434,53 @@ func TestInitConfigMetrics(t *testing.T) {
 	assert.Equal(t, expectedValues["erd_hysteresis"], keys["erd_hysteresis"])
 }
 
+func TestInitConfigMetrics_UnBondPeriodMetrics(t *testing.T) {
+	t.Parallel()
+
+	cfg := config.EpochConfig{}
+	economicsConfig := config.EconomicsConfig{}
+	genesisNodesConfig := &genesisMocks.NodesSetupStub{}
+
+	keys := make(map[string]interface{})
+	ash := &statusHandler.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			keys[key] = value
+		},
+		SetStringValueHandler: func(key string, value string) {
+			keys[key] = value
+		},
+	}
+
+	t.Run("zero values are set correctly", func(t *testing.T) {
+		systemSCConfig := config.SystemSmartContractsConfig{
+			StakingSystemSCConfig: config.StakingSystemSCConfig{
+				UnBondPeriod:          0,
+				UnBondPeriodSupernova: 0,
+				UnBondPeriodInEpochs:  0,
+			},
+		}
+		err := InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig, config.GatewayMetricsConfig{}, systemSCConfig)
+		require.Nil(t, err)
+		assert.Equal(t, uint64(0), keys[common.MetricUnBondPeriod])
+		assert.Equal(t, uint64(0), keys[common.MetricUnBondPeriodSupernova])
+		assert.Equal(t, uint64(0), keys[common.MetricUnBondPeriodInEpochs])
+	})
+	t.Run("non-zero values are set correctly", func(t *testing.T) {
+		systemSCConfig := config.SystemSmartContractsConfig{
+			StakingSystemSCConfig: config.StakingSystemSCConfig{
+				UnBondPeriod:          500,
+				UnBondPeriodSupernova: 1000,
+				UnBondPeriodInEpochs:  30,
+			},
+		}
+		err := InitConfigMetrics(ash, cfg, economicsConfig, genesisNodesConfig, config.GatewayMetricsConfig{}, systemSCConfig)
+		require.Nil(t, err)
+		assert.Equal(t, uint64(500), keys[common.MetricUnBondPeriod])
+		assert.Equal(t, uint64(1000), keys[common.MetricUnBondPeriodSupernova])
+		assert.Equal(t, uint64(30), keys[common.MetricUnBondPeriodInEpochs])
+	})
+}
+
 func TestInitRatingsMetrics(t *testing.T) {
 	t.Parallel()
 
