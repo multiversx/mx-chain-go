@@ -22,7 +22,8 @@ type TxCacheMock struct {
 	AddTxCalled                        func(tx *txcache.WrappedTransaction) (ok bool, added bool)
 	GetByTxHashCalled                  func(txHash []byte) (*txcache.WrappedTransaction, bool)
 	RemoveTxByHashCalled               func(txHash []byte) bool
-	ImmunizeTxsAgainstEvictionCalled   func(keys [][]byte)
+	ImmunizeTxsAgainstEvictionCalled   func(keys [][]byte, nonce uint64)
+	SetOldestImmuneNonceCalled         func(nonce uint64)
 	ForEachTransactionCalled           func(txcache.ForEachTransaction)
 	NumBytesCalled                     func() int
 	DiagnoseCalled                     func(deep bool)
@@ -176,9 +177,16 @@ func (cache *TxCacheMock) RemoveTxByHash(txHash []byte) bool {
 }
 
 // ImmunizeTxsAgainstEviction -
-func (cache *TxCacheMock) ImmunizeTxsAgainstEviction(keys [][]byte) {
+func (cache *TxCacheMock) ImmunizeTxsAgainstEviction(keys [][]byte, nonce uint64) {
 	if cache.ImmunizeTxsAgainstEvictionCalled != nil {
-		cache.ImmunizeTxsAgainstEvictionCalled(keys)
+		cache.ImmunizeTxsAgainstEvictionCalled(keys, nonce)
+	}
+}
+
+// SetOldestImmuneNonce -
+func (cache *TxCacheMock) SetOldestImmuneNonce(nonce uint64) {
+	if cache.SetOldestImmuneNonceCalled != nil {
+		cache.SetOldestImmuneNonceCalled(nonce)
 	}
 }
 

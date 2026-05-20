@@ -34,3 +34,6 @@ var ErrInvalidHashShardKey = errors.New("invalid hash shard key")
 
 // ErrInvalidNonceShardKey signals that the provided nonce-shard key is invalid
 var ErrInvalidNonceShardKey = errors.New("invalid nonce shard key")
+
+// ErrPaddingBitsSet signals that the provided bitmap has padding bits set to 1 instead of 0
+var ErrPaddingBitsSet = errors.New("padding bits in the bitmap should be zero")

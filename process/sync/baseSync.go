@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -677,6 +678,12 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
+	if errors.Is(err, process.ErrBlockProcessorBusy) {
+		// block processor is busy with another call (e.g. consensus processing the same block);
+		// no processing started, nothing to track or roll back - just retry on next sync iteration
+		return
+	}
+
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
 	isProcessWithError := processBlockStarted && err != process.ErrTimeIsOut
 

@@ -7,11 +7,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("dataretriever/shardeddata")
@@ -183,11 +184,33 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
 	)
 }
 
-// ImmunizeSetOfDataAgainstEviction  marks the items as non-evictable
-func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
+// ImmunizeSetOfDataAgainstEviction marks the items as non-evictable for the provided confirmation nonce
+func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string, nonce uint64) {
 	store := sd.getOrCreateShardStoreWithLock(cacheID)
-	numNow, numFuture := store.cache.ImmunizeKeys(keys)
-	log.Trace("shardedData.ImmunizeSetOfDataAgainstEviction()", "name", sd.name, "cacheID", cacheID, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
+	numNow, numFuture := store.cache.ImmunizeKeys(keys, nonce)
+	log.Trace("shardedData.ImmunizeSetOfDataAgainstEviction()", "name", sd.name, "cacheID", cacheID, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture, "nonce", nonce)
+}
+
+// SetOldestImmuneNonce deactivates immunity below the provided nonce
+func (sd *shardedData) SetOldestImmuneNonce(cacheID string, nonce uint64) {
+	store := sd.shardStore(cacheID)
+	if store == nil {
+		return
+	}
+
+	store.cache.SetOldestImmuneNonce(nonce)
+}
+
+// SetOldestImmuneNonceForAllCaches deactivates immunity below the provided nonce
+// on every backing shard store. Called from the shard's commit path once the
+// cross-notarized metablock has advanced.
+func (sd *shardedData) SetOldestImmuneNonceForAllCaches(nonce uint64) {
+	sd.mutShardedDataStore.RLock()
+	defer sd.mutShardedDataStore.RUnlock()
+
+	for _, store := range sd.shardedDataStore {
+		store.cache.SetOldestImmuneNonce(nonce)
+	}
 }
 
 // RemoveData will remove data hash from the corresponding shard store
