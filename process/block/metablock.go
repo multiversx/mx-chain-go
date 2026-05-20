@@ -113,6 +113,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		roundHandler:                  arguments.CoreComponents.RoundHandler(),
 		bootStorer:                    arguments.BootStorer,
 		blockTracker:                  arguments.BlockTracker,
+		miniBlockTracker:              arguments.MiniBlockTracker,
 		dataPool:                      arguments.DataComponents.Datapool(),
 		blockChain:                    arguments.DataComponents.Blockchain(),
 		outportHandler:                arguments.StatusComponents.OutportHandler(),
@@ -562,9 +563,10 @@ func (mp *metaProcessor) verifyEpochStartMiniBlocks(metaBlock *block.MetaBlock) 
 	return nil
 }
 
-func (mp *metaProcessor) verifyNonEpochStartMiniBlocks(metaBlock *block.MetaBlock) error {
-	for _, miniBlockHeader := range metaBlock.MiniBlockHeaders {
-		if miniBlockHeader.GetType() == block.RewardsBlock {
+func (mp *metaProcessor) verifyNonEpochStartMiniBlocks(header data.HeaderHandler) error {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeader.GetTypeInt32() == int32(block.RewardsBlock) ||
+			miniBlockHeader.GetTypeInt32() == int32(block.PeerBlock) {
 			return process.ErrInvalidMiniBlockType
 		}
 	}
@@ -1867,6 +1869,14 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 		hash := lastCrossNotarizedHeaderForShard[shardID].hash
 		mp.blockTracker.AddCrossNotarizedHeader(shardID, hdr, hash)
 		DisplayLastNotarized(mp.marshalizer, mp.hasher, hdr, shardID)
+
+		// Per-shard threshold advance: commitAll already ran, so SCRs from shardID up to
+		// hdr.GetNonce() can be released. hdr.GetNonce()+1 releases items at the just-
+		// notarized nonce too, since they were processed in this metablock.
+		if !check.IfNil(hdr) && !check.IfNil(mp.miniBlockTracker) {
+			threshold := hdr.GetNonce() + 1
+			mp.miniBlockTracker.ReleaseImmunityForCommittedShardBlocks(shardID, threshold)
+		}
 	}
 
 	return nil

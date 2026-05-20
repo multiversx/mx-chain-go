@@ -218,6 +218,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NetworkShardingCollector: ccf.processComponents.PeerShardMapper(),
 		AntifloodHandler:         ccf.networkComponents.InputAntiFloodHandler(),
 		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
+		WhiteListHandler:         ccf.processComponents.WhiteListHandler(),
 		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
 		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),

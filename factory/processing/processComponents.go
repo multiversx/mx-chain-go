@@ -113,6 +113,7 @@ type processComponents struct {
 	fullArchivePeerShardMapper       process.NetworkShardingCollector
 	apiTransactionEvaluator          factory.TransactionEvaluator
 	miniBlocksPoolCleaner            process.PoolsCleaner
+	miniBlockTracker                 process.MiniBlockTracker
 	txsPoolCleaner                   process.PoolsCleaner
 	fallbackHeaderValidator          process.FallbackHeaderValidator
 	whiteListHandler                 process.WhiteListHandler
@@ -174,6 +175,7 @@ type ProcessComponentsFactoryArgs struct {
 }
 
 type processComponentsFactory struct {
+	miniBlockTracker       process.MiniBlockTracker
 	config                 config.Config
 	roundConfig            config.RoundConfig
 	epochConfig            config.EpochConfig
@@ -518,14 +520,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	txsPoolsCleaner.StartCleaning()
 
-	_, err = track.NewMiniBlockTrack(
+	miniBlockTracker, err := track.NewMiniBlockTrack(
 		pcf.data.Datapool(),
+		blockTracker,
 		pcf.bootstrapComponents.ShardCoordinator(),
 		pcf.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
+	pcf.miniBlockTracker = miniBlockTracker
 
 	hardforkTrigger, err := pcf.createHardforkTrigger(epochStartTrigger)
 	if err != nil {
@@ -758,6 +762,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		fullArchivePeerShardMapper:       fullArchivePeerShardMapper,
 		apiTransactionEvaluator:          apiTransactionEvaluator,
 		miniBlocksPoolCleaner:            mbsPoolsCleaner,
+		miniBlockTracker:                 miniBlockTracker,
 		txsPoolCleaner:                   txsPoolsCleaner,
 		fallbackHeaderValidator:          fallbackHeaderValidator,
 		whiteListHandler:                 pcf.whiteListHandler,
