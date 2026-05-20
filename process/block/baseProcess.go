@@ -1020,11 +1020,12 @@ func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler
 
 // checkConstructionStateProcessingTypeAndIndexesCorrectness validates the (miniBlock,
 // miniBlockHeader) pair belonging to a block of shard blockShardID against the legal
-// (hdrPT, sender == blockShardID?, allowed state) rows:
+// (hdrPT, sender == blockShardID?, allowed state) rows. PartialExecuted is allowed alongside
+// the primary state of each processing type, validated by the index check:
 //
 //	Normal,    *   -> Final
-//	Scheduled, yes -> Proposed
-//	Scheduled, no  -> Final
+//	Scheduled, yes -> Proposed | PartialExecuted
+//	Scheduled, no  -> Final | PartialExecuted
 //	Processed, yes -> Final
 //	Processed, no  -> impossible
 //
@@ -1067,14 +1068,14 @@ func checkConstructionStateProcessingTypeAndIndexesCorrectness(
 				return fmt.Errorf("%w: header=Scheduled requires body=Scheduled, got body=%d",
 					process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
 			}
-			if constructionState != int32(block.Proposed) {
-				return fmt.Errorf("%w: Scheduled header at sender shard requires Proposed, got %d",
+			if constructionState != int32(block.Proposed) && constructionState != int32(block.PartialExecuted) {
+				return fmt.Errorf("%w: Scheduled header at sender shard requires Proposed or PartialExecuted, got %d",
 					process.ErrInvalidConstructionState, constructionState)
 			}
 		} else {
 			// incoming body PT belongs to the source shard, so it is not constrained here
-			if constructionState != int32(block.Final) {
-				return fmt.Errorf("%w: cross-shard incoming Scheduled requires Final, got %d",
+			if constructionState != int32(block.Final) && constructionState != int32(block.PartialExecuted) {
+				return fmt.Errorf("%w: cross-shard incoming Scheduled requires Final or PartialExecuted, got %d",
 					process.ErrInvalidConstructionState, constructionState)
 			}
 		}

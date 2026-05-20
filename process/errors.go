@@ -1146,19 +1146,19 @@ var ErrIndexDoesNotMatchWithPartialExecutedMiniBlock = errors.New("index does no
 // ErrIndexDoesNotMatchWithFullyExecutedMiniBlock signals that the given index does not match with a fully executed mini block
 var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not match with a fully executed mini block")
 
-// ErrInvalidMiniBlockProcessingType signals that a miniblock has an invalid ProcessingType value
+// ErrInvalidMiniBlockProcessingType signals that an invalid miniblock processing type has been provided
 var ErrInvalidMiniBlockProcessingType = errors.New("invalid miniblock processing type")
 
-// ErrInvalidMiniBlockProcessingTypeForType signals that the ProcessingType is not allowed for the miniblock's Type
+// ErrInvalidMiniBlockProcessingTypeForType signals an invalid miniblock processing type for the given miniblock type
 var ErrInvalidMiniBlockProcessingTypeForType = errors.New("invalid miniblock processing type for miniblock type")
 
-// ErrProcessingTypeBodyHeaderMismatch signals that the ProcessingType in the body and the header do not agree
+// ErrProcessingTypeBodyHeaderMismatch signals a processing type mismatch between the miniblock body and its header
 var ErrProcessingTypeBodyHeaderMismatch = errors.New("processing type mismatch between miniblock body and miniblock header")
 
-// ErrInvalidConstructionState signals that the ConstructionState is not allowed given the ProcessingType and shard role
+// ErrInvalidConstructionState signals an invalid construction state for the given processing type and shard role
 var ErrInvalidConstructionState = errors.New("invalid construction state for the given processing type and shard role")
 
-// ErrInvalidMiniBlockShardRole signals that the miniblock's shard role is not allowed for the given ProcessingType
+// ErrInvalidMiniBlockShardRole signals an invalid miniblock shard role for the given processing type
 var ErrInvalidMiniBlockShardRole = errors.New("invalid miniblock shard role for the given processing type")
 
 // ErrNilProcessedMiniBlocksTracker signals that a nil processed mini blocks tracker has been provided

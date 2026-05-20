@@ -674,11 +674,7 @@ func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.Mi
 }
 
 // CheckConstructionStateProcessingTypeAndIndexesCorrectness -
-func CheckConstructionStateProcessingTypeAndIndexesCorrectness(
-	mbh data.MiniBlockHeaderHandler,
-	miniBlock *block.MiniBlock,
-	blockShardID uint32,
-) error {
+func CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
 	return checkConstructionStateProcessingTypeAndIndexesCorrectness(mbh, miniBlock, blockShardID)
 }
 

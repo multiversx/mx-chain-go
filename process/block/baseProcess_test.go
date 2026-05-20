@@ -3194,20 +3194,20 @@ func TestCheckConstructionStateProcessingTypeAndIndexesCorrectness(t *testing.T)
 		}
 	})
 
-	t.Run("scheduled plus partial executed rejected at sender", func(t *testing.T) {
+	t.Run("scheduled plus partial executed allowed at sender", func(t *testing.T) {
 		t.Parallel()
 		mb := makeMb(blockShard, blockShard, block.TxBlock, true, 3)
 		mbh := makeMbh(mb, block.Scheduled, block.PartialExecuted, 1)
 		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
-		assert.ErrorIs(t, err, process.ErrInvalidConstructionState)
+		assert.NoError(t, err)
 	})
 
-	t.Run("scheduled plus partial executed rejected at incoming", func(t *testing.T) {
+	t.Run("scheduled plus partial executed allowed at incoming", func(t *testing.T) {
 		t.Parallel()
 		mb := makeMb(otherShard, blockShard, block.TxBlock, true, 3)
 		mbh := makeMbh(mb, block.Scheduled, block.PartialExecuted, 1)
 		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
-		assert.ErrorIs(t, err, process.ErrInvalidConstructionState)
+		assert.NoError(t, err)
 	})
 
 	t.Run("scheduled body required when header is scheduled", func(t *testing.T) {
