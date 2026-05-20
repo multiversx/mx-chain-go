@@ -118,6 +118,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		NetworkShardingCollector: &p2pmocks.NetworkShardingCollectorStub{},
 		AntifloodHandler:         createMockP2PAntifloodHandler(),
 		PoolAdder:                poolAdder,
+		WhiteListHandler:         &testscommon.WhiteListHandlerStub{},
 		SignatureSize:            SignatureSize,
 		PublicKeySize:            PublicKeySize,
 		AppStatusHandler:         appStatusHandler,

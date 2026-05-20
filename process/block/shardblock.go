@@ -98,6 +98,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerValidator:               arguments.HeaderValidator,
 		bootStorer:                    arguments.BootStorer,
 		blockTracker:                  arguments.BlockTracker,
+		miniBlockTracker:              arguments.MiniBlockTracker,
 		dataPool:                      arguments.DataComponents.Datapool(),
 		blockChain:                    arguments.DataComponents.Blockchain(),
 		feeHandler:                    arguments.FeeHandler,
@@ -1524,6 +1525,14 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 	sp.blockTracker.AddCrossNotarizedHeader(shardId, lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash)
 	DisplayLastNotarized(sp.marshalizer, sp.hasher, lastCrossNotarizedHeader, shardId)
+
+	// processedHdrs only contains fully-processed metablocks (see processedAll gate in
+	// getOrderedProcessedMetaBlocksFromMiniBlockHashes), so lastNonce+1 releases items
+	// from those metablocks now that the consuming shard block is being committed.
+	if shardId == core.MetachainShardId && !check.IfNil(lastCrossNotarizedHeader) && !check.IfNil(sp.miniBlockTracker) {
+		threshold := lastCrossNotarizedHeader.GetNonce() + 1
+		sp.miniBlockTracker.ReleaseImmunityForCommittedMetaBlocks(threshold)
+	}
 
 	return nil
 }

@@ -2292,6 +2292,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			},
 		},
 		BlockTracker:                 tpn.BlockTracker,
+		MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
 		BlockSizeThrottler:           TestBlockSizeThrottler,
 		HistoryRepository:            tpn.HistoryRepository,
 		GasHandler:                   tpn.GasHandler,
@@ -3487,6 +3488,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		CurrentEpochProviderInternal: &testscommon.CurrentEpochProviderStub{},
 		HistoryRepositoryInternal:    &dblookupextMock.HistoryRepositoryStub{},
 		HardforkTriggerField:         &testscommon.HardforkTriggerStub{},
+		WhiteListHandlerInternal:     &testscommon.WhiteListHandlerStub{},
 	}
 }
 
