@@ -21,6 +21,7 @@ type interceptedPeerAuthenticationDataFactory struct {
 	peerSignatureHandler  crypto.PeerSignatureHandler
 	hardforkTriggerPubKey []byte
 	payloadValidator      process.PeerAuthenticationPayloadValidator
+	peerShardMapper       process.PeerShardMapper
 }
 
 // NewInterceptedPeerAuthenticationDataFactory creates an instance of interceptedPeerAuthenticationDataFactory
@@ -42,6 +43,7 @@ func NewInterceptedPeerAuthenticationDataFactory(arg ArgInterceptedDataFactory) 
 		peerSignatureHandler:  arg.PeerSignatureHandler,
 		payloadValidator:      payloadValidator,
 		hardforkTriggerPubKey: arg.CoreComponents.HardforkTriggerPubKey(),
+		peerShardMapper:       arg.PeerShardMapper,
 	}, nil
 }
 
@@ -83,6 +85,7 @@ func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte, _ cor
 		PeerSignatureHandler:  ipadf.peerSignatureHandler,
 		PayloadValidator:      ipadf.payloadValidator,
 		HardforkTriggerPubKey: ipadf.hardforkTriggerPubKey,
+		PeerShardMapper:       ipadf.peerShardMapper,
 	}
 
 	return heartbeat.NewInterceptedPeerAuthentication(arg)

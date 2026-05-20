@@ -223,6 +223,11 @@ func (ficf *fullSyncInterceptorsContainerFactory) Create() (process.Interceptors
 	return ficf.mainContainer, ficf.fullArchiveContainer, nil
 }
 
+// AddShardTrieNodeInterceptors returns nil
+func (ficf *fullSyncInterceptorsContainerFactory) AddShardTrieNodeInterceptors(_ process.InterceptorsContainer) error {
+	return nil
+}
+
 func checkBaseParams(
 	coreComponents process.CoreComponentsHolder,
 	cryptoComponents process.CryptoComponentsHolder,

@@ -84,6 +84,7 @@ type baseProcessor struct {
 	requestBlockBodyHandler process.RequestBlockBodyHandler
 	requestHandler          process.RequestHandler
 	blockTracker            process.BlockTracker
+	miniBlockTracker        process.MiniBlockTracker
 	dataPool                dataRetriever.PoolsHolder
 	feeHandler              process.TransactionFeeHandler
 	blockChain              data.ChainHandler
@@ -551,6 +552,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockTracker) {
 		return process.ErrNilBlockTracker
 	}
+	if check.IfNil(arguments.MiniBlockTracker) {
+		return process.ErrNilMiniBlockTracker
+	}
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsFeeHandler
 	}
@@ -970,7 +974,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 
 		mbHashStr := string(mbHash)
 		mbHdr, ok := mbHashesFromHdr[mbHashStr]
-		if !ok {
+		if !ok || !bytes.Equal(miniBlockHeaders[i].GetHash(), mbHash) {
 			return process.ErrHeaderBodyMismatch
 		}
 
@@ -996,6 +1000,11 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		}
 
 		err = checkConstructionStateProcessingTypeAndIndexesCorrectness(mbHdr, miniBlock, blockShardID)
+		if err != nil {
+			return err
+		}
+
+		err = bp.checkIndexOfFirstTxProcessedAgainstTracker(mbHdr, mbHash)
 		if err != nil {
 			return err
 		}
@@ -1105,6 +1114,29 @@ func checkConstructionStateProcessingTypeAndIndexesCorrectness(
 	}
 	if constructionState != int32(block.PartialExecuted) && lastIdx != finalIdx {
 		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) checkIndexOfFirstTxProcessedAgainstTracker(mbHdr data.MiniBlockHeaderHandler, miniBlockHash []byte) error {
+	selfShardID := bp.shardCoordinator.SelfId()
+	isIncomingCross := mbHdr.GetReceiverShardID() == selfShardID && mbHdr.GetSenderShardID() != selfShardID
+	if !isIncomingCross {
+		return nil
+	}
+
+	processedMiniBlockInfo, _ := bp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHash)
+	expectedIndexOfFirstTxProcessed := processedMiniBlockInfo.IndexOfLastTxProcessed + 1
+	if mbHdr.GetIndexOfFirstTxProcessed() != expectedIndexOfFirstTxProcessed {
+		log.Debug("checkIndexOfFirstTxProcessedAgainstTracker: mismatch",
+			"mb hash", miniBlockHash,
+			"sender shard", mbHdr.GetSenderShardID(),
+			"receiver shard", mbHdr.GetReceiverShardID(),
+			"header index of first tx processed", mbHdr.GetIndexOfFirstTxProcessed(),
+			"expected index of first tx processed", expectedIndexOfFirstTxProcessed,
+		)
+		return process.ErrIndexOfFirstTxProcessedMismatch
 	}
 
 	return nil
@@ -2206,7 +2238,9 @@ func (bp *baseProcessor) Close() error {
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
-	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
+	if !bp.processStatusHandler.TrySetBusy("baseProcessor.ProcessScheduledBlock") {
+		return process.ErrBlockProcessorBusy
+	}
 	defer func() {
 		if err != nil {
 			bp.RevertCurrentBlock()

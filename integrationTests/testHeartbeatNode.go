@@ -646,6 +646,7 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 		SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: thn.heartbeatExpiryTimespanInSec,
 		PeerID:                       thn.MainMessenger.ID(),
+		PeerShardMapper:              thn.MainPeerShardMapper,
 	}
 
 	thn.createPeerAuthInterceptor(argsFactory)

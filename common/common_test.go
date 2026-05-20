@@ -9,12 +9,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/stretchr/testify/require"
 )
 
 var testFlag = core.EnableEpochFlag("test flag")
@@ -103,6 +104,29 @@ func TestIsConsensusBitmapValid(t *testing.T) {
 
 		err := common.IsConsensusBitmapValid(log, pubKeys, bitmap, false)
 		require.Equal(t, common.ErrNotEnoughSignatures, err)
+	})
+
+	t.Run("padding bits set should return error", func(t *testing.T) {
+		t.Parallel()
+
+		// consensus size is 10, so bitmap should have 2 bytes
+		bitmap := make([]byte, len(pubKeys)/8+1)
+		bitmap[0] = 0xFF
+		bitmap[1] = 0x07
+
+		err := common.IsConsensusBitmapValid(log, pubKeys, bitmap, false)
+		require.Equal(t, common.ErrPaddingBitsSet, err)
+	})
+
+	t.Run("padding bits not set should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		bitmap := make([]byte, len(pubKeys)/8+1)
+		bitmap[0] = 0xFF
+		bitmap[1] = 0x03
+
+		err := common.IsConsensusBitmapValid(log, pubKeys, bitmap, false)
+		require.Nil(t, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {

@@ -137,6 +137,11 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 	return srcf.container, nil
 }
 
+// AddShardTrieNodeResolvers returns nil
+func (srcf *shardResolversContainerFactory) AddShardTrieNodeResolvers(_ dataRetriever.ResolversContainer) error {
+	return nil
+}
+
 // ------- Hdr resolver
 
 func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
