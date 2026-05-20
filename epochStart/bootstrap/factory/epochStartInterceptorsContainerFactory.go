@@ -80,40 +80,47 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	hardforkTrigger := disabledFactory.HardforkTrigger()
 
 	containerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-		CoreComponents:                 args.CoreComponents,
-		CryptoComponents:               cryptoComponents,
-		Accounts:                       accountsAdapter,
-		ShardCoordinator:               args.ShardCoordinator,
-		NodesCoordinator:               nodesCoordinator,
-		MainMessenger:                  args.MainMessenger,
-		FullArchiveMessenger:           args.FullArchiveMessenger,
-		Store:                          storer,
-		DataPool:                       args.DataPool,
-		MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:                   feeHandler,
-		BlockBlackList:                 blackListHandler,
-		HeaderSigVerifier:              headerSigVerifier,
-		HeaderIntegrityVerifier:        args.HeaderIntegrityVerifier,
-		ValidityAttester:               validityAttester,
-		EpochStartTrigger:              epochStartTrigger,
-		WhiteListHandler:               args.WhiteListHandler,
-		WhiteListerVerifiedTxs:         args.WhiteListerVerifiedTxs,
-		AntifloodHandler:               antiFloodHandler,
-		ArgumentsParser:                args.ArgumentsParser,
-		PreferredPeersHolder:           disabled.NewPreferredPeersHolder(),
-		SizeCheckDelta:                 uint32(sizeCheckDelta),
-		RequestHandler:                 args.RequestHandler,
-		PeerSignatureHandler:           cryptoComponents.PeerSignatureHandler(),
-		SignaturesHandler:              args.SignaturesHandler,
-		HeartbeatExpiryTimespanInSec:   args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
-		MainPeerShardMapper:            peerShardMapper,
-		FullArchivePeerShardMapper:     fullArchivePeerShardMapper,
-		HardforkTrigger:                hardforkTrigger,
-		NodeOperationMode:              args.NodeOperationMode,
-		InterceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
+		CoreComponents:                  args.CoreComponents,
+		CryptoComponents:                cryptoComponents,
+		Accounts:                        accountsAdapter,
+		ShardCoordinator:                args.ShardCoordinator,
+		NodesCoordinator:                nodesCoordinator,
+		MainMessenger:                   args.MainMessenger,
+		FullArchiveMessenger:            args.FullArchiveMessenger,
+		Store:                           storer,
+		DataPool:                        args.DataPool,
+		MaxTxNonceDeltaAllowed:          common.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:                    feeHandler,
+		BlockBlackList:                  blackListHandler,
+		HeaderSigVerifier:               headerSigVerifier,
+		HeaderIntegrityVerifier:         args.HeaderIntegrityVerifier,
+		ValidityAttester:                validityAttester,
+		EpochStartTrigger:               epochStartTrigger,
+		WhiteListHandler:                args.WhiteListHandler,
+		WhiteListerVerifiedTxs:          args.WhiteListerVerifiedTxs,
+		AntifloodHandler:                antiFloodHandler,
+		ArgumentsParser:                 args.ArgumentsParser,
+		PreferredPeersHolder:            disabled.NewPreferredPeersHolder(),
+		SizeCheckDelta:                  uint32(sizeCheckDelta),
+		RequestHandler:                  args.RequestHandler,
+		PeerSignatureHandler:            cryptoComponents.PeerSignatureHandler(),
+		SignaturesHandler:               args.SignaturesHandler,
+		HeartbeatExpiryTimespanInSec:    args.Config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
+		MaxAllowedTrieNodeChunks:        args.Config.Antiflood.MaxAllowedTrieNodeChunks,
+		TrieNodeChunksInactivityTimeout: time.Duration(args.Config.Antiflood.TrieNodeChunksInactivityTimeoutInSec) * time.Second,
+		MainPeerShardMapper:             peerShardMapper,
+		FullArchivePeerShardMapper:      fullArchivePeerShardMapper,
+		HardforkTrigger:                 hardforkTrigger,
+		NodeOperationMode:               args.NodeOperationMode,
+		InterceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 	}
 
-	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
+	var interceptorsContainerFactory process.InterceptorsContainerFactory
+	if args.ShardCoordinator.SelfId() == core.MetachainShardId {
+		interceptorsContainerFactory, err = interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
+	} else {
+		interceptorsContainerFactory, err = interceptorscontainer.NewShardInterceptorsContainerFactory(containerFactoryArgs)
+	}
 	if err != nil {
 		return nil, nil, err
 	}

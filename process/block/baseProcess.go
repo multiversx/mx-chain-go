@@ -84,6 +84,7 @@ type baseProcessor struct {
 	requestBlockBodyHandler process.RequestBlockBodyHandler
 	requestHandler          process.RequestHandler
 	blockTracker            process.BlockTracker
+	miniBlockTracker        process.MiniBlockTracker
 	dataPool                dataRetriever.PoolsHolder
 	feeHandler              process.TransactionFeeHandler
 	blockChain              data.ChainHandler
@@ -550,6 +551,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.BlockTracker) {
 		return process.ErrNilBlockTracker
+	}
+	if check.IfNil(arguments.MiniBlockTracker) {
+		return process.ErrNilMiniBlockTracker
 	}
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsFeeHandler
@@ -2142,7 +2146,9 @@ func (bp *baseProcessor) Close() error {
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
-	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
+	if !bp.processStatusHandler.TrySetBusy("baseProcessor.ProcessScheduledBlock") {
+		return process.ErrBlockProcessorBusy
+	}
 	defer func() {
 		if err != nil {
 			bp.RevertCurrentBlock()

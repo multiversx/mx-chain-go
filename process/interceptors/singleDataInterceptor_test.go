@@ -238,7 +238,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProc
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldNotCallProcess(t *testing.T) {
 	t.Parallel()
 
-	testProcessReceiveMessage(t, false, nil, 0)
+	testProcessReceiveMessage(t, false, process.ErrInterceptedDataNotForCurrentShard, 0)
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
@@ -297,7 +297,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 		HashCalled: func() []byte {
 			return msgHash
@@ -355,7 +355,7 @@ func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr er
 			return expectedErr
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 	}
 
@@ -411,7 +411,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 		HashCalled: func() []byte {
 			return msgHash
