@@ -597,6 +597,9 @@ var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
 // ErrNilBlockTracker signals that a nil block tracker was provided
 var ErrNilBlockTracker = errors.New("nil block tracker")
 
+// ErrNilMiniBlockTracker signals that a nil miniblock tracker was provided
+var ErrNilMiniBlockTracker = errors.New("nil miniblock tracker")
+
 // ErrHeaderIsBlackListed signals that the header provided is black listed
 var ErrHeaderIsBlackListed = errors.New("header is black listed")
 

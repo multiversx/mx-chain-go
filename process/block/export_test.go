@@ -181,6 +181,7 @@ func NewShardProcessorEmptyWith3shards(
 				},
 			},
 			BlockTracker:                 mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			Version:                      "softwareVersion",
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
