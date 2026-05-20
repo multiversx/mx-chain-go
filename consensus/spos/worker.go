@@ -82,6 +82,7 @@ type Worker struct {
 
 	antifloodHandler consensus.P2PAntifloodHandler
 	poolAdder        PoolAdder
+	whiteListHandler process.WhiteListHandler
 
 	cancelFunc                func()
 	consensusMessageValidator *consensusMessageValidator
@@ -114,6 +115,7 @@ type WorkerArgs struct {
 	NetworkShardingCollector consensus.NetworkShardingCollector
 	AntifloodHandler         consensus.P2PAntifloodHandler
 	PoolAdder                PoolAdder
+	WhiteListHandler         process.WhiteListHandler
 	SignatureSize            int
 	PublicKeySize            int
 	AppStatusHandler         core.AppStatusHandler
@@ -169,6 +171,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		networkShardingCollector: args.NetworkShardingCollector,
 		antifloodHandler:         args.AntifloodHandler,
 		poolAdder:                args.PoolAdder,
+		whiteListHandler:         args.WhiteListHandler,
 		nodeRedundancyHandler:    args.NodeRedundancyHandler,
 		peerBlacklistHandler:     args.PeerBlacklistHandler,
 		closer:                   closing.NewSafeChanCloser(),
@@ -264,6 +267,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.PoolAdder) {
 		return ErrNilPoolAdder
+	}
+	if check.IfNil(args.WhiteListHandler) {
+		return process.ErrNilWhiteListHandler
 	}
 	if check.IfNil(args.AppStatusHandler) {
 		return ErrNilAppStatusHandler
@@ -687,6 +693,11 @@ func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
 		hash, err := core.CalculateHash(wrk.marshalizer, wrk.hasher, miniblock)
 		if err != nil {
 			return
+		}
+		if miniblock.SenderShardID != wrk.shardCoordinator.SelfId() &&
+			!wrk.whiteListHandler.IsWhiteListedAtLeastOne([][]byte{hash}) {
+			log.Trace("addBlockToPool: skipping non-whitelisted cross-shard mini block", "hash", hash)
+			continue
 		}
 		wrk.poolAdder.Put(hash, miniblock, miniblock.Size())
 	}

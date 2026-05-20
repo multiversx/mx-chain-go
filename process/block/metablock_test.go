@@ -147,6 +147,7 @@ func createMockMetaArguments(
 				},
 			},
 			BlockTracker:                 mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+			MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
@@ -1960,6 +1961,48 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Nil(t, err)
 	assert.Equal(t, currHdr, mp.LastNotarizedHdrForShard(currHdr.ShardID))
+}
+
+func TestMetaProcessor_SaveLastNotarizedHeader_ReleasesImmunityForCommittedShardBlocks(t *testing.T) {
+	t.Parallel()
+
+	pool := dataRetrieverMock.NewPoolsHolderMock()
+	noOfShards := uint32(3)
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	coreComponents.Hash = &hashingMocks.HasherMock{}
+	dataComponents.DataPool = pool
+	dataComponents.Storage = initStore()
+	bootstrapComponents.Coordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
+	arguments.BlockTracker = mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
+
+	received := make(map[uint32]uint64)
+	var mu sync.Mutex
+	arguments.MiniBlockTracker = &testscommon.MiniBlockTrackerStub{
+		ReleaseImmunityForCommittedShardBlocksCalled: func(senderShard uint32, threshold uint64) {
+			mu.Lock()
+			received[senderShard] = threshold
+			mu.Unlock()
+		},
+	}
+
+	mp, err := blproc.NewMetaProcessor(arguments)
+	require.Nil(t, err)
+
+	const baseNonce = uint64(44)
+	setLastNotarizedHdr(noOfShards, 9, baseNonce, []byte("randseed"), mp.NotarizedHdrs(), arguments.BlockTracker)
+
+	err = mp.SaveLastNotarizedHeader(&block.MetaBlock{})
+	require.Nil(t, err)
+
+	mu.Lock()
+	defer mu.Unlock()
+	require.Equal(t, int(noOfShards), len(received), "every shard should receive a release")
+	for shardID := uint32(0); shardID < noOfShards; shardID++ {
+		require.Equal(t, baseNonce+1, received[shardID], "shard %d expected hdr.GetNonce()+1", shardID)
+	}
 }
 
 func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {

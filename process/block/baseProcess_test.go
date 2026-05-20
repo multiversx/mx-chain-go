@@ -125,6 +125,7 @@ func createArgBaseProcessor(
 			},
 		},
 		BlockTracker:                   mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders),
+		MiniBlockTracker:               &testscommon.MiniBlockTrackerStub{},
 		BlockSizeThrottler:             &mock.BlockSizeThrottlerStub{},
 		Version:                        "softwareVersion",
 		HistoryRepository:              &dblookupext.HistoryRepositoryStub{},
