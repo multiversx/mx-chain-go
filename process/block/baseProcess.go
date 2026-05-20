@@ -1006,24 +1006,13 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 	return nil
 }
 
-func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
-	if mbh.GetConstructionState() == int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() == int32(mbh.GetTxCount())-1 {
-		return process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock
-
-	}
-	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() != int32(mbh.GetTxCount())-1 {
-		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
-	}
-
-	return nil
-}
-
 // checkConstructionStateProcessingTypeAndIndexesCorrectness validates the (miniBlock,
 // miniBlockHeader) pair belonging to a block of shard blockShardID against the legal
 // (hdrPT, sender == blockShardID?, allowed state) rows. PartialExecuted is allowed alongside
 // the primary state of each processing type, validated by the index check:
 //
-//	Normal,    *   -> Final
+//	Normal,    yes -> Final
+//	Normal,    no  -> Final | PartialExecuted
 //	Scheduled, yes -> Proposed | PartialExecuted
 //	Scheduled, no  -> Final | PartialExecuted
 //	Processed, yes -> Final
@@ -1058,9 +1047,17 @@ func checkConstructionStateProcessingTypeAndIndexesCorrectness(
 	constructionState := mbh.GetConstructionState()
 	switch hdrPT {
 	case int32(block.Normal):
-		if constructionState != int32(block.Final) {
-			return fmt.Errorf("%w: Normal header requires Final, got %d",
-				process.ErrInvalidConstructionState, constructionState)
+		if senderIsBlockShard {
+			if constructionState != int32(block.Final) {
+				return fmt.Errorf("%w: Normal header at sender shard requires Final, got %d",
+					process.ErrInvalidConstructionState, constructionState)
+			}
+		} else {
+			// an incoming normal miniblock may be partially executed at the destination
+			if constructionState != int32(block.Final) && constructionState != int32(block.PartialExecuted) {
+				return fmt.Errorf("%w: incoming Normal header requires Final or PartialExecuted, got %d",
+					process.ErrInvalidConstructionState, constructionState)
+			}
 		}
 	case int32(block.Scheduled):
 		if senderIsBlockShard {

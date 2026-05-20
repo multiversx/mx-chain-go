@@ -3082,45 +3082,6 @@ func TestBaseProcessor_getPruningHandlerSetsDefaulPruningDelay(t *testing.T) {
 	assert.False(t, ph.IsPruningEnabled())
 }
 
-func TestBaseProcessor_checkConstructionStateAndIndexesCorrectness(t *testing.T) {
-	t.Parallel()
-
-	arguments := CreateMockArguments(createComponentHolderMocks())
-	bp, _ := blproc.NewShardProcessor(arguments)
-
-	mbh := &block.MiniBlockHeader{
-		TxCount: 5,
-	}
-
-	_ = mbh.SetConstructionState(int32(block.PartialExecuted))
-
-	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount))
-	err := bp.CheckConstructionStateAndIndexesCorrectness(mbh)
-	assert.Nil(t, err)
-
-	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 2)
-	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
-	assert.Nil(t, err)
-
-	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 1)
-	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
-	assert.Equal(t, process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock, err)
-
-	_ = mbh.SetConstructionState(int32(block.Final))
-
-	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount))
-	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
-	assert.Equal(t, process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock, err)
-
-	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 2)
-	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
-	assert.Equal(t, process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock, err)
-
-	_ = mbh.SetIndexOfLastTxProcessed(int32(mbh.TxCount) - 1)
-	err = bp.CheckConstructionStateAndIndexesCorrectness(mbh)
-	assert.Nil(t, err)
-}
-
 func TestCheckConstructionStateProcessingTypeAndIndexesCorrectness(t *testing.T) {
 	t.Parallel()
 
@@ -3234,9 +3195,17 @@ func TestCheckConstructionStateProcessingTypeAndIndexesCorrectness(t *testing.T)
 		assert.ErrorIs(t, err, process.ErrProcessingTypeBodyHeaderMismatch)
 	})
 
-	t.Run("normal incoming with partial state rejected by destination invariant", func(t *testing.T) {
+	t.Run("incoming normal partial executed allowed", func(t *testing.T) {
 		t.Parallel()
 		mb := makeMb(otherShard, blockShard, block.TxBlock, false, 3)
+		mbh := makeMbh(mb, block.Normal, block.PartialExecuted, 1)
+		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+		assert.NoError(t, err)
+	})
+
+	t.Run("sender shard normal partial executed rejected", func(t *testing.T) {
+		t.Parallel()
+		mb := makeMb(blockShard, otherShard, block.TxBlock, false, 3)
 		mbh := makeMbh(mb, block.Normal, block.PartialExecuted, 1)
 		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
 		assert.ErrorIs(t, err, process.ErrInvalidConstructionState)

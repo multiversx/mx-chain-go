@@ -668,11 +668,6 @@ func (sp *shardProcessor) RollBackProcessedMiniBlocksInfo(headerHandler data.Hea
 	sp.rollBackProcessedMiniBlocksInfo(headerHandler, mapMiniBlockHashes)
 }
 
-// CheckConstructionStateAndIndexesCorrectness -
-func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
-	return checkConstructionStateAndIndexesCorrectness(mbh)
-}
-
 // CheckConstructionStateProcessingTypeAndIndexesCorrectness -
 func CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
 	return checkConstructionStateProcessingTypeAndIndexesCorrectness(mbh, miniBlock, blockShardID)
