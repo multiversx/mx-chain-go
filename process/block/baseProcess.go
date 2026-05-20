@@ -1028,8 +1028,9 @@ func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler
 //	Processed, yes -> Final
 //	Processed, no  -> impossible
 //
-// It also checks body PT validity, type-vs-scheduling, body-vs-header PT consistency,
-// and IndexOfLastTxProcessed vs ConstructionState.
+// It also checks body PT validity, type-vs-scheduling, and IndexOfLastTxProcessed vs
+// ConstructionState. Body-vs-header PT consistency is enforced only when sender is
+// blockShardID; for incoming MBs the body PT belongs to the source shard.
 func checkConstructionStateProcessingTypeAndIndexesCorrectness(
 	mbh data.MiniBlockHeaderHandler,
 	miniBlock *block.MiniBlock,
@@ -1053,27 +1054,28 @@ func checkConstructionStateProcessingTypeAndIndexesCorrectness(
 		}
 	}
 
-	state := mbh.GetConstructionState()
+	constructionState := mbh.GetConstructionState()
 	switch hdrPT {
 	case int32(block.Normal):
-		if state != int32(block.Final) {
+		if constructionState != int32(block.Final) {
 			return fmt.Errorf("%w: Normal header requires Final, got %d",
-				process.ErrInvalidConstructionState, state)
+				process.ErrInvalidConstructionState, constructionState)
 		}
 	case int32(block.Scheduled):
-		if bodyPT != int32(block.Scheduled) {
-			return fmt.Errorf("%w: header=Scheduled requires body=Scheduled, got body=%d",
-				process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
-		}
 		if senderIsBlockShard {
-			if state != int32(block.Proposed) {
+			if bodyPT != int32(block.Scheduled) {
+				return fmt.Errorf("%w: header=Scheduled requires body=Scheduled, got body=%d",
+					process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
+			}
+			if constructionState != int32(block.Proposed) {
 				return fmt.Errorf("%w: Scheduled header at sender shard requires Proposed, got %d",
-					process.ErrInvalidConstructionState, state)
+					process.ErrInvalidConstructionState, constructionState)
 			}
 		} else {
-			if state != int32(block.Final) {
+			// incoming body PT belongs to the source shard, so it is not constrained here
+			if constructionState != int32(block.Final) {
 				return fmt.Errorf("%w: cross-shard incoming Scheduled requires Final, got %d",
-					process.ErrInvalidConstructionState, state)
+					process.ErrInvalidConstructionState, constructionState)
 			}
 		}
 	case int32(block.Processed):
@@ -1085,9 +1087,9 @@ func checkConstructionStateProcessingTypeAndIndexesCorrectness(
 			return fmt.Errorf("%w: Processed header requires sender == blockShard",
 				process.ErrInvalidMiniBlockShardRole)
 		}
-		if state != int32(block.Final) {
+		if constructionState != int32(block.Final) {
 			return fmt.Errorf("%w: Processed header requires Final, got %d",
-				process.ErrInvalidConstructionState, state)
+				process.ErrInvalidConstructionState, constructionState)
 		}
 	default:
 		return fmt.Errorf("%w: unknown header processing type %d",
@@ -1096,10 +1098,10 @@ func checkConstructionStateProcessingTypeAndIndexesCorrectness(
 
 	lastIdx := mbh.GetIndexOfLastTxProcessed()
 	finalIdx := int32(mbh.GetTxCount()) - 1
-	if state == int32(block.PartialExecuted) && lastIdx == finalIdx {
+	if constructionState == int32(block.PartialExecuted) && lastIdx == finalIdx {
 		return process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock
 	}
-	if state != int32(block.PartialExecuted) && lastIdx != finalIdx {
+	if constructionState != int32(block.PartialExecuted) && lastIdx != finalIdx {
 		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
 	}
 
