@@ -2595,6 +2595,63 @@ func TestBaseProcessor_getIndexOfFirstMiniBlockToBeExecuted(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 1, index)
 	})
+
+	t.Run("leading processed miniBlock not executed locally is rejected", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsMiniBlockExecutedCalled: func(_ []byte) bool {
+				return false
+			},
+		}
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		mbh := block.MiniBlockHeader{}
+		mbhReserved := block.MiniBlockHeaderReserved{ExecutionType: block.Processed}
+		mbh.Reserved, _ = mbhReserved.Marshal()
+
+		metaBlock := &block.MetaBlock{MiniBlockHeaders: []block.MiniBlockHeader{mbh}}
+
+		index, err := bp.GetIndexOfFirstMiniBlockToBeExecuted(metaBlock)
+		assert.Zero(t, index)
+		assert.ErrorIs(t, err, process.ErrMiniBlockNotExecuted)
+	})
+
+	t.Run("processed miniBlock after a non-processed one is rejected", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			IsMiniBlockExecutedCalled: func(_ []byte) bool {
+				return true
+			},
+		}
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		mbhNormal := block.MiniBlockHeader{}
+		mbhNormalReserved := block.MiniBlockHeaderReserved{ExecutionType: block.Normal}
+		mbhNormal.Reserved, _ = mbhNormalReserved.Marshal()
+
+		mbhProcessed := block.MiniBlockHeader{}
+		mbhProcessedReserved := block.MiniBlockHeaderReserved{ExecutionType: block.Processed}
+		mbhProcessed.Reserved, _ = mbhProcessedReserved.Marshal()
+
+		metaBlock := &block.MetaBlock{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				mbhNormal,
+				mbhProcessed,
+			},
+		}
+
+		index, err := bp.GetIndexOfFirstMiniBlockToBeExecuted(metaBlock)
+		assert.Zero(t, index)
+		assert.ErrorIs(t, err, process.ErrProcessedMiniBlockNotInLeadingPrefix)
+	})
 }
 
 func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
@@ -3207,6 +3264,14 @@ func TestCheckConstructionStateProcessingTypeAndIndexesCorrectness(t *testing.T)
 		t.Parallel()
 		mb := makeMb(blockShard, otherShard, block.TxBlock, false, 3)
 		mbh := makeMbh(mb, block.Normal, block.PartialExecuted, 1)
+		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+		assert.ErrorIs(t, err, process.ErrInvalidConstructionState)
+	})
+
+	t.Run("outgoing normal proposed with final index rejected", func(t *testing.T) {
+		t.Parallel()
+		mb := makeMb(blockShard, otherShard, block.TxBlock, false, 3)
+		mbh := makeMbh(mb, block.Normal, block.Proposed, 2)
 		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
 		assert.ErrorIs(t, err, process.ErrInvalidConstructionState)
 	})

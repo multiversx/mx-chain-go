@@ -741,6 +741,9 @@ var ErrShardInfoOnEpochStartBlock = errors.New("epoch-start block should not con
 // ErrMiniBlockNotExecuted signals that a mini block was not executed locally
 var ErrMiniBlockNotExecuted = errors.New("mini block not executed")
 
+// ErrProcessedMiniBlockNotInLeadingPrefix signals that a processed mini block was found outside the leading scheduled-executed prefix
+var ErrProcessedMiniBlockNotInLeadingPrefix = errors.New("processed mini block found outside the leading scheduled-executed prefix")
+
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
 
