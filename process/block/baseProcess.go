@@ -1048,6 +1048,10 @@ func checkConstructionStateProcessingTypeAndIndexesCorrectness(
 	switch hdrPT {
 	case int32(block.Normal):
 		if senderIsBlockShard {
+			if bodyPT != int32(block.Normal) {
+				return fmt.Errorf("%w: Normal header at sender shard requires Normal body, got body=%d",
+					process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
+			}
 			if constructionState != int32(block.Final) {
 				return fmt.Errorf("%w: Normal header at sender shard requires Final, got %d",
 					process.ErrInvalidConstructionState, constructionState)

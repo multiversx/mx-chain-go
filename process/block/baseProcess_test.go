@@ -3236,6 +3236,14 @@ func TestCheckConstructionStateProcessingTypeAndIndexesCorrectness(t *testing.T)
 		assert.ErrorIs(t, err, process.ErrProcessingTypeBodyHeaderMismatch)
 	})
 
+	t.Run("sender shard normal header with scheduled body rejected", func(t *testing.T) {
+		t.Parallel()
+		mb := makeMb(blockShard, otherShard, block.TxBlock, true, 3)
+		mbh := makeMbh(mb, block.Normal, block.Final, 2)
+		err := blproc.CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh, mb, blockShard)
+		assert.ErrorIs(t, err, process.ErrProcessingTypeBodyHeaderMismatch)
+	})
+
 	t.Run("processed must have sender equal block shard", func(t *testing.T) {
 		t.Parallel()
 		mb := makeMb(otherShard, blockShard, block.TxBlock, true, 3)
