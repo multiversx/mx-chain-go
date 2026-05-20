@@ -18,6 +18,11 @@ func (rcf *resolversContainerFactory) Create() (dataRetriever.ResolversContainer
 	return disabled.NewDisabledResolversContainer(), nil
 }
 
+// AddShardTrieNodeResolvers returns nil as it is disabled
+func (rcf *resolversContainerFactory) AddShardTrieNodeResolvers(_ dataRetriever.ResolversContainer) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (rcf *resolversContainerFactory) IsInterfaceNil() bool {
 	return rcf == nil

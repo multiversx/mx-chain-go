@@ -17,12 +17,12 @@ require (
 	github.com/libp2p/go-libp2p-pubsub v0.13.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.3.0
-	github.com/multiversx/mx-chain-core-go v1.4.1
+	github.com/multiversx/mx-chain-core-go v1.4.2-0.20260505075936-43445d8a0f62
 	github.com/multiversx/mx-chain-crypto-go v1.3.0
-	github.com/multiversx/mx-chain-es-indexer-go v1.9.2
+	github.com/multiversx/mx-chain-es-indexer-go v1.9.3
 	github.com/multiversx/mx-chain-logger-go v1.1.0
 	github.com/multiversx/mx-chain-scenario-go v1.6.0
-	github.com/multiversx/mx-chain-storage-go v1.1.0
+	github.com/multiversx/mx-chain-storage-go v1.1.1-0.20260514073036-7edefb9fa687
 	github.com/multiversx/mx-chain-vm-common-go v1.6.5
 	github.com/multiversx/mx-chain-vm-go v1.5.45
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.69
@@ -38,6 +38,8 @@ require (
 	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
+
+replace github.com/multiversx/mx-chain-vm-common-go v1.6.5 => github.com/multiversx/mx-chain-vm-common-go-ghsa-7cf5-cp7g-c42h v1.6.7-0.20260515121036-1c5e258de15a
 
 require (
 	github.com/TwiN/go-color v1.1.0 // indirect
@@ -208,3 +210,5 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
+
+replace github.com/multiversx/mx-chain-storage-go => github.com/multiversx/mx-chain-storage-go-ghsa-r72p-f4p9-q3j3 v1.1.1-0.20260520110037-32f823a1dc3a

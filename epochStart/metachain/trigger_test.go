@@ -257,10 +257,83 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 
 	assert.Equal(t, expectedRound, epochStartTrigger.nextEpochStartRound)
 
-	epochStartTrigger.Update(expectedRound, minimumNonceToStartEpoch)
+	epochStartTrigger.Update(expectedRound, minimumBlocksPerEpoch)
 
 	isEpochStart := epochStartTrigger.IsEpochStart()
 	assert.True(t, isEpochStart)
+}
+
+func TestTrigger_ForceEpochStartShouldWaitMinimumNonceEvenWhenForced(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.Settings.MinRoundsBetweenEpochs = 20
+	arguments.Settings.RoundsPerEpoch = 200
+
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	require.Nil(t, err)
+
+	forcedRound := uint64(60)
+	epochStartTrigger.ForceEpochStart(forcedRound)
+
+	epochStartTrigger.Update(forcedRound, minimumBlocksPerEpoch-1)
+	assert.False(t, epochStartTrigger.IsEpochStart())
+
+	epochStartTrigger.Update(forcedRound, minimumBlocksPerEpoch)
+	assert.True(t, epochStartTrigger.IsEpochStart())
+}
+
+func TestTrigger_UpdateShouldWaitMinimumNonceFromPreviousEpochStart(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartTriggerArguments()
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	require.Nil(t, err)
+
+	epochStartNonce := uint64(100)
+	epochStartTrigger.epochStartMeta = &block.MetaBlock{Nonce: epochStartNonce}
+
+	round := uint64(3)
+	epochStartTrigger.Update(round, epochStartNonce+minimumBlocksPerEpoch-1)
+	assert.False(t, epochStartTrigger.IsEpochStart())
+
+	epochStartTrigger.Update(round, epochStartNonce+minimumBlocksPerEpoch)
+	assert.True(t, epochStartTrigger.IsEpochStart())
+}
+
+func TestTrigger_UpdateShouldEnforceMinBlocksAfterEpochTransition(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartTriggerArguments()
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	require.Nil(t, err)
+
+	// default mock: RoundsPerEpoch=2, currEpochStartRound=0
+	// round 3 > 0+2 satisfies isNormalEpochStart; nonce 4 satisfies hasMinBlocksInEpoch (4 >= 0+4)
+	epochStartTrigger.Update(3, minimumBlocksPerEpoch)
+	assert.True(t, epochStartTrigger.IsEpochStart())
+
+	// SetProcessed moves epochStartMeta to the epoch-1-start block at nonce 500
+	// this resets the baseline: next epoch needs currentNonce >= 500+4
+	epochOneStartNonce := uint64(500)
+	epochStartTrigger.SetProcessed(&block.MetaBlock{
+		Round: 3,
+		Nonce: epochOneStartNonce,
+		Epoch: 1,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}},
+		},
+	}, nil)
+	assert.False(t, epochStartTrigger.IsEpochStart())
+
+	// round 6 > 3+2 satisfies isNormalEpochStart for epoch 2
+	// but only 3 blocks since epoch 1 start - hasMinBlocksInEpoch must block it
+	epochStartTrigger.Update(6, epochOneStartNonce+minimumBlocksPerEpoch-1)
+	assert.False(t, epochStartTrigger.IsEpochStart())
+
+	// 4th block since epoch 1 start - guard satisfied
+	epochStartTrigger.Update(6, epochOneStartNonce+minimumBlocksPerEpoch)
+	assert.True(t, epochStartTrigger.IsEpochStart())
 }
 
 func TestTrigger_LastCommitedMetaEpochStartBlock(t *testing.T) {
