@@ -248,9 +248,9 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_max_gas_per_transaction":       uint64(15000),
 		"erd_adaptivity":                    "true",
 		"erd_hysteresis":                    "0.000000",
-		"erd_un_bond_period":                uint64(150),
-		"erd_un_bond_period_supernova":      uint64(1500),
-		"erd_un_bond_period_in_epochs":      uint64(7),
+		"erd_unbond_period":                 uint64(150),
+		"erd_unbond_period_supernova":       uint64(1500),
+		"erd_unbond_period_in_epochs":       uint64(7),
 	}
 
 	configMetrics, _ := sm.ConfigMetrics()
