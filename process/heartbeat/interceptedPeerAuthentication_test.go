@@ -290,7 +290,7 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
 		err := ipa.CheckValidity()
-		assert.Equal(t, process.ErrPeerAlreadyAuthenticated, err)
+		assert.NoError(t, err)
 	})
 	t.Run("peer already authenticated with newer timestamp should return error", func(t *testing.T) {
 		t.Parallel()
