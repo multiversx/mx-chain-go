@@ -592,6 +592,14 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headerHandler.GetEpoch()) {
 		proof, err := t.proofsPool.GetProof(headerHandler.GetShardID(), metaBlockHash)
 		if err != nil {
+			metaHdr, ok := headerHandler.(data.MetaHeaderHandler)
+			if ok && metaHdr.IsStartOfEpochBlock() && metaHdr.GetEpoch() > t.Epoch() {
+				log.Debug("proof not found for epoch start meta header, requesting it",
+					"header hash", metaBlockHash,
+					"epoch", headerHandler.GetEpoch(),
+				)
+				go t.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, metaBlockHash)
+			}
 			return
 		}
 
