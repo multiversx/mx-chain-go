@@ -85,6 +85,7 @@ type RequestersFinder interface {
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	AddShardTrieNodeResolvers(container ResolversContainer) error
 	IsInterfaceNil() bool
 }
 
@@ -117,6 +118,7 @@ type RequestersContainer interface {
 // RequestersContainerFactory defines the functionality to create a requesters container
 type RequestersContainerFactory interface {
 	Create() (RequestersContainer, error)
+	AddShardTrieNodeRequesters(container RequestersContainer) error
 	IsInterfaceNil() bool
 }
 
@@ -174,7 +176,9 @@ type ShardedDataCacherNotifier interface {
 	SearchFirstData(key []byte) (value interface{}, ok bool)
 	RemoveData(key []byte, cacheId string)
 	RemoveSetOfDataFromPool(keys [][]byte, cacheId string)
-	ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string)
+	ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string, nonce uint64)
+	SetOldestImmuneNonce(cacheId string, nonce uint64)
+	SetOldestImmuneNonceForAllCaches(nonce uint64)
 	RemoveDataFromAllShards(key []byte)
 	MergeShardStores(sourceCacheID, destCacheID string)
 	Clear()

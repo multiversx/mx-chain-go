@@ -98,6 +98,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		headerValidator:               arguments.HeaderValidator,
 		bootStorer:                    arguments.BootStorer,
 		blockTracker:                  arguments.BlockTracker,
+		miniBlockTracker:              arguments.MiniBlockTracker,
 		dataPool:                      arguments.DataComponents.Datapool(),
 		blockChain:                    arguments.DataComponents.Blockchain(),
 		feeHandler:                    arguments.FeeHandler,
@@ -173,7 +174,9 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
-	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlock")
+	if !sp.processStatusHandler.TrySetBusy("shardProcessor.ProcessBlock") {
+		return process.ErrBlockProcessorBusy
+	}
 	defer sp.processStatusHandler.SetIdle()
 
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
@@ -194,7 +197,7 @@ func (sp *shardProcessor) ProcessBlock(
 	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
-	err = sp.checkScheduledRootHash(headerHandler)
+	err = sp.checkScheduledData(headerHandler)
 	if err != nil {
 		return err
 	}
@@ -218,7 +221,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
-	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body)
+	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID())
 	if err != nil {
 		return err
 	}
@@ -911,7 +914,9 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	sp.processStatusHandler.SetBusy("shardProcessor.CreateBlock")
+	if !sp.processStatusHandler.TrySetBusy("shardProcessor.CreateBlock") {
+		return nil, nil, process.ErrBlockProcessorBusy
+	}
 	defer sp.processStatusHandler.SetIdle()
 
 	err := sp.createBlockStarted()
@@ -997,8 +1002,11 @@ func (sp *shardProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
+	if !sp.processStatusHandler.TrySetBusy("shardProcessor.CommitBlock") {
+		return process.ErrBlockProcessorBusy
+	}
+
 	var err error
-	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 	defer func() {
 		if err != nil {
 			sp.RevertCurrentBlock()
@@ -1517,6 +1525,14 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 	sp.blockTracker.AddCrossNotarizedHeader(shardId, lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash)
 	DisplayLastNotarized(sp.marshalizer, sp.hasher, lastCrossNotarizedHeader, shardId)
+
+	// processedHdrs only contains fully-processed metablocks (see processedAll gate in
+	// getOrderedProcessedMetaBlocksFromMiniBlockHashes), so lastNonce+1 releases items
+	// from those metablocks now that the consuming shard block is being committed.
+	if shardId == core.MetachainShardId && !check.IfNil(lastCrossNotarizedHeader) && !check.IfNil(sp.miniBlockTracker) {
+		threshold := lastCrossNotarizedHeader.GetNonce() + 1
+		sp.miniBlockTracker.ReleaseImmunityForCommittedMetaBlocks(threshold)
+	}
 
 	return nil
 }

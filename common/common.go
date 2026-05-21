@@ -9,8 +9,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 const (
@@ -103,6 +104,14 @@ func IsConsensusBitmapValid(
 			"expected number of bytes", expectedBitmapSize,
 			"actual", len(bitmap))
 		return ErrWrongSizeBitmap
+	}
+
+	paddingBits := consensusSize % 8
+	if paddingBits != 0 {
+		paddingMask := byte(0xFF << paddingBits)
+		if bitmap[len(bitmap)-1]&paddingMask != 0 {
+			return ErrPaddingBitsSet
+		}
 	}
 
 	numOfOnesInBitmap := 0

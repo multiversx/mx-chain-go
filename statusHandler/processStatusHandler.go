@@ -29,6 +29,22 @@ func (psh *processStatusHandler) SetBusy(reason string) {
 	psh.mutStatus.Unlock()
 }
 
+// TrySetBusy will atomically check if idle and set the internal state to "busy".
+// Returns true if the state was successfully set to busy, false if already busy.
+func (psh *processStatusHandler) TrySetBusy(reason string) bool {
+	psh.mutStatus.Lock()
+	defer psh.mutStatus.Unlock()
+
+	if !psh.isIdle {
+		log.Debug("processStatusHandler.TrySetBusy: already busy", "reason", reason)
+		return false
+	}
+
+	log.Debug("processStatusHandler.TrySetBusy", "reason", reason)
+	psh.isIdle = false
+	return true
+}
+
 // SetIdle will set the internal state to "idle"
 func (psh *processStatusHandler) SetIdle() {
 	log.Debug("processStatusHandler.SetIdle")

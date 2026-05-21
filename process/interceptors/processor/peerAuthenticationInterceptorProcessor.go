@@ -82,10 +82,10 @@ func (paip *peerAuthenticationInterceptorProcessor) Save(data process.Intercepte
 		return err
 	}
 
-	return paip.updatePeerInfo(interceptedPeerAuthenticationData.Message(), interceptedPeerAuthenticationData.SizeInBytes())
+	return paip.updatePeerInfo(interceptedPeerAuthenticationData.Message(), interceptedPeerAuthenticationData.SizeInBytes(), payload.Timestamp)
 }
 
-func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message interface{}, messageSize int) error {
+func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message interface{}, messageSize int, payloadTimestamp int64) error {
 	peerAuthenticationData, ok := message.(*heartbeat.PeerAuthentication)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -93,7 +93,7 @@ func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message inter
 
 	pidBytes := peerAuthenticationData.GetPid()
 	paip.peerAuthenticationCacher.Put(peerAuthenticationData.Pubkey, message, messageSize)
-	paip.peerShardMapper.UpdatePeerIDPublicKeyPair(core.PeerID(pidBytes), peerAuthenticationData.GetPubkey())
+	paip.peerShardMapper.UpdatePeerIDPublicKeyPair(core.PeerID(pidBytes), peerAuthenticationData.GetPubkey(), payloadTimestamp)
 
 	log.Trace("PeerAuthentication message saved")
 

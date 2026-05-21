@@ -97,6 +97,7 @@ type ArgBaseProcessor struct {
 	ManagedPeersHolder             common.ManagedPeersHolder
 	SentSignaturesTracker          process.SentSignaturesTracker
 	StateAccessesCollector         state.StateAccessesCollector
+	MiniBlockTracker               process.MiniBlockTracker
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
