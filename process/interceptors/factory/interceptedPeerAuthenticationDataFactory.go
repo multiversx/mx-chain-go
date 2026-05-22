@@ -34,7 +34,7 @@ func NewInterceptedPeerAuthenticationDataFactory(arg ArgInterceptedDataFactory) 
 		return nil, err
 	}
 
-	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(arg.HeartbeatExpiryTimespanInSec)
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(arg.PeerAuthenticationTimeBetweenSendsInSec)
 	if err != nil {
 		return nil, err
 	}

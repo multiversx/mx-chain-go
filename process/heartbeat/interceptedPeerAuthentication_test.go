@@ -315,31 +315,35 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		err := ipa.CheckValidity()
 		assert.NoError(t, err)
 	})
-	t.Run("peer already authenticated with newer timestamp should early exit", func(t *testing.T) {
+	t.Run("peer already authenticated with newer timestamp should early verify", func(t *testing.T) {
 		t.Parallel()
 
 		providedPA := createDefaultInterceptedPeerAuthentication()
 
 		arg := createMockInterceptedPeerAuthenticationArg(providedPA)
+		arg.SelfPeerID = "self"
 
 		authTimestamp := time.Now().Add(time.Minute).Unix()
+		wasVerifyCalled := false
 		arg.SignaturesHandler = &processMocks.SignaturesHandlerStub{
 			VerifyCalled: func(payload []byte, pid core.PeerID, signature []byte) error {
-				require.Fail(t, "should have not been called")
-				return expectedErr
+				wasVerifyCalled = true
+				return nil
 			},
 		}
 		arg.PeerShardMapper = &processMocks.PeerShardMapperStub{
 			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
 				return core.P2PPeerInfo{
 					AuthTimestamp: authTimestamp,
+					PkBytes:       providedPA.Pubkey,
 				}
 			},
 		}
 
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
 		err := ipa.CheckValidity()
-		assert.ErrorIs(t, err, process.ErrPeerAlreadyAuthenticated)
+		assert.NoError(t, err)
+		assert.True(t, wasVerifyCalled)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

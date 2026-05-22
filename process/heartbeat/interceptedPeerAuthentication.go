@@ -36,19 +36,19 @@ type ArgInterceptedPeerAuthentication struct {
 
 // interceptedPeerAuthentication is a wrapper over PeerAuthentication
 type interceptedPeerAuthentication struct {
-	peerAuthentication                      heartbeat.PeerAuthentication
-	payload                                 heartbeat.Payload
-	peerId                                  core.PeerID
-	nodesCoordinator                        NodesCoordinator
-	signaturesHandler                       SignaturesHandler
-	peerSignatureHandler                    crypto.PeerSignatureHandler
-	payloadValidator                        process.PeerAuthenticationPayloadValidator
-	hardforkTriggerPubKey                   []byte
-	peerShardMapper                         process.PeerShardMapper
-	peerAuthCacher                          storage.Cacher
-	messageOriginator                       core.PeerID
-	selfPeerID                              core.PeerID
-	peerAuthenticationTimeBetweenSendsInSec int64
+	peerAuthentication     heartbeat.PeerAuthentication
+	payload                heartbeat.Payload
+	peerId                 core.PeerID
+	nodesCoordinator       NodesCoordinator
+	signaturesHandler      SignaturesHandler
+	peerSignatureHandler   crypto.PeerSignatureHandler
+	payloadValidator       process.PeerAuthenticationPayloadValidator
+	hardforkTriggerPubKey  []byte
+	peerShardMapper        process.PeerShardMapper
+	peerAuthCacher         storage.Cacher
+	messageOriginator      core.PeerID
+	selfPeerID             core.PeerID
+	peerAuthTimestampDelta int64
 }
 
 // NewInterceptedPeerAuthentication tries to create a new intercepted peer authentication instance
@@ -63,19 +63,21 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 		return nil, err
 	}
 
+	deltaSec := float64(arg.PeerAuthenticationTimeBetweenSendsInSec) * maxPercentAllowed
+
 	intercepted := &interceptedPeerAuthentication{
-		peerAuthentication:                      *peerAuthentication,
-		payload:                                 *payload,
-		nodesCoordinator:                        arg.NodesCoordinator,
-		signaturesHandler:                       arg.SignaturesHandler,
-		peerSignatureHandler:                    arg.PeerSignatureHandler,
-		payloadValidator:                        arg.PayloadValidator,
-		hardforkTriggerPubKey:                   arg.HardforkTriggerPubKey,
-		peerShardMapper:                         arg.PeerShardMapper,
-		peerAuthCacher:                          arg.PeerAuthCacher,
-		messageOriginator:                       arg.MessageOriginator,
-		selfPeerID:                              arg.SelfPeerID,
-		peerAuthenticationTimeBetweenSendsInSec: arg.PeerAuthenticationTimeBetweenSendsInSec,
+		peerAuthentication:     *peerAuthentication,
+		payload:                *payload,
+		nodesCoordinator:       arg.NodesCoordinator,
+		signaturesHandler:      arg.SignaturesHandler,
+		peerSignatureHandler:   arg.PeerSignatureHandler,
+		payloadValidator:       arg.PayloadValidator,
+		hardforkTriggerPubKey:  arg.HardforkTriggerPubKey,
+		peerShardMapper:        arg.PeerShardMapper,
+		peerAuthCacher:         arg.PeerAuthCacher,
+		messageOriginator:      arg.MessageOriginator,
+		selfPeerID:             arg.SelfPeerID,
+		peerAuthTimestampDelta: int64(deltaSec),
 	}
 	intercepted.peerId = core.PeerID(intercepted.peerAuthentication.Pid)
 
@@ -164,22 +166,12 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 			return err
 		}
 
-		// Early exit if mapping already exists and the message is from itself
-		existingInfo := ipa.peerShardMapper.GetPeerInfo(ipa.peerId)
-		hasInCache := ipa.peerAuthCacher.Has(ipa.Pubkey())
-		isFromSelf := ipa.messageOriginator == ipa.selfPeerID
-		pairExists := string(existingInfo.PkBytes) == string(ipa.Pubkey())
-		if pairExists && isFromSelf {
+		shouldSkipSigChecks, errCheck := ipa.checkExistingInfo()
+		if errCheck != nil {
+			return errCheck
+		}
+		if shouldSkipSigChecks {
 			return nil
-		}
-		if pairExists && !isFromSelf && hasInCache {
-			return process.ErrPeerAlreadyAuthenticated
-		}
-
-		deltaSec := float64(ipa.peerAuthenticationTimeBetweenSendsInSec) * maxPercentAllowed
-		minTimestampAccepted := existingInfo.AuthTimestamp + int64(deltaSec)
-		if ipa.payload.Timestamp <= minTimestampAccepted {
-			return fmt.Errorf("%w, received timestamp %d while the last one saved is %d", process.ErrPeerAlreadyAuthenticated, ipa.payload.Timestamp, existingInfo.AuthTimestamp)
 		}
 	}
 
@@ -204,6 +196,32 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 	log.Trace("interceptedPeerAuthentication received valid data")
 
 	return nil
+}
+
+func (ipa *interceptedPeerAuthentication) checkExistingInfo() (bool, error) {
+	existingInfo := ipa.peerShardMapper.GetPeerInfo(ipa.peerId)
+	pairExists := string(existingInfo.PkBytes) == string(ipa.Pubkey())
+	if !pairExists {
+		return false, nil // continue verification and eventually save in cache
+	}
+
+	isFromSelf := ipa.messageOriginator == ipa.selfPeerID
+	if isFromSelf {
+		return true, nil // skip sig checks
+	}
+
+	hasInCache := ipa.peerAuthCacher.Has(ipa.Pubkey())
+	if !hasInCache {
+		return false, nil // continue verification and eventually save in cache
+	}
+
+	minTimestampAccepted := existingInfo.AuthTimestamp + ipa.peerAuthTimestampDelta
+	if ipa.payload.Timestamp <= minTimestampAccepted {
+		return false, fmt.Errorf("%w, received timestamp %d while the last one saved is %d", process.ErrPeerAlreadyAuthenticated, ipa.payload.Timestamp, existingInfo.AuthTimestamp)
+	}
+
+	// mapping exists and delta condition is not satisfied, valid message
+	return false, nil
 }
 
 // IsForCurrentShard always returns true
