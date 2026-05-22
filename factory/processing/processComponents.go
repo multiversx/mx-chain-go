@@ -1395,7 +1395,7 @@ func (pcf *processComponentsFactory) newResolverContainerFactory() (dataRetrieve
 		return disabledResolversContainer.NewDisabledResolversContainerFactory(), nil
 	}
 
-	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec)
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(pcf.config.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec)
 	if err != nil {
 		return nil, err
 	}

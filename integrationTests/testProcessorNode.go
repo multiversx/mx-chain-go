@@ -3277,7 +3277,7 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 
 	// ============== HeartbeatV2 ============= //
 	hbv2Config := config.HeartbeatV2Config{
-		PeerAuthenticationTimeBetweenSendsInSec:          5,
+		PeerAuthenticationTimeBetweenSendsInSec:          10,
 		PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 		PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 		HeartbeatTimeBetweenSendsInSec:                   2,

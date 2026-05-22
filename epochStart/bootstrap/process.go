@@ -1467,7 +1467,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 
 	storageService := disabled.NewChainStorer()
 
-	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(e.generalConfig.HeartbeatV2.PeerAuthenticationTimeBetweenChecksInSec)
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(e.generalConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec)
 	if err != nil {
 		return err
 	}
