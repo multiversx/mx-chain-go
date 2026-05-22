@@ -51,18 +51,20 @@ func createInterceptedPeerAuthentication() *heartbeatMessages.PeerAuthentication
 }
 
 func createMockInterceptedPeerAuthentication() process.InterceptedData {
-	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator()
+	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(30)
 
 	arg := heartbeat.ArgInterceptedPeerAuthentication{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
 			Marshaller: &mock.MarshalizerMock{},
 		},
-		NodesCoordinator:      &mock.NodesCoordinatorStub{},
-		SignaturesHandler:     &mock.SignaturesHandlerStub{},
-		PeerSignatureHandler:  &mock.PeerSignatureHandlerStub{},
-		PayloadValidator:      payloadValidator,
-		HardforkTriggerPubKey: []byte("provided hardfork pub key"),
-		PeerShardMapper:       &mock.PeerShardMapperStub{},
+		NodesCoordinator:                        &mock.NodesCoordinatorStub{},
+		SignaturesHandler:                       &mock.SignaturesHandlerStub{},
+		PeerSignatureHandler:                    &mock.PeerSignatureHandlerStub{},
+		PayloadValidator:                        payloadValidator,
+		HardforkTriggerPubKey:                   []byte("provided hardfork pub key"),
+		PeerShardMapper:                         &mock.PeerShardMapperStub{},
+		PeerAuthCacher:                          cache.NewCacherStub(),
+		PeerAuthenticationTimeBetweenSendsInSec: 10,
 	}
 	arg.DataBuff, _ = arg.Marshaller.Marshal(createInterceptedPeerAuthentication())
 	ipa, _ := heartbeat.NewInterceptedPeerAuthentication(arg)

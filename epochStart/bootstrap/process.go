@@ -574,20 +574,22 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:           e.coreComponentsHolder,
-		CryptoComponentsHolder:         e.cryptoComponentsHolder,
-		RequestHandler:                 e.requestHandler,
-		Messenger:                      e.mainMessenger,
-		ShardCoordinator:               e.shardCoordinator,
-		EconomicsData:                  e.economicsData,
-		WhitelistHandler:               e.whiteListHandler,
-		StartInEpochConfig:             epochStartConfig,
-		HeaderIntegrityVerifier:        e.headerIntegrityVerifier,
-		MetaBlockProcessor:             metaBlockProcessor,
-		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
-		ProofsPool:                     e.dataPool.Proofs(),
-		HeadersPool:                    e.dataPool.Headers(),
-		ProofsInterceptorProcessor:     processor.NewEquivalentProofsInterceptorProcessor(),
+		CoreComponentsHolder:                    e.coreComponentsHolder,
+		CryptoComponentsHolder:                  e.cryptoComponentsHolder,
+		RequestHandler:                          e.requestHandler,
+		Messenger:                               e.mainMessenger,
+		ShardCoordinator:                        e.shardCoordinator,
+		EconomicsData:                           e.economicsData,
+		WhitelistHandler:                        e.whiteListHandler,
+		StartInEpochConfig:                      epochStartConfig,
+		HeaderIntegrityVerifier:                 e.headerIntegrityVerifier,
+		MetaBlockProcessor:                      metaBlockProcessor,
+		InterceptedDataVerifierFactory:          e.interceptedDataVerifierFactory,
+		ProofsPool:                              e.dataPool.Proofs(),
+		HeadersPool:                             e.dataPool.Headers(),
+		ProofsInterceptorProcessor:              processor.NewEquivalentProofsInterceptorProcessor(),
+		PeerAuthCacher:                          e.dataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: e.generalConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -1465,7 +1467,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 
 	storageService := disabled.NewChainStorer()
 
-	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator()
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(e.generalConfig.HeartbeatV2.HeartbeatExpiryTimespanInSec)
 	if err != nil {
 		return err
 	}

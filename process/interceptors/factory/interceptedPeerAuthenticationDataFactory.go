@@ -10,18 +10,21 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/heartbeat"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 const minDurationInSec = 10
 
 type interceptedPeerAuthenticationDataFactory struct {
-	marshalizer           marshal.Marshalizer
-	nodesCoordinator      heartbeat.NodesCoordinator
-	signaturesHandler     heartbeat.SignaturesHandler
-	peerSignatureHandler  crypto.PeerSignatureHandler
-	hardforkTriggerPubKey []byte
-	payloadValidator      process.PeerAuthenticationPayloadValidator
-	peerShardMapper       process.PeerShardMapper
+	marshalizer                             marshal.Marshalizer
+	nodesCoordinator                        heartbeat.NodesCoordinator
+	signaturesHandler                       heartbeat.SignaturesHandler
+	peerSignatureHandler                    crypto.PeerSignatureHandler
+	hardforkTriggerPubKey                   []byte
+	payloadValidator                        process.PeerAuthenticationPayloadValidator
+	peerShardMapper                         process.PeerShardMapper
+	peerAuthCacher                          storage.Cacher
+	peerAuthenticationTimeBetweenSendsInSec int64
 }
 
 // NewInterceptedPeerAuthenticationDataFactory creates an instance of interceptedPeerAuthenticationDataFactory
@@ -31,19 +34,21 @@ func NewInterceptedPeerAuthenticationDataFactory(arg ArgInterceptedDataFactory) 
 		return nil, err
 	}
 
-	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator()
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(arg.HeartbeatExpiryTimespanInSec)
 	if err != nil {
 		return nil, err
 	}
 
 	return &interceptedPeerAuthenticationDataFactory{
-		marshalizer:           arg.CoreComponents.InternalMarshalizer(),
-		nodesCoordinator:      arg.NodesCoordinator,
-		signaturesHandler:     arg.SignaturesHandler,
-		peerSignatureHandler:  arg.PeerSignatureHandler,
-		payloadValidator:      payloadValidator,
-		hardforkTriggerPubKey: arg.CoreComponents.HardforkTriggerPubKey(),
-		peerShardMapper:       arg.PeerShardMapper,
+		marshalizer:                             arg.CoreComponents.InternalMarshalizer(),
+		nodesCoordinator:                        arg.NodesCoordinator,
+		signaturesHandler:                       arg.SignaturesHandler,
+		peerSignatureHandler:                    arg.PeerSignatureHandler,
+		payloadValidator:                        payloadValidator,
+		hardforkTriggerPubKey:                   arg.CoreComponents.HardforkTriggerPubKey(),
+		peerShardMapper:                         arg.PeerShardMapper,
+		peerAuthCacher:                          arg.PeerAuthCacher,
+		peerAuthenticationTimeBetweenSendsInSec: arg.PeerAuthenticationTimeBetweenSendsInSec,
 	}, nil
 }
 
@@ -74,19 +79,20 @@ func checkArgInterceptedDataFactory(args ArgInterceptedDataFactory) error {
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte, messageOriginator core.PeerID) (process.InterceptedData, error) {
+func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
 	arg := heartbeat.ArgInterceptedPeerAuthentication{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
 			DataBuff:   buff,
 			Marshaller: ipadf.marshalizer,
 		},
-		NodesCoordinator:      ipadf.nodesCoordinator,
-		SignaturesHandler:     ipadf.signaturesHandler,
-		PeerSignatureHandler:  ipadf.peerSignatureHandler,
-		PayloadValidator:      ipadf.payloadValidator,
-		HardforkTriggerPubKey: ipadf.hardforkTriggerPubKey,
-		PeerShardMapper:       ipadf.peerShardMapper,
-		MessageOriginator:     messageOriginator,
+		NodesCoordinator:                        ipadf.nodesCoordinator,
+		SignaturesHandler:                       ipadf.signaturesHandler,
+		PeerSignatureHandler:                    ipadf.peerSignatureHandler,
+		PayloadValidator:                        ipadf.payloadValidator,
+		HardforkTriggerPubKey:                   ipadf.hardforkTriggerPubKey,
+		PeerShardMapper:                         ipadf.peerShardMapper,
+		PeerAuthCacher:                          ipadf.peerAuthCacher,
+		PeerAuthenticationTimeBetweenSendsInSec: ipadf.peerAuthenticationTimeBetweenSendsInSec,
 	}
 
 	return heartbeat.NewInterceptedPeerAuthentication(arg)

@@ -194,10 +194,10 @@ func TestHeartbeatV2_PeerAuthenticationMessageExpiration(t *testing.T) {
 
 	time.Sleep(time.Second * 5)
 
-	// first node will receive the requested message even though it is expired
+	// first node should have not received the requested message because it is expired
 	lastPkBytes := requestHashes[len(requestHashes)-1]
 	assert.False(t, nodes[0].RequestedItemsHandler.Has(string(lastPkBytes)))
-	assert.Equal(t, interactingNodes-1, nodes[0].DataPool.PeerAuthentications().Len())
+	assert.Equal(t, interactingNodes-2, nodes[0].DataPool.PeerAuthentications().Len())
 }
 
 func TestHeartbeatV2_AllPeersSendMessagesOnAllNetworks(t *testing.T) {

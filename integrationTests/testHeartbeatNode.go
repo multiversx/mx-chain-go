@@ -527,7 +527,7 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 
 	_ = thn.MainMessenger.CreateTopic(common.ConsensusTopic+thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId()), true)
 
-	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator()
+	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(thn.heartbeatExpiryTimespanInSec)
 	resolverContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:         thn.ShardCoordinator,
 		MainMessenger:            thn.MainMessenger,
@@ -640,13 +640,15 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 			IntMarsh:                   TestMarshaller,
 			HardforkTriggerPubKeyField: []byte(providedHardforkPubKey),
 		},
-		ShardCoordinator:             thn.ShardCoordinator,
-		NodesCoordinator:             thn.NodesCoordinator,
-		PeerSignatureHandler:         thn.PeerSigHandler,
-		SignaturesHandler:            &processMock.SignaturesHandlerStub{},
-		HeartbeatExpiryTimespanInSec: thn.heartbeatExpiryTimespanInSec,
-		PeerID:                       thn.MainMessenger.ID(),
-		PeerShardMapper:              thn.MainPeerShardMapper,
+		ShardCoordinator:                        thn.ShardCoordinator,
+		NodesCoordinator:                        thn.NodesCoordinator,
+		PeerSignatureHandler:                    thn.PeerSigHandler,
+		SignaturesHandler:                       &processMock.SignaturesHandlerStub{},
+		HeartbeatExpiryTimespanInSec:            thn.heartbeatExpiryTimespanInSec,
+		PeerID:                                  thn.MainMessenger.ID(),
+		PeerShardMapper:                         thn.MainPeerShardMapper,
+		PeerAuthCacher:                          thn.DataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: thn.heartbeatExpiryTimespanInSec,
 	}
 
 	thn.createPeerAuthInterceptor(argsFactory)

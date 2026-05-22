@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/storage"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
@@ -45,20 +46,22 @@ type interceptedDataCryptoComponentsHolder interface {
 // ArgInterceptedDataFactory holds all dependencies required by the shard and meta intercepted data factory in order to create
 // new instances
 type ArgInterceptedDataFactory struct {
-	CoreComponents               interceptedDataCoreComponentsHolder
-	CryptoComponents             interceptedDataCryptoComponentsHolder
-	ShardCoordinator             sharding.Coordinator
-	NodesCoordinator             nodesCoordinator.NodesCoordinator
-	FeeHandler                   process.FeeHandler
-	WhiteListerVerifiedTxs       process.WhiteListHandler
-	HeaderSigVerifier            process.InterceptedHeaderSigVerifier
-	ValidityAttester             process.ValidityAttester
-	HeaderIntegrityVerifier      process.HeaderIntegrityVerifier
-	EpochStartTrigger            process.EpochStartTriggerHandler
-	ArgsParser                   process.ArgumentsParser
-	PeerSignatureHandler         crypto.PeerSignatureHandler
-	SignaturesHandler            process.SignaturesHandler
-	HeartbeatExpiryTimespanInSec int64
-	PeerID                       core.PeerID
-	PeerShardMapper              process.PeerShardMapper
+	CoreComponents                          interceptedDataCoreComponentsHolder
+	CryptoComponents                        interceptedDataCryptoComponentsHolder
+	ShardCoordinator                        sharding.Coordinator
+	NodesCoordinator                        nodesCoordinator.NodesCoordinator
+	FeeHandler                              process.FeeHandler
+	WhiteListerVerifiedTxs                  process.WhiteListHandler
+	HeaderSigVerifier                       process.InterceptedHeaderSigVerifier
+	ValidityAttester                        process.ValidityAttester
+	HeaderIntegrityVerifier                 process.HeaderIntegrityVerifier
+	EpochStartTrigger                       process.EpochStartTriggerHandler
+	ArgsParser                              process.ArgumentsParser
+	PeerSignatureHandler                    crypto.PeerSignatureHandler
+	SignaturesHandler                       process.SignaturesHandler
+	HeartbeatExpiryTimespanInSec            int64
+	PeerID                                  core.PeerID
+	PeerShardMapper                         process.PeerShardMapper
+	PeerAuthCacher                          storage.Cacher
+	PeerAuthenticationTimeBetweenSendsInSec int64
 }
