@@ -51,7 +51,7 @@ func createInterceptedPeerAuthentication() *heartbeatMessages.PeerAuthentication
 }
 
 func createMockInterceptedPeerAuthentication() process.InterceptedData {
-	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(30)
+	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator()
 
 	arg := heartbeat.ArgInterceptedPeerAuthentication{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{

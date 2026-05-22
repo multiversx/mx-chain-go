@@ -22,6 +22,8 @@ type ArgInterceptedPeerAuthentication struct {
 	PayloadValidator      process.PeerAuthenticationPayloadValidator
 	HardforkTriggerPubKey []byte
 	PeerShardMapper       process.PeerShardMapper
+	MessageOriginator     core.PeerID
+	SelfPeerID            core.PeerID
 }
 
 // interceptedPeerAuthentication is a wrapper over PeerAuthentication
@@ -35,6 +37,8 @@ type interceptedPeerAuthentication struct {
 	payloadValidator      process.PeerAuthenticationPayloadValidator
 	hardforkTriggerPubKey []byte
 	peerShardMapper       process.PeerShardMapper
+	messageOriginator     core.PeerID
+	selfPeerID            core.PeerID
 }
 
 // NewInterceptedPeerAuthentication tries to create a new intercepted peer authentication instance
@@ -58,6 +62,8 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 		payloadValidator:      arg.PayloadValidator,
 		hardforkTriggerPubKey: arg.HardforkTriggerPubKey,
 		peerShardMapper:       arg.PeerShardMapper,
+		messageOriginator:     arg.MessageOriginator,
+		selfPeerID:            arg.SelfPeerID,
 	}
 	intercepted.peerId = core.PeerID(intercepted.peerAuthentication.Pid)
 
@@ -140,10 +146,15 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 			return err
 		}
 
-		// Early exit if mapping already exists
+		// Early exit if mapping already exists and the message is from itself
 		existingInfo := ipa.peerShardMapper.GetPeerInfo(ipa.peerId)
-		if string(existingInfo.PkBytes) == string(ipa.Pubkey()) {
+		isFromSelf := ipa.messageOriginator == ipa.selfPeerID
+		pairExists := string(existingInfo.PkBytes) == string(ipa.Pubkey())
+		if pairExists && isFromSelf {
 			return nil
+		}
+		if pairExists && !isFromSelf {
+			return process.ErrPeerAlreadyAuthenticated
 		}
 
 		if existingInfo.AuthTimestamp > ipa.payload.Timestamp {

@@ -527,7 +527,7 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 
 	_ = thn.MainMessenger.CreateTopic(common.ConsensusTopic+thn.ShardCoordinator.CommunicationIdentifier(thn.ShardCoordinator.SelfId()), true)
 
-	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(thn.heartbeatExpiryTimespanInSec)
+	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator()
 	resolverContainerFactoryArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:         thn.ShardCoordinator,
 		MainMessenger:            thn.MainMessenger,

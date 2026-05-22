@@ -1511,7 +1511,7 @@ func (tpn *TestProcessorNode) initResolvers() {
 	consensusTopic := common.ConsensusTopic + tpn.ShardCoordinator.CommunicationIdentifier(tpn.ShardCoordinator.SelfId())
 	_ = tpn.MainMessenger.CreateTopic(consensusTopic, true)
 	_ = tpn.FullArchiveMessenger.CreateTopic(consensusTopic, true)
-	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator(60)
+	payloadValidator, _ := validator.NewPeerAuthenticationPayloadValidator()
 	preferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 	fullArchivePreferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 

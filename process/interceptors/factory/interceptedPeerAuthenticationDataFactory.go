@@ -31,7 +31,7 @@ func NewInterceptedPeerAuthenticationDataFactory(arg ArgInterceptedDataFactory) 
 		return nil, err
 	}
 
-	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(arg.HeartbeatExpiryTimespanInSec)
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator()
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func checkArgInterceptedDataFactory(args ArgInterceptedDataFactory) error {
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
+func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte, messageOriginator core.PeerID) (process.InterceptedData, error) {
 	arg := heartbeat.ArgInterceptedPeerAuthentication{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
 			DataBuff:   buff,
@@ -86,6 +86,7 @@ func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte, _ cor
 		PayloadValidator:      ipadf.payloadValidator,
 		HardforkTriggerPubKey: ipadf.hardforkTriggerPubKey,
 		PeerShardMapper:       ipadf.peerShardMapper,
+		MessageOriginator:     messageOriginator,
 	}
 
 	return heartbeat.NewInterceptedPeerAuthentication(arg)

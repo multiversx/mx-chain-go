@@ -268,7 +268,7 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		err = ipa.CheckValidity()
 		assert.True(t, errors.Is(err, expectedErr))
 	})
-	t.Run("peer already authenticated with same pubkey should return error", func(t *testing.T) {
+	t.Run("peer already authenticated with same pubkey should early exit, message from self", func(t *testing.T) {
 		t.Parallel()
 
 		providedPA := createDefaultInterceptedPeerAuthentication()
@@ -292,7 +292,33 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 		err := ipa.CheckValidity()
 		assert.NoError(t, err)
 	})
-	t.Run("peer already authenticated with newer timestamp should early exit", func(t *testing.T) {
+	t.Run("peer already authenticated with same pubkey should return error, message not from self", func(t *testing.T) {
+		t.Parallel()
+
+		providedPA := createDefaultInterceptedPeerAuthentication()
+		arg := createMockInterceptedPeerAuthenticationArg(providedPA)
+		arg.MessageOriginator = "originator"
+		arg.SelfPeerID = "self"
+
+		arg.SignaturesHandler = &processMocks.SignaturesHandlerStub{
+			VerifyCalled: func(payload []byte, pid core.PeerID, signature []byte) error {
+				require.Fail(t, "should have not been called")
+				return expectedErr
+			},
+		}
+		arg.PeerShardMapper = &processMocks.PeerShardMapperStub{
+			GetPeerInfoCalled: func(pid core.PeerID) core.P2PPeerInfo {
+				return core.P2PPeerInfo{
+					PkBytes: providedPA.Pubkey,
+				}
+			},
+		}
+
+		ipa, _ := NewInterceptedPeerAuthentication(arg)
+		err := ipa.CheckValidity()
+		assert.Equal(t, process.ErrPeerAlreadyAuthenticated, err)
+	})
+	t.Run("peer already authenticated with newer timestamp should return error", func(t *testing.T) {
 		t.Parallel()
 
 		providedPA := createDefaultInterceptedPeerAuthentication()
