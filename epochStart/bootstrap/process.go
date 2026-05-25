@@ -361,7 +361,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	newShardId, _, err := e.getShardIDForLatestEpoch()
 	if err != nil {
 		// fallback to meta if nothing was loaded from the last epoch
-		newShardId = core.MetachainShardId
+		newShardId = e.applyShardIDAsObserverIfNeeded(core.MetachainShardId)
 	}
 	log.Debug("epochStartBootstrap.Bootstrap", "newShardId", newShardId, "from last epoch", err == nil)
 
