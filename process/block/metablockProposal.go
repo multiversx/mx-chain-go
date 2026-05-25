@@ -232,6 +232,17 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
+	shouldProposeEpochChange := mp.epochStartTrigger.ShouldProposeEpochChange(headerHandler.GetRound(), headerHandler.GetNonce())
+	if header.IsEpochChangeProposed() != shouldProposeEpochChange {
+		log.Warn("epoch change proposal flag does not match trigger state",
+			"round", headerHandler.GetRound(),
+			"nonce", headerHandler.GetNonce(),
+			"isEpochChangeProposed", header.IsEpochChangeProposed(),
+			"shouldProposeEpochChange", shouldProposeEpochChange,
+			"epochStartTrigger", mp.epochStartTrigger.Epoch())
+		return process.ErrEpochChangeProposedOutsideTriggerWindow
+	}
+
 	if header.IsEpochChangeProposed() && len(body.MiniBlocks) != 0 {
 		return process.ErrEpochStartProposeBlockHasMiniBlocks
 	}
