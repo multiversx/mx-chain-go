@@ -11,6 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
+	trieTestComponents "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -165,17 +168,8 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	tsm, _ := trie.CreateTrieStorageManager(tsmArgs, trie.StorageManagerOptions{})
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
-	argsAccCreator := stateFactory.ArgsAccountCreator{
-		Hasher:                 coreComponents.Hasher(),
-		Marshaller:             coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler:    coreComponents.EnableEpochsHandler(),
-		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
-	}
-
-	accCreator, _ := stateFactory.NewAccountCreator(argsAccCreator)
-
-	userAccountsDB := createAccountsDB(coreComponents, accCreator, trieFactoryManager)
-	peerAccountsDB := createAccountsDB(coreComponents, stateFactory.NewPeerAccountCreator(), trieFactoryManager)
+	userAccountsDB := createAccountsDB(coreComponents, userAdb, trieFactoryManager)
+	peerAccountsDB := createAccountsDB(coreComponents, peerAdb, trieFactoryManager)
 
 	_ = userAccountsDB.SetSyncer(&mock.AccountsDBSyncerStub{})
 	_ = peerAccountsDB.SetSyncer(&mock.AccountsDBSyncerStub{})
@@ -199,9 +193,35 @@ func getNewTrieStorageManagerArgs(coreComponents factory.CoreComponentsHolder) t
 	}
 }
 
+type adbType string
+
+const (
+	userAdb = "userAdb"
+	peerAdb = "peerAdb"
+)
+
+func getAccountsCreator(t adbType, tr common.Trie, coreComponents factory.CoreComponentsHolder) (state.AccountFactory, common.TriesHolder) {
+	if t == peerAdb {
+		return stateFactory.NewPeerAccountCreator(), &trieTestComponents.TriesHolderStub{}
+	}
+
+	dth, _ := triesHolder.NewDataTriesHolder(integrationTests.TenMbSize)
+
+	argsAccCreator := stateFactory.ArgsAccountCreator{
+		Hasher:                 coreComponents.Hasher(),
+		Marshaller:             coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
+		DataTrieCreator:        tr,
+	}
+	accCreator, _ := stateFactory.NewAccountCreator(argsAccCreator)
+	return accCreator, dth
+}
+
 func createAccountsDB(
 	coreComponents factory.CoreComponentsHolder,
-	accountFactory state.AccountFactory,
+	adbType adbType,
 	trieStorageManager common.StorageManager,
 ) *state.AccountsDB {
 	tr, _ := trie.NewTrie(
@@ -209,8 +229,10 @@ func createAccountsDB(
 		coreComponents.InternalMarshalizer(),
 		coreComponents.Hasher(),
 		coreComponents.EnableEpochsHandler(),
-		5,
+		collapseManager.NewDisabledCollapseManager(),
 	)
+
+	accCreator, dth := getAccountsCreator(adbType, tr, coreComponents)
 
 	argsEvictionWaitingList := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 10,
@@ -222,11 +244,12 @@ func createAccountsDB(
 		Trie:                   tr,
 		Hasher:                 coreComponents.Hasher(),
 		Marshaller:             coreComponents.InternalMarshalizer(),
-		AccountFactory:         accountFactory,
+		AccountFactory:         accCreator,
 		StoragePruningManager:  spm,
 		AddressConverter:       coreComponents.AddressPubKeyConverter(),
 		SnapshotsManager:       &stateTests.SnapshotsManagerStub{},
 		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDb)
 	return adb

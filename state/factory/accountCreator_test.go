@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,6 +23,8 @@ func getDefaultArgs() factory.ArgsAccountCreator {
 		Marshaller:             &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        &trie.TriesHolderStub{},
+		DataTrieCreator:        &trie.TrieStub{},
 	}
 }
 
@@ -54,6 +57,22 @@ func TestNewAccountCreator(t *testing.T) {
 		accF, err := factory.NewAccountCreator(args)
 		assert.True(t, check.IfNil(accF))
 		assert.Equal(t, errors.ErrNilEnableEpochsHandler, err)
+	})
+	t.Run("nil stateAccessesCollector", func(t *testing.T) {
+		t.Parallel()
+		args := getDefaultArgs()
+		args.StateAccessesCollector = nil
+		accF, err := factory.NewAccountCreator(args)
+		assert.True(t, check.IfNil(accF))
+		assert.Equal(t, state.ErrNilStateAccessesCollector, err)
+	})
+	t.Run("nil dataTriesHolder", func(t *testing.T) {
+		t.Parallel()
+		args := getDefaultArgs()
+		args.DataTriesHolder = nil
+		accF, err := factory.NewAccountCreator(args)
+		assert.True(t, check.IfNil(accF))
+		assert.Equal(t, errors.ErrNilDataTriesHolder, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

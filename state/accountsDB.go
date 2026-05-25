@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -107,6 +108,7 @@ type ArgsAccountsDB struct {
 	SnapshotsManager       SnapshotsManager
 	StateAccessesCollector StateAccessesCollector
 	PruningEnabled         bool
+	DataTriesHolder        common.TriesHolder
 }
 
 // NewAccountsDB creates a new account manager
@@ -128,7 +130,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		storagePruningManager:  args.StoragePruningManager,
 		entries:                make([]JournalEntry, 0),
 		mutOp:                  sync.RWMutex{},
-		dataTries:              NewDataTriesHolder(),
+		dataTries:              args.DataTriesHolder,
 		obsoleteDataTrieHashes: make(map[string][][]byte),
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
@@ -164,6 +166,9 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	}
 	if check.IfNil(args.StateAccessesCollector) {
 		return ErrNilStateAccessesCollector
+	}
+	if check.IfNil(args.DataTriesHolder) {
+		return errors.ErrNilDataTriesHolder
 	}
 
 	return nil
@@ -502,33 +507,6 @@ func saveCodeEntry(codeHash []byte, entry *CodeEntry, trie Updater, marshalizer 
 	return codeEntry, nil
 }
 
-// loadDataTrieConcurrentSafe retrieves and saves the SC data inside accountHandler object.
-// Errors if something went wrong
-func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHandler, mainTrie common.Trie) error {
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
-
-	dataTrie := adb.dataTries.Get(accountHandler.AddressBytes())
-	if dataTrie != nil {
-		accountHandler.SetDataTrie(dataTrie)
-		return nil
-	}
-
-	if len(accountHandler.GetRootHash()) == 0 {
-		return nil
-	}
-
-	rootHashHolder := holders.NewDefaultRootHashesHolder(accountHandler.GetRootHash())
-	dataTrie, err := mainTrie.Recreate(rootHashHolder)
-	if err != nil {
-		return fmt.Errorf("trie was not found for hash, rootHash = %s, err = %w", hex.EncodeToString(accountHandler.GetRootHash()), err)
-	}
-
-	accountHandler.SetDataTrie(dataTrie)
-	adb.dataTries.Put(accountHandler.AddressBytes(), dataTrie)
-	return nil
-}
-
 // saveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*stateChange.DataTrieChange, error) {
@@ -553,16 +531,17 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*state
 	accountHandler.SetRootHash(rootHash)
 	log.Trace("saveDataTrie: rootHash changed", "address", accountHandler.AddressBytes(), "rootHash", rootHash)
 
-	if check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
-		trie, ok := accountHandler.DataTrie().(common.Trie)
-		if !ok {
-			log.Warn("wrong type conversion", "trie type", fmt.Sprintf("%T", accountHandler.DataTrie()))
-			return nil, nil
-		}
-
-		adb.dataTries.Put(accountHandler.AddressBytes(), trie)
+	if !check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
+		adb.dataTries.MarkAsDirty(accountHandler.AddressBytes())
+		return newValues, nil
 	}
 
+	trie, ok := accountHandler.DataTrie().(common.Trie)
+	if !ok {
+		return nil, fmt.Errorf("wrong type conversion, trie type %T", accountHandler.DataTrie())
+	}
+
+	adb.dataTries.Put(accountHandler.AddressBytes(), trie)
 	return newValues, nil
 }
 
@@ -671,6 +650,11 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
+	// Evict the cached trie for this address so that a subsequent recreation of
+	// the account at the same address cannot inherit the stale data trie from
+	// this deleted incarnation (see loadDataTrieConcurrentSafe / saveDataTrie).
+	adb.dataTries.Remove(baseAcc.AddressBytes())
+
 	return nil
 }
 
@@ -707,14 +691,6 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 		return adb.accountFactory.CreateAccount(address)
 	}
 
-	baseAcc, ok := acnt.(baseAccountHandler)
-	if ok {
-		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return acnt, nil
 }
 
@@ -746,7 +722,13 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 		return nil, err
 	}
 
-	return acnt, nil
+	baseAcc, ok := acnt.(baseAccountHandler)
+	if !ok {
+		return acnt, nil
+	}
+	baseAcc.SetDataTrieRootHash()
+
+	return baseAcc, nil
 }
 
 // GetExistingAccount returns an existing account if exists or nil if missing
@@ -764,14 +746,6 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 	}
 	if check.IfNil(acnt) {
 		return nil, ErrAccNotFound
-	}
-
-	baseAcc, ok := acnt.(baseAccountHandler)
-	if ok {
-		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return acnt, nil
@@ -798,12 +772,8 @@ func (adb *AccountsDB) GetAccountFromBytes(address []byte, accountBytes []byte) 
 		return acnt, nil
 	}
 
-	err = adb.loadDataTrieConcurrentSafe(baseAcc, adb.getMainTrie())
-	if err != nil {
-		return nil, err
-	}
-
-	return acnt, nil
+	baseAcc.SetDataTrieRootHash()
+	return baseAcc, nil
 }
 
 // loadCode retrieves and saves the SC code inside AccountState object. Errors if something went wrong
@@ -924,7 +894,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
-	// Step 1. commit all data tries
+	// Step 1. commit all data tries. GetAll returns only the dirty tries for the dataTriesHolder implementation
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
 		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
@@ -932,7 +902,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 			return nil, err
 		}
 	}
-	adb.dataTries.Reset()
 
 	oldRoot := adb.mainTrie.GetOldRoot()
 
@@ -1372,6 +1341,11 @@ func (adb *AccountsDB) SetTxHashForLatestStateAccesses(txHash []byte) {
 // IsSnapshotInProgress returns true if there is a snapshot in progress
 func (adb *AccountsDB) IsSnapshotInProgress() bool {
 	return adb.snapshotsManger.IsSnapshotInProgress()
+}
+
+// GetAccountsFactory returns the accounts factory used by the accountsDB
+func (adb *AccountsDB) GetAccountsFactory() AccountFactory {
+	return adb.accountFactory
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

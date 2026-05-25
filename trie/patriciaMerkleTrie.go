@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 )
 
 var log = logger.GetOrCreate("trie")
@@ -31,8 +32,6 @@ const (
 	branch
 )
 
-const rootDepthLevel = 0
-
 type patriciaMerkleTrie struct {
 	root node
 
@@ -42,11 +41,11 @@ type patriciaMerkleTrie struct {
 	enableEpochsHandler     common.EnableEpochsHandler
 	trieNodeVersionVerifier core.TrieNodeVersionVerifier
 	mutOperation            sync.RWMutex
+	collapseManager         common.TrieCollapseManager
 
-	oldHashes            [][]byte
-	oldRoot              []byte
-	maxTrieLevelInMemory uint
-	chanClose            chan struct{}
+	oldHashes [][]byte
+	oldRoot   []byte
+	chanClose chan struct{}
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -55,7 +54,7 @@ func NewTrie(
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	enableEpochsHandler common.EnableEpochsHandler,
-	maxTrieLevelInMemory uint,
+	collapseManager common.TrieCollapseManager,
 ) (*patriciaMerkleTrie, error) {
 	if check.IfNil(trieStorage) {
 		return nil, ErrNilTrieStorage
@@ -69,10 +68,9 @@ func NewTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
-	if maxTrieLevelInMemory == 0 {
-		return nil, ErrInvalidLevelValue
+	if check.IfNil(collapseManager) {
+		return nil, ErrNilCollapseManager
 	}
-	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory)
 
 	tnvv, err := core.NewTrieNodeVersionVerifier(enableEpochsHandler)
 	if err != nil {
@@ -85,10 +83,10 @@ func NewTrie(
 		hasher:                  hsh,
 		oldHashes:               make([][]byte, 0),
 		oldRoot:                 make([]byte, 0),
-		maxTrieLevelInMemory:    maxTrieLevelInMemory,
 		chanClose:               make(chan struct{}),
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
+		collapseManager:         collapseManager,
 	}, nil
 }
 
@@ -103,13 +101,15 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 	}
 	hexKey := keyBytesToHex(key)
 
-	val, depth, err := tr.root.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	val, err := tr.root.tryGet(hexKey, tmc, tr.trieStorage)
+	tr.collapseManager.MarkKeyAsAccessed(hexKey, tmc.GetSizeLoadedInMem())
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
-		return nil, depth, err
+		return nil, tmc.GetMaxDepth(), err
 	}
 
-	return val, depth, nil
+	return val, tmc.GetMaxDepth(), nil
 }
 
 // Update updates the value at the given key.
@@ -148,6 +148,7 @@ func (tr *patriciaMerkleTrie) update(key []byte, value []byte, version core.Trie
 			if err != nil {
 				return err
 			}
+			tr.collapseManager.MarkKeyAsAccessed(hexKey, newRoot.sizeInBytes())
 
 			tr.root = newRoot
 			return nil
@@ -157,7 +158,9 @@ func (tr *patriciaMerkleTrie) update(key []byte, value []byte, version core.Trie
 			tr.oldRoot = tr.root.getHash()
 		}
 
-		newRoot, oldHashes, err := tr.root.insert(newData, tr.trieStorage)
+		tmc := trieMetricsCollector.NewTrieMetricsCollector()
+		newRoot, oldHashes, err := tr.root.insert(newData, tmc, tr.trieStorage)
+		tr.collapseManager.MarkKeyAsAccessed(hexKey, tmc.GetSizeLoadedInMem())
 		if err != nil {
 			return err
 		}
@@ -195,7 +198,9 @@ func (tr *patriciaMerkleTrie) delete(hexKey []byte) error {
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.trieStorage)
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tmc, tr.trieStorage)
+	tr.collapseManager.RemoveKey(hexKey, tmc.GetSizeLoadedInMem())
 	if err != nil {
 		return err
 	}
@@ -255,12 +260,50 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
-	err = tr.root.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage, tr.trieStorage)
+	err = tr.root.commitDirty(tr.trieStorage, tr.trieStorage)
 	if err != nil {
 		return err
 	}
 
+	if tr.collapseManager.ShouldCollapseTrie() {
+		return tr.collapseTrie()
+	}
+
+	collapsibleLeaves, err := tr.collapseManager.GetCollapsibleLeaves()
+	if err != nil {
+		return err
+	}
+
+	tr.collapseLeaves(collapsibleLeaves)
 	return nil
+}
+
+func (tr *patriciaMerkleTrie) collapseTrie() error {
+	collapsedRoot, err := tr.root.getCollapsed()
+	if err != nil {
+		return err
+	}
+
+	tr.root = collapsedRoot
+	tr.collapseManager = tr.collapseManager.CloneWithoutState()
+	tr.collapseManager.AddSizeInMemory(tr.root.sizeInBytes())
+	log.Info("trie collapsed", "root", tr.root.getHash())
+	return nil
+}
+
+func (tr *patriciaMerkleTrie) collapseLeaves(collapsibleLeaves [][]byte) {
+	if len(collapsibleLeaves) == 0 {
+		return
+	}
+
+	for _, hexKey := range collapsibleLeaves {
+		tmc := trieMetricsCollector.NewTrieMetricsCollector()
+		if check.IfNil(tr.root) {
+			return
+		}
+		_ = tr.root.shouldCollapseChild(hexKey, tmc)
+		tr.collapseManager.AddSizeInMemory(tmc.GetSizeLoadedInMem())
+	}
 }
 
 // Recreate returns a new trie, given the options
@@ -288,7 +331,7 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 			tr.marshalizer,
 			tr.hasher,
 			tr.enableEpochsHandler,
-			tr.maxTrieLevelInMemory,
+			tr.collapseManager.CloneWithoutState(),
 		)
 	}
 
@@ -316,7 +359,7 @@ func (tr *patriciaMerkleTrie) String() string {
 	if tr.root == nil {
 		_, _ = fmt.Fprintln(writer, "*** EMPTY TRIE ***")
 	} else {
-		tr.root.print(writer, 0, tr.trieStorage)
+		tr.root.print(writer, 0, trieMetricsCollector.NewDisabledTrieMetricsCollector(), tr.trieStorage)
 	}
 
 	return writer.String()
@@ -369,7 +412,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 		tr.marshalizer,
 		tr.hasher,
 		tr.enableEpochsHandler,
-		tr.maxTrieLevelInMemory,
+		tr.collapseManager.CloneWithoutState(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -382,6 +425,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 
 	newRoot.setGivenHash(rootHash)
 	newTr.root = newRoot
+	newTr.collapseManager.AddSizeInMemory(newRoot.sizeInBytes())
 
 	return newTr, newRoot, nil
 }
@@ -500,6 +544,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 			tr.marshalizer,
 			tr.chanClose,
 			ctx,
+			trieMetricsCollector.NewDisabledTrieMetricsCollector(),
 		)
 		if err != nil {
 			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
@@ -530,7 +575,7 @@ func (tr *patriciaMerkleTrie) GetAllHashes() ([][]byte, error) {
 		return nil, err
 	}
 
-	hashes, err = tr.root.getAllHashes(tr.trieStorage)
+	hashes, err = tr.root.getAllHashes(trieMetricsCollector.NewDisabledTrieMetricsCollector(), tr.trieStorage)
 	if err != nil {
 		return nil, err
 	}
@@ -580,7 +625,7 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
 		proof = append(proof, encodedNode)
 		value := currentNode.getValue()
 
-		currentNode, hexKey, errGet = currentNode.getNext(hexKey, tr.trieStorage)
+		currentNode, hexKey, errGet = currentNode.getNext(hexKey, trieMetricsCollector.NewDisabledTrieMetricsCollector(), tr.trieStorage)
 		if errGet != nil {
 			return nil, nil, errGet
 		}
@@ -656,7 +701,7 @@ func (tr *patriciaMerkleTrie) GetTrieStats(address string, rootHash []byte) (com
 	}
 
 	ts := statistics.NewTrieStatistics()
-	err = newTrie.root.collectStats(ts, rootDepthLevel, newTrie.trieStorage)
+	err = newTrie.root.collectStats(ts, trieMetricsCollector.NewTrieMetricsCollector(), newTrie.trieStorage)
 	if err != nil {
 		return nil, err
 	}
@@ -683,12 +728,10 @@ func (tr *patriciaMerkleTrie) CollectLeavesForMigration(args vmcommon.ArgsMigrat
 		return err
 	}
 
-	_, err = tr.root.collectLeavesForMigration(args, tr.trieStorage, keyBuilder.NewKeyBuilder())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	_, err = tr.root.collectLeavesForMigration(args, tmc, tr.trieStorage, keyBuilder.NewKeyBuilder())
+	tr.collapseManager.AddSizeInMemory(tmc.GetSizeLoadedInMem())
+	return err
 }
 
 func (tr *patriciaMerkleTrie) checkIfMigrationPossible(args vmcommon.ArgsMigrateDataTrieLeaves) error {
@@ -733,6 +776,14 @@ func GetNodeDataFromHash(hash []byte, keyBuilder common.KeyBuilder, db common.Tr
 	}
 
 	return n.getNodeData(keyBuilder)
+}
+
+// SizeInMemory returns the size in memory of the trie
+func (tr *patriciaMerkleTrie) SizeInMemory() int {
+	tr.mutOperation.RLock()
+	defer tr.mutOperation.RUnlock()
+
+	return tr.collapseManager.GetSizeInMemory()
 }
 
 // Close stops all the active goroutines started by the trie

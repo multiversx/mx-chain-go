@@ -221,8 +221,6 @@ func getArgumentsMeta() storagerequesterscontainer.FactoryArgs {
 			StateTriesConfig: config.StateTriesConfig{
 				AccountsStatePruningEnabled: false,
 				PeerStatePruningEnabled:     false,
-				MaxStateTrieLevelInMemory:   5,
-				MaxPeerTrieLevelInMemory:    5,
 			},
 		},
 		ShardIDForTries:          0,

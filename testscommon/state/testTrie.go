@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 // GetDefaultTrieParameters -
@@ -40,7 +41,7 @@ func GetDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 // GetNewTrie -
 func GetNewTrie() common.Trie {
 	tsm, marshaller, hasher := GetDefaultTrieParameters()
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 
 	return tr
 }

@@ -29,6 +29,9 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
+	trieTestComponents "github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/pkg/errors"
@@ -81,7 +84,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -104,6 +106,9 @@ var InitialRating = uint32(50)
 // AdditionalGasLimit is the value that can be added on a transaction in the GasLimit
 var AdditionalGasLimit = uint64(999000)
 
+// TenMbSize represents 10 MB in bytes
+const TenMbSize = uint64(10485760)
+
 // GasSchedulePath --
 const GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml"
 
@@ -114,7 +119,6 @@ const (
 	shuffleBetweenShards    = false
 	adaptivity              = false
 	hysteresis              = float32(0.2)
-	maxTrieLevelInMemory    = uint(5)
 	delegationContractsList = "delegationContracts"
 )
 
@@ -431,7 +435,7 @@ func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator,
 		fmt.Println("err creating main storer" + err.Error())
 	}
 
-	args := testcommonStorage.GetStorageManagerArgs()
+	args := commonMocks.GetStorageManagerArgs()
 	args.MainStorer = mainStorer
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
@@ -443,7 +447,7 @@ func CreateTrieStorageManagerWithPruningStorer(coordinator sharding.Coordinator,
 
 // CreateTrieStorageManager creates the trie storage manager for the tests
 func CreateTrieStorageManager(store storage.Storer) (common.StorageManager, storage.Storer) {
-	args := testcommonStorage.GetStorageManagerArgs()
+	args := commonMocks.GetStorageManagerArgs()
 	args.MainStorer = store
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
@@ -467,14 +471,14 @@ func CreateAccountsDBWithEnableEpochsHandler(
 	trieStorageManager common.StorageManager,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (*state.AccountsDB, common.Trie) {
-	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, enableEpochsHandler, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
-	accountFactory, _ := getAccountFactory(accountType, enableEpochsHandler)
+	accountFactory, dth, _ := getAccountFactory(accountType, enableEpochsHandler, tr)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
@@ -500,26 +504,43 @@ func CreateAccountsDBWithEnableEpochsHandler(
 		SnapshotsManager:       snapshotsManager,
 		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 		PruningEnabled:         trieStorageManager.IsPruningEnabled(),
+		DataTriesHolder:        dth,
 	}
 	adb, _ := state.NewAccountsDB(args)
 
 	return adb, tr
 }
 
-func getAccountFactory(accountType Type, enableEpochsHandler common.EnableEpochsHandler) (state.AccountFactory, error) {
+func getAccountFactory(
+	accountType Type,
+	enableEpochsHandler common.EnableEpochsHandler,
+	tr common.Trie,
+) (state.AccountFactory, common.TriesHolder, error) {
 	switch accountType {
 	case UserAccount:
+		dth, err := triesHolder.NewDataTriesHolder(TenMbSize)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		argsAccCreator := factory.ArgsAccountCreator{
 			Hasher:                 TestHasher,
 			Marshaller:             TestMarshalizer,
 			EnableEpochsHandler:    enableEpochsHandler,
 			StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+			DataTriesHolder:        dth,
+			DataTrieCreator:        tr,
 		}
-		return factory.NewAccountCreator(argsAccCreator)
+		accCreator, err := factory.NewAccountCreator(argsAccCreator)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return accCreator, dth, nil
 	case ValidatorAccount:
-		return factory.NewPeerAccountCreator(), nil
+		return factory.NewPeerAccountCreator(), &trieTestComponents.TriesHolderStub{}, nil
 	default:
-		return nil, fmt.Errorf("invalid account type provided")
+		return nil, nil, fmt.Errorf("invalid account type provided")
 	}
 }
 
@@ -1056,7 +1077,16 @@ func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
 
 	dtlp, _ := parsers.NewDataTrieLeafParser(adr, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(adr, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, disabled.NewDisabledStateAccessesCollector())
+	args := trackableDataTrie.TrackableDataTrieArgs{
+		Identifier:             adr,
+		Hasher:                 &testscommon.HasherStub{},
+		Marshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        &trieTestComponents.TriesHolderStub{},
+		DataTrieCreator:        &trieTestComponents.TrieStub{},
+	}
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(args)
 
 	account, _ := accounts.NewUserAccount(adr, dtt, dtlp)
 
@@ -1158,13 +1188,13 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 
 // CreateNewDefaultTrie returns a new trie with test hasher and marsahalizer
 func CreateNewDefaultTrie() common.Trie {
-	args := testcommonStorage.GetStorageManagerArgs()
+	args := commonMocks.GetStorageManagerArgs()
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	return tr
 }
 

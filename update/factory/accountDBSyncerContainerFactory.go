@@ -29,7 +29,6 @@ type ArgsNewAccountsDBSyncersContainerFactory struct {
 	Marshalizer               marshal.Marshalizer
 	TrieStorageManager        common.StorageManager
 	TimoutGettingTrieNode     time.Duration
-	MaxTrieLevelInMemory      uint
 	NumConcurrentTrieSyncers  int
 	MaxHardCapForMissingNodes int
 	TrieSyncerVersion         int
@@ -47,7 +46,6 @@ type accountDBSyncersContainerFactory struct {
 	marshalizer               marshal.Marshalizer
 	timeoutGettingTrieNode    time.Duration
 	trieStorageManager        common.StorageManager
-	maxTrieLevelinMemory      uint
 	numConcurrentTrieSyncers  int
 	maxHardCapForMissingNodes int
 	trieSyncerVersion         int
@@ -101,7 +99,6 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 		marshalizer:               args.Marshalizer,
 		trieStorageManager:        args.TrieStorageManager,
 		timeoutGettingTrieNode:    args.TimoutGettingTrieNode,
-		maxTrieLevelinMemory:      args.MaxTrieLevelInMemory,
 		numConcurrentTrieSyncers:  args.NumConcurrentTrieSyncers,
 		maxHardCapForMissingNodes: args.MaxHardCapForMissingNodes,
 		trieSyncerVersion:         args.TrieSyncerVersion,
@@ -151,7 +148,6 @@ func (a *accountDBSyncersContainerFactory) createUserAccountsSyncer(shardId uint
 			RequestHandler:                    a.requestHandler,
 			Timeout:                           a.timeoutGettingTrieNode,
 			Cacher:                            a.trieCacher,
-			MaxTrieLevelInMemory:              a.maxTrieLevelinMemory,
 			MaxHardCapForMissingNodes:         a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 a.trieSyncerVersion,
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,
@@ -181,7 +177,6 @@ func (a *accountDBSyncersContainerFactory) createValidatorAccountsSyncer(shardId
 			RequestHandler:                    a.requestHandler,
 			Timeout:                           a.timeoutGettingTrieNode,
 			Cacher:                            a.trieCacher,
-			MaxTrieLevelInMemory:              a.maxTrieLevelinMemory,
 			MaxHardCapForMissingNodes:         a.maxHardCapForMissingNodes,
 			TrieSyncerVersion:                 a.trieSyncerVersion,
 			CheckNodesOnDisk:                  a.checkNodesOnDisk,

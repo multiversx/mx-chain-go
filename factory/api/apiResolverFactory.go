@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	factoryState "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -43,7 +45,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
-	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/state/syncer"
@@ -554,17 +555,6 @@ func createShardVmContainerFactory(args scQueryElementArgs, argsHook hooks.ArgBl
 }
 
 func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.ChainHandler) (state.AccountsAdapterAPI, common.StorageManager, error) {
-	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:                 args.coreComponents.Hasher(),
-		Marshaller:             args.coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler:    args.coreComponents.EnableEpochsHandler(),
-		StateAccessesCollector: args.stateComponents.StateAccessesCollector(),
-	}
-	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	storagePruning, err := newStoragePruningManager(args)
 	if err != nil {
 		return nil, nil, err
@@ -587,16 +577,36 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 	}
 
 	trieCreatorArgs := trieFactory.TrieCreateArgs{
-		MainStorer:          trieStorer,
-		PruningEnabled:      args.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		MaxTrieLevelInMem:   args.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:    args.generalConfig.StateTriesConfig.SnapshotsEnabled,
-		IdleProvider:        args.coreComponents.ProcessStatusHandler(),
-		Identifier:          dataRetriever.UserAccountsUnit.String(),
-		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
-		StatsCollector:      args.statusCoreComponents.StateStatsHandler(),
+		MainStorer:                   trieStorer,
+		PruningEnabled:               args.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
+		SnapshotsEnabled:             args.generalConfig.StateTriesConfig.SnapshotsEnabled,
+		IdleProvider:                 args.coreComponents.ProcessStatusHandler(),
+		Identifier:                   dataRetriever.UserAccountsUnit.String(),
+		EnableEpochsHandler:          args.coreComponents.EnableEpochsHandler(),
+		StatsCollector:               args.statusCoreComponents.StateStatsHandler(),
+		MaxSizeInMemory:              args.generalConfig.StateTriesConfig.MaxUserTrieSizeInMemory,
+		NumLeavesToCollapseSingleRun: args.generalConfig.StateTriesConfig.NumLeavesToCollapseSingleRun,
 	}
 	trieStorageManager, merkleTrie, err := trFactory.Create(trieCreatorArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO use different dataTriesSizeInMem for accountsDbApi
+	dth, err := triesHolder.NewDataTriesHolder(args.generalConfig.StateTriesConfig.DataTriesSizeInMemory)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	argsAccCreator := factoryState.ArgsAccountCreator{
+		Hasher:                 args.coreComponents.Hasher(),
+		Marshaller:             args.coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    args.coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: args.stateComponents.StateAccessesCollector(),
+		DataTriesHolder:        dth,
+		DataTrieCreator:        merkleTrie,
+	}
+	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -610,6 +620,7 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 		AddressConverter:       args.coreComponents.AddressPubKeyConverter(),
 		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
 		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)

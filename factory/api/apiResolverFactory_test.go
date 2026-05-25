@@ -37,7 +37,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const unreachableStep = 10000
+const (
+	unreachableStep = 10000
+)
 
 type failingSteps struct {
 	marshallerStepCounter int
@@ -306,7 +308,9 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 				SnapshotsGoroutineNum: 1,
 			},
 			StateTriesConfig: config.StateTriesConfig{
-				MaxStateTrieLevelInMemory: 5,
+				MaxUserTrieSizeInMemory: common.TenMbSize,
+				MaxPeerTrieSizeInMemory: common.TenMbSize,
+				DataTriesSizeInMemory:   common.TenMbSize,
 			},
 			VirtualMachine: config.VirtualMachineServicesConfig{
 				Querying: config.QueryVirtualMachineConfig{

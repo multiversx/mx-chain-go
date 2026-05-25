@@ -33,6 +33,7 @@ type TrieStub struct {
 	CloseCalled                     func() error
 	CollectLeavesForMigrationCalled func(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsMigratedToLatestVersionCalled func() (bool, error)
+	SizeInMemoryCalled              func() int
 }
 
 // GetStorageManager -
@@ -213,6 +214,14 @@ func (ts *TrieStub) IsMigratedToLatestVersion() (bool, error) {
 	}
 
 	return false, nil
+}
+
+// SizeInMemory -
+func (ts *TrieStub) SizeInMemory() int {
+	if ts.SizeInMemoryCalled != nil {
+		return ts.SizeInMemoryCalled()
+	}
+	return 0
 }
 
 // Close -

@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 type baseAccountsSyncer struct {
@@ -28,7 +29,6 @@ type baseAccountsSyncer struct {
 	timeoutHandler                    trie.TimeoutHandler
 	shardId                           uint32
 	cacher                            storage.Cacher
-	maxTrieLevelInMemory              uint
 	name                              string
 	maxHardCapForMissingNodes         int
 	checkNodesOnDisk                  bool
@@ -54,7 +54,6 @@ type ArgsNewBaseAccountsSyncer struct {
 	UserAccountsSyncStatisticsHandler common.SizeSyncStatisticsHandler
 	AppStatusHandler                  core.AppStatusHandler
 	EnableEpochsHandler               common.EnableEpochsHandler
-	MaxTrieLevelInMemory              uint
 	MaxHardCapForMissingNodes         int
 	TrieSyncerVersion                 int
 	CheckNodesOnDisk                  bool
@@ -217,7 +216,7 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.enableEpochsHandler, b.maxTrieLevelInMemory)
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	if err != nil {
 		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
 		return make(map[string]common.Trie)

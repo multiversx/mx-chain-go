@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
 	"github.com/multiversx/mx-chain-go/txcache"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -66,6 +67,8 @@ func createAccount(address []byte) state.UserAccountHandler {
 		Marshaller:             &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler:    enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        &trie.TriesHolderStub{},
+		DataTrieCreator:        &trie.TrieStub{},
 	}
 	accountFactory, _ := stateFactory.NewAccountCreator(argsAccCreation)
 	account, _ := accountFactory.CreateAccount(address)
