@@ -938,6 +938,14 @@ func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock data.MetaH
 	}
 
 	miniBlockHdrs := metablock.GetMiniBlockHeaderHandlers()
+	if metablock.IsHeaderV3() {
+		execMiniBlockHdrs, err := common.GetMiniBlockHeadersFromExecResult(metablock)
+		if err != nil {
+			log.Debug("doWhitelistWithMetaBlockIfNeeded: could not get miniblock headers from execution results", "error", err)
+		}
+		miniBlockHdrs = append(miniBlockHdrs, execMiniBlockHdrs...)
+	}
+
 	keys := make([][]byte, 0)
 
 	crossMbKeysMeta := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, core.MetachainShardId)
