@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -241,7 +242,8 @@ func (ipa *interceptedPeerAuthentication) Type() string {
 
 // Identifiers returns the identifiers used in requests
 func (ipa *interceptedPeerAuthentication) Identifiers() [][]byte {
-	return [][]byte{ipa.peerAuthentication.Pubkey, ipa.peerAuthentication.Pid}
+	identifier := common.PeerAuthenticationPublicKeyIdentifier(ipa.peerAuthentication.Pubkey)
+	return [][]byte{ipa.peerAuthentication.Pubkey, ipa.peerAuthentication.Pid, identifier}
 }
 
 // PeerID returns the peer ID

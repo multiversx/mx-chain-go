@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
@@ -410,6 +411,8 @@ func TestInterceptedPeerAuthentication_Getters(t *testing.T) {
 	t.Parallel()
 
 	providedPA := createDefaultInterceptedPeerAuthentication()
+	require.NotNil(t, providedPA)
+	providedPA.Pubkey = []byte("0123456789012345678901234567890123456789")
 	arg := createMockInterceptedPeerAuthenticationArg(providedPA)
 	ipa, _ := NewInterceptedPeerAuthentication(arg)
 	expectedPeerAuthentication := &heartbeat.PeerAuthentication{}
@@ -425,9 +428,10 @@ func TestInterceptedPeerAuthentication_Getters(t *testing.T) {
 	assert.Equal(t, expectedPeerAuthentication.Pubkey, ipa.Pubkey())
 
 	identifiers := ipa.Identifiers()
-	assert.Equal(t, 2, len(identifiers))
+	assert.Equal(t, 3, len(identifiers))
 	assert.Equal(t, expectedPeerAuthentication.Pubkey, identifiers[0])
 	assert.Equal(t, expectedPeerAuthentication.Pid, identifiers[1])
+	assert.Equal(t, expectedPeerAuthentication.Pubkey[:common.MaxPeerAuthenticationPublicKeyIdentifierLen], identifiers[2])
 	providedPASize := getSizeOfPA(providedPA)
 	assert.Equal(t, providedPASize, ipa.SizeInBytes())
 }

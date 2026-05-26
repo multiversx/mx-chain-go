@@ -870,6 +870,14 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 		return
 	}
 
+	identifiers := make([][]byte, 0, len(hashes))
+	for _, hash := range hashes {
+		identifier := common.PeerAuthenticationPublicKeyIdentifier(hash)
+		identifiers = append(identifiers, identifier)
+	}
+
+	rrh.whiteList.Add(identifiers)
+
 	err = peerAuthRequester.RequestDataFromHashArray(hashes, epoch)
 	if err != nil {
 		log.Debug("RequestPeerAuthenticationsByHashes.RequestDataFromHashArray",

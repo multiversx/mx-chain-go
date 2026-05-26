@@ -160,20 +160,25 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		multiDataBuff = [][]byte{checkChunksRes.CompleteBuffer}
 	}
 
-	listInterceptedData := make([]process.InterceptedData, len(multiDataBuff))
+	listInterceptedData := make([]process.InterceptedData, 0, len(multiDataBuff))
 	errOriginator := mdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), mdi.topic)
-
-	for index, dataBuff := range multiDataBuff {
+	var isWhiteListed bool
+	for _, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
-		interceptedData, err = mdi.interceptedData(dataBuff, message, fromConnectedPeer, errOriginator)
-		listInterceptedData[index] = interceptedData
+		interceptedData, isWhiteListed, err = mdi.interceptedData(dataBuff, message, fromConnectedPeer, errOriginator)
 
-		if err != nil {
-			mdi.throttler.EndProcessing()
-			return nil, err
+		if err == nil {
+			listInterceptedData = append(listInterceptedData, interceptedData)
+			continue
 		}
-	}
 
+		if isWhiteListed && message.BroadcastMethod() == p2p.Direct {
+			continue
+		}
+
+		mdi.throttler.EndProcessing()
+		return nil, err
+	}
 	go func() {
 		for _, interceptedData := range listInterceptedData {
 			mdi.processInterceptedData(interceptedData, message)
@@ -211,7 +216,7 @@ func (mdi *MultiDataInterceptor) interceptedData(
 	message p2p.MessageP2P,
 	fromConnectedPeer core.PeerID,
 	errOriginator error,
-) (process.InterceptedData, error) {
+) (process.InterceptedData, bool, error) {
 	originator := message.Peer()
 	interceptedData, err := mdi.factory.Create(dataBuff, originator)
 	if err != nil {
@@ -220,7 +225,7 @@ func (mdi *MultiDataInterceptor) interceptedData(
 		mdi.antifloodHandler.BlacklistPeer(originator, reason, common.InvalidMessageBlacklistDuration)
 		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 
-		return nil, err
+		return nil, false, err
 	}
 
 	mdi.receivedDebugInterceptedData(interceptedData)
@@ -231,7 +236,7 @@ func (mdi *MultiDataInterceptor) interceptedData(
 			p2p.PeerIdToShortString(originator),
 			"topic", mdi.topic,
 			"err", errOriginator)
-		return nil, errOriginator
+		return nil, isWhiteListed, errOriginator
 	}
 
 	isForCurrentShard := interceptedData.IsForCurrentShard()
@@ -243,7 +248,7 @@ func (mdi *MultiDataInterceptor) interceptedData(
 			"hash", interceptedData.Hash(),
 			"is for this shard", isForCurrentShard,
 		)
-		return nil, process.ErrInterceptedDataNotForCurrentShard
+		return nil, isWhiteListed, process.ErrInterceptedDataNotForCurrentShard
 	}
 
 	err = mdi.interceptedDataVerifier.Verify(interceptedData)
@@ -258,10 +263,10 @@ func (mdi *MultiDataInterceptor) interceptedData(
 			mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 		}
 
-		return nil, err
+		return nil, isWhiteListed, err
 	}
 
-	return interceptedData, nil
+	return interceptedData, isWhiteListed, nil
 }
 
 // RegisterHandler registers a callback function to be notified on received data

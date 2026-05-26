@@ -1578,10 +1578,13 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		}()
 
 		wasCalled := false
+		wasWhitelisted := false
+		longPublicKey := bytes.Repeat([]byte("p"), common.MaxPeerAuthenticationPublicKeyIdentifierLen+8)
+		providedHashesForTest := [][]byte{longPublicKey, []byte("h2")}
 		paRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 				wasCalled = true
-				assert.Equal(t, providedHashes, hashes)
+				assert.Equal(t, providedHashesForTest, hashes)
 				return nil
 			},
 		}
@@ -1593,15 +1596,21 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 				},
 			},
 			&mock.RequestedItemsHandlerStub{},
-			&mock.WhiteListHandlerStub{},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					wasWhitelisted = true
+					assert.Equal(t, [][]byte{longPublicKey[:common.MaxPeerAuthenticationPublicKeyIdentifierLen], []byte("h2")}, keys)
+				},
+			},
 			1,
 			0,
 			time.Second,
 			time.Millisecond,
 		)
 
-		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
+		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashesForTest)
 		assert.True(t, wasCalled)
+		assert.True(t, wasWhitelisted)
 	})
 }
 
