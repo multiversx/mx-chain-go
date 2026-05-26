@@ -233,12 +233,15 @@ func (mp *metaProcessor) VerifyBlockProposal(
 	}
 
 	shouldProposeEpochChange := mp.epochStartTrigger.ShouldProposeEpochChange(headerHandler.GetRound(), headerHandler.GetNonce())
-	if header.IsEpochChangeProposed() != shouldProposeEpochChange {
+	isEpochChangeProposed := header.IsEpochChangeProposed()
+	// The header flag must match the trigger state in both directions:
+	// it is invalid if the header proposes an epoch change too early or misses one when required.
+	if isEpochChangeProposed != shouldProposeEpochChange {
 		log.Warn("epoch change proposal flag does not match trigger state",
 			"round", headerHandler.GetRound(),
 			"nonce", headerHandler.GetNonce(),
-			"isEpochChangeProposed", header.IsEpochChangeProposed(),
-			"shouldProposeEpochChange", shouldProposeEpochChange,
+			"flag from header", isEpochChangeProposed,
+			"flag from trigger", shouldProposeEpochChange,
 			"epochStartTrigger", mp.epochStartTrigger.Epoch())
 		return process.ErrEpochChangeProposedOutsideTriggerWindow
 	}
