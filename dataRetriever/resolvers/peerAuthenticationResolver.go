@@ -110,7 +110,7 @@ func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff [
 	if err != nil {
 		return err
 	}
-	hashes := b.Data
+	hashes := deduplicateHashes(b.Data)
 
 	peerAuthsForHashes, err := res.fetchPeerAuthenticationSlicesForPublicKeys(hashes)
 	if err != nil {
