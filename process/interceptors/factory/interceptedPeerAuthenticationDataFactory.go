@@ -64,6 +64,9 @@ func checkArgInterceptedDataFactory(args ArgInterceptedDataFactory) error {
 	if check.IfNil(args.CoreComponents.InternalMarshalizer()) {
 		return process.ErrNilMarshalizer
 	}
+	if check.IfNil(args.CryptoComponents) {
+		return process.ErrNilCryptoComponentsHolder
+	}
 	if check.IfNil(args.NodesCoordinator) {
 		return process.ErrNilNodesCoordinator
 	}

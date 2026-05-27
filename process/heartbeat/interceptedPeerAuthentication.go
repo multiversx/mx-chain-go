@@ -117,6 +117,9 @@ func checkArg(arg ArgInterceptedPeerAuthentication) error {
 	if arg.PeerAuthenticationTimeBetweenSendsInSec < minPeerAuthenticationTimeBetweenSendsInSec {
 		return fmt.Errorf("%w for PeerAuthenticationTimeBetweenSendsInSec", process.ErrInvalidValue)
 	}
+	if len(arg.SelfPeerID) == 0 {
+		return fmt.Errorf("%w for self peer id", process.ErrInvalidValue)
+	}
 	if check.IfNil(arg.ManagedPeersHolder) {
 		return process.ErrNilManagedPeersHolder
 	}
@@ -210,6 +213,10 @@ func (ipa *interceptedPeerAuthentication) checkExistingInfo() (bool, error) {
 	pairExists := string(existingInfo.PkBytes) == string(ipa.Pubkey())
 	if !pairExists {
 		return false, nil // continue verification and eventually save in cache
+	}
+
+	if len(ipa.messageOriginator) == 0 {
+		return false, nil
 	}
 
 	isFromSelf := ipa.messageOriginator == ipa.selfPeerID
