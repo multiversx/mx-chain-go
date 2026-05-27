@@ -217,20 +217,33 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	return false
 }
 
-func (sr *subroundSignature) waitForSingatures() {
+func (sr *subroundSignature) waitForSignatures() {
+	wg := sr.SignaturesWaitGroup()
+	if wg == nil {
+		return
+	}
+
 	done := make(chan struct{})
 	go func() {
-		sr.SignaturesWaitGroup().Wait()
+		wg.Wait()
 		close(done)
 	}()
 
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), time.Duration(sr.EndTime()))
+	if timeLeft <= 0 {
+		sr.SignaturesCtxCancel()
+		return
+	}
+
+	timer := time.NewTimer(timeLeft)
+	defer timer.Stop()
 
 	select {
 	case <-done:
 		sr.SignaturesCtxCancel()
 		return
-	case <-time.After(timeLeft):
+	case <-timer.C:
+		sr.SignaturesCtxCancel()
 		log.Debug("timeout while waiting for signatures to be created")
 		return
 	}
@@ -238,7 +251,7 @@ func (sr *subroundSignature) waitForSingatures() {
 
 func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) bool {
 	// wait for optimistic signatures creation to finish
-	sr.waitForSingatures()
+	sr.waitForSignatures()
 
 	numMultiKeysSignaturesSent := int32(0)
 	sentSigForAllKeys := atomicCore.Flag{}

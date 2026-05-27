@@ -372,9 +372,10 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 			continue
 		}
 
-		err := checkGoRoutinesThrottler(ctx, sr.signatureThrottler)
+		err := checkGoRoutinesThrottler(sigCtx, sr.signatureThrottler)
 		if err != nil {
 			log.Debug("triggerCreateSignaturesForManagedKeys.checkGoRoutinesThrottler", "err", err)
+			cancel()
 			return false
 		}
 		sr.signatureThrottler.StartProcessing()
