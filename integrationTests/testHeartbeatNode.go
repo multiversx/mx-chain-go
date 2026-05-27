@@ -649,6 +649,7 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 		PeerShardMapper:                         thn.MainPeerShardMapper,
 		PeerAuthCacher:                          thn.DataPool.PeerAuthentications(),
 		PeerAuthenticationTimeBetweenSendsInSec: thn.heartbeatExpiryTimespanInSec,
+		CryptoComponents:                        GetDefaultCryptoComponents(),
 	}
 
 	thn.createPeerAuthInterceptor(argsFactory)
