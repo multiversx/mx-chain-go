@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/heartbeat"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
@@ -26,6 +27,7 @@ type interceptedPeerAuthenticationDataFactory struct {
 	peerAuthCacher                          storage.Cacher
 	peerAuthenticationTimeBetweenSendsInSec int64
 	selfID                                  core.PeerID
+	managedPeersHolder                      common.ManagedPeersHolder
 }
 
 // NewInterceptedPeerAuthenticationDataFactory creates an instance of interceptedPeerAuthenticationDataFactory
@@ -51,6 +53,7 @@ func NewInterceptedPeerAuthenticationDataFactory(arg ArgInterceptedDataFactory) 
 		peerAuthCacher:                          arg.PeerAuthCacher,
 		peerAuthenticationTimeBetweenSendsInSec: arg.PeerAuthenticationTimeBetweenSendsInSec,
 		selfID:                                  arg.PeerID,
+		managedPeersHolder:                      arg.CryptoComponents.ManagedPeersHolder(),
 	}, nil
 }
 
@@ -97,6 +100,7 @@ func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte, messa
 		MessageOriginator:                       messageOriginator,
 		SelfPeerID:                              ipadf.selfID,
 		PeerAuthenticationTimeBetweenSendsInSec: ipadf.peerAuthenticationTimeBetweenSendsInSec,
+		ManagedPeersHolder:                      ipadf.managedPeersHolder,
 	}
 
 	return heartbeat.NewInterceptedPeerAuthentication(arg)

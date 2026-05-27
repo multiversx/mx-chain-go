@@ -65,6 +65,7 @@ func createMockInterceptedPeerAuthenticationArg(interceptedData *heartbeat.PeerA
 		PeerShardMapper:                         &processMocks.PeerShardMapperStub{},
 		PeerAuthCacher:                          cache.NewCacherStub(),
 		PeerAuthenticationTimeBetweenSendsInSec: 10,
+		ManagedPeersHolder:                      &testscommon.ManagedPeersHolderStub{},
 	}
 	arg.DataBuff, _ = arg.Marshaller.Marshal(interceptedData)
 
@@ -153,6 +154,16 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		ipa, err := NewInterceptedPeerAuthentication(arg)
 		assert.True(t, check.IfNil(ipa))
 		assert.Equal(t, process.ErrNilPeerAuthenticationCacher, err)
+	})
+	t.Run("nil managed peers holder should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
+		arg.ManagedPeersHolder = nil
+
+		ipa, err := NewInterceptedPeerAuthentication(arg)
+		assert.True(t, check.IfNil(ipa))
+		assert.Equal(t, process.ErrNilManagedPeersHolder, err)
 	})
 	t.Run("invalid peer auth time between sends should error", func(t *testing.T) {
 		t.Parallel()

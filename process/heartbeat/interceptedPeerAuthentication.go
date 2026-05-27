@@ -33,6 +33,7 @@ type ArgInterceptedPeerAuthentication struct {
 	MessageOriginator                       core.PeerID
 	SelfPeerID                              core.PeerID
 	PeerAuthenticationTimeBetweenSendsInSec int64
+	ManagedPeersHolder                      common.ManagedPeersHolder
 }
 
 // interceptedPeerAuthentication is a wrapper over PeerAuthentication
@@ -49,6 +50,7 @@ type interceptedPeerAuthentication struct {
 	peerAuthCacher         storage.Cacher
 	messageOriginator      core.PeerID
 	selfPeerID             core.PeerID
+	managedPeersHolder     common.ManagedPeersHolder
 	peerAuthTimestampDelta int64
 }
 
@@ -79,6 +81,7 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 		messageOriginator:      arg.MessageOriginator,
 		selfPeerID:             arg.SelfPeerID,
 		peerAuthTimestampDelta: int64(deltaSec),
+		managedPeersHolder:     arg.ManagedPeersHolder,
 	}
 	intercepted.peerId = core.PeerID(intercepted.peerAuthentication.Pid)
 
@@ -113,6 +116,9 @@ func checkArg(arg ArgInterceptedPeerAuthentication) error {
 	}
 	if arg.PeerAuthenticationTimeBetweenSendsInSec < minPeerAuthenticationTimeBetweenSendsInSec {
 		return fmt.Errorf("%w for PeerAuthenticationTimeBetweenSendsInSec", process.ErrInvalidValue)
+	}
+	if check.IfNil(arg.ManagedPeersHolder) {
+		return process.ErrNilManagedPeersHolder
 	}
 
 	return nil
@@ -207,7 +213,8 @@ func (ipa *interceptedPeerAuthentication) checkExistingInfo() (bool, error) {
 	}
 
 	isFromSelf := ipa.messageOriginator == ipa.selfPeerID
-	if isFromSelf {
+	isManagedBySelf := ipa.managedPeersHolder.IsPidManagedByCurrentNode(ipa.messageOriginator)
+	if isFromSelf || isManagedBySelf {
 		return true, nil // skip sig checks
 	}
 

@@ -65,6 +65,7 @@ func createMockInterceptedPeerAuthentication() process.InterceptedData {
 		PeerShardMapper:                         &mock.PeerShardMapperStub{},
 		PeerAuthCacher:                          cache.NewCacherStub(),
 		PeerAuthenticationTimeBetweenSendsInSec: 10,
+		ManagedPeersHolder:                      &testscommon.ManagedPeersHolderStub{},
 	}
 	arg.DataBuff, _ = arg.Marshaller.Marshal(createInterceptedPeerAuthentication())
 	ipa, _ := heartbeat.NewInterceptedPeerAuthentication(arg)
