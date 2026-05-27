@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/stretchr/testify/assert"
-
 	heartbeatMessages "github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/heartbeat"
@@ -18,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/stretchr/testify/assert"
 )
 
 type interceptedDataHandler interface {
@@ -58,11 +57,16 @@ func createMockInterceptedPeerAuthentication() process.InterceptedData {
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
 			Marshaller: &mock.MarshalizerMock{},
 		},
-		NodesCoordinator:      &mock.NodesCoordinatorStub{},
-		SignaturesHandler:     &mock.SignaturesHandlerStub{},
-		PeerSignatureHandler:  &mock.PeerSignatureHandlerStub{},
-		PayloadValidator:      payloadValidator,
-		HardforkTriggerPubKey: []byte("provided hardfork pub key"),
+		NodesCoordinator:                        &mock.NodesCoordinatorStub{},
+		SignaturesHandler:                       &mock.SignaturesHandlerStub{},
+		PeerSignatureHandler:                    &mock.PeerSignatureHandlerStub{},
+		PayloadValidator:                        payloadValidator,
+		HardforkTriggerPubKey:                   []byte("provided hardfork pub key"),
+		PeerShardMapper:                         &mock.PeerShardMapperStub{},
+		PeerAuthCacher:                          cache.NewCacherStub(),
+		PeerAuthenticationTimeBetweenSendsInSec: 10,
+		ManagedPeersHolder:                      &testscommon.ManagedPeersHolderStub{},
+		SelfPeerID:                              "self",
 	}
 	arg.DataBuff, _ = arg.Marshaller.Marshal(createInterceptedPeerAuthentication())
 	ipa, _ := heartbeat.NewInterceptedPeerAuthentication(arg)
@@ -136,7 +140,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		wasCalled := false
 		args := createPeerAuthenticationInterceptorProcessArg()
 		args.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
-			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte) {
+			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte, timestamp int64) {
 				wasCalled = true
 			},
 		}
@@ -205,7 +209,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		}
 		wasUpdatePeerIDPublicKeyPairCalled := false
 		arg.PeerShardMapper = &p2pmocks.NetworkShardingCollectorStub{
-			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte) {
+			UpdatePeerIDPublicKeyPairCalled: func(pid core.PeerID, pk []byte, timestamp int64) {
 				wasUpdatePeerIDPublicKeyPairCalled = true
 				assert.Equal(t, providedIPAMessage.Pid, pid.Bytes())
 				assert.Equal(t, providedIPAMessage.Pubkey, pk)

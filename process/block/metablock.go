@@ -113,6 +113,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		roundHandler:                  arguments.CoreComponents.RoundHandler(),
 		bootStorer:                    arguments.BootStorer,
 		blockTracker:                  arguments.BlockTracker,
+		miniBlockTracker:              arguments.MiniBlockTracker,
 		dataPool:                      arguments.DataComponents.Datapool(),
 		blockChain:                    arguments.DataComponents.Blockchain(),
 		outportHandler:                arguments.StatusComponents.OutportHandler(),
@@ -202,7 +203,9 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
-	mp.processStatusHandler.SetBusy("metaProcessor.ProcessBlock")
+	if !mp.processStatusHandler.TrySetBusy("metaProcessor.ProcessBlock") {
+		return process.ErrBlockProcessorBusy
+	}
 	defer mp.processStatusHandler.SetIdle()
 
 	err := mp.checkBlockValidity(headerHandler, bodyHandler)
@@ -239,7 +242,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = mp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body)
+	err = mp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID())
 	if err != nil {
 		return err
 	}
@@ -303,6 +306,11 @@ func (mp *metaProcessor) ProcessBlock(
 
 	if header.IsStartOfEpochBlock() {
 		err = mp.processEpochStartMetaBlock(header, body)
+		return err
+	}
+
+	err = mp.verifyNonEpochStartMiniBlocks(header)
+	if err != nil {
 		return err
 	}
 
@@ -548,6 +556,17 @@ func (mp *metaProcessor) verifyEpochStartMiniBlocks(metaBlock *block.MetaBlock) 
 	for _, miniBlockHeader := range metaBlock.MiniBlockHeaders {
 		if miniBlockHeader.GetType() != block.PeerBlock &&
 			miniBlockHeader.GetType() != block.RewardsBlock {
+			return process.ErrInvalidMiniBlockType
+		}
+	}
+
+	return nil
+}
+
+func (mp *metaProcessor) verifyNonEpochStartMiniBlocks(header data.HeaderHandler) error {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeader.GetTypeInt32() == int32(block.RewardsBlock) ||
+			miniBlockHeader.GetTypeInt32() == int32(block.PeerBlock) {
 			return process.ErrInvalidMiniBlockType
 		}
 	}
@@ -825,7 +844,9 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	mp.processStatusHandler.SetBusy("metaProcessor.CreateBlock")
+	if !mp.processStatusHandler.TrySetBusy("metaProcessor.CreateBlock") {
+		return nil, nil, process.ErrBlockProcessorBusy
+	}
 	defer mp.processStatusHandler.SetIdle()
 
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch))
@@ -1274,7 +1295,10 @@ func (mp *metaProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	mp.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
+	if !mp.processStatusHandler.TrySetBusy("metaProcessor.CommitBlock") {
+		return process.ErrBlockProcessorBusy
+	}
+
 	var err error
 	defer func() {
 		if err != nil {
@@ -1845,6 +1869,14 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 		hash := lastCrossNotarizedHeaderForShard[shardID].hash
 		mp.blockTracker.AddCrossNotarizedHeader(shardID, hdr, hash)
 		DisplayLastNotarized(mp.marshalizer, mp.hasher, hdr, shardID)
+
+		// Per-shard threshold advance: commitAll already ran, so SCRs from shardID up to
+		// hdr.GetNonce() can be released. hdr.GetNonce()+1 releases items at the just-
+		// notarized nonce too, since they were processed in this metablock.
+		if !check.IfNil(hdr) && !check.IfNil(mp.miniBlockTracker) {
+			threshold := hdr.GetNonce() + 1
+			mp.miniBlockTracker.ReleaseImmunityForCommittedShardBlocks(shardID, threshold)
+		}
 	}
 
 	return nil

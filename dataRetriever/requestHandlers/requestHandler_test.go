@@ -1578,10 +1578,13 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 		}()
 
 		wasCalled := false
+		wasWhitelisted := false
+		longPublicKey := bytes.Repeat([]byte("p"), common.MaxPeerAuthenticationPublicKeyIdentifierLen+8)
+		providedHashesForTest := [][]byte{longPublicKey, []byte("h2")}
 		paRequester := &dataRetrieverMocks.HashSliceRequesterStub{
 			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
 				wasCalled = true
-				assert.Equal(t, providedHashes, hashes)
+				assert.Equal(t, providedHashesForTest, hashes)
 				return nil
 			},
 		}
@@ -1593,15 +1596,21 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 				},
 			},
 			&mock.RequestedItemsHandlerStub{},
-			&mock.WhiteListHandlerStub{},
+			&mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) {
+					wasWhitelisted = true
+					assert.Equal(t, [][]byte{longPublicKey[:common.MaxPeerAuthenticationPublicKeyIdentifierLen], []byte("h2")}, keys)
+				},
+			},
 			1,
 			0,
 			time.Second,
 			time.Millisecond,
 		)
 
-		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashes)
+		rrh.RequestPeerAuthenticationsByHashes(providedShardId, providedHashesForTest)
 		assert.True(t, wasCalled)
+		assert.True(t, wasWhitelisted)
 	})
 }
 
@@ -1977,6 +1986,38 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 		)
 
 		rrh.RequestMiniBlocks(0, [][]byte{[]byte("mbHash")})
+	})
+	t.Run("should deduplicate hashes within the same batch", func(t *testing.T) {
+		t.Parallel()
+
+		duplicateHash := []byte("mbHash")
+		numCalls := uint32(0)
+		var receivedHashes [][]byte
+		mbRequester := &dataRetrieverMocks.HashSliceRequesterStub{
+			RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+				atomic.AddUint32(&numCalls, 1)
+				receivedHashes = hashes
+				return nil
+			},
+		}
+		rrh, _ := NewResolverRequestHandler(
+			&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+					return mbRequester, nil
+				},
+			},
+			&mock.RequestedItemsHandlerStub{},
+			&mock.WhiteListHandlerStub{},
+			100,
+			0,
+			time.Second,
+			time.Millisecond,
+		)
+
+		rrh.RequestMiniBlocks(0, [][]byte{duplicateHash, duplicateHash, duplicateHash})
+		assert.Equal(t, uint32(1), atomic.LoadUint32(&numCalls))
+		require.Len(t, receivedHashes, 1)
+		assert.Equal(t, duplicateHash, receivedHashes[0])
 	})
 }
 

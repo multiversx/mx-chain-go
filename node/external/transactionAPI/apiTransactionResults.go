@@ -123,7 +123,7 @@ func (arp *apiTransactionResultsProcessor) getSmartContractResultsInTransactionB
 			return nil, fmt.Errorf("%w: %v, hash = %s", errCannotLoadContractResults, err, hex.EncodeToString(scrHash))
 		}
 
-		scrAPI := arp.adaptSmartContractResult(scrHash, scr)
+		scrAPI := arp.adaptSmartContractResult(scrHash, scr, epoch)
 
 		arp.loadLogsIntoContractResults(scrHash, epoch, scrAPI)
 
@@ -171,7 +171,7 @@ func (arp *apiTransactionResultsProcessor) getScrFromStorage(hash []byte, epoch 
 	return scr, nil
 }
 
-func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult) *transaction.ApiSmartContractResult {
+func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []byte, scr *smartContractResult.SmartContractResult, epoch uint32) *transaction.ApiSmartContractResult {
 	isRefund := arp.refundDetector.IsRefund(RefundDetectorInput{
 		Value:         scr.Value.String(),
 		Data:          scr.Data,
@@ -201,7 +201,7 @@ func (arp *apiTransactionResultsProcessor) adaptSmartContractResult(scrHash []by
 	apiSCR.RelayerAddr, _ = arp.addressPubKeyConverter.Encode(scr.RelayerAddr)
 	apiSCR.OriginalSender, _ = arp.addressPubKeyConverter.Encode(scr.OriginalSender)
 
-	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr(), arp.shardCoordinator.NumberOfShards())
+	res := arp.dataFieldParser.Parse(scr.Data, scr.GetSndAddr(), scr.GetRcvAddr(), arp.shardCoordinator.NumberOfShards(), epoch)
 	apiSCR.Operation = res.Operation
 	apiSCR.Function = res.Function
 	apiSCR.ESDTValues = res.ESDTValues

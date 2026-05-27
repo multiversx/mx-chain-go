@@ -787,11 +787,18 @@ func (rrh *resolverRequestHandler) IsInterfaceNil() bool {
 
 func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte, suffix string) [][]byte {
 	unrequestedHashes := make([][]byte, 0)
+	seen := make(map[string]struct{}, len(hashes))
 
 	rrh.sweepIfNeeded()
 
 	for _, hash := range hashes {
-		if !rrh.requestedItemsHandler.Has(string(hash) + suffix) {
+		key := string(hash) + suffix
+		if _, alreadySeen := seen[key]; alreadySeen {
+			continue
+		}
+		seen[key] = struct{}{}
+
+		if !rrh.requestedItemsHandler.Has(key) {
 			unrequestedHashes = append(unrequestedHashes, hash)
 		}
 	}
@@ -862,6 +869,14 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 		log.Warn("wrong assertion type when creating peer authentication requester")
 		return
 	}
+
+	identifiers := make([][]byte, 0, len(hashes))
+	for _, hash := range hashes {
+		identifier := common.PeerAuthenticationPublicKeyIdentifier(hash)
+		identifiers = append(identifiers, identifier)
+	}
+
+	rrh.whiteList.Add(identifiers)
 
 	err = peerAuthRequester.RequestDataFromHashArray(hashes, epoch)
 	if err != nil {

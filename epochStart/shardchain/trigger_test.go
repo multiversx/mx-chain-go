@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -15,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -764,6 +768,75 @@ func TestTrigger_ReceivedHeaderChangeEpochWithoutPrevHeader(t *testing.T) {
 	epochStartTrigger.receivedMetaBlock(epochStartHeader, epochStartHash)
 
 	require.True(t, epochStartTrigger.isEpochStart)
+}
+
+func TestTrigger_ReceivedMetaBlock_WithoutProof(t *testing.T) {
+	t.Parallel()
+
+	t.Run("receivedMetaBlock should request proof when missing", func(t *testing.T) {
+		t.Parallel()
+
+		var proofRequested atomic.Int32
+		var requestedHashMut sync.Mutex
+		var requestedHash []byte
+
+		args := createMockShardEpochStartTriggerArguments()
+		args.Epoch = 5
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+				requestedHashMut.Lock()
+				requestedHash = headerHash
+				requestedHashMut.Unlock()
+				proofRequested.Add(1)
+			},
+		}
+
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{}
+			},
+			MiniBlocksCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vic.ValidatorInfoCacherStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{
+					GetProofCalled: func(_ uint32, _ []byte) (data.HeaderProofHandler, error) {
+						return nil, errors.New("proof not found")
+					},
+				}
+			},
+		}
+
+		et, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = et.Close()
+		}()
+
+		metaBlockHash := []byte("metablock-hash")
+		et.receivedMetaBlock(&block.MetaBlock{
+			Nonce:      10,
+			Round:      42,
+			Epoch:      6,
+			EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+		}, metaBlockHash)
+
+		time.Sleep(10 * time.Millisecond)
+
+		require.Equal(t, int32(1), proofRequested.Load())
+
+		requestedHashMut.Lock()
+		require.Equal(t, metaBlockHash, requestedHash)
+		requestedHashMut.Unlock()
+	})
 }
 
 func TestTrigger_ClearMissingValidatorsInfoMapShouldWork(t *testing.T) {

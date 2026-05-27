@@ -101,6 +101,32 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	}
 
 	sdi.receivedDebugInterceptedData(interceptedData)
+
+	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
+	isWhiteListed := sdi.whiteListRequest.IsWhiteListed(interceptedData)
+	if !isWhiteListed && errOriginator != nil {
+		log.Trace("got message from peer on topic only for validators",
+			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",
+			sdi.topic, "err", errOriginator)
+		sdi.throttler.EndProcessing()
+		return nil, errOriginator
+	}
+
+	messageID := interceptedData.Hash()
+	isForCurrentShard := interceptedData.IsForCurrentShard()
+	if !isForCurrentShard {
+		sdi.throttler.EndProcessing()
+		log.Trace("intercepted data is for other shards",
+			"pid", p2p.MessageOriginatorPid(message),
+			"seq no", p2p.MessageOriginatorSeq(message),
+			"topic", message.Topic(),
+			"hash", interceptedData.Hash(),
+			"is for current shard", isForCurrentShard,
+		)
+
+		return messageID, process.ErrInterceptedDataNotForCurrentShard
+	}
+
 	err = sdi.interceptedDataVerifier.Verify(interceptedData)
 	if err != nil {
 		sdi.throttler.EndProcessing()
@@ -115,33 +141,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		}
 
 		return nil, err
-	}
-
-	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
-	isWhiteListed := sdi.whiteListRequest.IsWhiteListed(interceptedData)
-	if !isWhiteListed && errOriginator != nil {
-		log.Trace("got message from peer on topic only for validators",
-			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",
-			sdi.topic, "err", errOriginator)
-		sdi.throttler.EndProcessing()
-		return nil, errOriginator
-	}
-
-	messageID := interceptedData.Hash()
-	isForCurrentShard := interceptedData.IsForCurrentShard()
-	shouldProcess := isForCurrentShard || isWhiteListed
-	if !shouldProcess {
-		sdi.throttler.EndProcessing()
-		log.Trace("intercepted data is for other shards",
-			"pid", p2p.MessageOriginatorPid(message),
-			"seq no", p2p.MessageOriginatorSeq(message),
-			"topic", message.Topic(),
-			"hash", interceptedData.Hash(),
-			"is for current shard", isForCurrentShard,
-			"is white listed", isWhiteListed,
-		)
-
-		return messageID, nil
 	}
 
 	go func() {

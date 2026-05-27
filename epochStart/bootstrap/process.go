@@ -358,8 +358,14 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	defer e.cleanupOnBootstrapFinish()
 
-	var err error
-	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
+	newShardId, _, err := e.getShardIDForLatestEpoch()
+	if err != nil {
+		// fallback to meta if nothing was loaded from the last epoch
+		newShardId = e.applyShardIDAsObserverIfNeeded(core.MetachainShardId)
+	}
+	log.Debug("epochStartBootstrap.Bootstrap", "newShardId", newShardId, "from last epoch", err == nil)
+
+	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), newShardId)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -568,20 +574,22 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:           e.coreComponentsHolder,
-		CryptoComponentsHolder:         e.cryptoComponentsHolder,
-		RequestHandler:                 e.requestHandler,
-		Messenger:                      e.mainMessenger,
-		ShardCoordinator:               e.shardCoordinator,
-		EconomicsData:                  e.economicsData,
-		WhitelistHandler:               e.whiteListHandler,
-		StartInEpochConfig:             epochStartConfig,
-		HeaderIntegrityVerifier:        e.headerIntegrityVerifier,
-		MetaBlockProcessor:             metaBlockProcessor,
-		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
-		ProofsPool:                     e.dataPool.Proofs(),
-		HeadersPool:                    e.dataPool.Headers(),
-		ProofsInterceptorProcessor:     processor.NewEquivalentProofsInterceptorProcessor(),
+		CoreComponentsHolder:                    e.coreComponentsHolder,
+		CryptoComponentsHolder:                  e.cryptoComponentsHolder,
+		RequestHandler:                          e.requestHandler,
+		Messenger:                               e.mainMessenger,
+		ShardCoordinator:                        e.shardCoordinator,
+		EconomicsData:                           e.economicsData,
+		WhitelistHandler:                        e.whiteListHandler,
+		StartInEpochConfig:                      epochStartConfig,
+		HeaderIntegrityVerifier:                 e.headerIntegrityVerifier,
+		MetaBlockProcessor:                      metaBlockProcessor,
+		InterceptedDataVerifierFactory:          e.interceptedDataVerifierFactory,
+		ProofsPool:                              e.dataPool.Proofs(),
+		HeadersPool:                             e.dataPool.Headers(),
+		ProofsInterceptorProcessor:              processor.NewEquivalentProofsInterceptorProcessor(),
+		PeerAuthCacher:                          e.dataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: e.generalConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -674,7 +682,13 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 	if err != nil {
 		return nil, err
 	}
+
+	isCurrentShardMeta := e.shardCoordinator.SelfId() == core.MetachainShardId
 	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		if !isCurrentShardMeta && epochStartData.GetShardID() != e.shardCoordinator.SelfId() {
+			continue
+		}
+
 		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
 		shardIds = append(shardIds, epochStartData.GetShardID())
 
@@ -1453,7 +1467,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 
 	storageService := disabled.NewChainStorer()
 
-	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(e.generalConfig.HeartbeatV2.HeartbeatExpiryTimespanInSec)
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(e.generalConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec)
 	if err != nil {
 		return err
 	}
@@ -1480,7 +1494,12 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		FullArchivePreferredPeersHolder:     disabled.NewPreferredPeersHolder(),
 		PayloadValidator:                    payloadValidator,
 	}
-	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
+	var resolverFactory dataRetriever.ResolversContainerFactory
+	if e.shardCoordinator.SelfId() == core.MetachainShardId {
+		resolverFactory, err = resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
+	} else {
+		resolverFactory, err = resolverscontainer.NewShardResolversContainerFactory(resolversContainerArgs)
+	}
 	if err != nil {
 		return err
 	}
@@ -1509,7 +1528,14 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		SizeCheckDelta:                  0,
 		EnableEpochsHandler:             e.enableEpochsHandler,
 	}
-	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
+
+	var requestersFactory dataRetriever.RequestersContainerFactory
+	var err error
+	if e.shardCoordinator.SelfId() == core.MetachainShardId {
+		requestersFactory, err = requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
+	} else {
+		requestersFactory, err = requesterscontainer.NewShardRequestersContainerFactory(requestersContainerArgs)
+	}
 	if err != nil {
 		return err
 	}
@@ -1535,7 +1561,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		requestedItemsHandler,
 		e.whiteListHandler,
 		maxToRequest,
-		core.MetachainShardId,
+		e.shardCoordinator.SelfId(),
 		timeBetweenRequests,
 		time.Duration(e.generalConfig.Requesters.RequestProofByNonceDelayMs)*time.Millisecond,
 	)

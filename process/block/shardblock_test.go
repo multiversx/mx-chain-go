@@ -298,14 +298,63 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	mockProcessHandler.SetIdleCalled = func() {
 		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		return true
 	}
 
 	err = shardProcessor.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
 	require.Nil(t, err)
 	require.Equal(t, int64(2), checkRoundCt.Get())
 	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
+}
+
+func TestShardProcessor_ProcessBlockShouldErrWhenProcessorBusy(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
+		return false
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	header := &block.Header{
+		Nonce:         1,
+		PubKeysBitmap: []byte("0100101"),
+		PrevHash:      []byte(""),
+		PrevRandSeed:  []byte("rand seed"),
+		Signature:     []byte("signature"),
+		RootHash:      []byte("roothash"),
+	}
+	body := &block.Body{}
+
+	err := sp.ProcessBlock(header, body, func() time.Duration { return time.Second })
+	require.Equal(t, process.ErrBlockProcessorBusy, err)
+}
+
+func TestShardProcessor_CreateBlockShouldErrWhenProcessorBusy(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	processHandler := arguments.CoreComponents.ProcessStatusHandler()
+	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
+		return false
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	header := &block.Header{Round: 1}
+
+	hdr, body, err := sp.CreateBlock(header, func() bool { return true })
+	require.Equal(t, process.ErrBlockProcessorBusy, err)
+	require.Nil(t, hdr)
+	require.Nil(t, body)
 }
 
 func TestShardProcessor_ProcessWithDirtyAccountShouldErr(t *testing.T) {
@@ -1929,8 +1978,9 @@ func TestShardProcessor_CommitBlockStorageFailsForHeaderShouldErr(t *testing.T) 
 	mockProcessHandler.SetIdleCalled = func() {
 		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		return true
 	}
 	expectedFirstNonce := core.OptionalUint64{
 		HasValue: false,
@@ -3629,6 +3679,86 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	assert.Equal(t, uint32(4), atomic.LoadUint32(&putCalledNr))
 
 	assert.Equal(t, currHdr, sp.LastNotarizedHdrForShard(core.MetachainShardId))
+}
+
+func TestShardProcessor_SaveLastNotarizedHeader_ReleasesImmunityForCommittedMetaBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("processed headers advance the last cross-notarized nonce", func(t *testing.T) {
+		var received uint64
+		var called atomicCore.Flag
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
+		arguments.BlockTracker = mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
+		arguments.MiniBlockTracker = &testscommon.MiniBlockTrackerStub{
+			ReleaseImmunityForCommittedMetaBlocksCalled: func(threshold uint64) {
+				atomic.StoreUint64(&received, threshold)
+				called.SetValue(true)
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, &block.MetaBlock{Nonce: 10}, nil)
+
+		processedHdrs := []data.HeaderHandler{
+			&block.MetaBlock{Nonce: 12},
+			&block.MetaBlock{Nonce: 15},
+		}
+		err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedHdrs)
+		require.Nil(t, err)
+		require.True(t, called.IsSet())
+		require.Equal(t, uint64(16), atomic.LoadUint64(&received))
+	})
+
+	t.Run("no processed headers still releases against the existing cross-notarized nonce", func(t *testing.T) {
+		var received uint64
+		var called atomicCore.Flag
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
+		arguments.BlockTracker = mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
+		arguments.MiniBlockTracker = &testscommon.MiniBlockTrackerStub{
+			ReleaseImmunityForCommittedMetaBlocksCalled: func(threshold uint64) {
+				atomic.StoreUint64(&received, threshold)
+				called.SetValue(true)
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, &block.MetaBlock{Nonce: 7}, nil)
+
+		err = sp.SaveLastNotarizedHeader(core.MetachainShardId, nil)
+		require.Nil(t, err)
+		require.True(t, called.IsSet())
+		require.Equal(t, uint64(8), atomic.LoadUint64(&received))
+	})
+
+	t.Run("non-meta shard does not invoke the hook", func(t *testing.T) {
+		var called atomicCore.Flag
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
+		arguments.BlockTracker = mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
+		arguments.MiniBlockTracker = &testscommon.MiniBlockTrackerStub{
+			ReleaseImmunityForCommittedMetaBlocksCalled: func(_ uint64) {
+				called.SetValue(true)
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		arguments.BlockTracker.AddCrossNotarizedHeader(0, &block.Header{Nonce: 4}, nil)
+
+		err = sp.SaveLastNotarizedHeader(0, []data.HeaderHandler{&block.Header{Nonce: 5}})
+		require.Nil(t, err)
+		require.False(t, called.IsSet())
+	})
 }
 
 func createShardData(hasher hashing.Hasher, marshalizer marshal.Marshalizer, miniBlocks []block.MiniBlock) []block.ShardData {
@@ -5355,8 +5485,9 @@ func TestShardProcessor_CreateBlock(t *testing.T) {
 	mockProcessHandler.SetIdleCalled = func() {
 		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
 	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
+	mockProcessHandler.TrySetBusyCalled = func(reason string) bool {
 		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		return true
 	}
 
 	expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
