@@ -74,6 +74,9 @@ var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 // ErrNilProofsPool signals that nil proofs pool has been provided
 var ErrNilProofsPool = errors.New("nil proofs pool")
 
+// ErrNilHeadersDataPool signals that nil headers data pool has been provided
+var ErrNilHeadersDataPool = errors.New("nil headers data pool")
+
 // ErrNilValidatorInfoProcessor signals that a nil validator info processor has been provided
 var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
 

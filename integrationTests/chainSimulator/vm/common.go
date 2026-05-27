@@ -41,7 +41,7 @@ var (
 	}
 	SupernovaRoundsPerEpoch = core.OptionalUint64{
 		HasValue: true,
-		Value:    200,
+		Value:    20,
 	}
 
 	OneEGLD = big.NewInt(1000000000000000000)

@@ -31,6 +31,7 @@ type ArgInterceptedEquivalentProof struct {
 	ShardCoordinator  sharding.Coordinator
 	HeaderSigVerifier consensus.HeaderSigVerifier
 	Proofs            dataRetriever.ProofsPool
+	HeadersPool       dataRetriever.HeadersPool
 	ProofSizeChecker  common.FieldsSizeChecker
 	KeyRWMutexHandler sync.KeyRWMutexHandler
 	ValidityAttester  process.ValidityAttester
@@ -42,6 +43,7 @@ type interceptedEquivalentProof struct {
 	isForCurrentShard bool
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
+	headersPool       dataRetriever.HeadersPool
 	marshaller        marshal.Marshalizer
 	hasher            hashing.Hasher
 	hash              []byte
@@ -70,6 +72,7 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		isForCurrentShard: extractIsForCurrentShard(args.ShardCoordinator, equivalentProof),
 		headerSigVerifier: args.HeaderSigVerifier,
 		proofsPool:        args.Proofs,
+		headersPool:       args.HeadersPool,
 		marshaller:        args.Marshaller,
 		hasher:            args.Hasher,
 		proofSizeChecker:  args.ProofSizeChecker,
@@ -95,6 +98,9 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.Proofs) {
 		return process.ErrNilProofsPool
+	}
+	if check.IfNil(args.HeadersPool) {
+		return process.ErrNilHeadersDataPool
 	}
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
@@ -150,6 +156,7 @@ func extractIsForCurrentShard(shardCoordinator sharding.Coordinator, equivalentP
 // CheckValidity checks if the received proof is valid
 func (iep *interceptedEquivalentProof) CheckValidity() error {
 	log.Trace("Checking intercepted equivalent proof validity", "proof header hash", iep.proof.HeaderHash)
+
 	err := iep.integrity()
 	if err != nil {
 		return err
@@ -172,6 +179,17 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 	headerHash := string(iep.proof.GetHeaderHash())
 	iep.km.Lock(headerHash)
 	defer iep.km.Unlock(headerHash)
+
+	header, err := iep.headersPool.GetHeaderByHash(iep.proof.GetHeaderHash())
+	if err != nil {
+		log.Trace("Intercepted equivalent proof with missing header, dropping it", "proof header hash", iep.proof.GetHeaderHash())
+		return err
+	}
+
+	err = common.VerifyProofAgainstHeader(iep.proof, header)
+	if err != nil {
+		return fmt.Errorf("failed to verify proof agains header, %w", err)
+	}
 
 	ok := iep.proofsPool.HasProof(iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash())
 	if ok {

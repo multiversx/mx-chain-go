@@ -759,10 +759,16 @@ var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch 
 // ErrDevFeesInEpochDoNotMatch signals that developer fees in epoch do not match
 var ErrDevFeesInEpochDoNotMatch = errors.New("developer fees in epoch do not match")
 
+// ErrShardInfoOnEpochStartBlock signals that an epoch-start block contains shard info entries which should not be present
+var ErrShardInfoOnEpochStartBlock = errors.New("epoch-start block should not contain shard info entries")
+
+// ErrMiniBlockNotExecuted signals that a mini block was not executed locally
+var ErrMiniBlockNotExecuted = errors.New("mini block not executed")
+
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
 
-// ErrNilEpochEconomics signals that nil end of epoch econimics was provided
+// ErrNilEpochEconomics signals that nil end of epoch economics was provided
 var ErrNilEpochEconomics = errors.New("nil epoch economics")
 
 // ErrNilEpochStartDataCreator signals that nil epoch start data creator was provided
@@ -1355,6 +1361,9 @@ var ErrInvalidChainParameters = errors.New("invalid chain parameters")
 
 // ErrDuplicatedHashInBlock signals that the same hash appears more than once where uniqueness is expected
 var ErrDuplicatedHashInBlock = errors.New("duplicated hash in block")
+
+// ErrDoubleTransactionsFound signals that double transactions found
+var ErrDoubleTransactionsFound = errors.New("double transactions found")
 
 // ErrBadSelectionGasBandwidthIncreasePercent signals a bad txcache config
 var ErrBadSelectionGasBandwidthIncreasePercent = errors.New("bad selection gas bandwidth increase percent")

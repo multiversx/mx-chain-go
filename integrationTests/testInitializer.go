@@ -1239,8 +1239,13 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
 
-		_ = addProofIfNeeded(n, header)
+		proof := createProofIfNeeded(n, header)
 		n.CommitBlock(body, header)
+
+		if check.IfNil(proof) {
+			continue
+		}
+		n.BroadcastProof(proof, pk)
 	}
 
 	log.Info("Delaying for disseminating headers and miniblocks...")
@@ -1265,16 +1270,15 @@ func ProposeBlockWithProof(
 		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
 
-		proof := addProofIfNeeded(n, header)
+		proof := createProofIfNeeded(n, header)
 		n.CommitBlock(body, header)
 
 		time.Sleep(SyncDelay)
 
-		// cleanup proof from pool before broadcasting so that the interceptor will propagate the proof to the other nodes
-		_ = n.Node.GetDataComponents().Datapool().Proofs().CleanupProofsBehindNonce(n.ShardCoordinator.SelfId(), nonce+4) // default cleanup delta is 3
-
+		if check.IfNil(proof) {
+			continue
+		}
 		n.BroadcastProof(proof, pk)
-
 	}
 
 	log.Info("Delaying for disseminating headers and miniblocks...")
@@ -1282,7 +1286,7 @@ func ProposeBlockWithProof(
 	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
 }
 
-func addProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) data.HeaderProofHandler {
+func createProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) data.HeaderProofHandler {
 	coreComp := node.Node.GetCoreComponents()
 	if !common.IsProofsFlagEnabledForHeader(coreComp.EnableEpochsHandler(), header) {
 		return nil
@@ -1299,8 +1303,6 @@ func addProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) data.H
 		HeaderRound:         header.GetRound(),
 		IsStartOfEpoch:      header.IsStartOfEpochBlock(),
 	}
-
-	node.Node.GetDataComponents().Datapool().Proofs().AddProof(proof)
 
 	return proof
 }
