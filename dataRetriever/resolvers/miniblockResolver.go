@@ -153,7 +153,7 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid c
 	if err != nil {
 		return err
 	}
-	hashes := b.Data
+	hashes := deduplicateHashes(b.Data)
 
 	var errFetch error
 	errorsFound := 0
