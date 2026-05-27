@@ -98,7 +98,7 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 	if err != nil {
 		return err
 	}
-	hashes := b.Data
+	hashes := deduplicateHashes(b.Data)
 
 	supportedChunkIndex := uint32(0)
 	nodes := make(map[string]struct{})
