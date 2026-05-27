@@ -359,7 +359,7 @@ func (sr *subroundBlock) sendBlockHeader(
 	return true
 }
 
-func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Context) bool {
+func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Context) {
 	sigSubroundEndTime := time.Duration(float64(sr.RoundHandler().TimeDuration()) * srSignatureEndTime)
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
 
@@ -376,7 +376,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 		if err != nil {
 			log.Debug("triggerCreateSignaturesForManagedKeys.checkGoRoutinesThrottler", "err", err)
 			cancel()
-			return false
+			return
 		}
 		sr.signatureThrottler.StartProcessing()
 		sr.SignaturesWaitGroup().Add(1)
@@ -410,8 +410,6 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 	}
 
 	log.Debug("step 1: multi keys signatures creation has been triggered")
-
-	return true
 }
 
 func (sr *subroundBlock) sendDirectSentTransactions(

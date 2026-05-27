@@ -1898,8 +1898,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 		sr.SetHeader(&block.Header{})
 		sr.SetSelfPubKey("OTHER")
 
-		r := srBlock.TriggerCreateSignaturesForManagedKeys(context.TODO())
-		assert.True(t, r)
+		srBlock.TriggerCreateSignaturesForManagedKeys(context.TODO())
 
 		srBlock.SignaturesWaitGroup().Wait()
 
@@ -1969,8 +1968,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.TODO())
 		cancel()
-		r := srBlock.TriggerCreateSignaturesForManagedKeys(ctx)
-		assert.False(t, r)
+		srBlock.TriggerCreateSignaturesForManagedKeys(ctx)
 
 		srBlock.SignaturesWaitGroup().Wait()
 

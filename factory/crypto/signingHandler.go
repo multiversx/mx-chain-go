@@ -162,9 +162,6 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(
 		return nil, err
 	}
 
-	sh.mutSigningData.Lock()
-	defer sh.mutSigningData.Unlock()
-
 	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
 	if err != nil {
 		return nil, err
@@ -175,6 +172,7 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(
 		return nil, err
 	}
 
+	// check again before setting signatures shares data
 	select {
 	case <-ctx.Done():
 		return nil, ErrTimeIsOut

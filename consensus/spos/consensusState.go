@@ -527,6 +527,9 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 
 // SignaturesWaitGroup returns wait group for optimistic signatures handling
 func (cns *ConsensusState) SignaturesWaitGroup() *sync.WaitGroup {
+	cns.mutState.Lock()
+	defer cns.mutState.Unlock()
+
 	return cns.signaturesWaitGroup
 }
 
