@@ -44,7 +44,7 @@ func TestWorker_AddBlockToPoolSkipsNonWhitelistedCrossShardMiniBlocks(t *testing
 		},
 	}
 
-	worker.addBlockToPool([]byte("body"))
+	_ = worker.addBlockToPool([]byte("body"))
 
 	require.False(t, putCalled)
 }
@@ -87,7 +87,7 @@ func TestWorker_AddBlockToPoolAcceptsWhitelistedCrossShardMiniBlocks(t *testing.
 		},
 	}
 
-	worker.addBlockToPool([]byte("body"))
+	_ = worker.addBlockToPool([]byte("body"))
 
 	require.True(t, putCalled)
 }
