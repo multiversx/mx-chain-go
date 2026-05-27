@@ -362,6 +362,13 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 		BlockTracker: &mock.BlockTrackerStub{
 			RestoreToGenesisCalled: func() {},
+			GetLastSelfNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return 1
+					},
+				}, []byte("hash"), nil
+			},
 		},
 		ChainID:                      string(integrationTests.ChainID),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},

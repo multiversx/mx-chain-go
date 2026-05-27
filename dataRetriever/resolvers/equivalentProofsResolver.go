@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
@@ -143,7 +144,7 @@ func (res *equivalentProofsResolver) resolveMultipleHashesRequest(hashShardKeysB
 	if err != nil {
 		return err
 	}
-	hashShardKeys := b.Data
+	hashShardKeys := deduplicateHashes(b.Data)
 
 	equivalentProofsForHashes, err := res.fetchEquivalentProofsSlicesForHeaders(hashShardKeys, epoch)
 	if err != nil {

@@ -236,6 +236,17 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrEpochStartProposeBlockHasMiniBlocks
 	}
 
+	if header.IsStartOfEpochBlock() {
+		if len(header.GetShardInfoHandlers()) > 0 {
+			return process.ErrShardInfoOnEpochStartBlock
+		}
+
+		err := mp.verifyEpochStartMiniBlocks(header)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err

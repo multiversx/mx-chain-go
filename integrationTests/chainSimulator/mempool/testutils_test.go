@@ -63,7 +63,7 @@ func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Con
 		},
 		SupernovaRoundsPerEpoch: core.OptionalUint64{
 			HasValue: true,
-			Value:    100,
+			Value:    10,
 		},
 		ApiInterface:             api.NewNoApiInterface(),
 		MinNodesPerShard:         1,
