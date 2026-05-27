@@ -25,6 +25,7 @@ type interceptedPeerAuthenticationDataFactory struct {
 	peerShardMapper                         process.PeerShardMapper
 	peerAuthCacher                          storage.Cacher
 	peerAuthenticationTimeBetweenSendsInSec int64
+	selfID                                  core.PeerID
 }
 
 // NewInterceptedPeerAuthenticationDataFactory creates an instance of interceptedPeerAuthenticationDataFactory
@@ -49,6 +50,7 @@ func NewInterceptedPeerAuthenticationDataFactory(arg ArgInterceptedDataFactory) 
 		peerShardMapper:                         arg.PeerShardMapper,
 		peerAuthCacher:                          arg.PeerAuthCacher,
 		peerAuthenticationTimeBetweenSendsInSec: arg.PeerAuthenticationTimeBetweenSendsInSec,
+		selfID:                                  arg.PeerID,
 	}, nil
 }
 
@@ -79,7 +81,7 @@ func checkArgInterceptedDataFactory(args ArgInterceptedDataFactory) error {
 }
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
-func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte, _ core.PeerID) (process.InterceptedData, error) {
+func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte, messageOriginator core.PeerID) (process.InterceptedData, error) {
 	arg := heartbeat.ArgInterceptedPeerAuthentication{
 		ArgBaseInterceptedHeartbeat: heartbeat.ArgBaseInterceptedHeartbeat{
 			DataBuff:   buff,
@@ -92,6 +94,8 @@ func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte, _ cor
 		HardforkTriggerPubKey:                   ipadf.hardforkTriggerPubKey,
 		PeerShardMapper:                         ipadf.peerShardMapper,
 		PeerAuthCacher:                          ipadf.peerAuthCacher,
+		MessageOriginator:                       messageOriginator,
+		SelfPeerID:                              ipadf.selfID,
 		PeerAuthenticationTimeBetweenSendsInSec: ipadf.peerAuthenticationTimeBetweenSendsInSec,
 	}
 
