@@ -52,7 +52,7 @@ var (
 	}
 	supernovaRoundsPerEpoch = core.OptionalUint64{
 		HasValue: true,
-		Value:    300,
+		Value:    30,
 	}
 )
 

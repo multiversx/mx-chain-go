@@ -98,7 +98,7 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 	if err != nil {
 		return err
 	}
-	hashes := b.Data
+	hashes := deduplicateHashes(b.Data)
 
 	supportedChunkIndex := uint32(0)
 	nodes := make(map[string]struct{})
@@ -249,7 +249,7 @@ func (tnRes *TrieNodeResolver) sendLargeMessage(
 	if len(largeBuff)%core.MaxBufferSizeToSendTrieNodes != 0 {
 		maxChunks++
 	}
-	chunkIndexOutOfBounds := chunkIndex < 0 || chunkIndex > maxChunks
+	chunkIndexOutOfBounds := chunkIndex < 0 || chunkIndex >= maxChunks
 	if chunkIndexOutOfBounds {
 		return nil
 	}
