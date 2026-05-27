@@ -532,10 +532,16 @@ func (cns *ConsensusState) SignaturesWaitGroup() *sync.WaitGroup {
 
 // SetSignaturesCtxCancelFunc will set signatures context cancel function
 func (cns *ConsensusState) SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc) {
-	cns.mutState.Lock()
-	defer cns.mutState.Unlock()
+	var prevCancel context.CancelFunc
 
+	cns.mutState.Lock()
+	prevCancel = cns.signaturesTimeoutCtxCancel
 	cns.signaturesTimeoutCtxCancel = cancelFunc
+	cns.mutState.Unlock()
+
+	if prevCancel != nil {
+		prevCancel()
+	}
 }
 
 // SignaturesCtxCancel will cancel signatures context
