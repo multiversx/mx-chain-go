@@ -42,6 +42,7 @@ func createArgs() (config.Configs, factory.CoreComponentsHolder) {
 		},
 		RatingsConfig:   &ratingsCfg,
 		EconomicsConfig: &economicsCfg,
+		SystemSCConfig:  &config.SystemSmartContractsConfig{},
 	}
 
 	return cfg, &mock.CoreComponentsMock{
