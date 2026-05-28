@@ -1051,12 +1051,20 @@ func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_RewiresStaleCoordi
 	registeredResolvers := make(map[string]struct{})
 	unregisteredResolvers := make(map[string]struct{})
 
+	// Mimic the libp2p messenger: reject duplicate (topic, identifier) registrations so that a
+	// missed unregister during the rebuild is caught as test failure.
 	args.MainMessenger = &p2pmocks.MessengerStub{
 		RegisterMessageProcessorCalled: func(topic string, identifier string, _ p2p.MessageProcessor) error {
 			switch identifier {
 			case common.DefaultInterceptorsIdentifier:
+				if _, dup := registeredInterceptors[topic]; dup {
+					return fmt.Errorf("topic %q already has an interceptor processor", topic)
+				}
 				registeredInterceptors[topic] = struct{}{}
 			case common.DefaultResolversIdentifier:
+				if _, dup := registeredResolvers[topic]; dup {
+					return fmt.Errorf("topic %q already has a resolver processor", topic)
+				}
 				registeredResolvers[topic] = struct{}{}
 			}
 			return nil
@@ -1064,8 +1072,10 @@ func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_RewiresStaleCoordi
 		UnregisterMessageProcessorCalled: func(topic string, identifier string) error {
 			switch identifier {
 			case common.DefaultInterceptorsIdentifier:
+				delete(registeredInterceptors, topic)
 				unregisteredInterceptors[topic] = struct{}{}
 			case common.DefaultResolversIdentifier:
+				delete(registeredResolvers, topic)
 				unregisteredResolvers[topic] = struct{}{}
 			}
 			return nil
@@ -1106,10 +1116,6 @@ func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_RewiresStaleCoordi
 	oldResolvers := epochStartProvider.ResolversContainer()
 	oldRequestHandler := epochStartProvider.RequestHandler()
 
-	// Reset trackers so only registrations made during the rebuild are observed
-	registeredInterceptors = make(map[string]struct{})
-	registeredResolvers = make(map[string]struct{})
-
 	newCoordinator, errCoord := sharding.NewMultiShardCoordinator(2, 1)
 	require.Nil(t, errCoord)
 	epochStartProvider.shardCoordinator = newCoordinator
@@ -1126,8 +1132,8 @@ func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_RewiresStaleCoordi
 		assert.True(t, ok, "interceptor topic %q should have been unregistered", topic)
 	}
 	for topic := range oldResolverTopics {
-		_, ok := unregisteredResolvers[topic]
-		assert.True(t, ok, "resolver topic %q should have been unregistered", topic)
+		_, ok := unregisteredResolvers[topic+core.TopicRequestSuffix]
+		assert.True(t, ok, "resolver request topic %q should have been unregistered", topic+core.TopicRequestSuffix)
 	}
 
 	assert.NotEmpty(t, registeredInterceptors)

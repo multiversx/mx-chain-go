@@ -753,9 +753,11 @@ func (e *epochStartBootstrap) unregisterResolverTopics(container dataRetriever.R
 		return
 	}
 
+	// Container keys are base topics; resolvers register their processor on key+_REQUEST.
 	container.Iterate(func(key string, _ dataRetriever.Resolver) bool {
-		log.LogIfError(e.mainMessenger.UnregisterMessageProcessor(key, common.DefaultResolversIdentifier))
-		log.LogIfError(e.fullArchiveMessenger.UnregisterMessageProcessor(key, common.DefaultResolversIdentifier))
+		requestTopic := key + core.TopicRequestSuffix
+		log.LogIfError(e.mainMessenger.UnregisterMessageProcessor(requestTopic, common.DefaultResolversIdentifier))
+		log.LogIfError(e.fullArchiveMessenger.UnregisterMessageProcessor(requestTopic, common.DefaultResolversIdentifier))
 		return true
 	})
 }
