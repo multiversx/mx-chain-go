@@ -1675,8 +1675,7 @@ func TestRequestAndProcessing(t *testing.T) {
 			},
 		}
 
-		params, err := epochStartProvider.requestAndProcessing()
-		assert.Equal(t, Parameters{}, params)
+		_, err = epochStartProvider.prepareNodesConfig()
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("fail with wrong type assertion on epoch start meta", func(t *testing.T) {
@@ -1712,8 +1711,7 @@ func TestRequestAndProcessing(t *testing.T) {
 			},
 		}
 
-		params, err := epochStartProvider.requestAndProcessing()
-		assert.Equal(t, Parameters{}, params)
+		_, err := epochStartProvider.prepareNodesConfig()
 		assert.Equal(t, epochStart.ErrWrongTypeAssertion, err)
 	})
 	t.Run("fail to get public key bytes", func(t *testing.T) {
@@ -1768,8 +1766,7 @@ func TestRequestAndProcessing(t *testing.T) {
 			},
 		}
 
-		params, err := epochStartProvider.requestAndProcessing()
-		assert.Equal(t, Parameters{}, params)
+		_, err := epochStartProvider.prepareNodesConfig()
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("failed to set shard coordinator, wrong number of shards", func(t *testing.T) {
@@ -1817,9 +1814,7 @@ func TestRequestAndProcessing(t *testing.T) {
 			},
 		}
 
-		params, err := epochStartProvider.requestAndProcessing()
-		assert.Equal(t, Parameters{}, params)
-		assert.Error(t, err)
+		_, err := epochStartProvider.prepareNodesConfig()
 		assert.True(t, strings.Contains(err.Error(), nodesCoordinator.ErrInvalidNumberOfShards.Error()))
 	})
 	t.Run("failed to create main messenger topic", func(t *testing.T) {
@@ -1876,7 +1871,7 @@ func TestRequestAndProcessing(t *testing.T) {
 			},
 		}
 
-		params, err := epochStartProvider.requestAndProcessing()
+		params, err := epochStartProvider.requestAndProcessing(nil)
 		assert.Equal(t, Parameters{}, params)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -1953,7 +1948,9 @@ func TestRequestAndProcessing(t *testing.T) {
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 		epochStartProvider.txSyncerForScheduled = &syncer.TransactionsSyncHandlerMock{}
 
-		params, err := epochStartProvider.requestAndProcessing()
+		mbs, err := epochStartProvider.prepareNodesConfig()
+		assert.NoError(t, err)
+		params, err := epochStartProvider.requestAndProcessing(mbs)
 		assert.Equal(t, Parameters{}, params)
 		assert.Equal(t, storage.ErrInvalidNumberOfActivePersisters, err)
 	})
@@ -2026,7 +2023,9 @@ func TestRequestAndProcessing(t *testing.T) {
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 		epochStartProvider.txSyncerForScheduled = &syncer.TransactionsSyncHandlerMock{}
 
-		params, err := epochStartProvider.requestAndProcessing()
+		mbs, err := epochStartProvider.prepareNodesConfig()
+		assert.NoError(t, err)
+		params, err := epochStartProvider.requestAndProcessing(mbs)
 		assert.Equal(t, Parameters{}, params)
 		assert.Equal(t, storage.ErrInvalidNumberOfActivePersisters, err)
 	})
@@ -2145,7 +2144,9 @@ func testRequestAndProcessingByShardId(t *testing.T, shardId uint32) {
 		},
 	}
 
-	params, err := epochStartProvider.requestAndProcessing()
+	mbs, err := epochStartProvider.prepareNodesConfig()
+	assert.NoError(t, err)
+	params, err := epochStartProvider.requestAndProcessing(mbs)
 	assert.Equal(t, requiredParameters, params)
 	assert.Nil(t, err)
 }

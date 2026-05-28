@@ -401,6 +401,11 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.GetEpoch(), "nonce", e.epochStartMeta.GetNonce())
 	e.setEpochStartMetrics()
 
+	miniBlocks, err := e.prepareNodesConfig()
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	err = e.createSyncers()
 	if err != nil {
 		return Parameters{}, err
@@ -418,7 +423,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		}
 	}()
 
-	params, err = e.requestAndProcessing()
+	params, err = e.requestAndProcessing(miniBlocks)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -858,45 +863,49 @@ func (e *epochStartBootstrap) syncOneHeader(
 	return nil
 }
 
-// requestAndProcessing will handle requesting and receiving the needed information the node will bootstrap from
-func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
+func (e *epochStartBootstrap) prepareNodesConfig() ([]*block.MiniBlock, error) {
 	var err error
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
 	e.baseData.lastEpoch = e.epochStartMeta.GetEpoch()
 
 	e.syncedHeaders, err = e.syncHeadersFrom(e.epochStartMeta)
 	if err != nil {
-		return Parameters{}, err
+		return nil, err
 	}
 	log.Debug("start in epoch bootstrap: got shard headers and previous epoch start meta block")
 
 	prevEpochStartMetaHash := e.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
 	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
 	if !ok {
-		return Parameters{}, epochStart.ErrWrongTypeAssertion
+		return nil, epochStart.ErrWrongTypeAssertion
 	}
 	e.prevEpochStartMeta = prevEpochStartMeta
 
 	pubKeyBytes, err := e.cryptoComponentsHolder.PublicKey().ToByteArray()
 	if err != nil {
-		return Parameters{}, err
+		return nil, err
 	}
 
 	miniBlocks, err := e.processNodesConfig(pubKeyBytes)
 	if err != nil {
-		return Parameters{}, err
+		return nil, err
 	}
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	e.saveSelfShardId()
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
-		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, e.baseData.numberOfShards, e.baseData.shardId)
+		return nil, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, e.baseData.numberOfShards, e.baseData.shardId)
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
+	return miniBlocks, nil
+}
+
+// requestAndProcessing will handle requesting and receiving the needed information the node will bootstrap from
+func (e *epochStartBootstrap) requestAndProcessing(miniBlocks []*block.MiniBlock) (Parameters, error) {
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
-	err = e.mainMessenger.CreateTopic(consensusTopic, true)
+	err := e.mainMessenger.CreateTopic(consensusTopic, true)
 	if err != nil {
 		return Parameters{}, err
 	}
