@@ -130,6 +130,7 @@ type epochStartBootstrap struct {
 	requestHandler                  process.RequestHandler
 	mainInterceptorContainer        process.InterceptorsContainer
 	fullArchiveInterceptorContainer process.InterceptorsContainer
+	resolversContainer              dataRetriever.ResolversContainer
 	dataPool                        dataRetriever.PoolsHolder
 	miniBlocksSyncer                epochStart.PendingMiniBlocksSyncHandler
 	headersSyncer                   epochStart.HeadersByHashSyncer
@@ -407,14 +408,18 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	defer func() {
-		errClose := e.mainInterceptorContainer.Close()
-		if errClose != nil {
-			log.Warn("prepareEpochFromStorage mainInterceptorContainer.Close()", "error", errClose)
+		if !check.IfNil(e.mainInterceptorContainer) {
+			errClose := e.mainInterceptorContainer.Close()
+			if errClose != nil {
+				log.Warn("prepareEpochFromStorage mainInterceptorContainer.Close()", "error", errClose)
+			}
 		}
 
-		errClose = e.fullArchiveInterceptorContainer.Close()
-		if errClose != nil {
-			log.Warn("prepareEpochFromStorage fullArchiveInterceptorContainer.Close()", "error", errClose)
+		if !check.IfNil(e.fullArchiveInterceptorContainer) {
+			errClose := e.fullArchiveInterceptorContainer.Close()
+			if errClose != nil {
+				log.Warn("prepareEpochFromStorage fullArchiveInterceptorContainer.Close()", "error", errClose)
+			}
 		}
 	}()
 
@@ -675,6 +680,86 @@ func (e *epochStartBootstrap) createSyncers() error {
 	return nil
 }
 
+// rebuildNetworkComponentsForShard must be called after e.shardCoordinator is reassigned to the
+// node's discovered destination shard ID.
+func (e *epochStartBootstrap) rebuildNetworkComponentsForShard() error {
+	// Nothing to rebuild when the bootstrap network stack was never set up (unit fixtures that
+	// invoke requestAndProcessing in isolation). In production both fields are non-nil here.
+	if check.IfNil(e.mainInterceptorContainer) && check.IfNil(e.resolversContainer) {
+		return nil
+	}
+
+	log.Debug("rebuilding bootstrap network components for resolved shard", "shard", e.shardCoordinator.SelfId())
+
+	e.tearDownStaleNetworkComponents()
+
+	err := e.createResolversContainer()
+	if err != nil {
+		return err
+	}
+
+	err = e.createRequestHandler()
+	if err != nil {
+		return err
+	}
+
+	return e.createSyncers()
+}
+
+func (e *epochStartBootstrap) tearDownStaleNetworkComponents() {
+	e.unregisterInterceptorTopics(e.mainInterceptorContainer)
+	e.unregisterInterceptorTopics(e.fullArchiveInterceptorContainer)
+	e.unregisterResolverTopics(e.resolversContainer)
+
+	if !check.IfNil(e.mainInterceptorContainer) {
+		errClose := e.mainInterceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("rebuildNetworkComponentsForShard mainInterceptorContainer.Close()", "error", errClose)
+		}
+		e.mainInterceptorContainer = nil
+	}
+
+	if !check.IfNil(e.fullArchiveInterceptorContainer) {
+		errClose := e.fullArchiveInterceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("rebuildNetworkComponentsForShard fullArchiveInterceptorContainer.Close()", "error", errClose)
+		}
+		e.fullArchiveInterceptorContainer = nil
+	}
+
+	if !check.IfNil(e.resolversContainer) {
+		errClose := e.resolversContainer.Close()
+		if errClose != nil {
+			log.Warn("rebuildNetworkComponentsForShard resolversContainer.Close()", "error", errClose)
+		}
+		e.resolversContainer = nil
+	}
+}
+
+func (e *epochStartBootstrap) unregisterInterceptorTopics(container process.InterceptorsContainer) {
+	if check.IfNil(container) {
+		return
+	}
+
+	container.Iterate(func(key string, _ process.Interceptor) bool {
+		log.LogIfError(e.mainMessenger.UnregisterMessageProcessor(key, common.DefaultInterceptorsIdentifier))
+		log.LogIfError(e.fullArchiveMessenger.UnregisterMessageProcessor(key, common.DefaultInterceptorsIdentifier))
+		return true
+	})
+}
+
+func (e *epochStartBootstrap) unregisterResolverTopics(container dataRetriever.ResolversContainer) {
+	if check.IfNil(container) {
+		return
+	}
+
+	container.Iterate(func(key string, _ dataRetriever.Resolver) bool {
+		log.LogIfError(e.mainMessenger.UnregisterMessageProcessor(key, common.DefaultResolversIdentifier))
+		log.LogIfError(e.fullArchiveMessenger.UnregisterMessageProcessor(key, common.DefaultResolversIdentifier))
+		return true
+	})
+}
+
 func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
 	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
@@ -894,6 +979,11 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, e.baseData.numberOfShards, e.baseData.shardId)
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
+
+	err = e.rebuildNetworkComponentsForShard()
+	if err != nil {
+		return Parameters{}, err
+	}
 
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
 	err = e.mainMessenger.CreateTopic(consensusTopic, true)
@@ -1472,9 +1562,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		return err
 	}
 
-	// TODO - create a dedicated request handler to be used when fetching required data with the correct shard coordinator
-	//  this one should only be used before determining the correct shard where the node should reside
-	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
+	log.Debug("epochStartBootstrap.createResolversContainer", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:                    e.shardCoordinator,
 		MainMessenger:                       e.mainMessenger,
@@ -1508,6 +1596,8 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 	if err != nil {
 		return err
 	}
+
+	e.resolversContainer = container
 
 	return resolverFactory.AddShardTrieNodeResolvers(container)
 }
