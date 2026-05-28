@@ -570,6 +570,12 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
+	err := headerHandler.CheckFieldsIntegrity()
+	if err != nil {
+		log.Debug("subroundBlock.receivedBlockHeader - header fields integrity error", "err", err)
+		return
+	}
+
 	ok := sr.checkSupernovaHeader(headerHandler)
 	if !ok {
 		return

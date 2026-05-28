@@ -1459,6 +1459,14 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	})
 	require.Nil(t, sr.GetData())
 
+	// integrity fields check on header
+	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{
+		CheckFieldsIntegrityCalled: func() error {
+			return expectedErr
+		},
+	})
+	require.Nil(t, sr.GetData())
+
 	// header not for current consensus
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
 	require.Nil(t, sr.GetData())

@@ -608,6 +608,12 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 		return fmt.Errorf("%w : received header from consensus topic is invalid",
 			err)
 	}
+	err = header.CheckFieldsIntegrity()
+	if err != nil {
+		return fmt.Errorf("%w : received header from consensus topic is invalid",
+			err)
+	}
+
 	if wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return fmt.Errorf("%w : received header on consensus topic after andromeda",
 			ErrInvalidHeader)

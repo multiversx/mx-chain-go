@@ -226,6 +226,11 @@ func (wrk *Worker) AppStatusHandler() core.AppStatusHandler {
 	return wrk.appStatusHandler
 }
 
+// DoJobOnMessageWithHeader -
+func (wrk *Worker) DoJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
+	return wrk.doJobOnMessageWithHeader(cnsMsg)
+}
+
 // CheckConsensusMessageValidity -
 func (cmv *consensusMessageValidator) CheckConsensusMessageValidity(cnsMsg *consensus.Message, originator core.PeerID) error {
 	return cmv.checkConsensusMessageValidity(cnsMsg, originator)

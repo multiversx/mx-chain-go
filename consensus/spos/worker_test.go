@@ -1365,6 +1365,122 @@ func TestWorker_ProcessReceivedMessageWithHeaderAndWrongHash(t *testing.T) {
 	assert.Nil(t, msgID)
 }
 
+func TestWorker_ProcessReceivedMessageWithInvalidHeader(t *testing.T) {
+	t.Parallel()
+
+	hdr := &block.Header{ChainID: chainID}
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
+	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
+
+	t.Run("nil fields", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV3{})
+
+		wrk.SetBlockProcessor(
+			&testscommon.BlockProcessorStub{
+				DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
+					return &block.HeaderV3{
+						LastExecutionResult: nil,
+					}
+				},
+				DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
+					return nil
+				},
+			},
+		)
+
+		cnsMsg := consensus.NewConsensusMessage(
+			hdrHash,
+			nil,
+			nil,
+			hdrStr,
+			[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+			signature,
+			int(bls.MtBlockHeader),
+			0,
+			chainID,
+			nil,
+			nil,
+			nil,
+			currentPid,
+			nil,
+		)
+
+		buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+		msg := &p2pmocks.P2PMessageMock{
+			DataField:      buff,
+			PeerField:      currentPid,
+			SignatureField: []byte("signature"),
+		}
+		msgID, err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+		time.Sleep(time.Second)
+
+		assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockHeader]))
+		assert.ErrorIs(t, err, data.ErrNilValue)
+		assert.Nil(t, msgID)
+	})
+
+	t.Run("integrity fields check", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV3{})
+
+		wrk.SetBlockProcessor(
+			&testscommon.BlockProcessorStub{
+				DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
+					return &block.HeaderV3{
+						RandSeed:            []byte("RandSeed"),
+						LeaderSignature:     []byte("LeaderSignature"),
+						SoftwareVersion:     []byte("SoftwareVersion"),
+						PrevHash:            []byte("PrevHash"),
+						PrevRandSeed:        []byte("PrevRandSeed"),
+						LastExecutionResult: &block.ExecutionResultInfo{},
+						ReceiptsHash:        []byte("ReceiptsHash"), // invalid
+					}
+				},
+				DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
+					return nil
+				},
+			},
+		)
+
+		cnsMsg := consensus.NewConsensusMessage(
+			hdrHash,
+			nil,
+			nil,
+			hdrStr,
+			[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+			signature,
+			int(bls.MtBlockHeader),
+			0,
+			chainID,
+			nil,
+			nil,
+			nil,
+			currentPid,
+			nil,
+		)
+
+		buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+		msg := &p2pmocks.P2PMessageMock{
+			DataField:      buff,
+			PeerField:      currentPid,
+			SignatureField: []byte("signature"),
+		}
+		msgID, err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+		time.Sleep(time.Second)
+
+		assert.Equal(t, 0, len(wrk.ReceivedMessages()[bls.MtBlockHeader]))
+		assert.ErrorIs(t, err, data.ErrNotNilValue)
+		assert.Nil(t, msgID)
+	})
+}
+
 func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
