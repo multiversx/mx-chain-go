@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -23,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -311,8 +311,9 @@ func (sesb *storageEpochStartBootstrap) rebuildStorageComponentsForShard() error
 	if err != nil {
 		return err
 	}
-	sesb.requestHandler.SetEpoch(sesb.epochStartMeta.GetEpoch())
-
+	if !check.IfNil(sesb.epochStartMeta) {
+		sesb.requestHandler.SetEpoch(sesb.epochStartMeta.GetEpoch())
+	}
 	return sesb.createSyncers()
 }
 

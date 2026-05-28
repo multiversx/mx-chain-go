@@ -702,7 +702,10 @@ func (e *epochStartBootstrap) rebuildNetworkComponentsForShard() error {
 	if err != nil {
 		return err
 	}
-	e.requestHandler.SetEpoch(e.epochStartMeta.GetEpoch())
+
+	if !check.IfNil(e.epochStartMeta) {
+		e.requestHandler.SetEpoch(e.epochStartMeta.GetEpoch())
+	}
 
 	return e.createSyncers()
 }
