@@ -1050,6 +1050,8 @@ func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_RewiresStaleCoordi
 	unregisteredInterceptors := make(map[string]struct{})
 	registeredResolvers := make(map[string]struct{})
 	unregisteredResolvers := make(map[string]struct{})
+	expectedEpoch := uint32(37)
+	requestedEpoch := uint32(0)
 
 	// Mimic the libp2p messenger: reject duplicate (topic, identifier) registrations so that a
 	// missed unregister during the rebuild is caught as test failure.
@@ -1083,10 +1085,22 @@ func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_RewiresStaleCoordi
 		ConnectedPeersCalled: func() []core.PeerID {
 			return []core.PeerID{"peer0", "peer1", "peer2"}
 		},
+		ConnectedPeersOnTopicCalled: func(_ string) []core.PeerID {
+			return []core.PeerID{"peer0"}
+		},
+		SendToConnectedPeerCalled: func(_ string, buff []byte, _ core.PeerID) error {
+			requestData := &dataRetriever.RequestData{}
+			err := coreComp.InternalMarshalizer().Unmarshal(requestData, buff)
+			assert.Nil(t, err)
+			requestedEpoch = requestData.Epoch
+
+			return nil
+		},
 	}
 	args.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: expectedEpoch}
 
 	// Shard-to-shard rather than Meta-to-shard: the rebuild's mechanics are identical, but a Meta
 	// initial coordinator would require populated trie roots that aren't relevant to this test.
@@ -1138,6 +1152,9 @@ func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_RewiresStaleCoordi
 
 	assert.NotEmpty(t, registeredInterceptors)
 	assert.NotEmpty(t, registeredResolvers)
+
+	epochStartProvider.RequestHandler().RequestMiniBlock(0, []byte("hash"))
+	assert.Equal(t, expectedEpoch, requestedEpoch)
 }
 
 func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_ErrorPropagatesAndLeavesNoHalfState(t *testing.T) {
@@ -1147,6 +1164,7 @@ func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_ErrorPropagatesAnd
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 37}
 
 	staleCoordinator, errCoord := sharding.NewMultiShardCoordinator(2, 0)
 	require.Nil(t, errCoord)

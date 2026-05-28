@@ -83,18 +83,9 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer func() {
 		sesb.cleanupOnBootstrapFinish()
 
-		if !check.IfNil(sesb.container) {
-			err := sesb.container.Close()
-			if err != nil {
-				log.Debug("non critical error closing requesters", "error", err)
-			}
-		}
-
-		if !check.IfNil(sesb.store) {
-			err := sesb.store.CloseAll()
-			if err != nil {
-				log.Debug("non critical error closing storage service", "error", err)
-			}
+		err := sesb.closeStorageRequesters()
+		if err != nil {
+			log.Debug("non critical error closing storage requesters", "error", err)
 		}
 	}()
 
@@ -222,7 +213,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 		requestedItemsHandler,
 		sesb.whiteListHandler,
 		maxToRequest,
-		core.MetachainShardId,
+		sesb.shardCoordinator.SelfId(),
 		timeBetweenRequests,
 		time.Duration(sesb.generalConfig.Requesters.RequestProofByNonceDelayMs)*time.Millisecond,
 	)
@@ -235,7 +226,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		return err
 	}
 
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), sesb.genesisShardCoordinator.SelfId())
+	shardCoordinator, err := sharding.NewMultiShardCoordinator(sesb.shardCoordinator.NumberOfShards(), sesb.shardCoordinator.SelfId())
 	if err != nil {
 		return err
 	}
@@ -302,6 +293,50 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 	)
 }
 
+func (sesb *storageEpochStartBootstrap) rebuildStorageComponentsForShard() error {
+	// Nothing to rebuild when the bootstrap stack was never set up by the storage bootstrap flow.
+	if check.IfNil(sesb.mainInterceptorContainer) && check.IfNil(sesb.container) {
+		return nil
+	}
+
+	log.Debug("rebuilding storage bootstrap components for resolved shard", "shard", sesb.shardCoordinator.SelfId())
+
+	sesb.tearDownStaleNetworkComponents()
+	err := sesb.closeStorageRequesters()
+	if err != nil {
+		return err
+	}
+
+	err = sesb.createStorageRequestHandler()
+	if err != nil {
+		return err
+	}
+	sesb.requestHandler.SetEpoch(sesb.epochStartMeta.GetEpoch())
+
+	return sesb.createSyncers()
+}
+
+func (sesb *storageEpochStartBootstrap) closeStorageRequesters() error {
+	var errFound error
+	if !check.IfNil(sesb.container) {
+		err := sesb.container.Close()
+		if err != nil {
+			errFound = fmt.Errorf("close storage requesters container: %w", err)
+		}
+		sesb.container = nil
+	}
+
+	if !check.IfNil(sesb.store) {
+		err := sesb.store.CloseAll()
+		if err != nil {
+			errFound = fmt.Errorf("close storage service: %w", err)
+		}
+		sesb.store = nil
+	}
+
+	return errFound
+}
+
 func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Parameters, error) {
 	var err error
 	sesb.baseData.numberOfShards = uint32(len(sesb.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
@@ -332,11 +367,20 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	sesb.saveSelfShardId()
+	oldShardID := sesb.shardCoordinator.SelfId()
+	oldNumberOfShards := sesb.shardCoordinator.NumberOfShards()
 	sesb.shardCoordinator, err = sharding.NewMultiShardCoordinator(sesb.baseData.numberOfShards, sesb.baseData.shardId)
 	if err != nil {
 		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, sesb.baseData.numberOfShards, sesb.baseData.shardId)
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", sesb.baseData.numberOfShards, "shardId", sesb.baseData.shardId)
+
+	if oldShardID != sesb.shardCoordinator.SelfId() || oldNumberOfShards != sesb.shardCoordinator.NumberOfShards() {
+		err = sesb.rebuildStorageComponentsForShard()
+		if err != nil {
+			return Parameters{}, err
+		}
+	}
 
 	consensusTopic := common.ConsensusTopic + sesb.shardCoordinator.CommunicationIdentifier(sesb.shardCoordinator.SelfId())
 	err = sesb.mainMessenger.CreateTopic(consensusTopic, true)
