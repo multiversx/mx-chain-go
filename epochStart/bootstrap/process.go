@@ -703,6 +703,10 @@ func (e *epochStartBootstrap) rebuildNetworkComponentsForShard() error {
 		return err
 	}
 
+	if !check.IfNil(e.epochStartMeta) {
+		e.requestHandler.SetEpoch(e.epochStartMeta.GetEpoch())
+	}
+
 	return e.createSyncers()
 }
 
@@ -976,15 +980,19 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	e.saveSelfShardId()
+	oldShardID := e.shardCoordinator.SelfId()
+	oldNumberOfShards := e.shardCoordinator.NumberOfShards()
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
 		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, e.baseData.numberOfShards, e.baseData.shardId)
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
-	err = e.rebuildNetworkComponentsForShard()
-	if err != nil {
-		return Parameters{}, err
+	if oldShardID != e.shardCoordinator.SelfId() || oldNumberOfShards != e.shardCoordinator.NumberOfShards() {
+		err = e.rebuildNetworkComponentsForShard()
+		if err != nil {
+			return Parameters{}, err
+		}
 	}
 
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
