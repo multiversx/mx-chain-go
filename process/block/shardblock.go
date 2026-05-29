@@ -1162,9 +1162,6 @@ func (sp *shardProcessor) CommitBlock(
 		epochStartTriggerConfigKey: epochStartKey,
 	}
 
-	// TODO adjust this method if needed for Supernova
-	sp.prepareDataForBootStorer(args)
-
 	// write data to log
 	go func() {
 		sp.txCounter.headerExecuted(header)
@@ -1187,6 +1184,8 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+
+	sp.prepareDataForBootStorer(args)
 
 	errNotCritical = sp.removeTxsFromPools(headerHash, header, body)
 	if errNotCritical != nil {

@@ -1480,9 +1480,6 @@ func (mp *metaProcessor) CommitBlock(
 		highestFinalBlockNonce:     highestFinalBlockNonce,
 	}
 
-	// TODO adjust this method if needed for Supernova
-	mp.prepareDataForBootStorer(args)
-
 	mp.blockSizeThrottler.Succeed(header.GetRound())
 
 	mp.displayPoolsInfo()
@@ -1491,6 +1488,8 @@ func (mp *metaProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+
+	mp.prepareDataForBootStorer(args)
 
 	errNotCritical = mp.removeTxsFromPools(headerHash, header, body)
 	if errNotCritical != nil {
