@@ -134,7 +134,7 @@ func TestNewGasConsumption(t *testing.T) {
 		require.Nil(t, gc)
 		require.True(t, errors.Is(err, process.ErrInvalidValue))
 	})
-	t.Run("nil gas handler should error", func(t *testing.T) {
+	t.Run("nil block tracker should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := getMockArgsGasConsumption()
