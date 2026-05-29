@@ -966,7 +966,7 @@ func (sp *shardProcessor) CommitBlock(
 				sp.blockChain.SetCurrentBlockHeaderHash(prevBlockHeaderHash)
 
 				if headerHandler.IsStartOfEpochBlock() {
-					sp.epochStartTrigger.RevertStateToBlock(headerHandler)
+					log.LogIfError(sp.epochStartTrigger.RevertStateToBlock(headerHandler))
 				}
 			}
 		}()

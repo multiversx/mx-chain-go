@@ -1267,7 +1267,7 @@ func (mp *metaProcessor) revertEpochStartTrigger(
 	}
 
 	if metaHeader.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.RevertStateToBlock(metaHeader)
+		log.LogIfError(mp.epochStartTrigger.RevertStateToBlock(metaHeader))
 		mp.epochStartTrigger.SetEpochChangeProposed(true)
 	}
 
