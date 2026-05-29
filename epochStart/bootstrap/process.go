@@ -711,9 +711,10 @@ func (e *epochStartBootstrap) rebuildNetworkComponentsForShard() error {
 }
 
 func (e *epochStartBootstrap) tearDownStaleNetworkComponents() {
-	e.unregisterInterceptorTopics(e.mainInterceptorContainer)
-	e.unregisterInterceptorTopics(e.fullArchiveInterceptorContainer)
-	e.unregisterResolverTopics(e.resolversContainer)
+	log.LogIfError(e.mainMessenger.UnregisterAllMessageProcessors())
+	log.LogIfError(e.mainMessenger.UnJoinAllTopics())
+	log.LogIfError(e.fullArchiveMessenger.UnregisterAllMessageProcessors())
+	log.LogIfError(e.fullArchiveMessenger.UnJoinAllTopics())
 
 	if !check.IfNil(e.mainInterceptorContainer) {
 		errClose := e.mainInterceptorContainer.Close()
@@ -738,32 +739,6 @@ func (e *epochStartBootstrap) tearDownStaleNetworkComponents() {
 		}
 		e.resolversContainer = nil
 	}
-}
-
-func (e *epochStartBootstrap) unregisterInterceptorTopics(container process.InterceptorsContainer) {
-	if check.IfNil(container) {
-		return
-	}
-
-	container.Iterate(func(key string, _ process.Interceptor) bool {
-		log.LogIfError(e.mainMessenger.UnregisterMessageProcessor(key, common.DefaultInterceptorsIdentifier))
-		log.LogIfError(e.fullArchiveMessenger.UnregisterMessageProcessor(key, common.DefaultInterceptorsIdentifier))
-		return true
-	})
-}
-
-func (e *epochStartBootstrap) unregisterResolverTopics(container dataRetriever.ResolversContainer) {
-	if check.IfNil(container) {
-		return
-	}
-
-	// Container keys are base topics; resolvers register their processor on key+_REQUEST.
-	container.Iterate(func(key string, _ dataRetriever.Resolver) bool {
-		requestTopic := key + core.TopicRequestSuffix
-		log.LogIfError(e.mainMessenger.UnregisterMessageProcessor(requestTopic, common.DefaultResolversIdentifier))
-		log.LogIfError(e.fullArchiveMessenger.UnregisterMessageProcessor(requestTopic, common.DefaultResolversIdentifier))
-		return true
-	})
 }
 
 func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
