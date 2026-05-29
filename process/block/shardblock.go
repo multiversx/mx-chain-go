@@ -964,6 +964,10 @@ func (sp *shardProcessor) CommitBlock(
 				sp.RevertHeaderV3OnCommit(headerHandler)
 				_ = sp.blockChain.SetCurrentBlockHeader(prevBlockHeader)
 				sp.blockChain.SetCurrentBlockHeaderHash(prevBlockHeaderHash)
+
+				if headerHandler.IsStartOfEpochBlock() {
+					sp.epochStartTrigger.RevertStateToBlock(headerHandler)
+				}
 			}
 		}()
 	}

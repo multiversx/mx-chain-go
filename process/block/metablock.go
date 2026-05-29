@@ -1257,6 +1257,25 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 	}
 }
 
+func (mp *metaProcessor) revertEpochStartTrigger(
+	header data.HeaderHandler,
+) {
+	metaHeader, ok := header.(data.MetaHeaderHandler)
+	if !ok {
+		log.Warn("revertEpochStartTrigger: failed to revert", "error", process.ErrWrongTypeAssertion)
+		return
+	}
+
+	if metaHeader.IsStartOfEpochBlock() {
+		mp.epochStartTrigger.RevertStateToBlock(metaHeader)
+		mp.epochStartTrigger.SetEpochChangeProposed(true)
+	}
+
+	if metaHeader.IsEpochChangeProposed() {
+		mp.epochStartTrigger.SetEpochChangeProposed(false)
+	}
+}
+
 // CommitBlock commits the block in the blockchain if everything was checked successfully
 func (mp *metaProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
@@ -1286,6 +1305,8 @@ func (mp *metaProcessor) CommitBlock(
 				mp.RevertHeaderV3OnCommit(headerHandler)
 				_ = mp.blockChain.SetCurrentBlockHeader(prevBlockHeader)
 				mp.blockChain.SetCurrentBlockHeaderHash(prevBlockHeaderHash)
+
+				mp.revertEpochStartTrigger(headerHandler)
 			}
 		}()
 	}
