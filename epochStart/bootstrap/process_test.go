@@ -1047,9 +1047,7 @@ func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_RewiresStaleCoordi
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 	registeredInterceptors := make(map[string]struct{})
-	unregisteredInterceptors := make(map[string]struct{})
 	registeredResolvers := make(map[string]struct{})
-	unregisteredResolvers := make(map[string]struct{})
 	expectedEpoch := uint32(37)
 	requestedEpoch := uint32(0)
 
@@ -1072,14 +1070,13 @@ func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_RewiresStaleCoordi
 			return nil
 		},
 		UnregisterMessageProcessorCalled: func(topic string, identifier string) error {
-			switch identifier {
-			case common.DefaultInterceptorsIdentifier:
-				delete(registeredInterceptors, topic)
-				unregisteredInterceptors[topic] = struct{}{}
-			case common.DefaultResolversIdentifier:
-				delete(registeredResolvers, topic)
-				unregisteredResolvers[topic] = struct{}{}
-			}
+			require.Fail(t, "should have not been called")
+			return nil
+		},
+		UnregisterAllMessageProcessorsCalled: func() error {
+			registeredInterceptors = make(map[string]struct{})
+			registeredResolvers = make(map[string]struct{})
+
 			return nil
 		},
 		ConnectedPeersCalled: func() []core.PeerID {
@@ -1140,15 +1137,6 @@ func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_RewiresStaleCoordi
 	assert.NotSame(t, oldMainInterceptor, epochStartProvider.MainInterceptorContainer())
 	assert.NotSame(t, oldResolvers, epochStartProvider.ResolversContainer())
 	assert.NotSame(t, oldRequestHandler, epochStartProvider.RequestHandler())
-
-	for topic := range oldInterceptorTopics {
-		_, ok := unregisteredInterceptors[topic]
-		assert.True(t, ok, "interceptor topic %q should have been unregistered", topic)
-	}
-	for topic := range oldResolverTopics {
-		_, ok := unregisteredResolvers[topic+core.TopicRequestSuffix]
-		assert.True(t, ok, "resolver request topic %q should have been unregistered", topic+core.TopicRequestSuffix)
-	}
 
 	assert.NotEmpty(t, registeredInterceptors)
 	assert.NotEmpty(t, registeredResolvers)
