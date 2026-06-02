@@ -3227,10 +3227,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 					BaseExecutionResult: lastNotarizedResult,
 				}
 			},
-			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, headerHash []byte, rootHash []byte) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 				setExecutedCalled = true
-			},
-			SetLastExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) {
 				setExecutionResultCalled = true
 			},
 		}
