@@ -3247,9 +3247,9 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			0,
 		)
 		require.Nil(t, err)
-		require.True(t, setExecutedCalled)
-		require.True(t, setExecutionResultCalled)
-		require.True(t, removePendingCalled)
+		require.False(t, setExecutedCalled)
+		require.False(t, setExecutionResultCalled)
+		require.False(t, removePendingCalled)
 	})
 
 	t.Run("nil storage should error", func(t *testing.T) {
@@ -3437,24 +3437,31 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			RootHash:    []byte("lastNotarizedRoot"),
 		}
 
+		currentExecResult := &block.BaseExecutionResult{
+			HeaderHash:  []byte("currentExecResultHash"),
+			HeaderNonce: 6,
+			HeaderRound: 6,
+			RootHash:    []byte("currentExecResultRootHash"),
+		}
+
 		removePendingCalled := false
 		executionManager := &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return []data.BaseExecutionResultHandler{}, nil
 			},
 			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
-				return lastNotarizedResult, nil
+				return currentExecResult, nil
 			},
 			RemovePendingExecutionResultsFromNonceCalled: func(nonce uint64) error {
 				removePendingCalled = true
-				require.Equal(t, uint64(6), nonce)
+				require.Equal(t, uint64(7), nonce)
 				return nil
 			},
 		}
 
 		header := &block.HeaderV3{
 			Nonce:    6,
-			PrevHash: []byte("lastNotarizedHash"),
+			PrevHash: []byte("currentExecResultHash"),
 		}
 
 		headerToSet := &block.HeaderV3{
@@ -3467,12 +3474,12 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			SetLastExecutedBlockHeaderAndRootHashCalled: func(hdr data.HeaderHandler, hash []byte, rootHash []byte) {
 				setLastExecutedCalled = true
 				require.Equal(t, headerToSet, hdr)
-				require.Equal(t, lastNotarizedResult.HeaderHash, hash)
-				require.Equal(t, lastNotarizedResult.RootHash, rootHash)
+				require.Equal(t, currentExecResult.HeaderHash, hash)
+				require.Equal(t, currentExecResult.RootHash, rootHash)
 			},
 			SetLastExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) {
 				setLastExecutionResultCalled = true
-				require.Equal(t, lastNotarizedResult, executionResult)
+				require.Equal(t, currentExecResult, executionResult)
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.ExecutionResult{
@@ -3483,7 +3490,7 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 
 		headersPool := &mock.HeadersCacherStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				if bytes.Equal(hash, []byte("lastNotarizedHash")) {
+				if bytes.Equal(hash, []byte("currentExecResultHash")) {
 					return headerToSet, nil
 				}
 				return nil, errors.New("not found")
@@ -3604,12 +3611,19 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			RootHash:    []byte("lastNotarizedRoot"),
 		}
 
+		currentExecResult := &block.BaseExecutionResult{
+			HeaderHash:  []byte("currentExecResultHash"),
+			HeaderNonce: 6,
+			HeaderRound: 6,
+			RootHash:    []byte("currentExecResultRootHash"),
+		}
+
 		executionManager := &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return []data.BaseExecutionResultHandler{}, nil
 			},
 			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
-				return lastNotarizedResult, nil
+				return currentExecResult, nil
 			},
 			RemovePendingExecutionResultsFromNonceCalled: func(nonce uint64) error {
 				return errExpected
@@ -3618,7 +3632,7 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 
 		header := &block.HeaderV3{
 			Nonce:    6,
-			PrevHash: []byte("lastNotarizedHash"),
+			PrevHash: []byte("currentExecResultHash"),
 		}
 
 		headerToSet := &block.HeaderV3{
@@ -3639,7 +3653,7 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 
 		headersPool := &mock.HeadersCacherStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				if bytes.Equal(hash, []byte("lastNotarizedHash")) {
+				if bytes.Equal(hash, []byte("currentExecResultHash")) {
 					return headerToSet, nil
 				}
 				return nil, errors.New("not found")
