@@ -132,6 +132,21 @@ func TestScCallShouldWork(t *testing.T) {
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 	require.Equal(t, big.NewInt(157339), developerFees)
+
+	tx := vm.CreateTransaction(10, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte(""))
+
+	_, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
+	require.Nil(t, errProcess)
+
+	_, errCommit := testContext.Accounts.Commit()
+	require.Nil(t, errCommit)
+
+	// check accumulated fees
+	accumulatedFees = testContext.TxFeeHandler.GetAccumulatedFees()
+	require.Equal(t, big.NewInt(1582310), accumulatedFees)
+
+	developerFees = testContext.TxFeeHandler.GetDeveloperFees()
+	require.Equal(t, big.NewInt(157339), developerFees)
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
