@@ -1464,6 +1464,9 @@ var ErrNilShardInfoCreator = errors.New("nil shard info creator")
 // ErrEpochStartProposeBlockHasMiniBlocks signals that epoch start propose block has mini blocks
 var ErrEpochStartProposeBlockHasMiniBlocks = errors.New("epoch start propose block has mini blocks")
 
+// ErrEpochChangeProposedOutsideTriggerWindow signals that an epoch change was proposed outside the trigger window
+var ErrEpochChangeProposedOutsideTriggerWindow = errors.New("epoch change proposed outside trigger window")
+
 // ErrNonCanonicalExecutionResultIncluded signals that a non-canonical execution result has been included
 var ErrNonCanonicalExecutionResultIncluded = errors.New("non-canonical execution result included")
 
