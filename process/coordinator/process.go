@@ -440,7 +440,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	haveTime func() bool,
 ) error {
 	for _, mb := range body.MiniBlocks {
-		err := tc.checkMiniBlock(mb)
+		err := process.CheckMiniBlock(mb, tc.shardCoordinator.SelfId())
 		if err != nil {
 			return err
 		}
@@ -484,40 +484,6 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	return nil
 }
 
-// TODO consider calling this from VerifyBlockProposal instead of ProcessBlockProposal
-func (tc *transactionCoordinator) checkMiniBlock(
-	miniBlock *block.MiniBlock,
-) error {
-	// there are checks for non existing shard id at interceptors level
-
-	if miniBlock.SenderShardID != tc.shardCoordinator.SelfId() && miniBlock.GetReceiverShardID() != tc.shardCoordinator.SelfId() && miniBlock.GetReceiverShardID() != core.AllShardId {
-		return fmt.Errorf("%w - not valid shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
-			process.ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
-	}
-
-	if miniBlock.GetType() == block.PeerBlock &&
-		(miniBlock.GetSenderShardID() != core.MetachainShardId || miniBlock.GetReceiverShardID() != core.AllShardId) {
-		return fmt.Errorf("%w - peer blocks: block type: %s, sender shard id: %d, receiver shard id: %d",
-			process.ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
-	}
-
-	if miniBlock.GetType() != block.PeerBlock && miniBlock.GetReceiverShardID() == core.AllShardId {
-		return fmt.Errorf("%w - invalid all shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
-			process.ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
-	}
-
-	return nil
-}
-
 func (tc *transactionCoordinator) processMiniBlocksToMe(
 	header data.HeaderHandler,
 	body *block.Body,
@@ -540,7 +506,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	for mbIndex = 0; mbIndex < len(body.MiniBlocks); mbIndex++ {
 		miniBlock := body.MiniBlocks[mbIndex]
 
-		err := tc.checkMiniBlock(miniBlock)
+		err := process.CheckMiniBlock(miniBlock, tc.shardCoordinator.SelfId())
 		if err != nil {
 			return mbIndex, err
 		}

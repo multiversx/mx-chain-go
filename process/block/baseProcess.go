@@ -1169,6 +1169,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []d
 
 	var mbHdr data.MiniBlockHeaderHandler
 	var miniBlock *block.MiniBlock
+	selfId := bp.shardCoordinator.SelfId()
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock = body.MiniBlocks[i]
 		mbHdr = miniBlockHeaders[i]
@@ -1191,6 +1192,11 @@ func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []d
 		}
 
 		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
+		if err != nil {
+			return err
+		}
+
+		err = process.CheckMiniBlock(miniBlock, selfId)
 		if err != nil {
 			return err
 		}

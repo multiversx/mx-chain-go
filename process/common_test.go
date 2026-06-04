@@ -3895,3 +3895,87 @@ func TestCleanCachesForExecutionResult(t *testing.T) {
 		require.Equal(t, 3, len(executedMbsRemovedKeys))
 	})
 }
+
+func TestTransactionCoordinator_checkMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("valid miniblock should not error", func(t *testing.T) {
+		t.Parallel()
+
+		selfShardID := uint32(1)
+
+		mb := &block.MiniBlock{SenderShardID: 2, ReceiverShardID: selfShardID, Type: block.TxBlock}
+		err := process.CheckMiniBlock(mb, selfShardID)
+		require.Nil(t, err)
+
+		mb = &block.MiniBlock{SenderShardID: selfShardID, ReceiverShardID: 2, Type: block.TxBlock}
+		err = process.CheckMiniBlock(mb, selfShardID)
+		require.Nil(t, err)
+	})
+
+	t.Run("not related to self shard, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		selfShardID := uint32(1)
+
+		mb := &block.MiniBlock{SenderShardID: 2, ReceiverShardID: 3, Type: block.TxBlock}
+		err := process.CheckMiniBlock(mb, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{SenderShardID: 2, ReceiverShardID: core.MetachainShardId, Type: block.TxBlock}
+		err = process.CheckMiniBlock(mb, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{SenderShardID: core.MetachainShardId, ReceiverShardID: 3, Type: block.TxBlock}
+		err = process.CheckMiniBlock(mb, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+	})
+
+	t.Run("peer miniblock should be from meta to all shards", func(t *testing.T) {
+		t.Parallel()
+
+		selfShardID := uint32(0)
+
+		mb := &block.MiniBlock{SenderShardID: core.MetachainShardId, ReceiverShardID: core.AllShardId, Type: block.TxBlock}
+		err := process.CheckMiniBlock(mb, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{SenderShardID: 2, ReceiverShardID: core.AllShardId, Type: block.PeerBlock}
+		err = process.CheckMiniBlock(mb, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{SenderShardID: core.MetachainShardId, ReceiverShardID: 1, Type: block.PeerBlock}
+		err = process.CheckMiniBlock(mb, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{SenderShardID: core.MetachainShardId, ReceiverShardID: core.AllShardId, Type: block.PeerBlock}
+		err = process.CheckMiniBlock(mb, selfShardID)
+		require.Nil(t, err)
+	})
+
+	t.Run("non peer miniblock should not be to all", func(t *testing.T) {
+		t.Parallel()
+
+		selfShardID := uint32(0)
+
+		mb := &block.MiniBlock{SenderShardID: core.MetachainShardId, ReceiverShardID: core.AllShardId, Type: block.TxBlock}
+		err := process.CheckMiniBlock(mb, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{SenderShardID: 1, ReceiverShardID: core.AllShardId, Type: block.TxBlock}
+		err = process.CheckMiniBlock(mb, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{SenderShardID: 1, ReceiverShardID: core.AllShardId, Type: block.ReceiptBlock}
+		err = process.CheckMiniBlock(mb, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{SenderShardID: 1, ReceiverShardID: core.AllShardId, Type: block.RewardsBlock}
+		err = process.CheckMiniBlock(mb, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+
+		mb = &block.MiniBlock{SenderShardID: 1, ReceiverShardID: core.AllShardId, Type: block.SmartContractResultBlock}
+		err = process.CheckMiniBlock(mb, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+	})
+}
