@@ -439,13 +439,14 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	body *block.Body,
 	haveTime func() bool,
 ) error {
+	selfId := tc.shardCoordinator.SelfId()
 	for _, mb := range body.MiniBlocks {
-		err := process.CheckMiniBlock(mb, tc.shardCoordinator.SelfId())
+		err := process.CheckMiniBlock(mb, selfId)
 		if err != nil {
 			return err
 		}
 
-		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
+		if mb.SenderShardID != selfId {
 			return process.ErrMiniBlocksInWrongOrder
 		}
 	}
@@ -503,15 +504,16 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	// processing destination ME miniblocks first
 	mbIndex := 0
+	selfId := tc.shardCoordinator.SelfId()
 	for mbIndex = 0; mbIndex < len(body.MiniBlocks); mbIndex++ {
 		miniBlock := body.MiniBlocks[mbIndex]
 
-		err := process.CheckMiniBlock(miniBlock, tc.shardCoordinator.SelfId())
+		err := process.CheckMiniBlock(miniBlock, selfId)
 		if err != nil {
 			return mbIndex, err
 		}
 
-		if miniBlock.SenderShardID == tc.shardCoordinator.SelfId() {
+		if miniBlock.SenderShardID == selfId {
 			return mbIndex, nil
 		}
 

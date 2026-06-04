@@ -3896,7 +3896,7 @@ func TestCleanCachesForExecutionResult(t *testing.T) {
 	})
 }
 
-func TestTransactionCoordinator_checkMiniBlock(t *testing.T) {
+func Test_CheckMiniBlock(t *testing.T) {
 	t.Parallel()
 
 	t.Run("valid miniblock should not error", func(t *testing.T) {
