@@ -143,9 +143,10 @@ func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.S
 				},
 			},
 		},
-		RatingsConfig:   CreateDummyRatingsConfig(),
-		EconomicsConfig: CreateDummyEconomicsConfig(),
-		CoreComp:        coreComponents,
+		RatingsConfig:              CreateDummyRatingsConfig(),
+		EconomicsConfig:            CreateDummyEconomicsConfig(),
+		SystemSmartContractsConfig: config.SystemSmartContractsConfig{},
+		CoreComp:                   coreComponents,
 	}
 }
 
