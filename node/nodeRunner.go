@@ -1561,12 +1561,13 @@ func (nr *nodeRunner) CreateManagedStatusCoreComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 ) (mainFactory.StatusCoreComponentsHandler, error) {
 	args := statusCore.StatusCoreComponentsFactoryArgs{
-		Config:          *nr.configs.GeneralConfig,
-		EpochConfig:     *nr.configs.EpochConfig,
-		RoundConfig:     *nr.configs.RoundConfig,
-		RatingsConfig:   *nr.configs.RatingsConfig,
-		EconomicsConfig: *nr.configs.EconomicsConfig,
-		CoreComp:        coreComponents,
+		Config:                     *nr.configs.GeneralConfig,
+		EpochConfig:                *nr.configs.EpochConfig,
+		RoundConfig:                *nr.configs.RoundConfig,
+		RatingsConfig:              *nr.configs.RatingsConfig,
+		EconomicsConfig:            *nr.configs.EconomicsConfig,
+		SystemSmartContractsConfig: *nr.configs.SystemSCConfig,
+		CoreComp:                   coreComponents,
 	}
 
 	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
