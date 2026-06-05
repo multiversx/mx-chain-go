@@ -1130,7 +1130,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		err = em.RemoveAtNonceAndHigher(10)
 		require.Equal(t, errExpected, err)
 		require.True(t, wasPauseExecutionCalled)
-		require.False(t, wasResumeExecutionCalled)
+		require.True(t, wasResumeExecutionCalled)
 	})
 }
 

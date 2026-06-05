@@ -204,6 +204,7 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	// first pause the headers executor which will block it from popping new headers
 	// but allow it to finish anything currently processing
 	em.headersExecutor.PauseExecution()
+	defer em.headersExecutor.ResumeExecution()
 
 	// remove from queue
 	_ = em.blocksCache.RemoveAtNonceAndHigher(nonceToRemove)
@@ -217,9 +218,6 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	if err != nil {
 		return err
 	}
-
-	// resume execution
-	em.headersExecutor.ResumeExecution()
 
 	return nil
 }
