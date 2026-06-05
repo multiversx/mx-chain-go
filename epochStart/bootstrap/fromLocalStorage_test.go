@@ -3,9 +3,11 @@ package bootstrap
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -47,6 +49,40 @@ func TestGetEpochStartMetaFromStorage(t *testing.T) {
 	metaBlock, err := epochStartProvider.getEpochStartMetaFromStorage(storer)
 	assert.Nil(t, err)
 	assert.Equal(t, meta, metaBlock)
+}
+
+func TestGetEpochStartMetaFromStorageFallbackToPreviousEpoch(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
+	epochStartProvider.initializeFromLocalStorage()
+	epochStartProvider.baseData.lastEpoch = 10
+
+	meta := &block.MetaBlock{Nonce: 1, Epoch: 9}
+	metaBytes, _ := json.Marshal(meta)
+	searchedKeys := make([][]byte, 0)
+	storer := &storageStubs.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			searchedKeys = append(searchedKeys, append([]byte(nil), key...))
+			if bytes.Equal(key, []byte(core.EpochStartIdentifier(10))) {
+				return nil, errors.New("missing epoch start metablock")
+			}
+			if bytes.Equal(key, []byte(core.EpochStartIdentifier(9))) {
+				return metaBytes, nil
+			}
+
+			return nil, errors.New("unexpected epoch start metablock key")
+		},
+	}
+
+	metaBlock, err := epochStartProvider.getEpochStartMetaFromStorage(storer)
+	require.Nil(t, err)
+	assert.Equal(t, meta, metaBlock)
+	assert.Equal(t, uint32(9), epochStartProvider.baseData.lastEpoch)
+	require.Len(t, searchedKeys, 2)
+	assert.Equal(t, []byte(core.EpochStartIdentifier(10)), searchedKeys[0])
+	assert.Equal(t, []byte(core.EpochStartIdentifier(9)), searchedKeys[1])
 }
 
 func TestGetLastBootstrapData(t *testing.T) {

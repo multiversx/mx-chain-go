@@ -282,10 +282,22 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 }
 
 func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (data.MetaHeaderHandler, error) {
-	epochIdentifier := core.EpochStartIdentifier(e.baseData.lastEpoch)
+	return e.searchEpochStartMetaBlock(storer, e.baseData.lastEpoch)
+}
+
+func (e *epochStartBootstrap) searchEpochStartMetaBlock(storer storage.Storer, epoch uint32) (data.MetaHeaderHandler, error) {
+	epochIdentifier := core.EpochStartIdentifier(epoch)
 	epochStartMetaBlock, err := storer.SearchFirst([]byte(epochIdentifier))
 	if err != nil {
 		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
+
+		if epoch > 0 && epoch == e.baseData.lastEpoch {
+			prevEpoch := epoch - 1
+			log.Debug("getEpochStartMetaFromStorage: falling back to previous epoch", "epoch", prevEpoch)
+			e.baseData.lastEpoch = prevEpoch
+			return e.searchEpochStartMetaBlock(storer, prevEpoch)
+		}
+
 		return nil, err
 	}
 
