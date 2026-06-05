@@ -980,6 +980,14 @@ func (bbt *baseBlockTrack) doWhitelistWithShardHeaderIfNeeded(shardHeader data.H
 	}
 
 	miniBlockHdrs := shardHeader.GetMiniBlockHeaderHandlers()
+	if shardHeader.IsHeaderV3() {
+		execMiniBlockHdrs, err := common.GetMiniBlockHeadersFromExecResult(shardHeader)
+		if err != nil {
+			log.Debug("doWhitelistWithShardHeaderIfNeeded: could not get miniblock headers from execution results", "error", err)
+		}
+		miniBlockHdrs = append(miniBlockHdrs, execMiniBlockHdrs...)
+	}
+
 	keys := make([][]byte, 0)
 
 	crossMbKeysShard := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, shardHeader.GetShardID())
