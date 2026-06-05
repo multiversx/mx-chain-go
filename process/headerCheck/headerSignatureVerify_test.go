@@ -1134,4 +1134,229 @@ func TestHeaderSigVerifier_getConsensusSignersForEquivalentProofs(t *testing.T) 
 		require.Nil(t, signers)
 		require.Equal(t, common.ErrWrongSizeBitmap, err)
 	})
+	t.Run("metachain start of epoch proof should use the fetched header for fallback validation", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash := []byte("header hash")
+		prevHash := []byte("previous header hash")
+		fallbackCalled := false
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		args.HeadersPool = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, headerHash, hash)
+				return &dataBlock.MetaBlock{
+					PrevHash: prevHash,
+				}, nil
+			},
+		}
+		args.FallbackHeaderValidator = &testscommon.FallBackHeaderValidatorStub{
+			ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+				fallbackCalled = true
+				// the fetched start-of-epoch metablock must be passed, so its real prev hash is used
+				require.Equal(t, core.MetachainShardId, headerHandler.GetShardID())
+				require.Equal(t, prevHash, headerHandler.GetPrevHash())
+				return false
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		signers, err := hdrSigVerifier.getConsensusSignersForEquivalentProofs(&dataBlock.HeaderProof{
+			PubKeysBitmap:  []byte{0x3},
+			HeaderHash:     headerHash,
+			HeaderShardId:  core.MetachainShardId,
+			HeaderRound:    42,
+			HeaderEpoch:    1,
+			IsStartOfEpoch: true,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, signers)
+		require.True(t, fallbackCalled)
+	})
+	t.Run("shard start of epoch proof should not apply fallback validation", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		getHeaderCalled := false
+		args.HeadersPool = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				getHeaderCalled = true
+				return nil, expectedErr
+			},
+		}
+		fallbackCalled := false
+		args.FallbackHeaderValidator = &testscommon.FallBackHeaderValidatorStub{
+			ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+				fallbackCalled = true
+				return true
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		signers, err := hdrSigVerifier.getConsensusSignersForEquivalentProofs(&dataBlock.HeaderProof{
+			PubKeysBitmap:  []byte{0x3},
+			HeaderHash:     []byte("header hash"),
+			HeaderShardId:  0,
+			HeaderRound:    42,
+			HeaderEpoch:    1,
+			IsStartOfEpoch: true,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, signers)
+		require.False(t, getHeaderCalled)
+		require.False(t, fallbackCalled)
+	})
+	t.Run("metachain non start of epoch proof should not apply fallback validation", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		getHeaderCalled := false
+		args.HeadersPool = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				getHeaderCalled = true
+				return nil, expectedErr
+			},
+		}
+		fallbackCalled := false
+		args.FallbackHeaderValidator = &testscommon.FallBackHeaderValidatorStub{
+			ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+				fallbackCalled = true
+				return true
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		signers, err := hdrSigVerifier.getConsensusSignersForEquivalentProofs(&dataBlock.HeaderProof{
+			PubKeysBitmap:  []byte{0x3},
+			HeaderHash:     []byte("header hash"),
+			HeaderShardId:  core.MetachainShardId,
+			HeaderRound:    42,
+			HeaderEpoch:    1,
+			IsStartOfEpoch: false,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, signers)
+		require.False(t, getHeaderCalled)
+		require.False(t, fallbackCalled)
+	})
+	t.Run("metachain start of epoch proof should apply strict validation when header cannot be fetched", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		// header is neither in the pool ...
+		args.HeadersPool = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, expectedErr
+			},
+		}
+		// ... nor in storage
+		storageQueried := false
+		args.StorageService = &testscommonStorage.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				storageQueried = true
+				return nil, expectedErr
+			},
+		}
+		fallbackCalled := false
+		args.FallbackHeaderValidator = &testscommon.FallBackHeaderValidatorStub{
+			ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+				fallbackCalled = true
+				return true
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		// the bitmap (2 of 2 default consensus members) satisfies the strict threshold, so a missing header
+		// must NOT reject the proof: verification continues with strict validation (fallback only relaxes it)
+		signers, err := hdrSigVerifier.getConsensusSignersForEquivalentProofs(&dataBlock.HeaderProof{
+			PubKeysBitmap:  []byte{0x3},
+			HeaderHash:     []byte("header hash"),
+			HeaderShardId:  core.MetachainShardId,
+			HeaderRound:    42,
+			HeaderEpoch:    1,
+			IsStartOfEpoch: true,
+		})
+		require.NoError(t, err)
+		require.NotNil(t, signers)
+		require.True(t, storageQueried)  // storage fallback was consulted before giving up on the header
+		require.False(t, fallbackCalled) // missing header -> fallback skipped, strict validation applied
+	})
+	t.Run("metachain start of epoch proof applies relaxed bitmap threshold under fallback validation", func(t *testing.T) {
+		t.Parallel()
+
+		// 8 consensus members -> strict PBFT threshold is 6, fallback threshold is 5
+		consensusKeys := []string{"pk1", "pk2", "pk3", "pk4", "pk5", "pk6", "pk7", "pk8"}
+		bitmapWith5Signatures := []byte{0x1F} // 5 set bits: below strict (6), at the fallback threshold (5)
+
+		applyFallback := false
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
+				return consensusKeys, nil
+			},
+		}
+		args.HeadersPool = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &dataBlock.MetaBlock{
+					PrevHash: []byte("previous header hash"),
+				}, nil
+			},
+		}
+		args.FallbackHeaderValidator = &testscommon.FallBackHeaderValidatorStub{
+			ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+				return applyFallback
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		proof := &dataBlock.HeaderProof{
+			PubKeysBitmap:  bitmapWith5Signatures,
+			HeaderHash:     []byte("header hash"),
+			HeaderShardId:  core.MetachainShardId,
+			HeaderRound:    42,
+			HeaderEpoch:    1,
+			IsStartOfEpoch: true,
+		}
+
+		// strict validation: 5 signatures < threshold 6 -> rejected
+		applyFallback = false
+		signers, err := hdrSigVerifier.getConsensusSignersForEquivalentProofs(proof)
+		require.Nil(t, signers)
+		require.Equal(t, common.ErrNotEnoughSignatures, err)
+
+		// fallback validation: 5 signatures >= fallback threshold 5 -> accepted
+		applyFallback = true
+		signers, err = hdrSigVerifier.getConsensusSignersForEquivalentProofs(proof)
+		require.NoError(t, err)
+		require.Len(t, signers, 5)
+	})
 }
