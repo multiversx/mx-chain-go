@@ -2003,6 +2003,8 @@ func (boot *baseBootstrap) isForcedRollBackToNonce() bool {
 }
 
 func (boot *baseBootstrap) rollBackOneBlockForced() {
+	rolledBackHeader := boot.getCurrentBlock()
+
 	err := boot.rollBack(false)
 	if err != nil {
 		log.Debug("rollBackOneBlockForced", "error", err.Error())
@@ -2010,6 +2012,10 @@ func (boot *baseBootstrap) rollBackOneBlockForced() {
 
 	boot.forkDetector.ResetFork()
 	boot.removeHeadersHigherThanNonceFromPool(boot.getNonceForCurrentBlock())
+
+	if err == nil && common.IsProofsFlagEnabledForHeader(boot.enableEpochsHandler, rolledBackHeader) {
+		boot.blockBootstrapper.requestProofByNonce(rolledBackHeader.GetNonce())
+	}
 }
 
 func (boot *baseBootstrap) rollBackToNonceForced() {
