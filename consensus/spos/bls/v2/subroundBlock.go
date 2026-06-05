@@ -236,6 +236,12 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 	sr.logBlockSize(marshalledBody, marshalledHeader)
 	headerHash := sr.Hasher().Compute(string(marshalledHeader))
 
+	timeLeft := sr.RoundHandler().RemainingTime(sr.GetRoundTimeStamp(), time.Duration(sr.EndTime()))
+	if timeLeft <= 0 {
+		log.Debug("sendBlock: no remaining time left to send block")
+		return false
+	}
+
 	if !sr.sendBlockBody(body, marshalledBody) || !sr.sendBlockHeader(header, headerHash) {
 		return false
 	}
