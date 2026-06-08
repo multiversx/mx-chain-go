@@ -912,11 +912,6 @@ func (sp *shardProcessor) DataPool() dataRetriever.PoolsHolder {
 	return sp.dataPool
 }
 
-// ShouldDisableOutgoingTxs -
-func ShouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
-	return shouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler)
-}
-
 // ShouldEpochStartInfoBeAvailable -
 func (sp *shardProcessor) ShouldEpochStartInfoBeAvailable(header data.ShardHeaderHandler) bool {
 	return sp.shouldEpochStartInfoBeAvailable(header)

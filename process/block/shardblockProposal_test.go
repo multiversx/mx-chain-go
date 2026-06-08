@@ -3910,7 +3910,7 @@ func TestShouldDisableOutgoingTxs(t *testing.T) {
 		enableEpochsHandler := coreComponents.EnableEpochsHandler()
 		enableRoundsHandler := coreComponents.EnableRoundsHandler()
 
-		result := blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler)
+		result := process.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler)
 		// This tests that the function executes without error
 		require.NotNil(t, result) // result can be true or false depending on configuration
 	})

@@ -368,6 +368,9 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
+	if process.ShouldDisableOutgoingTxs(tc.enableEpochsHandler, tc.enableRoundsHandler) && len(miniBlocksFromMe) > 0 {
+		return process.ErrOutgoingTxsDisabled
+	}
 	startTime = time.Now()
 	err = tc.processMiniBlocksFromMe(header, &block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
 	elapsedTime = time.Since(startTime)

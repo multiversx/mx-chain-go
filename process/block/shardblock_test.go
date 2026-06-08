@@ -6891,7 +6891,7 @@ func Test_ShouldDisableOutgoingTxs(t *testing.T) {
 	t.Run("both flag not set, should return false", func(t *testing.T) {
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 		enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
-		require.False(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
+		require.False(t, process.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
 	})
 	t.Run("epoch flag enabled, round flag disabled, should return true", func(t *testing.T) {
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -6904,7 +6904,7 @@ func Test_ShouldDisableOutgoingTxs(t *testing.T) {
 				return false
 			},
 		}
-		require.True(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
+		require.True(t, process.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
 	})
 	t.Run("epoch flag disabled, round flag enabled, should return false", func(t *testing.T) {
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -6917,7 +6917,7 @@ func Test_ShouldDisableOutgoingTxs(t *testing.T) {
 				return true
 			},
 		}
-		require.False(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
+		require.False(t, process.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
 	})
 	t.Run("both flag enabled, should return false", func(t *testing.T) {
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -6930,7 +6930,7 @@ func Test_ShouldDisableOutgoingTxs(t *testing.T) {
 				return true
 			},
 		}
-		require.False(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
+		require.False(t, process.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
 	})
 }
 

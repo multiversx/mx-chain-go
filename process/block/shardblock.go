@@ -2388,7 +2388,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 	}
 
-	if shouldDisableOutgoingTxs(sp.enableEpochsHandler, sp.enableRoundsHandler) {
+	if process.ShouldDisableOutgoingTxs(sp.enableEpochsHandler, sp.enableRoundsHandler) {
 		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
 		miniBlocks = append(miniBlocks, interMBs...)
 
@@ -2424,12 +2424,6 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 
 	log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
 	return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
-}
-
-func shouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
-	isSupernovaEnabled := enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag)
-	supernovaRoundEnabled := enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag)
-	return isSupernovaEnabled && !supernovaRoundEnabled
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body

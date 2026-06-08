@@ -1636,3 +1636,12 @@ func getExecutionResultToSetOnReplacedHeader(
 
 	return executionResultToSet, nil
 }
+
+// ShouldDisableOutgoingTxs returns true when the Supernova feature flag is enabled
+// but the Supernova round flag is still disabled, meaning outgoing transactions
+// should remain blocked until the round-based activation is also in effect.
+func ShouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
+	isSupernovaEnabled := enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag)
+	supernovaRoundEnabled := enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag)
+	return isSupernovaEnabled && !supernovaRoundEnabled
+}
