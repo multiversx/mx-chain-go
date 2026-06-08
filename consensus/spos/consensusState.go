@@ -469,9 +469,6 @@ func (cns *ConsensusState) SetExtendedCalled(extendedCalled bool) {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
-	cns.mutState.Lock()
-	defer cns.mutState.Unlock()
-
 	cns.extendedCalled = extendedCalled
 }
 
