@@ -660,14 +660,13 @@
 
 [Antiflood]
     Enabled = true
+    MaxAllowedTrieNodeChunks = 10
+    TrieNodeChunksInactivityTimeoutInSec = 10
 
     [[Antiflood.ConfigsByRound]]
         Round = 0
         NumConcurrentResolverJobs = 50
         NumConcurrentResolvingTrieNodesJobs = 3
-
-    MaxAllowedTrieNodeChunks = 10
-    TrieNodeChunksInactivityTimeoutInSec = 10
     [Antiflood.ConfigsByRound.FastReacting]
             IntervalInSeconds = 1
             ReservedPercent   = 20.0

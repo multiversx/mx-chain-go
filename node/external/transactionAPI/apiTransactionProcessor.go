@@ -597,16 +597,16 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, err
 	}
 
-	return atp.extractTransactions(selectedTxs, selectionOptions), nil
+	// selection done from outgoing txPool
+	return atp.extractTransactions(selectedTxs, selectionOptions, transaction.TxTypeNormal), nil
 }
 
-func (atp *apiTransactionProcessor) extractTransactions(txs []*txcache.WrappedTransaction, selectionOptions common.TxSelectionOptionsAPI) []common.Transaction {
+func (atp *apiTransactionProcessor) extractTransactions(txs []*txcache.WrappedTransaction, selectionOptions common.TxSelectionOptionsAPI, txType transaction.TxType) []common.Transaction {
 	requestedFieldsHandler := newFieldsHandler(selectionOptions.GetRequestedFields())
 
 	transactions := make([]common.Transaction, len(txs))
 	for i, tx := range txs {
-		transactions[i] = atp.extractRequestedTxInfo(tx, requestedFieldsHandler)
-
+		transactions[i] = atp.extractRequestedTxInfo(tx, requestedFieldsHandler, txType)
 	}
 
 	return transactions

@@ -526,8 +526,10 @@ type TxAccumulatorConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Enabled        bool
-	ConfigsByRound []AntifloodConfigByRound
+	Enabled                              bool
+	MaxAllowedTrieNodeChunks             uint32
+	TrieNodeChunksInactivityTimeoutInSec int64
+	ConfigsByRound                       []AntifloodConfigByRound
 }
 
 // AntifloodConfigByRound will hold antiflood parameters by round
@@ -535,15 +537,13 @@ type AntifloodConfigByRound struct {
 	Round                               uint64
 	NumConcurrentResolverJobs           int32
 	NumConcurrentResolvingTrieNodesJobs int32
-	MaxAllowedTrieNodeChunks             uint32
-	TrieNodeChunksInactivityTimeoutInSec int64
-	OutOfSpecs                           FloodPreventerConfig
-	FastReacting                         FloodPreventerConfig
-	SlowReacting                         FloodPreventerConfig
-	PeerMaxOutput                        FloodPreventerConfig
-	Cache                                CacheConfig
-	Topic                                TopicAntifloodConfig
-	TxAccumulator                        TxAccumulatorConfig
+	OutOfSpecs                          FloodPreventerConfig
+	FastReacting                        FloodPreventerConfig
+	SlowReacting                        FloodPreventerConfig
+	PeerMaxOutput                       FloodPreventerConfig
+	Cache                               CacheConfig
+	Topic                               TopicAntifloodConfig
+	TxAccumulator                       TxAccumulatorConfig
 }
 
 // FloodPreventerConfig will hold all flood preventer parameters

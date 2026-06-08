@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -135,7 +136,7 @@ func NewMetaInterceptorsContainerFactory(
 		nodeOperationMode:               args.NodeOperationMode,
 		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 		enableEpochsHandler:             args.CoreComponents.EnableEpochsHandler(),
-		config:                         args.Config,
+		config:                          args.Config,
 	}
 
 	icf := &metaInterceptorsContainerFactory{

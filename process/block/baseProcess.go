@@ -263,6 +263,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		maxProposalNonceGap:                maxProposalNonceGap,
 		ewlResetThreshold:                  ewlResetThreshold,
 		closingNodeStarted:                 arguments.CoreComponents.ClosingNodeStarted(),
+		miniBlockTracker:                   arguments.MiniBlockTracker,
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -1174,52 +1175,9 @@ func isPartiallyExecuted(
 
 // check if header has the same mini blocks as presented in body
 func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32) error {
-	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
-	for i := 0; i < len(miniBlockHeaders); i++ {
-		if miniBlockHeaders[i] == nil {
-			return process.ErrNilMiniBlockHeader
-		}
-
-		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = miniBlockHeaders[i]
-	}
-
-	if len(miniBlockHeaders) != len(body.MiniBlocks) {
-		return process.ErrHeaderBodyMismatch
-	}
-
-	if len(mbHashesFromHdr) != len(miniBlockHeaders) {
-		return process.ErrDuplicatedHashInBlock
-	}
-
-	var mbHdr data.MiniBlockHeaderHandler
-	var miniBlock *block.MiniBlock
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		miniBlock = body.MiniBlocks[i]
-		mbHdr = miniBlockHeaders[i]
-		if miniBlock == nil {
-			return process.ErrNilMiniBlock
-		}
-		if mbHdr == nil {
-			return process.ErrNilMiniBlockHeader
-		}
-
-		mbHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
-		if err != nil {
-			return err
-		}
-
-		mbHashStr := string(mbHash)
-		_, ok := mbHashesFromHdr[mbHashStr]
-		if !ok {
-			return process.ErrHeaderBodyMismatch
-		}
-
-		err = bp.checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock, blockShardID)
-		if err != nil {
-			return err
-		}
-
-		delete(mbHashesFromHdr, mbHashStr)
+	err := bp.checkHeaderBodyCorrelation(miniBlockHeaders, body, blockShardID)
+	if err != nil {
+		return err
 	}
 
 	return bp.checkMiniBlocksConstructionProposal(miniBlockHeaders)
@@ -1278,14 +1236,14 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr 
 }
 
 // check if header has the same mini blocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
-	mbHashesFromHdr := make(map[string]struct{}, len(miniBlockHeaders))
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32) error {
+	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
 		if miniBlockHeaders[i] == nil {
 			return process.ErrNilMiniBlockHeader
 		}
 
-		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = struct{}{}
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = miniBlockHeaders[i]
 	}
 
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
@@ -1306,6 +1264,9 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if miniBlock == nil {
 			return process.ErrNilMiniBlock
 		}
+		if mbHdr == nil {
+			return process.ErrNilMiniBlockHeader
+		}
 
 		mbHash, err = core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
 		if err != nil {
@@ -1318,7 +1279,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return process.ErrHeaderBodyMismatch
 		}
 
-		err = bp.checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
+		err = bp.checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock, blockShardID)
 		if err != nil {
 			return err
 		}

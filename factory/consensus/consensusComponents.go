@@ -167,8 +167,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
 		ccf.cryptoComponents.KeysHandler(),
-		ccf.dataComponents.Datapool().Proofs(),
-		ccf.coreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, err
