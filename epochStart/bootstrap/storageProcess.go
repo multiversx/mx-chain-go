@@ -180,20 +180,22 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:           sesb.coreComponentsHolder,
-		CryptoComponentsHolder:         sesb.cryptoComponentsHolder,
-		RequestHandler:                 sesb.requestHandler,
-		Messenger:                      sesb.mainMessenger,
-		ShardCoordinator:               sesb.shardCoordinator,
-		EconomicsData:                  sesb.economicsData,
-		WhitelistHandler:               sesb.whiteListHandler,
-		StartInEpochConfig:             sesb.generalConfig.EpochStartConfig,
-		HeaderIntegrityVerifier:        sesb.headerIntegrityVerifier,
-		MetaBlockProcessor:             metablockProcessor,
-		InterceptedDataVerifierFactory: sesb.interceptedDataVerifierFactory,
-		ProofsPool:                     sesb.dataPool.Proofs(),
-		HeadersPool:                    sesb.dataPool.Headers(),
-		ProofsInterceptorProcessor:     processor.NewEquivalentProofsInterceptorProcessor(),
+		CoreComponentsHolder:                    sesb.coreComponentsHolder,
+		CryptoComponentsHolder:                  sesb.cryptoComponentsHolder,
+		RequestHandler:                          sesb.requestHandler,
+		Messenger:                               sesb.mainMessenger,
+		ShardCoordinator:                        sesb.shardCoordinator,
+		EconomicsData:                           sesb.economicsData,
+		WhitelistHandler:                        sesb.whiteListHandler,
+		StartInEpochConfig:                      sesb.generalConfig.EpochStartConfig,
+		HeaderIntegrityVerifier:                 sesb.headerIntegrityVerifier,
+		MetaBlockProcessor:                      metablockProcessor,
+		InterceptedDataVerifierFactory:          sesb.interceptedDataVerifierFactory,
+		ProofsPool:                              sesb.dataPool.Proofs(),
+		HeadersPool:                             sesb.dataPool.Headers(),
+		ProofsInterceptorProcessor:              processor.NewEquivalentProofsInterceptorProcessor(),
+		PeerAuthCacher:                          sesb.dataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: sesb.generalConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec,
 	}
 
 	sesb.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)

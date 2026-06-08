@@ -380,6 +380,8 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.ProcessComponentsHolder.InterceptorsContainer(),
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),
+		node.DataComponentsHolder.Datapool().Proofs(),
+		node.CoreComponentsHolder.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return err

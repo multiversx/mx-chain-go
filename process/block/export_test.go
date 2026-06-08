@@ -293,6 +293,7 @@ func NewShardProcessorEmptyWith3shards(
 				},
 			},
 			BlockTracker:                       mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
 			BlockSizeThrottler:                 &mock.BlockSizeThrottlerStub{},
 			Version:                            "softwareVersion",
 			HistoryRepository:                  &dblookupext.HistoryRepositoryStub{},
@@ -439,7 +440,7 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 
 // CheckHeaderBodyCorrelation -
 func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body)
+	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID())
 }
 
 // IsHdrConstructionValid -
@@ -464,7 +465,7 @@ func (sp *shardProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 // CheckHeaderBodyCorrelation -
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body)
+	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID())
 }
 
 // CheckAndRequestIfMetaHeadersMissing -
@@ -611,6 +612,11 @@ func (mp *metaProcessor) UpdateState(metaBlock data.MetaHeaderHandler, metaBlock
 	mp.updateState(metaBlock, metaBlockHash)
 }
 
+// CheckScheduledData -
+func (bp *baseProcessor) CheckScheduledData(headerHandler data.HeaderHandler) error {
+	return bp.checkScheduledData(headerHandler)
+}
+
 // GasAndFeesDelta -
 func GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
 	return gasAndFeesDelta(initialGasAndFees, finalGasAndFees)
@@ -732,9 +738,9 @@ func (sp *shardProcessor) RollBackProcessedMiniBlocksInfo(headerHandler data.Hea
 	sp.rollBackProcessedMiniBlocksInfo(headerHandler, mapMiniBlockHashes)
 }
 
-// CheckConstructionStateAndIndexesCorrectness -
-func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
-	return checkConstructionStateAndIndexesCorrectness(mbh)
+// CheckConstructionStateProcessingTypeAndIndexesCorrectness -
+func CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
+	return checkConstructionStateProcessingTypeAndIndexesCorrectness(mbh, miniBlock, blockShardID)
 }
 
 // GetAllMarshalledTxs -

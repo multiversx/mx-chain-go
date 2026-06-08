@@ -65,6 +65,9 @@ type DBConfig struct {
 	UseTmpAsFilePath    bool
 	ShardIDProviderType string
 	NumShards           int32
+	// BloomFilterBitsPerKey == 0, the Bloom filter is disabled.
+	// Otherwise, it specifies the number of bits per key used by the Bloom filter.
+	BloomFilterBitsPerKey int
 }
 
 // StorageConfig will map the storage unit configuration
@@ -532,13 +535,15 @@ type AntifloodConfigByRound struct {
 	Round                               uint64
 	NumConcurrentResolverJobs           int32
 	NumConcurrentResolvingTrieNodesJobs int32
-	OutOfSpecs                          FloodPreventerConfig
-	FastReacting                        FloodPreventerConfig
-	SlowReacting                        FloodPreventerConfig
-	PeerMaxOutput                       FloodPreventerConfig
-	Cache                               CacheConfig
-	Topic                               TopicAntifloodConfig
-	TxAccumulator                       TxAccumulatorConfig
+	MaxAllowedTrieNodeChunks             uint32
+	TrieNodeChunksInactivityTimeoutInSec int64
+	OutOfSpecs                           FloodPreventerConfig
+	FastReacting                         FloodPreventerConfig
+	SlowReacting                         FloodPreventerConfig
+	PeerMaxOutput                        FloodPreventerConfig
+	Cache                                CacheConfig
+	Topic                                TopicAntifloodConfig
+	TxAccumulator                        TxAccumulatorConfig
 }
 
 // FloodPreventerConfig will hold all flood preventer parameters

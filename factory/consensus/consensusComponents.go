@@ -167,6 +167,8 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
 		ccf.cryptoComponents.KeysHandler(),
+		ccf.dataComponents.Datapool().Proofs(),
+		ccf.coreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -219,6 +221,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NetworkShardingCollector: ccf.processComponents.PeerShardMapper(),
 		AntifloodHandler:         ccf.networkComponents.InputAntiFloodHandler(),
 		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
+		WhiteListHandler:         ccf.processComponents.WhiteListHandler(),
 		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
 		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),

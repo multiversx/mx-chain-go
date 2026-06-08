@@ -9,12 +9,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type consensusMessageValidator struct {
@@ -201,6 +202,7 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidity(cnsMsg *cons
 
 	err = cmv.peerSignatureHandler.VerifyPeerSignature(cnsMsg.PubKey, core.PeerID(cnsMsg.OriginatorPid), cnsMsg.Signature)
 	if err != nil {
+		cmv.removeMessageTypeToPublicKey(cnsMsg.PubKey, cnsMsg.RoundIndex, msgType)
 		return fmt.Errorf("%w : verify signature for received message from consensus topic failed: %s",
 			ErrInvalidSignature,
 			err.Error())
@@ -208,11 +210,10 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidity(cnsMsg *cons
 
 	cnsMsgOriginator := core.PeerID(cnsMsg.OriginatorPid)
 	if cnsMsgOriginator != originator {
+		cmv.removeMessageTypeToPublicKey(cnsMsg.PubKey, cnsMsg.RoundIndex, msgType)
 		return fmt.Errorf("%w : pubsub originator pid: %s, cnsMsg.OriginatorPid: %s",
 			ErrOriginatorMismatch, p2p.PeerIdToShortString(originator), p2p.PeerIdToShortString(cnsMsgOriginator))
 	}
-
-	cmv.addMessageTypeToPublicKey(cnsMsg.PubKey, cnsMsg.RoundIndex, msgType)
 
 	return nil
 }
@@ -493,28 +494,34 @@ func (cmv *consensusMessageValidator) checkMessageWithInvalidSingersValidity(cns
 }
 
 func (cmv *consensusMessageValidator) isMessageTypeLimitReached(pk []byte, round int64, msgType consensus.MessageType) bool {
-	cmv.mutPkConsensusMessages.RLock()
-	defer cmv.mutPkConsensusMessages.RUnlock()
+	cmv.mutPkConsensusMessages.Lock()
+	defer cmv.mutPkConsensusMessages.Unlock()
 
 	key := fmt.Sprintf("%s_%d", string(pk), round)
 
 	mapMsgType, ok := cmv.mapPkConsensusMessages[key]
 	if !ok {
-		return false
+		return cmv.checkLimitReached(0, pk, round, msgType)
 	}
 
 	numMsgType, ok := mapMsgType[msgType]
 	if !ok {
-		return false
+		return cmv.checkLimitReached(numMsgType, pk, round, msgType)
 	}
 
-	return numMsgType >= cmv.consensusService.GetMaxNumOfMessageTypeAccepted(msgType)
+	return cmv.checkLimitReached(numMsgType, pk, round, msgType)
+}
+
+func (cmv *consensusMessageValidator) checkLimitReached(numMsgType uint32, pk []byte, round int64, msgType consensus.MessageType) bool {
+	isLimitReached := numMsgType >= cmv.consensusService.GetMaxNumOfMessageTypeAccepted(msgType)
+	if !isLimitReached {
+		cmv.addMessageTypeToPublicKey(pk, round, msgType)
+	}
+
+	return isLimitReached
 }
 
 func (cmv *consensusMessageValidator) addMessageTypeToPublicKey(pk []byte, round int64, msgType consensus.MessageType) {
-	cmv.mutPkConsensusMessages.Lock()
-	defer cmv.mutPkConsensusMessages.Unlock()
-
 	key := fmt.Sprintf("%s_%d", string(pk), round)
 
 	mapMsgType, ok := cmv.mapPkConsensusMessages[key]
@@ -524,6 +531,20 @@ func (cmv *consensusMessageValidator) addMessageTypeToPublicKey(pk []byte, round
 	}
 
 	mapMsgType[msgType]++
+}
+
+func (cmv *consensusMessageValidator) removeMessageTypeToPublicKey(pk []byte, round int64, msgType consensus.MessageType) {
+	cmv.mutPkConsensusMessages.Lock()
+	defer cmv.mutPkConsensusMessages.Unlock()
+
+	key := fmt.Sprintf("%s_%d", string(pk), round)
+
+	mapMsgType, ok := cmv.mapPkConsensusMessages[key]
+	if !ok {
+		return
+	}
+
+	mapMsgType[msgType]--
 }
 
 func (cmv *consensusMessageValidator) resetConsensusMessages() {
