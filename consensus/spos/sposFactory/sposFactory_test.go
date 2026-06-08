@@ -59,14 +59,11 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		shardCoord,
 		peerSigHandler,
 		headersSubscriber,
-		headersSubscriber,
 		&dataRetrieverMock.ProofsPoolMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
-		&dataRetrieverMock.ProofsPoolMock{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -95,14 +92,11 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		shardCoord,
 		peerSigHandler,
 		headersSubscriber,
-		headersSubscriber,
 		&dataRetrieverMock.ProofsPoolMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
-		&dataRetrieverMock.ProofsPoolMock{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -123,14 +117,11 @@ func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 		nil,
 		nil,
 		headersSubscriber,
-		headersSubscriber,
 		&dataRetrieverMock.ProofsPoolMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
-		&dataRetrieverMock.ProofsPoolMock{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, bm)
@@ -155,14 +146,11 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		shardCoord,
 		nil,
 		headersSubscriber,
-		headersSubscriber,
 		&dataRetrieverMock.ProofsPoolMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
-		&dataRetrieverMock.ProofsPoolMock{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, bm)

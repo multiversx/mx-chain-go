@@ -193,9 +193,9 @@ func TestNewDelayedBlockBroadcaster_NilHeadersPoolShouldErr(t *testing.T) {
 	t.Parallel()
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
-	delayBroadcasterArgs.HeadersPool = nil
+	delayBroadcasterArgs.HeadersSubscriber = nil
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
-	require.Equal(t, spos.ErrNilHeadersPool, err)
+	require.Equal(t, spos.ErrNilHeadersSubscriber, err)
 	require.Nil(t, dbb)
 }
 
@@ -205,7 +205,7 @@ func TestNewDelayedBlockBroadcaster_NilProofsPoolShouldErr(t *testing.T) {
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.ProofsPool = nil
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
-	require.Equal(t, process.ErrNilProofsPool, err)
+	require.Equal(t, spos.ErrNilEquivalentProofPool, err)
 	require.Nil(t, dbb)
 }
 
@@ -281,7 +281,7 @@ func TestDelayedBlockBroadcaster_ReceivedProof_HeaderNotInPoolShouldNotBroadcast
 			return flag == common.AndromedaFlag
 		},
 	}
-	delayBroadcasterArgs.HeadersPool = &pool.HeadersPoolStub{
+	delayBroadcasterArgs.HeadersSubscriber = &pool.HeadersPoolStub{
 		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 			return nil, errors.New("not found")
 		},
@@ -310,7 +310,7 @@ func TestDelayedBlockBroadcaster_ReceivedProof_HeaderNotInPoolShouldNotBroadcast
 		HeaderShardId: core.MetachainShardId,
 		HeaderNonce:   1,
 	}
-	dbb.ReceivedProof(proof)
+	dbb.ProofReceived(proof)
 	time.Sleep(common.ExtraDelayForBroadcastBlockInfo + common.ExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
 
 	assert.False(t, mbBroadcastCalled.IsSet(), "should NOT broadcast when header is not in pool")
@@ -339,7 +339,7 @@ func TestDelayedBlockBroadcaster_ReceivedProof_NonMetaShouldBeIgnored(t *testing
 		HeaderHash:    []byte("shard hash"),
 		HeaderShardId: 0, // not metachain
 	}
-	dbb.ReceivedProof(proof)
+	dbb.ProofReceived(proof)
 	time.Sleep(50 * time.Millisecond)
 
 	assert.False(t, mbBroadcastCalled.IsSet(), "should NOT broadcast for non-metachain proofs")
@@ -353,7 +353,7 @@ func TestDelayedBlockBroadcaster_ReceivedProof_NilProofShouldNotPanic(t *testing
 	require.Nil(t, err)
 
 	require.NotPanics(t, func() {
-		dbb.ReceivedProof(nil)
+		dbb.ProofReceived(nil)
 	})
 }
 
@@ -413,7 +413,7 @@ func TestDelayedBlockBroadcaster_HeaderArrivesFirst_ThenProofTriggersBroadcast(t
 	metaBlock.Nonce = 1
 	metaHash := []byte("meta hash")
 
-	delayBroadcasterArgs.HeadersPool = &pool.HeadersPoolStub{
+	delayBroadcasterArgs.HeadersSubscriber = &pool.HeadersPoolStub{
 		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 			if bytes.Equal(hash, metaHash) {
 				return metaBlock, nil
@@ -454,7 +454,7 @@ func TestDelayedBlockBroadcaster_HeaderArrivesFirst_ThenProofTriggersBroadcast(t
 		HeaderShardId: core.MetachainShardId,
 		HeaderNonce:   1,
 	}
-	dbb.ReceivedProof(proof)
+	dbb.ProofReceived(proof)
 	time.Sleep(common.ExtraDelayForBroadcastBlockInfo + common.ExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
 	assert.True(t, mbBroadcastCalled.IsSet(), "should broadcast after proof arrives")
 }

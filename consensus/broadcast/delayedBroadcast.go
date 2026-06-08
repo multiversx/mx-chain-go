@@ -38,7 +38,6 @@ type shardDataHandler interface {
 type ArgsDelayedBlockBroadcaster struct {
 	InterceptorsContainer process.InterceptorsContainer
 	HeadersSubscriber     consensus.HeadersPoolSubscriber
-	HeadersPool           consensus.HeadersPoolGetter
 	ProofsPool            consensus.EquivalentProofsPool
 	EnableEpochsHandler   common.EnableEpochsHandler
 	ShardCoordinator      sharding.Coordinator
@@ -71,7 +70,6 @@ type delayedBlockBroadcaster struct {
 	interceptorsContainer      process.InterceptorsContainer
 	shardCoordinator           sharding.Coordinator
 	headersSubscriber          consensus.HeadersPoolSubscriber
-	headersPool                consensus.HeadersPoolGetter
 	proofsPool                 consensus.EquivalentProofsPool
 	enableEpochsHandler        common.EnableEpochsHandler
 	valHeaderBroadcastData     []*shared.ValidatorHeaderBroadcastData
@@ -104,9 +102,6 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 	if check.IfNil(args.HeadersSubscriber) {
 		return nil, spos.ErrNilHeadersSubscriber
 	}
-	if check.IfNil(args.HeadersPool) {
-		return nil, spos.ErrNilHeadersPool
-	}
 	if check.IfNil(args.ProofsPool) {
 		return nil, spos.ErrNilEquivalentProofPool
 	}
@@ -132,7 +127,6 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		shardCoordinator:           args.ShardCoordinator,
 		interceptorsContainer:      args.InterceptorsContainer,
 		headersSubscriber:          args.HeadersSubscriber,
-		headersPool:                args.HeadersPool,
 		proofsPool:                 args.ProofsPool,
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		valHeaderBroadcastData:     make([]*shared.ValidatorHeaderBroadcastData, 0),

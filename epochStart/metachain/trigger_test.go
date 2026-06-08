@@ -314,8 +314,14 @@ func TestTrigger_ForceEpochStartShouldWaitMinimumNonceEvenWhenForced(t *testing.
 	t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
-	arguments.Settings.MinRoundsBetweenEpochs = 20
-	arguments.Settings.RoundsPerEpoch = 200
+	arguments.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				MinRoundsBetweenEpochs: 20,
+				RoundsPerEpoch:         200,
+			}, nil
+		},
+	}
 
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	require.Nil(t, err)

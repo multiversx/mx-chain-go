@@ -161,7 +161,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.ShardCoordinator(),
 		ccf.cryptoComponents.PeerSignatureHandler(),
 		ccf.dataComponents.Datapool().Headers(),
-		ccf.dataComponents.Datapool().Headers(),
 		ccf.dataComponents.Datapool().Proofs(),
 		ccf.coreComponents.EnableEpochsHandler(),
 		ccf.processComponents.InterceptorsContainer(),

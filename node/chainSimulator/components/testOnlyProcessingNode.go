@@ -374,14 +374,11 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.ProcessComponentsHolder.ShardCoordinator(),
 		node.CryptoComponentsHolder.PeerSignatureHandler(),
 		node.DataComponentsHolder.Datapool().Headers(),
-		node.DataComponentsHolder.Datapool().Headers(),
 		node.DataComponentsHolder.Datapool().Proofs(),
 		node.CoreComponentsHolder.EnableEpochsHandler(),
 		node.ProcessComponentsHolder.InterceptorsContainer(),
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),
-		node.DataComponentsHolder.Datapool().Proofs(),
-		node.CoreComponentsHolder.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return err
