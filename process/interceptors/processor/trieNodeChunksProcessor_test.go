@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+
 	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -167,6 +168,7 @@ func TestTrieNodeChunksProcessor_CheckBatchInvalidBatch(t *testing.T) {
 			MaxChunks:  4,
 		},
 		createMockWhiteLister(true),
+		p2p.Broadcast,
 	)
 	assert.True(t, errors.Is(err, process.ErrInvalidValue))
 	assert.Equal(t, emptyCheckedChunkResult, chunkResult)

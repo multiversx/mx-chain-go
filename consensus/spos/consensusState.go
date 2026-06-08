@@ -7,8 +7,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -75,7 +76,6 @@ func NewConsensusState(
 
 // ResetConsensusRoundState method resets all the consensus round data (except messages received)
 func (cns *ConsensusState) ResetConsensusRoundState() {
-	cns.mutState.Lock()
 	cns.mutState.Lock()
 	cns.roundCanceled = false
 	cns.extendedCalled = false

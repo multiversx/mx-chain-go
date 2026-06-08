@@ -1219,7 +1219,7 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAnd
 	return nil
 }
 
-func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, _ uint32) error {
 	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock)
 	if err != nil {
 		return err
