@@ -1173,30 +1173,19 @@ func isPartiallyExecuted(
 	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
 }
 
-// check if header has the same mini blocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32) error {
-	err := bp.checkHeaderBodyCorrelation(miniBlockHeaders, body, blockShardID)
-	if err != nil {
-		return err
+func (bp *baseProcessor) checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(miniBlockHeader data.MiniBlockHeaderHandler) error {
+	// for Supernova all miniBlocks not part of an execution result need to have construction state Proposed
+	if miniBlockHeader.GetConstructionState() != int32(block.Proposed) {
+		return process.ErrWrongMiniBlockConstructionState
+	}
+	if miniBlockHeader.GetProcessingType() != int32(block.Normal) {
+		return process.ErrWrongMiniBlockProcessingType
 	}
 
-	return bp.checkMiniBlocksConstructionProposal(miniBlockHeaders)
-}
-
-func (bp *baseProcessor) checkMiniBlocksConstructionProposal(miniBlockHeaders []data.MiniBlockHeaderHandler) error {
-	for i := 0; i < len(miniBlockHeaders); i++ {
-		// for Supernova all miniBlocks not part of an execution result need to have construction state Proposed
-		if miniBlockHeaders[i].GetConstructionState() != int32(block.Proposed) {
-			return process.ErrWrongMiniBlockConstructionState
-		}
-		if miniBlockHeaders[i].GetProcessingType() != int32(block.Normal) {
-			return process.ErrWrongMiniBlockProcessingType
-		}
-	}
 	return nil
 }
 
-func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
 	if !bytes.Equal(mbHash, mbHdr.GetHash()) {
 		return process.ErrHeaderBodyMismatch
 	}
@@ -1222,11 +1211,6 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr 
 		return err
 	}
 
-	err = checkConstructionStateProcessingTypeAndIndexesCorrectness(mbHdr, miniBlock, blockShardID)
-	if err != nil {
-		return err
-	}
-
 	err = bp.checkIndexOfFirstTxProcessedAgainstTracker(mbHdr, mbHash)
 	if err != nil {
 		return err
@@ -1235,8 +1219,24 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr 
 	return nil
 }
 
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
+	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock, blockShardID)
+	if err != nil {
+		return err
+	}
+	return bp.checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr)
+}
+
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
+	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock, blockShardID)
+	if err != nil {
+		return err
+	}
+	return checkConstructionStateProcessingTypeAndIndexesCorrectness(mbHdr, miniBlock, blockShardID)
+}
+
 // check if header has the same mini blocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32) error {
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32, proposal bool) error {
 	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
 		if miniBlockHeaders[i] == nil {
@@ -1279,7 +1279,11 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return process.ErrHeaderBodyMismatch
 		}
 
-		err = bp.checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock, blockShardID)
+		if !proposal {
+			err = bp.checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock, blockShardID)
+		} else {
+			err = bp.checkMiniBlockWithMiniBlockHeaderProposal(mbHash, mbHdr, miniBlock, blockShardID)
+		}
 		if err != nil {
 			return err
 		}
