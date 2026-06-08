@@ -248,7 +248,7 @@ func createMockMetaArguments(
 				},
 			},
 			BlockTracker:                       blockTracker,
-			MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
+			MiniBlockTracker:                   &testscommon.MiniBlockTrackerStub{},
 			BlockSizeThrottler:                 &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:                  &dblookupext.HistoryRepositoryStub{},
 			ScheduledTxsExecutionHandler:       &testscommon.ScheduledTxsExecutionStub{},
@@ -1019,16 +1019,17 @@ func TestMetaProcessor_ProcessBlock_MiniBlockChecks(t *testing.T) {
 	coreComponents.Hash = &hashingMocks.HasherMock{}
 	dataComponents.BlockChain = blkc
 	bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
-		CreateCalled: func(epoch uint32) data.HeaderHandler {
+		CreateCalled: func(epoch uint32, round uint64) data.HeaderHandler {
 			return &block.MetaBlock{
 				Epoch: 0,
+				Round: round,
 			}
 		},
 	}
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.TxCoordinator = txCoordinator
 
-	mp, _ := blproc.NewMetaProcessor(arguments)
+	mp, _ := processBlock.NewMetaProcessor(arguments)
 
 	t.Run("should work with valid miniblocks", func(t *testing.T) {
 		mb1 := &block.MiniBlock{
@@ -2527,7 +2528,7 @@ func TestMetaProcessor_SaveLastNotarizedHeader_ReleasesImmunityForCommittedShard
 		},
 	}
 
-	mp, err := blproc.NewMetaProcessor(arguments)
+	mp, err := processBlock.NewMetaProcessor(arguments)
 	require.Nil(t, err)
 
 	const baseNonce = uint64(44)

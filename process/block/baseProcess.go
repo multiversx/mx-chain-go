@@ -1185,7 +1185,7 @@ func (bp *baseProcessor) checkConstructionStateProcessingTypeAndIndexesCorrectne
 	return nil
 }
 
-func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
 	if !bytes.Equal(mbHash, mbHdr.GetHash()) {
 		return process.ErrHeaderBodyMismatch
 	}
@@ -1220,7 +1220,7 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAnd
 }
 
 func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
-	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock, blockShardID)
+	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock)
 	if err != nil {
 		return err
 	}
@@ -1228,7 +1228,7 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte
 }
 
 func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
-	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock, blockShardID)
+	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock)
 	if err != nil {
 		return err
 	}
@@ -4136,7 +4136,7 @@ func (bp *baseProcessor) cacheUnexecutableTxHashes(headerHash []byte) {
 }
 
 func (bp *baseProcessor) getBlockBodyFromPool(
-	header data.HeaderHandler,
+	_ data.HeaderHandler,
 	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler,
 ) (data.BodyHandler, error) {
 	miniBlocksPool := bp.dataPool.MiniBlocks()

@@ -1998,7 +1998,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockScheduledRollsBackOnError(t *t
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			args := createDefaultTransactionsProcessorArgs()
-			args.TxDataPool = tdp.Transactions()
+			args.DataPool = tdp.Transactions()
 			txs, err := NewTransactionPreprocessor(args)
 			require.NoError(t, err)
 
