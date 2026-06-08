@@ -370,7 +370,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
 	if !header.IsHeaderV3() &&
 		shouldDisableOutgoingTxs(tc.enableEpochsHandler, tc.enableRoundsHandler, header) &&
-		len(miniBlocksFromMe) > 0 {
+		hasForbiddenOutgoingTxMiniBlocks(tc.shardCoordinator.SelfId(), miniBlocksFromMe) {
 		return process.ErrOutgoingTxsDisabled
 	}
 	startTime = time.Now()
@@ -394,6 +394,18 @@ func shouldDisableOutgoingTxs(
 	isSupernovaEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch())
 	supernovaRoundEnabled := enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, header.GetRound())
 	return isSupernovaEnabled && !supernovaRoundEnabled
+}
+
+func hasForbiddenOutgoingTxMiniBlocks(selfShardID uint32, miniBlocks block.MiniBlockSlice) bool {
+	for _, mb := range miniBlocks {
+		if mb.SenderShardID != selfShardID {
+			continue
+		}
+		if mb.Type == block.TxBlock {
+			return true
+		}
+	}
+	return false
 }
 
 // GetCreatedMiniBlocksFromMe returns the created mini blocks from me
