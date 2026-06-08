@@ -1183,41 +1183,6 @@ func TestTrigger_WatchdogRequestEpochStartMetaBlock(t *testing.T) {
 		require.Equal(t, int32(0), called.Load())
 	})
 
-	t.Run("skips when Andromeda disabled", func(t *testing.T) {
-		t.Parallel()
-
-		var called atomic.Int32
-		args := createMockShardEpochStartTriggerArguments()
-		args.RoundHandler = &mock.RoundHandlerStub{
-			TimeDurationCalled: func() time.Duration {
-				return 10 * time.Millisecond
-			},
-			IndexCalled: func() int64 {
-				return 100
-			},
-		}
-		args.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
-				called.Add(1)
-			},
-		}
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return false
-			},
-		}
-
-		et, err := NewEpochStartTrigger(args)
-		require.Nil(t, err)
-		defer func() {
-			_ = et.Close()
-		}()
-
-		time.Sleep(200 * time.Millisecond)
-
-		require.Equal(t, int32(0), called.Load())
-	})
-
 	t.Run("stops on context cancellation", func(t *testing.T) {
 		t.Parallel()
 

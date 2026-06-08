@@ -1349,10 +1349,6 @@ func (t *trigger) handleWatchdogTimeout() {
 		return
 	}
 
-	if !t.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
-		return
-	}
-
 	log.Debug("watchdog: no metablock received for too long, requesting epoch start metablock",
 		"current epoch", epoch,
 		"requesting epoch", epoch+1,
