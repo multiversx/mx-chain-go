@@ -72,9 +72,20 @@ func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
 		return 0, false, err
 	}
 
+	epochBeforeFallback := e.baseData.lastEpoch
 	e.epochStartMeta, err = e.getEpochStartMetaFromStorage(storer)
 	if err != nil {
 		return 0, false, err
+	}
+
+	// if the lookup fell back to an older epoch, make sure the nodes coordinator config (loaded above from
+	// the latest bootstrap data) actually contains that epoch; otherwise the returned parameters would pair
+	// an older epoch with a newer-epoch validator set. Erroring here makes bootstrap continue from network.
+	if e.baseData.lastEpoch != epochBeforeFallback {
+		err = e.checkNodesConfigForEpoch(e.baseData.lastEpoch)
+		if err != nil {
+			return 0, false, err
+		}
 	}
 
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
@@ -282,29 +293,43 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 }
 
 func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (data.MetaHeaderHandler, error) {
-	return e.searchEpochStartMetaBlock(storer, e.baseData.lastEpoch)
-}
+	initialEpoch := e.baseData.lastEpoch
+	for epoch := initialEpoch; ; epoch-- {
+		epochIdentifier := core.EpochStartIdentifier(epoch)
+		epochStartMetaBlock, err := storer.SearchFirst([]byte(epochIdentifier))
+		if err == nil {
+			metaBlock, errUnmarshal := process.UnmarshalMetaHeader(e.coreComponentsHolder.InternalMarshalizer(), epochStartMetaBlock)
+			if errUnmarshal != nil {
+				return nil, errUnmarshal
+			}
 
-func (e *epochStartBootstrap) searchEpochStartMetaBlock(storer storage.Storer, epoch uint32) (data.MetaHeaderHandler, error) {
-	epochIdentifier := core.EpochStartIdentifier(epoch)
-	epochStartMetaBlock, err := storer.SearchFirst([]byte(epochIdentifier))
-	if err != nil {
-		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
-
-		if epoch > 0 && epoch == e.baseData.lastEpoch {
-			prevEpoch := epoch - 1
-			log.Debug("getEpochStartMetaFromStorage: falling back to previous epoch", "epoch", prevEpoch)
-			e.baseData.lastEpoch = prevEpoch
-			return e.searchEpochStartMetaBlock(storer, prevEpoch)
+			e.baseData.lastEpoch = epoch
+			return metaBlock, nil
 		}
 
-		return nil, err
+		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
+		if epoch == 0 {
+			return nil, err
+		}
+
+		log.Warn("getEpochStartMetaFromStorage: epoch start metablock missing, falling back to previous epoch",
+			"missing epoch", epoch,
+			"fallback epoch", epoch-1,
+		)
+	}
+}
+
+// checkNodesConfigForEpoch ensures the loaded nodes coordinator config contains an entry for the given
+// epoch, so the validator/shard assignment is not taken from a different epoch than the one we bootstrap.
+func (e *epochStartBootstrap) checkNodesConfigForEpoch(epoch uint32) error {
+	if e.nodesConfig == nil {
+		return fmt.Errorf("%w: epoch %d", epochStart.ErrMissingNodesConfigForBootstrapEpoch, epoch)
 	}
 
-	metaBlock, err := process.UnmarshalMetaHeader(e.coreComponentsHolder.InternalMarshalizer(), epochStartMetaBlock)
-	if err != nil {
-		return nil, err
+	epochIDasString := fmt.Sprint(epoch)
+	if _, ok := e.nodesConfig.GetEpochsConfig()[epochIDasString]; !ok {
+		return fmt.Errorf("%w: epoch %d", epochStart.ErrMissingNodesConfigForBootstrapEpoch, epoch)
 	}
 
-	return metaBlock, nil
+	return nil
 }

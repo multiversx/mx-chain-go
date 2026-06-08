@@ -10,8 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,6 +86,184 @@ func TestGetEpochStartMetaFromStorageFallbackToPreviousEpoch(t *testing.T) {
 	require.Len(t, searchedKeys, 2)
 	assert.Equal(t, []byte(core.EpochStartIdentifier(10)), searchedKeys[0])
 	assert.Equal(t, []byte(core.EpochStartIdentifier(9)), searchedKeys[1])
+}
+
+func TestGetEpochStartMetaFromStorageFallsBackMultipleEpochs(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
+	epochStartProvider.initializeFromLocalStorage()
+	epochStartProvider.baseData.lastEpoch = 10
+
+	meta := &block.MetaBlock{Nonce: 1, Epoch: 7}
+	metaBytes, _ := json.Marshal(meta)
+	searchedKeys := make([][]byte, 0)
+	storer := &storageStubs.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			searchedKeys = append(searchedKeys, append([]byte(nil), key...))
+			if bytes.Equal(key, []byte(core.EpochStartIdentifier(7))) {
+				return metaBytes, nil
+			}
+
+			return nil, errors.New("missing epoch start metablock")
+		},
+	}
+
+	metaBlock, err := epochStartProvider.getEpochStartMetaFromStorage(storer)
+	require.NoError(t, err)
+	require.Equal(t, meta, metaBlock)
+	require.Equal(t, uint32(7), epochStartProvider.baseData.lastEpoch)
+	require.Len(t, searchedKeys, 4)
+	assert.Equal(t, []byte(core.EpochStartIdentifier(10)), searchedKeys[0])
+	assert.Equal(t, []byte(core.EpochStartIdentifier(9)), searchedKeys[1])
+	assert.Equal(t, []byte(core.EpochStartIdentifier(8)), searchedKeys[2])
+	assert.Equal(t, []byte(core.EpochStartIdentifier(7)), searchedKeys[3])
+}
+
+func TestGetEpochStartMetaFromStorageReturnsErrorAfterSearchingToEpochZero(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
+	epochStartProvider.initializeFromLocalStorage()
+	epochStartProvider.baseData.lastEpoch = 2
+
+	searchErr := errors.New("missing epoch start metablock")
+	searchedKeys := make([][]byte, 0)
+	storer := &storageStubs.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			searchedKeys = append(searchedKeys, append([]byte(nil), key...))
+			return nil, searchErr
+		},
+	}
+
+	metaBlock, err := epochStartProvider.getEpochStartMetaFromStorage(storer)
+	require.Equal(t, searchErr, err)
+	require.Nil(t, metaBlock)
+	require.Equal(t, uint32(2), epochStartProvider.baseData.lastEpoch)
+	require.Len(t, searchedKeys, 3)
+	assert.Equal(t, []byte(core.EpochStartIdentifier(2)), searchedKeys[0])
+	assert.Equal(t, []byte(core.EpochStartIdentifier(1)), searchedKeys[1])
+	assert.Equal(t, []byte(core.EpochStartIdentifier(0)), searchedKeys[2])
+}
+
+func TestGetEpochStartMetaFromStorageUnmarshalErrorDoesNotFallBack(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
+	epochStartProvider.initializeFromLocalStorage()
+	epochStartProvider.baseData.lastEpoch = 10
+
+	searchedKeys := make([][]byte, 0)
+	storer := &storageStubs.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			searchedKeys = append(searchedKeys, append([]byte(nil), key...))
+			return []byte("not a valid meta header"), nil
+		},
+	}
+
+	metaBlock, err := epochStartProvider.getEpochStartMetaFromStorage(storer)
+	require.Error(t, err)
+	require.Nil(t, metaBlock)
+	// a corrupt metablock found at the latest epoch must fail hard, not fall back to an older epoch
+	require.Len(t, searchedKeys, 1)
+	assert.Equal(t, []byte(core.EpochStartIdentifier(10)), searchedKeys[0])
+	assert.Equal(t, uint32(10), epochStartProvider.baseData.lastEpoch)
+}
+
+func TestGetShardIDForLatestEpochFallbackWithMissingNodesConfigErrors(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
+	epochStartProvider.initializeFromLocalStorage()
+	epochStartProvider.baseData.lastEpoch = 10
+
+	round := int64(10)
+	roundBytes, _ := json.Marshal(&bootstrapStorage.RoundNum{Num: round})
+	bootstrapData := bootstrapStorage.BootstrapData{NodesCoordinatorConfigKey: []byte("key")}
+	bootstrapDataBytes, _ := json.Marshal(bootstrapData)
+	nodesCoordinatorKey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
+
+	// the registry only knows about the latest epoch 10, not the fallback epoch 9
+	registryBytes, _ := json.Marshal(&nodesCoordinator.NodesCoordinatorRegistry{
+		EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
+			"10": {},
+		},
+	})
+	metaBytes, _ := json.Marshal(&block.MetaBlock{Nonce: 1, Epoch: 9})
+
+	storer := &storageStubs.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			switch {
+			case bytes.Equal([]byte(common.HighestRoundFromBootStorage), key):
+				return roundBytes, nil
+			case bytes.Equal([]byte(strconv.FormatInt(round, 10)), key):
+				return bootstrapDataBytes, nil
+			default:
+				return nil, nil
+			}
+		},
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			switch {
+			case bytes.Equal(nodesCoordinatorKey, key):
+				return registryBytes, nil
+			case bytes.Equal([]byte(core.EpochStartIdentifier(10)), key):
+				return nil, errors.New("missing epoch start metablock")
+			case bytes.Equal([]byte(core.EpochStartIdentifier(9)), key):
+				return metaBytes, nil
+			default:
+				return nil, errors.New("unexpected key")
+			}
+		},
+	}
+
+	epochStartProvider.storageOpenerHandler = &storageStubs.UnitOpenerStub{
+		GetMostRecentStorageUnitCalled: func(cfg config.DBConfig) (storage.Storer, error) {
+			return storer, nil
+		},
+	}
+
+	_, _, err = epochStartProvider.getShardIDForLatestEpoch()
+	// the metablock lookup falls back from epoch 10 to 9, but the nodes config only contains epoch 10,
+	// so the mixed-epoch parameters are rejected instead of starting with a stale validator set
+	require.True(t, errors.Is(err, epochStart.ErrMissingNodesConfigForBootstrapEpoch))
+	assert.Equal(t, uint32(9), epochStartProvider.baseData.lastEpoch)
+}
+
+func TestCheckNodesConfigForEpoch(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.Nil(t, err)
+
+	t.Run("nil nodes config should error", func(t *testing.T) {
+		epochStartProvider.nodesConfig = nil
+		errCheck := epochStartProvider.checkNodesConfigForEpoch(9)
+		require.True(t, errors.Is(errCheck, epochStart.ErrMissingNodesConfigForBootstrapEpoch))
+	})
+
+	t.Run("epoch config missing should error", func(t *testing.T) {
+		epochStartProvider.nodesConfig = &nodesCoordinator.NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
+				"10": {},
+			},
+		}
+		errCheck := epochStartProvider.checkNodesConfigForEpoch(9)
+		require.True(t, errors.Is(errCheck, epochStart.ErrMissingNodesConfigForBootstrapEpoch))
+	})
+
+	t.Run("epoch config present should pass", func(t *testing.T) {
+		epochStartProvider.nodesConfig = &nodesCoordinator.NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
+				"9": {},
+			},
+		}
+		errCheck := epochStartProvider.checkNodesConfigForEpoch(9)
+		require.NoError(t, errCheck)
+	})
 }
 
 func TestGetLastBootstrapData(t *testing.T) {
