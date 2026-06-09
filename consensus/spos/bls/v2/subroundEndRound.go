@@ -123,27 +123,18 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta *consensus.Message) bool {
 	messageSender := string(cnsDta.PubKey)
 
-	if !sr.IsConsensusDataSet() {
-		return false
-	}
-	if check.IfNil(sr.GetHeader()) {
-		return false
-	}
-
 	isSelfSender := sr.IsNodeSelf(messageSender) || sr.IsKeyManagedBySelf([]byte(messageSender))
 	if isSelfSender {
 		return false
 	}
-
-	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsNodeInConsensusGroup(messageSender) {
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
-		return false
-	}
-
-	if !sr.IsNodeInConsensusGroup(string(cnsDta.PubKey)) {
+	// accept only for current and next round
+	currentRound := sr.RoundHandler().Index()
+	validRound := cnsDta.RoundIndex == currentRound || cnsDta.RoundIndex == currentRound-1
+	if !validRound {
 		return false
 	}
 

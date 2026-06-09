@@ -1810,7 +1810,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
 		assert.False(t, res)
 	})
-	t.Run("should work", func(t *testing.T) {
+
+	t.Run("should not work for out of bounds round", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
@@ -1822,6 +1823,20 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		}
 		container.SetInvalidSignersCache(invalidSignersCache)
 
+		numCalls := 0
+		roundHandlerMock := &round.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				if numCalls == 0 {
+					numCalls++
+					return 9
+				}
+
+				return 12
+			},
+		}
+
+		container.SetRoundHandler(roundHandlerMock)
+
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetHeader(&block.HeaderV2{
 			Header: createDefaultHeader(),
@@ -1830,6 +1845,83 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
 			InvalidSigners:  []byte("B"),
+			RoundIndex:      10,
+		}
+
+		res := sr.ReceivedInvalidSignersInfo(&cnsData)
+		assert.False(t, res)
+		require.False(t, wasAddInvalidSignersCalled)
+
+		res = sr.ReceivedInvalidSignersInfo(&cnsData)
+		assert.False(t, res)
+		require.False(t, wasAddInvalidSignersCalled)
+	})
+
+	t.Run("should work for current round", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		wasAddInvalidSignersCalled := false
+		invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{
+			AddInvalidSignersCalled: func(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string) {
+				wasAddInvalidSignersCalled = true
+			},
+		}
+		container.SetInvalidSignersCache(invalidSignersCache)
+
+		roundHandlerMock := &round.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 10
+			},
+		}
+
+		container.SetRoundHandler(roundHandlerMock)
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		sr.SetHeader(&block.HeaderV2{
+			Header: createDefaultHeader(),
+		})
+		cnsData := consensus.Message{
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("A"),
+			InvalidSigners:  []byte("B"),
+			RoundIndex:      10,
+		}
+
+		res := sr.ReceivedInvalidSignersInfo(&cnsData)
+		assert.True(t, res)
+		require.True(t, wasAddInvalidSignersCalled)
+	})
+
+	t.Run("should work for next round", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		wasAddInvalidSignersCalled := false
+		invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{
+			AddInvalidSignersCalled: func(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string) {
+				wasAddInvalidSignersCalled = true
+			},
+		}
+		container.SetInvalidSignersCache(invalidSignersCache)
+
+		roundHandlerMock := &round.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 11
+			},
+		}
+
+		container.SetRoundHandler(roundHandlerMock)
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		sr.SetHeader(&block.HeaderV2{
+			Header: createDefaultHeader(),
+		})
+		cnsData := consensus.Message{
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("A"),
+			InvalidSigners:  []byte("B"),
+			RoundIndex:      10,
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
