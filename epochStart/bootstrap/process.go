@@ -1582,9 +1582,14 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		return err
 	}
 
-	e.resolversContainer = container
+	err = resolverFactory.AddShardTrieNodeResolvers(container)
+	if err != nil {
+		_ = container.Close()
+		return err
+	}
 
-	return resolverFactory.AddShardTrieNodeResolvers(container)
+	e.resolversContainer = container
+	return nil
 }
 
 func (e *epochStartBootstrap) createRequestHandler() error {

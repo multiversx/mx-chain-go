@@ -318,24 +318,32 @@ func (sesb *storageEpochStartBootstrap) rebuildStorageComponentsForShard() error
 }
 
 func (sesb *storageEpochStartBootstrap) closeStorageRequesters() error {
-	var errFound error
+	var containerErr error
 	if !check.IfNil(sesb.container) {
 		err := sesb.container.Close()
 		if err != nil {
-			errFound = fmt.Errorf("close storage requesters container: %w", err)
+			containerErr = fmt.Errorf("close storage requesters container: %w", err)
 		}
 		sesb.container = nil
 	}
 
+	var storeErr error
 	if !check.IfNil(sesb.store) {
 		err := sesb.store.CloseAll()
 		if err != nil {
-			errFound = fmt.Errorf("close storage service: %w", err)
+			storeErr = fmt.Errorf("close storage service: %w", err)
 		}
 		sesb.store = nil
 	}
 
-	return errFound
+	switch {
+	case containerErr != nil && storeErr != nil:
+		return fmt.Errorf("%v; %w", containerErr, storeErr)
+	case storeErr != nil:
+		return storeErr
+	default:
+		return containerErr
+	}
 }
 
 func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Parameters, error) {
