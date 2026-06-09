@@ -544,7 +544,18 @@ func (cmv *consensusMessageValidator) removeMessageTypeToPublicKey(pk []byte, ro
 		return
 	}
 
-	mapMsgType[msgType]--
+	count, ok := mapMsgType[msgType]
+	if !ok || count == 0 {
+		return
+	}
+	if count == 1 {
+		delete(mapMsgType, msgType)
+		if len(mapMsgType) == 0 {
+			delete(cmv.mapPkConsensusMessages, key)
+		}
+		return
+	}
+	mapMsgType[msgType] = count - 1
 }
 
 func (cmv *consensusMessageValidator) resetConsensusMessages() {

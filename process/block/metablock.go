@@ -1940,13 +1940,15 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 		}
 	}
 
-	log.Debug("last notarized meta header in shard",
-		"shard", shardID,
-		"epoch", lastNotarizedMetaHeader.GetEpoch(),
-		"round", lastNotarizedMetaHeader.GetRound(),
-		"nonce", lastNotarizedMetaHeader.GetNonce(),
-		"hash", lastNotarizedMetaHeaderHash,
-	)
+	if lastNotarizedMetaHeader != nil {
+		log.Debug("last notarized meta header in shard",
+			"shard", shardID,
+			"epoch", lastNotarizedMetaHeader.GetEpoch(),
+			"round", lastNotarizedMetaHeader.GetRound(),
+			"nonce", lastNotarizedMetaHeader.GetNonce(),
+			"hash", lastNotarizedMetaHeaderHash,
+		)
+	}
 
 	return lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash
 }
