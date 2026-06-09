@@ -19,12 +19,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
@@ -37,6 +38,8 @@ var _ closing.Closer = (*trigger)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in requestMissingMiniBlocks method
 const sleepTime = 1 * time.Second
+
+const numRoundsWithoutReceivedMetaBlocks = 5
 
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {
@@ -72,11 +75,12 @@ type trigger struct {
 	epochStartShardHeader       data.HeaderHandler
 	epochStartMeta              data.HeaderHandler
 
-	mutTrigger         sync.RWMutex
-	mapHashHdr         map[string]data.HeaderHandler
-	mapNonceHashes     map[uint64][]string
-	mapEpochStartHdrs  map[string]data.HeaderHandler
-	mapFinalizedEpochs map[uint32]string
+	mutTrigger                sync.RWMutex
+	mapHashHdr                map[string]data.HeaderHandler
+	mapNonceHashes            map[uint64][]string
+	mapEpochStartHdrs         map[string]data.HeaderHandler
+	mapFinalizedEpochs        map[uint32]string
+	mapPreparedEpochStartHdrs map[string]struct{}
 
 	headersPool                   dataRetriever.HeadersPool
 	proofsPool                    dataRetriever.ProofsPool
@@ -114,6 +118,8 @@ type trigger struct {
 	mutMissingMiniBlocks     sync.RWMutex
 	mutMissingValidatorsInfo sync.RWMutex
 	cancelFunc               func()
+
+	chanMetaBlockReceived chan struct{}
 
 	extraDelayForRequestBlockInfo time.Duration
 }
@@ -273,6 +279,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		roundHandler:                  args.RoundHandler,
 		enableEpochsHandler:           args.EnableEpochsHandler,
 		extraDelayForRequestBlockInfo: args.ExtraDelayForRequestBlockInfo,
+		chanMetaBlockReceived:         make(chan struct{}, 1),
 	}
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
@@ -285,11 +292,13 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 
 	t.mapMissingMiniBlocks = make(map[string]uint32)
 	t.mapMissingValidatorsInfo = make(map[string]uint32)
+	t.mapPreparedEpochStartHdrs = make(map[string]struct{})
 
 	var ctx context.Context
 	ctx, t.cancelFunc = context.WithCancel(context.Background())
 	go t.requestMissingMiniBlocks(ctx)
 	go t.requestMissingValidatorsInfo(ctx)
+	go t.watchdogRequestEpochStartMetaBlock(ctx)
 
 	return t, nil
 }
@@ -333,6 +342,16 @@ func (t *trigger) requestMissingMiniBlocks(ctx context.Context) {
 		t.mutMissingMiniBlocks.RLock()
 		if len(t.mapMissingMiniBlocks) == 0 {
 			t.mutMissingMiniBlocks.RUnlock()
+
+			t.mutTrigger.Lock()
+			if t.isEpochStart {
+				t.mutTrigger.Unlock()
+				continue
+			}
+
+			t.updateTriggerFromMeta()
+			t.mutTrigger.Unlock()
+
 			continue
 		}
 
@@ -586,6 +605,11 @@ func (t *trigger) receivedProof(headerProof data.HeaderProofHandler) {
 func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
 	if headerHandler.GetShardID() != core.MetachainShardId {
 		return
+	}
+
+	select {
+	case t.chanMetaBlockReceived <- struct{}{}:
+	default:
 	}
 
 	log.Debug("received meta header in trigger", "header hash", metaBlockHash)
@@ -880,7 +904,10 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 		}
 	}
 
-	t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
+	if _, alreadyPrepared := t.mapPreparedEpochStartHdrs[hash]; !alreadyPrepared {
+		t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
+		t.mapPreparedEpochStartHdrs[hash] = struct{}{}
+	}
 
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
 	return isMetaHdrFinal, finalityAttestingRound
@@ -1095,6 +1122,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.mapNonceHashes = make(map[uint64][]string)
 	t.mapEpochStartHdrs = make(map[string]data.HeaderHandler)
 	t.mapFinalizedEpochs = make(map[uint32]string)
+	t.mapPreparedEpochStartHdrs = make(map[string]struct{})
 
 	t.saveCurrentState(header.GetRound())
 
@@ -1251,6 +1279,66 @@ func (t *trigger) saveCurrentState(round uint64) {
 	if err != nil {
 		log.Debug("error saving trigger state", "error", err, "key", t.triggerStateKey)
 	}
+}
+
+func (t *trigger) computeWatchdogTimeout() time.Duration {
+	timeout := t.roundHandler.TimeDuration() * numRoundsWithoutReceivedMetaBlocks
+	if timeout <= 0 {
+		return 0
+	}
+	return timeout
+}
+
+func (t *trigger) watchdogRequestEpochStartMetaBlock(ctx context.Context) {
+	watchdogTimeout := t.computeWatchdogTimeout()
+	if watchdogTimeout == 0 {
+		return
+	}
+
+	timer := time.NewTimer(watchdogTimeout)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug("watchdogRequestEpochStartMetaBlock: trigger's go routine is stopping...")
+			return
+		case <-t.chanMetaBlockReceived:
+			timer.Reset(t.resetWatchdogTimeout(watchdogTimeout))
+		case <-timer.C:
+			t.handleWatchdogTimeout()
+			timer.Reset(t.resetWatchdogTimeout(watchdogTimeout))
+		}
+	}
+}
+
+func (t *trigger) resetWatchdogTimeout(fallback time.Duration) time.Duration {
+	timeout := t.computeWatchdogTimeout()
+	if timeout == 0 {
+		return fallback
+	}
+	return timeout
+}
+
+func (t *trigger) handleWatchdogTimeout() {
+	t.mutTrigger.RLock()
+	epoch := t.epoch
+	isEpochStart := t.isEpochStart
+	t.mutTrigger.RUnlock()
+
+	if isEpochStart {
+		return
+	}
+
+	if !t.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		return
+	}
+
+	log.Debug("watchdog: no metablock received for too long, requesting epoch start metablock",
+		"current epoch", epoch,
+		"requesting epoch", epoch+1,
+	)
+	go t.requestHandler.RequestStartOfEpochMetaBlock(epoch + 1)
 }
 
 // Close will close the endless running go routine
