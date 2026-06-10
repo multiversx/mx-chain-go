@@ -151,6 +151,11 @@ func (imh *InterceptedMetaHeader) integrity() error {
 	}
 
 	if imh.hdr.IsHeaderV3() {
+		err = checkMetaShardDataProposal(imh.hdr.GetShardInfoProposalHandlers(), imh.shardCoordinator)
+		if err != nil {
+			return err
+		}
+
 		for i, result := range imh.hdr.GetExecutionResultsHandlers() {
 			executionResult, ok := result.(*block.MetaExecutionResult)
 			if !ok {
