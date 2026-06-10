@@ -1609,38 +1609,6 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 	t.Parallel()
 
-	t.Run("consensus data is not set", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-
-		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.ConsensusStateHandler.SetData(nil)
-
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-
-		res := sr.ReceivedInvalidSignersInfo(&cnsData)
-		assert.False(t, res)
-	})
-	t.Run("consensus header is not set", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-
-		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.SetHeader(nil)
-
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-
-		res := sr.ReceivedInvalidSignersInfo(&cnsData)
-		assert.False(t, res)
-	})
 	t.Run("received message node is not leader in current round", func(t *testing.T) {
 		t.Parallel()
 
@@ -1721,32 +1689,41 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		assert.False(t, res)
 	})
 
-	t.Run("received hash does not match the hash from current consensus state", func(t *testing.T) {
+	t.Run("message from future round should return false", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
-
-		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("Y"),
-			PubKey:          []byte("A"),
-		}
-
-		res := sr.ReceivedInvalidSignersInfo(&cnsData)
-		assert.False(t, res)
-	})
-	t.Run("process received message verification failed, different round index", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
+		container.SetRoundHandler(&round.RoundHandlerMock{
+			IndexCalled: func() int64 { return 5 },
+		})
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
-			RoundIndex:      1,
+			InvalidSigners:  []byte("data"),
+			RoundIndex:      6,
+		}
+
+		res := sr.ReceivedInvalidSignersInfo(&cnsData)
+		assert.False(t, res)
+	})
+	t.Run("message from two rounds ago should return false", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		container.SetRoundHandler(&round.RoundHandlerMock{
+			IndexCalled: func() int64 { return 12 },
+		})
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		cnsData := consensus.Message{
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("A"),
+			InvalidSigners:  []byte("data"),
+			RoundIndex:      10,
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1756,12 +1733,16 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
+		container.SetRoundHandler(&round.RoundHandlerMock{
+			IndexCalled: func() int64 { return 5 },
+		})
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
 			InvalidSigners:  []byte{},
+			RoundIndex:      5,
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1777,12 +1758,16 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			},
 		}
 		container.SetInvalidSignersCache(invalidSignersCache)
+		container.SetRoundHandler(&round.RoundHandlerMock{
+			IndexCalled: func() int64 { return 5 },
+		})
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
 			InvalidSigners:  []byte("invalidSignersData"),
+			RoundIndex:      5,
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1799,12 +1784,16 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		container.SetMessageSigningHandler(messageSigningHandler)
+		container.SetRoundHandler(&round.RoundHandlerMock{
+			IndexCalled: func() int64 { return 5 },
+		})
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
 			InvalidSigners:  []byte("invalid data"),
+			RoundIndex:      5,
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
