@@ -169,10 +169,10 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 		epochStartTrigger1, epochStartTrigger2 := createDummyEpochStartTriggers(arguments, key)
 
 		epochStartTrigger1.mutTrigger.RLock()
-	trigger1Clone := cloneTrigger(epochStartTrigger1)
-	epochStartTrigger1.mutTrigger.RUnlock()
+		trigger1Clone := cloneTrigger(epochStartTrigger1)
+		epochStartTrigger1.mutTrigger.RUnlock()
 
-	trig := createLegacyTriggerRegistryFromTrigger(trigger1Clone)
+		trig := createLegacyTriggerRegistryFromTrigger(trigger1Clone)
 		d, _ := json.Marshal(trig)
 		trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 
@@ -208,13 +208,16 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 		require.Nil(t, err)
 		epochStartTrigger2 := cloneTrigger(epochStartTrigger1)
 
+		epochStartTrigger1.mutTrigger.Lock()
 		epochStartTrigger1.epoch = epoch
 		epochStartTrigger1.triggerStateKey = key
 		epochStartTrigger1.cancelFunc = nil
+		epochStartTrigger1.mutTrigger.Unlock()
 
 		err = epochStartTrigger2.LoadState(key)
 		require.Nil(t, err)
-		require.Equal(t, epochStartTrigger1, epochStartTrigger2)
+		triggerClone := cloneTrigger(epochStartTrigger1)
+		require.Equal(t, triggerClone, epochStartTrigger2)
 	})
 
 	t.Run("header v2", func(t *testing.T) {
@@ -243,16 +246,19 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 		require.Nil(t, err)
 		epochStartTrigger2 := cloneTrigger(epochStartTrigger1)
 
+		epochStartTrigger1.mutTrigger.Lock()
 		epochStartTrigger1.epoch = epoch
 		epochStartTrigger1.triggerStateKey = key
 		epochStartTrigger1.epochStartShardHeader = &block.HeaderV2{
 			Header: &block.Header{},
 		}
 		epochStartTrigger1.cancelFunc = nil
+		epochStartTrigger1.mutTrigger.Unlock()
 
 		err = epochStartTrigger2.LoadState(key)
 		require.Nil(t, err)
-		require.Equal(t, epochStartTrigger1, epochStartTrigger2)
+		triggerClone := cloneTrigger(epochStartTrigger1)
+		require.Equal(t, triggerClone, epochStartTrigger2)
 	})
 
 	t.Run("header v3", func(t *testing.T) {
@@ -277,14 +283,17 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 		require.Nil(t, err)
 		epochStartTrigger2 := cloneTrigger(epochStartTrigger1)
 
+		epochStartTrigger1.mutTrigger.Lock()
 		epochStartTrigger1.epoch = epoch
 		epochStartTrigger1.triggerStateKey = key
 		epochStartTrigger1.epochStartShardHeader = &block.HeaderV3{}
 		epochStartTrigger1.cancelFunc = nil
+		epochStartTrigger1.mutTrigger.Unlock()
 
 		err = epochStartTrigger2.LoadState(key)
 		require.Nil(t, err)
-		require.Equal(t, trigger1Clone, epochStartTrigger2)
+		triggerClone := cloneTrigger(epochStartTrigger1)
+		require.Equal(t, triggerClone, epochStartTrigger2)
 	})
 }
 
