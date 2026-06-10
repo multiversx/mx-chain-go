@@ -43,3 +43,9 @@ const competingBlockSignDelay = 0.5
 // competingProofSendDelay is the fraction of the full round time to wait before sending
 // a proof, giving the previous block's proof time to arrive.
 const competingProofSendDelay = 0.25
+
+// numRoundsInvaligSignersPropagation defines the number of rounfs in which invalid signers consensus message can be propagated
+const numRoundsInvaligSignersPropagation = 1
+
+// numAcceptedSecondsInvalidSigPropagation defines the num of seconds to be accepted for the invalid signature p2p message
+const numAcceptedSecondsInvalidSigPropagation = 1

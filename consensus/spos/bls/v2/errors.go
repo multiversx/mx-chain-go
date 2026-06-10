@@ -19,3 +19,6 @@ var ErrTooManyInvalidSigners = errors.New("too many invalid signers")
 
 // ErrValidSignatureFromInvalidSigner signals that a valid signature was received on invalid signers message
 var ErrValidSignatureFromInvalidSigner = errors.New("valid signature from invalid sender")
+
+// ErrOutOfBoundsInvalidSignersMessage signals that an out of bounds message was received
+var ErrOutOfBoundsInvalidSignersMessage = errors.New("out of bounds invalid signers message")

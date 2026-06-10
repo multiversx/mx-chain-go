@@ -119,6 +119,15 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	sr.doEndRoundJobByNode()
 }
 
+func (sr *subroundEndRound) isRoundWithinBounds(round int64, numRounds uint64) bool {
+	if round < 0 {
+		return false
+	}
+
+	currentRound := sr.RoundHandler().Index()
+	return round >= currentRound && round <= currentRound+int64(numRounds)
+}
+
 // receivedInvalidSignersInfo method is called when a message with invalid signers has been received
 func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta *consensus.Message) bool {
 	messageSender := string(cnsDta.PubKey)
@@ -131,10 +140,9 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
+	// this is consensus message round index - it can be corrupted
 	// accept only for current and next round
-	currentRound := sr.RoundHandler().Index()
-	validRound := cnsDta.RoundIndex == currentRound || cnsDta.RoundIndex == currentRound-1
-	if !validRound {
+	if !sr.isRoundWithinBounds(cnsDta.RoundIndex, numRoundsInvaligSignersPropagation) {
 		return false
 	}
 
@@ -153,14 +161,28 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	log.Debug("step 3: invalid signers info has been evaluated")
+	log.Debug("step 3: invalid signers info has been evaluated", "num invalid signers", len(invalidSignersPubKeys))
+
+	// if no invalid signers confirmed, blacklist consensus message sender
+	if len(invalidSignersPubKeys) == 0 {
+		sr.PeerHonestyHandler().ChangeScore(
+			messageSender,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.ValidatorPeerHonestyDecreaseFactor,
+		)
+
+		originatorPeer := core.PeerID(cnsDta.OriginatorPid)
+		sr.applyBlacklistOnNode(originatorPeer)
+
+		return false
+	}
 
 	invalidSignersCache.AddInvalidSigners(cnsDta.BlockHeaderHash, cnsDta.InvalidSigners, invalidSignersPubKeys)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		messageSender,
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.LeaderPeerHonestyIncreaseFactor,
+		spos.ValidatorPeerHonestyDecreaseFactor,
 	)
 
 	return true
@@ -191,7 +213,26 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 	return pubKeys, nil
 }
 
+func (sr *subroundEndRound) isTimestampWithinBounds(timeStampSec int64, numSeconds uint64) bool {
+	msgTimestampSec := timeStampSec
+	currTimestampSec := sr.SyncTimer().CurrentTime().Unix()
+
+	if msgTimestampSec > currTimestampSec {
+		return false
+	}
+
+	if msgTimestampSec < currTimestampSec-int64(numSeconds) {
+		return false
+	}
+
+	return true
+}
+
 func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, error) {
+	if !sr.isTimestampWithinBounds(msg.Timestamp(), numAcceptedSecondsInvalidSigPropagation) {
+		return "", ErrOutOfBoundsInvalidSignersMessage
+	}
+
 	err := sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return "", err
@@ -201,6 +242,10 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, err
 	err = sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
 	if err != nil {
 		return "", err
+	}
+
+	if !sr.isRoundWithinBounds(cnsMsg.RoundIndex, numRoundsInvaligSignersPropagation) {
+		return "", ErrOutOfBoundsInvalidSignersMessage
 	}
 
 	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
@@ -603,6 +648,8 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail(sender string) ([]b
 	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		return nil, nil, ErrProofAlreadyPropagated
 	}
+
+	// add time limit check before broadcasting
 
 	if len(invalidSigners) > 0 {
 		sr.createAndBroadcastInvalidSigners(invalidSigners, invalidPubKeys, sender)

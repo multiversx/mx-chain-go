@@ -1823,15 +1823,9 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		}
 		container.SetInvalidSignersCache(invalidSignersCache)
 
-		numCalls := 0
 		roundHandlerMock := &round.RoundHandlerMock{
 			IndexCalled: func() int64 {
-				if numCalls == 0 {
-					numCalls++
-					return 9
-				}
-
-				return 12
+				return 10
 			},
 		}
 
@@ -1841,16 +1835,24 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		sr.SetHeader(&block.HeaderV2{
 			Header: createDefaultHeader(),
 		})
+
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
 			InvalidSigners:  []byte("B"),
-			RoundIndex:      10,
+			RoundIndex:      9,
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
 		assert.False(t, res)
 		require.False(t, wasAddInvalidSignersCalled)
+
+		cnsData = consensus.Message{
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("A"),
+			InvalidSigners:  []byte("B"),
+			RoundIndex:      12,
+		}
 
 		res = sr.ReceivedInvalidSignersInfo(&cnsData)
 		assert.False(t, res)
@@ -1907,7 +1909,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		roundHandlerMock := &round.RoundHandlerMock{
 			IndexCalled: func() int64 {
-				return 11
+				return 10
 			},
 		}
 
@@ -1921,7 +1923,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
 			InvalidSigners:  []byte("B"),
-			RoundIndex:      10,
+			RoundIndex:      11,
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
