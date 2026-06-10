@@ -10,6 +10,7 @@ import (
 
 	mock2 "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	"github.com/multiversx/mx-chain-go/testscommon/common"
@@ -82,6 +83,10 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 	consensusCore.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{})
 	consensusCore.SetEpochNotifier(epochNotifier)
 	consensusCore.SetInvalidSignersCache(&consensus.InvalidSignersCacheMock{})
+
+	messagesHandler, _ := bls.NewConsensusService()
+	consensusCore.SetMessagesHandler(messagesHandler)
+
 	handlerArgs.ConsensusCoreHandler = consensusCore
 
 	return handlerArgs, consensusCore

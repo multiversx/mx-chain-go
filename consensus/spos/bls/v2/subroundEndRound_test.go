@@ -1700,6 +1700,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 func TestVerifyInvalidSigners(t *testing.T) {
 	t.Parallel()
 
+	pubKey := []byte("A") // it's in consensus
+
 	t.Run("failed to deserialize invalidSigners field, should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1724,8 +1726,15 @@ func TestVerifyInvalidSigners(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 
+		consensusMsg := &consensus.Message{
+			PubKey:  pubKey,
+			MsgType: int64(bls.MtSignature),
+		}
+
+		consensusMsgBytes, _ := container.Marshalizer().Marshal(consensusMsg)
 		invalidSigners := []p2p.MessageP2P{&factory.Message{
 			FromField: []byte("from"),
+			DataField: consensusMsgBytes,
 		}}
 		invalidSignersBytes, _ := container.Marshalizer().Marshal(invalidSigners)
 
@@ -1747,15 +1756,56 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
+	t.Run("invalid message type should err", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+
+		consensusMsg := &consensus.Message{
+			PubKey:  pubKey,
+			MsgType: int64(bls.MtBlockBody),
+		}
+		consensusMsgBytes, _ := container.Marshalizer().Marshal(consensusMsg)
+
+		invalidSigners := []p2p.MessageP2P{&factory.Message{
+			FromField: []byte("from"),
+			DataField: consensusMsgBytes,
+		}}
+		invalidSignersBytes, _ := container.Marshalizer().Marshal(invalidSigners)
+
+		messageSigningHandler := &mock.MessageSigningHandlerStub{
+			DeserializeCalled: func(messagesBytes []byte) ([]p2p.MessageP2P, error) {
+				require.Equal(t, invalidSignersBytes, messagesBytes)
+				return invalidSigners, nil
+			},
+		}
+
+		wasCalled := false
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			VerifySingleSignatureCalled: func(publicKeyBytes []byte, message []byte, signature []byte) error {
+				wasCalled = true
+				return nil
+			},
+		}
+
+		container.SetSigningHandler(signingHandler)
+		container.SetMessageSigningHandler(messageSigningHandler)
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		_, err := sr.VerifyInvalidSigners(invalidSignersBytes)
+		require.Equal(t, spos.ErrInvalidMessageType, err)
+		require.False(t, wasCalled)
+	})
+
 	t.Run("failed to verify signature share", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
 
-		pubKey := []byte("A") // it's in consensus
-
 		consensusMsg := &consensus.Message{
-			PubKey: pubKey,
+			PubKey:  pubKey,
+			MsgType: int64(bls.MtSignature),
 		}
 		consensusMsgBytes, _ := container.Marshalizer().Marshal(consensusMsg)
 
@@ -1790,15 +1840,14 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		require.True(t, wasCalled)
 	})
 
-	t.Run("should work", func(t *testing.T) {
+	t.Run("valid signature for invalid signer should fail", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
 
-		pubKey := []byte("A") // it's in consensus
-
 		consensusMsg := &consensus.Message{
-			PubKey: pubKey,
+			PubKey:  pubKey,
+			MsgType: int64(bls.MtSignature),
 		}
 		consensusMsgBytes, _ := container.Marshalizer().Marshal(consensusMsg)
 
@@ -1808,13 +1857,64 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		}}
 		invalidSignersBytes, _ := container.Marshalizer().Marshal(invalidSigners)
 
-		messageSigningHandler := &mock.MessageSignerMock{}
+		messageSigningHandler := &mock.MessageSigningHandlerStub{
+			DeserializeCalled: func(messagesBytes []byte) ([]p2p.MessageP2P, error) {
+				require.Equal(t, invalidSignersBytes, messagesBytes)
+				return invalidSigners, nil
+			},
+		}
+
+		wasCalled := false
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			VerifySingleSignatureCalled: func(publicKeyBytes []byte, message []byte, signature []byte) error {
+				wasCalled = true
+				return nil
+			},
+		}
+
+		container.SetSigningHandler(signingHandler)
 		container.SetMessageSigningHandler(messageSigningHandler)
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		_, err := sr.VerifyInvalidSigners(invalidSignersBytes)
+		require.Equal(t, v2.ErrValidSignatureFromInvalidSigner, err)
+		require.True(t, wasCalled)
+	})
+
+	t.Run("should return nil err on invalid signature", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+
+		consensusMsg := &consensus.Message{
+			PubKey:  pubKey,
+			MsgType: int64(bls.MtSignature),
+		}
+		consensusMsgBytes, _ := container.Marshalizer().Marshal(consensusMsg)
+
+		invalidSigners := []p2p.MessageP2P{&factory.Message{
+			FromField: []byte("from"),
+			DataField: consensusMsgBytes,
+		}}
+		invalidSignersBytes, _ := container.Marshalizer().Marshal(invalidSigners)
+
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			VerifySingleSignatureCalled: func(publicKeyBytes []byte, message []byte, signature []byte) error {
+				return errors.New("expected err")
+			},
+		}
+
+		container.SetSigningHandler(signingHandler)
+
+		messageSigningHandler := &mock.MessageSignerMock{}
+		container.SetMessageSigningHandler(messageSigningHandler)
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		retPubKey, err := sr.VerifyInvalidSigners(invalidSignersBytes)
 		require.Nil(t, err)
+		require.Equal(t, pubKey, []byte(retPubKey[0]))
 	})
 }
 

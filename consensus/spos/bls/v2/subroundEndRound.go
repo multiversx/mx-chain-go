@@ -159,6 +159,10 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	invalidSignersPubKeys, err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
 	if err != nil {
 		log.Trace("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
+
+		originatorPeer := core.PeerID(cnsDta.OriginatorPid)
+		sr.applyBlacklistOnNode(originatorPeer)
+
 		return false
 	}
 
@@ -197,13 +201,18 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 }
 
 func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, error) {
-	err := sr.MessageSigningHandler().Verify(msg)
+	cnsMsg := &consensus.Message{}
+	err := sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
 	if err != nil {
 		return "", err
 	}
 
-	cnsMsg := &consensus.Message{}
-	err = sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
+	msgType := consensus.MessageType(cnsMsg.MsgType)
+	if !sr.MessagesHandler().IsMessageWithSignature(msgType) {
+		return "", spos.ErrInvalidMessageType
+	}
+
+	err = sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return "", err
 	}
@@ -220,7 +229,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, err
 		return string(cnsMsg.PubKey), nil
 	}
 
-	return "", nil
+	return "", ErrValidSignatureFromInvalidSigner
 }
 
 func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {

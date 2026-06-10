@@ -91,6 +91,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.InvalidSignersCache()) {
 		return ErrNilInvalidSignersCache
 	}
+	if check.IfNil(container.MessagesHandler()) {
+		return ErrNilConsensusService
+	}
 
 	return nil
 }
