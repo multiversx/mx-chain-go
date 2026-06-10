@@ -1699,11 +1699,12 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
+		// RoundIndex=7 is two rounds ahead of currentRound=5, outside window [5,6]
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
 			InvalidSigners:  []byte("data"),
-			RoundIndex:      6,
+			RoundIndex:      7,
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1848,6 +1849,33 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		require.False(t, wasAddInvalidSignersCalled)
 	})
 
+	t.Run("no confirmed invalid signers should blacklist sender and return false", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		container.SetRoundHandler(&round.RoundHandlerMock{
+			IndexCalled: func() int64 { return 10 },
+		})
+		wasPeerHonestyChangeCalled := false
+		container.SetPeerHonestyHandler(&testscommon.PeerHonestyHandlerStub{
+			ChangeScoreCalled: func(pk string, topic string, units int) {
+				wasPeerHonestyChangeCalled = true
+			},
+		})
+		// default Deserialize returns nil,nil → 0 messages → 0 confirmed invalid signers
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		cnsData := consensus.Message{
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("A"),
+			InvalidSigners:  []byte("B"),
+			RoundIndex:      10,
+		}
+
+		res := sr.ReceivedInvalidSignersInfo(&cnsData)
+		assert.False(t, res)
+		assert.True(t, wasPeerHonestyChangeCalled)
+	})
+
 	t.Run("should work for current round", func(t *testing.T) {
 		t.Parallel()
 
@@ -1860,13 +1888,32 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		}
 		container.SetInvalidSignersCache(invalidSignersCache)
 
-		roundHandlerMock := &round.RoundHandlerMock{
-			IndexCalled: func() int64 {
-				return 10
-			},
-		}
+		currentRound := int64(10)
+		container.SetRoundHandler(&round.RoundHandlerMock{
+			IndexCalled: func() int64 { return currentRound },
+		})
 
-		container.SetRoundHandler(roundHandlerMock)
+		// inner consensus message with RoundIndex within the accepted window [10,11]
+		// TimestampField=0 matches the default SyncTimerMock (time.Unix(0,0))
+		innerMsg := &consensus.Message{
+			PubKey:     []byte("C"),
+			RoundIndex: currentRound,
+		}
+		innerMsgBytes, _ := container.Marshalizer().Marshal(innerMsg)
+		invalidSigner := &factory.Message{
+			FromField: []byte("peer"),
+			DataField: innerMsgBytes,
+		}
+		container.SetMessageSigningHandler(&mock.MessageSigningHandlerStub{
+			DeserializeCalled: func(_ []byte) ([]p2p.MessageP2P, error) {
+				return []p2p.MessageP2P{invalidSigner}, nil
+			},
+		})
+		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+			VerifySingleSignatureCalled: func(publicKeyBytes []byte, message []byte, signature []byte) error {
+				return errors.New("bad signature")
+			},
+		})
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetHeader(&block.HeaderV2{
@@ -1875,7 +1922,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
-			InvalidSigners:  []byte("B"),
+			InvalidSigners:  []byte("some invalid signers data"),
 			RoundIndex:      10,
 		}
 
@@ -1896,22 +1943,42 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		}
 		container.SetInvalidSignersCache(invalidSignersCache)
 
-		roundHandlerMock := &round.RoundHandlerMock{
-			IndexCalled: func() int64 {
-				return 10
-			},
-		}
+		currentRound := int64(10)
+		container.SetRoundHandler(&round.RoundHandlerMock{
+			IndexCalled: func() int64 { return currentRound },
+		})
 
-		container.SetRoundHandler(roundHandlerMock)
+		// inner consensus message with RoundIndex within the accepted window [10,11]
+		// TimestampField=0 matches the default SyncTimerMock (time.Unix(0,0))
+		innerMsg := &consensus.Message{
+			PubKey:     []byte("C"),
+			RoundIndex: currentRound,
+		}
+		innerMsgBytes, _ := container.Marshalizer().Marshal(innerMsg)
+		invalidSigner := &factory.Message{
+			FromField: []byte("peer"),
+			DataField: innerMsgBytes,
+		}
+		container.SetMessageSigningHandler(&mock.MessageSigningHandlerStub{
+			DeserializeCalled: func(_ []byte) ([]p2p.MessageP2P, error) {
+				return []p2p.MessageP2P{invalidSigner}, nil
+			},
+		})
+		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+			VerifySingleSignatureCalled: func(publicKeyBytes []byte, message []byte, signature []byte) error {
+				return errors.New("bad signature")
+			},
+		})
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetHeader(&block.HeaderV2{
 			Header: createDefaultHeader(),
 		})
+		// cnsDta.RoundIndex=11 is currentRound+1, still within the accepted window [10,11]
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
-			InvalidSigners:  []byte("B"),
+			InvalidSigners:  []byte("some invalid signers data"),
 			RoundIndex:      11,
 		}
 
@@ -2045,6 +2112,112 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		_, err := sr.VerifyInvalidSigners(invalidSignersBytes)
 		require.Nil(t, err)
 	})
+
+	t.Run("future timestamp on p2p message should error", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		// SyncTimerMock defaults to time.Unix(0,0); a message with Timestamp=1 is in the future
+		invalidSigners := []p2p.MessageP2P{&factory.Message{
+			FromField:      []byte("from"),
+			TimestampField: 1,
+		}}
+		container.SetMessageSigningHandler(&mock.MessageSigningHandlerStub{
+			DeserializeCalled: func(_ []byte) ([]p2p.MessageP2P, error) {
+				return invalidSigners, nil
+			},
+		})
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		_, err := sr.VerifyInvalidSigners([]byte("any"))
+		require.Equal(t, v2.ErrOutOfBoundsInvalidSignersMessage, err)
+	})
+
+	t.Run("too old timestamp on p2p message should error", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		// SyncTimerMock defaults to time.Unix(0,0); numAcceptedSeconds=1, so -2 is too old
+		invalidSigners := []p2p.MessageP2P{&factory.Message{
+			FromField:      []byte("from"),
+			TimestampField: -2,
+		}}
+		container.SetMessageSigningHandler(&mock.MessageSigningHandlerStub{
+			DeserializeCalled: func(_ []byte) ([]p2p.MessageP2P, error) {
+				return invalidSigners, nil
+			},
+		})
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		_, err := sr.VerifyInvalidSigners([]byte("any"))
+		require.Equal(t, v2.ErrOutOfBoundsInvalidSignersMessage, err)
+	})
+
+	t.Run("inner message round out of bounds should error", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		// currentRound=5 (default=0); inner cnsMsg.RoundIndex=7 is beyond window [0,1]
+		outOfBoundsMsg := &consensus.Message{
+			PubKey:     []byte("A"),
+			RoundIndex: 7,
+		}
+		outOfBoundsMsgBytes, _ := container.Marshalizer().Marshal(outOfBoundsMsg)
+		invalidSigners := []p2p.MessageP2P{&factory.Message{
+			FromField: []byte("from"),
+			DataField: outOfBoundsMsgBytes,
+		}}
+		container.SetMessageSigningHandler(&mock.MessageSigningHandlerStub{
+			DeserializeCalled: func(_ []byte) ([]p2p.MessageP2P, error) {
+				return invalidSigners, nil
+			},
+		})
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		_, err := sr.VerifyInvalidSigners([]byte("any"))
+		require.Equal(t, v2.ErrOutOfBoundsInvalidSignersMessage, err)
+	})
+}
+
+func TestIsRoundWithinBounds(t *testing.T) {
+	t.Parallel()
+
+	container := consensusMocks.InitConsensusCore()
+	container.SetRoundHandler(&round.RoundHandlerMock{
+		IndexCalled: func() int64 { return 5 },
+	})
+	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+	// negative round should return false
+	assert.False(t, sr.IsRoundWithinBounds(-1, 1))
+	// round before current should return false
+	assert.False(t, sr.IsRoundWithinBounds(4, 1))
+	// current round should return true
+	assert.True(t, sr.IsRoundWithinBounds(5, 1))
+	// current round plus numRounds boundary should return true
+	assert.True(t, sr.IsRoundWithinBounds(6, 1)) // 5+1=6
+	// round beyond current plus numRounds should return false
+	assert.False(t, sr.IsRoundWithinBounds(7, 1)) // 5+1+1=7 > 5+1
+}
+
+func TestIsTimestampWithinBounds(t *testing.T) {
+	t.Parallel()
+
+	container := consensusMocks.InitConsensusCore()
+	container.SetSyncTimer(&consensusMocks.SyncTimerMock{
+		CurrentTimeCalled: func() time.Time { return time.Unix(1000, 0) },
+	})
+	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+	// future timestamp should return false
+	assert.False(t, sr.IsTimestampWithinBounds(1001, 5))
+
+	// too old timestamp should return false
+	assert.False(t, sr.IsTimestampWithinBounds(994, 5)) // 994 < 1000-5=995
+	// timestamp at lower boundary should return true
+	assert.True(t, sr.IsTimestampWithinBounds(995, 5)) // exactly at 1000-5
+	// timestamp at current time should return true
+	assert.True(t, sr.IsTimestampWithinBounds(1000, 5))
 }
 
 func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {

@@ -395,3 +395,13 @@ func (sr *subroundEndRound) UpdateNonceDeltaMetrics() {
 func (sr *subroundBlock) PrepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
 	return sr.prepareBlockForExecution(header, body)
 }
+
+// IsRoundWithinBounds -
+func (sr *subroundEndRound) IsRoundWithinBounds(round int64, numRounds uint64) bool {
+	return sr.isRoundWithinBounds(round, numRounds)
+}
+
+// IsTimestampWithinBounds -
+func (sr *subroundEndRound) IsTimestampWithinBounds(timeStampSec int64, numSeconds uint64) bool {
+	return sr.isTimestampWithinBounds(timeStampSec, numSeconds)
+}
