@@ -1212,6 +1212,9 @@ var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handl
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
+// ErrNilWatchdog signals that a nil watchdog has been provided
+var ErrNilWatchdog = errors.New("nil watchdog")
+
 // ErrNilEpochChangeGracePeriodHandler signals that a nil epoch change grace period handler has been provided
 var ErrNilEpochChangeGracePeriodHandler = errors.New("nil epoch change grace period handler")
 
