@@ -69,8 +69,8 @@ func createDummyEpochStartTriggers(arguments *ArgsShardEpochStartTrigger, key []
 	// create a copy
 	epochStartTrigger2 := cloneTrigger(epochStartTrigger1)
 
-	epochStartTrigger1.mutTrigger.RLock()
-	defer epochStartTrigger1.mutTrigger.RUnlock()
+	epochStartTrigger1.mutTrigger.Lock()
+	defer epochStartTrigger1.mutTrigger.Unlock()
 
 	epochStartTrigger1.triggerStateKey = key
 	epochStartTrigger1.epoch = 10
