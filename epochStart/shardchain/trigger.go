@@ -1298,16 +1298,26 @@ func (t *trigger) watchdogRequestEpochStartMetaBlock(ctx context.Context) {
 	timer := time.NewTimer(watchdogTimeout)
 	defer timer.Stop()
 
+	resetTimer := func(d time.Duration) {
+		if !timer.Stop() {
+			select {
+			case <-timer.C:
+			default:
+			}
+		}
+		timer.Reset(d)
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
 			log.Debug("watchdogRequestEpochStartMetaBlock: trigger's go routine is stopping...")
 			return
 		case <-t.chanMetaBlockReceived:
-			timer.Reset(t.resetWatchdogTimeout(watchdogTimeout))
+			resetTimer(t.resetWatchdogTimeout(watchdogTimeout))
 		case <-timer.C:
 			t.handleWatchdogTimeout()
-			timer.Reset(t.resetWatchdogTimeout(watchdogTimeout))
+			resetTimer(t.resetWatchdogTimeout(watchdogTimeout))
 		}
 	}
 }
