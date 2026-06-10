@@ -32,6 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -58,6 +59,7 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	validatorInfoCacherStub "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 	updateMock "github.com/multiversx/mx-chain-go/update/mock"
@@ -1020,6 +1022,221 @@ func TestCreateSyncers(t *testing.T) {
 
 	err := epochStartProvider.createSyncers()
 	assert.Nil(t, err)
+}
+
+func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_NoopWhenNotInitialized(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
+
+	err := epochStartProvider.RebuildNetworkComponentsForShard()
+	assert.Nil(t, err)
+	assert.True(t, check.IfNil(epochStartProvider.MainInterceptorContainer()))
+	assert.True(t, check.IfNil(epochStartProvider.FullArchiveInterceptorContainer()))
+	assert.True(t, check.IfNil(epochStartProvider.ResolversContainer()))
+}
+
+func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_RewiresStaleCoordinator(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+	registeredInterceptors := make(map[string]struct{})
+	registeredResolvers := make(map[string]struct{})
+	expectedEpoch := uint32(37)
+	requestedEpoch := uint32(0)
+
+	// Mimic the libp2p messenger: reject duplicate (topic, identifier) registrations so that a
+	// missed unregister during the rebuild is caught as test failure.
+	args.MainMessenger = &p2pmocks.MessengerStub{
+		RegisterMessageProcessorCalled: func(topic string, identifier string, _ p2p.MessageProcessor) error {
+			switch identifier {
+			case common.DefaultInterceptorsIdentifier:
+				if _, dup := registeredInterceptors[topic]; dup {
+					return fmt.Errorf("topic %q already has an interceptor processor", topic)
+				}
+				registeredInterceptors[topic] = struct{}{}
+			case common.DefaultResolversIdentifier:
+				if _, dup := registeredResolvers[topic]; dup {
+					return fmt.Errorf("topic %q already has a resolver processor", topic)
+				}
+				registeredResolvers[topic] = struct{}{}
+			}
+			return nil
+		},
+		UnregisterMessageProcessorCalled: func(topic string, identifier string) error {
+			require.Fail(t, "should have not been called")
+			return nil
+		},
+		UnregisterAllMessageProcessorsCalled: func() error {
+			registeredInterceptors = make(map[string]struct{})
+			registeredResolvers = make(map[string]struct{})
+
+			return nil
+		},
+		ConnectedPeersCalled: func() []core.PeerID {
+			return []core.PeerID{"peer0", "peer1", "peer2"}
+		},
+		ConnectedPeersOnTopicCalled: func(_ string) []core.PeerID {
+			return []core.PeerID{"peer0"}
+		},
+		SendToConnectedPeerCalled: func(_ string, buff []byte, _ core.PeerID) error {
+			requestData := &dataRetriever.RequestData{}
+			err := coreComp.InternalMarshalizer().Unmarshal(requestData, buff)
+			assert.Nil(t, err)
+			requestedEpoch = requestData.Epoch
+
+			return nil
+		},
+	}
+	args.FullArchiveMessenger = &p2pmocks.MessengerStub{}
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: expectedEpoch}
+
+	// Shard-to-shard rather than Meta-to-shard: the rebuild's mechanics are identical, but a Meta
+	// initial coordinator would require populated trie roots that aren't relevant to this test.
+	staleCoordinator, errCoord := sharding.NewMultiShardCoordinator(2, 0)
+	require.Nil(t, errCoord)
+	epochStartProvider.shardCoordinator = staleCoordinator
+	epochStartProvider.dataPool = buildRebuildTestDataPool()
+	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{}
+	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
+	epochStartProvider.storageService = &storageMocks.ChainStorerStub{}
+	epochStartProvider.interceptedDataVerifierFactory = &processMock.InterceptedDataVerifierFactoryMock{}
+	epochStartProvider.trieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), &trieMock.TrieStub{})
+
+	require.Nil(t, epochStartProvider.createResolversContainer())
+	require.Nil(t, epochStartProvider.createRequestHandler())
+	require.Nil(t, epochStartProvider.createSyncers())
+
+	require.False(t, check.IfNil(epochStartProvider.MainInterceptorContainer()))
+	require.False(t, check.IfNil(epochStartProvider.ResolversContainer()))
+
+	oldInterceptorTopics := collectInterceptorTopics(epochStartProvider.MainInterceptorContainer())
+	oldResolverTopics := collectResolverTopics(epochStartProvider.ResolversContainer())
+	require.NotEmpty(t, oldInterceptorTopics)
+	require.NotEmpty(t, oldResolverTopics)
+
+	oldMainInterceptor := epochStartProvider.MainInterceptorContainer()
+	oldResolvers := epochStartProvider.ResolversContainer()
+	oldRequestHandler := epochStartProvider.RequestHandler()
+
+	newCoordinator, errCoord := sharding.NewMultiShardCoordinator(2, 1)
+	require.Nil(t, errCoord)
+	epochStartProvider.shardCoordinator = newCoordinator
+
+	err := epochStartProvider.RebuildNetworkComponentsForShard()
+	require.Nil(t, err)
+
+	assert.NotSame(t, oldMainInterceptor, epochStartProvider.MainInterceptorContainer())
+	assert.NotSame(t, oldResolvers, epochStartProvider.ResolversContainer())
+	assert.NotSame(t, oldRequestHandler, epochStartProvider.RequestHandler())
+
+	assert.NotEmpty(t, registeredInterceptors)
+	assert.NotEmpty(t, registeredResolvers)
+
+	epochStartProvider.RequestHandler().RequestMiniBlock(0, []byte("hash"))
+	assert.Equal(t, expectedEpoch, requestedEpoch)
+}
+
+func TestEpochStartBootstrap_RebuildNetworkComponentsForShard_ErrorPropagatesAndLeavesNoHalfState(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 37}
+
+	staleCoordinator, errCoord := sharding.NewMultiShardCoordinator(2, 0)
+	require.Nil(t, errCoord)
+	epochStartProvider.shardCoordinator = staleCoordinator
+	epochStartProvider.dataPool = buildRebuildTestDataPool()
+	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{}
+	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
+	epochStartProvider.storageService = &storageMocks.ChainStorerStub{}
+	epochStartProvider.interceptedDataVerifierFactory = &processMock.InterceptedDataVerifierFactoryMock{}
+	epochStartProvider.trieContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), &trieMock.TrieStub{})
+
+	require.Nil(t, epochStartProvider.createResolversContainer())
+	require.Nil(t, epochStartProvider.createRequestHandler())
+	require.Nil(t, epochStartProvider.createSyncers())
+
+	// Inject a failure into the createSyncers step of the rebuild
+	epochStartProvider.interceptedDataVerifierFactory = nil
+
+	newCoordinator, errCoord := sharding.NewMultiShardCoordinator(2, 1)
+	require.Nil(t, errCoord)
+	epochStartProvider.shardCoordinator = newCoordinator
+
+	err := epochStartProvider.RebuildNetworkComponentsForShard()
+	require.NotNil(t, err)
+
+	// Tear-down ran before the failure point, so deferred Bootstrap cleanup will not double-close
+	assert.True(t, check.IfNil(epochStartProvider.MainInterceptorContainer()))
+	assert.True(t, check.IfNil(epochStartProvider.FullArchiveInterceptorContainer()))
+}
+
+func buildRebuildTestDataPool() dataRetriever.PoolsHolder {
+	return &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{}
+		},
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return testscommon.NewShardedDataStub()
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
+		TrieNodesCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
+		PeerAuthenticationsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
+		HeartbeatsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
+	}
+}
+
+func collectInterceptorTopics(container process.InterceptorsContainer) map[string]struct{} {
+	topics := make(map[string]struct{})
+	if check.IfNil(container) {
+		return topics
+	}
+	container.Iterate(func(key string, _ process.Interceptor) bool {
+		topics[key] = struct{}{}
+		return true
+	})
+	return topics
+}
+
+func collectResolverTopics(container dataRetriever.ResolversContainer) map[string]struct{} {
+	topics := make(map[string]struct{})
+	if check.IfNil(container) {
+		return topics
+	}
+	container.Iterate(func(key string, _ dataRetriever.Resolver) bool {
+		topics[key] = struct{}{}
+		return true
+	})
+	return topics
 }
 
 func TestSyncHeadersFrom_MockHeadersSyncerShouldSyncHeaders(t *testing.T) {
