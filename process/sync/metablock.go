@@ -8,11 +8,18 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
+)
+
+const (
+	numRoundsWithoutCommittedBlock = 5
+	metaSyncEpochStartWatchdogID   = "metaSyncEpochStartWatchdog"
 )
 
 // MetaBootstrap implements the bootstrap mechanism
@@ -21,6 +28,10 @@ type MetaBootstrap struct {
 	epochBootstrapper           process.EpochBootstrapper
 	validatorStatisticsDBSyncer process.AccountsDBSyncer
 	validatorAccountsDB         state.AccountsAdapter
+
+	watchdog          core.WatchdogTimer
+	watchdogCtx       context.Context
+	watchdogLastNonce uint64
 }
 
 // NewMetaBootstrap creates a new Bootstrap object
@@ -45,6 +56,9 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 	if check.IfNil(arguments.ValidatorAccountsDB) {
 		return nil, process.ErrNilPeerAccountsAdapter
+	}
+	if check.IfNil(arguments.Watchdog) {
+		return nil, process.ErrNilWatchdog
 	}
 
 	err := checkBaseBootstrapParameters(arguments.ArgBaseBootstrapper)
@@ -94,6 +108,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		epochBootstrapper:           arguments.EpochBootstrapper,
 		validatorStatisticsDBSyncer: arguments.ValidatorStatisticsDBSyncer,
 		validatorAccountsDB:         arguments.ValidatorAccountsDB,
+		watchdog:                    arguments.Watchdog,
 	}
 
 	base.blockBootstrapper = &boot
@@ -152,9 +167,89 @@ func (boot *MetaBootstrap) StartSyncingBlocks() error {
 
 	var ctx context.Context
 	ctx, boot.cancelFunc = context.WithCancel(context.Background())
+	boot.watchdogCtx = ctx
 	go boot.syncBlocks(ctx)
 
+	boot.armEpochStartWatchdog()
+
 	return nil
+}
+
+func (boot *MetaBootstrap) armEpochStartWatchdog() {
+	if boot.watchdogCtx == nil || boot.watchdogCtx.Err() != nil {
+		return
+	}
+
+	timeout := boot.roundHandler.TimeDuration() * numRoundsWithoutCommittedBlock
+	if timeout <= 0 {
+		return
+	}
+
+	// capture the baseline nonce now so the alarm measures progress over a single interval
+	boot.watchdogLastNonce = boot.currentBlockNonce()
+	boot.watchdog.Set(boot.epochStartWatchdogCallback, timeout, metaSyncEpochStartWatchdogID)
+}
+
+func (boot *MetaBootstrap) currentBlockNonce() uint64 {
+	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
+		return 0
+	}
+
+	return currentHeader.GetNonce()
+}
+
+func (boot *MetaBootstrap) epochStartWatchdogCallback(_ string) {
+	if boot.watchdogCtx == nil || boot.watchdogCtx.Err() != nil {
+		return
+	}
+	defer boot.armEpochStartWatchdog()
+
+	boot.requestEpochStartBlockIfStuck()
+}
+
+func (boot *MetaBootstrap) requestEpochStartBlockIfStuck() {
+	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
+		return
+	}
+
+	currentNonce := currentHeader.GetNonce()
+	if currentNonce != boot.watchdogLastNonce {
+		return
+	}
+
+	currentEpoch := currentHeader.GetEpoch()
+	targetEpoch := currentEpoch + 1
+	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, targetEpoch) {
+		return
+	}
+
+	targetNonce := currentNonce + 1
+
+	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(targetNonce, boot.headers)
+	if err == nil && !check.IfNil(header) {
+		if boot.proofs.HasProof(core.MetachainShardId, headerHash) {
+			return
+		}
+
+		log.Debug("epoch start watchdog: header present without proof, requesting proof by hash",
+			"nonce", targetNonce,
+			"epoch", header.GetEpoch(),
+			"hash", headerHash,
+		)
+		boot.requestHandler.SetEpoch(header.GetEpoch())
+		boot.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, headerHash)
+		return
+	}
+
+	log.Debug("epoch start watchdog: stuck without epoch change metablock, requesting header and proof",
+		"nonce", targetNonce,
+		"epoch", targetEpoch,
+	)
+	boot.requestHandler.SetEpoch(targetEpoch)
+	boot.requestHandler.RequestStartOfEpochMetaBlock(targetEpoch)
+	boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, targetNonce)
 }
 
 func (boot *MetaBootstrap) setLastEpochStartRound() {
@@ -220,6 +315,10 @@ func (boot *MetaBootstrap) syncValidatorAccountsState(key []byte) error {
 func (boot *MetaBootstrap) Close() error {
 	if check.IfNil(boot.baseBootstrap) {
 		return nil
+	}
+
+	if !check.IfNil(boot.watchdog) {
+		boot.watchdog.Stop(metaSyncEpochStartWatchdogID)
 	}
 
 	return boot.baseBootstrap.Close()

@@ -657,6 +657,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EpochBootstrapper:           ccf.processComponents.EpochStartTrigger(),
 		ValidatorAccountsDB:         ccf.stateComponents.PeerAccounts(),
 		ValidatorStatisticsDBSyncer: validatorAccountsDBSyncer,
+		Watchdog:                    ccf.coreComponents.Watchdog(),
 	}
 
 	return sync.NewMetaBootstrap(argsMetaBootstrapper)
