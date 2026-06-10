@@ -182,7 +182,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	sr.PeerHonestyHandler().ChangeScore(
 		messageSender,
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.ValidatorPeerHonestyDecreaseFactor,
+		spos.ValidatorPeerHonestyIncreaseFactor,
 	)
 
 	return true
@@ -649,7 +649,7 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail(sender string) ([]b
 		return nil, nil, ErrProofAlreadyPropagated
 	}
 
-	// add time limit check before broadcasting
+	// TODO: add time limit check before broadcasting
 
 	if len(invalidSigners) > 0 {
 		sr.createAndBroadcastInvalidSigners(invalidSigners, invalidPubKeys, sender)
