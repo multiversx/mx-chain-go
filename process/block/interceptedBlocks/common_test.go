@@ -1089,8 +1089,6 @@ func TestCheckMetaShardInfo_DuplicateShardDataHashesShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrDuplicatedHashInBlock, err)
 }
 
-// ------- checkMetaShardDataProposal
-
 func TestCheckMetaShardDataProposal_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
