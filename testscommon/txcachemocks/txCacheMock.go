@@ -1,32 +1,97 @@
 package txcachemocks
 
-import "github.com/multiversx/mx-chain-storage-go/txcache"
+import (
+	"time"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/txcache"
+)
 
 // TxCacheMock -
 type TxCacheMock struct {
-	ClearCalled             func()
-	PutCalled               func(key []byte, value interface{}, sizeInBytes int) (evicted bool)
-	GetCalled               func(key []byte) (value interface{}, ok bool)
-	HasCalled               func(key []byte) bool
-	PeekCalled              func(key []byte) (value interface{}, ok bool)
-	HasOrAddCalled          func(key []byte, value interface{}, sizeInBytes int) (has, added bool)
-	RemoveCalled            func(key []byte)
-	RemoveOldestCalled      func()
-	KeysCalled              func() [][]byte
-	LenCalled               func() int
-	MaxSizeCalled           func() int
-	RegisterHandlerCalled   func(func(key []byte, value interface{}))
-	UnRegisterHandlerCalled func(id string)
-	CloseCalled             func() error
-
+	ClearCalled                        func()
+	PutCalled                          func(key []byte, value interface{}, sizeInBytes int) (evicted bool)
+	GetCalled                          func(key []byte) (value interface{}, ok bool)
+	HasCalled                          func(key []byte) bool
+	PeekCalled                         func(key []byte) (value interface{}, ok bool)
+	HasOrAddCalled                     func(key []byte, value interface{}, sizeInBytes int) (has, added bool)
+	RemoveCalled                       func(key []byte)
+	RemoveOldestCalled                 func()
+	KeysCalled                         func() [][]byte
+	LenCalled                          func() int
+	MaxSizeCalled                      func() int
+	RegisterHandlerCalled              func(func(key []byte, value interface{}))
+	UnRegisterHandlerCalled            func(id string)
+	CloseCalled                        func() error
 	AddTxCalled                        func(tx *txcache.WrappedTransaction) (ok bool, added bool)
 	GetByTxHashCalled                  func(txHash []byte) (*txcache.WrappedTransaction, bool)
 	RemoveTxByHashCalled               func(txHash []byte) bool
-	ImmunizeTxsAgainstEvictionCalled   func(keys [][]byte)
+	ImmunizeTxsAgainstEvictionCalled   func(keys [][]byte, nonce uint64)
+	SetOldestImmuneNonceCalled         func(nonce uint64)
 	ForEachTransactionCalled           func(txcache.ForEachTransaction)
 	NumBytesCalled                     func() int
 	DiagnoseCalled                     func(deep bool)
 	GetTransactionsPoolForSenderCalled func(sender string) []*txcache.WrappedTransaction
+	GetTrackerDiagnosisCalled          func() txcache.TrackerDiagnosis
+	OnProposedBlockCalled              func(blockHash []byte, blockBody data.BodyHandler, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, latestExecutedHash []byte) error
+	OnBackfilledBlockCalled            func(blockHash []byte, blockBody data.BodyHandler, blockHeader data.HeaderHandler) error
+	OnExecutedBlockCalled              func(blockHeader data.HeaderHandler, rootHash []byte) error
+	ResetTrackerCalled                 func()
+	CleanupCalled                      func(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64
+}
+
+// GetTrackerDiagnosis -
+func (cache *TxCacheMock) GetTrackerDiagnosis() txcache.TrackerDiagnosis {
+	if cache.GetTrackerDiagnosisCalled != nil {
+		return cache.GetTrackerDiagnosisCalled()
+	}
+
+	return nil
+}
+
+// OnProposedBlock -
+func (cache *TxCacheMock) OnProposedBlock(blockHash []byte, blockBody data.BodyHandler, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, latestExecutedHash []byte) error {
+	if cache.OnProposedBlockCalled != nil {
+		return cache.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
+	}
+
+	return nil
+}
+
+// OnBackfilledBlock -
+func (cache *TxCacheMock) OnBackfilledBlock(blockHash []byte, blockBody data.BodyHandler, blockHeader data.HeaderHandler) error {
+	if cache.OnBackfilledBlockCalled != nil {
+		return cache.OnBackfilledBlockCalled(blockHash, blockBody, blockHeader)
+	}
+
+	return nil
+}
+
+// OnExecutedBlock -
+func (cache *TxCacheMock) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
+	if cache.OnExecutedBlockCalled != nil {
+		return cache.OnExecutedBlockCalled(blockHeader, rootHash)
+	}
+
+	return nil
+}
+
+// ResetTracker -
+func (cache *TxCacheMock) ResetTracker() {
+	if cache.ResetTrackerCalled != nil {
+		cache.ResetTrackerCalled()
+	}
+}
+
+// Cleanup -
+func (cache *TxCacheMock) Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
+	if cache.CleanupCalled != nil {
+		return cache.CleanupCalled(accountsProvider, randomness, maxNum, cleanupLoopMaximumDurationMs)
+	}
+
+	return 0
 }
 
 // NewTxCacheStub -
@@ -176,9 +241,16 @@ func (cache *TxCacheMock) RemoveTxByHash(txHash []byte) bool {
 }
 
 // ImmunizeTxsAgainstEviction -
-func (cache *TxCacheMock) ImmunizeTxsAgainstEviction(keys [][]byte) {
+func (cache *TxCacheMock) ImmunizeTxsAgainstEviction(keys [][]byte, nonce uint64) {
 	if cache.ImmunizeTxsAgainstEvictionCalled != nil {
-		cache.ImmunizeTxsAgainstEvictionCalled(keys)
+		cache.ImmunizeTxsAgainstEvictionCalled(keys, nonce)
+	}
+}
+
+// SetOldestImmuneNonce -
+func (cache *TxCacheMock) SetOldestImmuneNonce(nonce uint64) {
+	if cache.SetOldestImmuneNonceCalled != nil {
+		cache.SetOldestImmuneNonceCalled(nonce)
 	}
 }
 

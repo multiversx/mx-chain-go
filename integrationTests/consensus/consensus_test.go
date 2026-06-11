@@ -112,7 +112,7 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
 	}
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
+	enableEpochsConfig.AndromedaEnableEpoch = uint32(1)
 	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
 	numKeysOnEachNode := 1
 	targetEpoch := uint32(2)
