@@ -982,3 +982,89 @@ func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *test
 	require.Equal(t, 1, len(intermediateResultsHashes.results))
 	assert.Equal(t, txHash, intermediateResultsHashes.results[0])
 }
+
+func TestIntermediateResultsProcessor_VerifyInterMiniBlocksMeta(t *testing.T) {
+	t.Parallel()
+
+	nrShards := 5
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
+	shardCoordinator.CurrentShard = core.MetachainShardId
+
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.Coordinator = shardCoordinator
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
+			return maxGasLimitPerBlock
+		},
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
+			return maxGasLimitPerBlock
+		},
+	}
+	enableEpochHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	enableEpochHandler.AddActiveFlags(common.KeepExecOrderOnCreatedSCRsFlag)
+	args.EnableEpochsHandler = enableEpochHandler
+	irp, err := NewIntermediateResultsProcessor(args)
+
+	assert.NotNil(t, irp)
+	assert.Nil(t, err)
+
+	snd := []byte("snd")
+	otherShard := uint32(1)
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, snd) {
+			return shardCoordinator.SelfId()
+		}
+		return 1
+	}
+
+	txs := make([]data.TransactionHandler, 0)
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr1"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr2"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Value: big.NewInt(1), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Value: big.NewInt(2), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Value: big.NewInt(3), PrevTxHash: []byte("txHash")})
+	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Value: big.NewInt(4), PrevTxHash: []byte("txHash")})
+
+	err = irp.AddIntermediateTransactions(txs, nil)
+	assert.Nil(t, err)
+
+	miniBlock := &block.MiniBlock{
+		SenderShardID:   shardCoordinator.SelfId(),
+		ReceiverShardID: otherShard,
+		Type:            block.SmartContractResultBlock}
+
+	miniBlock.TxHashes = make([][]byte, 0)
+	for i := 0; i < len(txs)/2; i++ {
+		txHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, txs[i])
+		miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
+	}
+
+	body := &block.Body{}
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
+
+	err = irp.VerifyInterMiniBlocks(body)
+	assert.Equal(t, process.ErrMiniBlockNumMissMatch, err)
+
+	imb1 := &block.MiniBlock{
+		SenderShardID:   shardCoordinator.SelfId(),
+		ReceiverShardID: shardCoordinator.SelfId(),
+		Type:            block.SmartContractResultBlock}
+	imb1.TxHashes = make([][]byte, 0)
+	for i := 5; i < len(txs); i++ {
+		txHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, txs[i])
+		imb1.TxHashes = append(imb1.TxHashes, txHash)
+	}
+
+	body.MiniBlocks = append(body.MiniBlocks, imb1)
+	err = irp.VerifyInterMiniBlocks(body)
+	assert.Nil(t, err)
+
+	body.MiniBlocks = append(body.MiniBlocks, imb1)
+	err = irp.VerifyInterMiniBlocks(body)
+	assert.Equal(t, process.ErrMiniBlockNumMissMatch, err)
+}

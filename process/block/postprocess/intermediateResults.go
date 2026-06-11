@@ -203,7 +203,7 @@ func (irp *intermediateResultsProcessor) verifyMetaIntraShardMBs(body *block.Bod
 		if mb.Type != irp.blockType {
 			continue
 		}
-		if mb.SenderShardID != mb.ReceiverShardID && mb.SenderShardID != core.MetachainShardId {
+		if mb.SenderShardID != mb.ReceiverShardID || mb.SenderShardID != core.MetachainShardId {
 			continue
 		}
 		if numIntraShard > 0 {
