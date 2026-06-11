@@ -574,7 +574,6 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 	argsDelayedBroadcaster := broadcast.ArgsDelayedBlockBroadcaster{
 		InterceptorsContainer: args.InterceptorsContainer,
 		HeadersSubscriber:     args.HeadersSubscriber,
-		HeadersPool:           &pool.HeadersPoolStub{},
 		ProofsPool:            &dataRetrieverMock.ProofsPoolMock{},
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ShardCoordinator:      args.ShardCoordinator,
