@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -290,4 +291,13 @@ func (mbt *miniBlockTrack) GetTransactionPool(mbType block.Type) dataRetriever.S
 // SetBlockTransactionsPool -
 func (mbt *miniBlockTrack) SetBlockTransactionsPool(blockTransactionsPool dataRetriever.ShardedDataCacherNotifier) {
 	mbt.blockTransactionsPool = blockTransactionsPool
+}
+
+// GetConfirmedMiniBlockInfo - test accessor for the local registry
+func (mbt *miniBlockTrack) GetConfirmedMiniBlockInfo(miniBlockHash []byte) (cacheID string, nonce uint64, ok bool) {
+	info, found := mbt.getConfirmedMiniBlockInfo(miniBlockHash)
+	if !found {
+		return "", 0, false
+	}
+	return info.cacheID, info.nonce, true
 }

@@ -128,6 +128,11 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	log.Debug("prepareEpochFromStorage for shuffled out", "initial shard id", e.baseData.shardId, "new shard id", newShardId)
 	e.baseData.shardId = newShardId
 
+	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	err = e.createRequestHandler()
 	if err != nil {
 		return Parameters{}, err
@@ -161,11 +166,6 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		return Parameters{}, epochStart.ErrWrongTypeAssertion
 	}
 	e.prevEpochStartMeta = prevEpochStartMeta
-
-	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
-	if err != nil {
-		return Parameters{}, err
-	}
 
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
 	err = e.mainMessenger.CreateTopic(consensusTopic, true)

@@ -374,7 +374,6 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.ProcessComponentsHolder.ShardCoordinator(),
 		node.CryptoComponentsHolder.PeerSignatureHandler(),
 		node.DataComponentsHolder.Datapool().Headers(),
-		node.DataComponentsHolder.Datapool().Headers(),
 		node.DataComponentsHolder.Datapool().Proofs(),
 		node.CoreComponentsHolder.EnableEpochsHandler(),
 		node.ProcessComponentsHolder.InterceptorsContainer(),
