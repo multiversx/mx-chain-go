@@ -209,6 +209,10 @@ func (irp *intermediateResultsProcessor) verifyMetaIntraShardMBs(body *block.Bod
 		if numIntraShard > 0 {
 			return process.ErrMiniBlockNumMissMatch
 		}
+		if irp.intraShardMiniBlock == nil {
+			return process.ErrMiniBlockNumMissMatch
+		}
+
 		createdHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, irp.intraShardMiniBlock)
 		if err != nil {
 			return err

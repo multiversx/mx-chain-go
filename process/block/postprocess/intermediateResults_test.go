@@ -3,6 +3,8 @@ package postprocess
 import (
 	"bytes"
 	"errors"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"math/big"
 	"sort"
 	"strconv"
@@ -1066,5 +1068,11 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksMeta(t *testing.T) {
 
 	body.MiniBlocks = append(body.MiniBlocks, imb1)
 	err = irp.VerifyInterMiniBlocks(body)
+	assert.Equal(t, process.ErrMiniBlockNumMissMatch, err)
+
+	irp.intraShardMiniBlock = nil
+	irp.hasher = blake2b.NewBlake2b()
+	irp.marshalizer, _ = factory.NewMarshalizer("gogo protobuf")
+	err = irp.verifyMetaIntraShardMBs(body)
 	assert.Equal(t, process.ErrMiniBlockNumMissMatch, err)
 }
