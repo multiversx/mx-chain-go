@@ -711,7 +711,12 @@ func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (ma
 
 	hashesToRequest := make([][]byte, 0)
 	shardIds := make([]uint32, 0)
+	isCurrentShardMeta := e.shardCoordinator.SelfId() == core.MetachainShardId
 	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		if !isCurrentShardMeta && epochStartData.GetShardID() != e.shardCoordinator.SelfId() {
+			continue
+		}
+
 		err := e.syncEpochStartDataInfo(meta, epochStartData, syncedHeaders)
 		if err != nil {
 			return nil, err

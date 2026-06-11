@@ -3551,6 +3551,89 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 		require.Nil(t, headers)
 	})
 
+	t.Run("shard node should not request other shards epoch start data", func(t *testing.T) {
+		t.Parallel()
+
+		hdrHash1 := []byte("hdrHash1")
+		hdrHash2 := []byte("hdrHash2")
+		otherShardHdrHash := []byte("otherShardHdrHash")
+		lastExecMetaHash := []byte("lastExecMetaHash")
+
+		header1 := &block.Header{
+			Nonce:    11,
+			PrevHash: hdrHash2,
+		}
+
+		lastExecMeta := &block.MetaBlockV3{
+			Nonce: 20,
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{},
+				},
+			},
+		}
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		epochStartProvider, _ := NewEpochStartBootstrap(args)
+		require.Equal(t, uint32(0), epochStartProvider.shardCoordinator.SelfId())
+
+		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
+				for _, hash := range headersHashes {
+					require.NotEqual(t, otherShardHdrHash, hash)
+				}
+				for _, shardID := range shardIDs {
+					require.True(t, shardID == 0 || shardID == core.MetachainShardId)
+				}
+				return nil
+			},
+			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
+				return map[string]data.HeaderHandler{
+					string(hdrHash1):         header1,
+					string(lastExecMetaHash): lastExecMeta,
+				}, nil
+			},
+		}
+
+		metaBlock := &block.MetaBlockV3{
+			Epoch:    2,
+			Nonce:    21,
+			PrevHash: lastExecMetaHash,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{
+						HeaderHash:            hdrHash1,
+						ShardID:               0,
+						LastFinishedMetaBlock: lastExecMetaHash,
+					},
+					{
+						HeaderHash:            otherShardHdrHash,
+						ShardID:               1,
+						LastFinishedMetaBlock: lastExecMetaHash,
+					},
+				},
+				Economics: block.Economics{
+					PrevEpochStartHash: hdrHash2,
+				},
+			},
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderNonce: 20,
+						HeaderHash:  lastExecMetaHash,
+					},
+				},
+			},
+		}
+
+		headers, err := epochStartProvider.syncHeadersFrom(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, 2, len(headers))
+		require.NotContains(t, headers, string(otherShardHdrHash))
+	})
+
 	t.Run("should work with meta v3 and shard v2", func(t *testing.T) {
 		t.Parallel()
 
