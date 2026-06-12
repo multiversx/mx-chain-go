@@ -315,7 +315,7 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		HeartbeatV2: config.HeartbeatV2Config{
-			PeerAuthenticationTimeBetweenSendsInSec:          1,
+			PeerAuthenticationTimeBetweenSendsInSec:          10,
 			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 			PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 			HeartbeatTimeBetweenSendsInSec:                   1,
@@ -522,7 +522,9 @@ func getLRUCacheConfig() config.CacheConfig {
 // GetDefaultAntifloodConfig -
 func GetDefaultAntifloodConfig() config.AntifloodConfig {
 	return config.AntifloodConfig{
-		Enabled: true,
+		Enabled:                              true,
+		MaxAllowedTrieNodeChunks:             10,
+		TrieNodeChunksInactivityTimeoutInSec: 10,
 		ConfigsByRound: []config.AntifloodConfigByRound{
 			{
 				Round:                               0,

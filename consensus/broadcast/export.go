@@ -81,10 +81,16 @@ func (dbb *delayedBlockBroadcaster) HeaderReceived(headerHandler data.HeaderHand
 	dbb.headerReceived(headerHandler, hash)
 }
 
-// ReceivedProof is the callback registered on the proofs pool
-// to be called when a proof is added to the proofs pool
-func (dbb *delayedBlockBroadcaster) ReceivedProof(proof data.HeaderProofHandler) {
-	dbb.receivedProof(proof)
+// ProofReceived is the callback for when a proof is received
+func (dbb *delayedBlockBroadcaster) ProofReceived(proof data.HeaderProofHandler) {
+	dbb.proofReceived(proof)
+}
+
+// GetPendingMetaHeadersCount returns the number of pending meta headers
+func (dbb *delayedBlockBroadcaster) GetPendingMetaHeadersCount() int {
+	dbb.mutPendingMetaHeaders.RLock()
+	defer dbb.mutPendingMetaHeaders.RUnlock()
+	return len(dbb.pendingMetaHeaders)
 }
 
 // GetValidatorBroadcastData returns the set validator delayed broadcast data

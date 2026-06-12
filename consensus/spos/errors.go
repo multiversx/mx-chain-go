@@ -127,6 +127,9 @@ var ErrInvalidSignature = errors.New("signature is invalid")
 // ErrInvalidHeader is raised when header is invalid
 var ErrInvalidHeader = errors.New("header is invalid")
 
+// ErrInvalidBody is raised when body is invalid
+var ErrInvalidBody = errors.New("body is invalid")
+
 // ErrMessageFromItself is raised when a message from itself is received
 var ErrMessageFromItself = errors.New("message is from itself")
 

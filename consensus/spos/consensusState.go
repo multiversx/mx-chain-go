@@ -7,8 +7,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -81,7 +82,6 @@ func (cns *ConsensusState) ResetConsensusRoundState() {
 	cns.extendedCalled = false
 	cns.waitingAllSignaturesTimeOut = false
 	cns.mutState.Unlock()
-
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
 }

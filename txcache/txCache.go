@@ -401,7 +401,11 @@ func (cache *TxCache) UnRegisterHandler(string) {
 }
 
 // ImmunizeTxsAgainstEviction does nothing for this type of cache
-func (cache *TxCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
+func (cache *TxCache) ImmunizeTxsAgainstEviction(_ [][]byte, _ uint64) {
+}
+
+// SetOldestImmuneNonce does nothing for this type of cache
+func (cache *TxCache) SetOldestImmuneNonce(_ uint64) {
 }
 
 // Close does nothing for this cacher implementation

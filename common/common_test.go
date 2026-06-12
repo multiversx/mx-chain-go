@@ -109,6 +109,29 @@ func TestIsConsensusBitmapValid(t *testing.T) {
 		require.Equal(t, common.ErrNotEnoughSignatures, err)
 	})
 
+	t.Run("padding bits set should return error", func(t *testing.T) {
+		t.Parallel()
+
+		// consensus size is 10, so bitmap should have 2 bytes
+		bitmap := make([]byte, len(pubKeys)/8+1)
+		bitmap[0] = 0xFF
+		bitmap[1] = 0x07
+
+		err := common.IsConsensusBitmapValid(log, pubKeys, bitmap, false)
+		require.Equal(t, common.ErrPaddingBitsSet, err)
+	})
+
+	t.Run("padding bits not set should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		bitmap := make([]byte, len(pubKeys)/8+1)
+		bitmap[0] = 0xFF
+		bitmap[1] = 0x03
+
+		err := common.IsConsensusBitmapValid(log, pubKeys, bitmap, false)
+		require.Nil(t, err)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
