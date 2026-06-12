@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -56,7 +55,8 @@ func (sot *shuffledOutTrigger) Process(newShardID uint32) error {
 	sot.currentShardID = newShardID
 	sot.notifyAllHandlers(newShardID)
 	return sot.endProcessHandler(endProcess.ArgEndProcess{
-		Reason:      common.ShuffledOut,
+		//Reason:      common.ShuffledOut,
+		Reason:      "something",
 		Description: description,
 	})
 }

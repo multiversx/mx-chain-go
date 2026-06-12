@@ -1051,6 +1051,10 @@ func waitForSignal(
 		if sig.Reason == common.ShuffledOut {
 			reshuffled = true
 		}
+		if sig.Reason == "something" {
+			log.Warn("terminating with a new reason !!!")
+		}
+
 		if sig.Reason == common.WrongConfiguration {
 			wrongConfig = true
 			wrongConfigDescription = sig.Description

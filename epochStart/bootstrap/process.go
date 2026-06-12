@@ -1267,6 +1267,8 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 		if err != nil {
 			return Parameters{}, err
 		}
+
+		// syncHeaders with the new shard ID
 	}
 
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
