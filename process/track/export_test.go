@@ -155,7 +155,7 @@ func (bbt *baseBlockTrack) DoWhitelistWithMetaHeaderIfNeeded(metaBlock data.Meta
 }
 
 // DoWhitelistWithShardHeaderIfNeeded -
-func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader *block.Header) {
+func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader data.HeaderHandler) {
 	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
 }
 
