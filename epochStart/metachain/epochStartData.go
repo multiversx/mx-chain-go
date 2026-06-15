@@ -418,7 +418,6 @@ func (e *epochStartData) computePendingMiniBlockList(
 
 	epochStartIdentifier := core.EpochStartIdentifier(prevEpoch)
 
-	// TODO: analyse error handling here
 	previousEpochStartMeta, _ := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
 
 	allPending := make([]block.MiniBlockHeader, 0)

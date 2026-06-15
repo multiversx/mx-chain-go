@@ -250,6 +250,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:      args.CoreComponents.EnableRoundsHandler(),
 		TxVersionChecker:         args.CoreComponents.TxVersionChecker(),
+		ChainHandler:             args.DataComponents.Blockchain(),
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {

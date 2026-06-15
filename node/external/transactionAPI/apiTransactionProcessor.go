@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
@@ -54,6 +55,7 @@ type apiTransactionProcessor struct {
 	enableEpochsHandler         common.EnableEpochsHandler
 	enableRoundsHandler         common.EnableRoundsHandler
 	txVersionChecker            process.TxVersionCheckerHandler
+	chainHandler                data.ChainHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -110,6 +112,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		enableEpochsHandler:         args.EnableEpochsHandler,
 		enableRoundsHandler:         args.EnableRoundsHandler,
 		txVersionChecker:            args.TxVersionChecker,
+		chainHandler:                args.ChainHandler,
 	}, nil
 }
 
@@ -625,11 +628,12 @@ func (atp *apiTransactionProcessor) getVirtualNonceWithBlockInfo(
 
 	// the SelectionSession is used in this flow for fallbacks (e.g. the account does not exist in the proposed blocks, unexpected errors etc.)
 
-	// TODO use the right information below
-	// these variables will also be used for the response
-	// NOTE: should not remain like this
-	var latestCommittedBlockHash []byte
-	var currentNonce uint64
+	latestCommittedBlockHash := atp.chainHandler.GetCurrentBlockHeaderHash()
+	currentHeader := atp.chainHandler.GetCurrentBlockHeader()
+	currentNonce := uint64(0)
+	if !check.IfNil(currentHeader) {
+		currentNonce = currentHeader.GetNonce()
+	}
 
 	virtualNonce, rootHash, err := txCache.GetVirtualNonceAndRootHash(address)
 	if err != nil {

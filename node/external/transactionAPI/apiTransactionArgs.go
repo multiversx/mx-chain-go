@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
@@ -33,4 +34,5 @@ type ArgAPITransactionProcessor struct {
 	EnableEpochsHandler      common.EnableEpochsHandler
 	EnableRoundsHandler      common.EnableRoundsHandler
 	TxVersionChecker         process.TxVersionCheckerHandler
+	ChainHandler             data.ChainHandler
 }

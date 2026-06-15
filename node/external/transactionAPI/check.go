@@ -57,6 +57,9 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	if check.IfNil(arg.TxVersionChecker) {
 		return process.ErrNilTransactionVersionChecker
 	}
+	if check.IfNil(arg.ChainHandler) {
+		return process.ErrNilBlockChain
+	}
 
 	return nil
 }
