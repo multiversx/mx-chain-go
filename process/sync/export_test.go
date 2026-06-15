@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -33,6 +34,16 @@ func (boot *MetaBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte
 // ReceivedProof -
 func (boot *MetaBootstrap) ReceivedProof(header data.HeaderProofHandler) {
 	boot.processReceivedProof(header)
+}
+
+// RequestEpochStartBlockIfStuck -
+func (boot *MetaBootstrap) RequestEpochStartBlockIfStuck() {
+	boot.requestEpochStartBlockIfStuck()
+}
+
+// SetWatchdogLastNonce -
+func (boot *MetaBootstrap) SetWatchdogLastNonce(nonce uint64) {
+	boot.watchdogLastNonce = nonce
 }
 
 // SetRcvHdrNonce -
