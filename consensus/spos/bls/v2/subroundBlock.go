@@ -348,7 +348,7 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
-	sr.triggerCreateSignaturesForManagedKeys(ctx)
+	go sr.triggerCreateSignaturesForManagedKeys(ctx)
 
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(headerHandler)
@@ -360,11 +360,20 @@ func (sr *subroundBlock) sendBlockHeader(
 }
 
 func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Context) {
+	if check.IfNil(sr.GetHeader()) {
+		log.Debug("triggerCreateSignaturesForManagedKeys: triggered with nil header")
+		return
+	}
+
+	currentHash := sr.GetData()
+	currentEpoch := sr.GetHeader().GetEpoch()
+
 	sigSubroundEndTime := time.Duration(float64(sr.RoundHandler().TimeDuration()) * srSignatureEndTime)
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
-
 	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
 	sr.SetSignaturesCtxCancelFunc(cancel)
+
+	wg := sr.SignaturesWaitGroup()
 
 	for idx, pk := range sr.ConsensusGroup() {
 		pkBytes := []byte(pk)
@@ -379,11 +388,11 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 			return
 		}
 		sr.signatureThrottler.StartProcessing()
-		sr.SignaturesWaitGroup().Add(1)
+		wg.Add(1)
 
 		go func(sigCtx context.Context, idx int, pk string) {
 			defer sr.signatureThrottler.EndProcessing()
-			defer sr.SignaturesWaitGroup().Done()
+			defer wg.Done()
 
 			select {
 			case <-sigCtx.Done():
@@ -393,13 +402,12 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 			}
 
 			pkBytes := []byte(pk)
-			currentHash := sr.GetData()
 
 			_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 				sigCtx,
 				currentHash,
 				uint16(idx),
-				sr.GetHeader().GetEpoch(),
+				currentEpoch,
 				pkBytes,
 			)
 			if err != nil {
@@ -710,7 +718,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	sr.AddReceivedHeader(headerHandler)
 
-	sr.triggerCreateSignaturesForManagedKeys(context.Background())
+	go sr.triggerCreateSignaturesForManagedKeys(context.Background())
 
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()
