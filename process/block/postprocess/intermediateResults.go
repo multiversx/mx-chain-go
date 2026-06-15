@@ -193,11 +193,55 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 	return splitMBs
 }
 
+func (irp *intermediateResultsProcessor) verifyMetaIntraShardMBs(body *block.Body) error {
+	if irp.shardCoordinator.SelfId() != core.MetachainShardId {
+		return nil
+	}
+
+	numIntraShard := 0
+	for _, mb := range body.MiniBlocks {
+		if mb.Type != irp.blockType {
+			continue
+		}
+		if mb.SenderShardID != mb.ReceiverShardID || mb.SenderShardID != core.MetachainShardId {
+			continue
+		}
+		if numIntraShard > 0 {
+			return process.ErrMiniBlockNumMissMatch
+		}
+		if irp.intraShardMiniBlock == nil {
+			return process.ErrMiniBlockNumMissMatch
+		}
+
+		createdHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, irp.intraShardMiniBlock)
+		if err != nil {
+			return err
+		}
+
+		receivedHash, err := core.CalculateHash(irp.marshalizer, irp.hasher, mb)
+		if err != nil {
+			return err
+		}
+
+		if !bytes.Equal(createdHash, receivedHash) {
+			return process.ErrMiniBlockHashMismatch
+		}
+		numIntraShard++
+	}
+
+	if irp.intraShardMiniBlock != nil && numIntraShard == 0 {
+		return process.ErrMiniBlockNumMissMatch
+	}
+
+	return nil
+}
+
 // VerifyInterMiniBlocks verifies if the smart contract results added to the block are valid
 func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 	scrMbs := irp.CreateAllInterMiniBlocks()
 	createdMapMbs := createMiniBlocksMap(scrMbs)
 
+	var err error
 	receivedCrossShard := 0
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		mb := body.MiniBlocks[i]
@@ -209,7 +253,7 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 		}
 
 		receivedCrossShard++
-		err := irp.verifyMiniBlock(createdMapMbs, mb)
+		err = irp.verifyMiniBlock(createdMapMbs, mb)
 		if err != nil {
 			return err
 		}
@@ -232,6 +276,11 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 			"num created cross shard", createdCrossShard,
 			"num received cross shard", receivedCrossShard)
 		return process.ErrMiniBlockNumMissMatch
+	}
+
+	err = irp.verifyMetaIntraShardMBs(body)
+	if err != nil {
+		return err
 	}
 
 	return nil
