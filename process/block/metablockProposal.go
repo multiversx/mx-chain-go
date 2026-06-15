@@ -261,7 +261,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		}
 	}
 
-	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
+	err = mp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), true)
 	if err != nil {
 		return err
 	}
