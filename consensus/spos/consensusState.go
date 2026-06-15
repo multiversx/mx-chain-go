@@ -20,7 +20,8 @@ var log = logger.GetOrCreate("consensus/spos")
 type ConsensusState struct {
 	// hold the data on which validators do the consensus (could be for example a hash of the block header
 	// proposed by the leader)
-	Data []byte
+	data    []byte
+	mutData sync.RWMutex
 
 	body    data.BodyHandler
 	mutBody sync.RWMutex
@@ -84,7 +85,7 @@ func (cns *ConsensusState) ResetConsensusRoundState() {
 func (cns *ConsensusState) ResetConsensusState() {
 	cns.SetBody(nil)
 	cns.SetHeader(nil)
-	cns.Data = nil
+	cns.SetData(nil)
 
 	cns.initReceivedHeaders()
 	cns.initReceivedMessagesWithSig()
@@ -194,7 +195,7 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 
 // IsConsensusDataSet method returns true if the consensus data for the current round is set and false otherwise
 func (cns *ConsensusState) IsConsensusDataSet() bool {
-	isConsensusDataSet := cns.Data != nil
+	isConsensusDataSet := cns.GetData() != nil
 
 	return isConsensusDataSet
 }
@@ -202,7 +203,7 @@ func (cns *ConsensusState) IsConsensusDataSet() bool {
 // IsConsensusDataEqual method returns true if the consensus data for the current round is the same with the given
 // one and false otherwise
 func (cns *ConsensusState) IsConsensusDataEqual(data []byte) bool {
-	isConsensusDataEqual := bytes.Equal(cns.Data, data)
+	isConsensusDataEqual := bytes.Equal(cns.GetData(), data)
 
 	return isConsensusDataEqual
 }
@@ -330,12 +331,18 @@ func (cns *ConsensusState) SetProcessingBlock(processingBlock bool) {
 
 // GetData gets the Data of the consensusState
 func (cns *ConsensusState) GetData() []byte {
-	return cns.Data
+	cns.mutData.RLock()
+	data := cns.data
+	cns.mutData.RUnlock()
+
+	return data
 }
 
 // SetData sets the Data of the consensusState
 func (cns *ConsensusState) SetData(data []byte) {
-	cns.Data = data
+	cns.mutData.Lock()
+	cns.data = data
+	cns.mutData.Unlock()
 }
 
 // IsMultiKeyLeaderInCurrentRound method checks if one of the nodes which are controlled by this instance

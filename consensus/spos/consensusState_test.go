@@ -194,7 +194,7 @@ func TestConsensusState_IsConsensusDataSetShouldReturnTrue(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.Data = make([]byte, 0)
+	cns.SetData(make([]byte, 0))
 
 	assert.True(t, cns.IsConsensusDataSet())
 }
@@ -204,7 +204,7 @@ func TestConsensusState_IsConsensusDataSetShouldReturnFalse(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.Data = nil
+	cns.SetData(nil)
 
 	assert.False(t, cns.IsConsensusDataSet())
 }
@@ -216,7 +216,7 @@ func TestConsensusState_IsConsensusDataEqualShouldReturnTrue(t *testing.T) {
 
 	data := []byte("consensus data")
 
-	cns.Data = data
+	cns.SetData(data)
 
 	assert.True(t, cns.IsConsensusDataEqual(data))
 }
@@ -228,7 +228,7 @@ func TestConsensusState_IsConsensusDataEqualShouldReturnFalse(t *testing.T) {
 
 	data := []byte("consensus data")
 
-	cns.Data = data
+	cns.SetData(data)
 
 	assert.False(t, cns.IsConsensusDataEqual([]byte("X")))
 }
@@ -366,7 +366,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenConsensusDataNotSet
 
 	cns := internalInitConsensusState()
 
-	cns.Data = nil
+	cns.SetData(nil)
 
 	assert.False(t, cns.CanDoSubroundJob(bls.SrBlock))
 }
@@ -376,7 +376,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenSelfJobIsDone(t *te
 
 	cns := internalInitConsensusState()
 
-	cns.Data = make([]byte, 0)
+	cns.SetData(make([]byte, 0))
 	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, true)
 
 	assert.False(t, cns.CanDoSubroundJob(bls.SrBlock))
@@ -387,7 +387,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnFalseWhenCurrentRoundIsFinis
 
 	cns := internalInitConsensusState()
 
-	cns.Data = make([]byte, 0)
+	cns.SetData(make([]byte, 0))
 	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, false)
 	cns.SetStatus(bls.SrBlock, spos.SsFinished)
 
@@ -399,7 +399,7 @@ func TestConsensusState_CanDoSubroundJobShouldReturnTrue(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.Data = make([]byte, 0)
+	cns.SetData(make([]byte, 0))
 	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrBlock, false)
 	cns.SetStatus(bls.SrBlock, spos.SsNotFinished)
 
