@@ -145,12 +145,13 @@ func (pr *ProcessorRunner) createCryptoComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createStatusCoreComponents(tb testing.TB) {
 	argsStatusCore := factoryStatusCore.StatusCoreComponentsFactoryArgs{
-		Config:          *pr.Config.GeneralConfig,
-		EpochConfig:     *pr.Config.EpochConfig,
-		RoundConfig:     *pr.Config.RoundConfig,
-		RatingsConfig:   *pr.Config.RatingsConfig,
-		EconomicsConfig: *pr.Config.EconomicsConfig,
-		CoreComp:        pr.CoreComponents,
+		Config:                     *pr.Config.GeneralConfig,
+		EpochConfig:                *pr.Config.EpochConfig,
+		RoundConfig:                *pr.Config.RoundConfig,
+		RatingsConfig:              *pr.Config.RatingsConfig,
+		EconomicsConfig:            *pr.Config.EconomicsConfig,
+		SystemSmartContractsConfig: *pr.Config.SystemSCConfig,
+		CoreComp:                   pr.CoreComponents,
 	}
 
 	statusCoreFactory, err := factoryStatusCore.NewStatusCoreComponentsFactory(argsStatusCore)

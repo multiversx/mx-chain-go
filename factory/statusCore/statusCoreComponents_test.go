@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
@@ -139,6 +140,32 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, cc)
 		require.NoError(t, cc.Close())
+	})
+	t.Run("unbond period metrics are correctly propagated to status metrics", func(t *testing.T) {
+		t.Parallel()
+
+		args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
+		args.SystemSmartContractsConfig = config.SystemSmartContractsConfig{
+			StakingSystemSCConfig: config.StakingSystemSCConfig{
+				UnBondPeriod:          100,
+				UnBondPeriodSupernova: 200,
+				UnBondPeriodInEpochs:  10,
+			},
+		}
+		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
+		require.Nil(t, err)
+
+		managed, err := statusCore.NewManagedStatusCoreComponents(sccf)
+		require.Nil(t, err)
+		require.NoError(t, managed.Create())
+
+		configMetrics, err := managed.StatusMetrics().ConfigMetrics()
+		require.NoError(t, err)
+		assert.Equal(t, uint64(100), configMetrics[common.MetricUnBondPeriod])
+		assert.Equal(t, uint64(200), configMetrics[common.MetricUnBondPeriodSupernova])
+		assert.Equal(t, uint64(10), configMetrics[common.MetricUnBondPeriodInEpochs])
+
+		require.NoError(t, managed.Close())
 	})
 }
 
