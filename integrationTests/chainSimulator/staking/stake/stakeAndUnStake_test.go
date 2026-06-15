@@ -49,7 +49,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	}
 
 	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    20,
@@ -185,7 +185,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	}
 
 	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    20,
@@ -216,7 +216,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 
 	defer cs.Close()
 
-	err = cs.GenerateBlocks(150)
+	err = cs.GenerateBlocks(100)
 	require.Nil(t, err)
 
 	// Step 1 --- add a new validator key in the chain simulator
@@ -280,7 +280,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	require.Equal(t, 20, len(results[0].Nodes))
 	checkTotalQualified(t, results, 8)
 
-	err = cs.GenerateBlocks(100)
+	err = cs.GenerateBlocks(60)
 	require.Nil(t, err)
 
 	results, err = cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().AuctionListApi()
@@ -317,7 +317,7 @@ func TestChainSimulatorStakeUnStakeUnBond(t *testing.T) {
 
 func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    30,
@@ -447,7 +447,7 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    30,
@@ -666,7 +666,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 		t.Skip("this is not a short test")
 	}
 
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    30,
@@ -948,7 +948,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 		t.Skip("this is not a short test")
 	}
 
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    30,
@@ -1192,7 +1192,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 		t.Skip("this is not a short test")
 	}
 
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    30,
@@ -1428,7 +1428,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 		t.Skip("this is not a short test")
 	}
 
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    30,
@@ -1693,7 +1693,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    30,
@@ -2060,7 +2060,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 		t.Skip("this is not a short test")
 	}
 
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    30,
@@ -2358,7 +2358,7 @@ func TestChainSimulator_UnStakeOneActiveNodeAndCheckAPIAuctionList(t *testing.T)
 	}
 
 	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    30,
@@ -2437,7 +2437,7 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 	}
 
 	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(1000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    20,

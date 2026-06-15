@@ -18,6 +18,8 @@ import (
 
 func cloneTrigger(t *trigger) *trigger {
 	rt := &trigger{}
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
 
 	rt.epoch = t.epoch
 	rt.metaEpoch = t.epoch
@@ -57,6 +59,8 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.mapFinalizedEpochs = t.mapFinalizedEpochs
 	rt.roundHandler = t.roundHandler
 	rt.enableEpochsHandler = t.enableEpochsHandler
+	rt.chanMetaBlockReceived = t.chanMetaBlockReceived
+	rt.mapPreparedEpochStartHdrs = t.mapPreparedEpochStartHdrs
 	return rt
 }
 
@@ -64,6 +68,9 @@ func createDummyEpochStartTriggers(arguments *ArgsShardEpochStartTrigger, key []
 	epochStartTrigger1, _ := NewEpochStartTrigger(arguments)
 	// create a copy
 	epochStartTrigger2 := cloneTrigger(epochStartTrigger1)
+
+	epochStartTrigger1.mutTrigger.Lock()
+	defer epochStartTrigger1.mutTrigger.Unlock()
 
 	epochStartTrigger1.triggerStateKey = key
 	epochStartTrigger1.epoch = 10
@@ -93,13 +100,19 @@ func TestTrigger_LoadHeaderV1StateAfterSave(t *testing.T) {
 	}
 	key := []byte("key")
 	epochStartTrigger1, epochStartTrigger2 := createDummyEpochStartTriggers(arguments, key)
+
+	epochStartTrigger1.mutTrigger.RLock()
 	err := epochStartTrigger1.saveState(key)
+	epochStartTrigger1.mutTrigger.RUnlock()
+
 	assert.Nil(t, err)
-	assert.NotEqual(t, epochStartTrigger1, epochStartTrigger2)
+	trigger1Clone := cloneTrigger(epochStartTrigger1)
+	assert.NotEqual(t, trigger1Clone, epochStartTrigger2)
 
 	err = epochStartTrigger2.LoadState(key)
 	assert.Nil(t, err)
-	assert.Equal(t, epochStartTrigger1, epochStartTrigger2)
+	trigger2Clone := cloneTrigger(epochStartTrigger2)
+	assert.Equal(t, trigger1Clone, trigger2Clone)
 }
 
 func TestTrigger_LoadHeaderV2StateAfterSave(t *testing.T) {
@@ -121,13 +134,18 @@ func TestTrigger_LoadHeaderV2StateAfterSave(t *testing.T) {
 	epochStartTrigger1.epochStartShardHeader = &block.HeaderV2{
 		Header:            &block.Header{},
 		ScheduledRootHash: []byte("scheduled root hash")}
+
+	epochStartTrigger1.mutTrigger.RLock()
 	err := epochStartTrigger1.saveState(key)
+	epochStartTrigger1.mutTrigger.RUnlock()
 	assert.Nil(t, err)
-	assert.NotEqual(t, epochStartTrigger1, epochStartTrigger2)
+	trigger1Clone := cloneTrigger(epochStartTrigger1)
+	assert.NotEqual(t, trigger1Clone, epochStartTrigger2)
 
 	err = epochStartTrigger2.LoadState(key)
 	assert.Nil(t, err)
-	assert.Equal(t, epochStartTrigger1, epochStartTrigger2)
+	trigger2Clone := cloneTrigger(epochStartTrigger2)
+	assert.Equal(t, trigger1Clone, trigger2Clone)
 }
 
 func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
@@ -147,7 +165,12 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	key := []byte("key")
 	epochStartTrigger1, epochStartTrigger2 := createDummyEpochStartTriggers(arguments, key)
 
-	trig := createLegacyTriggerRegistryFromTrigger(epochStartTrigger1)
+	epochStartTrigger1.mutTrigger.RLock()
+	trigger1Clone := cloneTrigger(epochStartTrigger1)
+	epochStartTrigger1.mutTrigger.RUnlock()
+
+	trig := createLegacyTriggerRegistryFromTrigger(trigger1Clone)
+
 	d, err := json.Marshal(trig)
 	require.Nil(t, err)
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
@@ -157,7 +180,7 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 
 	err = epochStartTrigger2.LoadState(key)
 	require.Nil(t, err)
-	require.Equal(t, epochStartTrigger1, epochStartTrigger2)
+	require.Equal(t, trigger1Clone, epochStartTrigger2)
 }
 
 type legacyTriggerRegistry struct {
