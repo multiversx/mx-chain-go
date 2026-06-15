@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -173,10 +175,13 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 			MinNumConnectedPeersToStart:       2,
 			MinNumOfPeersToConsiderBlockValid: 2,
 		},
-		HeaderIntegrityVerifier:        &mock.HeaderIntegrityVerifierStub{},
-		MetaBlockProcessor:             &mock.EpochStartMetaBlockProcessorStub{},
-		InterceptedDataVerifierFactory: &processMock.InterceptedDataVerifierFactoryMock{},
-		ProofsPool:                     &dataRetriever.ProofsPoolMock{},
-		ProofsInterceptorProcessor:     &processMock.InterceptorProcessorStub{},
+		HeaderIntegrityVerifier:                 &mock.HeaderIntegrityVerifierStub{},
+		MetaBlockProcessor:                      &mock.EpochStartMetaBlockProcessorStub{},
+		InterceptedDataVerifierFactory:          &processMock.InterceptedDataVerifierFactoryMock{},
+		ProofsPool:                              &dataRetriever.ProofsPoolMock{},
+		HeadersPool:                             &pool.HeadersPoolStub{},
+		ProofsInterceptorProcessor:              &processMock.InterceptorProcessorStub{},
+		PeerAuthCacher:                          cache.NewCacherStub(),
+		PeerAuthenticationTimeBetweenSendsInSec: 60,
 	}
 }

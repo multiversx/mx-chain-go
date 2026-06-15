@@ -123,6 +123,13 @@ func TestMetaStorageBootstrapper_LoadFromStorageShouldCleanupRoundsAboveBootstra
 				EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 				BlockTracker: &mock.BlockTrackerMock{
 					AddTrackedHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
+					GetLastSelfNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+						return &testscommon.HeaderHandlerStub{
+							GetNonceCalled: func() uint64 {
+								return 1
+							},
+						}, []byte("hash"), nil
+					},
 				},
 				ChainID:                      "1",
 				ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
@@ -238,6 +245,13 @@ func TestMetaStorageBootstrapper_LoadFromStorageShouldCleanupRoundsAboveBootstra
 				EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 				BlockTracker: &mock.BlockTrackerMock{
 					AddTrackedHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
+					GetLastSelfNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+						return &testscommon.HeaderHandlerStub{
+							GetNonceCalled: func() uint64 {
+								return 1
+							},
+						}, []byte("hash"), nil
+					},
 				},
 				ChainID:                      "1",
 				ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},

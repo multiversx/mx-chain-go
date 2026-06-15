@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/storage"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -37,20 +38,23 @@ type epochStartMetaSyncer struct {
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	CoreComponentsHolder           process.CoreComponentsHolder
-	CryptoComponentsHolder         process.CryptoComponentsHolder
-	RequestHandler                 RequestHandler
-	Messenger                      Messenger
-	ShardCoordinator               sharding.Coordinator
-	EconomicsData                  process.EconomicsDataHandler
-	WhitelistHandler               process.WhiteListHandler
-	StartInEpochConfig             config.EpochStartConfig
-	ArgsParser                     process.ArgumentsParser
-	HeaderIntegrityVerifier        process.HeaderIntegrityVerifier
-	MetaBlockProcessor             EpochStartMetaBlockInterceptorProcessor
-	InterceptedDataVerifierFactory process.InterceptedDataVerifierFactory
-	ProofsPool                     dataRetriever.ProofsPool
-	ProofsInterceptorProcessor     process.InterceptorProcessor
+	CoreComponentsHolder                    process.CoreComponentsHolder
+	CryptoComponentsHolder                  process.CryptoComponentsHolder
+	RequestHandler                          RequestHandler
+	Messenger                               Messenger
+	ShardCoordinator                        sharding.Coordinator
+	EconomicsData                           process.EconomicsDataHandler
+	WhitelistHandler                        process.WhiteListHandler
+	StartInEpochConfig                      config.EpochStartConfig
+	ArgsParser                              process.ArgumentsParser
+	HeaderIntegrityVerifier                 process.HeaderIntegrityVerifier
+	MetaBlockProcessor                      EpochStartMetaBlockInterceptorProcessor
+	InterceptedDataVerifierFactory          process.InterceptedDataVerifierFactory
+	ProofsPool                              dataRetriever.ProofsPool
+	HeadersPool                             dataRetriever.HeadersPool
+	ProofsInterceptorProcessor              process.InterceptorProcessor
+	PeerAuthCacher                          storage.Cacher
+	PeerAuthenticationTimeBetweenSendsInSec int64
 }
 
 // NewEpochStartMetaSyncer will return a new instance of epochStartMetaSyncer
@@ -87,16 +91,18 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}
 
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
-		CoreComponents:          args.CoreComponentsHolder,
-		CryptoComponents:        args.CryptoComponentsHolder,
-		ShardCoordinator:        args.ShardCoordinator,
-		NodesCoordinator:        disabled.NewNodesCoordinator(),
-		FeeHandler:              args.EconomicsData,
-		HeaderSigVerifier:       disabled.NewHeaderSigVerifier(),
-		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
-		ValidityAttester:        disabled.NewValidityAttester(),
-		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
-		ArgsParser:              args.ArgsParser,
+		CoreComponents:                          args.CoreComponentsHolder,
+		CryptoComponents:                        args.CryptoComponentsHolder,
+		ShardCoordinator:                        args.ShardCoordinator,
+		NodesCoordinator:                        disabled.NewNodesCoordinator(),
+		FeeHandler:                              args.EconomicsData,
+		HeaderSigVerifier:                       disabled.NewHeaderSigVerifier(),
+		HeaderIntegrityVerifier:                 args.HeaderIntegrityVerifier,
+		ValidityAttester:                        disabled.NewValidityAttester(),
+		EpochStartTrigger:                       disabled.NewEpochStartTrigger(),
+		ArgsParser:                              args.ArgsParser,
+		PeerAuthCacher:                          args.PeerAuthCacher,
+		PeerAuthenticationTimeBetweenSendsInSec: args.PeerAuthenticationTimeBetweenSendsInSec,
 	}
 	argsInterceptedMetaHeaderFactory := interceptorsFactory.ArgInterceptedMetaHeaderFactory{
 		ArgInterceptedDataFactory: argsInterceptedDataFactory,
@@ -133,6 +139,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	argsInterceptedEquivalentProofsFactory := interceptorsFactory.ArgInterceptedEquivalentProofsFactory{
 		ArgInterceptedDataFactory: argsInterceptedDataFactory,
 		ProofsPool:                args.ProofsPool,
+		HeadersPool:               args.HeadersPool,
 	}
 	interceptedEquivalentProofsFactory := interceptorsFactory.NewInterceptedEquivalentProofsFactory(argsInterceptedEquivalentProofsFactory)
 	if err != nil {

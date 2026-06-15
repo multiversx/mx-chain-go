@@ -146,6 +146,9 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(
 	if message == nil {
 		return nil, ErrNilMessage
 	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
 	select {
 	case <-ctx.Done():
@@ -159,9 +162,6 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(
 		return nil, err
 	}
 
-	sh.mutSigningData.Lock()
-	defer sh.mutSigningData.Unlock()
-
 	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
 	if err != nil {
 		return nil, err
@@ -172,13 +172,17 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(
 		return nil, err
 	}
 
+	// check again before setting signatures shares data
 	select {
 	case <-ctx.Done():
 		return nil, ErrTimeIsOut
 	default:
 	}
 
-	sh.data.sigShares[index] = sigShareBytes
+	err = sh.storeSignatureShare(index, sigShareBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	return sigShareBytes, nil
 }
@@ -231,6 +235,10 @@ func (sh *signingHandler) VerifySignatureShare(index uint16, sig []byte, message
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
 func (sh *signingHandler) StoreSignatureShare(index uint16, sig []byte) error {
+	return sh.storeSignatureShare(index, sig)
+}
+
+func (sh *signingHandler) storeSignatureShare(index uint16, sig []byte) error {
 	if len(sig) == 0 {
 		return ErrInvalidSignature
 	}

@@ -281,7 +281,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
+		DoubleTransactionsDetector:   &testscommon.DoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		BlockDataRequester:           &preprocMocks.BlockDataRequesterStub{},
@@ -1986,26 +1986,28 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 	err = tc.ProcessBlockTransaction(&block.Header{}, &block.Body{}, haveTime)
 	assert.Nil(t, err)
 
+	selfShardID := tc.shardCoordinator.SelfId()
+
 	body := &block.Body{}
-	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
+	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: selfShardID, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
 	miniBlockHash1, _ := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 
 	tc.RequestBlockTransactions(body)
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}}}, body, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1, ReceiverShardID: selfShardID}}}, body, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	noTime := func() time.Duration {
 		return 0
 	}
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}}}, body, noTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1, ReceiverShardID: selfShardID}}}, body, noTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 
 	txHashToAsk := []byte("tx_hashnotinPool")
 	miniBlock = &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHashToAsk}}
 	miniBlockHash2, _ := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
-	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}, {Hash: miniBlockHash2, TxCount: 1}}}, body, haveTime)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1, ReceiverShardID: selfShardID}, {Hash: miniBlockHash2, TxCount: 1, ReceiverShardID: selfShardID}}}, body, haveTime)
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 }
 
@@ -2044,6 +2046,70 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
 	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 1}, {Hash: miniBlockHash2, TxCount: 1}}}, body, haveTime)
 	assert.Equal(t, process.ErrMissingTransaction, err)
+}
+
+func TestTransactionCoordinator_ProcessBlockTransaction_DoubleTxs(t *testing.T) {
+	t.Parallel()
+
+	dataPool := initDataPool(txHash)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
+	argsTransactionCoordinator.Accounts = initAccountsMock()
+	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock(), argsTransactionCoordinator.Accounts)
+	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	haveTime := func() time.Duration {
+		return time.Second
+	}
+	err = tc.ProcessBlockTransaction(&block.Header{}, &block.Body{}, haveTime)
+	assert.Nil(t, err)
+
+	body := &block.Body{}
+	miniBlock := &block.MiniBlock{SenderShardID: 1, ReceiverShardID: 0, Type: block.TxBlock, TxHashes: [][]byte{txHash, txHash}}
+	miniBlockHash1, _ := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
+
+	tc.RequestBlockTransactions(body)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 2}}}, body, haveTime)
+	require.Equal(t, process.ErrDoubleTransactionsFound, err)
+}
+
+func TestTransactionCoordinator_ProcessBlockTransaction_InvalidReceiverShard(t *testing.T) {
+	t.Parallel()
+
+	dataPool := initDataPool(txHash)
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+
+	selfShardID := uint32(1)
+	argsTransactionCoordinator.ShardCoordinator = &mock.ShardCoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return selfShardID
+		},
+	}
+	argsTransactionCoordinator.Accounts = initAccountsMock()
+	argsTransactionCoordinator.PreProcessors = createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock(), argsTransactionCoordinator.Accounts)
+	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	haveTime := func() time.Duration {
+		return time.Second
+	}
+	err = tc.ProcessBlockTransaction(&block.Header{}, &block.Body{}, haveTime)
+	assert.Nil(t, err)
+
+	body := &block.Body{}
+
+	// not from self, and not to self -> should fail
+	miniBlock := &block.MiniBlock{SenderShardID: 2, ReceiverShardID: 3, Type: block.TxBlock, TxHashes: [][]byte{txHash}}
+	miniBlockHash1, _ := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+	body.MiniBlocks = append(body.MiniBlocks, miniBlock)
+
+	tc.RequestBlockTransactions(body)
+	err = tc.ProcessBlockTransaction(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash1, TxCount: 2}}}, body, haveTime)
+	require.ErrorIs(t, err, process.ErrInvalidShardId)
 }
 
 func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {

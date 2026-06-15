@@ -812,11 +812,23 @@ const (
 	// MetricRelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
 	MetricRelayedTransactionsV1V2DisableEpoch = "erd_relayed_transactions_v1_v2_disable_epoch"
 
+	// MetricConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas for accumulated fees is fixed
+	MetricConsumedGasInEconomicsFixEnableEpoch = "erd_consumed_gas_in_economics_fix_enable_epoch"
+
 	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
 	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
 
 	// MetricSupernovaEnableEpoch represents the epoch when supernova is enabled
 	MetricSupernovaEnableEpoch = "erd_supernova_enable_epoch"
+
+	// MetricUnBondPeriod represents the unbond period in rounds from StakingSystemSCConfig
+	MetricUnBondPeriod = "erd_unbond_period"
+
+	// MetricUnBondPeriodSupernova represents the unbond period in rounds for supernova from StakingSystemSCConfig
+	MetricUnBondPeriodSupernova = "erd_unbond_period_supernova"
+
+	// MetricUnBondPeriodInEpochs represents the unbond period in epochs from StakingSystemSCConfig
+	MetricUnBondPeriodInEpochs = "erd_unbond_period_in_epochs"
 
 	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
 	MetricEpochEnable = "erd_epoch_enable"
@@ -1331,6 +1343,8 @@ const (
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
 	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
 	RelayedTransactionsV1V2DisableFlag                  core.EnableEpochFlag = "RelayedTransactionsV1V2DisableFlag"
+	FullShardDataValidationFlag                         core.EnableEpochFlag = "FullShardDataValidationFlag"
+	ConsumedGasInEconomicsFlag                          core.EnableEpochFlag = "ConsumedGasInEconomicsFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
 

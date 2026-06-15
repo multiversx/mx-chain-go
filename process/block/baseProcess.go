@@ -102,6 +102,7 @@ type baseProcessor struct {
 	requestBlockBodyHandler process.RequestBlockBodyHandler
 	requestHandler          process.RequestHandler
 	blockTracker            process.BlockTracker
+	miniBlockTracker        process.MiniBlockTracker
 	dataPool                dataRetriever.PoolsHolder
 	feeHandler              process.TransactionFeeHandler
 	blockChain              data.ChainHandler
@@ -262,6 +263,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		maxProposalNonceGap:                maxProposalNonceGap,
 		ewlResetThreshold:                  ewlResetThreshold,
 		closingNodeStarted:                 arguments.CoreComponents.ClosingNodeStarted(),
+		miniBlockTracker:                   arguments.MiniBlockTracker,
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -376,8 +378,8 @@ func (bp *baseProcessor) checkTimestamp(headerHandler data.HeaderHandler) error 
 	return nil
 }
 
-// checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
-func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
+// checkScheduledData checks if the scheduled data from the given header matches the locally computed scheduled data
+func (bp *baseProcessor) checkScheduledData(headerHandler data.HeaderHandler) error {
 	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
@@ -396,6 +398,26 @@ func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler
 			"current root hash", bp.getRootHash(),
 			"header scheduled root hash", additionalData.GetScheduledRootHash())
 		return process.ErrScheduledRootHashDoesNotMatch
+	}
+
+	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
+	if additionalData.GetScheduledAccumulatedFees().Cmp(scheduledGasAndFees.AccumulatedFees) != 0 ||
+		additionalData.GetScheduledDeveloperFees().Cmp(scheduledGasAndFees.DeveloperFees) != 0 ||
+		additionalData.GetScheduledGasProvided() != scheduledGasAndFees.GasProvided ||
+		additionalData.GetScheduledGasPenalized() != scheduledGasAndFees.GasPenalized ||
+		additionalData.GetScheduledGasRefunded() != scheduledGasAndFees.GasRefunded {
+		log.Debug("scheduled gas and fees do not match",
+			"header accumulated fees", additionalData.GetScheduledAccumulatedFees(),
+			"computed accumulated fees", scheduledGasAndFees.AccumulatedFees,
+			"header developer fees", additionalData.GetScheduledDeveloperFees(),
+			"computed developer fees", scheduledGasAndFees.DeveloperFees,
+			"header gas provided", additionalData.GetScheduledGasProvided(),
+			"computed gas provided", scheduledGasAndFees.GasProvided,
+			"header gas penalized", additionalData.GetScheduledGasPenalized(),
+			"computed gas penalized", scheduledGasAndFees.GasPenalized,
+			"header gas refunded", additionalData.GetScheduledGasRefunded(),
+			"computed gas refunded", scheduledGasAndFees.GasRefunded)
+		return process.ErrScheduledGasAndFeesDoesNotMatch
 	}
 
 	return nil
@@ -748,6 +770,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockTracker) {
 		return process.ErrNilBlockTracker
 	}
+	if check.IfNil(arguments.MiniBlockTracker) {
+		return process.ErrNilMiniBlockTracker
+	}
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsFeeHandler
 	}
@@ -778,6 +803,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		common.StakingV2Flag,
 		common.CurrentRandomnessOnSortingFlag,
 		common.AndromedaFlag,
+		common.FullShardDataValidationFlag,
 	})
 	if err != nil {
 		return err
@@ -1147,73 +1173,19 @@ func isPartiallyExecuted(
 	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
 }
 
-// check if header has the same mini blocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
-	mbHashesFromHdr := make(map[string]struct{}, len(miniBlockHeaders))
-	for i := 0; i < len(miniBlockHeaders); i++ {
-		if miniBlockHeaders[i] == nil {
-			return process.ErrNilMiniBlockHeader
-		}
-
-		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = struct{}{}
+func (bp *baseProcessor) checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(miniBlockHeader data.MiniBlockHeaderHandler) error {
+	// for Supernova all miniBlocks not part of an execution result need to have construction state Proposed
+	if miniBlockHeader.GetConstructionState() != int32(block.Proposed) {
+		return process.ErrWrongMiniBlockConstructionState
+	}
+	if miniBlockHeader.GetProcessingType() != int32(block.Normal) {
+		return process.ErrWrongMiniBlockProcessingType
 	}
 
-	if len(miniBlockHeaders) != len(body.MiniBlocks) {
-		return process.ErrHeaderBodyMismatch
-	}
-
-	if len(mbHashesFromHdr) != len(miniBlockHeaders) {
-		return process.ErrDuplicatedHashInBlock
-	}
-
-	var mbHdr data.MiniBlockHeaderHandler
-	var miniBlock *block.MiniBlock
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		miniBlock = body.MiniBlocks[i]
-		mbHdr = miniBlockHeaders[i]
-		if miniBlock == nil {
-			return process.ErrNilMiniBlock
-		}
-		if mbHdr == nil {
-			return process.ErrNilMiniBlockHeader
-		}
-
-		mbHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
-		if err != nil {
-			return err
-		}
-
-		mbHashStr := string(mbHash)
-		_, ok := mbHashesFromHdr[mbHashStr]
-		if !ok {
-			return process.ErrHeaderBodyMismatch
-		}
-
-		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
-		if err != nil {
-			return err
-		}
-
-		delete(mbHashesFromHdr, mbHashStr)
-	}
-
-	return bp.checkMiniBlocksConstructionProposal(miniBlockHeaders)
-}
-
-func (bp *baseProcessor) checkMiniBlocksConstructionProposal(miniBlockHeaders []data.MiniBlockHeaderHandler) error {
-	for i := 0; i < len(miniBlockHeaders); i++ {
-		// for Supernova all miniBlocks not part of an execution result need to have construction state Proposed
-		if miniBlockHeaders[i].GetConstructionState() != int32(block.Proposed) {
-			return process.ErrWrongMiniBlockConstructionState
-		}
-		if miniBlockHeaders[i].GetProcessingType() != int32(block.Normal) {
-			return process.ErrWrongMiniBlockProcessingType
-		}
-	}
 	return nil
 }
 
-func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
 	if !bytes.Equal(mbHash, mbHdr.GetHash()) {
 		return process.ErrHeaderBodyMismatch
 	}
@@ -1229,18 +1201,49 @@ func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeader
 	if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
 		return fmt.Errorf("%w: different mb sender shard ID", process.ErrHeaderBodyMismatch)
 	}
+
+	if mbHdr.GetTypeInt32() != int32(miniBlock.Type) {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	err := process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
+	if err != nil {
+		return err
+	}
+
+	err = bp.checkIndexOfFirstTxProcessedAgainstTracker(mbHdr, mbHash)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, _ uint32) error {
+	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock)
+	if err != nil {
+		return err
+	}
+	return bp.checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr)
+}
+
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
+	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock)
+	if err != nil {
+		return err
+	}
+	return checkConstructionStateProcessingTypeAndIndexesCorrectness(mbHdr, miniBlock, blockShardID)
+}
+
 // check if header has the same mini blocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
-	mbHashesFromHdr := make(map[string]struct{}, len(miniBlockHeaders))
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32, proposal bool) error {
+	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
 		if miniBlockHeaders[i] == nil {
 			return process.ErrNilMiniBlockHeader
 		}
 
-		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = struct{}{}
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = miniBlockHeaders[i]
 	}
 
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
@@ -1261,6 +1264,9 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if miniBlock == nil {
 			return process.ErrNilMiniBlock
 		}
+		if mbHdr == nil {
+			return process.ErrNilMiniBlockHeader
+		}
 
 		mbHash, err = core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
 		if err != nil {
@@ -1273,16 +1279,11 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 			return process.ErrHeaderBodyMismatch
 		}
 
-		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
-		if err != nil {
-			return err
+		if !proposal {
+			err = bp.checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock, blockShardID)
+		} else {
+			err = bp.checkMiniBlockWithMiniBlockHeaderProposal(mbHash, mbHdr, miniBlock, blockShardID)
 		}
-
-		err = process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
-		if err != nil {
-			return err
-		}
-		err = checkConstructionStateAndIndexesCorrectness(mbHdr)
 		if err != nil {
 			return err
 		}
@@ -1293,13 +1294,128 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 	return nil
 }
 
-func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
-	if mbh.GetConstructionState() == int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() == int32(mbh.GetTxCount())-1 {
-		return process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock
+// checkConstructionStateProcessingTypeAndIndexesCorrectness validates the (miniBlock,
+// miniBlockHeader) pair belonging to a block of shard blockShardID against the legal
+// (hdrPT, sender == blockShardID?, allowed state) rows. PartialExecuted is allowed alongside
+// the primary state of each processing type, validated by the index check:
+//
+//	Normal,    yes -> Final
+//	Normal,    no  -> Final | PartialExecuted
+//	Scheduled, yes -> Proposed | PartialExecuted
+//	Scheduled, no  -> Final | PartialExecuted
+//	Processed, yes -> Final
+//	Processed, no  -> impossible
+//
+// It also checks body PT validity, type-vs-scheduling, and IndexOfLastTxProcessed vs
+// ConstructionState. Body-vs-header PT consistency is enforced only when sender is
+// blockShardID; for incoming MBs the body PT belongs to the source shard.
+func checkConstructionStateProcessingTypeAndIndexesCorrectness(
+	mbh data.MiniBlockHeaderHandler,
+	miniBlock *block.MiniBlock,
+	blockShardID uint32,
+) error {
+	bodyPT := miniBlock.GetProcessingType()
+	hdrPT := mbh.GetProcessingType()
+	mbType := miniBlock.Type
+	senderIsBlockShard := mbh.GetSenderShardID() == blockShardID
 
+	// Processed is a header-only re-inclusion tag and must never appear on the body.
+	if bodyPT != int32(block.Normal) && bodyPT != int32(block.Scheduled) {
+		return fmt.Errorf("%w: body has invalid processing type %d",
+			process.ErrInvalidMiniBlockProcessingType, bodyPT)
 	}
-	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() != int32(mbh.GetTxCount())-1 {
+
+	if mbType != block.TxBlock {
+		if bodyPT != int32(block.Normal) || hdrPT != int32(block.Normal) {
+			return fmt.Errorf("%w: miniblock type %s cannot be scheduled (body=%d, header=%d)",
+				process.ErrInvalidMiniBlockProcessingTypeForType, mbType, bodyPT, hdrPT)
+		}
+	}
+
+	constructionState := mbh.GetConstructionState()
+	switch hdrPT {
+	case int32(block.Normal):
+		if senderIsBlockShard {
+			if bodyPT != int32(block.Normal) {
+				return fmt.Errorf("%w: Normal header at sender shard requires Normal body, got body=%d",
+					process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
+			}
+			if constructionState != int32(block.Final) {
+				return fmt.Errorf("%w: Normal header at sender shard requires Final, got %d",
+					process.ErrInvalidConstructionState, constructionState)
+			}
+		} else {
+			// an incoming normal miniblock may be partially executed at the destination
+			if constructionState != int32(block.Final) && constructionState != int32(block.PartialExecuted) {
+				return fmt.Errorf("%w: incoming Normal header requires Final or PartialExecuted, got %d",
+					process.ErrInvalidConstructionState, constructionState)
+			}
+		}
+	case int32(block.Scheduled):
+		if senderIsBlockShard {
+			if bodyPT != int32(block.Scheduled) {
+				return fmt.Errorf("%w: header=Scheduled requires body=Scheduled, got body=%d",
+					process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
+			}
+			if constructionState != int32(block.Proposed) && constructionState != int32(block.PartialExecuted) {
+				return fmt.Errorf("%w: Scheduled header at sender shard requires Proposed or PartialExecuted, got %d",
+					process.ErrInvalidConstructionState, constructionState)
+			}
+		} else {
+			// incoming body PT belongs to the source shard, so it is not constrained here
+			if constructionState != int32(block.Final) && constructionState != int32(block.PartialExecuted) {
+				return fmt.Errorf("%w: cross-shard incoming Scheduled requires Final or PartialExecuted, got %d",
+					process.ErrInvalidConstructionState, constructionState)
+			}
+		}
+	case int32(block.Processed):
+		if bodyPT != int32(block.Scheduled) {
+			return fmt.Errorf("%w: header=Processed requires body=Scheduled, got body=%d",
+				process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
+		}
+		if !senderIsBlockShard {
+			return fmt.Errorf("%w: Processed header requires sender == blockShard",
+				process.ErrInvalidMiniBlockShardRole)
+		}
+		if constructionState != int32(block.Final) {
+			return fmt.Errorf("%w: Processed header requires Final, got %d",
+				process.ErrInvalidConstructionState, constructionState)
+		}
+	default:
+		return fmt.Errorf("%w: unknown header processing type %d",
+			process.ErrInvalidMiniBlockProcessingType, hdrPT)
+	}
+
+	lastIdx := mbh.GetIndexOfLastTxProcessed()
+	finalIdx := int32(mbh.GetTxCount()) - 1
+	if constructionState == int32(block.PartialExecuted) && lastIdx == finalIdx {
+		return process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock
+	}
+	if constructionState != int32(block.PartialExecuted) && lastIdx != finalIdx {
 		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) checkIndexOfFirstTxProcessedAgainstTracker(mbHdr data.MiniBlockHeaderHandler, miniBlockHash []byte) error {
+	selfShardID := bp.shardCoordinator.SelfId()
+	isIncomingCross := mbHdr.GetReceiverShardID() == selfShardID && mbHdr.GetSenderShardID() != selfShardID
+	if !isIncomingCross {
+		return nil
+	}
+
+	processedMiniBlockInfo, _ := bp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHash)
+	expectedIndexOfFirstTxProcessed := processedMiniBlockInfo.IndexOfLastTxProcessed + 1
+	if mbHdr.GetIndexOfFirstTxProcessed() != expectedIndexOfFirstTxProcessed {
+		log.Debug("checkIndexOfFirstTxProcessedAgainstTracker: mismatch",
+			"mb hash", miniBlockHash,
+			"sender shard", mbHdr.GetSenderShardID(),
+			"receiver shard", mbHdr.GetReceiverShardID(),
+			"header index of first tx processed", mbHdr.GetIndexOfFirstTxProcessed(),
+			"expected index of first tx processed", expectedIndexOfFirstTxProcessed,
+		)
+		return process.ErrIndexOfFirstTxProcessedMismatch
 	}
 
 	return nil
@@ -2780,23 +2896,42 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 	}
 }
 
-func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
+func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) (int, error) {
 	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
-		return 0
+		return 0, nil
 	}
 
-	for index, miniBlockHeaderHandler := range header.GetMiniBlockHeaderHandlers() {
-		if miniBlockHeaderHandler.GetProcessingType() == int32(block.Processed) {
-			log.Debug("baseProcessor.getIndexOfFirstMiniBlockToBeExecuted: mini block is already executed",
-				"mb hash", miniBlockHeaderHandler.GetHash(),
-				"mb index", index)
+	miniBlockHeaderHandlers := header.GetMiniBlockHeaderHandlers()
+	indexOfFirstMiniBlockToBeExecuted := len(miniBlockHeaderHandlers)
+	foundFirstNonProcessed := false
+	for index, miniBlockHeaderHandler := range miniBlockHeaderHandlers {
+		isProcessed := miniBlockHeaderHandler.GetProcessingType() == int32(block.Processed)
+
+		// processed mini blocks are the ones executed as scheduled in the previous block and
+		// must form the contiguous leading prefix of the body; any later one is unverified
+		if foundFirstNonProcessed {
+			if isProcessed {
+				return 0, fmt.Errorf("%w: %s",
+					process.ErrProcessedMiniBlockNotInLeadingPrefix,
+					hex.EncodeToString(miniBlockHeaderHandler.GetHash()))
+			}
 			continue
 		}
 
-		return index
+		if !isProcessed {
+			indexOfFirstMiniBlockToBeExecuted = index
+			foundFirstNonProcessed = true
+			continue
+		}
+
+		if !bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHeaderHandler.GetHash()) {
+			return 0, fmt.Errorf("%w: mini block %s not executed",
+				process.ErrMiniBlockNotExecuted,
+				hex.EncodeToString(miniBlockHeaderHandler.GetHash()))
+		}
 	}
 
-	return len(header.GetMiniBlockHeaderHandlers())
+	return indexOfFirstMiniBlockToBeExecuted, nil
 }
 
 func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFinal uint64, err error) {
@@ -4001,7 +4136,7 @@ func (bp *baseProcessor) cacheUnexecutableTxHashes(headerHash []byte) {
 }
 
 func (bp *baseProcessor) getBlockBodyFromPool(
-	header data.HeaderHandler,
+	_ data.HeaderHandler,
 	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler,
 ) (data.BodyHandler, error) {
 	miniBlocksPool := bp.dataPool.MiniBlocks()

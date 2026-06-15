@@ -220,17 +220,31 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 func (sr *subroundSignature) waitForSingatures(
 	timeLeft time.Duration,
 ) {
+	wg := sr.SignaturesWaitGroup()
+	if wg == nil {
+		return
+	}
+
+	if timeLeft <= 0 {
+		sr.SignaturesCtxCancel()
+		return
+	}
+
 	done := make(chan struct{})
 	go func() {
-		sr.SignaturesWaitGroup().Wait()
+		wg.Wait()
 		close(done)
 	}()
+
+	timer := time.NewTimer(timeLeft)
+	defer timer.Stop()
 
 	select {
 	case <-done:
 		sr.SignaturesCtxCancel()
 		return
-	case <-time.After(timeLeft):
+	case <-timer.C:
+		sr.SignaturesCtxCancel()
 		log.Debug("timeout while waiting for signatures to be created")
 		return
 	}
@@ -314,6 +328,7 @@ func (sr *subroundSignature) sendSignatureForManagedKey(ctx context.Context, idx
 	if err != nil {
 		// signature share not found (optimistic signature share creation was not triggered)
 		// will try to create it
+		log.Debug("sendSignatureForManagedKey.SignatureShare: sig not already created, will try to create it", "error", err)
 
 		signatureShare, err = sr.SigningHandler().CreateSignatureShareForPublicKey(
 			ctx,

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -349,7 +348,7 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
-	sr.triggerCreateSignaturesForManagedKeys(ctx)
+	go sr.triggerCreateSignaturesForManagedKeys(ctx)
 
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(headerHandler)
@@ -360,14 +359,21 @@ func (sr *subroundBlock) sendBlockHeader(
 	return true
 }
 
-func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Context) bool {
+func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Context) {
+	if check.IfNil(sr.GetHeader()) {
+		log.Debug("triggerCreateSignaturesForManagedKeys: triggered with nil header")
+		return
+	}
+
+	currentHash := sr.GetData()
+	currentEpoch := sr.GetHeader().GetEpoch()
+
 	sigSubroundEndTime := time.Duration(float64(sr.RoundHandler().TimeDuration()) * srSignatureEndTime)
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
-
 	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
 	sr.SetSignaturesCtxCancelFunc(cancel)
 
-	numMultiKeysSignaturesCreated := int32(0)
+	wg := sr.SignaturesWaitGroup()
 
 	for idx, pk := range sr.ConsensusGroup() {
 		pkBytes := []byte(pk)
@@ -375,17 +381,18 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 			continue
 		}
 
-		err := checkGoRoutinesThrottler(ctx, sr.signatureThrottler)
+		err := checkGoRoutinesThrottler(sigCtx, sr.signatureThrottler)
 		if err != nil {
 			log.Debug("triggerCreateSignaturesForManagedKeys.checkGoRoutinesThrottler", "err", err)
-			return false
+			cancel()
+			return
 		}
 		sr.signatureThrottler.StartProcessing()
-		sr.SignaturesWaitGroup().Add(1)
+		wg.Add(1)
 
 		go func(sigCtx context.Context, idx int, pk string) {
 			defer sr.signatureThrottler.EndProcessing()
-			defer sr.SignaturesWaitGroup().Done()
+			defer wg.Done()
 
 			select {
 			case <-sigCtx.Done():
@@ -395,29 +402,22 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 			}
 
 			pkBytes := []byte(pk)
-			currentHash := sr.GetData()
 
 			_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 				sigCtx,
 				currentHash,
 				uint16(idx),
-				sr.GetHeader().GetEpoch(),
+				currentEpoch,
 				pkBytes,
 			)
 			if err != nil {
 				log.Debug("triggerCreateSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
 				return
 			}
-
-			atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
 		}(sigCtx, idx, pk)
 	}
 
-	if atomic.LoadInt32(&numMultiKeysSignaturesCreated) > 0 {
-		log.Debug("step 1: multi keys signatures creation has been triggered", "num", atomic.LoadInt32(&numMultiKeysSignaturesCreated))
-	}
-
-	return true
+	log.Debug("step 1: multi keys signatures creation has been triggered")
 }
 
 func (sr *subroundBlock) sendDirectSentTransactions(
@@ -718,7 +718,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	sr.AddReceivedHeader(headerHandler)
 
-	sr.triggerCreateSignaturesForManagedKeys(context.Background())
+	go sr.triggerCreateSignaturesForManagedKeys(context.Background())
 
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()

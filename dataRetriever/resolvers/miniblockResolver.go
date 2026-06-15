@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"fmt"
+	"runtime/debug"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -78,8 +79,15 @@ func checkArgMiniblockResolver(arg ArgMiniblockResolver) error {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-	err := mbRes.canProcessMessage(message, fromConnectedPeer)
+func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) (msg []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logTrieNodes.Error("panic recovered", "peer", fromConnectedPeer, "panic", r, "stack", string(debug.Stack()))
+			err = fmt.Errorf("panic in miniblockResolver.ProcessReceivedMessage: %v", r)
+		}
+	}()
+
+	err = mbRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +161,7 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid c
 	if err != nil {
 		return err
 	}
-	hashes := b.Data
+	hashes := deduplicateHashes(b.Data)
 
 	var errFetch error
 	errorsFound := 0

@@ -1,4 +1,4 @@
-package txcachemocks
+package mempool
 
 import (
 	"math/big"

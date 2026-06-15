@@ -121,7 +121,7 @@ func (sp *shardProcessor) ProcessBlock(
 	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
-	err = sp.checkScheduledRootHash(headerHandler)
+	err = sp.checkScheduledData(headerHandler)
 	if err != nil {
 		return err
 	}
@@ -145,7 +145,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
-	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body)
+	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), false)
 	if err != nil {
 		return err
 	}
@@ -229,7 +229,10 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}()
 
-	mbIndex := sp.getIndexOfFirstMiniBlockToBeExecuted(header)
+	mbIndex, err := sp.getIndexOfFirstMiniBlockToBeExecuted(header)
+	if err != nil {
+		return err
+	}
 	miniBlocks := body.MiniBlocks[mbIndex:]
 
 	startTime := time.Now()
@@ -1634,6 +1637,14 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 	sp.blockTracker.AddCrossNotarizedHeader(shardId, lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash)
 	DisplayLastNotarized(sp.marshalizer, sp.hasher, lastCrossNotarizedHeader, shardId)
+
+	// processedHdrs only contains fully-processed metablocks (see processedAll gate in
+	// getOrderedProcessedMetaBlocksFromMiniBlockHashes), so lastNonce+1 releases items
+	// from those metablocks now that the consuming shard block is being committed.
+	if shardId == core.MetachainShardId && !check.IfNil(lastCrossNotarizedHeader) && !check.IfNil(sp.miniBlockTracker) {
+		threshold := lastCrossNotarizedHeader.GetNonce() + 1
+		sp.miniBlockTracker.ReleaseImmunityForCommittedMetaBlocks(threshold)
+	}
 
 	return nil
 }

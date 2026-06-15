@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -94,24 +93,6 @@ type baseStorageHandler struct {
 	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 	proofsPool                      ProofsPool
 	enableEpochsHandler             common.EnableEpochsHandler
-}
-
-func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
-	pendingMBsMap := make(map[uint32][][]byte)
-	for hash, miniBlock := range miniBlocks {
-		receiverShId := miniBlock.ReceiverShardID // we need the receiver only on meta to properly load the pendingMiniBlocks structure
-		pendingMBsMap[receiverShId] = append(pendingMBsMap[receiverShId], []byte(hash))
-	}
-
-	sliceToRet := make([]bootstrapStorage.PendingMiniBlocksInfo, 0)
-	for shardID, hashes := range pendingMBsMap {
-		sliceToRet = append(sliceToRet, bootstrapStorage.PendingMiniBlocksInfo{
-			ShardID:          shardID,
-			MiniBlocksHashes: hashes,
-		})
-	}
-
-	return sliceToRet, nil
 }
 
 func (bsh *baseStorageHandler) saveProofToStorage(shardID uint32, headerHash []byte, header data.HeaderHandler) error {
