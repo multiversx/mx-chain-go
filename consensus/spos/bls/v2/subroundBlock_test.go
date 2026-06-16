@@ -2101,8 +2101,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 		)
 
-		ctx, cancel := context.WithCancel(context.TODO())
-		cancel()
+		ctx, _ := context.WithCancel(context.TODO())
 
 		numCalls := uint32(0)
 		srBlock, _ := v2.NewSubroundBlock(
@@ -2112,7 +2111,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 			&consensusMocks.NtpSyncControllerMock{},
 			&dataRetrieverMock.ThrottlerStub{
 				CanProcessCalled: func() bool {
-					if atomic.LoadUint32(&numCalls) <= 1 {
+					if atomic.LoadUint32(&numCalls) <= 10 {
 						atomic.AddUint32(&numCalls, 1)
 
 						return false
@@ -2127,7 +2126,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 
 		srBlock.TriggerCreateSignaturesForManagedKeys(ctx, []byte("headerHash"), &block.Header{})
 
-		// srBlock.SignaturesWaitGroup().Wait()
+		srBlock.SignaturesWaitGroup().Wait()
 
 		assert.Equal(t, int32(9), atomic.LoadInt32(&numMultiKeysSignaturesCreated)) // there are 9 keys in default consensus group config
 	})
