@@ -192,7 +192,7 @@ func (bbc *baseBlockChain) setMetricsHeaderV3(header data.HeaderHandler) {
 		return
 	}
 
-	timestampMs := header.GetTimeStamp() // it will came as milliseconds for header v3
+	timestampMs := header.GetTimeStamp() // it will come as milliseconds for header v3
 	timestampS := common.ConvertTimeStampMsToSec(timestampMs)
 
 	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, timestampS)
@@ -204,7 +204,7 @@ func (bbc *baseBlockChain) setMetricsHeaderV3(header data.HeaderHandler) {
 func (bbc *baseBlockChain) setMetricsBeforeHeaderV3(header data.HeaderHandler) {
 	bbc.appStatusHandler.SetUInt64Value(common.MetricNonce, header.GetNonce())
 
-	timestampS := header.GetTimeStamp() // it will came as seconds before header v3
+	timestampS := header.GetTimeStamp() // it will come as seconds before header v3
 	timestampMs := common.ConvertTimeStampSecToMs(timestampS)
 
 	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, timestampS)
