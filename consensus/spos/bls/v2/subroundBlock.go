@@ -18,6 +18,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
+type consensusPubKey struct {
+	idx     int
+	pkBytes []byte
+}
+
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
 const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 95 / 100)
 
@@ -348,7 +353,7 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
-	go sr.triggerCreateSignaturesForManagedKeys(ctx, headerHash, headerHandler)
+	sr.triggerCreateSignaturesForManagedKeys(ctx, headerHash, headerHandler)
 
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(headerHandler)
@@ -384,51 +389,69 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
 	sr.SetSignaturesCtxCancelFunc(cancel)
 
-	wg := sr.SignaturesWaitGroup()
+	keys := sr.getManagedKeysByIndex()
+	if len(keys) == 0 {
+		return
+	}
 
+	wg := sr.SignaturesWaitGroup()
+	wg.Add(len(keys))
+
+	go func() {
+		for _, pk := range keys {
+			log.Info("aaaa")
+			err := checkGoRoutinesThrottler(sigCtx, sr.signatureThrottler)
+			if err != nil {
+				log.Debug("triggerCreateSignaturesForManagedKeys.checkGoRoutinesThrottler", "err", err)
+				cancel()
+				return
+			}
+			log.Info("bbb")
+			sr.signatureThrottler.StartProcessing()
+
+			go func(sigCtx context.Context, idx int, pkBytes []byte) {
+				defer sr.signatureThrottler.EndProcessing()
+				defer wg.Done()
+
+				log.Info("ccc")
+
+				select {
+				case <-sigCtx.Done():
+					log.Info("triggerCreateSignaturesForManagedKeys: context done", "timeLeft", timeLeft)
+					return
+				default:
+				}
+
+				_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+					sigCtx,
+					headerHash,
+					uint16(idx),
+					currentEpoch,
+					pkBytes,
+				)
+				if err != nil {
+					log.Info("triggerCreateSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
+					return
+				}
+			}(sigCtx, pk.idx, pk.pkBytes)
+		}
+	}()
+
+	log.Debug("step 1: multi keys signatures creation has been triggered", "num", len(keys))
+}
+
+func (sr *subroundBlock) getManagedKeysByIndex() []consensusPubKey {
+	keys := make([]consensusPubKey, 0)
 	for idx, pk := range sr.ConsensusGroup() {
 		pkBytes := []byte(pk)
 		if !sr.IsKeyManagedBySelf(pkBytes) {
 			continue
 		}
 
-		err := checkGoRoutinesThrottler(sigCtx, sr.signatureThrottler)
-		if err != nil {
-			log.Debug("triggerCreateSignaturesForManagedKeys.checkGoRoutinesThrottler", "err", err)
-			cancel()
-			return
-		}
-		sr.signatureThrottler.StartProcessing()
-		wg.Add(1)
-
-		go func(sigCtx context.Context, idx int, pk string) {
-			defer sr.signatureThrottler.EndProcessing()
-			defer wg.Done()
-
-			select {
-			case <-sigCtx.Done():
-				log.Debug("triggerCreateSignaturesForManagedKeys: context done", "timeLeft", timeLeft)
-				return
-			default:
-			}
-
-			pkBytes := []byte(pk)
-
-			_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-				sigCtx,
-				headerHash,
-				uint16(idx),
-				currentEpoch,
-				pkBytes,
-			)
-			if err != nil {
-				log.Debug("triggerCreateSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
-				return
-			}
-		}(sigCtx, idx, pk)
+		keys = append(keys, consensusPubKey{idx: idx, pkBytes: pkBytes})
 	}
 
-	log.Debug("step 1: multi keys signatures creation has been triggered")
+	return keys
 }
 
 func (sr *subroundBlock) sendDirectSentTransactions(
@@ -729,7 +752,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	sr.AddReceivedHeader(headerHandler)
 
-	go sr.triggerCreateSignaturesForManagedKeys(context.Background(), headerHash, headerHandler)
+	sr.triggerCreateSignaturesForManagedKeys(context.Background(), headerHash, headerHandler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()

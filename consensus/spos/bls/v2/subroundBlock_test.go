@@ -1955,6 +1955,10 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 		)
 
+		ctx, cancel := context.WithCancel(context.TODO())
+		cancel()
+
+		numCalls := 0
 		srBlock, _ := v2.NewSubroundBlock(
 			sr,
 			v2.ProcessingThresholdPercent,
@@ -1962,6 +1966,13 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 			&consensusMocks.NtpSyncControllerMock{},
 			&dataRetrieverMock.ThrottlerStub{
 				CanProcessCalled: func() bool {
+					if numCalls == 0 {
+						numCalls++
+						return false
+					}
+
+					cancel()
+
 					return false
 				},
 			},
@@ -1969,11 +1980,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 
 		sr.SetSelfPubKey("OTHER")
 
-		ctx, cancel := context.WithCancel(context.TODO())
-		cancel()
 		srBlock.TriggerCreateSignaturesForManagedKeys(ctx, []byte("headerHash"), &block.Header{})
-
-		srBlock.SignaturesWaitGroup().Wait()
 
 		assert.Equal(t, int32(0), atomic.LoadInt32(&numMultiKeysSignaturesCreated))
 	})
@@ -2046,6 +2053,83 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 		srBlock.SignaturesWaitGroup().Wait()
 
 		assert.Equal(t, int32(0), atomic.LoadInt32(&numMultiKeysSignaturesCreated))
+	})
+
+	t.Run("should wait fully if throttler blocked", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
+
+		numMultiKeysSignaturesCreated := int32(0)
+
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+				atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
+				return []byte("SIG"), nil
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
+			&testscommon.KeysHandlerStub{
+				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+					return true
+				},
+			},
+		)
+		ch := make(chan bool, 1)
+
+		sr, _ := spos.NewSubround(
+			bls.SrBlock,
+			bls.SrSignature,
+			bls.SrEndRound,
+			roundTimeDuration,
+			0.7,
+			0.85,
+			"(SIGNATURE)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		cancel()
+
+		numCalls := uint32(0)
+		srBlock, _ := v2.NewSubroundBlock(
+			sr,
+			v2.ProcessingThresholdPercent,
+			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.NtpSyncControllerMock{},
+			&dataRetrieverMock.ThrottlerStub{
+				CanProcessCalled: func() bool {
+					if atomic.LoadUint32(&numCalls) <= 1 {
+						atomic.AddUint32(&numCalls, 1)
+
+						return false
+					}
+
+					return true
+				},
+			},
+		)
+
+		sr.SetSelfPubKey("OTHER")
+
+		srBlock.TriggerCreateSignaturesForManagedKeys(ctx, []byte("headerHash"), &block.Header{})
+
+		// srBlock.SignaturesWaitGroup().Wait()
+
+		assert.Equal(t, int32(9), atomic.LoadInt32(&numMultiKeysSignaturesCreated)) // there are 9 keys in default consensus group config
 	})
 }
 
