@@ -401,7 +401,7 @@ func hasForbiddenOutgoingTxMiniBlocks(selfShardID uint32, miniBlocks block.MiniB
 		if mb.SenderShardID != selfShardID {
 			continue
 		}
-		if mb.Type == block.TxBlock {
+		if mb.Type == block.TxBlock || mb.Type == block.InvalidBlock {
 			return true
 		}
 	}

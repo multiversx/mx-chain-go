@@ -2070,12 +2070,21 @@ func TestTransactionCoordinator_ProcessBlockTransactionRejectsForbiddenOutgoingT
 		return time.Second
 	}
 
-	selfShardID := tc.shardCoordinator.SelfId()
-	receiverShardID := (selfShardID + 1) % tc.shardCoordinator.NumberOfShards()
+	receiverShardID := (tc.shardCoordinator.SelfId() + 1) % tc.shardCoordinator.NumberOfShards()
+	header, body := getBodyAndHeader(t, tc, block.TxBlock, receiverShardID)
+	err = tc.ProcessBlockTransaction(header, body, haveTime)
+	require.ErrorIs(t, err, process.ErrOutgoingTxsDisabled)
+
+	header, body = getBodyAndHeader(t, tc, block.InvalidBlock, tc.shardCoordinator.SelfId())
+	err = tc.ProcessBlockTransaction(header, body, haveTime)
+	require.ErrorIs(t, err, process.ErrOutgoingTxsDisabled)
+}
+
+func getBodyAndHeader(t *testing.T, tc *transactionCoordinator, blockType block.Type, receiverShardID uint32) (data.HeaderHandler, *block.Body) {
 	miniBlock := &block.MiniBlock{
-		SenderShardID:   selfShardID,
+		SenderShardID:   tc.shardCoordinator.SelfId(),
 		ReceiverShardID: receiverShardID,
-		Type:            block.TxBlock,
+		Type:            blockType,
 		TxHashes:        [][]byte{txHash},
 	}
 	miniBlockHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
@@ -2090,8 +2099,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionRejectsForbiddenOutgoingT
 		},
 	}
 
-	err = tc.ProcessBlockTransaction(header, body, haveTime)
-	require.ErrorIs(t, err, process.ErrOutgoingTxsDisabled)
+	return header, body
 }
 
 func TestTransactionCoordinator_ProcessBlockTransactionAllowsPostProcessMiniBlocksDuringSupernovaTransition(t *testing.T) {
