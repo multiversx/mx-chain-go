@@ -1760,38 +1760,3 @@ func getExecutionResultToSetOnReplacedHeader(
 
 	return executionResultToSet, nil
 }
-
-// CheckMiniBlock checks if the given mini block has valid shard ids according to the given self id
-func CheckMiniBlock(
-	miniBlock *block.MiniBlock,
-	selfId uint32,
-) error {
-	// there are checks for non existing shard id at interceptors level
-
-	if miniBlock.SenderShardID != selfId && miniBlock.GetReceiverShardID() != selfId && miniBlock.GetReceiverShardID() != core.AllShardId {
-		return fmt.Errorf("%w - not valid shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
-			ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
-	}
-
-	if miniBlock.GetType() == block.PeerBlock &&
-		(miniBlock.GetSenderShardID() != core.MetachainShardId || miniBlock.GetReceiverShardID() != core.AllShardId) {
-		return fmt.Errorf("%w - peer blocks: block type: %s, sender shard id: %d, receiver shard id: %d",
-			ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
-	}
-
-	if miniBlock.GetType() != block.PeerBlock && miniBlock.GetReceiverShardID() == core.AllShardId {
-		return fmt.Errorf("%w - invalid all shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
-			ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
-	}
-
-	return nil
-}
