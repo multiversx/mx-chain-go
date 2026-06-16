@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
@@ -4555,7 +4556,9 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		arguments := CreateMockArguments(createComponentHolderMocks())
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
 
 		miniBlock := &block.MiniBlock{
