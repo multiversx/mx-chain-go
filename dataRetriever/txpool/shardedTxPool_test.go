@@ -13,12 +13,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
+
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
-	"github.com/stretchr/testify/require"
 )
 
 const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
@@ -41,7 +45,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 			SizeInBytesPerSender: 40960,
 			Shards:               16,
 		},
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		TxGasHandler:   mempool.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 1,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
@@ -125,7 +129,7 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	cacheConfig := storageunit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
 	args := ArgShardedTxPool{
 		Config:         cacheConfig,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		TxGasHandler:   mempool.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 2,
 		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
@@ -292,7 +296,7 @@ func TestCleanupSelfShardTxCache_NilMempool(t *testing.T) {
 		txPool := poolAsInterface.(*shardedTxPool)
 		delete(txPool.backingMap, "0")
 
-		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 		cleanupLoopMaximumDuration := time.Millisecond * 100
 
 		require.NotPanics(t, func() {
@@ -307,7 +311,7 @@ func Test_Parallel_CleanupSelfShardTxCache(t *testing.T) {
 		t.Parallel()
 		poolAsInterface, _ := newTxPoolToTest()
 		pool := poolAsInterface.(*shardedTxPool)
-		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 		accountsProvider.SetNonce([]byte("alice"), 2)
 		accountsProvider.SetNonce([]byte("bob"), 42)
 		accountsProvider.SetNonce([]byte("carol"), 7)
@@ -340,7 +344,7 @@ func Test_CleanupSelfShardTxCache(t *testing.T) {
 		poolAsInterface, _ := newTxPoolToTest()
 		pool := poolAsInterface.(*shardedTxPool)
 		cache := pool.getTxCache("0").(*txcache.TxCache)
-		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 		accountsProvider.SetNonce([]byte("alice"), 2)
 		accountsProvider.SetNonce([]byte("bob"), 42)
 		accountsProvider.SetNonce([]byte("carol"), 7)
@@ -470,7 +474,37 @@ func TestShardedTxPool_ImmunizeSetOfDataAgainstEviction(t *testing.T) {
 
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
-	pool.ImmunizeSetOfDataAgainstEviction([][]byte{[]byte("hash")}, "0")
+	pool.ImmunizeSetOfDataAgainstEviction([][]byte{[]byte("hash")}, "0", 7)
+	pool.SetOldestImmuneNonce("0", 7)
+}
+
+func TestShardedTxPool_SetOldestImmuneNonceForAllCaches(t *testing.T) {
+	t.Parallel()
+
+	poolAsInterface, _ := newTxPoolToTest()
+	pool := poolAsInterface.(*shardedTxPool)
+
+	cacheIDs := []string{"0", "1_0", "2_0"}
+	received := make(map[string]uint64)
+	var mu sync.Mutex
+	for _, id := range cacheIDs {
+		idCopy := id
+		mock := txcachemocks.NewTxCacheStub()
+		mock.SetOldestImmuneNonceCalled = func(nonce uint64) {
+			mu.Lock()
+			received[idCopy] = nonce
+			mu.Unlock()
+		}
+		pool.backingMap[id] = &txPoolShard{CacheID: id, Cache: mock}
+	}
+
+	pool.SetOldestImmuneNonceForAllCaches(42)
+
+	require.Equal(t, len(cacheIDs), len(pool.backingMap), "no new caches should be created")
+	require.Equal(t, len(cacheIDs), len(received), "every cache should receive the threshold once")
+	for _, id := range cacheIDs {
+		require.Equal(t, uint64(42), received[id], "cache %s did not receive the threshold", id)
+	}
 }
 
 func Test_IsInterfaceNil(t *testing.T) {
@@ -495,7 +529,7 @@ func Test_routeToCacheUnions(t *testing.T) {
 	}
 	args := ArgShardedTxPool{
 		Config:         cacheConfig,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		TxGasHandler:   mempool.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 4,
 		SelfShardID:    42,
@@ -528,7 +562,7 @@ func TestShardedTxPool_getSelfShardTxCache(t *testing.T) {
 	}
 	args := ArgShardedTxPool{
 		Config:         cacheConfig,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		TxGasHandler:   mempool.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 3,
 		SelfShardID:    2,
@@ -551,7 +585,7 @@ func TestShardedTxPool_GetNumTrackedBlocks(t *testing.T) {
 	txCache := pool.getSelfShardTxCache()
 
 	numOfBlocks := 10
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 
 	for i := 1; i < numOfBlocks+1; i++ {
 		err := txCache.OnProposedBlock(
@@ -579,7 +613,7 @@ func TestShardedTxPool_GetNumTrackedAccounts(t *testing.T) {
 
 	txCache := pool.getSelfShardTxCache()
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte("rootHash0"), nil
 	}
@@ -661,7 +695,7 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 	}
 	args := ArgShardedTxPool{
 		Config:         cacheConfig,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		TxGasHandler:   mempool.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 3,
 		SelfShardID:    0,
@@ -684,7 +718,7 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 			[]byte("abba"),
 			&block.Body{},
 			&block.HeaderV2{},
-			txcachemocks.NewAccountNonceAndBalanceProviderMock(),
+			mempool.NewAccountNonceAndBalanceProviderMock(),
 			nil,
 		)
 		require.Nil(t, err)
@@ -729,7 +763,7 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 	}
 	args := ArgShardedTxPool{
 		Config:         cacheConfig,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		TxGasHandler:   mempool.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 4,
 		SelfShardID:    0,

@@ -15,10 +15,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 const (
@@ -152,6 +152,14 @@ func IsConsensusBitmapValid(
 			"expected number of bytes", expectedBitmapSize,
 			"actual", len(bitmap))
 		return ErrWrongSizeBitmap
+	}
+
+	paddingBits := consensusSize % 8
+	if paddingBits != 0 {
+		paddingMask := byte(0xFF << paddingBits)
+		if bitmap[len(bitmap)-1]&paddingMask != 0 {
+			return ErrPaddingBitsSet
+		}
 	}
 
 	numOfOnesInBitmap := 0

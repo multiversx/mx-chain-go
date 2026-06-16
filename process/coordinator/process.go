@@ -440,7 +440,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	haveTime func() bool,
 ) error {
 	for _, mb := range body.MiniBlocks {
-		err := tc.checkMiniBlock(mb)
+		err := process.CheckMiniBlock(mb, tc.shardCoordinator)
 		if err != nil {
 			return err
 		}
@@ -540,7 +540,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	for mbIndex = 0; mbIndex < len(body.MiniBlocks); mbIndex++ {
 		miniBlock := body.MiniBlocks[mbIndex]
 
-		err := tc.checkMiniBlock(miniBlock)
+		err := process.CheckMiniBlock(miniBlock, tc.shardCoordinator)
 		if err != nil {
 			return mbIndex, err
 		}
