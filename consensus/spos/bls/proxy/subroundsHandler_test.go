@@ -49,6 +49,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 		OutportHandler:       &outportStub.OutportStub{},
 		SentSignatureTracker: &testscommon.SentSignatureTrackerStub{},
 		EnableEpochsHandler:  epochsEnable,
+		CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		ChainID:              []byte("chainID"),
 		CurrentPid:           "peerID",
 	}

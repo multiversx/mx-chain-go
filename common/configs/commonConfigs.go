@@ -14,6 +14,19 @@ const (
 	defaultNumRoundsToWaitBeforeSignalingChronologyStuck = 10
 )
 
+// defaultSubroundsTiming holds the fallback subrounds timing values (should never be used, as epoch zero is validated)
+var defaultSubroundsTiming = config.SubroundsTimingConfig{
+	SubroundStartStartTime:     0.0,
+	SubroundStartEndTime:       0.05,
+	SubroundBlockStartTime:     0.05,
+	SubroundBlockEndTime:       0.25,
+	SubroundSignatureStartTime: 0.25,
+	SubroundSignatureEndTime:   0.85,
+	SubroundEndStartTime:       0.85,
+	SubroundEndEndTime:         0.95,
+	ProcessingThresholdPercent: 85,
+}
+
 // ErrEmptyCommonConfigsByEpoch signals that an empty common configs by epoch has been provided
 var ErrEmptyCommonConfigsByEpoch = errors.New("empty common configs by epoch")
 
@@ -182,6 +195,17 @@ func (cc *commonConfigs) GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch 
 	}
 
 	return defaultNumRoundsToWaitBeforeSignalingChronologyStuck // this should not happen
+}
+
+// GetSubroundsTimingByEpoch returns the subrounds timing configuration by epoch
+func (cc *commonConfigs) GetSubroundsTimingByEpoch(epoch uint32) config.SubroundsTimingConfig {
+	for i := len(cc.orderedConsensusConfigByEpoch) - 1; i >= 0; i-- {
+		if cc.orderedConsensusConfigByEpoch[i].EnableEpoch <= epoch {
+			return cc.orderedConsensusConfigByEpoch[i].SubroundsTiming
+		}
+	}
+
+	return defaultSubroundsTiming // this should not happen
 }
 
 // IsInterfaceNil checks if the instance is nil

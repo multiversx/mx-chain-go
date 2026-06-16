@@ -94,8 +94,36 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 	}
 
 	consensusConf := []config.ConsensusConfigByEpoch{
-		{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
-		{EnableEpoch: 1, NumRoundsToWaitBeforeSignalingChronologyStuck: 11},
+		{
+			EnableEpoch: 0,
+			NumRoundsToWaitBeforeSignalingChronologyStuck: 10,
+			SubroundsTiming: config.SubroundsTimingConfig{
+				SubroundStartStartTime:     0.0,
+				SubroundStartEndTime:       0.05,
+				SubroundBlockStartTime:     0.05,
+				SubroundBlockEndTime:       0.25,
+				SubroundSignatureStartTime: 0.25,
+				SubroundSignatureEndTime:   0.85,
+				SubroundEndStartTime:       0.85,
+				SubroundEndEndTime:         0.95,
+				ProcessingThresholdPercent: 85,
+			},
+		},
+		{
+			EnableEpoch: 1,
+			NumRoundsToWaitBeforeSignalingChronologyStuck: 11,
+			SubroundsTiming: config.SubroundsTimingConfig{
+				SubroundStartStartTime:     0.0,
+				SubroundStartEndTime:       0.05,
+				SubroundBlockStartTime:     0.05,
+				SubroundBlockEndTime:       0.25,
+				SubroundSignatureStartTime: 0.25,
+				SubroundSignatureEndTime:   0.85,
+				SubroundEndStartTime:       0.85,
+				SubroundEndEndTime:         0.95,
+				ProcessingThresholdPercent: 85,
+			},
+		},
 	}
 
 	t.Run("get grace period rounds by epoch", func(t *testing.T) {
@@ -132,5 +160,25 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 
 		maxRoundsWithoutCommitedStartInEpochBlock = cc.GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(1)
 		require.Equal(t, uint32(31), maxRoundsWithoutCommitedStartInEpochBlock)
+	})
+
+	t.Run("get subrounds timing by epoch", func(t *testing.T) {
+		t.Parallel()
+
+		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf)
+
+		timing := cc.GetSubroundsTimingByEpoch(0)
+		require.Equal(t, consensusConf[0].SubroundsTiming.SubroundStartEndTime, timing.SubroundStartEndTime)
+		require.Equal(t, consensusConf[0].SubroundsTiming.SubroundSignatureEndTime, timing.SubroundSignatureEndTime)
+		require.Equal(t, consensusConf[0].SubroundsTiming.ProcessingThresholdPercent, timing.ProcessingThresholdPercent)
+
+		// epoch between configured values should resolve to the lower bound config
+		timing = cc.GetSubroundsTimingByEpoch(1)
+		require.Equal(t, consensusConf[1].SubroundsTiming.SubroundBlockEndTime, timing.SubroundBlockEndTime)
+		require.Equal(t, consensusConf[1].SubroundsTiming.ProcessingThresholdPercent, timing.ProcessingThresholdPercent)
+
+		timing = cc.GetSubroundsTimingByEpoch(5)
+		require.Equal(t, consensusConf[1].SubroundsTiming.SubroundBlockEndTime, timing.SubroundBlockEndTime)
+		require.Equal(t, consensusConf[1].SubroundsTiming.ProcessingThresholdPercent, timing.ProcessingThresholdPercent)
 	})
 }

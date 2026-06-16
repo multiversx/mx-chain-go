@@ -16,7 +16,21 @@ func GetDefaultCommonConfigsHandler() common.CommonConfigsHandler {
 			{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
 		},
 		[]config.ConsensusConfigByEpoch{
-			{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+			{
+				EnableEpoch: 0,
+				NumRoundsToWaitBeforeSignalingChronologyStuck: 10,
+				SubroundsTiming: config.SubroundsTimingConfig{
+					SubroundStartStartTime:     0.0,
+					SubroundStartEndTime:       0.05,
+					SubroundBlockStartTime:     0.05,
+					SubroundBlockEndTime:       0.25,
+					SubroundSignatureStartTime: 0.25,
+					SubroundSignatureEndTime:   0.85,
+					SubroundEndStartTime:       0.85,
+					SubroundEndEndTime:         0.95,
+					ProcessingThresholdPercent: 85,
+				},
+			},
 		},
 	)
 
@@ -28,6 +42,8 @@ type CommonConfigsHandlerStub struct {
 	GetGracePeriodRoundsByEpochCalled                          func(epoch uint32) uint32
 	GetExtraDelayForRequestBlockInfoInMsCalled                 func(epoch uint32) uint32
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRoundCalled func(round uint64) uint32
+	GetNumRoundsToWaitBeforeSignalingChronologyStuckCalled     func(epoch uint32) uint32
+	GetSubroundsTimingByEpochCalled                            func(epoch uint32) config.SubroundsTimingConfig
 }
 
 // GetGracePeriodRoundsByEpoch -
@@ -55,6 +71,34 @@ func (e *CommonConfigsHandlerStub) GetMaxRoundsWithoutCommittedStartInEpochBlock
 	}
 
 	return 0
+}
+
+// GetNumRoundsToWaitBeforeSignalingChronologyStuck -
+func (e *CommonConfigsHandlerStub) GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32 {
+	if e.GetNumRoundsToWaitBeforeSignalingChronologyStuckCalled != nil {
+		return e.GetNumRoundsToWaitBeforeSignalingChronologyStuckCalled(epoch)
+	}
+
+	return 0
+}
+
+// GetSubroundsTimingByEpoch -
+func (e *CommonConfigsHandlerStub) GetSubroundsTimingByEpoch(epoch uint32) config.SubroundsTimingConfig {
+	if e.GetSubroundsTimingByEpochCalled != nil {
+		return e.GetSubroundsTimingByEpochCalled(epoch)
+	}
+
+	return config.SubroundsTimingConfig{
+		SubroundStartStartTime:     0.0,
+		SubroundStartEndTime:       0.05,
+		SubroundBlockStartTime:     0.05,
+		SubroundBlockEndTime:       0.25,
+		SubroundSignatureStartTime: 0.25,
+		SubroundSignatureEndTime:   0.85,
+		SubroundEndStartTime:       0.85,
+		SubroundEndEndTime:         0.95,
+		ProcessingThresholdPercent: 85,
+	}
 }
 
 // IsInterfaceNil -

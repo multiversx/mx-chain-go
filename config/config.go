@@ -348,6 +348,20 @@ type ConsensusConfigByEpoch struct {
 	EnableEpoch uint32
 
 	NumRoundsToWaitBeforeSignalingChronologyStuck uint32
+	SubroundsTiming                               SubroundsTimingConfig
+}
+
+// SubroundsTimingConfig holds the subrounds timing values for a specific epoch
+type SubroundsTimingConfig struct {
+	SubroundStartStartTime     float64
+	SubroundStartEndTime       float64
+	SubroundBlockStartTime     float64
+	SubroundBlockEndTime       float64
+	SubroundSignatureStartTime float64
+	SubroundSignatureEndTime   float64
+	SubroundEndStartTime       float64
+	SubroundEndEndTime         float64
+	ProcessingThresholdPercent uint32
 }
 
 // EpochStartConfigByEpoch defines epoch start configuration parameters by epoch

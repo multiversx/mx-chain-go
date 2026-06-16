@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -19,7 +20,21 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
-const ProcessingThresholdPercent = processingThresholdPercent
+// ProcessingThresholdPercent is a test-only value mirroring the default processing threshold percent
+const ProcessingThresholdPercent = 85
+
+// testSubroundsTiming holds the default subrounds timing values used in tests
+var testSubroundsTiming = config.SubroundsTimingConfig{
+	SubroundStartStartTime:     0.0,
+	SubroundStartEndTime:       0.05,
+	SubroundBlockStartTime:     0.05,
+	SubroundBlockEndTime:       0.25,
+	SubroundSignatureStartTime: 0.25,
+	SubroundSignatureEndTime:   0.85,
+	SubroundEndStartTime:       0.85,
+	SubroundEndEndTime:         0.95,
+	ProcessingThresholdPercent: ProcessingThresholdPercent,
+}
 
 // factory
 
@@ -98,22 +113,22 @@ func (fct *factory) SetWorker(worker spos.WorkerHandler) {
 
 // GenerateStartRoundSubround generates the instance of subround StartRound and added it to the chronology subrounds list
 func (fct *factory) GenerateStartRoundSubround() error {
-	return fct.generateStartRoundSubround()
+	return fct.generateStartRoundSubround(testSubroundsTiming)
 }
 
 // GenerateBlockSubround generates the instance of subround Block and added it to the chronology subrounds list
 func (fct *factory) GenerateBlockSubround() error {
-	return fct.generateBlockSubround()
+	return fct.generateBlockSubround(testSubroundsTiming)
 }
 
 // GenerateSignatureSubround generates the instance of subround Signature and added it to the chronology subrounds list
 func (fct *factory) GenerateSignatureSubround() error {
-	return fct.generateSignatureSubround()
+	return fct.generateSignatureSubround(testSubroundsTiming)
 }
 
 // GenerateEndRoundSubround generates the instance of subround EndRound and added it to the chronology subrounds list
 func (fct *factory) GenerateEndRoundSubround() error {
-	return fct.generateEndRoundSubround()
+	return fct.generateEndRoundSubround(testSubroundsTiming)
 }
 
 // AppStatusHandler gets the app status handler object
