@@ -2101,8 +2101,6 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 		)
 
-		ctx, _ := context.WithCancel(context.TODO())
-
 		numCalls := uint32(0)
 		srBlock, _ := v2.NewSubroundBlock(
 			sr,
@@ -2124,7 +2122,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 
 		sr.SetSelfPubKey("OTHER")
 
-		srBlock.TriggerCreateSignaturesForManagedKeys(ctx, []byte("headerHash"), &block.Header{})
+		srBlock.TriggerCreateSignaturesForManagedKeys(context.TODO(), []byte("headerHash"), &block.Header{})
 
 		srBlock.SignaturesWaitGroup().Wait()
 
