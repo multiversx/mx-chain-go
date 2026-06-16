@@ -1484,7 +1484,6 @@ func (sp *shardProcessor) setFinalBlockInfo(
 		finalRootHash = header.GetRootHash()
 	}
 
-	// TODO: maybe rename this to reflect last execution results
 	sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
 }
 
