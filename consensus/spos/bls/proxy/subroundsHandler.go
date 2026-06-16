@@ -70,6 +70,7 @@ const (
 	consensusNone consensusStateMachineType = iota
 	consensusV1
 	consensusV2
+	consensusV2Supernova
 )
 
 // NewSubroundsHandler creates a new SubroundsHandler object
@@ -152,11 +153,16 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 	var fct subroundsFactory
 
 	if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
-		if s.currentConsensusType == consensusV2 {
+		targetConsensusType := consensusV2
+		if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, epoch) {
+			targetConsensusType = consensusV2Supernova
+		}
+
+		if s.currentConsensusType == targetConsensusType {
 			return nil
 		}
 
-		s.currentConsensusType = consensusV2
+		s.currentConsensusType = targetConsensusType
 		fct, err = v2.NewSubroundsFactory(
 			s.consensusCoreHandler,
 			s.consensusState,

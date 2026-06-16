@@ -122,8 +122,8 @@
             }
         },
         {
-            EnableEpoch = 2,
-            NumRoundsToWaitBeforeSignalingChronologyStuck = 100,
+            EnableEpoch = 1,
+            NumRoundsToWaitBeforeSignalingChronologyStuck = 10,
             SubroundsTiming = {
                 SubroundStartStartTime = 0.0,
                 SubroundStartEndTime = 0.05,
@@ -132,6 +132,21 @@
                 SubroundSignatureStartTime = 0.25,
                 SubroundSignatureEndTime = 0.85,
                 SubroundEndStartTime = 0.85,
+                SubroundEndEndTime = 0.95,
+                ProcessingThresholdPercent = 85
+            }
+        },
+        {
+            EnableEpoch = 2,
+            NumRoundsToWaitBeforeSignalingChronologyStuck = 100,
+            SubroundsTiming = {
+                SubroundStartStartTime = 0.0,
+                SubroundStartEndTime = 0.05,
+                SubroundBlockStartTime = 0.05,
+                SubroundBlockEndTime = 0.35,
+                SubroundSignatureStartTime = 0.35,
+                SubroundSignatureEndTime = 0.55,
+                SubroundEndStartTime = 0.55,
                 SubroundEndEndTime = 0.95,
                 ProcessingThresholdPercent = 85
             }

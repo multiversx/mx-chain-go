@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/require"
 
+	chainCommon "github.com/multiversx/mx-chain-go/common"
 	mock2 "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -284,7 +285,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		}
 		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return true
+				return flag == chainCommon.AndromedaFlag
 			},
 		}
 		handlerArgs.Chronology = chronology
@@ -315,7 +316,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		}
 		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return true
+				return flag == chainCommon.AndromedaFlag
 			},
 		}
 		handlerArgs.Chronology = chronology
@@ -347,7 +348,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		}
 		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return true
+				return flag == chainCommon.AndromedaFlag
 			},
 		}
 		handlerArgs.Chronology = chronology
@@ -365,6 +366,70 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
+		require.Equal(t, int32(1), startCalled.Load())
+	})
+	t.Run("supernova enabled, with previous consensus type consensusV2", func(t *testing.T) {
+		t.Parallel()
+
+		startCalled := atomic.Int32{}
+		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
+		chronology := &consensus.ChronologyHandlerMock{
+			StartRoundCalled: func() {
+				startCalled.Add(1)
+			},
+		}
+		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		handlerArgs.Chronology = chronology
+		handlerArgs.EnableEpochsHandler = enableEpoch
+		consensusCore.SetEnableEpochsHandler(enableEpoch)
+		consensusCore.SetChronology(chronology)
+
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+		// first call on register to EpochNotifier
+		require.Equal(t, int32(1), startCalled.Load())
+		sh.currentConsensusType = consensusV2
+
+		err = sh.initSubroundsForEpoch(0)
+		require.Nil(t, err)
+		require.Equal(t, consensusV2Supernova, sh.currentConsensusType)
+		require.Equal(t, int32(2), startCalled.Load())
+	})
+	t.Run("supernova enabled, with previous consensus type consensusV2Supernova", func(t *testing.T) {
+		t.Parallel()
+
+		startCalled := atomic.Int32{}
+		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
+		chronology := &consensus.ChronologyHandlerMock{
+			StartRoundCalled: func() {
+				startCalled.Add(1)
+			},
+		}
+		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		handlerArgs.Chronology = chronology
+		handlerArgs.EnableEpochsHandler = enableEpoch
+		consensusCore.SetEnableEpochsHandler(enableEpoch)
+		consensusCore.SetChronology(chronology)
+
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+		// first call on register to EpochNotifier
+		require.Equal(t, int32(1), startCalled.Load())
+		sh.currentConsensusType = consensusV2Supernova
+
+		err = sh.initSubroundsForEpoch(0)
+		require.Nil(t, err)
+		require.Equal(t, consensusV2Supernova, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
 	})
 }
