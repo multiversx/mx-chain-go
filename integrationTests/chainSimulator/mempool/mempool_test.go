@@ -17,7 +17,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common/holders"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 	"github.com/multiversx/mx-chain-go/txcache"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -504,7 +504,7 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -522,12 +522,12 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -609,7 +609,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -631,12 +631,12 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -753,7 +753,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -778,12 +778,12 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -851,7 +851,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -876,12 +876,12 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -973,7 +973,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 	t.Parallel()
 
 	t.Run("should work with only one proposed block being replaced", func(t *testing.T) {
-		host := txcachemocks.NewMempoolHostMock()
+		host := mempool.NewMempoolHostMock()
 		txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 		require.Nil(t, err)
@@ -998,12 +998,12 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 			},
 		}
 
-		selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+		selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 		selectionSession.GetRootHashCalled = func() ([]byte, error) {
 			return []byte(testRootHash), nil
 		}
 
-		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+		accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 		accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 			return []byte(testRootHash), nil
 		}
@@ -1099,7 +1099,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 	})
 
 	t.Run("should work with many proposed blocks being replaced", func(t *testing.T) {
-		host := txcachemocks.NewMempoolHostMock()
+		host := mempool.NewMempoolHostMock()
 		txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 		require.Nil(t, err)
@@ -1128,12 +1128,12 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 			},
 		}
 
-		selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+		selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 		selectionSession.GetRootHashCalled = func() ([]byte, error) {
 			return []byte(testRootHash), nil
 		}
 
-		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+		accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 		accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 			return []byte(testRootHash), nil
 		}
@@ -1275,7 +1275,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecutedBlockNotification(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -1298,12 +1298,12 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -1397,7 +1397,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -1417,12 +1417,12 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -1554,7 +1554,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -1583,12 +1583,12 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -1688,7 +1688,7 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -1717,12 +1717,12 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -1805,7 +1805,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                        "test",
 		NumChunks:                   16,
@@ -1843,12 +1843,12 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -1973,7 +1973,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -2002,12 +2002,12 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -2131,7 +2131,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -2160,12 +2160,12 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -2289,7 +2289,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 func Test_SelectionWithRootHashMismatch(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                        "test",
 		NumChunks:                   16,
@@ -2327,7 +2327,7 @@ func Test_SelectionWithRootHashMismatch(t *testing.T) {
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	// keep the same root hash with the one used on the OnExecutedBlock to avoid root hash mismatch on selection
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
@@ -2374,7 +2374,7 @@ func Test_SelectionWithRootHashMismatch(t *testing.T) {
 func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -2390,13 +2390,13 @@ func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	// keep the same root hash with the one used on the OnExecutedBlock to avoid root hash mismatch on selection
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -2484,7 +2484,7 @@ func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -2504,13 +2504,13 @@ func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	// keep the same root hash with the one used on the OnExecutedBlock to avoid root hash mismatch on selection
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
@@ -2747,7 +2747,7 @@ func TestMempoolWithChainSimulator_Selection_InstantChangeGuardian(t *testing.T)
 func TestMempoolWithChainSimulator_Selection_InstantChangeGuardian_ReplaceHeader(t *testing.T) {
 	t.Parallel()
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -2770,7 +2770,7 @@ func TestMempoolWithChainSimulator_Selection_InstantChangeGuardian_ReplaceHeader
 		},
 	}
 
-	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession := mempool.NewSelectionSessionMockWithAccounts(accounts)
 	// all transactions are correctly guarded, except the last one
 	selectionSession.IsGuardedCalled = func(tx data.TransactionHandler) bool {
 		return true
@@ -2783,7 +2783,7 @@ func TestMempoolWithChainSimulator_Selection_InstantChangeGuardian_ReplaceHeader
 		return []byte(testRootHash), nil
 	}
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
 	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
 		return []byte(testRootHash), nil
 	}
