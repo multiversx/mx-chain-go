@@ -89,6 +89,7 @@ func InitConfigMetrics(
 	economicsConfig config.EconomicsConfig,
 	genesisNodesConfig sharding.GenesisNodesSetupHandler,
 	gatewayMetricsConfig config.GatewayMetricsConfig,
+	systemSmartContractsConfig config.SystemSmartContractsConfig,
 ) error {
 	if check.IfNil(appStatusHandler) {
 		return ErrNilAppStatusHandler
@@ -214,6 +215,9 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV1V2DisableEpoch, uint64(enableEpochs.RelayedTransactionsV1V2DisableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricTailInflationEnableEpoch, uint64(economicsConfig.GlobalSettings.TailInflation.EnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricSupernovaEnableEpoch, uint64(enableEpochs.SupernovaEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriod, systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriod)
+	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriodSupernova, systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriodSupernova)
+	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriodInEpochs, uint64(systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriodInEpochs))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
