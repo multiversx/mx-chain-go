@@ -439,13 +439,14 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	body *block.Body,
 	haveTime func() bool,
 ) error {
+	selfId := tc.shardCoordinator.SelfId()
 	for _, mb := range body.MiniBlocks {
 		err := process.CheckMiniBlock(mb, tc.shardCoordinator)
 		if err != nil {
 			return err
 		}
 
-		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
+		if mb.SenderShardID != selfId {
 			return process.ErrMiniBlocksInWrongOrder
 		}
 	}
@@ -484,40 +485,6 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	return nil
 }
 
-// TODO consider calling this from VerifyBlockProposal instead of ProcessBlockProposal
-func (tc *transactionCoordinator) checkMiniBlock(
-	miniBlock *block.MiniBlock,
-) error {
-	// there are checks for non existing shard id at interceptors level
-
-	if miniBlock.SenderShardID != tc.shardCoordinator.SelfId() && miniBlock.GetReceiverShardID() != tc.shardCoordinator.SelfId() && miniBlock.GetReceiverShardID() != core.AllShardId {
-		return fmt.Errorf("%w - not valid shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
-			process.ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
-	}
-
-	if miniBlock.GetType() == block.PeerBlock &&
-		(miniBlock.GetSenderShardID() != core.MetachainShardId || miniBlock.GetReceiverShardID() != core.AllShardId) {
-		return fmt.Errorf("%w - peer blocks: block type: %s, sender shard id: %d, receiver shard id: %d",
-			process.ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
-	}
-
-	if miniBlock.GetType() != block.PeerBlock && miniBlock.GetReceiverShardID() == core.AllShardId {
-		return fmt.Errorf("%w - invalid all shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
-			process.ErrInvalidShardId,
-			miniBlock.Type,
-			miniBlock.SenderShardID,
-			miniBlock.ReceiverShardID)
-	}
-
-	return nil
-}
-
 func (tc *transactionCoordinator) processMiniBlocksToMe(
 	header data.HeaderHandler,
 	body *block.Body,
@@ -537,6 +504,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	// processing destination ME miniblocks first
 	mbIndex := 0
+	selfId := tc.shardCoordinator.SelfId()
 	for mbIndex = 0; mbIndex < len(body.MiniBlocks); mbIndex++ {
 		miniBlock := body.MiniBlocks[mbIndex]
 
@@ -545,7 +513,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, err
 		}
 
-		if miniBlock.SenderShardID == tc.shardCoordinator.SelfId() {
+		if miniBlock.SenderShardID == selfId {
 			return mbIndex, nil
 		}
 
