@@ -397,6 +397,6 @@ func (sr *subroundBlock) PrepareBlockForExecution(header data.HeaderHandler, bod
 }
 
 // TriggerCreateSignaturesForManagedKeys -
-func (sr *subroundBlock) TriggerCreateSignaturesForManagedKeys(ctx context.Context) {
-	sr.triggerCreateSignaturesForManagedKeys(ctx)
+func (sr *subroundBlock) TriggerCreateSignaturesForManagedKeys(ctx context.Context, headerHash []byte, headerHandler data.HeaderHandler) {
+	sr.triggerCreateSignaturesForManagedKeys(ctx, headerHash, headerHandler)
 }

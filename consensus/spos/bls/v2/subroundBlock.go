@@ -348,7 +348,7 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
-	go sr.triggerCreateSignaturesForManagedKeys(ctx)
+	go sr.triggerCreateSignaturesForManagedKeys(ctx, headerHash, headerHandler)
 
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(headerHandler)
@@ -359,14 +359,25 @@ func (sr *subroundBlock) sendBlockHeader(
 	return true
 }
 
-func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Context) {
-	if check.IfNil(sr.GetHeader()) {
+func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
+	ctx context.Context,
+	headerHash []byte,
+	headerHandler data.HeaderHandler,
+) {
+	if check.IfNil(headerHandler) {
 		log.Debug("triggerCreateSignaturesForManagedKeys: triggered with nil header")
 		return
 	}
 
-	currentHash := sr.GetData()
-	currentEpoch := sr.GetHeader().GetEpoch()
+	if sr.RoundHandler().Index() != int64(headerHandler.GetRound()) {
+		log.Debug("triggerCreateSignaturesForManagedKeys: not for current round",
+			"currentRound", sr.RoundHandler().Index(),
+			"headerRound", headerHandler.GetRound(),
+		)
+		return
+	}
+
+	currentEpoch := headerHandler.GetEpoch()
 
 	sigSubroundEndTime := time.Duration(float64(sr.RoundHandler().TimeDuration()) * srSignatureEndTime)
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
@@ -405,7 +416,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(ctx context.Conte
 
 			_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 				sigCtx,
-				currentHash,
+				headerHash,
 				uint16(idx),
 				currentEpoch,
 				pkBytes,
@@ -718,7 +729,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	sr.AddReceivedHeader(headerHandler)
 
-	go sr.triggerCreateSignaturesForManagedKeys(context.Background())
+	go sr.triggerCreateSignaturesForManagedKeys(context.Background(), headerHash, headerHandler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()

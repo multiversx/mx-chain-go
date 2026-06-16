@@ -1902,7 +1902,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 		sr.SetHeader(&block.Header{Epoch: currEpoch})
 		sr.SetSelfPubKey("OTHER")
 
-		srBlock.TriggerCreateSignaturesForManagedKeys(context.TODO())
+		srBlock.TriggerCreateSignaturesForManagedKeys(context.TODO(), []byte("headerHash"), &block.Header{Epoch: currEpoch})
 
 		srBlock.SignaturesWaitGroup().Wait()
 
@@ -1967,12 +1967,11 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 			},
 		)
 
-		sr.SetHeader(&block.Header{})
 		sr.SetSelfPubKey("OTHER")
 
 		ctx, cancel := context.WithCancel(context.TODO())
 		cancel()
-		srBlock.TriggerCreateSignaturesForManagedKeys(ctx)
+		srBlock.TriggerCreateSignaturesForManagedKeys(ctx, []byte("headerHash"), &block.Header{})
 
 		srBlock.SignaturesWaitGroup().Wait()
 
@@ -2042,7 +2041,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.TODO())
 		cancel()
-		srBlock.TriggerCreateSignaturesForManagedKeys(ctx)
+		srBlock.TriggerCreateSignaturesForManagedKeys(ctx, []byte("headerHash"), nil)
 
 		srBlock.SignaturesWaitGroup().Wait()
 
