@@ -38,6 +38,17 @@ func TestNewInterceptedPeerAuthenticationDataFactory(t *testing.T) {
 		assert.Nil(t, ipadf)
 		assert.Equal(t, process.ErrNilMarshalizer, err)
 	})
+	t.Run("nil CryptoComponents should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createMockComponentHolders()
+		arg := createMockArgument(coreComp, cryptoComp)
+		arg.CryptoComponents = nil
+
+		ipadf, err := NewInterceptedPeerAuthenticationDataFactory(*arg)
+		assert.Nil(t, ipadf)
+		assert.Equal(t, process.ErrNilCryptoComponentsHolder, err)
+	})
 	t.Run("nil NodesCoordinator should error", func(t *testing.T) {
 		t.Parallel()
 

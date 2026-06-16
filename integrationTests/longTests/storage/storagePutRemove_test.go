@@ -20,7 +20,7 @@ func TestPutRemove(t *testing.T) {
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 5000, Shards: 16, SizeInBytes: 0})
 	dir := t.TempDir()
 	log.Info("opened in", "directory", dir)
-	lvdb1, err := database.NewLevelDB(dir, 2, 1000, 10)
+	lvdb1, err := database.NewLevelDB(dir, 2, 1000, 10, 10)
 	assert.NoError(t, err)
 
 	defer func() {
