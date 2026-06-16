@@ -217,9 +217,16 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	return false
 }
 
-func (sr *subroundSignature) waitForSignatures() {
+func (sr *subroundSignature) waitForSingatures(
+	timeLeft time.Duration,
+) {
 	wg := sr.SignaturesWaitGroup()
 	if wg == nil {
+		return
+	}
+
+	if timeLeft <= 0 {
+		sr.SignaturesCtxCancel()
 		return
 	}
 
@@ -228,12 +235,6 @@ func (sr *subroundSignature) waitForSignatures() {
 		wg.Wait()
 		close(done)
 	}()
-
-	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), time.Duration(sr.EndTime()))
-	if timeLeft <= 0 {
-		sr.SignaturesCtxCancel()
-		return
-	}
 
 	timer := time.NewTimer(timeLeft)
 	defer timer.Stop()
@@ -251,7 +252,12 @@ func (sr *subroundSignature) waitForSignatures() {
 
 func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) bool {
 	// wait for optimistic signatures creation to finish
-	sr.waitForSignatures()
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), time.Duration(sr.EndTime()))
+
+	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
+	defer cancel()
+
+	sr.waitForSingatures(timeLeft)
 
 	numMultiKeysSignaturesSent := int32(0)
 	sentSigForAllKeys := atomicCore.Flag{}
@@ -269,24 +275,32 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 			continue
 		}
 
+		select {
+		case <-sigCtx.Done():
+			log.Debug("doSignatureJobForManagedKeys: timeout while sending signatures")
+			return false
+		default:
+		}
+
 		err := checkGoRoutinesThrottler(ctx, sr.signatureThrottler)
 		if err != nil {
+			log.Debug("doSignatureJobForManagedKeys.checkGoRoutinesThrottler", "err", err)
 			return false
 		}
 		sr.signatureThrottler.StartProcessing()
 		wg.Add(1)
 
-		go func(ctx context.Context, idx int, pk string) {
+		go func(sigCtx context.Context, idx int, pk string) {
 			defer sr.signatureThrottler.EndProcessing()
 
-			signatureSent := sr.sendSignatureForManagedKey(ctx, idx, pk)
+			signatureSent := sr.sendSignatureForManagedKey(sigCtx, idx, pk)
 			if signatureSent {
 				atomic.AddInt32(&numMultiKeysSignaturesSent, 1)
 			} else {
 				sentSigForAllKeys.SetValue(false)
 			}
 			wg.Done()
-		}(ctx, idx, pk)
+		}(sigCtx, idx, pk)
 	}
 
 	wg.Wait()
@@ -302,6 +316,13 @@ func (sr *subroundSignature) sendSignatureForManagedKey(ctx context.Context, idx
 	pkBytes := []byte(pk)
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
+
+	select {
+	case <-ctx.Done():
+		log.Debug("sendSignatureForManagedKey: timeout while sending signature", "idx", idx, "pk", pk)
+		return false
+	default:
+	}
 
 	signatureShare, err := sr.SigningHandler().SignatureShare(uint16(idx))
 	if err != nil {
