@@ -79,7 +79,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 	}
 
 	miniBlockHeaderHandlers := sp.miniBlocksSelectionSession.GetMiniBlockHeaderHandlers()
-	// todo: check empty mini blocks vs nil. Same for block.Body.MiniBlocks
+
 	err = shardHdr.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
 	if err != nil {
 		return nil, nil, err
