@@ -1259,6 +1259,13 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		return process.ErrDuplicatedHashInBlock
 	}
 
+	if proposal {
+		err := checkForDuplicatedTxHashes(body)
+		if err != nil {
+			return err
+		}
+	}
+
 	var mbHdr data.MiniBlockHeaderHandler
 	var miniBlock *block.MiniBlock
 	var mbHash []byte
@@ -1296,6 +1303,23 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		delete(mbHashesFromHdr, mbHashStr)
 	}
 
+	return nil
+}
+
+func checkForDuplicatedTxHashes(body *block.Body) error {
+	txHashesSeen := make(map[string]struct{})
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock == nil {
+			continue
+		}
+		for _, txHash := range miniBlock.TxHashes {
+			txHashStr := string(txHash)
+			if _, ok := txHashesSeen[txHashStr]; ok {
+				return process.ErrDuplicatedTransactionInBlockBody
+			}
+			txHashesSeen[txHashStr] = struct{}{}
+		}
+	}
 	return nil
 }
 

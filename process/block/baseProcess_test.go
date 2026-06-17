@@ -4592,6 +4592,190 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 		)
 		require.NoError(t, err)
 	})
+
+	t.Run("duplicate tx hash across miniblocks with proposal should error", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &hashingMocks.HasherMock{}
+		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		miniBlock1 := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 1,
+			TxHashes:        [][]byte{[]byte("tx1"), []byte("tx2")},
+			Type:            block.TxBlock,
+			Reserved:        nil,
+		}
+		miniBlock2 := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+			TxHashes:        [][]byte{[]byte("tx1")},
+			Type:            block.TxBlock,
+			Reserved:        nil,
+		}
+
+		mbHash1, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, miniBlock1)
+		mbHash2, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, miniBlock2)
+
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 2)
+		mbHeaders[0] = &block.MiniBlockHeader{
+			Hash:            mbHash1,
+			SenderShardID:   0,
+			ReceiverShardID: 1,
+			TxCount:         2,
+			Type:            block.TxBlock,
+			Reserved:        nil,
+		}
+		_ = mbHeaders[0].SetConstructionState(int32(block.Proposed))
+		_ = mbHeaders[0].SetProcessingType(int32(block.Normal))
+		mbHeaders[1] = &block.MiniBlockHeader{
+			Hash:            mbHash2,
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+			TxCount:         1,
+			Type:            block.TxBlock,
+			Reserved:        nil,
+		}
+		_ = mbHeaders[1].SetConstructionState(int32(block.Proposed))
+		_ = mbHeaders[1].SetProcessingType(int32(block.Normal))
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			mbHeaders,
+			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock1, miniBlock2}},
+			shardID,
+		)
+		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
+	})
+
+	t.Run("duplicate tx hash within single miniblock with proposal should error", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &hashingMocks.HasherMock{}
+		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		miniBlock := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 1,
+			TxHashes:        [][]byte{[]byte("tx1"), []byte("tx1")},
+			Type:            block.TxBlock,
+			Reserved:        nil,
+		}
+
+		mbHash, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, miniBlock)
+
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 1)
+		mbHeaders[0] = &block.MiniBlockHeader{
+			Hash:            mbHash,
+			SenderShardID:   0,
+			ReceiverShardID: 1,
+			TxCount:         2,
+			Type:            block.TxBlock,
+			Reserved:        nil,
+		}
+		_ = mbHeaders[0].SetConstructionState(int32(block.Proposed))
+		_ = mbHeaders[0].SetProcessingType(int32(block.Normal))
+
+		err := bp.CheckHeaderBodyCorrelationProposal(
+			mbHeaders,
+			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}},
+			shardID,
+		)
+		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
+	})
+
+	t.Run("duplicate tx hash across miniblocks without proposal should not error", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &hashingMocks.HasherMock{}
+		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		miniBlock1 := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 1,
+			TxHashes:        [][]byte{[]byte("tx1"), []byte("tx2")},
+			Type:            block.TxBlock,
+			Reserved:        nil,
+		}
+		miniBlock2 := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 2,
+			TxHashes:        [][]byte{[]byte("tx1")},
+			Type:            block.TxBlock,
+			Reserved:        nil,
+		}
+
+		mbHash1, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, miniBlock1)
+		mbHash2, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, miniBlock2)
+
+		hdr := &block.Header{
+			ShardID: shardID,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash:            mbHash1,
+					SenderShardID:   0,
+					ReceiverShardID: 1,
+					TxCount:         2,
+					Type:            block.TxBlock,
+					Reserved:        nil,
+				},
+				{
+					Hash:            mbHash2,
+					SenderShardID:   0,
+					ReceiverShardID: 2,
+					TxCount:         1,
+					Type:            block.TxBlock,
+					Reserved:        nil,
+				},
+			},
+		}
+
+		err := bp.CheckHeaderBodyCorrelation(
+			hdr,
+			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock1, miniBlock2}},
+		)
+		require.NoError(t, err)
+	})
+
+	t.Run("duplicate tx hash within single miniblock without proposal should not error", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &hashingMocks.HasherMock{}
+		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		miniBlock := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 1,
+			TxHashes:        [][]byte{[]byte("tx1"), []byte("tx1")},
+			Type:            block.TxBlock,
+			Reserved:        nil,
+		}
+
+		mbHash, _ := core.CalculateHash(coreComponents.IntMarsh, coreComponents.Hash, miniBlock)
+
+		hdr := &block.Header{
+			ShardID: shardID,
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash:            mbHash,
+					SenderShardID:   0,
+					ReceiverShardID: 1,
+					TxCount:         2,
+					Type:            block.TxBlock,
+					Reserved:        nil,
+				},
+			},
+		}
+
+		err := bp.CheckHeaderBodyCorrelation(
+			hdr,
+			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}},
+		)
+		require.NoError(t, err)
+	})
 }
 
 func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
