@@ -282,7 +282,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 		default:
 		}
 
-		err := checkGoRoutinesThrottler(ctx, sr.signatureThrottler)
+		err := checkGoRoutinesThrottler(sigCtx, sr.signatureThrottler)
 		if err != nil {
 			log.Debug("doSignatureJobForManagedKeys.checkGoRoutinesThrottler", "err", err)
 			return false
