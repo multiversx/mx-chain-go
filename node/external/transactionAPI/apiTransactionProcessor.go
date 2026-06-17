@@ -24,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
-	"github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -56,6 +55,7 @@ type apiTransactionProcessor struct {
 	enableRoundsHandler         common.EnableRoundsHandler
 	txVersionChecker            process.TxVersionCheckerHandler
 	chainHandler                data.ChainHandler
+	txProcessor                 process.TransactionProcessor
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -113,6 +113,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		enableRoundsHandler:         args.EnableRoundsHandler,
 		txVersionChecker:            args.TxVersionChecker,
 		chainHandler:                args.ChainHandler,
+		txProcessor:                 args.TxProcessor,
 	}, nil
 }
 
@@ -580,11 +581,9 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, ErrCouldNotCastToTxCache
 	}
 
-	// TODO use the right object, not a disabled one
-	txProcessor := disabled.TxProcessor{}
 	argsSelectionSession := preprocess.ArgsSelectionSession{
 		AccountsAdapter:         accountsAdapter,
-		TransactionsProcessor:   &txProcessor,
+		TransactionsProcessor:   atp.txProcessor,
 		TxVersionCheckerHandler: atp.txVersionChecker,
 	}
 

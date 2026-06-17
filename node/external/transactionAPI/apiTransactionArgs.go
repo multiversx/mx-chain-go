@@ -35,4 +35,5 @@ type ArgAPITransactionProcessor struct {
 	EnableRoundsHandler      common.EnableRoundsHandler
 	TxVersionChecker         process.TxVersionCheckerHandler
 	ChainHandler             data.ChainHandler
+	TxProcessor              process.TransactionProcessor
 }

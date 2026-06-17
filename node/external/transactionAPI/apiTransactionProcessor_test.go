@@ -83,6 +83,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		ChainHandler:        &testscommon.ChainHandlerMock{},
+		TxProcessor:         &testscommon.TxProcessorMock{},
 	}
 }
 
@@ -426,6 +427,7 @@ func TestNode_GetSCRs(t *testing.T) {
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		ChainHandler:        &testscommon.ChainHandlerMock{},
+		TxProcessor:         &testscommon.TxProcessorMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -645,6 +647,7 @@ func TestNode_GetTransactionCheckExecutionResults(t *testing.T) {
 			},
 			TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 			ChainHandler:     &testscommon.ChainHandlerMock{},
+			TxProcessor:      &testscommon.TxProcessorMock{},
 		}
 		apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -731,6 +734,7 @@ func TestNode_GetTransactionCheckExecutionResults(t *testing.T) {
 			},
 			TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 			ChainHandler:     &testscommon.ChainHandlerMock{},
+			TxProcessor:      &testscommon.TxProcessorMock{},
 		}
 		apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -825,6 +829,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		ChainHandler:        &testscommon.ChainHandlerMock{},
+		TxProcessor:         &testscommon.TxProcessorMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -1864,6 +1869,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		ChainHandler:        &testscommon.ChainHandlerMock{},
+		TxProcessor:         &testscommon.TxProcessorMock{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

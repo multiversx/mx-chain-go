@@ -246,6 +246,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		EnableRoundsHandler:      tpn.EnableRoundsHandler,
 		TxVersionChecker:         versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
 		ChainHandler:             tpn.BlockChain,
+		TxProcessor:              tpn.TxProcessor,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)
