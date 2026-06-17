@@ -259,19 +259,12 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 }
 
 func (tdt *trackableDataTrie) rollbackAppliedUpdates(dtr state.DataTrie, oldValues []core.TrieData) {
-	// oldValues can contain empty entries
-	appliedValues := make([]core.TrieData, 0)
-	for _, oldValue := range oldValues {
-		if len(oldValue.Key) == 0 {
-			continue
-		}
-		appliedValues = append(appliedValues, oldValue)
-	}
-
-	for i := len(appliedValues) - 1; i >= 0; i-- {
-		trieUpdate := appliedValues[i]
+	for i := len(oldValues) - 1; i >= 0; i-- {
+		trieUpdate := oldValues[i]
 		err := dtr.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
-		log.Error("could not apply rollback updates", "err", err, "key", trieUpdate.Key, "account", tdt.identifier)
+		if err != nil {
+			log.Error("could not apply rollback updates", "err", err, "key", trieUpdate.Key, "account", tdt.identifier)
+		}
 	}
 }
 
@@ -279,23 +272,25 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 	oldValues := make([]core.TrieData, len(tdt.dirtyData))
 	newData := make([]*stateChange.DataTrieChange, len(tdt.dirtyData))
 	deletedKeys := make([]*stateChange.DataTrieChange, 0)
+	trieUpdates := make([]core.TrieData, 0)
 
 	index := 0
 	for key, dataEntry := range tdt.dirtyData {
 		oldVal, _, err := tdt.retrieveValueFromTrie([]byte(key))
 		if err != nil {
-			tdt.rollbackAppliedUpdates(dtr, oldValues)
+			tdt.rollbackAppliedUpdates(dtr, trieUpdates)
 			return nil, nil, err
 		}
 		oldValues[index] = oldVal
 
 		wasDeleted, err := tdt.deleteOldEntryIfMigrated([]byte(key), dataEntry, oldVal)
 		if err != nil {
-			tdt.rollbackAppliedUpdates(dtr, oldValues)
+			tdt.rollbackAppliedUpdates(dtr, trieUpdates)
 			return nil, nil, err
 		}
 
 		if wasDeleted {
+			trieUpdates = append(trieUpdates, oldVal)
 			originalVal := tdt.getValueNotSpecifiedVersion([]byte(key), oldVal.Value)
 
 			deletedKeys = append(deletedKeys,
@@ -311,7 +306,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 
 		dataTrieKey, err := tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
 		if err != nil {
-			tdt.rollbackAppliedUpdates(dtr, oldValues)
+			tdt.rollbackAppliedUpdates(dtr, trieUpdates)
 			return nil, nil, err
 		}
 
@@ -319,10 +314,14 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 
 		isFirstMigration := oldVal.Version == core.NotSpecified && dataEntry.newVersion == core.AutoBalanceEnabled
 		if isFirstMigration && len(dataTrieKey) != 0 {
-			oldValues = append(oldValues, core.TrieData{
+			deletedData := core.TrieData{
 				Key:   dataTrieKey,
 				Value: nil,
-			})
+			}
+			oldValues = append(oldValues, deletedData)
+			trieUpdates = append(trieUpdates, deletedData)
+		} else if len(dataTrieKey) != 0 && !wasDeleted {
+			trieUpdates = append(trieUpdates, oldVal)
 		}
 
 		if len(dataTrieKey) == 0 {
@@ -330,7 +329,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 		}
 
 		if dataEntry.index > len(newData)-1 {
-			tdt.rollbackAppliedUpdates(dtr, oldValues)
+			tdt.rollbackAppliedUpdates(dtr, trieUpdates)
 			return nil, nil, fmt.Errorf("index out of range")
 		}
 
@@ -342,7 +341,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 			version = oldVal.Version
 			val, err = tdt.getValueWithoutMetadata([]byte(key), oldVal)
 			if err != nil {
-				tdt.rollbackAppliedUpdates(dtr, oldValues)
+				tdt.rollbackAppliedUpdates(dtr, trieUpdates)
 				return nil, nil, err
 			}
 		}
