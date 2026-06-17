@@ -264,7 +264,8 @@ func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
 	return timeStamp * 1000
 }
 
-func convertTimeStampMsToSec(timeStamp uint64) uint64 {
+// ConvertTimeStampMsToSec will convert unix timestamp from milliseconds to seconds
+func ConvertTimeStampMsToSec(timeStamp uint64) uint64 {
 	return timeStamp / 1000
 }
 
@@ -296,7 +297,7 @@ func PrepareTimestampBasedOnHeaderData(headerTimestamp uint64, headerEpoch uint3
 
 	// reduce block timestamp (which now comes as milliseconds) to seconds to keep backwards compatibility
 	// from now on timestampMs will be used for milliseconds granularity
-	timestampSec = convertTimeStampMsToSec(headerTimestamp)
+	timestampSec = ConvertTimeStampMsToSec(headerTimestamp)
 
 	return timestampSec, timestampMs, nil
 }
