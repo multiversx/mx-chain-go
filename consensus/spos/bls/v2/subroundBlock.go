@@ -399,21 +399,17 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 
 	go func() {
 		for _, pk := range keys {
-			log.Info("aaaa")
 			err := checkGoRoutinesThrottler(sigCtx, sr.signatureThrottler)
 			if err != nil {
 				log.Debug("triggerCreateSignaturesForManagedKeys.checkGoRoutinesThrottler", "err", err)
 				cancel()
 				return
 			}
-			log.Info("bbb")
 			sr.signatureThrottler.StartProcessing()
 
 			go func(sigCtx context.Context, idx int, pkBytes []byte) {
 				defer sr.signatureThrottler.EndProcessing()
 				defer wg.Done()
-
-				log.Info("ccc")
 
 				select {
 				case <-sigCtx.Done():
