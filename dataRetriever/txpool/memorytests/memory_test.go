@@ -13,11 +13,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -114,7 +116,7 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 
 	args := txpool.ArgShardedTxPool{
 		Config:         cacheConfig,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		TxGasHandler:   mempool.NewTxGasHandlerMock(),
 		Marshalizer:    &marshal.GogoProtoMarshalizer{},
 		NumberOfShards: 2,
 		SelfShardID:    0,
