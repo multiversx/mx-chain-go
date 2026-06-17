@@ -1042,6 +1042,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Marshalizer:           pcf.coreData.InternalMarshalizer(),
 		Hasher:                pcf.coreData.Hasher(),
 		Store:                 pcf.data.StorageService(),
+		Headers:               pcf.data.Datapool().Headers(),
 		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
 		RewardsHandler:        pcf.coreData.EconomicsData(),
 		RoundTime:             pcf.coreData.RoundHandler(),
