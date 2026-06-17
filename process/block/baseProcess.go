@@ -1224,7 +1224,12 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte
 	if err != nil {
 		return err
 	}
-	return bp.checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr)
+	err = bp.checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr)
+	if err != nil {
+		return err
+	}
+
+	return process.CheckMiniBlock(miniBlock, bp.shardCoordinator)
 }
 
 func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
