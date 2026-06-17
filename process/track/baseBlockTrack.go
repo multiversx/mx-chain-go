@@ -943,7 +943,7 @@ func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock data.MetaH
 		if err != nil {
 			log.Debug("doWhitelistWithMetaBlockIfNeeded: could not get miniblock headers from execution results", "error", err)
 		}
-		miniBlockHdrs = append(miniBlockHdrs, execMiniBlockHdrs...)
+		miniBlockHdrs = execMiniBlockHdrs
 	}
 
 	keys := make([][]byte, 0)
@@ -985,7 +985,7 @@ func (bbt *baseBlockTrack) doWhitelistWithShardHeaderIfNeeded(shardHeader data.H
 		if err != nil {
 			log.Debug("doWhitelistWithShardHeaderIfNeeded: could not get miniblock headers from execution results", "error", err)
 		}
-		miniBlockHdrs = append(miniBlockHdrs, execMiniBlockHdrs...)
+		miniBlockHdrs = execMiniBlockHdrs
 	}
 
 	keys := make([][]byte, 0)

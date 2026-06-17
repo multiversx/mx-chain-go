@@ -2684,11 +2684,9 @@ func TestBaseBlockTrack_DoWhitelistWithMetaHeaderIfNeededV3ExecutionResults(t *t
 
 		sbt.DoWhitelistWithMetaHeaderIfNeeded(metaHdr)
 
-		_, ok := cache[string(proposedMiniBlockHash)]
+		_, ok := cache[string(execMiniBlockHash)]
 		assert.True(t, ok)
-		_, ok = cache[string(execMiniBlockHash)]
-		assert.True(t, ok)
-		assert.Len(t, cache, 2)
+		assert.Len(t, cache, 1)
 	})
 
 	t.Run("non-cross proposed miniblocks should not be whitelisted", func(t *testing.T) {
@@ -2838,11 +2836,9 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededV3ExecutionResults(t *
 
 		mbt.DoWhitelistWithShardHeaderIfNeeded(shardHdr)
 
-		_, ok := cache[string(proposedMiniBlockHash)]
+		_, ok := cache[string(execMiniBlockHash)]
 		assert.True(t, ok)
-		_, ok = cache[string(execMiniBlockHash)]
-		assert.True(t, ok)
-		assert.Len(t, cache, 2)
+		assert.Len(t, cache, 1)
 	})
 
 	t.Run("non-cross proposed miniblocks should not be whitelisted", func(t *testing.T) {
