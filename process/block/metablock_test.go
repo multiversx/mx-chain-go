@@ -193,6 +193,7 @@ func createMockMetaArguments(
 		},
 		coreComponents.RoundHandler(),
 		&testscommon.ExecResSizeComputationStub{},
+		0,
 	)
 
 	missingDataArgs := missingData.ResolverArgs{

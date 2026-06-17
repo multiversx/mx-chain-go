@@ -250,6 +250,7 @@ func NewShardProcessorEmptyWith3shards(
 		},
 		coreComponents.RoundHandler(),
 		&testscommon.ExecResSizeComputationStub{},
+		0,
 	)
 
 	missingDataArgs := missingData.ResolverArgs{

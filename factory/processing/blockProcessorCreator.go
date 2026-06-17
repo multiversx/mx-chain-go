@@ -605,10 +605,14 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	maxBlockGasCapacity := pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId())
+	overestimationFactor := pcf.coreData.EconomicsData().BlockCapacityOverestimationFactor()
+	maxBlockGasCapacity = maxBlockGasCapacity * overestimationFactor / 100
 	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
 		execResSizeComputationHandler,
+		maxBlockGasCapacity,
 	)
 	if err != nil {
 		return nil, err
@@ -1189,10 +1193,14 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	maxBlockGasCapacity := pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId())
+	overestimationFactor := pcf.coreData.EconomicsData().BlockCapacityOverestimationFactor()
+	maxBlockGasCapacity = maxBlockGasCapacity * overestimationFactor / 100
 	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
 		execResSizeComputationHandler,
+		maxBlockGasCapacity,
 	)
 	if err != nil {
 		return nil, err

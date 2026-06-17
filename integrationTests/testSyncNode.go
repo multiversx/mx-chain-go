@@ -162,6 +162,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		},
 		tpn.RoundHandler,
 		&testscommon.ExecResSizeComputationStub{},
+		0,
 	)
 	if err != nil {
 		log.LogIfError(err)
@@ -213,7 +214,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			},
 		},
 		BlockTracker:                       tpn.BlockTracker,
-		MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
+		MiniBlockTracker:                   &testscommon.MiniBlockTrackerStub{},
 		BlockSizeThrottler:                 TestBlockSizeThrottler,
 		HistoryRepository:                  tpn.HistoryRepository,
 		GasHandler:                         tpn.GasHandler,

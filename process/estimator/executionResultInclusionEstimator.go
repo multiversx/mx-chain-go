@@ -31,10 +31,10 @@ type RoundHandler interface {
 // node. It determines, at proposal‑time and at validation‑time, whether one or more pending execution results can be
 // safely embedded in the block that is being produced / verified.
 type ExecutionResultInclusionEstimator struct {
-	cfg          config.ExecutionResultInclusionEstimatorConfig // immutable after construction
-	tGas         uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
-	roundHandler RoundHandler
-	// TODO add also max estimated block gas capacity - used gas must be lower than this
+	cfg                    config.ExecutionResultInclusionEstimatorConfig // immutable after construction
+	tGas                   uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
+	roundHandler           RoundHandler
+	maxBlockGasCapacity    uint64 // max cumulative gas of the included execution results (0 = uncapped)
 	execResSizeComputation ExecResSizeComputationHandler
 }
 
@@ -43,6 +43,7 @@ func NewExecutionResultInclusionEstimator(
 	cfg config.ExecutionResultInclusionEstimatorConfig,
 	roundHandler RoundHandler,
 	execResultComputationHandler ExecResSizeComputationHandler,
+	maxBlockGasCapacity uint64,
 ) (*ExecutionResultInclusionEstimator, error) {
 	err := checkConfig(cfg)
 	if err != nil {
@@ -56,6 +57,7 @@ func NewExecutionResultInclusionEstimator(
 		cfg:                    cfg,
 		tGas:                   tGas,
 		roundHandler:           roundHandler,
+		maxBlockGasCapacity:    maxBlockGasCapacity,
 		execResSizeComputation: execResultComputationHandler,
 	}, nil
 }
@@ -106,6 +108,7 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 
 	// accumulated execution tBase for each pending execution result in ns (1 gas = 1ns)
 	estimatedTBase := tBase
+	var accumulatedGas uint64
 	for pendingExecutionIndex, executionResultMeta := range pending {
 		if pendingExecutionIndex > 0 {
 			previousExecutionResultMeta = pending[pendingExecutionIndex-1]
@@ -163,6 +166,22 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 				"currentHdrTsNs", currentHdrTsNs)
 			return pendingExecutionIndex
 		}
+
+		newAccumulatedGas, overflow := bits.Add64(accumulatedGas, executionResultMeta.GetGasUsed(), 0)
+		if overflow != 0 {
+			log.Debug("ExecutionResultInclusionEstimator: overflow detected in accumulated gas",
+				"accumulatedGas", accumulatedGas,
+				"gasUsed", executionResultMeta.GetGasUsed())
+			return pendingExecutionIndex
+		}
+		if erie.maxBlockGasCapacity > 0 && newAccumulatedGas > erie.maxBlockGasCapacity {
+			log.Debug("ExecutionResultInclusionEstimator: max block gas capacity reached",
+				"accumulatedGas", newAccumulatedGas,
+				"maxBlockGasCapacity", erie.maxBlockGasCapacity,
+				"currentIndex", pendingExecutionIndex)
+			return pendingExecutionIndex
+		}
+		accumulatedGas = newAccumulatedGas
 
 		if execResSizeLimitChecker.IsMaxExecResSizeReached(1) {
 			log.Debug("ExecutionResultInclusionEstimator: estimated max size reached",
