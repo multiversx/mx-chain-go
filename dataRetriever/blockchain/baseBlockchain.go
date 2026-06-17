@@ -176,12 +176,11 @@ func (bbc *baseBlockChain) setCurrentHeaderMetrics(
 	if header.IsHeaderV3() {
 		bbc.setMetricsHeaderV3(header)
 	} else {
-		bbc.appStatusHandler.SetUInt64Value(common.MetricNonce, header.GetNonce())
+		bbc.setMetricsBeforeHeaderV3(header)
 	}
 
 	bbc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, header.GetRound())
-	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, header.GetTimeStamp())
-	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestampMs, header.GetTimeStamp())
+
 }
 
 func (bbc *baseBlockChain) setMetricsHeaderV3(header data.HeaderHandler) {
@@ -192,5 +191,22 @@ func (bbc *baseBlockChain) setMetricsHeaderV3(header data.HeaderHandler) {
 		// any error returned here is intentionally ignored, as it is checked in other locations.
 		return
 	}
+
+	timestampMs := header.GetTimeStamp() // it will come as milliseconds for header v3
+	timestampS := common.ConvertTimeStampMsToSec(timestampMs)
+
+	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, timestampS)
+	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestampMs, timestampMs)
+
 	bbc.appStatusHandler.SetUInt64Value(common.MetricNonce, executionResult.GetHeaderNonce())
+}
+
+func (bbc *baseBlockChain) setMetricsBeforeHeaderV3(header data.HeaderHandler) {
+	bbc.appStatusHandler.SetUInt64Value(common.MetricNonce, header.GetNonce())
+
+	timestampS := header.GetTimeStamp() // it will come as seconds before header v3
+	timestampMs := common.ConvertTimeStampSecToMs(timestampS)
+
+	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, timestampS)
+	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestampMs, timestampMs)
 }
