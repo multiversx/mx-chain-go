@@ -3645,7 +3645,7 @@ func (bp *baseProcessor) requestHeaderIfNeeded(
 	bp.requestHeaderByShardAndNonce(shardID, nonce)
 }
 
-func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks block.MiniBlockSlice) error {
+func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks block.MiniBlockSlice, isProposer bool) error {
 	splitRes, err := bp.splitTransactionsForHeader(header, miniBlocks)
 	if err != nil {
 		return err
@@ -3663,7 +3663,7 @@ func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks bl
 	}
 
 	// for meta, both splitRes.outgoingTransactionHashes and splitRes.outgoingTransactions should be empty, checked on checkMetaOutgoingResults
-	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.AddOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
+	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.AddOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions, isProposer)
 	if err != nil {
 		return err
 	}

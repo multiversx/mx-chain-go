@@ -889,8 +889,13 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header dat
 }
 
 // VerifyGasLimit -
-func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler, miniBlocks block.MiniBlockSlice) error {
-	return sp.verifyGasLimit(header, miniBlocks)
+func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler, miniBlocks block.MiniBlockSlice, isProposer bool) error {
+	return sp.verifyGasLimit(header, miniBlocks, isProposer)
+}
+
+// SelectOutgoingTransactions -
+func (sp *shardProcessor) SelectOutgoingTransactions(nonce uint64, haveTimeForSelection func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
+	return sp.selectOutgoingTransactions(nonce, haveTimeForSelection)
 }
 
 // CheckEpochStartInfoAvailableIfNeeded -
