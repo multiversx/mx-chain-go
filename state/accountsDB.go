@@ -346,7 +346,12 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return nil
 	}
 
-	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
+	oldCodeEntry, err := adb.journalizeCodeChange(oldCodeHash, newCodeHash)
+	if err != nil {
+		return err
+	}
+
+	err = adb.updateOldCodeEntry(oldCodeHash, oldCodeEntry)
 	if err != nil {
 		return err
 	}
@@ -356,24 +361,14 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return err
 	}
 
-	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller)
-	if err != nil {
-		return err
-	}
-	adb.journalize(entry)
-
 	newAcc.SetCodeHash(newCodeHash)
 	return nil
 }
 
-func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
+func (adb *AccountsDB) journalizeCodeChange(oldCodeHash []byte, newCodeHash []byte) (*CodeEntry, error) {
 	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return nil, err
-	}
-
-	if oldCodeEntry == nil {
-		return nil, nil
 	}
 
 	sc := &stateChange.StateAccess{
@@ -385,15 +380,29 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	}
 	adb.stateAccessesCollector.AddStateAccess(sc)
 
-	unmodifiedOldCodeEntry := &CodeEntry{
+	entry, err := NewJournalEntryCode(oldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller)
+	if err != nil {
+		return nil, err
+	}
+	adb.journalize(entry)
+
+	return oldCodeEntry, nil
+}
+
+func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte, oldCodeEntry *CodeEntry) error {
+	if oldCodeEntry == nil {
+		return nil
+	}
+
+	codeEntryClone := &CodeEntry{
 		Code:          oldCodeEntry.Code,
 		NumReferences: oldCodeEntry.NumReferences,
 	}
 
-	if oldCodeEntry.NumReferences <= 1 {
-		err = adb.mainTrie.Delete(oldCodeHash)
+	if codeEntryClone.NumReferences <= 1 {
+		err := adb.mainTrie.Delete(oldCodeHash)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		sc1 := &stateChange.StateAccess{
@@ -405,16 +414,16 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		}
 		adb.stateAccessesCollector.AddStateAccess(sc1)
 
-		return unmodifiedOldCodeEntry, nil
+		return nil
 	}
 
-	oldCodeEntry.NumReferences--
-	codeEntryBytes, err := saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshaller)
+	codeEntryClone.NumReferences--
+	codeEntryBytes, err := saveCodeEntry(oldCodeHash, codeEntryClone, adb.mainTrie, adb.marshaller)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	sc = &stateChange.StateAccess{
+	sc := &stateChange.StateAccess{
 		Type:            stateChange.Write,
 		MainTrieKey:     oldCodeHash,
 		MainTrieVal:     codeEntryBytes,
@@ -423,7 +432,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	}
 	adb.stateAccessesCollector.AddStateAccess(sc)
 
-	return unmodifiedOldCodeEntry, nil
+	return nil
 }
 
 func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) error {
@@ -676,18 +685,13 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 
 func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	oldCodeHash := baseAcc.GetCodeHash()
-	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
+
+	oldCodeEntry, err := adb.journalizeCodeChange(oldCodeHash, nil)
 	if err != nil {
 		return err
 	}
 
-	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller)
-	if err != nil {
-		return err
-	}
-	adb.journalize(codeChangeEntry)
-
-	return nil
+	return adb.updateOldCodeEntry(oldCodeHash, oldCodeEntry)
 }
 
 // LoadAccount fetches the account based on the address. Creates an empty account if the account is missing.
