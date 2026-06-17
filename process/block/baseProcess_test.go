@@ -4989,8 +4989,13 @@ func TestBaseProcessor_RecreateTrieIfNeeded(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockRootHashCalled: func() []byte {
-				return []byte("rootHash")
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					RootHash: []byte("rootHash"),
+				}
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("headerHash")
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
