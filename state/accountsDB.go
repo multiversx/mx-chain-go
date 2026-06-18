@@ -346,17 +346,28 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return nil
 	}
 
-	oldCodeEntry, err := adb.journalizeCodeChange(oldCodeHash, newCodeHash)
+	oldCodeEntry, err := adb.getCodeEntry(oldCodeHash)
 	if err != nil {
 		return err
 	}
+
+	newCodeEntry, err := adb.getCodeEntry(newCodeHash)
+	if err != nil {
+		return err
+	}
+
+	entry, err := NewJournalEntryCode(oldCodeEntry, oldCodeHash, newCodeEntry, newCodeHash, adb.mainTrie, adb.marshaller)
+	if err != nil {
+		return err
+	}
+	adb.journalize(entry)
 
 	err = adb.updateOldCodeEntry(oldCodeHash, oldCodeEntry)
 	if err != nil {
 		return err
 	}
 
-	err = adb.updateNewCodeEntry(newCodeHash, newCode)
+	err = adb.updateNewCodeEntry(newCodeHash, newCodeEntry, newCode)
 	if err != nil {
 		return err
 	}
@@ -365,28 +376,22 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 	return nil
 }
 
-func (adb *AccountsDB) journalizeCodeChange(oldCodeHash []byte, newCodeHash []byte) (*CodeEntry, error) {
-	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller)
+func (adb *AccountsDB) getCodeEntry(hash []byte) (*CodeEntry, error) {
+	codeEntry, err := getCodeEntry(hash, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return nil, err
 	}
 
 	sc := &stateChange.StateAccess{
 		Type:            stateChange.Read,
-		MainTrieKey:     oldCodeHash,
+		MainTrieKey:     hash,
 		MainTrieVal:     nil,
 		Operation:       stateChange.GetCode,
 		DataTrieChanges: nil,
 	}
 	adb.stateAccessesCollector.AddStateAccess(sc)
 
-	entry, err := NewJournalEntryCode(oldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller)
-	if err != nil {
-		return nil, err
-	}
-	adb.journalize(entry)
-
-	return oldCodeEntry, nil
+	return codeEntry, nil
 }
 
 func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte, oldCodeEntry *CodeEntry) error {
@@ -435,38 +440,24 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte, oldCodeEntry *Code
 	return nil
 }
 
-func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) error {
+func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCodeEntry *CodeEntry, newCode []byte) error {
 	if len(newCode) == 0 {
 		return nil
 	}
 
-	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshaller)
+	codeEntry := &CodeEntry{}
+	codeEntry.Code = newCode
+	if newCodeEntry != nil {
+		codeEntry.NumReferences = newCodeEntry.NumReferences
+	}
+	codeEntry.NumReferences++
+
+	codeEntryBytes, err := saveCodeEntry(newCodeHash, codeEntry, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
 	}
 
 	sc := &stateChange.StateAccess{
-		Type:            stateChange.Read,
-		MainTrieKey:     newCodeHash,
-		MainTrieVal:     nil,
-		Operation:       stateChange.GetCode,
-		DataTrieChanges: nil,
-	}
-	adb.stateAccessesCollector.AddStateAccess(sc)
-
-	if newCodeEntry == nil {
-		newCodeEntry = &CodeEntry{
-			Code: newCode,
-		}
-	}
-	newCodeEntry.NumReferences++
-
-	codeEntryBytes, err := saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshaller)
-	if err != nil {
-		return err
-	}
-
-	sc = &stateChange.StateAccess{
 		Type:            stateChange.Write,
 		MainTrieKey:     newCodeHash,
 		MainTrieVal:     codeEntryBytes,
@@ -686,10 +677,16 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	oldCodeHash := baseAcc.GetCodeHash()
 
-	oldCodeEntry, err := adb.journalizeCodeChange(oldCodeHash, nil)
+	oldCodeEntry, err := adb.getCodeEntry(oldCodeHash)
 	if err != nil {
 		return err
 	}
+
+	entry, err := NewJournalEntryCode(oldCodeEntry, oldCodeHash, nil, nil, adb.mainTrie, adb.marshaller)
+	if err != nil {
+		return err
+	}
+	adb.journalize(entry)
 
 	return adb.updateOldCodeEntry(oldCodeHash, oldCodeEntry)
 }
@@ -857,12 +854,14 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
 		account, err := adb.entries[i].Revert()
 		if err != nil {
+			adb.entries = adb.entries[:i+1]
 			return err
 		}
 
 		if !check.IfNil(account) {
 			_, err = adb.saveAccountToTrie(account, adb.mainTrie)
 			if err != nil {
+				adb.entries = adb.entries[:i+1]
 				return err
 			}
 		}
