@@ -368,6 +368,11 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
+	if !header.IsHeaderV3() &&
+		shouldDisableOutgoingTxs(tc.enableEpochsHandler, tc.enableRoundsHandler, header) &&
+		hasForbiddenOutgoingTxMiniBlocks(tc.shardCoordinator.SelfId(), miniBlocksFromMe) {
+		return process.ErrOutgoingTxsDisabled
+	}
 	startTime = time.Now()
 	err = tc.processMiniBlocksFromMe(header, &block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
 	elapsedTime = time.Since(startTime)
@@ -379,6 +384,28 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	return nil
+}
+
+func shouldDisableOutgoingTxs(
+	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
+	header data.HeaderHandler,
+) bool {
+	isSupernovaEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch())
+	supernovaRoundEnabled := enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, header.GetRound())
+	return isSupernovaEnabled && !supernovaRoundEnabled
+}
+
+func hasForbiddenOutgoingTxMiniBlocks(selfShardID uint32, miniBlocks block.MiniBlockSlice) bool {
+	for _, mb := range miniBlocks {
+		if mb.SenderShardID != selfShardID {
+			continue
+		}
+		if mb.Type == block.TxBlock || mb.Type == block.InvalidBlock {
+			return true
+		}
+	}
+	return false
 }
 
 // GetCreatedMiniBlocksFromMe returns the created mini blocks from me
