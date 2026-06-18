@@ -398,14 +398,22 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 	wg.Add(len(keys))
 
 	go func() {
+		triggered := 0
 		for _, pk := range keys {
 			err := checkGoRoutinesThrottler(sigCtx, sr.signatureThrottler)
 			if err != nil {
 				log.Debug("triggerCreateSignaturesForManagedKeys.checkGoRoutinesThrottler", "err", err)
 				cancel()
+
+				for i := triggered; i < len(keys); i++ {
+					wg.Done()
+				}
+
 				return
 			}
 			sr.signatureThrottler.StartProcessing()
+
+			triggered++
 
 			go func(sigCtx context.Context, idx int, pkBytes []byte) {
 				defer sr.signatureThrottler.EndProcessing()
