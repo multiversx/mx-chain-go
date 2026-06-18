@@ -2553,9 +2553,9 @@ func (mp *metaProcessor) getCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHand
 			return big.NewInt(0), big.NewInt(0), nil
 		}
 
-		lastExecResult, err := common.GetLastBaseExecutionResultHandler(metaHdr)
-		if err != nil {
-			return nil, nil, err
+		lastExecResult := mp.blockChain.GetLastExecutionResult()
+		if check.IfNil(lastExecResult) {
+			return big.NewInt(0), big.NewInt(0), nil
 		}
 
 		lastMetaExecResult, ok := lastExecResult.(data.BaseMetaExecutionResultHandler)

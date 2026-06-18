@@ -5144,45 +5144,45 @@ func Test_getCurrentlyAccumulatedFees(t *testing.T) {
 		require.Equal(t, big.NewInt(0), currentlyAccumulatedFeesInEpoch)
 	})
 
-	t.Run("should propagate the error in case of nil last execution result", func(t *testing.T) {
+	t.Run("should return err in case of nil last execution result", func(t *testing.T) {
 		t.Parallel()
 
-		mp, err := processBlock.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{})
+		mp, err := processBlock.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+					return nil
+				},
+			},
+		})
 		require.NoError(t, err)
 
 		metaBlock := &block.MetaBlockV3{}
 		currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, err := mp.GetCurrentlyAccumulatedFees(metaBlock)
-		require.Nil(t, currentlyAccumulatedFeesInEpoch)
-		require.Nil(t, currentDevFeesInEpoch)
-		require.Equal(t, common.ErrNilLastExecutionResultHandler, err)
+		require.Equal(t, big.NewInt(0), currentlyAccumulatedFeesInEpoch)
+		require.Equal(t, big.NewInt(0), currentDevFeesInEpoch)
+		require.Nil(t, err)
 	})
 
-	t.Run("should propagate the error in case of nil base execution result", func(t *testing.T) {
+	t.Run("should return accumulated fees for v3 from last executed block", func(t *testing.T) {
 		t.Parallel()
 
-		mp, err := processBlock.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{})
-		require.NoError(t, err)
-
-		metaBlock := &block.MetaBlockV3{
-			LastExecutionResult: &block.MetaExecutionResultInfo{},
-		}
-		currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, err := mp.GetCurrentlyAccumulatedFees(metaBlock)
-		require.Nil(t, currentlyAccumulatedFeesInEpoch)
-		require.Nil(t, currentDevFeesInEpoch)
-		require.Equal(t, common.ErrNilBaseExecutionResult, err)
-	})
-
-	t.Run("should return accumulated fees for v3", func(t *testing.T) {
-		t.Parallel()
-
-		mp, err := processBlock.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{})
+		mp, err := processBlock.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+					return &block.BaseMetaExecutionResult{
+						AccumulatedFeesInEpoch: big.NewInt(10),
+						DevFeesInEpoch:         big.NewInt(10),
+					}
+				},
+			},
+		})
 		require.NoError(t, err)
 
 		metaBlock := &block.MetaBlockV3{
 			LastExecutionResult: &block.MetaExecutionResultInfo{
 				ExecutionResult: &block.BaseMetaExecutionResult{
-					AccumulatedFeesInEpoch: big.NewInt(10),
-					DevFeesInEpoch:         big.NewInt(10),
+					AccumulatedFeesInEpoch: big.NewInt(12),
+					DevFeesInEpoch:         big.NewInt(12),
 				},
 			},
 		}
