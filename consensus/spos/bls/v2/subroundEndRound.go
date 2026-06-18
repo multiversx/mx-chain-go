@@ -156,7 +156,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	invalidSignersPubKeys, err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
+	invalidSignersPubKeys, err := sr.verifyInvalidSigners(cnsDta.BlockHeaderHash, cnsDta.InvalidSigners)
 	if err != nil {
 		log.Trace("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
 
@@ -179,7 +179,10 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	return true
 }
 
-func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]string, error) {
+func (sr *subroundEndRound) verifyInvalidSigners(
+	headerHash []byte,
+	invalidSigners []byte,
+) ([]string, error) {
 	messages, err := sr.MessageSigningHandler().Deserialize(invalidSigners)
 	if err != nil {
 		return nil, err
@@ -187,7 +190,7 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 
 	pubKeys := make([]string, 0, len(messages))
 	for _, msg := range messages {
-		pubKey, errVerify := sr.verifyInvalidSigner(msg)
+		pubKey, errVerify := sr.verifyInvalidSigner(headerHash, msg)
 		if errVerify != nil {
 			return nil, errVerify
 		}
@@ -200,7 +203,10 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 	return pubKeys, nil
 }
 
-func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, error) {
+func (sr *subroundEndRound) verifyInvalidSigner(
+	headerHash []byte,
+	msg p2p.MessageP2P,
+) (string, error) {
 	cnsMsg := &consensus.Message{}
 	err := sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
 	if err != nil {
@@ -215,6 +221,10 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, err
 	err = sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return "", err
+	}
+
+	if !bytes.Equal(headerHash, cnsMsg.BlockHeaderHash) {
+		return "", ErrHeaderHashMismatch
 	}
 
 	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)

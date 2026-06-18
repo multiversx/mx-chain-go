@@ -124,7 +124,10 @@ func (cns *ConsensusState) GetReceivedHeaders() []data.HeaderHandler {
 // AddMessageWithSignature will add the p2p message to received list of messages
 func (cns *ConsensusState) AddMessageWithSignature(key string, message p2p.MessageP2P) {
 	cns.mutReceivedMessagesWithSignature.Lock()
-	cns.receivedMessagesWithSignature[key] = message
+	_, ok := cns.receivedMessagesWithSignature[key]
+	if !ok {
+		cns.receivedMessagesWithSignature[key] = message
+	}
 	cns.mutReceivedMessagesWithSignature.Unlock()
 }
 
