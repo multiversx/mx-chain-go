@@ -4685,7 +4685,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
 	})
 
-	t.Run("duplicate tx hash across miniblocks without proposal should not error", func(t *testing.T) {
+	t.Run("duplicate tx hash across miniblocks without proposal should error", func(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
 		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
@@ -4736,10 +4736,10 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 			hdr,
 			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock1, miniBlock2}},
 		)
-		require.NoError(t, err)
+		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
 	})
 
-	t.Run("duplicate tx hash within single miniblock without proposal should not error", func(t *testing.T) {
+	t.Run("duplicate tx hash within single miniblock without proposal should error", func(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
 		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
@@ -4774,7 +4774,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 			hdr,
 			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}},
 		)
-		require.NoError(t, err)
+		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
 	})
 }
 

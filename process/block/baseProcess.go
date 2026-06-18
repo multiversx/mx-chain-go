@@ -1259,13 +1259,6 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		return process.ErrDuplicatedHashInBlock
 	}
 
-	if proposal {
-		err := checkForDuplicatedTxHashes(body)
-		if err != nil {
-			return err
-		}
-	}
-
 	var mbHdr data.MiniBlockHeaderHandler
 	var miniBlock *block.MiniBlock
 	var mbHash []byte
@@ -1301,6 +1294,11 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		}
 
 		delete(mbHashesFromHdr, mbHashStr)
+	}
+
+	err = checkForDuplicatedTxHashes(body)
+	if err != nil {
+		return err
 	}
 
 	return nil
