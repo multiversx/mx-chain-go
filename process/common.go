@@ -1632,12 +1632,18 @@ func UpdateContextForReplacedHeader(
 	}
 
 	currentExecResult := blockChain.GetLastExecutionResult()
-	if !check.IfNil(currentExecResult) && !bytes.Equal(currentExecResult.GetHeaderHash(), executionResultToSet.GetHeaderHash()) {
+	if !check.IfNil(currentExecResult) {
+		if bytes.Equal(currentExecResult.GetHeaderHash(), executionResultToSet.GetHeaderHash()) {
+			// already at the desired state
+			return nil
+		}
+
 		err = CleanCachesForExecutionResult(currentExecResult, postProcessTransactions, executedMiniBlocks)
 		if err != nil {
 			return err
 		}
 	}
+
 
 	log.Debug("UpdateContextForReplacedHeader last executed header",
 		"round", headerToSet.GetRound(),

@@ -3584,9 +3584,9 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			0,
 		)
 		require.Nil(t, err)
-		require.True(t, setExecutedCalled)
-		require.True(t, setExecutionResultCalled)
-		require.True(t, removePendingCalled)
+		require.False(t, setExecutedCalled)
+		require.False(t, setExecutionResultCalled)
+		require.False(t, removePendingCalled)
 	})
 
 	t.Run("nil storage should error", func(t *testing.T) {
@@ -3767,6 +3767,13 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 	t.Run("successful path with lastNotarizedResult", func(t *testing.T) {
 		t.Parallel()
 
+		prevNotarizedResult := &block.BaseExecutionResult{
+			HeaderHash:  []byte("prevNotarizedHash"),
+			HeaderNonce: 4,
+			HeaderRound: 4,
+			RootHash:    []byte("prevNotarizedRoot"),
+		}
+
 		lastNotarizedResult := &block.BaseExecutionResult{
 			HeaderHash:  []byte("lastNotarizedHash"),
 			HeaderNonce: 5,
@@ -3776,9 +3783,6 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 
 		removePendingCalled := false
 		executionManager := &processMocks.ExecutionManagerMock{
-			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
-				return []data.BaseExecutionResultHandler{}, nil
-			},
 			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
 				return lastNotarizedResult, nil
 			},
@@ -3789,13 +3793,12 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			},
 		}
 
+		headerToSet := &block.HeaderV3{
+			Nonce: 5,
+		}
 		header := &block.HeaderV3{
 			Nonce:    6,
 			PrevHash: []byte("lastNotarizedHash"),
-		}
-
-		headerToSet := &block.HeaderV3{
-			Nonce: 5,
 		}
 
 		setLastExecutedCalled := false
@@ -3813,7 +3816,7 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.ExecutionResult{
-					BaseExecutionResult: lastNotarizedResult,
+					BaseExecutionResult: prevNotarizedResult,
 				}
 			},
 		}
@@ -3941,12 +3944,19 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			RootHash:    []byte("lastNotarizedRoot"),
 		}
 
+		currentExecResult := &block.BaseExecutionResult{
+			HeaderHash:  []byte("currentExecResultHash"),
+			HeaderNonce: 6,
+			HeaderRound: 6,
+			RootHash:    []byte("currentExecResultRootHash"),
+		}
+
 		executionManager := &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return []data.BaseExecutionResultHandler{}, nil
 			},
 			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
-				return lastNotarizedResult, nil
+				return currentExecResult, nil
 			},
 			RemovePendingExecutionResultsFromNonceCalled: func(nonce uint64) error {
 				return errExpected
@@ -3955,7 +3965,7 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 
 		header := &block.HeaderV3{
 			Nonce:    6,
-			PrevHash: []byte("lastNotarizedHash"),
+			PrevHash: []byte("currentExecResultHash"),
 		}
 
 		headerToSet := &block.HeaderV3{
@@ -3976,7 +3986,7 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 
 		headersPool := &mock.HeadersCacherStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				if bytes.Equal(hash, []byte("lastNotarizedHash")) {
+				if bytes.Equal(hash, []byte("currentExecResultHash")) {
 					return headerToSet, nil
 				}
 				return nil, errors.New("not found")
