@@ -182,6 +182,28 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededScheduledEnab
 	require.Equal(t, prevHeader, header)
 }
 
+func TestStartInEpochWithScheduledDataSyncer_getRequiredHeaderByHashV3HeaderShouldShortCircuit(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultDataSyncerFactoryArgs()
+	syncCalled := false
+	args.HeadersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+		SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
+			syncCalled = true
+			return nil
+		},
+	}
+	ds, _ := newStartInEpochShardHeaderDataSyncerWithScheduled(args.ScheduledTxsHandler, args.HeadersSyncer, args.MiniBlocksSyncer, args.TxSyncer, 0)
+
+	notarizedShardHeader := &block.HeaderV3{Nonce: 12, Epoch: 2, PrevHash: []byte("prevHash")}
+
+	header, headersMap, err := ds.getRequiredHeaderByHash(notarizedShardHeader)
+	require.Nil(t, err)
+	require.Nil(t, headersMap)
+	require.Equal(t, notarizedShardHeader, header)
+	require.False(t, syncCalled, "no prev-header sync should be performed for V3 headers")
+}
+
 func TestStartInEpochWithScheduledDataSyncer_getRequiredHeaderByHash(t *testing.T) {
 	// TODO: add test
 }
