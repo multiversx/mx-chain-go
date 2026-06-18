@@ -1203,7 +1203,7 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAnd
 	}
 
 	if mbHdr.GetTypeInt32() != int32(miniBlock.Type) {
-		return process.ErrHeaderBodyMismatch
+		return fmt.Errorf("%w: different mb sender type", process.ErrHeaderBodyMismatch)
 	}
 
 	err := process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
@@ -3679,7 +3679,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	if header.IsHeaderV3() {
 		bp.executionManager.CleanOnConsensusReached(headerHash, header)
 		// last executed info and header will be set on headers executor in async mode
-		return bp.blockChain.SetCurrentBlockHeader(header)
+		return bp.blockChain.SetCurrentBlockHeaderAndHash(headerHash, header)
 	}
 
 	err := bp.blockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
@@ -3697,6 +3697,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	if err != nil {
 		return err
 	}
+	bp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
 	return bp.executionManager.SetLastNotarizedResult(lastExecResHandler)
 }

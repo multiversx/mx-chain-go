@@ -3566,10 +3566,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 					BaseExecutionResult: lastNotarizedResult,
 				}
 			},
-			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, headerHash []byte, rootHash []byte) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 				setExecutedCalled = true
-			},
-			SetLastExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) {
 				setExecutionResultCalled = true
 			},
 		}
@@ -3809,9 +3807,9 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 				require.Equal(t, lastNotarizedResult.HeaderHash, hash)
 				require.Equal(t, lastNotarizedResult.RootHash, rootHash)
 			},
-			SetLastExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 				setLastExecutionResultCalled = true
-				require.Equal(t, lastNotarizedResult, executionResult)
+				require.Equal(t, lastNotarizedResult, result)
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.ExecutionResult{
@@ -3841,7 +3839,7 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			0,
 		)
 		require.Nil(t, err)
-		require.True(t, setLastExecutedCalled)
+		require.False(t, setLastExecutedCalled)
 		require.True(t, setLastExecutionResultCalled)
 		require.True(t, removePendingCalled)
 	})
@@ -3896,9 +3894,9 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 				require.Equal(t, pendingResult.HeaderHash, hash)
 				require.Equal(t, pendingResult.RootHash, rootHash)
 			},
-			SetLastExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 				setLastExecutionResultCalled = true
-				require.Equal(t, pendingResult, executionResult)
+				require.Equal(t, pendingResult, result)
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.ExecutionResult{
@@ -3928,7 +3926,7 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			0,
 		)
 		require.Nil(t, err)
-		require.True(t, setLastExecutedCalled)
+		require.False(t, setLastExecutedCalled)
 		require.True(t, setLastExecutionResultCalled)
 		require.True(t, removePendingCalled)
 	})
@@ -3967,7 +3965,7 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 		blockChain := &testscommon.ChainHandlerStub{
 			SetLastExecutedBlockHeaderAndRootHashCalled: func(hdr data.HeaderHandler, hash []byte, rootHash []byte) {
 			},
-			SetLastExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.ExecutionResult{

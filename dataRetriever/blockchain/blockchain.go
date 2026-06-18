@@ -77,6 +77,18 @@ func (bc *blockChain) setCurrentBlockHeaderUnprotected(header data.HeaderHandler
 	return nil
 }
 
+// SetCurrentBlockHeaderAndHash sets header and hash atomically
+func (bc *blockChain) SetCurrentBlockHeaderAndHash(
+	headerHash []byte,
+	header data.HeaderHandler,
+) error {
+	bc.mut.Lock()
+	defer bc.mut.Unlock()
+
+	bc.currentBlockHeaderHash = headerHash
+	return bc.setCurrentBlockHeaderUnprotected(header)
+}
+
 // SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
 func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
 	bc.mut.Lock()

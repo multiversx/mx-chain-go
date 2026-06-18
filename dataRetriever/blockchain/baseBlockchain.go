@@ -75,6 +75,18 @@ func (bbc *baseBlockChain) GetCurrentBlockHeaderHash() []byte {
 	return bbc.currentBlockHeaderHash
 }
 
+// GetCurrentBlockHeaderAndHash returns the current block header and hash
+func (bbc *baseBlockChain) GetCurrentBlockHeaderAndHash() (data.HeaderHandler, []byte) {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	if check.IfNil(bbc.currentBlockHeader) || len(bbc.currentBlockHeaderHash) == 0 {
+		return nil, nil
+	}
+
+	return bbc.currentBlockHeader.ShallowClone(), bbc.currentBlockHeaderHash
+}
+
 // SetCurrentBlockHeaderHash returns the current block header hash
 func (bbc *baseBlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 	bbc.mut.Lock()
@@ -85,12 +97,15 @@ func (bbc *baseBlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 // SetFinalBlockInfo sets the nonce, hash and rootHash associated with the previous-to-final block
 func (bbc *baseBlockChain) SetFinalBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
 	bbc.mut.Lock()
+	defer bbc.mut.Unlock()
 
+	bbc.setFinalBlockInfoUnprotected(nonce, headerHash, rootHash)
+}
+
+func (bbc *baseBlockChain) setFinalBlockInfoUnprotected(nonce uint64, headerHash []byte, rootHash []byte) {
 	bbc.finalBlockInfo.nonce = nonce
 	bbc.finalBlockInfo.hash = headerHash
 	bbc.finalBlockInfo.committedRootHash = rootHash
-
-	bbc.mut.Unlock()
 }
 
 // GetFinalBlockInfo returns the nonce, hash and rootHash associated with the previous-to-final block
@@ -138,6 +153,14 @@ func (bbc *baseBlockChain) SetLastExecutedBlockHeaderAndRootHash(
 	bbc.mut.Lock()
 	defer bbc.mut.Unlock()
 
+	bbc.setLastExecutedBlockHeaderAndRootHashUnprotected(header, headerHash, rootHash)
+}
+
+func (bbc *baseBlockChain) setLastExecutedBlockHeaderAndRootHashUnprotected(
+	header data.HeaderHandler,
+	headerHash []byte,
+	rootHash []byte,
+) {
 	if check.IfNil(header) {
 		bbc.lastExecutedBlockHeader = nil
 		bbc.lastExecutedBlockInfo.nonce = 0
@@ -162,11 +185,24 @@ func (bbc *baseBlockChain) GetLastExecutionResult() data.BaseExecutionResultHand
 	return bbc.lastExecutionResult
 }
 
-// SetLastExecutionResult sets the last execution result
-func (bbc *baseBlockChain) SetLastExecutionResult(result data.BaseExecutionResultHandler) {
+// SetLastExecutionInfo sets header, execution result and final block info atomically
+func (bbc *baseBlockChain) SetLastExecutionInfo(
+	header data.HeaderHandler,
+	result data.BaseExecutionResultHandler,
+) {
+	if check.IfNil(header) || check.IfNil(result) {
+		return
+	}
+
 	bbc.mut.Lock()
 	defer bbc.mut.Unlock()
 
+	headerHash := result.GetHeaderHash()
+	rootHash := result.GetRootHash()
+	headerNonce := result.GetHeaderNonce()
+
+	bbc.setFinalBlockInfoUnprotected(headerNonce, headerHash, rootHash)
+	bbc.setLastExecutedBlockHeaderAndRootHashUnprotected(header, headerHash, rootHash)
 	bbc.lastExecutionResult = result
 }
 
