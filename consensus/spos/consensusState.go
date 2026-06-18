@@ -105,6 +105,11 @@ func (cns *ConsensusState) initReceivedMessagesWithSig() {
 	cns.mutReceivedMessagesWithSignature.Unlock()
 }
 
+// SignatureMessageKey scopes a signature evidence message to the header hash it signs.
+func SignatureMessageKey(headerHash []byte, pubKey string) string {
+	return string(headerHash) + pubKey
+}
+
 // AddReceivedHeader append the provided header to the inner received headers list
 func (cns *ConsensusState) AddReceivedHeader(headerHandler data.HeaderHandler) {
 	cns.mutReceivedHeaders.Lock()
@@ -123,12 +128,21 @@ func (cns *ConsensusState) GetReceivedHeaders() []data.HeaderHandler {
 
 // AddMessageWithSignature will add the p2p message to received list of messages
 func (cns *ConsensusState) AddMessageWithSignature(key string, message p2p.MessageP2P) {
+	_ = cns.AddMessageWithSignatureIfMissing(key, message)
+}
+
+// AddMessageWithSignatureIfMissing will add the p2p message to received list of messages if missing
+func (cns *ConsensusState) AddMessageWithSignatureIfMissing(key string, message p2p.MessageP2P) bool {
 	cns.mutReceivedMessagesWithSignature.Lock()
+	defer cns.mutReceivedMessagesWithSignature.Unlock()
+
 	_, ok := cns.receivedMessagesWithSignature[key]
-	if !ok {
-		cns.receivedMessagesWithSignature[key] = message
+	if ok {
+		return false
 	}
-	cns.mutReceivedMessagesWithSignature.Unlock()
+
+	cns.receivedMessagesWithSignature[key] = message
+	return true
 }
 
 // GetMessageWithSignature will get the p2p message based on key

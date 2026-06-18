@@ -160,8 +160,10 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	if err != nil {
 		log.Trace("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
 
-		originatorPeer := core.PeerID(cnsDta.OriginatorPid)
-		sr.applyBlacklistOnNode(originatorPeer)
+		if errors.Is(err, ErrValidSignatureFromInvalidSigner) {
+			originatorPeer := core.PeerID(cnsDta.OriginatorPid)
+			sr.applyBlacklistOnNode(originatorPeer)
+		}
 
 		return false
 	}
@@ -529,9 +531,10 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 
 func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
 	p2pMessages := make([]p2p.MessageP2P, 0)
+	headerHash := sr.GetData()
 
 	for _, pk := range invalidPubKeys {
-		p2pMsg, ok := sr.GetMessageWithSignature(pk)
+		p2pMsg, ok := sr.GetMessageWithSignature(spos.SignatureMessageKey(headerHash, pk))
 		if !ok {
 			log.Trace("message not found in state for invalid signer", "pubkey", pk)
 			continue
