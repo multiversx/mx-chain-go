@@ -2048,6 +2048,124 @@ func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 	assert.Equal(t, process.ErrMissingTransaction, err)
 }
 
+func TestTransactionCoordinator_ProcessBlockTransactionRejectsForbiddenOutgoingTxMiniBlocksDuringSupernovaTransition(t *testing.T) {
+	t.Parallel()
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+	argsTransactionCoordinator.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && epoch == 7
+		},
+	}
+	argsTransactionCoordinator.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return false
+		},
+	}
+
+	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
+	require.NoError(t, err)
+
+	haveTime := func() time.Duration {
+		return time.Second
+	}
+
+	receiverShardID := (tc.shardCoordinator.SelfId() + 1) % tc.shardCoordinator.NumberOfShards()
+	header, body := getBodyAndHeader(t, tc, block.TxBlock, receiverShardID)
+	err = tc.ProcessBlockTransaction(header, body, haveTime)
+	require.ErrorIs(t, err, process.ErrOutgoingTxsDisabled)
+
+	header, body = getBodyAndHeader(t, tc, block.InvalidBlock, tc.shardCoordinator.SelfId())
+	err = tc.ProcessBlockTransaction(header, body, haveTime)
+	require.ErrorIs(t, err, process.ErrOutgoingTxsDisabled)
+}
+
+func getBodyAndHeader(t *testing.T, tc *transactionCoordinator, blockType block.Type, receiverShardID uint32) (data.HeaderHandler, *block.Body) {
+	miniBlock := &block.MiniBlock{
+		SenderShardID:   tc.shardCoordinator.SelfId(),
+		ReceiverShardID: receiverShardID,
+		Type:            blockType,
+		TxHashes:        [][]byte{txHash},
+	}
+	miniBlockHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+	require.NoError(t, err)
+
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}
+	header := &block.Header{
+		Epoch: 7,
+		Round: 41,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{Hash: miniBlockHash, TxCount: 1, ReceiverShardID: receiverShardID},
+		},
+	}
+
+	return header, body
+}
+
+func TestTransactionCoordinator_ProcessBlockTransactionAllowsPostProcessMiniBlocksDuringSupernovaTransition(t *testing.T) {
+	t.Parallel()
+
+	processCalled := false
+	preProcessor := &preprocMocks.PreProcessorMock{
+		ProcessBlockTransactionsCalled: func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error {
+			processCalled = true
+			require.Len(t, body.MiniBlocks, 1)
+			require.Equal(t, block.SmartContractResultBlock, body.MiniBlocks[0].Type)
+			return nil
+		},
+	}
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+	argsTransactionCoordinator.PreProcessors = &preprocMocks.PreProcessorContainerMock{
+		KeysCalled: func() []block.Type {
+			return []block.Type{block.SmartContractResultBlock}
+		},
+		GetCalled: func(key block.Type) (process.PreProcessor, error) {
+			require.Equal(t, block.SmartContractResultBlock, key)
+			return preProcessor, nil
+		},
+	}
+	argsTransactionCoordinator.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && epoch == 7
+		},
+	}
+	argsTransactionCoordinator.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return false
+		},
+	}
+
+	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
+	require.NoError(t, err)
+
+	haveTime := func() time.Duration {
+		return time.Second
+	}
+
+	selfShardID := tc.shardCoordinator.SelfId()
+	miniBlock := &block.MiniBlock{
+		SenderShardID:   selfShardID,
+		ReceiverShardID: selfShardID,
+		Type:            block.SmartContractResultBlock,
+	}
+	miniBlockHash, err := core.CalculateHash(tc.marshalizer, tc.hasher, miniBlock)
+	require.NoError(t, err)
+
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}
+	header := &block.Header{
+		Epoch: 7,
+		Round: 41,
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{Hash: miniBlockHash, TxCount: 0, ReceiverShardID: selfShardID},
+		},
+	}
+
+	err = tc.ProcessBlockTransaction(header, body, haveTime)
+	require.NoError(t, err)
+	require.True(t, processCalled)
+}
+
 func TestTransactionCoordinator_ProcessBlockTransaction_DoubleTxs(t *testing.T) {
 	t.Parallel()
 

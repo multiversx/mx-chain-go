@@ -3927,7 +3927,9 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
+			ExecutionResult: &block.BaseMetaExecutionResult{},
+		})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -3952,7 +3954,9 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
+			ExecutionResult: &block.BaseMetaExecutionResult{},
+		})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -3989,7 +3993,12 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				AccumulatedFeesInEpoch: big.NewInt(10),
+				DevFeesInEpoch:         big.NewInt(10),
+			},
+		})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -4030,7 +4039,12 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				AccumulatedFeesInEpoch: big.NewInt(10),
+				DevFeesInEpoch:         big.NewInt(10),
+			},
+		})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -4072,7 +4086,9 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err = blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
+			ExecutionResult: &block.BaseMetaExecutionResult{},
+		})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -4101,7 +4117,12 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				AccumulatedFeesInEpoch: big.NewInt(10),
+				DevFeesInEpoch:         big.NewInt(10),
+			},
+		})
 		dataComponents.BlockChain = blockchainMock
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -4391,6 +4412,15 @@ func TestMetaProcessor_collectExecutionResults(t *testing.T) {
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
 
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseMetaExecutionResult{
+					AccumulatedFeesInEpoch: big.NewInt(10),
+					DevFeesInEpoch:         big.NewInt(10),
+				}
+			},
+		}
+
 		txCoordinatorMock := createTxCoordinatorMock()
 		arguments.TxCoordinator = &txCoordinatorMock
 
@@ -4457,6 +4487,15 @@ func TestMetaProcessor_collectExecutionResultsEpochStartProposal(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseMetaExecutionResult{
+					AccumulatedFeesInEpoch: big.NewInt(10),
+					DevFeesInEpoch:         big.NewInt(10),
+				}
+			},
+		}
+
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
 
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{}
@@ -4644,7 +4683,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 				}
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseMetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
 			},
 		}
 
@@ -4681,7 +4722,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 				return &block.MetaBlockV3{}
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseMetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
 			},
 		}
 
@@ -4709,7 +4752,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 				}
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseMetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
 			},
 		}
 
@@ -4738,7 +4783,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 				return &block.MetaBlockV3{}
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseMetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
 			},
 		}
 
@@ -4766,7 +4813,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 				return &block.MetaBlockV3{}
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseMetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
 			},
 		}
 
@@ -4795,7 +4844,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 				return &block.MetaBlockV3{}
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseMetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
 			},
 		}
 
@@ -4824,7 +4875,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 				return &block.MetaBlockV3{}
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseMetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
 			},
 		}
 
@@ -4853,7 +4906,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 				return &block.MetaBlockV3{}
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseMetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
 			},
 		}
 
@@ -4882,7 +4937,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 				return &block.MetaBlockV3{}
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseMetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
 			},
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
@@ -4907,7 +4964,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.MetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
 			},
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.MetaBlockV3{}
@@ -4938,7 +4997,12 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.MetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						AccumulatedFeesInEpoch: big.NewInt(10),
+						DevFeesInEpoch:         big.NewInt(10),
+					},
+				}
 			},
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
 				return &defaultMetaBlockV3
@@ -4985,7 +5049,12 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.MetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						AccumulatedFeesInEpoch: big.NewInt(10),
+						DevFeesInEpoch:         big.NewInt(10),
+					},
+				}
 			},
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
 				return &defaultMetaBlockV3
@@ -5014,7 +5083,12 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.MetaExecutionResult{}
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						AccumulatedFeesInEpoch: big.NewInt(10),
+						DevFeesInEpoch:         big.NewInt(10),
+					},
+				}
 			},
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.MetaBlockV3{}
@@ -5042,7 +5116,10 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.MetaExecutionResult{
-					ExecutionResult: &block.BaseMetaExecutionResult{},
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						AccumulatedFeesInEpoch: big.NewInt(10),
+						DevFeesInEpoch:         big.NewInt(10),
+					},
 				}
 			},
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
@@ -5071,8 +5148,8 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 			LastExecutionResult: &block.MetaExecutionResultInfo{
 				ExecutionResult: &block.BaseMetaExecutionResult{
-					DevFeesInEpoch:         big.NewInt(1),
-					AccumulatedFeesInEpoch: big.NewInt(1),
+					DevFeesInEpoch:         big.NewInt(1), // fees not taken from header
+					AccumulatedFeesInEpoch: big.NewInt(1), // fees not taken from header
 				},
 			},
 		}, []byte("headerHash"), &block.Body{
@@ -5091,8 +5168,8 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		require.True(t, ok)
 
 		require.Equal(t, receiptHash, metaExecutionResult.ReceiptsHash)
-		require.Equal(t, big.NewInt(1), metaExecutionResult.ExecutionResult.DevFeesInEpoch)
-		require.Equal(t, big.NewInt(1), metaExecutionResult.ExecutionResult.AccumulatedFeesInEpoch)
+		require.Equal(t, big.NewInt(10), metaExecutionResult.ExecutionResult.DevFeesInEpoch)
+		require.Equal(t, big.NewInt(10), metaExecutionResult.ExecutionResult.AccumulatedFeesInEpoch)
 		require.Equal(t, 0, len(metaExecutionResult.MiniBlockHeaders))
 		require.Equal(t, uint64(0), metaExecutionResult.GetExecutedTxCount())
 	})
