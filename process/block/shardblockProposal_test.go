@@ -3422,11 +3422,7 @@ func TestShardProcessor_SelectOutgoingTransactions_ShardIsStuck(t *testing.T) {
 				return false
 			},
 			IsShardStuckCalled: func(shardId uint32) bool {
-				if shardId == core.MetachainShardId {
-					return true
-				}
-
-				return false
+				return shardId == core.MetachainShardId
 			},
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
