@@ -693,18 +693,53 @@ func TestComputeCrossInfo_ShouldReturnZeroWhenErrWrongTypeAssertion(t *testing.T
 func TestComputeCrossInfo_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	shardArguments := CreateShardTrackerMockArguments()
-	sbt, _ := track.NewShardBlockTrack(shardArguments)
+	t.Run("before header v3, should take pending mbs from shard info", func(t *testing.T) {
+		t.Parallel()
 
-	sbt.ComputeCrossInfo([]data.HeaderHandler{&block.MetaBlock{
-		ShardInfo: []block.ShardData{
-			{
-				ShardID:              0,
-				NumPendingMiniBlocks: 2,
-			},
-		}}})
+		shardArguments := CreateShardTrackerMockArguments()
+		sbt, _ := track.NewShardBlockTrack(shardArguments)
 
-	assert.Equal(t, uint32(2), sbt.GetNumPendingMiniBlocks(0))
+		sbt.ComputeCrossInfo([]data.HeaderHandler{
+			&block.MetaBlock{
+				ShardInfo: []block.ShardData{
+					{
+						ShardID:               0,
+						NumPendingMiniBlocks:  2,
+						LastIncludedMetaNonce: 3,
+					},
+				},
+			}})
+
+		assert.Equal(t, uint32(2), sbt.GetNumPendingMiniBlocks(0))
+		assert.Equal(t, uint64(3), sbt.GetLastShardProcessedMetaNonce(0))
+	})
+
+	t.Run("with header v3, should take pending mbs from shard info proposal", func(t *testing.T) {
+		t.Parallel()
+
+		shardArguments := CreateShardTrackerMockArguments()
+		sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+		sbt.ComputeCrossInfo([]data.HeaderHandler{
+			&block.MetaBlockV3{
+				ShardInfo: []block.ShardData{
+					{
+						ShardID:               0,
+						NumPendingMiniBlocks:  1, // will not be used
+						LastIncludedMetaNonce: 3,
+					},
+				},
+				ShardInfoProposal: []block.ShardDataProposal{
+					{
+						ShardID:              0,
+						NumPendingMiniBlocks: 2,
+					},
+				},
+			}})
+
+		assert.Equal(t, uint32(2), sbt.GetNumPendingMiniBlocks(0))
+		assert.Equal(t, uint64(3), sbt.GetLastShardProcessedMetaNonce(0))
+	})
 }
 
 func TestReceivedHeader_ShouldAddMetaBlockToTrackedHeaders(t *testing.T) {

@@ -314,7 +314,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	return mp.verifyGasLimit(header, body.MiniBlocks)
+	return mp.verifyGasLimit(header, body.MiniBlocks, false)
 }
 
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error

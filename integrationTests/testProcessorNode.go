@@ -1943,6 +1943,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BlockTracker:                      &mock.BlockTrackerStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -2280,6 +2281,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BlockTracker:                      &mock.BlockTrackerStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -2617,6 +2619,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BlockTracker:                      &mock.BlockTrackerStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
