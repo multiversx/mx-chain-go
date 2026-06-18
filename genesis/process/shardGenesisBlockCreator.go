@@ -591,6 +591,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		BlockCapacityOverestimationFactor: arg.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         arg.FeeSettings.PercentDecreaseLimitsStep,
 		BlockSizeComputation:              disabledBlockSizeComputationHandler,
+		BlockTracker:                      disabledBlockTracker,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
