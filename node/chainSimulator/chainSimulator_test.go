@@ -852,7 +852,7 @@ func TestRemoveSCRFromPoolAndDestinationShouldBeRequested(t *testing.T) {
 		err = cs.GenerateBlocks(1)
 		require.Nil(t, err)
 
-		res, err = cs.GetNodeHandler(0).GetFacadeHandler().GetTransaction(hex.EncodeToString(scrHash), true)
+		res, _ = cs.GetNodeHandler(0).GetFacadeHandler().GetTransaction(hex.EncodeToString(scrHash), true)
 		if res != nil {
 			called = true
 			break
