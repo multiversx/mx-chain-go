@@ -3467,3 +3467,81 @@ func testAccountLoadInParallel(
 
 	wg.Wait()
 }
+
+func TestAccountsDB_SaveAccountShouldRevertOldCodeEntryWhenUpdateNewCodeEntryFails(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected update new code entry error")
+	marshaller := &marshallerMock.MarshalizerMock{}
+	hasher := &hashingMocks.HasherMock{}
+
+	oldCode := []byte("old code")
+	oldCodeHash := hasher.Compute(string(oldCode))
+	oldCodeEntry := &state.CodeEntry{
+		Code:          oldCode,
+		NumReferences: 2,
+	}
+	oldCodeEntryBytes, _ := marshaller.Marshal(oldCodeEntry)
+
+	newCode := []byte("new code")
+	newCodeHash := hasher.Compute(string(newCode))
+
+	codeEntries := map[string][]byte{
+		string(oldCodeHash): oldCodeEntryBytes,
+	}
+
+	accountAddress := generateRandomByteArray(32)
+	acc := stateMock.NewAccountWrapMock(accountAddress)
+	acc.SetCode(oldCode)
+	acc.SetCodeHash(oldCodeHash)
+	marshalledAcc, err := marshaller.Marshal(acc)
+	require.Nil(t, err)
+
+	trieStub := &trieMock.TrieStub{
+		GetCalled: func(key []byte) ([]byte, uint32, error) {
+			if bytes.Equal(key, accountAddress) {
+				return marshalledAcc, 0, nil
+			}
+			return codeEntries[string(key)], 0, nil
+		},
+		UpdateCalled: func(key, value []byte) error {
+			if bytes.Equal(key, newCodeHash) {
+				return expectedErr
+			}
+
+			codeEntries[string(key)] = value
+			return nil
+		},
+		DeleteCalled: func(key []byte) error {
+			delete(codeEntries, string(key))
+			return nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+
+	adb := generateAccountDBFromTrie(trieStub)
+
+	dummyAcc := generateAccount()
+	err = adb.SaveAccount(dummyAcc)
+	require.Nil(t, err)
+	snapshot := adb.JournalLen()
+	require.NotEqual(t, 0, snapshot)
+
+	oldAcc, err := adb.LoadAccount(accountAddress)
+	require.Nil(t, err)
+	oldAcc.(state.UserAccountHandler).SetCode(newCode)
+
+	err = adb.SaveAccount(oldAcc)
+	require.ErrorIs(t, err, expectedErr)
+
+	err = adb.RevertToSnapshot(snapshot)
+	require.Nil(t, err)
+
+	var restoredOldCodeEntry state.CodeEntry
+	err = marshaller.Unmarshal(&restoredOldCodeEntry, codeEntries[string(oldCodeHash)])
+	require.Nil(t, err)
+	assert.Equal(t, oldCode, restoredOldCodeEntry.Code)
+	assert.Equal(t, uint32(2), restoredOldCodeEntry.NumReferences)
+}
