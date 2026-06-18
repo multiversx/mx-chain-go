@@ -1541,3 +1541,6 @@ var ErrInvalidShardInfo = errors.New("invalid shard info")
 
 // ErrNilClosingNodeStartedFlag signals that the closing node started flag is nil
 var ErrNilClosingNodeStartedFlag = errors.New("closing node started flag is nil")
+
+// ErrOutgoingTxsDisabled signals that the outgoing transactions are disabled
+var ErrOutgoingTxsDisabled = errors.New("outgoing transactions are disabled")
