@@ -190,6 +190,10 @@ func (bbc *baseBlockChain) SetLastExecutionInfo(
 	header data.HeaderHandler,
 	result data.BaseExecutionResultHandler,
 ) {
+	if check.IfNil(header) || check.IfNil(result) {
+		return
+	}
+
 	bbc.mut.Lock()
 	defer bbc.mut.Unlock()
 
