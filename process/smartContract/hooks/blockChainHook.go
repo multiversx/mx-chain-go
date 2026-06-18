@@ -399,7 +399,9 @@ func (bh *BlockChainHookImpl) LastTimeStamp() uint64 {
 		return 0
 	}
 
-	return lastExecHdr.GetTimeStamp()
+	timestampS, _, _ := common.GetHeaderTimestamps(lastExecHdr, bh.enableEpochsHandler)
+
+	return timestampS
 }
 
 // LastTimeStampMs returns the timeStamp in milliseconds from the last executed block
@@ -503,7 +505,9 @@ func (bh *BlockChainHookImpl) CurrentTimeStamp() uint64 {
 	bh.mutCurrentHdr.RLock()
 	defer bh.mutCurrentHdr.RUnlock()
 
-	return bh.currentHdr.GetTimeStamp()
+	timestampS, _, _ := common.GetHeaderTimestamps(bh.currentHdr, bh.enableEpochsHandler)
+
+	return timestampS
 }
 
 // CurrentTimeStampMs return the timestamp in milliseconds from the current block

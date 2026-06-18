@@ -89,49 +89,54 @@ func NewShardInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		CoreComponents:               args.CoreComponents,
-		CryptoComponents:             args.CryptoComponents,
-		ShardCoordinator:             args.ShardCoordinator,
-		NodesCoordinator:             args.NodesCoordinator,
-		FeeHandler:                   args.TxFeeHandler,
-		HeaderSigVerifier:            args.HeaderSigVerifier,
-		HeaderIntegrityVerifier:      args.HeaderIntegrityVerifier,
-		ValidityAttester:             args.ValidityAttester,
-		EpochStartTrigger:            args.EpochStartTrigger,
-		WhiteListerVerifiedTxs:       args.WhiteListerVerifiedTxs,
-		ArgsParser:                   args.ArgumentsParser,
-		PeerSignatureHandler:         args.PeerSignatureHandler,
-		SignaturesHandler:            args.SignaturesHandler,
-		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
-		PeerID:                       args.MainMessenger.ID(),
+		CoreComponents:                          args.CoreComponents,
+		CryptoComponents:                        args.CryptoComponents,
+		ShardCoordinator:                        args.ShardCoordinator,
+		NodesCoordinator:                        args.NodesCoordinator,
+		FeeHandler:                              args.TxFeeHandler,
+		HeaderSigVerifier:                       args.HeaderSigVerifier,
+		HeaderIntegrityVerifier:                 args.HeaderIntegrityVerifier,
+		ValidityAttester:                        args.ValidityAttester,
+		EpochStartTrigger:                       args.EpochStartTrigger,
+		WhiteListerVerifiedTxs:                  args.WhiteListerVerifiedTxs,
+		ArgsParser:                              args.ArgumentsParser,
+		PeerSignatureHandler:                    args.PeerSignatureHandler,
+		SignaturesHandler:                       args.SignaturesHandler,
+		HeartbeatExpiryTimespanInSec:            args.HeartbeatExpiryTimespanInSec,
+		PeerID:                                  args.MainMessenger.ID(),
+		PeerShardMapper:                         args.MainPeerShardMapper,
+		PeerAuthCacher:                          args.DataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: args.PeerAuthenticationTimeBetweenSendsInSec,
 	}
 
 	base := &baseInterceptorsContainerFactory{
-		mainContainer:                  containers.NewInterceptorsContainer(),
-		fullArchiveContainer:           containers.NewInterceptorsContainer(),
-		accounts:                       args.Accounts,
-		shardCoordinator:               args.ShardCoordinator,
-		mainMessenger:                  args.MainMessenger,
-		fullArchiveMessenger:           args.FullArchiveMessenger,
-		store:                          args.Store,
-		dataPool:                       args.DataPool,
-		nodesCoordinator:               args.NodesCoordinator,
-		argInterceptorFactory:          argInterceptorFactory,
-		blockBlackList:                 args.BlockBlackList,
-		maxTxNonceDeltaAllowed:         args.MaxTxNonceDeltaAllowed,
-		antifloodHandler:               args.AntifloodHandler,
-		whiteListHandler:               args.WhiteListHandler,
-		whiteListerVerifiedTxs:         args.WhiteListerVerifiedTxs,
-		preferredPeersHolder:           args.PreferredPeersHolder,
-		hasher:                         args.CoreComponents.Hasher(),
-		requestHandler:                 args.RequestHandler,
-		mainPeerShardMapper:            args.MainPeerShardMapper,
-		fullArchivePeerShardMapper:     args.FullArchivePeerShardMapper,
-		hardforkTrigger:                args.HardforkTrigger,
-		nodeOperationMode:              args.NodeOperationMode,
-		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
-		enableEpochsHandler:            args.CoreComponents.EnableEpochsHandler(),
-		config:                         args.Config,
+		mainContainer:                   containers.NewInterceptorsContainer(),
+		fullArchiveContainer:            containers.NewInterceptorsContainer(),
+		accounts:                        args.Accounts,
+		shardCoordinator:                args.ShardCoordinator,
+		mainMessenger:                   args.MainMessenger,
+		fullArchiveMessenger:            args.FullArchiveMessenger,
+		store:                           args.Store,
+		dataPool:                        args.DataPool,
+		nodesCoordinator:                args.NodesCoordinator,
+		argInterceptorFactory:           argInterceptorFactory,
+		blockBlackList:                  args.BlockBlackList,
+		maxTxNonceDeltaAllowed:          args.MaxTxNonceDeltaAllowed,
+		antifloodHandler:                args.AntifloodHandler,
+		whiteListHandler:                args.WhiteListHandler,
+		whiteListerVerifiedTxs:          args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:            args.PreferredPeersHolder,
+		hasher:                          args.CoreComponents.Hasher(),
+		requestHandler:                  args.RequestHandler,
+		maxAllowedTrieNodeChunks:        args.MaxAllowedTrieNodeChunks,
+		trieNodeChunksInactivityTimeout: args.TrieNodeChunksInactivityTimeout,
+		mainPeerShardMapper:             args.MainPeerShardMapper,
+		fullArchivePeerShardMapper:      args.FullArchivePeerShardMapper,
+		hardforkTrigger:                 args.HardforkTrigger,
+		nodeOperationMode:               args.NodeOperationMode,
+		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
+		enableEpochsHandler:             args.CoreComponents.EnableEpochsHandler(),
+		config:                          args.Config,
 	}
 
 	icf := &shardInterceptorsContainerFactory{
@@ -209,6 +214,11 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 	}
 
 	return sicf.mainContainer, sicf.fullArchiveContainer, nil
+}
+
+// AddShardTrieNodeInterceptors returns nil
+func (sicf *shardInterceptorsContainerFactory) AddShardTrieNodeInterceptors(_ process.InterceptorsContainer) error {
+	return nil
 }
 
 func (sicf *shardInterceptorsContainerFactory) generateTrieNodesInterceptors() error {

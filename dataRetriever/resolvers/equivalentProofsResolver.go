@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"fmt"
+	"runtime/debug"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -91,8 +92,15 @@ func checkArgEquivalentProofsResolver(args ArgEquivalentProofsResolver) error {
 
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
 // (for the topic this validator was registered to, usually a request topic)
-func (res *equivalentProofsResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-	err := res.canProcessMessage(message, fromConnectedPeer)
+func (res *equivalentProofsResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) (msg []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logTrieNodes.Error("panic recovered", "peer", fromConnectedPeer, "panic", r, "stack", string(debug.Stack()))
+			err = fmt.Errorf("panic in equivalentProofsResolver.ProcessReceivedMessage: %v", r)
+		}
+	}()
+
+	err = res.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return nil, err
 	}

@@ -3986,6 +3986,86 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	assert.Equal(t, currHdr, sp.LastNotarizedHdrForShard(core.MetachainShardId))
 }
 
+func TestShardProcessor_SaveLastNotarizedHeader_ReleasesImmunityForCommittedMetaBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("processed headers advance the last cross-notarized nonce", func(t *testing.T) {
+		var received uint64
+		var called atomicCore.Flag
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
+		arguments.BlockTracker = mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
+		arguments.MiniBlockTracker = &testscommon.MiniBlockTrackerStub{
+			ReleaseImmunityForCommittedMetaBlocksCalled: func(threshold uint64) {
+				atomic.StoreUint64(&received, threshold)
+				called.SetValue(true)
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, &block.MetaBlock{Nonce: 10}, nil)
+
+		processedHdrs := []data.HeaderHandler{
+			&block.MetaBlock{Nonce: 12},
+			&block.MetaBlock{Nonce: 15},
+		}
+		err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedHdrs)
+		require.Nil(t, err)
+		require.True(t, called.IsSet())
+		require.Equal(t, uint64(16), atomic.LoadUint64(&received))
+	})
+
+	t.Run("no processed headers still releases against the existing cross-notarized nonce", func(t *testing.T) {
+		var received uint64
+		var called atomicCore.Flag
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
+		arguments.BlockTracker = mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
+		arguments.MiniBlockTracker = &testscommon.MiniBlockTrackerStub{
+			ReleaseImmunityForCommittedMetaBlocksCalled: func(threshold uint64) {
+				atomic.StoreUint64(&received, threshold)
+				called.SetValue(true)
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, &block.MetaBlock{Nonce: 7}, nil)
+
+		err = sp.SaveLastNotarizedHeader(core.MetachainShardId, nil)
+		require.Nil(t, err)
+		require.True(t, called.IsSet())
+		require.Equal(t, uint64(8), atomic.LoadUint64(&received))
+	})
+
+	t.Run("non-meta shard does not invoke the hook", func(t *testing.T) {
+		var called atomicCore.Flag
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
+		arguments.BlockTracker = mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
+		arguments.MiniBlockTracker = &testscommon.MiniBlockTrackerStub{
+			ReleaseImmunityForCommittedMetaBlocksCalled: func(_ uint64) {
+				called.SetValue(true)
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		arguments.BlockTracker.AddCrossNotarizedHeader(0, &block.Header{Nonce: 4}, nil)
+
+		err = sp.SaveLastNotarizedHeader(0, []data.HeaderHandler{&block.Header{Nonce: 5}})
+		require.Nil(t, err)
+		require.False(t, called.IsSet())
+	})
+}
+
 func createShardData(hasher hashing.Hasher, marshalizer marshal.Marshalizer, miniBlocks []block.MiniBlock) []block.ShardData {
 	shardData := make([]block.ShardData, len(miniBlocks))
 	for i := 0; i < len(miniBlocks); i++ {

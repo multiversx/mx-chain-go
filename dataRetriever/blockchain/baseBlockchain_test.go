@@ -219,7 +219,8 @@ func TestBaseBlockchain_setMetrics(t *testing.T) {
 
 		require.Equal(t, header.Nonce, handler.GetUint64(common.MetricNonce))
 		require.Equal(t, header.Round, handler.GetUint64(common.MetricSynchronizedRound))
-		require.Equal(t, header.TimeStamp, handler.GetUint64(common.MetricBlockTimestampMs))
+		require.Equal(t, header.TimeStamp, handler.GetUint64(common.MetricBlockTimestamp))
+		require.Equal(t, common.ConvertTimeStampSecToMs(header.TimeStamp), handler.GetUint64(common.MetricBlockTimestampMs))
 	})
 
 	t.Run("set metrics header v3", func(t *testing.T) {
@@ -243,6 +244,7 @@ func TestBaseBlockchain_setMetrics(t *testing.T) {
 
 		require.Equal(t, uint64(9), handler.GetUint64(common.MetricNonce))
 		require.Equal(t, header.Round, handler.GetUint64(common.MetricSynchronizedRound))
+		require.Equal(t, common.ConvertTimeStampMsToSec(header.TimestampMs), handler.GetUint64(common.MetricBlockTimestamp))
 		require.Equal(t, header.TimestampMs, handler.GetUint64(common.MetricBlockTimestampMs))
 	})
 }
