@@ -42,10 +42,24 @@ func getMetricsFromMetaHeader(
 	}
 
 	appStatusHandler.SetUInt64Value(common.MetricHeaderSize, headerSize)
-	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(header.GetTxCount()))
+	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(getMetaHeaderTxCount(header)))
 	appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersProcessed, numShardHeadersProcessed)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersFromPool, uint64(numShardHeadersFromPool))
+}
+
+func getMetaHeaderTxCount(header data.MetaHeaderHandler) uint32 {
+	if !header.IsHeaderV3() {
+		return header.GetTxCount()
+	}
+
+	txsInExecutionResults, err := getTxCountExecutionResults(header)
+	if err != nil {
+		log.Debug("getMetaHeaderTxCount: failed to compute tx count from execution results", "error", err)
+		return 0
+	}
+
+	return getTxCount(header.GetShardInfoHandlers()) + txsInExecutionResults
 }
 
 func getMetricsFromBlockBody(

@@ -170,19 +170,6 @@ func (mp *metaProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	txsInExecutionResults, err := getTxCountExecutionResults(metaHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	totalProcessedTxs := getTxCount(shardDataHandlers) + txsInExecutionResults
-	// TODO: consider if tx count per metablock header is still needed
-	// as we still have it in the execution results
-	err = metaHdr.SetTxCount(totalProcessedTxs)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	marshalledBody, err := mp.marshalizer.Marshal(body)
 	if err != nil {
 		return nil, nil, err
