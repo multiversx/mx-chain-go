@@ -214,6 +214,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			},
 		},
 		BlockTracker:                       tpn.BlockTracker,
+		MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
 		BlockSizeThrottler:                 TestBlockSizeThrottler,
 		HistoryRepository:                  tpn.HistoryRepository,
 		GasHandler:                         tpn.GasHandler,
@@ -414,6 +415,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		EpochBootstrapper:           tpn.EpochStartTrigger,
 		ValidatorAccountsDB:         tpn.PeerState,
 		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
+		Watchdog:                    &testscommon.WatchdogMock{},
 	}
 
 	bootstrap, err := sync.NewMetaBootstrap(argsMetaBootstrapper)

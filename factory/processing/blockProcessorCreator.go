@@ -11,17 +11,13 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
-	"github.com/multiversx/mx-chain-go/epochStart/metachain/disabled"
-
-	"github.com/multiversx/mx-chain-go/process/estimator"
-	"github.com/multiversx/mx-chain-go/process/missingData"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	metachainEpochStart "github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain/disabled"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
@@ -37,9 +33,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -639,6 +637,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		AccountsProposal:                   pcf.state.AccountsAdapterProposal(),
 		ForkDetector:                       forkDetector,
 		NodesCoordinator:                   pcf.nodesCoordinator,
+		MiniBlockTracker:                   pcf.miniBlockTracker,
 		FeeHandler:                         txFeeHandler,
 		RequestHandler:                     requestHandler,
 		BlockChainHook:                     vmFactory.BlockChainHookImpl(),
@@ -1230,6 +1229,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		HeaderValidator:                    headerValidator,
 		BootStorer:                         bootStorer,
 		BlockTracker:                       blockTracker,
+		MiniBlockTracker:                   pcf.miniBlockTracker,
 		FeeHandler:                         txFeeHandler,
 		BlockSizeThrottler:                 blockSizeThrottler,
 		HistoryRepository:                  pcf.historyRepo,

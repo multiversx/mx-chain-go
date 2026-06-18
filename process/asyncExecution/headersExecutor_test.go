@@ -111,9 +111,9 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 		GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
 			return executedNonce, executedHash, nil
 		},
-		SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+		SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 			executedNonce = header.GetNonce()
-			executedHash = blockHash
+			executedHash = result.GetHeaderHash()
 		},
 	}
 
@@ -414,6 +414,10 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				nonce = header.GetNonce()
 				executedHash = blockHash
 			},
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
+				nonce = header.GetNonce()
+				executedHash = result.GetHeaderHash()
+			},
 		}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
 			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
@@ -487,6 +491,10 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
 				nonce = header.GetNonce()
 				executedHash = blockHash
+			},
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
+				nonce = header.GetNonce()
+				executedHash = result.GetHeaderHash()
 			},
 		}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
@@ -757,13 +765,10 @@ func TestHeadersExecutor_Process(t *testing.T) {
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.BaseExecutionResult{}
 			},
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
 				return &block.Header{
 					Nonce: testNonce,
-				}
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return testCommittedHash
+				}, testCommittedHash
 			},
 		}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
@@ -1014,7 +1019,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, headerHash, rootHash []byte) {
 				setLastExecutedBlockInfoCalled = true
 			},
-			SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 				setLastExecutionResultCalled = true
 			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
@@ -1034,8 +1039,8 @@ func TestHeadersExecutor_Process(t *testing.T) {
 		err := executor.Process(pair)
 		require.Nil(t, err)
 
-		require.True(t, setFinalBlockInfoCalled)
-		require.True(t, setLastExecutedBlockInfoCalled)
+		require.False(t, setFinalBlockInfoCalled)
+		require.False(t, setLastExecutedBlockInfoCalled)
 		require.True(t, setLastExecutionResultCalled)
 	})
 }
