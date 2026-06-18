@@ -786,6 +786,11 @@ func (sp *shardProcessor) selectOutgoingTransactions(
 ) ([][]byte, []data.MiniBlockHeaderHandler) {
 	log.Debug("selectOutgoingTransactions has been started")
 
+	if sp.blockTracker.IsShardStuck(core.MetachainShardId) {
+		log.Debug("selectOutgoingTransactions meta stuck")
+		return [][]byte{}, []data.MiniBlockHeaderHandler{}
+	}
+
 	if sp.blockTracker.ShouldSkipMiniBlocksCreationFromSelf() {
 		log.Debug("selectOutgoingTransactions global stuck")
 		return [][]byte{}, []data.MiniBlockHeaderHandler{}

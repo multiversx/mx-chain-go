@@ -3412,6 +3412,38 @@ func TestShardProcessor_SelectOutgoingTransactions_ShardIsStuck(t *testing.T) {
 		require.Empty(t, pendingIncomingMiniBlocksAdded)
 	})
 
+	t.Run("should skip selection when meta stuck", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			ShouldSkipMiniBlocksCreationFromSelfCalled: func() bool {
+				return false
+			},
+			IsShardStuckCalled: func(shardId uint32) bool {
+				if shardId == core.MetachainShardId {
+					return true
+				}
+
+				return false
+			},
+		}
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
+				require.Fail(t, "should not be called when meta stuck")
+				return nil, nil
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		outgoingTxHashes, pendingIncomingMiniBlocksAdded := sp.SelectOutgoingTransactions(1, haveTimeTrue)
+		require.Empty(t, outgoingTxHashes)
+		require.Empty(t, pendingIncomingMiniBlocksAdded)
+	})
+
 	t.Run("should select outgoing transactions when not stuck", func(t *testing.T) {
 		t.Parallel()
 
