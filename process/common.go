@@ -1650,8 +1650,7 @@ func UpdateContextForReplacedHeader(
 		"nonce", headerToSet.GetNonce(),
 		"hash", executionResultToSet.GetHeaderHash())
 
-	blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
-	blockChain.SetLastExecutionResult(executionResultToSet)
+	blockChain.SetLastExecutionInfo(headerToSet, executionResultToSet)
 
 	// need to remove all execution results after the one set
 	err = executionManager.RemovePendingExecutionResultsFromNonce(executionResultToSet.GetHeaderNonce() + 1)
