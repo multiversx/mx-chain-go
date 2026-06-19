@@ -539,7 +539,7 @@ func TestTestOnlyProcessingNode_SetBlockchainRootHashWithMetaExecutionResult(t *
 		GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 			return metaResult
 		},
-		SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
+		SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 			capturedResult = result
 		},
 	}
@@ -590,7 +590,7 @@ func TestTestOnlyProcessingNode_SetBlockchainRootHashWithShardExecutionResult(t 
 		GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 			return shardResult
 		},
-		SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
+		SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 			capturedResult = result
 		},
 	}

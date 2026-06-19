@@ -571,10 +571,7 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 		return err
 	}
 
-	st.blkc.SetLastExecutedBlockHeaderAndRootHash(lastExecutedHeader, lastBaseExecutionResult.GetHeaderHash(), lastBaseExecutionResult.GetRootHash())
-
-	st.blkc.SetCurrentBlockHeaderHash(headerHash)
-	err = st.blkc.SetCurrentBlockHeader(header)
+	err = st.blkc.SetCurrentBlockHeaderAndHash(headerHash, header)
 	if err != nil {
 		return err
 	}
@@ -590,7 +587,7 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 		return err
 	}
 
-	st.blkc.SetLastExecutionResult(lastExecutionResult)
+	st.blkc.SetLastExecutionInfo(lastExecutedHeader, lastExecutionResult)
 
 	return nil
 }

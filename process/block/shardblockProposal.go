@@ -119,7 +119,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 
 	body := &block.Body{MiniBlocks: miniBlocks}
 
-	err = sp.verifyGasLimit(shardHdr, miniBlocks)
+	err = sp.verifyGasLimit(shardHdr, miniBlocks, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -241,7 +241,7 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	err = sp.verifyGasLimit(header, body.MiniBlocks)
+	err = sp.verifyGasLimit(header, body.MiniBlocks, false)
 	if err != nil {
 		return err
 	}
@@ -788,6 +788,16 @@ func (sp *shardProcessor) selectOutgoingTransactions(
 	haveTimeForSelection func() bool,
 ) ([][]byte, []data.MiniBlockHeaderHandler) {
 	log.Debug("selectOutgoingTransactions has been started")
+
+	if sp.blockTracker.IsShardStuck(core.MetachainShardId) {
+		log.Debug("selectOutgoingTransactions meta stuck")
+		return [][]byte{}, []data.MiniBlockHeaderHandler{}
+	}
+
+	if sp.blockTracker.ShouldSkipMiniBlocksCreationFromSelf() {
+		log.Debug("selectOutgoingTransactions global stuck")
+		return [][]byte{}, []data.MiniBlockHeaderHandler{}
+	}
 
 	sw := core.NewStopWatch()
 	sw.Start("selectOutgoingTransactions")

@@ -60,8 +60,10 @@ func NewProofGroup(facade proofFacadeHandler) (*proofGroup, error) {
 			Handler: pg.getProof,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofEndpoint, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofEndpoint, func() interface{} {
+						return pg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
@@ -71,8 +73,10 @@ func NewProofGroup(facade proofFacadeHandler) (*proofGroup, error) {
 			Handler: pg.getProofDataTrie,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofDataTrieEndpoint, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofDataTrieEndpoint, func() interface{} {
+						return pg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
@@ -82,8 +86,10 @@ func NewProofGroup(facade proofFacadeHandler) (*proofGroup, error) {
 			Handler: pg.getProofCurrentRootHash,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofCurrentRootHashEndpoint, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getProofCurrentRootHashEndpoint, func() interface{} {
+						return pg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
@@ -93,8 +99,10 @@ func NewProofGroup(facade proofFacadeHandler) (*proofGroup, error) {
 			Handler: pg.verifyProof,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(verifyProofEndpoint, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(verifyProofEndpoint, func() interface{} {
+						return pg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
