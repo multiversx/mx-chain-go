@@ -654,7 +654,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 		return err
 	}
 
-	// todo: maybe sanitize, removing empty miniBlocks
+	sp.miniBlocksSelectionSession.RemoveEmptyMiniBlocks()
 
 	return nil
 }
