@@ -1,6 +1,7 @@
 package block_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -52,6 +53,7 @@ func getMockArgsGasConsumption() block.ArgsGasConsumption {
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BlockTracker:                      &mock.BlockTrackerMock{},
 	}
 }
 
@@ -131,6 +133,15 @@ func TestNewGasConsumption(t *testing.T) {
 		gc, err := block.NewGasConsumption(args)
 		require.Nil(t, gc)
 		require.True(t, errors.Is(err, process.ErrInvalidValue))
+	})
+	t.Run("nil block tracker should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgsGasConsumption()
+		args.BlockTracker = nil
+		gc, err := block.NewGasConsumption(args)
+		require.Nil(t, gc)
+		require.True(t, errors.Is(err, process.ErrNilBlockTracker))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -361,7 +372,7 @@ func TestGasConsumption_AddOutgoingTransactions(t *testing.T) {
 
 		txHashes, txs := generateTxs(maxGasLimitPerTx, 10)
 		txHashes = txHashes[:len(txs)-1]
-		_, _, err := gc.AddOutgoingTransactions(txHashes, txs)
+		_, _, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 		require.Equal(t, process.ErrInvalidValue, err)
 	})
 	t.Run("ComputeGasProvidedByTx fails", func(t *testing.T) {
@@ -376,7 +387,8 @@ func TestGasConsumption_AddOutgoingTransactions(t *testing.T) {
 		gc, _ := block.NewGasConsumption(args)
 		require.NotNil(t, gc)
 
-		addedTxs, addedPendingMbs, err := gc.AddOutgoingTransactions(generateTxs(maxGasLimitPerTx, 1))
+		txHashes, txs := generateTxs(maxGasLimitPerTx, 1)
+		addedTxs, addedPendingMbs, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 		require.NoError(t, err)
 		require.Zero(t, len(addedTxs))
 		require.Zero(t, len(addedPendingMbs))
@@ -387,7 +399,8 @@ func TestGasConsumption_AddOutgoingTransactions(t *testing.T) {
 		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
 		require.NotNil(t, gc)
 
-		addedTxs, addedPendingMbs, err := gc.AddOutgoingTransactions(generateTxs(maxGasLimitPerTx+1, 1))
+		txHashes, txs := generateTxs(maxGasLimitPerTx+1, 1)
+		addedTxs, addedPendingMbs, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 		require.NoError(t, err)
 		require.Zero(t, len(addedTxs))
 		require.Zero(t, len(addedPendingMbs))
@@ -399,14 +412,14 @@ func TestGasConsumption_AddOutgoingTransactions(t *testing.T) {
 		require.NotNil(t, gc)
 
 		txHashes, txs := generateTxs(maxGasLimitPerTx, 10)
-		addedTxs, addedPendingMbs, err := gc.AddOutgoingTransactions(txHashes, txs)
+		addedTxs, addedPendingMbs, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 		require.NoError(t, err)
 		require.Equal(t, len(txs), len(addedTxs))
 		require.Zero(t, len(addedPendingMbs))
 
 		require.Equal(t, 10*maxGasLimitPerTx, gc.TotalGasConsumedInSelfShard())
 
-		addedTxs, addedPendingMbs, err = gc.AddOutgoingTransactions(txHashes, txs)
+		addedTxs, addedPendingMbs, err = gc.AddOutgoingTransactions(txHashes, txs, true)
 		require.NoError(t, err)
 		require.Equal(t, len(txs), len(addedTxs))
 
@@ -440,7 +453,7 @@ func TestGasConsumption_AddOutgoingTransactions(t *testing.T) {
 		// will add all as there is space left from mini blocks
 		// adding 30 txs will lead to an empty space of 100 worth of gas (enough only for 2 more blocks)
 		txHashes, txs := generateTxs(maxGasLimitPerTx, 30)
-		addedTxs, addedPendingMbs, err := gc.AddOutgoingTransactions(txHashes, txs)
+		addedTxs, addedPendingMbs, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 		require.NoError(t, err)
 		require.Equal(t, len(txs), len(addedTxs)) // added all
 		require.Equal(t, 2, len(addedPendingMbs)) // added 2 pending mbs
@@ -471,7 +484,7 @@ func TestGasConsumption_AddOutgoingTransactions(t *testing.T) {
 		pending := gc.GetPendingMiniBlocks()
 		require.Len(t, pending, 2)
 
-		addedTxs, addedPendingMbs, err := gc.AddOutgoingTransactions(nil, nil)
+		addedTxs, addedPendingMbs, err := gc.AddOutgoingTransactions(nil, nil, true)
 		require.NoError(t, err)
 		require.Zero(t, len(addedTxs))
 		require.Equal(t, 2, len(addedPendingMbs)) // added the 2 pending mini blocks
@@ -520,7 +533,7 @@ func TestGasConsumption_AddOutgoingTransactions(t *testing.T) {
 		totalTxs := uint64(50)
 		numIntraTxs := totalTxs - numCrossShardTxs
 		txHashes, txs := generateTxs(maxGasLimitPerTx, uint32(totalTxs))
-		addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs)
+		addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 		require.NoError(t, err)
 		require.Equal(t, len(txs), len(addedTxs))
 
@@ -563,7 +576,7 @@ func TestGasConsumption_AddOutgoingTransactions(t *testing.T) {
 		txHashes, txs := generateTxs(maxGasLimitPerBlock, 2)
 		txs[0].SetRcvAddr(rcvAddress)
 		txs[1].SetRcvAddr(rcvAddress)
-		addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs)
+		addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 		require.NoError(t, err)
 		require.Equal(t, len(txs), len(addedTxs))
 
@@ -596,7 +609,7 @@ func TestGasConsumption_Reset(t *testing.T) {
 	// will add all as there is space left from mini blocks
 	// adding 30 txs will lead to an empty space of 100 worth of gas (enough for 2 more blocks)
 	txHashes, txs := generateTxs(maxGasLimitPerTx, 30)
-	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs)
+	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 	require.NoError(t, err)
 	require.Equal(t, len(txs), len(addedTxs)) // added all
 
@@ -618,7 +631,7 @@ func TestGasConsumption_DecreaseOutgoingLimit(t *testing.T) {
 
 	// outgoing limit should be at lowest, 0
 	txHashes, txs := generateTxs(maxGasLimitPerTx, 3)
-	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs)
+	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 	require.NoError(t, err)
 	require.Zero(t, len(addedTxs)) // nothing added
 
@@ -630,7 +643,7 @@ func TestGasConsumption_DecreaseOutgoingLimit(t *testing.T) {
 	gc.Reset() // required to reset the state
 
 	txHashes, txs = generateTxs(maxGasLimitPerTx, 30)
-	addedTxs, _, err = gc.AddOutgoingTransactions(txHashes, txs)
+	addedTxs, _, err = gc.AddOutgoingTransactions(txHashes, txs, true)
 	require.NoError(t, err)
 	require.Equal(t, len(txs), len(addedTxs)) // added all
 }
@@ -659,7 +672,7 @@ func TestGasConsumption_DecreaseIncomingLimit(t *testing.T) {
 
 	// should be ok to add txs, only the limit for incoming was decreased
 	txHashes, txs := generateTxs(maxGasLimitPerTx, 30)
-	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs)
+	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 	require.NoError(t, err)
 	require.Equal(t, len(txs), len(addedTxs)) // added all
 
@@ -677,7 +690,7 @@ func TestGasConsumption_DecreaseIncomingLimit(t *testing.T) {
 	// zeroing the limit should not allow adding more pending mini blocks after transactions
 	gc.ZeroIncomingLimit()
 	txHashes, txs = generateTxs(maxGasLimitPerTx, 30)
-	addedTxs, _, err = gc.AddOutgoingTransactions(txHashes, txs)
+	addedTxs, _, err = gc.AddOutgoingTransactions(txHashes, txs, true)
 	require.NoError(t, err)
 	require.Equal(t, len(txs), len(addedTxs))           // added all
 	require.Equal(t, 2, len(gc.GetPendingMiniBlocks())) // still have the 2 mini blocks as pending
@@ -694,7 +707,7 @@ func TestGasConsumption_ZeroOutgoingLimit(t *testing.T) {
 
 	// outgoing limit should be at 0, no txs should be added
 	txHashes, txs := generateTxs(maxGasLimitPerTx, 3)
-	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs)
+	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(addedTxs)) // no txs added
 
@@ -703,7 +716,7 @@ func TestGasConsumption_ZeroOutgoingLimit(t *testing.T) {
 
 	// adding txs should still not be allowed
 	txHashes, txs = generateTxs(maxGasLimitPerTx, 3)
-	addedTxs, _, err = gc.AddOutgoingTransactions(txHashes, txs)
+	addedTxs, _, err = gc.AddOutgoingTransactions(txHashes, txs, true)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(addedTxs)) // no txs added
 
@@ -712,7 +725,7 @@ func TestGasConsumption_ZeroOutgoingLimit(t *testing.T) {
 	gc.Reset() // required to reset the state
 
 	txHashes, txs = generateTxs(maxGasLimitPerTx, 30)
-	addedTxs, _, err = gc.AddOutgoingTransactions(txHashes, txs)
+	addedTxs, _, err = gc.AddOutgoingTransactions(txHashes, txs, true)
 	require.NoError(t, err)
 	require.Equal(t, len(txs), len(addedTxs)) // added all
 }
@@ -747,7 +760,7 @@ func TestGasConsumption_ZeroIncomingLimit(t *testing.T) {
 
 	// should be ok to add txs, only the limit for incoming was zeroed
 	txHashes, txs := generateTxs(maxGasLimitPerTx, 30)
-	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs)
+	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs, true)
 	require.NoError(t, err)
 	require.Equal(t, len(txs), len(addedTxs)) // added all
 
@@ -761,6 +774,56 @@ func TestGasConsumption_ZeroIncomingLimit(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, lastMBIndex) // added all
 	require.Zero(t, pendingMBs)      // added all
+}
+
+func TestGasConsumption_CrossShardStuck(t *testing.T) {
+	t.Parallel()
+
+	args := getMockArgsGasConsumption()
+
+	stuckShard := uint32(2)
+	notStuckShard := uint32(1)
+
+	args.BlockTracker = &mock.BlockTrackerMock{
+		IsShardStuckCalled: func(shardId uint32) bool {
+			return shardId == stuckShard
+		},
+	}
+
+	rcvAddr1 := []byte("rcv1")
+
+	args.ShardCoordinator = &mock.ShardCoordinatorStub{
+		ComputeIdCalled: func(address []byte) uint32 {
+			if bytes.Equal(address, rcvAddr1) {
+				return stuckShard
+			}
+
+			return notStuckShard
+		},
+		SelfIdCalled: func() uint32 {
+			return notStuckShard
+		},
+	}
+
+	gc, _ := block.NewGasConsumption(args)
+	require.NotNil(t, gc)
+
+	txs := make([]data.TransactionHandler, 0)
+	txHashes := make([][]byte, 0)
+	txs = append(txs, &transaction.Transaction{
+		GasLimit: maxGasLimitPerTx,
+	})
+	txHashes = append(txHashes, []byte(fmt.Sprintf("hash_%d", 0)))
+
+	txs = append(txs, &transaction.Transaction{
+		GasLimit: maxGasLimitPerTx,
+		RcvAddr:  rcvAddr1,
+	})
+	txHashes = append(txHashes, []byte(fmt.Sprintf("hash_%d", 1)))
+
+	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs, true)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(addedTxs)) // added only one
 }
 
 func TestGasConsumption_RevertIncomingMiniBlocks(t *testing.T) {
@@ -996,7 +1059,7 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 			go func(idx int) {
 				switch idx % 12 {
 				case 0:
-					_, _, _ = gc.AddOutgoingTransactions(txHashes, txs)
+					_, _, _ = gc.AddOutgoingTransactions(txHashes, txs, true)
 				case 1:
 					_, _, _ = gc.AddIncomingMiniBlocks(mbs, txsInMBs)
 				case 2:
@@ -1093,7 +1156,7 @@ func TestGasConsumption_CanAddPendingIncomingMiniBlocks(t *testing.T) {
 		// add 39 txs (390 gas), leaving only 10 gas available
 		// already pending mbs need 100 gas, so one more mini block won't fit
 		txHashes, txsOutgoing := generateTxs(maxGasLimitPerTx, 39)
-		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing)
+		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing, true)
 		require.NoError(t, err)
 
 		// pending mini blocks consume 100 gas
@@ -1120,7 +1183,7 @@ func TestGasConsumption_CanAddPendingIncomingMiniBlocks(t *testing.T) {
 
 		// fill the transaction space completely
 		txHashes, txsOutgoing := generateTxs(maxGasLimitPerTx, 40)
-		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing)
+		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing, true)
 		require.NoError(t, err)
 
 		require.False(t, gc.CanAddPendingIncomingMiniBlocks())
@@ -1142,7 +1205,7 @@ func TestGasConsumption_CanAddPendingIncomingMiniBlocks(t *testing.T) {
 
 		// add 30 txs (300 gas) to leave exactly 100 gas
 		txHashes, txsOutgoing := generateTxs(maxGasLimitPerTx, 30)
-		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing)
+		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing, true)
 		require.NoError(t, err)
 
 		// pending mini blocks consume 100 gas
@@ -1189,7 +1252,7 @@ func TestGasConsumption_CanAddPendingIncomingMiniBlocks(t *testing.T) {
 
 		// add only 10 txs (100 gas), leaving 300 gas available
 		txHashes, txsOutgoing := generateTxs(maxGasLimitPerTx, 10)
-		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing)
+		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing, true)
 		require.NoError(t, err)
 
 		// pending mini blocks consume 100 gas

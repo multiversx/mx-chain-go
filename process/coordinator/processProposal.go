@@ -208,7 +208,8 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions(
 		}
 	}
 
-	selectedTxHashes, pendingMiniBlocksAdded, err := tc.gasComputation.AddOutgoingTransactions(selectedTxHashes, selectedTxs)
+	// SelectOutgoingTransactions is only called from the leader's own block proposal flow
+	selectedTxHashes, pendingMiniBlocksAdded, err := tc.gasComputation.AddOutgoingTransactions(selectedTxHashes, selectedTxs, true)
 	if err != nil {
 		log.Warn("transactionCoordinator.AddOutgoingTransactions: AddOutgoingTransactions returned error", "error", err)
 	}
