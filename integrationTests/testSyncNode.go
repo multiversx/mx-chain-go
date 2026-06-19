@@ -185,6 +185,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
 		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
+		BlockTracker:                      &mock.BlockTrackerStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {

@@ -1,6 +1,8 @@
 package chainSimulator
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
@@ -11,6 +13,7 @@ import (
 	apiBlock "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -753,6 +756,112 @@ func TestSimulator_SendMoveBalanceTxBeforeAndAfterSupernovaWithMoreGasLimit(t *t
 	require.Nil(t, err)
 
 	chainSimulatorCommon.GenerateMoveBalanceTxsInShardsWithMoreGasLimit(t, chainSimulator)
+}
+
+// TestRemoveSCRFromPoolAndDestinationShouldBeRequested checks that, after an
+// ESDT issue SCR is manually removed from the pools, the destination shard
+// requests it again and the SCR becomes available through the API.
+func TestRemoveSCRFromPoolAndDestinationShouldBeRequested(t *testing.T) {
+	activationEpoch := uint32(4)
+
+	baseIssuingCost := "1000"
+
+	cs, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 defaultRoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        defaultSupernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               defaultMinNodesPerShard,
+		MetaChainMinNodes:              defaultMetaChainMinNodes,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = uint32(2)
+			cfg.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+				Round: "46",
+			}
+
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	wallet0, err := cs.GenerateAndMintWalletAddress(0, chainSimulatorCommon.OneEGLD)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	nftTicker := []byte("NFTTICKER")
+	nonce := uint64(0)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("issueNonFungible"),
+			[]byte(hex.EncodeToString([]byte("asdname"))),
+			[]byte(hex.EncodeToString(nftTicker)),
+		},
+		[]byte("@"),
+	)
+
+	tx := &transaction.Transaction{
+		Nonce:     nonce,
+		SndAddr:   wallet0.Bytes,
+		RcvAddr:   core.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  1_000_000_000,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, 10)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	//  SCRS remove from pool
+	keys := cs.GetNodeHandler(core.MetachainShardId).GetDataComponents().Datapool().UnsignedTransactions().Keys()
+	scrsForShardZero := cs.GetNodeHandler(0).GetDataComponents().Datapool().UnsignedTransactions().Keys()
+	for _, key := range keys {
+		cs.GetNodeHandler(core.MetachainShardId).GetDataComponents().Datapool().UnsignedTransactions().RemoveDataFromAllShards(key)
+		cs.GetNodeHandler(0).GetDataComponents().Datapool().UnsignedTransactions().RemoveDataFromAllShards(key)
+	}
+
+	scrHash := scrsForShardZero[0]
+	res, err := cs.GetNodeHandler(0).GetFacadeHandler().GetTransaction(hex.EncodeToString(scrHash), true)
+	require.Nil(t, res)
+	require.True(t, strings.Contains(err.Error(), transactionAPI.ErrTransactionNotFound.Error()))
+
+	called := false
+	count := 0
+	for {
+		count++
+		err = cs.GenerateBlocks(1)
+		require.Nil(t, err)
+
+		res, _ = cs.GetNodeHandler(0).GetFacadeHandler().GetTransaction(hex.EncodeToString(scrHash), true)
+		if res != nil {
+			called = true
+			break
+		}
+		if count == 100 {
+			require.FailNow(t, "cannot find SCR on the destination shard")
+		}
+	}
+	require.True(t, called)
 }
 
 func TestChainSimulator_VerifyEconomicsMetricsSupernova(t *testing.T) {

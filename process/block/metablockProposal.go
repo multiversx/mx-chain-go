@@ -232,6 +232,20 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
+	shouldProposeEpochChange := mp.epochStartTrigger.ShouldProposeEpochChange(headerHandler.GetRound(), headerHandler.GetNonce())
+	isEpochChangeProposed := header.IsEpochChangeProposed()
+	// The header flag must match the trigger state in both directions:
+	// it is invalid if the header proposes an epoch change too early or misses one when required.
+	if isEpochChangeProposed != shouldProposeEpochChange {
+		log.Warn("epoch change proposal flag does not match trigger state",
+			"round", headerHandler.GetRound(),
+			"nonce", headerHandler.GetNonce(),
+			"flag from header", isEpochChangeProposed,
+			"flag from trigger", shouldProposeEpochChange,
+			"epochStartTrigger", mp.epochStartTrigger.Epoch())
+		return process.ErrEpochChangeProposedOutsideTriggerWindow
+	}
+
 	if header.IsEpochChangeProposed() && len(body.MiniBlocks) != 0 {
 		return process.ErrEpochStartProposeBlockHasMiniBlocks
 	}
@@ -300,7 +314,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	return mp.verifyGasLimit(header, body.MiniBlocks)
+	return mp.verifyGasLimit(header, body.MiniBlocks, false)
 }
 
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error

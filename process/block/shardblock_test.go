@@ -7465,12 +7465,15 @@ func TestShardProcessor_CommitBlockV3FailAfterHeadMutationShouldRestoreChainHead
 			GetCurrentBlockHeaderHashCalled: func() []byte {
 				return currentHeaderHash
 			},
-			SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
+			SetCurrentBlockHeaderAndHashCalled: func(headerHash []byte, header data.HeaderHandler) error {
 				currentHeader = header
+				currentHeaderHash = headerHash
+				return nil
+			},
+			SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
 				return nil
 			},
 			SetCurrentBlockHeaderHashCalled: func(hash []byte) {
-				currentHeaderHash = hash
 			},
 			SetFinalBlockInfoCalled: func(nonce uint64, headerHash []byte, rootHash []byte) {},
 		}
@@ -7554,12 +7557,15 @@ func TestShardProcessor_CommitBlockV3FailAfterHeadMutationShouldRestoreChainHead
 			GetCurrentBlockHeaderHashCalled: func() []byte {
 				return currentHeaderHash
 			},
-			SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
+			SetCurrentBlockHeaderAndHashCalled: func(headerHash []byte, header data.HeaderHandler) error {
 				currentHeader = header
+				currentHeaderHash = headerHash
+				return nil
+			},
+			SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
 				return nil
 			},
 			SetCurrentBlockHeaderHashCalled: func(hash []byte) {
-				currentHeaderHash = hash
 			},
 			SetFinalBlockInfoCalled: func(nonce uint64, headerHash []byte, rootHash []byte) {},
 		}

@@ -1203,7 +1203,7 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAnd
 	}
 
 	if mbHdr.GetTypeInt32() != int32(miniBlock.Type) {
-		return process.ErrHeaderBodyMismatch
+		return fmt.Errorf("%w: different mb sender type", process.ErrHeaderBodyMismatch)
 	}
 
 	err := process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
@@ -1224,7 +1224,12 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte
 	if err != nil {
 		return err
 	}
-	return bp.checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr)
+	err = bp.checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr)
+	if err != nil {
+		return err
+	}
+
+	return process.CheckMiniBlock(miniBlock, bp.shardCoordinator)
 }
 
 func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
@@ -1291,6 +1296,28 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		delete(mbHashesFromHdr, mbHashStr)
 	}
 
+	err = checkForDuplicatedTxHashes(body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func checkForDuplicatedTxHashes(body *block.Body) error {
+	txHashesSeen := make(map[string]struct{})
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock == nil {
+			continue
+		}
+		for _, txHash := range miniBlock.TxHashes {
+			txHashStr := string(txHash)
+			if _, ok := txHashesSeen[txHashStr]; ok {
+				return process.ErrDuplicatedTransactionInBlockBody
+			}
+			txHashesSeen[txHashStr] = struct{}{}
+		}
+	}
 	return nil
 }
 
@@ -3674,7 +3701,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	if header.IsHeaderV3() {
 		bp.executionManager.CleanOnConsensusReached(headerHash, header)
 		// last executed info and header will be set on headers executor in async mode
-		return bp.blockChain.SetCurrentBlockHeader(header)
+		return bp.blockChain.SetCurrentBlockHeaderAndHash(headerHash, header)
 	}
 
 	err := bp.blockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
@@ -3692,6 +3719,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	if err != nil {
 		return err
 	}
+	bp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
 	return bp.executionManager.SetLastNotarizedResult(lastExecResHandler)
 }
@@ -3770,7 +3798,7 @@ func (bp *baseProcessor) requestHeaderIfNeeded(
 	bp.requestHeaderByShardAndNonce(shardID, nonce)
 }
 
-func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks block.MiniBlockSlice) error {
+func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks block.MiniBlockSlice, isProposer bool) error {
 	splitRes, err := bp.splitTransactionsForHeader(header, miniBlocks)
 	if err != nil {
 		return err
@@ -3788,7 +3816,7 @@ func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks bl
 	}
 
 	// for meta, both splitRes.outgoingTransactionHashes and splitRes.outgoingTransactions should be empty, checked on checkMetaOutgoingResults
-	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.AddOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
+	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.AddOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions, isProposer)
 	if err != nil {
 		return err
 	}

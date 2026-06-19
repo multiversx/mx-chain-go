@@ -152,7 +152,7 @@ func (res *equivalentProofsResolver) resolveMultipleHashesRequest(hashShardKeysB
 	if err != nil {
 		return err
 	}
-	hashShardKeys := b.Data
+	hashShardKeys := deduplicateHashes(b.Data)
 
 	equivalentProofsForHashes, err := res.fetchEquivalentProofsSlicesForHeaders(hashShardKeys, epoch)
 	if err != nil {
