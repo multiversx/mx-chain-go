@@ -156,7 +156,7 @@ func getNewTrieStorage() storage.Storer {
 	maxBatchSize := 40000
 	maxNumOpenedFiles := 10
 
-	db, _ := database.NewSerialDB("AccountsTrie", batchDelaySeconds, maxBatchSize, maxNumOpenedFiles)
+	db, _ := database.NewSerialDB("AccountsTrie", batchDelaySeconds, maxBatchSize, maxNumOpenedFiles, 0)
 	cacher, _ := storageunit.NewCache(storageunit.CacheConfig{
 		Type:        storageunit.SizeLRUCache,
 		Capacity:    1,

@@ -3,7 +3,6 @@ package v2
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -108,14 +107,19 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 		return false
 	}
 
-	// Wait once for the entire node if competing block detected
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
-	shouldAbort := sr.waitIfCompetingBlockForNode(ctx, nonce, currentHash)
-	if shouldAbort {
-		return false
+
+	pkBytes := sr.getPkForCompetingBlock(nonce, currentHash)
+	hasCompetingBlockForPk := len(pkBytes) != 0
+	if hasCompetingBlockForPk {
+		shouldAbort := sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
+		if shouldAbort {
+			return false
+		}
 	}
 
+	// Wait once for the entire node if competing block detected
 	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if isSelfSingleKeyInConsensusGroup {
 		if !sr.doSignatureJobForSingleKey(ctx) {
@@ -213,7 +217,48 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	return false
 }
 
+func (sr *subroundSignature) waitForSingatures(
+	timeLeft time.Duration,
+) {
+	wg := sr.SignaturesWaitGroup()
+	if wg == nil {
+		return
+	}
+
+	if timeLeft <= 0 {
+		sr.SignaturesCtxCancel()
+		return
+	}
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	timer := time.NewTimer(timeLeft)
+	defer timer.Stop()
+
+	select {
+	case <-done:
+		sr.SignaturesCtxCancel()
+		return
+	case <-timer.C:
+		sr.SignaturesCtxCancel()
+		log.Debug("timeout while waiting for signatures to be created")
+		return
+	}
+}
+
 func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) bool {
+	// wait for optimistic signatures creation to finish
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), time.Duration(sr.EndTime()))
+
+	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
+	defer cancel()
+
+	sr.waitForSingatures(timeLeft)
+
 	numMultiKeysSignaturesSent := int32(0)
 	sentSigForAllKeys := atomicCore.Flag{}
 	sentSigForAllKeys.SetValue(true)
@@ -230,24 +275,32 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 			continue
 		}
 
-		err := sr.checkGoRoutinesThrottler(ctx)
+		select {
+		case <-sigCtx.Done():
+			log.Debug("doSignatureJobForManagedKeys: timeout while sending signatures")
+			return false
+		default:
+		}
+
+		err := checkGoRoutinesThrottler(sigCtx, sr.signatureThrottler)
 		if err != nil {
+			log.Debug("doSignatureJobForManagedKeys.checkGoRoutinesThrottler", "err", err)
 			return false
 		}
 		sr.signatureThrottler.StartProcessing()
 		wg.Add(1)
 
-		go func(ctx context.Context, idx int, pk string) {
+		go func(sigCtx context.Context, idx int, pk string) {
 			defer sr.signatureThrottler.EndProcessing()
 
-			signatureSent := sr.sendSignatureForManagedKey(ctx, idx, pk)
+			signatureSent := sr.sendSignatureForManagedKey(sigCtx, idx, pk)
 			if signatureSent {
 				atomic.AddInt32(&numMultiKeysSignaturesSent, 1)
 			} else {
 				sentSigForAllKeys.SetValue(false)
 			}
 			wg.Done()
-		}(ctx, idx, pk)
+		}(sigCtx, idx, pk)
 	}
 
 	wg.Wait()
@@ -259,20 +312,35 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 	return sentSigForAllKeys.IsSet()
 }
 
-func (sr *subroundSignature) sendSignatureForManagedKey(_ context.Context, idx int, pk string) bool {
+func (sr *subroundSignature) sendSignatureForManagedKey(ctx context.Context, idx int, pk string) bool {
 	pkBytes := []byte(pk)
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
 
-	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-		currentHash,
-		uint16(idx),
-		sr.GetHeader().GetEpoch(),
-		pkBytes,
-	)
-	if err != nil {
-		log.Debug("sendSignatureForManagedKey.CreateSignatureShareForPublicKey", "error", err.Error())
+	select {
+	case <-ctx.Done():
+		log.Debug("sendSignatureForManagedKey: timeout while sending signature", "idx", idx, "pk", pk)
 		return false
+	default:
+	}
+
+	signatureShare, err := sr.SigningHandler().SignatureShare(uint16(idx))
+	if err != nil {
+		// signature share not found (optimistic signature share creation was not triggered)
+		// will try to create it
+		log.Debug("sendSignatureForManagedKey.SignatureShare: sig not already created, will try to create it", "error", err)
+
+		signatureShare, err = sr.SigningHandler().CreateSignatureShareForPublicKey(
+			ctx,
+			currentHash,
+			uint16(idx),
+			sr.GetHeader().GetEpoch(),
+			pkBytes,
+		)
+		if err != nil {
+			log.Debug("sendSignatureForManagedKey.CreateSignatureShareForPublicKey", "error", err.Error())
+			return false
+		}
 	}
 
 	// Record the signed nonce before broadcast so competing block detection works
@@ -289,22 +357,7 @@ func (sr *subroundSignature) sendSignatureForManagedKey(_ context.Context, idx i
 	return sr.completeSignatureSubRound(pk)
 }
 
-func (sr *subroundSignature) checkGoRoutinesThrottler(ctx context.Context) error {
-	for {
-		if sr.signatureThrottler.CanProcess() {
-			break
-		}
-		select {
-		case <-time.After(timeSpentBetweenChecks):
-			continue
-		case <-ctx.Done():
-			return fmt.Errorf("%w while checking the throttler", spos.ErrTimeIsOut)
-		}
-	}
-	return nil
-}
-
-func (sr *subroundSignature) doSignatureJobForSingleKey(_ context.Context) bool {
+func (sr *subroundSignature) doSignatureJobForSingleKey(ctx context.Context) bool {
 	pkBytes := []byte(sr.SelfPubKey())
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
@@ -316,6 +369,7 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(_ context.Context) bool 
 	}
 
 	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+		ctx,
 		currentHash,
 		uint16(selfIndex),
 		sr.GetHeader().GetEpoch(),
@@ -337,6 +391,30 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(_ context.Context) bool 
 	}
 
 	return sr.completeSignatureSubRound(sr.SelfPubKey())
+}
+
+func (sr *subroundSignature) getPkForCompetingBlock(nonce uint64, currentHash []byte) []byte {
+	// check self key
+	selfPk := []byte(sr.SelfPubKey())
+	previousHash, exists := sr.sentSignatureTracker.GetSignedHash(selfPk, nonce)
+	if exists && !bytes.Equal(previousHash, currentHash) {
+		return selfPk
+	}
+
+	// check managed keys
+	for _, pk := range sr.ConsensusGroup() {
+		pkBytes := []byte(pk)
+		if !sr.IsKeyManagedBySelf(pkBytes) {
+			continue
+		}
+
+		previousHash, exists := sr.sentSignatureTracker.GetSignedHash(pkBytes, nonce)
+		if exists && !bytes.Equal(previousHash, currentHash) {
+			return pkBytes
+		}
+	}
+
+	return nil
 }
 
 // waitIfCompetingBlockForNode checks if any key managed by this node previously signed a different

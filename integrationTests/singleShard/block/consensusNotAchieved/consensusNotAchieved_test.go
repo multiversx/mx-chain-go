@@ -10,11 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	testBlock "github.com/multiversx/mx-chain-go/integrationTests/singleShard/block"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/assert"
 )
 
 var log = logger.GetOrCreate("consensusNotAchieved")
@@ -108,7 +109,7 @@ func TestConsensus_BlockWithoutTwoThirdsPlusOneSignaturesOrWrongBitmapShouldNotB
 	for _, nodes := range nodesMap {
 		integrationTests.UpdateRound(nodes, round)
 	}
-	bitMapEnough := []byte{11} // 11 = 0b0000 1011 so 3 signatures
+	bitMapEnough := []byte{0x3} // 0b0000 0011 so 2 signatures
 	body, hdr, _ = proposeBlock(nodesMap[0][0], round, nonce, bitMapEnough)
 	assert.NotNil(t, body)
 	assert.NotNil(t, hdr)

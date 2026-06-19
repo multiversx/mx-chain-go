@@ -43,3 +43,6 @@ var ErrNilMessage = errors.New("message to be signed or to be verified is nil")
 
 // ErrBitmapMismatch is raised when an invalid bitmap is passed to the multisigner
 var ErrBitmapMismatch = errors.New("multi signer reported a mismatch in used bitmap")
+
+// ErrTimeIsOut is raised when time is out for signing operation
+var ErrTimeIsOut = errors.New("timeout while handling signatures")

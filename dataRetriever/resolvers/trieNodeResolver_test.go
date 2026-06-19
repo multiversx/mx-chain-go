@@ -587,6 +587,57 @@ func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendFirstChun
 	testTrieNodeResolverProcessReceivedMessageLargeTrieNode(t, randBuff, 0, 4, 0, core.MaxBufferSizeToSendTrieNodes)
 }
 
+func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeMaxChunkIndex(t *testing.T) {
+	t.Parallel()
+
+	largeBuffer := make([]byte, 393216) // 256k + 128k
+	chunkIndex := uint32(2)
+
+	nodes := [][]byte{largeBuffer}
+	hashes := [][]byte{[]byte("hash1")}
+
+	sendWasCalled := false
+	arg := createMockArgTrieNodeResolver()
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID, source p2p.MessageHandler) error {
+			sendWasCalled = true
+			return nil
+		},
+	}
+	arg.TrieDataGetter = &trieMock.TrieStub{
+		GetSerializedNodeCalled: func(hash []byte) ([]byte, error) {
+			for i := 0; i < len(hashes); i++ {
+				if bytes.Equal(hash, hashes[i]) {
+					return nodes[i], nil
+				}
+			}
+
+			return nil, fmt.Errorf("not found")
+		},
+		GetSerializedNodesCalled: func(i []byte, u uint64) ([][]byte, uint64, error) {
+			return make([][]byte, 0), 0, nil
+		},
+	}
+	tnRes, _ := resolvers.NewTrieNodeResolver(arg)
+
+	data, _ := arg.Marshaller.Marshal(
+		&dataRetriever.RequestData{
+			Type:       dataRetriever.HashType,
+			Value:      []byte("hash1"),
+			ChunkIndex: chunkIndex,
+		},
+	)
+	msg := &p2pmocks.P2PMessageMock{DataField: data}
+
+	msgID, err := tnRes.ProcessReceivedMessage(msg, fromConnectedPeer, &p2pmocks.MessengerStub{})
+	assert.Nil(t, err)
+	require.False(t, sendWasCalled)
+	assert.Len(t, msgID, 0)
+
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
+	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
+}
+
 func TestTrieNodeResolver_ProcessReceivedMessageLargeTrieNodeShouldSendRequiredChunk(t *testing.T) {
 	t.Parallel()
 
