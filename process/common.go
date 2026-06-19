@@ -1632,20 +1632,25 @@ func UpdateContextForReplacedHeader(
 	}
 
 	currentExecResult := blockChain.GetLastExecutionResult()
-	if !check.IfNil(currentExecResult) && !bytes.Equal(currentExecResult.GetHeaderHash(), executionResultToSet.GetHeaderHash()) {
+	if !check.IfNil(currentExecResult) {
+		if bytes.Equal(currentExecResult.GetHeaderHash(), executionResultToSet.GetHeaderHash()) {
+			// already at the desired state
+			return nil
+		}
+
 		err = CleanCachesForExecutionResult(currentExecResult, postProcessTransactions, executedMiniBlocks)
 		if err != nil {
 			return err
 		}
 	}
 
+
 	log.Debug("UpdateContextForReplacedHeader last executed header",
 		"round", headerToSet.GetRound(),
 		"nonce", headerToSet.GetNonce(),
 		"hash", executionResultToSet.GetHeaderHash())
 
-	blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
-	blockChain.SetLastExecutionResult(executionResultToSet)
+	blockChain.SetLastExecutionInfo(headerToSet, executionResultToSet)
 
 	// need to remove all execution results after the one set
 	err = executionManager.RemovePendingExecutionResultsFromNonce(executionResultToSet.GetHeaderNonce() + 1)

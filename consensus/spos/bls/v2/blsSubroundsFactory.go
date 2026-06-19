@@ -230,6 +230,7 @@ func (fct *factory) generateBlockSubround(timing config.SubroundsTimingConfig) e
 		int(timing.ProcessingThresholdPercent),
 		fct.worker,
 		syncController,
+		fct.signatureThrottler,
 	)
 	if err != nil {
 		return err
