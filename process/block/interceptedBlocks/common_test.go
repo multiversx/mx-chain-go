@@ -1088,3 +1088,77 @@ func TestCheckMetaShardInfo_DuplicateShardDataHashesShouldErr(t *testing.T) {
 	err := checkMetaShardInfo([]data.ShardDataHandler{sd1, sd2}, shardCoordinator)
 	assert.Equal(t, process.ErrDuplicatedHashInBlock, err)
 }
+
+func TestCheckMetaShardDataProposal_WithNilOrEmptyShouldReturnNil(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	err1 := checkMetaShardDataProposal(nil, shardCoordinator)
+	err2 := checkMetaShardDataProposal(make([]data.ShardDataProposalHandler, 0), shardCoordinator)
+
+	assert.Nil(t, err1)
+	assert.Nil(t, err2)
+}
+
+func TestCheckMetaShardDataProposal_ShouldNotCheckShardInfoForShards(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(1)
+
+	sd := block.ShardDataProposal{}
+
+	err := checkMetaShardDataProposal([]data.ShardDataProposalHandler{&sd}, shardCoordinator)
+	assert.Nil(t, err)
+}
+
+func TestCheckMetaShardDataProposal_WrongShardIdShouldErr(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
+	wrongShardId := uint32(2)
+	sd := block.ShardDataProposal{
+		ShardID:    wrongShardId,
+		HeaderHash: nil,
+	}
+
+	err := checkMetaShardDataProposal([]data.ShardDataProposalHandler{&sd}, shardCoordinator)
+
+	assert.Equal(t, process.ErrInvalidShardId, err)
+}
+
+func TestCheckMetaShardDataProposal_OkValsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
+
+	sd := block.ShardDataProposal{
+		ShardID:    shardCoordinator.SelfId(),
+		HeaderHash: []byte("header-hash"),
+	}
+
+	err := checkMetaShardDataProposal([]data.ShardDataProposalHandler{&sd}, shardCoordinator)
+	assert.Nil(t, err)
+}
+
+func TestCheckMetaShardDataProposal_DuplicateShardDataHashesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
+
+	sd1 := &block.ShardDataProposal{
+		ShardID:    shardCoordinator.SelfId(),
+		HeaderHash: []byte("headerHash1"),
+	}
+	sd2 := &block.ShardDataProposal{
+		ShardID:    shardCoordinator.SelfId(),
+		HeaderHash: []byte("headerHash1"),
+	}
+
+	err := checkMetaShardDataProposal([]data.ShardDataProposalHandler{sd1, sd2}, shardCoordinator)
+	assert.Equal(t, process.ErrDuplicatedHashInBlock, err)
+}

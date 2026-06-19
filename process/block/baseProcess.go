@@ -1296,6 +1296,28 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		delete(mbHashesFromHdr, mbHashStr)
 	}
 
+	err = checkForDuplicatedTxHashes(body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func checkForDuplicatedTxHashes(body *block.Body) error {
+	txHashesSeen := make(map[string]struct{})
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock == nil {
+			continue
+		}
+		for _, txHash := range miniBlock.TxHashes {
+			txHashStr := string(txHash)
+			if _, ok := txHashesSeen[txHashStr]; ok {
+				return process.ErrDuplicatedTransactionInBlockBody
+			}
+			txHashesSeen[txHashStr] = struct{}{}
+		}
+	}
 	return nil
 }
 
@@ -3776,7 +3798,7 @@ func (bp *baseProcessor) requestHeaderIfNeeded(
 	bp.requestHeaderByShardAndNonce(shardID, nonce)
 }
 
-func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks block.MiniBlockSlice) error {
+func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks block.MiniBlockSlice, isProposer bool) error {
 	splitRes, err := bp.splitTransactionsForHeader(header, miniBlocks)
 	if err != nil {
 		return err
@@ -3794,7 +3816,7 @@ func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks bl
 	}
 
 	// for meta, both splitRes.outgoingTransactionHashes and splitRes.outgoingTransactions should be empty, checked on checkMetaOutgoingResults
-	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.AddOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
+	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.AddOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions, isProposer)
 	if err != nil {
 		return err
 	}

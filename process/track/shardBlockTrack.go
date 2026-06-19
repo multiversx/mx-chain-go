@@ -155,19 +155,7 @@ func (sbt *shardBlockTrack) ComputeCrossInfo(headers []data.HeaderHandler) {
 		return
 	}
 
-	isMetaBlockV3 := metaBlock.IsHeaderV3()
-	for _, shardInfo := range metaBlock.GetShardInfoHandlers() {
-		sbt.blockBalancer.SetLastShardProcessedMetaNonce(shardInfo.GetShardID(), shardInfo.GetLastIncludedMetaNonce())
-		if !isMetaBlockV3 {
-			sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfo.GetShardID(), shardInfo.GetNumPendingMiniBlocks())
-		}
-	}
-
-	if isMetaBlockV3 {
-		for _, shardInfoProposal := range metaBlock.GetShardInfoProposalHandlers() {
-			sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfoProposal.GetShardID(), shardInfoProposal.GetNumPendingMiniBlocks())
-		}
-	}
+	sbt.setShardInfoData(metaBlock)
 
 	log.Debug("compute cross info from meta block",
 		"epoch", metaBlock.GetEpoch(),
@@ -182,6 +170,24 @@ func (sbt *shardBlockTrack) ComputeCrossInfo(headers []data.HeaderHandler) {
 			"last meta nonce processed", sbt.blockBalancer.GetLastShardProcessedMetaNonce(shardID),
 			"shard is stuck", sbt.IsShardStuck(shardID),
 			"global chain stuck", sbt.ShouldSkipMiniBlocksCreationFromSelf())
+	}
+}
+
+func (sbt *shardBlockTrack) setShardInfoData(
+	metaBlock data.MetaHeaderHandler,
+) {
+	for _, shardInfo := range metaBlock.GetShardInfoHandlers() {
+		if !metaBlock.IsHeaderV3() {
+			sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfo.GetShardID(), shardInfo.GetNumPendingMiniBlocks())
+		}
+
+		sbt.blockBalancer.SetLastShardProcessedMetaNonce(shardInfo.GetShardID(), shardInfo.GetLastIncludedMetaNonce())
+	}
+
+	for _, shardInfo := range metaBlock.GetShardInfoProposalHandlers() {
+		if metaBlock.IsHeaderV3() {
+			sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfo.GetShardID(), shardInfo.GetNumPendingMiniBlocks())
+		}
 	}
 }
 

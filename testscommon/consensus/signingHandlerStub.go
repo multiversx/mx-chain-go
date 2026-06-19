@@ -1,11 +1,15 @@
 package consensus
 
-import crypto "github.com/multiversx/mx-chain-crypto-go"
+import (
+	"context"
+
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+)
 
 // SigningHandlerStub implements SigningHandler interface
 type SigningHandlerStub struct {
 	ResetCalled                            func(pubKeys []string) error
-	CreateSignatureShareForPublicKeyCalled func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
+	CreateSignatureShareForPublicKeyCalled func(ctx context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
 	CreateSignatureForPublicKeyCalled      func(message []byte, publicKeyBytes []byte) ([]byte, error)
 	VerifySingleSignatureCalled            func(publicKeyBytes []byte, message []byte, signature []byte) error
 	StoreSignatureShareCalled              func(index uint16, sig []byte) error
@@ -27,9 +31,9 @@ func (stub *SigningHandlerStub) Reset(pubKeys []string) error {
 }
 
 // CreateSignatureShareForPublicKey -
-func (stub *SigningHandlerStub) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+func (stub *SigningHandlerStub) CreateSignatureShareForPublicKey(ctx context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 	if stub.CreateSignatureShareForPublicKeyCalled != nil {
-		return stub.CreateSignatureShareForPublicKeyCalled(message, index, epoch, publicKeyBytes)
+		return stub.CreateSignatureShareForPublicKeyCalled(ctx, message, index, epoch, publicKeyBytes)
 	}
 
 	return make([]byte, 0), nil

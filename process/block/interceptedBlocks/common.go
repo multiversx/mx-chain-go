@@ -123,7 +123,8 @@ func checkMetaShardInfo(
 		return nil
 	}
 
-	for _, sd := range shardInfo {
+	shardDataHashes := make([][]byte, len(shardInfo))
+	for i, sd := range shardInfo {
 		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
 			return process.ErrInvalidShardId
 		}
@@ -132,10 +133,27 @@ func checkMetaShardInfo(
 		if err != nil {
 			return err
 		}
+
+		shardDataHashes[i] = sd.GetHeaderHash()
 	}
 
-	shardDataHashes := make([][]byte, len(shardInfo))
-	for i, sd := range shardInfo {
+	return checkForDuplicateHashes(shardDataHashes)
+}
+
+func checkMetaShardDataProposal(
+	shardDataProposed []data.ShardDataProposalHandler,
+	coordinator sharding.Coordinator,
+) error {
+	if coordinator.SelfId() != core.MetachainShardId {
+		return nil
+	}
+
+	shardDataHashes := make([][]byte, len(shardDataProposed))
+	for i, sd := range shardDataProposed {
+		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
+			return process.ErrInvalidShardId
+		}
+
 		shardDataHashes[i] = sd.GetHeaderHash()
 	}
 

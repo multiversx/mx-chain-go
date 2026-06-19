@@ -691,7 +691,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_AddOutgoingTransactio
 	// Add both block types to the keys
 	tc.preProcProposal.keysTxPreProcs = []block.Type{block.TxBlock, block.SmartContractResultBlock}
 	tc.gasComputation = &testscommon.GasComputationMock{
-		AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+		AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler, isProposer bool) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 			return nil, nil, errors.New("test error in AddOutgoingTransactions")
 		},
 	}
