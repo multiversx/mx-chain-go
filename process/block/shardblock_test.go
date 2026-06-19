@@ -8024,10 +8024,7 @@ func TestShardProcessor_EnsureEpochStartInfoAvailable(t *testing.T) {
 		proofsPool := &dataRetrieverMock.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
 				hasProofCallCount++
-				if hasProofCallCount <= 2 {
-					return false
-				}
-				return true
+				return hasProofCallCount > 2
 			},
 		}
 		poolsHolder := &dataRetrieverMock.PoolsHolderStub{
