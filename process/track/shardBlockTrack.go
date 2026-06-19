@@ -155,9 +155,18 @@ func (sbt *shardBlockTrack) ComputeCrossInfo(headers []data.HeaderHandler) {
 		return
 	}
 
+	isMetaBlockV3 := metaBlock.IsHeaderV3()
 	for _, shardInfo := range metaBlock.GetShardInfoHandlers() {
-		sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfo.GetShardID(), shardInfo.GetNumPendingMiniBlocks())
 		sbt.blockBalancer.SetLastShardProcessedMetaNonce(shardInfo.GetShardID(), shardInfo.GetLastIncludedMetaNonce())
+		if !isMetaBlockV3 {
+			sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfo.GetShardID(), shardInfo.GetNumPendingMiniBlocks())
+		}
+	}
+
+	if isMetaBlockV3 {
+		for _, shardInfoProposal := range metaBlock.GetShardInfoProposalHandlers() {
+			sbt.blockBalancer.SetNumPendingMiniBlocks(shardInfoProposal.GetShardID(), shardInfoProposal.GetNumPendingMiniBlocks())
+		}
 	}
 
 	log.Debug("compute cross info from meta block",
