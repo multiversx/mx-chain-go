@@ -10,8 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
 )
 
 // Log -
@@ -115,13 +116,13 @@ func CreateMetaHeader(nonce uint64, chainID []byte) (data.HeaderHandler, []byte)
 }
 
 // CreateMiniblock -
-func CreateMiniblock(senderShardId uint32, receiverSharId uint32) (*block.MiniBlock, []byte) {
+func CreateMiniblock(senderShardId uint32, receiverSharId uint32, mbType block.Type) (*block.MiniBlock, []byte) {
 	dummyTxHash := make([]byte, integrationTests.TestHasher.Size())
 	miniblock := &block.MiniBlock{
 		TxHashes:        [][]byte{dummyTxHash},
 		ReceiverShardID: receiverSharId,
 		SenderShardID:   senderShardId,
-		Type:            0,
+		Type:            mbType,
 	}
 
 	hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, miniblock)
