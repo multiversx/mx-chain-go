@@ -7814,3 +7814,349 @@ func TestShardProcessor_CancelPruneForDismissedExecutionResults(t *testing.T) {
 		require.Equal(t, 4, cancelPruneCalls)
 	})
 }
+
+func TestShardProcessor_EnsureEpochStartInfoAvailable(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("epochStartMetaHash")
+	headerEpoch := uint32(10)
+
+	t.Run("not start of epoch block, should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &testscommon.HeaderHandlerStub{
+			IsStartOfEpochBlockCalled: func() bool {
+				return false
+			},
+		}
+		err := sp.EnsureEpochStartInfoAvailable(header, haveTime)
+		require.Nil(t, err)
+	})
+
+	t.Run("epoch start, header and proof available, should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return 9
+			},
+			IsEpochStartCalled: func() bool {
+				return false
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+		sp.HeadersPool().AddHeader(headerHash, &block.MetaBlock{})
+		sp.ProofsPool().AddProof(&block.HeaderProof{
+			HeaderHash:    headerHash,
+			HeaderShardId: core.MetachainShardId,
+		})
+
+		header := &block.HeaderV3{
+			Epoch:              headerEpoch,
+			EpochStartMetaHash: headerHash,
+		}
+		err := sp.EnsureEpochStartInfoAvailable(header, haveTime)
+		require.Nil(t, err)
+	})
+
+	t.Run("missing header, arrives within budget", func(t *testing.T) {
+		t.Parallel()
+
+		poolCallCount := 0
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				poolCallCount++
+				if poolCallCount <= 2 {
+					return nil, expectedError
+				}
+				return &block.MetaBlock{}, nil
+			},
+		}
+		poolsHolder := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return headersPool
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+		}
+
+		requestMetaHeaderCt := atomicCore.Counter{}
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return 9
+			},
+			IsEpochStartCalled: func() bool {
+				return false
+			},
+		}
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:  &storageStubs.ChainStorerStub{},
+			DataPool: poolsHolder,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{}
+				},
+			},
+		}
+		arguments.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				requestMetaHeaderCt.Increment()
+			},
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{
+			Epoch:              headerEpoch,
+			EpochStartMetaHash: headerHash,
+		}
+		err := sp.EnsureEpochStartInfoAvailable(header, haveTime)
+		require.Nil(t, err)
+		require.GreaterOrEqual(t, requestMetaHeaderCt.Get(), int64(1))
+		require.Equal(t, 3, poolCallCount)
+	})
+
+	t.Run("missing header, budget exhausted", func(t *testing.T) {
+		t.Parallel()
+
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, expectedError
+			},
+		}
+		poolsHolder := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return headersPool
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+		}
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return 9
+			},
+			IsEpochStartCalled: func() bool {
+				return false
+			},
+		}
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:  &storageStubs.ChainStorerStub{},
+			DataPool: poolsHolder,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{}
+				},
+			},
+		}
+
+		requestMetaHeaderCt := atomicCore.Counter{}
+		arguments.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				requestMetaHeaderCt.Increment()
+			},
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		haveTimeCallCount := 0
+		noTimeFunc := func() time.Duration {
+			haveTimeCallCount++
+			if haveTimeCallCount == 1 {
+				return time.Millisecond
+			}
+			return -time.Millisecond
+		}
+
+		header := &block.HeaderV3{
+			Epoch:              headerEpoch,
+			EpochStartMetaHash: headerHash,
+		}
+		err := sp.EnsureEpochStartInfoAvailable(header, noTimeFunc)
+		require.ErrorIs(t, err, process.ErrEpochStartInfoNotAvailable)
+		require.GreaterOrEqual(t, requestMetaHeaderCt.Get(), int64(1))
+	})
+
+	t.Run("missing proof with andromeda, arrives within budget", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+
+		hasProofCallCount := 0
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlock{}, nil
+			},
+		}
+		proofsPool := &dataRetrieverMock.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				hasProofCallCount++
+				if hasProofCallCount <= 2 {
+					return false
+				}
+				return true
+			},
+		}
+		poolsHolder := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return headersPool
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return proofsPool
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+		}
+
+		requestProofCt := atomicCore.Counter{}
+		bootstrapComponents.Coordinator = mock.NewOneShardCoordinatorMock()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return 9
+			},
+			IsEpochStartCalled: func() bool {
+				return false
+			},
+		}
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:  &storageStubs.ChainStorerStub{},
+			DataPool: poolsHolder,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{}
+				},
+			},
+		}
+		arguments.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByHashCalled: func(shardID uint32, hash []byte) {
+				requestProofCt.Increment()
+			},
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.Header{
+			Epoch:              headerEpoch,
+			EpochStartMetaHash: headerHash,
+		}
+		err := sp.EnsureEpochStartInfoAvailable(header, haveTime)
+		require.Nil(t, err)
+		require.GreaterOrEqual(t, requestProofCt.Get(), int64(1))
+	})
+
+	t.Run("missing proof with andromeda, budget exhausted", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlock{}, nil
+			},
+		}
+		proofsPool := &dataRetrieverMock.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return false
+			},
+		}
+		poolsHolder := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return headersPool
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return proofsPool
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+		}
+
+		bootstrapComponents.Coordinator = mock.NewOneShardCoordinatorMock()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return 9
+			},
+			IsEpochStartCalled: func() bool {
+				return false
+			},
+		}
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:  &storageStubs.ChainStorerStub{},
+			DataPool: poolsHolder,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{}
+				},
+			},
+		}
+		arguments.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByHashCalled: func(shardID uint32, hash []byte) {
+			},
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		haveTimeCallCount := 0
+		noTimeFunc := func() time.Duration {
+			haveTimeCallCount++
+			if haveTimeCallCount == 1 {
+				return time.Millisecond
+			}
+			return -time.Millisecond
+		}
+
+		header := &block.Header{
+			Epoch:              headerEpoch,
+			EpochStartMetaHash: headerHash,
+		}
+		err := sp.EnsureEpochStartInfoAvailable(header, noTimeFunc)
+		require.ErrorIs(t, err, process.ErrEpochStartInfoNotAvailable)
+	})
+}

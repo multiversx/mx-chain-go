@@ -909,6 +909,11 @@ func (sp *shardProcessor) CheckEpochStartInfoAvailableIfNeeded(header data.Shard
 	return sp.checkEpochStartInfoAvailableIfNeeded(header)
 }
 
+// EnsureEpochStartInfoAvailable -
+func (sp *shardProcessor) EnsureEpochStartInfoAvailable(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
+	return sp.ensureEpochStartInfoAvailable(header, haveTime)
+}
+
 // HeadersPool -
 func (sp *shardProcessor) HeadersPool() dataRetriever.HeadersPool {
 	return sp.dataPool.Headers()
