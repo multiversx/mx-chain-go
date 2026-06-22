@@ -804,7 +804,8 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 	shouldAllowRollback := boot.shouldAllowRollback(lastCommittedBlock, lastCommittedBlockHash)
 
 	shouldRollBack := isProcessWithError || isSyncWithErrorsLimitReachedInProperRound
-	if shouldRollBack && shouldAllowRollback {
+	didRollBack := shouldRollBack && shouldAllowRollback
+	if didRollBack {
 		if !check.IfNil(headerHandler) {
 			hash := boot.removeHeaderFromPools(headerHandler)
 			boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
@@ -820,6 +821,38 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 			boot.removeHeadersHigherThanNonceFromPool(boot.getNonceForCurrentBlock())
 		}
 	}
+
+	// stuck fetching the next header (no processing, no rollback): drop a non-final fork header whose proof
+	// will never arrive so it gets re-requested
+	if check.IfNil(headerHandler) && !didRollBack {
+		boot.removeBlockingUnprovenNextHeader(allowedSyncWithErrorsLimitReached)
+	}
+}
+
+func (boot *baseBootstrap) removeBlockingUnprovenNextHeader(limitReached bool) {
+	if !limitReached {
+		return
+	}
+
+	nonce := boot.getNonceForNextBlock()
+	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
+	if err != nil {
+		return
+	}
+	if boot.hasProof(hash, hdr) {
+		return
+	}
+
+	log.Debug("removeBlockingUnprovenNextHeader: removing unproven header blocking sync, will re-request",
+		"shard", hdr.GetShardID(),
+		"nonce", nonce,
+		"hash", hash,
+	)
+
+	boot.headers.RemoveHeaderByHash(hash)
+	boot.forkDetector.RemoveHeader(nonce, hash)
+	// reset so the re-requested header gets a full window before it could be removed in turn
+	boot.resetSyncedWithErrorsForNonce(nonce)
 }
 
 func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint32 {
@@ -829,6 +862,12 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 	boot.mutNonceSyncedWithErrors.Unlock()
 
 	return numSyncedWithErrors
+}
+
+func (boot *baseBootstrap) resetSyncedWithErrorsForNonce(nonce uint64) {
+	boot.mutNonceSyncedWithErrors.Lock()
+	delete(boot.mapNonceSyncedWithErrors, nonce)
+	boot.mutNonceSyncedWithErrors.Unlock()
 }
 
 func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {

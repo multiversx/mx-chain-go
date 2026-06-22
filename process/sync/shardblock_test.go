@@ -245,8 +245,8 @@ func createStore() *storageStubs.ChainStorerStub {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
-	return cache
+	c, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
+	return c
 }
 
 func generateTestUnit() storage.Storer {
@@ -2236,6 +2236,112 @@ func TestShardBootstrap_DoJobOnSyncBlockFailShouldNotResetProbableHighestNonceWh
 	bs.DoJobOnSyncBlockFail(nil, nil, errors.New("error"))
 
 	assert.False(t, wasCalled)
+}
+
+func TestShardBootstrap_DoJobOnSyncBlockFailRemovesBlockingUnprovenHeader(t *testing.T) {
+	t.Parallel()
+
+	nextNonce := uint64(2)
+	hashY := []byte("hashY")
+	headerY := &block.Header{Nonce: nextNonce, Round: 5}
+
+	type capture struct {
+		removedFromPool         []byte
+		removedFromForkDetector bool
+		removedNonce            uint64
+	}
+
+	buildArgs := func(headerHasProof bool) (sync.ArgShardBootstrapper, *capture) {
+		c := &capture{}
+		args := CreateShardBootstrapMockArguments()
+
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+					if hdrNonce == nextNonce {
+						return []data.HeaderHandler{headerY}, [][]byte{hashY}, nil
+					}
+					return nil, nil, errors.New("missing header")
+				},
+				RemoveHeaderByHashCalled: func(headerHash []byte) {
+					c.removedFromPool = headerHash
+				},
+			}
+		}
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return headerHasProof
+				},
+			}
+		}
+		args.PoolsHolder = pools
+
+		args.ChainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler { return &block.Header{Nonce: 1} },
+			GetGenesisHeaderCalled:      func() data.HeaderHandler { return &block.Header{} },
+		}
+		args.ForkDetector = &mock.ForkDetectorMock{
+			RemoveHeaderCalled: func(nonce uint64, hash []byte) {
+				c.removedFromForkDetector = true
+				c.removedNonce = nonce
+			},
+		}
+		// not a proper round -> isolate the targeted removal from the rollback path
+		roundHandlerMock := &mock.RoundHandlerMock{}
+		roundHandlerMock.RoundIndex = 1
+		args.RoundHandler = roundHandlerMock
+		// proofs flag active -> the cached header genuinely needs a proof
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+
+		return args, c
+	}
+
+	t.Run("removes the unproven blocking header and resets the error counter when the limit is reached", func(t *testing.T) {
+		t.Parallel()
+
+		args, c := buildArgs(false)
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 100)
+
+		bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+
+		assert.Equal(t, hashY, c.removedFromPool)
+		assert.True(t, c.removedFromForkDetector)
+		assert.Equal(t, nextNonce, c.removedNonce)
+		assert.Equal(t, uint32(0), bs.GetNumSyncedWithErrorsForNonce(nextNonce))
+	})
+
+	t.Run("does not remove a header that has a proof", func(t *testing.T) {
+		t.Parallel()
+
+		args, c := buildArgs(true)
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 100)
+
+		bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+
+		assert.Nil(t, c.removedFromPool)
+		assert.False(t, c.removedFromForkDetector)
+	})
+
+	t.Run("does not remove before the error limit is reached", func(t *testing.T) {
+		t.Parallel()
+
+		args, c := buildArgs(false)
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 0)
+
+		bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+
+		assert.Nil(t, c.removedFromPool)
+		assert.False(t, c.removedFromForkDetector)
+	})
 }
 
 func TestShardBootstrap_DoJobOnSyncBlockFailShouldResetProbableHighestNonce(t *testing.T) {
