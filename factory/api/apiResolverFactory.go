@@ -233,8 +233,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
-		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
-		GenesisTime:              args.CoreComponents.GenesisTime(),
+		RoundHandler:             args.ProcessComponents.RoundHandler(),
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
 		AddressPubKeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		ShardCoordinator:         args.ProcessComponents.ShardCoordinator(),

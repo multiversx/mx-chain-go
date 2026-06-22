@@ -672,6 +672,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		lastBlockHeader,
 		argSaveBlock.SignersIndexes,
 		sp.enableEpochsHandler,
+		sp.roundHandler,
 	)
 }
 
