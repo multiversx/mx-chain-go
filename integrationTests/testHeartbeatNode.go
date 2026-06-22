@@ -632,6 +632,7 @@ func (thn *TestHeartbeatNode) createRequestHandler() {
 		100,
 		thn.ShardCoordinator.SelfId(),
 		time.Second,
+		time.Millisecond,
 	)
 }
 
@@ -645,12 +646,16 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 			IntMarsh:                   TestMarshaller,
 			HardforkTriggerPubKeyField: []byte(providedHardforkPubKey),
 		},
-		ShardCoordinator:             thn.ShardCoordinator,
-		NodesCoordinator:             thn.NodesCoordinator,
-		PeerSignatureHandler:         thn.PeerSigHandler,
-		SignaturesHandler:            &processMock.SignaturesHandlerStub{},
-		HeartbeatExpiryTimespanInSec: thn.heartbeatExpiryTimespanInSec,
-		PeerID:                       thn.MainMessenger.ID(),
+		ShardCoordinator:                        thn.ShardCoordinator,
+		NodesCoordinator:                        thn.NodesCoordinator,
+		PeerSignatureHandler:                    thn.PeerSigHandler,
+		SignaturesHandler:                       &processMock.SignaturesHandlerStub{},
+		HeartbeatExpiryTimespanInSec:            thn.heartbeatExpiryTimespanInSec,
+		PeerID:                                  thn.MainMessenger.ID(),
+		PeerShardMapper:                         thn.MainPeerShardMapper,
+		PeerAuthCacher:                          thn.DataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: thn.heartbeatExpiryTimespanInSec,
+		CryptoComponents:                        GetDefaultCryptoComponents(),
 	}
 
 	thn.createPeerAuthInterceptor(argsFactory)

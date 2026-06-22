@@ -1,6 +1,8 @@
 package consensus
 
 import (
+	"context"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -86,6 +88,9 @@ type ConsensusStateMock struct {
 	FallbackThresholdCalled                      func(subroundId int) int
 	SetFallbackThresholdCalled                   func(subroundId int, threshold int)
 	ResetConsensusRoundStateCalled               func()
+	SignaturesWaitGroupCalled                    func() *sync.WaitGroup
+	SetSignaturesCtxCancelFuncCalled             func(cancelFunc context.CancelFunc)
+	SignaturesCtxCancelCalled                    func()
 }
 
 // AddReceivedHeader -
@@ -651,6 +656,29 @@ func (cnsm *ConsensusStateMock) ConsensusGroupSize() int {
 func (cnsm *ConsensusStateMock) SetThreshold(subroundId int, threshold int) {
 	if cnsm.SetThresholdCalled != nil {
 		cnsm.SetThresholdCalled(subroundId, threshold)
+	}
+}
+
+// SignaturesWaitGroup -
+func (cnsm *ConsensusStateMock) SignaturesWaitGroup() *sync.WaitGroup {
+	if cnsm.SignaturesWaitGroupCalled != nil {
+		return cnsm.SignaturesWaitGroupCalled()
+	}
+
+	return nil
+}
+
+// SetSignaturesCtxCancelFunc -
+func (cnsm *ConsensusStateMock) SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc) {
+	if cnsm.SetSignaturesCtxCancelFuncCalled != nil {
+		cnsm.SetSignaturesCtxCancelFuncCalled(cancelFunc)
+	}
+}
+
+// SignaturesCtxCancel -
+func (cnsm *ConsensusStateMock) SignaturesCtxCancel() {
+	if cnsm.SignaturesCtxCancelCalled != nil {
+		cnsm.SignaturesCtxCancelCalled()
 	}
 }
 

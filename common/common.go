@@ -14,10 +14,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 const (
@@ -153,6 +153,14 @@ func IsConsensusBitmapValid(
 		return ErrWrongSizeBitmap
 	}
 
+	paddingBits := consensusSize % 8
+	if paddingBits != 0 {
+		paddingMask := byte(0xFF << paddingBits)
+		if bitmap[len(bitmap)-1]&paddingMask != 0 {
+			return ErrPaddingBitsSet
+		}
+	}
+
 	numOfOnesInBitmap := 0
 	for index := range bitmap {
 		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
@@ -256,7 +264,8 @@ func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
 	return timeStamp * 1000
 }
 
-func convertTimeStampMsToSec(timeStamp uint64) uint64 {
+// ConvertTimeStampMsToSec will convert unix timestamp from milliseconds to seconds
+func ConvertTimeStampMsToSec(timeStamp uint64) uint64 {
 	return timeStamp / 1000
 }
 
@@ -288,7 +297,7 @@ func PrepareTimestampBasedOnHeaderData(headerTimestamp uint64, headerEpoch uint3
 
 	// reduce block timestamp (which now comes as milliseconds) to seconds to keep backwards compatibility
 	// from now on timestampMs will be used for milliseconds granularity
-	timestampSec = convertTimeStampMsToSec(headerTimestamp)
+	timestampSec = ConvertTimeStampMsToSec(headerTimestamp)
 
 	return timestampSec, timestampMs, nil
 }

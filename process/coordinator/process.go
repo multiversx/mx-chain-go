@@ -348,7 +348,10 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return timeRemaining() >= 0
 	}
 
-	tc.doubleTransactionsDetector.ProcessBlockBody(body)
+	err := tc.doubleTransactionsDetector.ProcessBlockBody(body)
+	if err != nil {
+		return err
+	}
 
 	startTime := time.Now()
 	mbIndex, err := tc.processMiniBlocksToMe(header, body, haveTime)
@@ -365,6 +368,11 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
+	if !header.IsHeaderV3() &&
+		shouldDisableOutgoingTxs(tc.enableEpochsHandler, tc.enableRoundsHandler, header) &&
+		hasForbiddenOutgoingTxMiniBlocks(tc.shardCoordinator.SelfId(), miniBlocksFromMe) {
+		return process.ErrOutgoingTxsDisabled
+	}
 	startTime = time.Now()
 	err = tc.processMiniBlocksFromMe(header, &block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
 	elapsedTime = time.Since(startTime)
@@ -376,6 +384,28 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	return nil
+}
+
+func shouldDisableOutgoingTxs(
+	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
+	header data.HeaderHandler,
+) bool {
+	isSupernovaEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch())
+	supernovaRoundEnabled := enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, header.GetRound())
+	return isSupernovaEnabled && !supernovaRoundEnabled
+}
+
+func hasForbiddenOutgoingTxMiniBlocks(selfShardID uint32, miniBlocks block.MiniBlockSlice) bool {
+	for _, mb := range miniBlocks {
+		if mb.SenderShardID != selfShardID {
+			continue
+		}
+		if mb.Type == block.TxBlock || mb.Type == block.InvalidBlock {
+			return true
+		}
+	}
+	return false
 }
 
 // GetCreatedMiniBlocksFromMe returns the created mini blocks from me
@@ -436,8 +466,14 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	body *block.Body,
 	haveTime func() bool,
 ) error {
+	selfId := tc.shardCoordinator.SelfId()
 	for _, mb := range body.MiniBlocks {
-		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
+		err := process.CheckMiniBlock(mb, tc.shardCoordinator)
+		if err != nil {
+			return err
+		}
+
+		if mb.SenderShardID != selfId {
 			return process.ErrMiniBlocksInWrongOrder
 		}
 	}
@@ -495,10 +531,25 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	// processing destination ME miniblocks first
 	mbIndex := 0
+	selfId := tc.shardCoordinator.SelfId()
 	for mbIndex = 0; mbIndex < len(body.MiniBlocks); mbIndex++ {
 		miniBlock := body.MiniBlocks[mbIndex]
-		if miniBlock.SenderShardID == tc.shardCoordinator.SelfId() {
+
+		err := process.CheckMiniBlock(miniBlock, tc.shardCoordinator)
+		if err != nil {
+			return mbIndex, err
+		}
+
+		if miniBlock.SenderShardID == selfId {
 			return mbIndex, nil
+		}
+
+		if miniBlock.GetType() != block.PeerBlock && miniBlock.ReceiverShardID != tc.shardCoordinator.SelfId() {
+			return mbIndex, fmt.Errorf("%w: block type: %s, sender shard id: %d, receiver shard id: %d",
+				process.ErrInvalidShardId,
+				miniBlock.Type,
+				miniBlock.SenderShardID,
+				miniBlock.ReceiverShardID)
 		}
 
 		preProc := tc.preProcExecution.getPreProcessor(miniBlock.Type)
@@ -507,7 +558,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 		}
 
 		log.Debug("processMiniBlocksToMe: miniblock", "type", miniBlock.Type)
-		err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
+		err = preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
 		if err != nil {
 			return mbIndex, err
 		}

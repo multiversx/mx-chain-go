@@ -41,7 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 	"github.com/multiversx/mx-chain-go/txcache"
 )
 
@@ -1131,7 +1131,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock(), 0)
+	}, mempool.NewMempoolHostMock(), 0)
 
 	require.NoError(t, err)
 
@@ -1152,7 +1152,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock(), 0)
+	}, mempool.NewMempoolHostMock(), 0)
 	require.NoError(t, err)
 
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
@@ -1244,7 +1244,7 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock(), 0)
+	}, mempool.NewMempoolHostMock(), 0)
 
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
@@ -1301,7 +1301,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock(), 0)
+	}, mempool.NewMempoolHostMock(), 0)
 
 	require.NoError(t, err)
 
@@ -1317,7 +1317,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock(), 0)
+	}, mempool.NewMempoolHostMock(), 0)
 
 	require.NoError(t, err)
 
@@ -1409,7 +1409,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock(), 0)
+	}, mempool.NewMempoolHostMock(), 0)
 
 	require.NoError(t, err)
 
@@ -1749,7 +1749,7 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock(), 0)
+	}, mempool.NewMempoolHostMock(), 0)
 
 	require.NoError(t, err)
 

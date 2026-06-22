@@ -17,7 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 )
 
 var expectedError = errors.New("expected error")
@@ -69,7 +69,7 @@ func TestTxCache_SelectTransactions(t *testing.T) {
 		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := &txcachemocks.SelectionSessionMock{
+		session := &mempool.SelectionSessionMock{
 			GetRootHashCalled: func() ([]byte, error) {
 				return nil, expectedError
 			},
@@ -85,7 +85,7 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 5)
 		session.SetNonce([]byte("carol"), 1)
@@ -120,7 +120,7 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 5)
 		session.SetNonce([]byte("carol"), 3)
@@ -147,7 +147,7 @@ func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 5)
 		session.SetNonce([]byte("carol"), 1)
@@ -181,7 +181,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 42)
 		session.SetNonce([]byte("carol"), 7)
@@ -211,7 +211,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 42)
 		session.SetNonce([]byte("carol"), 7)
@@ -243,7 +243,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 42)
 		session.SetNonce([]byte("carol"), 7)
@@ -275,7 +275,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withValue(big.NewInt(0)))
@@ -301,7 +301,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetBalance([]byte("alice"), big.NewInt(150000000000000))
 		session.SetNonce([]byte("bob"), 42)
@@ -330,7 +330,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 42)
 
@@ -358,7 +358,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 
 		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
@@ -388,7 +388,7 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 	boundsConfig := createMockTxBoundsConfig()
 	cache := newUnconstrainedCacheToTest(boundsConfig)
 
-	session := txcachemocks.NewSelectionSessionMock()
+	session := mempool.NewSelectionSessionMock()
 
 	// Add "nSenders" * "nTransactionsPerSender" transactions in the cache (in reversed nonce order)
 	nSenders := 1000
@@ -427,7 +427,7 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 
 func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt)
 		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, []bunchOfTransactions{}, options, 0)
@@ -450,7 +450,7 @@ func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	sw := core.NewStopWatch()
 
@@ -545,7 +545,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 
 	t.Run("numSenders = 1000, numTransactions = 1000", func(t *testing.T) {
 		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt)
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
@@ -559,7 +559,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 
 	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
 		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt)
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
@@ -573,7 +573,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 
 	t.Run("numSenders = 100000, numTransactions = 3", func(t *testing.T) {
 		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt)
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		bunches := createBunchesOfTransactionsWithUniformDistribution(100000, 3)
 
@@ -589,7 +589,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
 		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt)
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
@@ -623,7 +623,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 
 func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *testing.T) {
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		options := createMockTxSelectionOptionsWithTimeFunc(10_000_000_000, 50_000, haveTimeFalseForSelection)
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
@@ -648,8 +648,8 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
-	session := txcachemocks.NewSelectionSessionMock()
+	host := mempool.NewMempoolHostMock()
+	session := mempool.NewSelectionSessionMock()
 
 	sw := core.NewStopWatch()
 
@@ -928,7 +928,7 @@ func TestTxCache_PropagationGracePeriod(t *testing.T) {
 			PropagationGracePeriodMs:       0,
 		}
 		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 5)
 
@@ -951,7 +951,7 @@ func TestTxCache_PropagationGracePeriod(t *testing.T) {
 			PropagationGracePeriodMs:       500,
 		}
 		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 5)
 
@@ -974,7 +974,7 @@ func TestTxCache_PropagationGracePeriod(t *testing.T) {
 			PropagationGracePeriodMs:       500,
 		}
 		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 5)
 
@@ -1001,7 +1001,7 @@ func TestTxCache_PropagationGracePeriod(t *testing.T) {
 			PropagationGracePeriodMs:       500,
 		}
 		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 
 		cache.AddTx(createRelayedTx([]byte("hash-alice-1"), "alice", "relayer", 1))
@@ -1029,7 +1029,7 @@ func TestTxCache_PropagationGracePeriod(t *testing.T) {
 			PropagationGracePeriodMs:       200,
 		}
 		cache := newUnconstrainedCacheToTest(boundsConfig)
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 5)
 

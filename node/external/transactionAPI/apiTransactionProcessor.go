@@ -288,7 +288,7 @@ func (atp *apiTransactionProcessor) GetTransactionsPoolForSender(sender, fields 
 	requestedFieldsHandler := newFieldsHandler(fields)
 	transactions := &common.TransactionsPoolForSenderApiResponse{}
 	for _, wrappedTx := range wrappedTxs {
-		tx := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler)
+		tx := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler, transaction.TxTypeNormal) // use TxTypeNormal for all, only used for sender encoding
 
 		transactions.Transactions = append(transactions.Transactions, tx)
 	}
@@ -374,7 +374,7 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfoFromObj(txObj interfac
 		TxHash: txHash,
 	}
 
-	requestedTxInfo := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler)
+	requestedTxInfo := atp.extractRequestedTxInfo(wrappedTx, requestedFieldsHandler, txType)
 
 	return requestedTxInfo
 }
@@ -430,8 +430,12 @@ func (atp *apiTransactionProcessor) getUnsignedTransactionsFromPool(requestedFie
 	return unsignedTxs
 }
 
-func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.WrappedTransaction, requestedFieldsHandler fieldsHandler) common.Transaction {
-	fieldGetters := atp.getFieldGettersForTx(wrappedTx)
+func (atp *apiTransactionProcessor) extractRequestedTxInfo(
+	wrappedTx *txcache.WrappedTransaction,
+	requestedFieldsHandler fieldsHandler,
+	txType transaction.TxType,
+) common.Transaction {
+	fieldGetters := atp.getFieldGettersForTx(wrappedTx, txType)
 	tx := common.Transaction{
 		TxFields: make(map[string]interface{}),
 	}
@@ -445,16 +449,19 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 	return tx
 }
 
-func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.WrappedTransaction) map[string]interface{} {
-	senderAddr := ""
-	if len(wrappedTx.Tx.GetSndAddr()) != 0 {
-		senderAddr = atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log)
+func (atp *apiTransactionProcessor) getFieldGettersForTx(
+	wrappedTx *txcache.WrappedTransaction,
+	txType transaction.TxType,
+) map[string]interface{} {
+	senderStr := "metachain"
+	if txType != transaction.TxTypeReward {
+		senderStr = atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log)
 	}
 
 	var fieldGetters = map[string]interface{}{
 		hashField:        hex.EncodeToString(wrappedTx.TxHash),
 		nonceField:       wrappedTx.Tx.GetNonce(),
-		senderField:      senderAddr,
+		senderField:      senderStr,
 		receiverField:    atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetRcvAddr(), log),
 		gasLimitField:    wrappedTx.Tx.GetGasLimit(),
 		gasPriceField:    wrappedTx.Tx.GetGasPrice(),
@@ -588,16 +595,16 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, err
 	}
 
-	return atp.extractTransactions(selectedTxs, selectionOptions), nil
+	// selection done from outgoing txPool
+	return atp.extractTransactions(selectedTxs, selectionOptions, transaction.TxTypeNormal), nil
 }
 
-func (atp *apiTransactionProcessor) extractTransactions(txs []*txcache.WrappedTransaction, selectionOptions common.TxSelectionOptionsAPI) []common.Transaction {
+func (atp *apiTransactionProcessor) extractTransactions(txs []*txcache.WrappedTransaction, selectionOptions common.TxSelectionOptionsAPI, txType transaction.TxType) []common.Transaction {
 	requestedFieldsHandler := newFieldsHandler(selectionOptions.GetRequestedFields())
 
 	transactions := make([]common.Transaction, len(txs))
 	for i, tx := range txs {
-		transactions[i] = atp.extractRequestedTxInfo(tx, requestedFieldsHandler)
-
+		transactions[i] = atp.extractRequestedTxInfo(tx, requestedFieldsHandler, txType)
 	}
 
 	return transactions
