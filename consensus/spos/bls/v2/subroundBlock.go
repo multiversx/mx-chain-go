@@ -384,7 +384,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 
 	currentEpoch := headerHandler.GetEpoch()
 
-	sigSubroundEndTime := time.Duration(float64(sr.RoundHandler().TimeDuration()) * srSignatureEndTime)
+	sigSubroundEndTime := time.Duration(sr.EndTime())
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
 	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
 	sr.SetSignaturesCtxCancelFunc(cancel)
