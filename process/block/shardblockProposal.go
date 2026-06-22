@@ -338,8 +338,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: improvement - add also a request if it is missing as a fallback, although it should not be missing at this point
-	err = sp.checkEpochStartInfoAvailableIfNeeded(header)
+	err = sp.ensureEpochStartInfoAvailable(header, haveTime)
 	if err != nil {
 		return nil, err
 	}

@@ -674,6 +674,7 @@ func (mp *metaProcessor) indexBlock(
 		lastMetaBlock,
 		argSaveBlock.SignersIndexes,
 		mp.enableEpochsHandler,
+		mp.roundHandler,
 	)
 
 	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
