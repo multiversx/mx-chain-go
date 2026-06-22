@@ -1,13 +1,12 @@
 package transactionAPI
 
 import (
-	"time"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/process"
@@ -16,8 +15,7 @@ import (
 
 // ArgAPITransactionProcessor is structure that store components that are needed to create an api transaction processor
 type ArgAPITransactionProcessor struct {
-	RoundDuration            uint64
-	GenesisTime              time.Time
+	RoundHandler             consensus.RoundHandler
 	Marshalizer              marshal.Marshalizer
 	AddressPubKeyConverter   core.PubkeyConverter
 	ShardCoordinator         sharding.Coordinator

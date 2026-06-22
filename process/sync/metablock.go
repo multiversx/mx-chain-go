@@ -226,7 +226,7 @@ func (boot *MetaBootstrap) requestEpochStartBlockIfStuck() {
 
 	targetNonce := currentNonce + 1
 
-	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(targetNonce, boot.headers)
+	header, headerHash, err := boot.getMetaHeaderForNoncePreferProven(targetNonce)
 	if err == nil && !check.IfNil(header) {
 		if boot.proofs.HasProof(core.MetachainShardId, headerHash) {
 			return
@@ -249,6 +249,18 @@ func (boot *MetaBootstrap) requestEpochStartBlockIfStuck() {
 	boot.requestHandler.SetEpoch(targetEpoch)
 	boot.requestHandler.RequestStartOfEpochMetaBlock(targetEpoch)
 	boot.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, targetNonce)
+}
+
+func (boot *MetaBootstrap) getMetaHeaderForNoncePreferProven(nonce uint64) (data.HeaderHandler, []byte, error) {
+	proof, err := boot.proofs.GetProofByNonce(nonce, core.MetachainShardId)
+	if err == nil {
+		provenHeader, errHdr := boot.headers.GetHeaderByHash(proof.GetHeaderHash())
+		if errHdr == nil {
+			return provenHeader, proof.GetHeaderHash(), nil
+		}
+	}
+
+	return process.GetMetaHeaderFromPoolWithNonce(nonce, boot.headers)
 }
 
 func (boot *MetaBootstrap) setLastEpochStartRound() {

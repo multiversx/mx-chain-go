@@ -301,6 +301,36 @@ func (sp *shardProcessor) checkEpochStartInfoAvailableIfNeeded(header data.Shard
 	return nil
 }
 
+func (sp *shardProcessor) ensureEpochStartInfoAvailable(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
+	err := sp.checkEpochStartInfoAvailableIfNeeded(header)
+	if err == nil {
+		return nil
+	}
+
+	log.Warn("epoch start info missing at execution, requesting",
+		"epochStartMetaHash", header.GetEpochStartMetaHash(),
+		"error", err,
+	)
+
+	requestCount := 0
+	for haveTime() > 0 {
+		requestCount++
+		if requestCount%5 == 1 {
+			go sp.requestHandler.RequestMetaHeader(header.GetEpochStartMetaHash())
+			sp.requestEpochStartProofIfNeeded(header.GetEpochStartMetaHash(), header.GetEpoch())
+		}
+
+		time.Sleep(timeBetweenCheckForEpochStart)
+
+		err = sp.checkEpochStartInfoAvailableIfNeeded(header)
+		if err == nil {
+			return nil
+		}
+	}
+
+	return err
+}
+
 func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
 	if !sp.shouldEpochStartInfoBeAvailable(header) {
 		return nil
@@ -642,6 +672,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		lastBlockHeader,
 		argSaveBlock.SignersIndexes,
 		sp.enableEpochsHandler,
+		sp.roundHandler,
 	)
 }
 
@@ -962,8 +993,7 @@ func (sp *shardProcessor) CommitBlock(
 		defer func() {
 			if err != nil {
 				sp.RevertHeaderV3OnCommit(headerHandler)
-				_ = sp.blockChain.SetCurrentBlockHeader(prevBlockHeader)
-				sp.blockChain.SetCurrentBlockHeaderHash(prevBlockHeaderHash)
+				_ = sp.blockChain.SetCurrentBlockHeaderAndHash(prevBlockHeaderHash, prevBlockHeader)
 			}
 		}()
 	}

@@ -287,7 +287,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		BlockDataRequester:           &preprocMocks.BlockDataRequesterStub{},
 		BlockDataRequesterProposal:   &preprocMocks.BlockDataRequesterStub{},
 		GasComputation: &testscommon.GasComputationMock{
-			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler, isProposer bool) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return txHashes, nil, nil
 			},
 			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {

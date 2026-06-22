@@ -3927,7 +3927,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
 			ExecutionResult: &block.BaseMetaExecutionResult{},
 		})
 		dataComponents.BlockChain = blockchainMock
@@ -3954,7 +3954,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
 			ExecutionResult: &block.BaseMetaExecutionResult{},
 		})
 		dataComponents.BlockChain = blockchainMock
@@ -3993,7 +3993,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
 			ExecutionResult: &block.BaseMetaExecutionResult{
 				AccumulatedFeesInEpoch: big.NewInt(10),
 				DevFeesInEpoch:         big.NewInt(10),
@@ -4039,7 +4039,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
 			ExecutionResult: &block.BaseMetaExecutionResult{
 				AccumulatedFeesInEpoch: big.NewInt(10),
 				DevFeesInEpoch:         big.NewInt(10),
@@ -4086,7 +4086,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err = blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
 			ExecutionResult: &block.BaseMetaExecutionResult{},
 		})
 		dataComponents.BlockChain = blockchainMock
@@ -4117,7 +4117,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		blockchainMock := &testscommon.ChainHandlerMock{}
 		err := blockchainMock.SetGenesisHeader(&block.Header{})
 		require.Nil(t, err)
-		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{
+		blockchainMock.SetLastExecutionInfo(&block.MetaBlockV3{}, &block.MetaExecutionResult{
 			ExecutionResult: &block.BaseMetaExecutionResult{
 				AccumulatedFeesInEpoch: big.NewInt(10),
 				DevFeesInEpoch:         big.NewInt(10),

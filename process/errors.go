@@ -1395,6 +1395,9 @@ var ErrDuplicatedHashInBlock = errors.New("duplicated hash in block")
 // ErrDoubleTransactionsFound signals that double transactions found
 var ErrDoubleTransactionsFound = errors.New("double transactions found")
 
+// ErrDuplicatedTransactionInBlockBody signals that a transaction hash appears more than once in the block body
+var ErrDuplicatedTransactionInBlockBody = errors.New("duplicated transaction in block body")
+
 // ErrPeerAlreadyAuthenticated signals that a peer authentication message was received for a peer that already has an existing mapping
 var ErrPeerAlreadyAuthenticated = errors.New("peer already authenticated")
 

@@ -674,6 +674,7 @@ func (mp *metaProcessor) indexBlock(
 		lastMetaBlock,
 		argSaveBlock.SignersIndexes,
 		mp.enableEpochsHandler,
+		mp.roundHandler,
 	)
 
 	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
@@ -1427,8 +1428,6 @@ func (mp *metaProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
-
-	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
 	lastExecutionResultHeader, err := mp.getLastExecutionResultHeader(header)
 	if err != nil {
