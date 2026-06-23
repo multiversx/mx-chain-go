@@ -2268,19 +2268,9 @@ func (bp *baseProcessor) RevertHeaderV3OnCommit(headerHandler data.HeaderHandler
 		return
 	}
 
-	headerNonce := headerHandler.GetNonce()
-	err := bp.executionManager.RemoveAtNonceAndHigher(headerNonce)
+	err := bp.executionManager.RemoveAtNonceAndHigher(headerHandler.GetNonce())
 	if err != nil {
-		log.Debug("baseProcessor.revertCurrentBlockV3", "err", err)
-		lastExecResult, errGet := common.GetLastBaseExecutionResultHandler(headerHandler)
-		if errGet != nil {
-			log.Error("baseProcessor.revertCurrentBlockV3.GetLastBaseExecutionResultHandler", "err", errGet)
-			return
-		}
-		errReset := bp.executionManager.ResetAndResumeExecution(lastExecResult)
-		if errReset != nil {
-			log.Debug("baseProcessor.revertCurrentBlockV3.ResetAndResumeExecution", "err", errReset)
-		}
+		log.Debug("baseProcessor.RevertHeaderV3OnCommit", "err", err)
 	}
 }
 
