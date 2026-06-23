@@ -198,6 +198,9 @@ func (irp *intermediateResultsProcessor) verifyMetaIntraShardMBs(body *block.Bod
 		return nil
 	}
 
+	irp.mutInterResultsForBlock.Lock()
+	defer irp.mutInterResultsForBlock.Unlock()
+
 	numIntraShard := 0
 	for _, mb := range body.MiniBlocks {
 		if mb.Type != irp.blockType {
