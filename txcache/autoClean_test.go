@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -112,7 +114,7 @@ func TestTxCache_Cleanup(t *testing.T) {
 	t.Run("with GetAccountNonce errors", func(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
-		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 		accountsProvider.GetAccountNonceCalled = func(address []byte) (uint64, bool, error) {
 			switch string(address) {
 			case "alice":
@@ -147,7 +149,7 @@ func TestTxCache_Cleanup(t *testing.T) {
 	t.Run("with nonce equal 0", func(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
-		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 		accountsProvider.SetNonce([]byte("alice"), 0)
 
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
@@ -163,7 +165,7 @@ func TestTxCache_Cleanup(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 		accountsProvider.SetNonce([]byte("alice"), 3)
 		accountsProvider.SetNonce([]byte("bob"), 42)
 
@@ -186,7 +188,7 @@ func TestTxCache_Cleanup(t *testing.T) {
 	t.Run("with cleanupLoopMaximumDuration cap reached", func(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
-		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 		accountsProvider.SetNonce([]byte("alice"), 4)
 		accountsProvider.SetNonce([]byte("bob"), 43)
 		accountsProvider.SetNonce([]byte("carol"), 9)
@@ -211,7 +213,7 @@ func TestTxCache_Cleanup(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 		accountsProvider.SetNonce([]byte("alice"), 2)
 		accountsProvider.SetNonce([]byte("bob"), 42)
 		accountsProvider.SetNonce([]byte("carol"), 7)
@@ -240,7 +242,7 @@ func TestTxCache_Cleanup(t *testing.T) {
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
-		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 		accountsProvider.SetNonce([]byte("alice"), 2)
 		accountsProvider.SetNonce([]byte("bob"), 42)
 		accountsProvider.SetNonce([]byte("carol"), 7)
@@ -325,7 +327,7 @@ func TestTxCache_Cleanup(t *testing.T) {
 }
 
 // helper function for creating a new unconstrained cache with a given size
-func newTxPoolWithN(size int, accountsProvider *txcachemocks.AccountNonceAndBalanceProviderMock) *TxCache {
+func newTxPoolWithN(size int, accountsProvider *mempool.AccountNonceAndBalanceProviderMock) *TxCache {
 	boundsConfig := createMockTxBoundsConfig()
 	cache := newUnconstrainedCacheToTest(boundsConfig)
 	for i := 0; i < size; i++ {
@@ -340,7 +342,7 @@ func BenchmarkAddressShuffling(b *testing.B) {
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("size=%d", size), func(b *testing.B) {
 			// prepare pool
-			accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+			accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 			cache := newTxPoolWithN(size, accountsProvider)
 
 			b.ResetTimer()
@@ -359,7 +361,7 @@ func BenchmarkCleanup(b *testing.B) {
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				b.StopTimer()
-				accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+				accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 				cache := newTxPoolWithN(size, accountsProvider)
 				b.StartTimer()
 

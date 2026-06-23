@@ -99,7 +99,7 @@ func getDefaultArgsSerialDB() pruning.StorerArgs {
 	cacheConf.Capacity = 40
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
-			return database.NewSerialDB(path, 1, 20, 10)
+			return database.NewSerialDB(path, 1, 20, 10, 10)
 		},
 	}
 	pathManager := &testscommon.PathManagerStub{PathForEpochCalled: func(shardId string, epoch uint32, identifier string) string {

@@ -356,7 +356,6 @@ type ExecutionManager interface {
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	RemoveAtNonceAndHigher(nonce uint64) error
-	ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
 	PopDismissedResults() []executionTrack.DismissedBatch
 	GetSignalProcessCompletionChan() chan uint64
@@ -500,6 +499,7 @@ type InterceptorsContainer interface {
 // InterceptorsContainerFactory defines the functionality to create an interceptors container
 type InterceptorsContainerFactory interface {
 	Create() (InterceptorsContainer, InterceptorsContainer, error)
+	AddShardTrieNodeInterceptors(container InterceptorsContainer) error
 	IsInterfaceNil() bool
 }
 
@@ -915,7 +915,7 @@ type PeerBlackListCacher interface {
 
 // PeerShardMapper can return the public key of a provided peer ID
 type PeerShardMapper interface {
-	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte, timestamp int64)
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
@@ -1050,6 +1050,26 @@ type BlockTracker interface {
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 	IsOwnShardStuck() bool
+	IsInterfaceNil() bool
+}
+
+// MiniBlockTracker tracks the confirmation status of cross-shard miniblocks so that
+// their referenced transactions can be granted immunity in the pool on metablock
+// arrival and released from immunity on this shard's commit.
+type MiniBlockTracker interface {
+	// ReleaseImmunityForCommittedMetaBlocks is called by the shard processor after
+	// metablocks up to (threshold-1) have been fully processed. It advances the
+	// immunity threshold for every cache on every pool and drops stale registry
+	// entries whose tracked nonce is strictly below `threshold`.
+	ReleaseImmunityForCommittedMetaBlocks(threshold uint64)
+
+	// ReleaseImmunityForCommittedShardBlocks is called by the meta processor after
+	// shard headers from `senderShard` up to (threshold-1) have been fully processed.
+	// It advances the immunity threshold for caches whose senderShardID matches
+	// `senderShard` and receiver is the metachain, and drops the corresponding stale
+	// registry entries.
+	ReleaseImmunityForCommittedShardBlocks(senderShard uint32, threshold uint64)
+
 	IsInterfaceNil() bool
 }
 
@@ -1608,9 +1628,14 @@ type GasComputation interface {
 		miniBlocks []data.MiniBlockHeaderHandler,
 		transactions map[string][]data.TransactionHandler,
 	) (lastMiniBlockIndex int, pendingMiniBlocks int, err error)
+	// AddOutgoingTransactions verifies the outgoing transactions against the gas limits. isProposer must be
+	// true only when called from the leader's own block proposal flow, false when verifying a block proposal
+	// received from another node, since some checks (e.g. stuck shard skipping) rely on local, possibly
+	// non-deterministic state and must not be applied on verification.
 	AddOutgoingTransactions(
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
+		isProposer bool,
 	) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error)
 	GetBandwidthForTransactions() uint64
 	RevertIncomingMiniBlocks(miniBlockHashes [][]byte)

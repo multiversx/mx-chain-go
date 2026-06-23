@@ -846,6 +846,10 @@ func TestBaseProcessor_setCurrentBlockInfoV3CallsCleanOnConsensusReached(t *test
 			},
 			blockChain: &testscommon.ChainHandlerStub{
 				SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
+					require.Fail(t, "should have not been called on v3")
+					return nil
+				},
+				SetCurrentBlockHeaderAndHashCalled: func(headerHash []byte, header data.HeaderHandler) error {
 					setHeaderCalled = true
 					return nil
 				},

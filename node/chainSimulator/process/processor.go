@@ -1,6 +1,7 @@
 package process
 
 import (
+	"context"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -476,7 +477,7 @@ func (creator *blocksCreator) generateAggregatedSignature(headerHash []byte, epo
 		}
 
 		totalKey++
-		if _, err = signingHandler.CreateSignatureShareForPublicKey(headerHash, uint16(idx), epoch, []byte(pubKey)); err != nil {
+		if _, err = signingHandler.CreateSignatureShareForPublicKey(context.TODO(), headerHash, uint16(idx), epoch, []byte(pubKey)); err != nil {
 			return nil, err
 		}
 	}

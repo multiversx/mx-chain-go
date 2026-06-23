@@ -423,6 +423,11 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 		return false, err
 	}
 
+	log.Debug("step 3: aggregate signature has been created",
+		"PubKeysBitmap", bitmap,
+		"AggregateSignature", sig,
+	)
+
 	// Re-check grace period after aggregation which may have been slow under CPU contention
 	if !sr.shouldSendProof() {
 		return false, nil
@@ -735,8 +740,6 @@ func (sr *subroundEndRound) createAndBroadcastProof(
 	}
 
 	log.Debug("step 3: block header proof has been sent",
-		"PubKeysBitmap", bitmap,
-		"AggregateSignature", signature,
 		"proof sender", hex.EncodeToString([]byte(sender)))
 
 	return nil
@@ -977,6 +980,9 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 		return false
 	}
 
+	if sr.IsJobDone(node, bls.SrSignature) {
+		return false
+	}
 	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
