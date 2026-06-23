@@ -565,8 +565,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		}
 	}
 
+	shouldExecuteReceivedMessage := true
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
-		wrk.doJobOnMessageWithSignature(cnsMsg, message)
+		shouldExecuteReceivedMessage = wrk.doJobOnMessageWithSignature(cnsMsg, message)
 	}
 
 	if isMessageWithInvalidSigners {
@@ -581,6 +582,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		log.Trace("checkSelfState", "error", errNotCritical.Error())
 		// in this case should return nil but do not process the message
 		// nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
+		return []byte{}, nil
+	}
+
+	if !shouldExecuteReceivedMessage {
 		return []byte{}, nil
 	}
 
@@ -688,19 +693,27 @@ func (wrk *Worker) verifyHeaderHash(hash []byte, marshalledHeader []byte) bool {
 	return bytes.Equal(hash, computedHash)
 }
 
-func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg p2p.MessageP2P) {
+func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg p2p.MessageP2P) bool {
+	wasAdded := wrk.consensusState.AddMessageWithSignatureIfMissing(
+		SignatureMessageKey(cnsMsg.BlockHeaderHash, string(cnsMsg.PubKey)),
+		p2pMsg,
+	)
+	if !wasAdded {
+		return false
+	}
+
 	wrk.mutDisplayHashConsensusMessage.Lock()
 	defer wrk.mutDisplayHashConsensusMessage.Unlock()
 
 	hash := string(cnsMsg.BlockHeaderHash)
 	wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsMsg)
 
-	wrk.consensusState.AddMessageWithSignature(string(cnsMsg.PubKey), p2pMsg)
-
 	log.Trace("received message with signature",
 		"from", core.GetTrimmedPk(hex.EncodeToString(cnsMsg.PubKey)),
 		"header hash", cnsMsg.BlockHeaderHash,
 	)
+
+	return true
 }
 
 func (wrk *Worker) addBlockToPool(bodyBytes []byte) error {
