@@ -5,7 +5,7 @@ import "github.com/multiversx/mx-chain-core-go/core"
 // PeerShardMapperStub -
 type PeerShardMapperStub struct {
 	GetLastKnownPeerIDCalled        func(pk []byte) (core.PeerID, bool)
-	UpdatePeerIDPublicKeyPairCalled func(pid core.PeerID, pk []byte)
+	UpdatePeerIDPublicKeyPairCalled func(pid core.PeerID, pk []byte, timestamp int64)
 	PutPeerIdShardIdCalled          func(pid core.PeerID, shardID uint32)
 	PutPeerIdSubTypeCalled          func(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	UpdatePeerIDInfoCalled          func(pid core.PeerID, pk []byte, shardID uint32)
@@ -19,9 +19,9 @@ func (psms *PeerShardMapperStub) UpdatePeerIDInfo(pid core.PeerID, pk []byte, sh
 }
 
 // UpdatePeerIDPublicKeyPair -
-func (psms *PeerShardMapperStub) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte) {
+func (psms *PeerShardMapperStub) UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte, timestamp int64) {
 	if psms.UpdatePeerIDPublicKeyPairCalled != nil {
-		psms.UpdatePeerIDPublicKeyPairCalled(pid, pk)
+		psms.UpdatePeerIDPublicKeyPairCalled(pid, pk, timestamp)
 	}
 }
 

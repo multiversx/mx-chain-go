@@ -218,6 +218,7 @@ func (fct *factory) generateBlockSubround() error {
 		processingThresholdPercent,
 		fct.worker,
 		syncController,
+		fct.signatureThrottler,
 	)
 	if err != nil {
 		return err

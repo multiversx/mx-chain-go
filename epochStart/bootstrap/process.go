@@ -137,6 +137,7 @@ type epochStartBootstrap struct {
 	requestHandler                  process.RequestHandler
 	mainInterceptorContainer        process.InterceptorsContainer
 	fullArchiveInterceptorContainer process.InterceptorsContainer
+	resolversContainer              dataRetriever.ResolversContainer
 	dataPool                        dataRetriever.PoolsHolder
 	miniBlocksSyncer                epochStart.PendingMiniBlocksSyncHandler
 	headersSyncer                   epochStart.HeadersByHashSyncer
@@ -366,8 +367,14 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	defer e.cleanupOnBootstrapFinish()
 
-	var err error
-	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
+	newShardId, _, err := e.getShardIDForLatestEpoch()
+	if err != nil {
+		// fallback to meta if nothing was loaded from the last epoch
+		newShardId = e.applyShardIDAsObserverIfNeeded(core.MetachainShardId)
+	}
+	log.Debug("epochStartBootstrap.Bootstrap", "newShardId", newShardId, "from last epoch", err == nil)
+
+	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), newShardId)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -408,14 +415,18 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	}
 
 	defer func() {
-		errClose := e.mainInterceptorContainer.Close()
-		if errClose != nil {
-			log.Warn("prepareEpochFromStorage mainInterceptorContainer.Close()", "error", errClose)
+		if !check.IfNil(e.mainInterceptorContainer) {
+			errClose := e.mainInterceptorContainer.Close()
+			if errClose != nil {
+				log.Warn("prepareEpochFromStorage mainInterceptorContainer.Close()", "error", errClose)
+			}
 		}
 
-		errClose = e.fullArchiveInterceptorContainer.Close()
-		if errClose != nil {
-			log.Warn("prepareEpochFromStorage fullArchiveInterceptorContainer.Close()", "error", errClose)
+		if !check.IfNil(e.fullArchiveInterceptorContainer) {
+			errClose := e.fullArchiveInterceptorContainer.Close()
+			if errClose != nil {
+				log.Warn("prepareEpochFromStorage fullArchiveInterceptorContainer.Close()", "error", errClose)
+			}
 		}
 	}()
 
@@ -594,20 +605,22 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:           e.coreComponentsHolder,
-		CryptoComponentsHolder:         e.cryptoComponentsHolder,
-		RequestHandler:                 e.requestHandler,
-		Messenger:                      e.mainMessenger,
-		ShardCoordinator:               e.shardCoordinator,
-		EconomicsData:                  e.economicsData,
-		WhitelistHandler:               e.whiteListHandler,
-		StartInEpochConfig:             epochStartConfig,
-		HeaderIntegrityVerifier:        e.headerIntegrityVerifier,
-		MetaBlockProcessor:             metaBlockProcessor,
-		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
-		ProofsPool:                     e.dataPool.Proofs(),
-		HeadersPool:                    e.dataPool.Headers(),
-		ProofsInterceptorProcessor:     processor.NewEquivalentProofsInterceptorProcessor(),
+		CoreComponentsHolder:                    e.coreComponentsHolder,
+		CryptoComponentsHolder:                  e.cryptoComponentsHolder,
+		RequestHandler:                          e.requestHandler,
+		Messenger:                               e.mainMessenger,
+		ShardCoordinator:                        e.shardCoordinator,
+		EconomicsData:                           e.economicsData,
+		WhitelistHandler:                        e.whiteListHandler,
+		StartInEpochConfig:                      epochStartConfig,
+		HeaderIntegrityVerifier:                 e.headerIntegrityVerifier,
+		MetaBlockProcessor:                      metaBlockProcessor,
+		InterceptedDataVerifierFactory:          e.interceptedDataVerifierFactory,
+		ProofsPool:                              e.dataPool.Proofs(),
+		HeadersPool:                             e.dataPool.Headers(),
+		ProofsInterceptorProcessor:              processor.NewEquivalentProofsInterceptorProcessor(),
+		PeerAuthCacher:                          e.dataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: e.generalConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -698,7 +711,12 @@ func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (ma
 
 	hashesToRequest := make([][]byte, 0)
 	shardIds := make([]uint32, 0)
+	isCurrentShardMeta := e.shardCoordinator.SelfId() == core.MetachainShardId
 	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		if !isCurrentShardMeta && epochStartData.GetShardID() != e.shardCoordinator.SelfId() {
+			continue
+		}
+
 		err := e.syncEpochStartDataInfo(meta, epochStartData, syncedHeaders)
 		if err != nil {
 			return nil, err
@@ -927,6 +945,67 @@ func (e *epochStartBootstrap) syncEpochStartMetaHeaders(
 	return syncedHeaders, nil
 }
 
+// rebuildNetworkComponentsForShard must be called after e.shardCoordinator is reassigned to the
+// node's discovered destination shard ID.
+func (e *epochStartBootstrap) rebuildNetworkComponentsForShard() error {
+	// Nothing to rebuild when the bootstrap network stack was never set up (unit fixtures that
+	// invoke requestAndProcessing in isolation). In production both fields are non-nil here.
+	if check.IfNil(e.mainInterceptorContainer) && check.IfNil(e.resolversContainer) {
+		return nil
+	}
+
+	log.Debug("rebuilding bootstrap network components for resolved shard", "shard", e.shardCoordinator.SelfId())
+
+	e.tearDownStaleNetworkComponents()
+
+	err := e.createResolversContainer()
+	if err != nil {
+		return err
+	}
+
+	err = e.createRequestHandler()
+	if err != nil {
+		return err
+	}
+
+	if !check.IfNil(e.epochStartMeta) {
+		e.requestHandler.SetEpoch(e.epochStartMeta.GetEpoch())
+	}
+
+	return e.createSyncers()
+}
+
+func (e *epochStartBootstrap) tearDownStaleNetworkComponents() {
+	log.LogIfError(e.mainMessenger.UnregisterAllMessageProcessors())
+	log.LogIfError(e.mainMessenger.UnJoinAllTopics())
+	log.LogIfError(e.fullArchiveMessenger.UnregisterAllMessageProcessors())
+	log.LogIfError(e.fullArchiveMessenger.UnJoinAllTopics())
+
+	if !check.IfNil(e.mainInterceptorContainer) {
+		errClose := e.mainInterceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("rebuildNetworkComponentsForShard mainInterceptorContainer.Close()", "error", errClose)
+		}
+		e.mainInterceptorContainer = nil
+	}
+
+	if !check.IfNil(e.fullArchiveInterceptorContainer) {
+		errClose := e.fullArchiveInterceptorContainer.Close()
+		if errClose != nil {
+			log.Warn("rebuildNetworkComponentsForShard fullArchiveInterceptorContainer.Close()", "error", errClose)
+		}
+		e.fullArchiveInterceptorContainer = nil
+	}
+
+	if !check.IfNil(e.resolversContainer) {
+		errClose := e.resolversContainer.Close()
+		if errClose != nil {
+			log.Warn("rebuildNetworkComponentsForShard resolversContainer.Close()", "error", errClose)
+		}
+		e.resolversContainer = nil
+	}
+}
+
 func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
 	if meta.IsHeaderV3() {
 		return e.syncHeadersV3From(meta)
@@ -938,7 +1017,13 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 	if err != nil {
 		return nil, err
 	}
+
+	isCurrentShardMeta := e.shardCoordinator.SelfId() == core.MetachainShardId
 	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		if !isCurrentShardMeta && epochStartData.GetShardID() != e.shardCoordinator.SelfId() {
+			continue
+		}
+
 		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
 		shardIds = append(shardIds, epochStartData.GetShardID())
 
@@ -1169,11 +1254,20 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	e.saveSelfShardId()
+	oldShardID := e.shardCoordinator.SelfId()
+	oldNumberOfShards := e.shardCoordinator.NumberOfShards()
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
 		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, e.baseData.numberOfShards, e.baseData.shardId)
 	}
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
+
+	if oldShardID != e.shardCoordinator.SelfId() || oldNumberOfShards != e.shardCoordinator.NumberOfShards() {
+		err = e.rebuildNetworkComponentsForShard()
+		if err != nil {
+			return Parameters{}, err
+		}
+	}
 
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
 	err = e.mainMessenger.CreateTopic(consensusTopic, true)
@@ -1825,14 +1919,12 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 
 	storageService := disabled.NewChainStorer()
 
-	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(e.generalConfig.HeartbeatV2.HeartbeatExpiryTimespanInSec)
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(e.generalConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec)
 	if err != nil {
 		return err
 	}
 
-	// TODO - create a dedicated request handler to be used when fetching required data with the correct shard coordinator
-	//  this one should only be used before determining the correct shard where the node should reside
-	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
+	log.Debug("epochStartBootstrap.createResolversContainer", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
 		ShardCoordinator:                e.shardCoordinator,
 		MainMessenger:                   e.mainMessenger,
@@ -1851,7 +1943,12 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		PayloadValidator:                payloadValidator,
 		AntifloodConfigsHandler:         e.coreComponentsHolder.AntifloodConfigsHandler(),
 	}
-	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
+	var resolverFactory dataRetriever.ResolversContainerFactory
+	if e.shardCoordinator.SelfId() == core.MetachainShardId {
+		resolverFactory, err = resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
+	} else {
+		resolverFactory, err = resolverscontainer.NewShardResolversContainerFactory(resolversContainerArgs)
+	}
 	if err != nil {
 		return err
 	}
@@ -1861,7 +1958,14 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		return err
 	}
 
-	return resolverFactory.AddShardTrieNodeResolvers(container)
+	err = resolverFactory.AddShardTrieNodeResolvers(container)
+	if err != nil {
+		_ = container.Close()
+		return err
+	}
+
+	e.resolversContainer = container
+	return nil
 }
 
 func (e *epochStartBootstrap) createRequestHandler() error {
@@ -1880,7 +1984,14 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		SizeCheckDelta:                  0,
 		EnableEpochsHandler:             e.enableEpochsHandler,
 	}
-	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
+
+	var requestersFactory dataRetriever.RequestersContainerFactory
+	var err error
+	if e.shardCoordinator.SelfId() == core.MetachainShardId {
+		requestersFactory, err = requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
+	} else {
+		requestersFactory, err = requesterscontainer.NewShardRequestersContainerFactory(requestersContainerArgs)
+	}
 	if err != nil {
 		return err
 	}
@@ -1906,7 +2017,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		requestedItemsHandler,
 		e.whiteListHandler,
 		maxToRequest,
-		core.MetachainShardId,
+		e.shardCoordinator.SelfId(),
 		timeBetweenRequests,
 		time.Duration(e.generalConfig.Requesters.RequestProofByNonceDelayMs)*time.Millisecond,
 	)

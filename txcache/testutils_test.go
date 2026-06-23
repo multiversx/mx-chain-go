@@ -10,7 +10,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 )
 
 const oneMilion = 1000000
@@ -158,7 +159,7 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 
 func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransactionsPerSender int) []bunchOfTransactions {
 	bunches := make([]bunchOfTransactions, 0, nSenders)
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
 		bunch := make(bunchOfTransactions, 0, nTransactionsPerSender)

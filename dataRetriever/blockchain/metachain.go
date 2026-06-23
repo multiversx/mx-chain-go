@@ -58,6 +58,18 @@ func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	return mc.setCurrentBlockHeaderUnprotected(header)
 }
 
+// SetCurrentBlockHeaderAndHash sets header and hash atomically
+func (mc *metaChain) SetCurrentBlockHeaderAndHash(
+	headerHash []byte,
+	header data.HeaderHandler,
+) error {
+	mc.mut.Lock()
+	defer mc.mut.Unlock()
+
+	mc.currentBlockHeaderHash = headerHash
+	return mc.setCurrentBlockHeaderUnprotected(header)
+}
+
 func (mc *metaChain) setCurrentBlockHeaderUnprotected(header data.HeaderHandler) error {
 	if check.IfNil(header) {
 		mc.currentBlockHeader = nil

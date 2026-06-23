@@ -7,7 +7,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,7 +30,7 @@ func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	cache, err := NewTxCache(config, host, 0)
 	require.Nil(t, err)
@@ -64,7 +66,7 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	cache, err := NewTxCache(config, host, 0)
 	require.Nil(t, err)
@@ -101,13 +103,13 @@ func TestTxCache_DoEviction_WithTrackedTxs(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	cache, err := NewTxCache(config, host, 0)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 	accountsProvider.SetNonce([]byte("alice"), 1)
 	accountsProvider.SetNonce([]byte("bob"), 1)
 	accountsProvider.SetNonce([]byte("carol"), 1)
@@ -165,7 +167,7 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	cache, err := NewTxCache(config, host, 0)
 	require.Nil(t, err)
@@ -205,7 +207,7 @@ func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	sw := core.NewStopWatch()
 

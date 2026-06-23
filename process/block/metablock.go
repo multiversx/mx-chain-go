@@ -16,12 +16,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
-	epochStartMetaCommmon "github.com/multiversx/mx-chain-go/epochStart/metachain"
-	"github.com/multiversx/mx-chain-go/trie"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	epochStartMetaCommmon "github.com/multiversx/mx-chain-go/epochStart/metachain"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
@@ -29,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/trie"
 )
 
 const (
@@ -198,7 +197,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = mp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body)
+	err = mp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), false)
 	if err != nil {
 		return err
 	}
@@ -244,6 +243,11 @@ func (mp *metaProcessor) ProcessBlock(
 
 	if header.IsStartOfEpochBlock() {
 		err = mp.processEpochStartMetaBlock(header, body)
+		return err
+	}
+
+	err = mp.verifyNonEpochStartMiniBlocks(header)
+	if err != nil {
 		return err
 	}
 
@@ -479,6 +483,17 @@ func (mp *metaProcessor) verifyEpochStartMiniBlocks(metaBlock data.MetaHeaderHan
 	return nil
 }
 
+func (mp *metaProcessor) verifyNonEpochStartMiniBlocks(header data.HeaderHandler) error {
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeader.GetTypeInt32() == int32(block.RewardsBlock) ||
+			miniBlockHeader.GetTypeInt32() == int32(block.PeerBlock) {
+			return process.ErrInvalidMiniBlockType
+		}
+	}
+
+	return nil
+}
+
 // SetNumProcessedObj will set the num of processed headers
 func (mp *metaProcessor) SetNumProcessedObj(numObj uint64) {
 	mp.headersCounter.shardMBHeadersTotalProcessed = numObj
@@ -659,6 +674,7 @@ func (mp *metaProcessor) indexBlock(
 		lastMetaBlock,
 		argSaveBlock.SignersIndexes,
 		mp.enableEpochsHandler,
+		mp.roundHandler,
 	)
 
 	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
@@ -1413,8 +1429,6 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
-
 	lastExecutionResultHeader, err := mp.getLastExecutionResultHeader(header)
 	if err != nil {
 		return err
@@ -2121,6 +2135,14 @@ func (mp *metaProcessor) saveLastNotarizedHeader(metaHeader data.MetaHeaderHandl
 		hash := lastCrossNotarizedHeaderForShard[shardID].hash
 		mp.blockTracker.AddCrossNotarizedHeader(shardID, hdr, hash)
 		DisplayLastNotarized(mp.marshalizer, mp.hasher, hdr, shardID)
+
+		// Per-shard threshold advance: commitAll already ran, so SCRs from shardID up to
+		// hdr.GetNonce() can be released. hdr.GetNonce()+1 releases items at the just-
+		// notarized nonce too, since they were processed in this metablock.
+		if !check.IfNil(hdr) && !check.IfNil(mp.miniBlockTracker) {
+			threshold := hdr.GetNonce() + 1
+			mp.miniBlockTracker.ReleaseImmunityForCommittedShardBlocks(shardID, threshold)
+		}
 	}
 
 	return nil
@@ -2530,9 +2552,9 @@ func (mp *metaProcessor) getCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHand
 			return big.NewInt(0), big.NewInt(0), nil
 		}
 
-		lastExecResult, err := common.GetLastBaseExecutionResultHandler(metaHdr)
-		if err != nil {
-			return nil, nil, err
+		lastExecResult := mp.blockChain.GetLastExecutionResult()
+		if check.IfNil(lastExecResult) {
+			return big.NewInt(0), big.NewInt(0), nil
 		}
 
 		lastMetaExecResult, ok := lastExecResult.(data.BaseMetaExecutionResultHandler)
