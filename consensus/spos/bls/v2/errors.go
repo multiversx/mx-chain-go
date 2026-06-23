@@ -10,3 +10,9 @@ var ErrTimeOut = errors.New("time is out")
 
 // ErrProofAlreadyPropagated signals that the proof was already propagated
 var ErrProofAlreadyPropagated = errors.New("proof already propagated")
+
+// ErrValidSignatureFromInvalidSigner signals that a valid signature was received on invalid signers message
+var ErrValidSignatureFromInvalidSigner = errors.New("valid signature from invalid sender")
+
+// ErrHeaderHashMismatch signals that header hash does not match
+var ErrHeaderHashMismatch = errors.New("header hash does not match")

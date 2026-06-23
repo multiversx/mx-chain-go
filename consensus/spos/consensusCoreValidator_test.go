@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -47,6 +48,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 	proofsPool := &dataRetriever.ProofsPoolMock{}
 	epochNotifier := &epochNotifierMock.EpochNotifierStub{}
 	invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{}
+	messagesHandler, _ := bls.NewConsensusService()
 
 	consensusCore, _ := spos.NewConsensusCore(&spos.ConsensusCoreArgs{
 		BlockChain:                    blockChain,
@@ -75,6 +77,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 		EquivalentProofsPool:          proofsPool,
 		EpochNotifier:                 epochNotifier,
 		InvalidSignersCache:           invalidSignersCache,
+		MessagesHandler:               messagesHandler,
 	})
 
 	return consensusCore
