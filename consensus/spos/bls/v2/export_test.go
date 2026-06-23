@@ -203,7 +203,7 @@ func (sr *subroundBlock) SendBlockBody(body data.BodyHandler, marshalizedBody []
 
 // SendBlockHeader method sends the proposed block header in the subround Block
 func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte) bool {
-	return sr.sendBlockHeader(header, marshalizedHeader)
+	return sr.sendBlockHeader(context.TODO(), header, marshalizedHeader)
 }
 
 // ComputeSubroundProcessingMetric computes processing metric related to the subround Block
@@ -394,4 +394,9 @@ func (sr *subroundEndRound) UpdateNonceDeltaMetrics() {
 // PrepareBlockForExecution prepares the block for execution
 func (sr *subroundBlock) PrepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
 	return sr.prepareBlockForExecution(header, body)
+}
+
+// TriggerCreateSignaturesForManagedKeys -
+func (sr *subroundBlock) TriggerCreateSignaturesForManagedKeys(ctx context.Context, headerHash []byte, headerHandler data.HeaderHandler) {
+	sr.triggerCreateSignaturesForManagedKeys(ctx, headerHash, headerHandler)
 }

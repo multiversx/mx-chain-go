@@ -202,7 +202,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 				Nonce:       args.InitialNonce,
 				Epoch:       args.InitialEpoch,
 				Round:       uint64(args.InitialRound),
-				TimestampMs: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
+				TimestampMs: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().UnixMilli()),
 			}
 		}
 

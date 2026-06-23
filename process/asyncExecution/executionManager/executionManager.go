@@ -243,7 +243,6 @@ func (em *executionManager) resetTrackerToLastNotarized(lastNotarizedResult data
 func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult data.BaseExecutionResultHandler) error {
 	lastExecutedHeaderHash := lastNotarizedResult.GetHeaderHash()
 	lastExecutedHeaderNonce := lastNotarizedResult.GetHeaderNonce()
-	lastExecutedHeaderRootHash := lastNotarizedResult.GetRootHash()
 	pendingExecutionResults, err := em.executionResultsTracker.GetPendingExecutionResults()
 	if err != nil {
 		return err
@@ -255,7 +254,6 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 		lastPending := pendingExecutionResults[len(pendingExecutionResults)-1]
 		lastExecutedHeaderHash = lastPending.GetHeaderHash()
 		lastExecutedHeaderNonce = lastPending.GetHeaderNonce()
-		lastExecutedHeaderRootHash = lastPending.GetRootHash()
 
 		lastExecutionResult = lastPending
 	}
@@ -271,14 +269,7 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 	}
 
 	// update blockchain
-	em.blockChain.SetFinalBlockInfo(
-		lastExecutedHeaderNonce,
-		lastExecutedHeaderHash,
-		lastExecutedHeaderRootHash,
-	)
-
-	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, lastExecutedHeaderHash, lastExecutedHeaderRootHash)
-	em.blockChain.SetLastExecutionResult(lastExecutionResult)
+	em.blockChain.SetLastExecutionInfo(header, lastExecutionResult)
 
 	return nil
 }

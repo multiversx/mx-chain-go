@@ -329,7 +329,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 					counter += 1
 				}
 			},
-			SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 				if bytes.Equal(result.GetHeaderHash(), []byte("lastNotarizedExecResultHash")) {
 					counter += 1
 				}
@@ -389,12 +389,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 					Nonce: 10,
 				}
 			},
-			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
-				if bytes.Equal(blockHash, []byte("lastNotarizedExecResultHash")) {
-					counter += 1
-				}
-			},
-			SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 				if bytes.Equal(result.GetHeaderHash(), []byte("lastNotarizedExecResultHash")) {
 					counter += 1
 				}
@@ -436,7 +431,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		err := em.AddPairForExecution(pair)
 		require.Equal(t, errExpected, err)
-		require.Equal(t, 2, counter)
+		require.Equal(t, 1, counter)
 	})
 
 	t.Run("should work when the execution results of the previous header are notarized", func(t *testing.T) {
@@ -450,12 +445,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 					Nonce: 10,
 				}
 			},
-			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
-				if bytes.Equal(blockHash, []byte("lastNotarizedExecResultHash")) {
-					counter += 1
-				}
-			},
-			SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 				if bytes.Equal(result.GetHeaderHash(), []byte("lastNotarizedExecResultHash")) {
 					counter += 1
 				}
@@ -498,7 +488,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		err := em.AddPairForExecution(pair)
 		require.Nil(t, err)
-		require.Equal(t, 3, counter)
+		require.Equal(t, 2, counter)
 	})
 
 	t.Run("should work if there are pending execution results of previous header", func(t *testing.T) {
@@ -512,12 +502,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 					Nonce: 10,
 				}
 			},
-			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
-				if bytes.Equal(blockHash, []byte("hashY")) {
-					counter += 1
-				}
-			},
-			SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 				if bytes.Equal(result.GetHeaderHash(), []byte("hashY")) {
 					counter += 1
 				}
@@ -572,7 +557,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		err := em.AddPairForExecution(pair)
 		require.Nil(t, err)
-		require.Equal(t, 3, counter)
+		require.Equal(t, 2, counter)
 	})
 }
 
