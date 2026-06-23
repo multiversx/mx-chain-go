@@ -942,6 +942,9 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 		return false
 	}
 
+	if sr.IsJobDone(node, bls.SrSignature) {
+		return false
+	}
 	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
