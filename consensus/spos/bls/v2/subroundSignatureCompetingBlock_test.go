@@ -315,7 +315,7 @@ func TestWaitIfCompetingBlock_RecordSignedNonceCalledBeforeBroadcast(t *testing.
 
 	container := consensusMocks.InitConsensusCore()
 	container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
-		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+		CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return []byte("SIG"), nil
 		},
 	})

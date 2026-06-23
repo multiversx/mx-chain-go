@@ -210,12 +210,14 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	_ = em.blocksCache.RemoveAtNonceAndHigher(nonceToRemove)
 	err = em.executionResultsTracker.RemoveFromNonce(nonceToRemove)
 	if err != nil {
+		em.resetTrackerToLastNotarized(lastNotarizedResult)
 		return err
 	}
 
 	// update blockchain with the last executed header, similar to headersExecution
 	err = em.updateBlockchainAfterRemoval(lastNotarizedResult)
 	if err != nil {
+		em.resetTrackerToLastNotarized(lastNotarizedResult)
 		return err
 	}
 
@@ -232,31 +234,15 @@ func (em *executionManager) PopDismissedResults() []executionTrack.DismissedBatc
 	return em.executionResultsTracker.PopDismissedResults()
 }
 
-// ResetAndResumeExecution resets the managed components to the last notarized result and resumes execution
-func (em *executionManager) ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error {
-	if check.IfNil(lastNotarizedResult) {
-		return process.ErrNilLastExecutionResultHandler
-	}
-
-	em.mut.Lock()
-	defer em.mut.Unlock()
-
-	// even though the headers executor might already be paused, safe to try it one more time
-	em.headersExecutor.PauseExecution()
-
+// caller must hold em.mut with the executor paused
+func (em *executionManager) resetTrackerToLastNotarized(lastNotarizedResult data.BaseExecutionResultHandler) {
 	em.executionResultsTracker.Clean(lastNotarizedResult)
-
 	em.blocksCache.Clean()
-
-	em.headersExecutor.ResumeExecution()
-
-	return nil
 }
 
 func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult data.BaseExecutionResultHandler) error {
 	lastExecutedHeaderHash := lastNotarizedResult.GetHeaderHash()
 	lastExecutedHeaderNonce := lastNotarizedResult.GetHeaderNonce()
-	lastExecutedHeaderRootHash := lastNotarizedResult.GetRootHash()
 	pendingExecutionResults, err := em.executionResultsTracker.GetPendingExecutionResults()
 	if err != nil {
 		return err
@@ -268,7 +254,6 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 		lastPending := pendingExecutionResults[len(pendingExecutionResults)-1]
 		lastExecutedHeaderHash = lastPending.GetHeaderHash()
 		lastExecutedHeaderNonce = lastPending.GetHeaderNonce()
-		lastExecutedHeaderRootHash = lastPending.GetRootHash()
 
 		lastExecutionResult = lastPending
 	}
@@ -284,14 +269,7 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 	}
 
 	// update blockchain
-	em.blockChain.SetFinalBlockInfo(
-		lastExecutedHeaderNonce,
-		lastExecutedHeaderHash,
-		lastExecutedHeaderRootHash,
-	)
-
-	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, lastExecutedHeaderHash, lastExecutedHeaderRootHash)
-	em.blockChain.SetLastExecutionResult(lastExecutionResult)
+	em.blockChain.SetLastExecutionInfo(header, lastExecutionResult)
 
 	return nil
 }

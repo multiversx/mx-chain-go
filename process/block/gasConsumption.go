@@ -40,6 +40,7 @@ type ArgsGasConsumption struct {
 	BlockCapacityOverestimationFactor uint64
 	PercentDecreaseLimitsStep         uint64
 	BlockSizeComputation              preprocess.BlockSizeComputationHandler
+	BlockTracker                      preprocess.BlockTracker
 }
 
 // gasConsumption implements the GasComputation interface for managing gas limits during block creation
@@ -49,6 +50,7 @@ type gasConsumption struct {
 	shardCoordinator                 process.ShardCoordinator
 	gasHandler                       process.GasHandler
 	blockSizeComputation             preprocess.BlockSizeComputationHandler
+	blockTracker                     preprocess.BlockTracker
 	totalGasConsumed                 map[string]uint64
 	gasConsumedByMiniBlock           map[string]uint64
 	numTxsPerMiniBlock               map[string]uint32
@@ -75,6 +77,9 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 	if check.IfNil(args.BlockSizeComputation) {
 		return nil, process.ErrNilBlockSizeComputationHandler
 	}
+	if check.IfNil(args.BlockTracker) {
+		return nil, process.ErrNilBlockTracker
+	}
 	if args.BlockCapacityOverestimationFactor <= minPercentLimitsFactor || args.BlockCapacityOverestimationFactor > maxPercentLimitsFactor {
 		return nil, fmt.Errorf("%w for BlockCapacityOverestimationFactor, received %d, min allowed %d, max allowed %d",
 			process.ErrInvalidValue,
@@ -88,6 +93,7 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 		shardCoordinator:                 args.ShardCoordinator,
 		gasHandler:                       args.GasHandler,
 		blockSizeComputation:             args.BlockSizeComputation,
+		blockTracker:                     args.BlockTracker,
 		totalGasConsumed:                 make(map[string]uint64),
 		gasConsumedByMiniBlock:           make(map[string]uint64),
 		numTxsPerMiniBlock:               make(map[string]uint32),
@@ -390,9 +396,13 @@ func (gc *gasConsumption) addPendingIncomingMiniBlocks() ([]data.MiniBlockHeader
 //
 // only returns error if a transaction is invalid, with too much gas
 // This method assumes that incoming mini blocks were already handled, trying to add any remaining pending ones at the end
+// isProposer must be true only when called from the leader's own block proposal flow, false when verifying a
+// block proposal received from another node, since some checks (e.g. stuck shard skipping) rely on local,
+// possibly non-deterministic state and must not be applied on verification.
 func (gc *gasConsumption) AddOutgoingTransactions(
 	txHashes [][]byte,
 	transactions []data.TransactionHandler,
+	isProposer bool,
 ) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error) {
 	if len(transactions) != len(txHashes) {
 		return nil, nil, process.ErrInvalidValue
@@ -413,7 +423,7 @@ func (gc *gasConsumption) AddOutgoingTransactions(
 			continue
 		}
 
-		shouldSkipSender = gc.addOutgoingTransaction(transactions[i])
+		shouldSkipSender = gc.addOutgoingTransaction(transactions[i], isProposer)
 		if shouldSkipSender {
 			skippedSenders[string(transactions[i].GetSndAddr())] = struct{}{}
 			continue
@@ -436,6 +446,7 @@ func (gc *gasConsumption) AddOutgoingTransactions(
 // must be called under mutex protection
 func (gc *gasConsumption) addOutgoingTransaction(
 	tx data.TransactionHandler,
+	isProposer bool,
 ) bool {
 	if check.IfNil(tx) {
 		return false
@@ -443,6 +454,12 @@ func (gc *gasConsumption) addOutgoingTransaction(
 
 	senderShard := gc.shardCoordinator.SelfId()
 	receiverShard := gc.shardCoordinator.ComputeId(tx.GetRcvAddr())
+
+	if isProposer && senderShard != receiverShard && gc.blockTracker.IsShardStuck(receiverShard) {
+		log.Trace("shard is stuck", "shard", receiverShard)
+		return true
+	}
+
 	gasConsumedInSenderShard, gasConsumedInReceiverShard, err := gc.checkGasConsumedByTx(senderShard, receiverShard, tx)
 	if err != nil {
 		log.Warn("addOutgoingTransaction.checkGasConsumedByTx failed", "error", err)

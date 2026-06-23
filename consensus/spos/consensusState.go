@@ -2,6 +2,7 @@ package spos
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"time"
 
@@ -46,6 +47,9 @@ type ConsensusState struct {
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
 
+	signaturesWaitGroup        *sync.WaitGroup
+	signaturesTimeoutCtxCancel context.CancelFunc
+
 	*roundConsensus
 	*roundThreshold
 	*roundStatus
@@ -81,6 +85,7 @@ func (cns *ConsensusState) ResetConsensusRoundState() {
 	cns.roundCanceled = false
 	cns.extendedCalled = false
 	cns.waitingAllSignaturesTimeOut = false
+	cns.signaturesWaitGroup = &sync.WaitGroup{}
 	cns.mutState.Unlock()
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
@@ -524,6 +529,38 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 	defer cns.mutState.Unlock()
 
 	cns.waitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
+}
+
+// SignaturesWaitGroup returns wait group for optimistic signatures handling
+func (cns *ConsensusState) SignaturesWaitGroup() *sync.WaitGroup {
+	cns.mutState.Lock()
+	defer cns.mutState.Unlock()
+
+	return cns.signaturesWaitGroup
+}
+
+// SetSignaturesCtxCancelFunc will set signatures context cancel function
+func (cns *ConsensusState) SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc) {
+	var prevCancel context.CancelFunc
+
+	cns.mutState.Lock()
+	prevCancel = cns.signaturesTimeoutCtxCancel
+	cns.signaturesTimeoutCtxCancel = cancelFunc
+	cns.mutState.Unlock()
+
+	if prevCancel != nil {
+		prevCancel()
+	}
+}
+
+// SignaturesCtxCancel will cancel signatures context
+func (cns *ConsensusState) SignaturesCtxCancel() {
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
+
+	if cns.signaturesTimeoutCtxCancel != nil {
+		cns.signaturesTimeoutCtxCancel()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
