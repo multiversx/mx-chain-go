@@ -97,7 +97,7 @@ func initConsensusState() *spos.ConsensusState {
 		&mock.NodeRedundancyHandlerStub{},
 	)
 
-	cns.Data = []byte("X")
+	cns.SetData([]byte("X"))
 	cns.SetRoundIndex(0)
 	return cns
 }
