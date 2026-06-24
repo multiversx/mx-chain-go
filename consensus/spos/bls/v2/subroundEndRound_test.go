@@ -2262,7 +2262,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		})
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		_, err := sr.VerifyInvalidSigners([]byte("any"))
+		_, err := sr.VerifyInvalidSigners(headerHash, []byte("any"))
 		require.Equal(t, v2.ErrOutOfBoundsInvalidSignersMessage, err)
 	})
 
@@ -2282,7 +2282,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		})
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		_, err := sr.VerifyInvalidSigners([]byte("any"))
+		_, err := sr.VerifyInvalidSigners(headerHash, []byte("any"))
 		require.Equal(t, v2.ErrOutOfBoundsInvalidSignersMessage, err)
 	})
 
@@ -2307,7 +2307,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		})
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		_, err := sr.VerifyInvalidSigners([]byte("any"))
+		_, err := sr.VerifyInvalidSigners(headerHash, []byte("any"))
 		require.Equal(t, v2.ErrOutOfBoundsInvalidSignersMessage, err)
 	})
 }
