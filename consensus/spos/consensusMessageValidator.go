@@ -174,7 +174,12 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidity(cnsMsg *cons
 			cnsMsg.RoundIndex)
 	}
 
-	if cmv.consensusState.GetRoundIndex() > cnsMsg.RoundIndex {
+	allowedPastRounds := int64(0)
+	if cmv.consensusService.IsMessageWithInvalidSigners(msgType) {
+		allowedPastRounds = NumRoundsInvalidSignersPropagation
+	}
+
+	if cmv.consensusState.GetRoundIndex()-allowedPastRounds > cnsMsg.RoundIndex {
 		log.Trace("received message from consensus topic has a past round",
 			"msg type", cmv.consensusService.GetStringValue(msgType),
 			"from", cnsMsg.PubKey,
