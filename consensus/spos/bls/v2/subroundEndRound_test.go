@@ -1862,7 +1862,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 				wasPeerHonestyChangeCalled = true
 			},
 		})
-		// default Deserialize returns nil,nil → 0 messages → 0 confirmed invalid signers
+		// default Deserialize returns nil,nil -> 0 messages -> 0 confirmed invalid signers
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
@@ -1896,8 +1896,10 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		// inner consensus message with RoundIndex within the accepted window [10,11]
 		// TimestampField=0 matches the default SyncTimerMock (time.Unix(0,0))
 		innerMsg := &consensus.Message{
-			PubKey:     []byte("C"),
-			RoundIndex: currentRound,
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("C"),
+			MsgType:         int64(bls.MtSignature),
+			RoundIndex:      currentRound,
 		}
 		innerMsgBytes, _ := container.Marshalizer().Marshal(innerMsg)
 		invalidSigner := &factory.Message{
@@ -1951,8 +1953,10 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		// inner consensus message with RoundIndex within the accepted window [10,11]
 		// TimestampField=0 matches the default SyncTimerMock (time.Unix(0,0))
 		innerMsg := &consensus.Message{
-			PubKey:     []byte("C"),
-			RoundIndex: currentRound,
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("C"),
+			MsgType:         int64(bls.MtSignature),
+			RoundIndex:      currentRound,
 		}
 		innerMsgBytes, _ := container.Marshalizer().Marshal(innerMsg)
 		invalidSigner := &factory.Message{
@@ -2019,8 +2023,9 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 
 		consensusMsg := &consensus.Message{
-			PubKey:  pubKey,
-			MsgType: int64(bls.MtSignature),
+			BlockHeaderHash: headerHash,
+			PubKey:          pubKey,
+			MsgType:         int64(bls.MtSignature),
 		}
 
 		consensusMsgBytes, _ := container.Marshalizer().Marshal(consensusMsg)
@@ -2290,10 +2295,12 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
-		// currentRound=5 (default=0); inner cnsMsg.RoundIndex=7 is beyond window [0,1]
+		// currentRound=0 (default); inner cnsMsg.RoundIndex=7 is beyond window [-1,1]
 		outOfBoundsMsg := &consensus.Message{
-			PubKey:     []byte("A"),
-			RoundIndex: 7,
+			BlockHeaderHash: headerHash,
+			PubKey:          []byte("A"),
+			MsgType:         int64(bls.MtSignature),
+			RoundIndex:      7,
 		}
 		outOfBoundsMsgBytes, _ := container.Marshalizer().Marshal(outOfBoundsMsg)
 		invalidSigners := []p2p.MessageP2P{&factory.Message{
@@ -2323,14 +2330,21 @@ func TestIsRoundWithinBounds(t *testing.T) {
 
 	// negative round should return false
 	assert.False(t, sr.IsRoundWithinBounds(-1, 1))
-	// round before current should return false
-	assert.False(t, sr.IsRoundWithinBounds(4, 1))
+	// round before current minus numRounds should return false
+	assert.False(t, sr.IsRoundWithinBounds(3, 1)) // 5-1-1=3 < 5-1
+	// current round minus numRounds boundary should return true
+	assert.True(t, sr.IsRoundWithinBounds(4, 1)) // 5-1=4
 	// current round should return true
 	assert.True(t, sr.IsRoundWithinBounds(5, 1))
-	// current round plus numRounds boundary should return true
+	// one round in the future is accepted (clock-skew tolerance)
 	assert.True(t, sr.IsRoundWithinBounds(6, 1)) // 5+1=6
-	// round beyond current plus numRounds should return false
-	assert.False(t, sr.IsRoundWithinBounds(7, 1)) // 5+1+1=7 > 5+1
+	// more than one round in the future should return false
+	assert.False(t, sr.IsRoundWithinBounds(7, 1)) // 5+2 > 5+1
+
+	// a larger past window widens only the past bound...
+	assert.True(t, sr.IsRoundWithinBounds(3, 2)) // 5-2=3
+	// ...the future bound stays at a single round of skew
+	assert.False(t, sr.IsRoundWithinBounds(7, 2)) // future capped at 5+1
 }
 
 func TestIsTimestampWithinBounds(t *testing.T) {

@@ -119,13 +119,15 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	sr.doEndRoundJobByNode()
 }
 
+// isRoundWithinBounds accepts a round up to numRounds in the past (the propagation window) and at most
+// one round in the future (clock-skew tolerance only, never widened by numRounds).
 func (sr *subroundEndRound) isRoundWithinBounds(round int64, numRounds uint64) bool {
 	if round < 0 {
 		return false
 	}
 
 	currentRound := sr.RoundHandler().Index()
-	return round >= currentRound && round <= currentRound+int64(numRounds)
+	return round >= currentRound-int64(numRounds) && round <= currentRound+1
 }
 
 // receivedInvalidSignersInfo method is called when a message with invalid signers has been received
@@ -142,7 +144,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 
 	// this is consensus message round index - it can be corrupted
 	// accept only for current and next round
-	if !sr.isRoundWithinBounds(cnsDta.RoundIndex, numRoundsInvaligSignersPropagation) {
+	if !sr.isRoundWithinBounds(cnsDta.RoundIndex, spos.NumRoundsInvalidSignersPropagation) {
 		return false
 	}
 
@@ -256,17 +258,17 @@ func (sr *subroundEndRound) verifyInvalidSigner(
 		return "", spos.ErrInvalidMessageType
 	}
 
-	err = sr.MessageSigningHandler().Verify(msg)
-	if err != nil {
-		return "", err
-	}
-
-	if !sr.isRoundWithinBounds(cnsMsg.RoundIndex, numRoundsInvaligSignersPropagation) {
+	if !sr.isRoundWithinBounds(cnsMsg.RoundIndex, spos.NumRoundsInvalidSignersPropagation) {
 		return "", ErrOutOfBoundsInvalidSignersMessage
 	}
 
 	if !bytes.Equal(headerHash, cnsMsg.BlockHeaderHash) {
 		return "", ErrHeaderHashMismatch
+	}
+
+	err = sr.MessageSigningHandler().Verify(msg)
+	if err != nil {
+		return "", err
 	}
 
 	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
