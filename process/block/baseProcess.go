@@ -1216,10 +1216,15 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 		}
 
 		for index := range headers {
-			bp.hdrsForCurrBlock.hdrHashAndInfo[string(headersHashes[index])] = &hdrInfo{
-				hdr:         headers[index],
+			hdrHash := headersHashes[index]
+			hdr := headers[index]
+
+			bp.hdrsForCurrBlock.hdrHashAndInfo[string(hdrHash)] = &hdrInfo{
+				hdr:         hdr,
 				usedInBlock: false,
 			}
+
+			bp.requestProofIfNeeded(hdrHash, hdr)
 		}
 	}
 
