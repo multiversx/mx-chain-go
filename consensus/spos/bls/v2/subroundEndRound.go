@@ -155,9 +155,15 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	invalidSignersPubKeys, err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
+	invalidSignersPubKeys, err := sr.verifyInvalidSigners(cnsDta.BlockHeaderHash, cnsDta.InvalidSigners)
 	if err != nil {
 		log.Trace("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
+
+		if errors.Is(err, ErrValidSignatureFromInvalidSigner) {
+			originatorPeer := core.PeerID(cnsDta.OriginatorPid)
+			sr.applyBlacklistOnNode(originatorPeer)
+		}
+
 		return false
 	}
 
@@ -188,7 +194,10 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	return true
 }
 
-func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]string, error) {
+func (sr *subroundEndRound) verifyInvalidSigners(
+	headerHash []byte,
+	invalidSigners []byte,
+) ([]string, error) {
 	messages, err := sr.MessageSigningHandler().Deserialize(invalidSigners)
 	if err != nil {
 		return nil, err
@@ -200,7 +209,7 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 
 	pubKeys := make([]string, 0, len(messages))
 	for _, msg := range messages {
-		pubKey, errVerify := sr.verifyInvalidSigner(msg)
+		pubKey, errVerify := sr.verifyInvalidSigner(headerHash, msg)
 		if errVerify != nil {
 			return nil, errVerify
 		}
@@ -228,24 +237,36 @@ func (sr *subroundEndRound) isTimestampWithinBounds(timeStampSec int64, numSecon
 	return true
 }
 
-func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, error) {
+func (sr *subroundEndRound) verifyInvalidSigner(
+	headerHash []byte,
+	msg p2p.MessageP2P,
+) (string, error) {
 	if !sr.isTimestampWithinBounds(msg.Timestamp(), numAcceptedSecondsInvalidSigPropagation) {
 		return "", ErrOutOfBoundsInvalidSignersMessage
 	}
 
-	err := sr.MessageSigningHandler().Verify(msg)
+	cnsMsg := &consensus.Message{}
+	err := sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
 	if err != nil {
 		return "", err
 	}
 
-	cnsMsg := &consensus.Message{}
-	err = sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
+	msgType := consensus.MessageType(cnsMsg.MsgType)
+	if !sr.MessagesHandler().IsMessageWithSignature(msgType) {
+		return "", spos.ErrInvalidMessageType
+	}
+
+	err = sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return "", err
 	}
 
 	if !sr.isRoundWithinBounds(cnsMsg.RoundIndex, numRoundsInvaligSignersPropagation) {
 		return "", ErrOutOfBoundsInvalidSignersMessage
+	}
+
+	if !bytes.Equal(headerHash, cnsMsg.BlockHeaderHash) {
+		return "", ErrHeaderHashMismatch
 	}
 
 	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
@@ -616,9 +637,10 @@ func (sr *subroundEndRound) clearJobDoneForUnVerifiedSignatures(pubKeys []string
 
 func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
 	p2pMessages := make([]p2p.MessageP2P, 0)
+	headerHash := sr.GetData()
 
 	for _, pk := range invalidPubKeys {
-		p2pMsg, ok := sr.GetMessageWithSignature(pk)
+		p2pMsg, ok := sr.GetMessageWithSignature(spos.SignatureMessageKey(headerHash, pk))
 		if !ok {
 			log.Trace("message not found in state for invalid signer", "pubkey", pk)
 			continue

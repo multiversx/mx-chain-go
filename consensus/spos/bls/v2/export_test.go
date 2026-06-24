@@ -302,8 +302,8 @@ func (sr *subroundEndRound) ReceivedInvalidSignersInfo(cnsDta *consensus.Message
 }
 
 // VerifyInvalidSigners calls the unexported verifyInvalidSigners function
-func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) ([]string, error) {
-	return sr.verifyInvalidSigners(invalidSigners)
+func (sr *subroundEndRound) VerifyInvalidSigners(headerHash []byte, invalidSigners []byte) ([]string, error) {
+	return sr.verifyInvalidSigners(headerHash, invalidSigners)
 }
 
 // GetMinConsensusGroupIndexOfManagedKeys calls the unexported getMinConsensusGroupIndexOfManagedKeys function
