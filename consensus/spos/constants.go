@@ -21,6 +21,5 @@ const LeaderPeerHonestyDecreaseFactor = -4
 // if it sent the signature, in an incorrect allocated slot/time-frame/round
 const ValidatorPeerHonestyDecreaseFactor = -2
 
-// NumRoundsInvalidSignersPropagation defines how many rounds away from the current one an invalid signers
-// consensus message is still accepted, in both directions
+// NumRoundsInvalidSignersPropagation is the past-rounds window in which an invalid signers consensus message is still accepted
 const NumRoundsInvalidSignersPropagation = 1

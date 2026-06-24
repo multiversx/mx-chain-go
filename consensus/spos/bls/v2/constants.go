@@ -1,6 +1,8 @@
 package v2
 
 import (
+	"time"
+
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -44,5 +46,5 @@ const competingBlockSignDelay = 0.5
 // a proof, giving the previous block's proof time to arrive.
 const competingProofSendDelay = 0.25
 
-// numAcceptedSecondsInvalidSigPropagation defines the num of seconds to be accepted for the invalid signature p2p message
-const numAcceptedSecondsInvalidSigPropagation = 1
+// acceptedClockSkew is the clock-skew tolerance applied on both ends of the invalid signers timestamp window
+const acceptedClockSkew = time.Second

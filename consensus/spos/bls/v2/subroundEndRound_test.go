@@ -2255,10 +2255,10 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
-		// SyncTimerMock defaults to time.Unix(0,0); a message with Timestamp=1 is in the future
+		// SyncTimerMock defaults to time.Unix(0,0); skew tolerance is 1, so Timestamp=2 is beyond the future bound
 		invalidSigners := []p2p.MessageP2P{&factory.Message{
 			FromField:      []byte("from"),
-			TimestampField: 1,
+			TimestampField: 2,
 		}}
 		container.SetMessageSigningHandler(&mock.MessageSigningHandlerStub{
 			DeserializeCalled: func(_ []byte) ([]p2p.MessageP2P, error) {
@@ -2275,10 +2275,33 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
-		// SyncTimerMock defaults to time.Unix(0,0); numAcceptedSeconds=1, so -2 is too old
+		container.SetSyncTimer(&consensusMocks.SyncTimerMock{
+			CurrentTimeCalled: func() time.Time { return time.Unix(1000, 0) },
+		})
+		// now=1000; past window = 1 round (default 4s) + 1s skew = 5s, so 994 is too old (< 995)
 		invalidSigners := []p2p.MessageP2P{&factory.Message{
 			FromField:      []byte("from"),
-			TimestampField: -2,
+			TimestampField: 994,
+		}}
+		container.SetMessageSigningHandler(&mock.MessageSigningHandlerStub{
+			DeserializeCalled: func(_ []byte) ([]p2p.MessageP2P, error) {
+				return invalidSigners, nil
+			},
+		})
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		_, err := sr.VerifyInvalidSigners(headerHash, []byte("any"))
+		require.Equal(t, v2.ErrOutOfBoundsInvalidSignersMessage, err)
+	})
+
+	t.Run("negative timestamp on p2p message should error", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		// now=Unix(0,0); -1 falls within the past window but a corrupted negative timestamp must be rejected
+		invalidSigners := []p2p.MessageP2P{&factory.Message{
+			FromField:      []byte("from"),
+			TimestampField: -1,
 		}}
 		container.SetMessageSigningHandler(&mock.MessageSigningHandlerStub{
 			DeserializeCalled: func(_ []byte) ([]p2p.MessageP2P, error) {
@@ -2354,17 +2377,25 @@ func TestIsTimestampWithinBounds(t *testing.T) {
 	container.SetSyncTimer(&consensusMocks.SyncTimerMock{
 		CurrentTimeCalled: func() time.Time { return time.Unix(1000, 0) },
 	})
+	container.SetRoundHandler(&round.RoundHandlerMock{
+		TimeDurationCalled: func() time.Duration { return time.Second },
+	})
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-	// future timestamp should return false
-	assert.False(t, sr.IsTimestampWithinBounds(1001, 5))
-
-	// too old timestamp should return false
-	assert.False(t, sr.IsTimestampWithinBounds(994, 5)) // 994 < 1000-5=995
-	// timestamp at lower boundary should return true
-	assert.True(t, sr.IsTimestampWithinBounds(995, 5)) // exactly at 1000-5
+	// numRounds=2, roundDuration=1s, skew=1s -> window [1000-3, 1000+1]
 	// timestamp at current time should return true
-	assert.True(t, sr.IsTimestampWithinBounds(1000, 5))
+	assert.True(t, sr.IsTimestampWithinBounds(1000, 2))
+	// future within skew should return true, beyond skew should return false
+	assert.True(t, sr.IsTimestampWithinBounds(1001, 2))  // 1000+1 skew
+	assert.False(t, sr.IsTimestampWithinBounds(1002, 2)) // > 1000+1
+	// past at the round-derived boundary should return true, beyond should return false
+	assert.True(t, sr.IsTimestampWithinBounds(997, 2))  // 1000-(2*1+1)=997
+	assert.False(t, sr.IsTimestampWithinBounds(996, 2)) // < 997
+
+	// a corrupted negative timestamp is rejected unconditionally, even when it would fall within the window
+	containerEpoch := consensusMocks.InitConsensusCore() // now defaults to Unix(0,0)
+	srEpoch := initSubroundEndRoundWithContainer(containerEpoch, &statusHandler.AppStatusHandlerStub{})
+	assert.False(t, srEpoch.IsTimestampWithinBounds(-1, 2))
 }
 
 func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {

@@ -119,8 +119,7 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	sr.doEndRoundJobByNode()
 }
 
-// isRoundWithinBounds accepts a round up to numRounds in the past (the propagation window) and at most
-// one round in the future (clock-skew tolerance only, never widened by numRounds).
+// isRoundWithinBounds accepts a round up to numRounds in the past and at most one round in the future (skew only)
 func (sr *subroundEndRound) isRoundWithinBounds(round int64, numRounds uint64) bool {
 	if round < 0 {
 		return false
@@ -142,8 +141,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	// this is consensus message round index - it can be corrupted
-	// accept only for current and next round
+	// round index can be corrupted; accept the past propagation window and one future round (skew)
 	if !sr.isRoundWithinBounds(cnsDta.RoundIndex, spos.NumRoundsInvalidSignersPropagation) {
 		return false
 	}
@@ -224,15 +222,22 @@ func (sr *subroundEndRound) verifyInvalidSigners(
 	return pubKeys, nil
 }
 
-func (sr *subroundEndRound) isTimestampWithinBounds(timeStampSec int64, numSeconds uint64) bool {
-	msgTimestampSec := timeStampSec
-	currTimestampSec := sr.SyncTimer().CurrentTime().Unix()
-
-	if msgTimestampSec > currTimestampSec {
+// isTimestampWithinBounds accepts a timestamp up to numRounds round-durations plus skew in the past and one skew in the future
+func (sr *subroundEndRound) isTimestampWithinBounds(timeStampSec int64, numRounds uint64) bool {
+	if timeStampSec < 0 {
 		return false
 	}
 
-	if msgTimestampSec < currTimestampSec-int64(numSeconds) {
+	msgTime := time.Unix(timeStampSec, 0)
+	now := sr.SyncTimer().CurrentTime()
+
+	pastWindow := time.Duration(numRounds)*sr.RoundHandler().TimeDuration() + acceptedClockSkew
+
+	if msgTime.After(now.Add(acceptedClockSkew)) {
+		return false
+	}
+
+	if msgTime.Before(now.Add(-pastWindow)) {
 		return false
 	}
 
@@ -243,7 +248,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(
 	headerHash []byte,
 	msg p2p.MessageP2P,
 ) (string, error) {
-	if !sr.isTimestampWithinBounds(msg.Timestamp(), numAcceptedSecondsInvalidSigPropagation) {
+	if !sr.isTimestampWithinBounds(msg.Timestamp(), spos.NumRoundsInvalidSignersPropagation) {
 		return "", ErrOutOfBoundsInvalidSignersMessage
 	}
 
