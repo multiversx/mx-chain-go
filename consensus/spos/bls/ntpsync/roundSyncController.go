@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/ntp"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"golang.org/x/exp/slices"
 )
 
 var log = logger.GetOrCreate("nonceSyncController")
@@ -94,6 +95,8 @@ func areNoncesInAscendingOrder(nonces []uint64) bool {
 	if len(nonces) == 0 {
 		return false
 	}
+
+	slices.Sort(nonces)
 
 	for i := 1; i < len(nonces); i++ {
 		if nonces[i] != nonces[i-1]+1 {
