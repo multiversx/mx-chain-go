@@ -259,9 +259,12 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChang
 }
 
 func (tdt *trackableDataTrie) rollbackAppliedUpdates(dtr state.DataTrie, oldValues []core.TrieData) {
+	var trieUpdate core.TrieData
+	var err error
+
 	for i := len(oldValues) - 1; i >= 0; i-- {
-		trieUpdate := oldValues[i]
-		err := dtr.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
+		trieUpdate = oldValues[i]
+		err = dtr.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
 		if err != nil {
 			log.Error("could not apply rollback updates", "err", err, "key", trieUpdate.Key, "account", tdt.identifier)
 		}
@@ -314,6 +317,10 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 
 		isFirstMigration := oldVal.Version == core.NotSpecified && dataEntry.newVersion == core.AutoBalanceEnabled
 		if isFirstMigration && len(dataTrieKey) != 0 {
+			if !wasDeleted {
+				trieUpdates = append(trieUpdates, oldVal)
+			}
+
 			deletedData := core.TrieData{
 				Key:   dataTrieKey,
 				Value: nil,
