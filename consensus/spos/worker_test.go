@@ -2420,7 +2420,19 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Len(t, msgID, 0)
 
-		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(string(pubKey))
+		msgType := consensus.MessageType(cnsMsg.MsgType)
+		require.Eventually(t, func() bool {
+			return len(wrk.ReceivedMessages()[msgType]) == 1
+		}, time.Second, time.Millisecond)
+
+		msgID, err = wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
+		assert.Nil(t, err)
+		assert.Len(t, msgID, 0)
+
+		time.Sleep(10 * time.Millisecond)
+		require.Len(t, wrk.ReceivedMessages()[msgType], 1)
+
+		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(spos.SignatureMessageKey(hdrHash, string(pubKey)))
 		require.True(t, ok)
 		require.Equal(t, msg, p2pMsgWithSignature)
 	})
