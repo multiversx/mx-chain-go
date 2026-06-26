@@ -52,6 +52,7 @@ type ConsensusCoreHandler interface {
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache
+	MessagesHandler() ConsensusService
 	AOTSelector() process.AOTTransactionSelector
 	IsInterfaceNil() bool
 }

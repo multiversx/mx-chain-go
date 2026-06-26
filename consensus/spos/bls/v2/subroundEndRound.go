@@ -119,31 +119,30 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	sr.doEndRoundJobByNode()
 }
 
+// isRoundWithinBounds accepts a round up to numRounds in the past and at most one round in the future (skew only)
+func (sr *subroundEndRound) isRoundWithinBounds(round int64, numRounds uint64) bool {
+	if round < 0 {
+		return false
+	}
+
+	currentRound := sr.RoundHandler().Index()
+	return round >= currentRound-int64(numRounds) && round <= currentRound+1
+}
+
 // receivedInvalidSignersInfo method is called when a message with invalid signers has been received
 func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta *consensus.Message) bool {
 	messageSender := string(cnsDta.PubKey)
-
-	if !sr.IsConsensusDataSet() {
-		return false
-	}
-	if check.IfNil(sr.GetHeader()) {
-		return false
-	}
 
 	isSelfSender := sr.IsNodeSelf(messageSender) || sr.IsKeyManagedBySelf([]byte(messageSender))
 	if isSelfSender {
 		return false
 	}
-
-	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
+	if !sr.IsNodeInConsensusGroup(messageSender) {
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
-		return false
-	}
-
-	if !sr.IsNodeInConsensusGroup(string(cnsDta.PubKey)) {
+	// round index can be corrupted; accept the past propagation window and one future round (skew)
+	if !sr.isRoundWithinBounds(cnsDta.RoundIndex, spos.NumRoundsInvalidSignersPropagation) {
 		return false
 	}
 
@@ -156,26 +155,49 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	invalidSignersPubKeys, err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
+	invalidSignersPubKeys, err := sr.verifyInvalidSigners(cnsDta.BlockHeaderHash, cnsDta.InvalidSigners)
 	if err != nil {
 		log.Trace("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
+
+		if errors.Is(err, ErrValidSignatureFromInvalidSigner) {
+			originatorPeer := core.PeerID(cnsDta.OriginatorPid)
+			sr.applyBlacklistOnNode(originatorPeer)
+		}
+
 		return false
 	}
 
-	log.Debug("step 3: invalid signers info has been evaluated")
+	log.Debug("step 3: invalid signers info has been evaluated", "num invalid signers", len(invalidSignersPubKeys))
+
+	// if no invalid signers confirmed, blacklist consensus message sender
+	if len(invalidSignersPubKeys) == 0 {
+		sr.PeerHonestyHandler().ChangeScore(
+			messageSender,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.ValidatorPeerHonestyDecreaseFactor,
+		)
+
+		originatorPeer := core.PeerID(cnsDta.OriginatorPid)
+		sr.applyBlacklistOnNode(originatorPeer)
+
+		return false
+	}
 
 	invalidSignersCache.AddInvalidSigners(cnsDta.BlockHeaderHash, cnsDta.InvalidSigners, invalidSignersPubKeys)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		messageSender,
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.LeaderPeerHonestyIncreaseFactor,
+		spos.ValidatorPeerHonestyIncreaseFactor,
 	)
 
 	return true
 }
 
-func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]string, error) {
+func (sr *subroundEndRound) verifyInvalidSigners(
+	headerHash []byte,
+	invalidSigners []byte,
+) ([]string, error) {
 	messages, err := sr.MessageSigningHandler().Deserialize(invalidSigners)
 	if err != nil {
 		return nil, err
@@ -187,7 +209,7 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 
 	pubKeys := make([]string, 0, len(messages))
 	for _, msg := range messages {
-		pubKey, errVerify := sr.verifyInvalidSigner(msg)
+		pubKey, errVerify := sr.verifyInvalidSigner(headerHash, msg)
 		if errVerify != nil {
 			return nil, errVerify
 		}
@@ -200,14 +222,56 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 	return pubKeys, nil
 }
 
-func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, error) {
-	err := sr.MessageSigningHandler().Verify(msg)
+// isTimestampWithinBounds accepts a timestamp up to numRounds round-durations plus skew in the past and one skew in the future
+func (sr *subroundEndRound) isTimestampWithinBounds(timeStampSec int64, numRounds uint64) bool {
+	if timeStampSec < 0 {
+		return false
+	}
+
+	msgTime := time.Unix(timeStampSec, 0)
+	now := sr.SyncTimer().CurrentTime()
+
+	pastWindow := time.Duration(numRounds)*sr.RoundHandler().TimeDuration() + acceptedClockSkew
+
+	if msgTime.After(now.Add(acceptedClockSkew)) {
+		return false
+	}
+
+	if msgTime.Before(now.Add(-pastWindow)) {
+		return false
+	}
+
+	return true
+}
+
+func (sr *subroundEndRound) verifyInvalidSigner(
+	headerHash []byte,
+	msg p2p.MessageP2P,
+) (string, error) {
+	if !sr.isTimestampWithinBounds(msg.Timestamp(), spos.NumRoundsInvalidSignersPropagation) {
+		return "", ErrOutOfBoundsInvalidSignersMessage
+	}
+
+	cnsMsg := &consensus.Message{}
+	err := sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
 	if err != nil {
 		return "", err
 	}
 
-	cnsMsg := &consensus.Message{}
-	err = sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
+	msgType := consensus.MessageType(cnsMsg.MsgType)
+	if !sr.MessagesHandler().IsMessageWithSignature(msgType) {
+		return "", spos.ErrInvalidMessageType
+	}
+
+	if !sr.isRoundWithinBounds(cnsMsg.RoundIndex, spos.NumRoundsInvalidSignersPropagation) {
+		return "", ErrOutOfBoundsInvalidSignersMessage
+	}
+
+	if !bytes.Equal(headerHash, cnsMsg.BlockHeaderHash) {
+		return "", ErrHeaderHashMismatch
+	}
+
+	err = sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return "", err
 	}
@@ -580,9 +644,10 @@ func (sr *subroundEndRound) clearJobDoneForUnVerifiedSignatures(pubKeys []string
 
 func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
 	p2pMessages := make([]p2p.MessageP2P, 0)
+	headerHash := sr.GetData()
 
 	for _, pk := range invalidPubKeys {
-		p2pMsg, ok := sr.GetMessageWithSignature(pk)
+		p2pMsg, ok := sr.GetMessageWithSignature(spos.SignatureMessageKey(headerHash, pk))
 		if !ok {
 			log.Trace("message not found in state for invalid signer", "pubkey", pk)
 			continue
@@ -617,6 +682,8 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail(sender string) ([]b
 	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		return nil, nil, ErrProofAlreadyPropagated
 	}
+
+	// TODO: add time limit check before broadcasting
 
 	if len(invalidSigners) > 0 {
 		sr.createAndBroadcastInvalidSigners(invalidSigners, invalidPubKeys, sender)
@@ -942,6 +1009,9 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 		return false
 	}
 
+	if sr.IsJobDone(node, bls.SrSignature) {
+		return false
+	}
 	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
