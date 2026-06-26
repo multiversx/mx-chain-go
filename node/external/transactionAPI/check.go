@@ -39,6 +39,9 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	if check.IfNil(arg.TxTypeHandler) {
 		return process.ErrNilTxTypeHandler
 	}
+	if check.IfNil(arg.RoundHandler) {
+		return process.ErrNilRoundHandler
+	}
 	if check.IfNil(arg.LogsFacade) {
 		return ErrNilLogsFacade
 	}

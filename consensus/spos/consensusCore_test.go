@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 )
@@ -14,6 +15,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 	consensusCoreMock := consensus.InitConsensusCore()
 
 	scheduledProcessor := &consensus.ScheduledProcessorStub{}
+	messagesHandler, _ := bls.NewConsensusService()
 
 	args := &spos.ConsensusCoreArgs{
 		BlockChain:                    consensusCoreMock.Blockchain(),
@@ -44,6 +46,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		EquivalentProofsPool:          consensusCoreMock.EquivalentProofsPool(),
 		EpochNotifier:                 consensusCoreMock.EpochNotifier(),
 		InvalidSignersCache:           &consensus.InvalidSignersCacheMock{},
+		MessagesHandler:               messagesHandler,
 	}
 	return args
 }

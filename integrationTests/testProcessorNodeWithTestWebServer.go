@@ -230,6 +230,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
 
 	argsApiTransactionProc := &transactionAPI.ArgAPITransactionProcessor{
+		RoundHandler:             tpn.RoundHandler,
 		Marshalizer:              TestMarshalizer,
 		AddressPubKeyConverter:   TestAddressPubkeyConverter,
 		ShardCoordinator:         tpn.ShardCoordinator,
