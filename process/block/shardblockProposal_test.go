@@ -1413,14 +1413,6 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 10,
 		}
-		economics := &economicsmocks.EconomicsHandlerMock{
-			BlockCapacityOverestimationFactorCalled: func() uint64 {
-				return 100
-			},
-			MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
-				return 600_000_000
-			},
-		}
 
 		executionResultsInclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler, &testscommon.ExecResSizeComputationStub{})
 
