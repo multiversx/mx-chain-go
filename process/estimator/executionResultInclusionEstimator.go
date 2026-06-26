@@ -34,7 +34,7 @@ type ExecutionResultInclusionEstimator struct {
 	cfg                    config.ExecutionResultInclusionEstimatorConfig // immutable after construction
 	tGas                   uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
 	roundHandler           RoundHandler
-	maxBlockGasCapacity    uint64 // max cumulative gas of the included execution results (0 = uncapped)
+	economics              process.EconomicsDataHandler
 	execResSizeComputation ExecResSizeComputationHandler
 }
 
@@ -43,7 +43,7 @@ func NewExecutionResultInclusionEstimator(
 	cfg config.ExecutionResultInclusionEstimatorConfig,
 	roundHandler RoundHandler,
 	execResultComputationHandler ExecResSizeComputationHandler,
-	maxBlockGasCapacity uint64,
+	economics process.EconomicsDataHandler,
 ) (*ExecutionResultInclusionEstimator, error) {
 	err := checkConfig(cfg)
 	if err != nil {
@@ -52,12 +52,15 @@ func NewExecutionResultInclusionEstimator(
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
+	if check.IfNil(economics) {
+		return nil, process.ErrNilEconomicsData
+	}
 
 	return &ExecutionResultInclusionEstimator{
 		cfg:                    cfg,
 		tGas:                   tGas,
 		roundHandler:           roundHandler,
-		maxBlockGasCapacity:    maxBlockGasCapacity,
+		economics:              economics,
 		execResSizeComputation: execResultComputationHandler,
 	}, nil
 }
@@ -108,7 +111,6 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 
 	// accumulated execution tBase for each pending execution result in ns (1 gas = 1ns)
 	estimatedTBase := tBase
-	var accumulatedGas uint64
 	for pendingExecutionIndex, executionResultMeta := range pending {
 		if pendingExecutionIndex > 0 {
 			previousExecutionResultMeta = pending[pendingExecutionIndex-1]
@@ -167,21 +169,16 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 			return pendingExecutionIndex
 		}
 
-		newAccumulatedGas, overflow := bits.Add64(accumulatedGas, executionResultMeta.GetGasUsed(), 0)
-		if overflow != 0 {
-			log.Debug("ExecutionResultInclusionEstimator: overflow detected in accumulated gas",
-				"accumulatedGas", accumulatedGas,
-				"gasUsed", executionResultMeta.GetGasUsed())
-			return pendingExecutionIndex
-		}
-		if erie.maxBlockGasCapacity > 0 && newAccumulatedGas > erie.maxBlockGasCapacity {
+		maxBlockGasCapacity := erie.economics.MaxGasLimitPerBlock(common.MetachainShardId)
+		overestimationFactor := erie.economics.BlockCapacityOverestimationFactor()
+		maxBlockGasCapacity = maxBlockGasCapacity * overestimationFactor / 100
+		if executionResultMeta.GetGasUsed() > maxBlockGasCapacity {
 			log.Debug("ExecutionResultInclusionEstimator: max block gas capacity reached",
-				"accumulatedGas", newAccumulatedGas,
-				"maxBlockGasCapacity", erie.maxBlockGasCapacity,
+				"gasUsed", executionResultMeta.GetGasUsed(),
+				"maxBlockGasCapacity", maxBlockGasCapacity,
 				"currentIndex", pendingExecutionIndex)
 			return pendingExecutionIndex
 		}
-		accumulatedGas = newAccumulatedGas
 
 		if execResSizeLimitChecker.IsMaxExecResSizeReached(1) {
 			log.Debug("ExecutionResultInclusionEstimator: estimated max size reached",

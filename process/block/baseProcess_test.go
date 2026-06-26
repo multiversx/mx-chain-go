@@ -194,7 +194,7 @@ func createArgBaseProcessor(
 			},
 			coreComponents.RoundHandler(),
 			&testscommon.ExecResSizeComputationStub{},
-			0,
+			coreComponents.EconomicsData(),
 		)
 
 		missingDataArgs := missingData.ResolverArgs{
@@ -5176,13 +5176,8 @@ func TestBaseProcessor_RecreateTrieIfNeeded(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{
-					RootHash: []byte("rootHash"),
-				}
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return []byte("headerHash")
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("rootHash")
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)

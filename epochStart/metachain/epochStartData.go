@@ -418,7 +418,10 @@ func (e *epochStartData) computePendingMiniBlockList(
 
 	epochStartIdentifier := core.EpochStartIdentifier(prevEpoch)
 
-	previousEpochStartMeta, _ := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
+	previousEpochStartMeta, err := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
+	if err != nil {
+		log.Debug("computePendingMiniBlockList.GetMetaHeaderFromStorage failed", "err", err)
+	}
 
 	allPending := make([]block.MiniBlockHeader, 0)
 	for shId, shardData := range startData.LastFinalizedHeaders {

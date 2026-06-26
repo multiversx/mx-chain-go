@@ -3087,18 +3087,7 @@ func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []b
 }
 
 func (bp *baseProcessor) recreateTrieIfNeeded() error {
-	prevHeader := bp.blockChain.GetCurrentBlockHeader()
-	prevHeaderHash := bp.blockChain.GetCurrentBlockHeaderHash()
-
-	var rootHash []byte
-	if !check.IfNil(prevHeader) && len(prevHeaderHash) > 0 {
-		lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(prevHeader, prevHeaderHash)
-		if err != nil {
-			return err
-		}
-		rootHash = lastExecResHandler.GetRootHash()
-	}
-
+	rootHash := bp.blockChain.GetCurrentBlockRootHash()
 	if len(rootHash) == 0 {
 		genesisBlock := bp.blockChain.GetGenesisHeader()
 		rootHash = genesisBlock.GetRootHash()
