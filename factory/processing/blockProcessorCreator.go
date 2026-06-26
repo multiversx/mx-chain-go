@@ -610,7 +610,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
 		execResSizeComputationHandler,
-		pcf.coreData.EconomicsData(),
 	)
 	if err != nil {
 		return nil, err
@@ -1196,7 +1195,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
 		execResSizeComputationHandler,
-		pcf.coreData.EconomicsData(),
 	)
 	if err != nil {
 		return nil, err

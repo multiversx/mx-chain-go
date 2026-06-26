@@ -995,7 +995,6 @@ func (tpn *TestFullNode) initBlockProcessor(
 		},
 		tpn.RoundHandler,
 		&testscommon.ExecResSizeComputationStub{},
-		tpn.EconomicsData,
 	)
 	if err != nil {
 		log.LogIfError(err)
@@ -1383,7 +1382,6 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		},
 		tpn.RoundHandler,
 		&testscommon.ExecResSizeComputationStub{},
-		tpn.EconomicsData,
 	)
 	if err != nil {
 		log.LogIfError(err)

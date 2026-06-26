@@ -2596,7 +2596,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		},
 		tpn.RoundHandler,
 		&testscommon.ExecResSizeComputationStub{},
-		tpn.EconomicsData,
 	)
 	if err != nil {
 		log.LogIfError(err)

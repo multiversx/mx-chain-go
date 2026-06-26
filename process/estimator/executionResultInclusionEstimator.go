@@ -31,10 +31,10 @@ type RoundHandler interface {
 // node. It determines, at proposal‑time and at validation‑time, whether one or more pending execution results can be
 // safely embedded in the block that is being produced / verified.
 type ExecutionResultInclusionEstimator struct {
-	cfg                    config.ExecutionResultInclusionEstimatorConfig // immutable after construction
-	tGas                   uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
-	roundHandler           RoundHandler
-	economics              process.EconomicsDataHandler
+	cfg          config.ExecutionResultInclusionEstimatorConfig // immutable after construction
+	tGas         uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
+	roundHandler RoundHandler
+	// TODO add also max estimated block gas capacity - used gas must be lower than this
 	execResSizeComputation ExecResSizeComputationHandler
 }
 
@@ -43,7 +43,6 @@ func NewExecutionResultInclusionEstimator(
 	cfg config.ExecutionResultInclusionEstimatorConfig,
 	roundHandler RoundHandler,
 	execResultComputationHandler ExecResSizeComputationHandler,
-	economics process.EconomicsDataHandler,
 ) (*ExecutionResultInclusionEstimator, error) {
 	err := checkConfig(cfg)
 	if err != nil {
@@ -52,15 +51,11 @@ func NewExecutionResultInclusionEstimator(
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
-	if check.IfNil(economics) {
-		return nil, process.ErrNilEconomicsData
-	}
 
 	return &ExecutionResultInclusionEstimator{
 		cfg:                    cfg,
 		tGas:                   tGas,
 		roundHandler:           roundHandler,
-		economics:              economics,
 		execResSizeComputation: execResultComputationHandler,
 	}, nil
 }
@@ -166,17 +161,6 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 			log.Debug("ExecutionResultInclusionEstimator: estimated time exceeds current header timestamp",
 				"tDone", tDone,
 				"currentHdrTsNs", currentHdrTsNs)
-			return pendingExecutionIndex
-		}
-
-		maxBlockGasCapacity := erie.economics.MaxGasLimitPerBlock(common.MetachainShardId)
-		overestimationFactor := erie.economics.BlockCapacityOverestimationFactor()
-		maxBlockGasCapacity = maxBlockGasCapacity * overestimationFactor / 100
-		if executionResultMeta.GetGasUsed() > maxBlockGasCapacity {
-			log.Debug("ExecutionResultInclusionEstimator: max block gas capacity reached",
-				"gasUsed", executionResultMeta.GetGasUsed(),
-				"maxBlockGasCapacity", maxBlockGasCapacity,
-				"currentIndex", pendingExecutionIndex)
 			return pendingExecutionIndex
 		}
 

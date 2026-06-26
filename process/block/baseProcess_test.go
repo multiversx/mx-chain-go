@@ -194,7 +194,6 @@ func createArgBaseProcessor(
 			},
 			coreComponents.RoundHandler(),
 			&testscommon.ExecResSizeComputationStub{},
-			coreComponents.EconomicsData(),
 		)
 
 		missingDataArgs := missingData.ResolverArgs{
