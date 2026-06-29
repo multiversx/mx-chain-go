@@ -364,3 +364,6 @@ var ErrInvalidHeader = errors.New("invalid header")
 
 // ErrNilPrevBlockExecutionResults signals that nil previous block execution results were provided
 var ErrNilPrevBlockExecutionResults = errors.New("nil previous block execution results")
+
+// ErrMissingNodesConfigForBootstrapEpoch signals that the nodes coordinator config does not contain the resolved bootstrap epoch
+var ErrMissingNodesConfigForBootstrapEpoch = errors.New("nodes coordinator config missing for resolved bootstrap epoch")

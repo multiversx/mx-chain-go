@@ -922,14 +922,12 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
-	log.Debug("current block is reverted")
-
 	if !wrk.isAsyncExecEnabled() {
 		wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
 		wrk.blockProcessor.RevertCurrentBlock()
+		wrk.removeConsensusHeaderFromPool()
+		log.Debug("current block is reverted")
 	}
-
-	wrk.removeConsensusHeaderFromPool()
 }
 
 func (wrk *Worker) isAsyncExecEnabled() bool {
