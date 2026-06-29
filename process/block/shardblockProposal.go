@@ -338,8 +338,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: improvement - add also a request if it is missing as a fallback, although it should not be missing at this point
-	err = sp.checkEpochStartInfoAvailableIfNeeded(header)
+	err = sp.ensureEpochStartInfoAvailable(header, haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +348,6 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: check again before saving the last executed result
 	err = sp.blockChainHook.SetCurrentHeader(header)
 	if err != nil {
 		return nil, err
@@ -655,7 +653,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 		return err
 	}
 
-	// todo: maybe sanitize, removing empty miniBlocks
+	sp.miniBlocksSelectionSession.RemoveEmptyMiniBlocks()
 
 	return nil
 }
