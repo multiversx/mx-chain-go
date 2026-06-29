@@ -2727,6 +2727,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			Marshalizer:           TestMarshalizer,
 			Hasher:                TestHasher,
 			Store:                 tpn.Storage,
+			Headers:               tpn.DataPool.Headers(),
 			ShardCoordinator:      tpn.ShardCoordinator,
 			RewardsHandler:        tpn.EconomicsData,
 			RoundTime:             tpn.RoundHandler,

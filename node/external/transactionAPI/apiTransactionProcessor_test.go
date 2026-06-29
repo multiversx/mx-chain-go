@@ -79,6 +79,8 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		ChainHandler:        &testscommon.ChainHandlerMock{},
+		TxProcessor:         &testscommon.TxProcessorMock{},
 	}
 }
 
@@ -246,6 +248,15 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilTransactionVersionChecker, err)
+	})
+	t.Run("NilChainHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.ChainHandler = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilBlockChain, err)
 	})
 }
 
@@ -421,6 +432,8 @@ func TestNode_GetSCRs(t *testing.T) {
 		TxMarshaller:        &mock.MarshalizerFake{},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		ChainHandler:        &testscommon.ChainHandlerMock{},
+		TxProcessor:         &testscommon.TxProcessorMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -638,6 +651,8 @@ func TestNode_GetTransactionCheckExecutionResults(t *testing.T) {
 				},
 			},
 			TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+			ChainHandler:     &testscommon.ChainHandlerMock{},
+			TxProcessor:      &testscommon.TxProcessorMock{},
 		}
 		apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -722,6 +737,8 @@ func TestNode_GetTransactionCheckExecutionResults(t *testing.T) {
 				},
 			},
 			TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+			ChainHandler:     &testscommon.ChainHandlerMock{},
+			TxProcessor:      &testscommon.TxProcessorMock{},
 		}
 		apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -814,6 +831,8 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		ChainHandler:        &testscommon.ChainHandlerMock{},
+		TxProcessor:         &testscommon.TxProcessorMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -1851,6 +1870,8 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		ChainHandler:        &testscommon.ChainHandlerMock{},
+		TxProcessor:         &testscommon.TxProcessorMock{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

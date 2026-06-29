@@ -144,6 +144,7 @@ type processComponents struct {
 	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
 	epochStartTriggerHanlder         epochStart.TriggerHandler
 	aotSelector                      process.AOTTransactionSelector
+	transactionProcessor             process.TransactionProcessor
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -840,6 +841,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		interceptedDataVerifierFactory:   pcf.interceptedDataVerifierFactory,
 		epochStartTriggerHanlder:         epochStartTrigger,
 		aotSelector:                      blockProcessorComponents.aotSelector,
+		transactionProcessor:             blockProcessorComponents.transactionProcessor,
 	}, nil
 }
 

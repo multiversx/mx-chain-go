@@ -1494,7 +1494,6 @@ func (mp *metaProcessor) CommitBlock(
 		highestFinalBlockNonce:     highestFinalBlockNonce,
 	}
 
-	// TODO adjust this method if needed for Supernova
 	mp.prepareDataForBootStorer(args)
 
 	mp.blockSizeThrottler.Succeed(header.GetRound())

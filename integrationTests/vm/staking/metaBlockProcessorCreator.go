@@ -179,7 +179,7 @@ func createMetaBlockProcessor(
 			HeaderValidator:                    headerValidator,
 			BootStorer:                         bootStorer,
 			BlockTracker:                       blockTracker,
-			MiniBlockTracker:               &testscommon.MiniBlockTrackerStub{},
+			MiniBlockTracker:                   &testscommon.MiniBlockTrackerStub{},
 			BlockSizeThrottler:                 &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:                  &dblookupext.HistoryRepositoryStub{},
 			VMContainersFactory:                metaVMFactory,
