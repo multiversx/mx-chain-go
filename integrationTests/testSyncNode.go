@@ -214,7 +214,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			},
 		},
 		BlockTracker:                       tpn.BlockTracker,
-		MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
+		MiniBlockTracker:                   &testscommon.MiniBlockTrackerStub{},
 		BlockSizeThrottler:                 TestBlockSizeThrottler,
 		HistoryRepository:                  tpn.HistoryRepository,
 		GasHandler:                         tpn.GasHandler,
