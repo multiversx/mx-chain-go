@@ -14,7 +14,7 @@ import (
 func TestCheckGoRoutinesThrottler(t *testing.T) {
 	t.Parallel()
 
-	t.Run("CanProcess returns true should return nil immediately", func(t *testing.T) {
+	t.Run("throttler cannot process should return nil immediately", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -30,7 +30,7 @@ func TestCheckGoRoutinesThrottler(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("CanProcess returns false for a period of time, then true, should return nil", func(t *testing.T) {
+	t.Run("throttler can process for a period of time, then cannot, should return nil", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -48,7 +48,7 @@ func TestCheckGoRoutinesThrottler(t *testing.T) {
 		assert.GreaterOrEqual(t, atomic.LoadInt32(&numCalls), int32(5))
 	})
 
-	t.Run("CanProcess always returns false should return error when context is done", func(t *testing.T) {
+	t.Run("throttler cannot process should return error when context is done", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
@@ -69,7 +69,7 @@ func TestCheckGoRoutinesThrottler(t *testing.T) {
 		assert.Greater(t, atomic.LoadInt32(&numCalls), int32(1))
 	})
 
-	t.Run("context already canceled and CanProcess returns false should return error without retrying", func(t *testing.T) {
+	t.Run("context already canceled and throttler cannot process should return error without retrying", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithCancel(context.Background())

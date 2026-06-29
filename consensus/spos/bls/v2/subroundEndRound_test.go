@@ -1758,7 +1758,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("peer signature binding fails should error with ErrPublicKeyMismatch", func(t *testing.T) {
+	t.Run("peer signature binding fails should error", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
