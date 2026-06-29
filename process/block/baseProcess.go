@@ -1220,6 +1220,8 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 				hdr:         headers[index],
 				usedInBlock: false,
 			}
+
+			bp.requestProofIfNeeded(headersHashes[index], headers[index])
 		}
 	}
 

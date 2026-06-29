@@ -2515,23 +2515,34 @@ func TestBaseProcessor_CheckScheduledData(t *testing.T) {
 
 	createProcessorAndHeader := func(t *testing.T) (interface {
 		CheckScheduledData(data.HeaderHandler) error
-	}, *block.HeaderV2) { t.Helper(); coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks(); coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag); arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents); arguments.ArgBaseProcessor.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
-		RootHashCalled: func() ([]byte, error) {
-			return []byte("scheduled-root"), nil
-		},
-	}; arguments.ArgBaseProcessor.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
-		GetScheduledGasAndFeesCalled: func() scheduled.GasAndFees {
-			return scheduledGasAndFees
-		},
-	}; processor, err := blproc.NewShardProcessor(arguments); require.NoError(t, err); header := &block.HeaderV2{
-		Header:                   &block.Header{},
-		ScheduledRootHash:        []byte("scheduled-root"),
-		ScheduledAccumulatedFees: big.NewInt(11),
-		ScheduledDeveloperFees:   big.NewInt(12),
-		ScheduledGasProvided:     13,
-		ScheduledGasPenalized:    14,
-		ScheduledGasRefunded:     15,
-	}; return processor, header }
+	}, *block.HeaderV2) {
+		t.Helper()
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ArgBaseProcessor.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("scheduled-root"), nil
+			},
+		}
+		arguments.ArgBaseProcessor.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			GetScheduledGasAndFeesCalled: func() scheduled.GasAndFees {
+				return scheduledGasAndFees
+			},
+		}
+		processor, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+		header := &block.HeaderV2{
+			Header:                   &block.Header{},
+			ScheduledRootHash:        []byte("scheduled-root"),
+			ScheduledAccumulatedFees: big.NewInt(11),
+			ScheduledDeveloperFees:   big.NewInt(12),
+			ScheduledGasProvided:     13,
+			ScheduledGasPenalized:    14,
+			ScheduledGasRefunded:     15,
+		}
+		return processor, header
+	}
 
 	t.Run("should work when scheduled data matches", func(t *testing.T) {
 		t.Parallel()
@@ -3817,4 +3828,65 @@ func TestBaseProcessor_DisplayHeader(t *testing.T) {
 		lines := blproc.DisplayHeader(header, proof)
 		require.Equal(t, 23, len(lines))
 	})
+}
+
+func TestMetaProcessor_requestMissingFinalityAttestingShardHeaders_AttestationHeaderPresentProofMissingShouldRequestProof(t *testing.T) {
+	t.Parallel()
+
+	noOfShards := uint32(2)
+	td := createTestData()
+	proofRequests := make(chan requestedProof, 1)
+
+	arguments := createMetaProcessorArguments(t, noOfShards)
+	coreComponents, ok := arguments.CoreComponents.(*mock.CoreComponentsMock)
+	require.True(t, ok)
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+
+	poolsHolder, ok := arguments.DataComponents.Datapool().(*dataRetrieverMock.PoolsHolderMock)
+	require.True(t, ok)
+	poolsHolder.SetHeadersPool(createPoolsHolderForHeaderRequests())
+
+	requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
+	require.True(t, ok)
+	requestHandler.RequestEquivalentProofByHashCalled = func(headerShard uint32, headerHash []byte) {
+		proofRequests <- requestedProof{shardID: headerShard, hash: append([]byte(nil), headerHash...)}
+	}
+
+	mp, err := blproc.NewMetaProcessor(*arguments)
+	require.NoError(t, err)
+
+	referenced := td[0].referencedHeaderData
+	attestation := td[0].attestationHeaderData
+
+	mp.SetShardBlockFinality(1)
+	mp.SetHighestHdrNonceForCurrentBlock(referenced.header.GetShardID(), referenced.header.GetNonce())
+	mp.SetLastNotarizedHeaderForShard(referenced.header.GetShardID(), &blproc.LastNotarizedHeaderInfo{
+		Header:                referenced.header,
+		Hash:                  referenced.headerHash,
+		NotarizedBasedOnProof: false,
+		HasProof:              false,
+	})
+
+	mp.GetDataPool().Headers().AddHeader(attestation.headerHash, attestation.header)
+
+	missingFinalityHeaders := mp.RequestMissingFinalityAttestingShardHeaders()
+
+	require.Equal(t, uint32(0), missingFinalityHeaders)
+
+	select {
+	case requested := <-proofRequests:
+		require.Equal(t, attestation.header.GetShardID(), requested.shardID)
+		require.Equal(t, attestation.headerHash, requested.hash)
+	case <-time.After(100 * time.Millisecond):
+		require.Fail(t, "missing equivalent proof request for attestation header")
+	}
+}
+
+type requestedProof struct {
+	shardID uint32
+	hash    []byte
 }
