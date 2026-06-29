@@ -395,7 +395,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	// TODO: evaluate disabling this entirely (for old flows) - the check is not triggered if async enabled but there are still some checks in the old flow
 	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
