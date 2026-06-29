@@ -18,7 +18,6 @@ type ExecutionManagerMock struct {
 	CleanOnConsensusReachedCalled                func(headerHash []byte, header data.HeaderHandler)
 	SetLastNotarizedResultCalled                 func(executionResult data.BaseExecutionResultHandler) error
 	RemoveAtNonceAndHigherCalled                 func(nonce uint64) error
-	ResetAndResumeExecutionCalled                func(lastNotarizedResult data.BaseExecutionResultHandler) error
 	GetLastNotarizedExecutionResultCalled        func() (data.BaseExecutionResultHandler, error)
 	RemovePendingExecutionResultsFromNonceCalled func(nonce uint64) error
 	GetSignalProcessCompletionChanCalled         func() chan uint64
@@ -84,14 +83,6 @@ func (emm *ExecutionManagerMock) SetLastNotarizedResult(executionResult data.Bas
 func (emm *ExecutionManagerMock) RemoveAtNonceAndHigher(nonce uint64) error {
 	if emm.RemoveAtNonceAndHigherCalled != nil {
 		return emm.RemoveAtNonceAndHigherCalled(nonce)
-	}
-	return nil
-}
-
-// ResetAndResumeExecution -
-func (emm *ExecutionManagerMock) ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error {
-	if emm.ResetAndResumeExecutionCalled != nil {
-		return emm.ResetAndResumeExecutionCalled(lastNotarizedResult)
 	}
 	return nil
 }

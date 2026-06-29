@@ -1,6 +1,8 @@
 package v2
 
 import (
+	"time"
+
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -16,3 +18,6 @@ const competingBlockSignDelay = 0.5
 // competingProofSendDelay is the fraction of the full round time to wait before sending
 // a proof, giving the previous block's proof time to arrive.
 const competingProofSendDelay = 0.25
+
+// acceptedClockSkew is the clock-skew tolerance applied on both ends of the invalid signers timestamp window
+const acceptedClockSkew = time.Second

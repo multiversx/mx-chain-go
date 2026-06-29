@@ -1720,8 +1720,9 @@ func TestGetFullMessagesForInvalidSigners(t *testing.T) {
 		container.SetMessageSigningHandler(messageSigningHandler)
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.AddMessageWithSignature("B", &p2pmocks.P2PMessageMock{})
-		sr.AddMessageWithSignature("C", &p2pmocks.P2PMessageMock{})
+		headerHash := sr.GetData()
+		sr.AddMessageWithSignature(spos.SignatureMessageKey(headerHash, "B"), &p2pmocks.P2PMessageMock{})
+		sr.AddMessageWithSignature(spos.SignatureMessageKey(headerHash, "C"), &p2pmocks.P2PMessageMock{})
 
 		invalidSigners := []string{"B", "C"}
 

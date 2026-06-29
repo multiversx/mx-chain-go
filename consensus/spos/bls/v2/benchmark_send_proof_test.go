@@ -121,7 +121,7 @@ func benchmarkSendProof(b *testing.B, numberOfKeys int) {
 	// Initialize consensus state with real keys
 	consensusState := initializers.InitConsensusStateWithArgsVerifySignature(keysHandlerMock, keys)
 	dataToBeSigned := []byte("block_header_hash_for_benchmark")
-	consensusState.Data = dataToBeSigned
+	consensusState.SetData(dataToBeSigned)
 
 	ch := make(chan bool, 1)
 
