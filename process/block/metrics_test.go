@@ -121,8 +121,14 @@ func TestMetrics_IndexRoundInfoShouldKeepSyntheticRoundTimestampsSplitByUnitsAft
 			return []uint64{11}, nil
 		},
 	}
+	roundHandler := &testscommon.RoundHandlerMock{
+		GetTimeStampForRoundCalled: func(round uint64) uint64 {
+			require.Equal(t, uint64(9), round)
+			return 1774864082400
+		},
+	}
 
-	indexRoundInfo(outportHandler, nodesCoordinator, 1, header, lastHeader, []uint64{22}, enableEpochsHandler)
+	indexRoundInfo(outportHandler, nodesCoordinator, 1, header, lastHeader, []uint64{22}, enableEpochsHandler, roundHandler)
 
 	require.NotNil(t, savedRoundsInfo)
 	require.Len(t, savedRoundsInfo.RoundsInfo, 2)
@@ -133,7 +139,7 @@ func TestMetrics_IndexRoundInfoShouldKeepSyntheticRoundTimestampsSplitByUnitsAft
 
 	syntheticRoundInfo := savedRoundsInfo.RoundsInfo[1]
 	assert.Equal(t, uint64(9), syntheticRoundInfo.Round)
-	assert.Equal(t, uint64(1774864083), syntheticRoundInfo.Timestamp)
-	assert.Equal(t, uint64(1774864083000), syntheticRoundInfo.TimestampMs)
+	assert.Equal(t, uint64(1774864082), syntheticRoundInfo.Timestamp)
+	assert.Equal(t, uint64(1774864082400), syntheticRoundInfo.TimestampMs)
 	assert.Equal(t, []uint64{11}, syntheticRoundInfo.SignersIndexes)
 }

@@ -42,6 +42,7 @@ type economics struct {
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
 	store                 dataRetriever.StorageService
+	headers               dataRetriever.HeadersPool
 	shardCoordinator      sharding.Coordinator
 	rewardsHandler        process.RewardsHandler
 	roundTime             process.RoundTimeDurationHandler
@@ -60,6 +61,7 @@ type ArgsNewEpochEconomics struct {
 	Marshalizer           marshal.Marshalizer
 	Hasher                hashing.Hasher
 	Store                 dataRetriever.StorageService
+	Headers               dataRetriever.HeadersPool
 	ShardCoordinator      sharding.Coordinator
 	RewardsHandler        process.RewardsHandler
 	RoundTime             process.RoundTimeDurationHandler
@@ -83,6 +85,9 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	}
 	if check.IfNil(args.Store) {
 		return nil, epochStart.ErrNilStorage
+	}
+	if check.IfNil(args.Headers) {
+		return nil, epochStart.ErrNilHeadersDataPool
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, epochStart.ErrNilShardCoordinator
@@ -110,6 +115,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		marshalizer:           args.Marshalizer,
 		hasher:                args.Hasher,
 		store:                 args.Store,
+		headers:               args.Headers,
 		shardCoordinator:      args.ShardCoordinator,
 		rewardsHandler:        args.RewardsHandler,
 		roundTime:             args.RoundTime,
@@ -655,7 +661,7 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 		return mapShardIdNonce, previousEpochStartMeta, nil
 	}
 
-	prevEpochMetaNonce, err := getPrevEpochMetaStartNonceForEconomics(previousEpochStartMeta)
+	prevEpochMetaNonce, err := e.getPrevEpochMetaStartNonceForEconomics(previousEpochStartMeta)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -667,17 +673,30 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 	return mapShardIdNonce, previousEpochStartMeta, nil
 }
 
-func getPrevEpochMetaStartNonceForEconomics(previousEpochStartMeta data.MetaHeaderHandler) (uint64, error) {
+func (e *economics) getPrevEpochMetaStartNonceForEconomics(previousEpochStartMeta data.MetaHeaderHandler) (uint64, error) {
 	if !previousEpochStartMeta.IsHeaderV3() {
 		return previousEpochStartMeta.GetNonce(), nil
 	}
-	// todo: extract the epoch change proposal execution result here
-	lastNotarizedResult, err := common.GetLastBaseExecutionResultHandler(previousEpochStartMeta)
-	if err != nil {
-		return 0, err
+
+	for _, execResult := range previousEpochStartMeta.GetExecutionResultsHandlers() {
+		hdr, err := process.GetMetaHeader(
+			execResult.GetHeaderHash(),
+			e.headers,
+			e.marshalizer,
+			e.store,
+		)
+		if err != nil {
+			return 0, err
+		}
+
+		if hdr.IsEpochChangeProposed() {
+			return hdr.GetNonce(), nil
+		}
 	}
 
-	return lastNotarizedResult.GetHeaderNonce(), nil
+	log.Debug("getPrevEpochMetaStartNonceForEconomics could not find epoch change proposed header")
+
+	return 0, epochStart.ErrMissingHeader
 }
 
 func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev data.MetaHeaderHandler) uint64 {

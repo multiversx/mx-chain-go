@@ -658,7 +658,7 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErr(t *testing.T) {
 
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
-		PubKeysBitmap: []byte("A"),
+		PubKeysBitmap: []byte{0x03},
 		RandSeed:      []byte("randSeed"),
 		PrevRandSeed:  []byte("prevRandSeed"),
 	}
@@ -689,7 +689,7 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
-		PubKeysBitmap: []byte("1"),
+		PubKeysBitmap: []byte{0x01},
 		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
@@ -728,7 +728,7 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThre
 
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.MetaBlock{
-		PubKeysBitmap: []byte("C"),
+		PubKeysBitmap: []byte{0x03},
 		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
@@ -835,9 +835,10 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 		require.Nil(t, err)
 		require.False(t, wasCalled)
 
+		var bitmap byte = 1<<numValidatorsConsensusBeforeActivation - 1 // only the first 7 validators signed
 		// check current block proof
 		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{
-			PubKeysBitmap:       []byte{0xff}, // bitmap should still have the old format
+			PubKeysBitmap:       []byte{bitmap}, // bitmap should still have the old format
 			AggregatedSignature: []byte("aggregated signature"),
 			HeaderHash:          []byte("hash"),
 			HeaderEpoch:         1,

@@ -11,6 +11,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
@@ -1183,4 +1184,445 @@ func TestTrackableDataTrie_SetAndGetDataTrie(t *testing.T) {
 	newTrie := &trieMock.TrieStub{}
 	tdt.SetDataTrie(newTrie)
 	assert.Equal(t, newTrie, tdt.DataTrie())
+}
+
+func TestTrackableDataTrie_SaveDirtyDataShouldRollbackPreviousUpdateWhenLaterGetFails(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected get error")
+	firstKey := []byte("key1")
+	secondKey := []byte("key2")
+	oldValue := []byte("old1")
+	newValue := []byte("new1")
+	identifier := []byte("identifier")
+
+	getCalls := 0
+	updateCalls := 0
+	rollbackCalled := false
+
+	trie := &trieMock.TrieStub{
+		GetCalled: func(key []byte) ([]byte, uint32, error) {
+			getCalls++
+			// second loop iteration always fail
+			if getCalls == 2 {
+				return nil, 0, expectedErr
+			}
+			if bytes.Equal(key, firstKey) {
+				return append(oldValue, append(firstKey, identifier...)...), 0, nil
+			}
+			if bytes.Equal(key, secondKey) {
+				return append(oldValue, append(secondKey, identifier...)...), 0, nil
+			}
+			return nil, 0, nil
+		},
+		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+			updateCalls++
+			// first time is the update
+			if updateCalls == 1 {
+				if bytes.Equal(key, firstKey) {
+					assert.Equal(t, append(newValue, append(firstKey, identifier...)...), value)
+					assert.Equal(t, core.NotSpecified, version)
+					return nil
+				}
+				if bytes.Equal(key, secondKey) {
+					assert.Equal(t, append(newValue, append(secondKey, identifier...)...), value)
+					assert.Equal(t, core.NotSpecified, version)
+					return nil
+				}
+				assert.Fail(t, "this should not happen")
+			}
+
+			// second time is the rollback
+			if updateCalls == 2 {
+				rollbackCalled = true
+
+				if bytes.Equal(key, firstKey) {
+					assert.Equal(t, append(oldValue, append(firstKey, identifier...)...), value)
+					assert.Equal(t, core.NotSpecified, version)
+					return nil
+				}
+				if bytes.Equal(key, secondKey) {
+					assert.Equal(t, append(oldValue, append(secondKey, identifier...)...), value)
+					assert.Equal(t, core.NotSpecified, version)
+					return nil
+				}
+				assert.Fail(t, "this should not happen")
+			}
+
+			return nil
+		},
+	}
+
+	tdt, _ := trackableDataTrie.NewTrackableDataTrie(
+		identifier,
+		&hashingMocks.HasherMock{},
+		&marshallerMock.MarshalizerMock{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&stateMock.StateAccessesCollectorStub{},
+	)
+	tdt.SetDataTrie(trie)
+
+	_ = tdt.SaveKeyValue(firstKey, newValue)
+	_ = tdt.SaveKeyValue(secondKey, newValue)
+
+	_, _, err := tdt.SaveDirtyData(trie)
+	require.ErrorIs(t, err, expectedErr)
+	assert.Equal(t, 2, getCalls)
+	assert.True(t, rollbackCalled)
+}
+
+func TestTrackableDataTrie_SaveDirtyDataShouldRollbackPreviousUpdateWhenLaterUpdateFails(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected update error")
+	firstKey := []byte("key1")
+	secondKey := []byte("key2")
+	oldValue := []byte("old1")
+	newValue := []byte("new1")
+	identifier := []byte("identifier")
+
+	updateCalls := 0
+	rollbackCalled := false
+
+	trie := &trieMock.TrieStub{
+		GetCalled: func(key []byte) ([]byte, uint32, error) {
+			if bytes.Equal(key, firstKey) {
+				return append(oldValue, append(firstKey, identifier...)...), 0, nil
+			}
+			if bytes.Equal(key, secondKey) {
+				return append(oldValue, append(secondKey, identifier...)...), 0, nil
+			}
+			return nil, 0, nil
+		},
+		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
+			updateCalls++
+			switch updateCalls {
+			case 1:
+				if bytes.Equal(key, firstKey) {
+					assert.Equal(t, append(newValue, append(firstKey, identifier...)...), value)
+					assert.Equal(t, core.NotSpecified, version)
+					return nil
+				}
+				if bytes.Equal(key, secondKey) {
+					assert.Equal(t, append(newValue, append(secondKey, identifier...)...), value)
+					assert.Equal(t, core.NotSpecified, version)
+					return nil
+				}
+				assert.Fail(t, "this should not happen")
+				return nil
+			case 2:
+				return expectedErr
+			case 3:
+				rollbackCalled = true
+				if bytes.Equal(key, firstKey) {
+					assert.Equal(t, append(oldValue, append(firstKey, identifier...)...), value)
+					assert.Equal(t, core.NotSpecified, version)
+					return nil
+				}
+				if bytes.Equal(key, secondKey) {
+					assert.Equal(t, append(oldValue, append(secondKey, identifier...)...), value)
+					assert.Equal(t, core.NotSpecified, version)
+					return nil
+				}
+				assert.Fail(t, "this should not happen")
+				return nil
+			default:
+				require.Fail(t, "unexpected update call")
+				return nil
+			}
+		},
+	}
+
+	tdt, _ := trackableDataTrie.NewTrackableDataTrie(
+		identifier,
+		&hashingMocks.HasherMock{},
+		&marshallerMock.MarshalizerMock{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&stateMock.StateAccessesCollectorStub{},
+	)
+	tdt.SetDataTrie(trie)
+
+	_ = tdt.SaveKeyValue(firstKey, newValue)
+	_ = tdt.SaveKeyValue(secondKey, newValue)
+
+	_, _, err := tdt.SaveDirtyData(trie)
+	require.ErrorIs(t, err, expectedErr)
+	assert.True(t, rollbackCalled)
+}
+
+func TestTrackableDataTrie_SaveDirtyDataShouldRollbackMigrationDeleteWhenMetadataBuildFails(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected marshal error")
+	key := []byte("key")
+	oldValue := []byte("old")
+	identifier := []byte("identifier")
+	hasher := &hashingMocks.HasherMock{}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.AutoBalanceDataTriesFlag
+		},
+	}
+
+	deleteCalled := false
+	rollbackCalled := false
+
+	trie := &trieMock.TrieStub{
+		GetCalled: func(getKey []byte) ([]byte, uint32, error) {
+			if bytes.Equal(getKey, hasher.Compute(string(key))) {
+				return nil, 0, nil
+			}
+			assert.Equal(t, key, getKey)
+			return append(oldValue, append(key, identifier...)...), 0, nil
+		},
+		DeleteCalled: func(deleteKey []byte) error {
+			assert.Equal(t, key, deleteKey)
+			deleteCalled = true
+			return nil
+		},
+		UpdateWithVersionCalled: func(updateKey, value []byte, version core.TrieNodeVersion) error {
+			assert.Equal(t, key, updateKey)
+			assert.Equal(t, append(oldValue, append(key, identifier...)...), value)
+			assert.Equal(t, core.NotSpecified, version)
+			rollbackCalled = true
+			return nil
+		},
+	}
+
+	tdt, _ := trackableDataTrie.NewTrackableDataTrie(
+		identifier,
+		hasher,
+		&marshallerMock.MarshalizerStub{
+			MarshalCalled: func(_ interface{}) ([]byte, error) {
+				return nil, expectedErr
+			},
+		},
+		enableEpochsHandler,
+		&stateMock.StateAccessesCollectorStub{},
+	)
+	tdt.SetDataTrie(trie)
+
+	_ = tdt.SaveKeyValue(key, []byte("new"))
+
+	_, _, err := tdt.SaveDirtyData(trie)
+	require.ErrorIs(t, err, expectedErr)
+	assert.True(t, deleteCalled)
+	assert.True(t, rollbackCalled)
+}
+
+func TestTrackableDataTrie_SaveDirtyDataShouldRollbackMigrationDeleteAndNewKeyWhenPostUpdateFails(t *testing.T) {
+	t.Parallel()
+
+	key := []byte("key")
+	oldValue := []byte("old")
+	newValue := []byte("new")
+	identifier := []byte("identifier")
+	hasher := &hashingMocks.HasherMock{}
+	hashedKey := hasher.Compute(string(key))
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.AutoBalanceDataTriesFlag
+		},
+	}
+
+	updateCalls := 0
+	rollbackHashedKeyCalled := false
+	rollbackOldKeyCalled := false
+
+	trie := &trieMock.TrieStub{
+		GetCalled: func(getKey []byte) ([]byte, uint32, error) {
+			if bytes.Equal(getKey, hashedKey) {
+				return nil, 0, nil
+			}
+			assert.Equal(t, key, getKey)
+			return append(oldValue, append(key, identifier...)...), 0, nil
+		},
+		DeleteCalled: func(deleteKey []byte) error {
+			assert.Equal(t, key, deleteKey)
+			return nil
+		},
+		UpdateWithVersionCalled: func(updateKey, value []byte, version core.TrieNodeVersion) error {
+			updateCalls++
+			switch updateCalls {
+			case 1:
+				assert.Equal(t, hashedKey, updateKey)
+				assert.Equal(t, core.AutoBalanceEnabled, version)
+				return nil
+			case 2:
+				assert.Equal(t, hashedKey, updateKey)
+				assert.Nil(t, value)
+				rollbackHashedKeyCalled = true
+				return nil
+			case 3:
+				assert.Equal(t, key, updateKey)
+				assert.Equal(t, append(oldValue, append(key, identifier...)...), value)
+				assert.Equal(t, core.NotSpecified, version)
+				rollbackOldKeyCalled = true
+				return nil
+			default:
+				require.Fail(t, "unexpected update call")
+				return nil
+			}
+		},
+	}
+
+	tdt, _ := trackableDataTrie.NewTrackableDataTrie(
+		identifier,
+		hasher,
+		&marshallerMock.MarshalizerMock{},
+		enableEpochsHandler,
+		&stateMock.StateAccessesCollectorStub{},
+	)
+	tdt.SetDataTrie(trie)
+
+	_ = tdt.SaveKeyValue(key, newValue)
+
+	// Force the post-update index check to fail after old-key delete and new-key update.
+	tdt.SetDirtyData(10, string(key), newValue, core.AutoBalanceEnabled)
+
+	_, _, err := tdt.SaveDirtyData(trie)
+	require.ErrorContains(t, err, "index out of range")
+	assert.True(t, rollbackHashedKeyCalled)
+	assert.True(t, rollbackOldKeyCalled)
+}
+
+func TestTrackableDataTrie_SaveDirtyDataShouldRollbackDeleteWhenMetadataDecodeFails(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected unmarshal error")
+	key := []byte("key")
+	hasher := &hashingMocks.HasherMock{}
+	hashedKey := hasher.Compute(string(key))
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.AutoBalanceDataTriesFlag
+		},
+	}
+
+	serializedOldValue := []byte("invalid metadata")
+	deleteCalled := false
+	rollbackCalled := false
+
+	trie := &trieMock.TrieStub{
+		GetCalled: func(getKey []byte) ([]byte, uint32, error) {
+			assert.Equal(t, hashedKey, getKey)
+			return serializedOldValue, 0, nil
+		},
+		DeleteCalled: func(deleteKey []byte) error {
+			assert.Equal(t, hashedKey, deleteKey)
+			deleteCalled = true
+			return nil
+		},
+		UpdateWithVersionCalled: func(updateKey, value []byte, version core.TrieNodeVersion) error {
+			assert.Equal(t, hashedKey, updateKey)
+			assert.Equal(t, serializedOldValue, value)
+			assert.Equal(t, core.AutoBalanceEnabled, version)
+			rollbackCalled = true
+			return nil
+		},
+	}
+
+	tdt, _ := trackableDataTrie.NewTrackableDataTrie(
+		[]byte("identifier"),
+		hasher,
+		&marshallerMock.MarshalizerStub{
+			UnmarshalCalled: func(_ interface{}, _ []byte) error {
+				return expectedErr
+			},
+		},
+		enableEpochsHandler,
+		&stateMock.StateAccessesCollectorStub{},
+	)
+	tdt.SetDataTrie(trie)
+
+	_ = tdt.SaveKeyValue(key, nil)
+
+	_, _, err := tdt.SaveDirtyData(trie)
+	require.ErrorIs(t, err, expectedErr)
+	assert.True(t, deleteCalled)
+	assert.True(t, rollbackCalled)
+}
+
+func TestTrackableDataTrie_SaveDirtyDataShouldRollbackDeleteOfANonMigratedKey(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected delete error")
+	identifier := []byte("identifier")
+	hasher := &hashingMocks.HasherMock{}
+
+	firstKey := []byte("key1")
+	firstOldTrieValue := append([]byte("old value 1"), append(firstKey, identifier...)...)
+
+	secondKey := []byte("key2")
+	secondOldTrieValue := append([]byte("old value 2"), append(secondKey, identifier...)...)
+
+	originalTrieValues := map[string][]byte{
+		string(firstKey):  append([]byte(nil), firstOldTrieValue...),
+		string(secondKey): append([]byte(nil), secondOldTrieValue...),
+	}
+
+	trieValues := map[string][]byte{
+		string(firstKey):  append([]byte(nil), firstOldTrieValue...),
+		string(secondKey): append([]byte(nil), secondOldTrieValue...),
+	}
+
+	successfulDeletes := make(map[string]struct{})
+
+	trie := &trieMock.TrieStub{
+		GetCalled: func(key []byte) ([]byte, uint32, error) {
+			// With AutoBalance enabled, retrieveValueFromTrie first checks the
+			// hashed key. These entries are intentionally old-format only.
+			if bytes.Equal(key, hasher.Compute(string(firstKey))) ||
+				bytes.Equal(key, hasher.Compute(string(secondKey))) {
+				return nil, 0, nil
+			}
+
+			return trieValues[string(key)], 0, nil
+		},
+		DeleteCalled: func(key []byte) error {
+			if len(successfulDeletes) == 1 {
+				return expectedErr
+			}
+
+			successfulDeletes[string(key)] = struct{}{}
+			delete(trieValues, string(key))
+			return nil
+		},
+		UpdateWithVersionCalled: func(key, value []byte, _ core.TrieNodeVersion) error {
+			if len(value) == 0 {
+				delete(trieValues, string(key))
+				return nil
+			}
+
+			trieValues[string(key)] = append([]byte(nil), value...)
+			return nil
+		},
+	}
+
+	tdt, err := trackableDataTrie.NewTrackableDataTrie(
+		identifier,
+		hasher,
+		&marshallerMock.MarshalizerMock{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
+			},
+		},
+		&stateMock.StateAccessesCollectorStub{},
+	)
+	require.NoError(t, err)
+
+	tdt.SetDataTrie(trie)
+
+	require.NoError(t, tdt.SaveKeyValue(firstKey, nil))
+	require.NoError(t, tdt.SaveKeyValue(secondKey, nil))
+
+	_, _, err = tdt.SaveDirtyData(trie)
+	require.ErrorIs(t, err, expectedErr)
+	require.Len(t, successfulDeletes, 1)
+
+	for key, expectedValue := range originalTrieValues {
+		assert.Equal(t, expectedValue, trieValues[key])
+	}
 }

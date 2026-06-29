@@ -618,6 +618,9 @@ var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
 // ErrNilBlockTracker signals that a nil block tracker was provided
 var ErrNilBlockTracker = errors.New("nil block tracker")
 
+// ErrNilMiniBlockTracker signals that a nil miniblock tracker was provided
+var ErrNilMiniBlockTracker = errors.New("nil miniblock tracker")
+
 // ErrHeaderIsBlackListed signals that the header provided is blacklisted
 var ErrHeaderIsBlackListed = errors.New("header is black listed")
 
@@ -764,6 +767,9 @@ var ErrShardInfoOnEpochStartBlock = errors.New("epoch-start block should not con
 
 // ErrMiniBlockNotExecuted signals that a mini block was not executed locally
 var ErrMiniBlockNotExecuted = errors.New("mini block not executed")
+
+// ErrProcessedMiniBlockNotInLeadingPrefix signals that a processed mini block was found outside the leading scheduled-executed prefix
+var ErrProcessedMiniBlockNotInLeadingPrefix = errors.New("processed mini block found outside the leading scheduled-executed prefix")
 
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
@@ -1110,6 +1116,9 @@ var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
 // ErrScheduledRootHashDoesNotMatch signals that scheduled root hash does not match
 var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not match")
 
+// ErrScheduledGasAndFeesDoesNotMatch signals that scheduled gas and fees do not match
+var ErrScheduledGasAndFeesDoesNotMatch = errors.New("scheduled gas and fees do not match")
+
 // ErrNilAdditionalData signals that additional data is nil
 var ErrNilAdditionalData = errors.New("nil additional data")
 
@@ -1170,6 +1179,24 @@ var ErrIndexDoesNotMatchWithPartialExecutedMiniBlock = errors.New("index does no
 // ErrIndexDoesNotMatchWithFullyExecutedMiniBlock signals that the given index does not match with a fully executed mini block
 var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not match with a fully executed mini block")
 
+// ErrIndexOfFirstTxProcessedMismatch signals that the index of first tx processed from the header does not match the local processed mini blocks tracker
+var ErrIndexOfFirstTxProcessedMismatch = errors.New("index of first tx processed does not match the local processed mini blocks tracker")
+
+// ErrInvalidMiniBlockProcessingType signals that an invalid miniblock processing type has been provided
+var ErrInvalidMiniBlockProcessingType = errors.New("invalid miniblock processing type")
+
+// ErrInvalidMiniBlockProcessingTypeForType signals an invalid miniblock processing type for the given miniblock type
+var ErrInvalidMiniBlockProcessingTypeForType = errors.New("invalid miniblock processing type for miniblock type")
+
+// ErrProcessingTypeBodyHeaderMismatch signals a processing type mismatch between the miniblock body and its header
+var ErrProcessingTypeBodyHeaderMismatch = errors.New("processing type mismatch between miniblock body and miniblock header")
+
+// ErrInvalidConstructionState signals an invalid construction state for the given processing type and shard role
+var ErrInvalidConstructionState = errors.New("invalid construction state for the given processing type and shard role")
+
+// ErrInvalidMiniBlockShardRole signals an invalid miniblock shard role for the given processing type
+var ErrInvalidMiniBlockShardRole = errors.New("invalid miniblock shard role for the given processing type")
+
 // ErrNilProcessedMiniBlocksTracker signals that a nil processed mini blocks tracker has been provided
 var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tracker")
 
@@ -1184,6 +1211,9 @@ var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handl
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilWatchdog signals that a nil watchdog has been provided
+var ErrNilWatchdog = errors.New("nil watchdog")
 
 // ErrNilEpochChangeGracePeriodHandler signals that a nil epoch change grace period handler has been provided
 var ErrNilEpochChangeGracePeriodHandler = errors.New("nil epoch change grace period handler")
@@ -1365,6 +1395,12 @@ var ErrDuplicatedHashInBlock = errors.New("duplicated hash in block")
 // ErrDoubleTransactionsFound signals that double transactions found
 var ErrDoubleTransactionsFound = errors.New("double transactions found")
 
+// ErrDuplicatedTransactionInBlockBody signals that a transaction hash appears more than once in the block body
+var ErrDuplicatedTransactionInBlockBody = errors.New("duplicated transaction in block body")
+
+// ErrPeerAlreadyAuthenticated signals that a peer authentication message was received for a peer that already has an existing mapping
+var ErrPeerAlreadyAuthenticated = errors.New("peer already authenticated")
+
 // ErrBadSelectionGasBandwidthIncreasePercent signals a bad txcache config
 var ErrBadSelectionGasBandwidthIncreasePercent = errors.New("bad selection gas bandwidth increase percent")
 
@@ -1464,6 +1500,9 @@ var ErrNilShardInfoCreator = errors.New("nil shard info creator")
 // ErrEpochStartProposeBlockHasMiniBlocks signals that epoch start propose block has mini blocks
 var ErrEpochStartProposeBlockHasMiniBlocks = errors.New("epoch start propose block has mini blocks")
 
+// ErrEpochChangeProposedOutsideTriggerWindow signals that an epoch change was proposed outside the trigger window
+var ErrEpochChangeProposedOutsideTriggerWindow = errors.New("epoch change proposed outside trigger window")
+
 // ErrNonCanonicalExecutionResultIncluded signals that a non-canonical execution result has been included
 var ErrNonCanonicalExecutionResultIncluded = errors.New("non-canonical execution result included")
 
@@ -1508,3 +1547,6 @@ var ErrNilClosingNodeStartedFlag = errors.New("closing node started flag is nil"
 
 // ErrInvalidRound signals that an invalid round has been provided
 var ErrInvalidRound = errors.New("invalid round")
+
+// ErrOutgoingTxsDisabled signals that the outgoing transactions are disabled
+var ErrOutgoingTxsDisabled = errors.New("outgoing transactions are disabled")

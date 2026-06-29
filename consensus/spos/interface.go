@@ -2,6 +2,7 @@ package spos
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -51,6 +52,7 @@ type ConsensusCoreHandler interface {
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache
+	MessagesHandler() ConsensusService
 	AOTSelector() process.AOTTransactionSelector
 	IsInterfaceNil() bool
 }
@@ -231,6 +233,9 @@ type ConsensusStateHandler interface {
 	SetHeader(header data.HeaderHandler)
 	GetWaitingAllSignaturesTimeOut() bool
 	SetWaitingAllSignaturesTimeOut(bool)
+	SignaturesWaitGroup() *sync.WaitGroup
+	SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc)
+	SignaturesCtxCancel()
 	RoundConsensusHandler
 	RoundStatusHandler
 	RoundThresholdHandler

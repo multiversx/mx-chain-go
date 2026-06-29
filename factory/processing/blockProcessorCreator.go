@@ -11,17 +11,13 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
-	"github.com/multiversx/mx-chain-go/epochStart/metachain/disabled"
-
-	"github.com/multiversx/mx-chain-go/process/estimator"
-	"github.com/multiversx/mx-chain-go/process/missingData"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	metachainEpochStart "github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain/disabled"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
@@ -37,9 +33,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -61,6 +59,7 @@ type blockProcessorAndVmFactories struct {
 	vmFactoryForProcessing process.VirtualMachinesContainerFactory
 	epochSystemSCProcessor process.EpochStartSystemSCProcessor
 	aotSelector            process.AOTTransactionSelector
+	transactionProcessor   process.TransactionProcessor
 }
 
 func (pcf *processComponentsFactory) newBlockProcessor(
@@ -396,7 +395,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	// TODO: evaluate disabling this entirely (for old flows) - the check is not triggered if async enabled but there are still some checks in the old flow
 	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
@@ -427,6 +425,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
 		BlockSizeComputation:              blockSizeComputationProposalHandler,
+		BlockTracker:                      blockTracker,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -638,6 +637,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		AccountsProposal:                   pcf.state.AccountsAdapterProposal(),
 		ForkDetector:                       forkDetector,
 		NodesCoordinator:                   pcf.nodesCoordinator,
+		MiniBlockTracker:                   pcf.miniBlockTracker,
 		FeeHandler:                         txFeeHandler,
 		RequestHandler:                     requestHandler,
 		BlockChainHook:                     vmFactory.BlockChainHookImpl(),
@@ -689,6 +689,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: factoryDisabled.NewDisabledEpochStartSystemSC(),
 		aotSelector:            aotSelector,
+		transactionProcessor:   transactionProcessor,
 	}
 
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
@@ -885,6 +886,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
 		BlockSizeComputation:              blockSizeComputationProposalHandler,
+		BlockTracker:                      blockTracker,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -1043,6 +1045,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Marshalizer:           pcf.coreData.InternalMarshalizer(),
 		Hasher:                pcf.coreData.Hasher(),
 		Store:                 pcf.data.StorageService(),
+		Headers:               pcf.data.Datapool().Headers(),
 		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
 		RewardsHandler:        pcf.coreData.EconomicsData(),
 		RoundTime:             pcf.coreData.RoundHandler(),
@@ -1228,6 +1231,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		HeaderValidator:                    headerValidator,
 		BootStorer:                         bootStorer,
 		BlockTracker:                       blockTracker,
+		MiniBlockTracker:                   pcf.miniBlockTracker,
 		FeeHandler:                         txFeeHandler,
 		BlockSizeThrottler:                 blockSizeThrottler,
 		HistoryRepository:                  pcf.historyRepo,
@@ -1379,6 +1383,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: epochStartSystemSCProcessor,
 		aotSelector:            aotSelector,
+		transactionProcessor:   transactionProcessor,
 	}
 
 	return blockProcessorComponents, nil

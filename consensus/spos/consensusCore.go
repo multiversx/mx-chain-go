@@ -46,6 +46,7 @@ type ConsensusCore struct {
 	equivalentProofsPool          consensus.EquivalentProofsPool
 	epochNotifier                 process.EpochNotifier
 	invalidSignersCache           InvalidSignersCache
+	messagesHandler               ConsensusService
 	aotSelector                   process.AOTTransactionSelector
 }
 
@@ -79,6 +80,7 @@ type ConsensusCoreArgs struct {
 	EquivalentProofsPool          consensus.EquivalentProofsPool
 	EpochNotifier                 process.EpochNotifier
 	InvalidSignersCache           InvalidSignersCache
+	MessagesHandler               ConsensusService
 	AOTSelector                   process.AOTTransactionSelector
 }
 
@@ -115,6 +117,7 @@ func NewConsensusCore(
 		equivalentProofsPool:          args.EquivalentProofsPool,
 		epochNotifier:                 args.EpochNotifier,
 		invalidSignersCache:           args.InvalidSignersCache,
+		messagesHandler:               args.MessagesHandler,
 		aotSelector:                   args.AOTSelector,
 	}
 
@@ -266,6 +269,11 @@ func (cc *ConsensusCore) InvalidSignersCache() InvalidSignersCache {
 	return cc.invalidSignersCache
 }
 
+// MessagesHandler returns the consensus messages handler component
+func (cc *ConsensusCore) MessagesHandler() ConsensusService {
+	return cc.messagesHandler
+}
+
 // SetBlockchain sets blockchain handler
 func (cc *ConsensusCore) SetBlockchain(blockChain data.ChainHandler) {
 	cc.blockChain = blockChain
@@ -404,6 +412,11 @@ func (cc *ConsensusCore) SetEpochNotifier(epochNotifier process.EpochNotifier) {
 // SetInvalidSignersCache sets the invalid signers cache
 func (cc *ConsensusCore) SetInvalidSignersCache(cache InvalidSignersCache) {
 	cc.invalidSignersCache = cache
+}
+
+// SetMessagesHandler sets consensus messages handler
+func (cc *ConsensusCore) SetMessagesHandler(messagesHandler ConsensusService) {
+	cc.messagesHandler = messagesHandler
 }
 
 // AOTSelector returns the AOT transaction selector

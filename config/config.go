@@ -49,7 +49,6 @@ type ProofsPoolConfig struct {
 }
 
 // ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read-only thereafter.
-// TODO add also max estimated block gas capacity
 type ExecutionResultInclusionEstimatorConfig struct {
 	SafetyMargin       uint64
 	MaxResultsPerBlock uint64
@@ -65,6 +64,9 @@ type DBConfig struct {
 	UseTmpAsFilePath    bool
 	ShardIDProviderType string
 	NumShards           int32
+	// BloomFilterBitsPerKey == 0, the Bloom filter is disabled.
+	// Otherwise, it specifies the number of bits per key used by the Bloom filter.
+	BloomFilterBitsPerKey int
 }
 
 // StorageConfig will map the storage unit configuration
@@ -523,8 +525,10 @@ type TxAccumulatorConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Enabled        bool
-	ConfigsByRound []AntifloodConfigByRound
+	Enabled                              bool
+	MaxAllowedTrieNodeChunks             uint32
+	TrieNodeChunksInactivityTimeoutInSec int64
+	ConfigsByRound                       []AntifloodConfigByRound
 }
 
 // AntifloodConfigByRound will hold antiflood parameters by round

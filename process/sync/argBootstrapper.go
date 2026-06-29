@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -68,4 +69,5 @@ type ArgMetaBootstrapper struct {
 	EpochBootstrapper           process.EpochBootstrapper
 	ValidatorStatisticsDBSyncer process.AccountsDBSyncer
 	ValidatorAccountsDB         state.AccountsAdapter
+	Watchdog                    core.WatchdogTimer
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -507,7 +508,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 
 		signingHandler := &consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				return []byte("SIG"), nil
 			},
 		}
@@ -597,7 +598,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				return make([]byte, 0), expErr
 			},
 		})
@@ -652,7 +653,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				return []byte("SIG"), nil
 			},
 		})
@@ -720,7 +721,81 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+				return []byte("SIG"), nil
+			},
+		})
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
+
+		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
+			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+				return nil
+			},
+		})
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
+			&testscommon.KeysHandlerStub{
+				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+					return true
+				},
+			},
+		)
+
+		ch := make(chan bool, 1)
+
+		sr, _ := spos.NewSubround(
+			bls.SrBlock,
+			bls.SrSignature,
+			bls.SrEndRound,
+			roundTimeDuration,
+			0.7,
+			0.85,
+			"(SIGNATURE)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+		sr.SetHeader(&block.Header{})
+
+		signatureSentForPks := make(map[string]struct{})
+		varCalled := false
+		srSignature, _ := v2.NewSubroundSignature(
+			sr,
+			&statusHandler.AppStatusHandlerStub{},
+			&testscommon.SentSignatureTrackerStub{
+				SignatureSentCalled: func(pkBytes []byte) {
+					signatureSentForPks[string(pkBytes)] = struct{}{}
+					varCalled = true
+				},
+			},
+			&consensusMocks.SposWorkerMock{},
+			&dataRetrieverMock.ThrottlerStub{},
+		)
+
+		_ = srSignature.SendSignatureForManagedKey(context.Background(), 1, "a")
+
+		assert.True(t, varCalled)
+	})
+
+	t.Run("if sig share already available, should not create it", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+				assert.Fail(t, "should not have been called")
+				return []byte(""), nil
+			},
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return []byte("SIG"), nil
 			},
 		})
@@ -800,7 +875,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		container.SetEnableEpochsHandler(enableEpochsHandler)
 
 		signingHandler := &consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				return []byte("SIG"), nil
 			},
 		}
@@ -874,6 +949,169 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 
 		expectedBroadcastMap := map[string]int{"A": 1, "B": 1, "C": 1, "D": 1, "E": 1, "F": 1, "G": 1, "H": 1, "I": 1}
 		assert.Equal(t, expectedBroadcastMap, signaturesBroadcast)
+	})
+
+	t.Run("should work until context is cancelled", func(t *testing.T) {
+		t.Parallel()
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		defer cancel()
+
+		container := consensusMocks.InitConsensusCore()
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
+
+		numCalls := int32(0)
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				return nil, expectedErr
+			},
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+				atomic.AddInt32(&numCalls, 1)
+				if atomic.LoadInt32(&numCalls) > 3 {
+					cancel()
+					return nil, expectedErr
+				}
+
+				return []byte("SIG"), nil
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
+			&testscommon.KeysHandlerStub{
+				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+					return true
+				},
+			},
+		)
+		ch := make(chan bool, 1)
+
+		sr, _ := spos.NewSubround(
+			bls.SrBlock,
+			bls.SrSignature,
+			bls.SrEndRound,
+			roundTimeDuration,
+			0.7,
+			0.85,
+			"(SIGNATURE)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		signatureSentForPks := make(map[string]struct{})
+		mutex := sync.Mutex{}
+		srSignature, _ := v2.NewSubroundSignature(
+			sr,
+			&statusHandler.AppStatusHandlerStub{},
+			&testscommon.SentSignatureTrackerStub{
+				SignatureSentCalled: func(pkBytes []byte) {
+					mutex.Lock()
+					signatureSentForPks[string(pkBytes)] = struct{}{}
+					mutex.Unlock()
+				},
+			},
+			&consensusMocks.SposWorkerMock{},
+			&dataRetrieverMock.ThrottlerStub{},
+		)
+
+		sr.SetHeader(&block.Header{})
+		signaturesBroadcast := make(map[string]int)
+		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
+			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+				mutex.Lock()
+				signaturesBroadcast[string(message.PubKey)]++
+				mutex.Unlock()
+				return nil
+			},
+		})
+
+		sr.SetSelfPubKey("OTHER")
+
+		r := srSignature.DoSignatureJobForManagedKeys(ctx)
+		assert.False(t, r)
+
+		numFinishedJobs := 0
+		for _, pk := range sr.ConsensusGroup() {
+			isJobDone, err := sr.JobDone(pk, bls.SrSignature)
+			assert.NoError(t, err)
+
+			if isJobDone {
+				numFinishedJobs++
+			}
+		}
+		assert.Equal(t, 3, numFinishedJobs)
+
+		assert.Equal(t, 3, len(signaturesBroadcast))
+	})
+
+	t.Run("context done should return early", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
+
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
+			&testscommon.KeysHandlerStub{
+				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+					return true
+				},
+			},
+		)
+		ch := make(chan bool, 1)
+
+		sr, _ := spos.NewSubround(
+			bls.SrBlock,
+			bls.SrSignature,
+			bls.SrEndRound,
+			roundTimeDuration,
+			0.7,
+			0.85,
+			"(SIGNATURE)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		srSignature, _ := v2.NewSubroundSignature(
+			sr,
+			&statusHandler.AppStatusHandlerStub{},
+			&testscommon.SentSignatureTrackerStub{},
+			&consensusMocks.SposWorkerMock{},
+			&dataRetrieverMock.ThrottlerStub{},
+		)
+
+		sr.SetHeader(&block.Header{})
+		sr.SetSelfPubKey("OTHER")
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		cancel()
+
+		r := srSignature.DoSignatureJobForManagedKeys(ctx)
+		assert.False(t, r)
+
+		for _, pk := range sr.ConsensusGroup() {
+			isJobDone, err := sr.JobDone(pk, bls.SrSignature)
+			assert.NoError(t, err)
+			assert.False(t, isJobDone)
+		}
 	})
 
 	t.Run("should fail", func(t *testing.T) {

@@ -955,6 +955,14 @@ func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock data.MetaH
 	}
 
 	miniBlockHdrs := metablock.GetMiniBlockHeaderHandlers()
+	if metablock.IsHeaderV3() {
+		execMiniBlockHdrs, err := common.GetMiniBlockHeadersFromExecResult(metablock)
+		if err != nil {
+			log.Debug("doWhitelistWithMetaBlockIfNeeded: could not get miniblock headers from execution results", "error", err)
+		}
+		miniBlockHdrs = execMiniBlockHdrs
+	}
+
 	keys := make([][]byte, 0)
 
 	crossMbKeysMeta := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, core.MetachainShardId)
@@ -989,6 +997,14 @@ func (bbt *baseBlockTrack) doWhitelistWithShardHeaderIfNeeded(shardHeader data.H
 	}
 
 	miniBlockHdrs := shardHeader.GetMiniBlockHeaderHandlers()
+	if shardHeader.IsHeaderV3() {
+		execMiniBlockHdrs, err := common.GetMiniBlockHeadersFromExecResult(shardHeader)
+		if err != nil {
+			log.Debug("doWhitelistWithShardHeaderIfNeeded: could not get miniblock headers from execution results", "error", err)
+		}
+		miniBlockHdrs = execMiniBlockHdrs
+	}
+
 	keys := make([][]byte, 0)
 
 	crossMbKeysShard := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, shardHeader.GetShardID())

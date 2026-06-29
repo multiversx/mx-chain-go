@@ -203,7 +203,7 @@ func (sr *subroundBlock) SendBlockBody(body data.BodyHandler, marshalizedBody []
 
 // SendBlockHeader method sends the proposed block header in the subround Block
 func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte) bool {
-	return sr.sendBlockHeader(header, marshalizedHeader)
+	return sr.sendBlockHeader(context.TODO(), header, marshalizedHeader)
 }
 
 // ComputeSubroundProcessingMetric computes processing metric related to the subround Block
@@ -302,8 +302,8 @@ func (sr *subroundEndRound) ReceivedInvalidSignersInfo(cnsDta *consensus.Message
 }
 
 // VerifyInvalidSigners calls the unexported verifyInvalidSigners function
-func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) ([]string, error) {
-	return sr.verifyInvalidSigners(invalidSigners)
+func (sr *subroundEndRound) VerifyInvalidSigners(headerHash []byte, invalidSigners []byte) ([]string, error) {
+	return sr.verifyInvalidSigners(headerHash, invalidSigners)
 }
 
 // GetMinConsensusGroupIndexOfManagedKeys calls the unexported getMinConsensusGroupIndexOfManagedKeys function
@@ -394,4 +394,19 @@ func (sr *subroundEndRound) UpdateNonceDeltaMetrics() {
 // PrepareBlockForExecution prepares the block for execution
 func (sr *subroundBlock) PrepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
 	return sr.prepareBlockForExecution(header, body)
+}
+
+// TriggerCreateSignaturesForManagedKeys -
+func (sr *subroundBlock) TriggerCreateSignaturesForManagedKeys(ctx context.Context, headerHash []byte, headerHandler data.HeaderHandler) {
+	sr.triggerCreateSignaturesForManagedKeys(ctx, headerHash, headerHandler)
+}
+
+// IsRoundWithinBounds -
+func (sr *subroundEndRound) IsRoundWithinBounds(round int64, numRounds uint64) bool {
+	return sr.isRoundWithinBounds(round, numRounds)
+}
+
+// IsTimestampWithinBounds -
+func (sr *subroundEndRound) IsTimestampWithinBounds(timeStampSec int64, numSeconds uint64) bool {
+	return sr.isTimestampWithinBounds(timeStampSec, numSeconds)
 }

@@ -62,6 +62,7 @@ type ProcessComponentsMock struct {
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
 	BlockchainHookField                  process.BlockChainHookWithAccountsAdapter
 	AOTSelectorField                     process.AOTTransactionSelector
+	TransactionProcessorField            process.TransactionProcessor
 }
 
 // Create -
@@ -307,6 +308,11 @@ func (pcm *ProcessComponentsMock) BlockchainHook() process.BlockChainHookWithAcc
 // AOTSelector -
 func (pcm *ProcessComponentsMock) AOTSelector() process.AOTTransactionSelector {
 	return pcm.AOTSelectorField
+}
+
+// TransactionProcessor -
+func (pcm *ProcessComponentsMock) TransactionProcessor() process.TransactionProcessor {
+	return pcm.TransactionProcessorField
 }
 
 // IsInterfaceNil -
