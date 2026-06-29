@@ -429,7 +429,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV2{} // using V2 for simplicity
+				return &block.HeaderV3{
+					PrevHash: []byte("prev hash"),
+					LastExecutionResult: &block.ExecutionResultInfo{
+						ExecutionResult: &block.BaseExecutionResult{},
+					},
+				}
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
 				return []byte("hash")

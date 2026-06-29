@@ -59,6 +59,7 @@ type blockProcessorAndVmFactories struct {
 	vmFactoryForProcessing process.VirtualMachinesContainerFactory
 	epochSystemSCProcessor process.EpochStartSystemSCProcessor
 	aotSelector            process.AOTTransactionSelector
+	transactionProcessor   process.TransactionProcessor
 }
 
 func (pcf *processComponentsFactory) newBlockProcessor(
@@ -688,6 +689,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: factoryDisabled.NewDisabledEpochStartSystemSC(),
 		aotSelector:            aotSelector,
+		transactionProcessor:   transactionProcessor,
 	}
 
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
@@ -1043,6 +1045,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Marshalizer:           pcf.coreData.InternalMarshalizer(),
 		Hasher:                pcf.coreData.Hasher(),
 		Store:                 pcf.data.StorageService(),
+		Headers:               pcf.data.Datapool().Headers(),
 		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
 		RewardsHandler:        pcf.coreData.EconomicsData(),
 		RoundTime:             pcf.coreData.RoundHandler(),
@@ -1380,6 +1383,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: epochStartSystemSCProcessor,
 		aotSelector:            aotSelector,
+		transactionProcessor:   transactionProcessor,
 	}
 
 	return blockProcessorComponents, nil

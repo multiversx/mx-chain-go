@@ -26,7 +26,6 @@ type usedShardHeadersInfo struct {
 
 // CreateNewHeaderProposal creates a new header
 func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	// TODO: the trigger would need to be changed upon commit of a block with the epoch start results
 	epoch := mp.epochStartTrigger.Epoch()
 
 	header := mp.versionedHeaderFactory.Create(epoch, round)
