@@ -200,6 +200,11 @@ func GetGeneralConfig() config.Config {
 				{
 					EnableEpoch: 0,
 					NumRoundsToWaitBeforeSignalingChronologyStuck: 10,
+				},
+			},
+			ConsensusConfigsByRound: []config.ConsensusConfigByRound{
+				{
+					EnableRound: 0,
 					SubroundsTiming: config.SubroundsTimingConfig{
 						SubroundStartStartTime:     0.0,
 						SubroundStartEndTime:       0.05,

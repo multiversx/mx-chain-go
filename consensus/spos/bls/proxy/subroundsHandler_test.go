@@ -52,6 +52,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 		SentSignatureTracker: &testscommon.SentSignatureTrackerStub{},
 		EnableEpochsHandler:  epochsEnable,
 		CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+		RoundNotifier:        &epochNotifierMock.RoundNotifierStub{},
 		ChainID:              []byte("chainID"),
 		CurrentPid:           "peerID",
 	}
@@ -181,6 +182,15 @@ func TestNewSubroundsHandler(t *testing.T) {
 		handlerArgs.EnableEpochsHandler = nil
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilEnableEpochsHandler, err)
+		require.Nil(t, sh)
+	})
+	t.Run("nil round notifier should error", func(t *testing.T) {
+		t.Parallel()
+
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
+		handlerArgs.RoundNotifier = nil
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Equal(t, ErrNilRoundNotifier, err)
 		require.Nil(t, sh)
 	})
 	t.Run("nil chain ID should error", func(t *testing.T) {
@@ -402,39 +412,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
-		require.Equal(t, consensusV2Supernova, sh.currentConsensusType)
-		require.Equal(t, int32(2), startCalled.Load())
-	})
-	t.Run("supernova enabled, with previous consensus type consensusV2Supernova", func(t *testing.T) {
-		t.Parallel()
-
-		startCalled := atomic.Int32{}
-		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
-		chronology := &consensus.ChronologyHandlerMock{
-			StartRoundCalled: func() {
-				startCalled.Add(1)
-			},
-		}
-		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return true
-			},
-		}
-		handlerArgs.Chronology = chronology
-		handlerArgs.EnableEpochsHandler = enableEpoch
-		consensusCore.SetEnableEpochsHandler(enableEpoch)
-		consensusCore.SetChronology(chronology)
-
-		sh, err := NewSubroundsHandler(handlerArgs)
-		require.Nil(t, err)
-		require.NotNil(t, sh)
-		// first call on register to EpochNotifier
-		require.Equal(t, int32(1), startCalled.Load())
-		sh.currentConsensusType = consensusV2Supernova
-
-		err = sh.initSubroundsForEpoch(0)
-		require.Nil(t, err)
-		require.Equal(t, consensusV2Supernova, sh.currentConsensusType)
+		require.Equal(t, consensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
 	})
 }

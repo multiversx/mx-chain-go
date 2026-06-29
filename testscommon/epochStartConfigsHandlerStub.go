@@ -19,6 +19,11 @@ func GetDefaultCommonConfigsHandler() common.CommonConfigsHandler {
 			{
 				EnableEpoch: 0,
 				NumRoundsToWaitBeforeSignalingChronologyStuck: 10,
+			},
+		},
+		[]config.ConsensusConfigByRound{
+			{
+				EnableRound: 0,
 				SubroundsTiming: config.SubroundsTimingConfig{
 					SubroundStartStartTime:     0.0,
 					SubroundStartEndTime:       0.05,
@@ -43,7 +48,8 @@ type CommonConfigsHandlerStub struct {
 	GetExtraDelayForRequestBlockInfoInMsCalled                 func(epoch uint32) uint32
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRoundCalled func(round uint64) uint32
 	GetNumRoundsToWaitBeforeSignalingChronologyStuckCalled     func(epoch uint32) uint32
-	GetSubroundsTimingByEpochCalled                            func(epoch uint32) config.SubroundsTimingConfig
+	GetSubroundsTimingByRoundCalled                            func(round uint64) config.SubroundsTimingConfig
+	GetActiveTimingBoundaryRoundCalled                         func(round uint64) uint64
 }
 
 // GetGracePeriodRoundsByEpoch -
@@ -82,10 +88,10 @@ func (e *CommonConfigsHandlerStub) GetNumRoundsToWaitBeforeSignalingChronologySt
 	return 0
 }
 
-// GetSubroundsTimingByEpoch -
-func (e *CommonConfigsHandlerStub) GetSubroundsTimingByEpoch(epoch uint32) config.SubroundsTimingConfig {
-	if e.GetSubroundsTimingByEpochCalled != nil {
-		return e.GetSubroundsTimingByEpochCalled(epoch)
+// GetSubroundsTimingByRound -
+func (e *CommonConfigsHandlerStub) GetSubroundsTimingByRound(round uint64) config.SubroundsTimingConfig {
+	if e.GetSubroundsTimingByRoundCalled != nil {
+		return e.GetSubroundsTimingByRoundCalled(round)
 	}
 
 	return config.SubroundsTimingConfig{
@@ -99,6 +105,15 @@ func (e *CommonConfigsHandlerStub) GetSubroundsTimingByEpoch(epoch uint32) confi
 		SubroundEndEndTime:         0.95,
 		ProcessingThresholdPercent: 85,
 	}
+}
+
+// GetActiveTimingBoundaryRound -
+func (e *CommonConfigsHandlerStub) GetActiveTimingBoundaryRound(round uint64) uint64 {
+	if e.GetActiveTimingBoundaryRoundCalled != nil {
+		return e.GetActiveTimingBoundaryRoundCalled(round)
+	}
+
+	return 0
 }
 
 // IsInterfaceNil -

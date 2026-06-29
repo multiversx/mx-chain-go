@@ -125,7 +125,8 @@ func (fct *factory) GenerateSubrounds(epoch uint32) error {
 	fct.worker.RemoveAllReceivedMessagesCalls()
 	fct.worker.RemoveAllReceivedHeaderHandlers()
 
-	timing := fct.commonConfigsHandler.GetSubroundsTimingByEpoch(epoch)
+	round := uint64(fct.consensusCore.RoundHandler().Index())
+	timing := fct.commonConfigsHandler.GetSubroundsTimingByRound(round)
 
 	err := fct.generateStartRoundSubround(timing)
 	if err != nil {
@@ -231,6 +232,7 @@ func (fct *factory) generateBlockSubround(timing config.SubroundsTimingConfig) e
 		fct.worker,
 		syncController,
 		fct.signatureThrottler,
+		timing.SubroundSignatureEndTime,
 	)
 	if err != nil {
 		return err

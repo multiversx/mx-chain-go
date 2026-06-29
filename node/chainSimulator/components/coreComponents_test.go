@@ -88,6 +88,22 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 				ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
 					{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
 				},
+				ConsensusConfigsByRound: []config.ConsensusConfigByRound{
+					{
+						EnableRound: 0,
+						SubroundsTiming: config.SubroundsTimingConfig{
+							SubroundStartStartTime:     0.0,
+							SubroundStartEndTime:       0.05,
+							SubroundBlockStartTime:     0.05,
+							SubroundBlockEndTime:       0.25,
+							SubroundSignatureStartTime: 0.25,
+							SubroundSignatureEndTime:   0.85,
+							SubroundEndStartTime:       0.85,
+							SubroundEndEndTime:         0.95,
+							ProcessingThresholdPercent: 85,
+						},
+					},
+				},
 			},
 			Hardfork: config.HardforkConfig{
 				PublicKeyToListenFrom: components.DummyPk,
