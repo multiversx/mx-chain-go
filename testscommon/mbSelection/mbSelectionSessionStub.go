@@ -19,6 +19,7 @@ type MiniBlockSelectionSessionStub struct {
 	GetNumTxsAddedCalled                        func() uint32
 	AddMiniBlocksAndHashesCalled                func(miniBlocksAndHashes []block.MiniblockAndHash) error
 	CreateAndAddMiniBlockFromTransactionsCalled func(txHashes [][]byte) error
+	RemoveEmptyMiniBlocksCalled                 func()
 }
 
 // ResetSelectionSession -
@@ -113,6 +114,13 @@ func (mbss *MiniBlockSelectionSessionStub) CreateAndAddMiniBlockFromTransactions
 		return mbss.CreateAndAddMiniBlockFromTransactionsCalled(txHashes)
 	}
 	return nil
+}
+
+// RemoveEmptyMiniBlocks -
+func (mbss *MiniBlockSelectionSessionStub) RemoveEmptyMiniBlocks() {
+	if mbss.RemoveEmptyMiniBlocksCalled != nil {
+		mbss.RemoveEmptyMiniBlocksCalled()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
