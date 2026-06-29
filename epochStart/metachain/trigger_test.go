@@ -196,7 +196,7 @@ func TestNewEpochStartTrigger_ShouldProposeEpochChange(t *testing.T) {
 	require.NotNil(t, epochStartTrigger)
 	require.Nil(t, err)
 
-	nonce := uint64(minimumNonceToStartEpoch)
+	nonce := uint64(minimumBlocksPerEpoch)
 
 	round := uint64(300)
 	shouldProposeEpochChange := epochStartTrigger.ShouldProposeEpochChange(round, nonce)
@@ -240,10 +240,10 @@ func TestNewEpochStartTrigger_ShouldNotProposeEpochChangeTooCloseToEpochStartNon
 	}
 	round := uint64(301)
 
-	shouldProposeEpochChange := epochStartTrigger.ShouldProposeEpochChange(round, epochStartNonce+minimumNonceToStartEpoch-1)
+	shouldProposeEpochChange := epochStartTrigger.ShouldProposeEpochChange(round, epochStartNonce+minimumBlocksPerEpoch-1)
 	require.False(t, shouldProposeEpochChange)
 
-	shouldProposeEpochChange = epochStartTrigger.ShouldProposeEpochChange(round, epochStartNonce+minimumNonceToStartEpoch)
+	shouldProposeEpochChange = epochStartTrigger.ShouldProposeEpochChange(round, epochStartNonce+minimumBlocksPerEpoch)
 	require.True(t, shouldProposeEpochChange)
 }
 
@@ -253,7 +253,7 @@ func TestTrigger_Update(t *testing.T) {
 	notifierWasCalled := false
 	epoch := uint32(0)
 	round := uint64(0)
-	nonce := uint64(minimumNonceToStartEpoch)
+	nonce := uint64(minimumBlocksPerEpoch)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
 	arguments.EpochStartNotifier = &mock.EpochStartNotifierStub{
@@ -495,7 +495,7 @@ func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
 
 	epoch := uint32(0)
 	round := uint64(0)
-	nonce := uint64(minimumNonceToStartEpoch)
+	nonce := uint64(minimumBlocksPerEpoch)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
@@ -557,7 +557,7 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 
 	epoch := uint32(0)
 	round := uint64(0)
-	nonce := uint64(minimumNonceToStartEpoch)
+	nonce := uint64(minimumBlocksPerEpoch)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
 	firstBlock := &block.MetaBlock{}
