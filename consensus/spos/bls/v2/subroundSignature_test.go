@@ -1050,7 +1050,11 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		}
 		assert.Equal(t, 3, numFinishedJobs)
 
-		assert.Equal(t, 3, len(signaturesBroadcast))
+		mutex.Lock()
+		numSignaturesBroadcast := len(signaturesBroadcast)
+		mutex.Unlock()
+
+		assert.Equal(t, 3, numSignaturesBroadcast)
 	})
 
 	t.Run("context done should return early", func(t *testing.T) {
