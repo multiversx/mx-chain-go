@@ -581,11 +581,13 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		}
 
 		expectedMap := map[string]struct{}{"A": {}, "B": {}, "C": {}, "D": {}, "E": {}, "F": {}, "G": {}, "H": {}, "I": {}}
-		assert.Equal(t, expectedMap, signatureSentForPks)
-
 		// leader also sends his signature
 		expectedBroadcastMap := map[string]int{"A": 1, "B": 1, "C": 1, "D": 1, "E": 1, "F": 1, "G": 1, "H": 1, "I": 1}
+
+		mutex.Lock()
+		assert.Equal(t, expectedMap, signatureSentForPks)
 		assert.Equal(t, expectedBroadcastMap, signaturesBroadcast)
+		mutex.Unlock()
 	})
 }
 
@@ -945,10 +947,12 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		}
 
 		expectedMap := map[string]struct{}{"A": {}, "B": {}, "C": {}, "D": {}, "E": {}, "F": {}, "G": {}, "H": {}, "I": {}}
-		assert.Equal(t, expectedMap, signatureSentForPks)
-
 		expectedBroadcastMap := map[string]int{"A": 1, "B": 1, "C": 1, "D": 1, "E": 1, "F": 1, "G": 1, "H": 1, "I": 1}
+
+		mutex.Lock()
+		assert.Equal(t, expectedMap, signatureSentForPks)
 		assert.Equal(t, expectedBroadcastMap, signaturesBroadcast)
+		mutex.Unlock()
 	})
 
 	t.Run("should work until context is cancelled", func(t *testing.T) {
@@ -1051,10 +1055,8 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		assert.Equal(t, 3, numFinishedJobs)
 
 		mutex.Lock()
-		numSignaturesBroadcast := len(signaturesBroadcast)
+		assert.Equal(t, 3, len(signaturesBroadcast))
 		mutex.Unlock()
-
-		assert.Equal(t, 3, numSignaturesBroadcast)
 	})
 
 	t.Run("context done should return early", func(t *testing.T) {
