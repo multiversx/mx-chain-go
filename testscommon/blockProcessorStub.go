@@ -46,7 +46,7 @@ type BlockProcessorStub struct {
 		_ []byte,
 	) error
 	OnExecutedBlockCalled                           func(header data.HeaderHandler, rootHash []byte) error
-	RemoveHeaderFromPoolCalled                      func(headerHash []byte)
+	RemoveHeaderFromPoolCalled                      func(headerNonce uint64)
 	ProposedDirectSentTransactionsToBroadcastCalled func(proposedBody data.BodyHandler) map[string][][]byte
 	PruneTrieAsyncHeaderCalled                      func()
 }
@@ -280,9 +280,9 @@ func (bps *BlockProcessorStub) OnExecutedBlock(header data.HeaderHandler, rootHa
 }
 
 // RemoveHeaderFromPool -
-func (bps *BlockProcessorStub) RemoveHeaderFromPool(headerHash []byte) {
+func (bps *BlockProcessorStub) RemoveHeaderFromPool(headerNonce uint64) {
 	if bps.RemoveHeaderFromPoolCalled != nil {
-		bps.RemoveHeaderFromPoolCalled(headerHash)
+		bps.RemoveHeaderFromPoolCalled(headerNonce)
 	}
 }
 

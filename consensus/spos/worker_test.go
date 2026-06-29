@@ -2208,7 +2208,7 @@ func TestWorker_ExtendShouldNotRemoveConsensusHeaderFromPoolsWhenAsyncExecutionI
 		RevertCurrentBlockCalled: func() {
 			revertCalled = true
 		},
-		RemoveHeaderFromPoolCalled: func(headerHash []byte) {
+		RemoveHeaderFromPoolCalled: func(_ uint64) {
 			removeHeaderFromPoolCalled = true
 		},
 	}
@@ -2251,9 +2251,9 @@ func TestWorker_ExtendShouldRemoveConsensusHeaderFromPoolsWhenAsyncExecutionIsDi
 		RevertCurrentBlockCalled: func() {
 			revertCalled = true
 		},
-		RemoveHeaderFromPoolCalled: func(hash []byte) {
+		RemoveHeaderFromPoolCalled: func(nonce uint64) {
 			removeHeaderFromPoolCalled = true
-			require.Equal(t, headerHash, hash)
+			require.Equal(t, header.GetNonce(), nonce)
 		},
 	}
 	wrk.SetBlockProcessor(blockProcessor)
