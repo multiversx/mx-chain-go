@@ -627,7 +627,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			break
 		}
 
-		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
+		if !hdr.IsHeaderV3() && tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
 				"scheduled mode", scheduledMode,
 				"stop creating", "max block size has been reached")

@@ -348,7 +348,6 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: check again before saving the last executed result
 	err = sp.blockChainHook.SetCurrentHeader(header)
 	if err != nil {
 		return nil, err
@@ -654,7 +653,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 		return err
 	}
 
-	// todo: maybe sanitize, removing empty miniBlocks
+	sp.miniBlocksSelectionSession.RemoveEmptyMiniBlocks()
 
 	return nil
 }
