@@ -23,36 +23,16 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testscommonDataRetriever "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-type requestHandlerWithSetEpochStub struct {
-	testscommon.RequestHandlerStub
-	SetEpochCalled func(epoch uint32)
-}
-
-func (rhs *requestHandlerWithSetEpochStub) SetEpoch(epoch uint32) {
-	if rhs.SetEpochCalled != nil {
-		rhs.SetEpochCalled(epoch)
-		return
-	}
-
-	rhs.RequestHandlerStub.SetEpoch(epoch)
-}
-
-func getMockChainHandler() data.ChainHandler {
-	return &testscommon.ChainHandlerStub{
-		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{
-				Epoch: 0,
-			}
-		},
-	}
-}
 
 func TestBaseBootstrap_SyncBlocksShouldNotCallSyncIfNotConnectedToTheNetwork(t *testing.T) {
 	t.Parallel()
@@ -208,6 +188,217 @@ func TestBaseBootstrap_GetNodeState(t *testing.T) {
 		},
 	}
 	assert.Equal(t, common.NsNotSynchronized, boot.GetNodeState())
+}
+
+// createBootForRollBackOneBlockForcedTest builds a baseBootstrap whose current block (the one that
+// will be rolled back, nonce currNonce, epoch currEpoch) sits on top of prevHeader (nonce
+// currNonce-1, epoch prevEpoch). The proof gate keys off the rolled-back block, so currEpoch is the
+// epoch that matters for the request decision.
+func createBootForRollBackOneBlockForcedTest(
+	selfID uint32,
+	currNonce uint64,
+	currEpoch uint32,
+	prevEpoch uint32,
+	enableEpochsHandler common.EnableEpochsHandler,
+	requestProof func(nonce uint64),
+) *baseBootstrap {
+	currentHeader := data.HeaderHandler(&block.Header{
+		Nonce:    currNonce,
+		Epoch:    currEpoch,
+		PrevHash: []byte("previous hash"),
+		RootHash: []byte("current root hash"),
+	})
+	prevHeader := data.HeaderHandler(&block.Header{
+		Nonce:    currNonce - 1,
+		Epoch:    prevEpoch,
+		RootHash: []byte("previous root hash"),
+	})
+	currentHash := []byte("current hash")
+
+	return &baseBootstrap{
+		chainHandler: &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return currentHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return currentHash
+			},
+			SetCurrentBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, rootHash []byte) error {
+				currentHeader = header
+				return nil
+			},
+			SetCurrentBlockHeaderHashCalled: func(hash []byte) {
+				currentHash = hash
+			},
+			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, headerHash []byte, rootHash []byte) {
+			},
+		},
+		blockBootstrapper: &blockBootstrapperStub{
+			getCurrHeaderCalled: func() (data.HeaderHandler, error) {
+				return currentHeader, nil
+			},
+			getPrevHeaderCalled: func(data.HeaderHandler, storage.Storer) (data.HeaderHandler, error) {
+				return prevHeader, nil
+			},
+			getBlockBodyCalled: func(data.HeaderHandler) (data.BodyHandler, error) {
+				return &block.Body{}, nil
+			},
+			requestProofByNonceCalled: requestProof,
+		},
+		blockProcessor: &testscommon.BlockProcessorStub{
+			NonceOfFirstCommittedBlockCalled: func() core.OptionalUint64 {
+				return core.OptionalUint64{
+					Value:    1,
+					HasValue: true,
+				}
+			},
+		},
+		forkDetector: &mock.ForkDetectorMock{
+			// keep the highest final nonce below the current one so shouldAllowRollback permits the rollback
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return 0
+			},
+		},
+		headers: &mock.HeadersCacherStub{
+			NoncesCalled: func(shardId uint32) []uint64 {
+				return nil
+			},
+		},
+		headerNonceHashStore:         &storageStubs.StorerStub{},
+		historyRepo:                  &dblookupext.HistoryRepositoryStub{},
+		marshalizer:                  &marshal.GogoProtoMarshalizer{},
+		hasher:                       &hashingMocks.HasherMock{},
+		outportHandler:               &outport.OutportStub{},
+		scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		shardCoordinator: &mock.ShardCoordinatorStub{
+			SelfIdCalled: func() uint32 {
+				return selfID
+			},
+		},
+		requestHandler:      &testscommon.RequestHandlerStub{},
+		store:               &storageStubs.ChainStorerStub{},
+		bootStorer:          &mock.BoostrapStorerMock{},
+		uint64Converter:     &mock.Uint64ByteSliceConverterMock{},
+		statusHandler:       &statusHandlerMock.AppStatusHandlerStub{},
+		forkInfo:            &process.ForkInfo{},
+		enableEpochsHandler: enableEpochsHandler,
+	}
+}
+
+func TestBaseBootstrap_RollBackOneBlockForcedShouldRequestEquivalentProofForNextNonce(t *testing.T) {
+	t.Parallel()
+
+	selfID := uint32(1)
+
+	// andromedaFromEpoch returns a handler where the Andromeda flag activates at the given epoch.
+	andromedaFromEpoch := func(activationEpoch uint32) *enableEpochsHandlerMock.EnableEpochsHandlerStub {
+		return &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag && epoch >= activationEpoch
+			},
+		}
+	}
+
+	t.Run("proofs flag enabled should request proof for rolled-back nonce", func(t *testing.T) {
+		t.Parallel()
+
+		currNonce := uint64(10)
+		requestCalled := false
+		requestedNonce := uint64(0)
+		boot := createBootForRollBackOneBlockForcedTest(selfID, currNonce, 6, 6, andromedaFromEpoch(5), func(nonce uint64) {
+			requestCalled = true
+			requestedNonce = nonce
+		})
+
+		boot.rollBackOneBlockForced()
+
+		assert.True(t, requestCalled)
+		assert.Equal(t, currNonce, requestedNonce)
+	})
+
+	t.Run("proofs flag disabled before activation should not request proof", func(t *testing.T) {
+		t.Parallel()
+
+		currNonce := uint64(10)
+		requestCalled := false
+		boot := createBootForRollBackOneBlockForcedTest(selfID, currNonce, 2, 2, andromedaFromEpoch(5), func(nonce uint64) {
+			requestCalled = true
+		})
+
+		boot.rollBackOneBlockForced()
+
+		// the rollback must actually have succeeded (current block dropped to currNonce-1), so that the
+		// missing request is attributable to the disabled flag and not to a silently failed rollback
+		require.Equal(t, currNonce-1, boot.getCurrentBlock().GetNonce())
+		assert.False(t, requestCalled)
+	})
+
+	t.Run("rollback of first block with Andromeda active from epoch 0 should still request proof", func(t *testing.T) {
+		t.Parallel()
+
+		// the rolled-back block is nonce 1 (epoch 0); its proof must still be requested. Rolling it
+		// back leaves genesis as the current block, but the gate keys off the captured nonce-1 header,
+		// so IsProofsFlagEnabledForHeader (which excludes nonce 0) still returns true.
+		currNonce := uint64(1)
+		requestCalled := false
+		requestedNonce := uint64(0)
+		boot := createBootForRollBackOneBlockForcedTest(selfID, currNonce, 0, 0, andromedaFromEpoch(0), func(nonce uint64) {
+			requestCalled = true
+			requestedNonce = nonce
+		})
+
+		boot.rollBackOneBlockForced()
+
+		assert.True(t, requestCalled)
+		assert.Equal(t, currNonce, requestedNonce)
+	})
+
+	t.Run("activation boundary should request proof using the rolled-back block epoch", func(t *testing.T) {
+		t.Parallel()
+
+		// the rolled-back block is the activation-epoch block (epoch 5, proofs enabled) sitting on top
+		// of a pre-activation parent (epoch 4); the gate must key off the rolled-back block, not the
+		// parent, so the proof is requested.
+		currNonce := uint64(10)
+		requestCalled := false
+		requestedNonce := uint64(0)
+		boot := createBootForRollBackOneBlockForcedTest(selfID, currNonce, 5, 4, andromedaFromEpoch(5), func(nonce uint64) {
+			requestCalled = true
+			requestedNonce = nonce
+		})
+
+		boot.rollBackOneBlockForced()
+
+		assert.True(t, requestCalled)
+		assert.Equal(t, currNonce, requestedNonce)
+	})
+
+	t.Run("failed rollback should not request proof", func(t *testing.T) {
+		t.Parallel()
+
+		currNonce := uint64(10)
+		requestCalled := false
+		boot := createBootForRollBackOneBlockForcedTest(selfID, currNonce, 6, 6, andromedaFromEpoch(5), func(nonce uint64) {
+			requestCalled = true
+		})
+		// make rollBack(false) fail so no block is actually rolled back
+		getPrevHeaderCalled := false
+		boot.blockBootstrapper.(*blockBootstrapperStub).getPrevHeaderCalled = func(data.HeaderHandler, storage.Storer) (data.HeaderHandler, error) {
+			getPrevHeaderCalled = true
+			return nil, errors.New("rollback error")
+		}
+
+		boot.rollBackOneBlockForced()
+
+		// the error path must actually have been reached (rollBack attempted) and left the current block
+		// unchanged, so the missing request is attributable to the rollback error and not to skipping the gate
+		require.True(t, getPrevHeaderCalled)
+		require.Equal(t, currNonce, boot.getCurrentBlock().GetNonce())
+		assert.False(t, requestCalled)
+	})
 }
 
 func TestBaseSync_getEpochOfCurrentBlockGenesis(t *testing.T) {
@@ -661,23 +852,23 @@ func TestBaseBootstrap_SaveProposedTxsToPool(t *testing.T) {
 	header := &block.HeaderV3{}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			&block.MiniBlock{
+			{
 				TxHashes: [][]byte{[]byte("txHash1")},
 				Type:     block.TxBlock,
 			},
-			&block.MiniBlock{
+			{
 				TxHashes: [][]byte{[]byte("txHash2")},
 				Type:     block.InvalidBlock,
 			},
-			&block.MiniBlock{
+			{
 				TxHashes: [][]byte{[]byte("txHash3")},
 				Type:     block.SmartContractResultBlock,
 			},
-			&block.MiniBlock{
+			{
 				TxHashes: [][]byte{[]byte("txHash4")},
 				Type:     block.RewardsBlock,
 			},
-			&block.MiniBlock{
+			{
 				TxHashes: [][]byte{[]byte("txHash5")},
 				Type:     block.PeerBlock,
 			},

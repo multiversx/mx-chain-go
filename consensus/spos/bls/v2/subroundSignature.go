@@ -278,6 +278,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 		select {
 		case <-sigCtx.Done():
 			log.Debug("doSignatureJobForManagedKeys: timeout while sending signatures")
+			wg.Wait()
 			return false
 		default:
 		}
@@ -285,12 +286,14 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 		err := checkGoRoutinesThrottler(sigCtx, sr.signatureThrottler)
 		if err != nil {
 			log.Debug("doSignatureJobForManagedKeys.checkGoRoutinesThrottler", "err", err)
+			wg.Wait()
 			return false
 		}
 		sr.signatureThrottler.StartProcessing()
 		wg.Add(1)
 
 		go func(sigCtx context.Context, idx int, pk string) {
+			defer wg.Done()
 			defer sr.signatureThrottler.EndProcessing()
 
 			signatureSent := sr.sendSignatureForManagedKey(sigCtx, idx, pk)
@@ -299,7 +302,6 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 			} else {
 				sentSigForAllKeys.SetValue(false)
 			}
-			wg.Done()
 		}(sigCtx, idx, pk)
 	}
 
