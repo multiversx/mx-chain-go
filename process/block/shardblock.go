@@ -1192,7 +1192,6 @@ func (sp *shardProcessor) CommitBlock(
 		epochStartTriggerConfigKey: epochStartKey,
 	}
 
-	// TODO adjust this method if needed for Supernova
 	sp.prepareDataForBootStorer(args)
 
 	// write data to log
@@ -1298,7 +1297,6 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		return
 	}
 
-	// TODO: set proper finalized header in outport
 	sp.setFinalizedHeaderHashInIndexer(currentHeaderHash)
 
 	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
@@ -1515,7 +1513,6 @@ func (sp *shardProcessor) setFinalBlockInfo(
 		finalRootHash = header.GetRootHash()
 	}
 
-	// TODO: maybe rename this to reflect last execution results
 	sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
 }
 

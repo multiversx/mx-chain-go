@@ -616,3 +616,6 @@ var ErrNilTrieLeavesRetriever = errors.New("nil trie leaves retriever")
 
 // ErrNilAOTSelector signals that a nil AOT selector has been provided
 var ErrNilAOTSelector = errors.New("nil AOT selector")
+
+// ErrNilTransactionProcessor signals that a nil transaction processor has been provided
+var ErrNilTransactionProcessor = errors.New("nil transaction processor")
