@@ -333,6 +333,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		args.Config.GeneralSettings.EpochStartConfigsByEpoch,
 		args.Config.GeneralSettings.EpochStartConfigsByRound,
 		args.Config.GeneralSettings.ConsensusConfigsByEpoch,
+		args.Config.GeneralSettings.ConsensusConfigsByRound,
 	)
 	if err != nil {
 		return nil, err

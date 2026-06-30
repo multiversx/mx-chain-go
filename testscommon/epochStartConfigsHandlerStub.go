@@ -16,7 +16,22 @@ func GetDefaultCommonConfigsHandler() common.CommonConfigsHandler {
 			{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
 		},
 		[]config.ConsensusConfigByEpoch{
-			{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+			{
+				EnableEpoch: 0,
+				NumRoundsToWaitBeforeSignalingChronologyStuck: 10,
+			},
+		},
+		[]config.ConsensusConfigByRound{
+			{
+				EnableRound: 0,
+				SubroundsTiming: []config.SubroundTiming{
+					{StartTime: 0.0, EndTime: 0.05},
+					{StartTime: 0.05, EndTime: 0.25},
+					{StartTime: 0.25, EndTime: 0.85},
+					{StartTime: 0.85, EndTime: 0.95},
+				},
+				ProcessingThresholdPercent: 85,
+			},
 		},
 	)
 
@@ -28,6 +43,9 @@ type CommonConfigsHandlerStub struct {
 	GetGracePeriodRoundsByEpochCalled                          func(epoch uint32) uint32
 	GetExtraDelayForRequestBlockInfoInMsCalled                 func(epoch uint32) uint32
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRoundCalled func(round uint64) uint32
+	GetNumRoundsToWaitBeforeSignalingChronologyStuckCalled     func(epoch uint32) uint32
+	GetSubroundsTimingByRoundCalled                            func(round uint64) config.ConsensusConfigByRound
+	GetActiveTimingBoundaryRoundCalled                         func(round uint64) uint64
 }
 
 // GetGracePeriodRoundsByEpoch -
@@ -52,6 +70,42 @@ func (e *CommonConfigsHandlerStub) GetExtraDelayForRequestBlockInfoInMs(epoch ui
 func (e *CommonConfigsHandlerStub) GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round uint64) uint32 {
 	if e.GetMaxRoundsWithoutCommittedStartInEpochBlockInRoundCalled != nil {
 		return e.GetMaxRoundsWithoutCommittedStartInEpochBlockInRoundCalled(round)
+	}
+
+	return 0
+}
+
+// GetNumRoundsToWaitBeforeSignalingChronologyStuck -
+func (e *CommonConfigsHandlerStub) GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32 {
+	if e.GetNumRoundsToWaitBeforeSignalingChronologyStuckCalled != nil {
+		return e.GetNumRoundsToWaitBeforeSignalingChronologyStuckCalled(epoch)
+	}
+
+	return 0
+}
+
+// GetSubroundsTimingByRound -
+func (e *CommonConfigsHandlerStub) GetSubroundsTimingByRound(round uint64) config.ConsensusConfigByRound {
+	if e.GetSubroundsTimingByRoundCalled != nil {
+		return e.GetSubroundsTimingByRoundCalled(round)
+	}
+
+	return config.ConsensusConfigByRound{
+		EnableRound: 0,
+		SubroundsTiming: []config.SubroundTiming{
+			{StartTime: 0.0, EndTime: 0.05},
+			{StartTime: 0.05, EndTime: 0.25},
+			{StartTime: 0.25, EndTime: 0.85},
+			{StartTime: 0.85, EndTime: 0.95},
+		},
+		ProcessingThresholdPercent: 85,
+	}
+}
+
+// GetActiveTimingBoundaryRound -
+func (e *CommonConfigsHandlerStub) GetActiveTimingBoundaryRound(round uint64) uint64 {
+	if e.GetActiveTimingBoundaryRoundCalled != nil {
+		return e.GetActiveTimingBoundaryRoundCalled(round)
 	}
 
 	return 0

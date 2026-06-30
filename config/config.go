@@ -349,6 +349,19 @@ type ConsensusConfigByEpoch struct {
 	NumRoundsToWaitBeforeSignalingChronologyStuck uint32
 }
 
+// ConsensusConfigByRound defines consensus configuration parameters by round
+type ConsensusConfigByRound struct {
+	EnableRound                uint64
+	SubroundsTiming            []SubroundTiming
+	ProcessingThresholdPercent uint32
+}
+
+// SubroundTiming holds the start and end time ratios (of the round duration) for a single subround
+type SubroundTiming struct {
+	StartTime float64
+	EndTime   float64
+}
+
 // EpochStartConfigByEpoch defines epoch start configuration parameters by epoch
 type EpochStartConfigByEpoch struct {
 	EnableEpoch uint32
@@ -440,6 +453,7 @@ type GeneralSettingsConfig struct {
 	EpochStartConfigsByEpoch         []EpochStartConfigByEpoch
 	EpochStartConfigsByRound         []EpochStartConfigByRound
 	ConsensusConfigsByEpoch          []ConsensusConfigByEpoch
+	ConsensusConfigsByRound          []ConsensusConfigByRound
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config

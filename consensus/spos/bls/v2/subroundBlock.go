@@ -35,6 +35,7 @@ type subroundBlock struct {
 	mutBlockProcessing            sync.Mutex
 	syncController                spos.NtpSyncControllerHandler
 	signatureThrottler            core.Throttler
+	signatureSubroundEndTime      float64
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -44,6 +45,7 @@ func NewSubroundBlock(
 	worker spos.WorkerHandler,
 	syncController spos.NtpSyncControllerHandler,
 	signatureThrottler core.Throttler,
+	signatureSubroundEndTime float64,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
@@ -66,6 +68,7 @@ func NewSubroundBlock(
 		worker:                        worker,
 		syncController:                syncController,
 		signatureThrottler:            signatureThrottler,
+		signatureSubroundEndTime:      signatureSubroundEndTime,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -390,7 +393,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 
 	currentEpoch := headerHandler.GetEpoch()
 
-	sigSubroundEndTime := time.Duration(float64(sr.RoundHandler().TimeDuration()) * srSignatureEndTime)
+	sigSubroundEndTime := time.Duration(float64(sr.RoundHandler().TimeDuration()) * sr.signatureSubroundEndTime)
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
 	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
 	sr.SetSignaturesCtxCancelFunc(cancel)
