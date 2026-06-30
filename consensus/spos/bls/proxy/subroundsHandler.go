@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"sync"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -12,6 +14,7 @@ import (
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var log = logger.GetOrCreate("consensus/spos/bls/proxy")
@@ -27,13 +30,15 @@ type SubroundsHandlerArgs struct {
 	OutportHandler       outport.OutportHandler
 	SentSignatureTracker spos.SentSignaturesTracker
 	EnableEpochsHandler  core.EnableEpochsHandler
+	CommonConfigsHandler common.CommonConfigsHandler
+	RoundNotifier        process.RoundNotifier
 	ChainID              []byte
 	CurrentPid           core.PeerID
 }
 
 // subroundsFactory defines the methods needed to generate the subrounds
 type subroundsFactory interface {
-	GenerateSubrounds(epoch uint32) error
+	GenerateSubrounds(epoch uint32, round uint64) error
 	SetOutportHandler(driver outport.OutportHandler)
 	IsInterfaceNil() bool
 }
@@ -51,16 +56,55 @@ type SubroundsHandler struct {
 	outportHandler       outport.OutportHandler
 	sentSignatureTracker spos.SentSignaturesTracker
 	enableEpochsHandler  core.EnableEpochsHandler
+	commonConfigsHandler common.CommonConfigsHandler
+	roundNotifier        process.RoundNotifier
 	chainID              []byte
 	currentPid           core.PeerID
-	currentConsensusType consensusStateMachineType
+
+	mutReInit                     sync.Mutex
+	currentConsensusType          consensusStateMachineType
+	currentEpoch                  uint32
+	lastTimingBoundaryEnableRound uint64
+	timingBoundaryInitialized     bool
 }
 
 // EpochConfirmed is called when the epoch is confirmed (this is registered as callback)
 func (s *SubroundsHandler) EpochConfirmed(epoch uint32, _ uint64) {
-	err := s.initSubroundsForEpoch(epoch)
+	s.mutReInit.Lock()
+	defer s.mutReInit.Unlock()
+
+	s.currentEpoch = epoch
+	round := s.roundNotifier.CurrentRound()
+	err := s.initSubroundsForEpoch(epoch, round)
 	if err != nil {
 		log.Error("SubroundsHandler.EpochConfirmed: cannot initialize subrounds", "error", err)
+	}
+}
+
+// RoundConfirmed is called when a new round is confirmed
+func (s *SubroundsHandler) RoundConfirmed(round uint64, _ uint64) {
+	s.mutReInit.Lock()
+	defer s.mutReInit.Unlock()
+
+	activeBoundary := s.commonConfigsHandler.GetActiveTimingBoundaryRound(round)
+	if s.timingBoundaryInitialized && activeBoundary == s.lastTimingBoundaryEnableRound {
+		return
+	}
+
+	// save the initial boundary on the first notification without re-generating (subrounds are
+	// already generated for the current boundary during Start)
+	if !s.timingBoundaryInitialized {
+		s.timingBoundaryInitialized = true
+		s.lastTimingBoundaryEnableRound = activeBoundary
+		return
+	}
+
+	s.lastTimingBoundaryEnableRound = activeBoundary
+
+	log.Debug("SubroundsHandler.RoundConfirmed: re-generating subrounds for new timing config", "round", round)
+	err := s.generateSubroundsForCurrentType(s.currentEpoch, round)
+	if err != nil {
+		log.Error("SubroundsHandler.RoundConfirmed: cannot reinitialize subrounds", "error", err)
 	}
 }
 
@@ -87,12 +131,15 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 		outportHandler:       args.OutportHandler,
 		sentSignatureTracker: args.SentSignatureTracker,
 		enableEpochsHandler:  args.EnableEpochsHandler,
+		commonConfigsHandler: args.CommonConfigsHandler,
+		roundNotifier:        args.RoundNotifier,
 		chainID:              args.ChainID,
 		currentPid:           args.CurrentPid,
 		currentConsensusType: consensusNone,
 	}
 
 	subroundHandler.consensusCoreHandler.EpochNotifier().RegisterNotifyHandler(subroundHandler)
+	args.RoundNotifier.RegisterNotifyHandler(subroundHandler)
 
 	return subroundHandler, nil
 }
@@ -125,6 +172,12 @@ func checkArgs(args *SubroundsHandlerArgs) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.CommonConfigsHandler) {
+		return common.ErrNilCommonConfigsHandler
+	}
+	if check.IfNil(args.RoundNotifier) {
+		return ErrNilRoundNotifier
+	}
 	if args.ChainID == nil {
 		return ErrNilChainID
 	}
@@ -138,19 +191,44 @@ func checkArgs(args *SubroundsHandlerArgs) error {
 
 // Start starts the sub-rounds handler
 func (s *SubroundsHandler) Start(epoch uint32) error {
-	return s.initSubroundsForEpoch(epoch)
+	s.mutReInit.Lock()
+	defer s.mutReInit.Unlock()
+
+	s.currentEpoch = epoch
+	round := s.roundNotifier.CurrentRound()
+	return s.initSubroundsForEpoch(epoch, round)
 }
 
-func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
-	var err error
-	var fct subroundsFactory
+// initSubroundsForEpoch must be called with mutReInit held
+func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32, round uint64) error {
+	targetConsensusType := s.getTargetConsensusType(epoch)
 
+	if s.currentConsensusType == targetConsensusType {
+		return nil
+	}
+
+	s.currentConsensusType = targetConsensusType
+	return s.generateSubroundsForCurrentType(epoch, round)
+}
+
+func (s *SubroundsHandler) getTargetConsensusType(epoch uint32) consensusStateMachineType {
 	if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
-		if s.currentConsensusType == consensusV2 {
-			return nil
-		}
+		return consensusV2
+	}
 
-		s.currentConsensusType = consensusV2
+	return consensusV1
+}
+
+// generateSubroundsForCurrentType must be called with mutReInit held
+func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32, round uint64) error {
+	if s.currentConsensusType == consensusNone {
+		return nil
+	}
+
+	var fct subroundsFactory
+	var err error
+
+	if s.currentConsensusType == consensusV2 {
 		fct, err = v2.NewSubroundsFactory(
 			s.consensusCoreHandler,
 			s.consensusState,
@@ -161,13 +239,9 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 			s.sentSignatureTracker,
 			s.signatureThrottler,
 			s.outportHandler,
+			s.commonConfigsHandler,
 		)
 	} else {
-		if s.currentConsensusType == consensusV1 {
-			return nil
-		}
-
-		s.currentConsensusType = consensusV1
 		fct, err = v1.NewSubroundsFactory(
 			s.consensusCoreHandler,
 			s.consensusState,
@@ -177,6 +251,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 			s.appStatusHandler,
 			s.sentSignatureTracker,
 			s.outportHandler,
+			s.commonConfigsHandler,
 		)
 	}
 	if err != nil {
@@ -185,15 +260,15 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 
 	err = s.chronology.Close()
 	if err != nil {
-		log.Warn("SubroundsHandler.initSubroundsForEpoch: cannot close the chronology", "error", err)
+		log.Warn("SubroundsHandler.generateSubroundsForCurrentType: cannot close the chronology", "error", err)
 	}
 
-	err = fct.GenerateSubrounds(epoch)
+	err = fct.GenerateSubrounds(epoch, round)
 	if err != nil {
 		return err
 	}
 
-	log.Debug("SubroundsHandler.initSubroundsForEpoch: reset consensus round state")
+	log.Debug("SubroundsHandler.generateSubroundsForCurrentType: reset consensus round state")
 	s.worker.ResetConsensusRoundState()
 	s.chronology.StartRounds()
 

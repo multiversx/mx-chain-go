@@ -354,13 +354,13 @@ func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 		adb := generateAccountDBFromTrie(trieStub)
 		accountsApi, _ := state.NewAccountsDBApi(adb, createBlockInfoProviderStub(dummyRootHash))
 
-		// same hash → no recreation
+		// same hash -> no recreation
 		optsSame := holders.NewDefaultRootHashesHolder(currentHash)
 		err := accountsApi.RecreateTrieIfNeeded(optsSame)
 		assert.NoError(t, err)
 		assert.False(t, recreatedCalled, "should not recreate if same root hash")
 
-		// different hash → should recreate
+		// different hash -> should recreate
 		optsDifferent := holders.NewDefaultRootHashesHolder(newHash)
 		err = accountsApi.RecreateTrieIfNeeded(optsDifferent)
 		assert.NoError(t, err)
