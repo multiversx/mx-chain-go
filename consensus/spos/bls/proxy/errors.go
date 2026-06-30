@@ -36,3 +36,6 @@ var ErrNilCurrentPid = errors.New("nil current PID")
 
 // ErrNilEnableEpochsHandler is the error returned when the enable epochs handler is nil
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilRoundNotifier is the error returned when the round notifier is nil
+var ErrNilRoundNotifier = errors.New("nil round notifier")
