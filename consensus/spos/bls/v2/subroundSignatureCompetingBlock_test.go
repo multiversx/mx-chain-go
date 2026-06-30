@@ -383,7 +383,7 @@ func TestWaitIfCompetingBlockForNode_NoCompetingBlockForAnyKey(t *testing.T) {
 		nil,
 	)
 
-	result := sr.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	result := sr.WaitIfCompetingBlock(context.Background(), []byte{}, 100, []byte("current_hash"))
 	assert.False(t, result, "should return false when no key has a competing block")
 }
 
@@ -401,7 +401,7 @@ func TestWaitIfCompetingBlockForNode_SameHashForAllKeys(t *testing.T) {
 		nil,
 	)
 
-	result := sr.WaitIfCompetingBlockForNode(context.Background(), 100, currentHash)
+	result := sr.WaitIfCompetingBlock(context.Background(), []byte{}, 100, currentHash)
 	assert.False(t, result, "should return false when all keys signed the same hash")
 }
 
@@ -457,7 +457,7 @@ func TestWaitIfCompetingBlockForNode_SelfKeyHasCompetingBlock(t *testing.T) {
 	srSignature.SetData([]byte("current_hash"))
 
 	start := time.Now()
-	result := srSignature.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	result := srSignature.WaitIfCompetingBlock(context.Background(), []byte(selfPk), 100, []byte("current_hash"))
 	elapsed := time.Since(start)
 
 	// Should have waited (delay from round start) and returned false (no proof arrived)
@@ -530,7 +530,7 @@ func TestWaitIfCompetingBlockForNode_ManagedKeyHasCompetingBlock(t *testing.T) {
 	srSignature.SetData([]byte("current_hash"))
 
 	start := time.Now()
-	result := srSignature.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	result := srSignature.WaitIfCompetingBlock(context.Background(), []byte("A"), 100, []byte("current_hash"))
 	elapsed := time.Since(start)
 
 	// Managed key "A" has a competing block, so the node should wait
@@ -590,7 +590,7 @@ func TestWaitIfCompetingBlockForNode_WaitsOnceNotPerKey(t *testing.T) {
 	srSignature.SetData([]byte("current_hash"))
 
 	start := time.Now()
-	result := srSignature.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	result := srSignature.WaitIfCompetingBlock(context.Background(), []byte{}, 100, []byte("current_hash"))
 	elapsed := time.Since(start)
 
 	// Should return after ONE wait, not multiple

@@ -217,17 +217,17 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	return false
 }
 
-func (sr *subroundSignature) waitForSingatures(
+func (sr *subroundSignature) waitForSignatures(
 	timeLeft time.Duration,
-) {
+) bool {
 	wg := sr.SignaturesWaitGroup()
 	if wg == nil {
-		return
+		return false
 	}
 
 	if timeLeft <= 0 {
 		sr.SignaturesCtxCancel()
-		return
+		return false
 	}
 
 	done := make(chan struct{})
@@ -242,11 +242,11 @@ func (sr *subroundSignature) waitForSingatures(
 	select {
 	case <-done:
 		sr.SignaturesCtxCancel()
-		return
+		return true
 	case <-timer.C:
 		sr.SignaturesCtxCancel()
 		log.Debug("timeout while waiting for signatures to be created")
-		return
+		return false
 	}
 }
 
@@ -257,7 +257,11 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
 	defer cancel()
 
-	sr.waitForSingatures(timeLeft)
+	isTimeLeft := sr.waitForSignatures(timeLeft)
+	if !isTimeLeft {
+		log.Debug("doSignatureJobForManagedKeys: timeout while sending signatures")
+		return false
+	}
 
 	numMultiKeysSignaturesSent := int32(0)
 	sentSigForAllKeys := atomicCore.Flag{}
@@ -328,21 +332,8 @@ func (sr *subroundSignature) sendSignatureForManagedKey(ctx context.Context, idx
 
 	signatureShare, err := sr.SigningHandler().SignatureShare(uint16(idx))
 	if err != nil {
-		// signature share not found (optimistic signature share creation was not triggered)
-		// will try to create it
-		log.Debug("sendSignatureForManagedKey.SignatureShare: sig not already created, will try to create it", "error", err)
-
-		signatureShare, err = sr.SigningHandler().CreateSignatureShareForPublicKey(
-			ctx,
-			currentHash,
-			uint16(idx),
-			sr.GetHeader().GetEpoch(),
-			pkBytes,
-		)
-		if err != nil {
-			log.Debug("sendSignatureForManagedKey.CreateSignatureShareForPublicKey", "error", err.Error())
-			return false
-		}
+		log.Debug("sendSignatureForManagedKey.SignatureShare", "error", err.Error())
+		return false
 	}
 
 	// Record the signed nonce before broadcast so competing block detection works
@@ -417,31 +408,6 @@ func (sr *subroundSignature) getPkForCompetingBlock(nonce uint64, currentHash []
 	}
 
 	return nil
-}
-
-// waitIfCompetingBlockForNode checks if any key managed by this node previously signed a different
-// hash for the given nonce. If found, waits once for the entire node instead of per-key.
-func (sr *subroundSignature) waitIfCompetingBlockForNode(ctx context.Context, nonce uint64, currentHash []byte) bool {
-	// Check self key first
-	selfPk := []byte(sr.SelfPubKey())
-	previousHash, exists := sr.sentSignatureTracker.GetSignedHash(selfPk, nonce)
-	if exists && !bytes.Equal(previousHash, currentHash) {
-		return sr.waitIfCompetingBlock(ctx, selfPk, nonce, currentHash)
-	}
-
-	// Check managed keys
-	for _, pk := range sr.ConsensusGroup() {
-		pkBytes := []byte(pk)
-		if !sr.IsKeyManagedBySelf(pkBytes) {
-			continue
-		}
-		previousHash, exists = sr.sentSignatureTracker.GetSignedHash(pkBytes, nonce)
-		if exists && !bytes.Equal(previousHash, currentHash) {
-			return sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
-		}
-	}
-
-	return false
 }
 
 // waitIfCompetingBlock waits if this node already signed a different block for the same nonce.
