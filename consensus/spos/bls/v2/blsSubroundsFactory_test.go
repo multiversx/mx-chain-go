@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 
@@ -708,7 +709,7 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	fct := *initFactoryWithContainer(container)
 	fct.SetOutportHandler(&testscommonOutport.OutportStub{})
 
-	err := fct.GenerateSubrounds(providedEpoch)
+	err := fct.GenerateSubrounds(providedEpoch, 0)
 	assert.Nil(t, err)
 	require.True(t, wasConsensusGroupSizeCalled)
 
@@ -721,7 +722,7 @@ func TestFactory_GenerateSubroundsNilOutportShouldFail(t *testing.T) {
 	container := testscommonConsensus.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 
-	err := fct.GenerateSubrounds(0)
+	err := fct.GenerateSubrounds(0, 0)
 	assert.Equal(t, outport.ErrNilDriver, err)
 }
 
@@ -735,4 +736,44 @@ func TestFactory_SetIndexerShouldWork(t *testing.T) {
 	fct.SetOutportHandler(outportHandler)
 
 	assert.Equal(t, outportHandler, fct.Outport())
+}
+
+func TestFactory_GenerateSubroundsUsesPassedRound(t *testing.T) {
+	t.Parallel()
+
+	chrm := &testscommonConsensus.ChronologyHandlerMock{}
+	container := testscommonConsensus.InitConsensusCore()
+	container.SetChronology(chrm)
+
+	var capturedRound uint64
+	configsHandler := &testscommon.CommonConfigsHandlerStub{
+		GetSubroundsTimingByRoundCalled: func(round uint64) config.SubroundsTimingConfig {
+			capturedRound = round
+			return config.SubroundsTimingConfig{
+				ProcessingThresholdPercent: 85,
+				SubroundSignatureEndTime:   0.85,
+			}
+		},
+	}
+
+	worker := initWorker()
+	consensusState := initializers.InitConsensusState()
+	fct, err := v2.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMocks.ThrottlerStub{},
+		&testscommonOutport.OutportStub{},
+		configsHandler,
+	)
+	require.Nil(t, err)
+
+	providedRound := uint64(42)
+	err = fct.GenerateSubrounds(0, providedRound)
+	require.Nil(t, err)
+	require.Equal(t, providedRound, capturedRound)
 }

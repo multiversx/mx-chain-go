@@ -38,7 +38,7 @@ type SubroundsHandlerArgs struct {
 
 // subroundsFactory defines the methods needed to generate the subrounds
 type subroundsFactory interface {
-	GenerateSubrounds(epoch uint32) error
+	GenerateSubrounds(epoch uint32, round uint64) error
 	SetOutportHandler(driver outport.OutportHandler)
 	IsInterfaceNil() bool
 }
@@ -57,6 +57,7 @@ type SubroundsHandler struct {
 	sentSignatureTracker spos.SentSignaturesTracker
 	enableEpochsHandler  core.EnableEpochsHandler
 	commonConfigsHandler common.CommonConfigsHandler
+	roundNotifier        process.RoundNotifier
 	chainID              []byte
 	currentPid           core.PeerID
 
@@ -73,7 +74,8 @@ func (s *SubroundsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	defer s.mutReInit.Unlock()
 
 	s.currentEpoch = epoch
-	err := s.initSubroundsForEpoch(epoch)
+	round := s.roundNotifier.CurrentRound()
+	err := s.initSubroundsForEpoch(epoch, round)
 	if err != nil {
 		log.Error("SubroundsHandler.EpochConfirmed: cannot initialize subrounds", "error", err)
 	}
@@ -100,7 +102,7 @@ func (s *SubroundsHandler) RoundConfirmed(round uint64, _ uint64) {
 	s.lastTimingBoundaryEnableRound = activeBoundary
 
 	log.Debug("SubroundsHandler.RoundConfirmed: re-generating subrounds for new timing config", "round", round)
-	err := s.generateSubroundsForCurrentType(s.currentEpoch)
+	err := s.generateSubroundsForCurrentType(s.currentEpoch, round)
 	if err != nil {
 		log.Error("SubroundsHandler.RoundConfirmed: cannot reinitialize subrounds", "error", err)
 	}
@@ -130,6 +132,7 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 		sentSignatureTracker: args.SentSignatureTracker,
 		enableEpochsHandler:  args.EnableEpochsHandler,
 		commonConfigsHandler: args.CommonConfigsHandler,
+		roundNotifier:        args.RoundNotifier,
 		chainID:              args.ChainID,
 		currentPid:           args.CurrentPid,
 		currentConsensusType: consensusNone,
@@ -192,11 +195,12 @@ func (s *SubroundsHandler) Start(epoch uint32) error {
 	defer s.mutReInit.Unlock()
 
 	s.currentEpoch = epoch
-	return s.initSubroundsForEpoch(epoch)
+	round := s.roundNotifier.CurrentRound()
+	return s.initSubroundsForEpoch(epoch, round)
 }
 
 // initSubroundsForEpoch must be called with mutReInit held
-func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
+func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32, round uint64) error {
 	targetConsensusType := s.getTargetConsensusType(epoch)
 
 	if s.currentConsensusType == targetConsensusType {
@@ -204,7 +208,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 	}
 
 	s.currentConsensusType = targetConsensusType
-	return s.generateSubroundsForCurrentType(epoch)
+	return s.generateSubroundsForCurrentType(epoch, round)
 }
 
 func (s *SubroundsHandler) getTargetConsensusType(epoch uint32) consensusStateMachineType {
@@ -216,7 +220,7 @@ func (s *SubroundsHandler) getTargetConsensusType(epoch uint32) consensusStateMa
 }
 
 // generateSubroundsForCurrentType must be called with mutReInit held
-func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32) error {
+func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32, round uint64) error {
 	if s.currentConsensusType == consensusNone {
 		return nil
 	}
@@ -259,7 +263,7 @@ func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32) error {
 		log.Warn("SubroundsHandler.generateSubroundsForCurrentType: cannot close the chronology", "error", err)
 	}
 
-	err = fct.GenerateSubrounds(epoch)
+	err = fct.GenerateSubrounds(epoch, round)
 	if err != nil {
 		return err
 	}

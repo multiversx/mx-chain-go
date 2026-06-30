@@ -119,13 +119,12 @@ func (fct *factory) SetOutportHandler(driver outport.OutportHandler) {
 }
 
 // GenerateSubrounds will generate the subrounds used in BLS Cns
-func (fct *factory) GenerateSubrounds(epoch uint32) error {
+func (fct *factory) GenerateSubrounds(epoch uint32, round uint64) error {
 	fct.initConsensusThreshold(epoch)
 	fct.consensusCore.Chronology().RemoveAllSubrounds()
 	fct.worker.RemoveAllReceivedMessagesCalls()
 	fct.worker.RemoveAllReceivedHeaderHandlers()
 
-	round := uint64(fct.consensusCore.RoundHandler().Index())
 	timing := fct.commonConfigsHandler.GetSubroundsTimingByRound(round)
 
 	err := fct.generateStartRoundSubround(timing)

@@ -9,8 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -664,7 +666,7 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	fct := *initFactoryWithContainer(container)
 	fct.SetOutportHandler(&testscommonOutport.OutportStub{})
 
-	err := fct.GenerateSubrounds(0)
+	err := fct.GenerateSubrounds(0, 0)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 4, subroundHandlers)
@@ -676,7 +678,7 @@ func TestFactory_GenerateSubroundsNilOutportShouldFail(t *testing.T) {
 	container := consensusMock.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 
-	err := fct.GenerateSubrounds(0)
+	err := fct.GenerateSubrounds(0, 0)
 	assert.Equal(t, outport.ErrNilDriver, err)
 }
 

@@ -251,7 +251,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusNone
 
-		err = sh.initSubroundsForEpoch(0)
+		err = sh.initSubroundsForEpoch(0, 0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV1, sh.currentConsensusType)
 		require.Equal(t, int32(2), startCalled.Load())
@@ -283,7 +283,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusV1
 
-		err = sh.initSubroundsForEpoch(0)
+		err = sh.initSubroundsForEpoch(0, 0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV1, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
@@ -315,7 +315,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusNone
 
-		err = sh.initSubroundsForEpoch(0)
+		err = sh.initSubroundsForEpoch(0, 0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(2), startCalled.Load())
@@ -346,7 +346,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusV1
 
-		err = sh.initSubroundsForEpoch(0)
+		err = sh.initSubroundsForEpoch(0, 0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(2), startCalled.Load())
@@ -378,7 +378,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusV2
 
-		err = sh.initSubroundsForEpoch(0)
+		err = sh.initSubroundsForEpoch(0, 0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
@@ -410,7 +410,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusV2
 
-		err = sh.initSubroundsForEpoch(0)
+		err = sh.initSubroundsForEpoch(0, 0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
