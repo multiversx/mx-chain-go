@@ -107,6 +107,11 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 		return false
 	}
 
+	if !sr.isTimeLeft() {
+		log.Debug("step 2: timeout while handling signature job")
+		return false
+	}
+
 	nonce := sr.GetHeader().GetNonce()
 	currentHash := sr.GetData()
 
@@ -250,6 +255,11 @@ func (sr *subroundSignature) waitForSignatures(
 	}
 }
 
+func (sr *subroundSignature) isTimeLeft() bool {
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), time.Duration(sr.EndTime()))
+	return timeLeft > 0
+}
+
 func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) bool {
 	// wait for optimistic signatures creation to finish
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), time.Duration(sr.EndTime()))
@@ -370,6 +380,11 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(ctx context.Context) boo
 	)
 	if err != nil {
 		log.Debug("doSignatureJobForSingleKey.CreateSignatureShareForPublicKey", "error", err.Error())
+		return false
+	}
+
+	if !sr.isTimeLeft() {
+		log.Debug("doSignatureJobForSingleKey: timeout while handling single key singature")
 		return false
 	}
 
