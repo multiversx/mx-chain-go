@@ -14,16 +14,16 @@ const (
 	defaultNumRoundsToWaitBeforeSignalingChronologyStuck = 10
 )
 
-// defaultSubroundsTiming holds the fallback subrounds timing values (should never be used, as round zero is validated)
-var defaultSubroundsTiming = config.SubroundsTimingConfig{
-	SubroundStartStartTime:     0.0,
-	SubroundStartEndTime:       0.05,
-	SubroundBlockStartTime:     0.05,
-	SubroundBlockEndTime:       0.25,
-	SubroundSignatureStartTime: 0.25,
-	SubroundSignatureEndTime:   0.85,
-	SubroundEndStartTime:       0.85,
-	SubroundEndEndTime:         0.95,
+const expectedSubroundsTimingCount = 4
+
+var defaultConsensusConfigByRound = config.ConsensusConfigByRound{
+	EnableRound: 0,
+	SubroundsTiming: []config.SubroundTiming{
+		{StartTime: 0.0, EndTime: 0.05},
+		{StartTime: 0.05, EndTime: 0.25},
+		{StartTime: 0.25, EndTime: 0.85},
+		{StartTime: 0.85, EndTime: 0.95},
+	},
 	ProcessingThresholdPercent: 85,
 }
 
@@ -180,7 +180,7 @@ func checkConsensusConfigsByRound(configsByRound []config.ConsensusConfigByRound
 		}
 		seen[cfg.EnableRound] = struct{}{}
 
-		if err := checkSubroundsTiming(cfg.SubroundsTiming); err != nil {
+		if err := checkSubroundsTiming(cfg); err != nil {
 			return err
 		}
 	}
@@ -193,46 +193,34 @@ func checkConsensusConfigsByRound(configsByRound []config.ConsensusConfigByRound
 	return nil
 }
 
-func checkSubroundsTiming(cfg config.SubroundsTimingConfig) error {
-	// all values must be non-negative
-	if cfg.SubroundStartStartTime < 0 || cfg.SubroundStartEndTime < 0 ||
-		cfg.SubroundBlockStartTime < 0 || cfg.SubroundBlockEndTime < 0 ||
-		cfg.SubroundSignatureStartTime < 0 || cfg.SubroundSignatureEndTime < 0 ||
-		cfg.SubroundEndStartTime < 0 || cfg.SubroundEndEndTime < 0 {
-		return ErrNegativeSubroundTiming
+func checkSubroundsTiming(cfg config.ConsensusConfigByRound) error {
+	// the slice must contain exactly one entry per subround
+	if len(cfg.SubroundsTiming) != expectedSubroundsTimingCount {
+		return ErrInvalidSubroundsTimingCount
 	}
 
-	// each subround must have start < end
-	if cfg.SubroundStartStartTime >= cfg.SubroundStartEndTime {
-		return ErrInvalidSubroundTimingRange
-	}
-	if cfg.SubroundBlockStartTime >= cfg.SubroundBlockEndTime {
-		return ErrInvalidSubroundTimingRange
-	}
-	if cfg.SubroundSignatureStartTime >= cfg.SubroundSignatureEndTime {
-		return ErrInvalidSubroundTimingRange
-	}
-	if cfg.SubroundEndStartTime >= cfg.SubroundEndEndTime {
-		return ErrInvalidSubroundTimingRange
+	// all values must be non-negative and each subround must have start < end
+	for _, t := range cfg.SubroundsTiming {
+		if t.StartTime < 0 || t.EndTime < 0 {
+			return ErrNegativeSubroundTiming
+		}
+		if t.StartTime >= t.EndTime {
+			return ErrInvalidSubroundTimingRange
+		}
 	}
 
-	// subrounds must be ordered and non-overlapping: start(n+1) >= end(n)
-	if cfg.SubroundBlockStartTime < cfg.SubroundStartEndTime {
-		return ErrOverlappingSubroundTiming
-	}
-	if cfg.SubroundSignatureStartTime < cfg.SubroundBlockEndTime {
-		return ErrOverlappingSubroundTiming
-	}
-	if cfg.SubroundEndStartTime < cfg.SubroundSignatureEndTime {
-		return ErrOverlappingSubroundTiming
+	// subrounds must be ordered and non-overlapping
+	for i := 1; i < len(cfg.SubroundsTiming); i++ {
+		if cfg.SubroundsTiming[i].StartTime != cfg.SubroundsTiming[i-1].EndTime {
+			return ErrOverlappingSubroundTiming
+		}
 	}
 
-	// max value must be < 1.0
-	if cfg.SubroundStartStartTime >= 1.0 || cfg.SubroundStartEndTime >= 1.0 ||
-		cfg.SubroundBlockStartTime >= 1.0 || cfg.SubroundBlockEndTime >= 1.0 ||
-		cfg.SubroundSignatureStartTime >= 1.0 || cfg.SubroundSignatureEndTime >= 1.0 ||
-		cfg.SubroundEndStartTime >= 1.0 || cfg.SubroundEndEndTime >= 1.0 {
-		return ErrSubroundTimingExceedsRound
+	// all boundary values must be < 1.0
+	for _, t := range cfg.SubroundsTiming {
+		if t.StartTime >= 1.0 || t.EndTime >= 1.0 {
+			return ErrSubroundTimingExceedsRound
+		}
 	}
 
 	// ProcessingThresholdPercent must be in (0, 100]
@@ -288,14 +276,14 @@ func (cc *commonConfigs) GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch 
 }
 
 // GetSubroundsTimingByRound returns the subrounds timing configuration active for the given round
-func (cc *commonConfigs) GetSubroundsTimingByRound(round uint64) config.SubroundsTimingConfig {
+func (cc *commonConfigs) GetSubroundsTimingByRound(round uint64) config.ConsensusConfigByRound {
 	for i := len(cc.orderedConsensusConfigByRound) - 1; i >= 0; i-- {
 		if cc.orderedConsensusConfigByRound[i].EnableRound <= round {
-			return cc.orderedConsensusConfigByRound[i].SubroundsTiming
+			return cc.orderedConsensusConfigByRound[i]
 		}
 	}
 
-	return defaultSubroundsTiming // this should not happen
+	return defaultConsensusConfigByRound // this should not happen
 }
 
 // GetActiveTimingBoundaryRound returns the EnableRound of the ConsensusConfigByRound entry that is active for the given round

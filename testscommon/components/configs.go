@@ -205,17 +205,13 @@ func GetGeneralConfig() config.Config {
 			ConsensusConfigsByRound: []config.ConsensusConfigByRound{
 				{
 					EnableRound: 0,
-					SubroundsTiming: config.SubroundsTimingConfig{
-						SubroundStartStartTime:     0.0,
-						SubroundStartEndTime:       0.05,
-						SubroundBlockStartTime:     0.05,
-						SubroundBlockEndTime:       0.25,
-						SubroundSignatureStartTime: 0.25,
-						SubroundSignatureEndTime:   0.85,
-						SubroundEndStartTime:       0.85,
-						SubroundEndEndTime:         0.95,
-						ProcessingThresholdPercent: 85,
+					SubroundsTiming: []config.SubroundTiming{
+						{StartTime: 0.0, EndTime: 0.05},
+						{StartTime: 0.05, EndTime: 0.25},
+						{StartTime: 0.25, EndTime: 0.85},
+						{StartTime: 0.85, EndTime: 0.95},
 					},
+					ProcessingThresholdPercent: 85,
 				},
 			},
 		},

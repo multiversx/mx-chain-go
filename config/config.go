@@ -351,21 +351,15 @@ type ConsensusConfigByEpoch struct {
 
 // ConsensusConfigByRound defines consensus configuration parameters by round
 type ConsensusConfigByRound struct {
-	EnableRound     uint64
-	SubroundsTiming SubroundsTimingConfig
+	EnableRound                uint64
+	SubroundsTiming            []SubroundTiming
+	ProcessingThresholdPercent uint32
 }
 
-// SubroundsTimingConfig holds the subrounds timing values for a specific round boundary
-type SubroundsTimingConfig struct {
-	SubroundStartStartTime     float64
-	SubroundStartEndTime       float64
-	SubroundBlockStartTime     float64
-	SubroundBlockEndTime       float64
-	SubroundSignatureStartTime float64
-	SubroundSignatureEndTime   float64
-	SubroundEndStartTime       float64
-	SubroundEndEndTime         float64
-	ProcessingThresholdPercent uint32
+// SubroundTiming holds the start and end time ratios (of the round duration) for a single subround
+type SubroundTiming struct {
+	StartTime float64
+	EndTime   float64
 }
 
 // EpochStartConfigByEpoch defines epoch start configuration parameters by epoch

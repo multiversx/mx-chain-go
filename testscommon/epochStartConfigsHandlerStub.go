@@ -24,17 +24,13 @@ func GetDefaultCommonConfigsHandler() common.CommonConfigsHandler {
 		[]config.ConsensusConfigByRound{
 			{
 				EnableRound: 0,
-				SubroundsTiming: config.SubroundsTimingConfig{
-					SubroundStartStartTime:     0.0,
-					SubroundStartEndTime:       0.05,
-					SubroundBlockStartTime:     0.05,
-					SubroundBlockEndTime:       0.25,
-					SubroundSignatureStartTime: 0.25,
-					SubroundSignatureEndTime:   0.85,
-					SubroundEndStartTime:       0.85,
-					SubroundEndEndTime:         0.95,
-					ProcessingThresholdPercent: 85,
+				SubroundsTiming: []config.SubroundTiming{
+					{StartTime: 0.0, EndTime: 0.05},
+					{StartTime: 0.05, EndTime: 0.25},
+					{StartTime: 0.25, EndTime: 0.85},
+					{StartTime: 0.85, EndTime: 0.95},
 				},
+				ProcessingThresholdPercent: 85,
 			},
 		},
 	)
@@ -48,7 +44,7 @@ type CommonConfigsHandlerStub struct {
 	GetExtraDelayForRequestBlockInfoInMsCalled                 func(epoch uint32) uint32
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRoundCalled func(round uint64) uint32
 	GetNumRoundsToWaitBeforeSignalingChronologyStuckCalled     func(epoch uint32) uint32
-	GetSubroundsTimingByRoundCalled                            func(round uint64) config.SubroundsTimingConfig
+	GetSubroundsTimingByRoundCalled                            func(round uint64) config.ConsensusConfigByRound
 	GetActiveTimingBoundaryRoundCalled                         func(round uint64) uint64
 }
 
@@ -89,20 +85,19 @@ func (e *CommonConfigsHandlerStub) GetNumRoundsToWaitBeforeSignalingChronologySt
 }
 
 // GetSubroundsTimingByRound -
-func (e *CommonConfigsHandlerStub) GetSubroundsTimingByRound(round uint64) config.SubroundsTimingConfig {
+func (e *CommonConfigsHandlerStub) GetSubroundsTimingByRound(round uint64) config.ConsensusConfigByRound {
 	if e.GetSubroundsTimingByRoundCalled != nil {
 		return e.GetSubroundsTimingByRoundCalled(round)
 	}
 
-	return config.SubroundsTimingConfig{
-		SubroundStartStartTime:     0.0,
-		SubroundStartEndTime:       0.05,
-		SubroundBlockStartTime:     0.05,
-		SubroundBlockEndTime:       0.25,
-		SubroundSignatureStartTime: 0.25,
-		SubroundSignatureEndTime:   0.85,
-		SubroundEndStartTime:       0.85,
-		SubroundEndEndTime:         0.95,
+	return config.ConsensusConfigByRound{
+		EnableRound: 0,
+		SubroundsTiming: []config.SubroundTiming{
+			{StartTime: 0.0, EndTime: 0.05},
+			{StartTime: 0.05, EndTime: 0.25},
+			{StartTime: 0.25, EndTime: 0.85},
+			{StartTime: 0.85, EndTime: 0.95},
+		},
 		ProcessingThresholdPercent: 85,
 	}
 }

@@ -37,3 +37,6 @@ var ErrSubroundTimingExceedsRound = errors.New("subround timing exceeds round")
 
 // ErrInvalidProcessingThreshold signals that an invalid processing threshold percent has been provided
 var ErrInvalidProcessingThreshold = errors.New("invalid processing threshold percent")
+
+// ErrInvalidSubroundsTimingCount signals that the number of subround timing entries does not equal the expected count
+var ErrInvalidSubroundsTimingCount = errors.New("invalid subrounds timing count")

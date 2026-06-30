@@ -747,11 +747,17 @@ func TestFactory_GenerateSubroundsUsesPassedRound(t *testing.T) {
 
 	var capturedRound uint64
 	configsHandler := &testscommon.CommonConfigsHandlerStub{
-		GetSubroundsTimingByRoundCalled: func(round uint64) config.SubroundsTimingConfig {
+		GetSubroundsTimingByRoundCalled: func(round uint64) config.ConsensusConfigByRound {
 			capturedRound = round
-			return config.SubroundsTimingConfig{
+			return config.ConsensusConfigByRound{
+				EnableRound: 0,
+				SubroundsTiming: []config.SubroundTiming{
+					{StartTime: 0.0, EndTime: 0.05},
+					{StartTime: 0.05, EndTime: 0.25},
+					{StartTime: 0.25, EndTime: 0.85},
+					{StartTime: 0.85, EndTime: 0.95},
+				},
 				ProcessingThresholdPercent: 85,
-				SubroundSignatureEndTime:   0.85,
 			}
 		},
 	}

@@ -113,31 +113,23 @@
     ConsensusConfigsByRound = [
         {
             EnableRound = 0,
-            SubroundsTiming = {
-                SubroundStartStartTime = 0.0,
-                SubroundStartEndTime = 0.05,
-                SubroundBlockStartTime = 0.05,
-                SubroundBlockEndTime = 0.25,
-                SubroundSignatureStartTime = 0.25,
-                SubroundSignatureEndTime = 0.85,
-                SubroundEndStartTime = 0.85,
-                SubroundEndEndTime = 0.95,
-                ProcessingThresholdPercent = 85
-            }
+            SubroundsTiming = [
+                { StartTime = 0.0,  EndTime = 0.05 },  # start round
+                { StartTime = 0.05, EndTime = 0.25 },  # block
+                { StartTime = 0.25, EndTime = 0.85 },  # signature
+                { StartTime = 0.85, EndTime = 0.95 },  # end round
+            ],
+            ProcessingThresholdPercent = 85
         },
         {
             EnableRound = 440,
-            SubroundsTiming = {
-                SubroundStartStartTime = 0.0,
-                SubroundStartEndTime = 0.05,
-                SubroundBlockStartTime = 0.05,
-                SubroundBlockEndTime = 0.35,
-                SubroundSignatureStartTime = 0.35,
-                SubroundSignatureEndTime = 0.55,
-                SubroundEndStartTime = 0.55,
-                SubroundEndEndTime = 0.95,
-                ProcessingThresholdPercent = 85
-            }
+            SubroundsTiming = [
+                { StartTime = 0.0,  EndTime = 0.05 },  # start round
+                { StartTime = 0.05, EndTime = 0.35 },  # block
+                { StartTime = 0.35, EndTime = 0.55 },  # signature
+                { StartTime = 0.55, EndTime = 0.95 },  # end round
+            ],
+            ProcessingThresholdPercent = 85
         }
     ]
 

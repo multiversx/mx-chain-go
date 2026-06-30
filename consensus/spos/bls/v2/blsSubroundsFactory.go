@@ -154,14 +154,14 @@ func (fct *factory) getTimeDuration() time.Duration {
 	return fct.consensusCore.RoundHandler().TimeDuration()
 }
 
-func (fct *factory) generateStartRoundSubround(timing config.SubroundsTimingConfig) error {
+func (fct *factory) generateStartRoundSubround(timing config.ConsensusConfigByRound) error {
 	subround, err := spos.NewSubround(
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
 		fct.getTimeDuration(),
-		timing.SubroundStartStartTime,
-		timing.SubroundStartEndTime,
+		timing.SubroundsTiming[bls.SrStartRound].StartTime,
+		timing.SubroundsTiming[bls.SrStartRound].EndTime,
 		bls.GetSubroundName(bls.SrStartRound),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
@@ -195,14 +195,14 @@ func (fct *factory) generateStartRoundSubround(timing config.SubroundsTimingConf
 	return nil
 }
 
-func (fct *factory) generateBlockSubround(timing config.SubroundsTimingConfig) error {
+func (fct *factory) generateBlockSubround(timing config.ConsensusConfigByRound) error {
 	subround, err := spos.NewSubround(
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
 		fct.getTimeDuration(),
-		timing.SubroundBlockStartTime,
-		timing.SubroundBlockEndTime,
+		timing.SubroundsTiming[bls.SrBlock].StartTime,
+		timing.SubroundsTiming[bls.SrBlock].EndTime,
 		bls.GetSubroundName(bls.SrBlock),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
@@ -231,7 +231,7 @@ func (fct *factory) generateBlockSubround(timing config.SubroundsTimingConfig) e
 		fct.worker,
 		syncController,
 		fct.signatureThrottler,
-		timing.SubroundSignatureEndTime,
+		timing.SubroundsTiming[bls.SrSignature].EndTime,
 	)
 	if err != nil {
 		return err
@@ -244,14 +244,14 @@ func (fct *factory) generateBlockSubround(timing config.SubroundsTimingConfig) e
 	return nil
 }
 
-func (fct *factory) generateSignatureSubround(timing config.SubroundsTimingConfig) error {
+func (fct *factory) generateSignatureSubround(timing config.ConsensusConfigByRound) error {
 	subround, err := spos.NewSubround(
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
 		fct.getTimeDuration(),
-		timing.SubroundSignatureStartTime,
-		timing.SubroundSignatureEndTime,
+		timing.SubroundsTiming[bls.SrSignature].StartTime,
+		timing.SubroundsTiming[bls.SrSignature].EndTime,
 		bls.GetSubroundName(bls.SrSignature),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
@@ -281,14 +281,14 @@ func (fct *factory) generateSignatureSubround(timing config.SubroundsTimingConfi
 	return nil
 }
 
-func (fct *factory) generateEndRoundSubround(timing config.SubroundsTimingConfig) error {
+func (fct *factory) generateEndRoundSubround(timing config.ConsensusConfigByRound) error {
 	subround, err := spos.NewSubround(
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
 		fct.getTimeDuration(),
-		timing.SubroundEndStartTime,
-		timing.SubroundEndEndTime,
+		timing.SubroundsTiming[bls.SrEndRound].StartTime,
+		timing.SubroundsTiming[bls.SrEndRound].EndTime,
 		bls.GetSubroundName(bls.SrEndRound),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),

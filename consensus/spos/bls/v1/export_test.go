@@ -23,16 +23,15 @@ import (
 // ProcessingThresholdPercent is a test-only value mirroring the default processing threshold percent
 const ProcessingThresholdPercent = 85
 
-// testSubroundsTiming holds the default subrounds timing values used in tests
-var testSubroundsTiming = config.SubroundsTimingConfig{
-	SubroundStartStartTime:     0.0,
-	SubroundStartEndTime:       0.05,
-	SubroundBlockStartTime:     0.05,
-	SubroundBlockEndTime:       0.25,
-	SubroundSignatureStartTime: 0.25,
-	SubroundSignatureEndTime:   0.85,
-	SubroundEndStartTime:       0.85,
-	SubroundEndEndTime:         0.95,
+// testConsensusConfigByRound holds the default consensus config values used in tests
+var testConsensusConfigByRound = config.ConsensusConfigByRound{
+	EnableRound: 0,
+	SubroundsTiming: []config.SubroundTiming{
+		{StartTime: 0.0, EndTime: 0.05},
+		{StartTime: 0.05, EndTime: 0.25},
+		{StartTime: 0.25, EndTime: 0.85},
+		{StartTime: 0.85, EndTime: 0.95},
+	},
 	ProcessingThresholdPercent: ProcessingThresholdPercent,
 }
 
@@ -113,22 +112,22 @@ func (fct *factory) SetWorker(worker spos.WorkerHandler) {
 
 // GenerateStartRoundSubround generates the instance of subround StartRound and added it to the chronology subrounds list
 func (fct *factory) GenerateStartRoundSubround() error {
-	return fct.generateStartRoundSubround(testSubroundsTiming)
+	return fct.generateStartRoundSubround(testConsensusConfigByRound)
 }
 
 // GenerateBlockSubround generates the instance of subround Block and added it to the chronology subrounds list
 func (fct *factory) GenerateBlockSubround() error {
-	return fct.generateBlockSubround(testSubroundsTiming)
+	return fct.generateBlockSubround(testConsensusConfigByRound)
 }
 
 // GenerateSignatureSubround generates the instance of subround Signature and added it to the chronology subrounds list
 func (fct *factory) GenerateSignatureSubround() error {
-	return fct.generateSignatureSubround(testSubroundsTiming)
+	return fct.generateSignatureSubround(testConsensusConfigByRound)
 }
 
 // GenerateEndRoundSubround generates the instance of subround EndRound and added it to the chronology subrounds list
 func (fct *factory) GenerateEndRoundSubround() error {
-	return fct.generateEndRoundSubround(testSubroundsTiming)
+	return fct.generateEndRoundSubround(testConsensusConfigByRound)
 }
 
 // AppStatusHandler gets the app status handler object
