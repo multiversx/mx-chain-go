@@ -29,8 +29,8 @@ var ErrNegativeSubroundTiming = errors.New("negative subround timing value")
 // ErrInvalidSubroundTimingRange signals that a subround start time is not less than its end time
 var ErrInvalidSubroundTimingRange = errors.New("subround start time must be less than end time")
 
-// ErrOverlappingSubroundTiming signals that subround timing ranges overlap
-var ErrOverlappingSubroundTiming = errors.New("subround timing ranges overlap")
+// ErrOverlappingSubroundTiming signals that subround timing ranges overlap or are not contiguous
+var ErrOverlappingSubroundTiming = errors.New("subround timing ranges overlap or are not contiguous")
 
 // ErrSubroundTimingExceedsRound signals that a subround timing exceeds round
 var ErrSubroundTimingExceedsRound = errors.New("subround timing exceeds round")

@@ -219,7 +219,7 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 		require.Equal(t, uint32(21), extraDelayForRequests)
 	})
 
-	t.Run("get max rounds without commited start in epoch block by round", func(t *testing.T) {
+	t.Run("get max rounds without committed start in epoch block by round", func(t *testing.T) {
 		t.Parallel()
 
 		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound)
@@ -350,7 +350,7 @@ func TestCheckConsensusConfigsByRound(t *testing.T) {
 		require.Equal(t, configs.ErrInvalidSubroundTimingRange, err)
 	})
 
-	t.Run("overlapping subrounds", func(t *testing.T) {
+	t.Run("non-contiguous subrounds due to overlap", func(t *testing.T) {
 		t.Parallel()
 
 		bad := config.ConsensusConfigByRound{
@@ -358,6 +358,24 @@ func TestCheckConsensusConfigsByRound(t *testing.T) {
 			SubroundsTiming: []config.SubroundTiming{
 				{StartTime: 0.0, EndTime: 0.05},
 				{StartTime: 0.03, EndTime: 0.25}, // start(1) < end(0): overlaps
+				{StartTime: 0.25, EndTime: 0.85},
+				{StartTime: 0.85, EndTime: 0.95},
+			},
+			ProcessingThresholdPercent: 85,
+		}
+		_, err := configs.NewCommonConfigsHandler(baseEpochConf, baseRoundConf, baseConsensusEpoch,
+			[]config.ConsensusConfigByRound{bad})
+		require.Equal(t, configs.ErrOverlappingSubroundTiming, err)
+	})
+
+	t.Run("non-contiguous subrounds due to gap", func(t *testing.T) {
+		t.Parallel()
+
+		bad := config.ConsensusConfigByRound{
+			EnableRound: 0,
+			SubroundsTiming: []config.SubroundTiming{
+				{StartTime: 0.0, EndTime: 0.05},
+				{StartTime: 0.10, EndTime: 0.25}, // gap
 				{StartTime: 0.25, EndTime: 0.85},
 				{StartTime: 0.85, EndTime: 0.95},
 			},

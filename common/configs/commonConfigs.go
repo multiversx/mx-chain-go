@@ -209,7 +209,7 @@ func checkSubroundsTiming(cfg config.ConsensusConfigByRound) error {
 		}
 	}
 
-	// subrounds must be ordered and non-overlapping
+	// subrounds must be ordered, contiguous (no gaps), and non-overlapping
 	for i := 1; i < len(cfg.SubroundsTiming); i++ {
 		if cfg.SubroundsTiming[i].StartTime != cfg.SubroundsTiming[i-1].EndTime {
 			return ErrOverlappingSubroundTiming
