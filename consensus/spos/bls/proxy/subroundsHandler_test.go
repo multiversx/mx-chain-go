@@ -528,7 +528,7 @@ func TestSubroundsHandler_RoundConfirmed(t *testing.T) {
 
 		startCountBeforeCall := startCalled.Load()
 
-		// boundary for round 5 is still 0, which matches lastTimingBoundaryEnableRound → early return
+		// boundary for round 5 is still 0, which matches lastTimingBoundaryEnableRound -> early return
 		sh.RoundConfirmed(5, 0)
 
 		require.Equal(t, startCountBeforeCall, startCalled.Load())
