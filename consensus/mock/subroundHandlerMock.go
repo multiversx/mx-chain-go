@@ -9,13 +9,18 @@ import (
 
 // SubroundHandlerMock -
 type SubroundHandlerMock struct {
-	DoWorkCalled           func(roundHandler consensus.RoundHandler) bool
-	PreviousCalled         func() int
-	NextCalled             func() int
-	CurrentCalled          func() int
-	StartTimeCalled        func() int64
-	EndTimeCalled          func() int64
-	SetBaseDurationCalled  func(baseDuration time.Duration)
+	DoWorkCalled                 func(roundHandler consensus.RoundHandler) bool
+	PreviousCalled               func() int
+	NextCalled                   func() int
+	CurrentCalled                func() int
+	StartTimeCalled              func() int64
+	EndTimeCalled                func() int64
+	SetBaseDurationCalled        func(baseDuration time.Duration)
+	SetStartTimePercentageCalled func(startTimePercent float64)
+	SetEndTimePercentageCalled   func(endTimePercent float64)
+
+	SetSignatureSubroundEndTimePercentageCalled func(percent float64)
+
 	NameCalled             func() string
 	JobCalled              func() bool
 	CheckCalled            func() bool
@@ -56,6 +61,27 @@ func (srm *SubroundHandlerMock) EndTime() int64 {
 func (srm *SubroundHandlerMock) SetBaseDuration(baseDuration time.Duration) {
 	if srm.SetBaseDurationCalled != nil {
 		srm.SetBaseDurationCalled(baseDuration)
+	}
+}
+
+// SetStartTimePercentage -
+func (srm *SubroundHandlerMock) SetStartTimePercentage(startTimePercent float64) {
+	if srm.SetStartTimePercentageCalled != nil {
+		srm.SetStartTimePercentageCalled(startTimePercent)
+	}
+}
+
+// SetEndTimePercentage -
+func (srm *SubroundHandlerMock) SetEndTimePercentage(endTimePercent float64) {
+	if srm.SetEndTimePercentageCalled != nil {
+		srm.SetEndTimePercentageCalled(endTimePercent)
+	}
+}
+
+// SetSignatureSubroundEndTimePercentage -
+func (srm *SubroundHandlerMock) SetSignatureSubroundEndTimePercentage(percent float64) {
+	if srm.SetSignatureSubroundEndTimePercentageCalled != nil {
+		srm.SetSignatureSubroundEndTimePercentageCalled(percent)
 	}
 }
 

@@ -301,7 +301,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		SentSignatureTracker: ccf.processComponents.SentSignaturesTracker(),
 		EnableEpochsHandler:  ccf.coreComponents.EnableEpochsHandler(),
 		CommonConfigsHandler: ccf.coreComponents.CommonConfigsHandler(),
-		RoundNotifier:        ccf.coreComponents.RoundNotifier(),
 		ChainID:              []byte(ccf.coreComponents.ChainID()),
 		CurrentPid:           ccf.networkComponents.NetworkMessenger().ID(),
 	}

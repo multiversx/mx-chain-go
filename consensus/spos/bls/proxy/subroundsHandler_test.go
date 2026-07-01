@@ -52,7 +52,6 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 		SentSignatureTracker: &testscommon.SentSignatureTrackerStub{},
 		EnableEpochsHandler:  epochsEnable,
 		CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
-		RoundNotifier:        &epochNotifierMock.RoundNotifierStub{},
 		ChainID:              []byte("chainID"),
 		CurrentPid:           "peerID",
 	}
@@ -184,15 +183,6 @@ func TestNewSubroundsHandler(t *testing.T) {
 		require.Equal(t, ErrNilEnableEpochsHandler, err)
 		require.Nil(t, sh)
 	})
-	t.Run("nil round notifier should error", func(t *testing.T) {
-		t.Parallel()
-
-		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
-		handlerArgs.RoundNotifier = nil
-		sh, err := NewSubroundsHandler(handlerArgs)
-		require.Equal(t, ErrNilRoundNotifier, err)
-		require.Nil(t, sh)
-	})
 	t.Run("nil chain ID should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -251,7 +241,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusNone
 
-		err = sh.initSubroundsForEpoch(0, 0)
+		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV1, sh.currentConsensusType)
 		require.Equal(t, int32(2), startCalled.Load())
@@ -283,7 +273,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusV1
 
-		err = sh.initSubroundsForEpoch(0, 0)
+		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV1, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
@@ -315,7 +305,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusNone
 
-		err = sh.initSubroundsForEpoch(0, 0)
+		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(2), startCalled.Load())
@@ -346,7 +336,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusV1
 
-		err = sh.initSubroundsForEpoch(0, 0)
+		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(2), startCalled.Load())
@@ -378,7 +368,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusV2
 
-		err = sh.initSubroundsForEpoch(0, 0)
+		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
@@ -410,7 +400,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusV2
 
-		err = sh.initSubroundsForEpoch(0, 0)
+		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
@@ -473,113 +463,6 @@ func TestSubroundsHandler_IsInterfaceNil(t *testing.T) {
 		require.NotNil(t, sh)
 
 		require.False(t, sh.IsInterfaceNil())
-	})
-}
-
-func TestSubroundsHandler_RoundConfirmed(t *testing.T) {
-	t.Parallel()
-
-	t.Run("first notification records boundary without re-generating subrounds", func(t *testing.T) {
-		t.Parallel()
-
-		startCalled := atomic.Uint32{}
-		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
-		chronology := &consensus.ChronologyHandlerMock{
-			StartRoundCalled: func() {
-				startCalled.Add(1)
-			},
-		}
-		handlerArgs.Chronology = chronology
-		consensusCore.SetChronology(chronology)
-
-		sh, err := NewSubroundsHandler(handlerArgs)
-		require.Nil(t, err)
-		require.NotNil(t, sh)
-
-		startCountBeforeCall := startCalled.Load()
-
-		sh.RoundConfirmed(5, 0)
-
-		require.True(t, sh.timingBoundaryInitialized)
-		require.Equal(t, uint64(0), sh.lastTimingBoundaryEnableRound)
-		// no subrounds re-generation should have occurred
-		require.Equal(t, startCountBeforeCall, startCalled.Load())
-	})
-
-	t.Run("no re-generation when boundary is unchanged", func(t *testing.T) {
-		t.Parallel()
-
-		startCalled := atomic.Uint32{}
-		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
-		chronology := &consensus.ChronologyHandlerMock{
-			StartRoundCalled: func() {
-				startCalled.Add(1)
-			},
-		}
-		handlerArgs.Chronology = chronology
-		consensusCore.SetChronology(chronology)
-
-		sh, err := NewSubroundsHandler(handlerArgs)
-		require.Nil(t, err)
-		require.NotNil(t, sh)
-
-		require.True(t, sh.timingBoundaryInitialized)
-		require.Equal(t, uint64(0), sh.lastTimingBoundaryEnableRound)
-
-		startCountBeforeCall := startCalled.Load()
-
-		// boundary for round 5 is still 0, which matches lastTimingBoundaryEnableRound -> early return
-		sh.RoundConfirmed(5, 0)
-
-		require.Equal(t, startCountBeforeCall, startCalled.Load())
-		require.Equal(t, uint64(0), sh.lastTimingBoundaryEnableRound)
-	})
-
-	t.Run("re-generation triggered when boundary changes", func(t *testing.T) {
-		t.Parallel()
-
-		startCalled := atomic.Uint32{}
-		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
-		chronology := &consensus.ChronologyHandlerMock{
-			StartRoundCalled: func() {
-				startCalled.Add(1)
-			},
-		}
-		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == chainCommon.AndromedaFlag
-			},
-		}
-
-		configsStub := &testscommon.CommonConfigsHandlerStub{
-			GetActiveTimingBoundaryRoundCalled: func(round uint64) uint64 {
-				if round >= 10 {
-					return 10
-				}
-				return 0
-			},
-		}
-		handlerArgs.Chronology = chronology
-		handlerArgs.EnableEpochsHandler = enableEpoch
-		handlerArgs.CommonConfigsHandler = configsStub
-		consensusCore.SetChronology(chronology)
-		consensusCore.SetEnableEpochsHandler(enableEpoch)
-
-		sh, err := NewSubroundsHandler(handlerArgs)
-		require.Nil(t, err)
-		require.NotNil(t, sh)
-
-		require.True(t, sh.timingBoundaryInitialized)
-		require.Equal(t, uint64(0), sh.lastTimingBoundaryEnableRound)
-		require.Equal(t, consensusV2, sh.currentConsensusType)
-
-		startCountBeforeCall := startCalled.Load()
-
-		// boundary for round 10 is 10, which differs from lastTimingBoundaryEnableRound=0
-		sh.RoundConfirmed(10, 0)
-
-		require.Equal(t, uint64(10), sh.lastTimingBoundaryEnableRound)
-		require.Equal(t, startCountBeforeCall+1, startCalled.Load())
 	})
 }
 

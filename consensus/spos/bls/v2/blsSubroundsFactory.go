@@ -119,13 +119,15 @@ func (fct *factory) SetOutportHandler(driver outport.OutportHandler) {
 }
 
 // GenerateSubrounds will generate the subrounds used in BLS Cns
-func (fct *factory) GenerateSubrounds(epoch uint32, round uint64) error {
+func (fct *factory) GenerateSubrounds(epoch uint32) error {
 	fct.initConsensusThreshold(epoch)
 	fct.consensusCore.Chronology().RemoveAllSubrounds()
 	fct.worker.RemoveAllReceivedMessagesCalls()
 	fct.worker.RemoveAllReceivedHeaderHandlers()
 
-	timing := fct.commonConfigsHandler.GetSubroundsTimingByRound(round)
+	// the base (round 0) timing config is used for the initial generation; the chronology component
+	// reconciles the subrounds to whichever timing config is actually active at the current round
+	timing := fct.commonConfigsHandler.GetSubroundsTimingByRound(0)
 
 	err := fct.generateStartRoundSubround(timing)
 	if err != nil {
@@ -231,11 +233,13 @@ func (fct *factory) generateBlockSubround(timing config.ConsensusConfigByRound) 
 		fct.worker,
 		syncController,
 		fct.signatureThrottler,
-		timing.SubroundsTiming[bls.SrSignature].EndTime,
 	)
 	if err != nil {
 		return err
 	}
+
+	// the block subround needs the signature subround end time for managed-key signature deadline
+	subroundBlockInstance.SetSignatureSubroundEndTimePercentage(timing.SubroundsTiming[bls.SrSignature].EndTime)
 
 	fct.worker.AddReceivedMessageCall(bls.MtBlockBody, subroundBlockInstance.receivedBlockBody)
 	fct.worker.AddReceivedHeaderHandler(subroundBlockInstance.receivedBlockHeader)

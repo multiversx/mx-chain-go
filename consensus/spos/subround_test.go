@@ -1500,3 +1500,61 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		assert.True(t, sr.HasProofForCompetingBlock())
 	})
 }
+
+func TestSubround_SetSignatureSubroundEndTimePercentage(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+	sr, err := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		roundTimeDuration,
+		0.05,
+		0.25,
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, time.Duration(0), sr.SignatureSubroundEndTime())
+
+	sr.SetSignatureSubroundEndTimePercentage(0.85)
+	require.Equal(t, time.Duration(float64(roundTimeDuration)*0.85), sr.SignatureSubroundEndTime())
+}
+
+func TestSubround_SignatureSubroundEndTime(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+	sr, err := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		roundTimeDuration,
+		0.05,
+		0.25,
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	require.Nil(t, err)
+
+	sr.SetSignatureSubroundEndTimePercentage(0.85)
+	require.Equal(t, time.Duration(float64(roundTimeDuration)*0.85), sr.SignatureSubroundEndTime())
+}

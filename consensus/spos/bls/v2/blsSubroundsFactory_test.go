@@ -709,7 +709,7 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 	fct := *initFactoryWithContainer(container)
 	fct.SetOutportHandler(&testscommonOutport.OutportStub{})
 
-	err := fct.GenerateSubrounds(providedEpoch, 0)
+	err := fct.GenerateSubrounds(providedEpoch)
 	assert.Nil(t, err)
 	require.True(t, wasConsensusGroupSizeCalled)
 
@@ -722,7 +722,7 @@ func TestFactory_GenerateSubroundsNilOutportShouldFail(t *testing.T) {
 	container := testscommonConsensus.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 
-	err := fct.GenerateSubrounds(0, 0)
+	err := fct.GenerateSubrounds(0)
 	assert.Equal(t, outport.ErrNilDriver, err)
 }
 
@@ -738,7 +738,7 @@ func TestFactory_SetIndexerShouldWork(t *testing.T) {
 	assert.Equal(t, outportHandler, fct.Outport())
 }
 
-func TestFactory_GenerateSubroundsUsesPassedRound(t *testing.T) {
+func TestFactory_GenerateSubroundsUsesBaseRoundConfig(t *testing.T) {
 	t.Parallel()
 
 	chrm := &testscommonConsensus.ChronologyHandlerMock{}
@@ -778,8 +778,7 @@ func TestFactory_GenerateSubroundsUsesPassedRound(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	providedRound := uint64(42)
-	err = fct.GenerateSubrounds(0, providedRound)
+	err = fct.GenerateSubrounds(0)
 	require.Nil(t, err)
-	require.Equal(t, providedRound, capturedRound)
+	require.Equal(t, uint64(0), capturedRound)
 }

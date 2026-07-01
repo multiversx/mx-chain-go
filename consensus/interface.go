@@ -49,6 +49,12 @@ type SubroundHandler interface {
 	EndTime() int64
 	// SetBaseDuration sets the base duration
 	SetBaseDuration(baseDuration time.Duration)
+	// SetStartTimePercentage sets the start time percent of the subround
+	SetStartTimePercentage(startTimePercent float64)
+	// SetEndTimePercentage sets the end time percent of the subround
+	SetEndTimePercentage(endTimePercent float64)
+	// SetSignatureSubroundEndTimePercentage sets the end time percent of the signature subround
+	SetSignatureSubroundEndTimePercentage(percent float64)
 	// Name returns the name of the current roundHandler
 	Name() string
 	// ConsensusChannel returns the consensus channel

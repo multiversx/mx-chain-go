@@ -14,6 +14,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/ntp"
 )
@@ -55,11 +56,12 @@ type chronology struct {
 	appStatusHandler core.AppStatusHandler
 	cancelFunc       func()
 
-	watchdog                core.WatchdogTimer
-	enableEpochsHandler     common.EnableEpochsHandler
-	enableRoundsHandler     common.EnableRoundsHandler
-	configsHandler          common.CommonConfigsHandler
-	supernovaTransitionDone bool
+	watchdog                      core.WatchdogTimer
+	enableEpochsHandler           common.EnableEpochsHandler
+	enableRoundsHandler           common.EnableRoundsHandler
+	configsHandler                common.CommonConfigsHandler
+	supernovaTransitionDone       bool
+	lastTimingBoundaryEnableRound uint64
 }
 
 // NewChronology creates a new chronology object
@@ -233,10 +235,38 @@ func (chr *chronology) initRound() {
 		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRound, roundIndex)
 		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(chr.getRoundUnixTimeStamp()))
 
+		chr.handleRoundChangedIfNeeded()
 		chr.handleSupernovaTransitionIfNeeded()
 	}
 
 	chr.mutSubrounds.RUnlock()
+}
+
+func (chr *chronology) handleRoundChangedIfNeeded() {
+	roundIndex := uint64(chr.roundHandler.Index())
+	activeBoundary := chr.configsHandler.GetActiveTimingBoundaryRound(roundIndex)
+	if activeBoundary == chr.lastTimingBoundaryEnableRound {
+		return
+	}
+
+	chr.lastTimingBoundaryEnableRound = activeBoundary
+
+	timing := chr.configsHandler.GetSubroundsTimingByRound(roundIndex)
+	for _, subroundHandler := range chr.subroundHandlers {
+		idx := subroundHandler.Current()
+		if idx < 0 || idx >= len(timing.SubroundsTiming) {
+			log.Warn("found subround handler with unknown index", "idx", idx, "name", subroundHandler.Name())
+			continue
+		}
+
+		subroundHandler.SetStartTimePercentage(timing.SubroundsTiming[idx].StartTime)
+		subroundHandler.SetEndTimePercentage(timing.SubroundsTiming[idx].EndTime)
+	}
+
+	// the block subround needs the signature subround end time for managed-key signature deadline
+	if len(chr.subroundHandlers) > bls.SrBlock && len(timing.SubroundsTiming) > bls.SrSignature {
+		chr.subroundHandlers[bls.SrBlock].SetSignatureSubroundEndTimePercentage(timing.SubroundsTiming[bls.SrSignature].EndTime)
+	}
 }
 
 func (chr *chronology) handleSupernovaTransitionIfNeeded() {
