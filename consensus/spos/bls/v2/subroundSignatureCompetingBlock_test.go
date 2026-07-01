@@ -123,7 +123,7 @@ func TestWaitIfCompetingBlock_AlreadyPastDelayDeadline(t *testing.T) {
 				return 100 * time.Millisecond
 			},
 			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-				// Already past the competing block delay deadline (and send deadline)
+				// Already past the competing block delay deadline (and subround end)
 				return 0
 			},
 		},
@@ -159,7 +159,7 @@ func TestWaitIfCompetingBlock_NoTimeRemainingBeforeSendDeadline(t *testing.T) {
 	)
 
 	result := sr.WaitIfCompetingBlock(context.Background(), []byte("pk"), 100, []byte("current_hash"))
-	assert.False(t, result, "should return false (proceed to sign) when no time remaining before send deadline")
+	assert.False(t, result, "should return false (proceed to sign) when no time remaining in subround")
 }
 
 func TestWaitIfCompetingBlock_ContextCancelled(t *testing.T) {
@@ -337,8 +337,8 @@ func TestWaitIfCompetingBlock_OlderRoundSignsImmediately(t *testing.T) {
 	result := sr.WaitIfCompetingBlock(context.Background(), []byte("pk"), 100, []byte("current_hash"))
 	elapsed := time.Since(start)
 
-	assert.False(t, result, "should return false immediately for entries from rounds older than currentRound-1")
-	assert.Less(t, elapsed, 30*time.Millisecond, "should sign immediately without waiting")
+	assert.False(t, result)
+	assert.Less(t, elapsed, 30*time.Millisecond)
 }
 
 func TestWaitIfCompetingBlock_PreviousRoundWaits(t *testing.T) {
@@ -373,8 +373,8 @@ func TestWaitIfCompetingBlock_PreviousRoundWaits(t *testing.T) {
 	result := sr.WaitIfCompetingBlock(context.Background(), []byte("pk"), 100, []byte("current_hash"))
 	elapsed := time.Since(start)
 
-	assert.False(t, result, "should return false after delay expires (no proof arrived)")
-	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond, "should have waited for the competing block delay")
+	assert.False(t, result)
+	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond)
 }
 
 func TestWaitIfCompetingBlock_SameRoundWaits(t *testing.T) {
@@ -409,8 +409,8 @@ func TestWaitIfCompetingBlock_SameRoundWaits(t *testing.T) {
 	result := sr.WaitIfCompetingBlock(context.Background(), []byte("pk"), 100, []byte("current_hash"))
 	elapsed := time.Since(start)
 
-	assert.False(t, result, "should return false after delay expires (no proof arrived)")
-	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond, "should have waited for the competing block delay")
+	assert.False(t, result)
+	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond)
 }
 
 func TestWaitIfCompetingBlock_RecordSignedNonceCalledBeforeBroadcast(t *testing.T) {
