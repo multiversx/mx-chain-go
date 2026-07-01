@@ -134,6 +134,8 @@ func (chr *chronology) RemoveAllSubrounds() {
 	chr.subroundHandlers = make([]consensus.SubroundHandler, 0)
 	chr.subroundId = srBeforeStartRound
 
+	chr.lastTimingBoundaryEnableRound = 0
+
 	chr.mutSubrounds.Unlock()
 }
 
@@ -253,6 +255,8 @@ func (chr *chronology) handleRoundChangedIfNeeded() {
 
 	timing := chr.configsHandler.GetSubroundsTimingByRound(roundIndex)
 	for _, subroundHandler := range chr.subroundHandlers {
+		subroundHandler.SetProcessingThresholdPercent(int(timing.ProcessingThresholdPercent))
+
 		idx := subroundHandler.Current()
 		if idx < 0 || idx >= len(timing.SubroundsTiming) {
 			log.Warn("found subround handler with unknown index", "idx", idx, "name", subroundHandler.Name())

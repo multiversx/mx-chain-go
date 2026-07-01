@@ -535,7 +535,7 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 			{StartTime: 0.30, EndTime: 0.80},
 			{StartTime: 0.80, EndTime: 0.90},
 		},
-		ProcessingThresholdPercent: 85,
+		ProcessingThresholdPercent: 90,
 	}
 
 	configsHandlerStub := &testscommon.CommonConfigsHandlerStub{
@@ -563,8 +563,9 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 	chr, err := chronology.NewChronology(arg)
 	require.Nil(t, err)
 
-	var setStartCalls, setEndCalls, sigPercentCalls int32
+	var setStartCalls, setEndCalls, sigPercentCalls, thresholdCalls int32
 	var lastStart, lastEnd, lastSigPercent float64
+	var lastThreshold int32
 
 	// register the four subrounds in id order (StartRound, Block, Signature, EndRound)
 	for i := 0; i < 4; i++ {
@@ -585,6 +586,10 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 				atomic.AddInt32(&setEndCalls, 1)
 				lastEnd = endTimePercent
 			}
+			srm.SetProcessingThresholdPercentCalled = func(percent int) {
+				atomic.AddInt32(&thresholdCalls, 1)
+				atomic.StoreInt32(&lastThreshold, int32(percent))
+			}
 		}
 		// capture the signature subround end time percentage pushed onto the block subround
 		if current == bls.SrBlock {
@@ -603,6 +608,7 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 	require.Equal(t, int32(0), atomic.LoadInt32(&setStartCalls))
 	require.Equal(t, int32(0), atomic.LoadInt32(&setEndCalls))
 	require.Equal(t, int32(0), atomic.LoadInt32(&sigPercentCalls))
+	require.Equal(t, int32(0), atomic.LoadInt32(&thresholdCalls))
 
 	// round advances but stays within the same timing boundary -> still no reconciliation
 	roundHandlerMock.RoundIndex = 5
@@ -611,6 +617,7 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 	require.Equal(t, int32(0), atomic.LoadInt32(&setStartCalls))
 	require.Equal(t, int32(0), atomic.LoadInt32(&setEndCalls))
 	require.Equal(t, int32(0), atomic.LoadInt32(&sigPercentCalls))
+	require.Equal(t, int32(0), atomic.LoadInt32(&thresholdCalls))
 
 	// round crosses into the new timing boundary -> setters fire with the new values
 	roundHandlerMock.RoundIndex = 10
@@ -622,6 +629,8 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 	require.Equal(t, timingAfterBoundary.SubroundsTiming[bls.SrStartRound].EndTime, lastEnd)
 	require.Equal(t, int32(1), atomic.LoadInt32(&sigPercentCalls))
 	require.Equal(t, timingAfterBoundary.SubroundsTiming[bls.SrSignature].EndTime, lastSigPercent)
+	require.Equal(t, int32(1), atomic.LoadInt32(&thresholdCalls))
+	require.Equal(t, int32(timingAfterBoundary.ProcessingThresholdPercent), atomic.LoadInt32(&lastThreshold))
 
 	// round advances further but the boundary is unchanged -> no re-application
 	roundHandlerMock.RoundIndex = 20
@@ -630,4 +639,95 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 	require.Equal(t, int32(1), atomic.LoadInt32(&setStartCalls))
 	require.Equal(t, int32(1), atomic.LoadInt32(&setEndCalls))
 	require.Equal(t, int32(1), atomic.LoadInt32(&sigPercentCalls))
+	require.Equal(t, int32(1), atomic.LoadInt32(&thresholdCalls))
+}
+
+func TestChronology_RemoveAllSubroundsResetsTimingBoundary(t *testing.T) {
+	t.Parallel()
+
+	timingBeforeBoundary := config.ConsensusConfigByRound{
+		EnableRound: 0,
+		SubroundsTiming: []config.SubroundTiming{
+			{StartTime: 0.0, EndTime: 0.05},
+			{StartTime: 0.05, EndTime: 0.25},
+			{StartTime: 0.25, EndTime: 0.85},
+			{StartTime: 0.85, EndTime: 0.95},
+		},
+		ProcessingThresholdPercent: 85,
+	}
+	timingAfterBoundary := config.ConsensusConfigByRound{
+		EnableRound: 10,
+		SubroundsTiming: []config.SubroundTiming{
+			{StartTime: 0.0, EndTime: 0.10},
+			{StartTime: 0.10, EndTime: 0.30},
+			{StartTime: 0.30, EndTime: 0.80},
+			{StartTime: 0.80, EndTime: 0.90},
+		},
+		ProcessingThresholdPercent: 90,
+	}
+
+	configsHandlerStub := &testscommon.CommonConfigsHandlerStub{
+		GetActiveTimingBoundaryRoundCalled: func(round uint64) uint64 {
+			if round >= 10 {
+				return 10
+			}
+
+			return 0
+		},
+		GetSubroundsTimingByRoundCalled: func(round uint64) config.ConsensusConfigByRound {
+			if round >= 10 {
+				return timingAfterBoundary
+			}
+
+			return timingBeforeBoundary
+		},
+	}
+
+	arg := getDefaultChronologyArg()
+	arg.ConfigsHandler = configsHandlerStub
+	roundHandlerMock := &round.RoundHandlerMock{}
+	arg.RoundHandler = roundHandlerMock
+
+	chr, err := chronology.NewChronology(arg)
+	require.Nil(t, err)
+
+	var setStartCalls int32
+	var lastStart float64
+	addSubrounds := func() {
+		for i := 0; i < 4; i++ {
+			current := i
+			srm := &mock.SubroundHandlerMock{}
+			srm.CurrentCalled = func() int { return current }
+			srm.NextCalled = func() int { return current + 1 }
+			srm.DoWorkCalled = func(consensus.RoundHandler) bool { return false }
+			srm.NameCalled = func() string { return "(TEST)" }
+			if current == bls.SrStartRound {
+				srm.SetStartTimePercentageCalled = func(startTimePercent float64) {
+					atomic.AddInt32(&setStartCalls, 1)
+					lastStart = startTimePercent
+				}
+			}
+			chr.AddSubround(srm)
+		}
+	}
+
+	addSubrounds()
+
+	// cross into the new timing boundary -> setters fire with the boundary values
+	roundHandlerMock.RoundIndex = 10
+	chr.InitRound()
+	require.Equal(t, int32(1), atomic.LoadInt32(&setStartCalls))
+	require.Equal(t, timingAfterBoundary.SubroundsTiming[bls.SrStartRound].StartTime, lastStart)
+
+	// regenerate the subrounds (as done on an epoch / consensus-type switch); the freshly generated
+	// subrounds use base timing and must be reconciled again to the currently active boundary
+	chr.RemoveAllSubrounds()
+	addSubrounds()
+
+	roundHandlerMock.RoundIndex = 11
+	chr.InitRound()
+
+	// without the boundary reset in RemoveAllSubrounds this would early-return and leave base timing
+	require.Equal(t, int32(2), atomic.LoadInt32(&setStartCalls))
+	require.Equal(t, timingAfterBoundary.SubroundsTiming[bls.SrStartRound].StartTime, lastStart)
 }

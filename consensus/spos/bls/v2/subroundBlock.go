@@ -30,11 +30,10 @@ const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 95 / 100)
 type subroundBlock struct {
 	*spos.Subround
 
-	processingThresholdPercentage int
-	worker                        spos.WorkerHandler
-	mutBlockProcessing            sync.Mutex
-	syncController                spos.NtpSyncControllerHandler
-	signatureThrottler            core.Throttler
+	worker             spos.WorkerHandler
+	mutBlockProcessing sync.Mutex
+	syncController     spos.NtpSyncControllerHandler
+	signatureThrottler core.Throttler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -60,12 +59,13 @@ func NewSubroundBlock(
 		return nil, spos.ErrNilThrottler
 	}
 
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
+
 	srBlock := subroundBlock{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
-		worker:                        worker,
-		syncController:                syncController,
-		signatureThrottler:            signatureThrottler,
+		Subround:           baseSubround,
+		worker:             worker,
+		syncController:     syncController,
+		signatureThrottler: signatureThrottler,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -880,7 +880,7 @@ func (sr *subroundBlock) processBlock(
 	pubkey []byte,
 ) bool {
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	remainingTimeInCurrentRound := func() time.Duration {
 		return sr.RoundHandler().RemainingTime(startTime, maxTime)
 	}

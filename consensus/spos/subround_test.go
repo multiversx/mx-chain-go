@@ -1558,3 +1558,33 @@ func TestSubround_SignatureSubroundEndTime(t *testing.T) {
 	sr.SetSignatureSubroundEndTimePercentage(0.85)
 	require.Equal(t, time.Duration(float64(roundTimeDuration)*0.85), sr.SignatureSubroundEndTime())
 }
+
+func TestSubround_SetProcessingThresholdPercent(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+	sr, err := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		roundTimeDuration,
+		0.05,
+		0.25,
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, 0, sr.ProcessingThresholdPercent())
+
+	sr.SetProcessingThresholdPercent(85)
+	require.Equal(t, 85, sr.ProcessingThresholdPercent())
+}

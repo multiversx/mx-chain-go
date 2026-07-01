@@ -20,6 +20,7 @@ type SubroundHandlerMock struct {
 	SetEndTimePercentageCalled   func(endTimePercent float64)
 
 	SetSignatureSubroundEndTimePercentageCalled func(percent float64)
+	SetProcessingThresholdPercentCalled         func(percent int)
 
 	NameCalled             func() string
 	JobCalled              func() bool
@@ -82,6 +83,13 @@ func (srm *SubroundHandlerMock) SetEndTimePercentage(endTimePercent float64) {
 func (srm *SubroundHandlerMock) SetSignatureSubroundEndTimePercentage(percent float64) {
 	if srm.SetSignatureSubroundEndTimePercentageCalled != nil {
 		srm.SetSignatureSubroundEndTimePercentageCalled(percent)
+	}
+}
+
+// SetProcessingThresholdPercent -
+func (srm *SubroundHandlerMock) SetProcessingThresholdPercent(percent int) {
+	if srm.SetProcessingThresholdPercentCalled != nil {
+		srm.SetProcessingThresholdPercentCalled(percent)
 	}
 }
 

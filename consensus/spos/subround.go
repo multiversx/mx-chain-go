@@ -37,6 +37,7 @@ type Subround struct {
 	startTimePercent                float64
 	endTimePercent                  float64
 	signatureSubroundEndTimePercent float64
+	processingThresholdPercent      int
 	startTime                       int64
 	endTime                         int64
 	name                            string
@@ -225,6 +226,22 @@ func (sr *Subround) SetSignatureSubroundEndTimePercentage(percent float64) {
 	defer sr.mutDuration.Unlock()
 
 	sr.signatureSubroundEndTimePercent = percent
+}
+
+// ProcessingThresholdPercent returns the processing threshold percent of the subround
+func (sr *Subround) ProcessingThresholdPercent() int {
+	sr.mutDuration.RLock()
+	defer sr.mutDuration.RUnlock()
+
+	return sr.processingThresholdPercent
+}
+
+// SetProcessingThresholdPercent sets the processing threshold percent of the subround
+func (sr *Subround) SetProcessingThresholdPercent(percent int) {
+	sr.mutDuration.Lock()
+	defer sr.mutDuration.Unlock()
+
+	sr.processingThresholdPercent = percent
 }
 
 // SetBaseDuration sets the base duration of the subround

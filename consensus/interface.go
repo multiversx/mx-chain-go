@@ -55,6 +55,8 @@ type SubroundHandler interface {
 	SetEndTimePercentage(endTimePercent float64)
 	// SetSignatureSubroundEndTimePercentage sets the end time percent of the signature subround
 	SetSignatureSubroundEndTimePercentage(percent float64)
+	// SetProcessingThresholdPercent sets the processing threshold percent of the subround
+	SetProcessingThresholdPercent(percent int)
 	// Name returns the name of the current roundHandler
 	Name() string
 	// ConsensusChannel returns the consensus channel

@@ -22,7 +22,6 @@ import (
 // subroundStartRound defines the data needed by the subround StartRound
 type subroundStartRound struct {
 	*spos.Subround
-	processingThresholdPercentage int
 
 	sentSignatureTracker spos.SentSignaturesTracker
 	worker               spos.WorkerHandler
@@ -50,13 +49,14 @@ func NewSubroundStartRound(
 		return nil, spos.ErrNilWorker
 	}
 
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
+
 	srStartRound := subroundStartRound{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
-		sentSignatureTracker:          sentSignatureTracker,
-		worker:                        worker,
-		outportHandler:                disabled.NewDisabledOutport(),
-		outportMutex:                  sync.RWMutex{},
+		Subround:             baseSubround,
+		sentSignatureTracker: sentSignatureTracker,
+		worker:               worker,
+		outportHandler:       disabled.NewDisabledOutport(),
+		outportMutex:         sync.RWMutex{},
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -216,7 +216,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),
