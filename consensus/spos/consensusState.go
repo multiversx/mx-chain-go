@@ -572,10 +572,7 @@ func (cns *ConsensusState) SignaturesWaitGroup() *sync.WaitGroup {
 }
 
 // SignaturesWaitGroupAdd adds delta to the current round's optimistic-signatures wait group and returns the
-// exact wait group instance the delta was applied to. The pointer read and the Add are performed atomically
-// under mutState, so a round-boundary swap can no longer land between them. Returning the instance lets the
-// caller pair its Done calls to the same wait group even if a swap happens afterwards, preventing orphaned
-// Done calls or a negative-counter panic.
+// exact wait group instance the delta was applied to.
 func (cns *ConsensusState) SignaturesWaitGroupAdd(delta int) *sync.WaitGroup {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()

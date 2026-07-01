@@ -222,7 +222,7 @@ func TestConsensusState_SetDataIfNotSet(t *testing.T) {
 		cns := internalInitConsensusState()
 		cns.SetData(nil)
 
-		data := []byte("header hash")
+		data := []byte("hash")
 		didSet := cns.SetDataIfNotSet(data)
 
 		assert.True(t, didSet)
@@ -233,13 +233,13 @@ func TestConsensusState_SetDataIfNotSet(t *testing.T) {
 		t.Parallel()
 
 		cns := internalInitConsensusState()
-		first := []byte("first hash")
+		first := []byte("firstHash")
 		cns.SetData(first)
 
-		didSet := cns.SetDataIfNotSet([]byte("second hash"))
+		didSet := cns.SetDataIfNotSet([]byte("secondHash"))
 
 		assert.False(t, didSet)
-		assert.Equal(t, first, cns.GetData(), "existing data must not be overwritten")
+		assert.Equal(t, first, cns.GetData())
 	})
 
 	t.Run("concurrent callers should not set twice", func(t *testing.T) {
@@ -255,15 +255,15 @@ func TestConsensusState_SetDataIfNotSet(t *testing.T) {
 		for i := 0; i < numGoroutines; i++ {
 			go func() {
 				defer wg.Done()
-				if cns.SetDataIfNotSet([]byte("the winning hash")) {
+				if cns.SetDataIfNotSet([]byte("hash")) {
 					atomic.AddInt32(&winners, 1)
 				}
 			}()
 		}
 		wg.Wait()
 
-		assert.Equal(t, int32(1), atomic.LoadInt32(&winners), "only one concurrent caller may win the set")
-		assert.Equal(t, []byte("the winning hash"), cns.GetData())
+		assert.Equal(t, int32(1), atomic.LoadInt32(&winners))
+		assert.Equal(t, []byte("hash"), cns.GetData())
 	})
 }
 
@@ -277,8 +277,7 @@ func TestConsensusState_SignaturesWaitGroupAdd(t *testing.T) {
 
 		wg := cns.SignaturesWaitGroupAdd(2)
 		require.NotNil(t, wg)
-		// the returned instance must be the current wait group, so Done calls on it release Wait
-		assert.Same(t, cns.SignaturesWaitGroup(), wg)
+		require.Equal(t, cns.SignaturesWaitGroup(), wg)
 
 		done := make(chan struct{})
 		go func() {
