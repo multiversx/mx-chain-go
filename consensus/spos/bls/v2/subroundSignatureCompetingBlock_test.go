@@ -78,8 +78,8 @@ func TestWaitIfCompetingBlock_NoPreviousHashExists(t *testing.T) {
 
 	sr := createSubroundSignatureForCompetingBlockTests(
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
-				return nil, false
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return nil, 0, false
 			},
 		},
 		nil,
@@ -96,8 +96,8 @@ func TestWaitIfCompetingBlock_PreviousHashEqualsCurrent(t *testing.T) {
 	currentHash := []byte("same_hash")
 	sr := createSubroundSignatureForCompetingBlockTests(
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
-				return currentHash, true
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return currentHash, 0, true
 			},
 		},
 		nil,
@@ -113,8 +113,8 @@ func TestWaitIfCompetingBlock_AlreadyPastDelayDeadline(t *testing.T) {
 
 	sr := createSubroundSignatureForCompetingBlockTests(
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
-				return []byte("previous_hash"), true
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return []byte("previous_hash"), 0, true
 			},
 		},
 		nil,
@@ -123,7 +123,7 @@ func TestWaitIfCompetingBlock_AlreadyPastDelayDeadline(t *testing.T) {
 				return 100 * time.Millisecond
 			},
 			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-				// Already past the competing block delay deadline (and subround end)
+				// Already past the competing block delay deadline (and send deadline)
 				return 0
 			},
 		},
@@ -133,13 +133,13 @@ func TestWaitIfCompetingBlock_AlreadyPastDelayDeadline(t *testing.T) {
 	assert.False(t, result, "should return false (proceed to sign) when already past delay deadline")
 }
 
-func TestWaitIfCompetingBlock_NoTimeRemainingInSubround(t *testing.T) {
+func TestWaitIfCompetingBlock_NoTimeRemainingBeforeSendDeadline(t *testing.T) {
 	t.Parallel()
 
 	sr := createSubroundSignatureForCompetingBlockTests(
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
-				return []byte("previous_hash"), true
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return []byte("previous_hash"), 0, true
 			},
 		},
 		nil,
@@ -153,14 +153,13 @@ func TestWaitIfCompetingBlock_NoTimeRemainingInSubround(t *testing.T) {
 				if maxTime > 200*time.Millisecond {
 					return 200 * time.Millisecond
 				}
-				// No time remaining in signature subround
 				return 0
 			},
 		},
 	)
 
 	result := sr.WaitIfCompetingBlock(context.Background(), []byte("pk"), 100, []byte("current_hash"))
-	assert.False(t, result, "should return false (proceed to sign) when no time remaining in subround")
+	assert.False(t, result, "should return false (proceed to sign) when no time remaining before send deadline")
 }
 
 func TestWaitIfCompetingBlock_ContextCancelled(t *testing.T) {
@@ -168,8 +167,8 @@ func TestWaitIfCompetingBlock_ContextCancelled(t *testing.T) {
 
 	sr := createSubroundSignatureForCompetingBlockTests(
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
-				return []byte("previous_hash"), true
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return []byte("previous_hash"), 0, true
 			},
 		},
 		&dataRetriever.ProofsPoolMock{
@@ -202,8 +201,8 @@ func TestWaitIfCompetingBlock_ProofArrivesForPreviousBlock(t *testing.T) {
 
 	sr := createSubroundSignatureForCompetingBlockTests(
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
-				return previousHash, true
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return previousHash, 0, true
 			},
 		},
 		&dataRetriever.ProofsPoolMock{
@@ -243,8 +242,8 @@ func TestWaitIfCompetingBlock_DeadlineExpiresNoProof(t *testing.T) {
 
 	sr := createSubroundSignatureForCompetingBlockTests(
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
-				return []byte("previous_hash"), true
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return []byte("previous_hash"), 0, true
 			},
 		},
 		&dataRetriever.ProofsPoolMock{
@@ -274,13 +273,13 @@ func TestWaitIfCompetingBlock_DeadlineExpiresNoProof(t *testing.T) {
 	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond, "should have waited at least ~50ms")
 }
 
-func TestWaitIfCompetingBlock_DelayCappedBySubroundRemaining(t *testing.T) {
+func TestWaitIfCompetingBlock_DelayCappedBySendDeadline(t *testing.T) {
 	t.Parallel()
 
 	sr := createSubroundSignatureForCompetingBlockTests(
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
-				return []byte("previous_hash"), true
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return []byte("previous_hash"), 0, true
 			},
 		},
 		&dataRetriever.ProofsPoolMock{
@@ -290,7 +289,7 @@ func TestWaitIfCompetingBlock_DelayCappedBySubroundRemaining(t *testing.T) {
 		},
 		&testscommon.RoundHandlerMock{
 			TimeDurationCalled: func() time.Duration {
-				return 600 * time.Millisecond // targetTime = 300ms
+				return 1000 * time.Millisecond
 			},
 			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 				// Simulate round just started: remaining = maxTime
@@ -308,6 +307,110 @@ func TestWaitIfCompetingBlock_DelayCappedBySubroundRemaining(t *testing.T) {
 	assert.False(t, result, "should return false (proceed to sign) after capped delay expires")
 	// delay should be capped to 75ms (sigEndDuration 85ms - 10ms safety), not full 300ms
 	assert.Less(t, elapsed, 150*time.Millisecond, "delay should be capped, not full 300ms")
+}
+
+func TestWaitIfCompetingBlock_OlderRoundSignsImmediately(t *testing.T) {
+	t.Parallel()
+
+	// currentRound = 5, entry was signed at round = 3 (= currentRound-2), so not competing.
+	sr := createSubroundSignatureForCompetingBlockTests(
+		&testscommon.SentSignatureTrackerStub{
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return []byte("old_hash"), 3, true // round 3, two rounds behind
+			},
+		},
+		nil,
+		&testscommon.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 5 // currentRound = 5, currentRound-1 = 4
+			},
+			TimeDurationCalled: func() time.Duration {
+				return 600 * time.Millisecond
+			},
+			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+				return 400 * time.Millisecond
+			},
+		},
+	)
+
+	start := time.Now()
+	result := sr.WaitIfCompetingBlock(context.Background(), []byte("pk"), 100, []byte("current_hash"))
+	elapsed := time.Since(start)
+
+	assert.False(t, result, "should return false immediately for entries from rounds older than currentRound-1")
+	assert.Less(t, elapsed, 30*time.Millisecond, "should sign immediately without waiting")
+}
+
+func TestWaitIfCompetingBlock_PreviousRoundWaits(t *testing.T) {
+	t.Parallel()
+
+	// currentRound = 5, entry was signed at round = 4 (= currentRound-1), so it is competing.
+	sr := createSubroundSignatureForCompetingBlockTests(
+		&testscommon.SentSignatureTrackerStub{
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return []byte("previous_hash"), 4, true // round 4, one round behind
+			},
+		},
+		&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return false
+			},
+		},
+		&testscommon.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 5 // currentRound = 5, currentRound-1 = 4
+			},
+			TimeDurationCalled: func() time.Duration {
+				return 100 * time.Millisecond
+			},
+			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+				return maxTime
+			},
+		},
+	)
+
+	start := time.Now()
+	result := sr.WaitIfCompetingBlock(context.Background(), []byte("pk"), 100, []byte("current_hash"))
+	elapsed := time.Since(start)
+
+	assert.False(t, result, "should return false after delay expires (no proof arrived)")
+	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond, "should have waited for the competing block delay")
+}
+
+func TestWaitIfCompetingBlock_SameRoundWaits(t *testing.T) {
+	t.Parallel()
+
+	// currentRound = 5, entry was signed in round = 5 (same round), so it is competing.
+	sr := createSubroundSignatureForCompetingBlockTests(
+		&testscommon.SentSignatureTrackerStub{
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return []byte("previous_hash"), 5, true // same round
+			},
+		},
+		&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return false
+			},
+		},
+		&testscommon.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 5
+			},
+			TimeDurationCalled: func() time.Duration {
+				return 100 * time.Millisecond
+			},
+			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+				return maxTime
+			},
+		},
+	)
+
+	start := time.Now()
+	result := sr.WaitIfCompetingBlock(context.Background(), []byte("pk"), 100, []byte("current_hash"))
+	elapsed := time.Since(start)
+
+	assert.False(t, result, "should return false after delay expires (no proof arrived)")
+	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond, "should have waited for the competing block delay")
 }
 
 func TestWaitIfCompetingBlock_RecordSignedNonceCalledBeforeBroadcast(t *testing.T) {
@@ -356,7 +459,7 @@ func TestWaitIfCompetingBlock_RecordSignedNonceCalledBeforeBroadcast(t *testing.
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{
-			RecordSignedNonceCalled: func(pkBytes []byte, nonce uint64, headerHash []byte) {
+			RecordSignedNonceCalled: func(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64) {
 				recordCalled = true
 			},
 		},
@@ -375,8 +478,8 @@ func TestWaitIfCompetingBlockForNode_NoCompetingBlockForAnyKey(t *testing.T) {
 
 	sr := createSubroundSignatureForCompetingBlockTests(
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
-				return nil, false // no key has previously signed
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return nil, 0, false // no key has previously signed
 			},
 		},
 		nil,
@@ -393,8 +496,8 @@ func TestWaitIfCompetingBlockForNode_SameHashForAllKeys(t *testing.T) {
 	currentHash := []byte("current_hash")
 	sr := createSubroundSignatureForCompetingBlockTests(
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
-				return currentHash, true // all keys signed the same hash
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+				return currentHash, 0, true // all keys signed the same hash
 			},
 		},
 		nil,
@@ -442,11 +545,11 @@ func TestWaitIfCompetingBlockForNode_SelfKeyHasCompetingBlock(t *testing.T) {
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
 				if string(pkBytes) == selfPk {
-					return []byte("different_hash"), true
+					return []byte("different_hash"), 0, true
 				}
-				return nil, false
+				return nil, 0, false
 			},
 		},
 		&consensusMocks.SposWorkerMock{},
@@ -510,16 +613,16 @@ func TestWaitIfCompetingBlockForNode_ManagedKeyHasCompetingBlock(t *testing.T) {
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
 				if string(pkBytes) == selfPk {
 					// Self key: no competing block
-					return nil, false
+					return nil, 0, false
 				}
 				if string(pkBytes) == "A" {
 					// Managed key "A": has competing block
-					return []byte("old_hash"), true
+					return []byte("old_hash"), 0, true
 				}
-				return nil, false
+				return nil, 0, false
 			},
 		},
 		&consensusMocks.SposWorkerMock{},
@@ -577,9 +680,9 @@ func TestWaitIfCompetingBlockForNode_WaitsOnceNotPerKey(t *testing.T) {
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{
-			GetSignedHashCalled: func(pkBytes []byte, nonce uint64) ([]byte, bool) {
+			GetSignedNonceInfoCalled: func(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
 				// ALL keys have signed a different hash
-				return []byte("old_hash"), true
+				return []byte("old_hash"), 0, true
 			},
 		},
 		&consensusMocks.SposWorkerMock{},
