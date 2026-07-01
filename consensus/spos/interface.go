@@ -231,9 +231,11 @@ type ConsensusStateHandler interface {
 	SetBody(body data.BodyHandler)
 	GetHeader() data.HeaderHandler
 	SetHeader(header data.HeaderHandler)
+	SetDataIfNotSet(data []byte) bool
 	GetWaitingAllSignaturesTimeOut() bool
 	SetWaitingAllSignaturesTimeOut(bool)
 	SignaturesWaitGroup() *sync.WaitGroup
+	SignaturesWaitGroupAdd(delta int) *sync.WaitGroup
 	SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc)
 	SignaturesCtxCancel()
 	RoundConsensusHandler

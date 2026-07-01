@@ -403,8 +403,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 		return
 	}
 
-	wg := sr.SignaturesWaitGroup()
-	wg.Add(len(keys))
+	wg := sr.SignaturesWaitGroupAdd(len(keys))
 
 	go func() {
 		triggered := 0
@@ -756,7 +755,10 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	sr.SetData(headerHash)
+	if !sr.SetDataIfNotSet(headerHash) {
+		log.Debug("subroundBlock.receivedBlockHeader - consensus data already set")
+		return
+	}
 	sr.SetHeader(headerHandler)
 
 	log.Debug("step 1: block header has been received",

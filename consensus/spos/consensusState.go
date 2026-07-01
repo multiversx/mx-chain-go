@@ -371,6 +371,19 @@ func (cns *ConsensusState) SetData(data []byte) {
 	cns.mutData.Unlock()
 }
 
+// SetDataIfNotSet atomically sets the consensus data only if it is not already set for the current round.
+func (cns *ConsensusState) SetDataIfNotSet(data []byte) bool {
+	cns.mutData.Lock()
+	defer cns.mutData.Unlock()
+
+	if cns.data != nil {
+		return false
+	}
+
+	cns.data = data
+	return true
+}
+
 // IsMultiKeyLeaderInCurrentRound method checks if one of the nodes which are controlled by this instance
 // is leader in the current round
 func (cns *ConsensusState) IsMultiKeyLeaderInCurrentRound() bool {
@@ -548,12 +561,29 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 	cns.waitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
 }
 
-// SignaturesWaitGroup returns wait group for optimistic signatures handling
+// SignaturesWaitGroup returns wait group for optimistic signatures handling.
+// The pointer is read under mutState so it is consistent with the round-boundary swap done in
+// ResetConsensusRoundState.
 func (cns *ConsensusState) SignaturesWaitGroup() *sync.WaitGroup {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
 	return cns.signaturesWaitGroup
+}
+
+// SignaturesWaitGroupAdd adds delta to the current round's optimistic-signatures wait group and returns the
+// exact wait group instance the delta was applied to. The pointer read and the Add are performed atomically
+// under mutState, so a round-boundary swap can no longer land between them. Returning the instance lets the
+// caller pair its Done calls to the same wait group even if a swap happens afterwards, preventing orphaned
+// Done calls or a negative-counter panic.
+func (cns *ConsensusState) SignaturesWaitGroupAdd(delta int) *sync.WaitGroup {
+	cns.mutState.Lock()
+	defer cns.mutState.Unlock()
+
+	wg := cns.signaturesWaitGroup
+	wg.Add(delta)
+
+	return wg
 }
 
 // SetSignaturesCtxCancelFunc will set signatures context cancel function

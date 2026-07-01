@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -210,6 +211,90 @@ func TestConsensusState_IsConsensusDataSetShouldReturnFalse(t *testing.T) {
 	cns.SetData(nil)
 
 	assert.False(t, cns.IsConsensusDataSet())
+}
+
+func TestConsensusState_SetDataIfNotSet(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sets data and returns true when not previously set", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		cns.SetData(nil)
+
+		data := []byte("header hash")
+		didSet := cns.SetDataIfNotSet(data)
+
+		assert.True(t, didSet)
+		assert.Equal(t, data, cns.GetData())
+	})
+
+	t.Run("returns false and keeps existing data when already set", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		first := []byte("first hash")
+		cns.SetData(first)
+
+		didSet := cns.SetDataIfNotSet([]byte("second hash"))
+
+		assert.False(t, didSet)
+		assert.Equal(t, first, cns.GetData(), "existing data must not be overwritten")
+	})
+
+	t.Run("concurrent callers should not set twice", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		cns.SetData(nil)
+
+		numGoroutines := 50
+		wg := sync.WaitGroup{}
+		wg.Add(numGoroutines)
+		winners := int32(0)
+		for i := 0; i < numGoroutines; i++ {
+			go func() {
+				defer wg.Done()
+				if cns.SetDataIfNotSet([]byte("the winning hash")) {
+					atomic.AddInt32(&winners, 1)
+				}
+			}()
+		}
+		wg.Wait()
+
+		assert.Equal(t, int32(1), atomic.LoadInt32(&winners), "only one concurrent caller may win the set")
+		assert.Equal(t, []byte("the winning hash"), cns.GetData())
+	})
+}
+
+func TestConsensusState_SignaturesWaitGroupAdd(t *testing.T) {
+	t.Parallel()
+
+	t.Run("adds the delta and returns the same instance the delta was applied to", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+
+		wg := cns.SignaturesWaitGroupAdd(2)
+		require.NotNil(t, wg)
+		// the returned instance must be the current wait group, so Done calls on it release Wait
+		assert.Same(t, cns.SignaturesWaitGroup(), wg)
+
+		done := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(done)
+		}()
+
+		wg.Done()
+		wg.Done()
+
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+			t.Fatal("Wait did not return after the added deltas were Done")
+		}
+	})
 }
 
 func TestConsensusState_IsConsensusDataEqualShouldReturnTrue(t *testing.T) {
