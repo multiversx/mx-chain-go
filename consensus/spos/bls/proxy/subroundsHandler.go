@@ -1,8 +1,6 @@
 package proxy
 
 import (
-	"sync"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -14,7 +12,6 @@ import (
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/outport"
-	"github.com/multiversx/mx-chain-go/process"
 )
 
 var log = logger.GetOrCreate("consensus/spos/bls/proxy")
@@ -31,14 +28,13 @@ type SubroundsHandlerArgs struct {
 	SentSignatureTracker spos.SentSignaturesTracker
 	EnableEpochsHandler  core.EnableEpochsHandler
 	CommonConfigsHandler common.CommonConfigsHandler
-	RoundNotifier        process.RoundNotifier
 	ChainID              []byte
 	CurrentPid           core.PeerID
 }
 
 // subroundsFactory defines the methods needed to generate the subrounds
 type subroundsFactory interface {
-	GenerateSubrounds(epoch uint32, round uint64) error
+	GenerateSubrounds(epoch uint32) error
 	SetOutportHandler(driver outport.OutportHandler)
 	IsInterfaceNil() bool
 }
@@ -57,54 +53,16 @@ type SubroundsHandler struct {
 	sentSignatureTracker spos.SentSignaturesTracker
 	enableEpochsHandler  core.EnableEpochsHandler
 	commonConfigsHandler common.CommonConfigsHandler
-	roundNotifier        process.RoundNotifier
 	chainID              []byte
 	currentPid           core.PeerID
-
-	mutReInit                     sync.Mutex
-	currentConsensusType          consensusStateMachineType
-	currentEpoch                  uint32
-	lastTimingBoundaryEnableRound uint64
-	timingBoundaryInitialized     bool
+	currentConsensusType consensusStateMachineType
 }
 
 // EpochConfirmed is called when the epoch is confirmed (this is registered as callback)
 func (s *SubroundsHandler) EpochConfirmed(epoch uint32, _ uint64) {
-	s.mutReInit.Lock()
-	defer s.mutReInit.Unlock()
-
-	s.currentEpoch = epoch
-	round := s.roundNotifier.CurrentRound()
-	err := s.initSubroundsForEpoch(epoch, round)
+	err := s.initSubroundsForEpoch(epoch)
 	if err != nil {
 		log.Error("SubroundsHandler.EpochConfirmed: cannot initialize subrounds", "error", err)
-	}
-}
-
-// RoundConfirmed is called when a new round is confirmed
-func (s *SubroundsHandler) RoundConfirmed(round uint64, _ uint64) {
-	s.mutReInit.Lock()
-	defer s.mutReInit.Unlock()
-
-	activeBoundary := s.commonConfigsHandler.GetActiveTimingBoundaryRound(round)
-	if s.timingBoundaryInitialized && activeBoundary == s.lastTimingBoundaryEnableRound {
-		return
-	}
-
-	// save the initial boundary on the first notification without re-generating (subrounds are
-	// already generated for the current boundary during Start)
-	if !s.timingBoundaryInitialized {
-		s.timingBoundaryInitialized = true
-		s.lastTimingBoundaryEnableRound = activeBoundary
-		return
-	}
-
-	s.lastTimingBoundaryEnableRound = activeBoundary
-
-	log.Debug("SubroundsHandler.RoundConfirmed: re-generating subrounds for new timing config", "round", round)
-	err := s.generateSubroundsForCurrentType(s.currentEpoch, round)
-	if err != nil {
-		log.Error("SubroundsHandler.RoundConfirmed: cannot reinitialize subrounds", "error", err)
 	}
 }
 
@@ -132,14 +90,12 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 		sentSignatureTracker: args.SentSignatureTracker,
 		enableEpochsHandler:  args.EnableEpochsHandler,
 		commonConfigsHandler: args.CommonConfigsHandler,
-		roundNotifier:        args.RoundNotifier,
 		chainID:              args.ChainID,
 		currentPid:           args.CurrentPid,
 		currentConsensusType: consensusNone,
 	}
 
 	subroundHandler.consensusCoreHandler.EpochNotifier().RegisterNotifyHandler(subroundHandler)
-	args.RoundNotifier.RegisterNotifyHandler(subroundHandler)
 
 	return subroundHandler, nil
 }
@@ -175,9 +131,6 @@ func checkArgs(args *SubroundsHandlerArgs) error {
 	if check.IfNil(args.CommonConfigsHandler) {
 		return common.ErrNilCommonConfigsHandler
 	}
-	if check.IfNil(args.RoundNotifier) {
-		return ErrNilRoundNotifier
-	}
 	if args.ChainID == nil {
 		return ErrNilChainID
 	}
@@ -191,16 +144,12 @@ func checkArgs(args *SubroundsHandlerArgs) error {
 
 // Start starts the sub-rounds handler
 func (s *SubroundsHandler) Start(epoch uint32) error {
-	s.mutReInit.Lock()
-	defer s.mutReInit.Unlock()
-
-	s.currentEpoch = epoch
-	round := s.roundNotifier.CurrentRound()
-	return s.initSubroundsForEpoch(epoch, round)
+	return s.initSubroundsForEpoch(epoch)
 }
 
-// initSubroundsForEpoch must be called with mutReInit held
-func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32, round uint64) error {
+// initSubroundsForEpoch generates the subrounds for the target consensus type of the given epoch, if it
+// differs from the currently active consensus type
+func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 	targetConsensusType := s.getTargetConsensusType(epoch)
 
 	if s.currentConsensusType == targetConsensusType {
@@ -208,7 +157,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32, round uint64) err
 	}
 
 	s.currentConsensusType = targetConsensusType
-	return s.generateSubroundsForCurrentType(epoch, round)
+	return s.generateSubroundsForCurrentType(epoch)
 }
 
 func (s *SubroundsHandler) getTargetConsensusType(epoch uint32) consensusStateMachineType {
@@ -219,8 +168,8 @@ func (s *SubroundsHandler) getTargetConsensusType(epoch uint32) consensusStateMa
 	return consensusV1
 }
 
-// generateSubroundsForCurrentType must be called with mutReInit held
-func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32, round uint64) error {
+// generateSubroundsForCurrentType generates the subrounds matching the currently set consensus type
+func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32) error {
 	if s.currentConsensusType == consensusNone {
 		return nil
 	}
@@ -263,7 +212,7 @@ func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32, round u
 		log.Warn("SubroundsHandler.generateSubroundsForCurrentType: cannot close the chronology", "error", err)
 	}
 
-	err = fct.GenerateSubrounds(epoch, round)
+	err = fct.GenerateSubrounds(epoch)
 	if err != nil {
 		return err
 	}

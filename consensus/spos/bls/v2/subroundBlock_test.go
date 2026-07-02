@@ -84,7 +84,6 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, erro
 		},
 		&consensusMocks.NtpSyncControllerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
-		0.85,
 	)
 
 	return srBlock, err
@@ -103,7 +102,6 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.Subround
 		},
 		&consensusMocks.NtpSyncControllerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
-		0.85,
 	)
 
 	return srBlock
@@ -187,7 +185,6 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 		&consensusMocks.SposWorkerMock{},
 		&consensusMocks.NtpSyncControllerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
-		0.85,
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -344,7 +341,6 @@ func TestSubroundBlock_NewSubroundBlockNilWorkerShouldFail(t *testing.T) {
 		nil,
 		&consensusMocks.NtpSyncControllerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
-		0.85,
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilWorker, err)
@@ -363,7 +359,6 @@ func TestSubroundBlock_NewSubroundBlockNilRoundSyncController(t *testing.T) {
 		&consensusMocks.SposWorkerMock{},
 		nil,
 		&dataRetrieverMock.ThrottlerStub{},
-		0.85,
 	)
 	require.Nil(t, srBlock)
 	require.Equal(t, v2.ErrNilRoundSyncController, err)
@@ -661,7 +656,6 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 			&consensusMocks.NtpSyncControllerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
-			0.85,
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -766,7 +760,6 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 			&consensusMocks.NtpSyncControllerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
-			0.85,
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -1670,7 +1663,6 @@ func TestSubroundBlock_UpdateConsensusMetrics(t *testing.T) {
 		},
 		&consensusMocks.NtpSyncControllerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
-		0.85,
 	)
 
 	consensusMetrics.ResetInstanceValues()
@@ -1942,8 +1934,8 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 			&consensusMocks.SposWorkerMock{},
 			&consensusMocks.NtpSyncControllerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
-			0.85,
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetHeader(&block.Header{Epoch: currEpoch})
 		sr.SetSelfPubKey("OTHER")
@@ -2022,8 +2014,8 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 					return false
 				},
 			},
-			0.85,
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetSelfPubKey("OTHER")
 
@@ -2088,8 +2080,8 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 					return false
 				},
 			},
-			0.85,
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetHeader(nil)
 		sr.SetSelfPubKey("OTHER")
@@ -2166,8 +2158,8 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 					return true
 				},
 			},
-			0.85,
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetSelfPubKey("OTHER")
 
