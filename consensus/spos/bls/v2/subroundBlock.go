@@ -721,9 +721,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	}
 
 	if sr.IsConsensusDataSet() {
-		log.Debug("subroundBlock.receivedBlockHeader - consensus data is set",
-			"data", sr.GetData(),
-		)
+		log.Debug("subroundBlock.receivedBlockHeader - consensus data is set")
 		if !check.IfNil(sr.GetHeader()) {
 			log.Debug("consensus data",
 				"current data", sr.GetData(),
