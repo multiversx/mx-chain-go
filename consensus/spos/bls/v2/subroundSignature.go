@@ -267,9 +267,9 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
 	defer cancel()
 
-	isTimeLeft := sr.waitForSignatures(timeLeft)
-	if !isTimeLeft {
-		log.Debug("doSignatureJobForManagedKeys: timeout while sending signatures")
+	signaturesReady := sr.waitForSignatures(timeLeft)
+	if !signaturesReady {
+		log.Debug("doSignatureJobForManagedKeys: timeout while waiting for signatures to be created")
 		return false
 	}
 
@@ -384,7 +384,7 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(ctx context.Context) boo
 	}
 
 	if !sr.isTimeLeft() {
-		log.Debug("doSignatureJobForSingleKey: timeout while handling single key singature")
+		log.Debug("doSignatureJobForSingleKey: timeout while handling single key signature")
 		return false
 	}
 

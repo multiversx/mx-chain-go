@@ -1935,6 +1935,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 			&consensusMocks.NtpSyncControllerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetHeader(&block.Header{Epoch: currEpoch})
 		sr.SetSelfPubKey("OTHER")
@@ -2014,6 +2015,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 				},
 			},
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetSelfPubKey("OTHER")
 
@@ -2079,6 +2081,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 				},
 			},
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetHeader(nil)
 		sr.SetSelfPubKey("OTHER")
@@ -2156,6 +2159,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 				},
 			},
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetSelfPubKey("OTHER")
 
