@@ -393,6 +393,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 	sigSubroundEndTime := sr.SignatureSubroundEndTime()
 	if sigSubroundEndTime == 0 {
 		log.Error("triggerCreateSignaturesForManagedKeys: signature subround end time is 0")
+		return
 	}
 
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)

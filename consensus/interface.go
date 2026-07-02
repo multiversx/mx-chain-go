@@ -49,10 +49,8 @@ type SubroundHandler interface {
 	EndTime() int64
 	// SetBaseDuration sets the base duration
 	SetBaseDuration(baseDuration time.Duration)
-	// SetStartTimePercentage sets the start time percent of the subround
-	SetStartTimePercentage(startTimePercent float64)
-	// SetEndTimePercentage sets the end time percent of the subround
-	SetEndTimePercentage(endTimePercent float64)
+	// SetTimingPercentage sets the start time and end time percent of the subround
+	SetTimingPercentage(startTimePercent float64, endTimePercent float64)
 	// SetSignatureSubroundEndTimePercentage sets the end time percent of the signature subround
 	SetSignatureSubroundEndTimePercentage(percent float64)
 	// SetProcessingThresholdPercent sets the processing threshold percent of the subround

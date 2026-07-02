@@ -253,20 +253,12 @@ func (sr *Subround) SetBaseDuration(baseDuration time.Duration) {
 	sr.startTime, sr.endTime = computeStartAndEndTime(baseDuration, sr.startTimePercent, sr.endTimePercent)
 }
 
-// SetStartTimePercentage sets the start time percent of the subround and recomputes its start and end time
-func (sr *Subround) SetStartTimePercentage(startTimePercent float64) {
+// SetTimingPercentage sets the start time and end time percent of the subround and recomputes its start and end time
+func (sr *Subround) SetTimingPercentage(startTimePercent float64, endTimePercent float64) {
 	sr.mutDuration.Lock()
 	defer sr.mutDuration.Unlock()
 
 	sr.startTimePercent = startTimePercent
-	sr.startTime, sr.endTime = computeStartAndEndTime(sr.baseDuration, sr.startTimePercent, sr.endTimePercent)
-}
-
-// SetEndTimePercentage sets the end time percent of the subround and recomputes its start and end time
-func (sr *Subround) SetEndTimePercentage(endTimePercent float64) {
-	sr.mutDuration.Lock()
-	defer sr.mutDuration.Unlock()
-
 	sr.endTimePercent = endTimePercent
 	sr.startTime, sr.endTime = computeStartAndEndTime(sr.baseDuration, sr.startTimePercent, sr.endTimePercent)
 }

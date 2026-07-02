@@ -563,7 +563,7 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 	chr, err := chronology.NewChronology(arg)
 	require.Nil(t, err)
 
-	var setStartCalls, setEndCalls, sigPercentCalls, thresholdCalls int32
+	var setCalls, sigPercentCalls, thresholdCalls int32
 	var lastStart, lastEnd, lastSigPercent float64
 	var lastThreshold int32
 
@@ -578,12 +578,9 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 
 		// count timing applications on the start-round subround only
 		if current == bls.SrStartRound {
-			srm.SetStartTimePercentageCalled = func(startTimePercent float64) {
-				atomic.AddInt32(&setStartCalls, 1)
+			srm.SetTimingPercentageCalled = func(startTimePercent float64, endTimePercent float64) {
+				atomic.AddInt32(&setCalls, 1)
 				lastStart = startTimePercent
-			}
-			srm.SetEndTimePercentageCalled = func(endTimePercent float64) {
-				atomic.AddInt32(&setEndCalls, 1)
 				lastEnd = endTimePercent
 			}
 			srm.SetProcessingThresholdPercentCalled = func(percent int) {
@@ -605,8 +602,7 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 	roundHandlerMock.RoundIndex = 0
 	chr.InitRound()
 
-	require.Equal(t, int32(0), atomic.LoadInt32(&setStartCalls))
-	require.Equal(t, int32(0), atomic.LoadInt32(&setEndCalls))
+	require.Equal(t, int32(0), atomic.LoadInt32(&setCalls))
 	require.Equal(t, int32(0), atomic.LoadInt32(&sigPercentCalls))
 	require.Equal(t, int32(0), atomic.LoadInt32(&thresholdCalls))
 
@@ -614,8 +610,7 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 	roundHandlerMock.RoundIndex = 5
 	chr.InitRound()
 
-	require.Equal(t, int32(0), atomic.LoadInt32(&setStartCalls))
-	require.Equal(t, int32(0), atomic.LoadInt32(&setEndCalls))
+	require.Equal(t, int32(0), atomic.LoadInt32(&setCalls))
 	require.Equal(t, int32(0), atomic.LoadInt32(&sigPercentCalls))
 	require.Equal(t, int32(0), atomic.LoadInt32(&thresholdCalls))
 
@@ -623,8 +618,7 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 	roundHandlerMock.RoundIndex = 10
 	chr.InitRound()
 
-	require.Equal(t, int32(1), atomic.LoadInt32(&setStartCalls))
-	require.Equal(t, int32(1), atomic.LoadInt32(&setEndCalls))
+	require.Equal(t, int32(1), atomic.LoadInt32(&setCalls))
 	require.Equal(t, timingAfterBoundary.SubroundsTiming[bls.SrStartRound].StartTime, lastStart)
 	require.Equal(t, timingAfterBoundary.SubroundsTiming[bls.SrStartRound].EndTime, lastEnd)
 	require.Equal(t, int32(1), atomic.LoadInt32(&sigPercentCalls))
@@ -636,8 +630,7 @@ func TestChronology_HandleRoundChangedIfNeeded(t *testing.T) {
 	roundHandlerMock.RoundIndex = 20
 	chr.InitRound()
 
-	require.Equal(t, int32(1), atomic.LoadInt32(&setStartCalls))
-	require.Equal(t, int32(1), atomic.LoadInt32(&setEndCalls))
+	require.Equal(t, int32(1), atomic.LoadInt32(&setCalls))
 	require.Equal(t, int32(1), atomic.LoadInt32(&sigPercentCalls))
 	require.Equal(t, int32(1), atomic.LoadInt32(&thresholdCalls))
 }
@@ -691,7 +684,7 @@ func TestChronology_RemoveAllSubroundsResetsTimingBoundary(t *testing.T) {
 	chr, err := chronology.NewChronology(arg)
 	require.Nil(t, err)
 
-	var setStartCalls int32
+	var setCalls int32
 	var lastStart float64
 	addSubrounds := func() {
 		for i := 0; i < 4; i++ {
@@ -702,8 +695,8 @@ func TestChronology_RemoveAllSubroundsResetsTimingBoundary(t *testing.T) {
 			srm.DoWorkCalled = func(consensus.RoundHandler) bool { return false }
 			srm.NameCalled = func() string { return "(TEST)" }
 			if current == bls.SrStartRound {
-				srm.SetStartTimePercentageCalled = func(startTimePercent float64) {
-					atomic.AddInt32(&setStartCalls, 1)
+				srm.SetTimingPercentageCalled = func(startTimePercent float64, endTimePercent float64) {
+					atomic.AddInt32(&setCalls, 1)
 					lastStart = startTimePercent
 				}
 			}
@@ -716,7 +709,7 @@ func TestChronology_RemoveAllSubroundsResetsTimingBoundary(t *testing.T) {
 	// cross into the new timing boundary -> setters fire with the boundary values
 	roundHandlerMock.RoundIndex = 10
 	chr.InitRound()
-	require.Equal(t, int32(1), atomic.LoadInt32(&setStartCalls))
+	require.Equal(t, int32(1), atomic.LoadInt32(&setCalls))
 	require.Equal(t, timingAfterBoundary.SubroundsTiming[bls.SrStartRound].StartTime, lastStart)
 
 	// regenerate the subrounds (as done on an epoch / consensus-type switch); the freshly generated
@@ -728,6 +721,6 @@ func TestChronology_RemoveAllSubroundsResetsTimingBoundary(t *testing.T) {
 	chr.InitRound()
 
 	// without the boundary reset in RemoveAllSubrounds this would early-return and leave base timing
-	require.Equal(t, int32(2), atomic.LoadInt32(&setStartCalls))
+	require.Equal(t, int32(2), atomic.LoadInt32(&setCalls))
 	require.Equal(t, timingAfterBoundary.SubroundsTiming[bls.SrStartRound].StartTime, lastStart)
 }

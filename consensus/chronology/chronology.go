@@ -226,7 +226,7 @@ func (chr *chronology) getRoundUnixTimeStamp() int64 {
 func (chr *chronology) initRound() {
 	chr.subroundId = srBeforeStartRound
 
-	chr.mutSubrounds.RLock()
+	chr.mutSubrounds.Lock()
 
 	hasSubroundsAndGenesisTimePassed := !chr.roundHandler.BeforeGenesis() && len(chr.subroundHandlers) > 0
 
@@ -241,7 +241,7 @@ func (chr *chronology) initRound() {
 		chr.handleSupernovaTransitionIfNeeded()
 	}
 
-	chr.mutSubrounds.RUnlock()
+	chr.mutSubrounds.Unlock()
 }
 
 func (chr *chronology) handleRoundChangedIfNeeded() {
@@ -263,8 +263,7 @@ func (chr *chronology) handleRoundChangedIfNeeded() {
 			continue
 		}
 
-		subroundHandler.SetStartTimePercentage(timing.SubroundsTiming[idx].StartTime)
-		subroundHandler.SetEndTimePercentage(timing.SubroundsTiming[idx].EndTime)
+		subroundHandler.SetTimingPercentage(timing.SubroundsTiming[idx].StartTime, timing.SubroundsTiming[idx].EndTime)
 	}
 
 	// the block subround needs the signature subround end time for managed-key signature deadline
