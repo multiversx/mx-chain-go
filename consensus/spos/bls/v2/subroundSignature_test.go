@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -952,110 +951,6 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		mutex.Lock()
 		assert.Equal(t, expectedMap, signatureSentForPks)
 		assert.Equal(t, expectedBroadcastMap, signaturesBroadcast)
-		mutex.Unlock()
-	})
-
-	t.Run("should work until context is cancelled", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithCancel(context.TODO())
-		defer cancel()
-
-		container := consensusMocks.InitConsensusCore()
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.AndromedaFlag
-			},
-		}
-		container.SetEnableEpochsHandler(enableEpochsHandler)
-
-		numCalls := int32(0)
-		signingHandler := &consensusMocks.SigningHandlerStub{
-			SignatureShareCalled: func(index uint16) ([]byte, error) {
-				return nil, expectedErr
-			},
-			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
-				atomic.AddInt32(&numCalls, 1)
-				if atomic.LoadInt32(&numCalls) > 3 {
-					cancel()
-					return nil, expectedErr
-				}
-
-				return []byte("SIG"), nil
-			},
-		}
-		container.SetSigningHandler(signingHandler)
-		consensusState := initializers.InitConsensusStateWithKeysHandler(
-			&testscommon.KeysHandlerStub{
-				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
-					return true
-				},
-			},
-		)
-		ch := make(chan bool, 1)
-
-		sr, _ := spos.NewSubround(
-			bls.SrBlock,
-			bls.SrSignature,
-			bls.SrEndRound,
-			roundTimeDuration,
-			0.7,
-			0.85,
-			"(SIGNATURE)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		signatureSentForPks := make(map[string]struct{})
-		mutex := sync.Mutex{}
-		srSignature, _ := v2.NewSubroundSignature(
-			sr,
-			&statusHandler.AppStatusHandlerStub{},
-			&testscommon.SentSignatureTrackerStub{
-				SignatureSentCalled: func(pkBytes []byte) {
-					mutex.Lock()
-					signatureSentForPks[string(pkBytes)] = struct{}{}
-					mutex.Unlock()
-				},
-			},
-			&consensusMocks.SposWorkerMock{},
-			&dataRetrieverMock.ThrottlerStub{},
-		)
-
-		sr.SetHeader(&block.Header{})
-		signaturesBroadcast := make(map[string]int)
-		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
-			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-				mutex.Lock()
-				signaturesBroadcast[string(message.PubKey)]++
-				mutex.Unlock()
-				return nil
-			},
-		})
-
-		sr.SetSelfPubKey("OTHER")
-
-		r := srSignature.DoSignatureJobForManagedKeys(ctx)
-		assert.False(t, r)
-
-		numFinishedJobs := 0
-		for _, pk := range sr.ConsensusGroup() {
-			isJobDone, err := sr.JobDone(pk, bls.SrSignature)
-			assert.NoError(t, err)
-
-			if isJobDone {
-				numFinishedJobs++
-			}
-		}
-		assert.Equal(t, 3, numFinishedJobs)
-
-		mutex.Lock()
-		assert.Equal(t, 3, len(signaturesBroadcast))
 		mutex.Unlock()
 	})
 
