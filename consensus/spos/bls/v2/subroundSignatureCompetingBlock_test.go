@@ -289,7 +289,7 @@ func TestWaitIfCompetingBlock_DelayCappedBySendDeadline(t *testing.T) {
 		},
 		&testscommon.RoundHandlerMock{
 			TimeDurationCalled: func() time.Duration {
-				return 1000 * time.Millisecond
+				return 600 * time.Millisecond // targetTime = 300ms
 			},
 			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 				// Simulate round just started: remaining = maxTime
@@ -328,17 +328,14 @@ func TestWaitIfCompetingBlock_OlderRoundSignsImmediately(t *testing.T) {
 				return 600 * time.Millisecond
 			},
 			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-				return 400 * time.Millisecond
+				t.Fatalf("RemainingTime should not be called when signed round is older than currentRound-1")
+				return 0
 			},
 		},
 	)
 
-	start := time.Now()
 	result := sr.WaitIfCompetingBlock(context.Background(), []byte("pk"), 100, []byte("current_hash"))
-	elapsed := time.Since(start)
-
 	assert.False(t, result)
-	assert.Less(t, elapsed, 30*time.Millisecond)
 }
 
 func TestWaitIfCompetingBlock_PreviousRoundWaits(t *testing.T) {
