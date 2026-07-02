@@ -7151,3 +7151,64 @@ func TestCheckEWLSizeAndReset(t *testing.T) {
 		sp.CheckEWLSizeAndReset()
 	})
 }
+
+func TestMetaProcessor_requestMissingFinalityAttestingShardHeaders_AttestationHeaderPresentProofMissingShouldRequestProof(t *testing.T) {
+	t.Parallel()
+
+	noOfShards := uint32(2)
+	td := createTestData()
+	proofRequests := make(chan requestedProof, 1)
+
+	arguments := createMetaProcessorArguments(t, noOfShards)
+	coreComponents, ok := arguments.CoreComponents.(*mock.CoreComponentsMock)
+	require.True(t, ok)
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+
+	poolsHolder, ok := arguments.DataComponents.Datapool().(*dataRetrieverMock.PoolsHolderMock)
+	require.True(t, ok)
+	poolsHolder.SetHeadersPool(createPoolsHolderForHeaderRequests())
+
+	requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
+	require.True(t, ok)
+	requestHandler.RequestEquivalentProofByHashCalled = func(headerShard uint32, headerHash []byte) {
+		proofRequests <- requestedProof{shardID: headerShard, hash: append([]byte(nil), headerHash...)}
+	}
+
+	mp, err := blproc.NewMetaProcessor(*arguments)
+	require.NoError(t, err)
+
+	referenced := td[0].referencedHeaderData
+	attestation := td[0].attestationHeaderData
+
+	mp.SetShardBlockFinality(1)
+	mp.SetHighestHdrNonceForCurrentBlock(referenced.header.GetShardID(), referenced.header.GetNonce())
+	mp.SetLastNotarizedHeaderForShard(referenced.header.GetShardID(), &blproc.LastNotarizedHeaderInfo{
+		Header:                referenced.header,
+		Hash:                  referenced.headerHash,
+		NotarizedBasedOnProof: false,
+		HasProof:              false,
+	})
+
+	mp.GetDataPool().Headers().AddHeader(attestation.headerHash, attestation.header)
+
+	missingFinalityHeaders := mp.RequestMissingFinalityAttestingShardHeaders()
+
+	require.Equal(t, uint32(0), missingFinalityHeaders)
+
+	select {
+	case requested := <-proofRequests:
+		require.Equal(t, attestation.header.GetShardID(), requested.shardID)
+		require.Equal(t, attestation.headerHash, requested.hash)
+	case <-time.After(100 * time.Millisecond):
+		require.Fail(t, "missing equivalent proof request for attestation header")
+	}
+}
+
+type requestedProof struct {
+	shardID uint32
+	hash    []byte
+}
