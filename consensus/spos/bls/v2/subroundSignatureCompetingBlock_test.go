@@ -370,7 +370,7 @@ func TestWaitIfCompetingBlock_RecordSignedNonceCalledBeforeBroadcast(t *testing.
 	assert.True(t, recordCalled, "RecordSignedNonce should be called before broadcast")
 }
 
-func TestWaitIfCompetingBlockForNode_NoCompetingBlockForAnyKey(t *testing.T) {
+func TestWaitIfCompetingBlock_NoCompetingBlockForAnyKey(t *testing.T) {
 	t.Parallel()
 
 	sr := createSubroundSignatureForCompetingBlockTests(
@@ -383,11 +383,11 @@ func TestWaitIfCompetingBlockForNode_NoCompetingBlockForAnyKey(t *testing.T) {
 		nil,
 	)
 
-	result := sr.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	result := sr.WaitIfCompetingBlock(context.Background(), []byte{}, 100, []byte("current_hash"))
 	assert.False(t, result, "should return false when no key has a competing block")
 }
 
-func TestWaitIfCompetingBlockForNode_SameHashForAllKeys(t *testing.T) {
+func TestWaitIfCompetingBlock_SameHashForAllKeys(t *testing.T) {
 	t.Parallel()
 
 	currentHash := []byte("current_hash")
@@ -401,11 +401,11 @@ func TestWaitIfCompetingBlockForNode_SameHashForAllKeys(t *testing.T) {
 		nil,
 	)
 
-	result := sr.WaitIfCompetingBlockForNode(context.Background(), 100, currentHash)
+	result := sr.WaitIfCompetingBlock(context.Background(), []byte{}, 100, currentHash)
 	assert.False(t, result, "should return false when all keys signed the same hash")
 }
 
-func TestWaitIfCompetingBlockForNode_SelfKeyHasCompetingBlock(t *testing.T) {
+func TestWaitIfCompetingBlock_SelfKeyHasCompetingBlock(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	container.SetRoundHandler(&testscommon.RoundHandlerMock{
 		TimeDurationCalled: func() time.Duration {
@@ -457,7 +457,7 @@ func TestWaitIfCompetingBlockForNode_SelfKeyHasCompetingBlock(t *testing.T) {
 	srSignature.SetData([]byte("current_hash"))
 
 	start := time.Now()
-	result := srSignature.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	result := srSignature.WaitIfCompetingBlock(context.Background(), []byte(selfPk), 100, []byte("current_hash"))
 	elapsed := time.Since(start)
 
 	// Should have waited (delay from round start) and returned false (no proof arrived)
@@ -465,7 +465,7 @@ func TestWaitIfCompetingBlockForNode_SelfKeyHasCompetingBlock(t *testing.T) {
 	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond, "should have waited for competing block delay")
 }
 
-func TestWaitIfCompetingBlockForNode_ManagedKeyHasCompetingBlock(t *testing.T) {
+func TestWaitIfCompetingBlock_ManagedKeyHasCompetingBlock(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	container.SetRoundHandler(&testscommon.RoundHandlerMock{
 		TimeDurationCalled: func() time.Duration {
@@ -530,7 +530,7 @@ func TestWaitIfCompetingBlockForNode_ManagedKeyHasCompetingBlock(t *testing.T) {
 	srSignature.SetData([]byte("current_hash"))
 
 	start := time.Now()
-	result := srSignature.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	result := srSignature.WaitIfCompetingBlock(context.Background(), []byte("A"), 100, []byte("current_hash"))
 	elapsed := time.Since(start)
 
 	// Managed key "A" has a competing block, so the node should wait
@@ -538,10 +538,10 @@ func TestWaitIfCompetingBlockForNode_ManagedKeyHasCompetingBlock(t *testing.T) {
 	assert.GreaterOrEqual(t, elapsed, 40*time.Millisecond, "should have waited for competing block delay")
 }
 
-func TestWaitIfCompetingBlockForNode_WaitsOnceNotPerKey(t *testing.T) {
+func TestWaitIfCompetingBlock_WaitsOnceNotPerKey(t *testing.T) {
 	t.Parallel()
 
-	// This test verifies that waitIfCompetingBlockForNode returns after a single wait
+	// This test verifies that waitIfCompetingBlock returns after a single wait
 	// even when multiple keys have competing blocks - it should not wait per-key.
 	container := consensusMocks.InitConsensusCore()
 	container.SetRoundHandler(&testscommon.RoundHandlerMock{
@@ -590,7 +590,7 @@ func TestWaitIfCompetingBlockForNode_WaitsOnceNotPerKey(t *testing.T) {
 	srSignature.SetData([]byte("current_hash"))
 
 	start := time.Now()
-	result := srSignature.WaitIfCompetingBlockForNode(context.Background(), 100, []byte("current_hash"))
+	result := srSignature.WaitIfCompetingBlock(context.Background(), []byte{}, 100, []byte("current_hash"))
 	elapsed := time.Since(start)
 
 	// Should return after ONE wait, not multiple
