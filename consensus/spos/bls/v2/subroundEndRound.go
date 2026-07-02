@@ -988,11 +988,6 @@ func (sr *subroundEndRound) remainingTime() time.Duration {
 // If the signature is valid, then the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Signature
 func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consensus.Message) bool {
-	remainingTime := sr.remainingTime()
-	if remainingTime <= 0 {
-		return false
-	}
-
 	node := string(cnsDta.PubKey)
 	pkForLogs := core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey))
 
@@ -1018,6 +1013,11 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 		return false
 	}
 	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
+		return false
+	}
+
+	remainingTime := sr.remainingTime()
+	if remainingTime <= 0 {
 		return false
 	}
 
