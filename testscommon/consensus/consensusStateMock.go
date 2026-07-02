@@ -676,7 +676,7 @@ func (cnsm *ConsensusStateMock) SignaturesWaitGroupAdd(delta int) *sync.WaitGrou
 		return cnsm.SignaturesWaitGroupAddCalled(delta)
 	}
 
-	return nil
+	return &sync.WaitGroup{}
 }
 
 // SetDataIfNotSet -

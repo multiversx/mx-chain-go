@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
@@ -375,7 +376,10 @@ func (wrk *Worker) convertHeaderToConsensusMessage(header data.HeaderHandler) (*
 func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("recovered from panic in Worker.ReceivedHeader", "panic", r)
+			log.Error("recovered from panic in Worker.ReceivedHeader",
+				"panic", r,
+				"stack", string(debug.Stack()),
+			)
 		}
 	}()
 
