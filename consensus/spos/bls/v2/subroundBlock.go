@@ -721,7 +721,18 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	}
 
 	if sr.IsConsensusDataSet() {
-		log.Debug("subroundBlock.receivedBlockHeader - consensus data is set")
+		log.Debug("subroundBlock.receivedBlockHeader - consensus data is set",
+			"data", sr.GetData(),
+		)
+		if !check.IfNil(sr.GetHeader()) {
+			log.Debug("consensus data",
+				"current data", sr.GetData(),
+				"current nonce", sr.GetHeader().GetNonce(),
+				"current round", sr.GetHeader().GetRound(),
+				"new nonce", headerHandler.GetNonce(),
+				"new round", headerHandler.GetRound(),
+			)
+		}
 		return
 	}
 
@@ -743,7 +754,13 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	}
 
 	if sr.IsHeaderAlreadyReceived() {
-		log.Debug("subroundBlock.receivedBlockHeader - header is already received")
+		log.Debug("subroundBlock.receivedBlockHeader - header is already received",
+			"current data", sr.GetData(),
+			"current nonce", sr.GetHeader().GetNonce(),
+			"current round", sr.GetHeader().GetRound(),
+			"new nonce", headerHandler.GetNonce(),
+			"new round", headerHandler.GetRound(),
+		)
 		return
 	}
 
