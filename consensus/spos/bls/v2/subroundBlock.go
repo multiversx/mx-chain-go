@@ -30,12 +30,10 @@ const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 95 / 100)
 type subroundBlock struct {
 	*spos.Subround
 
-	processingThresholdPercentage int
-	worker                        spos.WorkerHandler
-	mutBlockProcessing            sync.Mutex
-	syncController                spos.NtpSyncControllerHandler
-	signatureThrottler            core.Throttler
-	signatureSubroundEndTime      float64
+	worker             spos.WorkerHandler
+	mutBlockProcessing sync.Mutex
+	syncController     spos.NtpSyncControllerHandler
+	signatureThrottler core.Throttler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -45,7 +43,6 @@ func NewSubroundBlock(
 	worker spos.WorkerHandler,
 	syncController spos.NtpSyncControllerHandler,
 	signatureThrottler core.Throttler,
-	signatureSubroundEndTime float64,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
@@ -62,13 +59,13 @@ func NewSubroundBlock(
 		return nil, spos.ErrNilThrottler
 	}
 
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
+
 	srBlock := subroundBlock{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
-		worker:                        worker,
-		syncController:                syncController,
-		signatureThrottler:            signatureThrottler,
-		signatureSubroundEndTime:      signatureSubroundEndTime,
+		Subround:           baseSubround,
+		worker:             worker,
+		syncController:     syncController,
+		signatureThrottler: signatureThrottler,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -393,7 +390,12 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 
 	currentEpoch := headerHandler.GetEpoch()
 
-	sigSubroundEndTime := time.Duration(float64(sr.RoundHandler().TimeDuration()) * sr.signatureSubroundEndTime)
+	sigSubroundEndTime := sr.SignatureSubroundEndTime()
+	if sigSubroundEndTime == 0 {
+		log.Error("triggerCreateSignaturesForManagedKeys: signature subround end time is 0")
+		return
+	}
+
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
 	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
 	sr.SetSignaturesCtxCancelFunc(cancel)
@@ -881,7 +883,7 @@ func (sr *subroundBlock) processBlock(
 	pubkey []byte,
 ) bool {
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	remainingTimeInCurrentRound := func() time.Duration {
 		return sr.RoundHandler().RemainingTime(startTime, maxTime)
 	}
