@@ -130,6 +130,11 @@ func (bbt *baseBlockTrack) SetQuarantinedHeaders(quarantinedHeaders storage.Cach
 	bbt.quarantinedHeaders = quarantinedHeaders
 }
 
+// SettleQuarantinedParentIfNeeded -
+func (bbt *baseBlockTrack) SettleQuarantinedParentIfNeeded(header data.HeaderHandler, headerHash []byte) {
+	bbt.settleQuarantinedParentIfNeeded(header, headerHash)
+}
+
 // SetCrossNotarizer -
 func (bbt *baseBlockTrack) SetCrossNotarizer(notarizer blockNotarizerHandler) {
 	bbt.crossNotarizer = notarizer

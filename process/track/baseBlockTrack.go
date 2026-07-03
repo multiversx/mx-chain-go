@@ -164,7 +164,23 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 		"hash", proof.GetHeaderHash(),
 	)
 
+	bbt.settleQuarantinedParentIfNeeded(header, headerHash)
+
 	bbt.receivedHeader(header, headerHash)
+}
+
+func (bbt *baseBlockTrack) settleQuarantinedParentIfNeeded(header data.HeaderHandler, headerHash []byte) {
+	prevHash := header.GetPrevHash()
+	if !bbt.quarantinedHeaders.Has(prevHash) {
+		return
+	}
+
+	bbt.quarantinedHeaders.Remove(prevHash)
+
+	log.Debug("settled quarantined header",
+		"quarantinedHash", prevHash,
+		"confirmationHash", headerHash,
+		"confirmationNonce", header.GetNonce())
 }
 
 func (bbt *baseBlockTrack) requestHeaderForProof(proof data.HeaderProofHandler) {
@@ -505,6 +521,11 @@ func (bbt *baseBlockTrack) quarantineIfLateProof(proof data.HeaderProofHandler) 
 		"hash", hash, "round", proof.GetHeaderRound(),
 		"nonce", proof.GetHeaderNonce(), "shard", proof.GetHeaderShardId(),
 		"currentRound", bbt.roundHandler.Index())
+}
+
+// IsHeaderQuarantined returns true if the given header hash is currently quarantined (late cross-shard proof)
+func (bbt *baseBlockTrack) IsHeaderQuarantined(hash []byte) bool {
+	return bbt.quarantinedHeaders.Has(hash)
 }
 
 func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
