@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -346,6 +347,44 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 	assert.True(t, check.IfNil(mbt))
 }
 
+func TestNewBlockTrack_ShouldErrNilQuarantinedHeaders(t *testing.T) {
+	t.Parallel()
+
+	shardArguments := CreateShardTrackerMockArguments()
+	shardArguments.PoolsHolder = &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{}
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
+		QuarantinedHeadersCalled: func() storage.Cacher {
+			return nil
+		},
+	}
+	sbt, err := track.NewShardBlockTrack(shardArguments)
+
+	assert.Equal(t, process.ErrNilQuarantinedHeadersCache, err)
+	assert.Nil(t, sbt)
+
+	metaArguments := CreateShardTrackerMockArguments()
+	metaArguments.PoolsHolder = &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{}
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
+		QuarantinedHeadersCalled: func() storage.Cacher {
+			return nil
+		},
+	}
+	mbt, err := track.NewShardBlockTrack(metaArguments)
+
+	assert.Equal(t, process.ErrNilQuarantinedHeadersCache, err)
+	assert.True(t, check.IfNil(mbt))
+}
+
 func TestNewBlockTrack_ShouldErrNilEconomicsData(t *testing.T) {
 	t.Parallel()
 
@@ -475,6 +514,7 @@ func TestShardGetSelfHeaders_ShouldWork(t *testing.T) {
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
 		},
+		QuarantinedHeadersCalled: generateTestCache,
 	}
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -515,6 +555,7 @@ func TestMetaGetSelfHeaders_ShouldWork(t *testing.T) {
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
 		},
+		QuarantinedHeadersCalled: generateTestCache,
 	}
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
@@ -1797,6 +1838,7 @@ func TestAddHeaderFromPool_ShouldWork(t *testing.T) {
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
 		},
+		QuarantinedHeadersCalled: generateTestCache,
 	}
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -3324,6 +3366,7 @@ func TestBaseBlockTrack_receivedProof(t *testing.T) {
 					},
 				}
 			},
+			QuarantinedHeadersCalled: generateTestCache,
 		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {

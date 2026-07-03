@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ process.ValidityAttester = (*baseBlockTrack)(nil)
@@ -32,14 +33,15 @@ type HeaderInfo struct {
 }
 
 type baseBlockTrack struct {
-	hasher           hashing.Hasher
-	headerValidator  process.HeaderConstructionValidator
-	marshalizer      marshal.Marshalizer
-	roundHandler     process.RoundHandler
-	shardCoordinator sharding.Coordinator
-	headersPool      dataRetriever.HeadersPool
-	proofsPool       dataRetriever.ProofsPool
-	store            dataRetriever.StorageService
+	hasher             hashing.Hasher
+	headerValidator    process.HeaderConstructionValidator
+	marshalizer        marshal.Marshalizer
+	roundHandler       process.RoundHandler
+	shardCoordinator   sharding.Coordinator
+	headersPool        dataRetriever.HeadersPool
+	proofsPool         dataRetriever.ProofsPool
+	store              dataRetriever.StorageService
+	quarantinedHeaders storage.Cacher
 
 	blockProcessor                        blockProcessorHandler
 	crossNotarizer                        blockNotarizerHandler
@@ -120,6 +122,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		headersPool:                           arguments.PoolsHolder.Headers(),
 		proofsPool:                            arguments.PoolsHolder.Proofs(),
 		store:                                 arguments.Store,
+		quarantinedHeaders:                    arguments.PoolsHolder.QuarantinedHeaders(),
 		crossNotarizer:                        crossNotarizer,
 		selfNotarizer:                         selfNotarizer,
 		crossNotarizedHeadersNotifier:         crossNotarizedHeadersNotifier,
@@ -482,7 +485,21 @@ func (bbt *baseBlockTrack) CheckProofAgainstRoundHandler(proof data.HeaderProofH
 		return process.ErrNilHeaderProof
 	}
 
+	bbt.quarantineIfLateProof(proof)
+
 	return bbt.checkAgainstRoundHandler(proof.GetHeaderRound())
+}
+
+func (bbt *baseBlockTrack) quarantineIfLateProof(proof data.HeaderProofHandler) {
+	if bbt.roundHandler.Index() != int64(proof.GetHeaderRound())+1 {
+		return
+	}
+
+	bbt.quarantinedHeaders.Put(proof.GetHeaderHash(), struct{}{}, 0)
+	log.Debug("quarantined late proof header hash",
+		"hash", proof.GetHeaderHash(), "round", proof.GetHeaderRound(),
+		"nonce", proof.GetHeaderNonce(), "shard", proof.GetHeaderShardId(),
+		"currentRound", bbt.roundHandler.Index())
 }
 
 func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
@@ -885,6 +902,9 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.PoolsHolder.Proofs()) {
 		return process.ErrNilProofsPool
+	}
+	if check.IfNil(arguments.PoolsHolder.QuarantinedHeaders()) {
+		return process.ErrNilQuarantinedHeadersCache
 	}
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsData
