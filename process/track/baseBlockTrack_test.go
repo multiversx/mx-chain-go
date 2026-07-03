@@ -2474,6 +2474,11 @@ func TestBaseBlockTrack_CheckProofAgainstRoundHandler(t *testing.T) {
 		bbt := track.NewBaseBlockTrack()
 		bbt.SetRoundHandler(&mock.RoundHandlerMock{RoundIndex: currentRound})
 		bbt.SetQuarantinedHeaders(quarantinedHeaders)
+		bbt.SetShardCoordinator(&mock.ShardCoordinatorStub{
+			SelfIdCalled: func() uint32 {
+				return 0
+			},
+		})
 
 		return bbt, quarantinedHeaders
 	}
@@ -2494,12 +2499,28 @@ func TestBaseBlockTrack_CheckProofAgainstRoundHandler(t *testing.T) {
 		bbt, quarantinedHeaders := newTracker()
 		hash := []byte("late proof header hash")
 		err := bbt.CheckProofAgainstRoundHandler(&block.HeaderProof{
-			HeaderHash:  hash,
-			HeaderRound: uint64(currentRound - 1),
+			HeaderHash:    hash,
+			HeaderRound:   uint64(currentRound - 1),
+			HeaderShardId: 1,
 		})
 
 		require.Nil(t, err)
 		require.True(t, quarantinedHeaders.Has(hash))
+	})
+
+	t.Run("one round late intra shard proof should not be quarantined", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		hash := []byte("late proof header hash")
+		err := bbt.CheckProofAgainstRoundHandler(&block.HeaderProof{
+			HeaderHash:    hash,
+			HeaderRound:   uint64(currentRound - 1),
+			HeaderShardId: 0,
+		})
+
+		require.Nil(t, err)
+		require.False(t, quarantinedHeaders.Has(hash))
 	})
 
 	t.Run("same round proof should not be quarantined", func(t *testing.T) {
