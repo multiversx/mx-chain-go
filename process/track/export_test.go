@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // shardBlockTrack
@@ -122,6 +123,11 @@ func (bbt *baseBlockTrack) DisplayTrackedHeadersForShard(shardID uint32, message
 // SetRoundHandler -
 func (bbt *baseBlockTrack) SetRoundHandler(roundHandler process.RoundHandler) {
 	bbt.roundHandler = roundHandler
+}
+
+// SetQuarantinedHeaders -
+func (bbt *baseBlockTrack) SetQuarantinedHeaders(quarantinedHeaders storage.Cacher) {
+	bbt.quarantinedHeaders = quarantinedHeaders
 }
 
 // SetCrossNotarizer -

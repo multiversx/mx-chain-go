@@ -367,7 +367,7 @@ func TestNewBlockTrack_ShouldErrNilQuarantinedHeaders(t *testing.T) {
 	assert.Equal(t, process.ErrNilQuarantinedHeadersCache, err)
 	assert.Nil(t, sbt)
 
-	metaArguments := CreateShardTrackerMockArguments()
+	metaArguments := CreateMetaTrackerMockArguments()
 	metaArguments.PoolsHolder = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return &pool.HeadersPoolStub{}
@@ -379,7 +379,7 @@ func TestNewBlockTrack_ShouldErrNilQuarantinedHeaders(t *testing.T) {
 			return nil
 		},
 	}
-	mbt, err := track.NewShardBlockTrack(metaArguments)
+	mbt, err := track.NewMetaBlockTrack(metaArguments)
 
 	assert.Equal(t, process.ErrNilQuarantinedHeadersCache, err)
 	assert.True(t, check.IfNil(mbt))
@@ -2458,6 +2458,77 @@ func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldWork(t *testing.T) {
 	err := bbt.CheckBlockAgainstRoundHandler(hdr)
 
 	assert.Nil(t, err)
+}
+
+func TestBaseBlockTrack_CheckProofAgainstRoundHandler(t *testing.T) {
+	t.Parallel()
+
+	const currentRound = int64(50)
+
+	newTracker := func() (interface {
+		CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
+	}, storage.Cacher) {
+		quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
+		require.NoError(t, err)
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetRoundHandler(&mock.RoundHandlerMock{RoundIndex: currentRound})
+		bbt.SetQuarantinedHeaders(quarantinedHeaders)
+
+		return bbt, quarantinedHeaders
+	}
+
+	t.Run("nil proof should err", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		err := bbt.CheckProofAgainstRoundHandler(nil)
+
+		require.Equal(t, process.ErrNilHeaderProof, err)
+		require.Equal(t, 0, quarantinedHeaders.Len())
+	})
+
+	t.Run("one round late proof should be quarantined", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		hash := []byte("late proof header hash")
+		err := bbt.CheckProofAgainstRoundHandler(&block.HeaderProof{
+			HeaderHash:  hash,
+			HeaderRound: uint64(currentRound - 1),
+		})
+
+		require.Nil(t, err)
+		require.True(t, quarantinedHeaders.Has(hash))
+	})
+
+	t.Run("same round proof should not be quarantined", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		hash := []byte("same round proof header hash")
+		err := bbt.CheckProofAgainstRoundHandler(&block.HeaderProof{
+			HeaderHash:  hash,
+			HeaderRound: uint64(currentRound),
+		})
+
+		require.Nil(t, err)
+		require.False(t, quarantinedHeaders.Has(hash))
+	})
+
+	t.Run("higher round proof should error and not be quarantined", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		hash := []byte("higher round proof header hash")
+		err := bbt.CheckProofAgainstRoundHandler(&block.HeaderProof{
+			HeaderHash:  hash,
+			HeaderRound: uint64(currentRound + 2),
+		})
+
+		require.True(t, errors.Is(err, process.ErrHigherRoundInBlock))
+		require.False(t, quarantinedHeaders.Has(hash))
+	})
 }
 
 // ------- CheckBlockAgainstFinal

@@ -495,9 +495,10 @@ func (bbt *baseBlockTrack) quarantineIfLateProof(proof data.HeaderProofHandler) 
 		return
 	}
 
-	bbt.quarantinedHeaders.Put(proof.GetHeaderHash(), struct{}{}, 0)
+	hash := proof.GetHeaderHash()
+	bbt.quarantinedHeaders.Put(hash, struct{}{}, 0)
 	log.Debug("quarantined late proof header hash",
-		"hash", proof.GetHeaderHash(), "round", proof.GetHeaderRound(),
+		"hash", hash, "round", proof.GetHeaderRound(),
 		"nonce", proof.GetHeaderNonce(), "shard", proof.GetHeaderShardId(),
 		"currentRound", bbt.roundHandler.Index())
 }
