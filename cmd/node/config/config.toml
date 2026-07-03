@@ -621,9 +621,9 @@
 
 [QuarantinedHeadersCache]
     Name = "QuarantinedHeadersCache"
-    Capacity = 500
+    Capacity = 100
     Type = "SizeLRU"
-    SizeInBytes = 52428800 # 50MB
+    SizeInBytes = 10485760 # 10MB
 
 [PostProcessTransactionsCache]
     Name = "PostProcessTransactionsCache"
