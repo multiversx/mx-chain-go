@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -84,7 +83,6 @@ func initFactoryWithContainer(container *spos.ConsensusCore) v1.Factory {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	return fct
@@ -135,7 +133,6 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -157,7 +154,6 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -181,7 +177,6 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -205,7 +200,6 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -229,7 +223,6 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -253,7 +246,6 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -277,7 +269,6 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -301,7 +292,6 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -325,7 +315,6 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -349,7 +338,6 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -373,7 +361,6 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -397,7 +384,6 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -421,7 +407,6 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -443,7 +428,6 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -466,7 +450,6 @@ func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
 		nil,
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -489,34 +472,10 @@ func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		nil,
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
 	assert.Equal(t, v1.ErrNilSentSignatureTracker, err)
-}
-
-func TestFactory_NewFactoryNilCommonConfigsHandlerShouldFail(t *testing.T) {
-	t.Parallel()
-
-	consensusState := initializers.InitConsensusState()
-	container := consensusMock.InitConsensusCore()
-	worker := initWorker()
-
-	fct, err := v1.NewSubroundsFactory(
-		container,
-		consensusState,
-		worker,
-		chainID,
-		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.SentSignatureTrackerStub{},
-		nil,
-		nil,
-	)
-
-	assert.Nil(t, fct)
-	assert.Equal(t, common.ErrNilCommonConfigsHandler, err)
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
@@ -543,7 +502,6 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)

@@ -27,7 +27,6 @@ type SubroundsHandlerArgs struct {
 	OutportHandler       outport.OutportHandler
 	SentSignatureTracker spos.SentSignaturesTracker
 	EnableEpochsHandler  core.EnableEpochsHandler
-	CommonConfigsHandler common.CommonConfigsHandler
 	ChainID              []byte
 	CurrentPid           core.PeerID
 }
@@ -52,7 +51,6 @@ type SubroundsHandler struct {
 	outportHandler       outport.OutportHandler
 	sentSignatureTracker spos.SentSignaturesTracker
 	enableEpochsHandler  core.EnableEpochsHandler
-	commonConfigsHandler common.CommonConfigsHandler
 	chainID              []byte
 	currentPid           core.PeerID
 	currentConsensusType consensusStateMachineType
@@ -89,7 +87,6 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 		outportHandler:       args.OutportHandler,
 		sentSignatureTracker: args.SentSignatureTracker,
 		enableEpochsHandler:  args.EnableEpochsHandler,
-		commonConfigsHandler: args.CommonConfigsHandler,
 		chainID:              args.ChainID,
 		currentPid:           args.CurrentPid,
 		currentConsensusType: consensusNone,
@@ -127,9 +124,6 @@ func checkArgs(args *SubroundsHandlerArgs) error {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
-	}
-	if check.IfNil(args.CommonConfigsHandler) {
-		return common.ErrNilCommonConfigsHandler
 	}
 	if args.ChainID == nil {
 		return ErrNilChainID
@@ -188,7 +182,6 @@ func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32) error {
 			s.sentSignatureTracker,
 			s.signatureThrottler,
 			s.outportHandler,
-			s.commonConfigsHandler,
 		)
 	} else {
 		fct, err = v1.NewSubroundsFactory(
@@ -200,7 +193,6 @@ func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32) error {
 			s.appStatusHandler,
 			s.sentSignatureTracker,
 			s.outportHandler,
-			s.commonConfigsHandler,
 		)
 	}
 	if err != nil {

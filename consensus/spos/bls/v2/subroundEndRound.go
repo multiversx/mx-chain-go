@@ -426,7 +426,7 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	// log the header output for debugging purposes
-	common.LogPrettifiedHeader(sr.GetHeader(), "committed", "v2")
+	common.LogPrettifiedHeader(sr.GetHeader(), "committed", "v2", sr.CommonConfigsHandler())
 
 	sr.updateMetricsForLeader()
 

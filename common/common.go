@@ -303,7 +303,11 @@ func PrepareTimestampBasedOnHeaderData(headerTimestamp uint64, headerEpoch uint3
 }
 
 // LogPrettifiedHeader logs the prettified representation of the provided header or an error if prettification fails
-func LogPrettifiedHeader(header data.HeaderHandler, sentOrReceived string, version string) {
+func LogPrettifiedHeader(header data.HeaderHandler, sentOrReceived string, version string, configsHandler CommonConfigsHandler) {
+	if !configsHandler.PrintPrettifiedHeader() {
+		return
+	}
+
 	headerOutput, err := PrettifyStruct(header)
 	message := fmt.Sprintf("Proposed header %s %s", sentOrReceived, version)
 	if err != nil {
