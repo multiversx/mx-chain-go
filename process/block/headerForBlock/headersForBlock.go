@@ -580,6 +580,8 @@ func (hfb *headersForBlock) requestMissingFinalityAttestingHeaders(
 				false,
 				false,
 			)
+
+			hfb.requestProofIfNeeded(headersHashes[index], headers[index])
 		}
 	}
 
