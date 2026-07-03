@@ -66,8 +66,14 @@ func (mc *metaChain) SetCurrentBlockHeaderAndHash(
 	mc.mut.Lock()
 	defer mc.mut.Unlock()
 
+	err := mc.setCurrentBlockHeaderUnprotected(header)
+	if err != nil {
+		return err
+	}
+
 	mc.currentBlockHeaderHash = headerHash
-	return mc.setCurrentBlockHeaderUnprotected(header)
+
+	return nil
 }
 
 func (mc *metaChain) setCurrentBlockHeaderUnprotected(header data.HeaderHandler) error {
