@@ -42,6 +42,7 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			enableEpochsHandler:          arg.EnableEpochsHandler,
 			proofsPool:                   arg.ProofsPool,
 			blockchain:                   arg.BlockChain,
+			enableRoundsHandler:          arg.EnableRoundsHandler,
 		},
 	}
 }
@@ -178,45 +179,6 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		return nil, err
 	}
 
-	numOfTxs := uint32(0)
-	miniblocks := make([]*api.MiniBlock, 0)
-
-	for _, mb := range blockHeader.GetMiniBlockHeaderHandlers() {
-		if block.Type(mb.GetTypeInt32()) == block.PeerBlock {
-			continue
-		}
-
-		numOfTxs += mb.GetTxCount()
-
-		miniblockAPI := &api.MiniBlock{
-			Hash:                    hex.EncodeToString(mb.GetHash()),
-			Type:                    block.Type(mb.GetTypeInt32()).String(),
-			SourceShard:             mb.GetSenderShardID(),
-			DestinationShard:        mb.GetReceiverShardID(),
-			ProcessingType:          block.ProcessingType(mb.GetProcessingType()).String(),
-			ConstructionState:       block.MiniBlockState(mb.GetConstructionState()).String(),
-			IndexOfFirstTxProcessed: mb.GetIndexOfFirstTxProcessed(),
-			IndexOfLastTxProcessed:  mb.GetIndexOfLastTxProcessed(),
-		}
-		if options.WithTransactions {
-			miniBlockCopy := mb
-			err = sbp.getAndAttachTxsToMb(miniBlockCopy, blockHeader, miniblockAPI, options)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		miniblocks = append(miniblocks, miniblockAPI)
-	}
-
-	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, hash, options)
-	if err != nil {
-		return nil, err
-	}
-
-	miniblocks = append(miniblocks, intraMb...)
-	miniblocks = filterOutDuplicatedMiniblocks(miniblocks)
-
 	timestampSec, timestampMs, err := common.GetHeaderTimestamps(blockHeader, sbp.enableEpochsHandler)
 	if err != nil {
 		return nil, err
@@ -229,8 +191,6 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		Shard:           blockHeader.GetShardID(),
 		Hash:            hex.EncodeToString(hash),
 		PrevBlockHash:   hex.EncodeToString(blockHeader.GetPrevHash()),
-		NumTxs:          numOfTxs,
-		MiniBlocks:      miniblocks,
 		AccumulatedFees: blockHeader.GetAccumulatedFees().String(),
 		DeveloperFees:   blockHeader.GetDeveloperFees().String(),
 		Timestamp:       int64(timestampSec),
@@ -321,7 +281,7 @@ func (sbp *shardAPIBlockProcessor) addMbsAndNumTxsV1(apiBlock *api.Block, blockH
 		miniblocks = append(miniblocks, miniblockAPI)
 	}
 
-	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, headerHash, options)
+	intraMb, err := sbp.getIntrashardMiniblocksFromReceiptsStorage(blockHeader.GetReceiptsHash(), blockHeader, headerHash, options)
 	if err != nil {
 		return err
 	}

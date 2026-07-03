@@ -5,6 +5,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -24,12 +26,18 @@ func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentP
 				Hash:                   &hashingMocks.HasherMock{},
 				FieldsSizeCheckerField: &testscommon.FieldsSizeCheckerMock{},
 			},
+			CryptoComponents: &processMock.CryptoComponentsMock{
+				ManagedPeers: &testscommon.ManagedPeersHolderStub{},
+			},
 			ShardCoordinator:  &mock.ShardCoordinatorMock{},
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 			NodesCoordinator:  &shardingMocks.NodesCoordinatorStub{},
 			ValidityAttester:  &processMock.ValidityAttesterStub{},
+			PeerAuthCacher:                          cache.NewCacherStub(),
+			PeerAuthenticationTimeBetweenSendsInSec: 10,
 		},
-		ProofsPool: &dataRetriever.ProofsPoolMock{},
+		ProofsPool:  &dataRetriever.ProofsPoolMock{},
+		HeadersPool: &pool.HeadersPoolStub{},
 	}
 }
 

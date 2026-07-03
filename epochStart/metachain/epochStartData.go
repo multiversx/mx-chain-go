@@ -538,8 +538,13 @@ func (e *epochStartData) computeStillPendingInShardHeader(
 			continue
 		}
 
-		if shardMiniBlockHeader.IsFinal() {
-			log.Debug("epochStartData.computeStillPendingInShardHeader: IsFinal",
+		notPending := shardMiniBlockHeader.IsFinal()
+		if shardHdr.IsHeaderV3() {
+			notPending = true
+		}
+
+		if notPending {
+			log.Debug("epochStartData.computeStillPendingInShardHeader: not pending",
 				"mb hash", shardMiniBlockHash,
 				"shard", shardID,
 			)
@@ -605,6 +610,7 @@ func (e *epochStartData) setIndexOfFirstAndLastTxProcessed(mbHeader *block.MiniB
 
 func getAllMiniBlocksWithDst(m data.MetaHeaderHandler, destId uint32) map[string]block.MiniBlockHeader {
 	hashDst := make(map[string]block.MiniBlockHeader)
+
 	for i := 0; i < len(m.GetShardInfoHandlers()); i++ {
 		if m.GetShardInfoHandlers()[i].GetShardID() == destId {
 			continue
@@ -617,7 +623,8 @@ func getAllMiniBlocksWithDst(m data.MetaHeaderHandler, destId uint32) map[string
 		}
 	}
 
-	for _, val := range m.GetMiniBlockHeaderHandlers() {
+	miniBlockHeaders, _ := common.GetMiniBlockHeadersFromExecResult(m)
+	for _, val := range miniBlockHeaders {
 		if val.GetReceiverShardID() == destId && val.GetSenderShardID() != destId {
 			addMBHeaderToMapIfPossible(val, hashDst)
 		}

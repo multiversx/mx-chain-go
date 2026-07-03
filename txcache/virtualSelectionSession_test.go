@@ -9,14 +9,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
+
 	"github.com/stretchr/testify/require"
 )
 
 func Test_newVirtualSelectionSession(t *testing.T) {
 	t.Parallel()
 
-	session := txcachemocks.NewSelectionSessionMock()
+	session := mempool.NewSelectionSessionMock()
 	virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 	require.NotNil(t, virtualSession)
 }
@@ -27,7 +29,7 @@ func Test_getVirtualRecord(t *testing.T) {
 	t.Run("should return virtual record", func(t *testing.T) {
 		t.Parallel()
 
-		sessionMock := txcachemocks.SelectionSessionMock{}
+		sessionMock := mempool.SelectionSessionMock{}
 		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		expectedRecord := virtualAccountRecord{
@@ -52,7 +54,7 @@ func Test_getVirtualRecord(t *testing.T) {
 	t.Run("should return account from real session", func(t *testing.T) {
 		t.Parallel()
 
-		sessionMock := txcachemocks.SelectionSessionMock{
+		sessionMock := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 2, big.NewInt(2), true, nil
 			},
@@ -80,7 +82,7 @@ func Test_getVirtualRecord(t *testing.T) {
 	t.Run("should create empty record when account does not exist", func(t *testing.T) {
 		t.Parallel()
 
-		sessionMock := txcachemocks.SelectionSessionMock{
+		sessionMock := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, big.NewInt(0), false, nil
 			},
@@ -98,7 +100,7 @@ func Test_getVirtualRecord(t *testing.T) {
 		t.Parallel()
 
 		expErr := errors.New("error")
-		sessionMock := txcachemocks.SelectionSessionMock{
+		sessionMock := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, nil, false, expErr
 			},
@@ -117,7 +119,7 @@ func Test_getNonce(t *testing.T) {
 	t.Run("should return nonce from real session", func(t *testing.T) {
 		t.Parallel()
 
-		sessionMock := txcachemocks.SelectionSessionMock{
+		sessionMock := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 2, big.NewInt(2), true, nil
 			},
@@ -136,7 +138,7 @@ func Test_getNonce(t *testing.T) {
 	t.Run("should return nonce from account record", func(t *testing.T) {
 		t.Parallel()
 
-		sessionMock := txcachemocks.SelectionSessionMock{
+		sessionMock := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 2, big.NewInt(2), true, nil
 			},
@@ -170,7 +172,7 @@ func Test_getNonce(t *testing.T) {
 	t.Run("should err", func(t *testing.T) {
 		t.Parallel()
 
-		sessionMock := txcachemocks.SelectionSessionMock{}
+		sessionMock := mempool.SelectionSessionMock{}
 		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		aliceRecord, err := newVirtualAccountRecord(core.OptionalUint64{Value: 0, HasValue: false}, big.NewInt(1))
@@ -183,7 +185,7 @@ func Test_getNonce(t *testing.T) {
 	t.Run("should return errNonceNotSet", func(t *testing.T) {
 		t.Parallel()
 
-		sessionMock := txcachemocks.SelectionSessionMock{
+		sessionMock := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 2, big.NewInt(2), true, nil
 			},
@@ -214,10 +216,10 @@ func Test_getNonce(t *testing.T) {
 }
 
 func Test_accumulateConsumedBalance(t *testing.T) {
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	t.Run("when sender is fee payer", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		a := createTx([]byte("a-7"), "a", 7)
@@ -246,7 +248,7 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 	})
 
 	t.Run("when relayer is fee payer", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		a := createTx([]byte("a-7"), "a", 7).withRelayer([]byte("b")).withGasLimit(100_000)
@@ -288,7 +290,7 @@ func Test_detectWillBalanceBeExceeded(t *testing.T) {
 	t.Run("should exceed balance", func(t *testing.T) {
 		t.Parallel()
 
-		sessionMock := txcachemocks.SelectionSessionMock{}
+		sessionMock := mempool.SelectionSessionMock{}
 		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		aliceRecord := virtualAccountRecord{
@@ -321,7 +323,7 @@ func Test_detectWillBalanceBeExceeded(t *testing.T) {
 	t.Run("should not exceed balance", func(t *testing.T) {
 		t.Parallel()
 
-		sessionMock := txcachemocks.SelectionSessionMock{}
+		sessionMock := mempool.SelectionSessionMock{}
 		virtualSession := newVirtualSelectionSession(&sessionMock, make(map[string]*virtualAccountRecord))
 
 		aliceRecord := virtualAccountRecord{
@@ -358,7 +360,7 @@ func Test_isIncorrectlyGuarded(t *testing.T) {
 	t.Run("should return not correctly guarded", func(t *testing.T) {
 		t.Parallel()
 
-		sessionMock := txcachemocks.SelectionSessionMock{
+		sessionMock := mempool.SelectionSessionMock{
 			IsIncorrectlyGuardedCalled: func(tx data.TransactionHandler) bool {
 				return true
 			},
@@ -375,7 +377,7 @@ func TestBenchmarkVirtualSelectionSession_getRecord(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numAccounts = 300, numTransactionsPerAccount = 100", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		numAccounts := 300
@@ -403,7 +405,7 @@ func TestBenchmarkVirtualSelectionSession_getRecord(t *testing.T) {
 	})
 
 	t.Run("numAccounts = 10_000, numTransactionsPerAccount = 3", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		sessionWrapper := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		numAccounts := 10_000
@@ -431,7 +433,7 @@ func TestBenchmarkVirtualSelectionSession_getRecord(t *testing.T) {
 	})
 
 	t.Run("numAccounts = 30_000, numTransactionsPerAccount = 1", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		sessionWrapper := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		numAccounts := 30_000
@@ -481,7 +483,7 @@ func Test_setChangeGuardianIfNeeded(t *testing.T) {
 	b := createTx([]byte("tx-2"), "alice", 43)
 	c := createTx([]byte("tx-3"), "alice", 44).withData([]byte("SetGuardian@newGuardian")).withGasLimit(100000)
 
-	session := txcachemocks.NewSelectionSessionMock()
+	session := mempool.NewSelectionSessionMock()
 	session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
 		return tx.GetNonce() == b.Tx.GetNonce() // for coverage
 	}

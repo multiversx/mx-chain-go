@@ -2,6 +2,8 @@ module github.com/multiversx/mx-chain-go
 
 go 1.23.0
 
+toolchain go1.23.9
+
 require (
 	github.com/beevik/ntp v1.3.0
 	github.com/davecgh/go-spew v1.1.1
@@ -16,15 +18,15 @@ require (
 	github.com/libp2p/go-libp2p v0.38.2
 	github.com/libp2p/go-libp2p-pubsub v0.13.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.3.0
-	github.com/multiversx/mx-chain-core-go v1.4.2-0.20260219091525-015123fd1603
-	github.com/multiversx/mx-chain-crypto-go v1.3.1-0.20260130144701-dfa5fd3ea5d7
-	github.com/multiversx/mx-chain-es-indexer-go v1.9.4-0.20260219114236-37624897dc3a
+	github.com/multiversx/mx-chain-communication-go v1.3.3-0.20260608072730-982186a1ad78
+	github.com/multiversx/mx-chain-core-go v1.5.1-0.20260608073155-f1f550c8a612
+	github.com/multiversx/mx-chain-crypto-go v1.3.1
+	github.com/multiversx/mx-chain-es-indexer-go v1.10.3-0.20260608081825-40e586306036
 	github.com/multiversx/mx-chain-logger-go v1.1.0
 	github.com/multiversx/mx-chain-scenario-go v1.6.0
-	github.com/multiversx/mx-chain-storage-go v1.1.0
-	github.com/multiversx/mx-chain-vm-common-go v1.6.1-0.20251127112501-0b5f28e33b2e
-	github.com/multiversx/mx-chain-vm-go v1.5.43
+	github.com/multiversx/mx-chain-storage-go v1.1.2-0.20260608080818-1fde35395146
+	github.com/multiversx/mx-chain-vm-common-go v1.6.7
+	github.com/multiversx/mx-chain-vm-go v1.5.45
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.69
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.70
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.99

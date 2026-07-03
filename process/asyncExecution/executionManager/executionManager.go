@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/disabled"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -226,6 +227,11 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 // RemovePendingExecutionResultsFromNonce will remove the execution result with the provided nonce and all execution results with higher nonces
 func (em *executionManager) RemovePendingExecutionResultsFromNonce(nonce uint64) error {
 	return em.executionResultsTracker.RemoveFromNonce(nonce)
+}
+
+// PopDismissedResults returns all batches of dismissed execution results and clears the internal queue
+func (em *executionManager) PopDismissedResults() []executionTrack.DismissedBatch {
+	return em.executionResultsTracker.PopDismissedResults()
 }
 
 // ResetAndResumeExecution resets the managed components to the last notarized result and resumes execution

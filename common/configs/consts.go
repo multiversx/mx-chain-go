@@ -18,4 +18,5 @@ const (
 	defaultMaxConsecutiveRoundsOfRatingDecrease   = 600
 	defaultMaxRoundsOfInactivityAccepted          = 3
 	defaultMaxBlockProcessingTimeMs               = 100
+	defaultNumHeadersToRequestInAdvance           = 10
 )

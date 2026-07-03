@@ -156,9 +156,15 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	invalidSignersPubKeys, err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
+	invalidSignersPubKeys, err := sr.verifyInvalidSigners(cnsDta.BlockHeaderHash, cnsDta.InvalidSigners)
 	if err != nil {
 		log.Trace("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
+
+		if errors.Is(err, ErrValidSignatureFromInvalidSigner) {
+			originatorPeer := core.PeerID(cnsDta.OriginatorPid)
+			sr.applyBlacklistOnNode(originatorPeer)
+		}
+
 		return false
 	}
 
@@ -175,7 +181,10 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	return true
 }
 
-func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]string, error) {
+func (sr *subroundEndRound) verifyInvalidSigners(
+	headerHash []byte,
+	invalidSigners []byte,
+) ([]string, error) {
 	messages, err := sr.MessageSigningHandler().Deserialize(invalidSigners)
 	if err != nil {
 		return nil, err
@@ -187,7 +196,7 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 
 	pubKeys := make([]string, 0, len(messages))
 	for _, msg := range messages {
-		pubKey, errVerify := sr.verifyInvalidSigner(msg)
+		pubKey, errVerify := sr.verifyInvalidSigner(headerHash, msg)
 		if errVerify != nil {
 			return nil, errVerify
 		}
@@ -200,16 +209,28 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 	return pubKeys, nil
 }
 
-func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, error) {
-	err := sr.MessageSigningHandler().Verify(msg)
+func (sr *subroundEndRound) verifyInvalidSigner(
+	headerHash []byte,
+	msg p2p.MessageP2P,
+) (string, error) {
+	cnsMsg := &consensus.Message{}
+	err := sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
 	if err != nil {
 		return "", err
 	}
 
-	cnsMsg := &consensus.Message{}
-	err = sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
+	msgType := consensus.MessageType(cnsMsg.MsgType)
+	if !sr.MessagesHandler().IsMessageWithSignature(msgType) {
+		return "", spos.ErrInvalidMessageType
+	}
+
+	err = sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return "", err
+	}
+
+	if !bytes.Equal(headerHash, cnsMsg.BlockHeaderHash) {
+		return "", ErrHeaderHashMismatch
 	}
 
 	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
@@ -272,16 +293,14 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		}
 
 		proofSent, err := sr.sendProof()
-		shouldWaitForMoreSignatures := errors.Is(err, spos.ErrInvalidNumSigShares)
-		// if not enough valid signatures were detected, wait a bit more
-		// either more signatures will be received, either proof from another participant
-		if shouldWaitForMoreSignatures {
+		// Not enough valid signatures: wait for more or for a proof from another participant
+		if errors.Is(err, spos.ErrInvalidNumSigShares) {
 			continue
 		}
 
 		if proofSent {
-			err := sr.prepareBroadcastBlockData()
-			log.LogIfError(err)
+			errBroadcastBlockData := sr.prepareBroadcastBlockData()
+			log.LogIfError(errBroadcastBlockData)
 		}
 
 		break
@@ -309,7 +328,8 @@ func (sr *subroundEndRound) waitForProof() bool {
 		return true
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sr.RoundHandler().TimeDuration())
+	ctx, cancel := context.WithTimeout(context.Background(), timeLeft)
 	defer cancel()
 
 	for {
@@ -391,12 +411,9 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 		return false, err
 	}
 
-	roundHandler := sr.RoundHandler()
-	if roundHandler.RemainingTime(roundHandler.TimeStamp(), roundHandler.TimeDuration()) < 0 {
-		log.Debug("sendProof: time is out -> cancel broadcasting final info and header",
-			"round time stamp", roundHandler.TimeStamp(),
-			"current time", time.Now())
-		return false, ErrTimeOut
+	// Re-check grace period after aggregation which may have been slow under CPU contention
+	if !sr.shouldSendProof() {
+		return false, nil
 	}
 
 	// broadcast header proof
@@ -410,6 +427,20 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 }
 
 func (sr *subroundEndRound) shouldSendProof() bool {
+	// Allow proof sending with a grace period into the next round so the proof can
+	// reach nodes delaying before signing a competing block (equivocation prevention).
+	consensusRoundStart := sr.GetRoundTimeStamp()
+	roundDuration := sr.RoundHandler().TimeDuration()
+	graceDuration := time.Duration(float64(roundDuration) * competingProofSendDelay)
+	maxDuration := roundDuration + graceDuration
+	remaining := sr.RoundHandler().RemainingTime(consensusRoundStart, maxDuration)
+	if remaining <= 0 {
+		log.Debug("shouldSendProof: grace period expired, not sending proof",
+			"consensus round", sr.GetRoundIndex(),
+			"current round", sr.RoundHandler().Index())
+		return false
+	}
+
 	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		log.Debug("shouldSendProof: equivalent message already processed")
 		return false
@@ -568,9 +599,10 @@ func (sr *subroundEndRound) clearJobDoneForUnVerifiedSignatures(pubKeys []string
 
 func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
 	p2pMessages := make([]p2p.MessageP2P, 0)
+	headerHash := sr.GetData()
 
 	for _, pk := range invalidPubKeys {
-		p2pMsg, ok := sr.GetMessageWithSignature(pk)
+		p2pMsg, ok := sr.GetMessageWithSignature(spos.SignatureMessageKey(headerHash, pk))
 		if !ok {
 			log.Trace("message not found in state for invalid signer", "pubkey", pk)
 			continue
@@ -676,6 +708,12 @@ func (sr *subroundEndRound) createAndBroadcastProof(
 		HeaderShardId:       sr.GetHeader().GetShardID(),
 		HeaderRound:         sr.GetHeader().GetRound(),
 		IsStartOfEpoch:      sr.GetHeader().IsStartOfEpochBlock(),
+	}
+
+	added := sr.EquivalentProofsPool().AddProof(headerProof)
+	if !added {
+		log.Debug("createAndBroadcastProof failed to add proof from self")
+		return ErrProofAlreadyPropagated
 	}
 
 	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sender))

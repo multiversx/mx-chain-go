@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
+	proc "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -26,19 +27,18 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		AccountsDB:             &state.AccountsStub{},
 		Marshaller:             &marshallerMock.MarshalizerMock{},
 		EsdtDataStorageHandler: &testscommon.EsdtStorageHandlerStub{},
-		TransactionsStorer:     &genericMocks.StorerMock{},
 		ShardCoordinator:       &testscommon.ShardsCoordinatorMock{},
 		TxCoordinator:          &testscommon.TransactionCoordinatorMock{},
 		NodesCoordinator:       &shardingMocks.NodesCoordinatorMock{},
 		GasConsumedProvider:    &testscommon.GasHandlerStub{},
 		EconomicsData:          &economicsmocks.EconomicsHandlerMock{},
 		Hasher:                 &testscommon.KeccakMock{},
-		MbsStorer:              &genericMocks.StorerMock{},
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ExecutionOrderGetter:   &commonMocks.TxExecutionOrderHandlerStub{},
 		DataPool:               &dataRetriever.PoolsHolderMock{},
 		RoundHandler:           &testscommon.RoundHandlerMock{},
 		RewardsGetter:          &testscommon.RewardsCreatorStub{},
+		StorageService:         &genericMocks.ChainStorerMock{},
 	}
 }
 
@@ -60,10 +60,6 @@ func TestCheckArgCreateOutportDataProvider(t *testing.T) {
 	arg = createArgOutportDataProviderFactory()
 	arg.EsdtDataStorageHandler = nil
 	require.Equal(t, alteredaccounts.ErrNilESDTDataStorageHandler, checkArgOutportDataProviderFactory(arg))
-
-	arg = createArgOutportDataProviderFactory()
-	arg.TransactionsStorer = nil
-	require.Equal(t, transactionsfee.ErrNilStorage, checkArgOutportDataProviderFactory(arg))
 
 	arg = createArgOutportDataProviderFactory()
 	arg.ShardCoordinator = nil
@@ -100,6 +96,10 @@ func TestCheckArgCreateOutportDataProvider(t *testing.T) {
 	arg = createArgOutportDataProviderFactory()
 	arg.RewardsGetter = nil
 	require.Equal(t, process.ErrNilRewardsGetter, checkArgOutportDataProviderFactory(arg))
+
+	arg = createArgOutportDataProviderFactory()
+	arg.StorageService = nil
+	require.Equal(t, proc.ErrNilStorageService, checkArgOutportDataProviderFactory(arg))
 
 	arg = createArgOutportDataProviderFactory()
 	require.Nil(t, checkArgOutportDataProviderFactory(arg))

@@ -1,6 +1,8 @@
 package block
 
 import (
+	"sync/atomic"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
@@ -34,6 +36,7 @@ type coreComponentsHolder interface {
 	RoundHandler() consensus.RoundHandler
 	EconomicsData() process.EconomicsDataHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
+	ClosingNodeStarted() *atomic.Bool
 	IsInterfaceNil() bool
 }
 
@@ -99,6 +102,7 @@ type ArgBaseProcessor struct {
 	ManagedPeersHolder                 common.ManagedPeersHolder
 	SentSignaturesTracker              process.SentSignaturesTracker
 	StateAccessesCollector             state.StateAccessesCollector
+	MiniBlockTracker                   process.MiniBlockTracker
 	HeadersForBlock                    HeadersForBlock
 	ExecutionResultsInclusionEstimator process.InclusionEstimator
 	MiniBlocksSelectionSession         MiniBlocksSelectionSession

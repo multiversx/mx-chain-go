@@ -270,6 +270,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ProofsPool:                   tpn.ProofsPool,
 		BlockChain:                   tpn.BlockChain,
+		EnableRoundsHandler:          tpn.EnableRoundsHandler,
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)

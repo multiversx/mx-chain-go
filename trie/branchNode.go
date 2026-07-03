@@ -11,9 +11,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ = node(&branchNode{})
@@ -332,12 +333,6 @@ func (bn *branchNode) commitSnapshot(
 
 	stats.AddBranchNode(depthLevel, uint64(len(nodeBytes)))
 	return nil
-}
-
-func (bn *branchNode) removeChildrenPointers() {
-	for i := range bn.children {
-		bn.children[i] = nil
-	}
 }
 
 func (bn *branchNode) getEncodedNode() ([]byte, error) {

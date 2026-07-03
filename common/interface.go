@@ -255,6 +255,7 @@ type StateStatisticsHandler interface {
 // able to tell if the node is idle or processing/committing a block
 type ProcessStatusHandler interface {
 	SetBusy(reason string)
+	TrySetBusy(reason string) bool
 	SetIdle()
 	IsIdle() bool
 	IsInterfaceNil() bool
@@ -494,6 +495,7 @@ type ProcessConfigsHandler interface {
 	GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64
 	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
 	GetMaxBlockProcessingTime(round uint64) time.Duration
+	GetNumHeadersToRequestInAdvance(round uint64) uint64
 
 	GetValue(variable dto.ConfigVariable) uint64
 

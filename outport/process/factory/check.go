@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
+	processS "github.com/multiversx/mx-chain-go/process"
 )
 
 func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error {
@@ -20,9 +21,6 @@ func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error
 	}
 	if check.IfNil(arg.EsdtDataStorageHandler) {
 		return alteredaccounts.ErrNilESDTDataStorageHandler
-	}
-	if check.IfNil(arg.TransactionsStorer) {
-		return transactionsfee.ErrNilStorage
 	}
 	if check.IfNil(arg.EconomicsData) {
 		return transactionsfee.ErrNilTransactionFeeCalculator
@@ -42,9 +40,6 @@ func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error
 	if check.IfNil(arg.Hasher) {
 		return process.ErrNilHasher
 	}
-	if check.IfNil(arg.MbsStorer) {
-		return process.ErrNilStorer
-	}
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
@@ -59,6 +54,9 @@ func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error
 	}
 	if check.IfNil(arg.RewardsGetter) {
 		return process.ErrNilRewardsGetter
+	}
+	if check.IfNil(arg.StorageService) {
+		return processS.ErrNilStorageService
 	}
 
 	return nil

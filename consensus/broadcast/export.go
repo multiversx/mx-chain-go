@@ -81,6 +81,18 @@ func (dbb *delayedBlockBroadcaster) HeaderReceived(headerHandler data.HeaderHand
 	dbb.headerReceived(headerHandler, hash)
 }
 
+// ProofReceived is the callback for when a proof is received
+func (dbb *delayedBlockBroadcaster) ProofReceived(proof data.HeaderProofHandler) {
+	dbb.proofReceived(proof)
+}
+
+// GetPendingMetaHeadersCount returns the number of pending meta headers
+func (dbb *delayedBlockBroadcaster) GetPendingMetaHeadersCount() int {
+	dbb.mutPendingMetaHeaders.RLock()
+	defer dbb.mutPendingMetaHeaders.RUnlock()
+	return len(dbb.pendingMetaHeaders)
+}
+
 // GetValidatorBroadcastData returns the set validator delayed broadcast data
 func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*shared.DelayedBroadcastData {
 	dbb.mutDataForBroadcast.RLock()

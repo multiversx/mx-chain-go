@@ -179,12 +179,12 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = sp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
+	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), true)
 	if err != nil {
 		return err
 	}
 
-	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
+	err = sp.waitForExecutionResultsVerification(header, haveTime)
 	if err != nil {
 		return err
 	}
@@ -286,7 +286,9 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, process.ErrInvalidHeader
 	}
 
-	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlockProposal")
+	if !sp.processStatusHandler.TrySetBusy("shardProcessor.ProcessBlockProposal") {
+		return nil, process.ErrBlockProcessorBusy
+	}
 	defer sp.processStatusHandler.SetIdle()
 
 	sp.roundNotifier.CheckRound(headerHandler)
@@ -399,6 +401,8 @@ func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHand
 	if check.IfNil(headerHandler) {
 		return process.ErrNilBlockHeader
 	}
+
+	sp.cleanupDismissedEWLEntries()
 
 	err := sp.commitState(headerHandler)
 	if err != nil {

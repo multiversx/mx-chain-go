@@ -32,6 +32,7 @@ func GetDefaultProcessConfigsHandler() common.ProcessConfigsHandler {
 				NumFloodingRoundsOutOfSpecs:            40,
 				MaxConsecutiveRoundsOfRatingDecrease:   600,
 				MaxBlockProcessingTimeMs:               1000,
+				NumHeadersToRequestInAdvance:           10,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
@@ -53,6 +54,7 @@ type ProcessConfigsHandlerStub struct {
 	GetMaxRoundsToKeepUnprocessedMiniBlocksCalled     func(round uint64) uint64
 	GetValueCalled                                    func(variable dto.ConfigVariable) uint64
 	GetMaxBlockProcessingTimeCalled                   func(round uint64) time.Duration
+	GetNumHeadersToRequestInAdvanceCalled             func(round uint64) uint64
 }
 
 // GetMaxMetaNoncesBehindByEpoch -
@@ -151,6 +153,15 @@ func (p *ProcessConfigsHandlerStub) GetMaxBlockProcessingTime(round uint64) time
 	}
 
 	return time.Millisecond
+}
+
+// GetNumHeadersToRequestInAdvance -
+func (p *ProcessConfigsHandlerStub) GetNumHeadersToRequestInAdvance(round uint64) uint64 {
+	if p.GetNumHeadersToRequestInAdvanceCalled != nil {
+		return p.GetNumHeadersToRequestInAdvanceCalled(round)
+	}
+
+	return 10
 }
 
 // IsInterfaceNil -

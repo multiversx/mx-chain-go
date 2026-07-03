@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -48,7 +50,13 @@ import (
 )
 
 const (
-	cleanupHeadersDelta = 5
+	cleanupHeadersDelta                  = 5
+	waitForExecutionResultsCheckInterval = 5 * time.Millisecond
+
+	maxGapForEWLThreshold   = 250 // cap to prevent pathological configs
+	ewlEntriesPerResult     = 2   // OldRoot + NewRoot per commit
+	ewlTolerancePercent     = 130 // 30% tolerance over expected size
+	ewlThresholdMinBaseline = 10  // minimum baseline to avoid false resets on small gaps
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -94,6 +102,7 @@ type baseProcessor struct {
 	requestBlockBodyHandler process.RequestBlockBodyHandler
 	requestHandler          process.RequestHandler
 	blockTracker            process.BlockTracker
+	miniBlockTracker        process.MiniBlockTracker
 	dataPool                dataRetriever.PoolsHolder
 	feeHandler              process.TransactionFeeHandler
 	blockChain              data.ChainHandler
@@ -148,6 +157,12 @@ type baseProcessor struct {
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
 	aotSelector                        process.AOTTransactionSelector
 	maxProposalNonceGap                uint64
+	ewlResetThreshold                  int
+	closingNodeStarted                 *atomic.Bool
+
+	lastPrunedHeaderHash  []byte
+	lastPrunedHeaderNonce uint64
+	mutLastPrunedHeader   sync.RWMutex
 }
 
 type bootStorerDataArgs struct {
@@ -182,6 +197,8 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	if maxProposalNonceGap < defaultMaxProposalNonceGap {
 		maxProposalNonceGap = defaultMaxProposalNonceGap
 	}
+
+	ewlResetThreshold := computeEWLResetThreshold(maxProposalNonceGap)
 
 	base := &baseProcessor{
 		accountsDB:                         arguments.AccountsDB,
@@ -244,6 +261,9 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
 		aotSelector:                        arguments.AOTSelector,
 		maxProposalNonceGap:                maxProposalNonceGap,
+		ewlResetThreshold:                  ewlResetThreshold,
+		closingNodeStarted:                 arguments.CoreComponents.ClosingNodeStarted(),
+		miniBlockTracker:                   arguments.MiniBlockTracker,
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -358,8 +378,8 @@ func (bp *baseProcessor) checkTimestamp(headerHandler data.HeaderHandler) error 
 	return nil
 }
 
-// checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
-func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler) error {
+// checkScheduledData checks if the scheduled data from the given header matches the locally computed scheduled data
+func (bp *baseProcessor) checkScheduledData(headerHandler data.HeaderHandler) error {
 	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return nil
 	}
@@ -378,6 +398,26 @@ func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler
 			"current root hash", bp.getRootHash(),
 			"header scheduled root hash", additionalData.GetScheduledRootHash())
 		return process.ErrScheduledRootHashDoesNotMatch
+	}
+
+	scheduledGasAndFees := bp.scheduledTxsExecutionHandler.GetScheduledGasAndFees()
+	if additionalData.GetScheduledAccumulatedFees().Cmp(scheduledGasAndFees.AccumulatedFees) != 0 ||
+		additionalData.GetScheduledDeveloperFees().Cmp(scheduledGasAndFees.DeveloperFees) != 0 ||
+		additionalData.GetScheduledGasProvided() != scheduledGasAndFees.GasProvided ||
+		additionalData.GetScheduledGasPenalized() != scheduledGasAndFees.GasPenalized ||
+		additionalData.GetScheduledGasRefunded() != scheduledGasAndFees.GasRefunded {
+		log.Debug("scheduled gas and fees do not match",
+			"header accumulated fees", additionalData.GetScheduledAccumulatedFees(),
+			"computed accumulated fees", scheduledGasAndFees.AccumulatedFees,
+			"header developer fees", additionalData.GetScheduledDeveloperFees(),
+			"computed developer fees", scheduledGasAndFees.DeveloperFees,
+			"header gas provided", additionalData.GetScheduledGasProvided(),
+			"computed gas provided", scheduledGasAndFees.GasProvided,
+			"header gas penalized", additionalData.GetScheduledGasPenalized(),
+			"computed gas penalized", scheduledGasAndFees.GasPenalized,
+			"header gas refunded", additionalData.GetScheduledGasRefunded(),
+			"computed gas refunded", scheduledGasAndFees.GasRefunded)
+		return process.ErrScheduledGasAndFeesDoesNotMatch
 	}
 
 	return nil
@@ -730,6 +770,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.BlockTracker) {
 		return process.ErrNilBlockTracker
 	}
+	if check.IfNil(arguments.MiniBlockTracker) {
+		return process.ErrNilMiniBlockTracker
+	}
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsFeeHandler
 	}
@@ -760,6 +803,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		common.StakingV2Flag,
 		common.CurrentRandomnessOnSortingFlag,
 		common.AndromedaFlag,
+		common.FullShardDataValidationFlag,
 	})
 	if err != nil {
 		return err
@@ -850,6 +894,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.AOTSelector) {
 		return process.ErrNilAOTSelector
+	}
+	if arguments.CoreComponents.ClosingNodeStarted() == nil {
+		return process.ErrNilClosingNodeStartedFlag
 	}
 
 	return nil
@@ -1126,52 +1173,19 @@ func isPartiallyExecuted(
 	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
 }
 
-// check if header has the same mini blocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
-	if len(miniBlockHeaders) != len(body.MiniBlocks) {
-		return process.ErrHeaderBodyMismatch
+func (bp *baseProcessor) checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(miniBlockHeader data.MiniBlockHeaderHandler) error {
+	// for Supernova all miniBlocks not part of an execution result need to have construction state Proposed
+	if miniBlockHeader.GetConstructionState() != int32(block.Proposed) {
+		return process.ErrWrongMiniBlockConstructionState
+	}
+	if miniBlockHeader.GetProcessingType() != int32(block.Normal) {
+		return process.ErrWrongMiniBlockProcessingType
 	}
 
-	var mbHdr data.MiniBlockHeaderHandler
-	var miniBlock *block.MiniBlock
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		miniBlock = body.MiniBlocks[i]
-		mbHdr = miniBlockHeaders[i]
-		if miniBlock == nil {
-			return process.ErrNilMiniBlock
-		}
-		if mbHdr == nil {
-			return process.ErrNilMiniBlockHeader
-		}
-
-		mbHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
-		if err != nil {
-			return err
-		}
-
-		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
-		if err != nil {
-			return err
-		}
-	}
-
-	return bp.checkMiniBlocksConstructionProposal(miniBlockHeaders)
-}
-
-func (bp *baseProcessor) checkMiniBlocksConstructionProposal(miniBlockHeaders []data.MiniBlockHeaderHandler) error {
-	for i := 0; i < len(miniBlockHeaders); i++ {
-		// for Supernova all miniBlocks not part of an execution result need to have construction state Proposed
-		if miniBlockHeaders[i].GetConstructionState() != int32(block.Proposed) {
-			return process.ErrWrongMiniBlockConstructionState
-		}
-		if miniBlockHeaders[i].GetProcessingType() != int32(block.Normal) {
-			return process.ErrWrongMiniBlockProcessingType
-		}
-	}
 	return nil
 }
 
-func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
 	if !bytes.Equal(mbHash, mbHdr.GetHash()) {
 		return process.ErrHeaderBodyMismatch
 	}
@@ -1187,13 +1201,57 @@ func checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeader
 	if mbHdr.GetSenderShardID() != miniBlock.SenderShardID {
 		return fmt.Errorf("%w: different mb sender shard ID", process.ErrHeaderBodyMismatch)
 	}
+
+	if mbHdr.GetTypeInt32() != int32(miniBlock.Type) {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	err := process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
+	if err != nil {
+		return err
+	}
+
+	err = bp.checkIndexOfFirstTxProcessedAgainstTracker(mbHdr, mbHash)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, _ uint32) error {
+	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock)
+	if err != nil {
+		return err
+	}
+	return bp.checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr)
+}
+
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
+	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock)
+	if err != nil {
+		return err
+	}
+	return checkConstructionStateProcessingTypeAndIndexesCorrectness(mbHdr, miniBlock, blockShardID)
+}
+
 // check if header has the same mini blocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32, proposal bool) error {
+	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
+	for i := 0; i < len(miniBlockHeaders); i++ {
+		if miniBlockHeaders[i] == nil {
+			return process.ErrNilMiniBlockHeader
+		}
+
+		mbHashesFromHdr[string(miniBlockHeaders[i].GetHash())] = miniBlockHeaders[i]
+	}
+
 	if len(miniBlockHeaders) != len(body.MiniBlocks) {
 		return process.ErrHeaderBodyMismatch
+	}
+
+	if len(mbHashesFromHdr) != len(miniBlockHeaders) {
+		return process.ErrDuplicatedHashInBlock
 	}
 
 	var mbHdr data.MiniBlockHeaderHandler
@@ -1206,37 +1264,158 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if miniBlock == nil {
 			return process.ErrNilMiniBlock
 		}
+		if mbHdr == nil {
+			return process.ErrNilMiniBlockHeader
+		}
 
 		mbHash, err = core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
 		if err != nil {
 			return err
 		}
 
-		err = checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock)
+		mbHashStr := string(mbHash)
+		_, ok := mbHashesFromHdr[mbHashStr]
+		if !ok {
+			return process.ErrHeaderBodyMismatch
+		}
+
+		if !proposal {
+			err = bp.checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock, blockShardID)
+		} else {
+			err = bp.checkMiniBlockWithMiniBlockHeaderProposal(mbHash, mbHdr, miniBlock, blockShardID)
+		}
 		if err != nil {
 			return err
 		}
 
-		err = process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
-		if err != nil {
-			return err
-		}
-		err = checkConstructionStateAndIndexesCorrectness(mbHdr)
-		if err != nil {
-			return err
-		}
+		delete(mbHashesFromHdr, mbHashStr)
 	}
 
 	return nil
 }
 
-func checkConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
-	if mbh.GetConstructionState() == int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() == int32(mbh.GetTxCount())-1 {
-		return process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock
+// checkConstructionStateProcessingTypeAndIndexesCorrectness validates the (miniBlock,
+// miniBlockHeader) pair belonging to a block of shard blockShardID against the legal
+// (hdrPT, sender == blockShardID?, allowed state) rows. PartialExecuted is allowed alongside
+// the primary state of each processing type, validated by the index check:
+//
+//	Normal,    yes -> Final
+//	Normal,    no  -> Final | PartialExecuted
+//	Scheduled, yes -> Proposed | PartialExecuted
+//	Scheduled, no  -> Final | PartialExecuted
+//	Processed, yes -> Final
+//	Processed, no  -> impossible
+//
+// It also checks body PT validity, type-vs-scheduling, and IndexOfLastTxProcessed vs
+// ConstructionState. Body-vs-header PT consistency is enforced only when sender is
+// blockShardID; for incoming MBs the body PT belongs to the source shard.
+func checkConstructionStateProcessingTypeAndIndexesCorrectness(
+	mbh data.MiniBlockHeaderHandler,
+	miniBlock *block.MiniBlock,
+	blockShardID uint32,
+) error {
+	bodyPT := miniBlock.GetProcessingType()
+	hdrPT := mbh.GetProcessingType()
+	mbType := miniBlock.Type
+	senderIsBlockShard := mbh.GetSenderShardID() == blockShardID
 
+	// Processed is a header-only re-inclusion tag and must never appear on the body.
+	if bodyPT != int32(block.Normal) && bodyPT != int32(block.Scheduled) {
+		return fmt.Errorf("%w: body has invalid processing type %d",
+			process.ErrInvalidMiniBlockProcessingType, bodyPT)
 	}
-	if mbh.GetConstructionState() != int32(block.PartialExecuted) && mbh.GetIndexOfLastTxProcessed() != int32(mbh.GetTxCount())-1 {
+
+	if mbType != block.TxBlock {
+		if bodyPT != int32(block.Normal) || hdrPT != int32(block.Normal) {
+			return fmt.Errorf("%w: miniblock type %s cannot be scheduled (body=%d, header=%d)",
+				process.ErrInvalidMiniBlockProcessingTypeForType, mbType, bodyPT, hdrPT)
+		}
+	}
+
+	constructionState := mbh.GetConstructionState()
+	switch hdrPT {
+	case int32(block.Normal):
+		if senderIsBlockShard {
+			if bodyPT != int32(block.Normal) {
+				return fmt.Errorf("%w: Normal header at sender shard requires Normal body, got body=%d",
+					process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
+			}
+			if constructionState != int32(block.Final) {
+				return fmt.Errorf("%w: Normal header at sender shard requires Final, got %d",
+					process.ErrInvalidConstructionState, constructionState)
+			}
+		} else {
+			// an incoming normal miniblock may be partially executed at the destination
+			if constructionState != int32(block.Final) && constructionState != int32(block.PartialExecuted) {
+				return fmt.Errorf("%w: incoming Normal header requires Final or PartialExecuted, got %d",
+					process.ErrInvalidConstructionState, constructionState)
+			}
+		}
+	case int32(block.Scheduled):
+		if senderIsBlockShard {
+			if bodyPT != int32(block.Scheduled) {
+				return fmt.Errorf("%w: header=Scheduled requires body=Scheduled, got body=%d",
+					process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
+			}
+			if constructionState != int32(block.Proposed) && constructionState != int32(block.PartialExecuted) {
+				return fmt.Errorf("%w: Scheduled header at sender shard requires Proposed or PartialExecuted, got %d",
+					process.ErrInvalidConstructionState, constructionState)
+			}
+		} else {
+			// incoming body PT belongs to the source shard, so it is not constrained here
+			if constructionState != int32(block.Final) && constructionState != int32(block.PartialExecuted) {
+				return fmt.Errorf("%w: cross-shard incoming Scheduled requires Final or PartialExecuted, got %d",
+					process.ErrInvalidConstructionState, constructionState)
+			}
+		}
+	case int32(block.Processed):
+		if bodyPT != int32(block.Scheduled) {
+			return fmt.Errorf("%w: header=Processed requires body=Scheduled, got body=%d",
+				process.ErrProcessingTypeBodyHeaderMismatch, bodyPT)
+		}
+		if !senderIsBlockShard {
+			return fmt.Errorf("%w: Processed header requires sender == blockShard",
+				process.ErrInvalidMiniBlockShardRole)
+		}
+		if constructionState != int32(block.Final) {
+			return fmt.Errorf("%w: Processed header requires Final, got %d",
+				process.ErrInvalidConstructionState, constructionState)
+		}
+	default:
+		return fmt.Errorf("%w: unknown header processing type %d",
+			process.ErrInvalidMiniBlockProcessingType, hdrPT)
+	}
+
+	lastIdx := mbh.GetIndexOfLastTxProcessed()
+	finalIdx := int32(mbh.GetTxCount()) - 1
+	if constructionState == int32(block.PartialExecuted) && lastIdx == finalIdx {
+		return process.ErrIndexDoesNotMatchWithPartialExecutedMiniBlock
+	}
+	if constructionState != int32(block.PartialExecuted) && lastIdx != finalIdx {
 		return process.ErrIndexDoesNotMatchWithFullyExecutedMiniBlock
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) checkIndexOfFirstTxProcessedAgainstTracker(mbHdr data.MiniBlockHeaderHandler, miniBlockHash []byte) error {
+	selfShardID := bp.shardCoordinator.SelfId()
+	isIncomingCross := mbHdr.GetReceiverShardID() == selfShardID && mbHdr.GetSenderShardID() != selfShardID
+	if !isIncomingCross {
+		return nil
+	}
+
+	processedMiniBlockInfo, _ := bp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHash)
+	expectedIndexOfFirstTxProcessed := processedMiniBlockInfo.IndexOfLastTxProcessed + 1
+	if mbHdr.GetIndexOfFirstTxProcessed() != expectedIndexOfFirstTxProcessed {
+		log.Debug("checkIndexOfFirstTxProcessedAgainstTracker: mismatch",
+			"mb hash", miniBlockHash,
+			"sender shard", mbHdr.GetSenderShardID(),
+			"receiver shard", mbHdr.GetReceiverShardID(),
+			"header index of first tx processed", mbHdr.GetIndexOfFirstTxProcessed(),
+			"expected index of first tx processed", expectedIndexOfFirstTxProcessed,
+		)
+		return process.ErrIndexOfFirstTxProcessedMismatch
 	}
 
 	return nil
@@ -2213,7 +2392,9 @@ func (bp *baseProcessor) commitInEpoch(currentEpoch uint32, epochToCommit uint32
 	return nil
 }
 
-// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided headers
+// PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided headers.
+// Not called for V3 headers: shouldAllowRollback returns false for V3 in baseSync.go.
+// V3 block dismissal is handled via cancelPruneForDismissedExecutionResults.
 func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte) {
 	for key := range bp.accountsDB {
 		if !bp.accountsDB[key].IsPruningEnabled() {
@@ -2256,6 +2437,13 @@ func (bp *baseProcessor) getPruningHandler(finalHeaderNonce uint64) state.Prunin
 			"finalHeaderNonce", finalHeaderNonce,
 			"last restart nonce", bp.lastRestartNonce,
 			"num blocks for pruning delay", bp.pruningDelay,
+		)
+		return state.NewPruningHandler(state.DisableDataRemoval)
+	}
+
+	if bp.closingNodeStarted.Load() {
+		log.Debug("will skip pruning as closing node already started",
+			"finalHeaderNonce", finalHeaderNonce,
 		)
 		return state.NewPruningHandler(state.DisableDataRemoval)
 	}
@@ -2565,7 +2753,9 @@ func (bp *baseProcessor) Close() error {
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 	var err error
-	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
+	if !bp.processStatusHandler.TrySetBusy("baseProcessor.ProcessScheduledBlock") {
+		return process.ErrBlockProcessorBusy
+	}
 	defer func() {
 		if err != nil {
 			bp.RevertCurrentBlock()
@@ -2706,23 +2896,42 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 	}
 }
 
-func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
+func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) (int, error) {
 	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
-		return 0
+		return 0, nil
 	}
 
-	for index, miniBlockHeaderHandler := range header.GetMiniBlockHeaderHandlers() {
-		if miniBlockHeaderHandler.GetProcessingType() == int32(block.Processed) {
-			log.Debug("baseProcessor.getIndexOfFirstMiniBlockToBeExecuted: mini block is already executed",
-				"mb hash", miniBlockHeaderHandler.GetHash(),
-				"mb index", index)
+	miniBlockHeaderHandlers := header.GetMiniBlockHeaderHandlers()
+	indexOfFirstMiniBlockToBeExecuted := len(miniBlockHeaderHandlers)
+	foundFirstNonProcessed := false
+	for index, miniBlockHeaderHandler := range miniBlockHeaderHandlers {
+		isProcessed := miniBlockHeaderHandler.GetProcessingType() == int32(block.Processed)
+
+		// processed mini blocks are the ones executed as scheduled in the previous block and
+		// must form the contiguous leading prefix of the body; any later one is unverified
+		if foundFirstNonProcessed {
+			if isProcessed {
+				return 0, fmt.Errorf("%w: %s",
+					process.ErrProcessedMiniBlockNotInLeadingPrefix,
+					hex.EncodeToString(miniBlockHeaderHandler.GetHash()))
+			}
 			continue
 		}
 
-		return index
+		if !isProcessed {
+			indexOfFirstMiniBlockToBeExecuted = index
+			foundFirstNonProcessed = true
+			continue
+		}
+
+		if !bp.scheduledTxsExecutionHandler.IsMiniBlockExecuted(miniBlockHeaderHandler.GetHash()) {
+			return 0, fmt.Errorf("%w: mini block %s not executed",
+				process.ErrMiniBlockNotExecuted,
+				hex.EncodeToString(miniBlockHeaderHandler.GetHash()))
+		}
 	}
 
-	return len(header.GetMiniBlockHeaderHandlers())
+	return indexOfFirstMiniBlockToBeExecuted, nil
 }
 
 func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFinal uint64, err error) {
@@ -2964,7 +3173,12 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler) error {
 
 	executionResults := header.GetExecutionResultsHandlers()
 	for _, execResult := range executionResults {
-		err := bp.saveReceiptsForExecutionResult(execResult)
+		err := bp.saveExecutionResult(execResult)
+		if err != nil {
+			return err
+		}
+
+		err = bp.saveReceiptsForExecutionResult(execResult)
 		if err != nil {
 			return err
 		}
@@ -2973,12 +3187,30 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler) error {
 		if err != nil {
 			return err
 		}
+
 		err = bp.saveIntermediateTxs(execResult.GetHeaderHash())
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
+}
+
+func (bp *baseProcessor) saveExecutionResult(
+	execResult data.BaseExecutionResultHandler,
+) error {
+	if check.IfNil(execResult) {
+		return process.ErrNilExecutionResultHandler
+	}
+
+	headerHash := execResult.GetHeaderHash()
+	execResBytes, err := bp.marshalizer.Marshal(execResult)
+	if err != nil {
+		return err
+	}
+
+	return bp.store.Put(dataRetriever.ExecutionResultsUnit, headerHash, execResBytes)
 }
 
 func (bp *baseProcessor) cleanPostProcessCache(header data.HeaderHandler) error {
@@ -3258,6 +3490,37 @@ func getStorageUnitFromBlockType(blockType block.Type) (dataRetriever.UnitType, 
 	return 0, process.ErrInvalidBlockType
 }
 
+func (bp *baseProcessor) waitForExecutionResultsVerification(
+	header data.HeaderHandler,
+	haveTime func() time.Duration,
+) error {
+	isWaiting := false
+	for {
+		err := bp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
+		if !errors.Is(err, process.ErrExecutionResultsNumberMismatch) {
+			return err
+		}
+
+		remainingTime := haveTime()
+		if remainingTime <= 0 {
+			log.Debug("waitForExecutionResultsVerification: timed out waiting for execution results",
+				"header nonce", header.GetNonce(),
+			)
+			return err
+		}
+
+		if !isWaiting {
+			isWaiting = true
+			log.Debug("waitForExecutionResultsVerification: waiting for execution results",
+				"header nonce", header.GetNonce(),
+				"remaining time", remainingTime,
+			)
+		}
+
+		time.Sleep(min(waitForExecutionResultsCheckInterval, remainingTime))
+	}
+}
+
 func (bp *baseProcessor) checkInclusionEstimationForExecutionResults(header data.HeaderHandler) error {
 	prevBlockLastExecutionResult, err := process.GetPrevBlockLastExecutionResult(bp.blockChain)
 	if err != nil {
@@ -3436,14 +3699,16 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 func (bp *baseProcessor) getLastExecutedRootHash(
 	header data.HeaderHandler,
 ) []byte {
-	rootHash := bp.getRootHash()
+	var rootHash []byte
 	if !header.IsHeaderV3() {
+		rootHash = bp.getRootHash()
 		return rootHash
 	}
 
 	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
 	if err != nil {
 		log.Warn("failed to get last execution result for header", "err", err)
+		_, _, rootHash = bp.blockChain.GetLastExecutedBlockInfo()
 		return rootHash
 	}
 
@@ -3483,7 +3748,7 @@ func (bp *baseProcessor) requestHeadersFromHeaderIfNeeded(
 	}
 
 	fromNonce := lastHeader.GetNonce() + 1
-	toNonce := fromNonce + numHeadersToRequestInAdvance
+	toNonce := fromNonce + bp.processConfigsHandler.GetNumHeadersToRequestInAdvance(lastRound)
 
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		bp.requestHeaderIfNeeded(nonce, shardID)
@@ -3630,16 +3895,6 @@ func (bp *baseProcessor) getTransactionsForMiniBlock(
 	}
 
 	return txs, nil
-}
-
-// getCurrentBlockHeader returns the current block header from blockchain.
-func (bp *baseProcessor) getCurrentBlockHeader() data.HeaderHandler {
-	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
-	if !check.IfNil(currentBlockHeader) {
-		return currentBlockHeader
-	}
-
-	return bp.blockChain.GetGenesisHeader()
 }
 
 func (bp *baseProcessor) getLastExecutionResultHeader(
@@ -3881,7 +4136,7 @@ func (bp *baseProcessor) cacheUnexecutableTxHashes(headerHash []byte) {
 }
 
 func (bp *baseProcessor) getBlockBodyFromPool(
-	header data.HeaderHandler,
+	_ data.HeaderHandler,
 	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler,
 ) (data.BodyHandler, error) {
 	miniBlocksPool := bp.dataPool.MiniBlocks()
@@ -3962,4 +4217,150 @@ func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data
 
 	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.GetAccumulatedFeesInEpoch().String())
 	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.GetDevFeesInEpoch().String())
+}
+
+func (bp *baseProcessor) cleanupDismissedEWLEntries() {
+	dismissedBatches := bp.executionManager.PopDismissedResults()
+
+	if len(dismissedBatches) > 0 {
+		totalDismissed := 0
+		for _, batch := range dismissedBatches {
+			totalDismissed += len(batch.Results)
+		}
+		log.Debug("cleanupDismissedEWLEntries: draining dismissed batches",
+			"batches", len(dismissedBatches),
+			"totalDismissed", totalDismissed,
+		)
+
+		bp.blockProcessor.cancelPruneForDismissedExecutionResults(dismissedBatches)
+		bp.resetLastPrunedHeader()
+	}
+
+	bp.checkEWLSizeAndReset()
+}
+
+// checkEWLSizeAndReset is a safety net (Layer 3). If the EWL size exceeds the
+// precomputed threshold, it resets pruning to prevent unbounded memory growth.
+func (bp *baseProcessor) checkEWLSizeAndReset() {
+	for key, accountsDb := range bp.accountsDB {
+		if !accountsDb.IsPruningEnabled() {
+			continue
+		}
+		ewlSize := accountsDb.GetEvictionWaitingListSize()
+		if ewlSize > bp.ewlResetThreshold {
+			log.Warn("EWL cache size exceeds threshold, resetting pruning",
+				"accountsDB", key,
+				"ewlSize", ewlSize,
+				"threshold", bp.ewlResetThreshold,
+			)
+			accountsDb.ResetPruning()
+			bp.resetLastPrunedHeader()
+		}
+	}
+}
+
+func computeEWLResetThreshold(maxProposalNonceGap uint64) int {
+	gap := maxProposalNonceGap
+	if gap > maxGapForEWLThreshold {
+		gap = maxGapForEWLThreshold
+	}
+	expected := gap * ewlEntriesPerResult
+	return int(expected*ewlTolerancePercent/100) + ewlThresholdMinBaseline
+}
+
+// cancelPruneForRootHashTransition cancels pruning for a root hash transition from prev to current.
+// It issues CancelPrune for currentRootHash as NewRoot and prevRootHash as OldRoot.
+func cancelPruneForRootHashTransition(accountsDb state.AccountsAdapter, prevRootHash, currentRootHash []byte) {
+	if len(prevRootHash) == 0 || len(currentRootHash) == 0 {
+		return
+	}
+	if bytes.Equal(prevRootHash, currentRootHash) {
+		return
+	}
+	accountsDb.CancelPrune(currentRootHash, state.NewRoot)
+	accountsDb.CancelPrune(prevRootHash, state.OldRoot)
+}
+
+func (bp *baseProcessor) resetLastPrunedHeader() {
+	bp.mutLastPrunedHeader.Lock()
+	bp.lastPrunedHeaderHash = nil
+	bp.lastPrunedHeaderNonce = 0
+	bp.mutLastPrunedHeader.Unlock()
+}
+
+// PruneTrieAsyncHeader will trigger trie pruning for header from async execution flow
+func (bp *baseProcessor) PruneTrieAsyncHeader() {
+	bp.mutLastPrunedHeader.Lock()
+	defer bp.mutLastPrunedHeader.Unlock()
+
+	header := bp.blockChain.GetCurrentBlockHeader()
+	headerHash := bp.blockChain.GetCurrentBlockHeaderHash()
+
+	if len(bp.lastPrunedHeaderHash) == 0 {
+		// last pruned header hash not set, trigger prune trie for the provided header
+		bp.blockProcessor.pruneTrieHeaderV3(header)
+		bp.lastPrunedHeaderHash = headerHash
+		bp.lastPrunedHeaderNonce = header.GetNonce()
+		return
+	}
+
+	// extra check by nonce
+	if header.GetNonce() <= bp.lastPrunedHeaderNonce {
+		return
+	}
+
+	err := bp.pruneTrieForHeadersUnprotected(headerHash, header)
+	if err != nil {
+		// there was an error while fetching intermediate headers
+		// reset pruning context
+		bp.blockProcessor.resetPruning()
+	}
+
+	bp.lastPrunedHeaderHash = headerHash
+	bp.lastPrunedHeaderNonce = header.GetNonce()
+}
+
+func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
+	headerHash []byte,
+	header data.HeaderHandler,
+) error {
+	if bytes.Equal(headerHash, bp.lastPrunedHeaderHash) {
+		return nil
+	}
+
+	headersToPrune := make([]data.HeaderHandler, 0)
+	headersToPrune = append(headersToPrune, header)
+
+	lastPrunedHeaderHash := bp.lastPrunedHeaderHash
+	walkerHash := header.GetPrevHash()
+
+	for !bytes.Equal(walkerHash, lastPrunedHeaderHash) {
+		// headers pool is cleaned on consensus flow based on last execution result
+		// included on the committed header (plus some delta), so intermediate headers
+		// should be available in pool, since trie pruning is triggered from
+		// execution flow; if there are no included blocks from execution flow
+		// (and not pruning triggered) headers will not be removed from pool
+		header, err := process.GetHeader(
+			walkerHash,
+			bp.dataPool.Headers(),
+			bp.store,
+			bp.marshalizer,
+			header.GetShardID(),
+		)
+		if err != nil {
+			log.Warn("failed to get intermediate header for pruning", "error", err)
+			return err
+		}
+
+		headersToPrune = append(headersToPrune, header)
+
+		walkerHash = header.GetPrevHash()
+	}
+
+	for i := len(headersToPrune) - 1; i >= 0; i-- {
+		header := headersToPrune[i]
+		bp.blockProcessor.pruneTrieHeaderV3(header)
+	}
+
+	return nil
 }

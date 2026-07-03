@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sync"
@@ -10,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -106,9 +108,17 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 		return false
 	}
 
+	// Wait once for the entire node if competing block detected
+	nonce := sr.GetHeader().GetNonce()
+	currentHash := sr.GetData()
+	shouldAbort := sr.waitIfCompetingBlockForNode(ctx, nonce, currentHash)
+	if shouldAbort {
+		return false
+	}
+
 	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if isSelfSingleKeyInConsensusGroup {
-		if !sr.doSignatureJobForSingleKey() {
+		if !sr.doSignatureJobForSingleKey(ctx) {
 			return false
 		}
 	}
@@ -227,17 +237,17 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 		sr.signatureThrottler.StartProcessing()
 		wg.Add(1)
 
-		go func(idx int, pk string) {
+		go func(ctx context.Context, idx int, pk string) {
 			defer sr.signatureThrottler.EndProcessing()
 
-			signatureSent := sr.sendSignatureForManagedKey(idx, pk)
+			signatureSent := sr.sendSignatureForManagedKey(ctx, idx, pk)
 			if signatureSent {
 				atomic.AddInt32(&numMultiKeysSignaturesSent, 1)
 			} else {
 				sentSigForAllKeys.SetValue(false)
 			}
 			wg.Done()
-		}(idx, pk)
+		}(ctx, idx, pk)
 	}
 
 	wg.Wait()
@@ -249,11 +259,13 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 	return sentSigForAllKeys.IsSet()
 }
 
-func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool {
+func (sr *subroundSignature) sendSignatureForManagedKey(_ context.Context, idx int, pk string) bool {
 	pkBytes := []byte(pk)
+	nonce := sr.GetHeader().GetNonce()
+	currentHash := sr.GetData()
 
 	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-		sr.GetData(),
+		currentHash,
 		uint16(idx),
 		sr.GetHeader().GetEpoch(),
 		pkBytes,
@@ -262,6 +274,10 @@ func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool
 		log.Debug("sendSignatureForManagedKey.CreateSignatureShareForPublicKey", "error", err.Error())
 		return false
 	}
+
+	// Record the signed nonce before broadcast so competing block detection works
+	// even if the broadcast itself fails
+	sr.sentSignatureTracker.RecordSignedNonce(pkBytes, nonce, currentHash)
 
 	// with the equivalent messages feature on, signatures from all managed keys must be broadcast, as the aggregation is done by any participant
 	ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
@@ -288,7 +304,11 @@ func (sr *subroundSignature) checkGoRoutinesThrottler(ctx context.Context) error
 	return nil
 }
 
-func (sr *subroundSignature) doSignatureJobForSingleKey() bool {
+func (sr *subroundSignature) doSignatureJobForSingleKey(_ context.Context) bool {
+	pkBytes := []byte(sr.SelfPubKey())
+	nonce := sr.GetHeader().GetNonce()
+	currentHash := sr.GetData()
+
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
 		log.Debug("doSignatureJobForSingleKey.SelfConsensusGroupIndex: not in consensus group")
@@ -296,23 +316,121 @@ func (sr *subroundSignature) doSignatureJobForSingleKey() bool {
 	}
 
 	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-		sr.GetData(),
+		currentHash,
 		uint16(selfIndex),
 		sr.GetHeader().GetEpoch(),
-		[]byte(sr.SelfPubKey()),
+		pkBytes,
 	)
 	if err != nil {
 		log.Debug("doSignatureJobForSingleKey.CreateSignatureShareForPublicKey", "error", err.Error())
 		return false
 	}
 
+	// Record the signed nonce before broadcast so competing block detection works
+	// even if the broadcast itself fails
+	sr.sentSignatureTracker.RecordSignedNonce(pkBytes, nonce, currentHash)
+
 	// leader also sends his signature here
-	ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
+	ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
 	if !ok {
 		return false
 	}
 
 	return sr.completeSignatureSubRound(sr.SelfPubKey())
+}
+
+// waitIfCompetingBlockForNode checks if any key managed by this node previously signed a different
+// hash for the given nonce. If found, waits once for the entire node instead of per-key.
+func (sr *subroundSignature) waitIfCompetingBlockForNode(ctx context.Context, nonce uint64, currentHash []byte) bool {
+	// Check self key first
+	selfPk := []byte(sr.SelfPubKey())
+	previousHash, exists := sr.sentSignatureTracker.GetSignedHash(selfPk, nonce)
+	if exists && !bytes.Equal(previousHash, currentHash) {
+		return sr.waitIfCompetingBlock(ctx, selfPk, nonce, currentHash)
+	}
+
+	// Check managed keys
+	for _, pk := range sr.ConsensusGroup() {
+		pkBytes := []byte(pk)
+		if !sr.IsKeyManagedBySelf(pkBytes) {
+			continue
+		}
+		previousHash, exists = sr.sentSignatureTracker.GetSignedHash(pkBytes, nonce)
+		if exists && !bytes.Equal(previousHash, currentHash) {
+			return sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
+		}
+	}
+
+	return false
+}
+
+// waitIfCompetingBlock waits if this node already signed a different block for the same nonce.
+// The delay is measured from round start. Returns true if signing should be aborted.
+func (sr *subroundSignature) waitIfCompetingBlock(ctx context.Context, pkBytes []byte, nonce uint64, currentHash []byte) bool {
+	previousHash, exists := sr.sentSignatureTracker.GetSignedHash(pkBytes, nonce)
+	if !exists {
+		return false
+	}
+
+	if bytes.Equal(previousHash, currentHash) {
+		return false
+	}
+
+	// Delay is measured from round start, not from when this function is called
+	roundStart := sr.GetRoundTimeStamp()
+	targetTime := time.Duration(float64(sr.RoundHandler().TimeDuration()) * competingBlockSignDelay)
+	delay := sr.RoundHandler().RemainingTime(roundStart, targetTime)
+	if delay <= 0 {
+		log.Debug("waitIfCompetingBlock: already past competing block delay deadline, proceeding to sign")
+		return false
+	}
+
+	// Cap the delay so signing still happens within the signature subround window.
+	sigEndDuration := time.Duration(sr.EndTime())
+	remaining := sr.RoundHandler().RemainingTime(roundStart, sigEndDuration)
+	safetyMargin := 10 * time.Millisecond
+	maxDelay := remaining - safetyMargin
+	if maxDelay <= 0 {
+		log.Debug("waitIfCompetingBlock: no time remaining in signature subround, proceeding to sign")
+		return false
+	}
+	if delay > maxDelay {
+		delay = maxDelay
+	}
+
+	log.Debug("waitIfCompetingBlock: competing block detected, delaying before signing",
+		"nonce", nonce,
+		"previousHash", previousHash,
+		"currentHash", currentHash,
+		"delay", delay)
+
+	shardID := sr.ShardCoordinator().SelfId()
+	deadline := time.After(delay)
+	ticker := time.NewTicker(timeBetweenSignaturesChecks)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug("waitIfCompetingBlock: context cancelled, aborting")
+			return true
+		case <-ticker.C:
+			if sr.EquivalentProofsPool().HasProof(shardID, previousHash) {
+				log.Debug("waitIfCompetingBlock: proof arrived for previous block, aborting signing",
+					"nonce", nonce,
+					"previousHash", previousHash)
+				return true
+			}
+			if sr.HasProofForCompetingBlock() {
+				log.Debug("waitIfCompetingBlock: competing block proof detected, aborting signing")
+				return true
+			}
+		case <-deadline:
+			log.Debug("waitIfCompetingBlock: delay expired with no proof for previous block, proceeding to sign",
+				"nonce", nonce)
+			return false
+		}
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

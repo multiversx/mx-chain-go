@@ -58,6 +58,9 @@ var ErrNilBroadcastMessenger = errors.New("broadcast messenger is nil")
 // ErrNilHeadersSubscriber is raised when a valid headers subscriber is expected but nil is provided
 var ErrNilHeadersSubscriber = errors.New("headers subscriber is nil")
 
+// ErrNilHeadersPool is raised when a valid headers pool is expected but nil is provided
+var ErrNilHeadersPool = errors.New("headers pool is nil")
+
 // ErrNilAlarmScheduler is raised when a valid alarm scheduler is expected but nil is provided
 var ErrNilAlarmScheduler = errors.New("alarm scheduler is nil")
 
@@ -123,6 +126,9 @@ var ErrInvalidSignature = errors.New("signature is invalid")
 
 // ErrInvalidHeader is raised when header is invalid
 var ErrInvalidHeader = errors.New("header is invalid")
+
+// ErrInvalidBody is raised when body is invalid
+var ErrInvalidBody = errors.New("body is invalid")
 
 // ErrMessageFromItself is raised when a message from itself is received
 var ErrMessageFromItself = errors.New("message is from itself")

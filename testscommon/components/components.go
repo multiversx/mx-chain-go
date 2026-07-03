@@ -143,9 +143,10 @@ func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.S
 				},
 			},
 		},
-		RatingsConfig:   CreateDummyRatingsConfig(),
-		EconomicsConfig: CreateDummyEconomicsConfig(),
-		CoreComp:        coreComponents,
+		RatingsConfig:              CreateDummyRatingsConfig(),
+		EconomicsConfig:            CreateDummyEconomicsConfig(),
+		SystemSmartContractsConfig: config.SystemSmartContractsConfig{},
+		CoreComp:                   coreComponents,
 	}
 }
 
@@ -328,6 +329,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 					NumFloodingRoundsOutOfSpecs:            40,
 					MaxConsecutiveRoundsOfRatingDecrease:   600,
 					MaxBlockProcessingTimeMs:               1000,
+					NumHeadersToRequestInAdvance:           10,
 				},
 			},
 		},

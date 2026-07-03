@@ -74,6 +74,7 @@ func TestTomlParser(t *testing.T) {
 					MaxConsecutiveRoundsOfRatingDecrease:   11,
 					MaxRoundsOfInactivityAccepted:          12,
 					MaxBlockProcessingTimeMs:               13,
+					NumHeadersToRequestInAdvance:           14,
 				},
 			},
 		},
@@ -177,6 +178,7 @@ func TestTomlParser(t *testing.T) {
 		TxCacheBounds: TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               100,
+			PropagationGracePeriodMs:       200,
 		},
 		TxCacheSelection: TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
@@ -381,7 +383,8 @@ func TestTomlParser(t *testing.T) {
         MaxRoundsToKeepUnprocessedTransactions = 7,
         MaxConsecutiveRoundsOfRatingDecrease = 11,
         MaxRoundsOfInactivityAccepted = 12,
-		MaxBlockProcessingTimeMs = 13
+		MaxBlockProcessingTimeMs = 13,
+        NumHeadersToRequestInAdvance = 14
         }
     ]
 
@@ -434,6 +437,7 @@ func TestTomlParser(t *testing.T) {
 [TxCacheBounds]
 	MaxNumBytesPerSenderUpperBound = 33_554_432
 	MaxTrackedBlocks = 100
+	PropagationGracePeriodMs = 200
 
 [TxCacheSelection]
 	SelectionMaxNumTxs = 30000
@@ -1303,8 +1307,11 @@ func TestEnableEpochConfig(t *testing.T) {
     # RelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
     RelayedTransactionsV1V2DisableEpoch = 113
 
+    # ConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas in accumulated economics is fixed
+    ConsumedGasInEconomicsFixEnableEpoch = 114
+
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
-    SupernovaEnableEpoch = 114
+    SupernovaEnableEpoch = 115
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1438,7 +1445,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			AutomaticActivationOfNodesDisableEpoch:                   111,
 			FixGetBalanceEnableEpoch:                                 112,
 			RelayedTransactionsV1V2DisableEpoch:                      113,
-			SupernovaEnableEpoch:                                     114,
+			ConsumedGasInEconomicsFixEnableEpoch:                     114,
+			SupernovaEnableEpoch:                                     115,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

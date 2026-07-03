@@ -126,6 +126,10 @@ func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 		return false
 	}
 
+	if imh.epochStartTrigger.Epoch() == 0 {
+		return false
+	}
+
 	if imh.hdr.GetEpoch() > imh.epochStartTrigger.Epoch()+1 {
 		return true
 	}
@@ -144,6 +148,7 @@ func (imh *InterceptedMetaHeader) integrity() error {
 	if err != nil {
 		return err
 	}
+
 	err = checkMiniBlocksHeaders(imh.hdr.GetMiniBlockHeaderHandlers(), imh.shardCoordinator)
 	if err != nil {
 		return err

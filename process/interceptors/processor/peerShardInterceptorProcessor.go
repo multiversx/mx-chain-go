@@ -46,7 +46,7 @@ func (processor *peerShardInterceptorProcessor) Save(data process.InterceptedDat
 		return false, process.ErrWrongTypeAssertion
 	}
 
-	shardID, err := strconv.Atoi(shardPeerShard.ShardID())
+	shardID, err := strconv.ParseUint(shardPeerShard.ShardID(), 10, 32)
 	if err != nil {
 		return false, err
 	}

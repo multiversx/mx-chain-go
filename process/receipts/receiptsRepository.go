@@ -135,8 +135,8 @@ func getReceiptHashFromBaseExecutionResult(execResult data.BaseExecutionResultHa
 }
 
 // LoadReceipts loads the receipts, given a block header
-func (repository *receiptsRepository) LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
-	storageKey := repository.decideStorageKey(header.GetReceiptsHash(), headerHash)
+func (repository *receiptsRepository) LoadReceipts(receiptsHash []byte, header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error) {
+	storageKey := repository.decideStorageKey(receiptsHash, headerHash)
 
 	batchBytes, err := repository.storer.GetFromEpoch(storageKey, header.GetEpoch())
 	if err != nil {

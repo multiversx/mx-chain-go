@@ -2,7 +2,6 @@ package blockAPI
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -63,12 +62,13 @@ type baseAPIBlockProcessor struct {
 	enableEpochsHandler          common.EnableEpochsHandler
 	proofsPool                   dataRetriever.ProofsPool
 	blockchain                   data.ChainHandler
+	enableRoundsHandler          common.EnableRoundsHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
 
-func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(header data.HeaderHandler, headerHash []byte, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
-	receiptsHolder, err := bap.receiptsRepository.LoadReceipts(header, headerHash)
+func (bap *baseAPIBlockProcessor) getIntrashardMiniblocksFromReceiptsStorage(receiptsHash []byte, header data.HeaderHandler, headerHash []byte, options api.BlockQueryOptions) ([]*api.MiniBlock, error) {
+	receiptsHolder, err := bap.receiptsRepository.LoadReceipts(receiptsHash, header, headerHash)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +234,7 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(
 	case block.InvalidBlock:
 		apiMiniblock.Transactions, err = bap.getTxsFromMiniblock(miniBlock, miniblockHash, header, transaction.TxTypeInvalid, dataRetriever.TransactionUnit, firstProcessedTxIndex, lastProcessedTxIndex)
 	case block.ReceiptBlock:
-		apiMiniblock.Receipts, err = bap.getReceiptsFromMiniblock(miniBlock, header.GetEpoch())
+		apiMiniblock.Receipts, err = bap.getReceiptsFromMiniblock(miniBlock, header.GetEpoch(), header.GetRound())
 	}
 
 	if err != nil {
@@ -251,8 +251,16 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMbByEpoch(
 	return nil
 }
 
-func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.MiniBlock, epoch uint32) ([]*transaction.ApiReceipt, error) {
-	storer, err := bap.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
+func (bap *baseAPIBlockProcessor) getReceiptsStorerUnitType(round uint64) dataRetriever.UnitType {
+	if bap.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return dataRetriever.ReceiptsUnit
+	}
+	return dataRetriever.UnsignedTransactionUnit
+}
+
+func (bap *baseAPIBlockProcessor) getReceiptsFromMiniblock(miniblock *block.MiniBlock, epoch uint32, round uint64) ([]*transaction.ApiReceipt, error) {
+	unit := bap.getReceiptsStorerUnitType(round)
+	storer, err := bap.store.GetStorer(unit)
 	if err != nil {
 		return nil, err
 	}
@@ -727,14 +735,8 @@ func proofToAPIProof(proof data.HeaderProofHandler) *api.HeaderProof {
 func (bap *baseAPIBlockProcessor) addMbsAndNumTxsAsyncExecution(apiBlock *api.Block, blockHeader data.HeaderHandler, headerHash []byte, options api.BlockQueryOptions) error {
 	executionResultBytes, err := bap.getFromStorerWithEpoch(dataRetriever.ExecutionResultsUnit, headerHash, blockHeader.GetEpoch())
 	if err != nil {
-		// It's possible to have a block without an execution result (transactions from block are not executed yet)
-		if errors.Is(err, dblookupext.ErrNotFoundInStorage) {
-			mbs, totalTxs, errG := bap.getMbsAndTxsIfMissingExecutionResult(blockHeader, options)
-			apiBlock.MiniBlocks = mbs
-			apiBlock.NumTxs = totalTxs
-			return errG
-		}
-		return err
+		// do not return a partial block if the execution result is missing
+		return errBlockNotFound
 	}
 
 	executionResultHandler, err := process.UnmarshalExecutionResult(bap.marshalizer, executionResultBytes)
@@ -757,7 +759,8 @@ func (bap *baseAPIBlockProcessor) addMbsAndNumTxsAsyncExecution(apiBlock *api.Bl
 	mbsBeforeExecutionAndCleanup := removeExecutedTxsFromMbs(mbsBeforeExecution, executedTxsMap)
 
 	allMbs := append(mbsBeforeExecutionAndCleanup, mbsAfterExecution...)
-	intraMb, err := bap.getIntrashardMiniblocksFromReceiptsStorage(blockHeader, headerHash, options)
+	receiptsHash := executionResultHandler.GetReceiptsHash()
+	intraMb, err := bap.getIntrashardMiniblocksFromReceiptsStorage(receiptsHash, blockHeader, headerHash, options)
 	if err != nil {
 		return err
 	}

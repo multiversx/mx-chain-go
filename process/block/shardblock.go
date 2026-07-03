@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -97,7 +98,9 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrNilHaveTimeHandler
 	}
 
-	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlock")
+	if !sp.processStatusHandler.TrySetBusy("shardProcessor.ProcessBlock") {
+		return process.ErrBlockProcessorBusy
+	}
 	defer sp.processStatusHandler.SetIdle()
 
 	err := sp.checkBlockValidity(headerHandler, bodyHandler)
@@ -118,7 +121,7 @@ func (sp *shardProcessor) ProcessBlock(
 	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
 
-	err = sp.checkScheduledRootHash(headerHandler)
+	err = sp.checkScheduledData(headerHandler)
 	if err != nil {
 		return err
 	}
@@ -142,7 +145,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
-	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body)
+	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), false)
 	if err != nil {
 		return err
 	}
@@ -226,7 +229,10 @@ func (sp *shardProcessor) ProcessBlock(
 		}
 	}()
 
-	mbIndex := sp.getIndexOfFirstMiniBlockToBeExecuted(header)
+	mbIndex, err := sp.getIndexOfFirstMiniBlockToBeExecuted(header)
+	if err != nil {
+		return err
+	}
 	miniBlocks := body.MiniBlocks[mbIndex:]
 
 	startTime := time.Now()
@@ -835,7 +841,9 @@ func (sp *shardProcessor) CreateBlock(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	sp.processStatusHandler.SetBusy("shardProcessor.CreateBlock")
+	if !sp.processStatusHandler.TrySetBusy("shardProcessor.CreateBlock") {
+		return nil, nil, process.ErrBlockProcessorBusy
+	}
 	defer sp.processStatusHandler.SetIdle()
 
 	err := sp.createBlockStarted()
@@ -941,7 +949,9 @@ func (sp *shardProcessor) CommitBlock(
 	prevBlockHeaderHash := sp.blockChain.GetCurrentBlockHeaderHash()
 
 	if !headerHandler.IsHeaderV3() {
-		sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
+		if !sp.processStatusHandler.TrySetBusy("shardProcessor.CommitBlock") {
+			return process.ErrBlockProcessorBusy
+		}
 		defer func() {
 			if err != nil {
 				sp.RevertCurrentBlock()
@@ -1104,13 +1114,13 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
+	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
+
 	err = sp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
 		return err
 	}
-
-	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
-	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
@@ -1247,7 +1257,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	if !currentHeader.IsHeaderV3() {
 		sp.pruneTrieLegacy(headers)
 	} else {
-		sp.pruneTrieHeaderV3(currentHeader.GetExecutionResultsHandlers())
+		// for header v3, trie pruning is triggered in async mode from headers executor
 
 		if currentHeader.IsStartOfEpochBlock() {
 			sp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
@@ -1265,7 +1275,11 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
 }
 
-func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
+func (sp *shardProcessor) pruneTrieHeaderV3(
+	header data.HeaderHandler,
+) {
+	executionResultsHandlers := header.GetExecutionResultsHandlers()
+
 	accountsDb := sp.accountsDB[state.UserAccountsState]
 	if !accountsDb.IsPruningEnabled() {
 		return
@@ -1273,7 +1287,7 @@ func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.Base
 
 	for i := range executionResultsHandlers {
 		currentExecRes := executionResultsHandlers[i]
-		prevExecRes, err := sp.getPreviousExecutionResult(i, executionResultsHandlers)
+		prevExecRes, err := sp.getPreviousExecutionResult(i, executionResultsHandlers, header.GetPrevHash())
 		if err != nil {
 			log.Warn("failed to get previous execution result for pruning",
 				"err", err,
@@ -1303,12 +1317,48 @@ func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.Base
 	}
 }
 
-func (sp *shardProcessor) getPreviousExecutionResult(index int, executionResultsHandlers []data.BaseExecutionResultHandler) (data.BaseExecutionResultHandler, error) {
+func (sp *shardProcessor) resetPruning() {
+	accountsDb := sp.accountsDB[state.UserAccountsState]
+	if !accountsDb.IsPruningEnabled() {
+		return
+	}
+
+	accountsDb.ResetPruning()
+}
+
+func (sp *shardProcessor) cancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch) {
+	accountsDb := sp.accountsDB[state.UserAccountsState]
+	if !accountsDb.IsPruningEnabled() {
+		return
+	}
+
+	for _, batch := range batches {
+		sp.cancelPruneForDismissedBatch(accountsDb, batch)
+	}
+}
+
+func (sp *shardProcessor) cancelPruneForDismissedBatch(accountsDb state.AccountsAdapter, batch executionTrack.DismissedBatch) {
+	if batch.AnchorResult == nil {
+		return
+	}
+
+	prevRootHash := batch.AnchorResult.GetRootHash()
+	for _, result := range batch.Results {
+		currentRootHash := result.GetRootHash()
+		cancelPruneForRootHashTransition(accountsDb, prevRootHash, currentRootHash)
+		prevRootHash = currentRootHash
+	}
+}
+
+func (sp *shardProcessor) getPreviousExecutionResult(
+	index int,
+	executionResultsHandlers []data.BaseExecutionResultHandler,
+	prevHeaderHash []byte,
+) (data.BaseExecutionResultHandler, error) {
 	if index > 0 {
 		return executionResultsHandlers[index-1], nil
 	}
 
-	prevHeaderHash := sp.getCurrentBlockHeader().GetPrevHash()
 	prevHeader, err := process.GetShardHeader(prevHeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 	if err != nil {
 		return nil, err
@@ -1587,6 +1637,14 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 	sp.blockTracker.AddCrossNotarizedHeader(shardId, lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash)
 	DisplayLastNotarized(sp.marshalizer, sp.hasher, lastCrossNotarizedHeader, shardId)
+
+	// processedHdrs only contains fully-processed metablocks (see processedAll gate in
+	// getOrderedProcessedMetaBlocksFromMiniBlockHashes), so lastNonce+1 releases items
+	// from those metablocks now that the consuming shard block is being committed.
+	if shardId == core.MetachainShardId && !check.IfNil(lastCrossNotarizedHeader) && !check.IfNil(sp.miniBlockTracker) {
+		threshold := lastCrossNotarizedHeader.GetNonce() + 1
+		sp.miniBlockTracker.ReleaseImmunityForCommittedMetaBlocks(threshold)
+	}
 
 	return nil
 }

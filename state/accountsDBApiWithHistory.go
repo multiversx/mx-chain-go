@@ -112,6 +112,10 @@ func (accountsDB *accountsDBApiWithHistory) PruneTrie(_ []byte, _ TriePruningIde
 func (accountsDB *accountsDBApiWithHistory) CancelPrune(_ []byte, _ TriePruningIdentifier) {
 }
 
+// ResetPruning is a not permitted operation in this implementation and thus, does nothing
+func (accountsDB *accountsDBApiWithHistory) ResetPruning() {
+}
+
 // SnapshotState is a not permitted operation in this implementation and thus, does nothing
 func (accountsDB *accountsDBApiWithHistory) SnapshotState(_ []byte, _ uint32) {
 }
@@ -240,6 +244,11 @@ func (accountsDB *accountsDBApiWithHistory) recreateTrieUnprotected(options comm
 
 	accountsDB.latestRecreatedRootHash = options.GetRootHash()
 	return nil
+}
+
+// GetEvictionWaitingListSize returns 0 for the API accounts adapter with history
+func (adb *accountsDBApiWithHistory) GetEvictionWaitingListSize() int {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

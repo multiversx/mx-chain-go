@@ -781,7 +781,7 @@ func (sr *subroundBlock) processBlock(
 		return false
 	}
 
-	if !sr.GetHeader().IsHeaderV3() {
+	if !check.IfNil(sr.GetHeader()) && !sr.GetHeader().IsHeaderV3() {
 		sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(sr.GetHeader(), sr.GetBody(), sr.GetRoundTimeStamp())
 	}
 

@@ -14,6 +14,16 @@ import (
 
 var log = logger.GetOrCreate("process/asyncExecution/executionTrack")
 
+const maxDismissedBatches = 100
+
+// DismissedBatch holds a group of dismissed execution results alongside the anchor
+// result that preceded them. The anchor's root hash is the "previous root hash"
+// for the first dismissed result's EWL OldRoot entry.
+type DismissedBatch struct {
+	AnchorResult data.BaseExecutionResultHandler
+	Results      []data.BaseExecutionResultHandler
+}
+
 type executionResultsTracker struct {
 	lastNotarizedResult      data.BaseExecutionResultHandler
 	mutex                    sync.RWMutex
@@ -21,6 +31,7 @@ type executionResultsTracker struct {
 	nonceHash                *nonceHash
 	lastExecutedResultHash   []byte
 	consensusCommittedHashes map[uint64][]byte // tracks which hash was committed by consensus for each nonce
+	dismissedBatches         []DismissedBatch
 }
 
 // NewExecutionResultsTracker will create a new instance of *executionResultsTracker
@@ -211,6 +222,18 @@ func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 		if !areEqual {
 			ert.lastExecutedResultHash = lastMatchingHash
 
+			// Compute anchor for dismissed batch
+			var anchor data.BaseExecutionResultHandler
+			if idx > 0 {
+				anchor = pendingExecutionResult[idx-1]
+			} else {
+				anchor = ert.lastNotarizedResult
+			}
+			ert.addDismissedBatch(DismissedBatch{
+				AnchorResult: anchor,
+				Results:      pendingExecutionResult[idx:],
+			})
+
 			// different execution result should clean everything starting from this execution result and return CleanResultMismatch
 			ert.cleanExecutionResults(pendingExecutionResult[idx:])
 
@@ -314,6 +337,14 @@ func (ert *executionResultsTracker) Clean(lastNotarizedResult data.BaseExecution
 	ert.mutex.Lock()
 	defer ert.mutex.Unlock()
 
+	pending, _ := ert.getPendingExecutionResults()
+	if len(pending) > 0 {
+		ert.addDismissedBatch(DismissedBatch{
+			AnchorResult: ert.lastNotarizedResult,
+			Results:      pending,
+		})
+	}
+
 	ert.executionResultsByHash = make(map[string]data.BaseExecutionResultHandler)
 	ert.nonceHash = newNonceHash()
 
@@ -342,6 +373,21 @@ func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint
 		return nil
 	}
 
+	// Compute anchor: last pending result before the dismissal point
+	var anchor data.BaseExecutionResultHandler
+	for _, result := range pendingExecutionResult {
+		if result.GetHeaderNonce() < nonce {
+			anchor = result
+		}
+	}
+	if anchor == nil {
+		anchor = ert.lastNotarizedResult
+	}
+	ert.addDismissedBatch(DismissedBatch{
+		AnchorResult: anchor,
+		Results:      resultsToRemove,
+	})
+
 	// Remove from executionResultsByHash and nonceHash, but preserve consensusCommittedHashes
 	// to continue blocking stale results from being added for these nonces
 	ert.removeExecutionResultsFromMaps(resultsToRemove)
@@ -362,6 +408,26 @@ func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint
 	ert.lastExecutedResultHash = ert.lastNotarizedResult.GetHeaderHash()
 
 	return nil
+}
+
+func (ert *executionResultsTracker) addDismissedBatch(batch DismissedBatch) {
+	if len(ert.dismissedBatches) >= maxDismissedBatches {
+		log.Warn("dismissed batches queue is full, dropping oldest batch",
+			"maxDismissedBatches", maxDismissedBatches,
+			"droppedResults", len(ert.dismissedBatches[0].Results),
+		)
+		ert.dismissedBatches = ert.dismissedBatches[1:]
+	}
+	ert.dismissedBatches = append(ert.dismissedBatches, batch)
+}
+
+// PopDismissedResults returns all batches of dismissed execution results and clears the internal queue
+func (ert *executionResultsTracker) PopDismissedResults() []DismissedBatch {
+	ert.mutex.Lock()
+	defer ert.mutex.Unlock()
+	batches := ert.dismissedBatches
+	ert.dismissedBatches = nil
+	return batches
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

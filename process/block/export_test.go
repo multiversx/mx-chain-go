@@ -3,6 +3,7 @@ package block
 import (
 	"math/big"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -94,6 +95,11 @@ func (bp *baseProcessor) GetPruningHandler(finalHeaderNonce uint64) state.Prunin
 	return bp.getPruningHandler(finalHeaderNonce)
 }
 
+// SetClosingNodeStarted -
+func (bp *baseProcessor) SetClosingNodeStarted(val bool) {
+	bp.closingNodeStarted.Store(val)
+}
+
 // SetLastRestartNonce -
 func (bp *baseProcessor) SetLastRestartNonce(lastRestartNonce uint64) {
 	bp.lastRestartNonce = lastRestartNonce
@@ -129,8 +135,8 @@ func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, 
 }
 
 // PruneTrieHeaderV3 -
-func (sp *shardProcessor) PruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
-	sp.pruneTrieHeaderV3(executionResultsHandlers)
+func (sp *shardProcessor) PruneTrieHeaderV3(header data.HeaderHandler) {
+	sp.pruneTrieHeaderV3(header)
 }
 
 // NewShardProcessorEmptyWith3shards -
@@ -188,6 +194,7 @@ func NewShardProcessorEmptyWith3shards(
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
 		ProcessConfigsHandlerField:         processConfigsHandler,
+		ClosingNodeStartedField:            &atomic.Bool{},
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &storageStubs.ChainStorerStub{},
@@ -286,6 +293,7 @@ func NewShardProcessorEmptyWith3shards(
 				},
 			},
 			BlockTracker:                       mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			MiniBlockTracker:                   &testscommon.MiniBlockTrackerStub{},
 			BlockSizeThrottler:                 &mock.BlockSizeThrottlerStub{},
 			Version:                            "softwareVersion",
 			HistoryRepository:                  &dblookupext.HistoryRepositoryStub{},
@@ -335,6 +343,11 @@ func NewShardProcessorEmptyWith3shards(
 // GetDataPool -
 func (mp *metaProcessor) GetDataPool() dataRetriever.PoolsHolder {
 	return mp.dataPool
+}
+
+// AddHdrHashToRequestedList -
+func (mp *metaProcessor) AddHdrHashToRequestedList(hdr data.HeaderHandler, hdrHash []byte) {
+	mp.hdrsForCurrBlock.AddHeaderUsedInBlock(string(hdrHash), hdr)
 }
 
 // IsHdrMissing -
@@ -427,7 +440,7 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 
 // CheckHeaderBodyCorrelation -
 func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body)
+	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID(), false)
 }
 
 // IsHdrConstructionValid -
@@ -452,7 +465,7 @@ func (sp *shardProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 // CheckHeaderBodyCorrelation -
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body)
+	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID(), false)
 }
 
 // CheckAndRequestIfMetaHeadersMissing -
@@ -599,6 +612,11 @@ func (mp *metaProcessor) UpdateState(metaBlock data.MetaHeaderHandler, metaBlock
 	mp.updateState(metaBlock, metaBlockHash)
 }
 
+// CheckScheduledData -
+func (bp *baseProcessor) CheckScheduledData(headerHandler data.HeaderHandler) error {
+	return bp.checkScheduledData(headerHandler)
+}
+
 // GasAndFeesDelta -
 func GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
 	return gasAndFeesDelta(initialGasAndFees, finalGasAndFees)
@@ -628,7 +646,7 @@ func (mp *metaProcessor) CreateEpochStartBody(metaBlock *block.MetaBlock) (data.
 }
 
 // GetIndexOfFirstMiniBlockToBeExecuted -
-func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
+func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) (int, error) {
 	return bp.getIndexOfFirstMiniBlockToBeExecuted(header)
 }
 
@@ -720,9 +738,9 @@ func (sp *shardProcessor) RollBackProcessedMiniBlocksInfo(headerHandler data.Hea
 	sp.rollBackProcessedMiniBlocksInfo(headerHandler, mapMiniBlockHashes)
 }
 
-// CheckConstructionStateAndIndexesCorrectness -
-func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
-	return checkConstructionStateAndIndexesCorrectness(mbh)
+// CheckConstructionStateProcessingTypeAndIndexesCorrectness -
+func CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
+	return checkConstructionStateProcessingTypeAndIndexesCorrectness(mbh, miniBlock, blockShardID)
 }
 
 // GetAllMarshalledTxs -
@@ -786,6 +804,16 @@ func DisplayHeader(
 	return displayHeader(headerHandler, headerProof)
 }
 
+// VerifyShardDataAgainstHeaders -
+func (mp *metaProcessor) VerifyShardDataAgainstHeaders(metaHdr *block.MetaBlock) error {
+	return mp.verifyShardDataAgainstHeaders(metaHdr)
+}
+
+// BuildShardDataFromHeader -
+func (mp *metaProcessor) BuildShardDataFromHeader(shardHdr data.ShardHeaderHandler, headerHash []byte) block.ShardData {
+	return mp.buildShardDataFromHeader(shardHdr, headerHash)
+}
+
 // CreateBaseProcessorWithMockedTracker -
 func CreateBaseProcessorWithMockedTracker(tracker process.BlockTracker) *baseProcessor {
 	return &baseProcessor{
@@ -814,8 +842,8 @@ func (bp *baseProcessor) SetMiniBlockSelectionSession(session MiniBlocksSelectio
 }
 
 // CheckHeaderBodyCorrelationProposal -
-func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
-	return bp.checkHeaderBodyCorrelationProposal(miniBlockHeaders, body)
+func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, headerShardID uint32) error {
+	return bp.checkHeaderBodyCorrelation(miniBlockHeaders, body, headerShardID, true)
 }
 
 // GetFinalMiniBlocksFromExecutionResults -
@@ -1165,4 +1193,72 @@ func (bp *baseProcessor) ExcludeRevertedExecutionResultsForHeader(
 	pendingExecutionResults []data.BaseExecutionResultHandler,
 ) []data.BaseExecutionResultHandler {
 	return bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
+}
+
+// SaveExecutionResult -
+func (bp *baseProcessor) SaveExecutionResult(
+	execResult data.BaseExecutionResultHandler,
+) error {
+	return bp.saveExecutionResult(execResult)
+}
+
+// WaitForExecutionResultsVerification -
+func (bp *baseProcessor) WaitForExecutionResultsVerification(
+	header data.HeaderHandler,
+	haveTime func() time.Duration,
+) error {
+	return bp.waitForExecutionResultsVerification(header, haveTime)
+}
+
+// SetLastPrunedNonce -
+func (bp *baseProcessor) SetLastPrunedNonce(nonce uint64) {
+	bp.mutLastPrunedHeader.Lock()
+	bp.lastPrunedHeaderNonce = nonce
+	bp.mutLastPrunedHeader.Unlock()
+}
+
+// SetLastPrunedHash -
+func (bp *baseProcessor) SetLastPrunedHash(hash []byte) {
+	bp.mutLastPrunedHeader.Lock()
+	bp.lastPrunedHeaderHash = hash
+	bp.mutLastPrunedHeader.Unlock()
+}
+
+// GetLastPrunedHash -
+func (bp *baseProcessor) GetLastPrunedHash() []byte {
+	bp.mutLastPrunedHeader.RLock()
+	lastPrunedHeaderHash := bp.lastPrunedHeaderHash
+	bp.mutLastPrunedHeader.RUnlock()
+
+	return lastPrunedHeaderHash
+}
+
+// CleanupDismissedEWLEntries -
+func (bp *baseProcessor) CleanupDismissedEWLEntries() {
+	bp.cleanupDismissedEWLEntries()
+}
+
+// CheckEWLSizeAndReset -
+func (bp *baseProcessor) CheckEWLSizeAndReset() {
+	bp.checkEWLSizeAndReset()
+}
+
+// ComputeEWLResetThreshold -
+func ComputeEWLResetThreshold(maxProposalNonceGap uint64) int {
+	return computeEWLResetThreshold(maxProposalNonceGap)
+}
+
+// CancelPruneForRootHashTransition -
+func CancelPruneForRootHashTransition(accountsDb state.AccountsAdapter, prevRootHash, currentRootHash []byte) {
+	cancelPruneForRootHashTransition(accountsDb, prevRootHash, currentRootHash)
+}
+
+// CancelPruneForDismissedExecutionResults -
+func (sp *shardProcessor) CancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch) {
+	sp.cancelPruneForDismissedExecutionResults(batches)
+}
+
+// CancelPruneForDismissedExecutionResults -
+func (mp *metaProcessor) CancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch) {
+	mp.cancelPruneForDismissedExecutionResults(batches)
 }

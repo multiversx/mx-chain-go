@@ -425,7 +425,7 @@ func TestSyncTime_ForceSync(t *testing.T) {
 	t.Run("ForceSync should work", func(t *testing.T) {
 		t.Parallel()
 
-		numCalls := 0
+		var numCalls atomic.Uint32
 
 		st := ntp.NewSyncTime(
 			config.NTPConfig{
@@ -434,7 +434,7 @@ func TestSyncTime_ForceSync(t *testing.T) {
 				OutOfBoundsThreshold: 2,
 			},
 			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
-				numCalls++
+				numCalls.Add(1)
 
 				time.Sleep(1 * time.Millisecond)
 
@@ -449,12 +449,15 @@ func TestSyncTime_ForceSync(t *testing.T) {
 
 		st.ForceSync()
 
-		time.Sleep(time.Duration(ntp.NumRequestsFromHost+5) * time.Millisecond)
+		require.Eventually(t, func() bool {
+			return st.ClockOffset() == time.Millisecond &&
+				numCalls.Load() == uint32(ntp.NumRequestsFromHost)
+		}, time.Second, 5*time.Millisecond)
 
 		expClockOffset := 1 * time.Millisecond
 		assert.Equal(t, expClockOffset, st.ClockOffset())
 
-		require.Equal(t, ntp.NumRequestsFromHost, numCalls)
+		require.Equal(t, ntp.NumRequestsFromHost, int(numCalls.Load()))
 	})
 
 	t.Run("TriggerSync should not trigger multiple times", func(t *testing.T) {

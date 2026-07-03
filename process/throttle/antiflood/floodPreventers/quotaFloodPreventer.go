@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -22,10 +23,8 @@ type ArgQuotaFloodPreventer struct {
 var _ process.FloodPreventer = (*quotaFloodPreventer)(nil)
 
 const minMessages = 1
-const minTotalSize = 1 //1Byte
+const minTotalSize = 1 // 1Byte
 const initNumMessages = 1
-const maxPercentReserved = 90.0
-const minPercentReserved = 0.0
 const quotaStructSize = 24
 
 type quota struct {
@@ -143,7 +142,7 @@ func (qfp *quotaFloodPreventer) Reset() {
 	qfp.resetStatusHandlers()
 	qfp.createStatistics()
 
-	//TODO change this if cacher.Clear() is time consuming
+	// TODO change this if cacher.Clear() is time consuming
 	qfp.cacher.Clear()
 }
 

@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -319,6 +320,7 @@ type BlockProcessor interface {
 	) error
 	OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error
 	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte
+	PruneTrieAsyncHeader()
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -356,6 +358,7 @@ type ExecutionManager interface {
 	RemoveAtNonceAndHigher(nonce uint64) error
 	ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
+	PopDismissedResults() []executionTrack.DismissedBatch
 	GetSignalProcessCompletionChan() chan uint64
 	Close() error
 	IsInterfaceNil() bool
@@ -497,6 +500,7 @@ type InterceptorsContainer interface {
 // InterceptorsContainerFactory defines the functionality to create an interceptors container
 type InterceptorsContainerFactory interface {
 	Create() (InterceptorsContainer, InterceptorsContainer, error)
+	AddShardTrieNodeInterceptors(container InterceptorsContainer) error
 	IsInterfaceNil() bool
 }
 
@@ -912,7 +916,7 @@ type PeerBlackListCacher interface {
 
 // PeerShardMapper can return the public key of a provided peer ID
 type PeerShardMapper interface {
-	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte, timestamp int64)
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
@@ -1047,6 +1051,26 @@ type BlockTracker interface {
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 	IsOwnShardStuck() bool
+	IsInterfaceNil() bool
+}
+
+// MiniBlockTracker tracks the confirmation status of cross-shard miniblocks so that
+// their referenced transactions can be granted immunity in the pool on metablock
+// arrival and released from immunity on this shard's commit.
+type MiniBlockTracker interface {
+	// ReleaseImmunityForCommittedMetaBlocks is called by the shard processor after
+	// metablocks up to (threshold-1) have been fully processed. It advances the
+	// immunity threshold for every cache on every pool and drops stale registry
+	// entries whose tracked nonce is strictly below `threshold`.
+	ReleaseImmunityForCommittedMetaBlocks(threshold uint64)
+
+	// ReleaseImmunityForCommittedShardBlocks is called by the meta processor after
+	// shard headers from `senderShard` up to (threshold-1) have been fully processed.
+	// It advances the immunity threshold for caches whose senderShardID matches
+	// `senderShard` and receiver is the metachain, and drops the corresponding stale
+	// registry entries.
+	ReleaseImmunityForCommittedShardBlocks(senderShard uint32, threshold uint64)
+
 	IsInterfaceNil() bool
 }
 
@@ -1188,6 +1212,7 @@ type RoundTimeDurationHandler interface {
 // RoundHandler defines the actions which should be handled by a round implementation
 type RoundHandler interface {
 	Index() int64
+	TimeDuration() time.Duration
 	IsInterfaceNil() bool
 }
 
@@ -1518,7 +1543,7 @@ type GuardedAccountHandler interface {
 
 // DoubleTransactionDetector is able to detect if a transaction hash is present more than once in a block body
 type DoubleTransactionDetector interface {
-	ProcessBlockBody(body *block.Body)
+	ProcessBlockBody(body *block.Body) error
 	IsInterfaceNil() bool
 }
 
@@ -1568,6 +1593,8 @@ type Debugger interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
+	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte)
+	GetSignedHash(pkBytes []byte, nonce uint64) ([]byte, bool)
 	ResetCountersForManagedBlockSigner(signerPk []byte)
 	IsInterfaceNil() bool
 }
@@ -1591,6 +1618,7 @@ type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
+	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -1657,6 +1685,7 @@ type ExecutionResultsTracker interface {
 	Clean(lastNotarizedResult data.BaseExecutionResultHandler)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
 	CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler)
+	PopDismissedResults() []executionTrack.DismissedBatch
 	IsInterfaceNil() bool
 }
 

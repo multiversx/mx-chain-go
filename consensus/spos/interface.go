@@ -51,6 +51,7 @@ type ConsensusCoreHandler interface {
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache
+	MessagesHandler() ConsensusService
 	AOTSelector() process.AOTTransactionSelector
 	IsInterfaceNil() bool
 }
@@ -176,6 +177,8 @@ type PeerBlackListCacher interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
+	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte)
+	GetSignedHash(pkBytes []byte, nonce uint64) ([]byte, bool)
 	IsInterfaceNil() bool
 }
 

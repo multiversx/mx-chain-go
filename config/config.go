@@ -17,6 +17,7 @@ type CacheConfig struct {
 type TxCacheBoundsConfig struct {
 	MaxNumBytesPerSenderUpperBound uint32
 	MaxTrackedBlocks               uint32
+	PropagationGracePeriodMs       uint32
 }
 
 // TxCacheSelectionConfig will map the mempool selection config
@@ -64,6 +65,9 @@ type DBConfig struct {
 	UseTmpAsFilePath    bool
 	ShardIDProviderType string
 	NumShards           int32
+	// BloomFilterBitsPerKey == 0, the Bloom filter is disabled.
+	// Otherwise, it specifies the number of bits per key used by the Bloom filter.
+	BloomFilterBitsPerKey int
 }
 
 // StorageConfig will map the storage unit configuration
@@ -413,6 +417,7 @@ type ProcessConfigByRound struct {
 	MaxConsecutiveRoundsOfRatingDecrease uint64
 	MaxRoundsOfInactivityAccepted        uint64
 	MaxBlockProcessingTimeMs             uint32
+	NumHeadersToRequestInAdvance         uint64
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -521,8 +526,10 @@ type TxAccumulatorConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Enabled        bool
-	ConfigsByRound []AntifloodConfigByRound
+	Enabled                              bool
+	MaxAllowedTrieNodeChunks             uint32
+	TrieNodeChunksInactivityTimeoutInSec int64
+	ConfigsByRound                       []AntifloodConfigByRound
 }
 
 // AntifloodConfigByRound will hold antiflood parameters by round
@@ -806,9 +813,10 @@ type TrieSyncConfig struct {
 
 // RequesterConfig represents the config options to be used when setting up the requester instances
 type RequesterConfig struct {
-	NumCrossShardPeers  uint32
-	NumTotalPeers       uint32
-	NumFullHistoryPeers uint32
+	NumCrossShardPeers         uint32
+	NumTotalPeers              uint32
+	NumFullHistoryPeers        uint32
+	RequestProofByNonceDelayMs uint32
 }
 
 // ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs

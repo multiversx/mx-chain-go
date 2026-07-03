@@ -46,6 +46,6 @@ type logsFacade interface {
 }
 
 type receiptsRepository interface {
-	LoadReceipts(header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
+	LoadReceipts(receiptsHash []byte, header data.HeaderHandler, headerHash []byte) (common.ReceiptsHolder, error)
 	IsInterfaceNil() bool
 }

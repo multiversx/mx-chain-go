@@ -103,6 +103,7 @@ func (ccm *CryptoComponentsMock) Clone() interface{} {
 		BlKeyGen:          ccm.BlKeyGen,
 		TxKeyGen:          ccm.TxKeyGen,
 		mutCrypto:         sync.RWMutex{},
+		ManagedPeers:      ccm.ManagedPeers,
 	}
 }
 

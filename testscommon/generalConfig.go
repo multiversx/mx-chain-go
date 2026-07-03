@@ -91,6 +91,7 @@ func GetGeneralConfig() config.Config {
 					NumFloodingRoundsOutOfSpecs:            40,
 					MaxConsecutiveRoundsOfRatingDecrease:   2000,
 					MaxBlockProcessingTimeMs:               1000,
+					NumHeadersToRequestInAdvance:           10,
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
@@ -169,6 +170,7 @@ func GetGeneralConfig() config.Config {
 		TxCacheBounds: config.TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               100,
+			PropagationGracePeriodMs:       0,
 		},
 		TxCacheSelection: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
@@ -313,7 +315,7 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		HeartbeatV2: config.HeartbeatV2Config{
-			PeerAuthenticationTimeBetweenSendsInSec:          1,
+			PeerAuthenticationTimeBetweenSendsInSec:          10,
 			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 			PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 			HeartbeatTimeBetweenSendsInSec:                   1,
@@ -520,7 +522,9 @@ func getLRUCacheConfig() config.CacheConfig {
 // GetDefaultAntifloodConfig -
 func GetDefaultAntifloodConfig() config.AntifloodConfig {
 	return config.AntifloodConfig{
-		Enabled: true,
+		Enabled:                              true,
+		MaxAllowedTrieNodeChunks:             10,
+		TrieNodeChunksInactivityTimeoutInSec: 10,
 		ConfigsByRound: []config.AntifloodConfigByRound{
 			{
 				Round:                               0,

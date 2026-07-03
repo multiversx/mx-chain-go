@@ -153,6 +153,14 @@ func IsConsensusBitmapValid(
 		return ErrWrongSizeBitmap
 	}
 
+	paddingBits := consensusSize % 8
+	if paddingBits != 0 {
+		paddingMask := byte(0xFF << paddingBits)
+		if bitmap[len(bitmap)-1]&paddingMask != 0 {
+			return ErrPaddingBitsSet
+		}
+	}
+
 	numOfOnesInBitmap := 0
 	for index := range bitmap {
 		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
@@ -268,16 +276,20 @@ func GetHeaderTimestamps(
 	if check.IfNil(header) {
 		return 0, 0, ErrNilHeaderHandler
 	}
+
+	headerTimestamp := header.GetTimeStamp()
+	return PrepareTimestampBasedOnHeaderData(headerTimestamp, header.GetEpoch(), enableEpochsHandler)
+}
+
+// PrepareTimestampBasedOnHeaderData will prepare timestamp based on the provided data
+func PrepareTimestampBasedOnHeaderData(headerTimestamp uint64, headerEpoch uint32, enableEpochsHandler EnableEpochsHandler) (uint64, uint64, error) {
 	if check.IfNil(enableEpochsHandler) {
 		return 0, 0, errors.ErrNilEnableEpochsHandler
 	}
-
-	headerTimestamp := header.GetTimeStamp()
-
 	timestampSec := headerTimestamp
 	timestampMs := headerTimestamp
 
-	if !enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, header.GetEpoch()) {
+	if !enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, headerEpoch) {
 		timestampMs = ConvertTimeStampSecToMs(headerTimestamp)
 		return timestampSec, timestampMs, nil
 	}

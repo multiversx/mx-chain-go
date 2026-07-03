@@ -161,6 +161,8 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.ShardCoordinator(),
 		ccf.cryptoComponents.PeerSignatureHandler(),
 		ccf.dataComponents.Datapool().Headers(),
+		ccf.dataComponents.Datapool().Proofs(),
+		ccf.coreComponents.EnableEpochsHandler(),
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
 		ccf.cryptoComponents.KeysHandler(),
@@ -216,6 +218,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NetworkShardingCollector: ccf.processComponents.PeerShardMapper(),
 		AntifloodHandler:         ccf.networkComponents.InputAntiFloodHandler(),
 		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
+		WhiteListHandler:         ccf.processComponents.WhiteListHandler(),
 		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
 		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),
@@ -272,6 +275,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
 		InvalidSignersCache:           invalidSignersCache,
+		MessagesHandler:               consensusService,
 		AOTSelector:                   ccf.processComponents.AOTSelector(),
 	}
 
@@ -671,6 +675,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EpochBootstrapper:           ccf.processComponents.EpochStartTrigger(),
 		ValidatorAccountsDB:         ccf.stateComponents.PeerAccounts(),
 		ValidatorStatisticsDBSyncer: validatorAccountsDBSyncer,
+		Watchdog:                    ccf.coreComponents.Watchdog(),
 	}
 
 	return sync.NewMetaBootstrap(argsMetaBootstrapper)

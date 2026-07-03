@@ -9,20 +9,20 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiBlock "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
-	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
-
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 const (
@@ -584,6 +584,96 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	defer chainSimulator.Close()
 
 	chainSimulatorCommon.CheckGenerateTransactions(t, chainSimulator)
+}
+
+func TestSimulator_MoveBalanceCheckReceipt(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 defaultRoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        defaultSupernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               defaultMinNodesPerShard,
+		MetaChainMinNodes:              defaultMetaChainMinNodes,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = uint32(2)
+			cfg.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+				Round: "46",
+			}
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	defer chainSimulator.Close()
+
+	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(0, chainSimulatorCommon.OneEGLD)
+	require.Nil(t, err)
+	err = chainSimulator.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	ftx := &transaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(1),
+		SndAddr:   wallet0.Bytes,
+		RcvAddr:   wallet0.Bytes,
+		Data:      []byte(""),
+		GasLimit:  100_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+		Signature: []byte("010101"),
+	}
+
+	checkReceipts := func(te *testing.T, aB *apiBlock.Block, value string) {
+		called := false
+		for _, mb := range aB.MiniBlocks {
+			if mb.Type == block.ReceiptBlock.String() {
+				called = true
+				require.Equal(te, 1, len(mb.Receipts))
+				require.Equal(te, value, mb.Receipts[0].Value.String())
+			}
+		}
+		require.True(te, called)
+	}
+
+	apiTx, err := chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(ftx, 10)
+	require.Nil(t, err)
+	require.NotNil(t, apiTx)
+
+	blockWithTxs, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(apiTx.BlockNonce, apiBlock.BlockQueryOptions{
+		WithTransactions: true,
+		WithLogs:         true,
+	})
+	require.Nil(t, err)
+	require.Equal(t, 2, len(blockWithTxs.MiniBlocks))
+	checkReceipts(t, blockWithTxs, "50000000000000")
+
+	err = chainSimulator.GenerateBlocks(50)
+	require.Nil(t, err)
+
+	ftx.Nonce++
+	apiTx, err = chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(ftx, 10)
+	require.Nil(t, err)
+	require.NotNil(t, apiTx)
+
+	blockWithTxs, err = chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(apiTx.BlockNonce, apiBlock.BlockQueryOptions{
+		WithTransactions: true,
+		WithLogs:         true,
+	})
+	require.Nil(t, err)
+	require.Equal(t, 2, len(blockWithTxs.MiniBlocks))
+	checkReceipts(t, blockWithTxs, "500000000000")
 }
 
 func TestSimulator_SentMoveBalanceNoGasForFee(t *testing.T) {
