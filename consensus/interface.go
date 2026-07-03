@@ -49,6 +49,12 @@ type SubroundHandler interface {
 	EndTime() int64
 	// SetBaseDuration sets the base duration
 	SetBaseDuration(baseDuration time.Duration)
+	// SetTimingPercentage sets the start time and end time percent of the subround
+	SetTimingPercentage(startTimePercent float64, endTimePercent float64)
+	// SetSignatureSubroundEndTimePercentage sets the end time percent of the signature subround
+	SetSignatureSubroundEndTimePercentage(percent float64)
+	// SetProcessingThresholdPercent sets the processing threshold percent of the subround
+	SetProcessingThresholdPercent(percent int)
 	// Name returns the name of the current roundHandler
 	Name() string
 	// ConsensusChannel returns the consensus channel
@@ -189,7 +195,7 @@ type PeerBlacklistHandler interface {
 // SigningHandler defines the behaviour of a component that handles multi and single signatures used in consensus operations
 type SigningHandler interface {
 	Reset(pubKeys []string) error
-	CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
+	CreateSignatureShareForPublicKey(ctx context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
 	CreateSignatureForPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error)
 	VerifySingleSignature(publicKeyBytes []byte, message []byte, signature []byte) error
 	StoreSignatureShare(index uint16, sig []byte) error

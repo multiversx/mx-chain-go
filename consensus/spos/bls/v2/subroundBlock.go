@@ -18,6 +18,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
+type consensusPubKey struct {
+	idx     int
+	pkBytes []byte
+}
+
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
 const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 95 / 100)
 
@@ -25,10 +30,10 @@ const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 95 / 100)
 type subroundBlock struct {
 	*spos.Subround
 
-	processingThresholdPercentage int
-	worker                        spos.WorkerHandler
-	mutBlockProcessing            sync.Mutex
-	syncController                spos.NtpSyncControllerHandler
+	worker             spos.WorkerHandler
+	mutBlockProcessing sync.Mutex
+	syncController     spos.NtpSyncControllerHandler
+	signatureThrottler core.Throttler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -37,6 +42,7 @@ func NewSubroundBlock(
 	processingThresholdPercentage int,
 	worker spos.WorkerHandler,
 	syncController spos.NtpSyncControllerHandler,
+	signatureThrottler core.Throttler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
@@ -49,12 +55,17 @@ func NewSubroundBlock(
 	if check.IfNil(syncController) {
 		return nil, ErrNilRoundSyncController
 	}
+	if check.IfNil(signatureThrottler) {
+		return nil, spos.ErrNilThrottler
+	}
+
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
 
 	srBlock := subroundBlock{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
-		worker:                        worker,
-		syncController:                syncController,
+		Subround:           baseSubround,
+		worker:             worker,
+		syncController:     syncController,
+		signatureThrottler: signatureThrottler,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -142,7 +153,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	sentWithSuccess := sr.sendBlock(header, body, leader)
+	sentWithSuccess := sr.sendBlock(ctx, header, body, leader)
 	if !sentWithSuccess {
 		return false
 	}
@@ -220,7 +231,12 @@ func printLogMessage(ctx context.Context, baseMessage string, err error) {
 	log.Debug(baseMessage, "error", err.Error())
 }
 
-func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler, leader string) bool {
+func (sr *subroundBlock) sendBlock(
+	ctx context.Context,
+	header data.HeaderHandler,
+	body data.BodyHandler,
+	leader string,
+) bool {
 	marshalledBody, err := sr.Marshalizer().Marshal(body)
 	if err != nil {
 		log.Debug("sendBlock.Marshal: body", "error", err.Error())
@@ -236,7 +252,13 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 	sr.logBlockSize(marshalledBody, marshalledHeader)
 	headerHash := sr.Hasher().Compute(string(marshalledHeader))
 
-	if !sr.sendBlockBody(body, marshalledBody) || !sr.sendBlockHeader(header, headerHash) {
+	timeLeft := sr.RoundHandler().RemainingTime(sr.GetRoundTimeStamp(), time.Duration(sr.EndTime()))
+	if timeLeft <= 0 {
+		log.Debug("sendBlock: no remaining time left to send block")
+		return false
+	}
+
+	if !sr.sendBlockBody(body, marshalledBody) || !sr.sendBlockHeader(ctx, header, headerHash) {
 		return false
 	}
 
@@ -313,6 +335,7 @@ func (sr *subroundBlock) sendBlockBody(
 
 // sendBlockHeader method sends the proposed block header in the subround Block
 func (sr *subroundBlock) sendBlockHeader(
+	ctx context.Context,
 	headerHandler data.HeaderHandler,
 	headerHash []byte,
 ) bool {
@@ -336,9 +359,110 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
+	sr.triggerCreateSignaturesForManagedKeys(ctx, headerHash, headerHandler)
+
 	// log the header output for debugging purposes
 	common.LogPrettifiedHeader(headerHandler, "sent", "v2")
 	return true
+}
+
+func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
+	ctx context.Context,
+	headerHash []byte,
+	headerHandler data.HeaderHandler,
+) {
+	if check.IfNil(headerHandler) {
+		log.Debug("triggerCreateSignaturesForManagedKeys: triggered with nil header")
+		return
+	}
+
+	if sr.RoundHandler().Index() != int64(headerHandler.GetRound()) {
+		log.Debug("triggerCreateSignaturesForManagedKeys: not for current round",
+			"currentRound", sr.RoundHandler().Index(),
+			"headerRound", headerHandler.GetRound(),
+		)
+		return
+	}
+
+	currentEpoch := headerHandler.GetEpoch()
+
+	sigSubroundEndTime := sr.SignatureSubroundEndTime()
+	if sigSubroundEndTime == 0 {
+		log.Error("triggerCreateSignaturesForManagedKeys: signature subround end time is 0")
+		return
+	}
+
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
+	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
+	sr.SetSignaturesCtxCancelFunc(cancel)
+
+	keys := sr.getManagedKeysByIndex()
+	if len(keys) == 0 {
+		return
+	}
+
+	wg := sr.SignaturesWaitGroup()
+	wg.Add(len(keys))
+
+	go func() {
+		triggered := 0
+		for _, pk := range keys {
+			err := checkGoRoutinesThrottler(sigCtx, sr.signatureThrottler)
+			if err != nil {
+				log.Debug("triggerCreateSignaturesForManagedKeys.checkGoRoutinesThrottler", "err", err)
+				cancel()
+
+				for i := triggered; i < len(keys); i++ {
+					wg.Done()
+				}
+
+				return
+			}
+			sr.signatureThrottler.StartProcessing()
+
+			triggered++
+
+			go func(sigCtx context.Context, idx int, pkBytes []byte) {
+				defer sr.signatureThrottler.EndProcessing()
+				defer wg.Done()
+
+				select {
+				case <-sigCtx.Done():
+					log.Info("triggerCreateSignaturesForManagedKeys: context done", "timeLeft", timeLeft)
+					return
+				default:
+				}
+
+				_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+					sigCtx,
+					headerHash,
+					uint16(idx),
+					currentEpoch,
+					pkBytes,
+				)
+				if err != nil {
+					log.Info("triggerCreateSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
+					return
+				}
+			}(sigCtx, pk.idx, pk.pkBytes)
+		}
+	}()
+
+	log.Debug("step 1: multi keys signatures creation has been triggered", "num", len(keys))
+}
+
+func (sr *subroundBlock) getManagedKeysByIndex() []consensusPubKey {
+	keys := make([]consensusPubKey, 0)
+	for idx, pk := range sr.ConsensusGroup() {
+		pkBytes := []byte(pk)
+		if !sr.IsKeyManagedBySelf(pkBytes) {
+			continue
+		}
+
+		keys = append(keys, consensusPubKey{idx: idx, pkBytes: pkBytes})
+	}
+
+	return keys
 }
 
 func (sr *subroundBlock) sendDirectSentTransactions(
@@ -639,6 +763,8 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	sr.AddReceivedHeader(headerHandler)
 
+	sr.triggerCreateSignaturesForManagedKeys(context.Background(), headerHash, headerHandler)
+
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()
 
@@ -748,7 +874,7 @@ func (sr *subroundBlock) processBlock(
 	pubkey []byte,
 ) bool {
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	remainingTimeInCurrentRound := func() time.Duration {
 		return sr.RoundHandler().RemainingTime(startTime, maxTime)
 	}

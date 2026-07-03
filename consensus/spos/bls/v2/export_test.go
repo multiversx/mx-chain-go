@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -19,7 +20,20 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
-const ProcessingThresholdPercent = processingThresholdPercent
+// ProcessingThresholdPercent is a test-only value mirroring the default processing threshold percent
+const ProcessingThresholdPercent = 85
+
+// testConsensusConfigByRound holds the default consensus config values used in tests
+var testConsensusConfigByRound = config.ConsensusConfigByRound{
+	EnableRound: 0,
+	SubroundsTiming: []config.SubroundTiming{
+		{StartTime: 0.0, EndTime: 0.05},
+		{StartTime: 0.05, EndTime: 0.25},
+		{StartTime: 0.25, EndTime: 0.85},
+		{StartTime: 0.85, EndTime: 0.95},
+	},
+	ProcessingThresholdPercent: ProcessingThresholdPercent,
+}
 
 // factory
 
@@ -98,22 +112,22 @@ func (fct *factory) SetWorker(worker spos.WorkerHandler) {
 
 // GenerateStartRoundSubround generates the instance of subround StartRound and added it to the chronology subrounds list
 func (fct *factory) GenerateStartRoundSubround() error {
-	return fct.generateStartRoundSubround()
+	return fct.generateStartRoundSubround(testConsensusConfigByRound)
 }
 
 // GenerateBlockSubround generates the instance of subround Block and added it to the chronology subrounds list
 func (fct *factory) GenerateBlockSubround() error {
-	return fct.generateBlockSubround()
+	return fct.generateBlockSubround(testConsensusConfigByRound)
 }
 
 // GenerateSignatureSubround generates the instance of subround Signature and added it to the chronology subrounds list
 func (fct *factory) GenerateSignatureSubround() error {
-	return fct.generateSignatureSubround()
+	return fct.generateSignatureSubround(testConsensusConfigByRound)
 }
 
 // GenerateEndRoundSubround generates the instance of subround EndRound and added it to the chronology subrounds list
 func (fct *factory) GenerateEndRoundSubround() error {
-	return fct.generateEndRoundSubround()
+	return fct.generateEndRoundSubround(testConsensusConfigByRound)
 }
 
 // AppStatusHandler gets the app status handler object
@@ -203,7 +217,7 @@ func (sr *subroundBlock) SendBlockBody(body data.BodyHandler, marshalizedBody []
 
 // SendBlockHeader method sends the proposed block header in the subround Block
 func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte) bool {
-	return sr.sendBlockHeader(header, marshalizedHeader)
+	return sr.sendBlockHeader(context.TODO(), header, marshalizedHeader)
 }
 
 // ComputeSubroundProcessingMetric computes processing metric related to the subround Block
@@ -351,11 +365,6 @@ func (sr *subroundSignature) WaitIfCompetingBlock(ctx context.Context, pkBytes [
 	return sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
 }
 
-// WaitIfCompetingBlockForNode calls the unexported waitIfCompetingBlockForNode function
-func (sr *subroundSignature) WaitIfCompetingBlockForNode(ctx context.Context, nonce uint64, currentHash []byte) bool {
-	return sr.waitIfCompetingBlockForNode(ctx, nonce, currentHash)
-}
-
 // ShouldSendProof calls the unexported shouldSendProof function
 func (sr *subroundEndRound) ShouldSendProof() bool {
 	return sr.shouldSendProof()
@@ -394,4 +403,19 @@ func (sr *subroundEndRound) UpdateNonceDeltaMetrics() {
 // PrepareBlockForExecution prepares the block for execution
 func (sr *subroundBlock) PrepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
 	return sr.prepareBlockForExecution(header, body)
+}
+
+// TriggerCreateSignaturesForManagedKeys -
+func (sr *subroundBlock) TriggerCreateSignaturesForManagedKeys(ctx context.Context, headerHash []byte, headerHandler data.HeaderHandler) {
+	sr.triggerCreateSignaturesForManagedKeys(ctx, headerHash, headerHandler)
+}
+
+// IsRoundWithinBounds -
+func (sr *subroundEndRound) IsRoundWithinBounds(round int64, numRounds uint64) bool {
+	return sr.isRoundWithinBounds(round, numRounds)
+}
+
+// IsTimestampWithinBounds -
+func (sr *subroundEndRound) IsTimestampWithinBounds(timeStampSec int64, numSeconds uint64) bool {
+	return sr.isTimestampWithinBounds(timeStampSec, numSeconds)
 }

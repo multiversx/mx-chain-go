@@ -23,11 +23,10 @@ import (
 
 type subroundEndRound struct {
 	*spos.Subround
-	processingThresholdPercentage int
-	displayStatistics             func()
-	appStatusHandler              core.AppStatusHandler
-	mutProcessingEndRound         sync.Mutex
-	sentSignatureTracker          spos.SentSignaturesTracker
+	displayStatistics     func()
+	appStatusHandler      core.AppStatusHandler
+	mutProcessingEndRound sync.Mutex
+	sentSignatureTracker  spos.SentSignaturesTracker
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -55,13 +54,14 @@ func NewSubroundEndRound(
 		return nil, ErrNilSentSignatureTracker
 	}
 
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
+
 	srEndRound := subroundEndRound{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
-		displayStatistics:             displayStatistics,
-		appStatusHandler:              appStatusHandler,
-		mutProcessingEndRound:         sync.Mutex{},
-		sentSignatureTracker:          sentSignatureTracker,
+		Subround:              baseSubround,
+		displayStatistics:     displayStatistics,
+		appStatusHandler:      appStatusHandler,
+		mutProcessingEndRound: sync.Mutex{},
+		sentSignatureTracker:  sentSignatureTracker,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -899,7 +899,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 
 func (sr *subroundEndRound) isOutOfTime() bool {
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),

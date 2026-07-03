@@ -356,7 +356,6 @@ type ExecutionManager interface {
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	RemoveAtNonceAndHigher(nonce uint64) error
-	ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
 	PopDismissedResults() []executionTrack.DismissedBatch
 	GetSignalProcessCompletionChan() chan uint64
@@ -1593,8 +1592,8 @@ type Debugger interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
-	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte)
-	GetSignedHash(pkBytes []byte, nonce uint64) ([]byte, bool)
+	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
+	GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
 	ResetCountersForManagedBlockSigner(signerPk []byte)
 	IsInterfaceNil() bool
 }
@@ -1629,9 +1628,14 @@ type GasComputation interface {
 		miniBlocks []data.MiniBlockHeaderHandler,
 		transactions map[string][]data.TransactionHandler,
 	) (lastMiniBlockIndex int, pendingMiniBlocks int, err error)
+	// AddOutgoingTransactions verifies the outgoing transactions against the gas limits. isProposer must be
+	// true only when called from the leader's own block proposal flow, false when verifying a block proposal
+	// received from another node, since some checks (e.g. stuck shard skipping) rely on local, possibly
+	// non-deterministic state and must not be applied on verification.
 	AddOutgoingTransactions(
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
+		isProposer bool,
 	) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error)
 	GetBandwidthForTransactions() uint64
 	RevertIncomingMiniBlocks(miniBlockHashes [][]byte)

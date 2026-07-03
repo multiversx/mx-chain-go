@@ -233,8 +233,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
-		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
-		GenesisTime:              args.CoreComponents.GenesisTime(),
+		RoundHandler:             args.ProcessComponents.RoundHandler(),
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
 		AddressPubKeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		ShardCoordinator:         args.ProcessComponents.ShardCoordinator(),
@@ -250,6 +249,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:      args.CoreComponents.EnableRoundsHandler(),
 		TxVersionChecker:         args.CoreComponents.TxVersionChecker(),
+		ChainHandler:             args.DataComponents.Blockchain(),
+		TxProcessor:              args.ProcessComponents.TransactionProcessor(),
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {

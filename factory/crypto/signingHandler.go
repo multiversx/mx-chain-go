@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"context"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -135,9 +136,24 @@ func (sh *signingHandler) Reset(pubKeys []string) error {
 
 // CreateSignatureShareForPublicKey returns a signature over a message using the managed private key that was selected based on the provided
 // publicKeyBytes argument
-func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+func (sh *signingHandler) CreateSignatureShareForPublicKey(
+	ctx context.Context,
+	message []byte,
+	index uint16,
+	epoch uint32,
+	publicKeyBytes []byte,
+) ([]byte, error) {
 	if message == nil {
 		return nil, ErrNilMessage
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil, ErrTimeIsOut
+	default:
 	}
 
 	privateKey := sh.keysHandler.GetHandledPrivateKey(publicKeyBytes)
@@ -145,9 +161,6 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index
 	if err != nil {
 		return nil, err
 	}
-
-	sh.mutSigningData.Lock()
-	defer sh.mutSigningData.Unlock()
 
 	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
 	if err != nil {
@@ -159,7 +172,17 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index
 		return nil, err
 	}
 
-	sh.data.sigShares[index] = sigShareBytes
+	// check again before setting signatures shares data
+	select {
+	case <-ctx.Done():
+		return nil, ErrTimeIsOut
+	default:
+	}
+
+	err = sh.storeSignatureShare(index, sigShareBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	return sigShareBytes, nil
 }
@@ -212,6 +235,10 @@ func (sh *signingHandler) VerifySignatureShare(index uint16, sig []byte, message
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
 func (sh *signingHandler) StoreSignatureShare(index uint16, sig []byte) error {
+	return sh.storeSignatureShare(index, sig)
+}
+
+func (sh *signingHandler) storeSignatureShare(index uint16, sig []byte) error {
 	if len(sig) == 0 {
 		return ErrInvalidSignature
 	}

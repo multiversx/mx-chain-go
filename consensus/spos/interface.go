@@ -2,6 +2,7 @@ package spos
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -177,8 +178,8 @@ type PeerBlackListCacher interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
-	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte)
-	GetSignedHash(pkBytes []byte, nonce uint64) ([]byte, bool)
+	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
+	GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
 	IsInterfaceNil() bool
 }
 
@@ -232,6 +233,9 @@ type ConsensusStateHandler interface {
 	SetHeader(header data.HeaderHandler)
 	GetWaitingAllSignaturesTimeOut() bool
 	SetWaitingAllSignaturesTimeOut(bool)
+	SignaturesWaitGroup() *sync.WaitGroup
+	SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc)
+	SignaturesCtxCancel()
 	RoundConsensusHandler
 	RoundStatusHandler
 	RoundThresholdHandler

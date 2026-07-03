@@ -79,7 +79,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 	}
 
 	miniBlockHeaderHandlers := sp.miniBlocksSelectionSession.GetMiniBlockHeaderHandlers()
-	// todo: check empty mini blocks vs nil. Same for block.Body.MiniBlocks
+
 	err = shardHdr.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
 	if err != nil {
 		return nil, nil, err
@@ -112,11 +112,14 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	// TODO: sanity check use the verify execution results method
+	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	body := &block.Body{MiniBlocks: miniBlocks}
 
-	err = sp.verifyGasLimit(shardHdr, miniBlocks)
+	err = sp.verifyGasLimit(shardHdr, miniBlocks, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -238,7 +241,7 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	err = sp.verifyGasLimit(header, body.MiniBlocks)
+	err = sp.verifyGasLimit(header, body.MiniBlocks, false)
 	if err != nil {
 		return err
 	}
@@ -338,8 +341,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: improvement - add also a request if it is missing as a fallback, although it should not be missing at this point
-	err = sp.checkEpochStartInfoAvailableIfNeeded(header)
+	err = sp.ensureEpochStartInfoAvailable(header, haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +351,6 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: check again before saving the last executed result
 	err = sp.blockChainHook.SetCurrentHeader(header)
 	if err != nil {
 		return nil, err
@@ -655,7 +656,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 		return err
 	}
 
-	// todo: maybe sanitize, removing empty miniBlocks
+	sp.miniBlocksSelectionSession.RemoveEmptyMiniBlocks()
 
 	return nil
 }
@@ -785,6 +786,16 @@ func (sp *shardProcessor) selectOutgoingTransactions(
 	haveTimeForSelection func() bool,
 ) ([][]byte, []data.MiniBlockHeaderHandler) {
 	log.Debug("selectOutgoingTransactions has been started")
+
+	if sp.blockTracker.IsShardStuck(core.MetachainShardId) {
+		log.Debug("selectOutgoingTransactions meta stuck")
+		return [][]byte{}, []data.MiniBlockHeaderHandler{}
+	}
+
+	if sp.blockTracker.ShouldSkipMiniBlocksCreationFromSelf() {
+		log.Debug("selectOutgoingTransactions global stuck")
+		return [][]byte{}, []data.MiniBlockHeaderHandler{}
+	}
 
 	sw := core.NewStopWatch()
 	sw.Start("selectOutgoingTransactions")
