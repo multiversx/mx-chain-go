@@ -85,8 +85,14 @@ func (bc *blockChain) SetCurrentBlockHeaderAndHash(
 	bc.mut.Lock()
 	defer bc.mut.Unlock()
 
+	err := bc.setCurrentBlockHeaderUnprotected(header)
+	if err != nil {
+		return err
+	}
+
 	bc.currentBlockHeaderHash = headerHash
-	return bc.setCurrentBlockHeaderUnprotected(header)
+
+	return nil
 }
 
 // SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
