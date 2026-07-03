@@ -1016,6 +1016,11 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 		return false
 	}
 
+	remainingTime := sr.remainingTime()
+	if remainingTime <= 0 {
+		return false
+	}
+
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
 		log.Debug("receivedSignature.ConsensusGroupIndex",

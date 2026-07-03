@@ -70,6 +70,10 @@ func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
 
 	// Delete the old hash from proofsByHash if it's different from the new hash
 	if len(oldHash) != 0 && oldHash != newHash {
+		log.Warn("proofsCache.addProof: overwrite proof by hash",
+			"oldHash", oldHash,
+			"newHash", newHash,
+		)
 		delete(pc.proofsByHash, oldHash)
 	}
 
