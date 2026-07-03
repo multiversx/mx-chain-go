@@ -234,7 +234,7 @@ type ConsensusStateHandler interface {
 	SetDataIfNotSet(data []byte) bool
 	GetWaitingAllSignaturesTimeOut() bool
 	SetWaitingAllSignaturesTimeOut(bool)
-	SignaturesWaitGroup() *sync.WaitGroup
+	SignaturesWaitGroupWait()
 	SignaturesWaitGroupAdd(delta int) *sync.WaitGroup
 	SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc)
 	SignaturesCtxCancel()

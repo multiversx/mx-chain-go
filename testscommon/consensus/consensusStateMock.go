@@ -88,7 +88,7 @@ type ConsensusStateMock struct {
 	FallbackThresholdCalled                      func(subroundId int) int
 	SetFallbackThresholdCalled                   func(subroundId int, threshold int)
 	ResetConsensusRoundStateCalled               func()
-	SignaturesWaitGroupCalled                    func() *sync.WaitGroup
+	SignaturesWaitGroupWaitCalled                func()
 	SignaturesWaitGroupAddCalled                 func(delta int) *sync.WaitGroup
 	SetDataIfNotSetCalled                        func(data []byte) bool
 	SetSignaturesCtxCancelFuncCalled             func(cancelFunc context.CancelFunc)
@@ -661,13 +661,11 @@ func (cnsm *ConsensusStateMock) SetThreshold(subroundId int, threshold int) {
 	}
 }
 
-// SignaturesWaitGroup -
-func (cnsm *ConsensusStateMock) SignaturesWaitGroup() *sync.WaitGroup {
-	if cnsm.SignaturesWaitGroupCalled != nil {
-		return cnsm.SignaturesWaitGroupCalled()
+// SignaturesWaitGroupWait -
+func (cnsm *ConsensusStateMock) SignaturesWaitGroupWait() {
+	if cnsm.SignaturesWaitGroupWaitCalled != nil {
+		cnsm.SignaturesWaitGroupWaitCalled()
 	}
-
-	return nil
 }
 
 // SignaturesWaitGroupAdd -

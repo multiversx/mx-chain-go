@@ -561,14 +561,12 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 	cns.waitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
 }
 
-// SignaturesWaitGroup returns wait group for optimistic signatures handling.
-// The pointer is read under mutState so it is consistent with the round-boundary swap done in
-// ResetConsensusRoundState.
-func (cns *ConsensusState) SignaturesWaitGroup() *sync.WaitGroup {
+// SignaturesWaitGroupWait blocks signatures wait group until wait counter is zero
+func (cns *ConsensusState) SignaturesWaitGroupWait() {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
-	return cns.signaturesWaitGroup
+	cns.signaturesWaitGroup.Wait()
 }
 
 // SignaturesWaitGroupAdd adds delta to the current round's optimistic-signatures wait group and returns the

@@ -220,11 +220,6 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 func (sr *subroundSignature) waitForSingatures(
 	timeLeft time.Duration,
 ) {
-	wg := sr.SignaturesWaitGroup()
-	if wg == nil {
-		return
-	}
-
 	if timeLeft <= 0 {
 		sr.SignaturesCtxCancel()
 		return
@@ -232,7 +227,7 @@ func (sr *subroundSignature) waitForSingatures(
 
 	done := make(chan struct{})
 	go func() {
-		wg.Wait()
+		sr.SignaturesWaitGroupWait()
 		close(done)
 	}()
 

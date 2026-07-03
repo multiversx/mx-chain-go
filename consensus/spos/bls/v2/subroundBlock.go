@@ -769,8 +769,6 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	sr.AddReceivedHeader(headerHandler)
 
-	sr.triggerCreateSignaturesForManagedKeys(context.Background(), headerHash, headerHandler)
-
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()
 
@@ -869,6 +867,8 @@ func (sr *subroundBlock) processReceivedBlock(
 	if !sr.shouldProcessBlock(string(senderPK)) {
 		return false
 	}
+
+	sr.triggerCreateSignaturesForManagedKeys(ctx, sr.GetData(), sr.GetHeader())
 
 	sw.Start("processBlock")
 	ok := sr.processBlock(ctx, round, senderPK)

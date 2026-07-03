@@ -270,14 +270,13 @@ func TestConsensusState_SetDataIfNotSet(t *testing.T) {
 func TestConsensusState_SignaturesWaitGroupAdd(t *testing.T) {
 	t.Parallel()
 
-	t.Run("adds the delta and returns the same instance the delta was applied to", func(t *testing.T) {
+	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		cns := internalInitConsensusState()
 
 		wg := cns.SignaturesWaitGroupAdd(2)
 		require.NotNil(t, wg)
-		require.Equal(t, cns.SignaturesWaitGroup(), wg)
 
 		done := make(chan struct{})
 		go func() {
