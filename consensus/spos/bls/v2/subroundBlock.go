@@ -398,7 +398,6 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 
 	keys := sr.getManagedKeysByIndex()
 	if len(keys) == 0 {
-		// nothing to wait for: the already-closed done channel published at round reset stays in place
 		return
 	}
 

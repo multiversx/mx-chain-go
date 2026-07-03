@@ -282,6 +282,7 @@ func TestConsensusState_SignaturesDone(t *testing.T) {
 			t.Fatal("SignaturesDone should be closed by default when no optimistic signatures were triggered")
 		}
 	})
+
 	t.Run("published done channel gates the wait until closed", func(t *testing.T) {
 		t.Parallel()
 
@@ -290,7 +291,7 @@ func TestConsensusState_SignaturesDone(t *testing.T) {
 		done := make(chan struct{})
 		cns.SetSignaturesDone(done)
 
-		require.True(t, done == cns.SignaturesDone(), "SignaturesDone should return the exact published channel")
+		require.True(t, done == cns.SignaturesDone())
 
 		select {
 		case <-cns.SignaturesDone():
@@ -306,6 +307,7 @@ func TestConsensusState_SignaturesDone(t *testing.T) {
 			t.Fatal("SignaturesDone must return once the published channel is closed")
 		}
 	})
+
 	t.Run("concurrent publish, wait and round reset are race free", func(t *testing.T) {
 		t.Parallel()
 
@@ -314,7 +316,6 @@ func TestConsensusState_SignaturesDone(t *testing.T) {
 		numIterations := 200
 		wg := sync.WaitGroup{}
 
-		// publisher: mimics subroundBlock triggering and closing the done channel
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -325,7 +326,6 @@ func TestConsensusState_SignaturesDone(t *testing.T) {
 			}
 		}()
 
-		// waiter: mimics the signature subround reading and waiting on the done channel
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -339,7 +339,6 @@ func TestConsensusState_SignaturesDone(t *testing.T) {
 			}
 		}()
 
-		// round advancer: mimics ResetConsensusRoundState swapping the round state
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

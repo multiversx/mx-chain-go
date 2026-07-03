@@ -580,8 +580,7 @@ func (cns *ConsensusState) SignaturesDone() chan struct{} {
 	return cns.signaturesDone
 }
 
-// SetSignaturesDone publishes the done channel for the current round's optimistic-signatures creation. The
-// channel is owned by the trigger (subroundBlock) and is closed when the per-trigger local WaitGroup drains.
+// SetSignaturesDone sets the done channel for the optimistic-signatures creation
 func (cns *ConsensusState) SetSignaturesDone(done chan struct{}) {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
