@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
-const maxLenMiniBlockReservedField = 10
 const maxLenMiniBlockHeaderReservedField = 32
 
 func checkForDuplicateHashes(hashes [][]byte) error {
