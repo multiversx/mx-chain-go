@@ -14,7 +14,7 @@ import (
 func TestCheckGoRoutinesThrottler(t *testing.T) {
 	t.Parallel()
 
-	t.Run("throttler cannot process should return nil immediately", func(t *testing.T) {
+	t.Run("throttler can process should return nil immediately", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -30,7 +30,7 @@ func TestCheckGoRoutinesThrottler(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("throttler can process for a period of time, then cannot, should return nil", func(t *testing.T) {
+	t.Run("throttler cannot process for a period of time, then can process, should return nil", func(t *testing.T) {
 		t.Parallel()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
