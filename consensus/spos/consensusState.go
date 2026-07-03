@@ -47,7 +47,7 @@ type ConsensusState struct {
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
 
-	signaturesWaitGroup        *sync.WaitGroup
+	signaturesDone             chan struct{}
 	signaturesTimeoutCtxCancel context.CancelFunc
 
 	*roundConsensus
@@ -85,7 +85,10 @@ func (cns *ConsensusState) ResetConsensusRoundState() {
 	cns.roundCanceled = false
 	cns.extendedCalled = false
 	cns.waitingAllSignaturesTimeOut = false
-	cns.signaturesWaitGroup = &sync.WaitGroup{}
+	// Start each round with an already-closed done channel, so a signature subround that runs without any
+	// optimistic-signatures trigger (e.g. no managed keys) waits on it and returns immediately.
+	cns.signaturesDone = newClosedChannel()
+	cns.signaturesTimeoutCtxCancel = nil
 	cns.mutState.Unlock()
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
@@ -118,6 +121,12 @@ func (cns *ConsensusState) initReceivedMessagesWithSig() {
 // SignatureMessageKey scopes a signature evidence message to the header hash it signs.
 func SignatureMessageKey(headerHash []byte, pubKey string) string {
 	return string(headerHash) + pubKey
+}
+
+func newClosedChannel() chan struct{} {
+	ch := make(chan struct{})
+	close(ch)
+	return ch
 }
 
 // AddReceivedHeader append the provided header to the inner received headers list
@@ -561,24 +570,23 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 	cns.waitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
 }
 
-// SignaturesWaitGroupWait blocks signatures wait group until wait counter is zero
-func (cns *ConsensusState) SignaturesWaitGroupWait() {
-	cns.mutState.Lock()
-	defer cns.mutState.Unlock()
+// SignaturesDone returns the channel that is closed once the optimistic-signatures creation for the current
+// round has finished. When no optimistic signatures were triggered for the round, the returned channel is
+// already closed.
+func (cns *ConsensusState) SignaturesDone() chan struct{} {
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
 
-	cns.signaturesWaitGroup.Wait()
+	return cns.signaturesDone
 }
 
-// SignaturesWaitGroupAdd adds delta to the current round's optimistic-signatures wait group and returns the
-// exact wait group instance the delta was applied to.
-func (cns *ConsensusState) SignaturesWaitGroupAdd(delta int) *sync.WaitGroup {
+// SetSignaturesDone publishes the done channel for the current round's optimistic-signatures creation. The
+// channel is owned by the trigger (subroundBlock) and is closed when the per-trigger local WaitGroup drains.
+func (cns *ConsensusState) SetSignaturesDone(done chan struct{}) {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
-	wg := cns.signaturesWaitGroup
-	wg.Add(delta)
-
-	return wg
+	cns.signaturesDone = done
 }
 
 // SetSignaturesCtxCancelFunc will set signatures context cancel function

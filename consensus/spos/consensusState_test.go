@@ -267,31 +267,88 @@ func TestConsensusState_SetDataIfNotSet(t *testing.T) {
 	})
 }
 
-func TestConsensusState_SignaturesWaitGroupAdd(t *testing.T) {
+func TestConsensusState_SignaturesDone(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should work", func(t *testing.T) {
+	t.Run("defaults to an already-closed channel after round reset", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		cns.ResetConsensusRoundState()
+
+		select {
+		case <-cns.SignaturesDone():
+		case <-time.After(time.Second):
+			t.Fatal("SignaturesDone should be closed by default when no optimistic signatures were triggered")
+		}
+	})
+	t.Run("published done channel gates the wait until closed", func(t *testing.T) {
 		t.Parallel()
 
 		cns := internalInitConsensusState()
 
-		wg := cns.SignaturesWaitGroupAdd(2)
-		require.NotNil(t, wg)
-
 		done := make(chan struct{})
-		go func() {
-			wg.Wait()
-			close(done)
-		}()
+		cns.SetSignaturesDone(done)
 
-		wg.Done()
-		wg.Done()
+		require.True(t, done == cns.SignaturesDone(), "SignaturesDone should return the exact published channel")
 
 		select {
-		case <-done:
-		case <-time.After(time.Second):
-			t.Fatal("Wait did not return after the added deltas were Done")
+		case <-cns.SignaturesDone():
+			t.Fatal("SignaturesDone must block until the published channel is closed")
+		case <-time.After(20 * time.Millisecond):
 		}
+
+		close(done)
+
+		select {
+		case <-cns.SignaturesDone():
+		case <-time.After(time.Second):
+			t.Fatal("SignaturesDone must return once the published channel is closed")
+		}
+	})
+	t.Run("concurrent publish, wait and round reset are race free", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+
+		numIterations := 200
+		wg := sync.WaitGroup{}
+
+		// publisher: mimics subroundBlock triggering and closing the done channel
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < numIterations; i++ {
+				done := make(chan struct{})
+				cns.SetSignaturesDone(done)
+				close(done)
+			}
+		}()
+
+		// waiter: mimics the signature subround reading and waiting on the done channel
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < numIterations; i++ {
+				select {
+				case <-cns.SignaturesDone():
+				case <-time.After(time.Second):
+					t.Error("SignaturesDone should not block forever")
+					return
+				}
+			}
+		}()
+
+		// round advancer: mimics ResetConsensusRoundState swapping the round state
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < numIterations; i++ {
+				cns.ResetConsensusRoundState()
+			}
+		}()
+
+		wg.Wait()
 	})
 }
 

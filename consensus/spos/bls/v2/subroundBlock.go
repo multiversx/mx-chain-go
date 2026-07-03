@@ -396,16 +396,26 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 		return
 	}
 
+	keys := sr.getManagedKeysByIndex()
+	if len(keys) == 0 {
+		// nothing to wait for: the already-closed done channel published at round reset stays in place
+		return
+	}
+
 	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
 	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
 	sr.SetSignaturesCtxCancelFunc(cancel)
 
-	keys := sr.getManagedKeysByIndex()
-	if len(keys) == 0 {
-		return
-	}
+	wg := &sync.WaitGroup{}
+	wg.Add(len(keys))
 
-	wg := sr.SignaturesWaitGroupAdd(len(keys))
+	done := make(chan struct{})
+	sr.SetSignaturesDone(done)
+
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
 
 	go func() {
 		triggered := 0
@@ -787,6 +797,8 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()
 
+	sr.triggerCreateSignaturesForManagedKeys(ctx, headerHash, headerHandler)
+
 	_ = sr.processReceivedBlock(ctx, int64(headerHandler.GetRound()), []byte(sr.Leader()))
 	sr.PeerHonestyHandler().ChangeScore(
 		sr.Leader(),
@@ -882,8 +894,6 @@ func (sr *subroundBlock) processReceivedBlock(
 	if !sr.shouldProcessBlock(string(senderPK)) {
 		return false
 	}
-
-	sr.triggerCreateSignaturesForManagedKeys(ctx, sr.GetData(), sr.GetHeader())
 
 	sw.Start("processBlock")
 	ok := sr.processBlock(ctx, round, senderPK)

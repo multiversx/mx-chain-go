@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -88,8 +87,8 @@ type ConsensusStateMock struct {
 	FallbackThresholdCalled                      func(subroundId int) int
 	SetFallbackThresholdCalled                   func(subroundId int, threshold int)
 	ResetConsensusRoundStateCalled               func()
-	SignaturesWaitGroupWaitCalled                func()
-	SignaturesWaitGroupAddCalled                 func(delta int) *sync.WaitGroup
+	SignaturesDoneCalled                         func() chan struct{}
+	SetSignaturesDoneCalled                      func(done chan struct{})
 	SetDataIfNotSetCalled                        func(data []byte) bool
 	SetSignaturesCtxCancelFuncCalled             func(cancelFunc context.CancelFunc)
 	SignaturesCtxCancelCalled                    func()
@@ -661,20 +660,23 @@ func (cnsm *ConsensusStateMock) SetThreshold(subroundId int, threshold int) {
 	}
 }
 
-// SignaturesWaitGroupWait -
-func (cnsm *ConsensusStateMock) SignaturesWaitGroupWait() {
-	if cnsm.SignaturesWaitGroupWaitCalled != nil {
-		cnsm.SignaturesWaitGroupWaitCalled()
+// SignaturesDone -
+func (cnsm *ConsensusStateMock) SignaturesDone() chan struct{} {
+	if cnsm.SignaturesDoneCalled != nil {
+		return cnsm.SignaturesDoneCalled()
 	}
+
+	// default to an already-closed channel so a wait on it returns immediately
+	ch := make(chan struct{})
+	close(ch)
+	return ch
 }
 
-// SignaturesWaitGroupAdd -
-func (cnsm *ConsensusStateMock) SignaturesWaitGroupAdd(delta int) *sync.WaitGroup {
-	if cnsm.SignaturesWaitGroupAddCalled != nil {
-		return cnsm.SignaturesWaitGroupAddCalled(delta)
+// SetSignaturesDone -
+func (cnsm *ConsensusStateMock) SetSignaturesDone(done chan struct{}) {
+	if cnsm.SetSignaturesDoneCalled != nil {
+		cnsm.SetSignaturesDoneCalled(done)
 	}
-
-	return &sync.WaitGroup{}
 }
 
 // SetDataIfNotSet -
