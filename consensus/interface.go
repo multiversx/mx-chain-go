@@ -228,6 +228,7 @@ type KeysHandler interface {
 // EquivalentProofsPool defines the behaviour of a proofs pool components
 type EquivalentProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
+	AddProofIfNoneAtNonce(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler)
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool

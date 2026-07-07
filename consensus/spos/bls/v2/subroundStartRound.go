@@ -128,8 +128,6 @@ func (sr *subroundStartRound) captureSignatureEvidence() {
 		return
 	}
 
-	// allow one assembly attempt per round while the nonce stays unsettled
-	ev.assemblyStarted.Store(false)
 	go trySelfAssembleProof(sr.Subround, sr.signatureEvidence, ev)
 }
 
@@ -330,7 +328,7 @@ func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []st
 	return numMultiKeysInConsensusGroup
 }
 
-func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
+func (sr *subroundStartRound) indexRoundIfNeeded(_ []string) {
 	sr.outportMutex.RLock()
 	defer sr.outportMutex.RUnlock()
 

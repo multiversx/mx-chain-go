@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -99,9 +100,9 @@ func createSelfAssemblySetup(t *testing.T) *selfAssemblyTestSetup {
 		GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
 			return nil, errors.New("proof not found")
 		},
-		AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
+		AddProofIfNoneAtNonceCalled: func(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler) {
 			numAdded.Add(1)
-			return true
+			return true, nil
 		},
 	}
 	container.SetEquivalentProofsPool(proofsPool)
@@ -211,7 +212,7 @@ func TestTrySelfAssembleProof_HappyPath(t *testing.T) {
 	assert.Nil(t, err, "the self-assembled aggregated signature must verify")
 }
 
-func TestTrySelfAssembleProof_AssemblyStartedOnlyOnce(t *testing.T) {
+func TestTrySelfAssembleProof_SingleAttemptPerRound(t *testing.T) {
 	t.Parallel()
 
 	setup := createSelfAssemblySetup(t)
@@ -220,7 +221,7 @@ func TestTrySelfAssembleProof_AssemblyStartedOnlyOnce(t *testing.T) {
 	trySelfAssembleProof(setup.subround, setup.store, ev)
 	trySelfAssembleProof(setup.subround, setup.store, ev)
 
-	assert.Equal(t, int32(1), setup.numAdded.Load(), "the CAS guard must prevent a second assembly")
+	assert.Equal(t, int32(1), setup.numAdded.Load(), "a second attempt in the same round must be skipped")
 }
 
 func TestTrySelfAssembleProof_StripsInvalidSharesAndRetries(t *testing.T) {
@@ -297,18 +298,20 @@ func TestTrySelfAssembleProof_AbortsOnCompetingProof(t *testing.T) {
 		setup := createSelfAssemblySetup(t)
 		ev := setup.createRealEvidence(t, []byte("header hash"), 7)
 
-		var numChecks atomic.Int32
-		setup.proofsPool.GetProofByNonceCalled = func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
-			if numChecks.Add(1) == 1 {
-				return nil, errors.New("proof not found")
-			}
-			return &block.HeaderProof{HeaderHash: []byte("competing hash"), HeaderNonce: headerNonce}, nil
+		// entry check finds no proof, the atomic add is beaten by a competing proof
+		setup.proofsPool.AddProofIfNoneAtNonceCalled = func(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler) {
+			return false, &block.HeaderProof{HeaderHash: []byte("competing hash"), HeaderNonce: headerProof.GetHeaderNonce()}
 		}
+
+		setup.store.Capture(ev)
+		setup.store.Capture(nil)
 
 		trySelfAssembleProof(setup.subround, setup.store, ev)
 
-		assert.Nil(t, setup.broadcast.Load(), "broadcast must be aborted by the pre-publish re-check")
-		assert.Equal(t, int32(0), setup.numAdded.Load())
+		assert.Nil(t, setup.broadcast.Load(), "broadcast must be aborted by the atomic add")
+
+		_, ok := setup.store.GetRetainedQuorumEvidence(ev.nonce)
+		assert.False(t, ok, "settled nonce must drop the retained slot")
 	})
 
 	t.Run("proof for the own hash means already done", func(t *testing.T) {
@@ -346,6 +349,131 @@ func TestTrySelfAssembleProof_EpochBoundaryUsesSnapshotGroup(t *testing.T) {
 
 	err := setup.signingHandler.VerifyAggregatedSigWithKeys(setup.keys, proof.PubKeysBitmap, headerHash, proof.AggregatedSignature, 0)
 	assert.Nil(t, err)
+}
+
+func TestTrySelfAssembleProof_InProgressAttemptBlocksUntilDone(t *testing.T) {
+	t.Parallel()
+
+	var currentRound atomic.Int64
+	currentRound.Store(10)
+
+	proceed := make(chan struct{})
+	started := make(chan struct{}, 4)
+	var numAggregations atomic.Int32
+
+	container := consensusMocks.InitConsensusCore()
+	container.SetRoundHandler(&testscommon.RoundHandlerMock{
+		IndexCalled: func() int64 {
+			return currentRound.Load()
+		},
+	})
+	container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+		AggregateSigsWithKeysCalled: func(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error) {
+			numAggregations.Add(1)
+			started <- struct{}{}
+			<-proceed
+			return []byte("agg"), nil
+		},
+	})
+	container.SetEquivalentProofsPool(createUnsettledProofsPool())
+
+	sr := createFlowSubround(t, container, bls.SrSignature, "(SIGNATURE)")
+	store, _ := newSignatureEvidenceStore(createUnsettledProofsPool())
+	ev := createTestEvidence(9, 5, 7, 8)
+
+	// first attempt starts in round 10 and blocks inside the aggregation
+	go trySelfAssembleProof(sr, store, ev)
+	<-started
+
+	// next round while the first attempt is still executing: no second attempt
+	currentRound.Store(11)
+	trySelfAssembleProof(sr, store, ev)
+	assert.Equal(t, int32(1), numAggregations.Load())
+
+	close(proceed)
+	require.Eventually(t, func() bool {
+		return !ev.assemblyRunning.Load()
+	}, time.Second, time.Millisecond)
+
+	// round 11 had no attempt started, so a retry is allowed after completion
+	trySelfAssembleProof(sr, store, ev)
+	assert.Equal(t, int32(2), numAggregations.Load())
+
+	// a second attempt in the same round is skipped
+	trySelfAssembleProof(sr, store, ev)
+	assert.Equal(t, int32(2), numAggregations.Load())
+
+	// next round: retried again
+	currentRound.Store(12)
+	trySelfAssembleProof(sr, store, ev)
+	assert.Equal(t, int32(3), numAggregations.Load())
+}
+
+func TestTrySelfAssembleProof_SettledNonceDropsRetainedEvenWhenIneligible(t *testing.T) {
+	t.Parallel()
+
+	var numAggregations atomic.Int32
+	container := consensusMocks.InitConsensusCore()
+	container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+		AggregateSigsWithKeysCalled: func(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error) {
+			numAggregations.Add(1)
+			return []byte("agg"), nil
+		},
+	})
+	container.SetEquivalentProofsPool(createSettledProofsPool([]byte("competing hash")))
+
+	sr := createFlowSubround(t, container, bls.SrSignature, "(SIGNATURE)")
+	store, _ := newSignatureEvidenceStore(createUnsettledProofsPool())
+
+	ev := createTestEvidence(9, 5, 7, 8)
+	for i := range ev.consensusGroup {
+		ev.consensusGroup[i] = "other_" + ev.consensusGroup[i]
+	}
+	store.Capture(ev)
+	store.Capture(nil)
+	_, ok := store.GetRetainedQuorumEvidence(ev.nonce)
+	require.True(t, ok)
+
+	trySelfAssembleProof(sr, store, ev)
+
+	assert.Equal(t, int32(0), numAggregations.Load())
+	_, ok = store.GetRetainedQuorumEvidence(ev.nonce)
+	assert.False(t, ok, "the settled nonce must drop the retained slot before the eligibility check")
+}
+
+func TestTrySelfAssembleProof_KeepsEvidenceWhenAllSharesFailVerification(t *testing.T) {
+	t.Parallel()
+
+	var numAdded atomic.Int32
+	container := consensusMocks.InitConsensusCore()
+	container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+		AggregateSigsWithKeysCalled: func(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error) {
+			return nil, errors.New("infrastructure error")
+		},
+		VerifySigShareWithKeyCalled: func(pubKey []byte, sigShare []byte, message []byte, epoch uint32) error {
+			return errors.New("infrastructure error")
+		},
+	})
+	proofsPool := createUnsettledProofsPool()
+	proofsPool.AddProofIfNoneAtNonceCalled = func(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler) {
+		numAdded.Add(1)
+		return true, nil
+	}
+	container.SetEquivalentProofsPool(proofsPool)
+
+	sr := createFlowSubround(t, container, bls.SrSignature, "(SIGNATURE)")
+	store, _ := newSignatureEvidenceStore(createUnsettledProofsPool())
+
+	ev := createTestEvidence(9, 5, 7, 8)
+	store.Capture(ev)
+	store.Capture(nil)
+
+	trySelfAssembleProof(sr, store, ev)
+
+	assert.Equal(t, 8, ev.getCount(), "evidence must stay intact on an all-shares failure")
+	assert.Equal(t, int32(0), numAdded.Load())
+	_, ok := store.GetRetainedQuorumEvidence(ev.nonce)
+	assert.True(t, ok, "no demotion on an all-shares failure")
 }
 
 func TestTrySelfAssembleProof_NotEligibleWithoutGroupKeys(t *testing.T) {

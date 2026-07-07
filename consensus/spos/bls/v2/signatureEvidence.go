@@ -13,16 +13,19 @@ import (
 // roundSignatureEvidence is a snapshot of the signature shares observed for one block,
 // taken at the start of the following round, before the consensus state is reset.
 type roundSignatureEvidence struct {
-	roundIndex      int64
-	nonce           uint64
-	headerHash      []byte
-	epoch           uint32
-	headerRound     uint64
-	shardID         uint32
-	isStartOfEpoch  bool
-	threshold       int
-	consensusGroup  []string
-	assemblyStarted atomic.Bool
+	roundIndex     int64
+	nonce          uint64
+	headerHash     []byte
+	epoch          uint32
+	headerRound    uint64
+	shardID        uint32
+	isStartOfEpoch bool
+	threshold      int
+	consensusGroup []string
+	// assemblyRunning is true strictly while an assembly attempt executes;
+	// nextAssemblyRound is the first round allowed to start the next attempt
+	assemblyRunning   atomic.Bool
+	nextAssemblyRound atomic.Int64
 
 	mut    sync.RWMutex
 	bitmap []byte

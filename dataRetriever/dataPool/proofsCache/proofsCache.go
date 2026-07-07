@@ -80,6 +80,34 @@ func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
 	pc.proofsByHash[newHash] = proof
 }
 
+// addProofIfNoneAtNonce adds the proof only if its nonce slot is free or already holds the same
+// header hash; returns the added flag and the pre-existing proof for the nonce, if any
+func (pc *proofsCache) addProofIfNoneAtNonce(proof data.HeaderProofHandler) (bool, data.HeaderProofHandler) {
+	if check.IfNil(proof) {
+		return false, nil
+	}
+
+	pc.mutProofsCache.Lock()
+	defer pc.mutProofsCache.Unlock()
+
+	bucketKey := pc.getBucketKey(proof.GetHeaderNonce())
+	bucket, ok := pc.proofsByNonceBuckets[bucketKey]
+	if ok {
+		existingHash, hasNonce := bucket.proofsByNonce[proof.GetHeaderNonce()]
+		if hasNonce {
+			existingProof, hasProof := pc.proofsByHash[existingHash]
+			if hasProof {
+				return false, existingProof
+			}
+		}
+	}
+
+	_ = pc.insertProofByNonce(proof)
+	pc.proofsByHash[string(proof.GetHeaderHash())] = proof
+
+	return true, nil
+}
+
 // getBucketKey will return bucket key as lower bound window value
 func (pc *proofsCache) getBucketKey(index uint64) uint64 {
 	return (index / pc.bucketSize) * pc.bucketSize

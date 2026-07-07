@@ -179,7 +179,15 @@ func TestSubroundStartRound_CaptureSignatureEvidence(t *testing.T) {
 func TestSubroundStartRound_CaptureTriggersSelfAssemblyOnQuorum(t *testing.T) {
 	t.Parallel()
 
+	var chronologyRound atomic.Int64
+	chronologyRound.Store(11)
+
 	container := consensusMocks.InitConsensusCore()
+	container.SetRoundHandler(&testscommon.RoundHandlerMock{
+		IndexCalled: func() int64 {
+			return chronologyRound.Load()
+		},
+	})
 	container.SetSigningHandler(&consensusMocks.SigningHandlerStub{})
 	container.SetEquivalentProofsPool(createUnsettledProofsPool())
 
@@ -213,7 +221,14 @@ func TestSubroundStartRound_CaptureTriggersSelfAssemblyOnQuorum(t *testing.T) {
 		require.Fail(t, "self-assembly was not triggered at round start")
 	}
 
+	ev, found := store.GetPreviousRoundEvidence(5, 11)
+	require.True(t, found)
+	require.Eventually(t, func() bool {
+		return !ev.assemblyRunning.Load()
+	}, time.Second, time.Millisecond)
+
 	// retained evidence re-fires on the next round while the nonce stays unsettled
+	chronologyRound.Store(12)
 	srStartRound.SetHeader(nil)
 	srStartRound.SetData(nil)
 	srStartRound.captureSignatureEvidence()

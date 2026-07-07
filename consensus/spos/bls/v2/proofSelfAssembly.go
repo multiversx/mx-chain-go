@@ -15,13 +15,20 @@ import (
 // trySelfAssembleProof aggregates the snapshotted signature shares into a proof for the previous
 // round's block; it never creates a second proof: any existing proof at the nonce aborts it
 func trySelfAssembleProof(sr *spos.Subround, store signatureEvidenceHandler, ev *roundSignatureEvidence) {
-	if !ev.assemblyStarted.CompareAndSwap(false, true) {
+	currentRound := sr.RoundHandler().Index()
+	if ev.nextAssemblyRound.Load() > currentRound {
+		return // already attempted this round
+	}
+	if !ev.assemblyRunning.CompareAndSwap(false, true) {
+		return
+	}
+	defer ev.assemblyRunning.Store(false)
+	ev.nextAssemblyRound.Store(currentRound + 1)
+
+	if abortOnExistingProof(sr, store, ev) {
 		return
 	}
 	if !shouldNodeSendProofForGroup(sr, ev.consensusGroup) {
-		return
-	}
-	if abortOnExistingProof(sr, store, ev, "at entry") {
 		return
 	}
 
@@ -54,11 +61,14 @@ func trySelfAssembleProof(sr *spos.Subround, store signatureEvidenceHandler, ev 
 		IsStartOfEpoch:      ev.isStartOfEpoch,
 	}
 
-	// re-check right before publish, aggregation took time
-	if abortOnExistingProof(sr, store, ev, "before publish") {
-		return
-	}
-	if !sr.EquivalentProofsPool().AddProof(proof) {
+	// atomic add: never overwrites a proof that arrived at the nonce during aggregation
+	added, existing := sr.EquivalentProofsPool().AddProofIfNoneAtNonce(proof)
+	if !added {
+		if !check.IfNil(existing) && !bytes.Equal(existing.GetHeaderHash(), ev.headerHash) {
+			log.Warn("trySelfAssembleProof: competing proof arrived during assembly, aborting broadcast",
+				"nonce", ev.nonce, "ownHash", ev.headerHash, "existingHash", existing.GetHeaderHash())
+		}
+		store.DropRetained(ev.nonce) // nonce settled either way
 		return
 	}
 	store.DropRetained(ev.nonce)
@@ -74,14 +84,14 @@ func trySelfAssembleProof(sr *spos.Subround, store signatureEvidenceHandler, ev 
 		"nonce", ev.nonce, "headerHash", ev.headerHash)
 }
 
-func abortOnExistingProof(sr *spos.Subround, store signatureEvidenceHandler, ev *roundSignatureEvidence, stage string) bool {
+func abortOnExistingProof(sr *spos.Subround, store signatureEvidenceHandler, ev *roundSignatureEvidence) bool {
 	existing, err := sr.EquivalentProofsPool().GetProofByNonce(ev.nonce, ev.shardID)
 	if err != nil || check.IfNil(existing) {
 		return false
 	}
 
 	if !bytes.Equal(existing.GetHeaderHash(), ev.headerHash) {
-		log.Warn("trySelfAssembleProof: competing proof already exists at nonce, aborting "+stage,
+		log.Warn("trySelfAssembleProof: competing proof already exists at nonce, aborting assembly",
 			"nonce", ev.nonce, "ownHash", ev.headerHash, "existingHash", existing.GetHeaderHash())
 	}
 	store.DropRetained(ev.nonce) // nonce settled either way
@@ -115,10 +125,12 @@ func stripInvalidShares(sr *spos.Subround, ev *roundSignatureEvidence, bitmap []
 	sem := make(chan struct{}, maxParallelVerifications)
 	var wg sync.WaitGroup
 
+	numVerified := 0
 	for i := range ev.consensusGroup {
 		if !isIndexSetInBitmap(i, bitmap) || shares[i] == nil {
 			continue
 		}
+		numVerified++
 
 		wg.Add(1)
 		sem <- struct{}{}
@@ -139,6 +151,14 @@ func stripInvalidShares(sr *spos.Subround, ev *roundSignatureEvidence, bitmap []
 		}(i)
 	}
 	wg.Wait()
+
+	// quorum evidence always holds at least one honest, valid share, so all shares failing
+	// points to an infrastructure error, not adversarial shares: keep the evidence intact
+	if numVerified > 0 && len(invalidIndices) == numVerified {
+		log.Warn("stripInvalidShares: all shares failed verification, keeping evidence for retry",
+			"nonce", ev.nonce, "numShares", numVerified)
+		return
+	}
 
 	ev.dropShares(invalidIndices)
 }
