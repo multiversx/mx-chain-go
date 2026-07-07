@@ -340,6 +340,34 @@ func (boot *baseBootstrap) GetNumSyncedWithErrorsForNonce(nonce uint64) uint32 {
 	return numSyncedWithErrors
 }
 
+// GetPreparedForSync -
+func (boot *baseBootstrap) GetPreparedForSync() bool {
+	return boot.preparedForSync
+}
+
+// SetPreparedForSync -
+func (boot *baseBootstrap) SetPreparedForSync(prepared bool) {
+	boot.preparedForSync = prepared
+}
+
+// SetExecutionResultsRecoveryCooldown -
+func (boot *baseBootstrap) SetExecutionResultsRecoveryCooldown(cooldown time.Duration) {
+	boot.executionResultsRecoveryCooldown = cooldown
+}
+
+// GetRecoveryAttemptsForNonce -
+func (boot *baseBootstrap) GetRecoveryAttemptsForNonce(nonce uint64) uint32 {
+	boot.mutNonceSyncedWithErrors.RLock()
+	defer boot.mutNonceSyncedWithErrors.RUnlock()
+
+	info, ok := boot.mapNonceRecoveryAttempts[nonce]
+	if !ok {
+		return 0
+	}
+
+	return info.numAttempts
+}
+
 // GetMapNonceSyncedWithErrorsLen -
 func (boot *baseBootstrap) GetMapNonceSyncedWithErrorsLen() int {
 	boot.mutNonceSyncedWithErrors.RLock()
