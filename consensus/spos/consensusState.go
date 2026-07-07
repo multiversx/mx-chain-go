@@ -47,7 +47,7 @@ type ConsensusState struct {
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
 
-	signaturesDone             chan struct{}
+	signaturesDone             <-chan struct{}
 	signaturesTimeoutCtxCancel context.CancelFunc
 
 	*roundConsensus
@@ -88,7 +88,12 @@ func (cns *ConsensusState) ResetConsensusRoundState() {
 	// Start each round with an already-closed done channel, so a signature subround that runs without any
 	// optimistic-signatures trigger (e.g. no managed keys) waits on it and returns immediately.
 	cns.signaturesDone = newClosedChannel()
-	cns.signaturesTimeoutCtxCancel = nil
+
+	if cns.signaturesTimeoutCtxCancel != nil {
+		cns.signaturesTimeoutCtxCancel()
+		cns.signaturesTimeoutCtxCancel = nil
+	}
+
 	cns.mutState.Unlock()
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
@@ -573,7 +578,7 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 // SignaturesDone returns the channel that is closed once the optimistic-signatures creation for the current
 // round has finished. When no optimistic signatures were triggered for the round, the returned channel is
 // already closed.
-func (cns *ConsensusState) SignaturesDone() chan struct{} {
+func (cns *ConsensusState) SignaturesDone() <-chan struct{} {
 	cns.mutState.RLock()
 	defer cns.mutState.RUnlock()
 
@@ -581,7 +586,7 @@ func (cns *ConsensusState) SignaturesDone() chan struct{} {
 }
 
 // SetSignaturesDone sets the done channel for the optimistic-signatures creation
-func (cns *ConsensusState) SetSignaturesDone(done chan struct{}) {
+func (cns *ConsensusState) SetSignaturesDone(done <-chan struct{}) {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 

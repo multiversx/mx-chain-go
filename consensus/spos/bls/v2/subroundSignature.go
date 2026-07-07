@@ -233,8 +233,6 @@ func (sr *subroundSignature) waitForSignatures(
 	timer := time.NewTimer(timeLeft)
 	defer timer.Stop()
 
-	// Wait only on the done channel published by the trigger. It is closed when the optimistic-signatures
-	// creation finishes (or is already closed when no optimistic signatures were triggered this round).
 	select {
 	case <-sr.SignaturesDone():
 		sr.SignaturesCtxCancel()

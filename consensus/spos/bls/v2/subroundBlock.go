@@ -793,10 +793,10 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	sr.AddReceivedHeader(headerHandler)
 
+	sr.triggerCreateSignaturesForManagedKeys(context.Background(), headerHash, headerHandler)
+
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()
-
-	sr.triggerCreateSignaturesForManagedKeys(ctx, headerHash, headerHandler)
 
 	_ = sr.processReceivedBlock(ctx, int64(headerHandler.GetRound()), []byte(sr.Leader()))
 	sr.PeerHonestyHandler().ChangeScore(

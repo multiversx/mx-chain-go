@@ -87,8 +87,8 @@ type ConsensusStateMock struct {
 	FallbackThresholdCalled                      func(subroundId int) int
 	SetFallbackThresholdCalled                   func(subroundId int, threshold int)
 	ResetConsensusRoundStateCalled               func()
-	SignaturesDoneCalled                         func() chan struct{}
-	SetSignaturesDoneCalled                      func(done chan struct{})
+	SignaturesDoneCalled                         func() <-chan struct{}
+	SetSignaturesDoneCalled                      func(done <-chan struct{})
 	SetDataIfNotSetCalled                        func(data []byte) bool
 	SetSignaturesCtxCancelFuncCalled             func(cancelFunc context.CancelFunc)
 	SignaturesCtxCancelCalled                    func()
@@ -661,7 +661,7 @@ func (cnsm *ConsensusStateMock) SetThreshold(subroundId int, threshold int) {
 }
 
 // SignaturesDone -
-func (cnsm *ConsensusStateMock) SignaturesDone() chan struct{} {
+func (cnsm *ConsensusStateMock) SignaturesDone() <-chan struct{} {
 	if cnsm.SignaturesDoneCalled != nil {
 		return cnsm.SignaturesDoneCalled()
 	}
@@ -673,7 +673,7 @@ func (cnsm *ConsensusStateMock) SignaturesDone() chan struct{} {
 }
 
 // SetSignaturesDone -
-func (cnsm *ConsensusStateMock) SetSignaturesDone(done chan struct{}) {
+func (cnsm *ConsensusStateMock) SetSignaturesDone(done <-chan struct{}) {
 	if cnsm.SetSignaturesDoneCalled != nil {
 		cnsm.SetSignaturesDoneCalled(done)
 	}

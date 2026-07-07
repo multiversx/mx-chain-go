@@ -233,8 +233,8 @@ type ConsensusStateHandler interface {
 	SetDataIfNotSet(data []byte) bool
 	GetWaitingAllSignaturesTimeOut() bool
 	SetWaitingAllSignaturesTimeOut(bool)
-	SignaturesDone() chan struct{}
-	SetSignaturesDone(done chan struct{})
+	SignaturesDone() <-chan struct{}
+	SetSignaturesDone(done <-chan struct{})
 	SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc)
 	SignaturesCtxCancel()
 	RoundConsensusHandler
