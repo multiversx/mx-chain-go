@@ -57,6 +57,10 @@ const sleepTimeOnFail = 400 * time.Millisecond
 const minimumProcessWaitTime = time.Millisecond * 100
 const defaultTimeToWaitForRequestedData = 5 * time.Minute
 
+// defaultExecutionResultsRecoveryCooldown is the minimum time between two recovery attempts for
+// the same diverging execution result nonce
+const defaultExecutionResultsRecoveryCooldown = time.Minute
+
 // hdrInfo hold the data related to a header
 type hdrInfo struct {
 	Nonce uint64
@@ -69,6 +73,11 @@ type notarizedInfo struct {
 	blockWithLastNotarized  map[uint32]uint64
 	blockWithFinalNotarized map[uint32]uint64
 	startNonce              uint64
+}
+
+type nonceRecoveryInfo struct {
+	numAttempts uint32
+	lastAttempt time.Time
 }
 
 type baseBootstrap struct {
@@ -121,7 +130,10 @@ type baseBootstrap struct {
 	mutSyncStateListeners    sync.RWMutex
 	uint64Converter          typeConverters.Uint64ByteSliceConverter
 	mapNonceSyncedWithErrors map[uint64]uint32
+	mapNonceRecoveryAttempts map[uint64]*nonceRecoveryInfo // guarded by mutNonceSyncedWithErrors
 	mutNonceSyncedWithErrors sync.RWMutex
+
+	executionResultsRecoveryCooldown time.Duration
 
 	requestMiniBlocks func(headerHandler data.HeaderHandler)
 
@@ -791,6 +803,11 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 		return
 	}
 
+	if boot.tryRecoverFromExecutionResultsMismatch(headerHandler, err) {
+		// nothing to roll back, the synced header stays in pool for retry
+		return
+	}
+
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
 	isProcessWithError := processBlockStarted && !errors.Is(err, process.ErrTimeIsOut)
 
@@ -868,6 +885,116 @@ func (boot *baseBootstrap) resetSyncedWithErrorsForNonce(nonce uint64) {
 	boot.mutNonceSyncedWithErrors.Lock()
 	delete(boot.mapNonceSyncedWithErrors, nonce)
 	boot.mutNonceSyncedWithErrors.Unlock()
+}
+
+// tryRecoverFromExecutionResultsMismatch removes the local pending execution results diverging
+// from the notarized ones carried by the synced header (canonical, as the header passed consensus)
+// and re-queues the affected blocks for re-execution
+func (boot *baseBootstrap) tryRecoverFromExecutionResultsMismatch(headerHandler data.HeaderHandler, err error) bool {
+	if !errors.Is(err, process.ErrExecutionResultDoesNotMatch) {
+		return false
+	}
+	if check.IfNil(headerHandler) || !headerHandler.IsHeaderV3() {
+		return false
+	}
+
+	rewindNonce, found := boot.getFirstDivergingExecutionResultNonce(headerHandler)
+	if !found {
+		lastNotarizedResult, errNotarized := boot.executionManager.GetLastNotarizedExecutionResult()
+		if errNotarized != nil || check.IfNil(lastNotarizedResult) {
+			log.Warn("tryRecoverFromExecutionResultsMismatch: cannot get last notarized execution result",
+				"error", errNotarized,
+			)
+			return false
+		}
+
+		rewindNonce = lastNotarizedResult.GetHeaderNonce() + 1
+	}
+
+	numAttempts, allowed := boot.shouldAttemptRecoveryForNonce(rewindNonce)
+	if !allowed {
+		log.Debug("tryRecoverFromExecutionResultsMismatch: recovery cooldown not expired",
+			"rewind nonce", rewindNonce,
+			"synced header nonce", headerHandler.GetNonce(),
+			"num recovery attempts", numAttempts,
+		)
+		return false
+	}
+
+	log.Warn("tryRecoverFromExecutionResultsMismatch: local execution results diverged from the "+
+		"notarized ones carried by the synced header, removing local pending execution results "+
+		"and re-executing the affected blocks",
+		"rewind nonce", rewindNonce,
+		"synced header nonce", headerHandler.GetNonce(),
+		"synced header round", headerHandler.GetRound(),
+		"recovery attempt", numAttempts,
+	)
+
+	errRemove := boot.executionManager.RemoveAtNonceAndHigher(rewindNonce)
+	if errRemove != nil {
+		log.Warn("tryRecoverFromExecutionResultsMismatch: RemoveAtNonceAndHigher failed",
+			"rewind nonce", rewindNonce,
+			"error", errRemove,
+		)
+		return false
+	}
+
+	// force the backfill to re-queue the removed blocks for execution
+	boot.preparedForSync = false
+	boot.resetSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
+
+	return true
+}
+
+// getFirstDivergingExecutionResultNonce returns the nonce of the first local pending execution
+// result differing from the header's notarized one; matched by nonce to be immune to list misalignment
+func (boot *baseBootstrap) getFirstDivergingExecutionResultNonce(headerHandler data.HeaderHandler) (uint64, bool) {
+	pendingExecutionResults, err := boot.executionManager.GetPendingExecutionResults()
+	if err != nil {
+		log.Debug("getFirstDivergingExecutionResultNonce: cannot get pending execution results", "error", err)
+		return 0, false
+	}
+
+	pendingByNonce := make(map[uint64]data.BaseExecutionResultHandler, len(pendingExecutionResults))
+	for _, pendingResult := range pendingExecutionResults {
+		pendingByNonce[pendingResult.GetHeaderNonce()] = pendingResult
+	}
+
+	for _, headerResult := range headerHandler.GetExecutionResultsHandlers() {
+		pendingResult, ok := pendingByNonce[headerResult.GetHeaderNonce()]
+		if !ok {
+			continue
+		}
+		if !headerResult.Equal(pendingResult) {
+			return headerResult.GetHeaderNonce(), true
+		}
+	}
+
+	return 0, false
+}
+
+// shouldAttemptRecoveryForNonce records a new recovery attempt, unless the cooldown has not expired
+func (boot *baseBootstrap) shouldAttemptRecoveryForNonce(nonce uint64) (uint32, bool) {
+	boot.mutNonceSyncedWithErrors.Lock()
+	defer boot.mutNonceSyncedWithErrors.Unlock()
+
+	if boot.mapNonceRecoveryAttempts == nil {
+		boot.mapNonceRecoveryAttempts = make(map[uint64]*nonceRecoveryInfo)
+	}
+
+	info, ok := boot.mapNonceRecoveryAttempts[nonce]
+	if ok && time.Since(info.lastAttempt) < boot.executionResultsRecoveryCooldown {
+		return info.numAttempts, false
+	}
+
+	if !ok {
+		info = &nonceRecoveryInfo{}
+		boot.mapNonceRecoveryAttempts[nonce] = info
+	}
+	info.numAttempts++
+	info.lastAttempt = time.Now()
+
+	return info.numAttempts, true
 }
 
 func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
@@ -1520,6 +1647,12 @@ func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
 	for nonce := range boot.mapNonceSyncedWithErrors {
 		if nonce < finalNonce {
 			delete(boot.mapNonceSyncedWithErrors, nonce)
+		}
+	}
+
+	for nonce := range boot.mapNonceRecoveryAttempts {
+		if nonce < finalNonce {
+			delete(boot.mapNonceRecoveryAttempts, nonce)
 		}
 	}
 }
@@ -2261,6 +2394,8 @@ func (boot *baseBootstrap) init() {
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
 	boot.mapNonceSyncedWithErrors = make(map[uint64]uint32)
+	boot.mapNonceRecoveryAttempts = make(map[uint64]*nonceRecoveryInfo)
+	boot.executionResultsRecoveryCooldown = defaultExecutionResultsRecoveryCooldown
 }
 
 func (boot *baseBootstrap) requestHeaders(fromNonce uint64, toNonce uint64) {
