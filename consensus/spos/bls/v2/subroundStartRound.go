@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -25,6 +26,7 @@ type subroundStartRound struct {
 
 	sentSignatureTracker spos.SentSignaturesTracker
 	worker               spos.WorkerHandler
+	signatureEvidence    signatureEvidenceHandler
 	outportHandler       outport.OutportHandler
 	outportMutex         sync.RWMutex
 }
@@ -35,6 +37,7 @@ func NewSubroundStartRound(
 	processingThresholdPercentage int,
 	sentSignatureTracker spos.SentSignaturesTracker,
 	worker spos.WorkerHandler,
+	signatureEvidence signatureEvidenceHandler,
 ) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
@@ -48,6 +51,9 @@ func NewSubroundStartRound(
 	if check.IfNil(worker) {
 		return nil, spos.ErrNilWorker
 	}
+	if check.IfNil(signatureEvidence) {
+		return nil, ErrNilSignatureEvidence
+	}
 
 	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
 
@@ -55,6 +61,7 @@ func NewSubroundStartRound(
 		Subround:             baseSubround,
 		sentSignatureTracker: sentSignatureTracker,
 		worker:               worker,
+		signatureEvidence:    signatureEvidence,
 		outportHandler:       disabled.NewDisabledOutport(),
 		outportMutex:         sync.RWMutex{},
 	}
@@ -96,6 +103,8 @@ func (sr *subroundStartRound) SetOutportHandler(outportHandler outport.OutportHa
 
 // doStartRoundJob method does the job of the subround StartRound
 func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
+	// must run before ResetConsensusState wipes the previous round's shares and job flags
+	sr.captureSignatureEvidence()
 	sr.ResetConsensusState()
 	sr.SetRoundIndex(sr.RoundHandler().Index())
 	sr.SetRoundTimeStamp(sr.RoundHandler().TimeStamp())
@@ -107,6 +116,77 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	sr.worker.ConsensusMetrics().ResetInstanceValues()
 
 	return true
+}
+
+// captureSignatureEvidence snapshots the signature shares observed for the previous round's
+// block and triggers proof self-assembly when quorum-level evidence exists for an unsettled nonce
+func (sr *subroundStartRound) captureSignatureEvidence() {
+	sr.signatureEvidence.Capture(sr.buildSignatureEvidence())
+
+	ev, ok := sr.signatureEvidence.GetAssemblyCandidate()
+	if !ok {
+		return
+	}
+
+	// allow one assembly attempt per round while the nonce stays unsettled
+	ev.assemblyStarted.Store(false)
+	go trySelfAssembleProof(sr.Subround, sr.signatureEvidence, ev)
+}
+
+func (sr *subroundStartRound) buildSignatureEvidence() *roundSignatureEvidence {
+	header := sr.GetHeader()
+	headerHash := sr.GetData()
+	if check.IfNil(header) || len(headerHash) == 0 {
+		return nil
+	}
+
+	group := sr.ConsensusGroup()
+	bitmapSize := len(group) / 8
+	if len(group)%8 != 0 {
+		bitmapSize++
+	}
+
+	bitmap := make([]byte, bitmapSize)
+	shares := make([][]byte, len(group))
+	count := 0
+	for i, pk := range group {
+		isJobDone, err := sr.JobDone(pk, bls.SrSignature)
+		if err != nil || !isJobDone {
+			continue
+		}
+
+		share, err := sr.SigningHandler().SignatureShare(uint16(i))
+		if err != nil {
+			continue
+		}
+
+		shares[i] = share
+		bitmap[i/8] |= 1 << (uint16(i) % 8)
+		count++
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	threshold, _ := computeSignatureThreshold(sr.Subround, header)
+	groupCopy := make([]string, len(group))
+	copy(groupCopy, group)
+
+	return &roundSignatureEvidence{
+		roundIndex:     sr.GetRoundIndex(), // still the previous round index here
+		nonce:          header.GetNonce(),
+		headerHash:     headerHash,
+		epoch:          header.GetEpoch(),
+		headerRound:    header.GetRound(),
+		shardID:        header.GetShardID(),
+		isStartOfEpoch: header.IsStartOfEpochBlock(),
+		threshold:      threshold,
+		consensusGroup: groupCopy,
+		bitmap:         bitmap,
+		shares:         shares,
+		count:          count,
+	}
 }
 
 // doStartRoundConsensusCheck method checks if the consensus is achieved in the subround StartRound

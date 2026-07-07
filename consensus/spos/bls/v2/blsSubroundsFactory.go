@@ -28,6 +28,8 @@ type factory struct {
 	currentPid            core.PeerID
 	signatureThrottler    core.Throttler
 	commonConfigsHandler  common.CommonConfigsHandler
+	// instantiated once on the factory so the evidence survives subround regeneration
+	signatureEvidence signatureEvidenceHandler
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -58,6 +60,11 @@ func NewSubroundsFactory(
 		return nil, err
 	}
 
+	signatureEvidence, err := newSignatureEvidenceStore(consensusDataContainer.EquivalentProofsPool())
+	if err != nil {
+		return nil, err
+	}
+
 	fct := factory{
 		consensusCore:         consensusDataContainer,
 		consensusState:        consensusState,
@@ -69,6 +76,7 @@ func NewSubroundsFactory(
 		signatureThrottler:    signatureThrottler,
 		outportHandler:        outportHandler,
 		commonConfigsHandler:  commonConfigsHandler,
+		signatureEvidence:     signatureEvidence,
 	}
 
 	return &fct, nil
@@ -182,6 +190,7 @@ func (fct *factory) generateStartRoundSubround(timing config.ConsensusConfigByRo
 		int(timing.ProcessingThresholdPercent),
 		fct.sentSignaturesTracker,
 		fct.worker,
+		fct.signatureEvidence,
 	)
 	if err != nil {
 		return err
@@ -233,6 +242,7 @@ func (fct *factory) generateBlockSubround(timing config.ConsensusConfigByRound) 
 		fct.worker,
 		syncController,
 		fct.signatureThrottler,
+		fct.signatureEvidence,
 	)
 	if err != nil {
 		return err
@@ -275,6 +285,7 @@ func (fct *factory) generateSignatureSubround(timing config.ConsensusConfigByRou
 		fct.sentSignaturesTracker,
 		fct.worker,
 		fct.signatureThrottler,
+		fct.signatureEvidence,
 	)
 	if err != nil {
 		return err

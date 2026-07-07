@@ -205,6 +205,9 @@ type SigningHandler interface {
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte, epoch uint32) error
 	GetPubKeysFromBytes(pubKeysBytes [][]byte) ([]crypto.PublicKey, error)
+	AggregateSigsWithKeys(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error)
+	VerifyAggregatedSigWithKeys(pubKeys []string, bitmap []byte, message []byte, aggSig []byte, epoch uint32) error
+	VerifySigShareWithKey(pubKey []byte, sigShare []byte, message []byte, epoch uint32) error
 	IsInterfaceNil() bool
 }
 

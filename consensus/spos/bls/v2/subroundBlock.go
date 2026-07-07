@@ -34,6 +34,7 @@ type subroundBlock struct {
 	mutBlockProcessing sync.Mutex
 	syncController     spos.NtpSyncControllerHandler
 	signatureThrottler core.Throttler
+	signatureEvidence  signatureEvidenceHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -43,6 +44,7 @@ func NewSubroundBlock(
 	worker spos.WorkerHandler,
 	syncController spos.NtpSyncControllerHandler,
 	signatureThrottler core.Throttler,
+	signatureEvidence signatureEvidenceHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
@@ -58,6 +60,9 @@ func NewSubroundBlock(
 	if check.IfNil(signatureThrottler) {
 		return nil, spos.ErrNilThrottler
 	}
+	if check.IfNil(signatureEvidence) {
+		return nil, ErrNilSignatureEvidence
+	}
 
 	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
 
@@ -66,6 +71,7 @@ func NewSubroundBlock(
 		worker:             worker,
 		syncController:     syncController,
 		signatureThrottler: signatureThrottler,
+		signatureEvidence:  signatureEvidence,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -110,6 +116,9 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	}
 	if sr.HasProofForCompetingBlock() {
 		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
+		return false
+	}
+	if sr.hasQuorumEvidenceForCompetingBlock() {
 		return false
 	}
 
@@ -179,6 +188,32 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	if !header.IsHeaderV3() {
 		sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body, sr.GetRoundTimeStamp())
 	}
+
+	return true
+}
+
+// hasQuorumEvidenceForCompetingBlock refuses to propose a block doomed by quorum-level signature
+// evidence for the previous round's block at the same nonce; the leader assembles the proof instead
+func (sr *subroundBlock) hasQuorumEvidenceForCompetingBlock() bool {
+	prevHeader, _ := sr.getPrevHeaderAndHash()
+	if check.IfNil(prevHeader) {
+		return false
+	}
+	nonce := prevHeader.GetNonce() + 1
+
+	ev, ok := sr.signatureEvidence.GetPreviousRoundEvidence(nonce, sr.RoundHandler().Index())
+	if !ok {
+		ev, ok = sr.signatureEvidence.GetRetainedQuorumEvidence(nonce)
+	}
+	if !ok || ev.getCount() < ev.threshold {
+		return false
+	}
+
+	go trySelfAssembleProof(sr.Subround, sr.signatureEvidence, ev)
+	log.Debug("doBlockJob - quorum evidence for previous round's block, skipping block proposal",
+		"nonce", nonce,
+		"previousHash", ev.headerHash,
+		"observedShares", ev.getCount())
 
 	return true
 }
