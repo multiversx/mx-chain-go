@@ -793,6 +793,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	sr.AddReceivedHeader(headerHandler)
 
+	// the context here should not be related to processing context from below
 	sr.triggerCreateSignaturesForManagedKeys(context.Background(), headerHash, headerHandler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
