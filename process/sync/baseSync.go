@@ -978,6 +978,10 @@ func (boot *baseBootstrap) shouldAttemptRecoveryForNonce(nonce uint64) (uint32, 
 	boot.mutNonceSyncedWithErrors.Lock()
 	defer boot.mutNonceSyncedWithErrors.Unlock()
 
+	if boot.mapNonceRecoveryAttempts == nil {
+		boot.mapNonceRecoveryAttempts = make(map[uint64]*nonceRecoveryInfo)
+	}
+
 	info, ok := boot.mapNonceRecoveryAttempts[nonce]
 	if ok && time.Since(info.lastAttempt) < boot.executionResultsRecoveryCooldown {
 		return info.numAttempts, false
