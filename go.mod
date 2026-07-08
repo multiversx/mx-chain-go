@@ -209,4 +209,4 @@ require (
 
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
 
-replace github.com/multiversx/mx-chain-vm-go v1.5.45 => github.com/multiversx/mx-chain-vm-go-ghsa-hwg4-v7gq-phfc v1.6.1-0.20260707104617-b077b5c47e40
+replace github.com/multiversx/mx-chain-vm-go v1.5.45 => github.com/multiversx/mx-chain-vm-go-ghsa-hwg4-v7gq-phfc v1.6.1-0.20260707113730-ef93d7c24266
