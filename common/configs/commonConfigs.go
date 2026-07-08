@@ -38,6 +38,7 @@ type commonConfigs struct {
 	orderedEpochStartConfigByRound []config.EpochStartConfigByRound
 	orderedConsensusConfigByEpoch  []config.ConsensusConfigByEpoch
 	orderedConsensusConfigByRound  []config.ConsensusConfigByRound
+	printPrettifiedHeader          bool
 }
 
 // NewCommonConfigsHandler creates a new process configs by epoch component
@@ -46,6 +47,7 @@ func NewCommonConfigsHandler(
 	configsByRound []config.EpochStartConfigByRound,
 	consensusConfigByEpoch []config.ConsensusConfigByEpoch,
 	consensusConfigByRound []config.ConsensusConfigByRound,
+	printPrettifiedHeader bool,
 ) (*commonConfigs, error) {
 	err := checkCommonConfigsByEpoch(configsByEpoch)
 	if err != nil {
@@ -71,6 +73,7 @@ func NewCommonConfigsHandler(
 		orderedEpochStartConfigByRound: make([]config.EpochStartConfigByRound, len(configsByRound)),
 		orderedConsensusConfigByEpoch:  make([]config.ConsensusConfigByEpoch, len(consensusConfigByEpoch)),
 		orderedConsensusConfigByRound:  make([]config.ConsensusConfigByRound, len(consensusConfigByRound)),
+		printPrettifiedHeader:          printPrettifiedHeader,
 	}
 
 	// sort the config values in ascending order
@@ -295,6 +298,11 @@ func (cc *commonConfigs) GetActiveTimingBoundaryRound(round uint64) uint64 {
 	}
 
 	return 0
+}
+
+// PrintPrettifiedHeader returns whether prettified headers should be logged
+func (cc *commonConfigs) PrintPrettifiedHeader() bool {
+	return cc.printPrettifiedHeader
 }
 
 // IsInterfaceNil checks if the instance is nil

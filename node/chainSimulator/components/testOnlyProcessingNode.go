@@ -114,6 +114,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
 		GenesisTime:                 args.GenesisTime,
+		PrintPrettifiedHeader:       args.Configs.FlagsConfig.PrintPrettifiedHeader,
 	})
 	if err != nil {
 		return nil, err

@@ -362,11 +362,7 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.triggerCreateSignaturesForManagedKeys(ctx, headerHash, headerHandler)
 
 	// log the header output for debugging purposes
-	headerOutput, err := common.PrettifyStruct(headerHandler)
-	if err == nil {
-		log.Debug("proposed header sent", "header", headerOutput)
-	}
-
+	common.LogPrettifiedHeader(headerHandler, "sent", "v2", sr.CommonConfigsHandler())
 	return true
 }
 
@@ -795,10 +791,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	)
 
 	// log the header output for debugging purposes
-	headerOutput, err := common.PrettifyStruct(headerHandler)
-	if err == nil {
-		log.Debug("proposed header received", "header", headerOutput)
-	}
+	common.LogPrettifiedHeader(sr.GetHeader(), "received", "v2", sr.CommonConfigsHandler())
 }
 
 func (sr *subroundBlock) checkSupernovaHeader(headerHandler data.HeaderHandler) bool {
