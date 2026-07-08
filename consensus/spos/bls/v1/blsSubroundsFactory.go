@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -25,7 +24,6 @@ type factory struct {
 	sentSignaturesTracker spos.SentSignaturesTracker
 	chainID               []byte
 	currentPid            core.PeerID
-	commonConfigsHandler  common.CommonConfigsHandler
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -38,7 +36,6 @@ func NewSubroundsFactory(
 	appStatusHandler core.AppStatusHandler,
 	sentSignaturesTracker spos.SentSignaturesTracker,
 	outportHandler outport.OutportHandler,
-	commonConfigsHandler common.CommonConfigsHandler,
 ) (*factory, error) {
 	// no need to check the outportHandler, it can be nil
 	err := checkNewFactoryParams(
@@ -48,7 +45,6 @@ func NewSubroundsFactory(
 		chainID,
 		appStatusHandler,
 		sentSignaturesTracker,
-		commonConfigsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -63,7 +59,6 @@ func NewSubroundsFactory(
 		currentPid:            currentPid,
 		sentSignaturesTracker: sentSignaturesTracker,
 		outportHandler:        outportHandler,
-		commonConfigsHandler:  commonConfigsHandler,
 	}
 
 	return &fct, nil
@@ -76,7 +71,6 @@ func checkNewFactoryParams(
 	chainID []byte,
 	appStatusHandler core.AppStatusHandler,
 	sentSignaturesTracker spos.SentSignaturesTracker,
-	commonConfigsHandler common.CommonConfigsHandler,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -93,9 +87,6 @@ func checkNewFactoryParams(
 	}
 	if check.IfNil(sentSignaturesTracker) {
 		return ErrNilSentSignatureTracker
-	}
-	if check.IfNil(commonConfigsHandler) {
-		return common.ErrNilCommonConfigsHandler
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID
@@ -118,7 +109,7 @@ func (fct *factory) GenerateSubrounds(_ uint32) error {
 
 	// the base (round 0) timing config is used for the initial generation; the chronology component
 	// reconciles the subrounds to whichever timing config is actually active at the current round
-	timing := fct.commonConfigsHandler.GetSubroundsTimingByRound(0)
+	timing := fct.consensusCore.CommonConfigsHandler().GetSubroundsTimingByRound(0)
 
 	err := fct.generateStartRoundSubround(timing)
 	if err != nil {

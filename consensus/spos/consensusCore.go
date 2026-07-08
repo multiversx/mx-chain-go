@@ -48,6 +48,7 @@ type ConsensusCore struct {
 	invalidSignersCache           InvalidSignersCache
 	messagesHandler               ConsensusService
 	aotSelector                   process.AOTTransactionSelector
+	commonConfigsHandler          common.CommonConfigsHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -82,6 +83,7 @@ type ConsensusCoreArgs struct {
 	InvalidSignersCache           InvalidSignersCache
 	MessagesHandler               ConsensusService
 	AOTSelector                   process.AOTTransactionSelector
+	CommonConfigsHandler          common.CommonConfigsHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -119,6 +121,7 @@ func NewConsensusCore(
 		invalidSignersCache:           args.InvalidSignersCache,
 		messagesHandler:               args.MessagesHandler,
 		aotSelector:                   args.AOTSelector,
+		commonConfigsHandler:          args.CommonConfigsHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -422,6 +425,16 @@ func (cc *ConsensusCore) SetMessagesHandler(messagesHandler ConsensusService) {
 // AOTSelector returns the AOT transaction selector
 func (cc *ConsensusCore) AOTSelector() process.AOTTransactionSelector {
 	return cc.aotSelector
+}
+
+// CommonConfigsHandler returns the CommonConfigsHandler
+func (cc *ConsensusCore) CommonConfigsHandler() common.CommonConfigsHandler {
+	return cc.commonConfigsHandler
+}
+
+// SetCommonConfigsHandler sets the CommonConfigsHandler
+func (cc *ConsensusCore) SetCommonConfigsHandler(commonConfigsHandler common.CommonConfigsHandler) {
+	cc.commonConfigsHandler = commonConfigsHandler
 }
 
 // SetAOTSelector sets the AOT transaction selector

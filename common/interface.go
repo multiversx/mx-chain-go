@@ -510,6 +510,7 @@ type CommonConfigsHandler interface {
 	GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32
 	GetSubroundsTimingByRound(round uint64) config.ConsensusConfigByRound
 	GetActiveTimingBoundaryRound(round uint64) uint64
+	PrintPrettifiedHeader() bool
 
 	IsInterfaceNil() bool
 }
