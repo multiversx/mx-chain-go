@@ -2577,6 +2577,71 @@ func TestBaseBlockTrack_CheckProofAgainstRoundHandler(t *testing.T) {
 	})
 }
 
+func TestBaseBlockTrack_IsHeaderQuarantined(t *testing.T) {
+	t.Parallel()
+
+	quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
+	require.NoError(t, err)
+
+	bbt := track.NewBaseBlockTrack()
+	bbt.SetQuarantinedHeaders(quarantinedHeaders)
+
+	hash := []byte("quarantined header hash")
+	require.False(t, bbt.IsHeaderQuarantined(hash))
+
+	quarantinedHeaders.Put(hash, struct{}{}, 0)
+	require.True(t, bbt.IsHeaderQuarantined(hash))
+	require.False(t, bbt.IsHeaderQuarantined([]byte("unknown hash")))
+}
+
+func TestBaseBlockTrack_SettleQuarantinedParentIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("proven child of a quarantined header settles the parent", func(t *testing.T) {
+		t.Parallel()
+
+		quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
+		require.NoError(t, err)
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetQuarantinedHeaders(quarantinedHeaders)
+
+		parentHash := []byte("quarantined parent hash")
+		quarantinedHeaders.Put(parentHash, struct{}{}, 0)
+
+		bbt.SettleQuarantinedParentIfNeeded(&block.Header{
+			Nonce:    11,
+			ShardID:  1,
+			PrevHash: parentHash,
+		}, []byte("hash"))
+
+		require.False(t, quarantinedHeaders.Has(parentHash))
+		require.Equal(t, 0, quarantinedHeaders.Len())
+	})
+
+	t.Run("child whose prev hash is not quarantined leaves the cache untouched", func(t *testing.T) {
+		t.Parallel()
+
+		quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
+		require.NoError(t, err)
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetQuarantinedHeaders(quarantinedHeaders)
+
+		parentHash := []byte("quarantined parent hash")
+		quarantinedHeaders.Put(parentHash, struct{}{}, 0)
+
+		bbt.SettleQuarantinedParentIfNeeded(&block.Header{
+			Nonce:    11,
+			ShardID:  1,
+			PrevHash: []byte("some other parent hash"),
+		}, []byte("hash"))
+
+		require.True(t, quarantinedHeaders.Has(parentHash))
+		require.Equal(t, 1, quarantinedHeaders.Len())
+	})
+}
+
 // ------- CheckBlockAgainstFinal
 
 func TestBaseBlockTrack_CheckBlockAgainstFinalNilHeaderShouldErr(t *testing.T) {

@@ -135,6 +135,11 @@ func (bbt *baseBlockTrack) SetProofsPool(proofsPool dataRetriever.ProofsPool) {
 	bbt.proofsPool = proofsPool
 }
 
+// SettleQuarantinedParentIfNeeded -
+func (bbt *baseBlockTrack) SettleQuarantinedParentIfNeeded(header data.HeaderHandler, headerHash []byte) {
+	bbt.settleQuarantinedParentIfNeeded(header, headerHash)
+}
+
 // SetCrossNotarizer -
 func (bbt *baseBlockTrack) SetCrossNotarizer(notarizer blockNotarizerHandler) {
 	bbt.crossNotarizer = notarizer
