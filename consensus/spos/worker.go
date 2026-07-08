@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
@@ -373,6 +374,15 @@ func (wrk *Worker) convertHeaderToConsensusMessage(header data.HeaderHandler) (*
 
 // ReceivedHeader process the received header, calling each received header handler registered in worker instance
 func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("recovered from panic in Worker.ReceivedHeader",
+				"panic", r,
+				"stack", string(debug.Stack()),
+			)
+		}
+	}()
+
 	if check.IfNil(headerHandler) {
 		log.Trace("ReceivedHeader: nil header handler")
 		return
