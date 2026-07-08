@@ -48,6 +48,7 @@ type ConsensusCoreHandler interface {
 	SigningHandler() consensus.SigningHandler
 	EnableEpochsHandler() common.EnableEpochsHandler
 	EnableRoundsHandler() common.EnableRoundsHandler
+	CommonConfigsHandler() common.CommonConfigsHandler
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache

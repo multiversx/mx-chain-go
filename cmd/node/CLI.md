@@ -74,6 +74,7 @@ GLOBAL OPTIONS:
    --repopulate-tokens-supplies              Boolean flag for repopulating the tokens supplies database. It will delete the current data, iterate over the entire trie and add he new obtained supplies
    --p2p-prometheus-metrics                  Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics
    --state-accesses-types-to-collect value   String slice option for enabling collecting specified state accesses types. Can be (READ, WRITE)
+   --print-prettified-header                 Boolean option for enabling the logging of prettified headers in consensus
    --help, -h                                show help
    --version, -v                             print the version
    
