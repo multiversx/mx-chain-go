@@ -81,7 +81,7 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		return nil, err
 	}
 
-	mbsStorer, err := hpf.store.GetStorer(dataRetriever.MetaBlockUnit)
+	miniBlocksStorer, err := hpf.store.GetStorer(dataRetriever.MiniBlockUnit)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		hpf.marshalizer,
 		esdtSuppliesStorer,
 		txLogsStorer,
-		mbsStorer,
+		miniBlocksStorer,
 	)
 	if err != nil {
 		return nil, err
