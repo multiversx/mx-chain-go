@@ -1221,7 +1221,14 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 				usedInBlock: false,
 			}
 
-			bp.requestProofIfNeeded(headersHashes[index], headers[index])
+			if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headers[index].GetEpoch()) {
+				continue
+			}
+
+			_, err = bp.proofsPool.GetProofByNonce(i, shardID)
+			if err != nil {
+				bp.requestProofIfNeeded(headersHashes[index], headers[index])
+			}
 		}
 	}
 
