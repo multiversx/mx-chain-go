@@ -392,17 +392,25 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 		return
 	}
 
-	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
-	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
-	sr.SetSignaturesCtxCancelFunc(cancel)
-
 	keys := sr.getManagedKeysByIndex()
 	if len(keys) == 0 {
 		return
 	}
 
-	wg := sr.SignaturesWaitGroup()
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sigSubroundEndTime)
+	sigCtx, cancel := context.WithTimeout(ctx, timeLeft)
+	sr.SetSignaturesCtxCancelFunc(cancel)
+
+	wg := &sync.WaitGroup{}
 	wg.Add(len(keys))
+
+	done := make(chan struct{})
+	sr.SetSignaturesDone(done)
+
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
 
 	go func() {
 		triggered := 0
@@ -769,7 +777,10 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	sr.SetData(headerHash)
+	if !sr.SetDataIfNotSet(headerHash) {
+		log.Debug("subroundBlock.receivedBlockHeader - consensus data already set")
+		return
+	}
 	sr.SetHeader(headerHandler)
 
 	log.Debug("step 1: block header has been received",
@@ -778,6 +789,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	sr.AddReceivedHeader(headerHandler)
 
+	// the context here should not be related to processing context from below
 	sr.triggerCreateSignaturesForManagedKeys(context.Background(), headerHash, headerHandler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())

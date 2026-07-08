@@ -2,7 +2,6 @@ package spos
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -232,9 +231,11 @@ type ConsensusStateHandler interface {
 	SetBody(body data.BodyHandler)
 	GetHeader() data.HeaderHandler
 	SetHeader(header data.HeaderHandler)
+	SetDataIfNotSet(data []byte) bool
 	GetWaitingAllSignaturesTimeOut() bool
 	SetWaitingAllSignaturesTimeOut(bool)
-	SignaturesWaitGroup() *sync.WaitGroup
+	SignaturesDone() <-chan struct{}
+	SetSignaturesDone(done <-chan struct{})
 	SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc)
 	SignaturesCtxCancel()
 	RoundConsensusHandler

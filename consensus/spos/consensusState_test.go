@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -210,6 +211,144 @@ func TestConsensusState_IsConsensusDataSetShouldReturnFalse(t *testing.T) {
 	cns.SetData(nil)
 
 	assert.False(t, cns.IsConsensusDataSet())
+}
+
+func TestConsensusState_SetDataIfNotSet(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sets data and returns true when not previously set", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		cns.SetData(nil)
+
+		data := []byte("hash")
+		didSet := cns.SetDataIfNotSet(data)
+
+		assert.True(t, didSet)
+		assert.Equal(t, data, cns.GetData())
+	})
+
+	t.Run("returns false and keeps existing data when already set", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		first := []byte("firstHash")
+		cns.SetData(first)
+
+		didSet := cns.SetDataIfNotSet([]byte("secondHash"))
+
+		assert.False(t, didSet)
+		assert.Equal(t, first, cns.GetData())
+	})
+
+	t.Run("concurrent callers should not set twice", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		cns.SetData(nil)
+
+		numGoroutines := 50
+		wg := sync.WaitGroup{}
+		wg.Add(numGoroutines)
+		winners := int32(0)
+		for i := 0; i < numGoroutines; i++ {
+			go func() {
+				defer wg.Done()
+				if cns.SetDataIfNotSet([]byte("hash")) {
+					atomic.AddInt32(&winners, 1)
+				}
+			}()
+		}
+		wg.Wait()
+
+		assert.Equal(t, int32(1), atomic.LoadInt32(&winners))
+		assert.Equal(t, []byte("hash"), cns.GetData())
+	})
+}
+
+func TestConsensusState_SignaturesDone(t *testing.T) {
+	t.Parallel()
+
+	t.Run("defaults to an already-closed channel after round reset", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+		cns.ResetConsensusRoundState()
+
+		select {
+		case <-cns.SignaturesDone():
+		case <-time.After(time.Second):
+			t.Fatal("SignaturesDone should be closed by default when no optimistic signatures were triggered")
+		}
+	})
+
+	t.Run("published done channel gates the wait until closed", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+
+		done := make(chan struct{})
+		cns.SetSignaturesDone(done)
+
+		require.True(t, done == cns.SignaturesDone())
+
+		select {
+		case <-cns.SignaturesDone():
+			t.Fatal("SignaturesDone must block until the published channel is closed")
+		case <-time.After(20 * time.Millisecond):
+		}
+
+		close(done)
+
+		select {
+		case <-cns.SignaturesDone():
+		case <-time.After(time.Second):
+			t.Fatal("SignaturesDone must return once the published channel is closed")
+		}
+	})
+
+	t.Run("concurrent publish, wait and round reset are race free", func(t *testing.T) {
+		t.Parallel()
+
+		cns := internalInitConsensusState()
+
+		numIterations := 200
+		wg := sync.WaitGroup{}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < numIterations; i++ {
+				done := make(chan struct{})
+				cns.SetSignaturesDone(done)
+				close(done)
+			}
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < numIterations; i++ {
+				select {
+				case <-cns.SignaturesDone():
+				case <-time.After(time.Second):
+					t.Error("SignaturesDone should not block forever")
+					return
+				}
+			}
+		}()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for i := 0; i < numIterations; i++ {
+				cns.ResetConsensusRoundState()
+			}
+		}()
+
+		wg.Wait()
+	})
 }
 
 func TestConsensusState_IsConsensusDataEqualShouldReturnTrue(t *testing.T) {
