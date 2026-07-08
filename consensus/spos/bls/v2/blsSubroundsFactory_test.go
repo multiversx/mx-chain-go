@@ -10,8 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 
@@ -78,7 +76,6 @@ func initFactoryWithContainer(container *spos.ConsensusCore) v2.Factory {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	return fct
@@ -130,7 +127,6 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -153,7 +149,6 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -178,7 +173,6 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -203,7 +197,6 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -228,7 +221,6 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -253,7 +245,6 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -278,7 +269,6 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -303,7 +293,6 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -328,7 +317,6 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -353,7 +341,6 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -378,7 +365,6 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -403,7 +389,6 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -428,7 +413,6 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -451,7 +435,6 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -475,7 +458,6 @@ func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -499,7 +481,6 @@ func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 		nil,
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -523,35 +504,10 @@ func TestFactory_NewFactoryNilThrottlerShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		nil,
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
 	assert.Equal(t, spos.ErrNilThrottler, err)
-}
-
-func TestFactory_NewFactoryNilCommonConfigsHandlerShouldFail(t *testing.T) {
-	t.Parallel()
-
-	consensusState := initializers.InitConsensusState()
-	container := testscommonConsensus.InitConsensusCore()
-	worker := initWorker()
-
-	fct, err := v2.NewSubroundsFactory(
-		container,
-		consensusState,
-		worker,
-		chainID,
-		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.SentSignatureTrackerStub{},
-		&dataRetrieverMocks.ThrottlerStub{},
-		nil,
-		nil,
-	)
-
-	assert.Nil(t, fct)
-	assert.Equal(t, common.ErrNilCommonConfigsHandler, err)
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
@@ -579,7 +535,6 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		nil,
-		testscommon.GetDefaultCommonConfigsHandler(),
 	)
 
 	assert.Nil(t, fct)
@@ -745,23 +700,6 @@ func TestFactory_GenerateSubroundsUsesBaseRoundConfig(t *testing.T) {
 	container := testscommonConsensus.InitConsensusCore()
 	container.SetChronology(chrm)
 
-	var capturedRound uint64
-	configsHandler := &testscommon.CommonConfigsHandlerStub{
-		GetSubroundsTimingByRoundCalled: func(round uint64) config.ConsensusConfigByRound {
-			capturedRound = round
-			return config.ConsensusConfigByRound{
-				EnableRound: 0,
-				SubroundsTiming: []config.SubroundTiming{
-					{StartTime: 0.0, EndTime: 0.05},
-					{StartTime: 0.05, EndTime: 0.25},
-					{StartTime: 0.25, EndTime: 0.85},
-					{StartTime: 0.85, EndTime: 0.95},
-				},
-				ProcessingThresholdPercent: 85,
-			}
-		},
-	}
-
 	worker := initWorker()
 	consensusState := initializers.InitConsensusState()
 	fct, err := v2.NewSubroundsFactory(
@@ -774,11 +712,9 @@ func TestFactory_GenerateSubroundsUsesBaseRoundConfig(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
 		&testscommonOutport.OutportStub{},
-		configsHandler,
 	)
 	require.Nil(t, err)
 
 	err = fct.GenerateSubrounds(0)
 	require.Nil(t, err)
-	require.Equal(t, uint64(0), capturedRound)
 }

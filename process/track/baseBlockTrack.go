@@ -149,6 +149,8 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 		return
 	}
 
+	bbt.quarantineIfLateProof(proof)
+
 	headerHash := proof.GetHeaderHash()
 	header, err := bbt.getHeaderForProof(proof)
 	if err != nil {
@@ -501,8 +503,6 @@ func (bbt *baseBlockTrack) CheckProofAgainstRoundHandler(proof data.HeaderProofH
 		return process.ErrNilHeaderProof
 	}
 
-	bbt.quarantineIfLateProof(proof)
-
 	return bbt.checkAgainstRoundHandler(proof.GetHeaderRound())
 }
 
@@ -512,6 +512,11 @@ func (bbt *baseBlockTrack) quarantineIfLateProof(proof data.HeaderProofHandler) 
 	}
 
 	if bbt.shardCoordinator.SelfId() == proof.GetHeaderShardId() {
+		return
+	}
+
+	_, err := bbt.proofsPool.GetProofByNonce(proof.GetHeaderNonce()+1, proof.GetHeaderShardId())
+	if err == nil {
 		return
 	}
 

@@ -130,6 +130,11 @@ func (bbt *baseBlockTrack) SetQuarantinedHeaders(quarantinedHeaders storage.Cach
 	bbt.quarantinedHeaders = quarantinedHeaders
 }
 
+// SetProofsPool -
+func (bbt *baseBlockTrack) SetProofsPool(proofsPool dataRetriever.ProofsPool) {
+	bbt.proofsPool = proofsPool
+}
+
 // SettleQuarantinedParentIfNeeded -
 func (bbt *baseBlockTrack) SettleQuarantinedParentIfNeeded(header data.HeaderHandler, headerHash []byte) {
 	bbt.settleQuarantinedParentIfNeeded(header, headerHash)
@@ -173,6 +178,11 @@ func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader data.H
 // IsHeaderOutOfRange -
 func (bbt *baseBlockTrack) IsHeaderOutOfRange(headerHandler data.HeaderHandler) bool {
 	return bbt.isHeaderOutOfRange(headerHandler)
+}
+
+// QuarantineIfLateProof -
+func (bbt *baseBlockTrack) QuarantineIfLateProof(proof data.HeaderProofHandler) {
+	bbt.quarantineIfLateProof(proof)
 }
 
 // blockNotifier
