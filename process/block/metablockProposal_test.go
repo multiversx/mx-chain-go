@@ -3583,6 +3583,7 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return expectedErr
 				},
 			},
+			"blockTracker": &integrationTestsMock.BlockTrackerStub{},
 		})
 		require.Nil(t, err)
 
@@ -3608,6 +3609,7 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return nil
 				},
 			},
+			"blockTracker": &integrationTestsMock.BlockTrackerStub{},
 		})
 		require.Nil(t, err)
 
