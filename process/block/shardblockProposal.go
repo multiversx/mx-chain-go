@@ -817,12 +817,16 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	if err != nil {
 		return err
 	}
-	_, usedMetaHeaders, err := sp.getReferencedMetaHeadersFromPool(header)
+	usedMetaHashes, usedMetaHeaders, err := sp.getReferencedMetaHeadersFromPool(header)
 	if err != nil {
 		return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getReferencedMetaHeadersFromPool", err)
 	}
 
-	for _, metaHeader := range usedMetaHeaders {
+	for idx, metaHeader := range usedMetaHeaders {
+		if sp.blockTracker.IsHeaderQuarantined(usedMetaHashes[idx]) {
+			return fmt.Errorf("%w with hash %s", errIncludedQuarantinedHeader, usedMetaHashes[idx])
+		}
+
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHeader, lastCrossNotarizedHeader)
 		if err != nil {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> isHdrConstructionValid", err)

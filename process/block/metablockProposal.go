@@ -1205,6 +1205,10 @@ func (mp *metaProcessor) checkHeadersSequenceCorrectness(hdrsForShard []ShardHea
 			continue
 		}
 
+		if mp.blockTracker.IsHeaderQuarantined(shardHdrInfo.Hash) {
+			return fmt.Errorf("%w with hash %s", errIncludedQuarantinedHeader, shardHdrInfo.Hash)
+		}
+
 		err = mp.headerValidator.IsHeaderConstructionValid(shardHdrInfo.Header, lastNotarizedHeaderInfoForShard.Header)
 		if err != nil {
 			return err

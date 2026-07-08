@@ -2,9 +2,11 @@ package track
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -63,6 +65,8 @@ type baseBlockTrack struct {
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
 	maxNumHeadersToKeepPerShard int
+
+	cancelFunc context.CancelFunc
 }
 
 func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
@@ -141,6 +145,11 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		requestHandler:                        arguments.RequestHandler,
 	}
 
+	var ctx context.Context
+	ctx, bbt.cancelFunc = context.WithCancel(context.Background())
+
+	go bbt.sweepQuarantinedHeaders(ctx)
+
 	return bbt, nil
 }
 
@@ -185,6 +194,33 @@ func (bbt *baseBlockTrack) settleQuarantinedParentIfNeeded(header data.HeaderHan
 		"confirmationNonce", header.GetNonce())
 }
 
+func (bbt *baseBlockTrack) sweepQuarantinedHeaders(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			currentRound := bbt.roundHandler.Index()
+			for _, key := range bbt.quarantinedHeaders.Keys() {
+				val, _ := bbt.quarantinedHeaders.Get(key)
+				headerRound, ok := val.(int64)
+				if !ok {
+					continue
+				}
+
+				if currentRound-headerRound < maxNonceDifference {
+					continue
+				}
+
+				bbt.quarantinedHeaders.Remove(key)
+			}
+		}
+	}
+}
+
 func (bbt *baseBlockTrack) requestHeaderForProof(proof data.HeaderProofHandler) {
 	if proof.GetHeaderShardId() == common.MetachainShardId {
 		bbt.requestHandler.RequestMetaHeader(proof.GetHeaderHash())
@@ -204,6 +240,8 @@ func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, head
 			return
 		}
 	}
+
+	bbt.settleQuarantinedParentIfNeeded(headerHandler, headerHash)
 
 	if headerHandler.GetShardID() == core.MetachainShardId {
 		bbt.receivedMetaBlock(headerHandler, headerHash)
@@ -521,7 +559,7 @@ func (bbt *baseBlockTrack) quarantineIfLateProof(proof data.HeaderProofHandler) 
 	}
 
 	hash := proof.GetHeaderHash()
-	bbt.quarantinedHeaders.Put(hash, struct{}{}, 0)
+	bbt.quarantinedHeaders.Put(hash, proof.GetHeaderRound(), 8)
 	log.Debug("quarantined late proof header hash",
 		"hash", hash, "round", proof.GetHeaderRound(),
 		"nonce", proof.GetHeaderNonce(), "shard", proof.GetHeaderShardId(),
@@ -896,6 +934,13 @@ func (bbt *baseBlockTrack) restoreTrackedHeadersToGenesis() {
 	bbt.mutHeaders.Lock()
 	bbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	bbt.mutHeaders.Unlock()
+}
+
+// Close closes the internal loop
+func (bbt *baseBlockTrack) Close() error {
+	bbt.cancelFunc()
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
