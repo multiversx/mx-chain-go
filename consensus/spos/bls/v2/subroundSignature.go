@@ -449,20 +449,21 @@ func (sr *subroundSignature) shouldAbortOnSignatureEvidence(ctx context.Context,
 	}
 
 	count := ev.getCount()
-	switch {
-	case count >= ev.threshold:
+	if count >= ev.threshold {
 		go trySelfAssembleProof(sr.Subround, sr.signatureEvidence, ev)
 		log.Debug("refusing to sign competing block: previous round reached quorum",
 			"nonce", nonce,
 			"previousHash", ev.headerHash,
 			"observedShares", count)
 		return true
-	case float64(count) >= significantEvidenceFraction*float64(ev.threshold):
-		return sr.waitForPreviousBlockProof(ctx, ev.headerHash, nonce)
-	default:
-		// few shares observed: the previous block lacked support, proceed
-		return false
 	}
+
+	if float64(count) >= significantEvidenceFraction*float64(ev.threshold) {
+		return sr.waitForPreviousBlockProof(ctx, ev.headerHash, nonce)
+	}
+
+	// few shares observed: the previous block lacked support, proceed
+	return false
 }
 
 // waitIfCompetingBlock waits if this node already signed a different block for the same nonce

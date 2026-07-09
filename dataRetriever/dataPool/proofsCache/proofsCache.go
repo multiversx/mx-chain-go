@@ -80,8 +80,8 @@ func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
 	pc.proofsByHash[newHash] = proof
 }
 
-// addProofIfNoneAtNonce adds the proof only if its nonce slot is free or already holds the same
-// header hash; returns the added flag and the pre-existing proof for the nonce, if any
+// addProofIfNoneAtNonce adds the proof only if its nonce slot is free; an occupied slot (same or
+// different hash) rejects the add and returns the pre-existing proof, never overwriting it
 func (pc *proofsCache) addProofIfNoneAtNonce(proof data.HeaderProofHandler) (bool, data.HeaderProofHandler) {
 	if check.IfNil(proof) {
 		return false, nil

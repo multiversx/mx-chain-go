@@ -73,8 +73,8 @@ func (pp *proofsPool) AddProof(
 	return pp.addProof(headerProof)
 }
 
-// AddProofIfNoneAtNonce will add the provided proof only if its (nonce, shard) slot is free or
-// holds the same header hash; unlike AddProof, it never overwrites the pre-existing proof
+// AddProofIfNoneAtNonce will add the provided proof only if its (nonce, shard) slot is free; an
+// occupied slot (same or different hash) rejects the add and returns the pre-existing proof
 func (pp *proofsPool) AddProofIfNoneAtNonce(
 	headerProof data.HeaderProofHandler,
 ) (bool, data.HeaderProofHandler) {

@@ -158,6 +158,34 @@ func TestSubroundStartRound_CaptureSignatureEvidence(t *testing.T) {
 		assert.False(t, found)
 	})
 
+	t.Run("settled nonce skips the snapshot", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				return []byte(fmt.Sprintf("share_%d", index)), nil
+			},
+		})
+		container.SetEquivalentProofsPool(createSettledProofsPool([]byte("header hash")))
+
+		store, _ := newSignatureEvidenceStore(createUnsettledProofsPool())
+		srStartRound := createFlowStartRound(t, container, store)
+
+		srStartRound.SetRoundIndex(10)
+		srStartRound.SetHeader(&block.Header{Nonce: 5})
+		srStartRound.SetData([]byte("header hash"))
+		group := srStartRound.ConsensusGroup()
+		for i := 0; i < 3; i++ {
+			_ = srStartRound.SetJobDone(group[i], bls.SrSignature, true)
+		}
+
+		srStartRound.captureSignatureEvidence()
+
+		_, found := store.GetPreviousRoundEvidence(5, 11)
+		assert.False(t, found)
+	})
+
 	t.Run("no signatures observed clears the slot", func(t *testing.T) {
 		t.Parallel()
 

@@ -327,7 +327,12 @@ func (sh *signingHandler) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, er
 // AggregateSigsWithKeys aggregates the provided signature shares over the provided group,
 // without touching the per-round state; bitmap indices are aligned with pubKeys and sigShares
 func (sh *signingHandler) AggregateSigsWithKeys(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error) {
-	signatures, pubKeysSigners, err := sh.selectByBitmap(pubKeys, bitmap, sigShares)
+	pubKeysSigners, err := sh.selectPubKeysByBitmap(pubKeys, bitmap)
+	if err != nil {
+		return nil, err
+	}
+
+	signatures, err := selectSigSharesByBitmap(pubKeys, bitmap, sigShares)
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +348,7 @@ func (sh *signingHandler) AggregateSigsWithKeys(pubKeys []string, bitmap []byte,
 // VerifyAggregatedSigWithKeys verifies the aggregated signature over the provided group,
 // without touching the per-round state
 func (sh *signingHandler) VerifyAggregatedSigWithKeys(pubKeys []string, bitmap []byte, message []byte, aggSig []byte, epoch uint32) error {
-	_, pubKeysSigners, err := sh.selectByBitmap(pubKeys, bitmap, nil)
+	pubKeysSigners, err := sh.selectPubKeysByBitmap(pubKeys, bitmap)
 	if err != nil {
 		return err
 	}
@@ -376,41 +381,63 @@ func (sh *signingHandler) VerifySigShareWithKey(pubKey []byte, sigShare []byte, 
 	return multiSigner.VerifySignatureShareV2(pk, message, sigShare)
 }
 
-// selectByBitmap returns the signatures and public keys whose index is set in the bitmap;
-// sigShares may be nil when only the public keys are needed
-func (sh *signingHandler) selectByBitmap(pubKeys []string, bitmap []byte, sigShares [][]byte) ([][]byte, []crypto.PublicKey, error) {
+func validateBitmap(pubKeys []string, bitmap []byte) error {
 	if bitmap == nil {
-		return nil, nil, ErrNilBitmap
+		return ErrNilBitmap
 	}
 	if len(bitmap)*8 < len(pubKeys) {
-		return nil, nil, ErrBitmapMismatch
-	}
-	if sigShares != nil && len(sigShares) != len(pubKeys) {
-		return nil, nil, ErrIndexOutOfBounds
+		return ErrBitmapMismatch
 	}
 
-	signatures := make([][]byte, 0, len(pubKeys))
+	return nil
+}
+
+// selectPubKeysByBitmap returns the public keys whose index is set in the bitmap
+func (sh *signingHandler) selectPubKeysByBitmap(pubKeys []string, bitmap []byte) ([]crypto.PublicKey, error) {
+	err := validateBitmap(pubKeys, bitmap)
+	if err != nil {
+		return nil, err
+	}
+
 	pubKeysSigners := make([]crypto.PublicKey, 0, len(pubKeys))
 	for i, pubKeyStr := range pubKeys {
 		if bitmap[i/8]&(1<<(uint16(i)%8)) == 0 {
 			continue
 		}
 
-		if sigShares != nil {
-			if len(sigShares[i]) == 0 {
-				return nil, nil, ErrNilElement
-			}
-			signatures = append(signatures, sigShares[i])
-		}
-
 		pubKey, err := sh.getPubKeyFromBytes([]byte(pubKeyStr))
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		pubKeysSigners = append(pubKeysSigners, pubKey)
 	}
 
-	return signatures, pubKeysSigners, nil
+	return pubKeysSigners, nil
+}
+
+// selectSigSharesByBitmap returns the signature shares whose index is set in the bitmap
+func selectSigSharesByBitmap(pubKeys []string, bitmap []byte, sigShares [][]byte) ([][]byte, error) {
+	err := validateBitmap(pubKeys, bitmap)
+	if err != nil {
+		return nil, err
+	}
+	if len(sigShares) != len(pubKeys) {
+		return nil, ErrIndexOutOfBounds
+	}
+
+	signatures := make([][]byte, 0, len(pubKeys))
+	for i := range sigShares {
+		if bitmap[i/8]&(1<<(uint16(i)%8)) == 0 {
+			continue
+		}
+
+		if len(sigShares[i]) == 0 {
+			return nil, ErrNilElement
+		}
+		signatures = append(signatures, sigShares[i])
+	}
+
+	return signatures, nil
 }
 
 func (sh *signingHandler) getPubKeyFromBytes(

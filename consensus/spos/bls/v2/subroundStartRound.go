@@ -138,28 +138,28 @@ func (sr *subroundStartRound) buildSignatureEvidence() *roundSignatureEvidence {
 		return nil
 	}
 
-	group := sr.ConsensusGroup()
-	bitmapSize := len(group) / 8
-	if len(group)%8 != 0 {
-		bitmapSize++
+	// settled nonce: the evidence could never be used, skip the snapshot
+	proof, err := sr.EquivalentProofsPool().GetProofByNonce(header.GetNonce(), header.GetShardID())
+	if err == nil && !check.IfNil(proof) {
+		return nil
 	}
 
-	bitmap := make([]byte, bitmapSize)
+	group := sr.ConsensusGroup()
+	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	shares := make([][]byte, len(group))
 	count := 0
-	for i, pk := range group {
-		isJobDone, err := sr.JobDone(pk, bls.SrSignature)
-		if err != nil || !isJobDone {
+	for i := range group {
+		if !isIndexSetInBitmap(i, bitmap) {
 			continue
 		}
 
 		share, err := sr.SigningHandler().SignatureShare(uint16(i))
 		if err != nil {
+			bitmap[i/8] &^= 1 << (uint16(i) % 8)
 			continue
 		}
 
 		shares[i] = share
-		bitmap[i/8] |= 1 << (uint16(i) % 8)
 		count++
 	}
 

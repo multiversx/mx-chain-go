@@ -34,6 +34,7 @@ func trySelfAssembleProof(sr *spos.Subround, store signatureEvidenceHandler, ev 
 
 	bitmap, agg, err := aggregateAndVerifyEvidence(sr, ev)
 	if err != nil {
+		stripInvalidShares(sr, ev)
 		if ev.getCount() < ev.threshold {
 			// inflated signal was adversarial; the decision tiers demote to the wait tier
 			store.DropRetained(ev.nonce)
@@ -99,8 +100,7 @@ func abortOnExistingProof(sr *spos.Subround, store signatureEvidenceHandler, ev 
 	return true
 }
 
-// aggregateAndVerifyEvidence aggregates the snapshotted shares and verifies the result; on
-// failure it strips the invalid shares so a retry or demotion can follow
+// aggregateAndVerifyEvidence aggregates the snapshotted shares and verifies the result
 func aggregateAndVerifyEvidence(sr *spos.Subround, ev *roundSignatureEvidence) ([]byte, []byte, error) {
 	bitmap, shares := ev.getAggregationData()
 
@@ -108,17 +108,16 @@ func aggregateAndVerifyEvidence(sr *spos.Subround, ev *roundSignatureEvidence) (
 	if err == nil {
 		err = sr.SigningHandler().VerifyAggregatedSigWithKeys(ev.consensusGroup, bitmap, ev.headerHash, agg, ev.epoch)
 	}
-	if err == nil {
-		return bitmap, agg, nil
+	if err != nil {
+		return nil, nil, err
 	}
 
-	stripInvalidShares(sr, ev, bitmap, shares)
-
-	return nil, nil, err
+	return bitmap, agg, nil
 }
 
 // stripInvalidShares verifies each share in parallel and drops the invalid ones from the evidence
-func stripInvalidShares(sr *spos.Subround, ev *roundSignatureEvidence, bitmap []byte, shares [][]byte) {
+func stripInvalidShares(sr *spos.Subround, ev *roundSignatureEvidence) {
+	bitmap, shares := ev.getAggregationData()
 	invalidIndices := make([]int, 0)
 	var mut sync.Mutex
 

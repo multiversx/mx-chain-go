@@ -86,7 +86,9 @@ type signatureEvidenceStore struct {
 
 	mut      sync.RWMutex
 	previous *roundSignatureEvidence
-	retained *roundSignatureEvidence
+	// retainedQuorum keeps the last quorum-level evidence for a still unsettled nonce beyond
+	// the one-round lifetime of the previous slot, so self-assembly can be retried
+	retainedQuorum *roundSignatureEvidence
 }
 
 func newSignatureEvidenceStore(proofsPool consensus.EquivalentProofsPool) (*signatureEvidenceStore, error) {
@@ -118,7 +120,7 @@ func (store *signatureEvidenceStore) Capture(ev *roundSignatureEvidence) {
 		return
 	}
 
-	store.retained = replaced
+	store.retainedQuorum = replaced
 }
 
 // GetPreviousRoundEvidence returns the previous-round slot only if it matches the given
@@ -140,7 +142,7 @@ func (store *signatureEvidenceStore) GetRetainedQuorumEvidence(nonce uint64) (*r
 	store.mut.RLock()
 	defer store.mut.RUnlock()
 
-	ev := store.retained
+	ev := store.retainedQuorum
 	if ev == nil || ev.nonce != nonce {
 		return nil, false
 	}
@@ -158,7 +160,7 @@ func (store *signatureEvidenceStore) GetAssemblyCandidate() (*roundSignatureEvid
 		return ev, true
 	}
 
-	ev = store.retained
+	ev = store.retainedQuorum
 	if ev != nil && ev.getCount() >= ev.threshold && !store.isNonceSettled(ev) {
 		return ev, true
 	}
@@ -171,8 +173,8 @@ func (store *signatureEvidenceStore) DropRetained(nonce uint64) {
 	store.mut.Lock()
 	defer store.mut.Unlock()
 
-	if store.retained != nil && store.retained.nonce == nonce {
-		store.retained = nil
+	if store.retainedQuorum != nil && store.retainedQuorum.nonce == nonce {
+		store.retainedQuorum = nil
 	}
 }
 
