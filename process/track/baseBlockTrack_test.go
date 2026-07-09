@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -108,8 +109,8 @@ func generateStorageUnit() storage.Storer {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
-	return cache
+	testCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
+	return testCache
 }
 
 func CreateShardTrackerMockArguments() track.ArgShardTracker {
@@ -2466,7 +2467,7 @@ func TestBaseBlockTrack_QuarantineIfLateProof(t *testing.T) {
 
 	const currentRound = int64(50)
 
-	newTracker := func() (interface {
+	newTracker := func(t *testing.T) (interface {
 		QuarantineIfLateProof(proof data.HeaderProofHandler)
 	}, storage.Cacher) {
 		quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
@@ -2492,7 +2493,7 @@ func TestBaseBlockTrack_QuarantineIfLateProof(t *testing.T) {
 	t.Run("one round late intra shard proof should not be quarantined", func(t *testing.T) {
 		t.Parallel()
 
-		bbt, quarantinedHeaders := newTracker()
+		bbt, quarantinedHeaders := newTracker(t)
 		hash := []byte("late proof header hash")
 		bbt.QuarantineIfLateProof(&block.HeaderProof{
 			HeaderHash:    hash,
@@ -2506,7 +2507,7 @@ func TestBaseBlockTrack_QuarantineIfLateProof(t *testing.T) {
 	t.Run("same round proof should not be quarantined", func(t *testing.T) {
 		t.Parallel()
 
-		bbt, quarantinedHeaders := newTracker()
+		bbt, quarantinedHeaders := newTracker(t)
 		hash := []byte("same round proof header hash")
 		bbt.QuarantineIfLateProof(&block.HeaderProof{
 			HeaderHash:  hash,
@@ -2519,7 +2520,7 @@ func TestBaseBlockTrack_QuarantineIfLateProof(t *testing.T) {
 	t.Run("higher round proof should error and not be quarantined", func(t *testing.T) {
 		t.Parallel()
 
-		bbt, quarantinedHeaders := newTracker()
+		bbt, quarantinedHeaders := newTracker(t)
 		hash := []byte("higher round proof header hash")
 		bbt.QuarantineIfLateProof(&block.HeaderProof{
 			HeaderHash:  hash,
@@ -2532,7 +2533,7 @@ func TestBaseBlockTrack_QuarantineIfLateProof(t *testing.T) {
 	t.Run("one round late proof should be quarantined", func(t *testing.T) {
 		t.Parallel()
 
-		bbt, quarantinedHeaders := newTracker()
+		bbt, quarantinedHeaders := newTracker(t)
 		hash := []byte("late proof header hash")
 		bbt.QuarantineIfLateProof(&block.HeaderProof{
 			HeaderHash:    hash,
@@ -2549,7 +2550,7 @@ func TestBaseBlockTrack_SweepExpiredQuarantinedHeaders(t *testing.T) {
 
 	const currentRound = int64(50)
 
-	newTracker := func() (interface {
+	newTracker := func(t *testing.T) (interface {
 		SweepExpiredQuarantinedHeaders()
 	}, storage.Cacher) {
 		quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
@@ -2565,7 +2566,7 @@ func TestBaseBlockTrack_SweepExpiredQuarantinedHeaders(t *testing.T) {
 	t.Run("recent entries are kept", func(t *testing.T) {
 		t.Parallel()
 
-		bbt, quarantinedHeaders := newTracker()
+		bbt, quarantinedHeaders := newTracker(t)
 		hash := []byte("recent hash")
 		quarantinedHeaders.Put(hash, uint64(currentRound-track.MaxQuarantineRoundDelta+1), 8)
 
@@ -2577,7 +2578,7 @@ func TestBaseBlockTrack_SweepExpiredQuarantinedHeaders(t *testing.T) {
 	t.Run("entries at the round delta threshold are removed", func(t *testing.T) {
 		t.Parallel()
 
-		bbt, quarantinedHeaders := newTracker()
+		bbt, quarantinedHeaders := newTracker(t)
 		hash := []byte("expired hash")
 		quarantinedHeaders.Put(hash, uint64(currentRound-track.MaxQuarantineRoundDelta), 8)
 
@@ -2586,10 +2587,33 @@ func TestBaseBlockTrack_SweepExpiredQuarantinedHeaders(t *testing.T) {
 		require.False(t, quarantinedHeaders.Has(hash))
 	})
 
+	t.Run("entries removed concurrently are skipped", func(t *testing.T) {
+		t.Parallel()
+
+		removeCalled := false
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetRoundHandler(&mock.RoundHandlerMock{RoundIndex: currentRound})
+		bbt.SetQuarantinedHeaders(&cache.CacherStub{
+			KeysCalled: func() [][]byte {
+				return [][]byte{[]byte("removed hash")}
+			},
+			GetCalled: func(key []byte) (interface{}, bool) {
+				return nil, false
+			},
+			RemoveCalled: func(key []byte) {
+				removeCalled = true
+			},
+		})
+
+		bbt.SweepExpiredQuarantinedHeaders()
+
+		require.False(t, removeCalled)
+	})
+
 	t.Run("entries with unexpected value type are removed", func(t *testing.T) {
 		t.Parallel()
 
-		bbt, quarantinedHeaders := newTracker()
+		bbt, quarantinedHeaders := newTracker(t)
 		hash := []byte("bad value hash")
 		quarantinedHeaders.Put(hash, int64(currentRound), 8)
 
@@ -2601,7 +2625,7 @@ func TestBaseBlockTrack_SweepExpiredQuarantinedHeaders(t *testing.T) {
 	t.Run("only expired entries are removed", func(t *testing.T) {
 		t.Parallel()
 
-		bbt, quarantinedHeaders := newTracker()
+		bbt, quarantinedHeaders := newTracker(t)
 		expiredHash := []byte("expired hash")
 		recentHash := []byte("recent hash")
 		quarantinedHeaders.Put(expiredHash, uint64(currentRound-track.MaxQuarantineRoundDelta-1), 8)
@@ -2619,7 +2643,7 @@ func TestBaseBlockTrack_CheckProofAgainstRoundHandler(t *testing.T) {
 
 	const currentRound = int64(50)
 
-	newTracker := func() (interface {
+	newTracker := func(t *testing.T) (interface {
 		CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
 	}, storage.Cacher) {
 		quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
@@ -2640,7 +2664,7 @@ func TestBaseBlockTrack_CheckProofAgainstRoundHandler(t *testing.T) {
 	t.Run("nil proof should err", func(t *testing.T) {
 		t.Parallel()
 
-		bbt, quarantinedHeaders := newTracker()
+		bbt, quarantinedHeaders := newTracker(t)
 		err := bbt.CheckProofAgainstRoundHandler(nil)
 
 		require.Equal(t, process.ErrNilHeaderProof, err)
@@ -2891,7 +2915,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalShouldWork(t *testing.T) {
 
 func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededMetaShouldReturn(t *testing.T) {
 	t.Parallel()
-	cache := make(map[string]struct{})
+	testCache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 
 	metaArguments := CreateMetaTrackerMockArguments()
@@ -2899,7 +2923,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededMetaShouldReturn(t *test
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
-				cache[string(key)] = struct{}{}
+				testCache[string(key)] = struct{}{}
 			}
 			mutCache.Unlock()
 		},
@@ -2916,7 +2940,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededMetaShouldReturn(t *test
 
 	mbt.DoWhitelistWithMetaBlockIfNeeded(metaHdr)
 
-	_, ok := cache[string(metaHdr.MiniBlockHeaders[0].Hash)]
+	_, ok := testCache[string(metaHdr.MiniBlockHeaders[0].Hash)]
 	assert.False(t, ok)
 }
 
@@ -2926,14 +2950,14 @@ func TestBaseBlockTrack_DoWhitelistWithMetaHeaderIfNeededV3ExecutionResults(t *t
 	t.Run("execution results should whitelist cross miniblocks", func(t *testing.T) {
 		t.Parallel()
 
-		cache := make(map[string]struct{})
+		testCache := make(map[string]struct{})
 		mutCache := sync.Mutex{}
 		shardArguments := CreateShardTrackerMockArguments()
 		shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 			AddCalled: func(keys [][]byte) {
 				mutCache.Lock()
 				for _, key := range keys {
-					cache[string(key)] = struct{}{}
+					testCache[string(key)] = struct{}{}
 				}
 				mutCache.Unlock()
 			},
@@ -2964,22 +2988,22 @@ func TestBaseBlockTrack_DoWhitelistWithMetaHeaderIfNeededV3ExecutionResults(t *t
 
 		sbt.DoWhitelistWithMetaHeaderIfNeeded(metaHdr)
 
-		_, ok := cache[string(execMiniBlockHash)]
+		_, ok := testCache[string(execMiniBlockHash)]
 		assert.True(t, ok)
-		assert.Len(t, cache, 1)
+		assert.Len(t, testCache, 1)
 	})
 
 	t.Run("execution results and proposed miniblocks should whitelist both sources", func(t *testing.T) {
 		t.Parallel()
 
-		cache := make(map[string]struct{})
+		testCache := make(map[string]struct{})
 		mutCache := sync.Mutex{}
 		shardArguments := CreateShardTrackerMockArguments()
 		shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 			AddCalled: func(keys [][]byte) {
 				mutCache.Lock()
 				for _, key := range keys {
-					cache[string(key)] = struct{}{}
+					testCache[string(key)] = struct{}{}
 				}
 				mutCache.Unlock()
 			},
@@ -3014,22 +3038,22 @@ func TestBaseBlockTrack_DoWhitelistWithMetaHeaderIfNeededV3ExecutionResults(t *t
 
 		sbt.DoWhitelistWithMetaHeaderIfNeeded(metaHdr)
 
-		_, ok := cache[string(execMiniBlockHash)]
+		_, ok := testCache[string(execMiniBlockHash)]
 		assert.True(t, ok)
-		assert.Len(t, cache, 1)
+		assert.Len(t, testCache, 1)
 	})
 
 	t.Run("non-cross proposed miniblocks should not be whitelisted", func(t *testing.T) {
 		t.Parallel()
 
-		cache := make(map[string]struct{})
+		testCache := make(map[string]struct{})
 		mutCache := sync.Mutex{}
 		shardArguments := CreateShardTrackerMockArguments()
 		shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 			AddCalled: func(keys [][]byte) {
 				mutCache.Lock()
 				for _, key := range keys {
-					cache[string(key)] = struct{}{}
+					testCache[string(key)] = struct{}{}
 				}
 				mutCache.Unlock()
 			},
@@ -3064,11 +3088,11 @@ func TestBaseBlockTrack_DoWhitelistWithMetaHeaderIfNeededV3ExecutionResults(t *t
 
 		sbt.DoWhitelistWithMetaHeaderIfNeeded(metaHdr)
 
-		_, ok := cache[string(proposedMiniBlockHash)]
+		_, ok := testCache[string(proposedMiniBlockHash)]
 		assert.False(t, ok)
-		_, ok = cache[string(execMiniBlockHash)]
+		_, ok = testCache[string(execMiniBlockHash)]
 		assert.True(t, ok)
-		assert.Len(t, cache, 1)
+		assert.Len(t, testCache, 1)
 	})
 }
 
@@ -3078,14 +3102,14 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededV3ExecutionResults(t *
 	t.Run("execution results should whitelist cross miniblocks", func(t *testing.T) {
 		t.Parallel()
 
-		cache := make(map[string]struct{})
+		testCache := make(map[string]struct{})
 		mutCache := sync.Mutex{}
 		metaArguments := CreateMetaTrackerMockArguments()
 		metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 			AddCalled: func(keys [][]byte) {
 				mutCache.Lock()
 				for _, key := range keys {
-					cache[string(key)] = struct{}{}
+					testCache[string(key)] = struct{}{}
 				}
 				mutCache.Unlock()
 			},
@@ -3116,22 +3140,22 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededV3ExecutionResults(t *
 
 		mbt.DoWhitelistWithShardHeaderIfNeeded(shardHdr)
 
-		_, ok := cache[string(execMiniBlockHash)]
+		_, ok := testCache[string(execMiniBlockHash)]
 		assert.True(t, ok)
-		assert.Len(t, cache, 1)
+		assert.Len(t, testCache, 1)
 	})
 
 	t.Run("execution results and proposed miniblocks should whitelist both sources", func(t *testing.T) {
 		t.Parallel()
 
-		cache := make(map[string]struct{})
+		testCache := make(map[string]struct{})
 		mutCache := sync.Mutex{}
 		metaArguments := CreateMetaTrackerMockArguments()
 		metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 			AddCalled: func(keys [][]byte) {
 				mutCache.Lock()
 				for _, key := range keys {
-					cache[string(key)] = struct{}{}
+					testCache[string(key)] = struct{}{}
 				}
 				mutCache.Unlock()
 			},
@@ -3166,22 +3190,22 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededV3ExecutionResults(t *
 
 		mbt.DoWhitelistWithShardHeaderIfNeeded(shardHdr)
 
-		_, ok := cache[string(execMiniBlockHash)]
+		_, ok := testCache[string(execMiniBlockHash)]
 		assert.True(t, ok)
-		assert.Len(t, cache, 1)
+		assert.Len(t, testCache, 1)
 	})
 
 	t.Run("non-cross proposed miniblocks should not be whitelisted", func(t *testing.T) {
 		t.Parallel()
 
-		cache := make(map[string]struct{})
+		testCache := make(map[string]struct{})
 		mutCache := sync.Mutex{}
 		metaArguments := CreateMetaTrackerMockArguments()
 		metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 			AddCalled: func(keys [][]byte) {
 				mutCache.Lock()
 				for _, key := range keys {
-					cache[string(key)] = struct{}{}
+					testCache[string(key)] = struct{}{}
 				}
 				mutCache.Unlock()
 			},
@@ -3216,17 +3240,17 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededV3ExecutionResults(t *
 
 		mbt.DoWhitelistWithShardHeaderIfNeeded(shardHdr)
 
-		_, ok := cache[string(proposedMiniBlockHash)]
+		_, ok := testCache[string(proposedMiniBlockHash)]
 		assert.False(t, ok)
-		_, ok = cache[string(execMiniBlockHash)]
+		_, ok = testCache[string(execMiniBlockHash)]
 		assert.True(t, ok)
-		assert.Len(t, cache, 1)
+		assert.Len(t, testCache, 1)
 	})
 }
 
 func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededShardShouldReturn(t *testing.T) {
 	t.Parallel()
-	cache := make(map[string]struct{})
+	testCache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 
 	shardArguments := CreateShardTrackerMockArguments()
@@ -3234,7 +3258,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededShardShouldReturn(t *t
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
-				cache[string(key)] = struct{}{}
+				testCache[string(key)] = struct{}{}
 			}
 			mutCache.Unlock()
 		},
@@ -3251,14 +3275,14 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededShardShouldReturn(t *t
 
 	sbt.DoWhitelistWithShardHeaderIfNeeded(shardHdr)
 
-	_, ok := cache[string(shardHdr.MiniBlockHeaders[0].Hash)]
+	_, ok := testCache[string(shardHdr.MiniBlockHeaders[0].Hash)]
 	assert.False(t, ok)
 }
 
 func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededNilMetaShouldReturnAndNotPanic(t *testing.T) {
 	t.Parallel()
 
-	cache := make(map[string]struct{})
+	testCache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 
 	defer func() {
@@ -3271,7 +3295,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededNilMetaShouldReturnAndNo
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
-				cache[string(key)] = struct{}{}
+				testCache[string(key)] = struct{}{}
 			}
 			mutCache.Unlock()
 		},
@@ -3279,13 +3303,13 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededNilMetaShouldReturnAndNo
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 	sbt.DoWhitelistWithMetaBlockIfNeeded(nil)
 
-	assert.Equal(t, 0, len(cache))
+	assert.Equal(t, 0, len(testCache))
 }
 
 func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededNilShardShouldReturnAndNotPanic(t *testing.T) {
 	t.Parallel()
 
-	cache := make(map[string]struct{})
+	testCache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 
 	defer func() {
@@ -3298,7 +3322,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededNilShardShouldReturnAn
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
-				cache[string(key)] = struct{}{}
+				testCache[string(key)] = struct{}{}
 			}
 			mutCache.Unlock()
 		},
@@ -3306,20 +3330,20 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededNilShardShouldReturnAn
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 	mbt.DoWhitelistWithShardHeaderIfNeeded(nil)
 
-	assert.Equal(t, 0, len(cache))
+	assert.Equal(t, 0, len(testCache))
 }
 
 func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededIsHeaderOutOfRangeShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	cache := make(map[string]struct{})
+	testCache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	shardArguments := CreateShardTrackerMockArguments()
 	shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
-				cache[string(key)] = struct{}{}
+				testCache[string(key)] = struct{}{}
 			}
 			mutCache.Unlock()
 		},
@@ -3335,7 +3359,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededIsHeaderOutOfRangeShould
 	}
 
 	sbt.DoWhitelistWithMetaBlockIfNeeded(metaHdr)
-	_, ok := cache[string(metaHdr.MiniBlockHeaders[0].Hash)]
+	_, ok := testCache[string(metaHdr.MiniBlockHeaders[0].Hash)]
 
 	assert.False(t, ok)
 }
@@ -3343,14 +3367,14 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededIsHeaderOutOfRangeShould
 func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededIsHeaderOutOfRangeShouldReturn(t *testing.T) {
 	t.Parallel()
 
-	cache := make(map[string]struct{})
+	testCache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	metaArguments := CreateMetaTrackerMockArguments()
 	metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
-				cache[string(key)] = struct{}{}
+				testCache[string(key)] = struct{}{}
 			}
 			mutCache.Unlock()
 		},
@@ -3366,7 +3390,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededIsHeaderOutOfRangeShou
 	}
 
 	mbt.DoWhitelistWithShardHeaderIfNeeded(shardHdr)
-	_, ok := cache[string(shardHdr.MiniBlockHeaders[0].Hash)]
+	_, ok := testCache[string(shardHdr.MiniBlockHeaders[0].Hash)]
 
 	assert.False(t, ok)
 }
@@ -3374,14 +3398,14 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededIsHeaderOutOfRangeShou
 func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededShardShouldWhitelistCrossMiniblocks(t *testing.T) {
 	t.Parallel()
 
-	cache := make(map[string]struct{})
+	testCache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	shardArguments := CreateShardTrackerMockArguments()
 	shardArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
-				cache[string(key)] = struct{}{}
+				testCache[string(key)] = struct{}{}
 			}
 			mutCache.Unlock()
 		},
@@ -3397,7 +3421,7 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededShardShouldWhitelistCros
 	}
 
 	sbt.DoWhitelistWithMetaBlockIfNeeded(metaHdr)
-	_, ok := cache[string(metaHdr.MiniBlockHeaders[0].Hash)]
+	_, ok := testCache[string(metaHdr.MiniBlockHeaders[0].Hash)]
 
 	assert.True(t, ok)
 }
@@ -3405,14 +3429,14 @@ func TestBaseBlockTrack_DoWhitelistWithMetaBlockIfNeededShardShouldWhitelistCros
 func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededMetaShouldWhitelistCrossMiniblocks(t *testing.T) {
 	t.Parallel()
 
-	cache := make(map[string]struct{})
+	testCache := make(map[string]struct{})
 	mutCache := sync.Mutex{}
 	metaArguments := CreateMetaTrackerMockArguments()
 	metaArguments.WhitelistHandler = &testscommon.WhiteListHandlerStub{
 		AddCalled: func(keys [][]byte) {
 			mutCache.Lock()
 			for _, key := range keys {
-				cache[string(key)] = struct{}{}
+				testCache[string(key)] = struct{}{}
 			}
 			mutCache.Unlock()
 		},
@@ -3428,7 +3452,7 @@ func TestBaseBlockTrack_DoWhitelistWithShardHeaderIfNeededMetaShouldWhitelistCro
 	}
 
 	mbt.DoWhitelistWithShardHeaderIfNeeded(shardHdr)
-	_, ok := cache[string(shardHdr.MiniBlockHeaders[0].Hash)]
+	_, ok := testCache[string(shardHdr.MiniBlockHeaders[0].Hash)]
 
 	assert.True(t, ok)
 }

@@ -213,7 +213,11 @@ func (bbt *baseBlockTrack) sweepQuarantinedHeaders(ctx context.Context) {
 func (bbt *baseBlockTrack) sweepExpiredQuarantinedHeaders() {
 	currentRound := bbt.roundHandler.Index()
 	for _, key := range bbt.quarantinedHeaders.Keys() {
-		val, _ := bbt.quarantinedHeaders.Get(key)
+		val, found := bbt.quarantinedHeaders.Get(key)
+		if !found {
+			continue
+		}
+
 		headerRound, ok := val.(uint64)
 		if !ok {
 			log.Warn("sweepExpiredQuarantinedHeaders: unexpected value type, removing entry", "hash", key)
