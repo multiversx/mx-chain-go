@@ -30,6 +30,10 @@ const maxNonceDifference = 3 // TODO move this to a config file
 
 const maxQuarantineRoundDelta = 3
 
+// lateProofGracePeriodPercent is the fraction of the round duration, from the round start, in which
+// a proof for the previous round is not considered late
+const lateProofGracePeriodPercent = 25
+
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {
 	Hash   []byte
@@ -562,6 +566,17 @@ func (bbt *baseBlockTrack) quarantineIfLateProof(proof data.HeaderProofHandler) 
 	}
 
 	if bbt.shardCoordinator.SelfId() == proof.GetHeaderShardId() {
+		return
+	}
+
+	// a proof processed shortly after the round switch may have arrived on time,
+	// since proofs pool subscribers are notified on separate goroutines
+	gracePeriod := bbt.roundHandler.TimeDuration() * lateProofGracePeriodPercent / 100
+	handler, ok := bbt.roundHandler.(interface {
+		TimeStamp() time.Time
+		RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
+	})
+	if ok && handler.RemainingTime(handler.TimeStamp(), gracePeriod) > 0 {
 		return
 	}
 
