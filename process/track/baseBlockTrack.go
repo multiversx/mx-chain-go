@@ -28,6 +28,8 @@ var log = logger.GetOrCreate("process/track")
 
 const maxNonceDifference = 3 // TODO move this to a config file
 
+const maxQuarantineRoundDelta = 3
+
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {
 	Hash   []byte
@@ -206,12 +208,12 @@ func (bbt *baseBlockTrack) sweepQuarantinedHeaders(ctx context.Context) {
 			currentRound := bbt.roundHandler.Index()
 			for _, key := range bbt.quarantinedHeaders.Keys() {
 				val, _ := bbt.quarantinedHeaders.Get(key)
-				headerRound, ok := val.(int64)
+				headerRound, ok := val.(uint64)
 				if !ok {
 					continue
 				}
 
-				if currentRound-headerRound < maxNonceDifference {
+				if currentRound-int64(headerRound) < maxQuarantineRoundDelta {
 					continue
 				}
 
@@ -938,7 +940,9 @@ func (bbt *baseBlockTrack) restoreTrackedHeadersToGenesis() {
 
 // Close closes the internal loop
 func (bbt *baseBlockTrack) Close() error {
-	bbt.cancelFunc()
+	if bbt.cancelFunc != nil {
+		bbt.cancelFunc()
+	}
 
 	return nil
 }

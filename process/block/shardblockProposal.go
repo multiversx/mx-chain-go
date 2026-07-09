@@ -824,7 +824,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 
 	for idx, metaHeader := range usedMetaHeaders {
 		if sp.blockTracker.IsHeaderQuarantined(usedMetaHashes[idx]) {
-			return fmt.Errorf("%w with hash %s", errIncludedQuarantinedHeader, usedMetaHashes[idx])
+			return fmt.Errorf("%w with hash %x", errIncludedQuarantinedHeader, usedMetaHashes[idx])
 		}
 
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHeader, lastCrossNotarizedHeader)
