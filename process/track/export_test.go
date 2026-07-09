@@ -185,6 +185,14 @@ func (bbt *baseBlockTrack) QuarantineIfLateProof(proof data.HeaderProofHandler) 
 	bbt.quarantineIfLateProof(proof)
 }
 
+// SweepExpiredQuarantinedHeaders -
+func (bbt *baseBlockTrack) SweepExpiredQuarantinedHeaders() {
+	bbt.sweepExpiredQuarantinedHeaders()
+}
+
+// MaxQuarantineRoundDelta -
+const MaxQuarantineRoundDelta = maxQuarantineRoundDelta
+
 // blockNotifier
 
 // GetNotarizedHeadersHandlers -
