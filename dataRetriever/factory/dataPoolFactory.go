@@ -162,6 +162,12 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the executed mini blocks", err)
 	}
 
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.QuarantinedHeadersCache)
+	quarantinedHeaders, err := storageunit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the quarantined headers", err)
+	}
+
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.PostProcessTransactionsCache)
 	postProcessTransactionsCache, err := storageunit.NewCache(cacherCfg)
 	if err != nil {
@@ -195,6 +201,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		ExecutedMiniBlocks:        executedMiniBlocksCache,
 		PostProcessTransactions:   postProcessTransactionsCache,
 		DirectSentTransactions:    directSentTransactionsCache,
+		QuarantinedHeaders:        quarantinedHeaders,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }

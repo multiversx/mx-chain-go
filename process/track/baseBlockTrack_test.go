@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -346,6 +347,44 @@ func TestNewBlockTrack_ShouldErrNilHeadersDataPool(t *testing.T) {
 	assert.True(t, check.IfNil(mbt))
 }
 
+func TestNewBlockTrack_ShouldErrNilQuarantinedHeaders(t *testing.T) {
+	t.Parallel()
+
+	shardArguments := CreateShardTrackerMockArguments()
+	shardArguments.PoolsHolder = &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{}
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
+		QuarantinedHeadersCalled: func() storage.Cacher {
+			return nil
+		},
+	}
+	sbt, err := track.NewShardBlockTrack(shardArguments)
+
+	assert.Equal(t, process.ErrNilQuarantinedHeadersCache, err)
+	assert.Nil(t, sbt)
+
+	metaArguments := CreateMetaTrackerMockArguments()
+	metaArguments.PoolsHolder = &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{}
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
+		QuarantinedHeadersCalled: func() storage.Cacher {
+			return nil
+		},
+	}
+	mbt, err := track.NewMetaBlockTrack(metaArguments)
+
+	assert.Equal(t, process.ErrNilQuarantinedHeadersCache, err)
+	assert.True(t, check.IfNil(mbt))
+}
+
 func TestNewBlockTrack_ShouldErrNilEconomicsData(t *testing.T) {
 	t.Parallel()
 
@@ -475,6 +514,7 @@ func TestShardGetSelfHeaders_ShouldWork(t *testing.T) {
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
 		},
+		QuarantinedHeadersCalled: generateTestCache,
 	}
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -515,6 +555,7 @@ func TestMetaGetSelfHeaders_ShouldWork(t *testing.T) {
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
 		},
+		QuarantinedHeadersCalled: generateTestCache,
 	}
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
 
@@ -1797,6 +1838,7 @@ func TestAddHeaderFromPool_ShouldWork(t *testing.T) {
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
 		},
+		QuarantinedHeadersCalled: generateTestCache,
 	}
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -2416,6 +2458,188 @@ func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldWork(t *testing.T) {
 	err := bbt.CheckBlockAgainstRoundHandler(hdr)
 
 	assert.Nil(t, err)
+}
+
+func TestBaseBlockTrack_QuarantineIfLateProof(t *testing.T) {
+	t.Parallel()
+
+	const currentRound = int64(50)
+
+	newTracker := func() (interface {
+		QuarantineIfLateProof(proof data.HeaderProofHandler)
+	}, storage.Cacher) {
+		quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
+		require.NoError(t, err)
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetRoundHandler(&mock.RoundHandlerMock{RoundIndex: currentRound})
+		bbt.SetQuarantinedHeaders(quarantinedHeaders)
+		bbt.SetShardCoordinator(&mock.ShardCoordinatorStub{
+			SelfIdCalled: func() uint32 {
+				return 0
+			},
+		})
+		bbt.SetProofsPool(&dataRetrieverMock.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, errors.New("missing proof")
+			},
+		})
+
+		return bbt, quarantinedHeaders
+	}
+
+	t.Run("one round late intra shard proof should not be quarantined", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		hash := []byte("late proof header hash")
+		bbt.QuarantineIfLateProof(&block.HeaderProof{
+			HeaderHash:    hash,
+			HeaderRound:   uint64(currentRound - 1),
+			HeaderShardId: 0,
+		})
+
+		require.False(t, quarantinedHeaders.Has(hash))
+	})
+
+	t.Run("same round proof should not be quarantined", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		hash := []byte("same round proof header hash")
+		bbt.QuarantineIfLateProof(&block.HeaderProof{
+			HeaderHash:  hash,
+			HeaderRound: uint64(currentRound),
+		})
+
+		require.False(t, quarantinedHeaders.Has(hash))
+	})
+
+	t.Run("higher round proof should error and not be quarantined", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		hash := []byte("higher round proof header hash")
+		bbt.QuarantineIfLateProof(&block.HeaderProof{
+			HeaderHash:  hash,
+			HeaderRound: uint64(currentRound + 2),
+		})
+
+		require.False(t, quarantinedHeaders.Has(hash))
+	})
+
+	t.Run("one round late proof should be quarantined", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		hash := []byte("late proof header hash")
+		bbt.QuarantineIfLateProof(&block.HeaderProof{
+			HeaderHash:    hash,
+			HeaderRound:   uint64(currentRound - 1),
+			HeaderShardId: 1,
+		})
+
+		require.True(t, quarantinedHeaders.Has(hash))
+	})
+}
+
+func TestBaseBlockTrack_CheckProofAgainstRoundHandler(t *testing.T) {
+	t.Parallel()
+
+	const currentRound = int64(50)
+
+	newTracker := func() (interface {
+		CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
+	}, storage.Cacher) {
+		quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
+		require.NoError(t, err)
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetRoundHandler(&mock.RoundHandlerMock{RoundIndex: currentRound})
+		bbt.SetQuarantinedHeaders(quarantinedHeaders)
+		bbt.SetShardCoordinator(&mock.ShardCoordinatorStub{
+			SelfIdCalled: func() uint32 {
+				return 0
+			},
+		})
+
+		return bbt, quarantinedHeaders
+	}
+
+	t.Run("nil proof should err", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		err := bbt.CheckProofAgainstRoundHandler(nil)
+
+		require.Equal(t, process.ErrNilHeaderProof, err)
+		require.Equal(t, 0, quarantinedHeaders.Len())
+	})
+}
+
+func TestBaseBlockTrack_IsHeaderQuarantined(t *testing.T) {
+	t.Parallel()
+
+	quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
+	require.NoError(t, err)
+
+	bbt := track.NewBaseBlockTrack()
+	bbt.SetQuarantinedHeaders(quarantinedHeaders)
+
+	hash := []byte("quarantined header hash")
+	require.False(t, bbt.IsHeaderQuarantined(hash))
+
+	quarantinedHeaders.Put(hash, struct{}{}, 0)
+	require.True(t, bbt.IsHeaderQuarantined(hash))
+	require.False(t, bbt.IsHeaderQuarantined([]byte("unknown hash")))
+}
+
+func TestBaseBlockTrack_SettleQuarantinedParentIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("proven child of a quarantined header settles the parent", func(t *testing.T) {
+		t.Parallel()
+
+		quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
+		require.NoError(t, err)
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetQuarantinedHeaders(quarantinedHeaders)
+
+		parentHash := []byte("quarantined parent hash")
+		quarantinedHeaders.Put(parentHash, struct{}{}, 0)
+
+		bbt.SettleQuarantinedParentIfNeeded(&block.Header{
+			Nonce:    11,
+			ShardID:  1,
+			PrevHash: parentHash,
+		}, []byte("hash"))
+
+		require.False(t, quarantinedHeaders.Has(parentHash))
+		require.Equal(t, 0, quarantinedHeaders.Len())
+	})
+
+	t.Run("child whose prev hash is not quarantined leaves the cache untouched", func(t *testing.T) {
+		t.Parallel()
+
+		quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
+		require.NoError(t, err)
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetQuarantinedHeaders(quarantinedHeaders)
+
+		parentHash := []byte("quarantined parent hash")
+		quarantinedHeaders.Put(parentHash, struct{}{}, 0)
+
+		bbt.SettleQuarantinedParentIfNeeded(&block.Header{
+			Nonce:    11,
+			ShardID:  1,
+			PrevHash: []byte("some other parent hash"),
+		}, []byte("hash"))
+
+		require.True(t, quarantinedHeaders.Has(parentHash))
+		require.Equal(t, 1, quarantinedHeaders.Len())
+	})
 }
 
 // ------- CheckBlockAgainstFinal
@@ -3324,6 +3548,7 @@ func TestBaseBlockTrack_receivedProof(t *testing.T) {
 					},
 				}
 			},
+			QuarantinedHeadersCalled: generateTestCache,
 		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
