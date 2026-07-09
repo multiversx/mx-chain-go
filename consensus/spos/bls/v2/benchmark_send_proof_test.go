@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclMultisig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -166,6 +167,7 @@ func benchmarkSendProof(b *testing.B, numberOfKeys int) {
 				return consensusMetrics
 			},
 		},
+		&mock.ThrottlerStub{},
 	)
 	require.Nil(b, err)
 
