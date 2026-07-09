@@ -335,7 +335,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		args.Config.GeneralSettings.EpochStartConfigsByRound,
 		args.Config.GeneralSettings.ConsensusConfigsByEpoch,
 		args.Config.GeneralSettings.ConsensusConfigsByRound,
-		args.PrintPrettifiedHeader,
+		true,
 	)
 	if err != nil {
 		return nil, err
