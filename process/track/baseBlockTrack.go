@@ -205,21 +205,27 @@ func (bbt *baseBlockTrack) sweepQuarantinedHeaders(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			currentRound := bbt.roundHandler.Index()
-			for _, key := range bbt.quarantinedHeaders.Keys() {
-				val, _ := bbt.quarantinedHeaders.Get(key)
-				headerRound, ok := val.(uint64)
-				if !ok {
-					continue
-				}
-
-				if currentRound-int64(headerRound) < maxQuarantineRoundDelta {
-					continue
-				}
-
-				bbt.quarantinedHeaders.Remove(key)
-			}
+			bbt.sweepExpiredQuarantinedHeaders()
 		}
+	}
+}
+
+func (bbt *baseBlockTrack) sweepExpiredQuarantinedHeaders() {
+	currentRound := bbt.roundHandler.Index()
+	for _, key := range bbt.quarantinedHeaders.Keys() {
+		val, _ := bbt.quarantinedHeaders.Get(key)
+		headerRound, ok := val.(uint64)
+		if !ok {
+			log.Warn("sweepExpiredQuarantinedHeaders: unexpected value type, removing entry", "hash", key)
+			bbt.quarantinedHeaders.Remove(key)
+			continue
+		}
+
+		if currentRound-int64(headerRound) < maxQuarantineRoundDelta {
+			continue
+		}
+
+		bbt.quarantinedHeaders.Remove(key)
 	}
 }
 

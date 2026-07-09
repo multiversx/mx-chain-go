@@ -10,11 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
@@ -2540,6 +2541,76 @@ func TestBaseBlockTrack_QuarantineIfLateProof(t *testing.T) {
 		})
 
 		require.True(t, quarantinedHeaders.Has(hash))
+	})
+}
+
+func TestBaseBlockTrack_SweepExpiredQuarantinedHeaders(t *testing.T) {
+	t.Parallel()
+
+	const currentRound = int64(50)
+
+	newTracker := func() (interface {
+		SweepExpiredQuarantinedHeaders()
+	}, storage.Cacher) {
+		quarantinedHeaders, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1})
+		require.NoError(t, err)
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetRoundHandler(&mock.RoundHandlerMock{RoundIndex: currentRound})
+		bbt.SetQuarantinedHeaders(quarantinedHeaders)
+
+		return bbt, quarantinedHeaders
+	}
+
+	t.Run("recent entries are kept", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		hash := []byte("recent hash")
+		quarantinedHeaders.Put(hash, uint64(currentRound-track.MaxQuarantineRoundDelta+1), 8)
+
+		bbt.SweepExpiredQuarantinedHeaders()
+
+		require.True(t, quarantinedHeaders.Has(hash))
+	})
+
+	t.Run("entries at the round delta threshold are removed", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		hash := []byte("expired hash")
+		quarantinedHeaders.Put(hash, uint64(currentRound-track.MaxQuarantineRoundDelta), 8)
+
+		bbt.SweepExpiredQuarantinedHeaders()
+
+		require.False(t, quarantinedHeaders.Has(hash))
+	})
+
+	t.Run("entries with unexpected value type are removed", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		hash := []byte("bad value hash")
+		quarantinedHeaders.Put(hash, int64(currentRound), 8)
+
+		bbt.SweepExpiredQuarantinedHeaders()
+
+		require.False(t, quarantinedHeaders.Has(hash))
+	})
+
+	t.Run("only expired entries are removed", func(t *testing.T) {
+		t.Parallel()
+
+		bbt, quarantinedHeaders := newTracker()
+		expiredHash := []byte("expired hash")
+		recentHash := []byte("recent hash")
+		quarantinedHeaders.Put(expiredHash, uint64(currentRound-track.MaxQuarantineRoundDelta-1), 8)
+		quarantinedHeaders.Put(recentHash, uint64(currentRound-1), 8)
+
+		bbt.SweepExpiredQuarantinedHeaders()
+
+		require.False(t, quarantinedHeaders.Has(expiredHash))
+		require.True(t, quarantinedHeaders.Has(recentHash))
 	})
 }
 
