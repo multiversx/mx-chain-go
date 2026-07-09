@@ -17,6 +17,12 @@ var ErrValidSignatureFromInvalidSigner = errors.New("valid signature from invali
 // ErrHeaderHashMismatch signals that header hash does not match
 var ErrHeaderHashMismatch = errors.New("header hash does not match")
 
+// ErrPublicKeyMismatch signals that the BLS public key in the message does not belong to the transport sender
+var ErrPublicKeyMismatch = errors.New("public key does not match the message sender")
+
+// ErrSignerNotInConsensusGroup signals that the signer is not part of the current consensus group
+var ErrSignerNotInConsensusGroup = errors.New("signer is not part of the consensus group")
+
 // ErrNilRoundSyncController signals that a nil round sync controller has been provided
 var ErrNilRoundSyncController = errors.New("nil round sync controller")
 

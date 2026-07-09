@@ -34,6 +34,7 @@ type subroundEndRound struct {
 	mutProcessingEndRound         sync.Mutex
 	sentSignatureTracker          spos.SentSignaturesTracker
 	worker                        spos.WorkerHandler
+	signatureThrottler            core.Throttler
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -43,6 +44,7 @@ func NewSubroundEndRound(
 	appStatusHandler core.AppStatusHandler,
 	sentSignatureTracker spos.SentSignaturesTracker,
 	worker spos.WorkerHandler,
+	signatureThrottler core.Throttler,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(baseSubround)
 	if err != nil {
@@ -57,6 +59,9 @@ func NewSubroundEndRound(
 	if check.IfNil(worker) {
 		return nil, spos.ErrNilWorker
 	}
+	if check.IfNil(signatureThrottler) {
+		return nil, spos.ErrNilThrottler
+	}
 
 	srEndRound := subroundEndRound{
 		Subround:                      baseSubround,
@@ -65,6 +70,7 @@ func NewSubroundEndRound(
 		mutProcessingEndRound:         sync.Mutex{},
 		sentSignatureTracker:          sentSignatureTracker,
 		worker:                        worker,
+		signatureThrottler:            signatureThrottler,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -224,9 +230,18 @@ func (sr *subroundEndRound) verifyInvalidSigner(
 		return "", spos.ErrInvalidMessageType
 	}
 
+	if !sr.IsNodeInConsensusGroup(string(cnsMsg.PubKey)) {
+		return "", ErrSignerNotInConsensusGroup
+	}
+
 	err = sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return "", err
+	}
+
+	err = sr.PeerSignatureHandler().VerifyPeerSignature(cnsMsg.PubKey, msg.Peer(), cnsMsg.Signature)
+	if err != nil {
+		return "", ErrPublicKeyMismatch
 	}
 
 	if !bytes.Equal(headerHash, cnsMsg.BlockHeaderHash) {
@@ -474,6 +489,10 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, 
 	}
 
 	return bitmap, sig, nil
+}
+
+func (sr *subroundEndRound) checkGoRoutinesThrottler(ctx context.Context) error {
+	return checkGoRoutinesThrottler(ctx, sr.signatureThrottler)
 }
 
 // verifySignature implements parallel signature verification
