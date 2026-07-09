@@ -224,9 +224,18 @@ func (sr *subroundEndRound) verifyInvalidSigner(
 		return "", spos.ErrInvalidMessageType
 	}
 
+	if !sr.IsNodeInConsensusGroup(string(cnsMsg.PubKey)) {
+		return "", ErrSignerNotInConsensusGroup
+	}
+
 	err = sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return "", err
+	}
+
+	err = sr.PeerSignatureHandler().VerifyPeerSignature(cnsMsg.PubKey, msg.Peer(), cnsMsg.Signature)
+	if err != nil {
+		return "", ErrPublicKeyMismatch
 	}
 
 	if !bytes.Equal(headerHash, cnsMsg.BlockHeaderHash) {

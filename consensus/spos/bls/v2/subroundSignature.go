@@ -3,7 +3,6 @@ package v2
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -290,18 +289,7 @@ func (sr *subroundSignature) sendSignatureForManagedKey(_ context.Context, idx i
 }
 
 func (sr *subroundSignature) checkGoRoutinesThrottler(ctx context.Context) error {
-	for {
-		if sr.signatureThrottler.CanProcess() {
-			break
-		}
-		select {
-		case <-time.After(timeSpentBetweenChecks):
-			continue
-		case <-ctx.Done():
-			return fmt.Errorf("%w while checking the throttler", spos.ErrTimeIsOut)
-		}
-	}
-	return nil
+	return checkGoRoutinesThrottler(ctx, sr.signatureThrottler)
 }
 
 func (sr *subroundSignature) doSignatureJobForSingleKey(_ context.Context) bool {
