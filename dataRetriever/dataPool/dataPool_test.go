@@ -37,6 +37,7 @@ func createMockDataPoolArgs() dataPool.DataPoolArgs {
 		ExecutedMiniBlocks:        cache.NewCacherStub(),
 		PostProcessTransactions:   cache.NewCacherStub(),
 		DirectSentTransactions:    cache.NewCacherStub(),
+		QuarantinedHeaders:        cache.NewCacherStub(),
 	}
 }
 
@@ -216,6 +217,17 @@ func TestNewDataPool_NilPostProcessTransactionsShouldErr(t *testing.T) {
 	require.Equal(t, dataRetriever.ErrNilPostProcessTransactionsCache, err)
 }
 
+func TestNewDataPool_NilQuarantinedHeadersShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockDataPoolArgs()
+	args.QuarantinedHeaders = nil
+	tdp, err := dataPool.NewDataPool(args)
+
+	require.Nil(t, tdp)
+	require.Equal(t, dataRetriever.ErrNilQuarantinedHeadersCache, err)
+}
+
 func TestNewDataPool_NilCurrEpochValidatorInfoShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -253,6 +265,7 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, args.ExecutedMiniBlocks == tdp.ExecutedMiniBlocks())
 	assert.True(t, args.PostProcessTransactions == tdp.PostProcessTransactions())
 	assert.True(t, args.DirectSentTransactions == tdp.DirectSentTransactions())
+	assert.True(t, args.QuarantinedHeaders == tdp.QuarantinedHeaders())
 }
 
 func TestNewDataPool_Close(t *testing.T) {

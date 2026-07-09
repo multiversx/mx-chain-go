@@ -40,6 +40,7 @@ type BlockTrackerStub struct {
 	RestoreToGenesisCalled                             func()
 	ShouldAddHeaderCalled                              func(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	IsHeaderQuarantinedCalled                          func(hash []byte) bool
 }
 
 // AddTrackedHeader -
@@ -307,6 +308,19 @@ func (bts *BlockTrackerStub) ComputeOwnShardStuck(lastExecutionResultsInfo data.
 	if bts.ComputeOwnShardStuckCalled != nil {
 		bts.ComputeOwnShardStuckCalled(lastExecutionResultsInfo, currentNonce)
 	}
+}
+
+// IsHeaderQuarantined -
+func (bts *BlockTrackerStub) IsHeaderQuarantined(hash []byte) bool {
+	if bts.IsHeaderQuarantinedCalled != nil {
+		return bts.IsHeaderQuarantinedCalled(hash)
+	}
+	return false
+}
+
+// Close -
+func (bts *BlockTrackerStub) Close() error {
+	return nil
 }
 
 // IsInterfaceNil -

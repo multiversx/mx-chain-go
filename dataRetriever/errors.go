@@ -275,6 +275,9 @@ var ErrNilPostProcessTransactionsCache = errors.New("nil post process transactio
 // ErrNilDirectSentTransactionsCache signals that a nil direct-sent transactions cache has been provided
 var ErrNilDirectSentTransactionsCache = errors.New("nil direct sent transactions cache")
 
+// ErrNilQuarantinedHeadersCache signals that a nil quarantined headers cache has been provided
+var ErrNilQuarantinedHeadersCache = errors.New("nil quarantined headers cache")
+
 // ErrEquivalentProofsNotFound signals that no equivalent proof found
 var ErrEquivalentProofsNotFound = errors.New("equivalent proof not found")
 

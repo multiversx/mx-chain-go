@@ -288,3 +288,6 @@ var ErrInvalidSignersAlreadyReceived = errors.New("invalid signers already recei
 
 // ErrNilInvalidSignersCache signals that nil invalid signers has been provided
 var ErrNilInvalidSignersCache = errors.New("nil invalid signers cache")
+
+// ErrNilCommonConfigsHandler signals that a nil common configs handler has been provided
+var ErrNilCommonConfigsHandler = errors.New("nil common configs handler")
