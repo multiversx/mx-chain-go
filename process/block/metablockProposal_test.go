@@ -1833,7 +1833,7 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 		dataPoolMock.SetProofsPool(proofsPool)
 
 		marshaller := &marshal.GogoProtoMarshalizer{}
-		storage := &storageStubs.ChainStorerStub{
+		st := &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
@@ -1859,7 +1859,7 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 			},
 			"dataPool":   dataPoolMock,
 			"proofsPool": proofsPool,
-			"store":      storage,
+			"store":      st,
 		})
 		require.Nil(t, err)
 
@@ -1893,7 +1893,7 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 		dataPoolMock.SetProofsPool(proofsPool)
 
 		marshaller := &marshal.GogoProtoMarshalizer{}
-		storage := &storageStubs.ChainStorerStub{
+		st := &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
@@ -1929,7 +1929,7 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 				},
 			},
 			"proofsPool": proofsPool,
-			"store":      storage,
+			"store":      st,
 		})
 		require.Nil(t, err)
 
@@ -3041,7 +3041,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 		dataPoolMock.SetHeadersPool(headersPoolMock)
 
 		marshaller := &marshal.GogoProtoMarshalizer{}
-		storage := &storageStubs.ChainStorerStub{
+		st := &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
@@ -3062,7 +3062,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 				},
 			},
 			"marshalizer": &marshal.GogoProtoMarshalizer{},
-			"store":       storage,
+			"store":       st,
 			"epochStartTrigger": &testscommon.EpochStartTriggerStub{
 				EpochCalled: func() uint32 {
 					return 1
@@ -3101,7 +3101,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 		dataPoolMock.SetHeadersPool(headersPoolMock)
 
 		marshaller := &marshal.GogoProtoMarshalizer{}
-		storage := &storageStubs.ChainStorerStub{
+		st := &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
@@ -3123,7 +3123,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 				return 1
 			}},
 			"marshalizer": marshaller,
-			"store":       storage,
+			"store":       st,
 		})
 		require.Nil(t, err)
 
@@ -3164,7 +3164,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 		dataPoolMock.SetHeadersPool(headersPoolMock)
 
 		marshaller := &marshal.GogoProtoMarshalizer{}
-		storage := &storageStubs.ChainStorerStub{
+		st := &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
@@ -3188,7 +3188,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 				return 1
 			}},
 			"marshalizer": marshaller,
-			"store":       storage,
+			"store":       st,
 		})
 		require.Nil(t, err)
 
@@ -3227,7 +3227,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 		dataPoolMock.SetHeadersPool(headersPoolMock)
 
 		marshaller := &marshal.GogoProtoMarshalizer{}
-		storage := &storageStubs.ChainStorerStub{
+		st := &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
@@ -3250,7 +3250,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			"epochStartTrigger": &testscommon.EpochStartTriggerStub{EpochCalled: func() uint32 {
 				return 1
 			}},
-			"store":       storage,
+			"store":       st,
 			"marshalizer": marshaller,
 		})
 		require.Nil(t, err)
@@ -3293,7 +3293,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 		dataPoolMock.SetHeadersPool(headersPoolMock)
 
 		marshaller := &marshal.GogoProtoMarshalizer{}
-		storage := &storageStubs.ChainStorerStub{
+		st := &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
@@ -3317,7 +3317,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 				return 1
 			}},
 			"marshalizer": &marshal.GogoProtoMarshalizer{},
-			"store":       storage,
+			"store":       st,
 		})
 		require.Nil(t, err)
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
@@ -3363,7 +3363,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 		dataPoolMock.SetHeadersPool(headersPoolMock)
 
 		marshaller := &marshal.GogoProtoMarshalizer{}
-		storage := &storageStubs.ChainStorerStub{
+		st := &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
@@ -3386,7 +3386,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			"epochStartTrigger": &testscommon.EpochStartTriggerStub{EpochCalled: func() uint32 {
 				return 1
 			}},
-			"store":       storage,
+			"store":       st,
 			"marshalizer": &marshal.GogoProtoMarshalizer{},
 		})
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
@@ -3428,7 +3428,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 		dataPoolMock.SetHeadersPool(headersPoolMock)
 
 		marshaller := &marshal.GogoProtoMarshalizer{}
-		storage := &storageStubs.ChainStorerStub{
+		st := &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
@@ -3452,7 +3452,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			"epochStartTrigger": &testscommon.EpochStartTriggerStub{EpochCalled: func() uint32 {
 				return 1
 			}},
-			"store": storage,
+			"store": st,
 		})
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
 			Epoch: 2,
@@ -3583,6 +3583,7 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return expectedErr
 				},
 			},
+			"blockTracker": &integrationTestsMock.BlockTrackerStub{},
 		})
 		require.Nil(t, err)
 
@@ -3592,6 +3593,33 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 			},
 		}, blproc.ShardHeaderInfo{})
 		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return error for quarantined header", func(t *testing.T) {
+		t.Parallel()
+
+		quarantinedHash := []byte("quarantined hash")
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"headerValidator": &processMocks.HeaderValidatorMock{
+				IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+					return nil
+				},
+			},
+			"blockTracker": &integrationTestsMock.BlockTrackerStub{
+				IsHeaderQuarantinedCalled: func(hash []byte) bool {
+					return bytes.Equal(hash, quarantinedHash)
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckHeadersSequenceCorrectness([]blproc.ShardHeaderInfo{
+			{
+				Header: &block.Header{Nonce: 2},
+				Hash:   quarantinedHash,
+			},
+		}, blproc.ShardHeaderInfo{})
+		require.ErrorContains(t, err, "included quarantined header")
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -3608,6 +3636,7 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return nil
 				},
 			},
+			"blockTracker": &integrationTestsMock.BlockTrackerStub{},
 		})
 		require.Nil(t, err)
 

@@ -425,6 +425,9 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.GetHeader().GetNonce())
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(sr.GetHeader(), "committed", "v2", sr.CommonConfigsHandler())
+
 	sr.updateMetricsForLeader()
 
 	return true

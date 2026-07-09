@@ -268,6 +268,7 @@ type PoolsHolder interface {
 	ExecutedMiniBlocks() storage.Cacher
 	PostProcessTransactions() storage.Cacher
 	DirectSentTransactions() storage.Cacher
+	QuarantinedHeaders() storage.Cacher
 	Close() error
 	IsInterfaceNil() bool
 }

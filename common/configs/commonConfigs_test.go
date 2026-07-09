@@ -29,7 +29,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 	t.Run("should return error for empty config by epoch", func(t *testing.T) {
 		t.Parallel()
 
-		pce, err := configs.NewCommonConfigsHandler(nil, []config.EpochStartConfigByRound{}, []config.ConsensusConfigByEpoch{}, defaultConsensusConfigsByRound())
+		pce, err := configs.NewCommonConfigsHandler(nil, []config.EpochStartConfigByRound{}, []config.ConsensusConfigByEpoch{}, defaultConsensusConfigsByRound(), false)
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrEmptyCommonConfigsByEpoch, err)
 	})
@@ -37,7 +37,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 	t.Run("should return error for empty config by round", func(t *testing.T) {
 		t.Parallel()
 
-		pce, err := configs.NewCommonConfigsHandler([]config.EpochStartConfigByEpoch{{EnableEpoch: 0}}, nil, []config.ConsensusConfigByEpoch{{EnableEpoch: 0}}, defaultConsensusConfigsByRound())
+		pce, err := configs.NewCommonConfigsHandler([]config.EpochStartConfigByEpoch{{EnableEpoch: 0}}, nil, []config.ConsensusConfigByEpoch{{EnableEpoch: 0}}, defaultConsensusConfigsByRound(), false)
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrEmptyCommonConfigsByRound, err)
 	})
@@ -49,7 +49,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 			{EnableEpoch: 0, GracePeriodRounds: 1},
 			{EnableEpoch: 0, GracePeriodRounds: 2},
 		}
-		pce, err := configs.NewCommonConfigsHandler(conf, []config.EpochStartConfigByRound{}, []config.ConsensusConfigByEpoch{}, defaultConsensusConfigsByRound())
+		pce, err := configs.NewCommonConfigsHandler(conf, []config.EpochStartConfigByRound{}, []config.ConsensusConfigByEpoch{}, defaultConsensusConfigsByRound(), false)
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrDuplicatedEpochConfig, err)
 	})
@@ -61,7 +61,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 			{EnableEpoch: 1, GracePeriodRounds: 1},
 			{EnableEpoch: 2, GracePeriodRounds: 2},
 		}
-		pce, err := configs.NewCommonConfigsHandler(conf, []config.EpochStartConfigByRound{}, []config.ConsensusConfigByEpoch{}, defaultConsensusConfigsByRound())
+		pce, err := configs.NewCommonConfigsHandler(conf, []config.EpochStartConfigByRound{}, []config.ConsensusConfigByEpoch{}, defaultConsensusConfigsByRound(), false)
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrMissingEpochZeroConfig, err)
 	})
@@ -74,6 +74,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 			[]config.EpochStartConfigByRound{{EnableRound: 0}},
 			[]config.ConsensusConfigByEpoch{{EnableEpoch: 0}},
 			nil,
+			false,
 		)
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrEmptyConsensusConfigsByRound, err)
@@ -98,6 +99,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 					ProcessingThresholdPercent: 85,
 				},
 			},
+			false,
 		)
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrMissingRoundZeroConfig, err)
@@ -120,6 +122,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 				{EnableRound: 0, SubroundsTiming: validTiming, ProcessingThresholdPercent: 85},
 				{EnableRound: 0, SubroundsTiming: validTiming, ProcessingThresholdPercent: 85},
 			},
+			false,
 		)
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrDuplicatedRoundConfig, err)
@@ -142,7 +145,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 			{EnableEpoch: 1, NumRoundsToWaitBeforeSignalingChronologyStuck: 11},
 		}
 
-		pce, err := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, defaultConsensusConfigsByRound())
+		pce, err := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, defaultConsensusConfigsByRound(), false)
 		require.NotNil(t, pce)
 		require.NoError(t, err)
 		require.False(t, pce.IsInterfaceNil())
@@ -198,7 +201,7 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get grace period rounds by epoch", func(t *testing.T) {
 		t.Parallel()
 
-		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound)
+		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound, false)
 
 		gracePeriodRounds := cc.GetGracePeriodRoundsByEpoch(0)
 		require.Equal(t, uint32(10), gracePeriodRounds)
@@ -210,7 +213,7 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get extra delay for request block info", func(t *testing.T) {
 		t.Parallel()
 
-		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound)
+		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound, false)
 
 		extraDelayForRequests := cc.GetExtraDelayForRequestBlockInfoInMs(0)
 		require.Equal(t, uint32(20), extraDelayForRequests)
@@ -222,7 +225,7 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get max rounds without committed start in epoch block by round", func(t *testing.T) {
 		t.Parallel()
 
-		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound)
+		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound, false)
 
 		maxRoundsWithoutCommitedStartInEpochBlock := cc.GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(0)
 		require.Equal(t, uint32(30), maxRoundsWithoutCommitedStartInEpochBlock)
@@ -237,7 +240,7 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 		// subround index constants mirroring bls.SrStartRound=0, SrBlock=1, SrSignature=2, SrEndRound=3
 		const srStartRound, srBlock, srSignature = 0, 1, 2
 
-		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound)
+		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound, false)
 
 		timing := cc.GetSubroundsTimingByRound(0)
 		require.Equal(t, consensusConfByRound[0].SubroundsTiming[srStartRound].EndTime, timing.SubroundsTiming[srStartRound].EndTime)
@@ -260,7 +263,7 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get active timing boundary round", func(t *testing.T) {
 		t.Parallel()
 
-		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound)
+		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound, false)
 
 		require.Equal(t, uint64(0), cc.GetActiveTimingBoundaryRound(0))
 		require.Equal(t, uint64(0), cc.GetActiveTimingBoundaryRound(9))
@@ -291,7 +294,7 @@ func TestCheckConsensusConfigsByRound(t *testing.T) {
 		t.Parallel()
 
 		cc, err := configs.NewCommonConfigsHandler(baseEpochConf, baseRoundConf, baseConsensusEpoch,
-			[]config.ConsensusConfigByRound{validConfig})
+			[]config.ConsensusConfigByRound{validConfig}, false)
 		require.NoError(t, err)
 		require.NotNil(t, cc)
 	})
@@ -310,7 +313,7 @@ func TestCheckConsensusConfigsByRound(t *testing.T) {
 			ProcessingThresholdPercent: 85,
 		}
 		_, err := configs.NewCommonConfigsHandler(baseEpochConf, baseRoundConf, baseConsensusEpoch,
-			[]config.ConsensusConfigByRound{bad})
+			[]config.ConsensusConfigByRound{bad}, false)
 		require.Equal(t, configs.ErrInvalidSubroundsTimingCount, err)
 	})
 
@@ -328,7 +331,7 @@ func TestCheckConsensusConfigsByRound(t *testing.T) {
 			ProcessingThresholdPercent: 85,
 		}
 		_, err := configs.NewCommonConfigsHandler(baseEpochConf, baseRoundConf, baseConsensusEpoch,
-			[]config.ConsensusConfigByRound{bad})
+			[]config.ConsensusConfigByRound{bad}, false)
 		require.Equal(t, configs.ErrNegativeSubroundTiming, err)
 	})
 
@@ -346,7 +349,7 @@ func TestCheckConsensusConfigsByRound(t *testing.T) {
 			ProcessingThresholdPercent: 85,
 		}
 		_, err := configs.NewCommonConfigsHandler(baseEpochConf, baseRoundConf, baseConsensusEpoch,
-			[]config.ConsensusConfigByRound{bad})
+			[]config.ConsensusConfigByRound{bad}, false)
 		require.Equal(t, configs.ErrInvalidSubroundTimingRange, err)
 	})
 
@@ -364,7 +367,7 @@ func TestCheckConsensusConfigsByRound(t *testing.T) {
 			ProcessingThresholdPercent: 85,
 		}
 		_, err := configs.NewCommonConfigsHandler(baseEpochConf, baseRoundConf, baseConsensusEpoch,
-			[]config.ConsensusConfigByRound{bad})
+			[]config.ConsensusConfigByRound{bad}, false)
 		require.Equal(t, configs.ErrOverlappingSubroundTiming, err)
 	})
 
@@ -382,7 +385,7 @@ func TestCheckConsensusConfigsByRound(t *testing.T) {
 			ProcessingThresholdPercent: 85,
 		}
 		_, err := configs.NewCommonConfigsHandler(baseEpochConf, baseRoundConf, baseConsensusEpoch,
-			[]config.ConsensusConfigByRound{bad})
+			[]config.ConsensusConfigByRound{bad}, false)
 		require.Equal(t, configs.ErrOverlappingSubroundTiming, err)
 	})
 
@@ -400,7 +403,7 @@ func TestCheckConsensusConfigsByRound(t *testing.T) {
 			ProcessingThresholdPercent: 85,
 		}
 		_, err := configs.NewCommonConfigsHandler(baseEpochConf, baseRoundConf, baseConsensusEpoch,
-			[]config.ConsensusConfigByRound{bad})
+			[]config.ConsensusConfigByRound{bad}, false)
 		require.Equal(t, configs.ErrSubroundTimingExceedsRound, err)
 	})
 
@@ -410,7 +413,7 @@ func TestCheckConsensusConfigsByRound(t *testing.T) {
 		bad := validConfig
 		bad.ProcessingThresholdPercent = 0
 		_, err := configs.NewCommonConfigsHandler(baseEpochConf, baseRoundConf, baseConsensusEpoch,
-			[]config.ConsensusConfigByRound{bad})
+			[]config.ConsensusConfigByRound{bad}, false)
 		require.Equal(t, configs.ErrInvalidProcessingThreshold, err)
 	})
 
@@ -420,7 +423,7 @@ func TestCheckConsensusConfigsByRound(t *testing.T) {
 		bad := validConfig
 		bad.ProcessingThresholdPercent = 101
 		_, err := configs.NewCommonConfigsHandler(baseEpochConf, baseRoundConf, baseConsensusEpoch,
-			[]config.ConsensusConfigByRound{bad})
+			[]config.ConsensusConfigByRound{bad}, false)
 		require.Equal(t, configs.ErrInvalidProcessingThreshold, err)
 	})
 }

@@ -254,6 +254,9 @@ var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 // ErrNilProofsPool signals that a nil proofs pool was used
 var ErrNilProofsPool = errors.New("nil proofs pool")
 
+// ErrNilQuarantinedHeadersCache signals that a nil quarantined headers cache was used
+var ErrNilQuarantinedHeadersCache = errors.New("nil quarantined headers cache")
+
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
 

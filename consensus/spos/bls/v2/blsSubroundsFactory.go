@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -27,7 +26,6 @@ type factory struct {
 	chainID               []byte
 	currentPid            core.PeerID
 	signatureThrottler    core.Throttler
-	commonConfigsHandler  common.CommonConfigsHandler
 	// instantiated once on the factory so the evidence survives subround regeneration
 	signatureEvidence signatureEvidenceHandler
 }
@@ -43,7 +41,6 @@ func NewSubroundsFactory(
 	sentSignaturesTracker spos.SentSignaturesTracker,
 	signatureThrottler core.Throttler,
 	outportHandler outport.OutportHandler,
-	commonConfigsHandler common.CommonConfigsHandler,
 ) (*factory, error) {
 	// no need to check the outport handler, it can be nil
 	err := checkNewFactoryParams(
@@ -54,7 +51,6 @@ func NewSubroundsFactory(
 		appStatusHandler,
 		sentSignaturesTracker,
 		signatureThrottler,
-		commonConfigsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -75,7 +71,6 @@ func NewSubroundsFactory(
 		sentSignaturesTracker: sentSignaturesTracker,
 		signatureThrottler:    signatureThrottler,
 		outportHandler:        outportHandler,
-		commonConfigsHandler:  commonConfigsHandler,
 		signatureEvidence:     signatureEvidence,
 	}
 
@@ -90,7 +85,6 @@ func checkNewFactoryParams(
 	appStatusHandler core.AppStatusHandler,
 	sentSignaturesTracker spos.SentSignaturesTracker,
 	signatureThrottler core.Throttler,
-	commonConfigsHandler common.CommonConfigsHandler,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -110,9 +104,6 @@ func checkNewFactoryParams(
 	}
 	if check.IfNil(signatureThrottler) {
 		return spos.ErrNilThrottler
-	}
-	if check.IfNil(commonConfigsHandler) {
-		return common.ErrNilCommonConfigsHandler
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID
@@ -135,7 +126,7 @@ func (fct *factory) GenerateSubrounds(epoch uint32) error {
 
 	// the base (round 0) timing config is used for the initial generation; the chronology component
 	// reconciles the subrounds to whichever timing config is actually active at the current round
-	timing := fct.commonConfigsHandler.GetSubroundsTimingByRound(0)
+	timing := fct.consensusCore.CommonConfigsHandler().GetSubroundsTimingByRound(0)
 
 	err := fct.generateStartRoundSubround(timing)
 	if err != nil {

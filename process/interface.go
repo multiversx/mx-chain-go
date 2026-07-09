@@ -1050,6 +1050,8 @@ type BlockTracker interface {
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 	IsOwnShardStuck() bool
+	IsHeaderQuarantined(hash []byte) bool
+	Close() error
 	IsInterfaceNil() bool
 }
 

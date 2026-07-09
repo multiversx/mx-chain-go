@@ -33,6 +33,7 @@ func GetDefaultCommonConfigsHandler() common.CommonConfigsHandler {
 				ProcessingThresholdPercent: 85,
 			},
 		},
+		false,
 	)
 
 	return commonConfigsHandler
@@ -46,6 +47,7 @@ type CommonConfigsHandlerStub struct {
 	GetNumRoundsToWaitBeforeSignalingChronologyStuckCalled     func(epoch uint32) uint32
 	GetSubroundsTimingByRoundCalled                            func(round uint64) config.ConsensusConfigByRound
 	GetActiveTimingBoundaryRoundCalled                         func(round uint64) uint64
+	PrintPrettifiedHeaderCalled                                func() bool
 }
 
 // GetGracePeriodRoundsByEpoch -
@@ -109,6 +111,15 @@ func (e *CommonConfigsHandlerStub) GetActiveTimingBoundaryRound(round uint64) ui
 	}
 
 	return 0
+}
+
+// PrintPrettifiedHeader -
+func (e *CommonConfigsHandlerStub) PrintPrettifiedHeader() bool {
+	if e.PrintPrettifiedHeaderCalled != nil {
+		return e.PrintPrettifiedHeaderCalled()
+	}
+
+	return false
 }
 
 // IsInterfaceNil -
