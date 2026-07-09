@@ -106,6 +106,7 @@ type ArgsCoreComponentsHolder struct {
 	MinNodesPerShard            uint32
 	ConsensusGroupSize          uint32
 	MinNodesMeta                uint32
+	PrintPrettifiedHeader       bool
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMs           uint64
 	GenesisTime                 time.Time
@@ -333,6 +334,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		args.Config.GeneralSettings.EpochStartConfigsByEpoch,
 		args.Config.GeneralSettings.EpochStartConfigsByRound,
 		args.Config.GeneralSettings.ConsensusConfigsByEpoch,
+		args.Config.GeneralSettings.ConsensusConfigsByRound,
+		args.PrintPrettifiedHeader,
 	)
 	if err != nil {
 		return nil, err

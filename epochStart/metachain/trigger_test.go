@@ -196,7 +196,7 @@ func TestNewEpochStartTrigger_ShouldProposeEpochChange(t *testing.T) {
 	require.NotNil(t, epochStartTrigger)
 	require.Nil(t, err)
 
-	nonce := uint64(100)
+	nonce := uint64(minimumBlocksPerEpoch)
 
 	round := uint64(300)
 	shouldProposeEpochChange := epochStartTrigger.ShouldProposeEpochChange(round, nonce)
@@ -215,13 +215,45 @@ func TestNewEpochStartTrigger_ShouldProposeEpochChange(t *testing.T) {
 	require.False(t, epochStartTrigger.IsEpochStart())
 }
 
+func TestNewEpochStartTrigger_ShouldNotProposeEpochChangeTooCloseToEpochStartNonce(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				RoundsPerEpoch: 200,
+				Offset:         0,
+			}, nil
+		},
+	}
+	arguments.EpochStartRound = 100
+	arguments.Epoch = 1
+
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	require.NotNil(t, epochStartTrigger)
+	require.Nil(t, err)
+
+	epochStartNonce := uint64(500)
+	epochStartTrigger.epochStartMeta = &block.MetaBlock{
+		Nonce: epochStartNonce,
+	}
+	round := uint64(301)
+
+	shouldProposeEpochChange := epochStartTrigger.ShouldProposeEpochChange(round, epochStartNonce+minimumBlocksPerEpoch-1)
+	require.False(t, shouldProposeEpochChange)
+
+	shouldProposeEpochChange = epochStartTrigger.ShouldProposeEpochChange(round, epochStartNonce+minimumBlocksPerEpoch)
+	require.True(t, shouldProposeEpochChange)
+}
+
 func TestTrigger_Update(t *testing.T) {
 	t.Parallel()
 
 	notifierWasCalled := false
 	epoch := uint32(0)
 	round := uint64(0)
-	nonce := uint64(100)
+	nonce := uint64(minimumBlocksPerEpoch)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
 	arguments.EpochStartNotifier = &mock.EpochStartNotifierStub{
@@ -463,7 +495,7 @@ func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
 
 	epoch := uint32(0)
 	round := uint64(0)
-	nonce := uint64(100)
+	nonce := uint64(minimumBlocksPerEpoch)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
@@ -525,7 +557,7 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 
 	epoch := uint32(0)
 	round := uint64(0)
-	nonce := uint64(100)
+	nonce := uint64(minimumBlocksPerEpoch)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
 	firstBlock := &block.MetaBlock{}

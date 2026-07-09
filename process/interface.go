@@ -1592,8 +1592,8 @@ type Debugger interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
-	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte)
-	GetSignedHash(pkBytes []byte, nonce uint64) ([]byte, bool)
+	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
+	GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
 	ResetCountersForManagedBlockSigner(signerPk []byte)
 	IsInterfaceNil() bool
 }

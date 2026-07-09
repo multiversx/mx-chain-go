@@ -141,16 +141,37 @@ func (s *SubroundsHandler) Start(epoch uint32) error {
 	return s.initSubroundsForEpoch(epoch)
 }
 
+// initSubroundsForEpoch generates the subrounds for the target consensus type of the given epoch, if it
+// differs from the currently active consensus type
 func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
-	var err error
-	var fct subroundsFactory
+	targetConsensusType := s.getTargetConsensusType(epoch)
 
+	if s.currentConsensusType == targetConsensusType {
+		return nil
+	}
+
+	s.currentConsensusType = targetConsensusType
+	return s.generateSubroundsForCurrentType(epoch)
+}
+
+func (s *SubroundsHandler) getTargetConsensusType(epoch uint32) consensusStateMachineType {
 	if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
-		if s.currentConsensusType == consensusV2 {
-			return nil
-		}
+		return consensusV2
+	}
 
-		s.currentConsensusType = consensusV2
+	return consensusV1
+}
+
+// generateSubroundsForCurrentType generates the subrounds matching the currently set consensus type
+func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32) error {
+	if s.currentConsensusType == consensusNone {
+		return nil
+	}
+
+	var fct subroundsFactory
+	var err error
+
+	if s.currentConsensusType == consensusV2 {
 		fct, err = v2.NewSubroundsFactory(
 			s.consensusCoreHandler,
 			s.consensusState,
@@ -163,11 +184,6 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 			s.outportHandler,
 		)
 	} else {
-		if s.currentConsensusType == consensusV1 {
-			return nil
-		}
-
-		s.currentConsensusType = consensusV1
 		fct, err = v1.NewSubroundsFactory(
 			s.consensusCoreHandler,
 			s.consensusState,
@@ -185,7 +201,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 
 	err = s.chronology.Close()
 	if err != nil {
-		log.Warn("SubroundsHandler.initSubroundsForEpoch: cannot close the chronology", "error", err)
+		log.Warn("SubroundsHandler.generateSubroundsForCurrentType: cannot close the chronology", "error", err)
 	}
 
 	err = fct.GenerateSubrounds(epoch)
@@ -193,7 +209,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 		return err
 	}
 
-	log.Debug("SubroundsHandler.initSubroundsForEpoch: reset consensus round state")
+	log.Debug("SubroundsHandler.generateSubroundsForCurrentType: reset consensus round state")
 	s.worker.ResetConsensusRoundState()
 	s.chronology.StartRounds()
 

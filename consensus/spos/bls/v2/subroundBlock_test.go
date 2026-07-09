@@ -1935,13 +1935,14 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 			&consensusMocks.NtpSyncControllerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetHeader(&block.Header{Epoch: currEpoch})
 		sr.SetSelfPubKey("OTHER")
 
 		srBlock.TriggerCreateSignaturesForManagedKeys(context.TODO(), []byte("headerHash"), &block.Header{Epoch: currEpoch})
 
-		srBlock.SignaturesWaitGroup().Wait()
+		<-srBlock.SignaturesDone()
 
 		assert.Equal(t, int32(9), atomic.LoadInt32(&numMultiKeysSignaturesCreated)) // there are 9 keys in default consensus group config
 	})
@@ -2014,6 +2015,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 				},
 			},
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetSelfPubKey("OTHER")
 
@@ -2079,6 +2081,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 				},
 			},
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetHeader(nil)
 		sr.SetSelfPubKey("OTHER")
@@ -2087,7 +2090,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 		cancel()
 		srBlock.TriggerCreateSignaturesForManagedKeys(ctx, []byte("headerHash"), nil)
 
-		srBlock.SignaturesWaitGroup().Wait()
+		<-srBlock.SignaturesDone()
 
 		assert.Equal(t, int32(0), atomic.LoadInt32(&numMultiKeysSignaturesCreated))
 	})
@@ -2156,12 +2159,13 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 				},
 			},
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetSelfPubKey("OTHER")
 
 		srBlock.TriggerCreateSignaturesForManagedKeys(context.TODO(), []byte("headerHash"), &block.Header{})
 
-		srBlock.SignaturesWaitGroup().Wait()
+		<-srBlock.SignaturesDone()
 
 		assert.Equal(t, int32(9), atomic.LoadInt32(&numMultiKeysSignaturesCreated)) // there are 9 keys in default consensus group config
 	})
