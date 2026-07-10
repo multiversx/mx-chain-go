@@ -1060,19 +1060,8 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 }
 
 func (sr *subroundEndRound) getThreshold() int {
-	isTransitionBlock := common.IsEpochChangeBlockForFlagActivation(sr.GetHeader(), sr.EnableEpochsHandler(), common.AndromedaFlag)
-
-	threshold := sr.Threshold(bls.SrSignature)
-	if isTransitionBlock {
-		threshold = core.GetPBFTThreshold(sr.ConsensusGroupSize())
-	}
-
-	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.GetHeader()) {
-		threshold = sr.FallbackThreshold(bls.SrSignature)
-		if isTransitionBlock {
-			threshold = core.GetPBFTFallbackThreshold(sr.ConsensusGroupSize())
-		}
-
+	threshold, fallbackApplied := computeSignatureThreshold(sr.Subround, sr.GetHeader())
+	if fallbackApplied {
 		log.Warn("subroundEndRound.checkReceivedSignaturesOrProof: fallback validation has been applied",
 			"minimum number of signatures required", threshold,
 			"actual number of signatures received", sr.getNumOfSignaturesCollected(),

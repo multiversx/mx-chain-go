@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -18,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 )
 
 // ProcessingThresholdPercent is a test-only value mirroring the default processing threshold percent
@@ -418,4 +420,31 @@ func (sr *subroundEndRound) IsRoundWithinBounds(round int64, numRounds uint64) b
 // IsTimestampWithinBounds -
 func (sr *subroundEndRound) IsTimestampWithinBounds(timeStampSec int64, numSeconds uint64) bool {
 	return sr.isTimestampWithinBounds(timeStampSec, numSeconds)
+}
+
+// signature evidence
+
+// NewSignatureEvidenceStore creates a signature evidence store for tests; a nil proofsPool defaults to a mock
+func NewSignatureEvidenceStore(proofsPool consensus.EquivalentProofsPool) *signatureEvidenceStore {
+	if check.IfNil(proofsPool) {
+		proofsPool = &dataRetrieverTests.ProofsPoolMock{}
+	}
+
+	store, _ := newSignatureEvidenceStore(proofsPool)
+	return store
+}
+
+// CaptureSignatureEvidence -
+func (sr *subroundStartRound) CaptureSignatureEvidence() {
+	sr.captureSignatureEvidence()
+}
+
+// ShouldAbortOnSignatureEvidence -
+func (sr *subroundSignature) ShouldAbortOnSignatureEvidence(ctx context.Context, nonce uint64, currentHash []byte) bool {
+	return sr.shouldAbortOnSignatureEvidence(ctx, nonce, currentHash)
+}
+
+// HasQuorumEvidenceForCompetingBlock -
+func (sr *subroundBlock) HasQuorumEvidenceForCompetingBlock() bool {
+	return sr.hasQuorumEvidenceForCompetingBlock()
 }
