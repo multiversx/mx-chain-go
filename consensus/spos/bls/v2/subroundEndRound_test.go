@@ -2140,8 +2140,9 @@ func TestVerifyInvalidSigners(t *testing.T) {
 
 		unknownPubKey := []byte("unknownKey")
 		consensusMsg := &consensus.Message{
-			PubKey:  unknownPubKey,
-			MsgType: int64(bls.MtSignature),
+			BlockHeaderHash: headerHash,
+			PubKey:          unknownPubKey,
+			MsgType:         int64(bls.MtSignature),
 		}
 		consensusMsgBytes, _ := container.Marshalizer().Marshal(consensusMsg)
 
