@@ -28,3 +28,9 @@ var ErrOutOfBoundsInvalidSignersMessage = errors.New("out of bounds invalid sign
 
 // ErrNilSignatureEvidence signals that a nil signature evidence handler has been provided
 var ErrNilSignatureEvidence = errors.New("nil signature evidence handler")
+
+// ErrPublicKeyMismatch signals that the BLS public key in the message does not belong to the transport sender
+var ErrPublicKeyMismatch = errors.New("public key does not match the message sender")
+
+// ErrSignerNotInConsensusGroup signals that the signer is not part of the current consensus group
+var ErrSignerNotInConsensusGroup = errors.New("signer is not part of the consensus group")

@@ -3,6 +3,7 @@ package trie
 
 import (
 	"context"
+	"fmt"
 	"runtime/debug"
 	"time"
 
@@ -197,10 +198,32 @@ func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.
 		return nil, err
 	}
 
+	err = validateDecodedNode(newNode)
+	if err != nil {
+		return nil, err
+	}
+
 	newNode.setMarshalizer(marshalizer)
 	newNode.setHasher(hasher)
 
 	return newNode, nil
+}
+
+func validateDecodedNode(n node) error {
+	bn, ok := n.(*branchNode)
+	if !ok {
+		return nil
+	}
+
+	if len(bn.EncodedChildren) != nrOfChildren {
+		return fmt.Errorf("%w for EncodedChildren, len is %d", ErrInvalidEncoding, len(bn.EncodedChildren))
+	}
+
+	if len(bn.ChildrenVersion) != 0 && len(bn.ChildrenVersion) != nrOfChildren {
+		return fmt.Errorf("%w for ChildrenVersion, len is %d", ErrInvalidEncoding, len(bn.ChildrenVersion))
+	}
+
+	return nil
 }
 
 func getEmptyNodeOfType(t byte) (node, error) {

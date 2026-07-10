@@ -271,9 +271,18 @@ func (sr *subroundEndRound) verifyInvalidSigner(
 		return "", ErrHeaderHashMismatch
 	}
 
+	if !sr.IsNodeInConsensusGroup(string(cnsMsg.PubKey)) {
+		return "", ErrSignerNotInConsensusGroup
+	}
+
 	err = sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return "", err
+	}
+
+	err = sr.PeerSignatureHandler().VerifyPeerSignature(cnsMsg.PubKey, msg.Peer(), cnsMsg.Signature)
+	if err != nil {
+		return "", ErrPublicKeyMismatch
 	}
 
 	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
