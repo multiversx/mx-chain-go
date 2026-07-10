@@ -54,6 +54,7 @@ func initSubroundSignatureWithContainer(container *spos.ConsensusCore) v2.Subrou
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	return srSignature
@@ -97,6 +98,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		assert.Nil(t, srSignature)
@@ -111,6 +113,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			nil,
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		assert.Nil(t, srSignature)
@@ -125,6 +128,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		assert.Nil(t, srSignature)
@@ -139,6 +143,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			nil,
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		assert.Nil(t, srSignature)
@@ -154,10 +159,27 @@ func TestNewSubroundSignature(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			&consensusMocks.SposWorkerMock{},
 			nil,
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		assert.Nil(t, srSignature)
 		assert.Equal(t, spos.ErrNilThrottler, err)
+	})
+
+	t.Run("nil signature evidence should error", func(t *testing.T) {
+		t.Parallel()
+
+		srSignature, err := v2.NewSubroundSignature(
+			sr,
+			&statusHandler.AppStatusHandlerStub{},
+			&testscommon.SentSignatureTrackerStub{},
+			&consensusMocks.SposWorkerMock{},
+			&dataRetrieverMock.ThrottlerStub{},
+			nil,
+		)
+
+		assert.Nil(t, srSignature)
+		assert.Equal(t, v2.ErrNilSignatureEvidence, err)
 	})
 }
 
@@ -192,6 +214,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -228,6 +251,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -264,6 +288,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -301,6 +326,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -337,6 +363,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -373,6 +400,7 @@ func TestSubroundSignature_NewSubroundSignatureNilAppStatusHandlerShouldFail(t *
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -409,6 +437,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.False(t, check.IfNil(srSignature))
@@ -552,6 +581,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		sr.SetHeader(&block.Header{})
@@ -642,6 +672,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		r := srSignature.SendSignatureForManagedKey(context.Background(), 0, "a")
@@ -710,6 +741,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		r := srSignature.SendSignatureForManagedKey(context.Background(), 1, "a")
@@ -780,6 +812,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		_ = srSignature.SendSignatureForManagedKey(context.Background(), 1, "a")
@@ -854,6 +887,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		_ = srSignature.SendSignatureForManagedKey(context.Background(), 1, "a")
@@ -921,6 +955,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		sr.SetHeader(&block.Header{})
@@ -997,6 +1032,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		sr.SetHeader(&block.Header{})
@@ -1061,6 +1097,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 					return false
 				},
 			},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		sr.SetHeader(&block.Header{})

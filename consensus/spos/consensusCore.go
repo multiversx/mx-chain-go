@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
@@ -40,6 +41,7 @@ type ConsensusCore struct {
 	scheduledProcessor            consensus.ScheduledProcessor
 	messageSigningHandler         consensus.P2PSigningHandler
 	peerBlacklistHandler          consensus.PeerBlacklistHandler
+	peerSignatureHandler          crypto.PeerSignatureHandler
 	signingHandler                consensus.SigningHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	enableRoundsHandler           common.EnableRoundsHandler
@@ -75,6 +77,7 @@ type ConsensusCoreArgs struct {
 	ScheduledProcessor            consensus.ScheduledProcessor
 	MessageSigningHandler         consensus.P2PSigningHandler
 	PeerBlacklistHandler          consensus.PeerBlacklistHandler
+	PeerSignatureHandler          crypto.PeerSignatureHandler
 	SigningHandler                consensus.SigningHandler
 	EnableEpochsHandler           common.EnableEpochsHandler
 	EnableRoundsHandler           common.EnableRoundsHandler
@@ -113,6 +116,7 @@ func NewConsensusCore(
 		scheduledProcessor:            args.ScheduledProcessor,
 		messageSigningHandler:         args.MessageSigningHandler,
 		peerBlacklistHandler:          args.PeerBlacklistHandler,
+		peerSignatureHandler:          args.PeerSignatureHandler,
 		signingHandler:                args.SigningHandler,
 		enableEpochsHandler:           args.EnableEpochsHandler,
 		enableRoundsHandler:           args.EnableRoundsHandler,
@@ -247,6 +251,11 @@ func (cc *ConsensusCore) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
 	return cc.peerBlacklistHandler
 }
 
+// PeerSignatureHandler will return the peer signature handler
+func (cc *ConsensusCore) PeerSignatureHandler() crypto.PeerSignatureHandler {
+	return cc.peerSignatureHandler
+}
+
 // SigningHandler will return the signing handler component
 func (cc *ConsensusCore) SigningHandler() consensus.SigningHandler {
 	return cc.signingHandler
@@ -365,6 +374,11 @@ func (cc *ConsensusCore) SetScheduledProcessor(scheduledProcessor consensus.Sche
 // SetPeerBlacklistHandler sets peer blacklist handlerc
 func (cc *ConsensusCore) SetPeerBlacklistHandler(peerBlacklistHandler consensus.PeerBlacklistHandler) {
 	cc.peerBlacklistHandler = peerBlacklistHandler
+}
+
+// SetPeerSignatureHandler sets peer signature handler
+func (cc *ConsensusCore) SetPeerSignatureHandler(peerSignatureHandler crypto.PeerSignatureHandler) {
+	cc.peerSignatureHandler = peerSignatureHandler
 }
 
 // SetHeaderSigVerifier sets header sig verifier

@@ -8,6 +8,7 @@ import (
 // ProofsPoolMock -
 type ProofsPoolMock struct {
 	AddProofCalled                 func(headerProof data.HeaderProofHandler) bool
+	AddProofIfNoneAtNonceCalled    func(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler)
 	UpsertProofCalled              func(headerProof data.HeaderProofHandler) bool
 	CleanupProofsBehindNonceCalled func(shardID uint32, nonce uint64) error
 	GetProofCalled                 func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
@@ -24,6 +25,15 @@ func (p *ProofsPoolMock) AddProof(headerProof data.HeaderProofHandler) bool {
 	}
 
 	return true
+}
+
+// AddProofIfNoneAtNonce -
+func (p *ProofsPoolMock) AddProofIfNoneAtNonce(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler) {
+	if p.AddProofIfNoneAtNonceCalled != nil {
+		return p.AddProofIfNoneAtNonceCalled(headerProof)
+	}
+
+	return true, nil
 }
 
 // UpsertProof -

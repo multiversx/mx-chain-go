@@ -21,3 +21,7 @@ const competingProofSendDelay = 0.25
 
 // acceptedClockSkew is the clock-skew tolerance applied on both ends of the invalid signers timestamp window
 const acceptedClockSkew = time.Second
+
+// significantEvidenceFraction is the fraction of the signature threshold above which observed
+// shares for the previous round's block trigger the wait tier before signing a competing block
+const significantEvidenceFraction = 0.5

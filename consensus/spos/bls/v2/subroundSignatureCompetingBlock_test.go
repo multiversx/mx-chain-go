@@ -65,6 +65,7 @@ func createSubroundSignatureForCompetingBlockTests(
 		sentSigTracker,
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	srSignature.SetHeader(&block.Header{Nonce: 100})
@@ -462,6 +463,7 @@ func TestWaitIfCompetingBlock_RecordSignedNonceCalledBeforeBroadcast(t *testing.
 		},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	// broadcast will fail but RecordSignedNonce should still be called
@@ -551,6 +553,7 @@ func TestWaitIfCompetingBlock_SelfKeyHasCompetingBlock(t *testing.T) {
 		},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	srSignature.SetHeader(&block.Header{Nonce: 100})
@@ -624,6 +627,7 @@ func TestWaitIfCompetingBlock_ManagedKeyHasCompetingBlock(t *testing.T) {
 		},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	srSignature.SetHeader(&block.Header{Nonce: 100})
@@ -684,6 +688,7 @@ func TestWaitIfCompetingBlock_WaitsOnceNotPerKey(t *testing.T) {
 		},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	srSignature.SetHeader(&block.Header{Nonce: 100})

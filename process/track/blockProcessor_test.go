@@ -1,6 +1,7 @@
 package track_test
 
 import (
+	"bytes"
 	"sort"
 	"sync"
 	"testing"
@@ -603,6 +604,78 @@ func TestBlockProcessorComputeLongestChain_ShouldWork(t *testing.T) {
 	assert.Equal(t, headerHash2, hashes[0])
 }
 
+func TestBlockProcessorComputeLongestChain_ShouldSkipQuarantinedHeader(t *testing.T) {
+	t.Parallel()
+
+	hasherMock := &hashingMocks.HasherMock{}
+	marshallerMock := &mock.MarshalizerMock{}
+
+	header1 := &dataBlock.Header{
+		Round: 1,
+		Nonce: 1,
+	}
+	h1Bytes, _ := marshallerMock.Marshal(header1)
+	headerHash1 := hasherMock.Compute(string(h1Bytes))
+
+	header2 := &dataBlock.Header{
+		Round:    2,
+		Nonce:    2,
+		PrevHash: headerHash1,
+	}
+	h2Bytes, _ := marshallerMock.Marshal(header2)
+	headerHash2 := hasherMock.Compute(string(h2Bytes))
+
+	header3 := &dataBlock.Header{
+		Round:    3,
+		Nonce:    3,
+		PrevHash: headerHash2,
+	}
+	h3Bytes, _ := marshallerMock.Marshal(header3)
+	headerHash3 := hasherMock.Compute(string(h3Bytes))
+
+	newBlockProcessor := func(quarantined func(hash []byte) bool) interface {
+		ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
+	} {
+		blockProcessorArguments := CreateBlockProcessorMockArguments()
+		blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
+			SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
+				return []data.HeaderHandler{header2, header3}, [][]byte{headerHash2, headerHash3}
+			},
+			IsHeaderQuarantinedCalled: quarantined,
+		}
+
+		bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+		return bp
+	}
+
+	t.Run("quarantined header is excluded and nothing is added on top", func(t *testing.T) {
+		t.Parallel()
+
+		bp := newBlockProcessor(func(hash []byte) bool {
+			return bytes.Equal(hash, headerHash2)
+		})
+
+		headers, hashes := bp.ComputeLongestChain(0, header1)
+
+		require.Equal(t, 0, len(headers))
+		require.Equal(t, 0, len(hashes))
+	})
+
+	t.Run("no quarantine returns the normal longest chain", func(t *testing.T) {
+		t.Parallel()
+
+		bp := newBlockProcessor(func(hash []byte) bool {
+			return false
+		})
+
+		headers, hashes := bp.ComputeLongestChain(0, header1)
+
+		require.Equal(t, 1, len(headers))
+		assert.Equal(t, header2, headers[0])
+		assert.Equal(t, headerHash2, hashes[0])
+	})
+}
+
 func TestGetNextHeader_ShouldReturnEmptySliceWhenPrevHeaderIsNil(t *testing.T) {
 	t.Parallel()
 
@@ -642,7 +715,7 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenHeaderConstructionIsNotValid(t 
 	headersIndexes := make([]int, 0)
 	prevHeader := &dataBlock.Header{}
 	sortedHeaders := []data.HeaderHandler{&dataBlock.Header{Nonce: 1}}
-	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, prevHeader, sortedHeaders, [][]byte{}, 0)
+	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, prevHeader, sortedHeaders, [][]byte{[]byte("hash")}, 0)
 
 	assert.Equal(t, 0, len(longestChainHeadersIndexes))
 }
@@ -671,9 +744,11 @@ func TestGetNextHeader_ShouldReturnEmptySliceWhenHeaderFinalityIsNotChecked(t *t
 		Nonce:    2,
 		PrevHash: headerHash1,
 	}
+	h2Bytes, _ := marshalizerMock.Marshal(header2)
+	headerHash2 := hasherMock.Compute(string(h2Bytes))
 
 	sortedHeaders := []data.HeaderHandler{header2}
-	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, header1, sortedHeaders, [][]byte{}, 0)
+	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, header1, sortedHeaders, [][]byte{headerHash2}, 0)
 
 	assert.Equal(t, 0, len(longestChainHeadersIndexes))
 }
@@ -710,9 +785,11 @@ func TestGetNextHeader_ShouldWork(t *testing.T) {
 		Nonce:    3,
 		PrevHash: headerHash2,
 	}
+	h3Bytes, _ := marshalizerMock.Marshal(header3)
+	headerHash3 := hasherMock.Compute(string(h3Bytes))
 
 	sortedHeaders := []data.HeaderHandler{header2, header3}
-	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, header1, sortedHeaders, [][]byte{}, 0)
+	bp.GetNextHeader(&longestChainHeadersIndexes, headersIndexes, header1, sortedHeaders, [][]byte{headerHash2, headerHash3}, 0)
 
 	require.Equal(t, 1, len(longestChainHeadersIndexes))
 	assert.Equal(t, 0, longestChainHeadersIndexes[0])

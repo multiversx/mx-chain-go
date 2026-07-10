@@ -73,18 +73,50 @@ func (pp *proofsPool) AddProof(
 	return pp.addProof(headerProof)
 }
 
-func (pp *proofsPool) addProof(
+// AddProofIfNoneAtNonce will add the provided proof only if its (nonce, shard) slot is free; an
+// occupied slot (same or different hash) rejects the add and returns the pre-existing proof
+func (pp *proofsPool) AddProofIfNoneAtNonce(
 	headerProof data.HeaderProofHandler,
-) bool {
-	shardID := headerProof.GetHeaderShardId()
+) (bool, data.HeaderProofHandler) {
+	if check.IfNil(headerProof) {
+		return false, nil
+	}
 
+	proofsPerShard := pp.getOrCreateProofsCache(headerProof.GetHeaderShardId())
+
+	added, existingProof := proofsPerShard.addProofIfNoneAtNonce(headerProof)
+	if !added {
+		return false, existingProof
+	}
+
+	log.Debug("added proof to pool at free nonce",
+		"header hash", headerProof.GetHeaderHash(),
+		"nonce", headerProof.GetHeaderNonce(),
+		"shardID", headerProof.GetHeaderShardId(),
+	)
+
+	pp.callAddedProofSubscribers(headerProof)
+
+	return true, nil
+}
+
+func (pp *proofsPool) getOrCreateProofsCache(shardID uint32) *proofsCache {
 	pp.mutCache.Lock()
+	defer pp.mutCache.Unlock()
+
 	proofsPerShard, ok := pp.cache[shardID]
 	if !ok {
 		proofsPerShard = newProofsCache(pp.bucketSize)
 		pp.cache[shardID] = proofsPerShard
 	}
-	pp.mutCache.Unlock()
+
+	return proofsPerShard
+}
+
+func (pp *proofsPool) addProof(
+	headerProof data.HeaderProofHandler,
+) bool {
+	proofsPerShard := pp.getOrCreateProofsCache(headerProof.GetHeaderShardId())
 
 	log.Debug("added proof to pool",
 		"header hash", headerProof.GetHeaderHash(),

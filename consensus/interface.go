@@ -205,6 +205,9 @@ type SigningHandler interface {
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte, epoch uint32) error
 	GetPubKeysFromBytes(pubKeysBytes [][]byte) ([]crypto.PublicKey, error)
+	AggregateSigsWithKeys(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error)
+	VerifyAggregatedSigWithKeys(pubKeys []string, bitmap []byte, message []byte, aggSig []byte, epoch uint32) error
+	VerifySigShareWithKey(pubKey []byte, sigShare []byte, message []byte, epoch uint32) error
 	IsInterfaceNil() bool
 }
 
@@ -225,6 +228,7 @@ type KeysHandler interface {
 // EquivalentProofsPool defines the behaviour of a proofs pool components
 type EquivalentProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
+	AddProofIfNoneAtNonce(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler)
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool

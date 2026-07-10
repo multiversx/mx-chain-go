@@ -40,6 +40,7 @@ type BlockTrackerStub struct {
 	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 	CheckProofAgainstFinalCalled                       func(proof data.HeaderProofHandler) error
 	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
+	IsHeaderQuarantinedCalled                          func(hash []byte) bool
 }
 
 // CheckProofAgainstFinal -
@@ -305,6 +306,19 @@ func (bts *BlockTrackerStub) ComputeOwnShardStuck(lastExecutionResultsInfo data.
 	if bts.ComputeOwnShardStuckCalled != nil {
 		bts.ComputeOwnShardStuckCalled(lastExecutionResultsInfo, currentNonce)
 	}
+}
+
+// IsHeaderQuarantined -
+func (bts *BlockTrackerStub) IsHeaderQuarantined(hash []byte) bool {
+	if bts.IsHeaderQuarantinedCalled != nil {
+		return bts.IsHeaderQuarantinedCalled(hash)
+	}
+	return false
+}
+
+// Close -
+func (bts *BlockTrackerStub) Close() error {
+	return nil
 }
 
 // IsInterfaceNil -

@@ -19,6 +19,9 @@ type SigningHandlerStub struct {
 	SetAggregatedSigCalled                 func(_ []byte) error
 	VerifyCalled                           func(msg []byte, bitmap []byte, epoch uint32) error
 	GetPubKeysFromBytesCalled              func(pubKeysBytes [][]byte) ([]crypto.PublicKey, error)
+	AggregateSigsWithKeysCalled            func(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error)
+	VerifyAggregatedSigWithKeysCalled      func(pubKeys []string, bitmap []byte, message []byte, aggSig []byte, epoch uint32) error
+	VerifySigShareWithKeyCalled            func(pubKey []byte, sigShare []byte, message []byte, epoch uint32) error
 }
 
 // Reset -
@@ -120,6 +123,33 @@ func (stub *SigningHandlerStub) GetPubKeysFromBytes(
 	}
 
 	return nil, nil
+}
+
+// AggregateSigsWithKeys -
+func (stub *SigningHandlerStub) AggregateSigsWithKeys(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error) {
+	if stub.AggregateSigsWithKeysCalled != nil {
+		return stub.AggregateSigsWithKeysCalled(pubKeys, bitmap, sigShares, epoch)
+	}
+
+	return []byte("aggSigs"), nil
+}
+
+// VerifyAggregatedSigWithKeys -
+func (stub *SigningHandlerStub) VerifyAggregatedSigWithKeys(pubKeys []string, bitmap []byte, message []byte, aggSig []byte, epoch uint32) error {
+	if stub.VerifyAggregatedSigWithKeysCalled != nil {
+		return stub.VerifyAggregatedSigWithKeysCalled(pubKeys, bitmap, message, aggSig, epoch)
+	}
+
+	return nil
+}
+
+// VerifySigShareWithKey -
+func (stub *SigningHandlerStub) VerifySigShareWithKey(pubKey []byte, sigShare []byte, message []byte, epoch uint32) error {
+	if stub.VerifySigShareWithKeyCalled != nil {
+		return stub.VerifySigShareWithKeyCalled(pubKey, sigShare, message, epoch)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -
