@@ -82,6 +82,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 	consensusCore.SetScheduledProcessor(&consensus.ScheduledProcessorStub{})
 	consensusCore.SetMessageSigningHandler(&mock2.MessageSigningHandlerStub{})
 	consensusCore.SetPeerBlacklistHandler(&mock2.PeerBlacklistHandlerStub{})
+	consensusCore.SetPeerSignatureHandler(&cryptoMocks.PeerSignatureHandlerStub{})
 	consensusCore.SetSigningHandler(&consensus.SigningHandlerStub{})
 	consensusCore.SetEnableEpochsHandler(epochsEnable)
 	consensusCore.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{})

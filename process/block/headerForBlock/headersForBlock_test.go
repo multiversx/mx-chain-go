@@ -973,6 +973,9 @@ func TestHeadersForBlock_RequestMissingFinalityAttestingShardHeaders(t *testing.
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
 				return false // no proof available for the attestation header
 			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, errors.New("GetProofByNonce error")
+			},
 		})
 
 		args.BlockTracker = &mock.BlockTrackerStub{

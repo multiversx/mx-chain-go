@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
@@ -45,6 +46,7 @@ type ConsensusCoreHandler interface {
 	ScheduledProcessor() consensus.ScheduledProcessor
 	MessageSigningHandler() consensus.P2PSigningHandler
 	PeerBlacklistHandler() consensus.PeerBlacklistHandler
+	PeerSignatureHandler() crypto.PeerSignatureHandler
 	SigningHandler() consensus.SigningHandler
 	EnableEpochsHandler() common.EnableEpochsHandler
 	EnableRoundsHandler() common.EnableRoundsHandler
