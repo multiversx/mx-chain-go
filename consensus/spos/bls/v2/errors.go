@@ -22,3 +22,9 @@ var ErrNilRoundSyncController = errors.New("nil round sync controller")
 
 // ErrTooManyInvalidSigners signals that too many invalid signers were received
 var ErrTooManyInvalidSigners = errors.New("too many invalid signers")
+
+// ErrPublicKeyMismatch signals that the BLS public key in the message does not belong to the transport sender
+var ErrPublicKeyMismatch = errors.New("public key does not match the message sender")
+
+// ErrSignerNotInConsensusGroup signals that the signer is not part of the current consensus group
+var ErrSignerNotInConsensusGroup = errors.New("signer is not part of the consensus group")

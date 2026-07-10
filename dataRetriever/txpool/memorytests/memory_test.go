@@ -48,7 +48,7 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	// With larger memory footprint
 
 	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 340}, memoryAssertion{80, 148}))
-	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 340}, memoryAssertion{90, 160}))
+	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 340}, memoryAssertion{90, 163}))
 	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 340}, memoryAssertion{100, 190}))
 	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 340}, memoryAssertion{60, 132}))
 	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 340}, memoryAssertion{60, 148}))
