@@ -542,6 +542,11 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinality -> isHdrConstructionValid", err)
 		}
 
+		err = sp.checkNotContendedUnsettled(metaHdr, lastCrossNotarizedHeader)
+		if err != nil {
+			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinality", err)
+		}
+
 		lastCrossNotarizedHeader = metaHdr
 	}
 

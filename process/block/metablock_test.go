@@ -5778,3 +5778,95 @@ func TestMetaProcessor_VerifyShardDataAgainstHeadersFlagGating(t *testing.T) {
 		require.ErrorIs(t, mp.VerifyShardDataAgainstHeaders(metaHdr), process.ErrHeaderShardDataMismatch)
 	})
 }
+
+func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
+	t.Parallel()
+
+	buildProcessorAndHeader := func(settled bool) (interface {
+		CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error)
+	}, *block.MetaBlock) {
+		pool := dataRetrieverMock.NewPoolsHolderMock()
+		noOfShards := uint32(5)
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		dataComponents.DataPool = pool
+		dataComponents.Storage = initStore()
+		bootstrapComponents.Coordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
+		blockTracker := mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
+		blockTracker.IsSettledCrossHeaderCalled = func(header data.HeaderHandler, headerHash []byte) bool {
+			return settled
+		}
+		arguments.BlockTracker = blockTracker
+
+		argsHeaderValidator := processBlock.ArgsHeaderValidator{
+			Hasher:              coreComponents.Hash,
+			Marshalizer:         coreComponents.InternalMarshalizer(),
+			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		}
+		arguments.HeaderValidator, _ = processBlock.NewHeaderValidator(argsHeaderValidator)
+
+		mp, _ := processBlock.NewMetaProcessor(arguments)
+
+		prevRandSeed := []byte("prevrand")
+		currRandSeed := []byte("currrand")
+		notarizedHdrs := mp.NotarizedHdrs()
+		setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, notarizedHdrs, arguments.BlockTracker)
+
+		// rounds 10-11 skipped after the last notarized shard header (round 9) -> contended
+		prevHash, _ := mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(0).(*block.Header))
+		contendedHdr := &block.Header{
+			Round:           12,
+			Nonce:           45,
+			ShardID:         0,
+			PrevRandSeed:    prevRandSeed,
+			RandSeed:        currRandSeed,
+			PrevHash:        prevHash,
+			RootHash:        []byte("rootHash"),
+			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
+		}
+		contendedHash, _ := mp.ComputeHeaderHash(contendedHdr)
+		pool.Headers().AddHeader(contendedHash, contendedHdr)
+
+		metaHdr := &block.MetaBlock{Round: 20}
+		metaHdr.ShardInfo = []block.ShardData{{
+			ShardID:         0,
+			HeaderHash:      contendedHash,
+			Round:           contendedHdr.Round,
+			Nonce:           contendedHdr.Nonce,
+			PrevRandSeed:    contendedHdr.PrevRandSeed,
+			PrevHash:        contendedHdr.PrevHash,
+			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
+			TxCount:         contendedHdr.TxCount,
+		}}
+
+		arguments.HeadersForBlock.AddHeaderUsedInBlock(string(contendedHash), contendedHdr)
+
+		return mp, metaHdr
+	}
+
+	t.Run("contended unsettled referenced shard header should error", func(t *testing.T) {
+		t.Parallel()
+
+		mp, metaHdr := buildProcessorAndHeader(false)
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		assert.ErrorContains(t, err, "included contended header not yet settled")
+	})
+
+	t.Run("contended settled referenced shard header should pass", func(t *testing.T) {
+		t.Parallel()
+
+		mp, metaHdr := buildProcessorAndHeader(true)
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		assert.Nil(t, err)
+	})
+}

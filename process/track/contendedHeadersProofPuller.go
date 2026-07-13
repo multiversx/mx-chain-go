@@ -23,9 +23,10 @@ type proofPullState struct {
 }
 
 type headCandidate struct {
-	shardID uint32
-	head    data.HeaderHandler
-	parent  data.HeaderHandler
+	shardID  uint32
+	head     data.HeaderHandler
+	headHash []byte
+	parent   data.HeaderHandler
 }
 
 func (bbt *baseBlockTrack) pullProofsForContendedHeadsLoop(ctx context.Context) {
@@ -108,14 +109,11 @@ func (bbt *baseBlockTrack) getContendedUnsettledHeads() map[uint32]data.HeaderHa
 			}
 		}
 
-		isContended := candidate.head.GetRound() > parent.GetRound()+1
-		if !isContended {
+		if !common.IsContendedHeader(candidate.head, parent) {
 			continue
 		}
 
-		_, err := bbt.proofsPool.GetProofByNonce(candidate.head.GetNonce()+1, candidate.shardID)
-		isSettledByChildProof := err == nil
-		if isSettledByChildProof {
+		if bbt.IsSettledCrossHeader(candidate.head, candidate.headHash) {
 			continue
 		}
 
@@ -133,11 +131,12 @@ func (bbt *baseBlockTrack) getTrackedHeadCandidates() []headCandidate {
 
 	candidates := make([]headCandidate, 0, len(bbt.headers))
 	for shardID, headersForShard := range bbt.headers {
-		head := getHighestNonceLowestRoundHeader(headersForShard)
-		if check.IfNil(head) || head.GetNonce() == 0 {
+		headInfo := getHighestNonceLowestRoundHeader(headersForShard)
+		if headInfo == nil || headInfo.Header.GetNonce() == 0 {
 			continue
 		}
 
+		head := headInfo.Header
 		var parent data.HeaderHandler
 		for _, headerInfo := range headersForShard[head.GetNonce()-1] {
 			if string(headerInfo.Hash) == string(head.GetPrevHash()) {
@@ -146,14 +145,14 @@ func (bbt *baseBlockTrack) getTrackedHeadCandidates() []headCandidate {
 			}
 		}
 
-		candidates = append(candidates, headCandidate{shardID: shardID, head: head, parent: parent})
+		candidates = append(candidates, headCandidate{shardID: shardID, head: head, headHash: headInfo.Hash, parent: parent})
 	}
 
 	return candidates
 }
 
-func getHighestNonceLowestRoundHeader(headersForShard map[uint64][]*HeaderInfo) data.HeaderHandler {
-	var head data.HeaderHandler
+func getHighestNonceLowestRoundHeader(headersForShard map[uint64][]*HeaderInfo) *HeaderInfo {
+	var head *HeaderInfo
 	highestNonce := uint64(0)
 	for nonce, headersInfo := range headersForShard {
 		if nonce < highestNonce {
@@ -165,12 +164,12 @@ func getHighestNonceLowestRoundHeader(headersForShard map[uint64][]*HeaderInfo) 
 				continue
 			}
 
-			keepCurrentHead := nonce == highestNonce && !check.IfNil(head) && headerInfo.Header.GetRound() >= head.GetRound()
+			keepCurrentHead := nonce == highestNonce && head != nil && headerInfo.Header.GetRound() >= head.Header.GetRound()
 			if keepCurrentHead {
 				continue
 			}
 
-			head = headerInfo.Header
+			head = headerInfo
 			highestNonce = nonce
 		}
 	}

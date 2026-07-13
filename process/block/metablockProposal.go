@@ -1209,6 +1209,10 @@ func (mp *metaProcessor) checkHeadersSequenceCorrectness(hdrsForShard []ShardHea
 			return fmt.Errorf("%w with hash %x", errIncludedQuarantinedHeader, shardHdrInfo.Hash)
 		}
 
+		if mp.isContendedUnsettledCrossHeader(shardHdrInfo.Header, lastNotarizedHeaderInfoForShard.Header, shardHdrInfo.Hash) {
+			return fmt.Errorf("%w with hash %x", errIncludedContendedUnsettledHeader, shardHdrInfo.Hash)
+		}
+
 		err = mp.headerValidator.IsHeaderConstructionValid(shardHdrInfo.Header, lastNotarizedHeaderInfoForShard.Header)
 		if err != nil {
 			return err

@@ -827,6 +827,10 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 			return fmt.Errorf("%w with hash %x", errIncludedQuarantinedHeader, usedMetaHashes[idx])
 		}
 
+		if sp.isContendedUnsettledCrossHeader(metaHeader, lastCrossNotarizedHeader, usedMetaHashes[idx]) {
+			return fmt.Errorf("%w with hash %x", errIncludedContendedUnsettledHeader, usedMetaHashes[idx])
+		}
+
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHeader, lastCrossNotarizedHeader)
 		if err != nil {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> isHdrConstructionValid", err)

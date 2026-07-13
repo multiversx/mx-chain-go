@@ -41,6 +41,7 @@ type BlockTrackerStub struct {
 	CheckProofAgainstFinalCalled                       func(proof data.HeaderProofHandler) error
 	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
 	IsHeaderQuarantinedCalled                          func(hash []byte) bool
+	IsSettledCrossHeaderCalled                         func(header data.HeaderHandler, headerHash []byte) bool
 }
 
 // CheckProofAgainstFinal -
@@ -324,4 +325,12 @@ func (bts *BlockTrackerStub) Close() error {
 // IsInterfaceNil -
 func (bts *BlockTrackerStub) IsInterfaceNil() bool {
 	return bts == nil
+}
+
+// IsSettledCrossHeader -
+func (bts *BlockTrackerStub) IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool {
+	if bts.IsSettledCrossHeaderCalled != nil {
+		return bts.IsSettledCrossHeaderCalled(header, headerHash)
+	}
+	return false
 }

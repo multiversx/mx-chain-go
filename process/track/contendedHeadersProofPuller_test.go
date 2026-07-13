@@ -105,8 +105,8 @@ func TestBaseBlockTrack_PullProofsForContendedHeads(t *testing.T) {
 		sbt.PullProofsForContendedHeads()
 		require.Equal(t, 3, len(*requests))
 
-		// settled by child proof: no more requests; the round is advanced before AddProof, which
-		// dispatches the tracker's receivedProof subscriber on another goroutine
+		// settled by a proofed child extending the head: no more requests; the round is advanced
+		// before AddProof, which dispatches the tracker's receivedProof subscriber on another goroutine
 		roundHandler.RoundIndex = 17
 		_ = args.PoolsHolder.Proofs().AddProof(&block.HeaderProof{
 			HeaderHash:    []byte("childHash"),
@@ -114,6 +114,9 @@ func TestBaseBlockTrack_PullProofsForContendedHeads(t *testing.T) {
 			HeaderRound:   6,
 			HeaderShardId: 0,
 		})
+		// the child is known from the headers pool only, so the contended header stays the tracked head
+		child := &block.Header{Nonce: 3, Round: 6, PrevHash: []byte("headHash")}
+		args.PoolsHolder.Headers().AddHeader([]byte("childHash"), child)
 		sbt.PullProofsForContendedHeads()
 		require.Equal(t, 3, len(*requests))
 	})

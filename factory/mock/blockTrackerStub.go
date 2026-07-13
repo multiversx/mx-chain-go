@@ -41,6 +41,7 @@ type BlockTrackerStub struct {
 	ShouldAddHeaderCalled                              func(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 	IsHeaderQuarantinedCalled                          func(hash []byte) bool
+	IsSettledCrossHeaderCalled                         func(header data.HeaderHandler, headerHash []byte) bool
 }
 
 // AddTrackedHeader -
@@ -326,4 +327,12 @@ func (bts *BlockTrackerStub) Close() error {
 // IsInterfaceNil -
 func (bts *BlockTrackerStub) IsInterfaceNil() bool {
 	return bts == nil
+}
+
+// IsSettledCrossHeader -
+func (bts *BlockTrackerStub) IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool {
+	if bts.IsSettledCrossHeaderCalled != nil {
+		return bts.IsSettledCrossHeaderCalled(header, headerHash)
+	}
+	return false
 }

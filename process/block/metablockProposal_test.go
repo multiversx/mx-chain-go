@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
@@ -1788,7 +1789,8 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 		dataPoolMock.SetHeadersPool(headersPoolMock)
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
-			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"shardCoordinator":    mock.NewOneShardCoordinatorMock(),
+			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			"blockTracker": &mock.BlockTrackerMock{
 				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 					return &testscommon.HeaderHandlerStub{}, nil, nil
@@ -1905,7 +1907,8 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 		}
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
-			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"shardCoordinator":    mock.NewOneShardCoordinatorMock(),
+			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			"blockTracker": &mock.BlockTrackerMock{
 				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 					return &testscommon.HeaderHandlerStub{}, nil, nil
@@ -1950,7 +1953,8 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 		dataPoolMock.SetHeadersPool(headersPoolMock)
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
-			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"shardCoordinator":    mock.NewOneShardCoordinatorMock(),
+			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			"blockTracker": &mock.BlockTrackerMock{
 				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 					return &testscommon.HeaderHandlerStub{}, nil, nil
@@ -3583,7 +3587,8 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return expectedErr
 				},
 			},
-			"blockTracker": &integrationTestsMock.BlockTrackerStub{},
+			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			"blockTracker":        &integrationTestsMock.BlockTrackerStub{},
 		})
 		require.Nil(t, err)
 
@@ -3622,6 +3627,108 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 		require.ErrorContains(t, err, "included quarantined header")
 	})
 
+	t.Run("should return error for contended unsettled header", func(t *testing.T) {
+		t.Parallel()
+
+		contendedHash := []byte("contended hash")
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"headerValidator": &processMocks.HeaderValidatorMock{
+				IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+					return nil
+				},
+			},
+			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.SupernovaFlag
+				},
+			},
+			"blockTracker": &integrationTestsMock.BlockTrackerStub{
+				IsSettledCrossHeaderCalled: func(header data.HeaderHandler, headerHash []byte) bool {
+					return false
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckHeadersSequenceCorrectness([]blproc.ShardHeaderInfo{
+			{
+				// rounds 2-4 skipped after the last notarized shard header
+				Header: &block.Header{Nonce: 2, Round: 5},
+				Hash:   contendedHash,
+			},
+		}, blproc.ShardHeaderInfo{
+			Header: &block.Header{Nonce: 1, Round: 1},
+		})
+		require.ErrorContains(t, err, "included contended header not yet settled")
+	})
+
+	t.Run("should work for contended settled header", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"headerValidator": &processMocks.HeaderValidatorMock{
+				IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+					return nil
+				},
+			},
+			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.SupernovaFlag
+				},
+			},
+			"blockTracker": &integrationTestsMock.BlockTrackerStub{
+				IsSettledCrossHeaderCalled: func(header data.HeaderHandler, headerHash []byte) bool {
+					return true
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckHeadersSequenceCorrectness([]blproc.ShardHeaderInfo{
+			{
+				Header: &block.Header{Nonce: 2, Round: 5},
+				Hash:   []byte("contended settled hash"),
+			},
+		}, blproc.ShardHeaderInfo{
+			Header: &block.Header{Nonce: 1, Round: 1},
+		})
+		require.Nil(t, err)
+	})
+
+	t.Run("should work for non-contended header without settlement lookup", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"headerValidator": &processMocks.HeaderValidatorMock{
+				IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+					return nil
+				},
+			},
+			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.SupernovaFlag
+				},
+			},
+			"blockTracker": &integrationTestsMock.BlockTrackerStub{
+				IsSettledCrossHeaderCalled: func(header data.HeaderHandler, headerHash []byte) bool {
+					require.Fail(t, "settlement must not be checked on the clean path")
+					return false
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckHeadersSequenceCorrectness([]blproc.ShardHeaderInfo{
+			{
+				Header: &block.Header{Nonce: 2, Round: 2},
+				Hash:   []byte("clean hash"),
+			},
+		}, blproc.ShardHeaderInfo{
+			Header: &block.Header{Nonce: 1, Round: 1},
+		})
+		require.Nil(t, err)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -3636,7 +3743,8 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return nil
 				},
 			},
-			"blockTracker": &integrationTestsMock.BlockTrackerStub{},
+			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			"blockTracker":        &integrationTestsMock.BlockTrackerStub{},
 		})
 		require.Nil(t, err)
 
