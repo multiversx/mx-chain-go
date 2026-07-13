@@ -138,7 +138,10 @@ func checkRoundConfigValues(cfg config.ProcessConfigByRound) error {
 			process.ErrInvalidValue, cfg.MaxBlockProcessingTimeMs, minBlockProcessingTimeMs)
 	}
 	if cfg.RoundModulusTriggerWhenSyncIsStuck == 0 {
-		return fmt.Errorf("%w for RoundModulusTriggerWhenSyncIsStuck", process.ErrInvalidValue)
+		return fmt.Errorf("%w for RoundModulusTriggerWhenSyncIsStuck, %d received",
+			process.ErrInvalidValue,
+			cfg.RoundModulusTriggerWhenSyncIsStuck,
+		)
 	}
 
 	return nil

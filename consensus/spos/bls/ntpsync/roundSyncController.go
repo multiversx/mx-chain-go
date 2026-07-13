@@ -96,10 +96,12 @@ func areNoncesInAscendingOrder(nonces []uint64) bool {
 		return false
 	}
 
-	slices.Sort(nonces)
+	dst := make([]uint64, len(nonces))
+	copy(dst, nonces)
+	slices.Sort(dst)
 
-	for i := 1; i < len(nonces); i++ {
-		if nonces[i] != nonces[i-1]+1 {
+	for i := 1; i < len(dst); i++ {
+		if dst[i] != dst[i-1]+1 {
 			return false
 		}
 	}
