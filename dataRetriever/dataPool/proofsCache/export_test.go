@@ -2,6 +2,9 @@ package proofscache
 
 import "github.com/multiversx/mx-chain-core-go/data"
 
+// MaxProofsPerNonce -
+const MaxProofsPerNonce = maxProofsPerNonce
+
 // NewProofsCache -
 func NewProofsCache(bucketSize int) *proofsCache {
 	return newProofsCache(bucketSize)

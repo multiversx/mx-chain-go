@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -13,8 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestInitBaseMetrics(t *testing.T) {
@@ -38,6 +39,7 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricNumShardHeadersFromPool,
 		common.MetricNumShardHeadersProcessed,
 		common.MetricNumTimesInForkChoice,
+		common.MetricNumEquivocationProofs,
 		common.MetricHighestFinalBlock,
 		common.MetricCountConsensusAcceptedBlocks,
 		common.MetricRoundsPassedInCurrentEpoch,
