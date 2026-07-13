@@ -49,6 +49,12 @@ type SubroundHandler interface {
 	EndTime() int64
 	// SetBaseDuration sets the base duration
 	SetBaseDuration(baseDuration time.Duration)
+	// SetTimingPercentage sets the start time and end time percent of the subround
+	SetTimingPercentage(startTimePercent float64, endTimePercent float64)
+	// SetSignatureSubroundEndTimePercentage sets the end time percent of the signature subround
+	SetSignatureSubroundEndTimePercentage(percent float64)
+	// SetProcessingThresholdPercent sets the processing threshold percent of the subround
+	SetProcessingThresholdPercent(percent int)
 	// Name returns the name of the current roundHandler
 	Name() string
 	// ConsensusChannel returns the consensus channel
@@ -199,6 +205,9 @@ type SigningHandler interface {
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte, epoch uint32) error
 	GetPubKeysFromBytes(pubKeysBytes [][]byte) ([]crypto.PublicKey, error)
+	AggregateSigsWithKeys(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error)
+	VerifyAggregatedSigWithKeys(pubKeys []string, bitmap []byte, message []byte, aggSig []byte, epoch uint32) error
+	VerifySigShareWithKey(pubKey []byte, sigShare []byte, message []byte, epoch uint32) error
 	IsInterfaceNil() bool
 }
 
@@ -219,6 +228,7 @@ type KeysHandler interface {
 // EquivalentProofsPool defines the behaviour of a proofs pool components
 type EquivalentProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
+	AddProofIfNoneAtNonce(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler)
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool

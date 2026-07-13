@@ -229,6 +229,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSignerV2) *spos.Co
 	scheduledProcessor := &ScheduledProcessorStub{}
 	messageSigningHandler := &mock.MessageSigningHandlerStub{}
 	peerBlacklistHandler := &mock.PeerBlacklistHandlerStub{}
+	peerSignatureHandler := &cryptoMocks.PeerSignatureHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 	signingHandler := &SigningHandlerStub{}
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
@@ -260,6 +261,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSignerV2) *spos.Co
 		ScheduledProcessor:            scheduledProcessor,
 		MessageSigningHandler:         messageSigningHandler,
 		PeerBlacklistHandler:          peerBlacklistHandler,
+		PeerSignatureHandler:          peerSignatureHandler,
 		SigningHandler:                signingHandler,
 		EnableEpochsHandler:           enableEpochsHandler,
 		EnableRoundsHandler:           enableRoundsHandler,
@@ -267,6 +269,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSignerV2) *spos.Co
 		EpochNotifier:                 epochNotifier,
 		InvalidSignersCache:           &InvalidSignersCacheMock{},
 		MessagesHandler:               consensusService,
+		CommonConfigsHandler:          testscommon.GetDefaultCommonConfigsHandler(),
 	})
 
 	return container

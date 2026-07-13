@@ -914,6 +914,101 @@ func TestHeadersForBlock_ComputeHeadersForCurrentBlock(t *testing.T) {
 	})
 }
 
+func TestHeadersForBlock_RequestMissingFinalityAttestingShardHeaders(t *testing.T) {
+	t.Parallel()
+
+	t.Run("attestation header present but proof missing should request proof", func(t *testing.T) {
+		t.Parallel()
+
+		referencedHeaderHash := []byte("sh0TestHash1")
+		referencedHeader := &block.HeaderV2{
+			Header: &block.Header{
+				ShardID: 0,
+				Round:   100,
+				Nonce:   100,
+			},
+		}
+		attestationHeaderHash := []byte("sh0TestHash2")
+		attestationHeader := &block.HeaderV2{
+			Header: &block.Header{
+				ShardID:  0,
+				Round:    101,
+				Nonce:    101,
+				PrevHash: referencedHeaderHash,
+			},
+		}
+
+		counter := 0
+		var requestedShardID uint32
+		var requestedHash []byte
+		var mutRequestEquivalentProof sync.Mutex
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+
+		args := createMockArgs()
+		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
+			NoShards: 2,
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+				mutRequestEquivalentProof.Lock()
+				counter++
+				requestedShardID = headerShard
+				requestedHash = append([]byte(nil), headerHash...)
+				mutRequestEquivalentProof.Unlock()
+
+				wg.Done()
+			},
+		}
+
+		poolsHolder, ok := args.DataPool.(*dataRetriever.PoolsHolderMock)
+		require.True(t, ok)
+		poolsHolder.SetHeadersPool(createPoolsHolderForHeaderRequests())
+		poolsHolder.SetProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return false // no proof available for the attestation header
+			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, errors.New("GetProofByNonce error")
+			},
+		})
+
+		args.BlockTracker = &mock.BlockTrackerStub{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return referencedHeader, referencedHeaderHash, nil
+			},
+		}
+
+		hfb, err := headerForBlock.NewHeadersForBlock(args)
+		require.NoError(t, err)
+
+		hfb.SetShardBlockFinality(1)
+		hfb.SetHighestHdrNonceForCurrentBlock(referencedHeader.GetShardID(), referencedHeader.GetNonce())
+		hfb.SetLastNotarizedHeaderForShard(
+			referencedHeader.GetShardID(),
+			headerForBlock.NewLastNotarizedHeaderInfo(referencedHeader, referencedHeaderHash, false, false),
+		)
+
+		poolsHolder.Headers().AddHeader(attestationHeaderHash, attestationHeader)
+
+		missingFinalityHeaders := hfb.RequestMissingFinalityAttestingShardHeaders()
+		require.Equal(t, uint32(0), missingFinalityHeaders)
+
+		wg.Wait()
+
+		mutRequestEquivalentProof.Lock()
+		require.Equal(t, 1, counter)
+		require.Equal(t, attestationHeader.GetShardID(), requestedShardID)
+		require.Equal(t, attestationHeaderHash, requestedHash)
+		mutRequestEquivalentProof.Unlock()
+	})
+}
+
 type headerData struct {
 	header     data.HeaderHandler
 	headerHash []byte

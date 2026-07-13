@@ -45,6 +45,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 	scheduledProcessor := &consensusMocks.ScheduledProcessorStub{}
 	messageSigningHandler := &mock.MessageSigningHandlerStub{}
 	peerBlacklistHandler := &mock.PeerBlacklistHandlerStub{}
+	peerSignatureHandler := &cryptoMocks.PeerSignatureHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSignerMock)
 	signingHandler := &consensusMocks.SigningHandlerStub{}
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
@@ -77,6 +78,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 		ScheduledProcessor:            scheduledProcessor,
 		MessageSigningHandler:         messageSigningHandler,
 		PeerBlacklistHandler:          peerBlacklistHandler,
+		PeerSignatureHandler:          peerSignatureHandler,
 		SigningHandler:                signingHandler,
 		EnableEpochsHandler:           enableEpochsHandler,
 		EnableRoundsHandler:           enableRoundsHandler,
@@ -84,6 +86,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 		EpochNotifier:                 epochNotifier,
 		InvalidSignersCache:           invalidSignersCache,
 		MessagesHandler:               messagesHandler,
+		CommonConfigsHandler:          testscommon.GetDefaultCommonConfigsHandler(),
 	})
 
 	return consensusCore
@@ -370,6 +373,17 @@ func TestConsensusContainerValidator_ValidateNilPeerBlacklistHandlerShouldFail(t
 	err := spos.ValidateConsensusCore(container)
 
 	assert.Equal(t, spos.ErrNilPeerBlacklistHandler, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilPeerSignatureHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetPeerSignatureHandler(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilPeerSignatureHandler, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilEquivalentProofPoolShouldFail(t *testing.T) {

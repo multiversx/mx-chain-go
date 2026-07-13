@@ -269,6 +269,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ScheduledProcessor:            ccf.scheduledProcessor,
 		MessageSigningHandler:         p2pSigningHandler,
 		PeerBlacklistHandler:          cc.peerBlacklistHandler,
+		PeerSignatureHandler:          ccf.cryptoComponents.PeerSignatureHandler(),
 		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:           ccf.coreComponents.EnableRoundsHandler(),
@@ -277,6 +278,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		InvalidSignersCache:           invalidSignersCache,
 		MessagesHandler:               consensusService,
 		AOTSelector:                   ccf.processComponents.AOTSelector(),
+		CommonConfigsHandler:          ccf.coreComponents.CommonConfigsHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

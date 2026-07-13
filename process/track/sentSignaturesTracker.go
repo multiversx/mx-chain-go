@@ -11,10 +11,15 @@ import (
 // this is actually an invalid peer ID, it can not be obtained from a key
 const externalPeerID = core.PeerID("external peer id")
 
+type signedNonceInfo struct {
+	headerHash []byte
+	roundIndex int64
+}
+
 type sentSignaturesTracker struct {
 	mut          sync.RWMutex
 	sentFromSelf map[string]struct{}
-	signedNonces map[string]map[uint64][]byte // pk -> nonce -> headerHash
+	signedNonces map[string]map[uint64]*signedNonceInfo // pk -> nonce -> signedNonceInfo
 	keysHandler  KeysHandler
 }
 
@@ -26,7 +31,7 @@ func NewSentSignaturesTracker(keysHandler KeysHandler) (*sentSignaturesTracker, 
 
 	return &sentSignaturesTracker{
 		sentFromSelf: make(map[string]struct{}),
-		signedNonces: make(map[string]map[uint64][]byte),
+		signedNonces: make(map[string]map[uint64]*signedNonceInfo),
 		keysHandler:  keysHandler,
 	}, nil
 }
@@ -60,9 +65,10 @@ func (tracker *sentSignaturesTracker) ResetCountersForManagedBlockSigner(signerP
 }
 
 // RecordSignedNonce records that a public key has signed a header hash for a given nonce.
-// First-write-wins: if an entry already exists for this (pk, nonce), it is not overwritten.
+// Most-recent-round-wins: overwrites an existing entry only if roundIndex is strictly greater
+// than the previously recorded round. Same-round re-sends are idempotent (kept as-is).
 // Automatically cleans up entries for nonces more than 1 behind the recorded nonce.
-func (tracker *sentSignaturesTracker) RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte) {
+func (tracker *sentSignaturesTracker) RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64) {
 	pk := string(pkBytes)
 
 	tracker.mut.Lock()
@@ -70,17 +76,22 @@ func (tracker *sentSignaturesTracker) RecordSignedNonce(pkBytes []byte, nonce ui
 
 	nonceMap, exists := tracker.signedNonces[pk]
 	if !exists {
-		nonceMap = make(map[uint64][]byte)
+		nonceMap = make(map[uint64]*signedNonceInfo)
 		tracker.signedNonces[pk] = nonceMap
 	}
 
-	if _, alreadyRecorded := nonceMap[nonce]; alreadyRecorded {
-		return
+	if existing, alreadyRecorded := nonceMap[nonce]; alreadyRecorded {
+		if roundIndex <= existing.roundIndex {
+			return
+		}
 	}
 
 	hashCopy := make([]byte, len(headerHash))
 	copy(hashCopy, headerHash)
-	nonceMap[nonce] = hashCopy
+	nonceMap[nonce] = &signedNonceInfo{
+		headerHash: hashCopy,
+		roundIndex: roundIndex,
+	}
 
 	for oldNonce := range nonceMap {
 		if nonce > oldNonce && nonce-oldNonce > 1 {
@@ -89,19 +100,23 @@ func (tracker *sentSignaturesTracker) RecordSignedNonce(pkBytes []byte, nonce ui
 	}
 }
 
-// GetSignedHash returns the header hash previously signed by the given public key for the given nonce.
-// Returns (hash, true) if found, (nil, false) otherwise.
-func (tracker *sentSignaturesTracker) GetSignedHash(pkBytes []byte, nonce uint64) ([]byte, bool) {
+// GetSignedNonceInfo returns the header hash and round index previously signed by the given public key
+// for the given nonce. Returns (hash, roundIndex, true) if found, (nil, 0, false) otherwise.
+func (tracker *sentSignaturesTracker) GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
 	tracker.mut.RLock()
 	defer tracker.mut.RUnlock()
 
 	nonceMap, exists := tracker.signedNonces[string(pkBytes)]
 	if !exists {
-		return nil, false
+		return nil, 0, false
 	}
 
-	hash, found := nonceMap[nonce]
-	return hash, found
+	info, found := nonceMap[nonce]
+	if !found {
+		return nil, 0, false
+	}
+
+	return info.headerHash, info.roundIndex, true
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

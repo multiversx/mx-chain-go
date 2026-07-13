@@ -74,6 +74,7 @@ type TxsForBlockHandler interface {
 	GetTxInfoByHash(hash []byte) (*process.TxInfo, bool)
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	GetMissingTxsCount() int
+	ClearMissingTxsCount()
 	ReceivedTransaction(txHash []byte, tx data.TransactionHandler)
 	HasMissingTransactions() bool
 	ComputeExistingAndRequestMissing(

@@ -35,6 +35,8 @@ import (
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+
 	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
@@ -132,7 +134,6 @@ import (
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
@@ -698,6 +699,9 @@ func (tpn *TestProcessorNode) Close() {
 	_ = tpn.FullArchiveMessenger.Close()
 	_ = tpn.VMContainer.Close()
 	_ = tpn.ExecutionManager.Close()
+	if !check.IfNil(tpn.BlockTracker) {
+		_ = tpn.BlockTracker.Close()
+	}
 }
 
 func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
@@ -2727,6 +2731,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			Marshalizer:           TestMarshalizer,
 			Hasher:                TestHasher,
 			Store:                 tpn.Storage,
+			Headers:               tpn.DataPool.Headers(),
 			ShardCoordinator:      tpn.ShardCoordinator,
 			RewardsHandler:        tpn.EconomicsData,
 			RoundTime:             tpn.RoundHandler,
@@ -3851,6 +3856,7 @@ func GetDefaultCoreComponents(
 		ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
 		AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
+		RoundNotifierField:                 forking.NewGenericRoundNotifier(),
 	}
 }
 

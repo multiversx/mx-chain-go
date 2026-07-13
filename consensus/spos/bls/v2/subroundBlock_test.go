@@ -84,6 +84,7 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, erro
 		},
 		&consensusMocks.NtpSyncControllerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	return srBlock, err
@@ -102,6 +103,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.Subround
 		},
 		&consensusMocks.NtpSyncControllerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	return srBlock
@@ -185,6 +187,7 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 		&consensusMocks.SposWorkerMock{},
 		&consensusMocks.NtpSyncControllerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -341,9 +344,31 @@ func TestSubroundBlock_NewSubroundBlockNilWorkerShouldFail(t *testing.T) {
 		nil,
 		&consensusMocks.NtpSyncControllerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilWorker, err)
+}
+
+func TestSubroundBlock_NewSubroundBlockNilSignatureEvidenceShouldFail(t *testing.T) {
+	t.Parallel()
+	container := consensusMocks.InitConsensusCore()
+
+	consensusState := initializers.InitConsensusState()
+
+	ch := make(chan bool, 1)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
+
+	srBlock, err := v2.NewSubroundBlock(
+		sr,
+		v2.ProcessingThresholdPercent,
+		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+		nil,
+	)
+	assert.Nil(t, srBlock)
+	assert.Equal(t, v2.ErrNilSignatureEvidence, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockNilRoundSyncController(t *testing.T) {
@@ -359,6 +384,7 @@ func TestSubroundBlock_NewSubroundBlockNilRoundSyncController(t *testing.T) {
 		&consensusMocks.SposWorkerMock{},
 		nil,
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 	require.Nil(t, srBlock)
 	require.Equal(t, v2.ErrNilRoundSyncController, err)
@@ -656,6 +682,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 			&consensusMocks.NtpSyncControllerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -760,6 +787,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 			&consensusMocks.NtpSyncControllerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -1663,6 +1691,7 @@ func TestSubroundBlock_UpdateConsensusMetrics(t *testing.T) {
 		},
 		&consensusMocks.NtpSyncControllerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	consensusMetrics.ResetInstanceValues()
@@ -1934,14 +1963,16 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 			&consensusMocks.SposWorkerMock{},
 			&consensusMocks.NtpSyncControllerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetHeader(&block.Header{Epoch: currEpoch})
 		sr.SetSelfPubKey("OTHER")
 
 		srBlock.TriggerCreateSignaturesForManagedKeys(context.TODO(), []byte("headerHash"), &block.Header{Epoch: currEpoch})
 
-		srBlock.SignaturesWaitGroup().Wait()
+		<-srBlock.SignaturesDone()
 
 		assert.Equal(t, int32(9), atomic.LoadInt32(&numMultiKeysSignaturesCreated)) // there are 9 keys in default consensus group config
 	})
@@ -2013,7 +2044,9 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 					return false
 				},
 			},
+			v2.NewSignatureEvidenceStore(nil),
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetSelfPubKey("OTHER")
 
@@ -2078,7 +2111,9 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 					return false
 				},
 			},
+			v2.NewSignatureEvidenceStore(nil),
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetHeader(nil)
 		sr.SetSelfPubKey("OTHER")
@@ -2087,7 +2122,7 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 		cancel()
 		srBlock.TriggerCreateSignaturesForManagedKeys(ctx, []byte("headerHash"), nil)
 
-		srBlock.SignaturesWaitGroup().Wait()
+		<-srBlock.SignaturesDone()
 
 		assert.Equal(t, int32(0), atomic.LoadInt32(&numMultiKeysSignaturesCreated))
 	})
@@ -2155,13 +2190,15 @@ func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
 					return true
 				},
 			},
+			v2.NewSignatureEvidenceStore(nil),
 		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
 
 		sr.SetSelfPubKey("OTHER")
 
 		srBlock.TriggerCreateSignaturesForManagedKeys(context.TODO(), []byte("headerHash"), &block.Header{})
 
-		srBlock.SignaturesWaitGroup().Wait()
+		<-srBlock.SignaturesDone()
 
 		assert.Equal(t, int32(9), atomic.LoadInt32(&numMultiKeysSignaturesCreated)) // there are 9 keys in default consensus group config
 	})

@@ -76,6 +76,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.PeerBlacklistHandler()) {
 		return ErrNilPeerBlacklistHandler
 	}
+	if check.IfNil(container.PeerSignatureHandler()) {
+		return ErrNilPeerSignatureHandler
+	}
 	if check.IfNil(container.SigningHandler()) {
 		return ErrNilSigningHandler
 	}
@@ -99,6 +102,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	}
 	if check.IfNil(container.MessagesHandler()) {
 		return ErrNilConsensusService
+	}
+	if check.IfNil(container.CommonConfigsHandler()) {
+		return ErrNilCommonConfigsHandler
 	}
 
 	return nil

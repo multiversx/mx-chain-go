@@ -2,7 +2,6 @@ package spos
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -10,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
@@ -46,9 +46,11 @@ type ConsensusCoreHandler interface {
 	ScheduledProcessor() consensus.ScheduledProcessor
 	MessageSigningHandler() consensus.P2PSigningHandler
 	PeerBlacklistHandler() consensus.PeerBlacklistHandler
+	PeerSignatureHandler() crypto.PeerSignatureHandler
 	SigningHandler() consensus.SigningHandler
 	EnableEpochsHandler() common.EnableEpochsHandler
 	EnableRoundsHandler() common.EnableRoundsHandler
+	CommonConfigsHandler() common.CommonConfigsHandler
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache
@@ -178,8 +180,8 @@ type PeerBlackListCacher interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
-	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte)
-	GetSignedHash(pkBytes []byte, nonce uint64) ([]byte, bool)
+	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
+	GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
 	IsInterfaceNil() bool
 }
 
@@ -231,9 +233,11 @@ type ConsensusStateHandler interface {
 	SetBody(body data.BodyHandler)
 	GetHeader() data.HeaderHandler
 	SetHeader(header data.HeaderHandler)
+	SetDataIfNotSet(data []byte) bool
 	GetWaitingAllSignaturesTimeOut() bool
 	SetWaitingAllSignaturesTimeOut(bool)
-	SignaturesWaitGroup() *sync.WaitGroup
+	SignaturesDone() <-chan struct{}
+	SetSignaturesDone(done <-chan struct{})
 	SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc)
 	SignaturesCtxCancel()
 	RoundConsensusHandler

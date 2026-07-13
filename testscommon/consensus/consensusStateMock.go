@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -88,7 +87,9 @@ type ConsensusStateMock struct {
 	FallbackThresholdCalled                      func(subroundId int) int
 	SetFallbackThresholdCalled                   func(subroundId int, threshold int)
 	ResetConsensusRoundStateCalled               func()
-	SignaturesWaitGroupCalled                    func() *sync.WaitGroup
+	SignaturesDoneCalled                         func() <-chan struct{}
+	SetSignaturesDoneCalled                      func(done <-chan struct{})
+	SetDataIfNotSetCalled                        func(data []byte) bool
 	SetSignaturesCtxCancelFuncCalled             func(cancelFunc context.CancelFunc)
 	SignaturesCtxCancelCalled                    func()
 }
@@ -659,13 +660,32 @@ func (cnsm *ConsensusStateMock) SetThreshold(subroundId int, threshold int) {
 	}
 }
 
-// SignaturesWaitGroup -
-func (cnsm *ConsensusStateMock) SignaturesWaitGroup() *sync.WaitGroup {
-	if cnsm.SignaturesWaitGroupCalled != nil {
-		return cnsm.SignaturesWaitGroupCalled()
+// SignaturesDone -
+func (cnsm *ConsensusStateMock) SignaturesDone() <-chan struct{} {
+	if cnsm.SignaturesDoneCalled != nil {
+		return cnsm.SignaturesDoneCalled()
 	}
 
-	return nil
+	// default to an already-closed channel so a wait on it returns immediately
+	ch := make(chan struct{})
+	close(ch)
+	return ch
+}
+
+// SetSignaturesDone -
+func (cnsm *ConsensusStateMock) SetSignaturesDone(done <-chan struct{}) {
+	if cnsm.SetSignaturesDoneCalled != nil {
+		cnsm.SetSignaturesDoneCalled(done)
+	}
+}
+
+// SetDataIfNotSet -
+func (cnsm *ConsensusStateMock) SetDataIfNotSet(data []byte) bool {
+	if cnsm.SetDataIfNotSetCalled != nil {
+		return cnsm.SetDataIfNotSetCalled(data)
+	}
+
+	return true
 }
 
 // SetSignaturesCtxCancelFunc -

@@ -26,7 +26,6 @@ type usedShardHeadersInfo struct {
 
 // CreateNewHeaderProposal creates a new header
 func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	// TODO: the trigger would need to be changed upon commit of a block with the epoch start results
 	epoch := mp.epochStartTrigger.Epoch()
 
 	header := mp.versionedHeaderFactory.Create(epoch, round)
@@ -166,19 +165,6 @@ func (mp *metaProcessor) CreateBlockProposal(
 	}
 
 	err = metaHdr.SetMiniBlockHeaderHandlers(miniBlocksHeadersToMe)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	txsInExecutionResults, err := getTxCountExecutionResults(metaHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	totalProcessedTxs := getTxCount(shardDataHandlers) + txsInExecutionResults
-	// TODO: consider if tx count per metablock header is still needed
-	// as we still have it in the execution results
-	err = metaHdr.SetTxCount(totalProcessedTxs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1217,6 +1203,10 @@ func (mp *metaProcessor) checkHeadersSequenceCorrectness(hdrsForShard []ShardHea
 	for _, shardHdrInfo := range hdrsForShard {
 		if mp.isGenesisShardBlockAndFirstMeta(shardHdrInfo.Header.GetNonce()) {
 			continue
+		}
+
+		if mp.blockTracker.IsHeaderQuarantined(shardHdrInfo.Hash) {
+			return fmt.Errorf("%w with hash %x", errIncludedQuarantinedHeader, shardHdrInfo.Hash)
 		}
 
 		err = mp.headerValidator.IsHeaderConstructionValid(shardHdrInfo.Header, lastNotarizedHeaderInfoForShard.Header)

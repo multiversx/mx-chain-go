@@ -297,6 +297,11 @@ func (bp *blockProcessor) getNextHeader(
 			break
 		}
 
+		if bp.blockTracker.IsHeaderQuarantined(sortedHeadersHashes[i]) {
+			log.Trace("getNextHeader: skipping quarantined header", "hash", sortedHeadersHashes[i])
+			continue
+		}
+
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
 			continue

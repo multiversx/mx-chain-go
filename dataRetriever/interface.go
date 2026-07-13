@@ -268,6 +268,7 @@ type PoolsHolder interface {
 	ExecutedMiniBlocks() storage.Cacher
 	PostProcessTransactions() storage.Cacher
 	DirectSentTransactions() storage.Cacher
+	QuarantinedHeaders() storage.Cacher
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -389,6 +390,7 @@ type PeerAuthenticationPayloadValidator interface {
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
+	AddProofIfNoneAtNonce(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler)
 	UpsertProof(headerProof data.HeaderProofHandler) bool
 	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
 	CleanupProofsBehindNonce(shardID uint32, nonce uint64) error

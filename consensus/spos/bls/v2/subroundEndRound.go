@@ -29,11 +29,10 @@ const timeBetweenSignaturesChecks = time.Millisecond * 5
 
 type subroundEndRound struct {
 	*spos.Subround
-	processingThresholdPercentage int
-	appStatusHandler              core.AppStatusHandler
-	mutProcessingEndRound         sync.Mutex
-	sentSignatureTracker          spos.SentSignaturesTracker
-	worker                        spos.WorkerHandler
+	appStatusHandler      core.AppStatusHandler
+	mutProcessingEndRound sync.Mutex
+	sentSignatureTracker  spos.SentSignaturesTracker
+	worker                spos.WorkerHandler
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -58,13 +57,14 @@ func NewSubroundEndRound(
 		return nil, spos.ErrNilWorker
 	}
 
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
+
 	srEndRound := subroundEndRound{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
-		appStatusHandler:              appStatusHandler,
-		mutProcessingEndRound:         sync.Mutex{},
-		sentSignatureTracker:          sentSignatureTracker,
-		worker:                        worker,
+		Subround:              baseSubround,
+		appStatusHandler:      appStatusHandler,
+		mutProcessingEndRound: sync.Mutex{},
+		sentSignatureTracker:  sentSignatureTracker,
+		worker:                worker,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -271,9 +271,18 @@ func (sr *subroundEndRound) verifyInvalidSigner(
 		return "", ErrHeaderHashMismatch
 	}
 
+	if !sr.IsNodeInConsensusGroup(string(cnsMsg.PubKey)) {
+		return "", ErrSignerNotInConsensusGroup
+	}
+
 	err = sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return "", err
+	}
+
+	err = sr.PeerSignatureHandler().VerifyPeerSignature(cnsMsg.PubKey, msg.Peer(), cnsMsg.Signature)
+	if err != nil {
+		return "", ErrPublicKeyMismatch
 	}
 
 	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
@@ -424,6 +433,9 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.GetHeader().GetNonce())
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
+
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(sr.GetHeader(), "committed", "v2", sr.CommonConfigsHandler())
 
 	sr.updateMetricsForLeader()
 
@@ -888,7 +900,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 
 func (sr *subroundEndRound) isOutOfTime() bool {
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),
@@ -1021,6 +1033,11 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 		return false
 	}
 
+	remainingTime := sr.remainingTime()
+	if remainingTime <= 0 {
+		return false
+	}
+
 	index, err := sr.ConsensusGroupIndex(node)
 	if err != nil {
 		log.Debug("receivedSignature.ConsensusGroupIndex",
@@ -1057,19 +1074,8 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 }
 
 func (sr *subroundEndRound) getThreshold() int {
-	isTransitionBlock := common.IsEpochChangeBlockForFlagActivation(sr.GetHeader(), sr.EnableEpochsHandler(), common.AndromedaFlag)
-
-	threshold := sr.Threshold(bls.SrSignature)
-	if isTransitionBlock {
-		threshold = core.GetPBFTThreshold(sr.ConsensusGroupSize())
-	}
-
-	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.GetHeader()) {
-		threshold = sr.FallbackThreshold(bls.SrSignature)
-		if isTransitionBlock {
-			threshold = core.GetPBFTFallbackThreshold(sr.ConsensusGroupSize())
-		}
-
+	threshold, fallbackApplied := computeSignatureThreshold(sr.Subround, sr.GetHeader())
+	if fallbackApplied {
 		log.Warn("subroundEndRound.checkReceivedSignaturesOrProof: fallback validation has been applied",
 			"minimum number of signatures required", threshold,
 			"actual number of signatures received", sr.getNumOfSignaturesCollected(),

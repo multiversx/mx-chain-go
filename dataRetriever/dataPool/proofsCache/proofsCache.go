@@ -70,10 +70,42 @@ func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
 
 	// Delete the old hash from proofsByHash if it's different from the new hash
 	if len(oldHash) != 0 && oldHash != newHash {
+		log.Warn("proofsCache.addProof: overwrite proof by hash",
+			"oldHash", oldHash,
+			"newHash", newHash,
+		)
 		delete(pc.proofsByHash, oldHash)
 	}
 
 	pc.proofsByHash[newHash] = proof
+}
+
+// addProofIfNoneAtNonce adds the proof only if its nonce slot is free; an occupied slot (same or
+// different hash) rejects the add and returns the pre-existing proof, never overwriting it
+func (pc *proofsCache) addProofIfNoneAtNonce(proof data.HeaderProofHandler) (bool, data.HeaderProofHandler) {
+	if check.IfNil(proof) {
+		return false, nil
+	}
+
+	pc.mutProofsCache.Lock()
+	defer pc.mutProofsCache.Unlock()
+
+	bucketKey := pc.getBucketKey(proof.GetHeaderNonce())
+	bucket, ok := pc.proofsByNonceBuckets[bucketKey]
+	if ok {
+		existingHash, hasNonce := bucket.proofsByNonce[proof.GetHeaderNonce()]
+		if hasNonce {
+			existingProof, hasProof := pc.proofsByHash[existingHash]
+			if hasProof {
+				return false, existingProof
+			}
+		}
+	}
+
+	_ = pc.insertProofByNonce(proof)
+	pc.proofsByHash[string(proof.GetHeaderHash())] = proof
+
+	return true, nil
 }
 
 // getBucketKey will return bucket key as lower bound window value

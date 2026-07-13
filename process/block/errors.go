@@ -9,3 +9,5 @@ var errInvalidNumOutGoingTxsInMetaHdrProposal = errors.New("invalid number of ou
 var errNilPreviousHeader = errors.New("nil previous header")
 
 var errInvalidMiniBlocks = errors.New("invalid mini blocks")
+
+var errIncludedQuarantinedHeader = errors.New("included quarantined header")

@@ -79,7 +79,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 	}
 
 	miniBlockHeaderHandlers := sp.miniBlocksSelectionSession.GetMiniBlockHeaderHandlers()
-	// todo: check empty mini blocks vs nil. Same for block.Body.MiniBlocks
+
 	err = shardHdr.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
 	if err != nil {
 		return nil, nil, err
@@ -112,7 +112,10 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	// TODO: sanity check use the verify execution results method
+	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	body := &block.Body{MiniBlocks: miniBlocks}
 
@@ -348,7 +351,6 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: check again before saving the last executed result
 	err = sp.blockChainHook.SetCurrentHeader(header)
 	if err != nil {
 		return nil, err
@@ -654,7 +656,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 		return err
 	}
 
-	// todo: maybe sanitize, removing empty miniBlocks
+	sp.miniBlocksSelectionSession.RemoveEmptyMiniBlocks()
 
 	return nil
 }
@@ -815,12 +817,16 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	if err != nil {
 		return err
 	}
-	_, usedMetaHeaders, err := sp.getReferencedMetaHeadersFromPool(header)
+	usedMetaHashes, usedMetaHeaders, err := sp.getReferencedMetaHeadersFromPool(header)
 	if err != nil {
 		return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getReferencedMetaHeadersFromPool", err)
 	}
 
-	for _, metaHeader := range usedMetaHeaders {
+	for idx, metaHeader := range usedMetaHeaders {
+		if sp.blockTracker.IsHeaderQuarantined(usedMetaHashes[idx]) {
+			return fmt.Errorf("%w with hash %x", errIncludedQuarantinedHeader, usedMetaHashes[idx])
+		}
+
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHeader, lastCrossNotarizedHeader)
 		if err != nil {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> isHdrConstructionValid", err)

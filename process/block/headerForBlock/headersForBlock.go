@@ -580,6 +580,15 @@ func (hfb *headersForBlock) requestMissingFinalityAttestingHeaders(
 				false,
 				false,
 			)
+
+			if !hfb.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headers[index].GetEpoch()) {
+				continue
+			}
+
+			_, err = hfb.dataPool.Proofs().GetProofByNonce(i, shardID)
+			if err != nil {
+				hfb.requestProofIfNeeded(headersHashes[index], headers[index])
+			}
 		}
 	}
 

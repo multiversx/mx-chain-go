@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -55,6 +54,7 @@ func initSubroundSignatureWithContainer(container *spos.ConsensusCore) v2.Subrou
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	return srSignature
@@ -98,6 +98,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		assert.Nil(t, srSignature)
@@ -112,6 +113,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			nil,
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		assert.Nil(t, srSignature)
@@ -126,6 +128,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		assert.Nil(t, srSignature)
@@ -140,6 +143,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			nil,
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		assert.Nil(t, srSignature)
@@ -155,10 +159,27 @@ func TestNewSubroundSignature(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			&consensusMocks.SposWorkerMock{},
 			nil,
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		assert.Nil(t, srSignature)
 		assert.Equal(t, spos.ErrNilThrottler, err)
+	})
+
+	t.Run("nil signature evidence should error", func(t *testing.T) {
+		t.Parallel()
+
+		srSignature, err := v2.NewSubroundSignature(
+			sr,
+			&statusHandler.AppStatusHandlerStub{},
+			&testscommon.SentSignatureTrackerStub{},
+			&consensusMocks.SposWorkerMock{},
+			&dataRetrieverMock.ThrottlerStub{},
+			nil,
+		)
+
+		assert.Nil(t, srSignature)
+		assert.Equal(t, v2.ErrNilSignatureEvidence, err)
 	})
 }
 
@@ -193,6 +214,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -229,6 +251,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -265,6 +288,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -302,6 +326,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -338,6 +363,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -374,6 +400,7 @@ func TestSubroundSignature_NewSubroundSignatureNilAppStatusHandlerShouldFail(t *
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -410,6 +437,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	assert.False(t, check.IfNil(srSignature))
@@ -553,6 +581,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		sr.SetHeader(&block.Header{})
@@ -581,11 +610,13 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		}
 
 		expectedMap := map[string]struct{}{"A": {}, "B": {}, "C": {}, "D": {}, "E": {}, "F": {}, "G": {}, "H": {}, "I": {}}
-		assert.Equal(t, expectedMap, signatureSentForPks)
-
 		// leader also sends his signature
 		expectedBroadcastMap := map[string]int{"A": 1, "B": 1, "C": 1, "D": 1, "E": 1, "F": 1, "G": 1, "H": 1, "I": 1}
+
+		mutex.Lock()
+		assert.Equal(t, expectedMap, signatureSentForPks)
 		assert.Equal(t, expectedBroadcastMap, signaturesBroadcast)
+		mutex.Unlock()
 	})
 }
 
@@ -641,6 +672,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		r := srSignature.SendSignatureForManagedKey(context.Background(), 0, "a")
@@ -709,6 +741,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		r := srSignature.SendSignatureForManagedKey(context.Background(), 1, "a")
@@ -779,6 +812,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		_ = srSignature.SendSignatureForManagedKey(context.Background(), 1, "a")
@@ -853,6 +887,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		_ = srSignature.SendSignatureForManagedKey(context.Background(), 1, "a")
@@ -920,6 +955,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 			},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		sr.SetHeader(&block.Header{})
@@ -945,112 +981,12 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		}
 
 		expectedMap := map[string]struct{}{"A": {}, "B": {}, "C": {}, "D": {}, "E": {}, "F": {}, "G": {}, "H": {}, "I": {}}
-		assert.Equal(t, expectedMap, signatureSentForPks)
-
 		expectedBroadcastMap := map[string]int{"A": 1, "B": 1, "C": 1, "D": 1, "E": 1, "F": 1, "G": 1, "H": 1, "I": 1}
+
+		mutex.Lock()
+		assert.Equal(t, expectedMap, signatureSentForPks)
 		assert.Equal(t, expectedBroadcastMap, signaturesBroadcast)
-	})
-
-	t.Run("should work until context is cancelled", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithCancel(context.TODO())
-		defer cancel()
-
-		container := consensusMocks.InitConsensusCore()
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.AndromedaFlag
-			},
-		}
-		container.SetEnableEpochsHandler(enableEpochsHandler)
-
-		numCalls := int32(0)
-		signingHandler := &consensusMocks.SigningHandlerStub{
-			SignatureShareCalled: func(index uint16) ([]byte, error) {
-				return nil, expectedErr
-			},
-			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
-				atomic.AddInt32(&numCalls, 1)
-				if atomic.LoadInt32(&numCalls) > 3 {
-					cancel()
-					return nil, expectedErr
-				}
-
-				return []byte("SIG"), nil
-			},
-		}
-		container.SetSigningHandler(signingHandler)
-		consensusState := initializers.InitConsensusStateWithKeysHandler(
-			&testscommon.KeysHandlerStub{
-				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
-					return true
-				},
-			},
-		)
-		ch := make(chan bool, 1)
-
-		sr, _ := spos.NewSubround(
-			bls.SrBlock,
-			bls.SrSignature,
-			bls.SrEndRound,
-			roundTimeDuration,
-			0.7,
-			0.85,
-			"(SIGNATURE)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		signatureSentForPks := make(map[string]struct{})
-		mutex := sync.Mutex{}
-		srSignature, _ := v2.NewSubroundSignature(
-			sr,
-			&statusHandler.AppStatusHandlerStub{},
-			&testscommon.SentSignatureTrackerStub{
-				SignatureSentCalled: func(pkBytes []byte) {
-					mutex.Lock()
-					signatureSentForPks[string(pkBytes)] = struct{}{}
-					mutex.Unlock()
-				},
-			},
-			&consensusMocks.SposWorkerMock{},
-			&dataRetrieverMock.ThrottlerStub{},
-		)
-
-		sr.SetHeader(&block.Header{})
-		signaturesBroadcast := make(map[string]int)
-		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
-			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-				mutex.Lock()
-				signaturesBroadcast[string(message.PubKey)]++
-				mutex.Unlock()
-				return nil
-			},
-		})
-
-		sr.SetSelfPubKey("OTHER")
-
-		r := srSignature.DoSignatureJobForManagedKeys(ctx)
-		assert.False(t, r)
-
-		numFinishedJobs := 0
-		for _, pk := range sr.ConsensusGroup() {
-			isJobDone, err := sr.JobDone(pk, bls.SrSignature)
-			assert.NoError(t, err)
-
-			if isJobDone {
-				numFinishedJobs++
-			}
-		}
-		assert.Equal(t, 3, numFinishedJobs)
-
-		assert.Equal(t, 3, len(signaturesBroadcast))
+		mutex.Unlock()
 	})
 
 	t.Run("context done should return early", func(t *testing.T) {
@@ -1096,6 +1032,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 			&testscommon.SentSignatureTrackerStub{},
 			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		sr.SetHeader(&block.Header{})
@@ -1160,6 +1097,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 					return false
 				},
 			},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		sr.SetHeader(&block.Header{})

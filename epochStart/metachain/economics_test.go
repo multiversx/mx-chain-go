@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -39,6 +40,7 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 		Hasher:                &hashingMocks.HasherMock{},
 		Marshalizer:           &mock.MarshalizerMock{},
 		Store:                 createMetaStore(),
+		Headers:               &pool.HeadersPoolStub{},
 		ShardCoordinator:      shardCoordinator,
 		RewardsHandler:        &mock.RewardsHandlerStub{},
 		RoundTime:             &mock.RoundTimeDurationHandler{},
@@ -81,6 +83,17 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilStore(t *testing.T) 
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
 	require.Equal(t, epochStart.ErrNilStorage, err)
+}
+
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilHeadersPool(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochEconomicsArguments()
+	arguments.Headers = nil
+
+	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, epochStart.ErrNilHeadersDataPool, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilShardCoordinator(t *testing.T) {
@@ -2459,6 +2472,21 @@ func TestEconomics_createEconomicsV3Args(t *testing.T) {
 				DevFeesInEpoch:         big.NewInt(300),
 			},
 		},
+		ExecutionResults: []*block.MetaExecutionResult{
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("some hash"),
+						HeaderEpoch: 2,
+						HeaderNonce: 3,
+						RootHash:    []byte("some root hash"),
+					},
+					ValidatorStatsRootHash: []byte("validator stats root hash"),
+					AccumulatedFeesInEpoch: big.NewInt(1000),
+					DevFeesInEpoch:         big.NewInt(300),
+				},
+			},
+		},
 	}
 
 	t.Run("nil meta block", func(t *testing.T) {
@@ -2559,6 +2587,14 @@ func TestEconomics_createEconomicsV3Args(t *testing.T) {
 					ShardID:    2,
 					HeaderHash: []byte("hash2"),
 				},
+			},
+		}
+		arguments.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{
+					EpochChangeProposed: true,
+					Nonce:               metaBlockCopy.ExecutionResults[0].GetHeaderNonce(),
+				}, nil
 			},
 		}
 
@@ -3048,6 +3084,7 @@ func getArguments() ArgsNewEpochEconomics {
 		Marshalizer:           &mock.MarshalizerMock{},
 		Hasher:                &hashingMocks.HasherMock{},
 		Store:                 &storageStubs.ChainStorerStub{},
+		Headers:               &pool.HeadersPoolStub{},
 		ShardCoordinator:      mock.NewMultipleShardsCoordinatorMock(),
 		RewardsHandler:        &mock.RewardsHandlerStub{},
 		RoundTime:             &mock.RoundTimeDurationHandler{},

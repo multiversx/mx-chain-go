@@ -5,11 +5,13 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -17,9 +19,23 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 )
 
-const ProcessingThresholdPercent = processingThresholdPercent
+// ProcessingThresholdPercent is a test-only value mirroring the default processing threshold percent
+const ProcessingThresholdPercent = 85
+
+// testConsensusConfigByRound holds the default consensus config values used in tests
+var testConsensusConfigByRound = config.ConsensusConfigByRound{
+	EnableRound: 0,
+	SubroundsTiming: []config.SubroundTiming{
+		{StartTime: 0.0, EndTime: 0.05},
+		{StartTime: 0.05, EndTime: 0.25},
+		{StartTime: 0.25, EndTime: 0.85},
+		{StartTime: 0.85, EndTime: 0.95},
+	},
+	ProcessingThresholdPercent: ProcessingThresholdPercent,
+}
 
 // factory
 
@@ -98,22 +114,22 @@ func (fct *factory) SetWorker(worker spos.WorkerHandler) {
 
 // GenerateStartRoundSubround generates the instance of subround StartRound and added it to the chronology subrounds list
 func (fct *factory) GenerateStartRoundSubround() error {
-	return fct.generateStartRoundSubround()
+	return fct.generateStartRoundSubround(testConsensusConfigByRound)
 }
 
 // GenerateBlockSubround generates the instance of subround Block and added it to the chronology subrounds list
 func (fct *factory) GenerateBlockSubround() error {
-	return fct.generateBlockSubround()
+	return fct.generateBlockSubround(testConsensusConfigByRound)
 }
 
 // GenerateSignatureSubround generates the instance of subround Signature and added it to the chronology subrounds list
 func (fct *factory) GenerateSignatureSubround() error {
-	return fct.generateSignatureSubround()
+	return fct.generateSignatureSubround(testConsensusConfigByRound)
 }
 
 // GenerateEndRoundSubround generates the instance of subround EndRound and added it to the chronology subrounds list
 func (fct *factory) GenerateEndRoundSubround() error {
-	return fct.generateEndRoundSubround()
+	return fct.generateEndRoundSubround(testConsensusConfigByRound)
 }
 
 // AppStatusHandler gets the app status handler object
@@ -351,11 +367,6 @@ func (sr *subroundSignature) WaitIfCompetingBlock(ctx context.Context, pkBytes [
 	return sr.waitIfCompetingBlock(ctx, pkBytes, nonce, currentHash)
 }
 
-// WaitIfCompetingBlockForNode calls the unexported waitIfCompetingBlockForNode function
-func (sr *subroundSignature) WaitIfCompetingBlockForNode(ctx context.Context, nonce uint64, currentHash []byte) bool {
-	return sr.waitIfCompetingBlockForNode(ctx, nonce, currentHash)
-}
-
 // ShouldSendProof calls the unexported shouldSendProof function
 func (sr *subroundEndRound) ShouldSendProof() bool {
 	return sr.shouldSendProof()
@@ -409,4 +420,31 @@ func (sr *subroundEndRound) IsRoundWithinBounds(round int64, numRounds uint64) b
 // IsTimestampWithinBounds -
 func (sr *subroundEndRound) IsTimestampWithinBounds(timeStampSec int64, numSeconds uint64) bool {
 	return sr.isTimestampWithinBounds(timeStampSec, numSeconds)
+}
+
+// signature evidence
+
+// NewSignatureEvidenceStore creates a signature evidence store for tests; a nil proofsPool defaults to a mock
+func NewSignatureEvidenceStore(proofsPool consensus.EquivalentProofsPool) *signatureEvidenceStore {
+	if check.IfNil(proofsPool) {
+		proofsPool = &dataRetrieverTests.ProofsPoolMock{}
+	}
+
+	store, _ := newSignatureEvidenceStore(proofsPool)
+	return store
+}
+
+// CaptureSignatureEvidence -
+func (sr *subroundStartRound) CaptureSignatureEvidence() {
+	sr.captureSignatureEvidence()
+}
+
+// ShouldAbortOnSignatureEvidence -
+func (sr *subroundSignature) ShouldAbortOnSignatureEvidence(ctx context.Context, nonce uint64, currentHash []byte) bool {
+	return sr.shouldAbortOnSignatureEvidence(ctx, nonce, currentHash)
+}
+
+// HasQuorumEvidenceForCompetingBlock -
+func (sr *subroundBlock) HasQuorumEvidenceForCompetingBlock() bool {
+	return sr.hasQuorumEvidenceForCompetingBlock()
 }

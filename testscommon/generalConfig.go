@@ -101,7 +101,22 @@ func GetGeneralConfig() config.Config {
 				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
 			},
 			ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
-				{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+				{
+					EnableEpoch: 0,
+					NumRoundsToWaitBeforeSignalingChronologyStuck: 10,
+				},
+			},
+			ConsensusConfigsByRound: []config.ConsensusConfigByRound{
+				{
+					EnableRound: 0,
+					SubroundsTiming: []config.SubroundTiming{
+						{StartTime: 0.0, EndTime: 0.05},
+						{StartTime: 0.05, EndTime: 0.25},
+						{StartTime: 0.25, EndTime: 0.85},
+						{StartTime: 0.85, EndTime: 0.95},
+					},
+					ProcessingThresholdPercent: 85,
+				},
 			},
 		},
 		EpochStartConfig: config.EpochStartConfig{
@@ -494,6 +509,7 @@ func GetGeneralConfig() config.Config {
 			CacheExpiryInSec: 1,
 		},
 		ExecutedMiniBlocksCache:      getLRUCacheConfig(),
+		QuarantinedHeadersCache:      getLRUCacheConfig(),
 		PostProcessTransactionsCache: getLRUCacheConfig(),
 		BlockSizeThrottleConfig: config.BlockSizeThrottleConfig{
 			MinSizeInBytes:        1,

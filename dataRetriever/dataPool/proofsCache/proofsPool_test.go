@@ -3,16 +3,19 @@ package proofscache_test
 import (
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 )
 
 const cleanupDelta = 3
@@ -366,4 +369,127 @@ func generateRandomShardID() uint32 {
 func generateRandomInt(max int64) *big.Int {
 	rantInt, _ := rand.Int(rand.Reader, big.NewInt(max))
 	return rantInt
+}
+
+func TestProofsPool_AddProofIfNoneAtNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil proof should not be added", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		added, existing := pp.AddProofIfNoneAtNonce(nil)
+		require.False(t, added)
+		require.Nil(t, existing)
+	})
+
+	t.Run("should add on free nonce and notify subscribers", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		notifyChan := make(chan data.HeaderProofHandler, 2)
+		pp.RegisterHandler(func(headerProof data.HeaderProofHandler) {
+			notifyChan <- headerProof
+		})
+
+		added, existing := pp.AddProofIfNoneAtNonce(proof1)
+		require.True(t, added)
+		require.Nil(t, existing)
+
+		proof, err := pp.GetProofByNonce(proof1.GetHeaderNonce(), shardID)
+		require.Nil(t, err)
+		require.Equal(t, proof1, proof)
+
+		select {
+		case notified := <-notifyChan:
+			require.Equal(t, proof1, notified)
+		case <-time.After(time.Second):
+			require.Fail(t, "subscriber was not notified on add")
+		}
+
+		// rejected adds must not notify
+		added, _ = pp.AddProofIfNoneAtNonce(proof1)
+		require.False(t, added)
+		select {
+		case <-notifyChan:
+			require.Fail(t, "subscriber must not be notified on a rejected add")
+		case <-time.After(50 * time.Millisecond):
+		}
+	})
+
+	t.Run("should reject same hash at nonce", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		_, _ = pp.AddProofIfNoneAtNonce(proof1)
+		added, existing := pp.AddProofIfNoneAtNonce(proof1)
+		require.False(t, added)
+		require.Equal(t, proof1, existing)
+	})
+
+	t.Run("should reject different hash at nonce without eviction", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		competingProof := &block.HeaderProof{
+			PubKeysBitmap:       []byte("pubKeysBitmap2"),
+			AggregatedSignature: []byte("aggSig2"),
+			HeaderHash:          []byte("competing hash"),
+			HeaderEpoch:         1,
+			HeaderNonce:         proof1.GetHeaderNonce(),
+			HeaderShardId:       shardID,
+		}
+
+		_, _ = pp.AddProofIfNoneAtNonce(proof1)
+		added, existing := pp.AddProofIfNoneAtNonce(competingProof)
+		require.False(t, added)
+		require.Equal(t, proof1, existing)
+
+		// the first proof is still reachable both by nonce and by hash
+		proof, err := pp.GetProofByNonce(proof1.GetHeaderNonce(), shardID)
+		require.Nil(t, err)
+		require.Equal(t, proof1, proof)
+
+		proof, err = pp.GetProof(shardID, proof1.GetHeaderHash())
+		require.Nil(t, err)
+		require.Equal(t, proof1, proof)
+
+		require.False(t, pp.HasProof(shardID, competingProof.GetHeaderHash()))
+	})
+
+	t.Run("concurrent adds at the same nonce should admit exactly one", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		numConcurrent := 100
+		var numAdded uint32
+		var wg sync.WaitGroup
+		wg.Add(numConcurrent)
+		for i := 0; i < numConcurrent; i++ {
+			go func(idx int) {
+				defer wg.Done()
+
+				proof := &block.HeaderProof{
+					HeaderHash:    []byte(fmt.Sprintf("hash_%d", idx)),
+					HeaderNonce:   42,
+					HeaderShardId: shardID,
+				}
+				added, _ := pp.AddProofIfNoneAtNonce(proof)
+				if added {
+					atomic.AddUint32(&numAdded, 1)
+				}
+			}(i)
+		}
+		wg.Wait()
+
+		require.Equal(t, uint32(1), numAdded)
+
+		_, err := pp.GetProofByNonce(42, shardID)
+		require.Nil(t, err)
+	})
 }

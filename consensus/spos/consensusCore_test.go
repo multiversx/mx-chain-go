@@ -40,6 +40,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		ScheduledProcessor:            scheduledProcessor,
 		MessageSigningHandler:         consensusCoreMock.MessageSigningHandler(),
 		PeerBlacklistHandler:          consensusCoreMock.PeerBlacklistHandler(),
+		PeerSignatureHandler:          consensusCoreMock.PeerSignatureHandler(),
 		SigningHandler:                consensusCoreMock.SigningHandler(),
 		EnableEpochsHandler:           consensusCoreMock.EnableEpochsHandler(),
 		EnableRoundsHandler:           consensusCoreMock.EnableRoundsHandler(),
@@ -47,6 +48,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		EpochNotifier:                 consensusCoreMock.EpochNotifier(),
 		InvalidSignersCache:           &consensus.InvalidSignersCacheMock{},
 		MessagesHandler:               messagesHandler,
+		CommonConfigsHandler:          consensusCoreMock.CommonConfigsHandler(),
 	}
 	return args
 }
@@ -355,6 +357,20 @@ func TestConsensusCore_WithNilPeerBlacklistHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilPeerBlacklistHandler, err)
+}
+
+func TestConsensusCore_WithNilPeerSignatureHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.PeerSignatureHandler = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilPeerSignatureHandler, err)
 }
 
 func TestConsensusCore_WithNilEnableEpochsHandlerShouldFail(t *testing.T) {
