@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -3967,4 +3968,154 @@ func TestShardBootstrap_GetNextHeaderWithCompetingProofsUsesLowestRound(t *testi
 	require.Nil(t, err)
 	require.Equal(t, hashLowRound, hash)
 	require.Equal(t, headerLowRound, header)
+}
+
+type revertedBlocksCapture struct {
+	*outport.OutportStub
+	revertedHashes [][]byte
+}
+
+func (capture *revertedBlocksCapture) RevertIndexedBlock(headerData *outportcore.HeaderDataWithBody) error {
+	capture.revertedHashes = append(capture.revertedHashes, headerData.HeaderHash)
+	return nil
+}
+
+func TestBootstrap_RollBackV3(t *testing.T) {
+	t.Parallel()
+
+	marshaller := &mock.MarshalizerMock{}
+	prevHdrHash := []byte("prev header hash")
+	currHdrHash := []byte("curr header hash")
+
+	newV3Header := func(nonce uint64, round uint64, prevHash []byte) *block.HeaderV3 {
+		return &block.HeaderV3{
+			Nonce:    nonce,
+			Round:    round,
+			PrevHash: prevHash,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{HeaderNonce: nonce - 2, HeaderHash: []byte("execHash")},
+			},
+		}
+	}
+	prevHdr := newV3Header(7, 9, []byte("older hash"))
+	// committed contended head at nonce 8, not final: the switch candidate
+	currHdr := newV3Header(8, 12, prevHdrHash)
+	prevHdrBytes, _ := marshaller.Marshal(prevHdr)
+
+	buildBootstrapper := func(finalNonce uint64) (
+		*sync.ShardBootstrap,
+		*testscommon.ChainHandlerStub,
+		*revertedBlocksCapture,
+		map[string]uint64,
+		map[string]bool,
+	) {
+		removedAtNonce := make(map[string]uint64)
+		calledFlags := make(map[string]bool)
+
+		args := CreateShardBootstrapMockArguments()
+		args.Marshalizer = marshaller
+		args.Hasher = &mock.HasherStub{
+			ComputeCalled: func(s string) []byte {
+				return currHdrHash
+			},
+		}
+
+		blkc := &testscommon.ChainHandlerStub{}
+		var currentHeader data.HeaderHandler = currHdr
+		currentHeaderHash := currHdrHash
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return currentHeader
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return currentHeaderHash
+		}
+		blkc.SetCurrentBlockHeaderAndHashCalled = func(headerHash []byte, header data.HeaderHandler) error {
+			currentHeader = header
+			currentHeaderHash = headerHash
+			return nil
+		}
+		args.ChainHandler = blkc
+
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return prevHdrBytes, nil
+					},
+					RemoveCalled: func(key []byte) error {
+						calledFlags["nonceHashStoreRemove"] = true
+						return nil
+					},
+				}, nil
+			},
+		}
+		args.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return finalNonce
+			},
+			RemoveCommittedHeaderCalled: func(nonce uint64, hash []byte) {
+				if nonce == currHdr.GetNonce() && bytes.Equal(hash, currHdrHash) {
+					calledFlags["removeCommittedHeader"] = true
+				}
+			},
+		}
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				removedAtNonce["executionManager"] = nonce
+				return nil
+			},
+		}
+		args.BlockProcessor = &testscommon.BlockProcessorStub{
+			RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				removedAtNonce["restoredIntoPools"] = header.GetNonce()
+				return nil
+			},
+		}
+		args.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			RollBackToBlockCalled: func(headerHash []byte) error {
+				calledFlags["scheduledRollBack"] = true
+				return nil
+			},
+		}
+		outportCapture := &revertedBlocksCapture{OutportStub: &outport.OutportStub{}}
+		args.OutportHandler = outportCapture
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+		bs.SetForkNonce(currHdr.GetNonce())
+
+		return bs, blkc, outportCapture, removedAtNonce, calledFlags
+	}
+
+	t.Run("reverts the committed non-final head without touching tries or scheduled state", func(t *testing.T) {
+		t.Parallel()
+
+		bs, blkc, outportCapture, removedAtNonce, calledFlags := buildBootstrapper(5)
+
+		err := bs.RollBack(true)
+		require.Nil(t, err)
+
+		require.Equal(t, prevHdr.GetNonce(), blkc.GetCurrentBlockHeader().GetNonce())
+		require.Equal(t, prevHdrHash, blkc.GetCurrentBlockHeaderHash())
+		require.Equal(t, currHdr.GetNonce(), removedAtNonce["executionManager"])
+		require.Equal(t, currHdr.GetNonce(), removedAtNonce["restoredIntoPools"])
+		require.True(t, calledFlags["removeCommittedHeader"])
+		require.True(t, calledFlags["nonceHashStoreRemove"])
+		require.False(t, calledFlags["scheduledRollBack"])
+		require.Equal(t, [][]byte{currHdrHash}, outportCapture.revertedHashes)
+	})
+
+	t.Run("never crosses the final checkpoint, fork-driven included", func(t *testing.T) {
+		t.Parallel()
+
+		bs, blkc, outportCapture, removedAtNonce, calledFlags := buildBootstrapper(currHdr.GetNonce())
+
+		err := bs.RollBack(true)
+		require.Equal(t, sync.ErrRollBackBehindFinalHeader, err)
+
+		require.Equal(t, currHdr.GetNonce(), blkc.GetCurrentBlockHeader().GetNonce())
+		require.Empty(t, removedAtNonce)
+		require.Empty(t, calledFlags)
+		require.Empty(t, outportCapture.revertedHashes)
+	})
 }

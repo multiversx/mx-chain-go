@@ -10,6 +10,7 @@ import (
 type ForkDetectorMock struct {
 	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
 	RemoveHeaderCalled              func(nonce uint64, hash []byte)
+	RemoveCommittedHeaderCalled     func(nonce uint64, hash []byte)
 	CheckForkCalled                 func() *process.ForkInfo
 	GetHighestFinalBlockNonceCalled func() uint64
 	GetHighestFinalBlockHashCalled  func() []byte
@@ -37,6 +38,11 @@ func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, s
 // RemoveHeader is a mock implementation for RemoveHeader
 func (fdm *ForkDetectorMock) RemoveHeader(nonce uint64, hash []byte) {
 	fdm.RemoveHeaderCalled(nonce, hash)
+}
+
+// RemoveCommittedHeader -
+func (fdm *ForkDetectorMock) RemoveCommittedHeader(nonce uint64, hash []byte) {
+	fdm.RemoveCommittedHeaderCalled(nonce, hash)
 }
 
 // CheckFork is a mock implementation for CheckFork

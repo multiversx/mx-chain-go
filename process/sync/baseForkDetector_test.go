@@ -1768,3 +1768,61 @@ func TestBaseForkDetector_ReceivedProofForBlockHeaderShouldSetProof(t *testing.T
 	assert.Equal(t, []byte("hash0"), hdrInfos[1].Hash())
 	assert.Equal(t, true, hdrInfos[1].HasProof())
 }
+
+func TestBaseForkDetector_RemoveCommittedHeader(t *testing.T) {
+	t.Parallel()
+
+	sfd, _ := sync.NewShardForkDetector(
+		&mock.RoundHandlerMock{RoundIndex: 5},
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag || flag == common.SupernovaFlag
+			},
+		},
+		&testscommon.EnableRoundsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
+	)
+
+	hash1, hash2, competitorHash := []byte("hash1"), []byte("hash2"), []byte("competitorHash")
+	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
+	contendedHdr2 := &block.Header{Nonce: 2, Round: 4, PrevHash: hash1, PubKeysBitmap: []byte("X")}
+
+	_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+	_ = sfd.AddHeader(contendedHdr2, hash2, process.BHProcessed, nil, nil)
+	sfd.ReceivedProof(&block.HeaderProof{
+		HeaderHash:    competitorHash,
+		HeaderNonce:   2,
+		HeaderRound:   3,
+		HeaderShardId: 0,
+	})
+
+	// RemoveHeader refuses proofed headers, the committed one included
+	sfd.RemoveHeader(2, hash2)
+	assert.Len(t, sfd.GetHeaders(2), 2)
+	assert.Equal(t, uint64(2), sfd.LastCheckpointNonce())
+
+	// the deliberate switch removal drops the committed header and its checkpoint despite the proof
+	sfd.RemoveCommittedHeader(2, hash2)
+	hdrInfos := sfd.GetHeaders(2)
+	assert.Len(t, hdrInfos, 1)
+	assert.Equal(t, competitorHash, hdrInfos[0].Hash())
+	assert.Equal(t, uint64(1), sfd.LastCheckpointNonce())
+	assert.Equal(t, uint64(1), sfd.FinalCheckpointNonce())
+
+	// removal at or below the final checkpoint is refused
+	sfd.RemoveCommittedHeader(1, hash1)
+	assert.Len(t, sfd.GetHeaders(1), 1)
+	assert.Equal(t, uint64(1), sfd.LastCheckpointNonce())
+	assert.Equal(t, uint64(1), sfd.FinalCheckpointNonce())
+}

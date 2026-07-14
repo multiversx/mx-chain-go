@@ -468,6 +468,7 @@ type Bootstrapper interface {
 type ForkDetector interface {
 	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
 	RemoveHeader(nonce uint64, hash []byte)
+	RemoveCommittedHeader(nonce uint64, hash []byte)
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
 	GetHighestFinalBlockHash() []byte
