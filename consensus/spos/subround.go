@@ -166,6 +166,9 @@ func (sr *Subround) DoWork(ctx context.Context, roundHandler consensus.RoundHand
 
 	for {
 		select {
+		case <-ctx.Done():
+			sr.SetRoundCanceled(true)
+			return false
 		case <-sr.consensusStateChangedChannel:
 			if sr.Check() {
 				return true
