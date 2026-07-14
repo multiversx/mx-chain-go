@@ -182,6 +182,7 @@ type SentSignaturesTracker interface {
 	SignatureSent(pkBytes []byte)
 	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
 	GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
+	ReserveSignatureInRound(pkBytes []byte, roundIndex int64, headerHash []byte) bool
 	IsInterfaceNil() bool
 }
 

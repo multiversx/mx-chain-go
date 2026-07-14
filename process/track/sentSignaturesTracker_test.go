@@ -268,3 +268,27 @@ func TestSentSignaturesTracker_RecordSignedNonceAndGetSignedNonceInfo(t *testing
 		assert.Equal(t, int64(4), round)
 	})
 }
+
+func TestSentSignaturesTracker_ReserveSignatureInRound(t *testing.T) {
+	t.Parallel()
+
+	tracker, _ := NewSentSignaturesTracker(&testscommon.KeysHandlerStub{})
+	pk1, pk2 := []byte("pk1"), []byte("pk2")
+	hash1, hash2 := []byte("hash1"), []byte("hash2")
+
+	require.True(t, tracker.ReserveSignatureInRound(pk1, 10, hash1))
+	// same-hash re-send in the same round stays allowed
+	require.True(t, tracker.ReserveSignatureInRound(pk1, 10, hash1))
+	// a different hash in the same round is hard-refused
+	require.False(t, tracker.ReserveSignatureInRound(pk1, 10, hash2))
+	// enforced per key: another key may sign the other hash
+	require.True(t, tracker.ReserveSignatureInRound(pk2, 10, hash2))
+	// the next round is a fresh slot
+	require.True(t, tracker.ReserveSignatureInRound(pk1, 11, hash2))
+	// the refusal persists across StartRound
+	tracker.StartRound()
+	require.False(t, tracker.ReserveSignatureInRound(pk1, 11, hash1))
+	// rounds older than the retention window are forgotten
+	require.True(t, tracker.ReserveSignatureInRound(pk1, 20, hash1))
+	require.True(t, tracker.ReserveSignatureInRound(pk1, 10, hash2))
+}

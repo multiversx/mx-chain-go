@@ -80,6 +80,12 @@ type nonceRecoveryInfo struct {
 	lastAttempt time.Time
 }
 
+type reconcileEvidence struct {
+	nonce          uint64
+	localHash      []byte
+	competitorHash []byte
+}
+
 type baseBootstrap struct {
 	historyRepo dblookupext.HistoryRepository
 	headers     dataRetriever.HeadersPool
@@ -123,6 +129,9 @@ type baseBootstrap struct {
 	roundIndex            int64
 
 	forkInfo *process.ForkInfo
+
+	mutReconcile     sync.Mutex
+	pendingReconcile *reconcileEvidence
 
 	mutRcvHdrNonce           sync.RWMutex
 	mutRcvHdrHash            sync.RWMutex
@@ -1057,6 +1066,10 @@ func (boot *baseBootstrap) syncBlock() error {
 		boot.isNodeStateCalculated = false
 		boot.mutNodeState.Unlock()
 	}()
+
+	if boot.tryReconcileEquivocation() {
+		return nil
+	}
 
 	if boot.forkInfo.IsDetected {
 		boot.statusHandler.Increment(common.MetricNumTimesInForkChoice)
@@ -2239,6 +2252,134 @@ func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
 	return process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
 }
 
+// onEquivocationEvidence records a possible R-RECONCILE case, an equivocation proof at the final
+// head nonce; the evidence is verified and acted upon from the sync loop
+func (boot *baseBootstrap) onEquivocationEvidence(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler) {
+	if check.IfNil(headerProof) || headerProof.GetHeaderShardId() != boot.shardCoordinator.SelfId() {
+		return
+	}
+
+	nonce := headerProof.GetHeaderNonce()
+	if nonce != boot.forkDetector.GetHighestFinalBlockNonce() {
+		return
+	}
+
+	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+	localHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+	isFinalHead := !check.IfNil(currentHeader) && currentHeader.GetNonce() == nonce && currentHeader.IsHeaderV3()
+	if !isFinalHead {
+		return
+	}
+
+	competitorHash := pickCompetitorHash(localHash, headerProof, competingProofs)
+	if len(competitorHash) == 0 {
+		return
+	}
+
+	boot.mutReconcile.Lock()
+	boot.pendingReconcile = &reconcileEvidence{nonce: nonce, localHash: localHash, competitorHash: competitorHash}
+	boot.mutReconcile.Unlock()
+
+	log.Warn("equivocation proof observed at the final head nonce, reconcile evidence recorded",
+		"nonce", nonce,
+		"local hash", localHash,
+		"competitor hash", competitorHash)
+}
+
+func pickCompetitorHash(localHash []byte, headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler) []byte {
+	if !bytes.Equal(headerProof.GetHeaderHash(), localHash) {
+		return headerProof.GetHeaderHash()
+	}
+
+	for _, competingProof := range competingProofs {
+		if check.IfNil(competingProof) {
+			continue
+		}
+		if !bytes.Equal(competingProof.GetHeaderHash(), localHash) {
+			return competingProof.GetHeaderHash()
+		}
+	}
+
+	return nil
+}
+
+// tryReconcileEquivocation overrides the final gate and forces the switch when the final head is
+// childless and the equivocation competitor has a proofed child; never past a settled descendant
+func (boot *baseBootstrap) tryReconcileEquivocation() bool {
+	boot.mutReconcile.Lock()
+	evidence := boot.pendingReconcile
+	boot.mutReconcile.Unlock()
+
+	if evidence == nil {
+		return false
+	}
+
+	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+	stillApplies := !check.IfNil(currentHeader) &&
+		currentHeader.GetNonce() == evidence.nonce &&
+		bytes.Equal(currentHash, evidence.localHash) &&
+		evidence.nonce == boot.forkDetector.GetHighestFinalBlockNonce()
+	if !stillApplies {
+		boot.clearReconcileEvidence(evidence)
+		return false
+	}
+
+	if boot.hasProofedChild(evidence.nonce+1, evidence.localHash) {
+		boot.clearReconcileEvidence(evidence)
+		return false
+	}
+
+	selfID := boot.shardCoordinator.SelfId()
+	isCompetitorSettled := boot.proofs.HasProof(selfID, evidence.competitorHash) &&
+		boot.hasProofedChild(evidence.nonce+1, evidence.competitorHash)
+	if !isCompetitorSettled {
+		// the settling child may still arrive; keep the evidence armed for the next iteration
+		return false
+	}
+
+	boot.clearReconcileEvidence(evidence)
+
+	log.Error("reconcile backstop: switching away from a finalized block on equivocation evidence",
+		"nonce", evidence.nonce,
+		"local hash", evidence.localHash,
+		"competitor hash", evidence.competitorHash)
+	boot.statusHandler.Increment(common.MetricNumReconcileSwitches)
+
+	boot.forkDetector.ReconcileFinalCheckpoint(evidence.nonce)
+	process.AddHeaderToBlackList(boot.blackListHandler, evidence.localHash)
+	boot.forkDetector.SetRollBackNonce(evidence.nonce)
+
+	return true
+}
+
+func (boot *baseBootstrap) clearReconcileEvidence(evidence *reconcileEvidence) {
+	boot.mutReconcile.Lock()
+	if boot.pendingReconcile == evidence {
+		boot.pendingReconcile = nil
+	}
+	boot.mutReconcile.Unlock()
+}
+
+func (boot *baseBootstrap) hasProofedChild(nonce uint64, parentHash []byte) bool {
+	selfID := boot.shardCoordinator.SelfId()
+	headers, hashes, err := boot.headers.GetHeadersByNonceAndShardId(nonce, selfID)
+	if err != nil {
+		return false
+	}
+
+	for i, header := range headers {
+		if check.IfNil(header) || !bytes.Equal(header.GetPrevHash(), parentHash) {
+			continue
+		}
+		if boot.proofs.HasProof(selfID, hashes[i]) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (boot *baseBootstrap) isForcedRollBackOneBlock() bool {
 	return boot.forkInfo.IsDetected &&
 		boot.forkInfo.Nonce == math.MaxUint64 &&
@@ -2467,6 +2608,7 @@ func (boot *baseBootstrap) init() {
 	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock, core.UniqueIdentifier())
 	boot.headers.RegisterHandler(boot.processReceivedHeader)
 	boot.proofs.RegisterHandler(boot.processReceivedProof)
+	boot.proofs.RegisterEquivocationHandler(boot.onEquivocationEvidence)
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}

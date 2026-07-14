@@ -2284,7 +2284,7 @@ func TestMetaProcessor_createProposalMiniBlocks(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		err = mp.CreateProposalMiniBlocks(haveTimeFalse)
+		err = mp.CreateProposalMiniBlocks(10, haveTimeFalse)
 		require.Nil(t, err)
 	})
 	t.Run("with time and error returned by selectIncomingMiniBlocksForProposal", func(t *testing.T) {
@@ -2301,7 +2301,7 @@ func TestMetaProcessor_createProposalMiniBlocks(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		err = mp.CreateProposalMiniBlocks(haveTimeTrue)
+		err = mp.CreateProposalMiniBlocks(10, haveTimeTrue)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("with time and no error, no mini blocks/shard headers", func(t *testing.T) {
@@ -2313,7 +2313,7 @@ func TestMetaProcessor_createProposalMiniBlocks(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		err = mp.CreateProposalMiniBlocks(haveTimeTrue)
+		err = mp.CreateProposalMiniBlocks(10, haveTimeTrue)
 		require.Nil(t, err)
 	})
 }
@@ -2335,7 +2335,7 @@ func TestMetaProcessor_selectIncomingMiniBlocksForProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		err = mp.SelectIncomingMiniBlocksForProposal(haveTimeTrue)
+		err = mp.SelectIncomingMiniBlocksForProposal(10, haveTimeTrue)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("error from getLastCrossNotarizedShardHeaders", func(t *testing.T) {
@@ -2355,7 +2355,7 @@ func TestMetaProcessor_selectIncomingMiniBlocksForProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		err = mp.SelectIncomingMiniBlocksForProposal(haveTimeTrue)
+		err = mp.SelectIncomingMiniBlocksForProposal(10, haveTimeTrue)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("selection ok", func(t *testing.T) {
@@ -2366,7 +2366,7 @@ func TestMetaProcessor_selectIncomingMiniBlocksForProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		err = mp.SelectIncomingMiniBlocksForProposal(haveTimeTrue)
+		err = mp.SelectIncomingMiniBlocksForProposal(10, haveTimeTrue)
 		require.Nil(t, err)
 	})
 }
@@ -2396,7 +2396,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		var orderedHeaderHashes [][]byte
 
 		maxNumHeadersFromSameShard := uint32(2)
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, orderedHeaders, orderedHeaderHashes, maxNumHeadersFromSameShard, haveTimeTrue)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, orderedHeaders, orderedHeaderHashes, maxNumHeadersFromSameShard, haveTimeTrue)
 		require.Nil(t, err)
 	})
 
@@ -2430,7 +2430,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		orderedHeaders := []data.HeaderHandler{h}
 		orderedHeaderHashes := [][]byte{[]byte("h1")}
 
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, orderedHeaders, orderedHeaderHashes, 2, haveTimeFalse)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, orderedHeaders, orderedHeaderHashes, 2, haveTimeFalse)
 		require.Nil(t, err)
 		require.Equal(t, 0, addRefCnt)
 	})
@@ -2459,7 +2459,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 			GetNonceCalled:                   func() uint64 { return 11 },
 			GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 { return map[string]uint32{"x": 1} },
 		}
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 0, haveTimeTrue)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 0, haveTimeTrue)
 		require.Nil(t, err)
 		require.Equal(t, 0, called)
 	})
@@ -2489,7 +2489,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 			GetNonceCalled:                   func() uint64 { return 12 },
 			GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 { return map[string]uint32{"x": 1} },
 		}
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
 		require.Nil(t, err)
 		require.Equal(t, 0, cntAddRef)
 	})
@@ -2515,7 +2515,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		lastShardHeaders := createLastShardHeadersNotGenesis()
 		h1 := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 11 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{} }}
 		h2 := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 12 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{} }}
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h1, h2}, [][]byte{[]byte("h1"), []byte("h2")}, 1, haveTimeTrue)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h1, h2}, [][]byte{[]byte("h1"), []byte("h2")}, 1, haveTimeTrue)
 		require.Nil(t, err)
 		// only first header should be referenced
 		require.Equal(t, 1, cntAddRef)
@@ -2543,7 +2543,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 
 		lastShardHeaders := createLastShardHeadersNotGenesis()
 		h := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 11 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{} }}
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
 		require.Nil(t, err)
 		require.Equal(t, 0, cntAddRef)
 	})
@@ -2568,7 +2568,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 
 		lastShardHeaders := createLastShardHeadersNotGenesis()
 		h := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 11 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{} }}
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
 		require.Nil(t, err)
 		require.Equal(t, 1, cntAddRef)
 		// last shard header updated and marked used
@@ -2601,7 +2601,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 			GetNonceCalled:                   func() uint64 { return 11 },
 			GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{"mb": 1} },
 		}
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -2629,7 +2629,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		lastShardHeaders := createLastShardHeadersNotGenesis()
 		h1 := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 11 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{"mb": 1} }}
 		h2 := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 12 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{"mb": 1} }}
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h1, h2}, [][]byte{[]byte("h1"), []byte("h2")}, 2, haveTimeTrue)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h1, h2}, [][]byte{[]byte("h1"), []byte("h2")}, 2, haveTimeTrue)
 		require.Nil(t, err)
 		require.Equal(t, 0, cntAddRef)
 		// ensure second header was not processed due to break after first
@@ -2663,7 +2663,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 
 		lastShardHeaders := createLastShardHeadersNotGenesis()
 		h := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 11 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{"mb": 1} }}
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
 		require.Nil(t, err)
 		require.Equal(t, 1, cntAddMbs)
 		require.Equal(t, 1, cntAddRef)
@@ -2673,12 +2673,127 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 	})
 }
 
+func TestMetaProcessor_SelectContendedShardHeaders(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("parentHash")
+	hashLow, hashHigh := []byte("hashLow"), []byte("hashHigh")
+	parent := &block.Header{ShardID: 0, Nonce: 10, Round: 10}
+
+	buildProcessor := func(supernovaEnabled bool, candidateRounds []uint64, referenced *[][]byte) interface {
+		SelectContendedShardHeaders(round uint64, lastShardHdrs map[uint32]blproc.ShardHeaderInfo, hdrsAddedForShard map[uint32]uint32, haveTime func() bool) error
+	} {
+		candidates := make([]data.HeaderHandler, 0, len(candidateRounds))
+		candidateHashes := [][]byte{hashLow, hashHigh}[:len(candidateRounds)]
+		for _, round := range candidateRounds {
+			candidates = append(candidates, &block.Header{ShardID: 0, Nonce: 11, Round: round, PrevHash: parentHash})
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return supernovaEnabled && flag == common.SupernovaFlag
+			},
+		}
+		pools := dataComponents.DataPool
+		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
+			ph.HeadersCalled = func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {
+						return candidates, candidateHashes, nil
+					},
+				}
+			}
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool { return true },
+				}
+			}
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
+			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error { return nil },
+		}
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			AddReferencedHeaderCalled: func(header data.HeaderHandler, headerHash []byte) {
+				*referenced = append(*referenced, headerHash)
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		return mp
+	}
+
+	newLastShardHdrs := func() map[uint32]blproc.ShardHeaderInfo {
+		return map[uint32]blproc.ShardHeaderInfo{0: {Header: parent, Hash: parentHash}}
+	}
+
+	t.Run("holds within the discovery window", func(t *testing.T) {
+		t.Parallel()
+
+		referenced := make([][]byte, 0)
+		mp := buildProcessor(true, []uint64{14, 16}, &referenced)
+
+		// candidate round 14, window 3: rounds 15-16 still hold
+		err := mp.SelectContendedShardHeaders(16, newLastShardHdrs(), map[uint32]uint32{}, haveTimeTrue)
+		require.Nil(t, err)
+		require.Empty(t, referenced)
+	})
+
+	t.Run("includes the lowest-round proofed candidate after the window", func(t *testing.T) {
+		t.Parallel()
+
+		referenced := make([][]byte, 0)
+		mp := buildProcessor(true, []uint64{14, 16}, &referenced)
+
+		lastShardHdrs := newLastShardHdrs()
+		err := mp.SelectContendedShardHeaders(17, lastShardHdrs, map[uint32]uint32{}, haveTimeTrue)
+		require.Nil(t, err)
+		require.Equal(t, [][]byte{hashLow}, referenced)
+		require.Equal(t, hashLow, lastShardHdrs[0].Hash)
+	})
+
+	t.Run("skips a shard that already progressed", func(t *testing.T) {
+		t.Parallel()
+
+		referenced := make([][]byte, 0)
+		mp := buildProcessor(true, []uint64{14, 16}, &referenced)
+
+		err := mp.SelectContendedShardHeaders(17, newLastShardHdrs(), map[uint32]uint32{0: 1}, haveTimeTrue)
+		require.Nil(t, err)
+		require.Empty(t, referenced)
+	})
+
+	t.Run("skips non-contended candidates", func(t *testing.T) {
+		t.Parallel()
+
+		referenced := make([][]byte, 0)
+		mp := buildProcessor(true, []uint64{11}, &referenced)
+
+		err := mp.SelectContendedShardHeaders(17, newLastShardHdrs(), map[uint32]uint32{}, haveTimeTrue)
+		require.Nil(t, err)
+		require.Empty(t, referenced)
+	})
+
+	t.Run("does nothing without supernova", func(t *testing.T) {
+		t.Parallel()
+
+		referenced := make([][]byte, 0)
+		mp := buildProcessor(false, []uint64{14}, &referenced)
+
+		err := mp.SelectContendedShardHeaders(17, newLastShardHdrs(), map[uint32]uint32{}, haveTimeTrue)
+		require.Nil(t, err)
+		require.Empty(t, referenced)
+	})
+}
+
 func TestMetaProcessor_selectIncomingMiniBlocks_GapsAndDuplicates(t *testing.T) {
 	t.Parallel()
 
 	// helper to build a MetaProcessor with proofs pool behavior
 	type metaSel interface {
-		SelectIncomingMiniBlocks(lastShardHdr map[uint32]blproc.ShardHeaderInfo, orderedHdrs []data.HeaderHandler, orderedHdrsHashes [][]byte, maxNumHeadersFromSameShard uint32, haveTime func() bool) error
+		SelectIncomingMiniBlocks(lastShardHdr map[uint32]blproc.ShardHeaderInfo, orderedHdrs []data.HeaderHandler, orderedHdrsHashes [][]byte, maxNumHeadersFromSameShard uint32, haveTime func() bool) (map[uint32]uint32, error)
 	}
 	buildMp := func(hasProofFn func(shardID uint32, headerHash []byte) bool) metaSel {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
@@ -2700,7 +2815,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks_GapsAndDuplicates(t *testing.T) 
 		mp := buildMp(func(uint32, []byte) bool { return true })
 		lastShardHeaders := createLastShardHeadersNotGenesis()
 		h := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 11 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{} }}
-		err := mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{}, 2, haveTimeTrue)
+		_, err := mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{}, 2, haveTimeTrue)
 		require.Equal(t, process.ErrInconsistentShardHeadersAndHashes, err)
 	})
 
@@ -2711,7 +2826,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks_GapsAndDuplicates(t *testing.T) 
 		lastShardHeaders := createLastShardHeadersNotGenesis()
 		// header from shard 99, not present in lastShardHeaders map
 		h := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 99 }, GetNonceCalled: func() uint64 { return 1 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{} }}
-		err := mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
+		_, err := mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h}, [][]byte{[]byte("h1")}, 2, haveTimeTrue)
 		require.Equal(t, process.ErrMissingHeader, err)
 	})
 
@@ -2736,7 +2851,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks_GapsAndDuplicates(t *testing.T) 
 		lastShardHeaders := createLastShardHeadersNotGenesis()
 		h1 := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 11 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{} }}
 		h2 := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 11 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{} }}
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h1, h2}, [][]byte{[]byte("h1"), []byte("h2")}, 2, haveTimeTrue)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h1, h2}, [][]byte{[]byte("h1"), []byte("h2")}, 2, haveTimeTrue)
 		require.Nil(t, err)
 		require.Equal(t, 1, cntAddRef)
 		// last shard header updated to first hash and used
@@ -2765,7 +2880,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks_GapsAndDuplicates(t *testing.T) 
 		lastShardHeaders := createLastShardHeadersNotGenesis()
 		h1 := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 11 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{} }}
 		h2 := &testscommon.HeaderHandlerStub{GetShardIDCalled: func() uint32 { return 0 }, GetNonceCalled: func() uint64 { return 11 }, GetMiniBlockHeadersWithDstCalled: func(uint32) map[string]uint32 { return map[string]uint32{} }}
-		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h1, h2}, [][]byte{[]byte("h1"), []byte("h2")}, 2, haveTimeTrue)
+		_, err = mp.SelectIncomingMiniBlocks(lastShardHeaders, []data.HeaderHandler{h1, h2}, [][]byte{[]byte("h1"), []byte("h2")}, 2, haveTimeTrue)
 		require.Nil(t, err)
 		require.Equal(t, 1, cntAddRef)
 		// last shard header updated to second hash and used
@@ -3627,7 +3742,7 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 		require.ErrorContains(t, err, "included quarantined header")
 	})
 
-	t.Run("should return error for contended unsettled header", func(t *testing.T) {
+	t.Run("should work for contended unsettled header without a better competitor", func(t *testing.T) {
 		t.Parallel()
 
 		contendedHash := []byte("contended hash")
@@ -3647,6 +3762,11 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return false
 				},
 			},
+			"dataPool": &dataRetrieverMock.PoolsHolderStub{
+				HeadersCalled: func() dataRetriever.HeadersPool {
+					return &mock.HeadersCacherStub{}
+				},
+			},
 		})
 		require.Nil(t, err)
 
@@ -3659,7 +3779,60 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 		}, blproc.ShardHeaderInfo{
 			Header: &block.Header{Nonce: 1, Round: 1},
 		})
-		require.ErrorContains(t, err, "included contended header not yet settled")
+		require.Nil(t, err)
+	})
+
+	t.Run("should return error for contended unsettled header with a better proofed competitor", func(t *testing.T) {
+		t.Parallel()
+
+		contendedHash := []byte("contended hash")
+		parentHash := []byte("parent hash")
+		competitorHash := []byte("competitor hash")
+		competitorHdr := &block.Header{Nonce: 2, Round: 2, PrevHash: parentHash}
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"headerValidator": &processMocks.HeaderValidatorMock{
+				IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+					return nil
+				},
+			},
+			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.SupernovaFlag
+				},
+			},
+			"blockTracker": &integrationTestsMock.BlockTrackerStub{
+				IsSettledCrossHeaderCalled: func(header data.HeaderHandler, headerHash []byte) bool {
+					return false
+				},
+			},
+			"dataPool": &dataRetrieverMock.PoolsHolderStub{
+				HeadersCalled: func() dataRetriever.HeadersPool {
+					return &mock.HeadersCacherStub{
+						GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {
+							return []data.HeaderHandler{competitorHdr}, [][]byte{competitorHash}, nil
+						},
+					}
+				},
+			},
+			"proofsPool": &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return string(headerHash) == string(competitorHash)
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckHeadersSequenceCorrectness([]blproc.ShardHeaderInfo{
+			{
+				// rounds 2-4 skipped after the last notarized shard header
+				Header: &block.Header{Nonce: 2, Round: 5, PrevHash: parentHash},
+				Hash:   contendedHash,
+			},
+		}, blproc.ShardHeaderInfo{
+			Header: &block.Header{Nonce: 1, Round: 1},
+			Hash:   parentHash,
+		})
+		require.ErrorContains(t, err, "better proofed competitor")
 	})
 
 	t.Run("should work for contended settled header", func(t *testing.T) {

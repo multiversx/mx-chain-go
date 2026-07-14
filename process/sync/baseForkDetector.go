@@ -326,6 +326,34 @@ func (bfd *baseForkDetector) RemoveCommittedHeader(nonce uint64, hash []byte) {
 		"final checkpoint nonce", bfd.finalCheckpoint().nonce)
 }
 
+// ReconcileFinalCheckpoint lowers the final checkpoint below the given nonce; this is the only
+// sanctioned finality regression, gated on proven equivocation evidence (R-RECONCILE backstop)
+func (bfd *baseForkDetector) ReconcileFinalCheckpoint(nonce uint64) {
+	if nonce == 0 {
+		return
+	}
+	// only the exact final nonce may be reconciled: a higher final means settled descendants exist
+	if bfd.finalCheckpoint().nonce != nonce {
+		return
+	}
+
+	newFinal := &checkpointInfo{nonce: nonce - 1}
+
+	bfd.mutFork.Lock()
+	for _, checkpoint := range bfd.fork.checkpoint {
+		if checkpoint.nonce < nonce && checkpoint.nonce >= newFinal.nonce {
+			newFinal = checkpoint
+		}
+	}
+	bfd.fork.finalCheckpoint = newFinal
+	bfd.mutFork.Unlock()
+
+	log.Error("forkDetector.ReconcileFinalCheckpoint: final checkpoint lowered on equivocation evidence",
+		"nonce", nonce,
+		"new final nonce", newFinal.nonce,
+		"new final hash", newFinal.hash)
+}
+
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
 	bfd.mutFork.Lock()
 	preservedCheckpoint := make([]*checkpointInfo, 0)

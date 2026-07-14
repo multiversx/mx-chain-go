@@ -17,6 +17,10 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
+// metaArbitrationWindowRounds is the R-RESOLVE discovery window: rounds after a contended shard
+// header's round during which meta holds it so competing proofs can surface
+const metaArbitrationWindowRounds = 3
+
 // usedShardHeadersInfo holds the used shard headers information
 type usedShardHeadersInfo struct {
 	headersPerShard          map[uint32][]ShardHeaderInfo
@@ -839,17 +843,17 @@ func (mp *metaProcessor) createBlockBodyProposal(
 		"nonce", metaHdr.GetNonce(),
 	)
 
-	return mp.createProposalMiniBlocks(haveTime)
+	return mp.createProposalMiniBlocks(metaHdr.GetRound(), haveTime)
 }
 
-func (mp *metaProcessor) createProposalMiniBlocks(haveTime func() bool) error {
+func (mp *metaProcessor) createProposalMiniBlocks(round uint64, haveTime func() bool) error {
 	if !haveTime() {
 		log.Debug("metaProcessor.createProposalMiniBlocks", "error", process.ErrTimeIsOut)
 		return nil
 	}
 
 	startTime := time.Now()
-	err := mp.selectIncomingMiniBlocksForProposal(haveTime)
+	err := mp.selectIncomingMiniBlocksForProposal(round, haveTime)
 	if err != nil {
 		return err
 	}
@@ -860,6 +864,7 @@ func (mp *metaProcessor) createProposalMiniBlocks(haveTime func() bool) error {
 }
 
 func (mp *metaProcessor) selectIncomingMiniBlocksForProposal(
+	round uint64,
 	haveTime func() bool,
 ) error {
 	sw := core.NewStopWatch()
@@ -884,12 +889,12 @@ func (mp *metaProcessor) selectIncomingMiniBlocksForProposal(
 		process.MinShardHeadersFromSameShardInOneMetaBlock,
 		process.MaxShardHeadersAllowedInOneMetaBlock/mp.shardCoordinator.NumberOfShards(),
 	)
-	err = mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxShardHeadersFromSameShard, haveTime)
+	hdrsAddedForShard, err := mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxShardHeadersFromSameShard, haveTime)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return mp.selectContendedShardHeaders(round, lastShardHdrs, hdrsAddedForShard, haveTime)
 }
 
 func (mp *metaProcessor) selectIncomingMiniBlocks(
@@ -898,14 +903,13 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 	orderedHdrsHashes [][]byte,
 	maxShardHeadersFromSameShard uint32,
 	haveTime func() bool,
-) error {
+) (map[uint32]uint32, error) {
 	hdrsAdded := uint32(0)
 	maxShardHeadersAllowedInOneMetaBlock := maxShardHeadersFromSameShard * mp.shardCoordinator.NumberOfShards()
 	hdrsAddedForShard := make(map[uint32]uint32)
-	var err error
 
 	if len(orderedHdrs) != len(orderedHdrsHashes) {
-		return process.ErrInconsistentShardHeadersAndHashes
+		return nil, process.ErrInconsistentShardHeadersAndHashes
 	}
 
 	for i := 0; i < len(orderedHdrs); i++ {
@@ -927,7 +931,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		currHdrHash := orderedHdrsHashes[i]
 		lastShardHeaderInfo, ok := lastShardHdrs[currHdr.GetShardID()]
 		if !ok {
-			return process.ErrMissingHeader
+			return nil, process.ErrMissingHeader
 		}
 		if currHdr.GetNonce() != lastShardHeaderInfo.Header.GetNonce()+1 {
 			log.Trace("skip searching",
@@ -954,21 +958,34 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 			continue
 		}
 
-		if len(currHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
-			mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
-			lastShardHdrs[currHdr.GetShardID()] = ShardHeaderInfo{
-				Header:      currHdr,
-				Hash:        currHdrHash,
-				UsedInBlock: true,
-			}
-			hdrsAddedForShard[currHdr.GetShardID()]++
-			hdrsAdded++
-			continue
+		added, err := mp.addShardHeaderToSelection(currHdr, currHdrHash, lastShardHdrs)
+		if err != nil {
+			return nil, err
+		}
+		if !added {
+			break
 		}
 
+		hdrsAddedForShard[currHdr.GetShardID()]++
+		hdrsAdded++
+	}
+
+	go mp.requestShardHeadersInAdvanceIfNeeded(lastShardHdrs)
+
+	return hdrsAddedForShard, nil
+}
+
+// addShardHeaderToSelection includes the shard header in the current selection session; it returns
+// false when the header cannot be fully added and the selection should stop
+func (mp *metaProcessor) addShardHeaderToSelection(
+	currHdr data.HeaderHandler,
+	currHdrHash []byte,
+	lastShardHdrs map[uint32]ShardHeaderInfo,
+) (bool, error) {
+	if len(currHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) > 0 {
 		createIncomingMbsResult, errCreated := mp.createMbsCrossShardDstMe(currHdrHash, currHdr, nil)
 		if errCreated != nil {
-			return errCreated
+			return false, errCreated
 		}
 		if !createIncomingMbsResult.HeaderFinished {
 			mp.revertGasForCrossShardDstMeMiniBlocks(createIncomingMbsResult.AddedMiniBlocks, createIncomingMbsResult.PendingMiniBlocks)
@@ -976,29 +993,166 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 				"round", currHdr.GetRound(),
 				"nonce", currHdr.GetNonce(),
 				"hash", currHdrHash)
-			break
+			return false, nil
 		}
 
 		if len(createIncomingMbsResult.AddedMiniBlocks) > 0 {
-			err = mp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(createIncomingMbsResult.AddedMiniBlocks)
+			err := mp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(createIncomingMbsResult.AddedMiniBlocks)
 			if err != nil {
-				return err
+				return false, err
 			}
 		}
-
-		mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
-		lastShardHdrs[currHdr.GetShardID()] = ShardHeaderInfo{
-			Header:      currHdr,
-			Hash:        currHdrHash,
-			UsedInBlock: true,
-		}
-		hdrsAddedForShard[currHdr.GetShardID()]++
-		hdrsAdded++
 	}
 
-	go mp.requestShardHeadersInAdvanceIfNeeded(lastShardHdrs)
+	mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
+	lastShardHdrs[currHdr.GetShardID()] = ShardHeaderInfo{
+		Header:      currHdr,
+		Hash:        currHdrHash,
+		UsedInBlock: true,
+	}
+
+	return true, nil
+}
+
+// selectContendedShardHeaders arbitrates shards stalled on a contended nonce: past the discovery
+// window from the candidate's round, the lowest-(round,hash) proofed extender is included (R-RESOLVE)
+func (mp *metaProcessor) selectContendedShardHeaders(
+	round uint64,
+	lastShardHdrs map[uint32]ShardHeaderInfo,
+	hdrsAddedForShard map[uint32]uint32,
+	haveTime func() bool,
+) error {
+	if !mp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return nil
+	}
+
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		if !haveTime() {
+			return nil
+		}
+		if hdrsAddedForShard[shardID] > 0 {
+			continue
+		}
+
+		lastShardHeaderInfo, ok := lastShardHdrs[shardID]
+		if !ok {
+			continue
+		}
+
+		candidate, candidateHash := mp.getArbitrationCandidate(lastShardHeaderInfo)
+		if check.IfNil(candidate) {
+			continue
+		}
+		if !common.IsContendedHeader(candidate, lastShardHeaderInfo.Header) {
+			continue
+		}
+		if round < candidate.GetRound()+metaArbitrationWindowRounds {
+			log.Debug("selectContendedShardHeaders: holding contended shard header for proof discovery",
+				"shard", shardID,
+				"nonce", candidate.GetNonce(),
+				"candidate round", candidate.GetRound(),
+				"current round", round)
+			continue
+		}
+
+		added, err := mp.addShardHeaderToSelection(candidate, candidateHash, lastShardHdrs)
+		if err != nil {
+			return err
+		}
+		if !added {
+			continue
+		}
+
+		log.Debug("selectContendedShardHeaders: included contended shard header after discovery window",
+			"shard", shardID,
+			"nonce", candidate.GetNonce(),
+			"round", candidate.GetRound(),
+			"hash", candidateHash)
+	}
 
 	return nil
+}
+
+// checkShardHeaderContention rejects a contended unsettled shard header only when a better proofed
+// competitor extending the same parent is actionable locally (R-RESOLVE); the hold is proposer-side
+func (mp *metaProcessor) checkShardHeaderContention(header data.HeaderHandler, headerHash []byte, parentInfo ShardHeaderInfo) error {
+	if !mp.isContendedUnsettledCrossHeader(header, parentInfo.Header, headerHash) {
+		return nil
+	}
+
+	candidate, candidateHash := mp.getArbitrationCandidate(parentInfo)
+	if check.IfNil(candidate) || bytes.Equal(candidateHash, headerHash) {
+		return nil
+	}
+
+	isBetter := candidate.GetRound() < header.GetRound() ||
+		(candidate.GetRound() == header.GetRound() && bytes.Compare(candidateHash, headerHash) < 0)
+	if isBetter {
+		return fmt.Errorf("%w with hash %x, competitor hash %x", errContendedHeaderWithBetterCompetitor, headerHash, candidateHash)
+	}
+
+	return nil
+}
+
+// checkShardHeaderContentionComputingHash computes the hashes only on the contended path
+func (mp *metaProcessor) checkShardHeaderContentionComputingHash(header data.HeaderHandler, parentHeader data.HeaderHandler) error {
+	if !mp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return nil
+	}
+	if !common.IsContendedHeader(header, parentHeader) {
+		return nil
+	}
+
+	headerHash, err := mp.getHeaderHash(header)
+	if err != nil {
+		return err
+	}
+	parentHash, err := mp.getHeaderHash(parentHeader)
+	if err != nil {
+		return err
+	}
+
+	return mp.checkShardHeaderContention(header, headerHash, ShardHeaderInfo{Header: parentHeader, Hash: parentHash})
+}
+
+// getArbitrationCandidate returns the lowest-(round,hash) proofed, construction-valid header at the
+// nonce right after the given one and extending it, or nil when none is actionable locally
+func (mp *metaProcessor) getArbitrationCandidate(parentInfo ShardHeaderInfo) (data.HeaderHandler, []byte) {
+	shardID := parentInfo.Header.GetShardID()
+	nonce := parentInfo.Header.GetNonce() + 1
+
+	headers, hashes, err := mp.dataPool.Headers().GetHeadersByNonceAndShardId(nonce, shardID)
+	if err != nil {
+		return nil, nil
+	}
+
+	var best data.HeaderHandler
+	var bestHash []byte
+	for i, header := range headers {
+		if check.IfNil(header) || !bytes.Equal(header.GetPrevHash(), parentInfo.Hash) {
+			continue
+		}
+		if !mp.proofsPool.HasProof(shardID, hashes[i]) {
+			continue
+		}
+		if mp.blockTracker.IsHeaderQuarantined(hashes[i]) {
+			continue
+		}
+		errValidity := mp.headerValidator.IsHeaderConstructionValid(header, parentInfo.Header)
+		if errValidity != nil {
+			continue
+		}
+
+		isBetter := check.IfNil(best) ||
+			header.GetRound() < best.GetRound() ||
+			(header.GetRound() == best.GetRound() && bytes.Compare(hashes[i], bestHash) < 0)
+		if isBetter {
+			best = header
+			bestHash = hashes[i]
+		}
+	}
+
+	return best, bestHash
 }
 
 func (mp *metaProcessor) requestShardHeadersInAdvanceIfNeeded(
@@ -1209,8 +1363,9 @@ func (mp *metaProcessor) checkHeadersSequenceCorrectness(hdrsForShard []ShardHea
 			return fmt.Errorf("%w with hash %x", errIncludedQuarantinedHeader, shardHdrInfo.Hash)
 		}
 
-		if mp.isContendedUnsettledCrossHeader(shardHdrInfo.Header, lastNotarizedHeaderInfoForShard.Header, shardHdrInfo.Hash) {
-			return fmt.Errorf("%w with hash %x", errIncludedContendedUnsettledHeader, shardHdrInfo.Hash)
+		err = mp.checkShardHeaderContention(shardHdrInfo.Header, shardHdrInfo.Hash, lastNotarizedHeaderInfoForShard)
+		if err != nil {
+			return err
 		}
 
 		err = mp.headerValidator.IsHeaderConstructionValid(shardHdrInfo.Header, lastNotarizedHeaderInfoForShard.Header)

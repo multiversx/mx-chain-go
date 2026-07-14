@@ -263,6 +263,10 @@ const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 // proofs pool (different-hash proofs received for the same header nonce)
 const MetricNumEquivocationProofs = "erd_num_equivocation_proofs"
 
+// MetricNumReconcileSwitches is the metric that counts the reconcile backstop activations, each a
+// switch away from a finalized block on equivocation evidence
+const MetricNumReconcileSwitches = "erd_num_reconcile_switches"
+
 // MetricHighestFinalBlock is the metric for the nonce of the highest final block
 const MetricHighestFinalBlock = "erd_highest_final_nonce"
 

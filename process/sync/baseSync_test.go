@@ -965,3 +965,125 @@ func TestBaseBootstrap_CleanChannelsDrainsSignalChannel(t *testing.T) {
 
 	assert.Equal(t, 0, len(signalChan))
 }
+
+func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
+	t.Parallel()
+
+	finalNonce := uint64(10)
+	localHash, competitorHash := []byte("localHash"), []byte("competitorHash")
+	localHead := &block.HeaderV3{Nonce: finalNonce, Round: 12}
+
+	competitorProof := &block.HeaderProof{
+		HeaderHash:    competitorHash,
+		HeaderNonce:   finalNonce,
+		HeaderRound:   11,
+		HeaderShardId: 0,
+	}
+
+	type reconcileCalls struct {
+		reconciledNonce uint64
+		rollBackNonce   uint64
+		blacklisted     []string
+	}
+
+	buildBootstrapper := func(childrenOf []byte, calls *reconcileCalls) *baseBootstrap {
+		childHash := []byte("childHash")
+		child := &block.HeaderV3{Nonce: finalNonce + 1, Round: 13, PrevHash: childrenOf}
+
+		return &baseBootstrap{
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return localHead
+				},
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return localHash
+				},
+			},
+			forkDetector: &mock.ForkDetectorMock{
+				GetHighestFinalBlockNonceCalled: func() uint64 {
+					return finalNonce
+				},
+				ReconcileFinalCheckpointCalled: func(nonce uint64) {
+					calls.reconciledNonce = nonce
+				},
+				SetRollBackNonceCalled: func(nonce uint64) {
+					calls.rollBackNonce = nonce
+				},
+			},
+			headers: &mock.HeadersCacherStub{
+				GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {
+					if len(childrenOf) == 0 {
+						return nil, nil, errors.New("no headers")
+					}
+					return []data.HeaderHandler{child}, [][]byte{childHash}, nil
+				},
+			},
+			proofs: &testscommonDataRetriever.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return string(headerHash) == string(competitorHash) || string(headerHash) == string(childHash)
+				},
+			},
+			shardCoordinator: mock.NewOneShardCoordinatorMock(),
+			blackListHandler: &testscommon.TimeCacheStub{
+				AddCalled: func(key string) error {
+					calls.blacklisted = append(calls.blacklisted, key)
+					return nil
+				},
+			},
+			statusHandler: &statusHandlerMock.AppStatusHandlerStub{},
+		}
+	}
+
+	t.Run("fires when the final head is childless and the competitor has a proofed child", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		boot := buildBootstrapper(competitorHash, calls)
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+		require.NotNil(t, boot.pendingReconcile)
+
+		require.True(t, boot.tryReconcileEquivocation())
+		require.Equal(t, finalNonce, calls.reconciledNonce)
+		require.Equal(t, finalNonce, calls.rollBackNonce)
+		require.Equal(t, []string{string(localHash)}, calls.blacklisted)
+		require.Nil(t, boot.pendingReconcile)
+	})
+
+	t.Run("never fires against a block with a settled descendant", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		boot := buildBootstrapper(localHash, calls)
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+		require.False(t, boot.tryReconcileEquivocation())
+		require.Equal(t, uint64(0), calls.reconciledNonce)
+		require.Empty(t, calls.blacklisted)
+	})
+
+	t.Run("keeps the evidence armed while the competitor is unsettled", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		boot := buildBootstrapper(nil, calls)
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+		require.False(t, boot.tryReconcileEquivocation())
+		require.Equal(t, uint64(0), calls.reconciledNonce)
+		// the settling child may still arrive: the evidence must survive the failed attempt
+		require.NotNil(t, boot.pendingReconcile)
+	})
+
+	t.Run("ignores evidence away from the final head nonce", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		boot := buildBootstrapper(competitorHash, calls)
+
+		otherProof := &block.HeaderProof{HeaderHash: competitorHash, HeaderNonce: finalNonce + 3, HeaderShardId: 0}
+		boot.onEquivocationEvidence(otherProof, nil)
+		require.Nil(t, boot.pendingReconcile)
+		require.False(t, boot.tryReconcileEquivocation())
+	})
+}

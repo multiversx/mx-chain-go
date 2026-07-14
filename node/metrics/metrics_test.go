@@ -40,6 +40,7 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricNumShardHeadersProcessed,
 		common.MetricNumTimesInForkChoice,
 		common.MetricNumEquivocationProofs,
+		common.MetricNumReconcileSwitches,
 		common.MetricHighestFinalBlock,
 		common.MetricCountConsensusAcceptedBlocks,
 		common.MetricRoundsPassedInCurrentEpoch,

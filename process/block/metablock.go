@@ -2272,7 +2272,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr data.MetaHeaderHandle
 					return nil, fmt.Errorf("%w : checkShardHeadersValidity -> isHdrConstructionValid", err)
 				}
 
-				err = mp.checkNotContendedUnsettled(shardHdr, lastCrossNotarizedHeader[shardID])
+				err = mp.checkShardHeaderContentionComputingHash(shardHdr, lastCrossNotarizedHeader[shardID])
 				if err != nil {
 					return nil, fmt.Errorf("%w : checkShardHeadersValidity", err)
 				}
