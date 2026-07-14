@@ -1,13 +1,14 @@
 package ntpsync
 
 import (
+	"sort"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/ntp"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	"golang.org/x/exp/slices"
 )
 
 var log = logger.GetOrCreate("nonceSyncController")
@@ -98,7 +99,7 @@ func areNoncesInAscendingOrder(nonces []uint64) bool {
 
 	dst := make([]uint64, len(nonces))
 	copy(dst, nonces)
-	slices.Sort(dst)
+	sort.Slice(dst, func(i, j int) bool { return dst[i] < dst[j] })
 
 	for i := 1; i < len(dst); i++ {
 		if dst[i] != dst[i-1]+1 {
