@@ -151,13 +151,13 @@ func generateNodeName(providedNodeName string, index int) string {
 func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 	privateKey, err := holder.keyGenerator.PrivateKeyFromByteArray(privateKeyBytes)
 	if err != nil {
-		return fmt.Errorf("%w for provided bytes %s", err, hex.EncodeToString(privateKeyBytes))
+		return err
 	}
 
 	publicKey := privateKey.GeneratePublic()
 	publicKeyBytes, err := publicKey.ToByteArray()
 	if err != nil {
-		return fmt.Errorf("%w for provided bytes %s", err, hex.EncodeToString(privateKeyBytes))
+		return err
 	}
 
 	p2pPrivateKey, p2pPublicKey := holder.p2pKeyGenerator.GeneratePair()

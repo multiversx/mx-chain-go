@@ -26,6 +26,7 @@ type factory struct {
 	chainID               []byte
 	currentPid            core.PeerID
 	signatureThrottler    core.Throttler
+	ntpSyncController     spos.NtpSyncControllerHandler
 	// instantiated once on the factory so the evidence survives subround regeneration
 	signatureEvidence signatureEvidenceHandler
 }
@@ -56,6 +57,15 @@ func NewSubroundsFactory(
 		return nil, err
 	}
 
+	syncController, err := ntpsync.NewNtpSyncController(
+		consensusDataContainer.EquivalentProofsPool(),
+		consensusDataContainer.SyncTimer(),
+		consensusDataContainer.ShardCoordinator().SelfId(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	signatureEvidence, err := newSignatureEvidenceStore(consensusDataContainer.EquivalentProofsPool())
 	if err != nil {
 		return nil, err
@@ -72,6 +82,7 @@ func NewSubroundsFactory(
 		signatureThrottler:    signatureThrottler,
 		outportHandler:        outportHandler,
 		signatureEvidence:     signatureEvidence,
+		ntpSyncController:     syncController,
 	}
 
 	return &fct, nil
@@ -218,20 +229,11 @@ func (fct *factory) generateBlockSubround(timing config.ConsensusConfigByRound) 
 		return err
 	}
 
-	syncController, err := ntpsync.NewNtpSyncController(
-		subround.EquivalentProofsPool(),
-		subround.ConsensusCoreHandler.SyncTimer(),
-		fct.consensusCore.ShardCoordinator().SelfId(),
-	)
-	if err != nil {
-		return err
-	}
-
 	subroundBlockInstance, err := NewSubroundBlock(
 		subround,
 		int(timing.ProcessingThresholdPercent),
 		fct.worker,
-		syncController,
+		fct.ntpSyncController,
 		fct.signatureThrottler,
 		fct.signatureEvidence,
 	)
