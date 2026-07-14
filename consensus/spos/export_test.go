@@ -3,6 +3,7 @@ package spos
 import (
 	"context"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -134,7 +135,9 @@ func (wrk *Worker) ReceivedMessages() map[consensus.MessageType][]*consensus.Mes
 	wrk.mutReceivedMessages.RLock()
 	defer wrk.mutReceivedMessages.RUnlock()
 
-	return wrk.receivedMessages
+	receivedMessages := maps.Clone(wrk.receivedMessages)
+
+	return receivedMessages
 }
 
 // SetReceivedMessages -
