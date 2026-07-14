@@ -1388,3 +1388,11 @@ func TestIsContendedHeader(t *testing.T) {
 	require.True(t, common.IsContendedHeader(&testscommon.HeaderHandlerStub{RoundField: 3}, parent))
 	require.True(t, common.IsContendedHeader(&testscommon.HeaderHandlerStub{RoundField: 10}, parent))
 }
+
+func TestIsContendedRound(t *testing.T) {
+	t.Parallel()
+
+	require.False(t, common.IsContendedRound(2, 1))
+	require.True(t, common.IsContendedRound(3, 1))
+	require.True(t, common.IsContendedRound(10, 1))
+}

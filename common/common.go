@@ -648,5 +648,11 @@ func IsContendedHeader(header data.HeaderHandler, parentHeader data.HeaderHandle
 		return false
 	}
 
-	return header.GetRound() > parentHeader.GetRound()+1
+	return IsContendedRound(header.GetRound(), parentHeader.GetRound())
+}
+
+// IsContendedRound returns true if rounds were skipped between a parent at parentRound and its
+// child at round
+func IsContendedRound(round uint64, parentRound uint64) bool {
+	return round > parentRound+1
 }

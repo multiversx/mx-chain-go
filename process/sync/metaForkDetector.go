@@ -124,10 +124,15 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 	_ []data.HeaderHandler,
 	_ [][]byte,
 ) {
-	mfd.setFinalCheckpoint(mfd.lastCheckpoint())
+	lastCheckpoint := mfd.lastCheckpoint()
+	// under Supernova the committed header settles only the block it extends (settle-on-child)
+	canSettleLastCheckpoint := !mfd.isSupernovaForHeader(header) || isParentCheckpoint(lastCheckpoint, header)
+	if canSettleLastCheckpoint {
+		mfd.advanceFinalCheckpoint(lastCheckpoint)
+	}
 	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
 	mfd.addCheckpoint(newCheckpoint)
-	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) {
+	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) && mfd.canInstantlyFinalize(header) {
 		mfd.setFinalCheckpoint(newCheckpoint)
 	}
 	mfd.removePastOrInvalidRecords()

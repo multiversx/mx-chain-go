@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -294,7 +295,7 @@ func TestMetaForkDetector_AddHeaderWithProcessedBlockAndFlagShouldSetCheckpoint(
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return true
+				return flag != common.SupernovaFlag
 			},
 		},
 		&testscommon.EnableRoundsHandlerStub{},
@@ -583,5 +584,92 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 
 		err := bfd.CheckGenesisTimeForHeader(hdr1)
 		require.Nil(t, err)
+	})
+}
+
+func createMetaForkDetectorForFinality(enableEpochsHandler common.EnableEpochsHandler) interface {
+	process.ForkDetector
+	FinalCheckpointNonce() uint64
+	AddCheckPoint(round uint64, nonce uint64, hash []byte)
+} {
+	mfd, _ := sync.NewMetaForkDetector(
+		&mock.RoundHandlerMock{RoundIndex: 10},
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		0,
+		enableEpochsHandler,
+		&testscommon.EnableRoundsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
+	)
+
+	return mfd
+}
+
+func TestMetaForkDetector_DeferredFinalityUnderSupernova(t *testing.T) {
+	t.Parallel()
+
+	supernovaHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag || flag == common.SupernovaFlag
+		},
+	}
+	andromedaOnlyHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+
+	hash1, hash2, hash3, hash4 := []byte("hash1"), []byte("hash2"), []byte("hash3"), []byte("hash4")
+	hdr1 := &block.MetaBlock{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
+	contendedHdr2 := &block.MetaBlock{Nonce: 2, Round: 4, PrevHash: hash1, PubKeysBitmap: []byte("X")}
+	contendedHdr3 := &block.MetaBlock{Nonce: 3, Round: 7, PrevHash: hash2, PubKeysBitmap: []byte("X")}
+	cleanHdr4 := &block.MetaBlock{Nonce: 4, Round: 8, PrevHash: hash3, PubKeysBitmap: []byte("X")}
+
+	t.Run("contended block defers finality and settles on the next committed child", func(t *testing.T) {
+		t.Parallel()
+
+		mfd := createMetaForkDetectorForFinality(supernovaHandler)
+
+		_ = mfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(1), mfd.FinalCheckpointNonce())
+
+		_ = mfd.AddHeader(contendedHdr2, hash2, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(1), mfd.FinalCheckpointNonce())
+
+		// the contended child settles its parent but stays non-final itself
+		_ = mfd.AddHeader(contendedHdr3, hash3, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(2), mfd.FinalCheckpointNonce())
+
+		// the clean child settles its parent and is instantly final
+		_ = mfd.AddHeader(cleanHdr4, hash4, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(4), mfd.FinalCheckpointNonce())
+	})
+
+	t.Run("stale last checkpoint is not blindly settled", func(t *testing.T) {
+		t.Parallel()
+
+		mfd := createMetaForkDetectorForFinality(supernovaHandler)
+		mfd.AddCheckPoint(10, 5, []byte("headHash"))
+
+		olderHdr := &block.MetaBlock{Nonce: 3, Round: 4, PrevHash: []byte("otherHash"), PubKeysBitmap: []byte("X")}
+		_ = mfd.AddHeader(olderHdr, hash3, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(0), mfd.FinalCheckpointNonce())
+	})
+
+	t.Run("andromeda is instantly final", func(t *testing.T) {
+		t.Parallel()
+
+		mfd := createMetaForkDetectorForFinality(andromedaOnlyHandler)
+
+		_ = mfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+		_ = mfd.AddHeader(contendedHdr2, hash2, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(2), mfd.FinalCheckpointNonce())
 	})
 }

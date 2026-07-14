@@ -8234,3 +8234,70 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 		assert.Nil(t, err)
 	})
 }
+
+type finalizedBlocksCapture struct {
+	*outport.OutportStub
+	finalizedHashes [][]byte
+}
+
+func (capture *finalizedBlocksCapture) FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) {
+	capture.finalizedHashes = append(capture.finalizedHashes, finalizedBlock.HeaderHash)
+}
+
+func TestShardProcessor_UpdateStateSignalsNewlyFinalBlocksUnderSupernova(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag || flag == common.SupernovaFlag
+		},
+	}
+	poolsHolder := dataRetrieverMock.NewPoolsHolderMock()
+	dataComponents.DataPool = poolsHolder
+	outportCapture := &finalizedBlocksCapture{OutportStub: &outport.OutportStub{}}
+	statusComponents.Outport = outportCapture
+
+	hash5, hash6, hash7, hash8 := []byte("hash5"), []byte("hash6"), []byte("hash7"), []byte("hash8")
+	hdr5 := &block.Header{Nonce: 5, Round: 5}
+	contendedHdr6 := &block.Header{Nonce: 6, Round: 8, PrevHash: hash5}
+	cleanHdr7 := &block.Header{Nonce: 7, Round: 9, PrevHash: hash6}
+	cleanHdr8 := &block.Header{Nonce: 8, Round: 10, PrevHash: hash7}
+	poolsHolder.Headers().AddHeader(hash6, contendedHdr6)
+	poolsHolder.Headers().AddHeader(hash7, cleanHdr7)
+
+	finalNonce, finalHash := uint64(5), hash5
+
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return finalNonce
+		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return finalHash
+		},
+	}
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	// clean committed block is final and signaled at once
+	sp.UpdateStateStorage(nil, hdr5, hash5)
+	require.Equal(t, [][]byte{hash5}, outportCapture.finalizedHashes)
+	finalInfoNonce, finalInfoHash, _ := dataComponents.BlockChain.GetFinalBlockInfo()
+	require.Equal(t, uint64(5), finalInfoNonce)
+	require.Equal(t, hash5, finalInfoHash)
+
+	// contended committed block and its descendant are not signaled while unsettled
+	sp.UpdateStateStorage(nil, contendedHdr6, hash6)
+	sp.UpdateStateStorage(nil, cleanHdr7, hash7)
+	require.Equal(t, [][]byte{hash5}, outportCapture.finalizedHashes)
+	finalInfoNonce, _, _ = dataComponents.BlockChain.GetFinalBlockInfo()
+	require.Equal(t, uint64(5), finalInfoNonce)
+
+	// settlement advances the final checkpoint: each newly final block is signaled exactly once
+	finalNonce, finalHash = 8, hash8
+	sp.UpdateStateStorage(nil, cleanHdr8, hash8)
+	require.Equal(t, [][]byte{hash5, hash6, hash7, hash8}, outportCapture.finalizedHashes)
+	finalInfoNonce, finalInfoHash, _ = dataComponents.BlockChain.GetFinalBlockInfo()
+	require.Equal(t, uint64(8), finalInfoNonce)
+	require.Equal(t, hash8, finalInfoHash)
+}

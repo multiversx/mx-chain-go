@@ -1302,10 +1302,79 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		return
 	}
 
+	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, currentHeader.GetEpoch()) {
+		sp.signalNewlyFinalBlocks(currentHeader, currentHeaderHash)
+		return
+	}
+
 	sp.setFinalizedHeaderHashInIndexer(currentHeaderHash)
 
 	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
 	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
+}
+
+// signalNewlyFinalBlocks emits the external finality signals for the blocks finalized since the
+// previous commit; with deferred finality the committed header itself may not be final yet
+func (sp *shardProcessor) signalNewlyFinalBlocks(currentHeader data.HeaderHandler, currentHeaderHash []byte) {
+	finalNonce := sp.forkDetector.GetHighestFinalBlockNonce()
+	finalHash := sp.forkDetector.GetHighestFinalBlockHash()
+	if len(finalHash) == 0 || finalNonce <= sp.lastSignaledFinalNonce {
+		return
+	}
+
+	newlyFinalHashes := sp.getNewlyFinalHashes(finalNonce, finalHash, currentHeader, currentHeaderHash)
+	for i := len(newlyFinalHashes) - 1; i >= 0; i-- {
+		sp.setFinalizedHeaderHashInIndexer(newlyFinalHashes[i])
+	}
+	sp.lastSignaledFinalNonce = finalNonce
+
+	if finalNonce != currentHeader.GetNonce() {
+		return
+	}
+
+	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
+	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
+}
+
+// getNewlyFinalHashes walks the prev-hash chain from the final block back to the last signaled
+// nonce and returns the hashes in descending nonce order
+func (sp *shardProcessor) getNewlyFinalHashes(
+	finalNonce uint64,
+	finalHash []byte,
+	currentHeader data.HeaderHandler,
+	currentHeaderHash []byte,
+) [][]byte {
+	hashes := [][]byte{finalHash}
+	isFirstSignal := sp.lastSignaledFinalNonce == 0
+	if isFirstSignal || finalNonce == sp.lastSignaledFinalNonce+1 {
+		return hashes
+	}
+
+	header := currentHeader
+	if !bytes.Equal(finalHash, currentHeaderHash) {
+		var err error
+		header, err = process.GetShardHeader(finalHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
+		if err != nil {
+			log.Warn("signalNewlyFinalBlocks: cannot load final header, signaling only its hash",
+				"final nonce", finalNonce, "error", err.Error())
+			return hashes
+		}
+	}
+
+	for nonce := finalNonce - 1; nonce > sp.lastSignaledFinalNonce; nonce-- {
+		hash := header.GetPrevHash()
+		var err error
+		header, err = process.GetShardHeader(hash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
+		if err != nil {
+			log.Warn("signalNewlyFinalBlocks: cannot load newly final header, skipping older signals",
+				"nonce", nonce, "error", err.Error())
+			break
+		}
+
+		hashes = append(hashes, hash)
+	}
+
+	return hashes
 }
 
 func (sp *shardProcessor) pruneTrieHeaderV3(
