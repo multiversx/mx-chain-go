@@ -433,8 +433,8 @@ github.com/multiformats/go-varint v0.1.0 h1:i2wqFp4sdl3IcIxfAonHQV9qU5OsZ4Ts9IOo
 github.com/multiformats/go-varint v0.1.0/go.mod h1:5KVAVXegtfmNQQm/lCY+ATvDzvJJhSkUlGQV9wgObdI=
 github.com/multiversx/concurrent-map v0.1.4 h1:hdnbM8VE4b0KYJaGY5yJS2aNIW9TFFsUYwbO0993uPI=
 github.com/multiversx/concurrent-map v0.1.4/go.mod h1:8cWFRJDOrWHOTNSqgYCUvwT7c7eFQ4U2vKMOp4A/9+o=
-github.com/multiversx/mx-chain-communication-go v1.3.3-0.20260713103838-006a4655289b h1:CGuzk1ys5NCUE/fYaL/RzaYrbyLYKuvF3rh0I4uN05Y=
-github.com/multiversx/mx-chain-communication-go v1.3.3-0.20260713103838-006a4655289b/go.mod h1:0/QgXoE6smqEY966Ini7EIvnMF/7Px8g0rIKhz4s3kI=
+github.com/multiversx/mx-chain-communication-go v1.3.3-0.20260714092446-1857a64b5f02 h1:+Z+jJrjcEMXgJ2YmUFH3X2tGrRlwiuW5E35a6LOzWlM=
+github.com/multiversx/mx-chain-communication-go v1.3.3-0.20260714092446-1857a64b5f02/go.mod h1:0/QgXoE6smqEY966Ini7EIvnMF/7Px8g0rIKhz4s3kI=
 github.com/multiversx/mx-chain-core-go v1.5.1-0.20260713100334-14d633236974 h1:OXJwOcBjCY281WZA2KOo/VIQlcf0uJCk/z5QUAVHxSU=
 github.com/multiversx/mx-chain-core-go v1.5.1-0.20260713100334-14d633236974/go.mod h1:xEQ823/jcHNqHsMUoxStOCczO09/EDEbZl35A3esT6Q=
 github.com/multiversx/mx-chain-crypto-go v1.3.2-0.20260713100639-c3cf05776cb6 h1:7Kcjj07qzQFAT3FjUk007FPPBhs0jBMXtyJM+bRQM60=
