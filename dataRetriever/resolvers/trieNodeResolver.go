@@ -1,6 +1,8 @@
 package resolvers
 
 import (
+	"fmt"
+	"runtime/debug"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -63,8 +65,15 @@ func checkArgTrieNodeResolver(arg ArgTrieNodeResolver) error {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-	err := tnRes.canProcessMessage(message, fromConnectedPeer)
+func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) (msg []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logTrieNodes.Error("panic recovered", "peer", fromConnectedPeer, "panic", r, "stack", string(debug.Stack()))
+			err = fmt.Errorf("panic in TrieNodeResolver.ProcessReceivedMessage: %v", r)
+		}
+	}()
+
+	err = tnRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return nil, err
 	}

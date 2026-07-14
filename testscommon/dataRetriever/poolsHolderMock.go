@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 )
 
 // PoolsHolderMock -
@@ -39,6 +39,7 @@ type PoolsHolderMock struct {
 	executedMiniBlocks      storage.Cacher
 	postProcessTransactions storage.Cacher
 	directSentTransactions  storage.Cacher
+	quarantinedHeaders      storage.Cacher
 }
 
 // NewPoolsHolderMock -
@@ -55,7 +56,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 				SizeInBytesPerSender: 10000000,
 				Shards:               16,
 			},
-			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+			TxGasHandler:   mempool.NewTxGasHandlerMock(),
 			Marshalizer:    &marshal.GogoProtoMarshalizer{},
 			NumberOfShards: 1,
 			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
@@ -129,6 +130,9 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 		DefaultSpan: 10 * time.Second,
 		CacheExpiry: 10 * time.Second,
 	})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.quarantinedHeaders, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 100, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
 	return holder
@@ -237,6 +241,11 @@ func (holder *PoolsHolderMock) PostProcessTransactions() storage.Cacher {
 // DirectSentTransactions -
 func (holder *PoolsHolderMock) DirectSentTransactions() storage.Cacher {
 	return holder.directSentTransactions
+}
+
+// QuarantinedHeaders -
+func (holder *PoolsHolderMock) QuarantinedHeaders() storage.Cacher {
+	return holder.quarantinedHeaders
 }
 
 // SetProofsPool -

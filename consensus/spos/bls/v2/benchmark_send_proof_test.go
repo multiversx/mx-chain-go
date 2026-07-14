@@ -1,6 +1,7 @@
 package v2_test
 
 import (
+	"context"
 	"sort"
 	"testing"
 
@@ -120,7 +121,7 @@ func benchmarkSendProof(b *testing.B, numberOfKeys int) {
 	// Initialize consensus state with real keys
 	consensusState := initializers.InitConsensusStateWithArgsVerifySignature(keysHandlerMock, keys)
 	dataToBeSigned := []byte("block_header_hash_for_benchmark")
-	consensusState.Data = dataToBeSigned
+	consensusState.SetData(dataToBeSigned)
 
 	ch := make(chan bool, 1)
 
@@ -171,7 +172,7 @@ func benchmarkSendProof(b *testing.B, numberOfKeys int) {
 
 	// Create signature shares for all validators (simulating that all have signed)
 	for i := 0; i < len(keys); i++ {
-		_, err := signingHandler.CreateSignatureShareForPublicKey(dataToBeSigned, uint16(i), 0, []byte(keys[i]))
+		_, err := signingHandler.CreateSignatureShareForPublicKey(context.TODO(), dataToBeSigned, uint16(i), 0, []byte(keys[i]))
 		require.Nil(b, err)
 		err = srEndRound.SetJobDone(keys[i], bls.SrSignature, true)
 		require.Nil(b, err)
@@ -183,7 +184,7 @@ func benchmarkSendProof(b *testing.B, numberOfKeys int) {
 	for i := 0; i < b.N; i++ {
 		// Reset signature state for each iteration
 		for j := 0; j < len(keys); j++ {
-			_, _ = signingHandler.CreateSignatureShareForPublicKey(dataToBeSigned, uint16(j), 0, []byte(keys[j]))
+			_, _ = signingHandler.CreateSignatureShareForPublicKey(context.TODO(), dataToBeSigned, uint16(j), 0, []byte(keys[j]))
 		}
 
 		b.StartTimer()

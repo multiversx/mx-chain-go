@@ -26,7 +26,6 @@ type usedShardHeadersInfo struct {
 
 // CreateNewHeaderProposal creates a new header
 func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	// TODO: the trigger would need to be changed upon commit of a block with the epoch start results
 	epoch := mp.epochStartTrigger.Epoch()
 
 	header := mp.versionedHeaderFactory.Create(epoch, round)
@@ -170,19 +169,6 @@ func (mp *metaProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	txsInExecutionResults, err := getTxCountExecutionResults(metaHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	totalProcessedTxs := getTxCount(shardDataHandlers) + txsInExecutionResults
-	// TODO: consider if tx count per metablock header is still needed
-	// as we still have it in the execution results
-	err = metaHdr.SetTxCount(totalProcessedTxs)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	marshalledBody, err := mp.marshalizer.Marshal(body)
 	if err != nil {
 		return nil, nil, err
@@ -232,6 +218,20 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
+	shouldProposeEpochChange := mp.epochStartTrigger.ShouldProposeEpochChange(headerHandler.GetRound(), headerHandler.GetNonce())
+	isEpochChangeProposed := header.IsEpochChangeProposed()
+	// The header flag must match the trigger state in both directions:
+	// it is invalid if the header proposes an epoch change too early or misses one when required.
+	if isEpochChangeProposed != shouldProposeEpochChange {
+		log.Warn("epoch change proposal flag does not match trigger state",
+			"round", headerHandler.GetRound(),
+			"nonce", headerHandler.GetNonce(),
+			"flag from header", isEpochChangeProposed,
+			"flag from trigger", shouldProposeEpochChange,
+			"epochStartTrigger", mp.epochStartTrigger.Epoch())
+		return process.ErrEpochChangeProposedOutsideTriggerWindow
+	}
+
 	if header.IsEpochChangeProposed() && len(body.MiniBlocks) != 0 {
 		return process.ErrEpochStartProposeBlockHasMiniBlocks
 	}
@@ -247,7 +247,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		}
 	}
 
-	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
+	err = mp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), true)
 	if err != nil {
 		return err
 	}
@@ -300,7 +300,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	return mp.verifyGasLimit(header, body.MiniBlocks)
+	return mp.verifyGasLimit(header, body.MiniBlocks, false)
 }
 
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
@@ -1203,6 +1203,10 @@ func (mp *metaProcessor) checkHeadersSequenceCorrectness(hdrsForShard []ShardHea
 	for _, shardHdrInfo := range hdrsForShard {
 		if mp.isGenesisShardBlockAndFirstMeta(shardHdrInfo.Header.GetNonce()) {
 			continue
+		}
+
+		if mp.blockTracker.IsHeaderQuarantined(shardHdrInfo.Hash) {
+			return fmt.Errorf("%w with hash %x", errIncludedQuarantinedHeader, shardHdrInfo.Hash)
 		}
 
 		err = mp.headerValidator.IsHeaderConstructionValid(shardHdrInfo.Header, lastNotarizedHeaderInfoForShard.Header)

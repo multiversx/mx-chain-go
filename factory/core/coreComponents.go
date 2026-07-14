@@ -51,30 +51,32 @@ var log = logger.GetOrCreate("factory")
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
-	Config              config.Config
-	ConfigPathsHolder   config.ConfigurationPathsHolder
-	EpochConfig         config.EpochConfig
-	RoundConfig         config.RoundConfig
-	RatingsConfig       config.RatingsConfig
-	EconomicsConfig     config.EconomicsConfig
-	ImportDbConfig      config.ImportDbConfig
-	NodesConfig         config.NodesConfig
-	WorkingDirectory    string
-	ChanStopNodeProcess chan endProcess.ArgEndProcess
+	Config                config.Config
+	ConfigPathsHolder     config.ConfigurationPathsHolder
+	EpochConfig           config.EpochConfig
+	RoundConfig           config.RoundConfig
+	RatingsConfig         config.RatingsConfig
+	EconomicsConfig       config.EconomicsConfig
+	ImportDbConfig        config.ImportDbConfig
+	NodesConfig           config.NodesConfig
+	WorkingDirectory      string
+	ChanStopNodeProcess   chan endProcess.ArgEndProcess
+	PrintPrettifiedHeader bool
 }
 
 // coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
-	config              config.Config
-	configPathsHolder   config.ConfigurationPathsHolder
-	epochConfig         config.EpochConfig
-	roundConfig         config.RoundConfig
-	ratingsConfig       config.RatingsConfig
-	economicsConfig     config.EconomicsConfig
-	importDbConfig      config.ImportDbConfig
-	nodesSetupConfig    config.NodesConfig
-	workingDir          string
-	chanStopNodeProcess chan endProcess.ArgEndProcess
+	config                config.Config
+	configPathsHolder     config.ConfigurationPathsHolder
+	epochConfig           config.EpochConfig
+	roundConfig           config.RoundConfig
+	ratingsConfig         config.RatingsConfig
+	economicsConfig       config.EconomicsConfig
+	importDbConfig        config.ImportDbConfig
+	nodesSetupConfig      config.NodesConfig
+	workingDir            string
+	chanStopNodeProcess   chan endProcess.ArgEndProcess
+	printPrettifiedHeader bool
 }
 
 // coreComponents is the DTO used for core components
@@ -127,16 +129,17 @@ type coreComponents struct {
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
 	return &coreComponentsFactory{
-		config:              args.Config,
-		configPathsHolder:   args.ConfigPathsHolder,
-		epochConfig:         args.EpochConfig,
-		roundConfig:         args.RoundConfig,
-		ratingsConfig:       args.RatingsConfig,
-		importDbConfig:      args.ImportDbConfig,
-		economicsConfig:     args.EconomicsConfig,
-		workingDir:          args.WorkingDirectory,
-		chanStopNodeProcess: args.ChanStopNodeProcess,
-		nodesSetupConfig:    args.NodesConfig,
+		config:                args.Config,
+		configPathsHolder:     args.ConfigPathsHolder,
+		epochConfig:           args.EpochConfig,
+		roundConfig:           args.RoundConfig,
+		ratingsConfig:         args.RatingsConfig,
+		importDbConfig:        args.ImportDbConfig,
+		economicsConfig:       args.EconomicsConfig,
+		workingDir:            args.WorkingDirectory,
+		chanStopNodeProcess:   args.ChanStopNodeProcess,
+		nodesSetupConfig:      args.NodesConfig,
+		printPrettifiedHeader: args.PrintPrettifiedHeader,
 	}, nil
 }
 
@@ -188,6 +191,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		ccf.config.GeneralSettings.EpochStartConfigsByEpoch,
 		ccf.config.GeneralSettings.EpochStartConfigsByRound,
 		ccf.config.GeneralSettings.ConsensusConfigsByEpoch,
+		ccf.config.GeneralSettings.ConsensusConfigsByRound,
+		ccf.printPrettifiedHeader,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%w for commonConfigsHandler", err)

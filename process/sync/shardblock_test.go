@@ -245,8 +245,8 @@ func createStore() *storageStubs.ChainStorerStub {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
-	return cache
+	c, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
+	return c
 }
 
 func generateTestUnit() storage.Storer {
@@ -2236,6 +2236,417 @@ func TestShardBootstrap_DoJobOnSyncBlockFailShouldNotResetProbableHighestNonceWh
 	bs.DoJobOnSyncBlockFail(nil, nil, errors.New("error"))
 
 	assert.False(t, wasCalled)
+}
+
+func TestShardBootstrap_DoJobOnSyncBlockFailRemovesBlockingUnprovenHeader(t *testing.T) {
+	t.Parallel()
+
+	nextNonce := uint64(2)
+	hashY := []byte("hashY")
+	headerY := &block.Header{Nonce: nextNonce, Round: 5}
+
+	type capture struct {
+		removedFromPool         []byte
+		removedFromForkDetector bool
+		removedNonce            uint64
+	}
+
+	buildArgs := func(headerHasProof bool) (sync.ArgShardBootstrapper, *capture) {
+		c := &capture{}
+		args := CreateShardBootstrapMockArguments()
+
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+					if hdrNonce == nextNonce {
+						return []data.HeaderHandler{headerY}, [][]byte{hashY}, nil
+					}
+					return nil, nil, errors.New("missing header")
+				},
+				RemoveHeaderByHashCalled: func(headerHash []byte) {
+					c.removedFromPool = headerHash
+				},
+			}
+		}
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return headerHasProof
+				},
+			}
+		}
+		args.PoolsHolder = pools
+
+		args.ChainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler { return &block.Header{Nonce: 1} },
+			GetGenesisHeaderCalled:      func() data.HeaderHandler { return &block.Header{} },
+		}
+		args.ForkDetector = &mock.ForkDetectorMock{
+			RemoveHeaderCalled: func(nonce uint64, hash []byte) {
+				c.removedFromForkDetector = true
+				c.removedNonce = nonce
+			},
+		}
+		// not a proper round -> isolate the targeted removal from the rollback path
+		roundHandlerMock := &mock.RoundHandlerMock{}
+		roundHandlerMock.RoundIndex = 1
+		args.RoundHandler = roundHandlerMock
+		// proofs flag active -> the cached header genuinely needs a proof
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+
+		return args, c
+	}
+
+	t.Run("removes the unproven blocking header and resets the error counter when the limit is reached", func(t *testing.T) {
+		t.Parallel()
+
+		args, c := buildArgs(false)
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 100)
+
+		bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+
+		assert.Equal(t, hashY, c.removedFromPool)
+		assert.True(t, c.removedFromForkDetector)
+		assert.Equal(t, nextNonce, c.removedNonce)
+		assert.Equal(t, uint32(0), bs.GetNumSyncedWithErrorsForNonce(nextNonce))
+	})
+
+	t.Run("does not remove a header that has a proof", func(t *testing.T) {
+		t.Parallel()
+
+		args, c := buildArgs(true)
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 100)
+
+		bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+
+		assert.Nil(t, c.removedFromPool)
+		assert.False(t, c.removedFromForkDetector)
+	})
+
+	t.Run("does not remove before the error limit is reached", func(t *testing.T) {
+		t.Parallel()
+
+		args, c := buildArgs(false)
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 0)
+
+		bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+
+		assert.Nil(t, c.removedFromPool)
+		assert.False(t, c.removedFromForkDetector)
+	})
+}
+
+func TestShardBootstrap_DoJobOnSyncBlockFailExecutionResultsMismatchRecovery(t *testing.T) {
+	t.Parallel()
+
+	createExecResult := func(nonce uint64, rootHash []byte) *block.ExecutionResult {
+		return &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte(fmt.Sprintf("hash%d", nonce)),
+				HeaderNonce: nonce,
+				RootHash:    rootHash,
+			},
+		}
+	}
+
+	currentBlockNonce := uint64(5)
+	syncedHeaderNonce := currentBlockNonce + 1
+
+	createChainHandler := func() data.ChainHandler {
+		return &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{Nonce: currentBlockNonce}
+			},
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		}
+	}
+
+	createSyncedHeader := func(execResults ...*block.ExecutionResult) *block.HeaderV3 {
+		return &block.HeaderV3{
+			Nonce:            syncedHeaderNonce,
+			ExecutionResults: execResults,
+		}
+	}
+
+	t.Run("mismatch at first result triggers recovery with the diverging nonce", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.ChainHandler = createChainHandler()
+
+		removedNonces := make([]uint64, 0)
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{createExecResult(5, []byte("localRoot"))}, nil
+			},
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				removedNonces = append(removedNonces, nonce)
+				return nil
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetPreparedForSync(true)
+		bs.SetNumSyncedWithErrorsForNonce(syncedHeaderNonce, 3)
+
+		header := createSyncedHeader(createExecResult(5, []byte("canonicalRoot")))
+		bs.DoJobOnSyncBlockFail(nil, header, process.ErrExecutionResultDoesNotMatch)
+
+		require.Equal(t, []uint64{5}, removedNonces)
+		assert.False(t, bs.GetPreparedForSync())
+		assert.Equal(t, uint32(0), bs.GetNumSyncedWithErrorsForNonce(syncedHeaderNonce))
+		assert.Equal(t, uint32(1), bs.GetRecoveryAttemptsForNonce(5))
+	})
+
+	t.Run("mismatch mid-list rewinds to the first diverging nonce only", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.ChainHandler = createChainHandler()
+
+		removedNonces := make([]uint64, 0)
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{
+					createExecResult(3, []byte("rootA")),
+					createExecResult(4, []byte("rootB")),
+					createExecResult(5, []byte("localRoot")),
+				}, nil
+			},
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				removedNonces = append(removedNonces, nonce)
+				return nil
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetPreparedForSync(true)
+
+		header := createSyncedHeader(
+			createExecResult(3, []byte("rootA")),
+			createExecResult(4, []byte("rootB")),
+			createExecResult(5, []byte("canonicalRoot")),
+		)
+		bs.DoJobOnSyncBlockFail(nil, header, process.ErrExecutionResultDoesNotMatch)
+
+		require.Equal(t, []uint64{5}, removedNonces)
+		assert.False(t, bs.GetPreparedForSync())
+	})
+
+	t.Run("number mismatch error does not trigger recovery", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.ChainHandler = createChainHandler()
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				require.Fail(t, "should not have called RemoveAtNonceAndHigher")
+				return nil
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetPreparedForSync(true)
+
+		header := createSyncedHeader(createExecResult(5, []byte("canonicalRoot")))
+		bs.DoJobOnSyncBlockFail(nil, header, process.ErrExecutionResultsNumberMismatch)
+
+		assert.True(t, bs.GetPreparedForSync())
+		assert.Equal(t, uint32(1), bs.GetNumSyncedWithErrorsForNonce(syncedHeaderNonce))
+	})
+
+	t.Run("non-V3 header does not trigger recovery", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.ChainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{Nonce: currentBlockNonce}
+			},
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		}
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				require.Fail(t, "should not have called RemoveAtNonceAndHigher")
+				return nil
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetPreparedForSync(true)
+
+		bs.DoJobOnSyncBlockFail(nil, &block.Header{Nonce: syncedHeaderNonce}, process.ErrExecutionResultDoesNotMatch)
+
+		assert.True(t, bs.GetPreparedForSync())
+		assert.Equal(t, uint32(1), bs.GetNumSyncedWithErrorsForNonce(syncedHeaderNonce))
+	})
+
+	t.Run("no nonce-matched divergence falls back to last notarized + 1", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.ChainHandler = createChainHandler()
+
+		removedNonces := make([]uint64, 0)
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				// pending results match the header ones, the mismatch is not pending-related
+				return []data.BaseExecutionResultHandler{createExecResult(5, []byte("canonicalRoot"))}, nil
+			},
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return createExecResult(2, []byte("notarizedRoot")), nil
+			},
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				removedNonces = append(removedNonces, nonce)
+				return nil
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetPreparedForSync(true)
+
+		header := createSyncedHeader(createExecResult(5, []byte("canonicalRoot")))
+		bs.DoJobOnSyncBlockFail(nil, header, process.ErrExecutionResultDoesNotMatch)
+
+		require.Equal(t, []uint64{3}, removedNonces)
+		assert.False(t, bs.GetPreparedForSync())
+	})
+
+	t.Run("pending fetch error falls back to last notarized + 1", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.ChainHandler = createChainHandler()
+
+		removedNonces := make([]uint64, 0)
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return nil, errors.New("pending fetch error")
+			},
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return createExecResult(2, []byte("notarizedRoot")), nil
+			},
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				removedNonces = append(removedNonces, nonce)
+				return nil
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetPreparedForSync(true)
+
+		header := createSyncedHeader(createExecResult(5, []byte("canonicalRoot")))
+		bs.DoJobOnSyncBlockFail(nil, header, process.ErrExecutionResultDoesNotMatch)
+
+		require.Equal(t, []uint64{3}, removedNonces)
+		assert.False(t, bs.GetPreparedForSync())
+	})
+
+	t.Run("last notarized fetch error skips recovery", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.ChainHandler = createChainHandler()
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return nil, errors.New("pending fetch error")
+			},
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return nil, errors.New("notarized fetch error")
+			},
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				require.Fail(t, "should not have called RemoveAtNonceAndHigher")
+				return nil
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetPreparedForSync(true)
+
+		header := createSyncedHeader(createExecResult(5, []byte("canonicalRoot")))
+		bs.DoJobOnSyncBlockFail(nil, header, process.ErrExecutionResultDoesNotMatch)
+
+		assert.True(t, bs.GetPreparedForSync())
+		assert.Equal(t, uint32(1), bs.GetNumSyncedWithErrorsForNonce(syncedHeaderNonce))
+	})
+
+	t.Run("cooldown limits recovery to one attempt until it expires", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.ChainHandler = createChainHandler()
+
+		removedNonces := make([]uint64, 0)
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{createExecResult(5, []byte("localRoot"))}, nil
+			},
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				removedNonces = append(removedNonces, nonce)
+				return nil
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+
+		header := createSyncedHeader(createExecResult(5, []byte("canonicalRoot")))
+
+		bs.SetPreparedForSync(true)
+		bs.DoJobOnSyncBlockFail(nil, header, process.ErrExecutionResultDoesNotMatch)
+		require.Equal(t, []uint64{5}, removedNonces)
+		assert.False(t, bs.GetPreparedForSync())
+
+		// second occurrence within the cooldown window does not recover again
+		bs.SetPreparedForSync(true)
+		bs.DoJobOnSyncBlockFail(nil, header, process.ErrExecutionResultDoesNotMatch)
+		require.Equal(t, []uint64{5}, removedNonces)
+		assert.True(t, bs.GetPreparedForSync())
+		assert.Equal(t, uint32(1), bs.GetRecoveryAttemptsForNonce(5))
+
+		// once the cooldown expires, recovery is re-attempted
+		bs.SetExecutionResultsRecoveryCooldown(0)
+		bs.SetPreparedForSync(true)
+		bs.DoJobOnSyncBlockFail(nil, header, process.ErrExecutionResultDoesNotMatch)
+		require.Equal(t, []uint64{5, 5}, removedNonces)
+		assert.False(t, bs.GetPreparedForSync())
+		assert.Equal(t, uint32(2), bs.GetRecoveryAttemptsForNonce(5))
+	})
+
+	t.Run("RemoveAtNonceAndHigher failure leaves preparedForSync untouched", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateShardBootstrapMockArguments()
+		args.ChainHandler = createChainHandler()
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{createExecResult(5, []byte("localRoot"))}, nil
+			},
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				return errors.New("remove error")
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+		bs.SetPreparedForSync(true)
+
+		header := createSyncedHeader(createExecResult(5, []byte("canonicalRoot")))
+		bs.DoJobOnSyncBlockFail(nil, header, process.ErrExecutionResultDoesNotMatch)
+
+		assert.True(t, bs.GetPreparedForSync())
+		assert.Equal(t, uint32(1), bs.GetNumSyncedWithErrorsForNonce(syncedHeaderNonce))
+	})
 }
 
 func TestShardBootstrap_DoJobOnSyncBlockFailShouldResetProbableHighestNonce(t *testing.T) {

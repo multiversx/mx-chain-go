@@ -1,12 +1,16 @@
 package resolvers
 
 import (
+	"bytes"
+	"fmt"
+	"runtime/debug"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers/epochproviders/disabled"
@@ -23,6 +27,7 @@ var _ dataRetriever.HeaderResolver = (*HeaderResolver)(nil)
 type ArgHeaderResolver struct {
 	ArgBaseResolver
 	Headers              dataRetriever.HeadersPool
+	Proofs               dataRetriever.ProofsPool
 	HdrStorage           storage.Storer
 	HeadersNoncesStorage storage.Storer
 	NonceConverter       typeConverters.Uint64ByteSliceConverter
@@ -36,6 +41,7 @@ type HeaderResolver struct {
 	baseStorageResolver
 	messageProcessor
 	headers          dataRetriever.HeadersPool
+	proofs           dataRetriever.ProofsPool
 	hdrNoncesStorage storage.Storer
 	nonceConverter   typeConverters.Uint64ByteSliceConverter
 	mutEpochHandler  sync.RWMutex
@@ -56,6 +62,7 @@ func NewHeaderResolver(arg ArgHeaderResolver) (*HeaderResolver, error) {
 			TopicResolverSender: arg.SenderResolver,
 		},
 		headers:             arg.Headers,
+		proofs:              arg.Proofs,
 		baseStorageResolver: createBaseStorageResolver(arg.HdrStorage, arg.IsFullHistoryNode),
 		hdrNoncesStorage:    arg.HeadersNoncesStorage,
 		nonceConverter:      arg.NonceConverter,
@@ -79,6 +86,9 @@ func checkArgHeaderResolver(arg ArgHeaderResolver) error {
 	}
 	if check.IfNil(arg.Headers) {
 		return dataRetriever.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arg.Proofs) {
+		return dataRetriever.ErrNilProofsPool
 	}
 	if check.IfNil(arg.HdrStorage) {
 		return dataRetriever.ErrNilHeadersStorage
@@ -110,8 +120,15 @@ func (hdrRes *HeaderResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-	err := hdrRes.canProcessMessage(message, fromConnectedPeer)
+func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) (msg []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logTrieNodes.Error("panic recovered", "peer", fromConnectedPeer, "panic", r, "stack", string(debug.Stack()))
+			err = fmt.Errorf("panic in HeaderResolver.ProcessReceivedMessage: %v", r)
+		}
+	}()
+
+	err = hdrRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return nil, err
 	}
@@ -198,18 +215,40 @@ func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestDa
 }
 
 func (hdrRes *HeaderResolver) searchInCache(nonce uint64) ([]byte, error) {
-	headers, _, err := hdrRes.headers.GetHeadersByNonceAndShardId(nonce, hdrRes.TargetShardID())
+	headers, hashes, err := hdrRes.headers.GetHeadersByNonceAndShardId(nonce, hdrRes.TargetShardID())
 	if err != nil {
 		return nil, err
 	}
 
-	hdr := headers[len(headers)-1]
+	// serve the proven header, not a more recently received non-final fork at the same nonce
+	hdr := hdrRes.selectProvenOrLastHeader(nonce, headers, hashes)
 	buff, err := hdrRes.marshalizer.Marshal(hdr)
 	if err != nil {
 		return nil, err
 	}
 
 	return buff, nil
+}
+
+func (hdrRes *HeaderResolver) selectProvenOrLastHeader(
+	nonce uint64,
+	headers []data.HeaderHandler,
+	hashes [][]byte,
+) data.HeaderHandler {
+	lastHeader := headers[len(headers)-1]
+
+	proof, err := hdrRes.proofs.GetProofByNonce(nonce, hdrRes.TargetShardID())
+	if err != nil {
+		return lastHeader
+	}
+
+	for i, hash := range hashes {
+		if bytes.Equal(hash, proof.GetHeaderHash()) {
+			return headers[i]
+		}
+	}
+
+	return lastHeader
 }
 
 // resolveHeaderFromHash resolves a header using its key (header hash)

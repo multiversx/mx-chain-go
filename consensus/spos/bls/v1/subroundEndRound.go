@@ -23,11 +23,10 @@ import (
 
 type subroundEndRound struct {
 	*spos.Subround
-	processingThresholdPercentage int
-	displayStatistics             func()
-	appStatusHandler              core.AppStatusHandler
-	mutProcessingEndRound         sync.Mutex
-	sentSignatureTracker          spos.SentSignaturesTracker
+	displayStatistics     func()
+	appStatusHandler      core.AppStatusHandler
+	mutProcessingEndRound sync.Mutex
+	sentSignatureTracker  spos.SentSignaturesTracker
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -55,13 +54,14 @@ func NewSubroundEndRound(
 		return nil, ErrNilSentSignatureTracker
 	}
 
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
+
 	srEndRound := subroundEndRound{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
-		displayStatistics:             displayStatistics,
-		appStatusHandler:              appStatusHandler,
-		mutProcessingEndRound:         sync.Mutex{},
-		sentSignatureTracker:          sentSignatureTracker,
+		Subround:              baseSubround,
+		displayStatistics:     displayStatistics,
+		appStatusHandler:      appStatusHandler,
+		mutProcessingEndRound: sync.Mutex{},
+		sentSignatureTracker:  sentSignatureTracker,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -392,6 +392,9 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
 
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(sr.GetHeader(), "committed", "v1", sr.CommonConfigsHandler())
+
 	err = sr.broadcastBlockDataLeader()
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.broadcastBlockDataLeader", "error", err.Error())
@@ -479,9 +482,10 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
 
 func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
 	p2pMessages := make([]p2p.MessageP2P, 0)
+	headerHash := sr.GetData()
 
 	for _, pk := range invalidPubKeys {
-		p2pMsg, ok := sr.GetMessageWithSignature(pk)
+		p2pMsg, ok := sr.GetMessageWithSignature(spos.SignatureMessageKey(headerHash, pk))
 		if !ok {
 			log.Trace("message not found in state for invalid signer", "pubkey", pk)
 			continue
@@ -708,6 +712,9 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	log.Debug("step 3: Body and Header have been committed")
 
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(header, "committed", "v1", sr.CommonConfigsHandler())
+
 	headerTypeMsg := "received"
 	if cnsDta != nil {
 		headerTypeMsg = "assembled"
@@ -892,7 +899,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 
 func (sr *subroundEndRound) isOutOfTime() bool {
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),

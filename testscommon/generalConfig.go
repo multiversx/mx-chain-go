@@ -101,7 +101,22 @@ func GetGeneralConfig() config.Config {
 				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
 			},
 			ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
-				{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+				{
+					EnableEpoch: 0,
+					NumRoundsToWaitBeforeSignalingChronologyStuck: 10,
+				},
+			},
+			ConsensusConfigsByRound: []config.ConsensusConfigByRound{
+				{
+					EnableRound: 0,
+					SubroundsTiming: []config.SubroundTiming{
+						{StartTime: 0.0, EndTime: 0.05},
+						{StartTime: 0.05, EndTime: 0.25},
+						{StartTime: 0.25, EndTime: 0.85},
+						{StartTime: 0.85, EndTime: 0.95},
+					},
+					ProcessingThresholdPercent: 85,
+				},
 			},
 		},
 		EpochStartConfig: config.EpochStartConfig{
@@ -315,7 +330,7 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		HeartbeatV2: config.HeartbeatV2Config{
-			PeerAuthenticationTimeBetweenSendsInSec:          1,
+			PeerAuthenticationTimeBetweenSendsInSec:          10,
 			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 			PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 			HeartbeatTimeBetweenSendsInSec:                   1,
@@ -494,6 +509,7 @@ func GetGeneralConfig() config.Config {
 			CacheExpiryInSec: 1,
 		},
 		ExecutedMiniBlocksCache:      getLRUCacheConfig(),
+		QuarantinedHeadersCache:      getLRUCacheConfig(),
 		PostProcessTransactionsCache: getLRUCacheConfig(),
 		BlockSizeThrottleConfig: config.BlockSizeThrottleConfig{
 			MinSizeInBytes:        1,
@@ -522,7 +538,9 @@ func getLRUCacheConfig() config.CacheConfig {
 // GetDefaultAntifloodConfig -
 func GetDefaultAntifloodConfig() config.AntifloodConfig {
 	return config.AntifloodConfig{
-		Enabled: true,
+		Enabled:                              true,
+		MaxAllowedTrieNodeChunks:             10,
+		TrieNodeChunksInactivityTimeoutInSec: 10,
 		ConfigsByRound: []config.AntifloodConfigByRound{
 			{
 				Round:                               0,

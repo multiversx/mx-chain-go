@@ -230,6 +230,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
 
 	argsApiTransactionProc := &transactionAPI.ArgAPITransactionProcessor{
+		RoundHandler:             tpn.RoundHandler,
 		Marshalizer:              TestMarshalizer,
 		AddressPubKeyConverter:   TestAddressPubkeyConverter,
 		ShardCoordinator:         tpn.ShardCoordinator,
@@ -245,6 +246,8 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		EnableEpochsHandler:      tpn.EnableEpochsHandler,
 		EnableRoundsHandler:      tpn.EnableRoundsHandler,
 		TxVersionChecker:         versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
+		ChainHandler:             tpn.BlockChain,
+		TxProcessor:              tpn.TxProcessor,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)

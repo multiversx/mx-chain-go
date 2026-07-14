@@ -692,3 +692,29 @@ func TestFactory_SetIndexerShouldWork(t *testing.T) {
 
 	assert.Equal(t, outportHandler, fct.Outport())
 }
+
+func TestFactory_GenerateSubroundsUsesBaseRoundConfig(t *testing.T) {
+	t.Parallel()
+
+	chrm := &testscommonConsensus.ChronologyHandlerMock{}
+	container := testscommonConsensus.InitConsensusCore()
+	container.SetChronology(chrm)
+
+	worker := initWorker()
+	consensusState := initializers.InitConsensusState()
+	fct, err := v2.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMocks.ThrottlerStub{},
+		&testscommonOutport.OutportStub{},
+	)
+	require.Nil(t, err)
+
+	err = fct.GenerateSubrounds(0)
+	require.Nil(t, err)
+}

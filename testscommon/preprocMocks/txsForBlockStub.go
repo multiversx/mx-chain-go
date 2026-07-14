@@ -18,6 +18,7 @@ type TxsForBlockStub struct {
 	GetTxInfoByHashCalled                  func(hash []byte) (*process.TxInfo, bool)
 	GetAllCurrentUsedTxsCalled             func() map[string]data.TransactionHandler
 	GetMissingTxsCountCalled               func() int
+	ClearMissingTxsCountCalled             func()
 	ReceivedTransactionCalled              func(txHash []byte, tx data.TransactionHandler)
 	HasMissingTransactionsCalled           func() bool
 	ComputeExistingAndRequestMissingCalled func(body *block.Body, isMiniBlockCorrect func(block.Type) bool, txPool dataRetriever.ShardedDataCacherNotifier, onRequestTxs func(shardID uint32, txHashes [][]byte)) int
@@ -67,6 +68,13 @@ func (tfbs *TxsForBlockStub) GetMissingTxsCount() int {
 		return tfbs.GetMissingTxsCountCalled()
 	}
 	return 0
+}
+
+// ClearMissingTxsCount -
+func (tfbs *TxsForBlockStub) ClearMissingTxsCount() {
+	if tfbs.ClearMissingTxsCountCalled != nil {
+		tfbs.ClearMissingTxsCountCalled()
+	}
 }
 
 // ReceivedTransaction -

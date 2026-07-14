@@ -14,6 +14,19 @@ const (
 	defaultNumRoundsToWaitBeforeSignalingChronologyStuck = 10
 )
 
+const expectedSubroundsTimingCount = 4
+
+var defaultConsensusConfigByRound = config.ConsensusConfigByRound{
+	EnableRound: 0,
+	SubroundsTiming: []config.SubroundTiming{
+		{StartTime: 0.0, EndTime: 0.05},
+		{StartTime: 0.05, EndTime: 0.25},
+		{StartTime: 0.25, EndTime: 0.85},
+		{StartTime: 0.85, EndTime: 0.95},
+	},
+	ProcessingThresholdPercent: 85,
+}
+
 // ErrEmptyCommonConfigsByEpoch signals that an empty common configs by epoch has been provided
 var ErrEmptyCommonConfigsByEpoch = errors.New("empty common configs by epoch")
 
@@ -24,6 +37,8 @@ type commonConfigs struct {
 	orderedEpochStartConfigByEpoch []config.EpochStartConfigByEpoch
 	orderedEpochStartConfigByRound []config.EpochStartConfigByRound
 	orderedConsensusConfigByEpoch  []config.ConsensusConfigByEpoch
+	orderedConsensusConfigByRound  []config.ConsensusConfigByRound
+	printPrettifiedHeader          bool
 }
 
 // NewCommonConfigsHandler creates a new process configs by epoch component
@@ -31,6 +46,8 @@ func NewCommonConfigsHandler(
 	configsByEpoch []config.EpochStartConfigByEpoch,
 	configsByRound []config.EpochStartConfigByRound,
 	consensusConfigByEpoch []config.ConsensusConfigByEpoch,
+	consensusConfigByRound []config.ConsensusConfigByRound,
+	printPrettifiedHeader bool,
 ) (*commonConfigs, error) {
 	err := checkCommonConfigsByEpoch(configsByEpoch)
 	if err != nil {
@@ -46,10 +63,17 @@ func NewCommonConfigsHandler(
 		return nil, err
 	}
 
+	err = checkConsensusConfigsByRound(consensusConfigByRound)
+	if err != nil {
+		return nil, err
+	}
+
 	cc := &commonConfigs{
 		orderedEpochStartConfigByEpoch: make([]config.EpochStartConfigByEpoch, len(configsByEpoch)),
 		orderedEpochStartConfigByRound: make([]config.EpochStartConfigByRound, len(configsByRound)),
 		orderedConsensusConfigByEpoch:  make([]config.ConsensusConfigByEpoch, len(consensusConfigByEpoch)),
+		orderedConsensusConfigByRound:  make([]config.ConsensusConfigByRound, len(consensusConfigByRound)),
+		printPrettifiedHeader:          printPrettifiedHeader,
 	}
 
 	// sort the config values in ascending order
@@ -66,6 +90,11 @@ func NewCommonConfigsHandler(
 	copy(cc.orderedConsensusConfigByEpoch, consensusConfigByEpoch)
 	sort.SliceStable(cc.orderedConsensusConfigByEpoch, func(i, j int) bool {
 		return cc.orderedConsensusConfigByEpoch[i].EnableEpoch < cc.orderedConsensusConfigByEpoch[j].EnableEpoch
+	})
+
+	copy(cc.orderedConsensusConfigByRound, consensusConfigByRound)
+	sort.SliceStable(cc.orderedConsensusConfigByRound, func(i, j int) bool {
+		return cc.orderedConsensusConfigByRound[i].EnableRound < cc.orderedConsensusConfigByRound[j].EnableRound
 	})
 
 	return cc, nil
@@ -140,6 +169,71 @@ func checkConsensusConfigsByEpoch(configsByEpoch []config.ConsensusConfigByEpoch
 	return nil
 }
 
+func checkConsensusConfigsByRound(configsByRound []config.ConsensusConfigByRound) error {
+	if len(configsByRound) == 0 {
+		return ErrEmptyConsensusConfigsByRound
+	}
+
+	// check for duplicated rounds
+	seen := make(map[uint64]struct{})
+	for _, cfg := range configsByRound {
+		_, exists := seen[cfg.EnableRound]
+		if exists {
+			return ErrDuplicatedRoundConfig
+		}
+		seen[cfg.EnableRound] = struct{}{}
+
+		if err := checkSubroundsTiming(cfg); err != nil {
+			return err
+		}
+	}
+
+	_, exists := seen[0]
+	if !exists {
+		return ErrMissingRoundZeroConfig
+	}
+
+	return nil
+}
+
+func checkSubroundsTiming(cfg config.ConsensusConfigByRound) error {
+	// the slice must contain exactly one entry per subround
+	if len(cfg.SubroundsTiming) != expectedSubroundsTimingCount {
+		return ErrInvalidSubroundsTimingCount
+	}
+
+	// all values must be non-negative and each subround must have start < end
+	for _, t := range cfg.SubroundsTiming {
+		if t.StartTime < 0 || t.EndTime < 0 {
+			return ErrNegativeSubroundTiming
+		}
+		if t.StartTime >= t.EndTime {
+			return ErrInvalidSubroundTimingRange
+		}
+	}
+
+	// subrounds must be ordered, contiguous (no gaps), and non-overlapping
+	for i := 1; i < len(cfg.SubroundsTiming); i++ {
+		if cfg.SubroundsTiming[i].StartTime != cfg.SubroundsTiming[i-1].EndTime {
+			return ErrOverlappingSubroundTiming
+		}
+	}
+
+	// all boundary values must be < 1.0
+	for _, t := range cfg.SubroundsTiming {
+		if t.StartTime >= 1.0 || t.EndTime >= 1.0 {
+			return ErrSubroundTimingExceedsRound
+		}
+	}
+
+	// ProcessingThresholdPercent must be in (0, 100]
+	if cfg.ProcessingThresholdPercent == 0 || cfg.ProcessingThresholdPercent > 100 {
+		return ErrInvalidProcessingThreshold
+	}
+
+	return nil
+}
+
 // GetGracePeriodRoundsByEpoch returns the grace period rounds by epoch
 func (cc *commonConfigs) GetGracePeriodRoundsByEpoch(epoch uint32) uint32 {
 	for i := len(cc.orderedEpochStartConfigByEpoch) - 1; i >= 0; i-- {
@@ -182,6 +276,33 @@ func (cc *commonConfigs) GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch 
 	}
 
 	return defaultNumRoundsToWaitBeforeSignalingChronologyStuck // this should not happen
+}
+
+// GetSubroundsTimingByRound returns the subrounds timing configuration active for the given round
+func (cc *commonConfigs) GetSubroundsTimingByRound(round uint64) config.ConsensusConfigByRound {
+	for i := len(cc.orderedConsensusConfigByRound) - 1; i >= 0; i-- {
+		if cc.orderedConsensusConfigByRound[i].EnableRound <= round {
+			return cc.orderedConsensusConfigByRound[i]
+		}
+	}
+
+	return defaultConsensusConfigByRound // this should not happen
+}
+
+// GetActiveTimingBoundaryRound returns the EnableRound of the ConsensusConfigByRound entry that is active for the given round
+func (cc *commonConfigs) GetActiveTimingBoundaryRound(round uint64) uint64 {
+	for i := len(cc.orderedConsensusConfigByRound) - 1; i >= 0; i-- {
+		if cc.orderedConsensusConfigByRound[i].EnableRound <= round {
+			return cc.orderedConsensusConfigByRound[i].EnableRound
+		}
+	}
+
+	return 0
+}
+
+// PrintPrettifiedHeader returns whether prettified headers should be logged
+func (cc *commonConfigs) PrintPrettifiedHeader() bool {
+	return cc.printPrettifiedHeader
 }
 
 // IsInterfaceNil checks if the instance is nil

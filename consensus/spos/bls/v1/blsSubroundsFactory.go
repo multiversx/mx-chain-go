@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -106,22 +107,26 @@ func (fct *factory) GenerateSubrounds(_ uint32) error {
 	fct.worker.RemoveAllReceivedMessagesCalls()
 	fct.worker.RemoveAllReceivedHeaderHandlers()
 
-	err := fct.generateStartRoundSubround()
+	// the base (round 0) timing config is used for the initial generation; the chronology component
+	// reconciles the subrounds to whichever timing config is actually active at the current round
+	timing := fct.consensusCore.CommonConfigsHandler().GetSubroundsTimingByRound(0)
+
+	err := fct.generateStartRoundSubround(timing)
 	if err != nil {
 		return err
 	}
 
-	err = fct.generateBlockSubround()
+	err = fct.generateBlockSubround(timing)
 	if err != nil {
 		return err
 	}
 
-	err = fct.generateSignatureSubround()
+	err = fct.generateSignatureSubround(timing)
 	if err != nil {
 		return err
 	}
 
-	err = fct.generateEndRoundSubround()
+	err = fct.generateEndRoundSubround(timing)
 	if err != nil {
 		return err
 	}
@@ -133,14 +138,14 @@ func (fct *factory) getTimeDuration() time.Duration {
 	return fct.consensusCore.RoundHandler().TimeDuration()
 }
 
-func (fct *factory) generateStartRoundSubround() error {
+func (fct *factory) generateStartRoundSubround(timing config.ConsensusConfigByRound) error {
 	subround, err := spos.NewSubround(
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
 		fct.getTimeDuration(),
-		srStartStartTime,
-		srStartEndTime,
+		timing.SubroundsTiming[bls.SrStartRound].StartTime,
+		timing.SubroundsTiming[bls.SrStartRound].EndTime,
 		bls.GetSubroundName(bls.SrStartRound),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
@@ -157,7 +162,7 @@ func (fct *factory) generateStartRoundSubround() error {
 	subroundStartRoundInstance, err := NewSubroundStartRound(
 		subround,
 		fct.worker.Extend,
-		processingThresholdPercent,
+		int(timing.ProcessingThresholdPercent),
 		fct.worker.ExecuteStoredMessages,
 		fct.worker.ResetConsensusMessages,
 		fct.sentSignaturesTracker,
@@ -176,14 +181,14 @@ func (fct *factory) generateStartRoundSubround() error {
 	return nil
 }
 
-func (fct *factory) generateBlockSubround() error {
+func (fct *factory) generateBlockSubround(timing config.ConsensusConfigByRound) error {
 	subround, err := spos.NewSubround(
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
 		fct.getTimeDuration(),
-		srBlockStartTime,
-		srBlockEndTime,
+		timing.SubroundsTiming[bls.SrBlock].StartTime,
+		timing.SubroundsTiming[bls.SrBlock].EndTime,
 		bls.GetSubroundName(bls.SrBlock),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
@@ -200,7 +205,7 @@ func (fct *factory) generateBlockSubround() error {
 	subroundBlockInstance, err := NewSubroundBlock(
 		subround,
 		fct.worker.Extend,
-		processingThresholdPercent,
+		int(timing.ProcessingThresholdPercent),
 	)
 	if err != nil {
 		return err
@@ -215,14 +220,14 @@ func (fct *factory) generateBlockSubround() error {
 	return nil
 }
 
-func (fct *factory) generateSignatureSubround() error {
+func (fct *factory) generateSignatureSubround(timing config.ConsensusConfigByRound) error {
 	subround, err := spos.NewSubround(
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
 		fct.getTimeDuration(),
-		srSignatureStartTime,
-		srSignatureEndTime,
+		timing.SubroundsTiming[bls.SrSignature].StartTime,
+		timing.SubroundsTiming[bls.SrSignature].EndTime,
 		bls.GetSubroundName(bls.SrSignature),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
@@ -252,14 +257,14 @@ func (fct *factory) generateSignatureSubround() error {
 	return nil
 }
 
-func (fct *factory) generateEndRoundSubround() error {
+func (fct *factory) generateEndRoundSubround(timing config.ConsensusConfigByRound) error {
 	subround, err := spos.NewSubround(
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
 		fct.getTimeDuration(),
-		srEndStartTime,
-		srEndEndTime,
+		timing.SubroundsTiming[bls.SrEndRound].StartTime,
+		timing.SubroundsTiming[bls.SrEndRound].EndTime,
 		bls.GetSubroundName(bls.SrEndRound),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),

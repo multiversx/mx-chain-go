@@ -87,6 +87,7 @@ type RequestersFinder interface {
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	AddShardTrieNodeResolvers(container ResolversContainer) error
 	IsInterfaceNil() bool
 }
 
@@ -119,6 +120,7 @@ type RequestersContainer interface {
 // RequestersContainerFactory defines the functionality to create a requesters container
 type RequestersContainerFactory interface {
 	Create() (RequestersContainer, error)
+	AddShardTrieNodeRequesters(container RequestersContainer) error
 	IsInterfaceNil() bool
 }
 
@@ -176,7 +178,9 @@ type ShardedDataCacherNotifier interface {
 	SearchFirstData(key []byte) (value interface{}, ok bool)
 	RemoveData(key []byte, cacheId string)
 	RemoveSetOfDataFromPool(keys [][]byte, cacheId string)
-	ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string)
+	ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string, nonce uint64)
+	SetOldestImmuneNonce(cacheId string, nonce uint64)
+	SetOldestImmuneNonceForAllCaches(nonce uint64)
 	RemoveDataFromAllShards(key []byte)
 	MergeShardStores(sourceCacheID, destCacheID string)
 	Clear()
@@ -264,6 +268,7 @@ type PoolsHolder interface {
 	ExecutedMiniBlocks() storage.Cacher
 	PostProcessTransactions() storage.Cacher
 	DirectSentTransactions() storage.Cacher
+	QuarantinedHeaders() storage.Cacher
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -385,6 +390,7 @@ type PeerAuthenticationPayloadValidator interface {
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
+	AddProofIfNoneAtNonce(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler)
 	UpsertProof(headerProof data.HeaderProofHandler) bool
 	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
 	CleanupProofsBehindNonce(shardID uint32, nonce uint64) error

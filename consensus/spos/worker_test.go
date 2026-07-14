@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -61,7 +62,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		RevertCurrentBlockCalled: func() {
 		},
 		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
-			return nil
+			return &block.Body{}
 		},
 	}
 	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
@@ -118,6 +119,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		NetworkShardingCollector: &p2pmocks.NetworkShardingCollectorStub{},
 		AntifloodHandler:         createMockP2PAntifloodHandler(),
 		PoolAdder:                poolAdder,
+		WhiteListHandler:         &testscommon.WhiteListHandlerStub{},
 		SignatureSize:            SignatureSize,
 		PublicKeySize:            PublicKeySize,
 		AppStatusHandler:         appStatusHandler,
@@ -414,6 +416,45 @@ func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(wrk))
 }
 
+func TestWorker_AddBlockToPoolShouldNotAddIfOneInvalidMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				Type:            block.TxBlock,
+				SenderShardID:   0,
+				ReceiverShardID: 1,
+			},
+			{
+				Type:            block.TxBlock,
+				SenderShardID:   1,
+				ReceiverShardID: 0,
+			},
+			// Invalid miniBlock
+			{
+				Type:            block.TxBlock,
+				SenderShardID:   1,
+				ReceiverShardID: 0,
+				Reserved:        bytes.Repeat([]byte{1}, 11),
+			},
+		},
+	}
+	workerArgs.BlockProcessor = &testscommon.BlockProcessorStub{
+		DecodeBlockBodyCalled: func(_ []byte) data.BodyHandler {
+			return body
+		},
+	}
+
+	wrk, err := spos.NewWorker(workerArgs)
+	require.NoError(t, err)
+
+	wrk.AddBlockToPool(nil)
+
+	require.Equal(t, 0, workerArgs.PoolAdder.(*cache.CacherMock).Len())
+}
+
 func TestWorker_ProcessReceivedMessageShouldErrIfFloodIsDetectedOnTopic(t *testing.T) {
 	t.Parallel()
 
@@ -526,6 +567,7 @@ func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 
 func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	t.Parallel()
+
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
@@ -547,13 +589,76 @@ func TestWorker_ProcessReceivedMessageTxBlockBodyShouldRetNil(t *testing.T) {
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	time.Sleep(time.Second)
+
 	msg := &p2pmocks.P2PMessageMock{
 		DataField:      buff,
 		PeerField:      currentPid,
 		SignatureField: []byte("signature"),
 	}
+
 	msgID, err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
 	assert.Nil(t, err)
+	assert.Len(t, msgID, 0)
+}
+
+func TestWorker_ProcessReceivedMessage_InvalidBody_ShouldFail(t *testing.T) {
+	t.Parallel()
+
+	blk := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				SenderShardID:   1,
+				ReceiverShardID: 2,
+				Type:            block.TxBlock,
+			},
+			&block.MiniBlock{
+				SenderShardID:   1, // invalid sender shard id
+				ReceiverShardID: 0,
+				Type:            block.RewardsBlock,
+			},
+		},
+	}
+	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
+
+	blockProcessor := &testscommon.BlockProcessorStub{
+		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
+			return blk
+		},
+	}
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	workerArgs.BlockProcessor = blockProcessor
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+	cnsMsg := consensus.NewConsensusMessage(
+		nil,
+		nil,
+		blkStr,
+		nil,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		signature,
+		int(bls.MtBlockBody),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+		nil,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
+	time.Sleep(time.Second)
+
+	msg := &p2pmocks.P2PMessageMock{
+		DataField:      buff,
+		PeerField:      currentPid,
+		SignatureField: []byte("signature"),
+	}
+
+	msgID, err := wrk.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	assert.ErrorIs(t, err, process.ErrInvalidShardId)
 	assert.Len(t, msgID, 0)
 }
 
@@ -609,10 +714,30 @@ func TestWorker_ProcessReceivedMessageRedundancyNodeShouldResetInactivityIfNeede
 		},
 	}
 	wrk.SetNodeRedundancyHandler(nodeRedundancyMock)
-	buff, _ := wrk.Marshalizer().Marshal(&consensus.Message{})
+	hdr := &block.Header{ChainID: chainID}
+	hdrHash, _ := core.CalculateHash(mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, hdr)
+	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	cnsMsg := consensus.NewConsensusMessage(
+		hdrHash,
+		nil,
+		nil,
+		hdrStr,
+		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		signature,
+		int(bls.MtBlockHeader),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+		nil,
+	)
+	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	_, _ = wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
 			DataField:      buff,
+			PeerField:      currentPid,
 			SignatureField: []byte("signature"),
 		},
 		fromConnectedPeerId,
@@ -2065,6 +2190,95 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 	assert.Equal(t, int32(1), atomic.LoadInt32(&executed))
 }
 
+func TestWorker_ExtendShouldNotRemoveConsensusHeaderFromPoolsWhenAsyncExecutionIsEnabled(t *testing.T) {
+	t.Parallel()
+
+	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
+	headerHash := []byte("header hash")
+	header := &block.HeaderV3{
+		Nonce: 7,
+		Epoch: 1,
+	}
+	wrk.ConsensusState().SetHeader(header)
+	wrk.ConsensusState().SetData(headerHash)
+
+	revertCalled := false
+	removeHeaderFromPoolCalled := false
+	blockProcessor := &testscommon.BlockProcessorStub{
+		RevertCurrentBlockCalled: func() {
+			revertCalled = true
+		},
+		RemoveHeaderFromPoolCalled: func(headerHash []byte) {
+			removeHeaderFromPoolCalled = true
+		},
+	}
+	wrk.SetBlockProcessor(blockProcessor)
+
+	removeHeaderFromForkDetectorCalled := false
+	wrk.SetForkDetector(&processMocks.ForkDetectorStub{
+		RemoveHeaderCalled: func(nonce uint64, hash []byte) {
+			removeHeaderFromForkDetectorCalled = true
+		},
+	})
+	wrk.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	})
+
+	wrk.Extend(1)
+
+	require.False(t, revertCalled)
+	require.False(t, removeHeaderFromPoolCalled)
+	require.False(t, removeHeaderFromForkDetectorCalled)
+}
+
+func TestWorker_ExtendShouldRemoveConsensusHeaderFromPoolsWhenAsyncExecutionIsDisabled(t *testing.T) {
+	t.Parallel()
+
+	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
+	headerHash := []byte("header hash")
+	header := &block.Header{
+		Nonce: 7,
+		Epoch: 1,
+	}
+	wrk.ConsensusState().SetHeader(header)
+	wrk.ConsensusState().SetData(headerHash)
+
+	revertCalled := false
+	removeHeaderFromPoolCalled := false
+	blockProcessor := &testscommon.BlockProcessorStub{
+		RevertCurrentBlockCalled: func() {
+			revertCalled = true
+		},
+		RemoveHeaderFromPoolCalled: func(hash []byte) {
+			removeHeaderFromPoolCalled = true
+			require.Equal(t, headerHash, hash)
+		},
+	}
+	wrk.SetBlockProcessor(blockProcessor)
+
+	removeHeaderFromForkDetectorCalled := false
+	wrk.SetForkDetector(&processMocks.ForkDetectorStub{
+		RemoveHeaderCalled: func(nonce uint64, hash []byte) {
+			removeHeaderFromForkDetectorCalled = true
+			require.Equal(t, header.GetNonce(), nonce)
+			require.Equal(t, headerHash, hash)
+		},
+	})
+	wrk.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	})
+
+	wrk.Extend(1)
+
+	require.True(t, revertCalled)
+	require.True(t, removeHeaderFromPoolCalled)
+	require.True(t, removeHeaderFromForkDetectorCalled)
+}
+
 func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
@@ -2206,7 +2420,19 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Len(t, msgID, 0)
 
-		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(string(pubKey))
+		msgType := consensus.MessageType(cnsMsg.MsgType)
+		require.Eventually(t, func() bool {
+			return len(wrk.ReceivedMessages()[msgType]) == 1
+		}, time.Second, time.Millisecond)
+
+		msgID, err = wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
+		assert.Nil(t, err)
+		assert.Len(t, msgID, 0)
+
+		time.Sleep(10 * time.Millisecond)
+		require.Len(t, wrk.ReceivedMessages()[msgType], 1)
+
+		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(spos.SignatureMessageKey(hdrHash, string(pubKey)))
 		require.True(t, ok)
 		require.Equal(t, msg, p2pMsgWithSignature)
 	})
@@ -2423,4 +2649,66 @@ func TestWorker_NewWorkerNilConsensusMetrics(t *testing.T) {
 	require.Nil(t, worker)
 	require.Error(t, err) // should come from NewConsensusMetrics
 	require.Equal(t, spos.ErrNilAppStatusHandler, err)
+}
+
+func TestWorker_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	wg := sync.WaitGroup{}
+
+	numOperations := 500
+	wg.Add(numOperations)
+
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx {
+			case 0:
+				wrk.AddReceivedHeaderHandler(func(handler data.HeaderHandler) {})
+			case 1:
+				wrk.AddReceivedMessageCall(bls.MtBlockBody, nil)
+			case 2:
+				wrk.AddReceivedProofHandler(func(proof consensus.ProofHandler) {})
+			case 3:
+				_ = wrk.Close()
+			case 4:
+				wrk.DisplayStatistics()
+			case 5:
+				wrk.ExecuteStoredMessages()
+			case 6:
+				wrk.Extend(0)
+			case 7:
+				_ = wrk.GetConsensusStateChangedChannel()
+			case 8:
+				_, _ = wrk.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{}, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+			case 9:
+				wrk.ReceivedHeader(&block.Header{
+					ShardID: workerArgs.ShardCoordinator.SelfId(),
+					Round:   uint64(workerArgs.RoundHandler.Index()),
+				}, nil)
+			case 10:
+				wrk.ReceivedProof(&block.HeaderProof{})
+			case 11:
+				wrk.RemoveAllReceivedHeaderHandlers()
+			case 12:
+				wrk.RemoveAllReceivedMessagesCalls()
+			case 13:
+				wrk.ResetConsensusMessages()
+			case 14:
+				wrk.ResetConsensusRoundState()
+			case 15:
+				wrk.ResetInvalidSignersCache()
+			case 16:
+				wrk.StartWorking()
+			default:
+				require.Fail(t, "should have not been called")
+			}
+
+			wg.Done()
+		}(i % 17)
+	}
+
+	wg.Wait()
 }

@@ -4,9 +4,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // shardBlockTrack
@@ -123,6 +125,21 @@ func (bbt *baseBlockTrack) SetRoundHandler(roundHandler process.RoundHandler) {
 	bbt.roundHandler = roundHandler
 }
 
+// SetQuarantinedHeaders -
+func (bbt *baseBlockTrack) SetQuarantinedHeaders(quarantinedHeaders storage.Cacher) {
+	bbt.quarantinedHeaders = quarantinedHeaders
+}
+
+// SetProofsPool -
+func (bbt *baseBlockTrack) SetProofsPool(proofsPool dataRetriever.ProofsPool) {
+	bbt.proofsPool = proofsPool
+}
+
+// SettleQuarantinedParentIfNeeded -
+func (bbt *baseBlockTrack) SettleQuarantinedParentIfNeeded(header data.HeaderHandler, headerHash []byte) {
+	bbt.settleQuarantinedParentIfNeeded(header, headerHash)
+}
+
 // SetCrossNotarizer -
 func (bbt *baseBlockTrack) SetCrossNotarizer(notarizer blockNotarizerHandler) {
 	bbt.crossNotarizer = notarizer
@@ -148,8 +165,13 @@ func (bbt *baseBlockTrack) DoWhitelistWithMetaBlockIfNeeded(metaBlock *block.Met
 	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
 }
 
+// DoWhitelistWithMetaHeaderIfNeeded -
+func (bbt *baseBlockTrack) DoWhitelistWithMetaHeaderIfNeeded(metaBlock data.MetaHeaderHandler) {
+	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
+}
+
 // DoWhitelistWithShardHeaderIfNeeded -
-func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader *block.Header) {
+func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader data.HeaderHandler) {
 	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
 }
 
@@ -157,6 +179,19 @@ func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader *block
 func (bbt *baseBlockTrack) IsHeaderOutOfRange(headerHandler data.HeaderHandler) bool {
 	return bbt.isHeaderOutOfRange(headerHandler)
 }
+
+// QuarantineIfLateProof -
+func (bbt *baseBlockTrack) QuarantineIfLateProof(proof data.HeaderProofHandler) {
+	bbt.quarantineIfLateProof(proof)
+}
+
+// SweepExpiredQuarantinedHeaders -
+func (bbt *baseBlockTrack) SweepExpiredQuarantinedHeaders() {
+	bbt.sweepExpiredQuarantinedHeaders()
+}
+
+// MaxQuarantineRoundDelta -
+const MaxQuarantineRoundDelta = maxQuarantineRoundDelta
 
 // blockNotifier
 
@@ -290,4 +325,13 @@ func (mbt *miniBlockTrack) GetTransactionPool(mbType block.Type) dataRetriever.S
 // SetBlockTransactionsPool -
 func (mbt *miniBlockTrack) SetBlockTransactionsPool(blockTransactionsPool dataRetriever.ShardedDataCacherNotifier) {
 	mbt.blockTransactionsPool = blockTransactionsPool
+}
+
+// GetConfirmedMiniBlockInfo - test accessor for the local registry
+func (mbt *miniBlockTrack) GetConfirmedMiniBlockInfo(miniBlockHash []byte) (cacheID string, nonce uint64, ok bool) {
+	info, found := mbt.getConfirmedMiniBlockInfo(miniBlockHash)
+	if !found {
+		return "", 0, false
+	}
+	return info.cacheID, info.nonce, true
 }

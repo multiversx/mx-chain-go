@@ -1,6 +1,7 @@
 package process
 
 import (
+	"context"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -214,10 +215,7 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 			return nil, err
 		}
 
-		headerOutput, err := common.PrettifyStruct(header)
-		if err == nil {
-			log.Debug("Proposed header sent", "header", headerOutput)
-		}
+		common.LogPrettifiedHeader(header, "sent", "v3", creator.nodeHandler.GetCoreComponents().CommonConfigsHandler())
 
 		err = creator.nodeHandler.GetProcessComponents().BlockProcessor().VerifyBlockProposal(header, block, func() time.Duration {
 			return time.Second
@@ -476,7 +474,7 @@ func (creator *blocksCreator) generateAggregatedSignature(headerHash []byte, epo
 		}
 
 		totalKey++
-		if _, err = signingHandler.CreateSignatureShareForPublicKey(headerHash, uint16(idx), epoch, []byte(pubKey)); err != nil {
+		if _, err = signingHandler.CreateSignatureShareForPublicKey(context.TODO(), headerHash, uint16(idx), epoch, []byte(pubKey)); err != nil {
 			return nil, err
 		}
 	}

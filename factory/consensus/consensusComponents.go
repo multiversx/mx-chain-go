@@ -161,7 +161,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.ShardCoordinator(),
 		ccf.cryptoComponents.PeerSignatureHandler(),
 		ccf.dataComponents.Datapool().Headers(),
-		ccf.dataComponents.Datapool().Headers(),
 		ccf.dataComponents.Datapool().Proofs(),
 		ccf.coreComponents.EnableEpochsHandler(),
 		ccf.processComponents.InterceptorsContainer(),
@@ -219,6 +218,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NetworkShardingCollector: ccf.processComponents.PeerShardMapper(),
 		AntifloodHandler:         ccf.networkComponents.InputAntiFloodHandler(),
 		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
+		WhiteListHandler:         ccf.processComponents.WhiteListHandler(),
 		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
 		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),
@@ -269,13 +269,16 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ScheduledProcessor:            ccf.scheduledProcessor,
 		MessageSigningHandler:         p2pSigningHandler,
 		PeerBlacklistHandler:          cc.peerBlacklistHandler,
+		PeerSignatureHandler:          ccf.cryptoComponents.PeerSignatureHandler(),
 		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:           ccf.coreComponents.EnableRoundsHandler(),
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
 		InvalidSignersCache:           invalidSignersCache,
+		MessagesHandler:               consensusService,
 		AOTSelector:                   ccf.processComponents.AOTSelector(),
+		CommonConfigsHandler:          ccf.coreComponents.CommonConfigsHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -674,6 +677,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EpochBootstrapper:           ccf.processComponents.EpochStartTrigger(),
 		ValidatorAccountsDB:         ccf.stateComponents.PeerAccounts(),
 		ValidatorStatisticsDBSyncer: validatorAccountsDBSyncer,
+		Watchdog:                    ccf.coreComponents.Watchdog(),
 	}
 
 	return sync.NewMetaBootstrap(argsMetaBootstrapper)

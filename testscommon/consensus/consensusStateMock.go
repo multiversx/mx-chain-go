@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"context"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -86,6 +87,11 @@ type ConsensusStateMock struct {
 	FallbackThresholdCalled                      func(subroundId int) int
 	SetFallbackThresholdCalled                   func(subroundId int, threshold int)
 	ResetConsensusRoundStateCalled               func()
+	SignaturesDoneCalled                         func() <-chan struct{}
+	SetSignaturesDoneCalled                      func(done <-chan struct{})
+	SetDataIfNotSetCalled                        func(data []byte) bool
+	SetSignaturesCtxCancelFuncCalled             func(cancelFunc context.CancelFunc)
+	SignaturesCtxCancelCalled                    func()
 }
 
 // AddReceivedHeader -
@@ -651,6 +657,48 @@ func (cnsm *ConsensusStateMock) ConsensusGroupSize() int {
 func (cnsm *ConsensusStateMock) SetThreshold(subroundId int, threshold int) {
 	if cnsm.SetThresholdCalled != nil {
 		cnsm.SetThresholdCalled(subroundId, threshold)
+	}
+}
+
+// SignaturesDone -
+func (cnsm *ConsensusStateMock) SignaturesDone() <-chan struct{} {
+	if cnsm.SignaturesDoneCalled != nil {
+		return cnsm.SignaturesDoneCalled()
+	}
+
+	// default to an already-closed channel so a wait on it returns immediately
+	ch := make(chan struct{})
+	close(ch)
+	return ch
+}
+
+// SetSignaturesDone -
+func (cnsm *ConsensusStateMock) SetSignaturesDone(done <-chan struct{}) {
+	if cnsm.SetSignaturesDoneCalled != nil {
+		cnsm.SetSignaturesDoneCalled(done)
+	}
+}
+
+// SetDataIfNotSet -
+func (cnsm *ConsensusStateMock) SetDataIfNotSet(data []byte) bool {
+	if cnsm.SetDataIfNotSetCalled != nil {
+		return cnsm.SetDataIfNotSetCalled(data)
+	}
+
+	return true
+}
+
+// SetSignaturesCtxCancelFunc -
+func (cnsm *ConsensusStateMock) SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc) {
+	if cnsm.SetSignaturesCtxCancelFuncCalled != nil {
+		cnsm.SetSignaturesCtxCancelFuncCalled(cancelFunc)
+	}
+}
+
+// SignaturesCtxCancel -
+func (cnsm *ConsensusStateMock) SignaturesCtxCancel() {
+	if cnsm.SignaturesCtxCancelCalled != nil {
+		cnsm.SignaturesCtxCancelCalled()
 	}
 }
 

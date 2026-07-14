@@ -1,11 +1,15 @@
 package consensus
 
-import crypto "github.com/multiversx/mx-chain-crypto-go"
+import (
+	"context"
+
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+)
 
 // SigningHandlerStub implements SigningHandler interface
 type SigningHandlerStub struct {
 	ResetCalled                            func(pubKeys []string) error
-	CreateSignatureShareForPublicKeyCalled func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
+	CreateSignatureShareForPublicKeyCalled func(ctx context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
 	CreateSignatureForPublicKeyCalled      func(message []byte, publicKeyBytes []byte) ([]byte, error)
 	VerifySingleSignatureCalled            func(publicKeyBytes []byte, message []byte, signature []byte) error
 	StoreSignatureShareCalled              func(index uint16, sig []byte) error
@@ -15,6 +19,9 @@ type SigningHandlerStub struct {
 	SetAggregatedSigCalled                 func(_ []byte) error
 	VerifyCalled                           func(msg []byte, bitmap []byte, epoch uint32) error
 	GetPubKeysFromBytesCalled              func(pubKeysBytes [][]byte) ([]crypto.PublicKey, error)
+	AggregateSigsWithKeysCalled            func(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error)
+	VerifyAggregatedSigWithKeysCalled      func(pubKeys []string, bitmap []byte, message []byte, aggSig []byte, epoch uint32) error
+	VerifySigShareWithKeyCalled            func(pubKey []byte, sigShare []byte, message []byte, epoch uint32) error
 }
 
 // Reset -
@@ -27,9 +34,9 @@ func (stub *SigningHandlerStub) Reset(pubKeys []string) error {
 }
 
 // CreateSignatureShareForPublicKey -
-func (stub *SigningHandlerStub) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+func (stub *SigningHandlerStub) CreateSignatureShareForPublicKey(ctx context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 	if stub.CreateSignatureShareForPublicKeyCalled != nil {
-		return stub.CreateSignatureShareForPublicKeyCalled(message, index, epoch, publicKeyBytes)
+		return stub.CreateSignatureShareForPublicKeyCalled(ctx, message, index, epoch, publicKeyBytes)
 	}
 
 	return make([]byte, 0), nil
@@ -116,6 +123,33 @@ func (stub *SigningHandlerStub) GetPubKeysFromBytes(
 	}
 
 	return nil, nil
+}
+
+// AggregateSigsWithKeys -
+func (stub *SigningHandlerStub) AggregateSigsWithKeys(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error) {
+	if stub.AggregateSigsWithKeysCalled != nil {
+		return stub.AggregateSigsWithKeysCalled(pubKeys, bitmap, sigShares, epoch)
+	}
+
+	return []byte("aggSigs"), nil
+}
+
+// VerifyAggregatedSigWithKeys -
+func (stub *SigningHandlerStub) VerifyAggregatedSigWithKeys(pubKeys []string, bitmap []byte, message []byte, aggSig []byte, epoch uint32) error {
+	if stub.VerifyAggregatedSigWithKeysCalled != nil {
+		return stub.VerifyAggregatedSigWithKeysCalled(pubKeys, bitmap, message, aggSig, epoch)
+	}
+
+	return nil
+}
+
+// VerifySigShareWithKey -
+func (stub *SigningHandlerStub) VerifySigShareWithKey(pubKey []byte, sigShare []byte, message []byte, epoch uint32) error {
+	if stub.VerifySigShareWithKeyCalled != nil {
+		return stub.VerifySigShareWithKeyCalled(pubKey, sigShare, message, epoch)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

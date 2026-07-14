@@ -49,7 +49,6 @@ type ProofsPoolConfig struct {
 }
 
 // ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read-only thereafter.
-// TODO add also max estimated block gas capacity
 type ExecutionResultInclusionEstimatorConfig struct {
 	SafetyMargin       uint64
 	MaxResultsPerBlock uint64
@@ -65,6 +64,9 @@ type DBConfig struct {
 	UseTmpAsFilePath    bool
 	ShardIDProviderType string
 	NumShards           int32
+	// BloomFilterBitsPerKey == 0, the Bloom filter is disabled.
+	// Otherwise, it specifies the number of bits per key used by the Bloom filter.
+	BloomFilterBitsPerKey int
 }
 
 // StorageConfig will map the storage unit configuration
@@ -225,6 +227,7 @@ type Config struct {
 	SmartContractDataPool        CacheConfig
 	ValidatorInfoPool            CacheConfig
 	ExecutedMiniBlocksCache      CacheConfig
+	QuarantinedHeadersCache      CacheConfig
 	PostProcessTransactionsCache CacheConfig
 	HeaderBodyCacheConfig        HeaderBodyCacheConfig
 	TrieSyncStorage              TrieSyncStorageConfig
@@ -347,6 +350,19 @@ type ConsensusConfigByEpoch struct {
 	NumRoundsToWaitBeforeSignalingChronologyStuck uint32
 }
 
+// ConsensusConfigByRound defines consensus configuration parameters by round
+type ConsensusConfigByRound struct {
+	EnableRound                uint64
+	SubroundsTiming            []SubroundTiming
+	ProcessingThresholdPercent uint32
+}
+
+// SubroundTiming holds the start and end time ratios (of the round duration) for a single subround
+type SubroundTiming struct {
+	StartTime float64
+	EndTime   float64
+}
+
 // EpochStartConfigByEpoch defines epoch start configuration parameters by epoch
 type EpochStartConfigByEpoch struct {
 	EnableEpoch uint32
@@ -438,6 +454,7 @@ type GeneralSettingsConfig struct {
 	EpochStartConfigsByEpoch         []EpochStartConfigByEpoch
 	EpochStartConfigsByRound         []EpochStartConfigByRound
 	ConsensusConfigsByEpoch          []ConsensusConfigByEpoch
+	ConsensusConfigsByRound          []ConsensusConfigByRound
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config
@@ -523,8 +540,10 @@ type TxAccumulatorConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Enabled        bool
-	ConfigsByRound []AntifloodConfigByRound
+	Enabled                              bool
+	MaxAllowedTrieNodeChunks             uint32
+	TrieNodeChunksInactivityTimeoutInSec int64
+	ConfigsByRound                       []AntifloodConfigByRound
 }
 
 // AntifloodConfigByRound will hold antiflood parameters by round
