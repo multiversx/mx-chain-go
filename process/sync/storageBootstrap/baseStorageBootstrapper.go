@@ -146,14 +146,14 @@ func (st *storageBootstrapper) loadBlocks() error {
 		_, numHdrs := metricsLoader.UpdateMetricsFromStorage(st.store, st.uint64Converter, st.marshalizer, st.appStatusHandler, headerInfo.LastHeader.Nonce)
 		st.blkExecutor.SetNumProcessedObj(numHdrs)
 
-		err = st.applyHeaderInfo(headerInfo)
+		var bootInfos []bootstrapStorage.BootstrapData
+		bootInfos, err = st.getBootInfos(headerInfo)
 		if err != nil {
 			round = headerInfo.LastRound
 			continue
 		}
 
-		var bootInfos []bootstrapStorage.BootstrapData
-		bootInfos, err = st.getBootInfos(headerInfo)
+		err = st.applyHeaderInfo(headerInfo)
 		if err != nil {
 			round = headerInfo.LastRound
 			continue
@@ -170,6 +170,8 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	if err != nil {
 		log.Warn("bootstrapper", "error", err)
+		st.blockTracker.RestoreToGenesis()
+		st.forkDetector.RestoreToGenesis()
 		st.restoreBlockChainToGenesis()
 		err = st.bootStorer.SaveLastRound(0)
 		log.LogIfError(
@@ -298,6 +300,13 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return err
 	}
 
+	proof, err := st.getProofForHeader(headerHash, headerFromStorage)
+	if err != nil {
+		log.Debug("cannot load proof for header",
+			"nonce", headerFromStorage.GetNonce(), "error", err)
+		return err
+	}
+
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage, rootHash)
 	if err != nil {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", headerFromStorage.GetNonce())
@@ -310,10 +319,8 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return err
 	}
 
-	err = st.getAndApplyProofForHeader(headerHash, headerFromStorage)
-	if err != nil {
-		log.Debug("cannot apply proof for header", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
-		return err
+	if proof != nil {
+		st.proofsPool.AddProof(proof)
 	}
 
 	return nil
@@ -642,29 +649,44 @@ func findExecutionResultOnHeader(
 	return nil, false
 }
 
-func (st *storageBootstrapper) getAndApplyProofForHeader(headerHash []byte, header data.HeaderHandler) error {
+func (st *storageBootstrapper) getProofForHeader(headerHash []byte, header data.HeaderHandler) (*block.HeaderProof, error) {
 	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
-		return nil
+		return nil, nil
 	}
 
 	proofsStorer, err := st.store.GetStorer(dataRetriever.ProofsUnit)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	marshaledProof, err := proofsStorer.SearchFirst(headerHash)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	proof := &block.HeaderProof{}
 	err = st.marshalizer.Unmarshal(proof, marshaledProof)
 	if err != nil {
+		return nil, err
+	}
+
+	return proof, nil
+}
+
+func (st *storageBootstrapper) getAndApplyProofForHeader(
+	headerHash []byte,
+	header data.HeaderHandler,
+) error {
+	if st.proofsPool.HasProof(header.GetShardID(), headerHash) {
+		return nil
+	}
+
+	proof, err := st.getProofForHeader(headerHash, header)
+	if err != nil || proof == nil {
 		return err
 	}
 
 	st.proofsPool.AddProof(proof)
-
 	return nil
 }
 
