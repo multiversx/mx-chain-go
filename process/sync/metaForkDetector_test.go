@@ -590,6 +590,7 @@ func TestMetaForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 func createMetaForkDetectorForFinality(enableEpochsHandler common.EnableEpochsHandler) interface {
 	process.ForkDetector
 	FinalCheckpointNonce() uint64
+	SettledCheckpointNonce() uint64
 	AddCheckPoint(round uint64, nonce uint64, hash []byte)
 } {
 	mfd, _ := sync.NewMetaForkDetector(
@@ -671,5 +672,51 @@ func TestMetaForkDetector_DeferredFinalityUnderSupernova(t *testing.T) {
 		_ = mfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 		_ = mfd.AddHeader(contendedHdr2, hash2, process.BHProcessed, nil, nil)
 		require.Equal(t, uint64(2), mfd.FinalCheckpointNonce())
+	})
+}
+
+func TestMetaForkDetector_SettledWatermarkUnderSupernova(t *testing.T) {
+	t.Parallel()
+
+	supernovaHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag || flag == common.SupernovaFlag
+		},
+	}
+	andromedaOnlyHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+
+	hash1, hash2 := []byte("hash1"), []byte("hash2")
+	hdr1 := &block.MetaBlock{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
+	cleanHdr2 := &block.MetaBlock{Nonce: 2, Round: 2, PrevHash: hash1, PubKeysBitmap: []byte("X")}
+
+	t.Run("instant finality does not advance the settled watermark, settle-on-child does", func(t *testing.T) {
+		t.Parallel()
+
+		mfd := createMetaForkDetectorForFinality(supernovaHandler)
+
+		_ = mfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(1), mfd.FinalCheckpointNonce())
+		require.Equal(t, uint64(0), mfd.SettledCheckpointNonce())
+
+		_ = mfd.AddHeader(cleanHdr2, hash2, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(2), mfd.FinalCheckpointNonce())
+		require.Equal(t, uint64(1), mfd.SettledCheckpointNonce())
+		_, settledHash := mfd.GetHighestSettledBlockInfo()
+		require.Equal(t, hash1, settledHash)
+	})
+
+	t.Run("andromeda settled watermark mirrors instant finality", func(t *testing.T) {
+		t.Parallel()
+
+		mfd := createMetaForkDetectorForFinality(andromedaOnlyHandler)
+
+		_ = mfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+		_ = mfd.AddHeader(cleanHdr2, hash2, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(2), mfd.FinalCheckpointNonce())
+		require.Equal(t, uint64(2), mfd.SettledCheckpointNonce())
 	})
 }

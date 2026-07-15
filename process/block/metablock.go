@@ -641,6 +641,7 @@ func (mp *metaProcessor) indexBlock(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
+	settledNonce, settledHash := mp.forkDetector.GetHighestSettledBlockInfo()
 	argSaveBlock, err := mp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
 		HeaderHash:             headerHash,
 		Header:                 metaBlock,
@@ -648,8 +649,8 @@ func (mp *metaProcessor) indexBlock(
 		PreviousHeader:         lastMetaBlock,
 		RewardsTxs:             rewardsTxs,
 		NotarizedHeadersHashes: notarizedHeadersHashes,
-		HighestFinalBlockNonce: mp.forkDetector.GetHighestFinalBlockNonce(),
-		HighestFinalBlockHash:  mp.forkDetector.GetHighestFinalBlockHash(),
+		HighestFinalBlockNonce: settledNonce,
+		HighestFinalBlockHash:  settledHash,
 		ScheduledRootHash:      mp.scheduledTxsExecutionHandler.GetScheduledRootHash(),
 	})
 	if err != nil {
@@ -1452,7 +1453,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
+	highestFinalBlockNonce, _ := mp.forkDetector.GetHighestSettledBlockInfo()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce, mp.managedPeersHolder)
 
 	headersPool := mp.dataPool.Headers()
@@ -1711,44 +1712,72 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, rootHash)
 }
 
-// signalNewlyFinalBlocks emits the external finality signals for the blocks finalized since the
-// previous commit; with deferred finality the committed header itself may not be final yet
+// signalNewlyFinalBlocks emits the external finality signals for the blocks settled since the
+// previous commit; external finality is anchored on settlement (settle-on-child), never on
+// instant finality
 func (mp *metaProcessor) signalNewlyFinalBlocks(
 	metaBlock data.MetaHeaderHandler,
 	metaBlockHash []byte,
 	rootHash []byte,
 	prevMetaBlock data.MetaHeaderHandler,
 ) {
-	finalNonce := mp.forkDetector.GetHighestFinalBlockNonce()
-	if finalNonce <= mp.lastSignaledFinalNonce {
+	settledNonce, _ := mp.forkDetector.GetHighestSettledBlockInfo()
+	if settledNonce <= mp.lastSignaledFinalNonce {
 		return
 	}
 
-	// finality is deferred by at most one block on meta (settle-on-child), so the previous block
-	// is the only one that can become final together with the committed one
-	isPrevNewlyFinal := finalNonce >= prevMetaBlock.GetNonce() &&
+	// settlement is deferred by exactly one block on meta (settle-on-child), so the previous block
+	// is the only one that can become settled together with the committed one
+	isPrevNewlySettled := settledNonce >= prevMetaBlock.GetNonce() &&
 		prevMetaBlock.GetNonce() > mp.lastSignaledFinalNonce
-	if isPrevNewlyFinal {
+	if isPrevNewlySettled {
 		mp.setFinalizedHeaderHashInIndexer(metaBlock.GetPrevHash())
 	}
 
-	if finalNonce >= metaBlock.GetNonce() {
+	if settledNonce >= metaBlock.GetNonce() {
 		mp.setFinalizedHeaderHashInIndexer(metaBlockHash)
-		mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, rootHash)
+		mp.setSettledBlockInfo(metaBlock, metaBlockHash, rootHash)
 		mp.lastSignaledFinalNonce = metaBlock.GetNonce()
 		return
 	}
 
-	if finalNonce == prevMetaBlock.GetNonce() {
-		prevRootHash, _, err := mp.getRootHashAndValidatorRootHash(prevMetaBlock)
-		if err != nil {
-			log.Warn("signalNewlyFinalBlocks: cannot get root hash of the newly final block", "error", err.Error())
-		} else {
-			mp.blockChain.SetFinalBlockInfo(prevMetaBlock.GetNonce(), metaBlock.GetPrevHash(), prevRootHash)
-		}
+	if settledNonce == prevMetaBlock.GetNonce() {
+		mp.setSettledBlockInfoForPrev(prevMetaBlock, metaBlock.GetPrevHash())
 	}
 
-	mp.lastSignaledFinalNonce = finalNonce
+	mp.lastSignaledFinalNonce = settledNonce
+}
+
+// setSettledBlockInfo anchors the externally visible final block info on the settled block; for v3
+// the (nonce, hash, rootHash) tuple is the last execution result notarized by the settled chain
+func (mp *metaProcessor) setSettledBlockInfo(header data.MetaHeaderHandler, headerHash []byte, rootHash []byte) {
+	if !header.IsHeaderV3() {
+		mp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, rootHash)
+		return
+	}
+
+	result, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		log.Warn("setSettledBlockInfo: cannot get settled execution result", "error", err.Error())
+		return
+	}
+
+	mp.blockChain.SetFinalBlockInfo(result.GetHeaderNonce(), result.GetHeaderHash(), result.GetRootHash())
+}
+
+func (mp *metaProcessor) setSettledBlockInfoForPrev(prevMetaBlock data.MetaHeaderHandler, prevMetaBlockHash []byte) {
+	if prevMetaBlock.IsHeaderV3() {
+		mp.setSettledBlockInfo(prevMetaBlock, prevMetaBlockHash, nil)
+		return
+	}
+
+	prevRootHash, _, err := mp.getRootHashAndValidatorRootHash(prevMetaBlock)
+	if err != nil {
+		log.Warn("signalNewlyFinalBlocks: cannot get root hash of the newly settled block", "error", err.Error())
+		return
+	}
+
+	mp.blockChain.SetFinalBlockInfo(prevMetaBlock.GetNonce(), prevMetaBlockHash, prevRootHash)
 }
 
 func (mp *metaProcessor) pruneTrieHeaderV3(

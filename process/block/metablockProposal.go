@@ -894,7 +894,15 @@ func (mp *metaProcessor) selectIncomingMiniBlocksForProposal(
 		return err
 	}
 
-	return mp.selectContendedShardHeaders(round, lastShardHdrs, hdrsAddedForShard, haveTime)
+	err = mp.selectContendedShardHeaders(round, lastShardHdrs, hdrsAddedForShard, haveTime)
+	if err != nil {
+		return err
+	}
+
+	// spawned only after every selection step stopped mutating lastShardHdrs
+	go mp.requestShardHeadersInAdvanceIfNeeded(lastShardHdrs)
+
+	return nil
 }
 
 func (mp *metaProcessor) selectIncomingMiniBlocks(
@@ -969,8 +977,6 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		hdrsAddedForShard[currHdr.GetShardID()]++
 		hdrsAdded++
 	}
-
-	go mp.requestShardHeadersInAdvanceIfNeeded(lastShardHdrs)
 
 	return hdrsAddedForShard, nil
 }

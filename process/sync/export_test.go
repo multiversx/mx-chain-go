@@ -133,6 +133,11 @@ func (bfd *baseForkDetector) FinalCheckpointRound() uint64 {
 	return bfd.finalCheckpoint().round
 }
 
+// SettledCheckpointNonce -
+func (bfd *baseForkDetector) SettledCheckpointNonce() uint64 {
+	return bfd.settledCheckpoint().nonce
+}
+
 // CheckBlockValidity -
 func (bfd *baseForkDetector) CheckBlockValidity(header data.HeaderHandler, headerHash []byte) error {
 	return bfd.checkBlockBasicValidity(header, headerHash)

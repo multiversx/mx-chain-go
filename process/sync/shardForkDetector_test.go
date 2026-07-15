@@ -564,6 +564,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 func createShardForkDetectorForFinality(enableEpochsHandler common.EnableEpochsHandler) interface {
 	process.ForkDetector
 	FinalCheckpointNonce() uint64
+	SettledCheckpointNonce() uint64
 	ReceivedSelfNotarizedFromCrossHeaders(shardID uint32, headers []data.HeaderHandler, hashes [][]byte)
 } {
 	sfd, _ := sync.NewShardForkDetector(
@@ -667,5 +668,56 @@ func TestShardForkDetector_DeferredFinalityUnderSupernova(t *testing.T) {
 		_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 		_ = sfd.AddHeader(contendedHdr2, hash2, process.BHProcessed, nil, nil)
 		require.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
+	})
+}
+
+func TestShardForkDetector_SettledWatermarkUnderSupernova(t *testing.T) {
+	t.Parallel()
+
+	supernovaHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag || flag == common.SupernovaFlag
+		},
+	}
+	andromedaOnlyHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+
+	hash1, hash2 := []byte("hash1"), []byte("hash2")
+	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
+	cleanHdr2 := &block.Header{Nonce: 2, Round: 2, PrevHash: hash1, PubKeysBitmap: []byte("X")}
+
+	t.Run("instant finality does not advance the settled watermark, meta notarization does", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createShardForkDetectorForFinality(supernovaHandler)
+
+		_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+		_ = sfd.AddHeader(cleanHdr2, hash2, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
+		require.Equal(t, uint64(0), sfd.SettledCheckpointNonce())
+
+		// the notarization arrives after instant finality already passed the nonce
+		sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, []data.HeaderHandler{hdr1}, [][]byte{hash1})
+		require.Equal(t, uint64(1), sfd.SettledCheckpointNonce())
+		_, settledHash := sfd.GetHighestSettledBlockInfo()
+		require.Equal(t, hash1, settledHash)
+		require.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
+
+		sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, []data.HeaderHandler{cleanHdr2}, [][]byte{hash2})
+		require.Equal(t, uint64(2), sfd.SettledCheckpointNonce())
+	})
+
+	t.Run("andromeda settled watermark mirrors instant finality", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createShardForkDetectorForFinality(andromedaOnlyHandler)
+
+		_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+		_ = sfd.AddHeader(cleanHdr2, hash2, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
+		require.Equal(t, uint64(2), sfd.SettledCheckpointNonce())
 	})
 }

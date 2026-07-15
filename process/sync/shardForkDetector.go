@@ -88,6 +88,7 @@ func NewShardForkDetector(
 		round: bfd.genesisRound,
 	}
 	bfd.setFinalCheckpoint(checkpoint)
+	bfd.setSettledCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
 	bfd.fork.rollBackNonce = math.MaxUint64
 	bfd.fork.probableHighestNonce = bfd.genesisNonce
@@ -137,6 +138,10 @@ func (sfd *shardForkDetector) doJobOnBHProcessed(
 	if common.IsFlagEnabledAfterEpochsStartBlock(header, sfd.enableEpochsHandler, common.AndromedaFlag) &&
 		sfd.canInstantlyFinalize(header) {
 		sfd.setFinalCheckpoint(newCheckpoint)
+		// under Supernova the settled checkpoint advances only on meta notarization
+		if !sfd.isSupernovaForHeader(header) {
+			sfd.setSettledCheckpoint(newCheckpoint)
+		}
 	}
 	sfd.removePastOrInvalidRecords()
 }
@@ -166,10 +171,10 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 ) bool {
 
 	selfNotarizedHeaderAdded := false
-	finalNonce := sfd.finalCheckpoint().nonce
+	settledNonce := sfd.settledCheckpoint().nonce
 
 	for i := 0; i < len(selfNotarizedHeaders); i++ {
-		if selfNotarizedHeaders[i].GetNonce() <= finalNonce {
+		if selfNotarizedHeaders[i].GetNonce() <= settledNonce {
 			continue
 		}
 
@@ -232,6 +237,8 @@ func (sfd *shardForkDetector) computeFinalCheckpoint() {
 
 	if finalCheckpointWasSet {
 		sfd.advanceFinalCheckpoint(finalCheckpoint)
+		// a processed block matching its meta notarization is the settlement anchor
+		sfd.advanceSettledCheckpoint(finalCheckpoint)
 	}
 
 	sfd.finalizeCleanProcessedDescendants()
