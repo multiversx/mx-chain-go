@@ -587,6 +587,24 @@ func (bfd *baseForkDetector) highestNonceReceived() uint64 {
 	return highestNonceReceived
 }
 
+// logFinalityLag exposes how far the final checkpoint trails the received frontier;
+// a steadily growing lag means finality stopped advancing while the chain moved on
+func (bfd *baseForkDetector) logFinalityLag() {
+	finalNonce := bfd.finalCheckpoint().nonce
+	highestNonce := bfd.highestNonceReceived()
+	lag := uint64(0)
+	if highestNonce > finalNonce {
+		lag = highestNonce - finalNonce
+	}
+
+	log.Debug("forkDetector finality lag",
+		"final checkpoint nonce", finalNonce,
+		"probable highest nonce", bfd.probableHighestNonce(),
+		"highest received nonce", highestNonce,
+		"lag", lag,
+	)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bfd *baseForkDetector) IsInterfaceNil() bool {
 	return bfd == nil

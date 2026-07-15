@@ -1717,6 +1717,14 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		}
 	}()
 
+	rolledBackV3 := false
+	// runs on every exit path: a v3 tip lowered by even one block must never keep a stale watermark
+	defer func() {
+		if rolledBackV3 {
+			boot.realignAfterV3RollBack()
+		}
+	}()
+
 	log.Debug("starting roll back")
 	for {
 		currHeaderHash = boot.chainHandler.GetCurrentBlockHeaderHash()
@@ -1769,6 +1777,9 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		}
 		if err != nil {
 			return err
+		}
+		if currHeader.IsHeaderV3() {
+			rolledBackV3 = true
 		}
 
 		_, _ = metricsLoader.UpdateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, prevHeader.GetNonce())
@@ -1827,6 +1838,27 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Debug("ending roll back")
 	return nil
+}
+
+// realignAfterV3RollBack rewinds the execution results state to the rolled-back tip and re-arms
+// the sync prepare step to rebuild pending execution results and txpool tracking above it
+func (boot *baseBootstrap) realignAfterV3RollBack() {
+	newTip := boot.chainHandler.GetCurrentBlockHeader()
+	if check.IfNil(newTip) || !newTip.IsHeaderV3() {
+		return
+	}
+
+	err := boot.executionManager.RewindExecutionStateToTip(newTip)
+	if err != nil {
+		log.Warn("realignAfterV3RollBack: cannot rewind execution state",
+			"tip nonce", newTip.GetNonce(),
+			"error", err,
+		)
+		return
+	}
+
+	boot.preparedForSync = false
+	boot.resetSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
 }
 
 func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, currHeaderHash []byte) bool {

@@ -4002,12 +4002,13 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 	currHdr := newV3Header(8, 12, prevHdrHash)
 	prevHdrBytes, _ := marshaller.Marshal(prevHdr)
 
-	buildBootstrapper := func(finalNonce uint64) (
+	buildBootstrapper := func(finalNonce uint64, tweaks ...func(*sync.ArgShardBootstrapper)) (
 		*sync.ShardBootstrap,
 		*testscommon.ChainHandlerStub,
 		*revertedBlocksCapture,
 		map[string]uint64,
 		map[string]bool,
+		*processMocks.ExecutionManagerMock,
 	) {
 		removedAtNonce := make(map[string]uint64)
 		calledFlags := make(map[string]bool)
@@ -4059,12 +4060,17 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 				}
 			},
 		}
-		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+		executionManagerMock := &processMocks.ExecutionManagerMock{
 			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
 				removedAtNonce["executionManager"] = nonce
 				return nil
 			},
+			RewindExecutionStateToTipCalled: func(newTip data.HeaderHandler) error {
+				removedAtNonce["rewindTip"] = newTip.GetNonce()
+				return nil
+			},
 		}
+		args.ExecutionManager = executionManagerMock
 		args.BlockProcessor = &testscommon.BlockProcessorStub{
 			RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 				removedAtNonce["restoredIntoPools"] = header.GetNonce()
@@ -4080,17 +4086,22 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 		outportCapture := &revertedBlocksCapture{OutportStub: &outport.OutportStub{}}
 		args.OutportHandler = outportCapture
 
+		for _, tweak := range tweaks {
+			tweak(&args)
+		}
+
 		bs, err := sync.NewShardBootstrap(args)
 		require.Nil(t, err)
 		bs.SetForkNonce(currHdr.GetNonce())
 
-		return bs, blkc, outportCapture, removedAtNonce, calledFlags
+		return bs, blkc, outportCapture, removedAtNonce, calledFlags, executionManagerMock
 	}
 
 	t.Run("reverts the committed non-final head without touching tries or scheduled state", func(t *testing.T) {
 		t.Parallel()
 
-		bs, blkc, outportCapture, removedAtNonce, calledFlags := buildBootstrapper(5)
+		bs, blkc, outportCapture, removedAtNonce, calledFlags, _ := buildBootstrapper(5)
+		bs.SetPreparedForSync(true)
 
 		err := bs.RollBack(true)
 		require.Nil(t, err)
@@ -4103,12 +4114,17 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 		require.True(t, calledFlags["nonceHashStoreRemove"])
 		require.False(t, calledFlags["scheduledRollBack"])
 		require.Equal(t, [][]byte{currHdrHash}, outportCapture.revertedHashes)
+
+		// the execution state was rewound to the new tip and the sync prepare step was re-armed
+		require.Equal(t, prevHdr.GetNonce(), removedAtNonce["rewindTip"])
+		require.False(t, bs.GetPreparedForSync())
 	})
 
 	t.Run("never crosses the final checkpoint, fork-driven included", func(t *testing.T) {
 		t.Parallel()
 
-		bs, blkc, outportCapture, removedAtNonce, calledFlags := buildBootstrapper(currHdr.GetNonce())
+		bs, blkc, outportCapture, removedAtNonce, calledFlags, _ := buildBootstrapper(currHdr.GetNonce())
+		bs.SetPreparedForSync(true)
 
 		err := bs.RollBack(true)
 		require.Equal(t, sync.ErrRollBackBehindFinalHeader, err)
@@ -4117,5 +4133,41 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 		require.Empty(t, removedAtNonce)
 		require.Empty(t, calledFlags)
 		require.Empty(t, outportCapture.revertedHashes)
+		require.True(t, bs.GetPreparedForSync())
+	})
+
+	t.Run("rewind failure does not re-arm the sync prepare step", func(t *testing.T) {
+		t.Parallel()
+
+		bs, _, _, _, _, executionManagerMock := buildBootstrapper(5)
+		bs.SetPreparedForSync(true)
+		executionManagerMock.RewindExecutionStateToTipCalled = func(newTip data.HeaderHandler) error {
+			return errors.New("expected error")
+		}
+
+		err := bs.RollBack(true)
+		require.Nil(t, err)
+		require.True(t, bs.GetPreparedForSync())
+	})
+
+	t.Run("realigns even when a step after the block revert fails", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		bs, _, _, removedAtNonce, _, _ := buildBootstrapper(5, func(args *sync.ArgShardBootstrapper) {
+			args.HistoryRepo = &dblookupext.HistoryRepositoryStub{
+				RevertBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+					return expectedErr
+				},
+			}
+		})
+		bs.SetPreparedForSync(true)
+
+		err := bs.RollBack(true)
+		require.Equal(t, expectedErr, err)
+
+		// the tip moved back before the failure, so the execution state must still be realigned
+		require.Equal(t, prevHdr.GetNonce(), removedAtNonce["rewindTip"])
+		require.False(t, bs.GetPreparedForSync())
 	})
 }
