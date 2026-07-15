@@ -312,6 +312,27 @@ func (s *simulator) GenerateBlocks(numOfBlocks int) error {
 	return nil
 }
 
+// GenerateBlocksSkippingShards generates blocks while the given shards skip their rounds; the
+// skipped shards' next produced block is contended (its round is past parent round + 1)
+func (s *simulator) GenerateBlocksSkippingShards(numOfBlocks int, skippedShardIDs []uint32) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	skippedShards := make(map[uint32]struct{}, len(skippedShardIDs))
+	for _, shardID := range skippedShardIDs {
+		skippedShards[shardID] = struct{}{}
+	}
+
+	for idx := 0; idx < numOfBlocks; idx++ {
+		s.incrementRoundOnAllValidators()
+		err := s.nodesCreateBlocks(skippedShards)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // GenerateBlocksUntilEpochIsReached will generate blocks until the epoch is reached
 func (s *simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
 	s.mutex.Lock()
@@ -400,8 +421,17 @@ func (s *simulator) ForceChangeOfEpoch() error {
 }
 
 func (s *simulator) allNodesCreateBlocks() error {
+	return s.nodesCreateBlocks(nil)
+}
+
+func (s *simulator) nodesCreateBlocks(skippedShards map[uint32]struct{}) error {
 	headers := make(map[uint32]*dtos.BroadcastData, len(s.handlers))
 	for _, node := range s.handlers {
+		_, shouldSkip := skippedShards[node.ShardID()]
+		if shouldSkip {
+			continue
+		}
+
 		// TODO MX-15150 remove this when we remove all goroutines
 		time.Sleep(2 * time.Millisecond)
 

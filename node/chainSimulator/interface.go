@@ -11,6 +11,7 @@ import (
 type ChainHandler interface {
 	IncrementRound()
 	CreateNewBlock() (*dtos.BroadcastData, error)
+	ShardID() uint32
 	IsInterfaceNil() bool
 }
 

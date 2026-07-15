@@ -51,6 +51,11 @@ func NewBlocksCreator(nodeHandler NodeHandler, monitor HeartbeatMonitorWithSet, 
 	}, nil
 }
 
+// ShardID returns the shard of the underlying node
+func (creator *blocksCreator) ShardID() uint32 {
+	return creator.nodeHandler.GetShardCoordinator().SelfId()
+}
+
 // IncrementRound will increment the current round
 func (creator *blocksCreator) IncrementRound() {
 	roundHandler := creator.nodeHandler.GetCoreComponents().RoundHandler()
