@@ -357,6 +357,7 @@ type ExecutionManager interface {
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	RemoveAtNonceAndHigher(nonce uint64) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
+	RewindExecutionStateToTip(newTip data.HeaderHandler) error
 	PopDismissedResults() []executionTrack.DismissedBatch
 	GetSignalProcessCompletionChan() chan uint64
 	Close() error

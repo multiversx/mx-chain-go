@@ -235,6 +235,7 @@ func (sfd *shardForkDetector) computeFinalCheckpoint() {
 	}
 
 	sfd.finalizeCleanProcessedDescendants()
+	sfd.logFinalityLag()
 }
 
 // finalizeCleanProcessedDescendants extends the final checkpoint over processed descendants that
@@ -288,8 +289,10 @@ func (sfd *shardForkDetector) getProcessedAndNotarizedIndexes(headersInfo []*hea
 			indexBHProcessed = index
 		case process.BHNotarized:
 			indexBHNotarized = index
+		case process.BHReceived, process.BHReceivedTooLate:
+			// legitimate coexisting entries, not relevant for the final checkpoint
 		default:
-			log.Error("unexpected header state in fork detector", "state", hdrInfo.state, "nonce", hdrInfo.nonce, "round", hdrInfo.round, "hash", hdrInfo.hash)
+			log.Error("invalid header state in fork detector", "state", hdrInfo.state, "nonce", hdrInfo.nonce, "round", hdrInfo.round, "hash", hdrInfo.hash)
 		}
 	}
 

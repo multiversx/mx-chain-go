@@ -136,6 +136,7 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 		mfd.setFinalCheckpoint(newCheckpoint)
 	}
 	mfd.removePastOrInvalidRecords()
+	mfd.logFinalityLag()
 }
 
 func (mfd *metaForkDetector) computeFinalCheckpoint() {
