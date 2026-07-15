@@ -698,7 +698,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.True(t, removeFromNonceCalled)
 
 		// Verify blockchain was updated to last notarized state
-		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(10), nonce)
 		require.Equal(t, []byte("hash10"), hash)
 		require.Equal(t, []byte("root10"), rootHash)
@@ -766,7 +766,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.True(t, removeFromNonceCalled)
 
 		// Verify blockchain was updated to last notarized state
-		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(9), nonce)
 		require.Equal(t, []byte("hash9"), hash)
 		require.Equal(t, []byte("root9"), rootHash)
@@ -837,7 +837,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.True(t, removeFromNonceCalled)
 
 		// Verify blockchain was updated
-		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(5), nonce)
 		require.Equal(t, []byte("hash5"), hash)
 		require.Equal(t, []byte("root5"), rootHash)
@@ -921,7 +921,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.True(t, removeFromNonceCalled)
 
 		// Verify blockchain was rolled back to last notarized state
-		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(9), nonce)
 		require.Equal(t, []byte("hash9"), hash)
 		require.Equal(t, []byte("root9"), rootHash)
@@ -1064,7 +1064,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify blockchain was updated with last pending
-		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(7), nonce)
 		require.Equal(t, []byte("hash7"), hash)
 		require.Equal(t, []byte("root7"), rootHash)
@@ -1218,7 +1218,7 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 		require.Equal(t, uint64(7), cleanedWith.GetHeaderNonce())
 		require.Equal(t, []byte("hash7"), cleanedWith.GetHeaderHash())
 
-		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(7), nonce)
 		require.Equal(t, []byte("hash7"), hash)
 		require.Equal(t, []byte("root7"), rootHash)

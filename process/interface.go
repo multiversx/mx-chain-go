@@ -474,6 +474,7 @@ type ForkDetector interface {
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
 	GetHighestFinalBlockHash() []byte
+	GetHighestSettledBlockInfo() (uint64, []byte)
 	ProbableHighestNonce() uint64
 	ResetFork()
 	SetRollBackNonce(nonce uint64)

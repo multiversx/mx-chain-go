@@ -36,7 +36,6 @@ func (mock *ChainHandlerMock) SetLastExecutionInfo(header data.HeaderHandler, re
 	mock.lastExecutedBlockNonce = header.GetNonce()
 	mock.lastExecutedBlockHash = result.GetHeaderHash()
 	mock.lastExecutedBlockRootHash = result.GetRootHash()
-	mock.SetFinalBlockInfo(header.GetNonce(), result.GetHeaderHash(), result.GetRootHash())
 }
 
 // GetGenesisHeader -

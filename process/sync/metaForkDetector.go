@@ -86,6 +86,7 @@ func NewMetaForkDetector(
 		round: bfd.genesisRound,
 	}
 	bfd.setFinalCheckpoint(checkpoint)
+	bfd.setSettledCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
 	bfd.fork.rollBackNonce = math.MaxUint64
 	bfd.fork.probableHighestNonce = bfd.genesisNonce
@@ -129,11 +130,16 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 	canSettleLastCheckpoint := !mfd.isSupernovaForHeader(header) || isParentCheckpoint(lastCheckpoint, header)
 	if canSettleLastCheckpoint {
 		mfd.advanceFinalCheckpoint(lastCheckpoint)
+		mfd.advanceSettledCheckpoint(lastCheckpoint)
 	}
 	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
 	mfd.addCheckpoint(newCheckpoint)
 	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) && mfd.canInstantlyFinalize(header) {
 		mfd.setFinalCheckpoint(newCheckpoint)
+		// under Supernova the settled checkpoint advances only on settle-on-child
+		if !mfd.isSupernovaForHeader(header) {
+			mfd.setSettledCheckpoint(newCheckpoint)
+		}
 	}
 	mfd.removePastOrInvalidRecords()
 	mfd.logFinalityLag()

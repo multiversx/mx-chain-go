@@ -32,6 +32,7 @@ type checkpointInfo struct {
 type forkInfo struct {
 	checkpoint              []*checkpointInfo
 	finalCheckpoint         *checkpointInfo
+	settledCheckpoint       *checkpointInfo
 	probableHighestNonce    uint64
 	highestNonceReceived    uint64
 	rollBackNonce           uint64
@@ -144,12 +145,14 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	return nil
 }
 
+// removePastHeaders retains entries down to the settled checkpoint, so instantly finalized blocks
+// keep their processed entries until the meta notarization arrives and settles them
 func (bfd *baseForkDetector) removePastHeaders() {
-	finalCheckpointNonce := bfd.finalCheckpoint().nonce
+	settledCheckpointNonce := bfd.settledCheckpoint().nonce
 
 	bfd.mutHeaders.Lock()
 	for nonce := range bfd.headers {
-		if nonce < finalCheckpointNonce {
+		if nonce < settledCheckpointNonce {
 			delete(bfd.headers, nonce)
 		}
 	}
@@ -498,6 +501,37 @@ func (bfd *baseForkDetector) advanceFinalCheckpoint(finalCheckpoint *checkpointI
 	bfd.mutFork.Unlock()
 }
 
+func (bfd *baseForkDetector) setSettledCheckpoint(settledCheckpoint *checkpointInfo) {
+	bfd.mutFork.Lock()
+	bfd.fork.settledCheckpoint = settledCheckpoint
+	bfd.mutFork.Unlock()
+}
+
+// advanceSettledCheckpoint sets the settled checkpoint only forward; settlement is never undone
+func (bfd *baseForkDetector) advanceSettledCheckpoint(settledCheckpoint *checkpointInfo) {
+	bfd.mutFork.Lock()
+	if settledCheckpoint.nonce > bfd.fork.settledCheckpoint.nonce {
+		bfd.fork.settledCheckpoint = settledCheckpoint
+	}
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) settledCheckpoint() *checkpointInfo {
+	bfd.mutFork.RLock()
+	settledCheckpoint := bfd.fork.settledCheckpoint
+	bfd.mutFork.RUnlock()
+
+	return settledCheckpoint
+}
+
+// GetHighestSettledBlockInfo gets the nonce and hash of the settled block as a consistent pair;
+// unlike the final checkpoint, the settled one is settlement-anchored and never reconciled
+func (bfd *baseForkDetector) GetHighestSettledBlockInfo() (uint64, []byte) {
+	settledCheckpoint := bfd.settledCheckpoint()
+
+	return settledCheckpoint.nonce, settledCheckpoint.hash
+}
+
 func (bfd *baseForkDetector) isSupernovaForHeader(header data.HeaderHandler) bool {
 	return bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch())
 }
@@ -539,6 +573,7 @@ func (bfd *baseForkDetector) RestoreToGenesis() {
 	}
 	bfd.fork.checkpoint = []*checkpointInfo{checkpoint}
 	bfd.fork.finalCheckpoint = checkpoint
+	bfd.fork.settledCheckpoint = checkpoint
 	bfd.fork.probableHighestNonce = bfd.genesisNonce
 	bfd.fork.highestNonceReceived = bfd.genesisNonce
 	bfd.mutFork.Unlock()
@@ -599,6 +634,7 @@ func (bfd *baseForkDetector) logFinalityLag() {
 
 	log.Debug("forkDetector finality lag",
 		"final checkpoint nonce", finalNonce,
+		"settled checkpoint nonce", bfd.settledCheckpoint().nonce,
 		"probable highest nonce", bfd.probableHighestNonce(),
 		"highest received nonce", highestNonce,
 		"lag", lag,
@@ -1094,7 +1130,10 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		"has proof", hInfo.hasProof)
 }
 
-// SetFinalToLastCheckpoint sets the final checkpoint to the last checkpoint added in list
+// SetFinalToLastCheckpoint sets the final and settled checkpoints to the last checkpoint added in
+// list; used only at bootstrap restore, where the persisted nonce is the settled one
 func (bfd *baseForkDetector) SetFinalToLastCheckpoint() {
-	bfd.setFinalCheckpoint(bfd.lastCheckpoint())
+	lastCheckpoint := bfd.lastCheckpoint()
+	bfd.setFinalCheckpoint(lastCheckpoint)
+	bfd.setSettledCheckpoint(lastCheckpoint)
 }
