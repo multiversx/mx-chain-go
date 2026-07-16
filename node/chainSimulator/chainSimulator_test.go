@@ -1102,6 +1102,7 @@ func TestChainSimulator_VMQueryShardContract(t *testing.T) {
 	require.NoError(t, err)
 
 	err = chainSimulator.GenerateBlocks(2)
+	require.NoError(t, err)
 
 	addressBytes, err := chainSimulator.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqpgqhe8t5jewej70zupmh44jurgn29psua5l2jps3ntjj3")
 	require.NoError(t, err)
