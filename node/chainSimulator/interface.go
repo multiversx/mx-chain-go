@@ -3,6 +3,8 @@ package chainSimulator
 import (
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 )
@@ -11,6 +13,7 @@ import (
 type ChainHandler interface {
 	IncrementRound()
 	CreateNewBlock() (*dtos.BroadcastData, error)
+	CreateCompetingBlock(original data.HeaderHandler) (*dtos.BroadcastData, error)
 	ShardID() uint32
 	IsInterfaceNil() bool
 }

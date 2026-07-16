@@ -339,3 +339,53 @@ func TestChainSimulator_EpochBoundaryContendedShardEpochStartSettles(t *testing.
 	currentHeader := shardNode.GetChainHandler().GetCurrentBlockHeader()
 	require.Equal(t, currentHeader.GetNonce(), getFinalNonce(shardNode))
 }
+
+// an equivocating shard leader commits a withheld block and broadcasts a competitor at the same
+// nonce; meta arbitrates the competitor while the shard holds its own block instantly final; the
+// settled watermark never covers the equivocated nonce, so exports stay behind the divergence
+func TestChainSimulator_EquivocatingLeaderMetaArbitratesCompetitor(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	simulator := startSupernovaSimulator(t)
+	defer simulator.Close()
+
+	shardNode := simulator.GetNodeHandler(shardID)
+	metaNode := simulator.GetNodeHandler(core.MetachainShardId)
+
+	require.NoError(t, simulator.GenerateBlocks(3))
+
+	// the shard commits the withheld block and holds it instantly final; meta never sees it
+	withheld, err := simulator.GenerateBlockWithoutBroadcast(shardID)
+	require.NoError(t, err)
+	require.NotNil(t, withheld)
+	withheldNonce := withheld.Header.GetNonce()
+	require.Equal(t, withheldNonce, getFinalNonce(shardNode))
+	require.Equal(t, withheldNonce-1, getLastCrossNotarizedNonce(t, metaNode, shardID))
+	settledBefore := getSettledNonce(shardNode)
+	require.LessOrEqual(t, settledBefore, withheldNonce-1)
+
+	// the competitor lands on meta at the same nonce, one round later, without a local commit
+	competitor, err := simulator.BroadcastCompetingBlock(shardID)
+	require.NoError(t, err)
+	require.NotNil(t, competitor)
+	require.Equal(t, withheldNonce, competitor.Header.GetNonce())
+	require.Greater(t, competitor.Header.GetRound(), withheld.Header.GetRound())
+
+	// the competitor is contended and childless, so meta notarizes it through arbitration
+	generateBlocksUntilSkipping(t, simulator, metaArbitrationWindowRounds+3, []uint32{shardID}, func() bool {
+		return getLastCrossNotarizedNonce(t, metaNode, shardID) >= withheldNonce
+	})
+
+	_, notarizedHash, err := metaNode.GetProcessComponents().BlockTracker().GetLastCrossNotarizedHeader(shardID)
+	require.NoError(t, err)
+	coreComponents := shardNode.GetCoreComponents()
+	competitorHash, err := core.CalculateHash(coreComponents.InternalMarshalizer(), coreComponents.Hasher(), competitor.Header)
+	require.NoError(t, err)
+	require.Equal(t, competitorHash, notarizedHash)
+
+	// the shard keeps its own final block, but settlement never covered the equivocated nonce
+	require.Equal(t, withheldNonce, getFinalNonce(shardNode))
+	require.Equal(t, settledBefore, getSettledNonce(shardNode))
+}

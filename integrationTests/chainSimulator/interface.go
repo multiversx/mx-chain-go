@@ -15,6 +15,8 @@ import (
 type ChainSimulator interface {
 	GenerateBlocks(numOfBlocks int) error
 	GenerateBlocksSkippingShards(numOfBlocks int, skippedShardIDs []uint32) error
+	GenerateBlockWithoutBroadcast(shardID uint32) (*dtos.BroadcastData, error)
+	BroadcastCompetingBlock(shardID uint32) (*dtos.BroadcastData, error)
 	GenerateBlocksUntilEpochIsReached(targetEpoch int32) error
 	AddValidatorKeys(validatorsPrivateKeys [][]byte) error
 	GetNodeHandler(shardID uint32) process.NodeHandler

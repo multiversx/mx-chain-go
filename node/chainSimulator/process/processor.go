@@ -284,6 +284,75 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 	}, nil
 }
 
+// CreateCompetingBlock re-signs a clone of the given committed header at the current round,
+// producing a proofed competitor at the same nonce; the block is not committed nor executed locally
+func (creator *blocksCreator) CreateCompetingBlock(original data.HeaderHandler) (*dtos.BroadcastData, error) {
+	if check.IfNil(original) {
+		return nil, ErrNilOriginalHeader
+	}
+
+	coreComponents := creator.nodeHandler.GetCoreComponents()
+	processComponents := creator.nodeHandler.GetProcessComponents()
+	cryptoComponents := creator.nodeHandler.GetCryptoComponents()
+
+	header := original.ShallowClone()
+	round := uint64(coreComponents.RoundHandler().Index())
+	err := header.SetRound(round)
+	if err != nil {
+		return nil, err
+	}
+
+	creationTime := coreComponents.RoundHandler().TimeStamp()
+	creationTimeStamp := creationTime.Unix()
+	if coreComponents.EnableEpochsHandler().IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
+		creationTimeStamp = creationTime.UnixMilli()
+	}
+	err = header.SetTimeStamp(uint64(creationTimeStamp))
+	if err != nil {
+		return nil, err
+	}
+
+	shardID := creator.nodeHandler.GetShardCoordinator().SelfId()
+	leader, validators, err := processComponents.NodesCoordinator().ComputeConsensusGroup(header.GetPrevRandSeed(), round, shardID, header.GetEpoch())
+	if err != nil {
+		return nil, err
+	}
+	if !cryptoComponents.KeysHandler().IsKeyManagedByCurrentNode(leader.PubKey()) {
+		return nil, nil
+	}
+
+	pubKeyBitmap := GeneratePubKeyBitmap(len(validators))
+	for idx, validator := range validators {
+		if cryptoComponents.KeysHandler().IsKeyManagedByCurrentNode(validator.PubKey()) {
+			continue
+		}
+
+		err = UnsetBitInBitmap(idx, pubKeyBitmap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if header.IsHeaderV3() {
+		err = creator.setHeaderSignatures(header, leader.PubKey(), validators, pubKeyBitmap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// original is passed as prev header only for its nil check; the competitor is never at genesis
+	headerProof, err := creator.ApplySignaturesAndGetProof(header, original, coreComponents.EnableEpochsHandler(), validators, leader, pubKeyBitmap)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dtos.BroadcastData{
+		Header:    header,
+		LeaderKey: leader.PubKey(),
+		Proof:     headerProof,
+	}, nil
+}
+
 func (creator *blocksCreator) updatePeerShardMapper(
 	epoch uint32,
 ) {
