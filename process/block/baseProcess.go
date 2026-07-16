@@ -2449,7 +2449,7 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 }
 
 func (bp *baseProcessor) getPruningHandler(finalHeaderNonce uint64) state.PruningHandler {
-	if finalHeaderNonce-bp.lastRestartNonce <= uint64(bp.pruningDelay) {
+	if finalHeaderNonce < bp.lastRestartNonce || finalHeaderNonce-bp.lastRestartNonce <= uint64(bp.pruningDelay) {
 		log.Debug("will skip pruning",
 			"finalHeaderNonce", finalHeaderNonce,
 			"last restart nonce", bp.lastRestartNonce,
