@@ -58,6 +58,15 @@ func getFinalNonce(node process.NodeHandler) uint64 {
 	return node.GetProcessComponents().ForkDetector().GetHighestFinalBlockNonce()
 }
 
+func getSettledNonce(node process.NodeHandler) uint64 {
+	nonce, _ := node.GetProcessComponents().ForkDetector().GetHighestSettledBlockInfo()
+	return nonce
+}
+
+func requireSettledNotAheadOfFinal(t *testing.T, node process.NodeHandler) {
+	require.LessOrEqual(t, getSettledNonce(node), getFinalNonce(node))
+}
+
 func getLastCrossNotarizedNonce(t *testing.T, node process.NodeHandler, ofShard uint32) uint64 {
 	header, _, err := node.GetProcessComponents().BlockTracker().GetLastCrossNotarizedHeader(ofShard)
 	require.NoError(t, err)
@@ -210,4 +219,123 @@ func TestChainSimulator_ContendedMetaBlockNotReferencedUntilSettled(t *testing.T
 	require.NoError(t, simulator.GenerateBlocks(1))
 	currentHeader := metaNode.GetChainHandler().GetCurrentBlockHeader()
 	require.Equal(t, currentHeader.GetNonce(), getFinalNonce(metaNode))
+}
+
+// on the clean path shard finality is instant at commit while the settled watermark follows meta
+// notarization: freezing meta grows the settled lag without touching finality, resuming meta
+// catches the watermark up; settled never exceeds final
+func TestChainSimulator_SettledWatermarkFollowsMetaNotarization(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	simulator := startSupernovaSimulator(t)
+	defer simulator.Close()
+
+	shardNode := simulator.GetNodeHandler(shardID)
+
+	require.NoError(t, simulator.GenerateBlocks(3))
+	requireSettledNotAheadOfFinal(t, shardNode)
+
+	// freeze meta; the first two frozen rounds let in-flight notarizations land
+	require.NoError(t, simulator.GenerateBlocksSkippingShards(2, []uint32{core.MetachainShardId}))
+	settledBefore := getSettledNonce(shardNode)
+
+	// with meta frozen the shard stays instantly final but nothing new settles
+	require.NoError(t, simulator.GenerateBlocksSkippingShards(4, []uint32{core.MetachainShardId}))
+	frozenTip := shardNode.GetChainHandler().GetCurrentBlockHeader()
+	require.Equal(t, frozenTip.GetNonce(), getFinalNonce(shardNode))
+	require.Equal(t, settledBefore, getSettledNonce(shardNode))
+
+	// meta resumes and the settled watermark catches up over the blocks committed during the freeze
+	generateBlocksUntil(t, simulator, 8, func() bool {
+		requireSettledNotAheadOfFinal(t, shardNode)
+		return getSettledNonce(shardNode) >= frozenTip.GetNonce()
+	})
+}
+
+// contended blocks land on shard and meta in the same round (both chains skipped the same rounds);
+// each defers finality at commit and both settle, converging back to the clean path
+func TestChainSimulator_SimultaneousShardAndMetaContentionConverges(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	simulator := startSupernovaSimulator(t)
+	defer simulator.Close()
+
+	shardNode := simulator.GetNodeHandler(shardID)
+	metaNode := simulator.GetNodeHandler(core.MetachainShardId)
+
+	require.NoError(t, simulator.GenerateBlocks(3))
+	shardParent := shardNode.GetChainHandler().GetCurrentBlockHeader()
+	metaParent := metaNode.GetChainHandler().GetCurrentBlockHeader()
+
+	// two fully skipped rounds make the next block on each chain contended
+	require.NoError(t, simulator.GenerateBlocksSkippingShards(2, []uint32{shardID, core.MetachainShardId}))
+	require.NoError(t, simulator.GenerateBlocks(1))
+
+	shardContended := shardNode.GetChainHandler().GetCurrentBlockHeader()
+	metaContended := metaNode.GetChainHandler().GetCurrentBlockHeader()
+	require.Equal(t, shardParent.GetNonce()+1, shardContended.GetNonce())
+	require.Equal(t, metaParent.GetNonce()+1, metaContended.GetNonce())
+	require.Greater(t, shardContended.GetRound(), shardParent.GetRound()+1)
+	require.Greater(t, metaContended.GetRound(), metaParent.GetRound()+1)
+
+	// finality is deferred on both chains at commit
+	require.Equal(t, shardContended.GetNonce()-1, getFinalNonce(shardNode))
+	require.Equal(t, metaContended.GetNonce()-1, getFinalNonce(metaNode))
+
+	// both chains settle their contended blocks and finality converges
+	generateBlocksUntil(t, simulator, 10, func() bool {
+		return getFinalNonce(shardNode) >= shardContended.GetNonce() &&
+			getFinalNonce(metaNode) >= metaContended.GetNonce()
+	})
+
+	// clean path restored on both chains
+	require.NoError(t, simulator.GenerateBlocks(1))
+	require.Equal(t, shardNode.GetChainHandler().GetCurrentBlockHeader().GetNonce(), getFinalNonce(shardNode))
+	require.Equal(t, metaNode.GetChainHandler().GetCurrentBlockHeader().GetNonce(), getFinalNonce(metaNode))
+}
+
+// the shard stalls across a meta epoch change, so its epoch-start block is contended; the epoch
+// transition still completes and the contended epoch-start block settles
+func TestChainSimulator_EpochBoundaryContendedShardEpochStartSettles(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	simulator := startSupernovaSimulator(t)
+	defer simulator.Close()
+
+	shardNode := simulator.GetNodeHandler(shardID)
+	metaNode := simulator.GetNodeHandler(core.MetachainShardId)
+
+	require.NoError(t, simulator.GenerateBlocks(3))
+	shardParent := shardNode.GetChainHandler().GetCurrentBlockHeader()
+	metaEpoch := metaNode.GetChainHandler().GetCurrentBlockHeader().GetEpoch()
+
+	// stall the shard until meta crosses into the next epoch
+	generateBlocksUntilSkipping(t, simulator, 30, []uint32{shardID}, func() bool {
+		return metaNode.GetChainHandler().GetCurrentBlockHeader().GetEpoch() > metaEpoch
+	})
+
+	// the shard resumes: its next block bridges the epoch change and is contended
+	require.NoError(t, simulator.GenerateBlocks(1))
+	contendedHeader := shardNode.GetChainHandler().GetCurrentBlockHeader()
+	require.Equal(t, shardParent.GetNonce()+1, contendedHeader.GetNonce())
+	require.Greater(t, contendedHeader.GetRound(), shardParent.GetRound()+1)
+	require.Equal(t, contendedHeader.GetNonce()-1, getFinalNonce(shardNode))
+
+	// the shard enters the new epoch, the contended block settles and the chain stays live
+	generateBlocksUntil(t, simulator, 15, func() bool {
+		currentHeader := shardNode.GetChainHandler().GetCurrentBlockHeader()
+		return currentHeader.GetEpoch() > shardParent.GetEpoch() &&
+			getFinalNonce(shardNode) >= contendedHeader.GetNonce()
+	})
+
+	// clean path restored in the new epoch
+	require.NoError(t, simulator.GenerateBlocks(1))
+	currentHeader := shardNode.GetChainHandler().GetCurrentBlockHeader()
+	require.Equal(t, currentHeader.GetNonce(), getFinalNonce(shardNode))
 }
