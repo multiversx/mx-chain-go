@@ -1857,6 +1857,7 @@ func (boot *baseBootstrap) realignAfterV3RollBack() {
 		return
 	}
 
+	boot.poolsHolder.Transactions().ResetTracker()
 	boot.preparedForSync = false
 	boot.resetSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
 }
