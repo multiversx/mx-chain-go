@@ -340,6 +340,48 @@ func TestChainSimulator_EpochBoundaryContendedShardEpochStartSettles(t *testing.
 	require.Equal(t, currentHeader.GetNonce(), getFinalNonce(shardNode))
 }
 
+// with meta frozen, clean descendants of a contended shard block commit but stay non-final until
+// the ancestor settles (transitivity); when meta resumes, finality catches up over the descendants
+func TestChainSimulator_DescendantsNotFinalUntilContendedAncestorSettles(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	simulator := startSupernovaSimulator(t)
+	defer simulator.Close()
+
+	shardNode := simulator.GetNodeHandler(shardID)
+
+	require.NoError(t, simulator.GenerateBlocks(3))
+	parentHeader := shardNode.GetChainHandler().GetCurrentBlockHeader()
+	require.Equal(t, parentHeader.GetNonce(), getFinalNonce(shardNode))
+
+	// freeze meta and skip two shard rounds; the next shard block is contended
+	require.NoError(t, simulator.GenerateBlocksSkippingShards(2, []uint32{shardID, core.MetachainShardId}))
+	require.NoError(t, simulator.GenerateBlocksSkippingShards(1, []uint32{core.MetachainShardId}))
+	contendedHeader := shardNode.GetChainHandler().GetCurrentBlockHeader()
+	require.Equal(t, parentHeader.GetNonce()+1, contendedHeader.GetNonce())
+	require.Greater(t, contendedHeader.GetRound(), parentHeader.GetRound()+1)
+	require.Equal(t, contendedHeader.GetNonce()-1, getFinalNonce(shardNode))
+
+	// with meta still frozen the shard builds clean descendants; none becomes final while the
+	// contended ancestor is unsettled
+	require.NoError(t, simulator.GenerateBlocksSkippingShards(3, []uint32{core.MetachainShardId}))
+	tipHeader := shardNode.GetChainHandler().GetCurrentBlockHeader()
+	require.Equal(t, contendedHeader.GetNonce()+3, tipHeader.GetNonce())
+	require.Equal(t, contendedHeader.GetNonce()-1, getFinalNonce(shardNode))
+
+	// meta resumes, notarizes the contended block, and finality catches up over the descendants
+	generateBlocksUntil(t, simulator, 8, func() bool {
+		return getFinalNonce(shardNode) >= tipHeader.GetNonce()
+	})
+
+	// clean path restored
+	require.NoError(t, simulator.GenerateBlocks(1))
+	currentHeader := shardNode.GetChainHandler().GetCurrentBlockHeader()
+	require.Equal(t, currentHeader.GetNonce(), getFinalNonce(shardNode))
+}
+
 // an equivocating shard leader commits a withheld block and broadcasts a competitor at the same
 // nonce; meta arbitrates the competitor while the shard holds its own block instantly final; the
 // settled watermark never covers the equivocated nonce, so exports stay behind the divergence

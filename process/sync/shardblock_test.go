@@ -4170,4 +4170,56 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 		require.Equal(t, prevHdr.GetNonce(), removedAtNonce["rewindTip"])
 		require.False(t, bs.GetPreparedForSync())
 	})
+
+	t.Run("resets the tx selection tracker after rewinding the execution state", func(t *testing.T) {
+		t.Parallel()
+
+		resetTrackerCalled := false
+		bs, _, _, removedAtNonce, _, _ := buildBootstrapper(5, func(args *sync.ArgShardBootstrapper) {
+			pools := createMockPools()
+			pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ResetTrackerCalled: func() {
+						resetTrackerCalled = true
+					},
+				}
+			}
+			args.PoolsHolder = pools
+		})
+		bs.SetPreparedForSync(true)
+
+		err := bs.RollBack(true)
+		require.Nil(t, err)
+
+		require.True(t, resetTrackerCalled)
+		require.Equal(t, prevHdr.GetNonce(), removedAtNonce["rewindTip"])
+		require.False(t, bs.GetPreparedForSync())
+	})
+
+	t.Run("does not reset the tx selection tracker when the rewind fails", func(t *testing.T) {
+		t.Parallel()
+
+		resetTrackerCalled := false
+		bs, _, _, _, _, executionManagerMock := buildBootstrapper(5, func(args *sync.ArgShardBootstrapper) {
+			pools := createMockPools()
+			pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ResetTrackerCalled: func() {
+						resetTrackerCalled = true
+					},
+				}
+			}
+			args.PoolsHolder = pools
+		})
+		bs.SetPreparedForSync(true)
+		executionManagerMock.RewindExecutionStateToTipCalled = func(newTip data.HeaderHandler) error {
+			return errors.New("expected error")
+		}
+
+		err := bs.RollBack(true)
+		require.Nil(t, err)
+
+		require.False(t, resetTrackerCalled)
+		require.True(t, bs.GetPreparedForSync())
+	})
 }
