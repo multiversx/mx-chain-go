@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
@@ -237,13 +238,18 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 	}
 
+	// supernova genesis time = wall time of the supernova activation round, with the
+	// uniform test round duration
+	supernovaGenesisTime := tpn.NodesSetup.GetStartTime()*1000 +
+		int64(tpn.EnableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag))*tpn.RoundHandler.TimeDuration().Milliseconds()
+
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(
 			tpn.RoundHandler,
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
-			0,
-			0,
+			tpn.NodesSetup.GetStartTime(),
+			supernovaGenesisTime,
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs(),
@@ -287,8 +293,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.RoundHandler,
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
-			0,
-			0,
+			tpn.NodesSetup.GetStartTime(),
+			supernovaGenesisTime,
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs(),
