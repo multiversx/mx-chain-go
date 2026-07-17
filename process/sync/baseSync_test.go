@@ -1087,3 +1087,138 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.False(t, boot.tryReconcileEquivocation())
 	})
 }
+
+func TestBaseBootstrap_SelectNonBlackListedHash(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(7)
+	cleanHash, deadHash, deadSibling := []byte("cleanHash"), []byte("deadHash"), []byte("deadSibling")
+
+	buildBootstrapper := func(blacklisted []string, siblingProofs []data.HeaderProofHandler, swept *bool) *baseBootstrap {
+		return &baseBootstrap{
+			shardCoordinator: mock.NewOneShardCoordinatorMock(),
+			blackListHandler: &testscommon.TimeCacheStub{
+				HasCalled: func(key string) bool {
+					for _, blackListedKey := range blacklisted {
+						if key == blackListedKey {
+							return true
+						}
+					}
+					return false
+				},
+				SweepCalled: func() {
+					if swept != nil {
+						*swept = true
+					}
+				},
+			},
+			proofs: &testscommonDataRetriever.ProofsPoolMock{
+				GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+					if len(siblingProofs) == 0 {
+						return nil, errors.New("no proofs at nonce")
+					}
+					return siblingProofs, nil
+				},
+			},
+		}
+	}
+
+	t.Run("empty hash is returned as is", func(t *testing.T) {
+		t.Parallel()
+
+		boot := buildBootstrapper([]string{string(deadHash)}, nil, nil)
+		require.Nil(t, boot.selectNonBlackListedHash(nil, nonce))
+	})
+
+	t.Run("non-blacklisted hash is returned unchanged after a sweep", func(t *testing.T) {
+		t.Parallel()
+
+		swept := false
+		boot := buildBootstrapper([]string{string(deadHash)}, nil, &swept)
+		require.Equal(t, cleanHash, boot.selectNonBlackListedHash(cleanHash, nonce))
+		require.True(t, swept)
+	})
+
+	t.Run("blacklisted hash is replaced by the first non-blacklisted proofed sibling", func(t *testing.T) {
+		t.Parallel()
+
+		siblingProofs := []data.HeaderProofHandler{
+			&block.HeaderProof{HeaderHash: deadSibling, HeaderNonce: nonce},
+			&block.HeaderProof{HeaderHash: cleanHash, HeaderNonce: nonce},
+		}
+		boot := buildBootstrapper([]string{string(deadHash), string(deadSibling)}, siblingProofs, nil)
+		require.Equal(t, cleanHash, boot.selectNonBlackListedHash(deadHash, nonce))
+	})
+
+	t.Run("blacklisted hash with no proofs at the nonce returns nil", func(t *testing.T) {
+		t.Parallel()
+
+		boot := buildBootstrapper([]string{string(deadHash)}, nil, nil)
+		require.Nil(t, boot.selectNonBlackListedHash(deadHash, nonce))
+	})
+
+	t.Run("blacklisted hash with only blacklisted siblings returns nil", func(t *testing.T) {
+		t.Parallel()
+
+		siblingProofs := []data.HeaderProofHandler{
+			&block.HeaderProof{HeaderHash: deadSibling, HeaderNonce: nonce},
+		}
+		boot := buildBootstrapper([]string{string(deadHash), string(deadSibling)}, siblingProofs, nil)
+		require.Nil(t, boot.selectNonBlackListedHash(deadHash, nonce))
+	})
+}
+
+func TestBaseBootstrap_GetHeaderWithNonceRequestingIfMissingRefusesBlackListedHeader(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(7)
+	deadHash := []byte("deadHash")
+	header := &block.HeaderV3{Nonce: nonce}
+
+	requested := false
+	chRcvHdrNonce := make(chan bool, 1)
+	boot := &baseBootstrap{
+		chRcvHdrNonce:    chRcvHdrNonce,
+		shardCoordinator: mock.NewOneShardCoordinatorMock(),
+		roundHandler:     &mock.RoundHandlerMock{RoundTimeDuration: 100 * time.Millisecond},
+		forkDetector:     &mock.ForkDetectorMock{},
+		headers: &mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {
+				return []data.HeaderHandler{header}, [][]byte{deadHash}, nil
+			},
+		},
+		proofs: &testscommonDataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{HeaderHash: deadHash, HeaderNonce: nonce}, nil
+			},
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		},
+		blackListHandler: &testscommon.TimeCacheStub{
+			HasCalled: func(key string) bool {
+				return key == string(deadHash)
+			},
+		},
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		},
+		requestHandler: &testscommon.RequestHandlerStub{
+			RequestShardHeaderByNonceCalled: func(shardID uint32, requestedNonce uint64) {
+				requested = true
+				// simulate the network answering so the wait returns immediately
+				chRcvHdrNonce <- true
+			},
+		},
+	}
+
+	hdr, hash, err := boot.getHeaderWithNonceRequestingIfMissing(nonce)
+	require.Nil(t, hdr)
+	require.Nil(t, hash)
+	require.Equal(t, process.ErrHeaderIsBlackListed, err)
+	// the pool hit was ignored (first guard) and the header re-requested; the answer
+	// still being blacklisted is then refused by the post-wait guard
+	require.True(t, requested)
+}

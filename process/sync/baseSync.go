@@ -2039,12 +2039,44 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 		hash = proof.GetHeaderHash()
 	}
 
+	hash = boot.selectNonBlackListedHash(hash, nonce)
+
 	if hash != nil {
 		header, err := boot.getHeaderWithHashRequestingIfMissing(hash)
 		return header, hash, err
 	}
 
 	return boot.getHeaderWithNonceRequestingIfMissing(nonce)
+}
+
+// selectNonBlackListedHash prevents re-adopting a hash blacklisted by a fork rollback or the
+// reconcile backstop, preferring a non-blacklisted proofed sibling at the nonce
+func (boot *baseBootstrap) selectNonBlackListedHash(hash []byte, nonce uint64) []byte {
+	if len(hash) == 0 {
+		return hash
+	}
+
+	boot.blackListHandler.Sweep()
+	if !boot.blackListHandler.Has(string(hash)) {
+		return hash
+	}
+
+	log.Debug("selectNonBlackListedHash: chosen header hash is blacklisted, trying proofed siblings",
+		"nonce", nonce,
+		"hash", hash,
+	)
+
+	proofs, err := boot.proofs.GetProofsByNonce(nonce, boot.shardCoordinator.SelfId())
+	if err != nil {
+		return nil
+	}
+	for _, siblingProof := range proofs {
+		if !boot.blackListHandler.Has(string(siblingProof.GetHeaderHash())) {
+			return siblingProof.GetHeaderHash()
+		}
+	}
+
+	return nil
 }
 
 // getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
@@ -2100,7 +2132,7 @@ func (boot *baseBootstrap) checkNeedsProofByHash(hash []byte, header data.Header
 // be requested from network
 func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, []byte, error) {
 	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
-	hasHeader := err == nil
+	hasHeader := err == nil && !boot.blackListHandler.Has(string(hash))
 
 	if hasHeader && boot.hasProof(hash, hdr) {
 		return hdr, hash, nil
@@ -2123,6 +2155,10 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 	if err != nil {
 		log.Debug("getHeaderWithNonceRequestingIfMissing: failed to get header with nonce", "nonce", nonce, "error", err)
 		return nil, nil, err
+	}
+
+	if boot.blackListHandler.Has(string(hash)) {
+		return nil, nil, process.ErrHeaderIsBlackListed
 	}
 
 	if !boot.hasProof(hash, hdr) {
