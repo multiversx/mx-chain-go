@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process/track"
 )
 
@@ -13,6 +14,7 @@ type BlockTrackerHandlerMock struct {
 	SortHeadersFromNonceCalled    func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	AddHeaderFromPoolCalled       func(shardID uint32, nonce uint64)
 	IsHeaderQuarantinedCalled     func(hash []byte) bool
+	IsSettledCrossHeaderCalled    func(header data.HeaderHandler, headerHash []byte) bool
 }
 
 // GetSelfHeaders -
@@ -68,4 +70,12 @@ func (bthm *BlockTrackerHandlerMock) IsHeaderQuarantined(hash []byte) bool {
 // IsInterfaceNil -
 func (bthm *BlockTrackerHandlerMock) IsInterfaceNil() bool {
 	return bthm == nil
+}
+
+// IsSettledCrossHeader -
+func (bthm *BlockTrackerHandlerMock) IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool {
+	if bthm.IsSettledCrossHeaderCalled != nil {
+		return bthm.IsSettledCrossHeaderCalled(header, headerHash)
+	}
+	return false
 }

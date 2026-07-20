@@ -1051,6 +1051,7 @@ type BlockTracker interface {
 	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 	IsOwnShardStuck() bool
 	IsHeaderQuarantined(hash []byte) bool
+	IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool
 	Close() error
 	IsInterfaceNil() bool
 }

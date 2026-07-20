@@ -302,6 +302,11 @@ func (bp *blockProcessor) getNextHeader(
 			continue
 		}
 
+		if bp.isContendedUnsettledCrossHeader(currHeader, prevHeader, sortedHeadersHashes[i]) {
+			log.Trace("getNextHeader: skipping contended unsettled cross header", "hash", sortedHeadersHashes[i])
+			continue
+		}
+
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
 			continue
@@ -316,6 +321,22 @@ func (bp *blockProcessor) getNextHeader(
 		bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, sortedHeadersHashes, i+1)
 		headersIndexes = headersIndexes[:len(headersIndexes)-1]
 	}
+}
+
+// isContendedUnsettledCrossHeader applies the R-CROSS referencing gate: a cross-shard header that
+// skipped a round after its parent is not includable until a proofed child settles it
+func (bp *blockProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandler, parentHeader data.HeaderHandler, headerHash []byte) bool {
+	if header.GetShardID() == bp.shardCoordinator.SelfId() {
+		return false
+	}
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return false
+	}
+	if !common.IsContendedHeader(header, parentHeader) {
+		return false
+	}
+
+	return !bp.blockTracker.IsSettledCrossHeader(header, headerHash)
 }
 
 func (bp *blockProcessor) checkHeaderFinality(

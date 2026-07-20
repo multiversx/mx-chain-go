@@ -1372,3 +1372,19 @@ func TestPrepareUnexecutableTxHashesKey(t *testing.T) {
 	hash := []byte("hash")
 	require.Equal(t, []byte("unexecutablehash"), common.PrepareUnexecutableTxHashesKey(hash))
 }
+
+func TestIsContendedHeader(t *testing.T) {
+	t.Parallel()
+
+	parent := &testscommon.HeaderHandlerStub{RoundField: 1}
+
+	require.False(t, common.IsContendedHeader(nil, parent))
+	require.False(t, common.IsContendedHeader(&testscommon.HeaderHandlerStub{RoundField: 5}, nil))
+
+	// consecutive round: no skipped round to hide a competitor in
+	require.False(t, common.IsContendedHeader(&testscommon.HeaderHandlerStub{RoundField: 2}, parent))
+
+	// at least one skipped round: a competing proof could exist there
+	require.True(t, common.IsContendedHeader(&testscommon.HeaderHandlerStub{RoundField: 3}, parent))
+	require.True(t, common.IsContendedHeader(&testscommon.HeaderHandlerStub{RoundField: 10}, parent))
+}

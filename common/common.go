@@ -640,3 +640,13 @@ func GetFeePayer(tx data.TransactionHandler) []byte {
 
 	return tx.GetSndAddr()
 }
+
+// IsContendedHeader returns true if rounds were skipped between the parent and the header, so a
+// competing proof could exist at the header's nonce in a skipped round
+func IsContendedHeader(header data.HeaderHandler, parentHeader data.HeaderHandler) bool {
+	if check.IfNil(header) || check.IfNil(parentHeader) {
+		return false
+	}
+
+	return header.GetRound() > parentHeader.GetRound()+1
+}

@@ -4382,3 +4382,38 @@ func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 
 	return nil
 }
+
+// isContendedUnsettledCrossHeader applies the R-CROSS referencing gate: a cross-shard header that
+// skipped a round after its parent is not includable until a proofed child settles it
+func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandler, parentHeader data.HeaderHandler, headerHash []byte) bool {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return false
+	}
+	if !common.IsContendedHeader(header, parentHeader) {
+		return false
+	}
+
+	return !bp.blockTracker.IsSettledCrossHeader(header, headerHash)
+}
+
+// checkNotContendedUnsettled errors when a referenced cross-shard header is contended and not yet
+// settled; the header hash is computed only on the contended path
+func (bp *baseProcessor) checkNotContendedUnsettled(header data.HeaderHandler, parentHeader data.HeaderHandler) error {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return nil
+	}
+	if !common.IsContendedHeader(header, parentHeader) {
+		return nil
+	}
+
+	headerHash, err := bp.getHeaderHash(header)
+	if err != nil {
+		return err
+	}
+
+	if !bp.blockTracker.IsSettledCrossHeader(header, headerHash) {
+		return fmt.Errorf("%w with hash %x", errIncludedContendedUnsettledHeader, headerHash)
+	}
+
+	return nil
+}
