@@ -15,6 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -30,8 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBaseBootstrap_SyncBlocksShouldNotCallSyncIfNotConnectedToTheNetwork(t *testing.T) {
@@ -678,7 +679,7 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 		require.False(t, boot.shouldAllowRollback(header, notFinalBlockHash))
 	})
 
-	t.Run("should not allow rollback of a header v3", func(t *testing.T) {
+	t.Run("should allow rollback of a header v3 only above the final nonce", func(t *testing.T) {
 		header := &testscommon.HeaderHandlerStub{
 			GetNonceCalled: func() uint64 {
 				return 11
@@ -686,6 +687,17 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 			IsHeaderV3Called: func() bool {
 				return true
 			},
+		}
+		require.True(t, boot.shouldAllowRollback(header, finalBlockHash))
+
+		header.GetNonceCalled = func() uint64 {
+			return 10
+		}
+		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
+		require.False(t, boot.shouldAllowRollback(header, notFinalBlockHash))
+
+		header.GetNonceCalled = func() uint64 {
+			return 9
 		}
 		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
 	})

@@ -1685,7 +1685,8 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 	var currBody data.BodyHandler
 
 	defer func() {
-		if !roleBackOneBlockExecuted {
+		isHeaderV3 := !check.IfNil(currHeader) && currHeader.IsHeaderV3()
+		if !roleBackOneBlockExecuted && !isHeaderV3 {
 			err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 			if err != nil {
 				rootHash := boot.chainHandler.GetGenesisHeader().GetRootHash()
@@ -1712,7 +1713,9 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		}
 
 		allowRollBack := boot.shouldAllowRollback(currHeader, currHeaderHash)
-		if !revertUsingForkNonce && !allowRollBack {
+		// a header v3 switch must never cross the final checkpoint, not even fork-driven
+		isRollBackDenied := !allowRollBack && (!revertUsingForkNonce || currHeader.IsHeaderV3())
+		if isRollBackDenied {
 			return ErrRollBackBehindFinalHeader
 		}
 
@@ -1735,13 +1738,22 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			"nonce", boot.forkDetector.GetHighestFinalBlockNonce(),
 		)
 
-		currBody, err = boot.rollBackOneBlock(
-			currHeaderHash,
-			currHeader,
-			prevHeaderHash,
-			prevHeader,
-		)
-		roleBackOneBlockExecuted = true
+		if currHeader.IsHeaderV3() {
+			currBody, err = boot.rollBackOneBlockV3(
+				currHeaderHash,
+				currHeader,
+				prevHeaderHash,
+				prevHeader,
+			)
+		} else {
+			currBody, err = boot.rollBackOneBlock(
+				currHeaderHash,
+				currHeader,
+				prevHeaderHash,
+				prevHeader,
+			)
+			roleBackOneBlockExecuted = true
+		}
 		if err != nil {
 			return err
 		}
@@ -1765,15 +1777,17 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		err = boot.scheduledTxsExecutionHandler.RollBackToBlock(prevHeaderHash)
-		if err != nil {
-			scheduledInfo := &process.ScheduledInfo{
-				RootHash:        prevHeader.GetRootHash(),
-				IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
-				GasAndFees:      process.GetZeroGasAndFees(),
-				MiniBlocks:      make(block.MiniBlockSlice, 0),
+		if !currHeader.IsHeaderV3() {
+			err = boot.scheduledTxsExecutionHandler.RollBackToBlock(prevHeaderHash)
+			if err != nil {
+				scheduledInfo := &process.ScheduledInfo{
+					RootHash:        prevHeader.GetRootHash(),
+					IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+					GasAndFees:      process.GetZeroGasAndFees(),
+					MiniBlocks:      make(block.MiniBlockSlice, 0),
+				}
+				boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 			}
-			boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 		}
 
 		err = boot.outportHandler.RevertIndexedBlock(&outportcore.HeaderDataWithBody{
@@ -1803,8 +1817,11 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 }
 
 func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, currHeaderHash []byte) bool {
-	if check.IfNil(currHeader) || currHeader.IsHeaderV3() {
+	if check.IfNil(currHeader) {
 		return false
+	}
+	if currHeader.IsHeaderV3() {
+		return boot.shouldAllowRollbackV3(currHeader)
 	}
 
 	finalBlockNonce := boot.forkDetector.GetHighestFinalBlockNonce()
@@ -1825,6 +1842,21 @@ func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, cu
 		"headerHashDoesNotMatchWithFinalBlockHash", headerHashDoesNotMatchWithFinalBlockHash,
 		"allowFinalBlockRollBack", allowFinalBlockRollBack,
 		"canRollbackBlock", canRollbackBlock,
+		"allowRollBack", allowRollBack,
+	)
+
+	return allowRollBack
+}
+
+// shouldAllowRollbackV3 allows replacing a committed block only while it is not final (R-SWITCH);
+// the state is never reverted through tries, the adopted sibling re-executes asynchronously
+func (boot *baseBootstrap) shouldAllowRollbackV3(currHeader data.HeaderHandler) bool {
+	finalBlockNonce := boot.forkDetector.GetHighestFinalBlockNonce()
+	allowRollBack := currHeader.GetNonce() > finalBlockNonce
+
+	log.Debug("baseBootstrap.shouldAllowRollbackV3",
+		"nonce", currHeader.GetNonce(),
+		"final block nonce", finalBlockNonce,
 		"allowRollBack", allowRollBack,
 	)
 
@@ -1885,6 +1917,51 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	}
 
 	boot.cleanCachesAndStorageOnRollback(currHeader)
+
+	return currBlockBody, nil
+}
+
+// rollBackOneBlockV3 reverts a committed, not yet final header so a same-nonce sibling can be
+// adopted; the trie state is not reverted, the sibling's execution results are produced async
+func (boot *baseBootstrap) rollBackOneBlockV3(
+	currHeaderHash []byte,
+	currHeader data.HeaderHandler,
+	prevHeaderHash []byte,
+	prevHeader data.HeaderHandler,
+) (data.BodyHandler, error) {
+	err := boot.chainHandler.SetCurrentBlockHeaderAndHash(prevHeaderHash, prevHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			errNotCritical := boot.chainHandler.SetCurrentBlockHeaderAndHash(currHeaderHash, currHeader)
+			if errNotCritical != nil {
+				log.Warn("rollBackOneBlockV3: cannot restore current block info", "error", errNotCritical)
+			}
+		}
+	}()
+
+	err = boot.executionManager.RemoveAtNonceAndHigher(currHeader.GetNonce())
+	if err != nil {
+		return nil, err
+	}
+
+	currBlockBody, errNotCritical := boot.blockBootstrapper.getBlockBody(currHeader)
+	if errNotCritical != nil {
+		log.Debug("rollBackOneBlockV3 getBlockBody error", "error", errNotCritical)
+	}
+
+	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
+	if err != nil {
+		return nil, err
+	}
+
+	hash := boot.removeHeaderFromPools(currHeader)
+	boot.forkDetector.RemoveCommittedHeader(currHeader.GetNonce(), hash)
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(currHeader.GetNonce())
+	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 
 	return currBlockBody, nil
 }

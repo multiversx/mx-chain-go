@@ -279,6 +279,53 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 		"final checkpoint nonce", bfd.finalCheckpoint().nonce)
 }
 
+// RemoveCommittedHeader removes a reverted committed header together with its checkpoint, proof
+// included, so a same-nonce sibling can be adopted; it never removes at or below the final checkpoint
+func (bfd *baseForkDetector) RemoveCommittedHeader(nonce uint64, hash []byte) {
+	finalCheckpointNonce := bfd.finalCheckpoint().nonce
+	if nonce <= finalCheckpointNonce {
+		log.Warn("baseForkDetector.RemoveCommittedHeader: refusing removal at or below the final checkpoint",
+			"nonce", nonce,
+			"hash", hash,
+			"final checkpoint nonce", finalCheckpointNonce)
+		return
+	}
+
+	bfd.removeCheckpointWithNonce(nonce)
+
+	preservedHdrsInfo := make([]*headerInfo, 0)
+
+	bfd.mutHeaders.Lock()
+
+	hdrsInfo := bfd.headers[nonce]
+	for _, hdrInfo := range hdrsInfo {
+		if hdrInfo.state != process.BHNotarized && bytes.Equal(hash, hdrInfo.hash) {
+			continue
+		}
+
+		preservedHdrsInfo = append(preservedHdrsInfo, hdrInfo)
+	}
+
+	if len(preservedHdrsInfo) == 0 {
+		delete(bfd.headers, nonce)
+	} else {
+		bfd.headers[nonce] = preservedHdrsInfo
+	}
+
+	bfd.mutHeaders.Unlock()
+
+	bfd.forkDetector.computeFinalCheckpoint()
+
+	probableHighestNonce := bfd.computeProbableHighestNonce()
+	bfd.setProbableHighestNonce(probableHighestNonce)
+
+	log.Debug("forkDetector.RemoveCommittedHeader",
+		"nonce", nonce,
+		"hash", hash,
+		"probable highest nonce", probableHighestNonce,
+		"final checkpoint nonce", bfd.finalCheckpoint().nonce)
+}
+
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
 	bfd.mutFork.Lock()
 	preservedCheckpoint := make([]*checkpointInfo, 0)
