@@ -5870,3 +5870,94 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
+
+func TestMetaProcessor_UpdateStateSignalsNewlyFinalBlocksUnderSupernova(t *testing.T) {
+	t.Parallel()
+
+	hash4, hash5, hash6, hash7, hash8 := []byte("hash4"), []byte("hash5"), []byte("hash6"), []byte("hash7"), []byte("hash8")
+	newMetaBlock := func(nonce uint64, round uint64, prevHash []byte) *block.MetaBlock {
+		return &block.MetaBlock{
+			Nonce:                  nonce,
+			Round:                  round,
+			PrevHash:               prevHash,
+			RootHash:               append([]byte("rootHash"), byte(nonce)),
+			ValidatorStatsRootHash: append([]byte("validatorRootHash"), byte(nonce)),
+		}
+	}
+	hdr4 := newMetaBlock(4, 4, []byte("hash3"))
+	hdr5 := newMetaBlock(5, 5, hash4)
+	contendedHdr6 := newMetaBlock(6, 8, hash5)
+	contendedHdr7 := newMetaBlock(7, 11, hash6)
+	cleanHdr8 := newMetaBlock(8, 12, hash7)
+	headersByHash := map[string]data.HeaderHandler{
+		string(hash4): hdr4,
+		string(hash5): hdr5,
+		string(hash6): contendedHdr6,
+		string(hash7): contendedHdr7,
+	}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag || flag == common.SupernovaFlag
+		},
+	}
+
+	dataPool := initDataPool()
+	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				header, ok := headersByHash[string(hash)]
+				if !ok {
+					return nil, errors.New("header not found")
+				}
+				return header, nil
+			},
+		}
+	}
+	dataComponents.DataPool = dataPool
+
+	setFinalBlockInfos := make([]uint64, 0)
+	dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
+		SetFinalBlockInfoCalled: func(nonce uint64, headerHash []byte, rootHash []byte) {
+			setFinalBlockInfos = append(setFinalBlockInfos, nonce)
+		},
+	}
+
+	outportCapture := &finalizedBlocksCapture{OutportStub: &outport.OutportStub{}}
+	statusComponents.Outport = outportCapture
+
+	finalNonce := uint64(5)
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return finalNonce
+		},
+	}
+	mp, _ := processBlock.NewMetaProcessor(arguments)
+
+	// clean committed block is final and signaled at once
+	mp.UpdateState(hdr5, hash5)
+	require.Equal(t, [][]byte{hash4, hash5}, outportCapture.finalizedHashes)
+	require.Equal(t, []uint64{5}, setFinalBlockInfos)
+
+	// contended committed block is not signaled while unsettled
+	mp.UpdateState(contendedHdr6, hash6)
+	require.Equal(t, [][]byte{hash4, hash5}, outportCapture.finalizedHashes)
+	require.Equal(t, []uint64{5}, setFinalBlockInfos)
+
+	// the committed child settles its parent: the parent is signaled, the contended child is not
+	finalNonce = 6
+	mp.UpdateState(contendedHdr7, hash7)
+	require.Equal(t, [][]byte{hash4, hash5, hash6}, outportCapture.finalizedHashes)
+	require.Equal(t, []uint64{5, 6}, setFinalBlockInfos)
+
+	// clean child settles its parent and is instantly final: both signaled exactly once
+	finalNonce = 8
+	mp.UpdateState(cleanHdr8, hash8)
+	require.Equal(t, [][]byte{hash4, hash5, hash6, hash7, hash8}, outportCapture.finalizedHashes)
+	require.Equal(t, []uint64{5, 6, 8}, setFinalBlockInfos)
+}

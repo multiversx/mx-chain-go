@@ -18,6 +18,7 @@ type headerInfo struct {
 	nonce    uint64
 	round    uint64
 	hash     []byte
+	prevHash []byte
 	state    process.BlockHeaderState
 	hasProof bool
 }
@@ -410,6 +411,43 @@ func (bfd *baseForkDetector) setFinalCheckpoint(finalCheckpoint *checkpointInfo)
 	bfd.mutFork.Lock()
 	bfd.fork.finalCheckpoint = finalCheckpoint
 	bfd.mutFork.Unlock()
+}
+
+// advanceFinalCheckpoint sets the final checkpoint only forward, so concurrent computations
+// cannot regress an already finalized nonce
+func (bfd *baseForkDetector) advanceFinalCheckpoint(finalCheckpoint *checkpointInfo) {
+	bfd.mutFork.Lock()
+	if finalCheckpoint.nonce > bfd.fork.finalCheckpoint.nonce {
+		bfd.fork.finalCheckpoint = finalCheckpoint
+	}
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) isSupernovaForHeader(header data.HeaderHandler) bool {
+	return bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch())
+}
+
+func isParentCheckpoint(checkpoint *checkpointInfo, header data.HeaderHandler) bool {
+	if checkpoint.nonce+1 != header.GetNonce() {
+		return false
+	}
+
+	return len(checkpoint.hash) == 0 || bytes.Equal(checkpoint.hash, header.GetPrevHash())
+}
+
+// canInstantlyFinalize returns false for a contended header or one whose parent is not final yet;
+// such headers finalize later, on settlement (R-INTRA)
+func (bfd *baseForkDetector) canInstantlyFinalize(header data.HeaderHandler) bool {
+	if !bfd.isSupernovaForHeader(header) {
+		return true
+	}
+
+	finalCheckpoint := bfd.finalCheckpoint()
+	if !isParentCheckpoint(finalCheckpoint, header) {
+		return false
+	}
+
+	return !common.IsContendedRound(header.GetRound(), finalCheckpoint.round)
 }
 
 // RestoreToGenesis sets class variables to theirs initial values
@@ -935,6 +973,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		nonce:    header.GetNonce(),
 		round:    header.GetRound(),
 		hash:     headerHash,
+		prevHash: header.GetPrevHash(),
 		state:    state,
 		hasProof: hasProof,
 	}

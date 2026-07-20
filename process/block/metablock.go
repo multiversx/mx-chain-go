@@ -1697,6 +1697,11 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 
 	// for header v3, trie prnning is triggered in async mode from headers executor
 
+	if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, metaBlock.GetEpoch()) {
+		mp.signalNewlyFinalBlocks(metaBlock, metaBlockHash, rootHash, prevMetaBlock)
+		return
+	}
+
 	outportFinalizedHeaderHash := metaBlockHash
 	if !common.IsFlagEnabledAfterEpochsStartBlock(metaBlock, mp.enableEpochsHandler, common.AndromedaFlag) {
 		outportFinalizedHeaderHash = metaBlock.GetPrevHash()
@@ -1704,6 +1709,46 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	mp.setFinalizedHeaderHashInIndexer(outportFinalizedHeaderHash)
 
 	mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, rootHash)
+}
+
+// signalNewlyFinalBlocks emits the external finality signals for the blocks finalized since the
+// previous commit; with deferred finality the committed header itself may not be final yet
+func (mp *metaProcessor) signalNewlyFinalBlocks(
+	metaBlock data.MetaHeaderHandler,
+	metaBlockHash []byte,
+	rootHash []byte,
+	prevMetaBlock data.MetaHeaderHandler,
+) {
+	finalNonce := mp.forkDetector.GetHighestFinalBlockNonce()
+	if finalNonce <= mp.lastSignaledFinalNonce {
+		return
+	}
+
+	// finality is deferred by at most one block on meta (settle-on-child), so the previous block
+	// is the only one that can become final together with the committed one
+	isPrevNewlyFinal := finalNonce >= prevMetaBlock.GetNonce() &&
+		prevMetaBlock.GetNonce() > mp.lastSignaledFinalNonce
+	if isPrevNewlyFinal {
+		mp.setFinalizedHeaderHashInIndexer(metaBlock.GetPrevHash())
+	}
+
+	if finalNonce >= metaBlock.GetNonce() {
+		mp.setFinalizedHeaderHashInIndexer(metaBlockHash)
+		mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, rootHash)
+		mp.lastSignaledFinalNonce = metaBlock.GetNonce()
+		return
+	}
+
+	if finalNonce == prevMetaBlock.GetNonce() {
+		prevRootHash, _, err := mp.getRootHashAndValidatorRootHash(prevMetaBlock)
+		if err != nil {
+			log.Warn("signalNewlyFinalBlocks: cannot get root hash of the newly final block", "error", err.Error())
+		} else {
+			mp.blockChain.SetFinalBlockInfo(prevMetaBlock.GetNonce(), metaBlock.GetPrevHash(), prevRootHash)
+		}
+	}
+
+	mp.lastSignaledFinalNonce = finalNonce
 }
 
 func (mp *metaProcessor) pruneTrieHeaderV3(

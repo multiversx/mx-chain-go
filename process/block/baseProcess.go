@@ -140,6 +140,7 @@ type baseProcessor struct {
 
 	processDataTriesOnCommitEpoch bool
 	lastRestartNonce              uint64
+	lastSignaledFinalNonce        uint64
 	pruningDelay                  uint32
 	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
 	receiptsRepository            receiptsRepository

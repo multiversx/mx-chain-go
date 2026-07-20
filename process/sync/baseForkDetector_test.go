@@ -1065,7 +1065,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag != common.AndromedaFlag
+				return flag != common.AndromedaFlag && flag != common.SupernovaFlag
 			},
 		},
 		&testscommon.EnableRoundsHandlerStub{},

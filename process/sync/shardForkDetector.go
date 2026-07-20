@@ -134,7 +134,8 @@ func (sfd *shardForkDetector) doJobOnBHProcessed(
 	sfd.addCheckpoint(newCheckpoint)
 	// first shard block with proof does not have increased consensus
 	// so instant finality will only be set after the first block with increased consensus
-	if common.IsFlagEnabledAfterEpochsStartBlock(header, sfd.enableEpochsHandler, common.AndromedaFlag) {
+	if common.IsFlagEnabledAfterEpochsStartBlock(header, sfd.enableEpochsHandler, common.AndromedaFlag) &&
+		sfd.canInstantlyFinalize(header) {
 		sfd.setFinalCheckpoint(newCheckpoint)
 	}
 	sfd.removePastOrInvalidRecords()
@@ -177,6 +178,7 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 			nonce:    selfNotarizedHeaders[i].GetNonce(),
 			round:    selfNotarizedHeaders[i].GetRound(),
 			hash:     selfNotarizedHeadersHashes[i],
+			prevHash: selfNotarizedHeaders[i].GetPrevHash(),
 			state:    process.BHNotarized,
 			hasProof: hasProof,
 		})
@@ -209,6 +211,9 @@ func (sfd *shardForkDetector) computeFinalCheckpoint() {
 		if !isProcessedBlockAlreadyNotarized {
 			continue
 		}
+		if !headersInfo[indexBHProcessed].hasProof {
+			continue
+		}
 
 		sameHash := bytes.Equal(headersInfo[indexBHNotarized].hash, headersInfo[indexBHProcessed].hash)
 		if !sameHash {
@@ -226,8 +231,51 @@ func (sfd *shardForkDetector) computeFinalCheckpoint() {
 	sfd.mutHeaders.RUnlock()
 
 	if finalCheckpointWasSet {
-		sfd.setFinalCheckpoint(finalCheckpoint)
+		sfd.advanceFinalCheckpoint(finalCheckpoint)
 	}
+
+	sfd.finalizeCleanProcessedDescendants()
+}
+
+// finalizeCleanProcessedDescendants extends the final checkpoint over processed descendants that
+// have a proof and no skipped round, so instant finality resumes after a settled contention
+func (sfd *shardForkDetector) finalizeCleanProcessedDescendants() {
+	finalCheckpoint := sfd.finalCheckpoint()
+	if len(finalCheckpoint.hash) == 0 {
+		return
+	}
+
+	advanced := false
+	sfd.mutHeaders.RLock()
+	for {
+		child := sfd.getCleanProcessedChild(finalCheckpoint)
+		if child == nil {
+			break
+		}
+
+		finalCheckpoint = &checkpointInfo{nonce: child.nonce, round: child.round, hash: child.hash}
+		advanced = true
+	}
+	sfd.mutHeaders.RUnlock()
+
+	if advanced {
+		sfd.advanceFinalCheckpoint(finalCheckpoint)
+	}
+}
+
+func (sfd *shardForkDetector) getCleanProcessedChild(parent *checkpointInfo) *headerInfo {
+	for _, hdrInfo := range sfd.headers[parent.nonce+1] {
+		isCleanProcessedChild := hdrInfo.state == process.BHProcessed &&
+			hdrInfo.hasProof &&
+			bytes.Equal(hdrInfo.prevHash, parent.hash) &&
+			!common.IsContendedRound(hdrInfo.round, parent.round) &&
+			sfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, hdrInfo.epoch)
+		if isCleanProcessedChild {
+			return hdrInfo
+		}
+	}
+
+	return nil
 }
 
 func (sfd *shardForkDetector) getProcessedAndNotarizedIndexes(headersInfo []*headerInfo) (int, int) {
@@ -240,6 +288,8 @@ func (sfd *shardForkDetector) getProcessedAndNotarizedIndexes(headersInfo []*hea
 			indexBHProcessed = index
 		case process.BHNotarized:
 			indexBHNotarized = index
+		default:
+			log.Error("unexpected header state in fork detector", "state", hdrInfo.state, "nonce", hdrInfo.nonce, "round", hdrInfo.round, "hash", hdrInfo.hash)
 		}
 	}
 
