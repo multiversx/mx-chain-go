@@ -72,6 +72,10 @@ type baseBlockTrack struct {
 	headers                     map[uint32]map[uint64][]*HeaderInfo
 	maxNumHeadersToKeepPerShard int
 
+	mutProofPull       sync.Mutex
+	proofPullPerShard  map[uint32]*proofPullState
+	lastProofPullRound int64
+
 	cancelFunc context.CancelFunc
 }
 
@@ -149,12 +153,15 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		processConfigsHandler:                 arguments.ProcessConfigsHandler,
 		ownShardTracker:                       tracker,
 		requestHandler:                        arguments.RequestHandler,
+		proofPullPerShard:                     make(map[uint32]*proofPullState),
+		lastProofPullRound:                    -1,
 	}
 
 	var ctx context.Context
 	ctx, bbt.cancelFunc = context.WithCancel(context.Background())
 
 	go bbt.sweepQuarantinedHeaders(ctx)
+	go bbt.pullProofsForContendedHeadsLoop(ctx)
 
 	return bbt, nil
 }

@@ -289,6 +289,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	pcf.epochNotifier.RegisterNotifyHandler(currentEpochProvider)
 
+	appStatusHandler := pcf.statusCoreComponents.AppStatusHandler()
+	pcf.data.Datapool().Proofs().RegisterEquivocationHandler(func(_ data.HeaderProofHandler, _ []data.HeaderProofHandler) {
+		appStatusHandler.Increment(common.MetricNumEquivocationProofs)
+	})
+
 	fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
 		pcf.data.Datapool().Headers(),
 		pcf.coreData.InternalMarshalizer(),

@@ -13,8 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -771,6 +773,53 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypePrefersProvenHeade
 			return &block.HeaderProof{HeaderHash: hashX, HeaderNonce: headerNonce}, nil
 		},
 	}
+	hdrRes, _ := resolvers.NewHeaderResolver(arg)
+
+	_, err := hdrRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.NonceType, arg.NonceConverter.ToByteSlice(requestedNonce)),
+		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
+	)
+
+	assert.Nil(t, err)
+	expectedBuff, _ := arg.Marshaller.Marshal(headerX)
+	assert.Equal(t, expectedBuff, sentBuff)
+}
+
+func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeCompetingProofsServesLowestRound(t *testing.T) {
+	t.Parallel()
+
+	requestedNonce := uint64(67)
+	hashX := []byte("hashX-low-round")
+	hashY := []byte("hashY-high-round")
+	headerX := &block.Header{Nonce: requestedNonce, Round: 1}
+	headerY := &block.Header{Nonce: requestedNonce, Round: 2}
+
+	headers := &mock.HeadersCacherStub{}
+	headers.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+		return []data.HeaderHandler{headerX, headerY}, [][]byte{hashX, hashY}, nil
+	}
+
+	arg := createMockArgHeaderResolver()
+	var sentBuff []byte
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(buff []byte, peer core.PeerID, source p2p.MessageHandler) error {
+			sentBuff = buff
+			return nil
+		},
+	}
+	arg.Headers = headers
+	arg.HeadersNoncesStorage = &storageStubs.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			return nil, errKeyNotFound
+		},
+	}
+	// real proofs pool with two competing proofs; the higher-round one arrives first, yet the
+	// lowest-round one must be served (canonical selection is by round, not arrival order)
+	proofsPool := proofscache.NewProofsPool(3, 100)
+	require.True(t, proofsPool.AddProof(&block.HeaderProof{HeaderHash: hashY, HeaderNonce: requestedNonce, HeaderRound: 2}))
+	require.True(t, proofsPool.AddProof(&block.HeaderProof{HeaderHash: hashX, HeaderNonce: requestedNonce, HeaderRound: 1}))
+	arg.Proofs = proofsPool
 	hdrRes, _ := resolvers.NewHeaderResolver(arg)
 
 	_, err := hdrRes.ProcessReceivedMessage(

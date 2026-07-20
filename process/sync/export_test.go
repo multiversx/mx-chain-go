@@ -11,6 +11,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+// GetNextHeaderRequestingIfMissing -
+func (boot *baseBootstrap) GetNextHeaderRequestingIfMissing() (data.HeaderHandler, []byte, error) {
+	return boot.getNextHeaderRequestingIfMissing()
+}
+
 // RequestHeaderWithNonce -
 func (boot *baseBootstrap) RequestHeaderWithNonce(nonce uint64) {
 	if boot.shardCoordinator.SelfId() == core.MetachainShardId {

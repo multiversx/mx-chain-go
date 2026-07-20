@@ -335,3 +335,8 @@ func (mbt *miniBlockTrack) GetConfirmedMiniBlockInfo(miniBlockHash []byte) (cach
 	}
 	return info.cacheID, info.nonce, true
 }
+
+// PullProofsForContendedHeads -
+func (bbt *baseBlockTrack) PullProofsForContendedHeads() {
+	bbt.pullProofsForContendedHeads()
+}

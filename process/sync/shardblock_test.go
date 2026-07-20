@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -3910,4 +3911,60 @@ func TestShardBootstrap_SyncBlockLegacy(t *testing.T) {
 		err = bs.SyncBlock(context.Background())
 		assert.Equal(t, errExpected, err)
 	})
+}
+
+func TestShardBootstrap_GetNextHeaderWithCompetingProofsUsesLowestRound(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+
+	currentHeader := &block.Header{Nonce: 1}
+	args.ChainHandler = &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+
+	forkDetector := &mock.ForkDetectorMock{}
+	forkDetector.GetNotarizedHeaderHashCalled = func(nonce uint64) []byte {
+		return nil
+	}
+	args.ForkDetector = forkDetector
+
+	hashLowRound := []byte("hashA-low-round")
+	hashHighRound := []byte("hashB-high-round")
+	headerLowRound := &block.Header{Nonce: 2, Round: 2}
+
+	// real proofs pool: the higher-round proof arrives first, yet fork-choice must fetch the
+	// lowest-round header (canonical selection by round, not arrival order)
+	proofsPool := proofscache.NewProofsPool(3, 100)
+	require.True(t, proofsPool.AddProof(&block.HeaderProof{HeaderHash: hashHighRound, HeaderNonce: 2, HeaderRound: 3}))
+	require.True(t, proofsPool.AddProof(&block.HeaderProof{HeaderHash: hashLowRound, HeaderNonce: 2, HeaderRound: 2}))
+
+	pools := createMockPools()
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return proofsPool
+	}
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, hashLowRound) {
+					return headerLowRound, nil
+				}
+				return nil, errors.New("requested header for the wrong proof")
+			},
+		}
+	}
+	args.PoolsHolder = pools
+
+	bs, err := sync.NewShardBootstrap(args)
+	require.Nil(t, err)
+
+	header, hash, err := bs.GetNextHeaderRequestingIfMissing()
+	require.Nil(t, err)
+	require.Equal(t, hashLowRound, hash)
+	require.Equal(t, headerLowRound, header)
 }
