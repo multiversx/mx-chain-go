@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
@@ -227,6 +228,29 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 // RemovePendingExecutionResultsFromNonce will remove the execution result with the provided nonce and all execution results with higher nonces
 func (em *executionManager) RemovePendingExecutionResultsFromNonce(nonce uint64) error {
 	return em.executionResultsTracker.RemoveFromNonce(nonce)
+}
+
+// RewindExecutionStateToTip realigns the tracker's notarized watermark and the blockchain last-executed
+// marker to the rolled-back tip; unlike RemoveAtNonceAndHigher it can lower the watermark
+func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler) error {
+	if check.IfNil(newTip) {
+		return process.ErrNilHeaderHandler
+	}
+
+	newLastNotarized, err := common.GetLastBaseExecutionResultHandler(newTip)
+	if err != nil {
+		return err
+	}
+
+	em.mut.Lock()
+	defer em.mut.Unlock()
+
+	em.headersExecutor.PauseExecution()
+	defer em.headersExecutor.ResumeExecution()
+
+	em.resetTrackerToLastNotarized(newLastNotarized)
+
+	return em.updateBlockchainAfterRemoval(newLastNotarized)
 }
 
 // PopDismissedResults returns all batches of dismissed execution results and clears the internal queue

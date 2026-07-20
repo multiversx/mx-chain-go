@@ -1,6 +1,7 @@
 package track
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -16,10 +17,15 @@ type signedNonceInfo struct {
 	roundIndex int64
 }
 
+// roundsRetentionWindow bounds the per-key signed-rounds history; entries older than the window
+// are removed on each reservation
+const roundsRetentionWindow = 4
+
 type sentSignaturesTracker struct {
 	mut          sync.RWMutex
 	sentFromSelf map[string]struct{}
 	signedNonces map[string]map[uint64]*signedNonceInfo // pk -> nonce -> signedNonceInfo
+	signedRounds map[string]map[int64][]byte            // pk -> round -> signed header hash
 	keysHandler  KeysHandler
 }
 
@@ -32,6 +38,7 @@ func NewSentSignaturesTracker(keysHandler KeysHandler) (*sentSignaturesTracker, 
 	return &sentSignaturesTracker{
 		sentFromSelf: make(map[string]struct{}),
 		signedNonces: make(map[string]map[uint64]*signedNonceInfo),
+		signedRounds: make(map[string]map[int64][]byte),
 		keysHandler:  keysHandler,
 	}, nil
 }
@@ -98,6 +105,38 @@ func (tracker *sentSignaturesTracker) RecordSignedNonce(pkBytes []byte, nonce ui
 			delete(nonceMap, oldNonce)
 		}
 	}
+}
+
+// ReserveSignatureInRound atomically reserves the (key, round) signing slot, false when a different
+// hash was already reserved in that round (R0); in-memory only, crash-restart in-round out of scope
+func (tracker *sentSignaturesTracker) ReserveSignatureInRound(pkBytes []byte, roundIndex int64, headerHash []byte) bool {
+	pk := string(pkBytes)
+
+	tracker.mut.Lock()
+	defer tracker.mut.Unlock()
+
+	roundMap, exists := tracker.signedRounds[pk]
+	if !exists {
+		roundMap = make(map[int64][]byte)
+		tracker.signedRounds[pk] = roundMap
+	}
+
+	reservedHash, alreadyReserved := roundMap[roundIndex]
+	if alreadyReserved {
+		return bytes.Equal(reservedHash, headerHash)
+	}
+
+	hashCopy := make([]byte, len(headerHash))
+	copy(hashCopy, headerHash)
+	roundMap[roundIndex] = hashCopy
+
+	for oldRound := range roundMap {
+		if roundIndex-oldRound > roundsRetentionWindow {
+			delete(roundMap, oldRound)
+		}
+	}
+
+	return true
 }
 
 // GetSignedNonceInfo returns the header hash and round index previously signed by the given public key

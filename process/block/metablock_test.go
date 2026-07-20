@@ -5782,7 +5782,7 @@ func TestMetaProcessor_VerifyShardDataAgainstHeadersFlagGating(t *testing.T) {
 func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Parallel()
 
-	buildProcessorAndHeader := func(settled bool) (interface {
+	buildProcessorAndHeader := func(settled bool, withCompetitor bool) (interface {
 		CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error)
 	}, *block.MetaBlock) {
 		pool := dataRetrieverMock.NewPoolsHolderMock()
@@ -5836,6 +5836,28 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 		contendedHash, _ := mp.ComputeHeaderHash(contendedHdr)
 		pool.Headers().AddHeader(contendedHash, contendedHdr)
 
+		if withCompetitor {
+			competitorHdr := &block.Header{
+				Round:           10,
+				Nonce:           45,
+				ShardID:         0,
+				PrevRandSeed:    prevRandSeed,
+				RandSeed:        []byte("competitorRand"),
+				PrevHash:        prevHash,
+				RootHash:        []byte("competitorRootHash"),
+				AccumulatedFees: big.NewInt(0),
+				DeveloperFees:   big.NewInt(0),
+			}
+			competitorHash, _ := mp.ComputeHeaderHash(competitorHdr)
+			pool.Headers().AddHeader(competitorHash, competitorHdr)
+			_ = pool.Proofs().AddProof(&block.HeaderProof{
+				HeaderHash:    competitorHash,
+				HeaderNonce:   competitorHdr.Nonce,
+				HeaderRound:   competitorHdr.Round,
+				HeaderShardId: competitorHdr.ShardID,
+			})
+		}
+
 		metaHdr := &block.MetaBlock{Round: 20}
 		metaHdr.ShardInfo = []block.ShardData{{
 			ShardID:         0,
@@ -5854,18 +5876,26 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 		return mp, metaHdr
 	}
 
-	t.Run("contended unsettled referenced shard header should error", func(t *testing.T) {
+	t.Run("contended unsettled referenced shard header without competitor should pass", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(false)
+		mp, metaHdr := buildProcessorAndHeader(false, false)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
-		assert.ErrorContains(t, err, "included contended header not yet settled")
+		assert.Nil(t, err)
+	})
+
+	t.Run("contended unsettled referenced shard header with better proofed competitor should error", func(t *testing.T) {
+		t.Parallel()
+
+		mp, metaHdr := buildProcessorAndHeader(false, true)
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		assert.ErrorContains(t, err, "better proofed competitor")
 	})
 
 	t.Run("contended settled referenced shard header should pass", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(true)
+		mp, metaHdr := buildProcessorAndHeader(true, false)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.Nil(t, err)
 	})

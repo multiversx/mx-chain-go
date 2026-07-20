@@ -357,6 +357,7 @@ type ExecutionManager interface {
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	RemoveAtNonceAndHigher(nonce uint64) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
+	RewindExecutionStateToTip(newTip data.HeaderHandler) error
 	PopDismissedResults() []executionTrack.DismissedBatch
 	GetSignalProcessCompletionChan() chan uint64
 	Close() error
@@ -469,9 +470,11 @@ type ForkDetector interface {
 	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
 	RemoveHeader(nonce uint64, hash []byte)
 	RemoveCommittedHeader(nonce uint64, hash []byte)
+	ReconcileFinalCheckpoint(nonce uint64)
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
 	GetHighestFinalBlockHash() []byte
+	GetHighestSettledBlockInfo() (uint64, []byte)
 	ProbableHighestNonce() uint64
 	ResetFork()
 	SetRollBackNonce(nonce uint64)
@@ -1598,6 +1601,7 @@ type SentSignaturesTracker interface {
 	SignatureSent(pkBytes []byte)
 	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
 	GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
+	ReserveSignatureInRound(pkBytes []byte, roundIndex int64, headerHash []byte) bool
 	ResetCountersForManagedBlockSigner(signerPk []byte)
 	IsInterfaceNil() bool
 }

@@ -1826,3 +1826,47 @@ func TestBaseForkDetector_RemoveCommittedHeader(t *testing.T) {
 	assert.Equal(t, uint64(1), sfd.LastCheckpointNonce())
 	assert.Equal(t, uint64(1), sfd.FinalCheckpointNonce())
 }
+
+func TestBaseForkDetector_ReconcileFinalCheckpoint(t *testing.T) {
+	t.Parallel()
+
+	sfd, _ := sync.NewShardForkDetector(
+		&mock.RoundHandlerMock{RoundIndex: 5},
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag || flag == common.SupernovaFlag
+			},
+		},
+		&testscommon.EnableRoundsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
+	)
+
+	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
+	cleanHdr2 := &block.Header{Nonce: 2, Round: 2, PrevHash: []byte("hash1"), PubKeysBitmap: []byte("X")}
+	_ = sfd.AddHeader(hdr1, []byte("hash1"), process.BHProcessed, nil, nil)
+	_ = sfd.AddHeader(cleanHdr2, []byte("hash2"), process.BHProcessed, nil, nil)
+	assert.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
+
+	// no-op above the final checkpoint
+	sfd.ReconcileFinalCheckpoint(5)
+	assert.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
+
+	// no-op below the final checkpoint: settled descendants exist
+	sfd.ReconcileFinalCheckpoint(1)
+	assert.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
+
+	// lowers the final checkpoint below the equivocated nonce
+	sfd.ReconcileFinalCheckpoint(2)
+	assert.Equal(t, uint64(1), sfd.FinalCheckpointNonce())
+}

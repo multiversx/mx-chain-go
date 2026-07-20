@@ -646,13 +646,14 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	}
 
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
+	settledNonce, settledHash := sp.forkDetector.GetHighestSettledBlockInfo()
 	argSaveBlock, err := sp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
 		HeaderHash:             headerHash,
 		Header:                 header,
 		Body:                   body,
 		PreviousHeader:         lastBlockHeader,
-		HighestFinalBlockNonce: sp.forkDetector.GetHighestFinalBlockNonce(),
-		HighestFinalBlockHash:  sp.forkDetector.GetHighestFinalBlockHash(),
+		HighestFinalBlockNonce: settledNonce,
+		HighestFinalBlockHash:  settledHash,
 		ScheduledRootHash:      scheduledRootHash,
 	})
 	if err != nil {
@@ -1128,7 +1129,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.updateState(selfNotarizedHeaders, header, finalHeaderHash)
 
-	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
+	highestFinalBlockNonce, _ := sp.forkDetector.GetHighestSettledBlockInfo()
 	log.Debug("highest final shard block",
 		"shard", sp.shardCoordinator.SelfId(),
 		"nonce", highestFinalBlockNonce,
@@ -1191,7 +1192,7 @@ func (sp *shardProcessor) CommitBlock(
 		headerInfo:                 headerInfo,
 		round:                      header.GetRound(),
 		lastSelfNotarizedHeaders:   sp.getBootstrapHeadersInfo(selfNotarizedHeaders, selfNotarizedHeadersHashes),
-		highestFinalBlockNonce:     sp.forkDetector.GetHighestFinalBlockNonce(),
+		highestFinalBlockNonce:     highestFinalBlockNonce,
 		processedMiniBlocks:        sp.processedMiniBlocksTracker.ConvertProcessedMiniBlocksMapToSlice(),
 		nodesCoordinatorConfigKey:  nodesCoordinatorKey,
 		epochStartTriggerConfigKey: epochStartKey,
@@ -1313,27 +1314,49 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
 }
 
-// signalNewlyFinalBlocks emits the external finality signals for the blocks finalized since the
-// previous commit; with deferred finality the committed header itself may not be final yet
+// signalNewlyFinalBlocks emits the external finality signals for the blocks settled since the
+// previous commit; external finality is anchored on settlement, never on instant finality
 func (sp *shardProcessor) signalNewlyFinalBlocks(currentHeader data.HeaderHandler, currentHeaderHash []byte) {
-	finalNonce := sp.forkDetector.GetHighestFinalBlockNonce()
-	finalHash := sp.forkDetector.GetHighestFinalBlockHash()
-	if len(finalHash) == 0 || finalNonce <= sp.lastSignaledFinalNonce {
+	settledNonce, settledHash := sp.forkDetector.GetHighestSettledBlockInfo()
+	if len(settledHash) == 0 || settledNonce <= sp.lastSignaledFinalNonce {
 		return
 	}
 
-	newlyFinalHashes := sp.getNewlyFinalHashes(finalNonce, finalHash, currentHeader, currentHeaderHash)
+	newlyFinalHashes := sp.getNewlyFinalHashes(settledNonce, settledHash, currentHeader, currentHeaderHash)
 	for i := len(newlyFinalHashes) - 1; i >= 0; i-- {
 		sp.setFinalizedHeaderHashInIndexer(newlyFinalHashes[i])
 	}
-	sp.lastSignaledFinalNonce = finalNonce
+	sp.lastSignaledFinalNonce = settledNonce
 
-	if finalNonce != currentHeader.GetNonce() {
+	sp.setSettledBlockInfo(settledHash, currentHeader, currentHeaderHash)
+}
+
+// setSettledBlockInfo anchors the externally visible final block info on the settled block; for v3
+// the (nonce, hash, rootHash) tuple is the last execution result notarized by the settled chain
+func (sp *shardProcessor) setSettledBlockInfo(settledHash []byte, currentHeader data.HeaderHandler, currentHeaderHash []byte) {
+	header := currentHeader
+	if !bytes.Equal(settledHash, currentHeaderHash) {
+		var err error
+		header, err = process.GetShardHeader(settledHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
+		if err != nil {
+			log.Warn("setSettledBlockInfo: cannot load settled header", "error", err.Error())
+			return
+		}
+	}
+
+	if !header.IsHeaderV3() {
+		scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(settledHash)
+		sp.setFinalBlockInfo(header, settledHash, scheduledHeaderRootHash)
 		return
 	}
 
-	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
-	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
+	result, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		log.Warn("setSettledBlockInfo: cannot get settled execution result", "error", err.Error())
+		return
+	}
+
+	sp.blockChain.SetFinalBlockInfo(result.GetHeaderNonce(), result.GetHeaderHash(), result.GetRootHash())
 }
 
 // getNewlyFinalHashes walks the prev-hash chain from the final block back to the last signaled
@@ -1578,7 +1601,7 @@ func (sp *shardProcessor) setFinalBlockInfo(
 	scheduledHeaderRootHash []byte,
 ) {
 	if header.IsHeaderV3() {
-		// final block info is set in async mode on header executor
+		// for v3 the final block info is settlement-anchored, set through setSettledBlockInfo
 		return
 	}
 

@@ -1071,15 +1071,16 @@ func HasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders []data.MiniBlockHeaderHa
 }
 
 // CreateProposalMiniBlocks -
-func (mp *metaProcessor) CreateProposalMiniBlocks(haveTime func() bool) error {
-	return mp.createProposalMiniBlocks(haveTime)
+func (mp *metaProcessor) CreateProposalMiniBlocks(round uint64, haveTime func() bool) error {
+	return mp.createProposalMiniBlocks(round, haveTime)
 }
 
 // SelectIncomingMiniBlocksForProposal -
 func (mp *metaProcessor) SelectIncomingMiniBlocksForProposal(
+	round uint64,
 	haveTime func() bool,
 ) error {
-	return mp.selectIncomingMiniBlocksForProposal(haveTime)
+	return mp.selectIncomingMiniBlocksForProposal(round, haveTime)
 }
 
 // SelectIncomingMiniBlocks -
@@ -1089,8 +1090,18 @@ func (mp *metaProcessor) SelectIncomingMiniBlocks(
 	orderedHdrsHashes [][]byte,
 	maxNumHeadersFromSameShard uint32,
 	haveTime func() bool,
-) error {
+) (map[uint32]uint32, error) {
 	return mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
+}
+
+// SelectContendedShardHeaders -
+func (mp *metaProcessor) SelectContendedShardHeaders(
+	round uint64,
+	lastShardHdrs map[uint32]ShardHeaderInfo,
+	hdrsAddedForShard map[uint32]uint32,
+	haveTime func() bool,
+) error {
+	return mp.selectContendedShardHeaders(round, lastShardHdrs, hdrsAddedForShard, haveTime)
 }
 
 // VerifyEpochStartData -

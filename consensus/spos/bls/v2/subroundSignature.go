@@ -339,6 +339,10 @@ func (sr *subroundSignature) sendSignatureForManagedKey(ctx context.Context, idx
 	default:
 	}
 
+	if !sr.reserveSignatureSlot(pkBytes, nonce, currentHash) {
+		return false
+	}
+
 	signatureShare, err := sr.SigningHandler().SignatureShare(uint16(idx))
 	if err != nil {
 		log.Debug("sendSignatureForManagedKey.SignatureShare", "error", err.Error())
@@ -370,6 +374,10 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(ctx context.Context) boo
 		return false
 	}
 
+	if !sr.reserveSignatureSlot(pkBytes, nonce, currentHash) {
+		return false
+	}
+
 	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 		ctx,
 		currentHash,
@@ -398,6 +406,22 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(ctx context.Context) boo
 	}
 
 	return sr.completeSignatureSubRound(sr.SelfPubKey())
+}
+
+// reserveSignatureSlot hard-refuses a second signature for a different hash in the same round (R0)
+func (sr *subroundSignature) reserveSignatureSlot(pkBytes []byte, nonce uint64, currentHash []byte) bool {
+	roundIndex := sr.RoundHandler().Index()
+	if sr.sentSignatureTracker.ReserveSignatureInRound(pkBytes, roundIndex, currentHash) {
+		return true
+	}
+
+	log.Warn("refusing second signature for a different hash in the same round",
+		"pk", pkBytes,
+		"nonce", nonce,
+		"round", roundIndex,
+		"hash", currentHash)
+
+	return false
 }
 
 func (sr *subroundSignature) getPkForCompetingBlock(nonce uint64, currentHash []byte) []byte {
