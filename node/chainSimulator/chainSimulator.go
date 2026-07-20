@@ -312,6 +312,113 @@ func (s *simulator) GenerateBlocks(numOfBlocks int) error {
 	return nil
 }
 
+// GenerateBlocksSkippingShards generates blocks while the given shards skip their rounds; the
+// skipped shards' next produced block is contended (its round is past parent round + 1)
+func (s *simulator) GenerateBlocksSkippingShards(numOfBlocks int, skippedShardIDs []uint32) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	skippedShards := make(map[uint32]struct{}, len(skippedShardIDs))
+	for _, shardID := range skippedShardIDs {
+		skippedShards[shardID] = struct{}{}
+	}
+
+	for idx := 0; idx < numOfBlocks; idx++ {
+		s.incrementRoundOnAllValidators()
+		err := s.nodesCreateBlocks(skippedShards)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GenerateBlockWithoutBroadcast advances one round in which the given shard commits its block
+// locally without broadcasting it; all other nodes produce and broadcast normally
+func (s *simulator) GenerateBlockWithoutBroadcast(shardID uint32) (*dtos.BroadcastData, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	s.incrementRoundOnAllValidators()
+
+	headers := make(map[uint32]*dtos.BroadcastData, len(s.handlers))
+	for _, node := range s.handlers {
+		time.Sleep(2 * time.Millisecond)
+
+		pair, err := node.CreateNewBlock()
+		if err != nil {
+			return nil, err
+		}
+		if pair == nil {
+			continue
+		}
+
+		headers[pair.Header.GetShardID()] = pair
+	}
+
+	withheld := headers[shardID]
+	delete(headers, shardID)
+
+	for id, pair := range headers {
+		err := s.broadcastBlockData(id, pair)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return withheld, nil
+}
+
+// BroadcastCompetingBlock advances one round in which the given shard broadcasts a re-signed
+// competitor of its current tip (same nonce, current round) without committing it; all other
+// nodes produce and broadcast normally
+func (s *simulator) BroadcastCompetingBlock(shardID uint32) (*dtos.BroadcastData, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	s.incrementRoundOnAllValidators()
+
+	headers := make(map[uint32]*dtos.BroadcastData, len(s.handlers))
+	var competitor *dtos.BroadcastData
+	for _, node := range s.handlers {
+		time.Sleep(2 * time.Millisecond)
+
+		if node.ShardID() == shardID {
+			tip := s.nodes[shardID].GetChainHandler().GetCurrentBlockHeader()
+			pair, err := node.CreateCompetingBlock(tip)
+			if err != nil {
+				return nil, err
+			}
+			if pair == nil {
+				continue
+			}
+
+			competitor = pair
+			headers[shardID] = pair
+			continue
+		}
+
+		pair, err := node.CreateNewBlock()
+		if err != nil {
+			return nil, err
+		}
+		if pair == nil {
+			continue
+		}
+
+		headers[pair.Header.GetShardID()] = pair
+	}
+
+	for id, pair := range headers {
+		err := s.broadcastBlockData(id, pair)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return competitor, nil
+}
+
 // GenerateBlocksUntilEpochIsReached will generate blocks until the epoch is reached
 func (s *simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
 	s.mutex.Lock()
@@ -400,8 +507,17 @@ func (s *simulator) ForceChangeOfEpoch() error {
 }
 
 func (s *simulator) allNodesCreateBlocks() error {
+	return s.nodesCreateBlocks(nil)
+}
+
+func (s *simulator) nodesCreateBlocks(skippedShards map[uint32]struct{}) error {
 	headers := make(map[uint32]*dtos.BroadcastData, len(s.handlers))
 	for _, node := range s.handlers {
+		_, shouldSkip := skippedShards[node.ShardID()]
+		if shouldSkip {
+			continue
+		}
+
 		// TODO MX-15150 remove this when we remove all goroutines
 		time.Sleep(2 * time.Millisecond)
 
@@ -417,29 +533,38 @@ func (s *simulator) allNodesCreateBlocks() error {
 	}
 
 	for shardID, pair := range headers {
-		messenger := s.nodes[shardID].GetBroadcastMessenger()
-
-		err := messenger.BroadcastHeader(pair.Header, pair.LeaderKey)
+		err := s.broadcastBlockData(shardID, pair)
 		if err != nil {
 			return err
 		}
+	}
 
-		err = messenger.BroadcastMiniBlocks(pair.MiniBlocksBytes, pair.LeaderKey)
+	return nil
+}
+
+func (s *simulator) broadcastBlockData(shardID uint32, pair *dtos.BroadcastData) error {
+	messenger := s.nodes[shardID].GetBroadcastMessenger()
+
+	err := messenger.BroadcastHeader(pair.Header, pair.LeaderKey)
+	if err != nil {
+		return err
+	}
+
+	err = messenger.BroadcastMiniBlocks(pair.MiniBlocksBytes, pair.LeaderKey)
+	if err != nil {
+		return err
+	}
+
+	err = messenger.BroadcastTransactions(pair.TransactionsBytes, pair.LeaderKey)
+	if err != nil {
+		return err
+	}
+
+	if !check.IfNil(pair.Proof) {
+		time.Sleep(time.Millisecond * 5) // small delay to ensure proof is not dropped as being received before header
+		err = messenger.BroadcastEquivalentProof(pair.Proof, pair.LeaderKey)
 		if err != nil {
 			return err
-		}
-
-		err = messenger.BroadcastTransactions(pair.TransactionsBytes, pair.LeaderKey)
-		if err != nil {
-			return err
-		}
-
-		if !check.IfNil(pair.Proof) {
-			time.Sleep(time.Millisecond * 5) // small delay to ensure proof is not dropped as being received before header
-			err = s.nodes[shardID].GetBroadcastMessenger().BroadcastEquivalentProof(pair.Proof, pair.LeaderKey)
-			if err != nil {
-				return err
-			}
 		}
 	}
 
