@@ -1,12 +1,10 @@
 package sync
 
 import (
-	"bytes"
 	"context"
 	"sync"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -21,18 +19,21 @@ import (
 
 var _ update.PendingEpochStartShardHeaderSyncHandler = (*pendingEpochStartShardHeader)(nil)
 
+type proofedHeaderInfo struct {
+	header data.HeaderHandler
+	hash   []byte
+}
+
 type pendingEpochStartShardHeader struct {
 	mutPending              sync.RWMutex
 	epochStartHeader        data.HeaderHandler
 	epochStartHash          []byte
-	latestReceivedHeader    data.HeaderHandler
-	latestReceivedHash      []byte
-	latestReceivedProof     data.HeaderProofHandler
 	targetEpoch             uint32
 	targetShardId           uint32
+	expectedNonce           uint64
+	candidates              map[string]data.HeaderHandler
 	headersPool             dataRetriever.HeadersPool
-	chReceived              chan bool
-	chNew                   chan bool
+	chProofedHeader         chan proofedHeaderInfo
 	marshaller              marshal.Marshalizer
 	stopSyncing             bool
 	synced                  bool
@@ -75,10 +76,10 @@ func NewPendingEpochStartShardHeaderSyncer(args ArgsPendingEpochStartShardHeader
 		epochStartHash:          nil,
 		targetEpoch:             0,
 		targetShardId:           0,
+		candidates:              make(map[string]data.HeaderHandler),
 		headersPool:             args.HeadersPool,
 		proofsPool:              args.ProofsPool,
-		chReceived:              make(chan bool),
-		chNew:                   make(chan bool),
+		chProofedHeader:         make(chan proofedHeaderInfo, 8),
 		requestHandler:          args.RequestHandler,
 		stopSyncing:             true,
 		synced:                  false,
@@ -106,41 +107,88 @@ func (p *pendingEpochStartShardHeader) hasProof(shardID uint32, hash []byte, epo
 	return p.proofsPool.HasProof(shardID, hash)
 }
 
+// syncEpochStartShardHeader walks the shard chain nonce by nonce from startNonce+1 up to the target
+// epoch's start block; only proofed headers at the exact requested nonce advance the walk
 func (p *pendingEpochStartShardHeader) syncEpochStartShardHeader(shardId uint32, epoch uint32, startNonce uint64, ctx context.Context) error {
-	_ = core.EmptyChannel(p.chReceived)
-	_ = core.EmptyChannel(p.chNew)
+	p.drainProofedHeaderChannel()
 
 	p.mutPending.Lock()
 	p.stopSyncing = false
 	p.targetEpoch = epoch
 	p.targetShardId = shardId
+	p.expectedNonce = startNonce + 1
+	p.candidates = make(map[string]data.HeaderHandler)
 	p.mutPending.Unlock()
 
-	nonce := startNonce
-	for {
+	defer func() {
 		p.mutPending.Lock()
-		p.stopSyncing = false
-		p.requestHandler.RequestShardHeaderByNonce(shardId, nonce+1)
-		p.requestHandler.RequestEquivalentProofByNonce(shardId, nonce+1)
+		p.stopSyncing = true
 		p.mutPending.Unlock()
+	}()
+
+	for {
+		p.mutPending.RLock()
+		nonceToRequest := p.expectedNonce
+		p.mutPending.RUnlock()
+
+		p.requestHandler.RequestShardHeaderByNonce(shardId, nonceToRequest)
+		p.requestHandler.RequestEquivalentProofByNonce(shardId, nonceToRequest)
 
 		select {
-		case <-p.chReceived:
-			p.mutPending.Lock()
-			p.stopSyncing = true
-			p.synced = true
-			p.mutPending.Unlock()
-			return nil
-		case <-p.chNew:
-			p.mutPending.RLock()
-			nonce = p.latestReceivedHeader.GetNonce()
-			p.mutPending.RUnlock()
+		case info := <-p.chProofedHeader:
+			done, err := p.processProofedHeader(info)
+			if err != nil {
+				return err
+			}
+			if done {
+				return nil
+			}
+		case <-time.After(p.waitTimeBetweenRequests):
 			continue
 		case <-ctx.Done():
-			p.mutPending.Lock()
-			p.stopSyncing = true
-			p.mutPending.Unlock()
 			return update.ErrTimeIsOut
+		}
+	}
+}
+
+// processProofedHeader decides for a proofed header at the expected nonce: done, walked past, or advance
+func (p *pendingEpochStartShardHeader) processProofedHeader(info proofedHeaderInfo) (bool, error) {
+	p.mutPending.Lock()
+	defer p.mutPending.Unlock()
+
+	if check.IfNil(info.header) || info.header.GetNonce() != p.expectedNonce {
+		return false, nil
+	}
+
+	isTargetEpochStart := info.header.GetEpoch() == p.targetEpoch && info.header.IsStartOfEpochBlock()
+	if isTargetEpochStart {
+		p.epochStartHeader = info.header
+		p.epochStartHash = info.hash
+		p.synced = true
+		return true, nil
+	}
+
+	if info.header.GetEpoch() >= p.targetEpoch {
+		log.Warn("pendingEpochStartShardHeader: walked past the target epoch start block",
+			"shard", p.targetShardId,
+			"target epoch", p.targetEpoch,
+			"nonce", info.header.GetNonce(),
+			"header epoch", info.header.GetEpoch())
+		return false, update.ErrEpochStartShardHeaderNotFound
+	}
+
+	p.expectedNonce++
+	p.candidates = make(map[string]data.HeaderHandler)
+
+	return false, nil
+}
+
+func (p *pendingEpochStartShardHeader) drainProofedHeaderChannel() {
+	for {
+		select {
+		case <-p.chProofedHeader:
+		default:
+			return
 		}
 	}
 }
@@ -153,13 +201,13 @@ func (p *pendingEpochStartShardHeader) receivedHeader(header data.HeaderHandler,
 		return
 	}
 
-	if header.GetShardID() != p.targetShardId {
+	isExpected := header.GetShardID() == p.targetShardId && header.GetNonce() == p.expectedNonce
+	if !isExpected {
 		p.mutPending.Unlock()
 		return
 	}
 
-	p.latestReceivedHash = headerHash
-	p.latestReceivedHeader = header
+	p.candidates[string(headerHash)] = header
 	if !p.hasProof(header.GetShardID(), headerHash, header.GetEpoch()) {
 		go p.requestHandler.RequestEquivalentProofByHash(header.GetShardID(), headerHash)
 		p.mutPending.Unlock()
@@ -167,43 +215,31 @@ func (p *pendingEpochStartShardHeader) receivedHeader(header data.HeaderHandler,
 	}
 	p.mutPending.Unlock()
 
-	p.updateReceivedHeaderAndProof(header, headerHash)
+	p.signalProofedHeader(header, headerHash)
 }
 
-func (p *pendingEpochStartShardHeader) updateReceivedHeaderAndProof(header data.HeaderHandler, headerHash []byte) {
-	p.mutPending.Lock()
-	if header.GetEpoch() != p.targetEpoch || !header.IsStartOfEpochBlock() {
-		p.mutPending.Unlock()
-		p.chNew <- true
-		return
-	}
-
-	p.epochStartHash = headerHash
-	p.epochStartHeader = header
-	p.mutPending.Unlock()
-
-	p.chReceived <- true
-}
-
+// receivedProof is a callback function when a new proof was received
 func (p *pendingEpochStartShardHeader) receivedProof(proof data.HeaderProofHandler) {
 	p.mutPending.Lock()
 	if p.stopSyncing {
 		p.mutPending.Unlock()
 		return
 	}
-	if !check.IfNil(p.latestReceivedProof) && bytes.Equal(proof.GetHeaderHash(), p.latestReceivedProof.GetHeaderHash()) {
-		p.mutPending.Unlock()
-		return
-	}
-	if !bytes.Equal(proof.GetHeaderHash(), p.latestReceivedHash) {
-		p.mutPending.Unlock()
-		return
-	}
-	p.latestReceivedProof = proof
-	lastReceivedHeader := p.latestReceivedHeader
-	lastReceivedHash := p.latestReceivedHash
+
+	header, ok := p.candidates[string(proof.GetHeaderHash())]
 	p.mutPending.Unlock()
-	p.updateReceivedHeaderAndProof(lastReceivedHeader, lastReceivedHash)
+	if !ok {
+		return
+	}
+
+	p.signalProofedHeader(header, proof.GetHeaderHash())
+}
+
+func (p *pendingEpochStartShardHeader) signalProofedHeader(header data.HeaderHandler, hash []byte) {
+	select {
+	case p.chProofedHeader <- proofedHeaderInfo{header: header, hash: hash}:
+	default:
+	}
 }
 
 // GetEpochStartHeader returns the synced epoch start header
