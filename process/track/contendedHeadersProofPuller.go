@@ -94,7 +94,7 @@ func (bbt *baseBlockTrack) pullProofsForContendedHeads() {
 }
 
 // getContendedUnsettledHeads returns, per shard, the tracked head that skipped at least one round
-// after its parent (a competing proof could exist in the skipped rounds) and has no proofed child
+// after its parent and is not settled yet
 func (bbt *baseBlockTrack) getContendedUnsettledHeads() map[uint32]data.HeaderHandler {
 	candidates := bbt.getTrackedHeadCandidates()
 
