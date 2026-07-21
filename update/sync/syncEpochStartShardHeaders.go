@@ -19,6 +19,8 @@ import (
 
 var _ update.PendingEpochStartShardHeaderSyncHandler = (*pendingEpochStartShardHeader)(nil)
 
+const maxCandidatesPerNonce = 32
+
 type proofedHeaderInfo struct {
 	header data.HeaderHandler
 	hash   []byte
@@ -34,7 +36,6 @@ type pendingEpochStartShardHeader struct {
 	candidates              map[string]data.HeaderHandler
 	headersPool             dataRetriever.HeadersPool
 	chProofedHeader         chan proofedHeaderInfo
-	marshaller              marshal.Marshalizer
 	stopSyncing             bool
 	synced                  bool
 	requestHandler          process.RequestHandler
@@ -83,7 +84,6 @@ func NewPendingEpochStartShardHeaderSyncer(args ArgsPendingEpochStartShardHeader
 		requestHandler:          args.RequestHandler,
 		stopSyncing:             true,
 		synced:                  false,
-		marshaller:              args.Marshalizer,
 		waitTimeBetweenRequests: args.RequestHandler.RequestInterval(),
 		enableEpochsHandler:     args.EnableEpochsHandler,
 	}
@@ -130,6 +130,19 @@ func (p *pendingEpochStartShardHeader) syncEpochStartShardHeader(shardId uint32,
 		p.mutPending.RLock()
 		nonceToRequest := p.expectedNonce
 		p.mutPending.RUnlock()
+
+		pooled, found := p.proofedHeaderFromPool(shardId, nonceToRequest)
+		if found {
+			done, err := p.processProofedHeader(pooled)
+			if err != nil {
+				return err
+			}
+			if done {
+				return nil
+			}
+
+			continue
+		}
 
 		p.requestHandler.RequestShardHeaderByNonce(shardId, nonceToRequest)
 		p.requestHandler.RequestEquivalentProofByNonce(shardId, nonceToRequest)
@@ -183,6 +196,28 @@ func (p *pendingEpochStartShardHeader) processProofedHeader(info proofedHeaderIn
 	return false, nil
 }
 
+// proofedHeaderFromPool looks the expected nonce up directly, since the pools only notify on insertion
+// and stay silent for data they already hold when the walk reaches that nonce
+func (p *pendingEpochStartShardHeader) proofedHeaderFromPool(shardId uint32, nonce uint64) (proofedHeaderInfo, bool) {
+	headers, hashes, err := p.headersPool.GetHeadersByNonceAndShardId(nonce, shardId)
+	if err != nil {
+		return proofedHeaderInfo{}, false
+	}
+
+	for i := 0; i < len(headers) && i < len(hashes); i++ {
+		if check.IfNil(headers[i]) {
+			continue
+		}
+		if !p.hasProof(shardId, hashes[i], headers[i].GetEpoch()) {
+			continue
+		}
+
+		return proofedHeaderInfo{header: headers[i], hash: hashes[i]}, true
+	}
+
+	return proofedHeaderInfo{}, false
+}
+
 func (p *pendingEpochStartShardHeader) drainProofedHeaderChannel() {
 	for {
 		select {
@@ -207,13 +242,20 @@ func (p *pendingEpochStartShardHeader) receivedHeader(header data.HeaderHandler,
 		return
 	}
 
-	p.candidates[string(headerHash)] = header
-	if !p.hasProof(header.GetShardID(), headerHash, header.GetEpoch()) {
-		go p.requestHandler.RequestEquivalentProofByHash(header.GetShardID(), headerHash)
+	_, known := p.candidates[string(headerHash)]
+	if !known && len(p.candidates) >= maxCandidatesPerNonce {
 		p.mutPending.Unlock()
 		return
 	}
+
+	p.candidates[string(headerHash)] = header
+	needsProof := !p.hasProof(header.GetShardID(), headerHash, header.GetEpoch())
 	p.mutPending.Unlock()
+
+	if needsProof {
+		p.requestHandler.RequestEquivalentProofByHash(header.GetShardID(), headerHash)
+		return
+	}
 
 	p.signalProofedHeader(header, headerHash)
 }

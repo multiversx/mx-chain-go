@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
@@ -415,7 +417,57 @@ func TestStartFromSavedEpoch_ShuffledOutStaleEpochStartJoinsFromNetwork(t *testi
 	epochStartRound := uint64(1000)
 	roundsPerEpoch := int64(200)
 
-	createProvider := func(shuffledOut bool, currentRound int64, storageUnitOpened *bool) *epochStartBootstrap {
+	const storedEpoch = uint32(10)
+	publicKey := []byte("pubKey")
+
+	// lets getShardIDForLatestEpoch run: eligible in shard 0 while stored as metachain
+	createStorer := func(shuffledOut bool) storage.Storer {
+		round := int64(10)
+		roundBytes, _ := json.Marshal(&bootstrapStorage.RoundNum{Num: round})
+		bootstrapData := bootstrapStorage.BootstrapData{NodesCoordinatorConfigKey: []byte("key")}
+		bootstrapDataBytes, _ := json.Marshal(bootstrapData)
+		nodesCoordinatorKey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
+
+		eligibleShard := "0"
+		if !shuffledOut {
+			eligibleShard = fmt.Sprint(core.MetachainShardId)
+		}
+		registryBytes, _ := json.Marshal(&nodesCoordinator.NodesCoordinatorRegistry{
+			EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
+				fmt.Sprint(storedEpoch): {
+					EligibleValidators: map[string][]*nodesCoordinator.SerializableValidator{
+						eligibleShard: {{PubKey: publicKey, Chances: 0, Index: 0}},
+					},
+				},
+			},
+		})
+		metaBytes, _ := json.Marshal(&block.MetaBlock{Nonce: 1, Epoch: storedEpoch})
+
+		return &storageStubs.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				switch {
+				case bytes.Equal([]byte(common.HighestRoundFromBootStorage), key):
+					return roundBytes, nil
+				case bytes.Equal([]byte(strconv.FormatInt(round, 10)), key):
+					return bootstrapDataBytes, nil
+				default:
+					return nil, nil
+				}
+			},
+			SearchFirstCalled: func(key []byte) ([]byte, error) {
+				switch {
+				case bytes.Equal(nodesCoordinatorKey, key):
+					return registryBytes, nil
+				case bytes.Equal([]byte(core.EpochStartIdentifier(storedEpoch)), key):
+					return metaBytes, nil
+				default:
+					return nil, errors.New("unexpected key")
+				}
+			},
+		}
+	}
+
+	createProvider := func(shuffledOut bool, currentRound int64, numStorageOpens *int) *epochStartBootstrap {
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		coreComp.ChainParametersHandlerField = &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
@@ -423,6 +475,11 @@ func TestStartFromSavedEpoch_ShuffledOutStaleEpochStartJoinsFromNetwork(t *testi
 			},
 			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{RoundsPerEpoch: roundsPerEpoch}, nil
+			},
+		}
+		cryptoComp.PubKey = &cryptoMocks.PublicKeyStub{
+			ToByteArrayStub: func() ([]byte, error) {
+				return publicKey, nil
 			},
 		}
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
@@ -433,53 +490,59 @@ func TestStartFromSavedEpoch_ShuffledOutStaleEpochStartJoinsFromNetwork(t *testi
 		}
 		args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
 			GetCalled: func() (storage.LatestDataFromStorage, error) {
-				return storage.LatestDataFromStorage{Epoch: 10, ShardID: core.MetachainShardId, LastRound: int64(epochStartRound) + 5, EpochStartRound: epochStartRound}, nil
+				return storage.LatestDataFromStorage{Epoch: storedEpoch, ShardID: core.MetachainShardId, LastRound: int64(epochStartRound) + 5, EpochStartRound: epochStartRound}, nil
 			},
 		}
+		storer := createStorer(shuffledOut)
 		args.StorageUnitOpener = &storageStubs.UnitOpenerStub{
 			GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
-				*storageUnitOpened = true
-				return nil, errors.New("stop the storage path here")
+				*numStorageOpens++
+				return storer, nil
 			},
 		}
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, err)
-		epochStartProvider.shuffledOut = shuffledOut
 
 		return epochStartProvider
 	}
 
+	// the shuffle check itself reads the bootstrap storage, so a second open means prepareEpochFromStorage ran
 	t.Run("shuffled out with stale epoch start skips storage and continues from the network", func(t *testing.T) {
-		storageUnitOpened := false
+		numStorageOpens := 0
 		staleRound := int64(epochStartRound) + roundsPerEpoch + 10
-		epochStartProvider := createProvider(true, staleRound, &storageUnitOpened)
+		epochStartProvider := createProvider(true, staleRound, &numStorageOpens)
 
 		params, shouldContinue, err := epochStartProvider.startFromSavedEpoch()
 		require.Nil(t, err)
 		require.True(t, shouldContinue)
 		require.Equal(t, Parameters{}, params)
-		require.False(t, storageUnitOpened, "prepareEpochFromStorage must not run on a stale epoch start")
+		require.True(t, epochStartProvider.shuffledOut, "the shuffle must be detected from storage, not injected")
+		require.Equal(t, 1, numStorageOpens, "prepareEpochFromStorage must not run on a stale epoch start")
 	})
 
 	t.Run("shuffled out with current epoch start keeps the storage path", func(t *testing.T) {
-		storageUnitOpened := false
+		numStorageOpens := 0
 		freshRound := int64(epochStartRound) + roundsPerEpoch/2
-		epochStartProvider := createProvider(true, freshRound, &storageUnitOpened)
+		epochStartProvider := createProvider(true, freshRound, &numStorageOpens)
 
 		_, shouldContinue, err := epochStartProvider.startFromSavedEpoch()
 		require.NotNil(t, err)
+		require.True(t, epochStartProvider.shuffledOut)
 		require.False(t, shouldContinue, "shuffled out storage attempt must not fall through to the network")
-		require.True(t, storageUnitOpened, "prepareEpochFromStorage should have been attempted")
+		require.Equal(t, 2, numStorageOpens, "prepareEpochFromStorage should have been attempted")
 	})
 
-	t.Run("not shuffled out still attempts the storage path and can fall through", func(t *testing.T) {
-		storageUnitOpened := false
+	// a stale epoch start must not divert a node that was not shuffled out
+	t.Run("not shuffled out takes the storage path even with a stale epoch start", func(t *testing.T) {
+		numStorageOpens := 0
 		staleRound := int64(epochStartRound) + roundsPerEpoch + 10
-		epochStartProvider := createProvider(false, staleRound, &storageUnitOpened)
+		epochStartProvider := createProvider(false, staleRound, &numStorageOpens)
 
-		_, shouldContinue, err := epochStartProvider.startFromSavedEpoch()
+		params, shouldContinue, err := epochStartProvider.startFromSavedEpoch()
 		require.Nil(t, err)
-		require.True(t, shouldContinue)
-		require.True(t, storageUnitOpened, "prepareEpochFromStorage should have been attempted")
+		require.False(t, shouldContinue)
+		require.False(t, epochStartProvider.shuffledOut)
+		require.Equal(t, storedEpoch, params.Epoch)
+		require.Equal(t, 2, numStorageOpens, "prepareEpochFromStorage should have been attempted")
 	})
 }

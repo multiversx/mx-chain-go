@@ -367,13 +367,12 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	defer e.cleanupOnBootstrapFinish()
 
-	newShardId, isShuffledOut, err := e.getShardIDForLatestEpoch()
+	newShardId, _, err := e.getShardIDForLatestEpoch()
 	if err != nil {
 		// fallback to meta if nothing was loaded from the last epoch
 		newShardId = e.applyShardIDAsObserverIfNeeded(core.MetachainShardId)
 	}
-	e.shuffledOut = isShuffledOut && err == nil
-	log.Debug("epochStartBootstrap.Bootstrap", "newShardId", newShardId, "from last epoch", err == nil, "shuffled out", e.shuffledOut)
+	log.Debug("epochStartBootstrap.Bootstrap", "newShardId", newShardId, "from last epoch", err == nil)
 
 	e.shardCoordinator, err = sharding.NewMultiShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), newShardId)
 	if err != nil {
@@ -510,6 +509,11 @@ func (e *epochStartBootstrap) startFromSavedEpoch() (Parameters, bool, error) {
 			params, err := e.prepareEpochZero()
 			return params, false, err
 		}
+
+		// baseData holds the stored shard id only after computeIfCurrentEpochIsSaved above
+		_, isShuffledOut, errShuffle := e.getShardIDForLatestEpoch()
+		e.shuffledOut = isShuffledOut && errShuffle == nil
+		log.Debug("startFromSavedEpoch", "shuffled out", e.shuffledOut, "from last epoch", errShuffle == nil)
 
 		// a shuffled-out node keeps the storage path only while its stored epoch start is still the
 		// network's current one; with a stale anchor it joins the current epoch from the network
@@ -1567,7 +1571,8 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 	}
 
 	ctx, cancel = context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	epochStartShardBlock, epochStartShardBlockHash, err := e.syncLatestEpochStartShardBlock(epochStartData.GetEpoch(), ctx)
+	// the target is the epoch being bootstrapped, not the epoch of the anchor header the walk starts from
+	epochStartShardBlock, epochStartShardBlockHash, err := e.syncLatestEpochStartShardBlock(e.epochStartMeta.GetEpoch(), ctx)
 	cancel()
 	if err != nil {
 		return err

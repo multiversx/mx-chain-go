@@ -2,11 +2,13 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
@@ -642,6 +644,61 @@ func TestSyncEpochStartShardHeader_HeadersAtWrongNonceAreIgnored(t *testing.T) {
 
 	_, _, errGet := syncer.GetEpochStartHeader()
 	require.Equal(t, update.ErrNotSynced, errGet)
+}
+
+// The pools only notify on insertion, so a header already held when the walk reaches its nonce never
+// fires a callback; the walk must find it by looking the nonce up itself.
+func TestSyncEpochStartShardHeader_AlreadyPooledHeadersNeedNoNotification(t *testing.T) {
+	t.Parallel()
+
+	shardID := uint32(1)
+	epoch := uint32(10)
+	startNonce := uint64(100)
+
+	epochStartHash := []byte("epochStartHash")
+	pooled := map[uint64]struct {
+		header *block.Header
+		hash   []byte
+	}{
+		startNonce + 1: {&block.Header{ShardID: shardID, Nonce: startNonce + 1, Epoch: epoch - 1}, []byte("hash1")},
+		startNonce + 2: {&block.Header{ShardID: shardID, Nonce: startNonce + 2, Epoch: epoch - 1}, []byte("hash2")},
+		startNonce + 3: {&block.Header{ShardID: shardID, Nonce: startNonce + 3, Epoch: epoch, EpochStartMetaHash: []byte("metaHash")}, epochStartHash},
+	}
+
+	args := createPendingEpochStartShardHeaderSyncerArgs()
+	args.HeadersPool = &mock.HeadersCacherStub{
+		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+			entry, ok := pooled[hdrNonce]
+			if !ok || shardId != shardID {
+				return nil, nil, errors.New("header not found")
+			}
+
+			return []data.HeaderHandler{entry.header}, [][]byte{entry.hash}, nil
+		},
+	}
+	args.ProofsPool = &dataRetrieverMocks.ProofsPoolMock{
+		HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+			return true
+		},
+	}
+	// no notification is ever delivered: receivedHeader/receivedProof are never called
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {},
+	}
+
+	syncer, err := NewPendingEpochStartShardHeaderSyncer(args)
+	require.Nil(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	err = syncer.SyncEpochStartShardHeader(shardID, epoch, startNonce, ctx)
+	require.Nil(t, err)
+
+	h, hHash, errGet := syncer.GetEpochStartHeader()
+	require.Nil(t, errGet)
+	require.Equal(t, pooled[startNonce+3].header, h)
+	require.Equal(t, epochStartHash, hHash)
 }
 
 func TestSyncEpochStartShardHeader_ProofsBeforeHeaderShouldWork(t *testing.T) {
