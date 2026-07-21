@@ -2680,7 +2680,7 @@ func TestMetaProcessor_SelectContendedShardHeaders(t *testing.T) {
 	hashLow, hashHigh := []byte("hashLow"), []byte("hashHigh")
 	parent := &block.Header{ShardID: 0, Nonce: 10, Round: 10}
 
-	buildProcessor := func(supernovaEnabled bool, candidateRounds []uint64, referenced *[][]byte) interface {
+	buildProcessorWithProofs := func(supernovaEnabled bool, candidateRounds []uint64, referenced *[][]byte, hasProof func(headerHash []byte) bool) interface {
 		SelectContendedShardHeaders(round uint64, lastShardHdrs map[uint32]blproc.ShardHeaderInfo, hdrsAddedForShard map[uint32]uint32, haveTime func() bool) error
 	} {
 		candidates := make([]data.HeaderHandler, 0, len(candidateRounds))
@@ -2706,7 +2706,7 @@ func TestMetaProcessor_SelectContendedShardHeaders(t *testing.T) {
 			}
 			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{
-					HasProofCalled: func(shardID uint32, headerHash []byte) bool { return true },
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool { return hasProof(headerHash) },
 				}
 			}
 		}
@@ -2723,6 +2723,12 @@ func TestMetaProcessor_SelectContendedShardHeaders(t *testing.T) {
 		require.Nil(t, err)
 
 		return mp
+	}
+
+	buildProcessor := func(supernovaEnabled bool, candidateRounds []uint64, referenced *[][]byte) interface {
+		SelectContendedShardHeaders(round uint64, lastShardHdrs map[uint32]blproc.ShardHeaderInfo, hdrsAddedForShard map[uint32]uint32, haveTime func() bool) error
+	} {
+		return buildProcessorWithProofs(supernovaEnabled, candidateRounds, referenced, func(_ []byte) bool { return true })
 	}
 
 	newLastShardHdrs := func() map[uint32]blproc.ShardHeaderInfo {
@@ -2763,6 +2769,20 @@ func TestMetaProcessor_SelectContendedShardHeaders(t *testing.T) {
 		err := mp.SelectContendedShardHeaders(17, newLastShardHdrs(), map[uint32]uint32{0: 1}, haveTimeTrue)
 		require.Nil(t, err)
 		require.Empty(t, referenced)
+	})
+
+	t.Run("skips an unproofed lower-round candidate", func(t *testing.T) {
+		t.Parallel()
+
+		referenced := make([][]byte, 0)
+		mp := buildProcessorWithProofs(true, []uint64{14, 16}, &referenced, func(headerHash []byte) bool {
+			return !bytes.Equal(headerHash, hashLow)
+		})
+
+		lastShardHdrs := newLastShardHdrs()
+		err := mp.SelectContendedShardHeaders(19, lastShardHdrs, map[uint32]uint32{}, haveTimeTrue)
+		require.Nil(t, err)
+		require.Equal(t, [][]byte{hashHigh}, referenced)
 	})
 
 	t.Run("skips non-contended candidates", func(t *testing.T) {
@@ -3713,33 +3733,6 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 			},
 		}, blproc.ShardHeaderInfo{})
 		require.Equal(t, expectedErr, err)
-	})
-
-	t.Run("should return error for quarantined header", func(t *testing.T) {
-		t.Parallel()
-
-		quarantinedHash := []byte("quarantined hash")
-		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
-			"headerValidator": &processMocks.HeaderValidatorMock{
-				IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
-					return nil
-				},
-			},
-			"blockTracker": &integrationTestsMock.BlockTrackerStub{
-				IsHeaderQuarantinedCalled: func(hash []byte) bool {
-					return bytes.Equal(hash, quarantinedHash)
-				},
-			},
-		})
-		require.Nil(t, err)
-
-		err = mp.CheckHeadersSequenceCorrectness([]blproc.ShardHeaderInfo{
-			{
-				Header: &block.Header{Nonce: 2},
-				Hash:   quarantinedHash,
-			},
-		}, blproc.ShardHeaderInfo{})
-		require.ErrorContains(t, err, "included quarantined header")
 	})
 
 	t.Run("should work for contended unsettled header without a better competitor", func(t *testing.T) {

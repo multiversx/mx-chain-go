@@ -140,10 +140,6 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 	})
 	panicIfError("CreatePoolsHolder", err)
 
-	cacherConfig = storageunit.CacheConfig{Capacity: 100, Type: storageunit.LRUCache}
-	quarantinedHeaders, err := storageunit.NewCache(cacherConfig)
-	panicIfError("CreatePoolsHolder", err)
-
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
@@ -165,7 +161,6 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 		ExecutedMiniBlocks:        executedMiniBlocks,
 		PostProcessTransactions:   postProcessTransactions,
 		DirectSentTransactions:    directSentTransactions,
-		QuarantinedHeaders:        quarantinedHeaders,
 	}
 
 	return dataPoolArgs
@@ -272,10 +267,6 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	})
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
-	quarantinedHeaders, err := storageunit.NewCache(cacherConfig)
-	panicIfError("CreatePoolsHolderWithTxPool", err)
-
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
@@ -297,7 +288,6 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 		ExecutedMiniBlocks:        executedMiniBlocks,
 		PostProcessTransactions:   postProcessTransactions,
 		DirectSentTransactions:    directSentTransactions,
-		QuarantinedHeaders:        quarantinedHeaders,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolderWithTxPool", err)

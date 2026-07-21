@@ -13,7 +13,6 @@ type BlockTrackerHandlerMock struct {
 	ComputeLongestSelfChainCalled func() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
 	SortHeadersFromNonceCalled    func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	AddHeaderFromPoolCalled       func(shardID uint32, nonce uint64)
-	IsHeaderQuarantinedCalled     func(hash []byte) bool
 	IsSettledCrossHeaderCalled    func(header data.HeaderHandler, headerHash []byte) bool
 }
 
@@ -56,15 +55,6 @@ func (bthm *BlockTrackerHandlerMock) AddHeaderFromPool(shardID uint32, nonce uin
 	if bthm.AddHeaderFromPoolCalled != nil {
 		bthm.AddHeaderFromPoolCalled(shardID, nonce)
 	}
-}
-
-// IsHeaderQuarantined -
-func (bthm *BlockTrackerHandlerMock) IsHeaderQuarantined(hash []byte) bool {
-	if bthm.IsHeaderQuarantinedCalled != nil {
-		return bthm.IsHeaderQuarantinedCalled(hash)
-	}
-
-	return false
 }
 
 // IsInterfaceNil -

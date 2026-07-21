@@ -10,8 +10,6 @@ var errNilPreviousHeader = errors.New("nil previous header")
 
 var errInvalidMiniBlocks = errors.New("invalid mini blocks")
 
-var errIncludedQuarantinedHeader = errors.New("included quarantined header")
-
 var errIncludedContendedUnsettledHeader = errors.New("included contended header not yet settled")
 
 var errContendedHeaderWithBetterCompetitor = errors.New("included contended header has a better proofed competitor")

@@ -1141,9 +1141,6 @@ func (mp *metaProcessor) getArbitrationCandidate(parentInfo ShardHeaderInfo) (da
 		if !mp.proofsPool.HasProof(shardID, hashes[i]) {
 			continue
 		}
-		if mp.blockTracker.IsHeaderQuarantined(hashes[i]) {
-			continue
-		}
 		errValidity := mp.headerValidator.IsHeaderConstructionValid(header, parentInfo.Header)
 		if errValidity != nil {
 			continue
@@ -1363,10 +1360,6 @@ func (mp *metaProcessor) checkHeadersSequenceCorrectness(hdrsForShard []ShardHea
 	for _, shardHdrInfo := range hdrsForShard {
 		if mp.isGenesisShardBlockAndFirstMeta(shardHdrInfo.Header.GetNonce()) {
 			continue
-		}
-
-		if mp.blockTracker.IsHeaderQuarantined(shardHdrInfo.Hash) {
-			return fmt.Errorf("%w with hash %x", errIncludedQuarantinedHeader, shardHdrInfo.Hash)
 		}
 
 		err = mp.checkShardHeaderContention(shardHdrInfo.Header, shardHdrInfo.Hash, lastNotarizedHeaderInfoForShard)

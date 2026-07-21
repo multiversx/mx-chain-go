@@ -297,11 +297,6 @@ func (bp *blockProcessor) getNextHeader(
 			break
 		}
 
-		if bp.blockTracker.IsHeaderQuarantined(sortedHeadersHashes[i]) {
-			log.Trace("getNextHeader: skipping quarantined header", "hash", sortedHeadersHashes[i])
-			continue
-		}
-
 		if bp.isContendedUnsettledCrossHeader(currHeader, prevHeader, sortedHeadersHashes[i]) {
 			log.Trace("getNextHeader: skipping contended unsettled cross header", "hash", sortedHeadersHashes[i])
 			continue
