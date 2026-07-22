@@ -197,3 +197,5 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
+
+replace github.com/ipfs/go-log/v2 => github.com/sstanculeanu/go-log/v2 v2.0.0-20260714113044-ce58d5968237
