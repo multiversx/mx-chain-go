@@ -947,6 +947,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # ConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas in accumulated economics is fixed
     ConsumedGasInEconomicsFixEnableEpoch = 114
 
+    # AttributeExtraGasUsageEnableEpoch represents the epoch when the extra gas usage for attributes is enabled
+    AttributeExtraGasUsageEnableEpoch = 115
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1081,6 +1084,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixGetBalanceEnableEpoch:                                 112,
 			RelayedTransactionsV1V2DisableEpoch:                      113,
 			ConsumedGasInEconomicsFixEnableEpoch:                     114,
+			AttributeExtraGasUsageEnableEpoch:                        115,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
