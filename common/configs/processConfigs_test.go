@@ -24,6 +24,7 @@ func getConfigsByRound() []config.ProcessConfigByRound {
 			NumFloodingRoundsOutOfSpecs:            4,
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
 			MaxBlockProcessingTimeMs:               1000,
+			RoundModulusTriggerWhenSyncIsStuck:     10,
 		},
 		{
 			EnableRound:                            1,
@@ -35,6 +36,7 @@ func getConfigsByRound() []config.ProcessConfigByRound {
 			NumFloodingRoundsOutOfSpecs:            40,
 			MaxConsecutiveRoundsOfRatingDecrease:   6000,
 			MaxBlockProcessingTimeMs:               1000,
+			RoundModulusTriggerWhenSyncIsStuck:     10,
 		},
 	}
 }
@@ -112,6 +114,21 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 		require.True(t, strings.Contains(err.Error(), "MaxRoundsToKeepUnprocessedMiniBlocks"))
 	})
 
+	t.Run("should return error for zero RoundModulusTriggerWhenSyncIsStuck value", func(t *testing.T) {
+		t.Parallel()
+
+		confByEpoch := []config.ProcessConfigByEpoch{
+			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
+		}
+		confByRound := getConfigsByRound()
+		confByRound[0].RoundModulusTriggerWhenSyncIsStuck = 0
+
+		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
+		require.Nil(t, pce)
+		require.ErrorIs(t, err, process.ErrInvalidValue)
+		require.True(t, strings.Contains(err.Error(), "RoundModulusTriggerWhenSyncIsStuck"))
+	})
+
 	t.Run("should return error for invalid max consecutive rounds of rating decrease value", func(t *testing.T) {
 		t.Parallel()
 
@@ -175,6 +192,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			NumFloodingRoundsOutOfSpecs:            4,
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
 			MaxBlockProcessingTimeMs:               1000,
+			RoundModulusTriggerWhenSyncIsStuck:     10,
 		},
 		{EnableRound: 1,
 			MaxRoundsWithoutNewBlockReceived:       11,
@@ -187,6 +205,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			NumFloodingRoundsOutOfSpecs:            40,
 			MaxConsecutiveRoundsOfRatingDecrease:   6000,
 			MaxBlockProcessingTimeMs:               2000,
+			RoundModulusTriggerWhenSyncIsStuck:     10,
 		},
 	}
 

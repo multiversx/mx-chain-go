@@ -1,6 +1,8 @@
 package ntpsync
 
 import (
+	"sort"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -95,8 +97,12 @@ func areNoncesInAscendingOrder(nonces []uint64) bool {
 		return false
 	}
 
-	for i := 1; i < len(nonces); i++ {
-		if nonces[i] != nonces[i-1]+1 {
+	dst := make([]uint64, len(nonces))
+	copy(dst, nonces)
+	sort.Slice(dst, func(i, j int) bool { return dst[i] < dst[j] })
+
+	for i := 1; i < len(dst); i++ {
+		if dst[i] != dst[i-1]+1 {
 			return false
 		}
 	}
