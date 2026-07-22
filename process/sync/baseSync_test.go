@@ -986,11 +986,13 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		blacklisted     []string
 	}
 
-	buildBootstrapper := func(childrenOf []byte, calls *reconcileCalls) *baseBootstrap {
+	buildBootstrapperWithChecker := func(childrenOf []byte, calls *reconcileCalls, checker settlementChecker, roundHandler *mock.RoundHandlerMock) *baseBootstrap {
 		childHash := []byte("childHash")
 		child := &block.HeaderV3{Nonce: finalNonce + 1, Round: 13, PrevHash: childrenOf}
 
 		return &baseBootstrap{
+			settlementChecker: checker,
+			roundHandler:      roundHandler,
 			chainHandler: &testscommon.ChainHandlerStub{
 				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 					return localHead
@@ -1032,6 +1034,29 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 			},
 			statusHandler: &statusHandlerMock.AppStatusHandlerStub{},
 		}
+	}
+
+	settlesOnly := func(hashes ...[]byte) *settlementCheckerStub {
+		return &settlementCheckerStub{
+			isSettledCalled: func(_ uint64, headerHash []byte) bool {
+				for _, hash := range hashes {
+					if bytes.Equal(hash, headerHash) {
+						return true
+					}
+				}
+				return false
+			},
+		}
+	}
+
+	buildBootstrapper := func(childrenOf []byte, calls *reconcileCalls) *baseBootstrap {
+		checker := &settlementCheckerStub{
+			isSettledCalled: func(nonce uint64, headerHash []byte) bool {
+				return len(childrenOf) > 0 && bytes.Equal(childrenOf, headerHash)
+			},
+		}
+
+		return buildBootstrapperWithChecker(childrenOf, calls, checker, &mock.RoundHandlerMock{})
 	}
 
 	t.Run("fires when the final head is childless and the competitor has a proofed child", func(t *testing.T) {
@@ -1086,6 +1111,83 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.Nil(t, boot.pendingReconcile)
 		require.False(t, boot.tryReconcileEquivocation())
 	})
+
+	// spot 2: under per-round R0 a stranded loser can hold a proofed child of its own, so that child
+	// must no longer protect it from the authority's verdict
+	t.Run("switches away from a local block that has its own proofed child", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		boot := buildBootstrapperWithChecker(localHash, calls, settlesOnly(competitorHash), &mock.RoundHandlerMock{})
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+		require.True(t, boot.tryReconcileEquivocation())
+		require.Equal(t, finalNonce, calls.reconciledNonce)
+		require.Equal(t, []string{string(localHash)}, calls.blacklisted)
+	})
+
+	// the authority's verdict on the local hash beats any competitor evidence
+	t.Run("never switches when the authority settled the local block", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		boot := buildBootstrapperWithChecker(competitorHash, calls, settlesOnly(localHash, competitorHash), &mock.RoundHandlerMock{})
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+		require.False(t, boot.tryReconcileEquivocation())
+		require.Equal(t, uint64(0), calls.reconciledNonce)
+		require.Empty(t, calls.blacklisted)
+		require.Nil(t, boot.pendingReconcile)
+	})
+
+	// the R-RESOLVE outcome: meta arbitrates the lowest-round sibling, which has no child at all
+	t.Run("switches onto a childless competitor the authority notarized", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(competitorHash), &mock.RoundHandlerMock{})
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+		require.True(t, boot.tryReconcileEquivocation())
+		require.Equal(t, finalNonce, calls.reconciledNonce)
+	})
+
+	t.Run("evaluates the authority at most once per round", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		checker := settlesOnly()
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 7}
+		boot := buildBootstrapperWithChecker(nil, calls, checker, roundHandler)
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+
+		require.False(t, boot.tryReconcileEquivocation())
+		callsInFirstRound := checker.numCalls
+		require.NotZero(t, callsInFirstRound)
+
+		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation())
+		require.Equal(t, callsInFirstRound, checker.numCalls)
+
+		roundHandler.RoundIndex = 8
+		require.False(t, boot.tryReconcileEquivocation())
+		require.Greater(t, checker.numCalls, callsInFirstRound)
+	})
+}
+
+type settlementCheckerStub struct {
+	isSettledCalled func(nonce uint64, headerHash []byte) bool
+	numCalls        int
+}
+
+func (stub *settlementCheckerStub) isSettled(nonce uint64, headerHash []byte) bool {
+	stub.numCalls++
+	if stub.isSettledCalled != nil {
+		return stub.isSettledCalled(nonce, headerHash)
+	}
+
+	return false
 }
 
 func TestBaseBootstrap_SelectNonBlackListedHash(t *testing.T) {

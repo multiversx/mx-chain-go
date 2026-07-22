@@ -60,6 +60,7 @@ type ArgBaseBootstrapper struct {
 // new instances of shard bootstrapper
 type ArgShardBootstrapper struct {
 	ArgBaseBootstrapper
+	MetaFinalityView process.MetaFinalityView
 }
 
 // ArgMetaBootstrapper holds all dependencies required by the bootstrap data factory in order to create

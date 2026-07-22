@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state"
 	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -366,8 +367,17 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ProcessConfigsHandler:        tpn.ProcessConfigsHandler,
 	}
 
+	metaFinalityView, err := track.NewMetaFinalityView(track.ArgsMetaFinalityView{
+		HeadersPool: tpn.DataPool.Headers(),
+		ProofsPool:  tpn.DataPool.Proofs(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
+		MetaFinalityView:    metaFinalityView,
 	}
 
 	bootstrap, err := sync.NewShardBootstrap(argsShardBootstrapper)

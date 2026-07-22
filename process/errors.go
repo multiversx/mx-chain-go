@@ -254,6 +254,9 @@ var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 // ErrNilProofsPool signals that a nil proofs pool was used
 var ErrNilProofsPool = errors.New("nil proofs pool")
 
+// ErrNilMetaFinalityView signals that a nil meta finality view was used
+var ErrNilMetaFinalityView = errors.New("nil meta finality view")
+
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
 
