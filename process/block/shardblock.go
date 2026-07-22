@@ -1883,16 +1883,11 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 	return ownShIdHdrs, ownShIdHdrsHashes, nil
 }
 
-type shardInfoHandler interface {
-	GetHeaderHash() []byte
-	GetShardID() uint32
-}
-
 // it will fetch based on proposed shard info data
 func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr data.MetaHeaderHandler) []data.HeaderHandler {
 	ownShIdHdr := make([]data.HeaderHandler, 0, len(hdr.GetShardInfoHandlers()))
 
-	for _, shardInfo := range getShardHeadersReferencedByMeta(hdr) {
+	for _, shardInfo := range process.GetShardHeadersReferencedByMeta(hdr) {
 		if shardInfo.GetShardID() != shardId {
 			continue
 		}
@@ -1912,26 +1907,6 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 	}
 
 	return data.TrimHeaderHandlerSlice(ownShIdHdr)
-}
-
-func getShardHeadersReferencedByMeta(
-	header data.MetaHeaderHandler,
-) []shardInfoHandler {
-	var shardInfoHandlers []shardInfoHandler
-
-	if header.IsHeaderV3() {
-		for _, shardInfo := range header.GetShardInfoProposalHandlers() {
-			shardInfoHandlers = append(shardInfoHandlers, shardInfo)
-		}
-
-		return shardInfoHandlers
-	}
-
-	for _, shardInfo := range header.GetShardInfoHandlers() {
-		shardInfoHandlers = append(shardInfoHandlers, shardInfo)
-	}
-
-	return shardInfoHandlers
 }
 
 // getOrderedProcessedMetaBlocksFromHeader returns all the meta blocks fully processed

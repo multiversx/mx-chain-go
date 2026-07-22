@@ -557,7 +557,7 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr data.MetaHeaderH
 
 	var shardHeaderHandler data.HeaderHandler
 	var err error
-	for _, shardInfo := range getShardHeadersReferencedByMeta(metaHdr) {
+	for _, shardInfo := range process.GetShardHeadersReferencedByMeta(metaHdr) {
 		shardHeaderHandler, err = mp.getHeaderFromHash(metaHdr.IsHeaderV3(), shardInfo.GetHeaderHash(), shardInfo.GetShardID())
 		if err != nil {
 			return nil, fmt.Errorf("%w : for shardInfo.HeaderHash = %s",
@@ -1561,7 +1561,7 @@ func (mp *metaProcessor) computeFinalMetaBlock(metaBlock data.MetaHeaderHandler,
 
 func (mp *metaProcessor) updateCrossShardInfo(metaHeader data.MetaHeaderHandler) ([]string, error) {
 	notarizedHeadersHashes := make([]string, 0)
-	for _, shardData := range getShardHeadersReferencedByMeta(metaHeader) {
+	for _, shardData := range process.GetShardHeadersReferencedByMeta(metaHeader) {
 		header, err := mp.getHeaderFromHash(metaHeader.IsHeaderV3(), shardData.GetHeaderHash(), shardData.GetShardID())
 		if err != nil {
 			return nil, fmt.Errorf("%w : updateCrossShardInfo shardHeaderHash = %s",
@@ -2186,7 +2186,7 @@ func (mp *metaProcessor) saveLastNotarizedHeader(metaHeader data.MetaHeaderHandl
 		lastCrossNotarizedHeaderForShard[shardID] = &hashAndHdr{hdr: lastCrossNotarizedHeader, hash: lastCrossNotarizedHeaderHash}
 	}
 
-	for _, shardData := range getShardHeadersReferencedByMeta(metaHeader) {
+	for _, shardData := range process.GetShardHeadersReferencedByMeta(metaHeader) {
 		header, err := mp.getHeaderFromHash(metaHeader.IsHeaderV3(), shardData.GetHeaderHash(), shardData.GetShardID())
 		if err != nil {
 			return fmt.Errorf("%w : saveLastNotarizedHeader shardHeaderHash = %s",
