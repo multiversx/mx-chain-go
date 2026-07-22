@@ -21,6 +21,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -216,6 +217,26 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		if err != nil {
 			return err
 		}
+
+		headerBytes, errF := node.GetCoreComponents().InternalMarshalizer().Marshal(genesisBlock)
+		if errF != nil {
+			return errF
+		}
+
+		storer, errF := node.GetDataComponents().StorageService().GetStorer(dataRetriever.GetHeadersDataUnit(shardID))
+		if errF != nil {
+			return errF
+		}
+		identifier := []byte(core.EpochStartIdentifier(args.InitialEpoch))
+		err = storer.Put(identifier, headerBytes)
+		if err != nil {
+			return err
+		}
+
+		err = node.SetKeyValueForAddress(core.SystemAccountAddress, make(map[string]string))
+		if err != nil {
+			return err
+		}
 	}
 
 	s.initialWalletKeys = outputConfigs.InitialWallets
@@ -248,10 +269,15 @@ func (s *simulator) addProofs() {
 	proofs := make([]*block.HeaderProof, 0, len(s.nodes))
 
 	for shardID, nodeHandler := range s.nodes {
+		genesisHeader := nodeHandler.GetChainHandler().GetGenesisHeader()
 		hash := nodeHandler.GetChainHandler().GetGenesisHeaderHash()
 		proofs = append(proofs, &block.HeaderProof{
-			HeaderShardId: shardID,
-			HeaderHash:    hash,
+			HeaderHash:     hash,
+			HeaderEpoch:    genesisHeader.GetEpoch(),
+			HeaderNonce:    genesisHeader.GetNonce(),
+			HeaderShardId:  shardID,
+			HeaderRound:    genesisHeader.GetRound(),
+			IsStartOfEpoch: false,
 		})
 	}
 

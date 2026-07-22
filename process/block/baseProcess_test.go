@@ -3810,6 +3810,10 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 	ph = bp.GetPruningHandler(14)
 	assert.True(t, ph.IsPruningEnabled())
 
+	bp.SetLastRestartNonce(15)
+	ph = bp.GetPruningHandler(14)
+	assert.False(t, ph.IsPruningEnabled())
+
 	bp.SetClosingNodeStarted(true)
 	ph = bp.GetPruningHandler(14)
 	assert.False(t, ph.IsPruningEnabled())
