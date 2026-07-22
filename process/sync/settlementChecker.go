@@ -21,7 +21,11 @@ func (checker *shardSettlementChecker) isSettled(nonce uint64, headerHash []byte
 	return checker.metaFinalityView.IsIncludedInHeldFinalMetaBlock(checker.selfShardID, headerHash, nonce)
 }
 
-// metaSettlementChecker settles a meta block on the depth-1 settle-on-child rule; meta has no
+// metaSettledDescendantsDepth requires a proofed child that is itself extended by a proofed child;
+// depth 2 closes the depth-1 double-extension corner, the depth-2 residual is accepted
+const metaSettledDescendantsDepth = 2
+
+// metaSettlementChecker settles a meta block on a fully proofed descendant chain; meta has no
 // external authority to defer to
 type metaSettlementChecker struct {
 	headers dataRetriever.HeadersPool
@@ -29,10 +33,12 @@ type metaSettlementChecker struct {
 }
 
 func (checker *metaSettlementChecker) isSettled(nonce uint64, headerHash []byte) bool {
-	return checker.hasProofedChild(nonce+1, headerHash)
+	return checker.hasProofedDescendants(nonce+1, headerHash, metaSettledDescendantsDepth)
 }
 
-func (checker *metaSettlementChecker) hasProofedChild(nonce uint64, parentHash []byte) bool {
+// hasProofedDescendants reports whether a chain of the given depth, proofed at every level,
+// extends parentHash
+func (checker *metaSettlementChecker) hasProofedDescendants(nonce uint64, parentHash []byte, depth int) bool {
 	headers, hashes, err := checker.headers.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
 	if err != nil {
 		return false
@@ -42,7 +48,10 @@ func (checker *metaSettlementChecker) hasProofedChild(nonce uint64, parentHash [
 		if check.IfNil(header) || !bytes.Equal(header.GetPrevHash(), parentHash) {
 			continue
 		}
-		if checker.proofs.HasProof(core.MetachainShardId, hashes[i]) {
+		if !checker.proofs.HasProof(core.MetachainShardId, hashes[i]) {
+			continue
+		}
+		if depth <= 1 || checker.hasProofedDescendants(nonce+1, hashes[i], depth-1) {
 			return true
 		}
 	}
