@@ -471,6 +471,7 @@ type ForkDetector interface {
 	RemoveHeader(nonce uint64, hash []byte)
 	RemoveCommittedHeader(nonce uint64, hash []byte)
 	ReconcileFinalCheckpoint(nonce uint64)
+	ReconcileFinalCheckpointBelow(nonce uint64) bool
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
 	GetHighestFinalBlockHash() []byte

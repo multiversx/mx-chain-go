@@ -30,6 +30,12 @@ type syncStarter interface {
 // authority of the chain the node belongs to
 type settlementChecker interface {
 	isSettled(nonce uint64, headerHash []byte) bool
+	deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool)
+}
+
+// epochStartTriggerDisarmer reverts a trigger activation armed by a dead epoch start meta block
+type epochStartTriggerDisarmer interface {
+	DisarmDeadEpochStartActivation(epoch uint32, deadEpochStartHash []byte) bool
 }
 
 // forkDetector is the interface needed by base fork detector to deal with shards and meta nodes

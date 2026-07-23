@@ -135,6 +135,11 @@ type baseBootstrap struct {
 	mutReconcile     sync.Mutex
 	pendingReconcile *reconcileEvidence
 
+	// only touched from the sync goroutine, no lock needed
+	divergenceEvaluatedRound int64
+	epochStartTrigger        process.EpochStartTriggerHandler
+	epochStartDisarmer       epochStartTriggerDisarmer
+
 	mutRcvHdrNonce           sync.RWMutex
 	mutRcvHdrHash            sync.RWMutex
 	syncStateListeners       []func(bool)
@@ -661,6 +666,9 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.ChainHandler) {
 		return process.ErrNilBlockChain
 	}
+	if check.IfNil(arguments.EpochStartTrigger) {
+		return process.ErrNilEpochStartTrigger
+	}
 	if check.IfNil(arguments.RoundHandler) {
 		return process.ErrNilRoundHandler
 	}
@@ -1055,6 +1063,11 @@ func (boot *baseBootstrap) syncBlock() error {
 	// evaluated before the synchronized gate: the authority may settle a childless competitor, and
 	// that leaves the node reading as synchronized while its final head is already dead
 	if boot.tryReconcileEquivocation() {
+		boot.invalidateNodeState()
+		return nil
+	}
+
+	if boot.tryReconcileDivergence() {
 		boot.invalidateNodeState()
 		return nil
 	}
@@ -1991,6 +2004,13 @@ func (boot *baseBootstrap) rollBackOneBlockV3(
 		}
 	}()
 
+	// no-op unless the rollback crosses the recorded epoch start block, when the epoch boundary
+	// must move back with the chain
+	err = boot.epochStartTrigger.RevertStateToBlock(prevHeader)
+	if err != nil {
+		return nil, err
+	}
+
 	err = boot.executionManager.RemoveAtNonceAndHigher(currHeader.GetNonce())
 	if err != nil {
 		return nil, err
@@ -2459,6 +2479,124 @@ func (boot *baseBootstrap) reconcileEvidenceStillApplies(evidence *reconcileEvid
 		currentHeader.GetNonce() == evidence.nonce &&
 		bytes.Equal(currentHash, evidence.localHash) &&
 		evidence.nonce == boot.forkDetector.GetHighestFinalBlockNonce()
+}
+
+// tryReconcileDivergence rolls back the certainly-dead own suffix above the block referencing a
+// dead cross-notarized meta; the per-block pointer pops make deeper divergences converge round by round
+func (boot *baseBootstrap) tryReconcileDivergence() bool {
+	currentRound := boot.roundHandler.Index()
+	if boot.divergenceEvaluatedRound == currentRound {
+		return false
+	}
+	boot.divergenceEvaluatedRound = currentRound
+
+	deadMeta, deadMetaHash, isDead := boot.settlementChecker.deadCrossNotarizedMeta()
+	if !isDead {
+		return false
+	}
+
+	headHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+	earliestDeadNonce, deadOwnHashes, collected := boot.collectOwnBlocksReferencing(deadMetaHash)
+	if !collected {
+		return false
+	}
+
+	boot.disarmDeadEpochStartIfNeeded(deadMeta, deadMetaHash)
+
+	// the chain should only move from this goroutine, re-checked out of caution
+	if !bytes.Equal(boot.chainHandler.GetCurrentBlockHeaderHash(), headHash) {
+		return false
+	}
+
+	if !boot.forkDetector.ReconcileFinalCheckpointBelow(earliestDeadNonce) {
+		return false
+	}
+
+	log.Error("divergence backstop: rolling back own blocks referencing a dead meta block",
+		"dead meta nonce", deadMeta.GetNonce(),
+		"dead meta hash", deadMetaHash,
+		"earliest dead own nonce", earliestDeadNonce,
+		"num dead own blocks", len(deadOwnHashes))
+	boot.statusHandler.Increment(common.MetricNumReconcileSwitches)
+
+	for _, deadOwnHash := range deadOwnHashes {
+		process.AddHeaderToBlackList(boot.blackListHandler, deadOwnHash)
+	}
+	boot.forkDetector.SetRollBackNonce(earliestDeadNonce)
+
+	return true
+}
+
+// collectOwnBlocksReferencing walks the own chain down to the block holding the cross-notarization
+// pointer; blocks above it reference no meta block at all, so the whole suffix dies with it
+func (boot *baseBootstrap) collectOwnBlocksReferencing(deadMetaHash []byte) (uint64, [][]byte, bool) {
+	currHeader, err := boot.blockBootstrapper.getCurrHeader()
+	if err != nil {
+		return 0, nil, false
+	}
+	currHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+	settledNonce, _ := boot.forkDetector.GetHighestSettledBlockInfo()
+
+	deadOwnHashes := make([][]byte, 0)
+	for {
+		if check.IfNil(currHeader) || currHeader.GetNonce() == 0 || currHeader.GetNonce() <= settledNonce {
+			log.Warn("collectOwnBlocksReferencing: no block referencing the dead meta above the settled checkpoint",
+				"dead meta hash", deadMetaHash)
+			return 0, nil, false
+		}
+
+		deadOwnHashes = append(deadOwnHashes, currHash)
+
+		numReferences, referencesDeadMeta := metaReferencesOfShardHeader(currHeader, deadMetaHash)
+		if referencesDeadMeta {
+			return currHeader.GetNonce(), deadOwnHashes, true
+		}
+		if numReferences > 0 {
+			log.Warn("collectOwnBlocksReferencing: pointer block does not reference the dead meta",
+				"nonce", currHeader.GetNonce(),
+				"dead meta hash", deadMetaHash)
+			return 0, nil, false
+		}
+
+		prevHash := currHeader.GetPrevHash()
+		currHeader, err = boot.blockBootstrapper.getPrevHeader(currHeader, boot.headerStore)
+		if err != nil {
+			return 0, nil, false
+		}
+		currHash = prevHash
+	}
+}
+
+func metaReferencesOfShardHeader(header data.HeaderHandler, metaHash []byte) (int, bool) {
+	shardHeader, ok := header.(data.ShardHeaderHandler)
+	if !ok {
+		return 0, false
+	}
+
+	metaHashes := shardHeader.GetMetaBlockHashes()
+	for _, hash := range metaHashes {
+		if bytes.Equal(hash, metaHash) {
+			return len(metaHashes), true
+		}
+	}
+
+	return len(metaHashes), false
+}
+
+func (boot *baseBootstrap) disarmDeadEpochStartIfNeeded(deadMeta data.HeaderHandler, deadMetaHash []byte) {
+	if !deadMeta.IsStartOfEpochBlock() {
+		return
+	}
+	if boot.epochStartDisarmer == nil {
+		log.Warn("dead epoch start meta block, no disarm capable trigger wired", "hash", deadMetaHash)
+		return
+	}
+
+	disarmed := boot.epochStartDisarmer.DisarmDeadEpochStartActivation(deadMeta.GetEpoch(), deadMetaHash)
+	log.Warn("dead epoch start meta block, trigger disarm attempted",
+		"epoch", deadMeta.GetEpoch(),
+		"hash", deadMetaHash,
+		"disarmed", disarmed)
 }
 
 func (boot *baseBootstrap) clearReconcileEvidence(evidence *reconcileEvidence) {

@@ -235,3 +235,120 @@ func TestMetaSettlementChecker_IsSettled(t *testing.T) {
 		require.False(t, checker.isSettled(nonce, parentHash))
 	})
 }
+
+func TestShardSettlementChecker_DeadCrossNotarizedMeta(t *testing.T) {
+	t.Parallel()
+
+	metaNonce := uint64(30)
+	metaHash := []byte("crossNotarizedMetaHash")
+	crossNotarizedMeta := &block.MetaBlock{Nonce: metaNonce}
+
+	foreignChildHash := []byte("foreignChildHash")
+	foreignChild := &block.MetaBlock{Nonce: metaNonce + 1, PrevHash: []byte("foreignParentHash")}
+	foreignGrandChildHash := []byte("foreignGrandChildHash")
+	foreignGrandChild := &block.MetaBlock{Nonce: metaNonce + 2, PrevHash: foreignChildHash}
+
+	ownChildHash := []byte("ownChildHash")
+	ownChild := &block.MetaBlock{Nonce: metaNonce + 1, PrevHash: metaHash}
+	ownGrandChildHash := []byte("ownGrandChildHash")
+	ownGrandChild := &block.MetaBlock{Nonce: metaNonce + 2, PrevHash: ownChildHash}
+
+	newChecker := func(byNonce map[uint64][]pooledHeader, proofedHashes ...[]byte) *shardSettlementChecker {
+		return &shardSettlementChecker{
+			blockTracker: &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return crossNotarizedMeta, metaHash, nil
+				},
+			},
+			metaBranch: newMetaCheckerWithPools(byNonce, proofedHashes...),
+		}
+	}
+
+	t.Run("failing tracker reports nothing", func(t *testing.T) {
+		t.Parallel()
+
+		checker := &shardSettlementChecker{
+			blockTracker: &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return nil, nil, errors.New("tracker error")
+				},
+			},
+			metaBranch: newMetaCheckerWithPools(nil),
+		}
+
+		_, _, isDead := checker.deadCrossNotarizedMeta()
+		require.False(t, isDead)
+	})
+
+	t.Run("a linked continuation is the clean path", func(t *testing.T) {
+		t.Parallel()
+
+		checker := newChecker(map[uint64][]pooledHeader{
+			metaNonce + 1: {{ownChild, ownChildHash}},
+		}, ownChildHash)
+
+		_, _, isDead := checker.deadCrossNotarizedMeta()
+		require.False(t, isDead)
+	})
+
+	t.Run("a foreign child without a proofed extension is no verdict", func(t *testing.T) {
+		t.Parallel()
+
+		checker := newChecker(map[uint64][]pooledHeader{
+			metaNonce + 1: {{foreignChild, foreignChildHash}},
+		}, foreignChildHash)
+
+		_, _, isDead := checker.deadCrossNotarizedMeta()
+		require.False(t, isDead)
+	})
+
+	t.Run("an unproofed foreign child is no verdict even when extended", func(t *testing.T) {
+		t.Parallel()
+
+		checker := newChecker(map[uint64][]pooledHeader{
+			metaNonce + 1: {{foreignChild, foreignChildHash}},
+			metaNonce + 2: {{foreignGrandChild, foreignGrandChildHash}},
+		}, foreignGrandChildHash)
+
+		_, _, isDead := checker.deadCrossNotarizedMeta()
+		require.False(t, isDead)
+	})
+
+	t.Run("a doubly proofed foreign branch marks the cross notarized meta dead", func(t *testing.T) {
+		t.Parallel()
+
+		checker := newChecker(map[uint64][]pooledHeader{
+			metaNonce + 1: {{foreignChild, foreignChildHash}},
+			metaNonce + 2: {{foreignGrandChild, foreignGrandChildHash}},
+		}, foreignChildHash, foreignGrandChildHash)
+
+		deadMeta, deadHash, isDead := checker.deadCrossNotarizedMeta()
+		require.True(t, isDead)
+		require.Equal(t, crossNotarizedMeta, deadMeta)
+		require.Equal(t, metaHash, deadHash)
+	})
+
+	t.Run("both branches doubly extended is the accepted residual", func(t *testing.T) {
+		t.Parallel()
+
+		checker := newChecker(map[uint64][]pooledHeader{
+			metaNonce + 1: {{foreignChild, foreignChildHash}, {ownChild, ownChildHash}},
+			metaNonce + 2: {{foreignGrandChild, foreignGrandChildHash}, {ownGrandChild, ownGrandChildHash}},
+		}, foreignChildHash, foreignGrandChildHash, ownChildHash, ownGrandChildHash)
+
+		_, _, isDead := checker.deadCrossNotarizedMeta()
+		require.False(t, isDead)
+	})
+
+	t.Run("a singly extended own branch does not mask the foreign verdict", func(t *testing.T) {
+		t.Parallel()
+
+		checker := newChecker(map[uint64][]pooledHeader{
+			metaNonce + 1: {{foreignChild, foreignChildHash}, {ownChild, ownChildHash}},
+			metaNonce + 2: {{foreignGrandChild, foreignGrandChildHash}},
+		}, foreignChildHash, foreignGrandChildHash, ownChildHash)
+
+		_, _, isDead := checker.deadCrossNotarizedMeta()
+		require.True(t, isDead)
+	})
+}
