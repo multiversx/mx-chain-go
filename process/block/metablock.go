@@ -2293,6 +2293,11 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr data.MetaHeaderHandle
 		return highestNonceHdrs, nil
 	}
 
+	ancestryView, err := mp.newVerifyAncestryView(metaHdr)
+	if err != nil {
+		return nil, fmt.Errorf("%w : checkShardHeadersValidity", err)
+	}
+
 	for shardID, hdrsForShard := range usedShardHdrs {
 		for _, shardHdr := range hdrsForShard {
 			if !mp.isGenesisShardBlockAndFirstMeta(shardHdr.GetNonce()) {
@@ -2301,7 +2306,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr data.MetaHeaderHandle
 					return nil, fmt.Errorf("%w : checkShardHeadersValidity -> isHdrConstructionValid", err)
 				}
 
-				err = mp.checkShardHeaderContentionComputingHash(shardHdr, lastCrossNotarizedHeader[shardID])
+				err = mp.checkShardHeaderContentionComputingHash(shardHdr, lastCrossNotarizedHeader[shardID], ancestryView)
 				if err != nil {
 					return nil, fmt.Errorf("%w : checkShardHeadersValidity", err)
 				}
