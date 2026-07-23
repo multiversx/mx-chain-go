@@ -653,12 +653,22 @@ func TestSupernovaSync_DivergenceBackstop_DeadMetaReferenceConverges(t *testing.
 		require.Equal(t, string(preForkPointerHash), string(revertedPointerHash))
 	}
 
-	// convergence forward: the next shard proposal references the canonical branch
-	integrationTests.ProposeBlockWithProof(allNodes, []*integrationTests.TestProcessorNode{pA}, round, referencingNonce)
-	time.Sleep(integrationTests.SyncDelay)
+	// convergence forward: the next shard proposal references the canonical branch; the first
+	// attempts may be refused while the tx selection tracker realigns after the revert, so retry
+	converged := func() bool {
+		currentHeader := pA.BlockChain.GetCurrentBlockHeader()
+		return currentHeader != nil && currentHeader.GetNonce() == referencingNonce
+	}
+	maxConvergenceRounds := 6
+	for i := 0; i < maxConvergenceRounds && !converged(); i++ {
+		integrationTests.ProposeBlockWithProof(allNodes, []*integrationTests.TestProcessorNode{pA}, round, referencingNonce)
+		time.Sleep(integrationTests.SyncDelay)
+		round = integrationTests.IncrementAndPrintRound(round)
+		integrationTests.UpdateRound(allNodes, round)
+	}
+	require.True(t, converged(), "the shard did not rebuild on the canonical branch after the revert")
 
 	convergedHeader, _, _ := grabCurrentBlock(t, pA)
-	require.Equal(t, referencingNonce, convergedHeader.GetNonce())
 	convergedRefs := hashesAsStrings(convergedHeader.(data.ShardHeaderHandler).GetMetaBlockHashes())
 	require.NotContains(t, convergedRefs, string(deadMetaHash))
 	_, convergedPointerHash, err := pA.BlockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
