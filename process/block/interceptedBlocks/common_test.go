@@ -81,6 +81,7 @@ func createValidHeaderV3ToTest() *block.HeaderV3 {
 		RandSeed:        []byte("rand seed"),
 		LeaderSignature: []byte("leader signature"),
 		SoftwareVersion: []byte("v1.0.0"),
+		ChainID:         []byte("chainID"),
 
 		ExecutionResults: []*block.ExecutionResult{
 			&block.ExecutionResult{
