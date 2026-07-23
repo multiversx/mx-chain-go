@@ -255,7 +255,7 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 
 		_, view := newFinalityViewWithPools(t)
 
-		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, nil, shardNonce))
+		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, nil, shardNonce, metaParentNonce))
 	})
 
 	t.Run("empty meta pool", func(t *testing.T) {
@@ -263,7 +263,7 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 
 		_, view := newFinalityViewWithPools(t)
 
-		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce))
+		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce, metaParentNonce))
 	})
 
 	t.Run("exact hash referenced by a held final meta block", func(t *testing.T) {
@@ -273,7 +273,7 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 		addProofedMetaParent(t, pools)
 		addFinalMetaBlockAt(t, pools, metaParentNonce+1, shardHash)
 
-		require.True(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce))
+		require.True(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce, metaParentNonce))
 	})
 
 	t.Run("descendant at depth two referenced by a held final meta block", func(t *testing.T) {
@@ -289,7 +289,7 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 
 		addFinalMetaBlockAt(t, pools, metaParentNonce+1, grandChildHash)
 
-		require.True(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce))
+		require.True(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce, metaParentNonce))
 	})
 
 	t.Run("descendant past the walk bound is not reached", func(t *testing.T) {
@@ -308,7 +308,7 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 
 		addFinalMetaBlockAt(t, pools, metaParentNonce+1, lastHash)
 
-		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce))
+		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce, metaParentNonce))
 	})
 
 	t.Run("a header off the branch is not a descendant", func(t *testing.T) {
@@ -322,7 +322,7 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 
 		addFinalMetaBlockAt(t, pools, metaParentNonce+1, strangerHash)
 
-		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce))
+		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce, metaParentNonce))
 	})
 
 	t.Run("referenced for another shard", func(t *testing.T) {
@@ -332,7 +332,7 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 		addProofedMetaParent(t, pools)
 		addFinalMetaBlockAt(t, pools, metaParentNonce+1, shardHash)
 
-		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID+1, shardHash, shardNonce))
+		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID+1, shardHash, shardNonce, metaParentNonce))
 	})
 
 	t.Run("referencing meta block is not held final", func(t *testing.T) {
@@ -351,12 +351,13 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 		pools.Headers().AddHeader(metaHash, metaBlock)
 		addMetaProof(t, pools, metaHash, metaParentNonce+1, metaParentRound+4)
 
-		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce))
+		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce, metaParentNonce))
 	})
 
-	t.Run("referencing meta block below the scan window", func(t *testing.T) {
+	t.Run("long stranding: the anchor window finds a notarizing block far below the pool head", func(t *testing.T) {
 		t.Parallel()
 
+		// the notarizing block sits at the fork era, near the anchor; the pool head has moved on
 		pools, view := newFinalityViewWithPools(t)
 		addProofedMetaParent(t, pools)
 		addFinalMetaBlockAt(t, pools, metaParentNonce+1, shardHash)
@@ -364,7 +365,21 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 		aheadNonce := metaParentNonce + 1 + 2*track.MaxMetaBlocksScannedForInclusion
 		pools.Headers().AddHeader([]byte("aheadHash"), &block.MetaBlock{Nonce: aheadNonce, Round: metaParentRound + 100})
 
-		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce))
+		require.True(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce, metaParentNonce))
+	})
+
+	t.Run("referencing meta block outside both scan windows", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addProofedMetaParent(t, pools)
+		addFinalMetaBlockAt(t, pools, metaParentNonce+1, shardHash)
+
+		farAnchor := metaParentNonce + 1 + track.MaxMetaBlocksScannedForInclusion
+		aheadNonce := farAnchor + 3*track.MaxMetaBlocksScannedForInclusion
+		pools.Headers().AddHeader([]byte("aheadHash"), &block.MetaBlock{Nonce: aheadNonce, Round: metaParentRound + 100})
+
+		require.False(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce, farAnchor))
 	})
 
 	t.Run("v3 meta block references through the shard info proposal", func(t *testing.T) {
@@ -383,7 +398,7 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 		pools.Headers().AddHeader(metaHash, metaBlock)
 		addMetaProof(t, pools, metaHash, metaParentNonce+1, metaParentRound+1)
 
-		require.True(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce))
+		require.True(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce, metaParentNonce))
 	})
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testscommonDataRetriever "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
@@ -20,17 +21,23 @@ func TestShardSettlementChecker_IsSettled(t *testing.T) {
 	nonce := uint64(10)
 	headerHash := []byte("headerHash")
 
-	t.Run("defers to the meta finality view with the self shard id", func(t *testing.T) {
+	t.Run("defers to the meta finality view with the self shard id and the cross-notarized anchor", func(t *testing.T) {
 		t.Parallel()
 
 		var gotShardID uint32
 		var gotHash []byte
-		var gotNonce uint64
+		var gotNonce, gotAnchor uint64
 		checker := &shardSettlementChecker{
 			selfShardID: 3,
+			blockTracker: &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+					require.Equal(t, core.MetachainShardId, shardID)
+					return &block.MetaBlock{Nonce: 42}, []byte("metaHash"), nil
+				},
+			},
 			metaFinalityView: &testscommon.MetaFinalityViewStub{
-				IsIncludedInHeldFinalMetaBlockCalled: func(shardID uint32, hash []byte, hdrNonce uint64) bool {
-					gotShardID, gotHash, gotNonce = shardID, hash, hdrNonce
+				IsIncludedInHeldFinalMetaBlockCalled: func(shardID uint32, hash []byte, hdrNonce uint64, anchor uint64) bool {
+					gotShardID, gotHash, gotNonce, gotAnchor = shardID, hash, hdrNonce, anchor
 					return true
 				},
 			},
@@ -40,6 +47,30 @@ func TestShardSettlementChecker_IsSettled(t *testing.T) {
 		require.Equal(t, uint32(3), gotShardID)
 		require.Equal(t, headerHash, gotHash)
 		require.Equal(t, nonce, gotNonce)
+		require.Equal(t, uint64(42), gotAnchor)
+	})
+
+	t.Run("a failing tracker degrades to anchor zero", func(t *testing.T) {
+		t.Parallel()
+
+		var gotAnchor uint64
+		checker := &shardSettlementChecker{
+			selfShardID: 0,
+			blockTracker: &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return nil, nil, errors.New("tracker error")
+				},
+			},
+			metaFinalityView: &testscommon.MetaFinalityViewStub{
+				IsIncludedInHeldFinalMetaBlockCalled: func(_ uint32, _ []byte, _ uint64, anchor uint64) bool {
+					gotAnchor = anchor
+					return false
+				},
+			},
+		}
+
+		require.False(t, checker.isSettled(nonce, headerHash))
+		require.Equal(t, uint64(0), gotAnchor)
 	})
 
 	t.Run("a proofed shard child alone does not settle", func(t *testing.T) {
@@ -47,6 +78,7 @@ func TestShardSettlementChecker_IsSettled(t *testing.T) {
 
 		checker := &shardSettlementChecker{
 			selfShardID:      0,
+			blockTracker:     &mock.BlockTrackerMock{},
 			metaFinalityView: &testscommon.MetaFinalityViewStub{},
 		}
 

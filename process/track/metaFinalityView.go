@@ -80,8 +80,10 @@ func (mfv *metaFinalityView) isInstantlyFinal(header data.HeaderHandler) bool {
 }
 
 // IsIncludedInHeldFinalMetaBlock returns true if a meta block the node holds final references the
-// given shard header or one of its descendants on the same branch
-func (mfv *metaFinalityView) IsIncludedInHeldFinalMetaBlock(shardID uint32, headerHash []byte, nonce uint64) bool {
+// given shard header or one of its descendants on the same branch. Two scan windows: ascending from
+// the caller's anchor (the fork era, where the notarizing block sits regardless of how long the
+// node was stranded) and descending from the pool head.
+func (mfv *metaFinalityView) IsIncludedInHeldFinalMetaBlock(shardID uint32, headerHash []byte, nonce uint64, lowMetaNonceAnchor uint64) bool {
 	if len(headerHash) == 0 {
 		return false
 	}
@@ -93,15 +95,22 @@ func (mfv *metaFinalityView) IsIncludedInHeldFinalMetaBlock(shardID uint32, head
 
 	branch := mfv.ownBranchHashes(shardID, headerHash, nonce)
 	highestMetaNonce := highestNonce(metaNonces)
+	ascendingEnd := lowMetaNonceAnchor + maxMetaBlocksScannedForInclusion - 1
 
-	for scanned := uint64(0); scanned < maxMetaBlocksScannedForInclusion; scanned++ {
-		metaNonce := highestMetaNonce - scanned
+	for metaNonce := lowMetaNonceAnchor; metaNonce <= ascendingEnd && metaNonce <= highestMetaNonce; metaNonce++ {
 		if mfv.holdsFinalMetaBlockReferencing(metaNonce, shardID, branch) {
 			return true
 		}
+	}
 
-		if metaNonce == 0 {
+	for scanned := uint64(0); scanned < maxMetaBlocksScannedForInclusion; scanned++ {
+		metaNonce := highestMetaNonce - scanned
+		if metaNonce <= ascendingEnd {
 			break
+		}
+
+		if mfv.holdsFinalMetaBlockReferencing(metaNonce, shardID, branch) {
+			return true
 		}
 	}
 

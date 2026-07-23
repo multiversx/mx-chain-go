@@ -14,11 +14,20 @@ import (
 // block the node holds final notarized it, or one of its descendants
 type shardSettlementChecker struct {
 	metaFinalityView process.MetaFinalityView
+	blockTracker     process.BlockTracker
 	selfShardID      uint32
 }
 
 func (checker *shardSettlementChecker) isSettled(nonce uint64, headerHash []byte) bool {
-	return checker.metaFinalityView.IsIncludedInHeldFinalMetaBlock(checker.selfShardID, headerHash, nonce)
+	// the last cross-notarized meta header is frozen at the fork era, just like the meta block that
+	// notarized the competitor, so it anchors the inclusion scan regardless of stranding duration
+	anchor := uint64(0)
+	lastCrossNotarizedMeta, _, err := checker.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	if err == nil && !check.IfNil(lastCrossNotarizedMeta) {
+		anchor = lastCrossNotarizedMeta.GetNonce()
+	}
+
+	return checker.metaFinalityView.IsIncludedInHeldFinalMetaBlock(checker.selfShardID, headerHash, nonce, anchor)
 }
 
 // metaSettledDescendantsDepth requires a proofed child that is itself extended by a proofed child;

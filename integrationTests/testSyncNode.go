@@ -378,6 +378,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
 		MetaFinalityView:    metaFinalityView,
+		BlockTracker:        tpn.BlockTracker,
 	}
 
 	bootstrap, err := sync.NewShardBootstrap(argsShardBootstrapper)

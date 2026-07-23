@@ -37,6 +37,9 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	if check.IfNil(arguments.MetaFinalityView) {
 		return nil, process.ErrNilMetaFinalityView
 	}
+	if check.IfNil(arguments.BlockTracker) {
+		return nil, process.ErrNilBlockTracker
+	}
 
 	err := checkBaseBootstrapParameters(arguments.ArgBaseBootstrapper)
 	if err != nil {
@@ -93,6 +96,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base.syncStarter = &boot
 	base.settlementChecker = &shardSettlementChecker{
 		metaFinalityView: arguments.MetaFinalityView,
+		blockTracker:     arguments.BlockTracker,
 		selfShardID:      arguments.ShardCoordinator.SelfId(),
 	}
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing

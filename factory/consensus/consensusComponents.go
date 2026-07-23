@@ -548,6 +548,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
 		MetaFinalityView:    metaFinalityView,
+		BlockTracker:        ccf.processComponents.BlockTracker(),
 	}
 
 	return sync.NewShardBootstrap(argsShardBootstrapper)

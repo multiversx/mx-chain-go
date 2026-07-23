@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,6 +16,25 @@ import (
 
 // mirrors process/block.metaArbitrationWindowRounds, the R-RESOLVE discovery window
 const metaArbitrationWindowRounds = 3
+
+func injectBlock(target *integrationTests.TestProcessorNode, header data.HeaderHandler, hash []byte, proof data.HeaderProofHandler) {
+	target.DataPool.Headers().AddHeader(hash, header)
+	_ = target.DataPool.Proofs().AddProof(proof)
+}
+
+func mirrorCurrentBlock(t *testing.T, target *integrationTests.TestProcessorNode, src *integrationTests.TestProcessorNode) {
+	header, hash, proof := grabCurrentBlock(t, src)
+	injectBlock(target, header, hash, proof)
+}
+
+func grabCurrentBlock(t *testing.T, src *integrationTests.TestProcessorNode) (data.HeaderHandler, []byte, data.HeaderProofHandler) {
+	header := src.BlockChain.GetCurrentBlockHeader()
+	hash := src.BlockChain.GetCurrentBlockHeaderHash()
+	require.NotNil(t, header)
+	proof, err := src.DataPool.Proofs().GetProof(header.GetShardID(), hash)
+	require.Nil(t, err)
+	return header, hash, proof
+}
 
 func requireNotarizes(t *testing.T, metaHeader data.HeaderHandler, shardID uint32, hashes ...[]byte) {
 	metaHandler, ok := metaHeader.(data.MetaHeaderHandler)
@@ -97,27 +117,6 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 	}
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 
-	injectBlock := func(target *integrationTests.TestProcessorNode, header data.HeaderHandler, hash []byte, proof data.HeaderProofHandler) {
-		target.DataPool.Headers().AddHeader(hash, header)
-		_ = target.DataPool.Proofs().AddProof(proof)
-	}
-	mirrorCurrentBlock := func(target *integrationTests.TestProcessorNode, src *integrationTests.TestProcessorNode) {
-		header := src.BlockChain.GetCurrentBlockHeader()
-		hash := src.BlockChain.GetCurrentBlockHeaderHash()
-		require.NotNil(t, header)
-		proof, err := src.DataPool.Proofs().GetProof(header.GetShardID(), hash)
-		require.Nil(t, err)
-		injectBlock(target, header, hash, proof)
-	}
-	grabCurrentBlock := func(src *integrationTests.TestProcessorNode) (data.HeaderHandler, []byte, data.HeaderProofHandler) {
-		header := src.BlockChain.GetCurrentBlockHeader()
-		hash := src.BlockChain.GetCurrentBlockHeaderHash()
-		require.NotNil(t, header)
-		proof, err := src.DataPool.Proofs().GetProof(header.GetShardID(), hash)
-		require.Nil(t, err)
-		return header, hash, proof
-	}
-
 	round := uint64(0)
 	nonce := uint64(0)
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -132,7 +131,7 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 		time.Sleep(integrationTests.SyncDelay)
 
 		for _, target := range island2 {
-			mirrorCurrentBlock(target, pA)
+			mirrorCurrentBlock(t, target, pA)
 		}
 		time.Sleep(integrationTests.SyncDelay)
 
@@ -140,7 +139,7 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 		time.Sleep(integrationTests.SyncDelay)
 
 		for _, target := range island1 {
-			mirrorCurrentBlock(target, metaNode)
+			mirrorCurrentBlock(t, target, metaNode)
 		}
 		time.Sleep(integrationTests.SyncDelay)
 
@@ -156,7 +155,7 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 	integrationTests.ProposeBlockWithProof(island1, []*integrationTests.TestProcessorNode{pA}, round, nonce)
 	time.Sleep(integrationTests.SyncDelay)
 
-	headerA, hashA, _ := grabCurrentBlock(pA)
+	headerA, hashA, _ := grabCurrentBlock(t, pA)
 	require.Equal(t, uint64(5), headerA.GetNonce())
 
 	// two silent rounds so the island 2 sibling lands contended
@@ -174,7 +173,7 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 	integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{pB}, round, nonce)
 	time.Sleep(integrationTests.SyncDelay)
 
-	headerB, hashB, proofB := grabCurrentBlock(pB)
+	headerB, hashB, proofB := grabCurrentBlock(t, pB)
 	require.Equal(t, uint64(5), headerB.GetNonce())
 	require.NotEqual(t, string(hashA), string(hashB))
 	require.Equal(t, headerA.GetPrevHash(), headerB.GetPrevHash())
@@ -187,7 +186,7 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 	integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{pB}, round, nonce)
 	time.Sleep(integrationTests.SyncDelay)
 
-	headerC, hashC, proofC := grabCurrentBlock(pB)
+	headerC, hashC, proofC := grabCurrentBlock(t, pB)
 	require.Equal(t, uint64(6), headerC.GetNonce())
 	require.Equal(t, string(hashB), string(headerC.GetPrevHash()))
 
@@ -204,14 +203,14 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 	// meta arbitrates B, then extends itself so the notarizing block is settled and thus held final
 	integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{metaNode}, round, nextMetaNonce)
 	time.Sleep(integrationTests.SyncDelay)
-	notarizingMeta, notarizingMetaHash, notarizingMetaProof := grabCurrentBlock(metaNode)
+	notarizingMeta, notarizingMetaHash, notarizingMetaProof := grabCurrentBlock(t, metaNode)
 	requireNotarizes(t, notarizingMeta, shardId, hashB, hashC)
 
 	round = integrationTests.IncrementAndPrintRound(round)
 	integrationTests.UpdateRound(allNodes, round)
 	integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{metaNode}, round, nextMetaNonce+1)
 	time.Sleep(integrationTests.SyncDelay)
-	settlingMeta, settlingMetaHash, settlingMetaProof := grabCurrentBlock(metaNode)
+	settlingMeta, settlingMetaHash, settlingMetaProof := grabCurrentBlock(t, metaNode)
 	require.Equal(t, string(notarizingMetaHash), string(settlingMeta.GetPrevHash()))
 
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -265,6 +264,219 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 	// so only the shard nodes are compared here)
 	for _, n := range []*integrationTests.TestProcessorNode{pB, obsB} {
 		assert.Equal(t, string(hashC), string(n.BlockChain.GetCurrentBlockHeaderHash()))
+		assert.Equal(t, uint64(4), n.ForkDetector.GetHighestFinalBlockNonce())
+	}
+}
+
+// mirrors process/track.maxMetaBlocksScannedForInclusion, the descending inclusion-scan window
+const maxMetaBlocksScannedForInclusion = 16
+
+// long-partition variant: the stranded island receives the evidence only
+// after meta has advanced far past the notarizing block. The descending inclusion scan alone
+// cannot reach it; the backstop must find it through the window anchored at the stranded island's
+// last cross-notarized meta header.
+func TestSupernovaSync_ReconcileBackstop_LongPartitionConverges(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	maxShards := uint32(1)
+	shardId := uint32(0)
+
+	enableEpochs := integrationTests.CreateEnableEpochsConfig()
+	enableEpochs.AndromedaEnableEpoch = uint32(0)
+	enableEpochs.SupernovaEnableEpoch = uint32(0)
+	roundsConfig := integrationTests.GetSupernovaRoundConfigActivatedAt(2)
+
+	newShardNode := func() *integrationTests.TestProcessorNode {
+		return integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+			MaxShards:            maxShards,
+			NodeShardId:          shardId,
+			TxSignPrivKeyShardId: shardId,
+			WithSync:             true,
+			EpochsConfig:         &enableEpochs,
+			RoundsConfig:         &roundsConfig,
+		})
+	}
+
+	pA := newShardNode()
+	obsA := newShardNode()
+	pB := newShardNode()
+	obsB := newShardNode()
+	metaNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: shardId,
+		WithSync:             true,
+		EpochsConfig:         &enableEpochs,
+		RoundsConfig:         &roundsConfig,
+	})
+
+	island1 := []*integrationTests.TestProcessorNode{pA, obsA}
+	island2 := []*integrationTests.TestProcessorNode{pB, obsB, metaNode}
+	allNodes := []*integrationTests.TestProcessorNode{pA, obsA, metaNode, pB, obsB}
+
+	integrationTests.ConnectNodes([]integrationTests.Connectable{pA, obsA})
+	integrationTests.ConnectNodes([]integrationTests.Connectable{pB, obsB, metaNode})
+
+	defer func() {
+		for _, n := range allNodes {
+			n.Close()
+		}
+	}()
+
+	for _, n := range allNodes {
+		_ = n.StartSync()
+	}
+	time.Sleep(integrationTests.P2pBootstrapDelay)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+	nonce++
+
+	numPrefixBlocks := 4
+	for i := 0; i < numPrefixBlocks; i++ {
+		integrationTests.ProposeBlockWithProof(island1, []*integrationTests.TestProcessorNode{pA}, round, nonce)
+		time.Sleep(integrationTests.SyncDelay)
+
+		for _, target := range island2 {
+			mirrorCurrentBlock(t, target, pA)
+		}
+		time.Sleep(integrationTests.SyncDelay)
+
+		integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{metaNode}, round, nonce)
+		time.Sleep(integrationTests.SyncDelay)
+
+		for _, target := range island1 {
+			mirrorCurrentBlock(t, target, metaNode)
+		}
+		time.Sleep(integrationTests.SyncDelay)
+
+		round = integrationTests.IncrementAndPrintRound(round)
+		integrationTests.UpdateRound(allNodes, round)
+		nonce++
+	}
+
+	nextMetaNonce := nonce
+
+	// island 1 commits and instantly finalizes the clean sibling A
+	integrationTests.ProposeBlockWithProof(island1, []*integrationTests.TestProcessorNode{pA}, round, nonce)
+	time.Sleep(integrationTests.SyncDelay)
+
+	headerA, hashA, _ := grabCurrentBlock(t, pA)
+	require.Equal(t, uint64(5), headerA.GetNonce())
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+	time.Sleep(integrationTests.SyncDelay)
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+
+	require.Equal(t, uint64(5), pA.ForkDetector.GetHighestFinalBlockNonce())
+
+	// island 2 commits the contended sibling B and extends it with proofed child C
+	integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{pB}, round, nonce)
+	time.Sleep(integrationTests.SyncDelay)
+
+	headerB, hashB, proofB := grabCurrentBlock(t, pB)
+	require.Equal(t, uint64(5), headerB.GetNonce())
+	require.NotEqual(t, string(hashA), string(hashB))
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+	nonce++
+
+	integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{pB}, round, nonce)
+	time.Sleep(integrationTests.SyncDelay)
+
+	headerC, hashC, proofC := grabCurrentBlock(t, pB)
+	require.Equal(t, string(hashB), string(headerC.GetPrevHash()))
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+
+	for i := 0; i < metaArbitrationWindowRounds; i++ {
+		round = integrationTests.IncrementAndPrintRound(round)
+		integrationTests.UpdateRound(allNodes, round)
+		time.Sleep(integrationTests.SyncDelay)
+	}
+
+	// meta arbitrates B and settles the notarizing block with a child
+	integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{metaNode}, round, nextMetaNonce)
+	time.Sleep(integrationTests.SyncDelay)
+	notarizingMeta, notarizingMetaHash, notarizingMetaProof := grabCurrentBlock(t, metaNode)
+	requireNotarizes(t, notarizingMeta, shardId, hashB, hashC)
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+	integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{metaNode}, round, nextMetaNonce+1)
+	time.Sleep(integrationTests.SyncDelay)
+	settlingMeta, settlingMetaHash, settlingMetaProof := grabCurrentBlock(t, metaNode)
+	require.Equal(t, string(notarizingMetaHash), string(settlingMeta.GetPrevHash()))
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+
+	// the partition persists long enough for the meta head to move far past the notarizing block.
+	// MaxProposalNonceGap caps proposals relative to the proposer's own execution results, which
+	// advance with the chain in production but stay frozen in this harness, so the healed pool
+	// state is emulated the way interceptors create it: broadcast headers land before their proofs
+	type pooledMeta struct {
+		header data.HeaderHandler
+		hash   []byte
+	}
+	numExtraMetaHeaders := maxMetaBlocksScannedForInclusion + 4
+	extraMetas := make([]pooledMeta, 0, numExtraMetaHeaders)
+	prevHash := settlingMetaHash
+	for i := 2; i < 2+numExtraMetaHeaders; i++ {
+		header := &block.MetaBlockV3{
+			Nonce:    nextMetaNonce + uint64(i),
+			Round:    round + uint64(i),
+			PrevHash: prevHash,
+			ChainID:  integrationTests.ChainID,
+		}
+		hash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, header)
+		require.Nil(t, err)
+		extraMetas = append(extraMetas, pooledMeta{header, hash})
+		prevHash = hash
+	}
+
+	// heal the partition: island 1 receives the CURRENT meta headers first (pool head jumps far
+	// ahead of the fork era), then the fork-era evidence arrives through backfill
+	deliverEvidence := func() {
+		for _, n := range island1 {
+			for _, extra := range extraMetas {
+				n.DataPool.Headers().AddHeader(extra.hash, extra.header)
+			}
+			injectBlock(n, notarizingMeta, notarizingMetaHash, notarizingMetaProof)
+			injectBlock(n, settlingMeta, settlingMetaHash, settlingMetaProof)
+			injectBlock(n, headerB, hashB, proofB)
+			injectBlock(n, headerC, hashC, proofC)
+		}
+	}
+	deliverEvidence()
+
+	island1OnC := func() bool {
+		for _, n := range island1 {
+			if string(n.BlockChain.GetCurrentBlockHeaderHash()) != string(hashC) {
+				return false
+			}
+		}
+		return true
+	}
+	maxReconcileRounds := 8
+	for i := 0; i < maxReconcileRounds && !island1OnC(); i++ {
+		deliverEvidence()
+		round = integrationTests.IncrementAndPrintRound(round)
+		integrationTests.UpdateRound(allNodes, round)
+		time.Sleep(integrationTests.SyncDelay)
+	}
+
+	require.True(t, island1OnC(), "backstop did not converge across the long partition")
+
+	for _, n := range island1 {
 		assert.Equal(t, uint64(4), n.ForkDetector.GetHighestFinalBlockNonce())
 	}
 }
