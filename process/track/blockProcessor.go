@@ -318,7 +318,7 @@ func (bp *blockProcessor) getNextHeader(
 	}
 }
 
-// isContendedUnsettledCrossHeader applies the R-CROSS referencing gate: a cross-shard header that
+// isContendedUnsettledCrossHeader applies the cross-shard referencing gate: a header that
 // skipped a round after its parent is not includable until it settles (see IsSettledCrossHeader)
 func (bp *blockProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandler, parentHeader data.HeaderHandler, headerHash []byte) bool {
 	if header.GetShardID() == bp.shardCoordinator.SelfId() {

@@ -1025,7 +1025,7 @@ type HeaderIntegrityVerifier interface {
 type MetaFinalityView interface {
 	IsMetaHeaderHeldFinal(header data.HeaderHandler, headerHash []byte) bool
 	IsIncludedInHeldFinalMetaBlock(shardID uint32, headerHash []byte, nonce uint64, lowMetaNonceAnchor uint64) bool
-	HasHeldFinalCompetitorAtNonce(metaHeader data.HeaderHandler, metaHash []byte) bool
+	IsDeadMetaBlock(headerHash []byte, nonce uint64) bool
 	IsInterfaceNil() bool
 }
 

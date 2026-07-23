@@ -6575,6 +6575,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 					},
 				}
 			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
 			},
@@ -6615,6 +6618,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 						return nil, nil
 					},
 				}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
@@ -6658,6 +6664,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 					},
 				}
 			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
 			},
@@ -6699,6 +6708,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 						}, nil
 					},
 				}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()

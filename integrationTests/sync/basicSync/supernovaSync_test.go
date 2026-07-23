@@ -107,7 +107,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_Supernova(t *testing.T) {
 		}
 	}
 
-	// v3 finality must progress on every node (proof-gated, WI-6)
+	// v3 finality must progress on every node (proof-gated)
 	for i, n := range nodes {
 		assert.Greater(t, n.ForkDetector.GetHighestFinalBlockNonce(), uint64(0),
 			fmt.Sprintf("node %d final checkpoint did not advance", i))

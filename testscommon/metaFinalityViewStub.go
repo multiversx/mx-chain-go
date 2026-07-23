@@ -6,7 +6,7 @@ import "github.com/multiversx/mx-chain-core-go/data"
 type MetaFinalityViewStub struct {
 	IsMetaHeaderHeldFinalCalled          func(header data.HeaderHandler, headerHash []byte) bool
 	IsIncludedInHeldFinalMetaBlockCalled func(shardID uint32, headerHash []byte, nonce uint64, lowMetaNonceAnchor uint64) bool
-	HasHeldFinalCompetitorAtNonceCalled  func(metaHeader data.HeaderHandler, metaHash []byte) bool
+	IsDeadMetaBlockCalled                func(headerHash []byte, nonce uint64) bool
 }
 
 // IsMetaHeaderHeldFinal -
@@ -27,10 +27,10 @@ func (stub *MetaFinalityViewStub) IsIncludedInHeldFinalMetaBlock(shardID uint32,
 	return false
 }
 
-// HasHeldFinalCompetitorAtNonce -
-func (stub *MetaFinalityViewStub) HasHeldFinalCompetitorAtNonce(metaHeader data.HeaderHandler, metaHash []byte) bool {
-	if stub.HasHeldFinalCompetitorAtNonceCalled != nil {
-		return stub.HasHeldFinalCompetitorAtNonceCalled(metaHeader, metaHash)
+// IsDeadMetaBlock -
+func (stub *MetaFinalityViewStub) IsDeadMetaBlock(headerHash []byte, nonce uint64) bool {
+	if stub.IsDeadMetaBlockCalled != nil {
+		return stub.IsDeadMetaBlockCalled(headerHash, nonce)
 	}
 
 	return false

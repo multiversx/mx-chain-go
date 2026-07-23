@@ -14,7 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// mirrors process/block.metaArbitrationWindowRounds, the R-RESOLVE discovery window
+// mirrors process/block.metaArbitrationWindowRounds, the arbitration discovery window
 const metaArbitrationWindowRounds = 3
 
 func injectBlock(target *integrationTests.TestProcessorNode, header data.HeaderHandler, hash []byte, proof data.HeaderProofHandler) {
@@ -479,4 +479,197 @@ func TestSupernovaSync_ReconcileBackstop_LongPartitionConverges(t *testing.T) {
 	for _, n := range island1 {
 		assert.Equal(t, uint64(4), n.ForkDetector.GetHighestFinalBlockNonce())
 	}
+}
+
+// the shard cross-notarizes a dead meta block only it has seen; the authority refuses to notarize
+// the referencing shard block (the ancestor gate) and builds past the dead block, and the shard
+// reverts on that evidence and converges forward (the divergence backstop)
+func TestSupernovaSync_DivergenceBackstop_DeadMetaReferenceConverges(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	maxShards := uint32(1)
+	shardId := uint32(0)
+
+	enableEpochs := integrationTests.CreateEnableEpochsConfig()
+	enableEpochs.AndromedaEnableEpoch = uint32(0)
+	enableEpochs.SupernovaEnableEpoch = uint32(0)
+	roundsConfig := integrationTests.GetSupernovaRoundConfigActivatedAt(2)
+
+	newNode := func(nodeShardID uint32) *integrationTests.TestProcessorNode {
+		return integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+			MaxShards:            maxShards,
+			NodeShardId:          nodeShardID,
+			TxSignPrivKeyShardId: shardId,
+			WithSync:             true,
+			EpochsConfig:         &enableEpochs,
+			RoundsConfig:         &roundsConfig,
+		})
+	}
+
+	pA := newNode(shardId)                     // shard proposer, will reference the dead meta block
+	obsA := newNode(shardId)                   // shard observer, reverts through sync alone
+	metaNode := newNode(core.MetachainShardId) // the authority: never sees the dead block
+
+	allNodes := []*integrationTests.TestProcessorNode{pA, obsA, metaNode}
+	shardNodes := []*integrationTests.TestProcessorNode{pA, obsA}
+
+	integrationTests.ConnectNodes([]integrationTests.Connectable{pA, obsA, metaNode})
+
+	defer func() {
+		for _, n := range allNodes {
+			n.Close()
+		}
+	}()
+
+	for _, n := range allNodes {
+		_ = n.StartSync()
+	}
+	time.Sleep(integrationTests.P2pBootstrapDelay)
+
+	round := uint64(0)
+	shardNonce := uint64(1)
+	metaNonce := uint64(1)
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+
+	// common prefix: shard blocks notarized by the meta node, one chain everywhere
+	numPrefixBlocks := 4
+	for i := 0; i < numPrefixBlocks; i++ {
+		integrationTests.ProposeBlockWithProof(allNodes, []*integrationTests.TestProcessorNode{pA}, round, shardNonce)
+		time.Sleep(integrationTests.SyncDelay)
+
+		integrationTests.ProposeBlockWithProof(allNodes, []*integrationTests.TestProcessorNode{metaNode}, round, metaNonce)
+		time.Sleep(integrationTests.SyncDelay)
+
+		round = integrationTests.IncrementAndPrintRound(round)
+		integrationTests.UpdateRound(allNodes, round)
+		shardNonce++
+		metaNonce++
+	}
+
+	prefixMeta, prefixMetaHash, _ := grabCurrentBlock(t, metaNode)
+	require.Equal(t, metaNonce-1, prefixMeta.GetNonce())
+
+	// the pointer the revert must land back on: the referencing block will consume the not yet
+	// referenced prefix tip together with the dead block, so both pop with it
+	_, preForkPointerHash, err := pA.BlockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	require.Nil(t, err)
+
+	// the dead meta block exists only on the stranded shard side, injected the way a partitioned
+	// broadcast would have landed it: header plus proof, never seen by the authority
+	deadMeta := &block.MetaBlockV3{
+		Nonce:        metaNonce,
+		Round:        round,
+		PrevHash:     prefixMetaHash,
+		PrevRandSeed: prefixMeta.GetRandSeed(),
+		RandSeed:     []byte("deadMetaRandSeed"),
+		ChainID:      integrationTests.ChainID,
+	}
+	deadMetaHash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, deadMeta)
+	require.Nil(t, err)
+	deadMetaProof := &block.HeaderProof{
+		HeaderHash:    deadMetaHash,
+		HeaderNonce:   deadMeta.GetNonce(),
+		HeaderRound:   deadMeta.GetRound(),
+		HeaderShardId: core.MetachainShardId,
+	}
+	for _, n := range shardNodes {
+		injectBlock(n, deadMeta, deadMetaHash, deadMetaProof)
+	}
+	time.Sleep(integrationTests.SyncDelay)
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+
+	// the shard cross-notarizes the dead block, then commits a meta-less block on top
+	integrationTests.ProposeBlockWithProof(allNodes, []*integrationTests.TestProcessorNode{pA}, round, shardNonce)
+	time.Sleep(integrationTests.SyncDelay)
+	referencingNonce := shardNonce
+	referencingHeader, referencingHash, _ := grabCurrentBlock(t, pA)
+	require.Contains(t, hashesAsStrings(referencingHeader.(data.ShardHeaderHandler).GetMetaBlockHashes()), string(deadMetaHash))
+	_, pointerHash, err := pA.BlockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	require.Nil(t, err)
+	require.Equal(t, string(deadMetaHash), string(pointerHash))
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+	shardNonce++
+
+	integrationTests.ProposeBlockWithProof(allNodes, []*integrationTests.TestProcessorNode{pA}, round, shardNonce)
+	time.Sleep(integrationTests.SyncDelay)
+	metaLessHeader, metaLessHash, _ := grabCurrentBlock(t, pA)
+	require.Empty(t, metaLessHeader.(data.ShardHeaderHandler).GetMetaBlockHashes())
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+
+	// the authority builds past the dead block: its own sibling plus two extensions, broadcast
+	// the ancestor gate keeps the dead-referencing shard blocks out of every one of them
+	canonicalHashes := make([][]byte, 0, 3)
+	for i := uint64(0); i < 3; i++ {
+		integrationTests.ProposeBlockWithProof(allNodes, []*integrationTests.TestProcessorNode{metaNode}, round, metaNonce+i)
+		time.Sleep(integrationTests.SyncDelay)
+		header, hash, _ := grabCurrentBlock(t, metaNode)
+		require.Equal(t, metaNonce+i, header.GetNonce())
+		canonicalHashes = append(canonicalHashes, hash)
+
+		shardInfo := process.GetShardHeadersReferencedByMeta(header.(data.MetaHeaderHandler))
+		for _, info := range shardInfo {
+			require.NotEqual(t, string(referencingHash), string(info.GetHeaderHash()), "the authority notarized a dead-referencing shard block")
+			require.NotEqual(t, string(metaLessHash), string(info.GetHeaderHash()), "the authority notarized a dead descendant")
+		}
+
+		round = integrationTests.IncrementAndPrintRound(round)
+		integrationTests.UpdateRound(allNodes, round)
+	}
+	require.NotEqual(t, string(deadMetaHash), string(canonicalHashes[0]))
+
+	// the divergence backstop fires on sync-loop iterations: tick rounds until the revert lands
+	revertedBelowReferencing := func() bool {
+		for _, n := range shardNodes {
+			currentHeader := n.BlockChain.GetCurrentBlockHeader()
+			if currentHeader == nil || currentHeader.GetNonce() != referencingNonce-1 {
+				return false
+			}
+		}
+		return true
+	}
+	maxBackstopRounds := 10
+	for i := 0; i < maxBackstopRounds && !revertedBelowReferencing(); i++ {
+		round = integrationTests.IncrementAndPrintRound(round)
+		integrationTests.UpdateRound(allNodes, round)
+		time.Sleep(integrationTests.SyncDelay)
+	}
+	require.True(t, revertedBelowReferencing(), "divergence backstop did not revert the dead meta reference")
+
+	// depth bound: the regression stops right below the referencing block and the pointer popped
+	// back to the shared prefix
+	for _, n := range shardNodes {
+		require.Equal(t, referencingNonce-1, n.ForkDetector.GetHighestFinalBlockNonce())
+		_, revertedPointerHash, errPointer := n.BlockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+		require.Nil(t, errPointer)
+		require.Equal(t, string(preForkPointerHash), string(revertedPointerHash))
+	}
+
+	// convergence forward: the next shard proposal references the canonical branch
+	integrationTests.ProposeBlockWithProof(allNodes, []*integrationTests.TestProcessorNode{pA}, round, referencingNonce)
+	time.Sleep(integrationTests.SyncDelay)
+
+	convergedHeader, _, _ := grabCurrentBlock(t, pA)
+	require.Equal(t, referencingNonce, convergedHeader.GetNonce())
+	convergedRefs := hashesAsStrings(convergedHeader.(data.ShardHeaderHandler).GetMetaBlockHashes())
+	require.NotContains(t, convergedRefs, string(deadMetaHash))
+	_, convergedPointerHash, err := pA.BlockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	require.Nil(t, err)
+	require.Equal(t, string(canonicalHashes[len(canonicalHashes)-1]), string(convergedPointerHash))
+}
+
+func hashesAsStrings(hashes [][]byte) []string {
+	asStrings := make([]string, 0, len(hashes))
+	for _, hash := range hashes {
+		asStrings = append(asStrings, string(hash))
+	}
+	return asStrings
 }

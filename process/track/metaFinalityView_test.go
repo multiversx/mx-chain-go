@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/track"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
 const (
@@ -402,113 +400,106 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 	})
 }
 
-func TestMetaFinalityView_HasHeldFinalCompetitorAtNonce(t *testing.T) {
+func TestMetaFinalityView_IsDeadMetaBlock(t *testing.T) {
 	t.Parallel()
 
-	const contendedNonce = uint64(6)
+	deadNonce := uint64(30)
+	deadHash := []byte("deadMetaHash")
 
-	ownHash := []byte("ownHash")
-	competitorHash := []byte("competitorHash")
+	foreignChildHash := []byte("foreignChildHash")
+	foreignGrandChildHash := []byte("foreignGrandChildHash")
+	ownChildHash := []byte("ownChildHash")
+	ownGrandChildHash := []byte("ownGrandChildHash")
 
-	// the node's own header: contended and childless, so it is not held final by itself
-	newOwnHeader := func() *block.MetaBlock {
-		return &block.MetaBlock{Nonce: contendedNonce, Round: metaParentRound + 4, PrevHash: metaParentHash}
+	addHeader := func(pools dataRetriever.PoolsHolder, hash []byte, nonce uint64, prevHash []byte) {
+		pools.Headers().AddHeader(hash, &block.MetaBlock{Nonce: nonce, Round: nonce, PrevHash: prevHash})
 	}
 
-	t.Run("nil header or empty hash", func(t *testing.T) {
+	t.Run("empty hash and nonce zero are guarded", func(t *testing.T) {
 		t.Parallel()
 
 		_, view := newFinalityViewWithPools(t)
-
-		require.False(t, view.HasHeldFinalCompetitorAtNonce(nil, ownHash))
-		require.False(t, view.HasHeldFinalCompetitorAtNonce(newOwnHeader(), nil))
+		require.False(t, view.IsDeadMetaBlock(nil, deadNonce))
+		require.False(t, view.IsDeadMetaBlock(deadHash, 0))
 	})
 
-	t.Run("a single proof at the nonce short circuits without touching the headers pool", func(t *testing.T) {
+	t.Run("no children is no verdict", func(t *testing.T) {
 		t.Parallel()
 
-		pools := dataRetrieverMock.NewPoolsHolderMock()
-		failingHeadersPool := &pool.HeadersPoolStub{
-			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
-				require.Fail(t, "should not have read the headers pool")
-				return nil, nil
-			},
-			GetHeaderByNonceAndShardIdCalled: func(_ uint64, _ uint32) ([]data.HeaderHandler, [][]byte, error) {
-				require.Fail(t, "should not have read the headers pool")
-				return nil, nil, nil
-			},
-			NoncesCalled: func(_ uint32) []uint64 {
-				require.Fail(t, "should not have read the headers pool")
-				return nil
-			},
-		}
-
-		view, err := track.NewMetaFinalityView(track.ArgsMetaFinalityView{
-			HeadersPool: failingHeadersPool,
-			ProofsPool:  pools.Proofs(),
-		})
-		require.Nil(t, err)
-
-		addMetaProof(t, pools, ownHash, contendedNonce, metaParentRound+4)
-
-		require.False(t, view.HasHeldFinalCompetitorAtNonce(newOwnHeader(), ownHash))
+		_, view := newFinalityViewWithPools(t)
+		require.False(t, view.IsDeadMetaBlock(deadHash, deadNonce))
 	})
 
-	t.Run("held final competitor while the own header is not final", func(t *testing.T) {
+	t.Run("a linked proofed continuation is the clean path", func(t *testing.T) {
 		t.Parallel()
 
 		pools, view := newFinalityViewWithPools(t)
-		addProofedMetaParent(t, pools)
-		addMetaProof(t, pools, ownHash, contendedNonce, metaParentRound+4)
+		addHeader(pools, ownChildHash, deadNonce+1, deadHash)
+		addMetaProof(t, pools, ownChildHash, deadNonce+1, deadNonce+1)
 
-		// the lower round sibling is non contended, so it is instantly final over the proofed parent
-		pools.Headers().AddHeader(competitorHash, &block.MetaBlock{Nonce: contendedNonce, Round: metaParentRound + 1, PrevHash: metaParentHash})
-		addMetaProof(t, pools, competitorHash, contendedNonce, metaParentRound+1)
-
-		require.True(t, view.HasHeldFinalCompetitorAtNonce(newOwnHeader(), ownHash))
+		require.False(t, view.IsDeadMetaBlock(deadHash, deadNonce))
 	})
 
-	t.Run("both siblings held final yields no verdict", func(t *testing.T) {
-		t.Parallel()
-
-		// the accepted fact-2 residual; a non exclusive verdict here would make two nodes revert
-		// onto each other's branch forever
-		pools, view := newFinalityViewWithPools(t)
-		addProofedMetaParent(t, pools)
-		addMetaProof(t, pools, ownHash, contendedNonce, metaParentRound+4)
-
-		ownChildHash := []byte("ownChildHash")
-		pools.Headers().AddHeader(ownChildHash, &block.MetaBlock{Nonce: contendedNonce + 1, Round: metaParentRound + 5, PrevHash: ownHash})
-		addMetaProof(t, pools, ownChildHash, contendedNonce+1, metaParentRound+5)
-
-		pools.Headers().AddHeader(competitorHash, &block.MetaBlock{Nonce: contendedNonce, Round: metaParentRound + 1, PrevHash: metaParentHash})
-		addMetaProof(t, pools, competitorHash, contendedNonce, metaParentRound+1)
-
-		require.False(t, view.HasHeldFinalCompetitorAtNonce(newOwnHeader(), ownHash))
-	})
-
-	t.Run("competitor header missing from the pool", func(t *testing.T) {
+	t.Run("a foreign child without a proofed extension is no verdict", func(t *testing.T) {
 		t.Parallel()
 
 		pools, view := newFinalityViewWithPools(t)
-		addProofedMetaParent(t, pools)
-		addMetaProof(t, pools, ownHash, contendedNonce, metaParentRound+4)
-		addMetaProof(t, pools, competitorHash, contendedNonce, metaParentRound+1)
+		addHeader(pools, foreignChildHash, deadNonce+1, []byte("foreignParentHash"))
+		addMetaProof(t, pools, foreignChildHash, deadNonce+1, deadNonce+2)
 
-		require.False(t, view.HasHeldFinalCompetitorAtNonce(newOwnHeader(), ownHash))
+		require.False(t, view.IsDeadMetaBlock(deadHash, deadNonce))
 	})
 
-	t.Run("competitor is not held final", func(t *testing.T) {
+	t.Run("an unproofed foreign child is no verdict even when extended", func(t *testing.T) {
 		t.Parallel()
 
 		pools, view := newFinalityViewWithPools(t)
-		addProofedMetaParent(t, pools)
-		addMetaProof(t, pools, ownHash, contendedNonce, metaParentRound+4)
+		addHeader(pools, foreignChildHash, deadNonce+1, []byte("foreignParentHash"))
+		addHeader(pools, foreignGrandChildHash, deadNonce+2, foreignChildHash)
+		addMetaProof(t, pools, foreignGrandChildHash, deadNonce+2, deadNonce+3)
 
-		// contended and childless as well, so neither side carries a verdict
-		pools.Headers().AddHeader(competitorHash, &block.MetaBlock{Nonce: contendedNonce, Round: metaParentRound + 3, PrevHash: metaParentHash})
-		addMetaProof(t, pools, competitorHash, contendedNonce, metaParentRound+3)
+		require.False(t, view.IsDeadMetaBlock(deadHash, deadNonce))
+	})
 
-		require.False(t, view.HasHeldFinalCompetitorAtNonce(newOwnHeader(), ownHash))
+	t.Run("a doubly proofed foreign branch is the dead verdict", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addHeader(pools, foreignChildHash, deadNonce+1, []byte("foreignParentHash"))
+		addMetaProof(t, pools, foreignChildHash, deadNonce+1, deadNonce+2)
+		addHeader(pools, foreignGrandChildHash, deadNonce+2, foreignChildHash)
+		addMetaProof(t, pools, foreignGrandChildHash, deadNonce+2, deadNonce+3)
+
+		require.True(t, view.IsDeadMetaBlock(deadHash, deadNonce))
+	})
+
+	t.Run("a doubly proofed own extension keeps the verdict subjective", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addHeader(pools, foreignChildHash, deadNonce+1, []byte("foreignParentHash"))
+		addMetaProof(t, pools, foreignChildHash, deadNonce+1, deadNonce+2)
+		addHeader(pools, foreignGrandChildHash, deadNonce+2, foreignChildHash)
+		addMetaProof(t, pools, foreignGrandChildHash, deadNonce+2, deadNonce+3)
+		addHeader(pools, ownChildHash, deadNonce+1, deadHash)
+		addMetaProof(t, pools, ownChildHash, deadNonce+1, deadNonce+1)
+		addHeader(pools, ownGrandChildHash, deadNonce+2, ownChildHash)
+		addMetaProof(t, pools, ownGrandChildHash, deadNonce+2, deadNonce+2)
+
+		require.False(t, view.IsDeadMetaBlock(deadHash, deadNonce))
+	})
+
+	t.Run("a singly extended own branch does not mask the verdict", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addHeader(pools, foreignChildHash, deadNonce+1, []byte("foreignParentHash"))
+		addMetaProof(t, pools, foreignChildHash, deadNonce+1, deadNonce+2)
+		addHeader(pools, foreignGrandChildHash, deadNonce+2, foreignChildHash)
+		addMetaProof(t, pools, foreignGrandChildHash, deadNonce+2, deadNonce+3)
+		addHeader(pools, ownChildHash, deadNonce+1, deadHash)
+		addMetaProof(t, pools, ownChildHash, deadNonce+1, deadNonce+1)
+
+		require.True(t, view.IsDeadMetaBlock(deadHash, deadNonce))
 	})
 }

@@ -1909,7 +1909,7 @@ func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, cu
 	return allowRollBack
 }
 
-// shouldAllowRollbackV3 allows replacing a committed block only while it is not final (R-SWITCH);
+// shouldAllowRollbackV3 allows replacing a committed block only while it is not final;
 // the state is never reverted through tries, the adopted sibling re-executes asynchronously
 func (boot *baseBootstrap) shouldAllowRollbackV3(currHeader data.HeaderHandler) bool {
 	finalBlockNonce := boot.forkDetector.GetHighestFinalBlockNonce()
@@ -2343,7 +2343,7 @@ func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
 	return process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
 }
 
-// onEquivocationEvidence records a possible R-RECONCILE case, an equivocation proof at the final
+// onEquivocationEvidence records reconcile evidence, an equivocation proof at the final
 // head nonce; the evidence is verified and acted upon from the sync loop
 func (boot *baseBootstrap) onEquivocationEvidence(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler) {
 	if check.IfNil(headerProof) || headerProof.GetHeaderShardId() != boot.shardCoordinator.SelfId() {

@@ -330,7 +330,7 @@ func (bfd *baseForkDetector) RemoveCommittedHeader(nonce uint64, hash []byte) {
 }
 
 // ReconcileFinalCheckpoint lowers the final checkpoint below the given nonce; this is the only
-// sanctioned finality regression, gated on proven equivocation evidence (R-RECONCILE backstop)
+// sanctioned finality regression, gated on proven equivocation evidence (the reconcile backstop)
 func (bfd *baseForkDetector) ReconcileFinalCheckpoint(nonce uint64) {
 	if nonce == 0 {
 		return
@@ -600,7 +600,7 @@ func isParentCheckpoint(checkpoint *checkpointInfo, header data.HeaderHandler) b
 }
 
 // canInstantlyFinalize returns false for a contended header or one whose parent is not final yet;
-// such headers finalize later, on settlement (R-INTRA)
+// such headers finalize later, on settlement
 func (bfd *baseForkDetector) canInstantlyFinalize(header data.HeaderHandler) bool {
 	if !bfd.isSupernovaForHeader(header) {
 		return true

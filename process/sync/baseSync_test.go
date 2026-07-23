@@ -1112,8 +1112,8 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.False(t, boot.tryReconcileEquivocation())
 	})
 
-	// spot 2: under per-round R0 a stranded loser can hold a proofed child of its own, so that child
-	// must no longer protect it from the authority's verdict
+	// signing locks per round, not per nonce, so a stranded loser can also hold a proofed child;
+	// that child must no longer protect it from the authority's verdict
 	t.Run("switches away from a local block that has its own proofed child", func(t *testing.T) {
 		t.Parallel()
 
@@ -1140,7 +1140,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.Nil(t, boot.pendingReconcile)
 	})
 
-	// the R-RESOLVE outcome: meta arbitrates the lowest-round sibling, which has no child at all
+	// the arbitration outcome: meta arbitrates the lowest-round sibling, which has no child at all
 	t.Run("switches onto a childless competitor the authority notarized", func(t *testing.T) {
 		t.Parallel()
 
@@ -1158,7 +1158,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		localChildHash, competitorChildHash := []byte("localChildHash"), []byte("competitorChildHash")
 		grandChildHash := []byte("grandChildHash")
 
-		// both siblings hold a proofed child (the 6.5 corner); the competitor gains depth-2 later
+		// both siblings hold a proofed child (per-round signing allows it); the competitor gains depth-2 later
 		childrenByNonce := map[uint64][]pooledHeader{
 			finalNonce + 1: {
 				{&block.MetaBlock{Nonce: finalNonce + 1, PrevHash: localHash}, localChildHash},

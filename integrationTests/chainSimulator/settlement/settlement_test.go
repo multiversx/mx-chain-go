@@ -180,7 +180,7 @@ func TestChainSimulator_MetaArbitratesStalledContendedShardNonce(t *testing.T) {
 }
 
 // a contended meta block commits without instant finality and is not referenced by the shard until
-// its next meta block settles it (strict R-CROSS, no arbitration for the meta direction)
+// its next meta block settles it (strict referencing gate, no arbitration for the meta direction)
 func TestChainSimulator_ContendedMetaBlockNotReferencedUntilSettled(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")

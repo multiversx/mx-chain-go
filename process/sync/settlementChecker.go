@@ -16,7 +16,6 @@ import (
 type shardSettlementChecker struct {
 	metaFinalityView process.MetaFinalityView
 	blockTracker     process.BlockTracker
-	metaBranch       *metaSettlementChecker
 	selfShardID      uint32
 }
 
@@ -33,39 +32,14 @@ func (checker *shardSettlementChecker) isSettled(nonce uint64, headerHash []byte
 }
 
 // deadCrossNotarizedMeta returns the last cross-notarized meta block when the authority provably
-// built past it: a doubly proofed foreign-parent extension at the next nonce, none of its own
+// built past it, per the shared dead-branch evidence of the meta finality view
 func (checker *shardSettlementChecker) deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool) {
 	lastCrossNotarizedMeta, lastCrossNotarizedHash, err := checker.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
-	if err != nil || check.IfNil(lastCrossNotarizedMeta) || lastCrossNotarizedMeta.GetNonce() == 0 {
+	if err != nil || check.IfNil(lastCrossNotarizedMeta) {
 		return nil, nil, false
 	}
 
-	childNonce := lastCrossNotarizedMeta.GetNonce() + 1
-	children, childrenHashes, err := checker.metaBranch.headers.GetHeadersByNonceAndShardId(childNonce, core.MetachainShardId)
-	if err != nil {
-		return nil, nil, false
-	}
-
-	foreignSettled := false
-	for i, child := range children {
-		if check.IfNil(child) || bytes.Equal(child.GetPrevHash(), lastCrossNotarizedHash) {
-			continue
-		}
-		if !checker.metaBranch.proofs.HasProof(core.MetachainShardId, childrenHashes[i]) {
-			continue
-		}
-		if checker.metaBranch.hasProofedDescendants(childNonce+1, childrenHashes[i], 1) {
-			foreignSettled = true
-			break
-		}
-	}
-	if !foreignSettled {
-		return nil, nil, false
-	}
-
-	ownSettled := checker.metaBranch.hasProofedDescendants(childNonce, lastCrossNotarizedHash, metaSettledDescendantsDepth)
-	if ownSettled {
-		// both branches doubly extended is the accepted depth-2 residual, no local verdict
+	if !checker.metaFinalityView.IsDeadMetaBlock(lastCrossNotarizedHash, lastCrossNotarizedMeta.GetNonce()) {
 		return nil, nil, false
 	}
 

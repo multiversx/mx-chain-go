@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -51,6 +52,7 @@ type createAndProcessMiniBlocksDestMeInfo struct {
 // shardProcessor implements shardProcessor interface, and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
+	metaFinalityView  process.MetaFinalityView
 	metaBlockFinality uint32
 }
 
@@ -67,6 +69,15 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 
 	sp := shardProcessor{
 		baseProcessor: base,
+	}
+
+	// built over the processor's own pools so referencing shares the node-wide finality definition
+	sp.metaFinalityView, err = track.NewMetaFinalityView(track.ArgsMetaFinalityView{
+		HeadersPool: arguments.DataComponents.Datapool().Headers(),
+		ProofsPool:  arguments.DataComponents.Datapool().Proofs(),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	argsTransactionCounter := ArgsTransactionCounter{

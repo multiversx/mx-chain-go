@@ -17,3 +17,5 @@ var errContendedHeaderWithBetterCompetitor = errors.New("included contended head
 var errReferencedNonAncestorMetaHeader = errors.New("shard header references a meta block that is not an ancestor of the built block")
 
 var errNilMetaAncestryView = errors.New("nil meta ancestry view")
+
+var errReferencedDeadMetaHeader = errors.New("shard header references a meta block the authority built past")

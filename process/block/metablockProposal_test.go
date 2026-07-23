@@ -3756,6 +3756,9 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 				},
 			},
 			"dataPool": &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				HeadersCalled: func() dataRetriever.HeadersPool {
 					return &mock.HeadersCacherStub{}
 				},
@@ -3799,6 +3802,9 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 				},
 			},
 			"dataPool": &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				HeadersCalled: func() dataRetriever.HeadersPool {
 					return &mock.HeadersCacherStub{
 						GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {

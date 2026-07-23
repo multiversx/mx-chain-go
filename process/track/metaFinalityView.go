@@ -15,6 +15,10 @@ import (
 const maxMetaBlocksScannedForInclusion = 16
 const maxOwnDescendantsScannedForInclusion = 8
 
+// metaDeadBranchEvidenceDepth requires a doubly proofed extension as authority evidence; depth 2
+// closes the depth-1 double-extension corner, the depth-2 residual is accepted
+const metaDeadBranchEvidenceDepth = 2
+
 // ArgsMetaFinalityView holds the pools the meta finality view reads from
 type ArgsMetaFinalityView struct {
 	HeadersPool dataRetriever.HeadersPool
@@ -176,43 +180,54 @@ func (mfv *metaFinalityView) ownBranchHashes(shardID uint32, headerHash []byte, 
 	return branch
 }
 
-// HasHeldFinalCompetitorAtNonce returns true if the node holds a different meta header final at the
-// given header's nonce while no longer holding that header final
-func (mfv *metaFinalityView) HasHeldFinalCompetitorAtNonce(metaHeader data.HeaderHandler, metaHash []byte) bool {
-	if check.IfNil(metaHeader) || len(metaHash) == 0 {
-		return false
-	}
-	if metaHeader.GetShardID() != core.MetachainShardId {
+// IsDeadMetaBlock returns true if the authority provably built past the meta block on another
+// branch: a doubly proofed foreign-parent extension at the next nonce, none of its own
+func (mfv *metaFinalityView) IsDeadMetaBlock(headerHash []byte, nonce uint64) bool {
+	if len(headerHash) == 0 || nonce == 0 {
 		return false
 	}
 
-	proofs, err := mfv.proofsPool.GetProofsByNonce(metaHeader.GetNonce(), core.MetachainShardId)
-	if err != nil || len(proofs) <= 1 {
+	childNonce := nonce + 1
+	children, childrenHashes, err := mfv.headersPool.GetHeadersByNonceAndShardId(childNonce, core.MetachainShardId)
+	if err != nil {
 		return false
 	}
 
-	// the verdict is exclusive on purpose: while the node still holds its own header final there is
-	// nothing to converge away from, even when a sibling looks final as well
-	if mfv.IsMetaHeaderHeldFinal(metaHeader, metaHash) {
-		return false
-	}
-
-	for _, proof := range proofs {
-		if check.IfNil(proof) {
+	foreignSettled := false
+	for i, child := range children {
+		if check.IfNil(child) || bytes.Equal(child.GetPrevHash(), headerHash) {
 			continue
 		}
-
-		competitorHash := proof.GetHeaderHash()
-		if bytes.Equal(competitorHash, metaHash) {
+		if !mfv.proofsPool.HasProof(core.MetachainShardId, childrenHashes[i]) {
 			continue
 		}
+		if mfv.hasProofedDescendants(childNonce+1, childrenHashes[i], 1) {
+			foreignSettled = true
+			break
+		}
+	}
+	if !foreignSettled {
+		return false
+	}
 
-		competitor, errGet := mfv.headersPool.GetHeaderByHash(competitorHash)
-		if errGet != nil {
+	// a doubly proofed own extension keeps the verdict subjective, the accepted depth-2 residual
+	return !mfv.hasProofedDescendants(childNonce, headerHash, metaDeadBranchEvidenceDepth)
+}
+
+func (mfv *metaFinalityView) hasProofedDescendants(nonce uint64, parentHash []byte, depth int) bool {
+	children, childrenHashes, err := mfv.headersPool.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
+	if err != nil {
+		return false
+	}
+
+	for i, child := range children {
+		if check.IfNil(child) || !bytes.Equal(child.GetPrevHash(), parentHash) {
 			continue
 		}
-
-		if mfv.IsMetaHeaderHeldFinal(competitor, competitorHash) {
+		if !mfv.proofsPool.HasProof(core.MetachainShardId, childrenHashes[i]) {
+			continue
+		}
+		if depth <= 1 || mfv.hasProofedDescendants(nonce+1, childrenHashes[i], depth-1) {
 			return true
 		}
 	}

@@ -99,11 +99,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base.settlementChecker = &shardSettlementChecker{
 		metaFinalityView: arguments.MetaFinalityView,
 		blockTracker:     arguments.BlockTracker,
-		metaBranch: &metaSettlementChecker{
-			headers: arguments.PoolsHolder.Headers(),
-			proofs:  arguments.PoolsHolder.Proofs(),
-		},
-		selfShardID: arguments.ShardCoordinator.SelfId(),
+		selfShardID:      arguments.ShardCoordinator.SelfId(),
 	}
 	// the disarm capability exists only on the production shard trigger; test triggers may lack it
 	base.epochStartDisarmer, _ = arguments.EpochStartTrigger.(epochStartTriggerDisarmer)

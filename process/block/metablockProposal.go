@@ -18,7 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-// metaArbitrationWindowRounds is the R-RESOLVE discovery window: rounds after a contended shard
+// metaArbitrationWindowRounds is the arbitration discovery window: rounds after a contended shard
 // header's round during which meta holds it so competing proofs can surface
 const metaArbitrationWindowRounds = 3
 
@@ -1034,7 +1034,7 @@ func (mp *metaProcessor) addShardHeaderToSelection(
 }
 
 // selectContendedShardHeaders arbitrates shards stalled on a contended nonce: past the discovery
-// window from the candidate's round, the lowest-(round,hash) proofed extender is included (R-RESOLVE)
+// window from the candidate's round, the lowest-(round,hash) proofed extender is included
 func (mp *metaProcessor) selectContendedShardHeaders(
 	round uint64,
 	lastShardHdrs map[uint32]ShardHeaderInfo,
@@ -1094,7 +1094,7 @@ func (mp *metaProcessor) selectContendedShardHeaders(
 }
 
 // checkShardHeaderContention rejects a contended unsettled shard header only when a better proofed
-// competitor extending the same parent is actionable locally (R-RESOLVE); the hold is proposer-side
+// competitor extending the same parent is actionable locally; the hold is proposer-side
 func (mp *metaProcessor) checkShardHeaderContention(header data.HeaderHandler, headerHash []byte, parentInfo ShardHeaderInfo, ancestryView *metaAncestryView) error {
 	if !mp.isContendedUnsettledCrossHeader(header, parentInfo.Header, headerHash) {
 		return nil

@@ -408,7 +408,7 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(ctx context.Context) boo
 	return sr.completeSignatureSubRound(sr.SelfPubKey())
 }
 
-// reserveSignatureSlot hard-refuses a second signature for a different hash in the same round (R0)
+// reserveSignatureSlot hard-refuses a second signature for a different hash in the same round
 func (sr *subroundSignature) reserveSignatureSlot(pkBytes []byte, nonce uint64, currentHash []byte) bool {
 	roundIndex := sr.RoundHandler().Index()
 	if sr.sentSignatureTracker.ReserveSignatureInRound(pkBytes, roundIndex, currentHash) {

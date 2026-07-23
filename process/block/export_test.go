@@ -66,6 +66,9 @@ var ErrNilPreviousHdr = errNilPreviousHeader
 // ErrReferencedNonAncestorMetaHeader -
 var ErrReferencedNonAncestorMetaHeader = errReferencedNonAncestorMetaHeader
 
+// ErrReferencedDeadMetaHeader -
+var ErrReferencedDeadMetaHeader = errReferencedDeadMetaHeader
+
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
 	return core.CalculateHash(bp.marshalizer, bp.hasher, hdr)
