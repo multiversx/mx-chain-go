@@ -49,19 +49,19 @@ func createProofPullTrackerScaffold(supernovaEnabled bool) (track.ArgShardTracke
 	return args, roundHandler, requests
 }
 
-func addHeadWithParent(sbt trackedHeaderAdder, headRound uint64) {
+func addTipWithParent(sbt trackedHeaderAdder, tipRound uint64) {
 	parentHash := []byte("parentHash")
 	parent := &block.Header{Nonce: 1, Round: 1}
-	head := &block.Header{Nonce: 2, Round: headRound, PrevHash: parentHash}
+	tip := &block.Header{Nonce: 2, Round: tipRound, PrevHash: parentHash}
 
 	sbt.AddTrackedHeader(parent, parentHash)
-	sbt.AddTrackedHeader(head, []byte("headHash"))
+	sbt.AddTrackedHeader(tip, []byte("tipHash"))
 }
 
-func TestBaseBlockTrack_PullProofsForContendedHeads(t *testing.T) {
+func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 	t.Parallel()
 
-	t.Run("non-contended head should not request", func(t *testing.T) {
+	t.Run("non-contended tip should not request", func(t *testing.T) {
 		t.Parallel()
 
 		args, _, requests := createProofPullTrackerScaffold(true)
@@ -69,13 +69,13 @@ func TestBaseBlockTrack_PullProofsForContendedHeads(t *testing.T) {
 		require.Nil(t, err)
 		_ = sbt.Close() // stop background loops; the test drives the pull explicitly
 
-		addHeadWithParent(sbt, 2) // round 2 = parent round + 1, no skipped round
+		addTipWithParent(sbt, 2) // round 2 = parent round + 1, no skipped round
 
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Empty(t, *requests)
 	})
 
-	t.Run("contended head should request once per round with backoff until the head advances", func(t *testing.T) {
+	t.Run("contended tip should request once per round with backoff until settled", func(t *testing.T) {
 		t.Parallel()
 
 		args, roundHandler, requests := createProofPullTrackerScaffold(true)
@@ -83,26 +83,26 @@ func TestBaseBlockTrack_PullProofsForContendedHeads(t *testing.T) {
 		require.Nil(t, err)
 		_ = sbt.Close() // stop background loops; the test drives the pull explicitly
 
-		addHeadWithParent(sbt, 5) // rounds 2-4 skipped after parent round 1
+		addTipWithParent(sbt, 5) // rounds 2-4 skipped after parent round 1
 
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Equal(t, []pullRequest{{shardID: 0, nonce: 2}}, *requests)
 
 		// same round: no new request
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Equal(t, 1, len(*requests))
 
 		// backoff 1: next round fires
 		roundHandler.RoundIndex = 11
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Equal(t, 2, len(*requests))
 
 		// backoff 2: round 12 skipped, round 13 fires
 		roundHandler.RoundIndex = 12
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Equal(t, 2, len(*requests))
 		roundHandler.RoundIndex = 13
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Equal(t, 3, len(*requests))
 
 		// backoff 4: round 17 fires
@@ -126,13 +126,13 @@ func TestBaseBlockTrack_PullProofsForContendedHeads(t *testing.T) {
 		require.Nil(t, err)
 		_ = sbt.Close() // stop background loops; the test drives the pull explicitly
 
-		addHeadWithParent(sbt, 5)
+		addTipWithParent(sbt, 5)
 
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Empty(t, *requests)
 	})
 
-	t.Run("contended head with unknown parent should not request", func(t *testing.T) {
+	t.Run("contended tip with unknown parent should not request", func(t *testing.T) {
 		t.Parallel()
 
 		args, _, requests := createProofPullTrackerScaffold(true)
@@ -140,14 +140,14 @@ func TestBaseBlockTrack_PullProofsForContendedHeads(t *testing.T) {
 		require.Nil(t, err)
 		_ = sbt.Close() // stop background loops; the test drives the pull explicitly
 
-		head := &block.Header{Nonce: 2, Round: 5, PrevHash: []byte("unknownParent")}
-		sbt.AddTrackedHeader(head, []byte("headHash"))
+		tip := &block.Header{Nonce: 2, Round: 5, PrevHash: []byte("unknownParent")}
+		sbt.AddTrackedHeader(tip, []byte("tipHash"))
 
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Empty(t, *requests)
 	})
 
-	t.Run("new contended head resets the backoff", func(t *testing.T) {
+	t.Run("new contended tip resets the backoff", func(t *testing.T) {
 		t.Parallel()
 
 		args, roundHandler, requests := createProofPullTrackerScaffold(true)
@@ -155,19 +155,19 @@ func TestBaseBlockTrack_PullProofsForContendedHeads(t *testing.T) {
 		require.Nil(t, err)
 		_ = sbt.Close() // stop background loops; the test drives the pull explicitly
 
-		addHeadWithParent(sbt, 5)
+		addTipWithParent(sbt, 5)
 
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		roundHandler.RoundIndex = 11
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Equal(t, 2, len(*requests))
 
-		// a new contended head at the next nonce fires immediately, regardless of prior backoff
-		newHead := &block.Header{Nonce: 3, Round: 9, PrevHash: []byte("headHash")}
-		sbt.AddTrackedHeader(newHead, []byte("newHeadHash"))
+		// a new contended tip at the next nonce fires immediately, regardless of prior backoff
+		newTip := &block.Header{Nonce: 3, Round: 9, PrevHash: []byte("tipHash")}
+		sbt.AddTrackedHeader(newTip, []byte("newTipHash"))
 
 		roundHandler.RoundIndex = 12
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Equal(t, 3, len(*requests))
 		require.Equal(t, pullRequest{shardID: 0, nonce: 3}, (*requests)[2])
 	})

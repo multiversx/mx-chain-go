@@ -390,6 +390,8 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		}
 	}()
 
+	isSupernovaLastHeader := st.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, bootInfos[0].LastHeader.Epoch)
+
 	for i := len(bootInfos) - 1; i >= 0; i-- {
 		log.Debug("apply header",
 			"shard", bootInfos[i].LastHeader.ShardId,
@@ -435,7 +437,7 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 
 		isPersistedFinalHeader := errAddHeader == nil &&
 			header.GetNonce() == bootInfos[0].HighestFinalBlockNonce &&
-			st.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, bootInfos[0].LastHeader.Epoch)
+			isSupernovaLastHeader
 		if isPersistedFinalHeader {
 			st.forkDetector.SetFinalToLastCheckpoint()
 		}
@@ -462,11 +464,10 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		st.forkDetector.SetFinalToLastCheckpoint()
 	}
 
-	isSupernovaHead := st.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, bootInfos[0].LastHeader.Epoch)
-	if isSupernovaHead && st.forkDetector.GetHighestFinalBlockNonce() < bootInfos[0].HighestFinalBlockNonce {
+	if isSupernovaLastHeader && st.forkDetector.GetHighestFinalBlockNonce() < bootInfos[0].HighestFinalBlockNonce {
 		// fallback to the pre-deferred-finality behavior, never leave the final checkpoint behind
 		// the persisted one
-		log.Warn("could not restore final checkpoint to the persisted nonce, falling back to head",
+		log.Warn("could not restore final checkpoint to the persisted nonce, falling back to the last checkpoint",
 			"persisted final nonce", bootInfos[0].HighestFinalBlockNonce,
 			"restored final nonce", st.forkDetector.GetHighestFinalBlockNonce())
 		st.forkDetector.SetFinalToLastCheckpoint()

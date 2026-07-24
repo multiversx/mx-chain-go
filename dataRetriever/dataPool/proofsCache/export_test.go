@@ -10,6 +10,41 @@ func NewProofsCache(bucketSize int) *proofsCache {
 	return newProofsCache(bucketSize)
 }
 
+// NewProofBucket -
+func NewProofBucket() *proofNonceBucket {
+	return newProofBucket()
+}
+
+// Insert -
+func (p *proofNonceBucket) Insert(nonce uint64, hash string) {
+	p.insert(nonce, hash)
+}
+
+// Remove -
+func (p *proofNonceBucket) Remove(nonce uint64, hash string) {
+	p.remove(nonce, hash)
+}
+
+// Size -
+func (p *proofNonceBucket) Size() int {
+	return p.size()
+}
+
+// HashesAt -
+func (p *proofNonceBucket) HashesAt(nonce uint64) []string {
+	return p.hashesAt(nonce)
+}
+
+// MaxNonce -
+func (p *proofNonceBucket) MaxNonce() uint64 {
+	return p.maxNonce
+}
+
+// TrackedNonces -
+func (p *proofNonceBucket) TrackedNonces() int {
+	return len(p.proofsByNonce)
+}
+
 // HeadBucketSize -
 func (pc *proofsCache) FullProofsByNonceSize() int {
 	size := 0
