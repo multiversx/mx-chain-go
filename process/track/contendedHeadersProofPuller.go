@@ -22,14 +22,14 @@ type proofPullState struct {
 	backoffRounds int64
 }
 
-type headCandidate struct {
-	shardID  uint32
-	head     data.HeaderHandler
-	headHash []byte
-	parent   data.HeaderHandler
+type trackedTip struct {
+	shardID uint32
+	tip     data.HeaderHandler
+	tipHash []byte
+	parent  data.HeaderHandler
 }
 
-func (bbt *baseBlockTrack) pullProofsForContendedHeadsLoop(ctx context.Context) {
+func (bbt *baseBlockTrack) pullProofsForContendedTipsLoop(ctx context.Context) {
 	ticker := time.NewTicker(proofPullCheckInterval)
 	defer ticker.Stop()
 
@@ -38,14 +38,14 @@ func (bbt *baseBlockTrack) pullProofsForContendedHeadsLoop(ctx context.Context) 
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			bbt.pullProofsForContendedHeads()
+			bbt.pullProofsForContendedTips()
 		}
 	}
 }
 
-// pullProofsForContendedHeads actively discovers competing proofs by requesting all proofs at the
-// nonce of each contended-unsettled tracked head, at most once per round with per-nonce backoff
-func (bbt *baseBlockTrack) pullProofsForContendedHeads() {
+// pullProofsForContendedTips actively discovers competing proofs by requesting all proofs at the
+// nonce of each contended-unsettled tracked tip, at most once per round with per-nonce backoff
+func (bbt *baseBlockTrack) pullProofsForContendedTips() {
 	if !bbt.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
 		return
 	}
@@ -60,19 +60,19 @@ func (bbt *baseBlockTrack) pullProofsForContendedHeads() {
 	}
 	bbt.lastProofPullRound = currentRound
 
-	contendedHeads := bbt.getContendedUnsettledHeads()
+	contendedTips := bbt.getContendedUnsettledTips()
 
 	for shardID := range bbt.proofPullPerShard {
-		_, stillContended := contendedHeads[shardID]
+		_, stillContended := contendedTips[shardID]
 		if !stillContended {
 			delete(bbt.proofPullPerShard, shardID)
 		}
 	}
 
-	for shardID, head := range contendedHeads {
+	for shardID, tip := range contendedTips {
 		state := bbt.proofPullPerShard[shardID]
-		if state == nil || state.nonce != head.GetNonce() {
-			state = &proofPullState{nonce: head.GetNonce(), nextPullRound: currentRound, backoffRounds: 1}
+		if state == nil || state.nonce != tip.GetNonce() {
+			state = &proofPullState{nonce: tip.GetNonce(), nextPullRound: currentRound, backoffRounds: 1}
 			bbt.proofPullPerShard[shardID] = state
 		}
 
@@ -80,79 +80,79 @@ func (bbt *baseBlockTrack) pullProofsForContendedHeads() {
 			continue
 		}
 
-		log.Debug("pulling proofs for contended head",
+		log.Debug("pulling proofs for contended chain tip",
 			"shardID", shardID,
-			"nonce", head.GetNonce(),
-			"headRound", head.GetRound(),
+			"nonce", tip.GetNonce(),
+			"tipRound", tip.GetRound(),
 			"currentRound", currentRound,
 		)
-		bbt.requestHandler.RequestEquivalentProofByNonce(shardID, head.GetNonce())
+		bbt.requestHandler.RequestEquivalentProofByNonce(shardID, tip.GetNonce())
 
 		state.nextPullRound = currentRound + state.backoffRounds
 		state.backoffRounds = min(state.backoffRounds*2, maxProofPullBackoffRounds)
 	}
 }
 
-// getContendedUnsettledHeads returns, per shard, the tracked head that skipped at least one round
+// getContendedUnsettledTips returns, per shard, the tracked tip that skipped at least one round
 // after its parent (a competing proof could exist in the skipped rounds) and has no proofed child
-func (bbt *baseBlockTrack) getContendedUnsettledHeads() map[uint32]data.HeaderHandler {
-	candidates := bbt.getTrackedHeadCandidates()
+func (bbt *baseBlockTrack) getContendedUnsettledTips() map[uint32]data.HeaderHandler {
+	tips := bbt.getTrackedTips()
 
-	contendedHeads := make(map[uint32]data.HeaderHandler)
-	for _, candidate := range candidates {
-		parent := candidate.parent
+	contendedTips := make(map[uint32]data.HeaderHandler)
+	for _, tracked := range tips {
+		parent := tracked.parent
 		if check.IfNil(parent) {
 			var err error
-			parent, err = bbt.headersPool.GetHeaderByHash(candidate.head.GetPrevHash())
+			parent, err = bbt.headersPool.GetHeaderByHash(tracked.tip.GetPrevHash())
 			if err != nil {
 				continue
 			}
 		}
 
-		if !common.IsContendedHeader(candidate.head, parent) {
+		if !common.IsContendedHeader(tracked.tip, parent) {
 			continue
 		}
 
-		if bbt.IsSettledCrossHeader(candidate.head, candidate.headHash) {
+		if bbt.IsSettledCrossHeader(tracked.tip, tracked.tipHash) {
 			continue
 		}
 
-		contendedHeads[candidate.shardID] = candidate.head
+		contendedTips[tracked.shardID] = tracked.tip
 	}
 
-	return contendedHeads
+	return contendedTips
 }
 
-// getTrackedHeadCandidates returns, per shard, the highest-nonce tracked header (lowest round on
-// ties) together with its tracked parent, if any
-func (bbt *baseBlockTrack) getTrackedHeadCandidates() []headCandidate {
+// getTrackedTips returns, per shard, the highest-nonce tracked header (lowest round on ties)
+// together with its tracked parent, if any
+func (bbt *baseBlockTrack) getTrackedTips() []trackedTip {
 	bbt.mutHeaders.RLock()
 	defer bbt.mutHeaders.RUnlock()
 
-	candidates := make([]headCandidate, 0, len(bbt.headers))
+	tips := make([]trackedTip, 0, len(bbt.headers))
 	for shardID, headersForShard := range bbt.headers {
-		headInfo := getHighestNonceLowestRoundHeader(headersForShard)
-		if headInfo == nil || headInfo.Header.GetNonce() == 0 {
+		tipInfo := getHighestNonceLowestRoundHeader(headersForShard)
+		if tipInfo == nil || tipInfo.Header.GetNonce() == 0 {
 			continue
 		}
 
-		head := headInfo.Header
+		tip := tipInfo.Header
 		var parent data.HeaderHandler
-		for _, headerInfo := range headersForShard[head.GetNonce()-1] {
-			if string(headerInfo.Hash) == string(head.GetPrevHash()) {
+		for _, headerInfo := range headersForShard[tip.GetNonce()-1] {
+			if string(headerInfo.Hash) == string(tip.GetPrevHash()) {
 				parent = headerInfo.Header
 				break
 			}
 		}
 
-		candidates = append(candidates, headCandidate{shardID: shardID, head: head, headHash: headInfo.Hash, parent: parent})
+		tips = append(tips, trackedTip{shardID: shardID, tip: tip, tipHash: tipInfo.Hash, parent: parent})
 	}
 
-	return candidates
+	return tips
 }
 
 func getHighestNonceLowestRoundHeader(headersForShard map[uint64][]*HeaderInfo) *HeaderInfo {
-	var head *HeaderInfo
+	var tip *HeaderInfo
 	highestNonce := uint64(0)
 	for nonce, headersInfo := range headersForShard {
 		if nonce < highestNonce {
@@ -164,15 +164,15 @@ func getHighestNonceLowestRoundHeader(headersForShard map[uint64][]*HeaderInfo) 
 				continue
 			}
 
-			keepCurrentHead := nonce == highestNonce && head != nil && headerInfo.Header.GetRound() >= head.Header.GetRound()
-			if keepCurrentHead {
+			keepCurrentTip := nonce == highestNonce && tip != nil && headerInfo.Header.GetRound() >= tip.Header.GetRound()
+			if keepCurrentTip {
 				continue
 			}
 
-			head = headerInfo
+			tip = headerInfo
 			highestNonce = nonce
 		}
 	}
 
-	return head
+	return tip
 }

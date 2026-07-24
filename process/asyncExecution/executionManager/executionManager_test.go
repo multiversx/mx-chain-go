@@ -1224,15 +1224,20 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 		require.Equal(t, []byte("root7"), rootHash)
 	})
 
-	t.Run("missing header for the new watermark should error and still resume executor", func(t *testing.T) {
+	t.Run("missing header for the new watermark should error without touching any state", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
+		pauseCalled := false
 		resumeCalled := false
+		cleanCalled := false
 
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return []data.BaseExecutionResultHandler{}, nil
+			},
+			CleanCalled: func(lastNotarizedResult data.BaseExecutionResultHandler) {
+				cleanCalled = true
 			},
 		}
 		args.Headers = &pool.HeadersPoolStub{
@@ -1252,6 +1257,9 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 
 		em, _ := executionManager.NewExecutionManager(args)
 		_ = em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{
+			PauseExecutionCalled: func() {
+				pauseCalled = true
+			},
 			ResumeExecutionCalled: func() {
 				resumeCalled = true
 			},
@@ -1259,7 +1267,10 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 
 		err := em.RewindExecutionStateToTip(newTip)
 		require.Error(t, err)
-		require.True(t, resumeCalled)
+		// the header is resolved before any mutation, so the rewind is a no-op on failure
+		require.False(t, cleanCalled)
+		require.False(t, pauseCalled)
+		require.False(t, resumeCalled)
 	})
 }
 
