@@ -1571,6 +1571,37 @@ func TestBaseBootstrap_ReconcileDivergence(t *testing.T) {
 		require.Equal(t, uint32(3), disarmedEpoch)
 		require.Equal(t, deadMetaHash, disarmedHash)
 	})
+
+	t.Run("a refused finality regression does not disarm the epoch start activation", func(t *testing.T) {
+		t.Parallel()
+
+		deadEpochStartMeta := &block.MetaBlock{
+			Nonce: 30,
+			Epoch: 3,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{{ShardID: 0}},
+			},
+		}
+		checker := &settlementCheckerStub{
+			deadCrossNotarizedMetaCalled: func() (data.HeaderHandler, []byte, bool) {
+				return deadEpochStartMeta, deadMetaHash, true
+			},
+		}
+
+		disarmed := false
+		calls := &divergenceCalls{}
+		boot := buildBootstrapper(calls, checker, &mock.RoundHandlerMock{RoundIndex: 7}, false)
+		boot.epochStartDisarmer = &epochStartDisarmerStub{
+			disarmCalled: func(epoch uint32, deadEpochStartHash []byte) bool {
+				disarmed = true
+				return true
+			},
+		}
+
+		require.False(t, boot.tryReconcileDivergence())
+		require.Equal(t, 1, calls.numReconcileBelow)
+		require.False(t, disarmed)
+	})
 }
 
 func TestBaseBootstrap_RollBackOneBlockV3RevertsEpochStartTrigger(t *testing.T) {

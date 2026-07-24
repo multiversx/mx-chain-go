@@ -1061,7 +1061,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
 
 	// evaluated before the synchronized gate: the authority may settle a childless competitor, and
-	// that leaves the node reading as synchronized while its final head is already dead
+	// that leaves the node reading as synchronized while its final chain tip is already dead
 	if boot.tryReconcileEquivocation() {
 		boot.invalidateNodeState()
 		return nil
@@ -2501,8 +2501,6 @@ func (boot *baseBootstrap) tryReconcileDivergence() bool {
 		return false
 	}
 
-	boot.disarmDeadEpochStartIfNeeded(deadMeta, deadMetaHash)
-
 	// the chain should only move from this goroutine, re-checked out of caution
 	if !bytes.Equal(boot.chainHandler.GetCurrentBlockHeaderHash(), headHash) {
 		return false
@@ -2518,6 +2516,8 @@ func (boot *baseBootstrap) tryReconcileDivergence() bool {
 		"earliest dead own nonce", earliestDeadNonce,
 		"num dead own blocks", len(deadOwnHashes))
 	boot.statusHandler.Increment(common.MetricNumReconcileSwitches)
+
+	boot.disarmDeadEpochStartIfNeeded(deadMeta, deadMetaHash)
 
 	for _, deadOwnHash := range deadOwnHashes {
 		process.AddHeaderToBlackList(boot.blackListHandler, deadOwnHash)

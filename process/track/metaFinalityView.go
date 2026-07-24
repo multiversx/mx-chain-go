@@ -150,6 +150,8 @@ func (mfv *metaFinalityView) holdsFinalMetaBlockReferencing(metaNonce uint64, sh
 	return false
 }
 
+// ownBranchHashes collects the header and its descendants on the same branch; a held final meta
+// referencing any of them settles the header, since meta notarizes a descendant only after it
 func (mfv *metaFinalityView) ownBranchHashes(shardID uint32, headerHash []byte, nonce uint64) [][]byte {
 	branch := [][]byte{headerHash}
 	parents := branch
