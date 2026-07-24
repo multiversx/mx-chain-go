@@ -107,14 +107,14 @@ func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 
 		// backoff 4: round 17 fires
 		roundHandler.RoundIndex = 17
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Equal(t, 4, len(*requests))
 
 		// a shard child does not settle the head, but it advances it to a non-contended nonce
 		child := &block.Header{Nonce: 3, Round: 6, PrevHash: []byte("headHash")}
 		sbt.AddTrackedHeader(child, []byte("childHash"))
 		roundHandler.RoundIndex = 25
-		sbt.PullProofsForContendedHeads()
+		sbt.PullProofsForContendedTips()
 		require.Equal(t, 4, len(*requests))
 	})
 
