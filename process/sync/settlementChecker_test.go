@@ -54,50 +54,106 @@ func TestShardSettlementChecker_IsSettled(t *testing.T) {
 	})
 }
 
+type pooledHeader struct {
+	header data.HeaderHandler
+	hash   []byte
+}
+
+func newMetaCheckerWithPools(byNonce map[uint64][]pooledHeader, proofedHashes ...[]byte) *metaSettlementChecker {
+	return &metaSettlementChecker{
+		headers: &pool.HeadersPoolStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {
+				entries, ok := byNonce[hdrNonce]
+				if !ok || shardID != core.MetachainShardId {
+					return nil, nil, errors.New("no headers at nonce")
+				}
+
+				headers := make([]data.HeaderHandler, 0, len(entries))
+				hashes := make([][]byte, 0, len(entries))
+				for _, entry := range entries {
+					headers = append(headers, entry.header)
+					hashes = append(hashes, entry.hash)
+				}
+
+				return headers, hashes, nil
+			},
+		},
+		proofs: &testscommonDataRetriever.ProofsPoolMock{
+			HasProofCalled: func(_ uint32, hash []byte) bool {
+				for _, proofed := range proofedHashes {
+					if string(proofed) == string(hash) {
+						return true
+					}
+				}
+				return false
+			},
+		},
+	}
+}
+
 func TestMetaSettlementChecker_IsSettled(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(10)
 	parentHash := []byte("parentHash")
 	childHash := []byte("childHash")
+	grandChildHash := []byte("grandChildHash")
 
-	newChecker := func(child data.HeaderHandler, proofedHashes ...[]byte) *metaSettlementChecker {
-		return &metaSettlementChecker{
-			headers: &pool.HeadersPoolStub{
-				GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {
-					if hdrNonce != nonce+1 || shardID != core.MetachainShardId {
-						return nil, nil, errors.New("no headers at nonce")
-					}
-					return []data.HeaderHandler{child}, [][]byte{childHash}, nil
-				},
-			},
-			proofs: &testscommonDataRetriever.ProofsPoolMock{
-				HasProofCalled: func(_ uint32, hash []byte) bool {
-					for _, proofed := range proofedHashes {
-						if string(proofed) == string(hash) {
-							return true
-						}
-					}
-					return false
-				},
-			},
-		}
-	}
+	child := &block.MetaBlock{Nonce: nonce + 1, PrevHash: parentHash}
+	grandChild := &block.MetaBlock{Nonce: nonce + 2, PrevHash: childHash}
 
-	t.Run("a proofed child settles the meta header", func(t *testing.T) {
+	t.Run("a proofed child alone does not settle", func(t *testing.T) {
 		t.Parallel()
 
-		child := &block.MetaBlock{Nonce: nonce + 1, PrevHash: parentHash}
-		checker := newChecker(child, childHash)
+		// under per-round R0 both siblings can gather a proofed child; only depth-2 counts
+		checker := newMetaCheckerWithPools(map[uint64][]pooledHeader{
+			nonce + 1: {{child, childHash}},
+		}, childHash)
+
+		require.False(t, checker.isSettled(nonce, parentHash))
+	})
+
+	t.Run("a proofed child with a proofed linked grandchild settles", func(t *testing.T) {
+		t.Parallel()
+
+		checker := newMetaCheckerWithPools(map[uint64][]pooledHeader{
+			nonce + 1: {{child, childHash}},
+			nonce + 2: {{grandChild, grandChildHash}},
+		}, childHash, grandChildHash)
 
 		require.True(t, checker.isSettled(nonce, parentHash))
 	})
 
-	t.Run("an unproofed child does not settle", func(t *testing.T) {
+	t.Run("an unproofed grandchild does not settle", func(t *testing.T) {
 		t.Parallel()
 
-		child := &block.MetaBlock{Nonce: nonce + 1, PrevHash: parentHash}
-		checker := newChecker(child)
+		checker := newMetaCheckerWithPools(map[uint64][]pooledHeader{
+			nonce + 1: {{child, childHash}},
+			nonce + 2: {{grandChild, grandChildHash}},
+		}, childHash)
+
+		require.False(t, checker.isSettled(nonce, parentHash))
+	})
+
+	t.Run("an unproofed child does not settle even with a proofed grandchild", func(t *testing.T) {
+		t.Parallel()
+
+		checker := newMetaCheckerWithPools(map[uint64][]pooledHeader{
+			nonce + 1: {{child, childHash}},
+			nonce + 2: {{grandChild, grandChildHash}},
+		}, grandChildHash)
+
+		require.False(t, checker.isSettled(nonce, parentHash))
+	})
+
+	t.Run("a grandchild extending a sibling child does not settle", func(t *testing.T) {
+		t.Parallel()
+
+		strayGrandChild := &block.MetaBlock{Nonce: nonce + 2, PrevHash: []byte("siblingChildHash")}
+		checker := newMetaCheckerWithPools(map[uint64][]pooledHeader{
+			nonce + 1: {{child, childHash}},
+			nonce + 2: {{strayGrandChild, grandChildHash}},
+		}, childHash, grandChildHash)
 
 		require.False(t, checker.isSettled(nonce, parentHash))
 	})
@@ -105,10 +161,35 @@ func TestMetaSettlementChecker_IsSettled(t *testing.T) {
 	t.Run("a proofed child of a sibling does not settle", func(t *testing.T) {
 		t.Parallel()
 
-		child := &block.MetaBlock{Nonce: nonce + 1, PrevHash: []byte("siblingHash")}
-		checker := newChecker(child, childHash)
+		strayChild := &block.MetaBlock{Nonce: nonce + 1, PrevHash: []byte("siblingHash")}
+		checker := newMetaCheckerWithPools(map[uint64][]pooledHeader{
+			nonce + 1: {{strayChild, childHash}},
+			nonce + 2: {{grandChild, grandChildHash}},
+		}, childHash, grandChildHash)
 
 		require.False(t, checker.isSettled(nonce, parentHash))
+	})
+
+	t.Run("only a proofed child with a proofed extension settles among siblings", func(t *testing.T) {
+		t.Parallel()
+
+		unproofedChildHash := []byte("unproofedChildHash")
+		unproofedChild := &block.MetaBlock{Nonce: nonce + 1, PrevHash: parentHash}
+		strandedGrandChild := &block.MetaBlock{Nonce: nonce + 2, PrevHash: unproofedChildHash}
+		strandedGrandChildHash := []byte("strandedGrandChildHash")
+
+		// the proofed grandchild extends the unproofed sibling, the proofed child has no extension
+		checker := newMetaCheckerWithPools(map[uint64][]pooledHeader{
+			nonce + 1: {{unproofedChild, unproofedChildHash}, {child, childHash}},
+			nonce + 2: {{strandedGrandChild, strandedGrandChildHash}},
+		}, childHash, strandedGrandChildHash)
+		require.False(t, checker.isSettled(nonce, parentHash))
+
+		checker = newMetaCheckerWithPools(map[uint64][]pooledHeader{
+			nonce + 1: {{unproofedChild, unproofedChildHash}, {child, childHash}},
+			nonce + 2: {{strandedGrandChild, strandedGrandChildHash}, {grandChild, grandChildHash}},
+		}, childHash, strandedGrandChildHash, grandChildHash)
+		require.True(t, checker.isSettled(nonce, parentHash))
 	})
 
 	t.Run("no child known", func(t *testing.T) {

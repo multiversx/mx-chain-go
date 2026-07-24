@@ -1152,6 +1152,43 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.Equal(t, finalNonce, calls.reconciledNonce)
 	})
 
+	t.Run("meta node: depth-1 double extension keeps the evidence armed, a settled child fires", func(t *testing.T) {
+		t.Parallel()
+
+		localChildHash, competitorChildHash := []byte("localChildHash"), []byte("competitorChildHash")
+		grandChildHash := []byte("grandChildHash")
+
+		// both siblings hold a proofed child (the 6.5 corner); the competitor gains depth-2 later
+		childrenByNonce := map[uint64][]pooledHeader{
+			finalNonce + 1: {
+				{&block.MetaBlock{Nonce: finalNonce + 1, PrevHash: localHash}, localChildHash},
+				{&block.MetaBlock{Nonce: finalNonce + 1, PrevHash: competitorHash}, competitorChildHash},
+			},
+		}
+		checker := newMetaCheckerWithPools(childrenByNonce, localChildHash, competitorChildHash, grandChildHash)
+
+		calls := &reconcileCalls{}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 1}
+		boot := buildBootstrapperWithChecker(nil, calls, checker, roundHandler)
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+
+		require.False(t, boot.tryReconcileEquivocation())
+		require.NotNil(t, boot.pendingReconcile)
+		require.Equal(t, uint64(0), calls.reconciledNonce)
+
+		// depth-2 on the competitor is the authority-grade evidence; depth-2 on BOTH siblings is
+		// the accepted residual boundary, where the disarm keeps the node in place
+		childrenByNonce[finalNonce+2] = []pooledHeader{
+			{&block.MetaBlock{Nonce: finalNonce + 2, PrevHash: competitorChildHash}, grandChildHash},
+		}
+		roundHandler.RoundIndex = 2
+
+		require.True(t, boot.tryReconcileEquivocation())
+		require.Equal(t, finalNonce, calls.reconciledNonce)
+		require.Equal(t, []string{string(localHash)}, calls.blacklisted)
+	})
+
 	t.Run("evaluates the authority at most once per round", func(t *testing.T) {
 		t.Parallel()
 

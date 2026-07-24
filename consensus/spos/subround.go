@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -311,6 +312,22 @@ func (sr *Subround) HasProofForCompetingBlock() bool {
 	}
 
 	return true
+}
+
+// HasProofForCompetingParent returns true if the proofs pool holds a proof for a lower-round sibling
+// of the current block header; a proof for the current header has its own round, so it never triggers
+func (sr *Subround) HasProofForCompetingParent() bool {
+	currentBlock := sr.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(currentBlock) {
+		return false
+	}
+
+	lowestProof, err := sr.EquivalentProofsPool().GetProofByNonce(currentBlock.GetNonce(), sr.ShardCoordinator().SelfId())
+	if err != nil || check.IfNil(lowestProof) {
+		return false
+	}
+
+	return lowestProof.GetHeaderRound() < currentBlock.GetRound()
 }
 
 // GetAssociatedPid returns the associated PeerID to the provided public key bytes
