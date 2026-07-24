@@ -1019,6 +1019,15 @@ type HeaderIntegrityVerifier interface {
 	IsInterfaceNil() bool
 }
 
+// MetaFinalityView defines the node's subjective finality view over the meta chain. All methods
+// answer false on missing evidence, so a caller never acts on what the node does not hold.
+type MetaFinalityView interface {
+	IsMetaHeaderHeldFinal(header data.HeaderHandler, headerHash []byte) bool
+	IsIncludedInHeldFinalMetaBlock(shardID uint32, headerHash []byte, nonce uint64) bool
+	HasHeldFinalCompetitorAtNonce(metaHeader data.HeaderHandler, metaHash []byte) bool
+	IsInterfaceNil() bool
+}
+
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
 	AddCrossNotarizedHeader(shradID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)

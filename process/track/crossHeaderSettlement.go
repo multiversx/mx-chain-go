@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
 // IsSettledCrossHeader returns true if a proofed child extending the header is known locally, from
@@ -24,19 +26,30 @@ func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, heade
 	childNonce := header.GetNonce() + 1
 
 	trackedChildren, trackedChildrenHashes := bbt.GetTrackedHeadersWithNonce(shardID, childNonce)
-	if bbt.holdProofedChild(trackedChildren, trackedChildrenHashes, headerHash, shardID) {
+	if holdProofedChild(bbt.proofsPool, trackedChildren, trackedChildrenHashes, headerHash, shardID) {
 		return true
 	}
 
-	pooledChildren, pooledChildrenHashes, err := bbt.headersPool.GetHeadersByNonceAndShardId(childNonce, shardID)
+	return hasProofedChildInPool(bbt.headersPool, bbt.proofsPool, shardID, headerHash, childNonce)
+}
+
+func hasProofedChildInPool(
+	headersPool dataRetriever.HeadersPool,
+	proofsPool dataRetriever.ProofsPool,
+	shardID uint32,
+	parentHash []byte,
+	childNonce uint64,
+) bool {
+	children, childrenHashes, err := headersPool.GetHeadersByNonceAndShardId(childNonce, shardID)
 	if err != nil {
 		return false
 	}
 
-	return bbt.holdProofedChild(pooledChildren, pooledChildrenHashes, headerHash, shardID)
+	return holdProofedChild(proofsPool, children, childrenHashes, parentHash, shardID)
 }
 
-func (bbt *baseBlockTrack) holdProofedChild(
+func holdProofedChild(
+	proofsPool dataRetriever.ProofsPool,
 	children []data.HeaderHandler,
 	childrenHashes [][]byte,
 	parentHash []byte,
@@ -47,7 +60,7 @@ func (bbt *baseBlockTrack) holdProofedChild(
 			continue
 		}
 
-		if bbt.proofsPool.HasProof(shardID, childrenHashes[i]) {
+		if proofsPool.HasProof(shardID, childrenHashes[i]) {
 			return true
 		}
 	}

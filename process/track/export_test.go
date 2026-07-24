@@ -10,6 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
+// MaxMetaBlocksScannedForInclusion -
+const MaxMetaBlocksScannedForInclusion = maxMetaBlocksScannedForInclusion
+
+// MaxOwnDescendantsScannedForInclusion -
+const MaxOwnDescendantsScannedForInclusion = maxOwnDescendantsScannedForInclusion
+
 // shardBlockTrack
 
 // SetNumPendingMiniBlocks -
