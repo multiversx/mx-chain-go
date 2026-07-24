@@ -10,7 +10,29 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process"
 )
+
+// mirrors process/block.metaArbitrationWindowRounds, the R-RESOLVE discovery window
+const metaArbitrationWindowRounds = 3
+
+func requireNotarizes(t *testing.T, metaHeader data.HeaderHandler, shardID uint32, hashes ...[]byte) {
+	metaHandler, ok := metaHeader.(data.MetaHeaderHandler)
+	require.True(t, ok)
+
+	for _, shardInfo := range process.GetShardHeadersReferencedByMeta(metaHandler) {
+		if shardInfo.GetShardID() != shardID {
+			continue
+		}
+		for _, hash := range hashes {
+			if string(shardInfo.GetHeaderHash()) == string(hash) {
+				return
+			}
+		}
+	}
+
+	require.Fail(t, "meta block does not notarize the winning branch")
+}
 
 // backstop scenario: island 1 instantly finalizes clean sibling A; island 2,
 // blind to A, commits contended sibling B AND extends it with a proofed child C.
@@ -55,12 +77,14 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 		RoundsConfig:         &roundsConfig,
 	})
 
-	island1 := []*integrationTests.TestProcessorNode{pA, obsA, metaNode}
-	island2 := []*integrationTests.TestProcessorNode{pB, obsB}
+	// meta sits on the winning side: it never learns A, so it arbitrates B and its notarization is
+	// the authority verdict delivered to the stranded island
+	island1 := []*integrationTests.TestProcessorNode{pA, obsA}
+	island2 := []*integrationTests.TestProcessorNode{pB, obsB, metaNode}
 	allNodes := []*integrationTests.TestProcessorNode{pA, obsA, metaNode, pB, obsB}
 
-	integrationTests.ConnectNodes([]integrationTests.Connectable{pA, obsA, metaNode})
-	integrationTests.ConnectNodes([]integrationTests.Connectable{pB, obsB})
+	integrationTests.ConnectNodes([]integrationTests.Connectable{pA, obsA})
+	integrationTests.ConnectNodes([]integrationTests.Connectable{pB, obsB, metaNode})
 
 	defer func() {
 		for _, n := range allNodes {
@@ -100,14 +124,22 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 	integrationTests.UpdateRound(allNodes, round)
 	nonce++
 
-	// common prefix, rounds 1..4
+	// common prefix, rounds 1..4: the shard proposes on island 1, meta notarizes it on island 2,
+	// and each side is fed the other's block
 	numPrefixBlocks := 4
 	for i := 0; i < numPrefixBlocks; i++ {
-		integrationTests.ProposeBlockWithProof(island1, []*integrationTests.TestProcessorNode{pA, metaNode}, round, nonce)
+		integrationTests.ProposeBlockWithProof(island1, []*integrationTests.TestProcessorNode{pA}, round, nonce)
 		time.Sleep(integrationTests.SyncDelay)
 
 		for _, target := range island2 {
 			mirrorCurrentBlock(target, pA)
+		}
+		time.Sleep(integrationTests.SyncDelay)
+
+		integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{metaNode}, round, nonce)
+		time.Sleep(integrationTests.SyncDelay)
+
+		for _, target := range island1 {
 			mirrorCurrentBlock(target, metaNode)
 		}
 		time.Sleep(integrationTests.SyncDelay)
@@ -116,6 +148,9 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 		integrationTests.UpdateRound(allNodes, round)
 		nonce++
 	}
+
+	// meta built its own chain over the prefix and stops here; the shard nonce moves on without it
+	nextMetaNonce := nonce
 
 	// round 5: island 1 commits and instantly finalizes the clean sibling A
 	integrationTests.ProposeBlockWithProof(island1, []*integrationTests.TestProcessorNode{pA}, round, nonce)
@@ -159,8 +194,33 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 	round = integrationTests.IncrementAndPrintRound(round)
 	integrationTests.UpdateRound(allNodes, round)
 
-	// deliver the winning branch to island 1: its final head A is now a proven loser
+	// B is contended, so meta may only arbitrate it once the discovery window has elapsed
+	for i := 0; i < metaArbitrationWindowRounds; i++ {
+		round = integrationTests.IncrementAndPrintRound(round)
+		integrationTests.UpdateRound(allNodes, round)
+		time.Sleep(integrationTests.SyncDelay)
+	}
+
+	// meta arbitrates B, then extends itself so the notarizing block is settled and thus held final
+	integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{metaNode}, round, nextMetaNonce)
+	time.Sleep(integrationTests.SyncDelay)
+	notarizingMeta, notarizingMetaHash, notarizingMetaProof := grabCurrentBlock(metaNode)
+	requireNotarizes(t, notarizingMeta, shardId, hashB, hashC)
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+	integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{metaNode}, round, nextMetaNonce+1)
+	time.Sleep(integrationTests.SyncDelay)
+	settlingMeta, settlingMetaHash, settlingMetaProof := grabCurrentBlock(metaNode)
+	require.Equal(t, string(notarizingMetaHash), string(settlingMeta.GetPrevHash()))
+
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+
+	// deliver the winning branch AND the authority verdict on it to island 1
 	for _, n := range []*integrationTests.TestProcessorNode{pA, obsA} {
+		injectBlock(n, notarizingMeta, notarizingMetaHash, notarizingMetaProof)
+		injectBlock(n, settlingMeta, settlingMetaHash, settlingMetaProof)
 		injectBlock(n, headerB, hashB, proofB)
 		injectBlock(n, headerC, hashC, proofC)
 	}
@@ -183,6 +243,8 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 		// the forced rollback clears pools above the rollback nonce; in production the
 		// majority network answers the re-requests -- modeled by re-injecting each round
 		for _, n := range []*integrationTests.TestProcessorNode{pA, obsA} {
+			injectBlock(n, notarizingMeta, notarizingMetaHash, notarizingMetaProof)
+			injectBlock(n, settlingMeta, settlingMetaHash, settlingMetaProof)
 			injectBlock(n, headerB, hashB, proofB)
 			injectBlock(n, headerC, hashC, proofC)
 		}
@@ -199,8 +261,9 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 		assert.Equal(t, uint64(4), n.ForkDetector.GetHighestFinalBlockNonce())
 	}
 
-	// island 2 was never on the losing block and is untouched
-	for _, n := range island2 {
+	// island 2 was never on the losing block and is untouched (the meta node runs its own chain,
+	// so only the shard nodes are compared here)
+	for _, n := range []*integrationTests.TestProcessorNode{pB, obsB} {
 		assert.Equal(t, string(hashC), string(n.BlockChain.GetCurrentBlockHeaderHash()))
 		assert.Equal(t, uint64(4), n.ForkDetector.GetHighestFinalBlockNonce())
 	}

@@ -117,6 +117,10 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
+	base.settlementChecker = &metaSettlementChecker{
+		headers: arguments.PoolsHolder.Headers(),
+		proofs:  arguments.PoolsHolder.Proofs(),
+	}
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons

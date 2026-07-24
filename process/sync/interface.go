@@ -26,6 +26,12 @@ type syncStarter interface {
 	SyncBlock(ctx context.Context) error
 }
 
+// settlementChecker answers whether a block at the reconcile nonce is settled, per the settlement
+// authority of the chain the node belongs to
+type settlementChecker interface {
+	isSettled(nonce uint64, headerHash []byte) bool
+}
+
 // forkDetector is the interface needed by base fork detector to deal with shards and meta nodes
 type forkDetector interface {
 	computeFinalCheckpoint()

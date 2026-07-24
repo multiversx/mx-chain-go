@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -32,6 +33,9 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	}
 	if check.IfNil(arguments.PoolsHolder.MiniBlocks()) {
 		return nil, process.ErrNilTxBlockBody
+	}
+	if check.IfNil(arguments.MetaFinalityView) {
+		return nil, process.ErrNilMetaFinalityView
 	}
 
 	err := checkBaseBootstrapParameters(arguments.ArgBaseBootstrapper)
@@ -87,6 +91,10 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
+	base.settlementChecker = &shardSettlementChecker{
+		metaFinalityView: arguments.MetaFinalityView,
+		selfShardID:      arguments.ShardCoordinator.SelfId(),
+	}
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons

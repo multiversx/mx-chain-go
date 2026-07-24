@@ -388,6 +388,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
+		MetaFinalityView:    &testscommon.MetaFinalityViewStub{},
 	}
 
 	return argsShardBootstrapper

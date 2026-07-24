@@ -81,9 +81,10 @@ type nonceRecoveryInfo struct {
 }
 
 type reconcileEvidence struct {
-	nonce          uint64
-	localHash      []byte
-	competitorHash []byte
+	nonce              uint64
+	localHash          []byte
+	competitorHash     []byte
+	lastEvaluatedRound int64
 }
 
 type baseBootstrap struct {
@@ -106,6 +107,7 @@ type baseBootstrap struct {
 	shardCoordinator    sharding.Coordinator
 	accounts            state.AccountsAdapter
 	blockBootstrapper   blockBootstrapper
+	settlementChecker   settlementChecker
 	blackListHandler    process.TimeCacher
 	enableEpochsHandler common.EnableEpochsHandler
 	enableRoundsHandler common.EnableRoundsHandler
@@ -1049,6 +1051,14 @@ func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
 
 func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
+
+	// evaluated before the synchronized gate: the authority may settle a childless competitor, and
+	// that leaves the node reading as synchronized while its final head is already dead
+	if boot.tryReconcileEquivocation() {
+		boot.invalidateNodeState()
+		return nil
+	}
+
 	nodeState := boot.GetNodeState()
 
 	if nodeState != common.NsNotSynchronized {
@@ -1061,15 +1071,7 @@ func (boot *baseBootstrap) syncBlock() error {
 		return nil
 	}
 
-	defer func() {
-		boot.mutNodeState.Lock()
-		boot.isNodeStateCalculated = false
-		boot.mutNodeState.Unlock()
-	}()
-
-	if boot.tryReconcileEquivocation() {
-		return nil
-	}
+	defer boot.invalidateNodeState()
 
 	if boot.forkInfo.IsDetected {
 		boot.statusHandler.Increment(common.MetricNumTimesInForkChoice)
@@ -2346,7 +2348,12 @@ func (boot *baseBootstrap) onEquivocationEvidence(headerProof data.HeaderProofHa
 	}
 
 	boot.mutReconcile.Lock()
-	boot.pendingReconcile = &reconcileEvidence{nonce: nonce, localHash: localHash, competitorHash: competitorHash}
+	boot.pendingReconcile = &reconcileEvidence{
+		nonce:              nonce,
+		localHash:          localHash,
+		competitorHash:     competitorHash,
+		lastEvaluatedRound: -1,
+	}
 	boot.mutReconcile.Unlock()
 
 	log.Warn("equivocation proof observed at the final chain tip, reconcile evidence recorded",
@@ -2372,38 +2379,33 @@ func pickCompetitorHash(localHash []byte, headerProof data.HeaderProofHandler, c
 	return nil
 }
 
-// tryReconcileEquivocation overrides the final gate and forces the switch when the final head is
-// childless and the equivocation competitor has a proofed child; never past a settled descendant
+// tryReconcileEquivocation overrides the final gate and forces the switch when the settlement
+// authority settled the equivocation competitor and not the local block
 func (boot *baseBootstrap) tryReconcileEquivocation() bool {
-	boot.mutReconcile.Lock()
-	evidence := boot.pendingReconcile
-	boot.mutReconcile.Unlock()
-
+	evidence, shouldEvaluate := boot.reconcileEvidenceToEvaluate()
 	if evidence == nil {
 		return false
 	}
 
-	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
-	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
-	stillApplies := !check.IfNil(currentHeader) &&
-		currentHeader.GetNonce() == evidence.nonce &&
-		bytes.Equal(currentHash, evidence.localHash) &&
-		evidence.nonce == boot.forkDetector.GetHighestFinalBlockNonce()
-	if !stillApplies {
+	if !boot.reconcileEvidenceStillApplies(evidence) {
 		boot.clearReconcileEvidence(evidence)
 		return false
 	}
 
-	if boot.hasProofedChild(evidence.nonce+1, evidence.localHash) {
+	if !shouldEvaluate {
+		return false
+	}
+
+	if boot.settlementChecker.isSettled(evidence.nonce, evidence.localHash) {
 		boot.clearReconcileEvidence(evidence)
 		return false
 	}
 
 	selfID := boot.shardCoordinator.SelfId()
 	isCompetitorSettled := boot.proofs.HasProof(selfID, evidence.competitorHash) &&
-		boot.hasProofedChild(evidence.nonce+1, evidence.competitorHash)
+		boot.settlementChecker.isSettled(evidence.nonce, evidence.competitorHash)
 	if !isCompetitorSettled {
-		// the settling child may still arrive; keep the evidence armed for the next iteration
+		// the authority's verdict may still arrive; keep the evidence armed for the next round
 		return false
 	}
 
@@ -2422,31 +2424,49 @@ func (boot *baseBootstrap) tryReconcileEquivocation() bool {
 	return true
 }
 
+// the settlement checks walk the pools, so the authority is consulted at most once per round
+func (boot *baseBootstrap) reconcileEvidenceToEvaluate() (*reconcileEvidence, bool) {
+	boot.mutReconcile.Lock()
+	defer boot.mutReconcile.Unlock()
+
+	evidence := boot.pendingReconcile
+	if evidence == nil {
+		return nil, false
+	}
+
+	currentRound := boot.roundHandler.Index()
+	shouldEvaluate := evidence.lastEvaluatedRound != currentRound
+	if shouldEvaluate {
+		evidence.lastEvaluatedRound = currentRound
+	}
+
+	return evidence, shouldEvaluate
+}
+
+// invalidateNodeState forces the next iteration to recompute the fork info, so a roll back armed
+// here is picked up without waiting for the round to change
+func (boot *baseBootstrap) invalidateNodeState() {
+	boot.mutNodeState.Lock()
+	boot.isNodeStateCalculated = false
+	boot.mutNodeState.Unlock()
+}
+
+func (boot *baseBootstrap) reconcileEvidenceStillApplies(evidence *reconcileEvidence) bool {
+	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+
+	return !check.IfNil(currentHeader) &&
+		currentHeader.GetNonce() == evidence.nonce &&
+		bytes.Equal(currentHash, evidence.localHash) &&
+		evidence.nonce == boot.forkDetector.GetHighestFinalBlockNonce()
+}
+
 func (boot *baseBootstrap) clearReconcileEvidence(evidence *reconcileEvidence) {
 	boot.mutReconcile.Lock()
 	if boot.pendingReconcile == evidence {
 		boot.pendingReconcile = nil
 	}
 	boot.mutReconcile.Unlock()
-}
-
-func (boot *baseBootstrap) hasProofedChild(nonce uint64, parentHash []byte) bool {
-	selfID := boot.shardCoordinator.SelfId()
-	headers, hashes, err := boot.headers.GetHeadersByNonceAndShardId(nonce, selfID)
-	if err != nil {
-		return false
-	}
-
-	for i, header := range headers {
-		if check.IfNil(header) || !bytes.Equal(header.GetPrevHash(), parentHash) {
-			continue
-		}
-		if boot.proofs.HasProof(selfID, hashes[i]) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (boot *baseBootstrap) isForcedRollBackOneBlock() bool {
