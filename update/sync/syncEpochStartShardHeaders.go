@@ -21,6 +21,9 @@ var _ update.PendingEpochStartShardHeaderSyncHandler = (*pendingEpochStartShardH
 
 const maxCandidatesPerNonce = 32
 
+// proofedHeaderSignalBuffer smooths bursts of pool notifications, overflowing signals are dropped
+const proofedHeaderSignalBuffer = 8
+
 type proofedHeaderInfo struct {
 	header data.HeaderHandler
 	hash   []byte
@@ -80,7 +83,7 @@ func NewPendingEpochStartShardHeaderSyncer(args ArgsPendingEpochStartShardHeader
 		candidates:              make(map[string]data.HeaderHandler),
 		headersPool:             args.HeadersPool,
 		proofsPool:              args.ProofsPool,
-		chProofedHeader:         make(chan proofedHeaderInfo, 8),
+		chProofedHeader:         make(chan proofedHeaderInfo, proofedHeaderSignalBuffer),
 		requestHandler:          args.RequestHandler,
 		stopSyncing:             true,
 		synced:                  false,
