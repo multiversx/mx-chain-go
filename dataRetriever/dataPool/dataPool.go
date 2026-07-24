@@ -2,9 +2,10 @@ package dataPool
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ dataRetriever.PoolsHolder = (*dataPool)(nil)
@@ -30,7 +31,6 @@ type dataPool struct {
 	executedMiniBlocks      storage.Cacher
 	postProcessTransactions storage.Cacher
 	directSentTransactions  storage.Cacher
-	quarantinedHeaders      storage.Cacher
 }
 
 // DataPoolArgs represents the data pool's constructor structure
@@ -53,7 +53,6 @@ type DataPoolArgs struct {
 	ExecutedMiniBlocks        storage.Cacher
 	PostProcessTransactions   storage.Cacher
 	DirectSentTransactions    storage.Cacher
-	QuarantinedHeaders        storage.Cacher
 }
 
 // NewDataPool creates a data pools holder object
@@ -112,9 +111,6 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	if check.IfNil(args.DirectSentTransactions) {
 		return nil, dataRetriever.ErrNilDirectSentTransactionsCache
 	}
-	if check.IfNil(args.QuarantinedHeaders) {
-		return nil, dataRetriever.ErrNilQuarantinedHeadersCache
-	}
 
 	return &dataPool{
 		transactions:            args.Transactions,
@@ -135,7 +131,6 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 		executedMiniBlocks:      args.ExecutedMiniBlocks,
 		postProcessTransactions: args.PostProcessTransactions,
 		directSentTransactions:  args.DirectSentTransactions,
-		quarantinedHeaders:      args.QuarantinedHeaders,
 	}, nil
 }
 
@@ -227,11 +222,6 @@ func (dp *dataPool) DirectSentTransactions() storage.Cacher {
 // PostProcessTransactions returns the holder for post-process transactions
 func (dp *dataPool) PostProcessTransactions() storage.Cacher {
 	return dp.postProcessTransactions
-}
-
-// QuarantinedHeaders returns the holder for quarantined header hashes (late-arriving equivalent proofs)
-func (dp *dataPool) QuarantinedHeaders() storage.Cacher {
-	return dp.quarantinedHeaders
 }
 
 // Close closes all the components

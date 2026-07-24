@@ -509,7 +509,6 @@ func GetGeneralConfig() config.Config {
 			CacheExpiryInSec: 1,
 		},
 		ExecutedMiniBlocksCache:      getLRUCacheConfig(),
-		QuarantinedHeadersCache:      getLRUCacheConfig(),
 		PostProcessTransactionsCache: getLRUCacheConfig(),
 		BlockSizeThrottleConfig: config.BlockSizeThrottleConfig{
 			MinSizeInBytes:        1,

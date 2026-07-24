@@ -227,7 +227,6 @@ type Config struct {
 	SmartContractDataPool        CacheConfig
 	ValidatorInfoPool            CacheConfig
 	ExecutedMiniBlocksCache      CacheConfig
-	QuarantinedHeadersCache      CacheConfig
 	PostProcessTransactionsCache CacheConfig
 	HeaderBodyCacheConfig        HeaderBodyCacheConfig
 	TrieSyncStorage              TrieSyncStorageConfig

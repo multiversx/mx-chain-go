@@ -3,18 +3,24 @@ package track
 import (
 	"bytes"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-// IsSettledCrossHeader returns true if the header can no longer change: a proofed child extending
-// it is known locally, from the tracked headers or from the headers pool
+// IsSettledCrossHeader returns true if a proofed child extending the header is known locally, from
+// the tracked headers or from the headers pool; only META headers settle this way, since a proofed
+// shard child does not exclude a lower-round sibling that gathers one too
 func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool {
 	if check.IfNil(header) || len(headerHash) == 0 {
 		return false
 	}
 
 	shardID := header.GetShardID()
+	if shardID != core.MetachainShardId {
+		return false
+	}
+
 	childNonce := header.GetNonce() + 1
 
 	trackedChildren, trackedChildrenHashes := bbt.GetTrackedHeadersWithNonce(shardID, childNonce)

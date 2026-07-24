@@ -105,20 +105,17 @@ func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 		sbt.PullProofsForContendedTips()
 		require.Equal(t, 3, len(*requests))
 
-		// settled by a proofed child extending the tip: no more requests; the round is advanced
-		// before AddProof, which dispatches the tracker's receivedProof subscriber on another goroutine
+		// backoff 4: round 17 fires
 		roundHandler.RoundIndex = 17
-		_ = args.PoolsHolder.Proofs().AddProof(&block.HeaderProof{
-			HeaderHash:    []byte("childHash"),
-			HeaderNonce:   3,
-			HeaderRound:   6,
-			HeaderShardId: 0,
-		})
-		// the child is known from the headers pool only, so the contended header stays the tracked tip
-		child := &block.Header{Nonce: 3, Round: 6, PrevHash: []byte("tipHash")}
-		args.PoolsHolder.Headers().AddHeader([]byte("childHash"), child)
 		sbt.PullProofsForContendedTips()
-		require.Equal(t, 3, len(*requests))
+		require.Equal(t, 4, len(*requests))
+
+		// a shard child does not settle the head, but it advances it to a non-contended nonce
+		child := &block.Header{Nonce: 3, Round: 6, PrevHash: []byte("headHash")}
+		sbt.AddTrackedHeader(child, []byte("childHash"))
+		roundHandler.RoundIndex = 25
+		sbt.PullProofsForContendedTips()
+		require.Equal(t, 4, len(*requests))
 	})
 
 	t.Run("supernova disabled should not request", func(t *testing.T) {

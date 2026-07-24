@@ -89,8 +89,8 @@ func generateBlocksUntilSkipping(t *testing.T, simulator testsChainSimulator.Cha
 }
 
 // a contended shard block (skipped rounds before it) commits without instant finality and without
-// being referenced by meta; the next shard block settles it, meta references it, finality catches
-// up through the notarization and instant finality resumes on the clean path
+// being referenced by meta; its own proofed child does not settle it, so meta holds it for the
+// discovery window and notarizes it through arbitration, after which finality catches up
 func TestChainSimulator_ContendedShardBlockDefersFinalityAndSettles(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -119,13 +119,15 @@ func TestChainSimulator_ContendedShardBlockDefersFinalityAndSettles(t *testing.T
 	require.Equal(t, contendedHeader.GetNonce()-1, getFinalNonce(shardNode))
 	require.Equal(t, contendedHeader.GetNonce()-1, getLastCrossNotarizedNonce(t, metaNode, shardID))
 
-	// this round's shard child settles the contended block, but meta proposes before seeing it
-	require.NoError(t, simulator.GenerateBlocks(1))
+	// the shard extends the contended block with a proofed child; that child does not settle it,
+	// so meta keeps holding it for the rest of the discovery window
+	require.NoError(t, simulator.GenerateBlocks(metaArbitrationWindowRounds-1))
 	require.Equal(t, contendedHeader.GetNonce()-1, getLastCrossNotarizedNonce(t, metaNode, shardID))
 
-	// next round meta references the settled block
-	require.NoError(t, simulator.GenerateBlocks(1))
-	require.GreaterOrEqual(t, getLastCrossNotarizedNonce(t, metaNode, shardID), contendedHeader.GetNonce())
+	// once the window elapses meta notarizes it through arbitration
+	generateBlocksUntil(t, simulator, 5, func() bool {
+		return getLastCrossNotarizedNonce(t, metaNode, shardID) >= contendedHeader.GetNonce()
+	})
 
 	// the notarization reaches the shard and finality catches up over the clean descendants
 	generateBlocksUntil(t, simulator, 5, func() bool {

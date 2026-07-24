@@ -38,7 +38,6 @@ type blockTrackerHandler interface {
 	ComputeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
 	SortHeadersFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	AddHeaderFromPool(shardID uint32, nonce uint64)
-	IsHeaderQuarantined(hash []byte) bool
 	IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool
 	IsInterfaceNil() bool
 }

@@ -94,7 +94,7 @@ func (bbt *baseBlockTrack) pullProofsForContendedTips() {
 }
 
 // getContendedUnsettledTips returns, per shard, the tracked tip that skipped at least one round
-// after its parent (a competing proof could exist in the skipped rounds) and has no proofed child
+// after its parent and is not settled yet
 func (bbt *baseBlockTrack) getContendedUnsettledTips() map[uint32]data.HeaderHandler {
 	tips := bbt.getTrackedTips()
 
