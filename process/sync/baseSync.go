@@ -1775,6 +1775,9 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		)
 
 		if currHeader.IsHeaderV3() {
+			// marked before the call: a partial failure leaves execution state already pruned, so
+			// the realign must run even when the roll back returns an error
+			rolledBackV3 = true
 			currBody, err = boot.rollBackOneBlockV3(
 				currHeaderHash,
 				currHeader,
@@ -1792,9 +1795,6 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		}
 		if err != nil {
 			return err
-		}
-		if currHeader.IsHeaderV3() {
-			rolledBackV3 = true
 		}
 
 		_, _ = metricsLoader.UpdateMetricsFromStorage(boot.store, boot.uint64Converter, boot.marshalizer, boot.statusHandler, prevHeader.GetNonce())
@@ -2344,7 +2344,7 @@ func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
 }
 
 // onEquivocationEvidence records reconcile evidence, an equivocation proof at the final
-// head nonce; the evidence is verified and acted upon from the sync loop
+// chain tip nonce; the evidence is verified and acted upon from the sync loop
 func (boot *baseBootstrap) onEquivocationEvidence(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler) {
 	if check.IfNil(headerProof) || headerProof.GetHeaderShardId() != boot.shardCoordinator.SelfId() {
 		return
@@ -2376,7 +2376,7 @@ func (boot *baseBootstrap) onEquivocationEvidence(headerProof data.HeaderProofHa
 	}
 	boot.mutReconcile.Unlock()
 
-	log.Warn("equivocation proof observed at the final head nonce, reconcile evidence recorded",
+	log.Warn("equivocation proof observed at the final chain tip, reconcile evidence recorded",
 		"nonce", nonce,
 		"local hash", localHash,
 		"competitor hash", competitorHash)

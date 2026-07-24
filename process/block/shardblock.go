@@ -1389,7 +1389,7 @@ func (sp *shardProcessor) getNewlyFinalHashes(
 		var err error
 		header, err = process.GetShardHeader(finalHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
-			log.Warn("signalNewlyFinalBlocks: cannot load final header, signaling only its hash",
+			log.Warn("getNewlyFinalHashes: cannot load final header, signaling only its hash",
 				"final nonce", finalNonce, "error", err.Error())
 			return hashes
 		}
@@ -1400,7 +1400,7 @@ func (sp *shardProcessor) getNewlyFinalHashes(
 		var err error
 		header, err = process.GetShardHeader(hash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
-			log.Warn("signalNewlyFinalBlocks: cannot load newly final header, skipping older signals",
+			log.Warn("getNewlyFinalHashes: cannot load newly final header, skipping older signals",
 				"nonce", nonce, "error", err.Error())
 			break
 		}

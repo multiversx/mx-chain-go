@@ -150,7 +150,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 	var ctx context.Context
 	ctx, bbt.cancelFunc = context.WithCancel(context.Background())
 
-	go bbt.pullProofsForContendedHeadsLoop(ctx)
+	go bbt.pullProofsForContendedTipsLoop(ctx)
 
 	return bbt, nil
 }

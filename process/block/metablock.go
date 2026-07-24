@@ -1732,6 +1732,9 @@ func (mp *metaProcessor) signalNewlyFinalBlocks(
 		prevMetaBlock.GetNonce() > mp.lastSignaledFinalNonce
 	if isPrevNewlySettled {
 		mp.setFinalizedHeaderHashInIndexer(metaBlock.GetPrevHash())
+		if settledNonce == prevMetaBlock.GetNonce() {
+			mp.setSettledBlockInfoForPrev(prevMetaBlock, metaBlock.GetPrevHash())
+		}
 	}
 
 	if settledNonce >= metaBlock.GetNonce() {
@@ -1739,10 +1742,6 @@ func (mp *metaProcessor) signalNewlyFinalBlocks(
 		mp.setSettledBlockInfo(metaBlock, metaBlockHash, rootHash)
 		mp.lastSignaledFinalNonce = metaBlock.GetNonce()
 		return
-	}
-
-	if settledNonce == prevMetaBlock.GetNonce() {
-		mp.setSettledBlockInfoForPrev(prevMetaBlock, metaBlock.GetPrevHash())
 	}
 
 	mp.lastSignaledFinalNonce = settledNonce
@@ -1773,7 +1772,7 @@ func (mp *metaProcessor) setSettledBlockInfoForPrev(prevMetaBlock data.MetaHeade
 
 	prevRootHash, _, err := mp.getRootHashAndValidatorRootHash(prevMetaBlock)
 	if err != nil {
-		log.Warn("signalNewlyFinalBlocks: cannot get root hash of the newly settled block", "error", err.Error())
+		log.Warn("setSettledBlockInfoForPrev: cannot get root hash of the newly settled block", "error", err.Error())
 		return
 	}
 
