@@ -3,7 +3,6 @@ package spos
 import (
 	"context"
 	"fmt"
-	"maps"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -135,11 +134,6 @@ func (wrk *Worker) ReceivedMessages() map[consensus.MessageType][]*consensus.Mes
 	wrk.mutReceivedMessages.RLock()
 	defer wrk.mutReceivedMessages.RUnlock()
 
-<<<<<<< HEAD
-	receivedMessages := maps.Clone(wrk.receivedMessages)
-
-	return receivedMessages
-=======
 	snapshot := make(map[consensus.MessageType][]*consensus.Message, len(wrk.receivedMessages))
 	for msgType, messages := range wrk.receivedMessages {
 		if messages == nil {
@@ -153,7 +147,6 @@ func (wrk *Worker) ReceivedMessages() map[consensus.MessageType][]*consensus.Mes
 	}
 
 	return snapshot
->>>>>>> feat/testnet-fixes
 }
 
 // SetReceivedMessages -
