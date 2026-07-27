@@ -135,9 +135,25 @@ func (wrk *Worker) ReceivedMessages() map[consensus.MessageType][]*consensus.Mes
 	wrk.mutReceivedMessages.RLock()
 	defer wrk.mutReceivedMessages.RUnlock()
 
+<<<<<<< HEAD
 	receivedMessages := maps.Clone(wrk.receivedMessages)
 
 	return receivedMessages
+=======
+	snapshot := make(map[consensus.MessageType][]*consensus.Message, len(wrk.receivedMessages))
+	for msgType, messages := range wrk.receivedMessages {
+		if messages == nil {
+			snapshot[msgType] = nil
+			continue
+		}
+
+		messagesCopy := make([]*consensus.Message, len(messages))
+		copy(messagesCopy, messages)
+		snapshot[msgType] = messagesCopy
+	}
+
+	return snapshot
+>>>>>>> feat/testnet-fixes
 }
 
 // SetReceivedMessages -
