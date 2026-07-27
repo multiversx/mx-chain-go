@@ -389,6 +389,7 @@ func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prev
 	round = uint64(roundHandler.Index()) - 1
 	epoch = chainHandler.GetGenesisHeader().GetEpoch()
 	nonce = chainHandler.GetGenesisHeader().GetNonce()
+	currentHeader = chainHandler.GetGenesisHeader()
 
 	return
 }
