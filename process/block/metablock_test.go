@@ -5963,34 +5963,35 @@ func TestMetaProcessor_UpdateStateSignalsNewlyFinalBlocksUnderSupernova(t *testi
 	outportCapture := &finalizedBlocksCapture{OutportStub: &outport.OutportStub{}}
 	statusComponents.Outport = outportCapture
 
-	finalNonce := uint64(5)
+	settledHashByNonce := map[uint64][]byte{4: hash4, 5: hash5, 6: hash6, 7: hash7, 8: hash8}
+	settledNonce := uint64(5)
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.ForkDetector = &mock.ForkDetectorMock{
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return finalNonce
+		GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+			return settledNonce, settledHashByNonce[settledNonce]
 		},
 	}
 	mp, _ := processBlock.NewMetaProcessor(arguments)
 
-	// clean committed block is final and signaled at once
+	// the settled block is signaled; the first signal never walks back, so hash4 stays unsignaled
 	mp.UpdateState(hdr5, hash5)
-	require.Equal(t, [][]byte{hash4, hash5}, outportCapture.finalizedHashes)
+	require.Equal(t, [][]byte{hash5}, outportCapture.finalizedHashes)
 	require.Equal(t, []uint64{5}, setFinalBlockInfos)
 
 	// contended committed block is not signaled while unsettled
 	mp.UpdateState(contendedHdr6, hash6)
-	require.Equal(t, [][]byte{hash4, hash5}, outportCapture.finalizedHashes)
+	require.Equal(t, [][]byte{hash5}, outportCapture.finalizedHashes)
 	require.Equal(t, []uint64{5}, setFinalBlockInfos)
 
 	// the committed child settles its parent: the parent is signaled, the contended child is not
-	finalNonce = 6
+	settledNonce = 6
 	mp.UpdateState(contendedHdr7, hash7)
-	require.Equal(t, [][]byte{hash4, hash5, hash6}, outportCapture.finalizedHashes)
+	require.Equal(t, [][]byte{hash5, hash6}, outportCapture.finalizedHashes)
 	require.Equal(t, []uint64{5, 6}, setFinalBlockInfos)
 
-	// clean child settles its parent and is instantly final: both signaled exactly once
-	finalNonce = 8
+	// settlement jumps over nonce 7: the skipped block is back filled before the settled one
+	settledNonce = 8
 	mp.UpdateState(cleanHdr8, hash8)
-	require.Equal(t, [][]byte{hash4, hash5, hash6, hash7, hash8}, outportCapture.finalizedHashes)
+	require.Equal(t, [][]byte{hash5, hash6, hash7, hash8}, outportCapture.finalizedHashes)
 	require.Equal(t, []uint64{5, 6, 8}, setFinalBlockInfos)
 }

@@ -619,6 +619,21 @@ func (mp *metaProcessor) UpdateState(metaBlock data.MetaHeaderHandler, metaBlock
 	mp.updateState(metaBlock, metaBlockHash)
 }
 
+// SignalNewlyFinalBlocks -
+func (mp *metaProcessor) SignalNewlyFinalBlocks(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
+	mp.signalNewlyFinalBlocks(metaBlock, metaBlockHash)
+}
+
+// SetLastSignaledFinalNonce -
+func (mp *metaProcessor) SetLastSignaledFinalNonce(nonce uint64) {
+	mp.lastSignaledFinalNonce = nonce
+}
+
+// GetLastSignaledFinalNonce -
+func (mp *metaProcessor) GetLastSignaledFinalNonce() uint64 {
+	return mp.lastSignaledFinalNonce
+}
+
 // CheckScheduledData -
 func (bp *baseProcessor) CheckScheduledData(headerHandler data.HeaderHandler) error {
 	return bp.checkScheduledData(headerHandler)
