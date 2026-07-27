@@ -85,6 +85,7 @@ type reconcileEvidence struct {
 	localHash          []byte
 	competitorHash     []byte
 	lastEvaluatedRound int64
+	scanCursor         uint64
 }
 
 type baseBootstrap struct {
@@ -2416,14 +2417,17 @@ func (boot *baseBootstrap) tryReconcileEquivocation() bool {
 		return false
 	}
 
-	if boot.settlementChecker.isSettled(evidence.nonce, evidence.localHash) {
+	scanFrom, scanTo, nextCursor := boot.settlementChecker.prepareInclusionScan(evidence.scanCursor)
+	boot.storeReconcileScanCursor(evidence, nextCursor)
+
+	if boot.settlementChecker.isSettled(evidence.nonce, evidence.localHash, scanFrom, scanTo) {
 		boot.clearReconcileEvidence(evidence)
 		return false
 	}
 
 	selfID := boot.shardCoordinator.SelfId()
 	isCompetitorSettled := boot.proofs.HasProof(selfID, evidence.competitorHash) &&
-		boot.settlementChecker.isSettled(evidence.nonce, evidence.competitorHash)
+		boot.settlementChecker.isSettled(evidence.nonce, evidence.competitorHash, scanFrom, scanTo)
 	if !isCompetitorSettled {
 		// the authority's verdict may still arrive; keep the evidence armed for the next round
 		return false
@@ -2597,6 +2601,14 @@ func (boot *baseBootstrap) disarmDeadEpochStartIfNeeded(deadMeta data.HeaderHand
 		"epoch", deadMeta.GetEpoch(),
 		"hash", deadMetaHash,
 		"disarmed", disarmed)
+}
+
+func (boot *baseBootstrap) storeReconcileScanCursor(evidence *reconcileEvidence, nextCursor uint64) {
+	boot.mutReconcile.Lock()
+	if boot.pendingReconcile == evidence {
+		evidence.scanCursor = nextCursor
+	}
+	boot.mutReconcile.Unlock()
 }
 
 func (boot *baseBootstrap) clearReconcileEvidence(evidence *reconcileEvidence) {

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -1211,12 +1213,203 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.False(t, boot.tryReconcileEquivocation())
 		require.Greater(t, checker.numCalls, callsInFirstRound)
 	})
+
+	t.Run("the scan cursor persists across rounds and the window reaches the settled calls", func(t *testing.T) {
+		t.Parallel()
+
+		gotCursors := make([]uint64, 0)
+		var gotFrom, gotTo uint64
+		checker := &settlementCheckerStub{
+			prepareInclusionScanCalled: func(scanCursor uint64) (uint64, uint64, uint64) {
+				gotCursors = append(gotCursors, scanCursor)
+				return 7, 22, scanCursor + 5
+			},
+			isSettledCalled: func(_ uint64, _ []byte) bool { return false },
+		}
+		checker.isSettledWindowCalled = func(from uint64, to uint64) {
+			gotFrom, gotTo = from, to
+		}
+
+		calls := &reconcileCalls{}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 1}
+		boot := buildBootstrapperWithChecker(nil, calls, checker, roundHandler)
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+
+		require.False(t, boot.tryReconcileEquivocation())
+		roundHandler.RoundIndex = 2
+		require.False(t, boot.tryReconcileEquivocation())
+		roundHandler.RoundIndex = 3
+		require.False(t, boot.tryReconcileEquivocation())
+
+		require.Equal(t, []uint64{0, 5, 10}, gotCursors)
+		require.Equal(t, uint64(7), gotFrom)
+		require.Equal(t, uint64(22), gotTo)
+	})
+}
+
+// the meta block notarizing the competitor sits far above the fork era anchor and outside the pool head window,
+// so only the resumable cursor with paired requests can reach it
+func TestBaseBootstrap_ReconcileResumableScan(t *testing.T) {
+	t.Parallel()
+
+	finalNonce := uint64(10)
+	anchor := uint64(40)
+	notarizingNonce := anchor + 20
+	tipNonce := anchor + 50
+	localHash, competitorHash := []byte("localHash"), []byte("competitorHash")
+	localHead := &block.HeaderV3{Nonce: finalNonce, Round: 12}
+	competitorProof := &block.HeaderProof{HeaderHash: competitorHash, HeaderNonce: finalNonce, HeaderRound: 11, HeaderShardId: 0}
+
+	metaHash := func(n uint64) []byte { return []byte(fmt.Sprintf("m%d", n)) }
+
+	type fixture struct {
+		boot            *baseBootstrap
+		roundHandler    *mock.RoundHandlerMock
+		reconciledNonce *uint64
+	}
+
+	// notarizingRef is what the block at notarizingNonce references; tipRef goes on a tip region
+	// block inside the descending head window
+	build := func(t *testing.T, notarizingRef []byte, tipRef []byte, shardBranch [][]byte) fixture {
+		pools := testscommonDataRetriever.NewPoolsHolderMock()
+		headersPool := pools.Headers()
+		proofsPool := pools.Proofs()
+
+		addMeta := func(n uint64, refHash []byte) {
+			meta := &block.MetaBlock{Nonce: n, Round: n, PrevHash: metaHash(n - 1)}
+			if len(refHash) > 0 {
+				meta.ShardInfo = []block.ShardData{{ShardID: 0, HeaderHash: refHash}}
+			}
+			headersPool.AddHeader(metaHash(n), meta)
+			_ = proofsPool.AddProof(&block.HeaderProof{HeaderHash: metaHash(n), HeaderShardId: core.MetachainShardId, HeaderNonce: n, HeaderRound: n})
+		}
+
+		// tip region occupies the descending head window; it never references the branch root
+		for n := tipNonce - 6; n <= tipNonce; n++ {
+			ref := []byte(nil)
+			if n == tipNonce-2 {
+				ref = tipRef
+			}
+			addMeta(n, ref)
+		}
+
+		// the shard branch of the competitor, for the descendant walk
+		prevHash := competitorHash
+		for i, branchHash := range shardBranch {
+			headersPool.AddHeader(branchHash, &block.Header{ShardID: 0, Nonce: finalNonce + 1 + uint64(i), PrevHash: prevHash})
+			prevHash = branchHash
+		}
+
+		// the competitor proof makes the evaluator precondition pass
+		_ = proofsPool.AddProof(competitorProof)
+
+		requestHandler := &testscommon.RequestHandlerStub{
+			// the network serves canonical fork era data on request: header and proof by nonce
+			RequestMetaHeaderByNonceCalled: func(n uint64) {
+				if n == notarizingNonce {
+					addMeta(n, notarizingRef)
+					return
+				}
+				if n >= anchor && n < tipNonce-6 {
+					addMeta(n, nil)
+				}
+			},
+		}
+
+		view, err := track.NewMetaFinalityView(track.ArgsMetaFinalityView{
+			HeadersPool: headersPool,
+			ProofsPool:  proofsPool,
+		})
+		require.Nil(t, err)
+
+		reconciledNonce := new(uint64)
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 1}
+		boot := &baseBootstrap{
+			settlementChecker: &shardSettlementChecker{
+				metaFinalityView: view,
+				blockTracker: &mock.BlockTrackerMock{
+					GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+						return &block.MetaBlock{Nonce: anchor}, metaHash(anchor), nil
+					},
+				},
+				headers:        headersPool,
+				proofs:         proofsPool,
+				requestHandler: requestHandler,
+				selfShardID:    0,
+			},
+			roundHandler: roundHandler,
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return localHead },
+				GetCurrentBlockHeaderHashCalled: func() []byte { return localHash },
+			},
+			forkDetector: &mock.ForkDetectorMock{
+				GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
+				ReconcileFinalCheckpointCalled:  func(nonce uint64) { *reconciledNonce = nonce },
+				SetRollBackNonceCalled:          func(nonce uint64) {},
+			},
+			headers:          headersPool,
+			proofs:           proofsPool,
+			shardCoordinator: mock.NewOneShardCoordinatorMock(),
+			blackListHandler: &testscommon.TimeCacheStub{},
+			statusHandler:    &statusHandlerMock.AppStatusHandlerStub{},
+		}
+
+		return fixture{boot: boot, roundHandler: roundHandler, reconciledNonce: reconciledNonce}
+	}
+
+	runUntilFired := func(t *testing.T, fix fixture, maxRounds int64) bool {
+		fix.boot.onEquivocationEvidence(competitorProof, nil)
+		require.NotNil(t, fix.boot.pendingReconcile)
+
+		for round := int64(1); round <= maxRounds; round++ {
+			fix.roundHandler.RoundIndex = round
+			if fix.boot.tryReconcileEquivocation() {
+				return true
+			}
+		}
+		return false
+	}
+
+	t.Run("notarization far above the anchor is found through the cursor", func(t *testing.T) {
+		t.Parallel()
+
+		fix := build(t, competitorHash, nil, nil)
+		require.True(t, runUntilFired(t, fix, 6))
+		require.Equal(t, finalNonce, *fix.reconciledNonce)
+	})
+
+	// if this ever fails, the meta notarization contiguity assumption broke and
+	// the depth bound of the branch walk must be revisited as an independent defect
+	t.Run("a head window reference beyond the branch walk depth still converges through the cursor", func(t *testing.T) {
+		t.Parallel()
+
+		branch := make([][]byte, 0)
+		for i := 0; i < 9; i++ {
+			branch = append(branch, []byte(fmt.Sprintf("b%d", i)))
+		}
+
+		fix := build(t, competitorHash, branch[8], branch)
+		require.True(t, runUntilFired(t, fix, 6))
+		require.Equal(t, finalNonce, *fix.reconciledNonce)
+	})
+
+	t.Run("without a notarizing reference the evidence stays armed", func(t *testing.T) {
+		t.Parallel()
+
+		fix := build(t, nil, nil, nil)
+		require.False(t, runUntilFired(t, fix, 4))
+		require.NotNil(t, fix.boot.pendingReconcile)
+	})
 }
 
 type settlementCheckerStub struct {
 	isSettledCalled              func(nonce uint64, headerHash []byte) bool
+	isSettledWindowCalled        func(scanFrom uint64, scanTo uint64)
+	prepareInclusionScanCalled   func(scanCursor uint64) (uint64, uint64, uint64)
 	deadCrossNotarizedMetaCalled func() (data.HeaderHandler, []byte, bool)
 	numCalls                     int
+	numPrepareCalls              int
 }
 
 func (stub *settlementCheckerStub) deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool) {
@@ -1227,8 +1420,20 @@ func (stub *settlementCheckerStub) deadCrossNotarizedMeta() (data.HeaderHandler,
 	return nil, nil, false
 }
 
-func (stub *settlementCheckerStub) isSettled(nonce uint64, headerHash []byte) bool {
+func (stub *settlementCheckerStub) prepareInclusionScan(scanCursor uint64) (uint64, uint64, uint64) {
+	stub.numPrepareCalls++
+	if stub.prepareInclusionScanCalled != nil {
+		return stub.prepareInclusionScanCalled(scanCursor)
+	}
+
+	return 0, 0, 0
+}
+
+func (stub *settlementCheckerStub) isSettled(nonce uint64, headerHash []byte, scanFrom uint64, scanTo uint64) bool {
 	stub.numCalls++
+	if stub.isSettledWindowCalled != nil {
+		stub.isSettledWindowCalled(scanFrom, scanTo)
+	}
 	if stub.isSettledCalled != nil {
 		return stub.isSettledCalled(nonce, headerHash)
 	}
