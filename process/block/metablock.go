@@ -691,19 +691,30 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		return process.ErrNilMetaBlockHeader
 	}
 
-	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	metaBlock, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	hdrHashes := make([][]byte, len(metaBlock.ShardInfo))
-	for i := 0; i < len(metaBlock.ShardInfo); i++ {
-		hdrHashes[i] = metaBlock.ShardInfo[i].HeaderHash
+	// mirror updateCrossShardInfo: v3 references shard headers through the proposal shard info
+	shardInfoHandlers := process.GetShardHeadersReferencedByMeta(metaBlock)
+	hdrHashes := make([][]byte, len(shardInfoHandlers))
+	for i := 0; i < len(shardInfoHandlers); i++ {
+		hdrHashes[i] = shardInfoHandlers[i].GetHeaderHash()
 	}
 
 	err := mp.pendingMiniBlocksHandler.RevertHeader(metaBlock)
 	if err != nil {
 		return err
+	}
+
+	// inverse of the commitEpochStart flag transitions, so the trigger keeps tracking the committed chain
+	if metaBlock.IsHeaderV3() {
+		if metaBlock.IsStartOfEpochBlock() {
+			mp.epochStartTrigger.SetEpochChangeProposed(true)
+		} else if metaBlock.IsEpochChangeProposed() {
+			mp.epochStartTrigger.SetEpochChangeProposed(false)
+		}
 	}
 
 	headersPool := mp.dataPool.Headers()
@@ -1344,12 +1355,6 @@ func (mp *metaProcessor) CommitBlock(
 	err = mp.commitEpochStart(header, body)
 	if err != nil {
 		return err
-	}
-	if header.IsStartOfEpochBlock() {
-		mp.epochStartDataWrapper = &epochStartDataWrapper{
-			Epoch:          header.GetEpoch(),
-			EpochStartData: &block.EpochStart{},
-		}
 	}
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)

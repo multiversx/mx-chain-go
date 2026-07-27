@@ -1014,6 +1014,32 @@ func (mp *metaProcessor) CheckShardHeadersValidityAndFinalityProposal(
 	return mp.checkShardHeadersValidityAndFinalityProposal(metaHeaderHandler)
 }
 
+// SetComputedEpochStartData -
+func (mp *metaProcessor) SetComputedEpochStartData(epoch uint32, epochStartData *block.EpochStart) {
+	mp.mutEpochStartData.Lock()
+	defer mp.mutEpochStartData.Unlock()
+	mp.epochStartDataWrapper.Epoch = epoch
+	mp.epochStartDataWrapper.EpochStartData = epochStartData
+}
+
+// GetComputedEpochStartData -
+func (mp *metaProcessor) GetComputedEpochStartData(epoch uint32) (*block.EpochStart, error) {
+	return mp.getComputedEpochStartData(epoch)
+}
+
+// CheckReferencedMetaAncestryForProposal probes the ancestry gate for all headers sharing one view
+func (mp *metaProcessor) CheckReferencedMetaAncestryForProposal(headers []data.HeaderHandler) error {
+	view := mp.newProposalAncestryView()
+	for _, header := range headers {
+		err := mp.checkReferencedMetaAncestry(header, view)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // GetLastExecutionResultsRootHash -
 func (bp *baseProcessor) GetLastExecutedRootHash(
 	header data.HeaderHandler,
