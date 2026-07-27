@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 
@@ -16,8 +17,12 @@ const proofPullCheckInterval = 200 * time.Millisecond
 
 const maxProofPullBackoffRounds = 8
 
+type proofPullKey struct {
+	shardID uint32
+	nonce   uint64
+}
+
 type proofPullState struct {
-	nonce         uint64
 	nextPullRound int64
 	backoffRounds int64
 }
@@ -43,8 +48,8 @@ func (bbt *baseBlockTrack) pullProofsForContendedTipsLoop(ctx context.Context) {
 	}
 }
 
-// pullProofsForContendedTips actively discovers competing proofs by requesting all proofs at the
-// nonce of each contended-unsettled tracked tip, at most once per round with per-nonce backoff
+// pullProofsForContendedTips requests all proofs at each unresolved contended nonce, once per
+// round with backoff; a child does not settle a contended header, so states outlive tip advances
 func (bbt *baseBlockTrack) pullProofsForContendedTips() {
 	if !bbt.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
 		return
@@ -60,37 +65,44 @@ func (bbt *baseBlockTrack) pullProofsForContendedTips() {
 	}
 	bbt.lastProofPullRound = currentRound
 
-	contendedTips := bbt.getContendedUnsettledTips()
-
-	for shardID := range bbt.proofPullPerShard {
-		_, stillContended := contendedTips[shardID]
-		if !stillContended {
-			delete(bbt.proofPullPerShard, shardID)
+	for shardID, tip := range bbt.getContendedUnsettledTips() {
+		key := proofPullKey{shardID: shardID, nonce: tip.GetNonce()}
+		_, exists := bbt.proofPullStates[key]
+		if !exists {
+			bbt.proofPullStates[key] = &proofPullState{nextPullRound: currentRound, backoffRounds: 1}
 		}
 	}
 
-	for shardID, tip := range contendedTips {
-		state := bbt.proofPullPerShard[shardID]
-		if state == nil || state.nonce != tip.GetNonce() {
-			state = &proofPullState{nonce: tip.GetNonce(), nextPullRound: currentRound, backoffRounds: 1}
-			bbt.proofPullPerShard[shardID] = state
+	for key, state := range bbt.proofPullStates {
+		if bbt.notarizationPassedNonce(key.shardID, key.nonce) {
+			delete(bbt.proofPullStates, key)
+			continue
 		}
 
 		if currentRound < state.nextPullRound {
 			continue
 		}
 
-		log.Debug("pulling proofs for contended chain tip",
-			"shardID", shardID,
-			"nonce", tip.GetNonce(),
-			"tipRound", tip.GetRound(),
+		log.Debug("pulling proofs for contended nonce",
+			"shardID", key.shardID,
+			"nonce", key.nonce,
 			"currentRound", currentRound,
 		)
-		bbt.requestHandler.RequestEquivalentProofByNonce(shardID, tip.GetNonce())
+		bbt.requestHandler.RequestEquivalentProofByNonce(key.shardID, key.nonce)
 
 		state.nextPullRound = currentRound + state.backoffRounds
 		state.backoffRounds = min(state.backoffRounds*2, maxProofPullBackoffRounds)
 	}
+}
+
+// notarizationPassedNonce is the pull terminal condition: some header at or past the nonce was
+// notarized, so the arbitration this pull was feeding has concluded
+func (bbt *baseBlockTrack) notarizationPassedNonce(shardID uint32, nonce uint64) bool {
+	if shardID == bbt.shardCoordinator.SelfId() {
+		return bbt.selfNotarizer.GetLastNotarizedHeaderNonce(core.MetachainShardId) >= nonce
+	}
+
+	return bbt.crossNotarizer.GetLastNotarizedHeaderNonce(shardID) >= nonce
 }
 
 // getContendedUnsettledTips returns, per shard, the tracked tip that skipped at least one round

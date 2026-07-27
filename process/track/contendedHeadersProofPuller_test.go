@@ -110,12 +110,42 @@ func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 		sbt.PullProofsForContendedTips()
 		require.Equal(t, 4, len(*requests))
 
-		// a shard child does not settle the head, but it advances it to a non-contended nonce
+		// a shard child does not settle the contended header: pulling must continue at its nonce
 		child := &block.Header{Nonce: 3, Round: 6, PrevHash: []byte("headHash")}
 		sbt.AddTrackedHeader(child, []byte("childHash"))
 		roundHandler.RoundIndex = 25
 		sbt.PullProofsForContendedTips()
-		require.Equal(t, 4, len(*requests))
+		require.Equal(t, 5, len(*requests))
+		require.Equal(t, pullRequest{shardID: 0, nonce: 2}, (*requests)[4])
+
+		// notarization passing the nonce concludes the arbitration and drops the state
+		sbt.AddSelfNotarizedHeader(core.MetachainShardId, &block.Header{Nonce: 2}, []byte("notarizedHash"))
+		roundHandler.RoundIndex = 40
+		sbt.PullProofsForContendedTips()
+		require.Equal(t, 5, len(*requests))
+	})
+
+	t.Run("two unresolved contended nonces pull independently", func(t *testing.T) {
+		t.Parallel()
+
+		args, roundHandler, requests := createProofPullTrackerScaffold(true)
+		sbt, err := track.NewShardBlockTrack(args)
+		require.Nil(t, err)
+		_ = sbt.Close()
+
+		addTipWithParent(sbt, 5) // contended at nonce 2
+
+		sbt.PullProofsForContendedTips()
+		require.Equal(t, []pullRequest{{shardID: 0, nonce: 2}}, *requests)
+
+		// the child skips rounds as well: a second contended nonce while the first is unresolved
+		contendedChild := &block.Header{Nonce: 3, Round: 9, PrevHash: []byte("tipHash")}
+		sbt.AddTrackedHeader(contendedChild, []byte("contendedChildHash"))
+
+		roundHandler.RoundIndex = 20
+		sbt.PullProofsForContendedTips()
+		require.Contains(t, *requests, pullRequest{shardID: 0, nonce: 2})
+		require.Contains(t, *requests, pullRequest{shardID: 0, nonce: 3})
 	})
 
 	t.Run("supernova disabled should not request", func(t *testing.T) {

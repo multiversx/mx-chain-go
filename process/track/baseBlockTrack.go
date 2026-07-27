@@ -64,7 +64,7 @@ type baseBlockTrack struct {
 	maxNumHeadersToKeepPerShard int
 
 	mutProofPull       sync.Mutex
-	proofPullPerShard  map[uint32]*proofPullState
+	proofPullStates    map[proofPullKey]*proofPullState
 	lastProofPullRound int64
 
 	cancelFunc context.CancelFunc
@@ -143,7 +143,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		processConfigsHandler:                 arguments.ProcessConfigsHandler,
 		ownShardTracker:                       tracker,
 		requestHandler:                        arguments.RequestHandler,
-		proofPullPerShard:                     make(map[uint32]*proofPullState),
+		proofPullStates:                       make(map[proofPullKey]*proofPullState),
 		lastProofPullRound:                    -1,
 	}
 
