@@ -3,6 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -5886,5 +5887,306 @@ func TestMetaProcessor_ReferencedMetaAncestryGate(t *testing.T) {
 		_, err = mp.SelectIncomingMiniBlocks(newLastShardHdrs(), []data.HeaderHandler{candidate}, [][]byte{candidateHash}, 10, haveTime)
 		require.Nil(t, err)
 		require.Empty(t, referenced)
+	})
+}
+
+type ancestryCacheProcessor interface {
+	CheckReferencedMetaAncestryForProposal(headers []data.HeaderHandler) error
+}
+
+type ancestryReadCounters struct {
+	poolReads   int
+	storerReads map[string]int
+}
+
+func (counters *ancestryReadCounters) totalStorerReads() int {
+	total := 0
+	for _, reads := range counters.storerReads {
+		total += reads
+	}
+
+	return total
+}
+
+func TestMetaProcessor_AncestryCanonicalCache(t *testing.T) {
+	t.Parallel()
+
+	metaHash99 := []byte("metaHash99")
+	headHash := []byte("metaHash100")
+	meta99 := &block.MetaBlock{Nonce: 99, PrevHash: []byte("metaHash98")}
+	headMeta := &block.MetaBlock{Nonce: 100, PrevHash: metaHash99}
+
+	canonicalHash := func(nonce uint64) []byte { return []byte(fmt.Sprintf("canonical%d", nonce)) }
+	nonceKey := func(nonce uint64) string { return fmt.Sprintf("%d", nonce) }
+
+	// canonical run headers far below the pool walk horizon at nonce 99
+	runPool := func(fromNonce uint64, toNonce uint64) map[string]data.HeaderHandler {
+		poolHeaders := map[string]data.HeaderHandler{
+			string(metaHash99): meta99,
+			string(headHash):   headMeta,
+		}
+		for nonce := fromNonce; nonce <= toNonce; nonce++ {
+			poolHeaders[string(canonicalHash(nonce))] = &block.MetaBlock{Nonce: nonce}
+		}
+
+		return poolHeaders
+	}
+	runStorer := func(fromNonce uint64, toNonce uint64) map[string][]byte {
+		hashes := make(map[string][]byte)
+		for nonce := fromNonce; nonce <= toNonce; nonce++ {
+			hashes[nonceKey(nonce)] = canonicalHash(nonce)
+		}
+
+		return hashes
+	}
+	shardCandidate := func(metaHashes [][]byte) *block.Header {
+		return &block.Header{ShardID: 0, Nonce: 11, MetaBlockHashes: metaHashes}
+	}
+
+	buildProcessor := func(
+		poolHeaders map[string]data.HeaderHandler,
+		storerHashByKey map[string][]byte,
+		counters *ancestryReadCounters,
+		poolMissesFirstRequest map[string]bool,
+	) ancestryCacheProcessor {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		coreComponents.UInt64ByteSliceConv = &mock.Uint64ByteSliceConverterMock{
+			ToByteSliceCalled: func(nonce uint64) []byte {
+				return []byte(nonceKey(nonce))
+			},
+		}
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return headMeta },
+			GetCurrentBlockHeaderHashCalled: func() []byte { return headHash },
+		}
+		dataComponents.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == dataRetriever.MetaHdrNonceHashDataUnit {
+					return &storageStubs.StorerStub{
+						GetCalled: func(key []byte) ([]byte, error) {
+							counters.storerReads[string(key)]++
+							hash, found := storerHashByKey[string(key)]
+							if !found {
+								return nil, errors.New("nonce hash not found")
+							}
+							return hash, nil
+						},
+					}, nil
+				}
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, errors.New("not found")
+					},
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						return nil, errors.New("not found")
+					},
+				}, nil
+			},
+		}
+		if ph, ok := dataComponents.DataPool.(*dataRetrieverMock.PoolsHolderStub); ok {
+			ph.HeadersCalled = func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						counters.poolReads++
+						if poolMissesFirstRequest[string(hash)] {
+							poolMissesFirstRequest[string(hash)] = false
+							return nil, errors.New("header not found")
+						}
+						header, found := poolHeaders[string(hash)]
+						if !found {
+							return nil, errors.New("header not found")
+						}
+						return header, nil
+					},
+				}
+			}
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		return mp
+	}
+
+	t.Run("a below horizon run resolves once per header and reads each nonce once", func(t *testing.T) {
+		t.Parallel()
+
+		counters := &ancestryReadCounters{storerReads: make(map[string]int)}
+		mp := buildProcessor(runPool(20, 27), runStorer(20, 27), counters, nil)
+		firstHeader := shardCandidate([][]byte{canonicalHash(20), canonicalHash(21), canonicalHash(22), canonicalHash(23)})
+		secondHeader := shardCandidate([][]byte{canonicalHash(24), canonicalHash(25), canonicalHash(26), canonicalHash(27)})
+
+		err := mp.CheckReferencedMetaAncestryForProposal([]data.HeaderHandler{firstHeader, secondHeader})
+		require.Nil(t, err)
+
+		// per header: one reference resolution; plus the pool walk reads of the first probe
+		require.Equal(t, 4, counters.poolReads)
+		require.Equal(t, 8, counters.totalStorerReads())
+		for nonce := uint64(20); nonce <= 27; nonce++ {
+			require.Equal(t, 1, counters.storerReads[nonceKey(nonce)])
+		}
+	})
+
+	t.Run("a second pass over the same run answers from the cache with zero reads", func(t *testing.T) {
+		t.Parallel()
+
+		counters := &ancestryReadCounters{storerReads: make(map[string]int)}
+		mp := buildProcessor(runPool(20, 27), runStorer(20, 27), counters, nil)
+		firstHeader := shardCandidate([][]byte{canonicalHash(20), canonicalHash(21), canonicalHash(22), canonicalHash(23)})
+		secondHeader := shardCandidate([][]byte{canonicalHash(24), canonicalHash(25), canonicalHash(26), canonicalHash(27)})
+
+		err := mp.CheckReferencedMetaAncestryForProposal([]data.HeaderHandler{firstHeader, secondHeader, firstHeader, secondHeader})
+		require.Nil(t, err)
+
+		require.Equal(t, 4, counters.poolReads)
+		require.Equal(t, 8, counters.totalStorerReads())
+	})
+
+	t.Run("a dead reference at a covered nonce is rejected without another storer read", func(t *testing.T) {
+		t.Parallel()
+
+		deadHash := []byte("deadHash25")
+		poolHeaders := runPool(24, 26)
+		poolHeaders[string(deadHash)] = &block.MetaBlock{Nonce: 25, Round: 1000}
+
+		counters := &ancestryReadCounters{storerReads: make(map[string]int)}
+		mp := buildProcessor(poolHeaders, runStorer(24, 26), counters, nil)
+		candidate := shardCandidate([][]byte{canonicalHash(24), canonicalHash(25), canonicalHash(26), deadHash})
+
+		err := mp.CheckReferencedMetaAncestryForProposal([]data.HeaderHandler{candidate})
+		require.ErrorIs(t, err, blproc.ErrReferencedNonAncestorMetaHeader)
+		require.Equal(t, 1, counters.storerReads[nonceKey(25)])
+	})
+
+	t.Run("a pruned storer nonce stays fail closed and is read only once", func(t *testing.T) {
+		t.Parallel()
+
+		storerHashes := runStorer(20, 21)
+		delete(storerHashes, nonceKey(21))
+
+		counters := &ancestryReadCounters{storerReads: make(map[string]int)}
+		mp := buildProcessor(runPool(20, 21), storerHashes, counters, nil)
+		candidate := shardCandidate([][]byte{canonicalHash(20), canonicalHash(21)})
+
+		err := mp.CheckReferencedMetaAncestryForProposal([]data.HeaderHandler{candidate})
+		require.ErrorIs(t, err, blproc.ErrReferencedNonAncestorMetaHeader)
+		require.Equal(t, 1, counters.storerReads[nonceKey(21)])
+	})
+
+	t.Run("the pool walk freezes once the canonical region activates", func(t *testing.T) {
+		t.Parallel()
+
+		// meta98 reaches the pool only after the walk stopped there; the canonical storer holds a
+		// divergent hash at 98, so accepting the late header through the walk would flip the verdict
+		metaHash98 := []byte("metaHash98")
+		poolHeaders := runPool(20, 20)
+		poolHeaders[string(metaHash98)] = &block.MetaBlock{Nonce: 98, PrevHash: []byte("metaHash97")}
+		storerHashes := runStorer(20, 20)
+		storerHashes[nonceKey(98)] = []byte("otherLocalHash98")
+
+		counters := &ancestryReadCounters{storerReads: make(map[string]int)}
+		mp := buildProcessor(poolHeaders, storerHashes, counters, map[string]bool{string(metaHash98): true})
+		firstHeader := shardCandidate([][]byte{canonicalHash(20)})
+		secondHeader := shardCandidate([][]byte{metaHash98})
+
+		err := mp.CheckReferencedMetaAncestryForProposal([]data.HeaderHandler{firstHeader, secondHeader})
+		require.ErrorIs(t, err, blproc.ErrReferencedNonAncestorMetaHeader)
+	})
+
+	t.Run("walked window references answer from the walk set without re resolution", func(t *testing.T) {
+		t.Parallel()
+
+		counters := &ancestryReadCounters{storerReads: make(map[string]int)}
+		mp := buildProcessor(runPool(0, 0), nil, counters, nil)
+		candidate := shardCandidate([][]byte{metaHash99, metaHash99, headHash})
+
+		err := mp.CheckReferencedMetaAncestryForProposal([]data.HeaderHandler{candidate})
+		require.Nil(t, err)
+
+		// one resolution plus one walk step; the repeat and the parent hash answer from the set
+		require.Equal(t, 2, counters.poolReads)
+		require.Equal(t, 0, counters.totalStorerReads())
+	})
+}
+
+type epochStartDataProcessor interface {
+	SetComputedEpochStartData(epoch uint32, epochStartData *block.EpochStart)
+	GetComputedEpochStartData(epoch uint32) (*block.EpochStart, error)
+	VerifyEpochStartData(header data.MetaHeaderHandler) bool
+}
+
+// the computed epoch start data must survive the epoch start block commit, so that after an epoch
+// boundary rollback the canonical sibling still verifies; the epoch guard confines it to its epoch
+func TestMetaProcessor_ComputedEpochStartDataEpochGuard(t *testing.T) {
+	t.Parallel()
+
+	epochStartData := &block.EpochStart{
+		LastFinalizedHeaders: []block.EpochStartShardData{
+			{ShardID: 0, HeaderHash: []byte("shard header hash")},
+		},
+		Economics: block.Economics{
+			PrevEpochStartRound: 100,
+		},
+	}
+
+	buildProcessor := func(t *testing.T) epochStartDataProcessor {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		return mp
+	}
+
+	t.Run("data is served only for its own epoch", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t)
+		mp.SetComputedEpochStartData(7, epochStartData)
+
+		computed, err := mp.GetComputedEpochStartData(7)
+		require.Nil(t, err)
+		require.True(t, computed.Equal(epochStartData))
+
+		_, err = mp.GetComputedEpochStartData(8)
+		require.ErrorIs(t, err, process.ErrNilEpochStartData)
+		_, err = mp.GetComputedEpochStartData(6)
+		require.ErrorIs(t, err, process.ErrNilEpochStartData)
+	})
+
+	t.Run("a same parent sibling verifies against the retained data", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t)
+		mp.SetComputedEpochStartData(7, epochStartData)
+
+		sibling := &block.MetaBlockV3{Epoch: 7, EpochStart: *epochStartData}
+		require.True(t, mp.VerifyEpochStartData(sibling))
+	})
+
+	t.Run("an emptied wrapper fails sibling verification", func(t *testing.T) {
+		t.Parallel()
+
+		// the old commit time reset produced exactly this state and stalled the boundary
+		mp := buildProcessor(t)
+		mp.SetComputedEpochStartData(7, &block.EpochStart{})
+
+		sibling := &block.MetaBlockV3{Epoch: 7, EpochStart: *epochStartData}
+		require.False(t, mp.VerifyEpochStartData(sibling))
+	})
+
+	t.Run("data from another epoch fails verification", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t)
+		mp.SetComputedEpochStartData(6, epochStartData)
+
+		sibling := &block.MetaBlockV3{Epoch: 7, EpochStart: *epochStartData}
+		require.False(t, mp.VerifyEpochStartData(sibling))
 	})
 }
