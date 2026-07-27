@@ -1904,7 +1904,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(metaHash1), meta1)
 	arguments.HeadersForBlock.AddHeaderNotUsedInBlock(string(metaHash2), meta2)
 
-	err := sp.CheckMetaHeadersValidityAndFinality()
+	err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 1})
 	assert.Nil(t, err)
 }
 
@@ -1923,7 +1923,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldReturnNilWhenNo
 		},
 	)
 
-	err := sp.CheckMetaHeadersValidityAndFinality()
+	err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 1})
 	assert.Nil(t, err)
 }
 
@@ -8176,7 +8176,9 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	buildProcessor := func(settled bool) interface{ CheckMetaHeadersValidityAndFinality() error } {
+	buildProcessor := func(settled bool) (interface {
+		CheckMetaHeadersValidityAndFinality(header data.HeaderHandler) error
+	}, dataRetriever.ProofsPool) {
 		tdp := dataRetrieverMock.NewPoolsHolderMock()
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 		genesisBlocks := createGenesisBlocks(shardCoordinator)
@@ -8227,22 +8229,35 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 		arguments.HeadersForBlock.AddHeaderNotUsedInBlock(string(metaHash2), meta2)
 
 		sp, _ := blproc.NewShardProcessor(arguments)
-		return sp
+		return sp, tdp.Proofs()
 	}
 
 	t.Run("contended unsettled referenced meta header should error", func(t *testing.T) {
 		t.Parallel()
 
-		sp := buildProcessor(false)
-		err := sp.CheckMetaHeadersValidityAndFinality()
+		sp, _ := buildProcessor(false)
+		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
 		assert.ErrorContains(t, err, "included contended header not yet settled")
 	})
 
 	t.Run("contended settled referenced meta header should pass", func(t *testing.T) {
 		t.Parallel()
 
-		sp := buildProcessor(true)
-		err := sp.CheckMetaHeadersValidityAndFinality()
+		sp, _ := buildProcessor(true)
+		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
+		assert.Nil(t, err)
+	})
+
+	t.Run("own proof supersedes the contended gate on the execution path", func(t *testing.T) {
+		t.Parallel()
+
+		sp, proofs := buildProcessor(false)
+		ownHeader := &block.Header{Nonce: 7}
+		headerBytes, _ := marshalizer.Marshal(ownHeader)
+		ownHash := hasher.Compute(string(headerBytes))
+		require.True(t, proofs.AddProof(&block.HeaderProof{HeaderHash: ownHash, HeaderNonce: 7}))
+
+		err := sp.CheckMetaHeadersValidityAndFinality(ownHeader)
 		assert.Nil(t, err)
 	})
 }

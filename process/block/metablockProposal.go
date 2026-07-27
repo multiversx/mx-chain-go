@@ -1093,11 +1093,34 @@ func (mp *metaProcessor) selectContendedShardHeaders(
 	return nil
 }
 
-// checkShardHeaderContention rejects a contended unsettled shard header only when a better proofed
-// competitor extending the same parent is actionable locally; the hold is proposer-side
-func (mp *metaProcessor) checkShardHeaderContention(header data.HeaderHandler, headerHash []byte, parentInfo ShardHeaderInfo, ancestryView *metaAncestryView) error {
+// contentionContext is the enclosing meta block's committed round and its lazily resolved network
+// verdict: once the block carries its own proof, the subjective competitor check is superseded
+type contentionContext struct {
+	metaRound    uint64
+	isOwnProofed func() bool
+}
+
+func (mp *metaProcessor) newContentionContext(metaHeader data.HeaderHandler) contentionContext {
+	return contentionContext{
+		metaRound:    metaHeader.GetRound(),
+		isOwnProofed: mp.ownProofResolver(metaHeader),
+	}
+}
+
+// checkShardHeaderContention gates a contended unsettled shard header by regime: a proofed meta
+// block is the network verdict and passes; an unproofed one must honor the discovery window
+// (committed rounds, deterministic) and beats any locally actionable better competitor
+func (mp *metaProcessor) checkShardHeaderContention(header data.HeaderHandler, headerHash []byte, parentInfo ShardHeaderInfo, ancestryView *metaAncestryView, contentionCtx contentionContext) error {
 	if !mp.isContendedUnsettledCrossHeader(header, parentInfo.Header, headerHash) {
 		return nil
+	}
+
+	if contentionCtx.isOwnProofed() {
+		return nil
+	}
+
+	if contentionCtx.metaRound < header.GetRound()+metaArbitrationWindowRounds {
+		return fmt.Errorf("%w with hash %x", errContendedHeaderInsideArbitrationWindow, headerHash)
 	}
 
 	candidate, candidateHash := mp.getArbitrationCandidate(parentInfo, ancestryView)
@@ -1115,7 +1138,7 @@ func (mp *metaProcessor) checkShardHeaderContention(header data.HeaderHandler, h
 }
 
 // checkShardHeaderContentionComputingHash computes the hashes only on the contended path
-func (mp *metaProcessor) checkShardHeaderContentionComputingHash(header data.HeaderHandler, parentHeader data.HeaderHandler, ancestryView *metaAncestryView) error {
+func (mp *metaProcessor) checkShardHeaderContentionComputingHash(header data.HeaderHandler, parentHeader data.HeaderHandler, ancestryView *metaAncestryView, contentionCtx contentionContext) error {
 	if !mp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
 		return nil
 	}
@@ -1132,7 +1155,7 @@ func (mp *metaProcessor) checkShardHeaderContentionComputingHash(header data.Hea
 		return err
 	}
 
-	return mp.checkShardHeaderContention(header, headerHash, ShardHeaderInfo{Header: parentHeader, Hash: parentHash}, ancestryView)
+	return mp.checkShardHeaderContention(header, headerHash, ShardHeaderInfo{Header: parentHeader, Hash: parentHash}, ancestryView, contentionCtx)
 }
 
 // getArbitrationCandidate returns the lowest-(round,hash) proofed, construction-valid header at the
@@ -1509,7 +1532,7 @@ func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
 		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal", err)
 	}
 
-	err = mp.verifyUsedShardHeadersValidity(usedShardHeaders.headersPerShard, lastCrossNotarizedHeader, ancestryView)
+	err = mp.verifyUsedShardHeadersValidity(usedShardHeaders.headersPerShard, lastCrossNotarizedHeader, ancestryView, mp.newContentionContext(metaHeaderHandler))
 	if err != nil {
 		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> verifyUsedShardHeadersValidity", err)
 	}
@@ -1547,10 +1570,11 @@ func (mp *metaProcessor) verifyUsedShardHeadersValidity(
 	usedShardHeaders map[uint32][]ShardHeaderInfo,
 	lastCrossNotarizedHeader map[uint32]ShardHeaderInfo,
 	ancestryView *metaAncestryView,
+	contentionCtx contentionContext,
 ) error {
 	var err error
 	for shardID, hdrsForShard := range usedShardHeaders {
-		err = mp.checkHeadersSequenceCorrectness(hdrsForShard, lastCrossNotarizedHeader[shardID], ancestryView)
+		err = mp.checkHeadersSequenceCorrectness(hdrsForShard, lastCrossNotarizedHeader[shardID], ancestryView, contentionCtx)
 		if err != nil {
 			return err
 		}
@@ -1562,6 +1586,7 @@ func (mp *metaProcessor) checkHeadersSequenceCorrectness(
 	hdrsForShard []ShardHeaderInfo,
 	lastNotarizedHeaderInfoForShard ShardHeaderInfo,
 	ancestryView *metaAncestryView,
+	contentionCtx contentionContext,
 ) error {
 	var err error
 	for _, shardHdrInfo := range hdrsForShard {
@@ -1569,7 +1594,7 @@ func (mp *metaProcessor) checkHeadersSequenceCorrectness(
 			continue
 		}
 
-		err = mp.checkShardHeaderContention(shardHdrInfo.Header, shardHdrInfo.Hash, lastNotarizedHeaderInfoForShard, ancestryView)
+		err = mp.checkShardHeaderContention(shardHdrInfo.Header, shardHdrInfo.Hash, lastNotarizedHeaderInfoForShard, ancestryView, contentionCtx)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
 package block
 
 import (
+	"math"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -65,6 +66,12 @@ var ErrNilPreviousHdr = errNilPreviousHeader
 
 // ErrReferencedNonAncestorMetaHeader -
 var ErrReferencedNonAncestorMetaHeader = errReferencedNonAncestorMetaHeader
+
+// ErrContendedHeaderWithBetterCompetitor -
+var ErrContendedHeaderWithBetterCompetitor = errContendedHeaderWithBetterCompetitor
+
+// ErrContendedHeaderInsideArbitrationWindow -
+var ErrContendedHeaderInsideArbitrationWindow = errContendedHeaderInsideArbitrationWindow
 
 // ErrReferencedDeadMetaHeader -
 var ErrReferencedDeadMetaHeader = errReferencedDeadMetaHeader
@@ -486,8 +493,8 @@ func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []
 }
 
 // CheckMetaHeadersValidityAndFinality -
-func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
-	return sp.checkMetaHeadersValidityAndFinality()
+func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(header data.HeaderHandler) error {
+	return sp.checkMetaHeadersValidityAndFinality(header)
 }
 
 // CreateAndProcessMiniBlocksDstMe -
@@ -1002,9 +1009,22 @@ func (mp *metaProcessor) CheckShardInfoValidity(
 	return mp.checkShardInfoValidity(metaHeaderHandler, usedShardHeadersInfo)
 }
 
-// CheckHeadersSequenceCorrectness -
+// CheckHeadersSequenceCorrectness runs with a permissive contention context: past the window and
+// unproofed, preserving the pre-regime behavior for the existing fixtures
 func (mp *metaProcessor) CheckHeadersSequenceCorrectness(hdrsForShard []ShardHeaderInfo, lastNotarizedHeaderInfoForShard ShardHeaderInfo) error {
-	return mp.checkHeadersSequenceCorrectness(hdrsForShard, lastNotarizedHeaderInfoForShard, mp.newProposalAncestryView())
+	permissiveCtx := contentionContext{metaRound: math.MaxUint64, isOwnProofed: func() bool { return false }}
+	return mp.checkHeadersSequenceCorrectness(hdrsForShard, lastNotarizedHeaderInfoForShard, mp.newProposalAncestryView(), permissiveCtx)
+}
+
+// CheckHeadersSequenceCorrectnessWithContention -
+func (mp *metaProcessor) CheckHeadersSequenceCorrectnessWithContention(
+	hdrsForShard []ShardHeaderInfo,
+	lastNotarizedHeaderInfoForShard ShardHeaderInfo,
+	metaRound uint64,
+	metaProofed bool,
+) error {
+	contentionCtx := contentionContext{metaRound: metaRound, isOwnProofed: func() bool { return metaProofed }}
+	return mp.checkHeadersSequenceCorrectness(hdrsForShard, lastNotarizedHeaderInfoForShard, mp.newProposalAncestryView(), contentionCtx)
 }
 
 // CheckShardHeadersValidityAndFinalityProposal -

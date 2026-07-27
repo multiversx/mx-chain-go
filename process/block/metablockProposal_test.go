@@ -6114,6 +6114,116 @@ func TestMetaProcessor_AncestryCanonicalCache(t *testing.T) {
 	})
 }
 
+type contentionRegimeProcessor interface {
+	CheckHeadersSequenceCorrectnessWithContention(hdrsForShard []blproc.ShardHeaderInfo, lastNotarizedHeaderInfoForShard blproc.ShardHeaderInfo, metaRound uint64, metaProofed bool) error
+}
+
+// the three regime contention rule: a proofed meta block is the network verdict; an unproofed one
+// must honor the discovery window deterministically and beat locally actionable competitors
+func TestMetaProcessor_ShardHeaderContentionRegimes(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("parentShardHash")
+	parentShard := &block.Header{ShardID: 0, Nonce: 10, Round: 10}
+	parentInfo := blproc.ShardHeaderInfo{Header: parentShard, Hash: parentHash}
+
+	// rounds 11-13 skipped after the parent -> contended
+	contended := &block.Header{ShardID: 0, Nonce: 11, Round: 14, PrevHash: parentHash}
+	contendedHash := []byte("contendedHash")
+	siblingHash := []byte("siblingHash")
+	sibling := &block.Header{ShardID: 0, Nonce: 11, Round: 12, PrevHash: parentHash}
+
+	buildProcessor := func(t *testing.T, pooledSiblings bool) contentionRegimeProcessor {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return &block.MetaBlock{Nonce: 100} },
+			GetCurrentBlockHeaderHashCalled: func() []byte { return []byte("metaHeadHash") },
+		}
+		if ph, ok := dataComponents.DataPool.(*dataRetrieverMock.PoolsHolderStub); ok {
+			ph.HeadersCalled = func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {
+						if !pooledSiblings {
+							return nil, nil, errors.New("no headers")
+						}
+						return []data.HeaderHandler{sibling, contended}, [][]byte{siblingHash, contendedHash}, nil
+					},
+				}
+			}
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool { return true },
+				}
+			}
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
+			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error { return nil },
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		return mp
+	}
+
+	hdrs := []blproc.ShardHeaderInfo{{Header: contended, Hash: contendedHash}}
+
+	t.Run("unproofed meta block inside the window rejects deterministically", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t, false)
+		err := mp.CheckHeadersSequenceCorrectnessWithContention(hdrs, parentInfo, contended.Round+2, false)
+		require.ErrorIs(t, err, blproc.ErrContendedHeaderInsideArbitrationWindow)
+	})
+
+	t.Run("unproofed meta block past the window accepts without a better competitor", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t, false)
+		err := mp.CheckHeadersSequenceCorrectnessWithContention(hdrs, parentInfo, contended.Round+3, false)
+		require.Nil(t, err)
+	})
+
+	t.Run("unproofed meta block past the window rejects on a better local competitor", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t, true)
+		err := mp.CheckHeadersSequenceCorrectnessWithContention(hdrs, parentInfo, contended.Round+3, false)
+		require.ErrorIs(t, err, blproc.ErrContendedHeaderWithBetterCompetitor)
+	})
+
+	t.Run("proofed meta block supersedes the better competitor", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t, true)
+		err := mp.CheckHeadersSequenceCorrectnessWithContention(hdrs, parentInfo, contended.Round+3, true)
+		require.Nil(t, err)
+	})
+
+	t.Run("proofed meta block supersedes the window", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t, true)
+		err := mp.CheckHeadersSequenceCorrectnessWithContention(hdrs, parentInfo, contended.Round+2, true)
+		require.Nil(t, err)
+	})
+
+	t.Run("non contended header ignores the contention context", func(t *testing.T) {
+		t.Parallel()
+
+		nonContended := &block.Header{ShardID: 0, Nonce: 11, Round: 11, PrevHash: parentHash}
+		mp := buildProcessor(t, false)
+		err := mp.CheckHeadersSequenceCorrectnessWithContention(
+			[]blproc.ShardHeaderInfo{{Header: nonContended, Hash: []byte("nonContendedHash")}}, parentInfo, 0, false)
+		require.Nil(t, err)
+	})
+}
+
 type epochStartDataProcessor interface {
 	SetComputedEpochStartData(epoch uint32, epochStartData *block.EpochStart)
 	GetComputedEpochStartData(epoch uint32) (*block.EpochStart, error)

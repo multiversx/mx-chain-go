@@ -219,7 +219,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.checkMetaHeadersValidityAndFinality()
+	err = sp.checkMetaHeadersValidityAndFinality(headerHandler)
 	if err != nil {
 		return err
 	}
@@ -531,7 +531,7 @@ func (sp *shardProcessor) SetNumProcessedObj(numObj uint64) {
 }
 
 // checkMetaHeadersValidityAndFinality - checks if listed metaheaders are valid as construction
-func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
+func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header data.HeaderHandler) error {
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return err
@@ -546,6 +546,8 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 		return nil
 	}
 
+	isOwnProofed := sp.ownProofResolver(header)
+
 	for _, metaHdr := range usedMetaHdrs[core.MetachainShardId] {
 		log.Trace("checkMetaHeadersValidityAndFinality", "metaHeader nonce", metaHdr.GetNonce())
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastCrossNotarizedHeader)
@@ -553,8 +555,9 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinality -> isHdrConstructionValid", err)
 		}
 
+		// the own proof supersedes the subjective gate, same regime rule as the proposal path
 		err = sp.checkNotContendedUnsettled(metaHdr, lastCrossNotarizedHeader)
-		if err != nil {
+		if err != nil && !isOwnProofed() {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinality", err)
 		}
 

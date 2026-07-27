@@ -2787,6 +2787,57 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		require.ErrorContains(t, err, "included contended header not yet settled")
 	})
 
+	t.Run("own proof supersedes the contended unsettled gate", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		lastNotarizedMeta := &block.MetaBlockV3{Round: 1, Nonce: 1}
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return lastNotarizedMeta, []byte("h"), nil
+			},
+			IsSettledCrossHeaderCalled: func(header data.HeaderHandler, headerHash []byte) bool {
+				return false
+			},
+		}
+		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
+			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+				return nil
+			},
+		}
+
+		dataPool, ok := dataComponents.Datapool().(*dataRetriever.PoolsHolderStub)
+		require.True(t, ok)
+		dataPool.HeadersCalled = func() retriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					// rounds 2-4 skipped after the last notarized meta header
+					return &block.MetaBlockV3{Round: 5, Nonce: 2}, nil
+				},
+			}
+		}
+		dataPool.ProofsCalled = func() retriever.ProofsPool {
+			return &dataRetriever.ProofsPoolMock{
+				HasProofCalled: func(_ uint32, _ []byte) bool { return true },
+			}
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{
+			MetaBlockHashes: [][]byte{[]byte("hh")},
+		}
+		err := sp.CheckMetaHeadersValidityAndFinalityProposal(header)
+		require.Nil(t, err)
+	})
+
 	t.Run("dead referenced meta header should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -2831,8 +2882,10 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		}
 		dataPool.ProofsCalled = func() retriever.ProofsPool {
 			return &dataRetriever.ProofsPoolMock{
-				HasProofCalled: func(_ uint32, headerHash []byte) bool {
-					return true
+				// the dead branch evidence proofs are meta chain proofs; the shard block under
+				// validation has no proof of its own yet, the consensus time regime
+				HasProofCalled: func(shardID uint32, _ []byte) bool {
+					return shardID == core.MetachainShardId
 				},
 			}
 		}
@@ -2844,6 +2897,21 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		}
 		err := sp.CheckMetaHeadersValidityAndFinalityProposal(header)
 		require.ErrorIs(t, err, blproc.ErrReferencedDeadMetaHeader)
+
+		// with its own proof pooled, the network verdict supersedes the local dead evidence
+		dataPool.ProofsCalled = func() retriever.ProofsPool {
+			return &dataRetriever.ProofsPoolMock{
+				HasProofCalled: func(_ uint32, _ []byte) bool { return true },
+			}
+		}
+		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
+			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+				return nil
+			},
+		}
+		spProofed, _ := blproc.NewShardProcessor(arguments)
+		err = spProofed.CheckMetaHeadersValidityAndFinalityProposal(header)
+		require.Nil(t, err)
 	})
 
 	t.Run("pre Supernova keeps the dead gate disabled", func(t *testing.T) {
