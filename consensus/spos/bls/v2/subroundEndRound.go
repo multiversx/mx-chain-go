@@ -1028,6 +1028,11 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 		return false
 	}
 
+	if sr.HasProofForCompetingBlock() {
+		log.Debug("receivedSignature: competing block proof detected, dropping signature")
+		return false
+	}
+
 	remainingTime := sr.remainingTime()
 	if remainingTime <= 0 {
 		return false

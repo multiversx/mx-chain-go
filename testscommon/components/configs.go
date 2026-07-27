@@ -188,6 +188,7 @@ func GetGeneralConfig() config.Config {
 					MaxConsecutiveRoundsOfRatingDecrease:   600,
 					MaxBlockProcessingTimeMs:               1000,
 					NumHeadersToRequestInAdvance:           10,
+					RoundModulusTriggerWhenSyncIsStuck:     20,
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
