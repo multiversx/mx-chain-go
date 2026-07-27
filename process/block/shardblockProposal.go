@@ -823,8 +823,12 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	}
 
 	for idx, metaHeader := range usedMetaHeaders {
-		if sp.blockTracker.IsHeaderQuarantined(usedMetaHashes[idx]) {
-			return fmt.Errorf("%w with hash %x", errIncludedQuarantinedHeader, usedMetaHashes[idx])
+		if sp.isContendedUnsettledCrossHeader(metaHeader, lastCrossNotarizedHeader, usedMetaHashes[idx]) {
+			return fmt.Errorf("%w with hash %x", errIncludedContendedUnsettledHeader, usedMetaHashes[idx])
+		}
+
+		if sp.isDeadReferencedMetaHeader(metaHeader, usedMetaHashes[idx]) {
+			return fmt.Errorf("%w with hash %x", errReferencedDeadMetaHeader, usedMetaHashes[idx])
 		}
 
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHeader, lastCrossNotarizedHeader)
@@ -840,6 +844,16 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	}
 
 	return nil
+}
+
+// isDeadReferencedMetaHeader rejects on local evidence only; validators without the competitor
+// evidence accept, the same liveness model as the contention checks
+func (sp *shardProcessor) isDeadReferencedMetaHeader(metaHeader data.HeaderHandler, metaHash []byte) bool {
+	if !sp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return false
+	}
+
+	return sp.metaFinalityView.IsDeadMetaBlock(metaHash, metaHeader.GetNonce())
 }
 
 func (sp *shardProcessor) getReferencedMetaHeadersFromPool(header data.ShardHeaderHandler) ([][]byte, []data.HeaderHandler, error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -32,6 +33,12 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	}
 	if check.IfNil(arguments.PoolsHolder.MiniBlocks()) {
 		return nil, process.ErrNilTxBlockBody
+	}
+	if check.IfNil(arguments.MetaFinalityView) {
+		return nil, process.ErrNilMetaFinalityView
+	}
+	if check.IfNil(arguments.BlockTracker) {
+		return nil, process.ErrNilBlockTracker
 	}
 
 	err := checkBaseBootstrapParameters(arguments.ArgBaseBootstrapper)
@@ -59,6 +66,8 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		bootStorer:                   arguments.BootStorer,
 		storageBootstrapper:          arguments.StorageBootstrapper,
 		epochHandler:                 arguments.EpochHandler,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		divergenceEvaluatedRound:     -1,
 		miniBlocksProvider:           arguments.MiniblocksProvider,
 		uint64Converter:              arguments.Uint64Converter,
 		poolsHolder:                  arguments.PoolsHolder,
@@ -87,6 +96,13 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
+	base.settlementChecker = &shardSettlementChecker{
+		metaFinalityView: arguments.MetaFinalityView,
+		blockTracker:     arguments.BlockTracker,
+		selfShardID:      arguments.ShardCoordinator.SelfId(),
+	}
+	// the disarm capability exists only on the production shard trigger; test triggers may lack it
+	base.epochStartDisarmer, _ = arguments.EpochStartTrigger.(epochStartTriggerDisarmer)
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons

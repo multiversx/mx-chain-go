@@ -259,6 +259,14 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 // MetricNumTimesInForkChoice is the metric that counts how many times a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
+// MetricNumEquivocationProofs is the metric that counts the equivocation events observed by the
+// proofs pool (different-hash proofs received for the same header nonce)
+const MetricNumEquivocationProofs = "erd_num_equivocation_proofs"
+
+// MetricNumReconcileSwitches is the metric that counts the reconcile backstop activations, each a
+// switch away from a finalized block on equivocation evidence
+const MetricNumReconcileSwitches = "erd_num_reconcile_switches"
+
 // MetricHighestFinalBlock is the metric for the nonce of the highest final block
 const MetricHighestFinalBlock = "erd_highest_final_nonce"
 

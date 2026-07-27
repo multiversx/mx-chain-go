@@ -9,6 +9,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 
+	"github.com/multiversx/mx-chain-go/common"
+
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -604,78 +606,6 @@ func TestBlockProcessorComputeLongestChain_ShouldWork(t *testing.T) {
 	assert.Equal(t, headerHash2, hashes[0])
 }
 
-func TestBlockProcessorComputeLongestChain_ShouldSkipQuarantinedHeader(t *testing.T) {
-	t.Parallel()
-
-	hasherMock := &hashingMocks.HasherMock{}
-	marshallerMock := &mock.MarshalizerMock{}
-
-	header1 := &dataBlock.Header{
-		Round: 1,
-		Nonce: 1,
-	}
-	h1Bytes, _ := marshallerMock.Marshal(header1)
-	headerHash1 := hasherMock.Compute(string(h1Bytes))
-
-	header2 := &dataBlock.Header{
-		Round:    2,
-		Nonce:    2,
-		PrevHash: headerHash1,
-	}
-	h2Bytes, _ := marshallerMock.Marshal(header2)
-	headerHash2 := hasherMock.Compute(string(h2Bytes))
-
-	header3 := &dataBlock.Header{
-		Round:    3,
-		Nonce:    3,
-		PrevHash: headerHash2,
-	}
-	h3Bytes, _ := marshallerMock.Marshal(header3)
-	headerHash3 := hasherMock.Compute(string(h3Bytes))
-
-	newBlockProcessor := func(quarantined func(hash []byte) bool) interface {
-		ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
-	} {
-		blockProcessorArguments := CreateBlockProcessorMockArguments()
-		blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
-			SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
-				return []data.HeaderHandler{header2, header3}, [][]byte{headerHash2, headerHash3}
-			},
-			IsHeaderQuarantinedCalled: quarantined,
-		}
-
-		bp, _ := track.NewBlockProcessor(blockProcessorArguments)
-		return bp
-	}
-
-	t.Run("quarantined header is excluded and nothing is added on top", func(t *testing.T) {
-		t.Parallel()
-
-		bp := newBlockProcessor(func(hash []byte) bool {
-			return bytes.Equal(hash, headerHash2)
-		})
-
-		headers, hashes := bp.ComputeLongestChain(0, header1)
-
-		require.Equal(t, 0, len(headers))
-		require.Equal(t, 0, len(hashes))
-	})
-
-	t.Run("no quarantine returns the normal longest chain", func(t *testing.T) {
-		t.Parallel()
-
-		bp := newBlockProcessor(func(hash []byte) bool {
-			return false
-		})
-
-		headers, hashes := bp.ComputeLongestChain(0, header1)
-
-		require.Equal(t, 1, len(headers))
-		assert.Equal(t, header2, headers[0])
-		assert.Equal(t, headerHash2, hashes[0])
-	})
-}
-
 func TestGetNextHeader_ShouldReturnEmptySliceWhenPrevHeaderIsNil(t *testing.T) {
 	t.Parallel()
 
@@ -1262,4 +1192,141 @@ func TestShouldProcessReceivedHeader_ShouldWork(t *testing.T) {
 	assert.False(t, bp.ShouldProcessReceivedHeader(&dataBlock.MetaBlock{Nonce: 9}))
 	assert.False(t, bp.ShouldProcessReceivedHeader(&dataBlock.MetaBlock{Nonce: 10}))
 	assert.True(t, bp.ShouldProcessReceivedHeader(&dataBlock.MetaBlock{Nonce: 11}))
+}
+
+func TestBlockProcessorComputeLongestChain_ContendedUnsettledCrossHeader(t *testing.T) {
+	t.Parallel()
+
+	hasherMock := &hashingMocks.HasherMock{}
+	marshallerMock := &mock.MarshalizerMock{}
+
+	// cross-shard chain (shard 1, self is shard 0): header2 skipped rounds 2-4 after header1
+	header1 := &dataBlock.Header{ShardID: 1, Round: 1, Nonce: 1}
+	h1Bytes, _ := marshallerMock.Marshal(header1)
+	headerHash1 := hasherMock.Compute(string(h1Bytes))
+
+	header2 := &dataBlock.Header{ShardID: 1, Round: 5, Nonce: 2, PrevHash: headerHash1}
+	h2Bytes, _ := marshallerMock.Marshal(header2)
+	headerHash2 := hasherMock.Compute(string(h2Bytes))
+
+	header3 := &dataBlock.Header{ShardID: 1, Round: 6, Nonce: 3, PrevHash: headerHash2}
+	h3Bytes, _ := marshallerMock.Marshal(header3)
+	headerHash3 := hasherMock.Compute(string(h3Bytes))
+
+	newBlockProcessor := func(settled func(header data.HeaderHandler, headerHash []byte) bool) interface {
+		ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
+	} {
+		blockProcessorArguments := CreateBlockProcessorMockArguments()
+		blockProcessorArguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
+			SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
+				return []data.HeaderHandler{header2, header3}, [][]byte{headerHash2, headerHash3}
+			},
+			IsSettledCrossHeaderCalled: settled,
+		}
+
+		bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+		return bp
+	}
+
+	t.Run("contended unsettled cross header is excluded", func(t *testing.T) {
+		t.Parallel()
+
+		bp := newBlockProcessor(func(header data.HeaderHandler, headerHash []byte) bool {
+			return false
+		})
+
+		headers, hashes := bp.ComputeLongestChain(1, header1)
+
+		require.Equal(t, 0, len(headers))
+		require.Equal(t, 0, len(hashes))
+	})
+
+	t.Run("contended settled cross header is included", func(t *testing.T) {
+		t.Parallel()
+
+		bp := newBlockProcessor(func(header data.HeaderHandler, headerHash []byte) bool {
+			return bytes.Equal(headerHash, headerHash2)
+		})
+
+		headers, hashes := bp.ComputeLongestChain(1, header1)
+
+		require.Equal(t, 1, len(headers))
+		assert.Equal(t, header2, headers[0])
+		assert.Equal(t, headerHash2, hashes[0])
+	})
+
+	t.Run("non-contended cross header is included without settlement lookup", func(t *testing.T) {
+		t.Parallel()
+
+		header2Clean := &dataBlock.Header{ShardID: 1, Round: 2, Nonce: 2, PrevHash: headerHash1}
+		h2CleanBytes, _ := marshallerMock.Marshal(header2Clean)
+		headerHash2Clean := hasherMock.Compute(string(h2CleanBytes))
+		header3Clean := &dataBlock.Header{ShardID: 1, Round: 3, Nonce: 3, PrevHash: headerHash2Clean}
+		h3CleanBytes, _ := marshallerMock.Marshal(header3Clean)
+		headerHash3Clean := hasherMock.Compute(string(h3CleanBytes))
+
+		blockProcessorArguments := CreateBlockProcessorMockArguments()
+		blockProcessorArguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
+			SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
+				return []data.HeaderHandler{header2Clean, header3Clean}, [][]byte{headerHash2Clean, headerHash3Clean}
+			},
+			IsSettledCrossHeaderCalled: func(header data.HeaderHandler, headerHash []byte) bool {
+				require.Fail(t, "settlement must not be checked on the clean path")
+				return false
+			},
+		}
+
+		bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+		headers, hashes := bp.ComputeLongestChain(1, header1)
+
+		require.Equal(t, 1, len(headers))
+		assert.Equal(t, header2Clean, headers[0])
+		assert.Equal(t, headerHash2Clean, hashes[0])
+	})
+
+	t.Run("contended header of the own shard is not gated", func(t *testing.T) {
+		t.Parallel()
+
+		selfHeader1 := &dataBlock.Header{ShardID: 0, Round: 1, Nonce: 1}
+		selfH1Bytes, _ := marshallerMock.Marshal(selfHeader1)
+		selfHeaderHash1 := hasherMock.Compute(string(selfH1Bytes))
+		selfHeader2 := &dataBlock.Header{ShardID: 0, Round: 5, Nonce: 2, PrevHash: selfHeaderHash1}
+		selfH2Bytes, _ := marshallerMock.Marshal(selfHeader2)
+		selfHeaderHash2 := hasherMock.Compute(string(selfH2Bytes))
+		selfHeader3 := &dataBlock.Header{ShardID: 0, Round: 6, Nonce: 3, PrevHash: selfHeaderHash2}
+		selfH3Bytes, _ := marshallerMock.Marshal(selfHeader3)
+		selfHeaderHash3 := hasherMock.Compute(string(selfH3Bytes))
+
+		blockProcessorArguments := CreateBlockProcessorMockArguments()
+		blockProcessorArguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
+			SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
+				return []data.HeaderHandler{selfHeader2, selfHeader3}, [][]byte{selfHeaderHash2, selfHeaderHash3}
+			},
+			IsSettledCrossHeaderCalled: func(header data.HeaderHandler, headerHash []byte) bool {
+				require.Fail(t, "settlement must not be checked for own shard headers")
+				return false
+			},
+		}
+
+		bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+		headers, _ := bp.ComputeLongestChain(0, selfHeader1)
+
+		require.Equal(t, 1, len(headers))
+		assert.Equal(t, selfHeader2, headers[0])
+	})
 }

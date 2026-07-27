@@ -13,9 +13,14 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 )
+
+// metaArbitrationWindowRounds is the arbitration discovery window: rounds after a contended shard
+// header's round during which meta holds it so competing proofs can surface
+const metaArbitrationWindowRounds = 3
 
 // usedShardHeadersInfo holds the used shard headers information
 type usedShardHeadersInfo struct {
@@ -77,7 +82,7 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 		return nil, err
 	}
 
-	epochStartData, err := mp.getComputedEpochStartData()
+	epochStartData, err := mp.getComputedEpochStartData(epoch + 1)
 	if err != nil {
 		return nil, err
 	}
@@ -839,17 +844,17 @@ func (mp *metaProcessor) createBlockBodyProposal(
 		"nonce", metaHdr.GetNonce(),
 	)
 
-	return mp.createProposalMiniBlocks(haveTime)
+	return mp.createProposalMiniBlocks(metaHdr.GetRound(), haveTime)
 }
 
-func (mp *metaProcessor) createProposalMiniBlocks(haveTime func() bool) error {
+func (mp *metaProcessor) createProposalMiniBlocks(round uint64, haveTime func() bool) error {
 	if !haveTime() {
 		log.Debug("metaProcessor.createProposalMiniBlocks", "error", process.ErrTimeIsOut)
 		return nil
 	}
 
 	startTime := time.Now()
-	err := mp.selectIncomingMiniBlocksForProposal(haveTime)
+	err := mp.selectIncomingMiniBlocksForProposal(round, haveTime)
 	if err != nil {
 		return err
 	}
@@ -860,6 +865,7 @@ func (mp *metaProcessor) createProposalMiniBlocks(haveTime func() bool) error {
 }
 
 func (mp *metaProcessor) selectIncomingMiniBlocksForProposal(
+	round uint64,
 	haveTime func() bool,
 ) error {
 	sw := core.NewStopWatch()
@@ -884,10 +890,19 @@ func (mp *metaProcessor) selectIncomingMiniBlocksForProposal(
 		process.MinShardHeadersFromSameShardInOneMetaBlock,
 		process.MaxShardHeadersAllowedInOneMetaBlock/mp.shardCoordinator.NumberOfShards(),
 	)
-	err = mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxShardHeadersFromSameShard, haveTime)
+	ancestryView := mp.newProposalAncestryView()
+	hdrsAddedForShard, err := mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxShardHeadersFromSameShard, ancestryView, haveTime)
 	if err != nil {
 		return err
 	}
+
+	err = mp.selectContendedShardHeaders(round, lastShardHdrs, hdrsAddedForShard, ancestryView, haveTime)
+	if err != nil {
+		return err
+	}
+
+	// spawned only after every selection step stopped mutating lastShardHdrs
+	go mp.requestShardHeadersInAdvanceIfNeeded(lastShardHdrs)
 
 	return nil
 }
@@ -897,15 +912,15 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 	orderedHdrs []data.HeaderHandler,
 	orderedHdrsHashes [][]byte,
 	maxShardHeadersFromSameShard uint32,
+	ancestryView *metaAncestryView,
 	haveTime func() bool,
-) error {
+) (map[uint32]uint32, error) {
 	hdrsAdded := uint32(0)
 	maxShardHeadersAllowedInOneMetaBlock := maxShardHeadersFromSameShard * mp.shardCoordinator.NumberOfShards()
 	hdrsAddedForShard := make(map[uint32]uint32)
-	var err error
 
 	if len(orderedHdrs) != len(orderedHdrsHashes) {
-		return process.ErrInconsistentShardHeadersAndHashes
+		return nil, process.ErrInconsistentShardHeadersAndHashes
 	}
 
 	for i := 0; i < len(orderedHdrs); i++ {
@@ -927,7 +942,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		currHdrHash := orderedHdrsHashes[i]
 		lastShardHeaderInfo, ok := lastShardHdrs[currHdr.GetShardID()]
 		if !ok {
-			return process.ErrMissingHeader
+			return nil, process.ErrMissingHeader
 		}
 		if currHdr.GetNonce() != lastShardHeaderInfo.Header.GetNonce()+1 {
 			log.Trace("skip searching",
@@ -954,21 +969,42 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 			continue
 		}
 
-		if len(currHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
-			mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
-			lastShardHdrs[currHdr.GetShardID()] = ShardHeaderInfo{
-				Header:      currHdr,
-				Hash:        currHdrHash,
-				UsedInBlock: true,
-			}
-			hdrsAddedForShard[currHdr.GetShardID()]++
-			hdrsAdded++
+		errAncestry := mp.checkReferencedMetaAncestry(currHdr, ancestryView)
+		if errAncestry != nil {
+			log.Trace("shard header skipped on referenced meta ancestry",
+				"shard", currHdr.GetShardID(),
+				"hash", logger.DisplayByteSlice(currHdrHash),
+				"error", errAncestry,
+			)
 			continue
 		}
 
+		added, err := mp.addShardHeaderToSelection(currHdr, currHdrHash, lastShardHdrs)
+		if err != nil {
+			return nil, err
+		}
+		if !added {
+			break
+		}
+
+		hdrsAddedForShard[currHdr.GetShardID()]++
+		hdrsAdded++
+	}
+
+	return hdrsAddedForShard, nil
+}
+
+// addShardHeaderToSelection includes the shard header in the current selection session; it returns
+// false when the header cannot be fully added and the selection should stop
+func (mp *metaProcessor) addShardHeaderToSelection(
+	currHdr data.HeaderHandler,
+	currHdrHash []byte,
+	lastShardHdrs map[uint32]ShardHeaderInfo,
+) (bool, error) {
+	if len(currHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) > 0 {
 		createIncomingMbsResult, errCreated := mp.createMbsCrossShardDstMe(currHdrHash, currHdr, nil)
 		if errCreated != nil {
-			return errCreated
+			return false, errCreated
 		}
 		if !createIncomingMbsResult.HeaderFinished {
 			mp.revertGasForCrossShardDstMeMiniBlocks(createIncomingMbsResult.AddedMiniBlocks, createIncomingMbsResult.PendingMiniBlocks)
@@ -976,29 +1012,342 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 				"round", currHdr.GetRound(),
 				"nonce", currHdr.GetNonce(),
 				"hash", currHdrHash)
-			break
+			return false, nil
 		}
 
 		if len(createIncomingMbsResult.AddedMiniBlocks) > 0 {
-			err = mp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(createIncomingMbsResult.AddedMiniBlocks)
+			err := mp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(createIncomingMbsResult.AddedMiniBlocks)
 			if err != nil {
-				return err
+				return false, err
 			}
 		}
-
-		mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
-		lastShardHdrs[currHdr.GetShardID()] = ShardHeaderInfo{
-			Header:      currHdr,
-			Hash:        currHdrHash,
-			UsedInBlock: true,
-		}
-		hdrsAddedForShard[currHdr.GetShardID()]++
-		hdrsAdded++
 	}
 
-	go mp.requestShardHeadersInAdvanceIfNeeded(lastShardHdrs)
+	mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
+	lastShardHdrs[currHdr.GetShardID()] = ShardHeaderInfo{
+		Header:      currHdr,
+		Hash:        currHdrHash,
+		UsedInBlock: true,
+	}
+
+	return true, nil
+}
+
+// selectContendedShardHeaders arbitrates shards stalled on a contended nonce: past the discovery
+// window from the candidate's round, the lowest-(round,hash) proofed extender is included
+func (mp *metaProcessor) selectContendedShardHeaders(
+	round uint64,
+	lastShardHdrs map[uint32]ShardHeaderInfo,
+	hdrsAddedForShard map[uint32]uint32,
+	ancestryView *metaAncestryView,
+	haveTime func() bool,
+) error {
+	if !mp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return nil
+	}
+
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		if !haveTime() {
+			return nil
+		}
+		if hdrsAddedForShard[shardID] > 0 {
+			continue
+		}
+
+		lastShardHeaderInfo, ok := lastShardHdrs[shardID]
+		if !ok {
+			continue
+		}
+
+		candidate, candidateHash := mp.getArbitrationCandidate(lastShardHeaderInfo, ancestryView)
+		if check.IfNil(candidate) {
+			continue
+		}
+		if !common.IsContendedHeader(candidate, lastShardHeaderInfo.Header) {
+			continue
+		}
+		if round < candidate.GetRound()+metaArbitrationWindowRounds {
+			log.Debug("selectContendedShardHeaders: holding contended shard header for proof discovery",
+				"shard", shardID,
+				"nonce", candidate.GetNonce(),
+				"candidate round", candidate.GetRound(),
+				"current round", round)
+			continue
+		}
+
+		added, err := mp.addShardHeaderToSelection(candidate, candidateHash, lastShardHdrs)
+		if err != nil {
+			return err
+		}
+		if !added {
+			continue
+		}
+
+		log.Debug("selectContendedShardHeaders: included contended shard header after discovery window",
+			"shard", shardID,
+			"nonce", candidate.GetNonce(),
+			"round", candidate.GetRound(),
+			"hash", candidateHash)
+	}
 
 	return nil
+}
+
+// checkShardHeaderContention rejects a contended unsettled shard header only when a better proofed
+// competitor extending the same parent is actionable locally; the hold is proposer-side
+func (mp *metaProcessor) checkShardHeaderContention(header data.HeaderHandler, headerHash []byte, parentInfo ShardHeaderInfo, ancestryView *metaAncestryView) error {
+	if !mp.isContendedUnsettledCrossHeader(header, parentInfo.Header, headerHash) {
+		return nil
+	}
+
+	candidate, candidateHash := mp.getArbitrationCandidate(parentInfo, ancestryView)
+	if check.IfNil(candidate) || bytes.Equal(candidateHash, headerHash) {
+		return nil
+	}
+
+	isBetter := candidate.GetRound() < header.GetRound() ||
+		(candidate.GetRound() == header.GetRound() && bytes.Compare(candidateHash, headerHash) < 0)
+	if isBetter {
+		return fmt.Errorf("%w with hash %x, competitor hash %x", errContendedHeaderWithBetterCompetitor, headerHash, candidateHash)
+	}
+
+	return nil
+}
+
+// checkShardHeaderContentionComputingHash computes the hashes only on the contended path
+func (mp *metaProcessor) checkShardHeaderContentionComputingHash(header data.HeaderHandler, parentHeader data.HeaderHandler, ancestryView *metaAncestryView) error {
+	if !mp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return nil
+	}
+	if !common.IsContendedHeader(header, parentHeader) {
+		return nil
+	}
+
+	headerHash, err := mp.getHeaderHash(header)
+	if err != nil {
+		return err
+	}
+	parentHash, err := mp.getHeaderHash(parentHeader)
+	if err != nil {
+		return err
+	}
+
+	return mp.checkShardHeaderContention(header, headerHash, ShardHeaderInfo{Header: parentHeader, Hash: parentHash}, ancestryView)
+}
+
+// getArbitrationCandidate returns the lowest-(round,hash) proofed, construction-valid header at the
+// nonce right after the given one and extending it, or nil when none is actionable locally
+func (mp *metaProcessor) getArbitrationCandidate(parentInfo ShardHeaderInfo, ancestryView *metaAncestryView) (data.HeaderHandler, []byte) {
+	shardID := parentInfo.Header.GetShardID()
+	nonce := parentInfo.Header.GetNonce() + 1
+
+	headers, hashes, err := mp.dataPool.Headers().GetHeadersByNonceAndShardId(nonce, shardID)
+	if err != nil {
+		return nil, nil
+	}
+
+	var best data.HeaderHandler
+	var bestHash []byte
+	for i, header := range headers {
+		if check.IfNil(header) || !bytes.Equal(header.GetPrevHash(), parentInfo.Hash) {
+			continue
+		}
+		if !mp.proofsPool.HasProof(shardID, hashes[i]) {
+			continue
+		}
+		errValidity := mp.headerValidator.IsHeaderConstructionValid(header, parentInfo.Header)
+		if errValidity != nil {
+			continue
+		}
+		if mp.checkReferencedMetaAncestry(header, ancestryView) != nil {
+			continue
+		}
+
+		isBetter := check.IfNil(best) ||
+			header.GetRound() < best.GetRound() ||
+			(header.GetRound() == best.GetRound() && bytes.Compare(hashes[i], bestHash) < 0)
+		if isBetter {
+			best = header
+			bestHash = hashes[i]
+		}
+	}
+
+	return best, bestHash
+}
+
+// metaAncestryView is a per proposal hash index over the ancestors of the meta block being built:
+// a lazy pool walk above the pool horizon and a canonical storer hash cache below it, single threaded
+type metaAncestryView struct {
+	walked          map[uint64][]byte
+	walkedHashes    map[string]struct{}
+	lowestWalked    uint64
+	parentNonce     uint64
+	cursor          []byte
+	walkFrozen      bool
+	canonicalHashes map[string]struct{}
+	coveredNonces   map[uint64]struct{}
+}
+
+func newMetaAncestryView(parentHeader data.HeaderHandler, parentHash []byte) *metaAncestryView {
+	return &metaAncestryView{
+		walked:          map[uint64][]byte{parentHeader.GetNonce(): parentHash},
+		walkedHashes:    map[string]struct{}{string(parentHash): {}},
+		lowestWalked:    parentHeader.GetNonce(),
+		parentNonce:     parentHeader.GetNonce(),
+		cursor:          parentHeader.GetPrevHash(),
+		canonicalHashes: make(map[string]struct{}),
+		coveredNonces:   make(map[uint64]struct{}),
+	}
+}
+
+// newProposalAncestryView anchors the ancestor test at the head the proposal extends, matching the
+// prev hash chain a validator sees on the received proposal
+func (mp *metaProcessor) newProposalAncestryView() *metaAncestryView {
+	if !mp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return nil
+	}
+	if check.IfNil(mp.blockChain) {
+		return nil
+	}
+
+	parentHeader := mp.blockChain.GetCurrentBlockHeader()
+	parentHash := mp.blockChain.GetCurrentBlockHeaderHash()
+	if check.IfNil(parentHeader) {
+		parentHeader = mp.blockChain.GetGenesisHeader()
+		parentHash = mp.blockChain.GetGenesisHeaderHash()
+	}
+	if check.IfNil(parentHeader) {
+		return nil
+	}
+
+	return newMetaAncestryView(parentHeader, parentHash)
+}
+
+func (mp *metaProcessor) newVerifyAncestryView(metaHeaderHandler data.MetaHeaderHandler) (*metaAncestryView, error) {
+	if !mp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return nil, nil
+	}
+
+	prevHash := metaHeaderHandler.GetPrevHash()
+	if !check.IfNil(mp.blockChain) {
+		genesisHeader := mp.blockChain.GetGenesisHeader()
+		if !check.IfNil(genesisHeader) && bytes.Equal(prevHash, mp.blockChain.GetGenesisHeaderHash()) {
+			return newMetaAncestryView(genesisHeader, prevHash), nil
+		}
+	}
+
+	parentHeader, err := process.GetMetaHeader(prevHash, mp.dataPool.Headers(), mp.marshalizer, mp.store)
+	if err != nil {
+		return nil, fmt.Errorf("%w : newVerifyAncestryView", err)
+	}
+
+	return newMetaAncestryView(parentHeader, prevHash), nil
+}
+
+// checkReferencedMetaAncestry rejects, fail-closed, a shard header referencing any meta block that
+// is not an ancestor of the block being built; canonical references always resolve on the builder
+func (mp *metaProcessor) checkReferencedMetaAncestry(header data.HeaderHandler, view *metaAncestryView) error {
+	if !mp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return nil
+	}
+
+	shardHeader, ok := header.(data.ShardHeaderHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	metaHashes := shardHeader.GetMetaBlockHashes()
+	if len(metaHashes) == 0 {
+		return nil
+	}
+	if view == nil {
+		return errNilMetaAncestryView
+	}
+
+	for idx, metaHash := range metaHashes {
+		if !mp.isAncestorMetaBlock(view, metaHash, len(metaHashes)-idx) {
+			return fmt.Errorf("%w with hash %x", errReferencedNonAncestorMetaHeader, metaHash)
+		}
+	}
+
+	return nil
+}
+
+// isAncestorMetaBlock answers by hash set membership when possible; a miss resolves the reference
+// once and extends the matching region, so following references of the same run answer with no reads
+func (mp *metaProcessor) isAncestorMetaBlock(view *metaAncestryView, refHash []byte, refsLeft int) bool {
+	if _, isWalked := view.walkedHashes[string(refHash)]; isWalked {
+		return true
+	}
+	if _, isCanonical := view.canonicalHashes[string(refHash)]; isCanonical {
+		return true
+	}
+
+	refHeader, err := process.GetMetaHeader(refHash, mp.dataPool.Headers(), mp.marshalizer, mp.store)
+	if err != nil {
+		return false
+	}
+
+	refNonce := refHeader.GetNonce()
+	if refNonce > view.parentNonce {
+		return false
+	}
+
+	mp.extendAncestryWalk(view, refNonce)
+	if refNonce >= view.lowestWalked {
+		return bytes.Equal(view.walked[refNonce], refHash)
+	}
+
+	// below the pooled walk the canonical nonce -> hash storer, written at commit, is the ancestor test
+	mp.extendCanonicalHashes(view, refNonce, refsLeft)
+	_, isCanonical := view.canonicalHashes[string(refHash)]
+
+	return isCanonical
+}
+
+// extendAncestryWalk steps down the prev hash chain through the pool only; below the pool horizon
+// the canonical storer cache takes over
+func (mp *metaProcessor) extendAncestryWalk(view *metaAncestryView, downToNonce uint64) {
+	if view.walkFrozen {
+		return
+	}
+
+	for view.lowestWalked > downToNonce && view.lowestWalked > 0 {
+		header, err := mp.dataPool.Headers().GetHeaderByHash(view.cursor)
+		if err != nil || check.IfNil(header) || header.GetNonce() >= view.lowestWalked {
+			return
+		}
+
+		view.walked[header.GetNonce()] = view.cursor
+		view.walkedHashes[string(view.cursor)] = struct{}{}
+		view.lowestWalked = header.GetNonce()
+		view.cursor = header.GetPrevHash()
+	}
+}
+
+// extendCanonicalHashes sweeps the canonical storer over the run the current shard header still
+// claims, each nonce read at most once; the walk freezes so the two regions cannot overlap
+func (mp *metaProcessor) extendCanonicalHashes(view *metaAncestryView, fromNonce uint64, refsLeft int) {
+	view.walkFrozen = true
+
+	if refsLeft < 1 {
+		return
+	}
+	if refsLeft > process.MaxMetaHeadersAllowedInOneShardBlock {
+		refsLeft = process.MaxMetaHeadersAllowedInOneShardBlock
+	}
+	for nonce := fromNonce; nonce < fromNonce+uint64(refsLeft) && nonce < view.lowestWalked; nonce++ {
+		if _, isCovered := view.coveredNonces[nonce]; isCovered {
+			continue
+		}
+		view.coveredNonces[nonce] = struct{}{}
+
+		storedHash, err := process.GetHeaderHashFromStorageWithNonce(nonce, mp.store, mp.uint64Converter, mp.marshalizer, dataRetriever.MetaHdrNonceHashDataUnit)
+		if err != nil {
+			continue
+		}
+		view.canonicalHashes[string(storedHash)] = struct{}{}
+	}
 }
 
 func (mp *metaProcessor) requestShardHeadersInAdvanceIfNeeded(
@@ -1012,9 +1361,14 @@ func (mp *metaProcessor) requestShardHeadersInAdvanceIfNeeded(
 func (mp *metaProcessor) verifyEpochStartData(
 	headerHandler data.MetaHeaderHandler,
 ) bool {
-	epochStartData, err := mp.getComputedEpochStartData()
+	epochStartData, err := mp.getComputedEpochStartData(headerHandler.GetEpoch())
 	if err != nil {
-		log.Error("verifyEpochStartData: failed to get epoch start data", "error", err)
+		// only an epoch start header needs the data; for any other header the result is discarded
+		if headerHandler.IsStartOfEpochBlock() {
+			log.Error("verifyEpochStartData: failed to get epoch start data", "error", err)
+		} else {
+			log.Debug("verifyEpochStartData: no epoch start data for header epoch", "error", err)
+		}
 		return false
 	}
 
@@ -1150,7 +1504,12 @@ func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
 		return process.ErrMissingHeaderProof
 	}
 
-	err = mp.verifyUsedShardHeadersValidity(usedShardHeaders.headersPerShard, lastCrossNotarizedHeader)
+	ancestryView, err := mp.newVerifyAncestryView(metaHeaderHandler)
+	if err != nil {
+		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal", err)
+	}
+
+	err = mp.verifyUsedShardHeadersValidity(usedShardHeaders.headersPerShard, lastCrossNotarizedHeader, ancestryView)
 	if err != nil {
 		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> verifyUsedShardHeadersValidity", err)
 	}
@@ -1187,10 +1546,11 @@ func (mp *metaProcessor) checkShardInfoValidity(metaHeaderHandler data.MetaHeade
 func (mp *metaProcessor) verifyUsedShardHeadersValidity(
 	usedShardHeaders map[uint32][]ShardHeaderInfo,
 	lastCrossNotarizedHeader map[uint32]ShardHeaderInfo,
+	ancestryView *metaAncestryView,
 ) error {
 	var err error
 	for shardID, hdrsForShard := range usedShardHeaders {
-		err = mp.checkHeadersSequenceCorrectness(hdrsForShard, lastCrossNotarizedHeader[shardID])
+		err = mp.checkHeadersSequenceCorrectness(hdrsForShard, lastCrossNotarizedHeader[shardID], ancestryView)
 		if err != nil {
 			return err
 		}
@@ -1198,15 +1558,25 @@ func (mp *metaProcessor) verifyUsedShardHeadersValidity(
 	return nil
 }
 
-func (mp *metaProcessor) checkHeadersSequenceCorrectness(hdrsForShard []ShardHeaderInfo, lastNotarizedHeaderInfoForShard ShardHeaderInfo) error {
+func (mp *metaProcessor) checkHeadersSequenceCorrectness(
+	hdrsForShard []ShardHeaderInfo,
+	lastNotarizedHeaderInfoForShard ShardHeaderInfo,
+	ancestryView *metaAncestryView,
+) error {
 	var err error
 	for _, shardHdrInfo := range hdrsForShard {
 		if mp.isGenesisShardBlockAndFirstMeta(shardHdrInfo.Header.GetNonce()) {
 			continue
 		}
 
-		if mp.blockTracker.IsHeaderQuarantined(shardHdrInfo.Hash) {
-			return fmt.Errorf("%w with hash %x", errIncludedQuarantinedHeader, shardHdrInfo.Hash)
+		err = mp.checkShardHeaderContention(shardHdrInfo.Header, shardHdrInfo.Hash, lastNotarizedHeaderInfoForShard, ancestryView)
+		if err != nil {
+			return err
+		}
+
+		err = mp.checkReferencedMetaAncestry(shardHdrInfo.Header, ancestryView)
+		if err != nil {
+			return err
 		}
 
 		err = mp.headerValidator.IsHeaderConstructionValid(shardHdrInfo.Header, lastNotarizedHeaderInfoForShard.Header)
@@ -1305,12 +1675,15 @@ func (mp *metaProcessor) getPreviousExecutedBlock() data.HeaderHandler {
 	return blockHeader
 }
 
-func (mp *metaProcessor) getComputedEpochStartData() (*block.EpochStart, error) {
+// getComputedEpochStartData returns the epoch start data computed at propose block processing; the
+// epoch guard keeps it valid across an epoch boundary rollback without leaking into other epochs
+func (mp *metaProcessor) getComputedEpochStartData(epoch uint32) (*block.EpochStart, error) {
 	mp.mutEpochStartData.RLock()
 	defer mp.mutEpochStartData.RUnlock()
 
 	if mp.epochStartDataWrapper == nil ||
-		mp.epochStartDataWrapper.EpochStartData == nil {
+		mp.epochStartDataWrapper.EpochStartData == nil ||
+		mp.epochStartDataWrapper.Epoch != epoch {
 		return nil, process.ErrNilEpochStartData
 	}
 

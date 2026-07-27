@@ -87,7 +87,8 @@ import (
 	"github.com/multiversx/mx-chain-go/update/trigger"
 )
 
-// timeSpanForBadHeaders is the expiry time for an added block header hash
+// timeSpanForBadHeaders is the expiry time for an added block header hash; it is a wall-clock
+// network-healing window (fetch retries, partition heal), intentionally NOT scaled with round duration
 var timeSpanForBadHeaders = time.Minute * 2
 
 // processComponents struct holds the process components
@@ -288,6 +289,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	pcf.epochNotifier.RegisterNotifyHandler(currentEpochProvider)
+
+	appStatusHandler := pcf.statusCoreComponents.AppStatusHandler()
+	pcf.data.Datapool().Proofs().RegisterEquivocationHandler(func(_ data.HeaderProofHandler, _ []data.HeaderProofHandler) {
+		appStatusHandler.Increment(common.MetricNumEquivocationProofs)
+	})
 
 	fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
 		pcf.data.Datapool().Headers(),

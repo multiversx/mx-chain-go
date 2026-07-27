@@ -2863,28 +2863,28 @@ func TestShardProcessor_MarshalizedDataToBroadcast_WithSupernova(t *testing.T) {
 	}
 
 	executionResults := []*block.ExecutionResult{
-		&block.ExecutionResult{
+		{
 			MiniBlockHeaders: []block.MiniBlockHeader{
-				block.MiniBlockHeader{
+				{
 					Hash:            []byte("mbHash1"),
 					ReceiverShardID: 1,
 					SenderShardID:   0,
 				},
-				block.MiniBlockHeader{
+				{
 					Hash:            []byte("mbHash2"),
 					ReceiverShardID: 1,
 					SenderShardID:   0,
 				},
 			},
 		},
-		&block.ExecutionResult{
+		{
 			MiniBlockHeaders: []block.MiniBlockHeader{
-				block.MiniBlockHeader{
+				{
 					Hash:            []byte("mbHash3"),
 					ReceiverShardID: 1,
 					SenderShardID:   0,
 				},
-				block.MiniBlockHeader{
+				{
 					Hash:            []byte("mbHash4"),
 					ReceiverShardID: 1,
 					SenderShardID:   0,
@@ -5285,7 +5285,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChain_gracePeriodError(t *test
 
 	genesisNonce := uint64(0)
 	gracePeriod := &processMocks.GracePeriodErrStub{}
-	blockchain := &testscommon.ChainHandlerStub{
+	bc := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Nonce: 0,
@@ -5327,7 +5327,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChain_gracePeriodError(t *test
 	}
 	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
 		"genesisNonce":                  genesisNonce,
-		"blockChain":                    blockchain,
+		"blockChain":                    bc,
 		"epochStartTrigger":             epochStartTrigger,
 		"forkDetector":                  forkDetector,
 		"epochChangeGracePeriodHandler": gracePeriod,
@@ -5345,7 +5345,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChain_FinalizedReached(t *test
 
 	genesisNonce := uint64(0)
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
-	blockchain := &testscommon.ChainHandlerStub{
+	bc := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
 				Nonce: 0,
@@ -5387,7 +5387,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChain_FinalizedReached(t *test
 	}
 	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
 		"genesisNonce":                  genesisNonce,
-		"blockChain":                    blockchain,
+		"blockChain":                    bc,
 		"epochStartTrigger":             epochStartTrigger,
 		"forkDetector":                  forkDetector,
 		"epochChangeGracePeriodHandler": gracePeriod,
@@ -6575,6 +6575,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 					},
 				}
 			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
 			},
@@ -6615,6 +6618,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 						return nil, nil
 					},
 				}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
@@ -6658,6 +6664,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 					},
 				}
 			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
 			},
@@ -6699,6 +6708,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 						}, nil
 					},
 				}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
@@ -8156,4 +8168,148 @@ func TestShardProcessor_EnsureEpochStartInfoAvailable(t *testing.T) {
 		err := sp.EnsureEpochStartInfoAvailable(header, noTimeFunc)
 		require.ErrorIs(t, err, process.ErrEpochStartInfoNotAvailable)
 	})
+}
+
+func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *testing.T) {
+	t.Parallel()
+
+	hasher := &hashingMocks.HasherMock{}
+	marshalizer := &mock.MarshalizerMock{}
+
+	buildProcessor := func(settled bool) interface{ CheckMetaHeadersValidityAndFinality() error } {
+		tdp := dataRetrieverMock.NewPoolsHolderMock()
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+		genesisBlocks := createGenesisBlocks(shardCoordinator)
+
+		prevMeta := genesisBlocks[core.MetachainShardId]
+		prevHash, _ := core.CalculateHash(marshalizer, hasher, prevMeta)
+		// rounds 1-4 skipped after the genesis meta block -> contended
+		meta1 := &block.MetaBlock{
+			Nonce:        1,
+			Round:        5,
+			PrevHash:     prevHash,
+			PrevRandSeed: prevMeta.GetRandSeed(),
+			ShardInfo:    make([]block.ShardData, 0),
+		}
+		metaBytes, _ := marshalizer.Marshal(meta1)
+		metaHash1 := hasher.Compute(string(metaBytes))
+		tdp.Headers().AddHeader(metaHash1, meta1)
+
+		prevHash, _ = core.CalculateHash(marshalizer, hasher, meta1)
+		meta2 := &block.MetaBlock{
+			Nonce:     2,
+			Round:     6,
+			PrevHash:  prevHash,
+			ShardInfo: make([]block.ShardData, 0),
+		}
+		metaBytes, _ = marshalizer.Marshal(meta2)
+		metaHash2 := hasher.Compute(string(metaBytes))
+		tdp.Headers().AddHeader(metaHash2, meta2)
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = hasher
+		coreComponents.IntMarsh = marshalizer
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		dataComponents.DataPool = tdp
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		blockTracker := mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), genesisBlocks)
+		blockTracker.IsSettledCrossHeaderCalled = func(header data.HeaderHandler, headerHash []byte) bool {
+			return settled
+		}
+		arguments.BlockTracker = blockTracker
+
+		arguments.HeadersForBlock.AddHeaderUsedInBlock(string(metaHash1), meta1)
+		arguments.HeadersForBlock.AddHeaderNotUsedInBlock(string(metaHash2), meta2)
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+		return sp
+	}
+
+	t.Run("contended unsettled referenced meta header should error", func(t *testing.T) {
+		t.Parallel()
+
+		sp := buildProcessor(false)
+		err := sp.CheckMetaHeadersValidityAndFinality()
+		assert.ErrorContains(t, err, "included contended header not yet settled")
+	})
+
+	t.Run("contended settled referenced meta header should pass", func(t *testing.T) {
+		t.Parallel()
+
+		sp := buildProcessor(true)
+		err := sp.CheckMetaHeadersValidityAndFinality()
+		assert.Nil(t, err)
+	})
+}
+
+type finalizedBlocksCapture struct {
+	*outport.OutportStub
+	finalizedHashes [][]byte
+}
+
+func (capture *finalizedBlocksCapture) FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) {
+	capture.finalizedHashes = append(capture.finalizedHashes, finalizedBlock.HeaderHash)
+}
+
+func TestShardProcessor_UpdateStateSignalsNewlyFinalBlocksUnderSupernova(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag || flag == common.SupernovaFlag
+		},
+	}
+	poolsHolder := dataRetrieverMock.NewPoolsHolderMock()
+	dataComponents.DataPool = poolsHolder
+	outportCapture := &finalizedBlocksCapture{OutportStub: &outport.OutportStub{}}
+	statusComponents.Outport = outportCapture
+
+	hash5, hash6, hash7, hash8 := []byte("hash5"), []byte("hash6"), []byte("hash7"), []byte("hash8")
+	hdr5 := &block.Header{Nonce: 5, Round: 5}
+	contendedHdr6 := &block.Header{Nonce: 6, Round: 8, PrevHash: hash5}
+	cleanHdr7 := &block.Header{Nonce: 7, Round: 9, PrevHash: hash6}
+	cleanHdr8 := &block.Header{Nonce: 8, Round: 10, PrevHash: hash7}
+	poolsHolder.Headers().AddHeader(hash6, contendedHdr6)
+	poolsHolder.Headers().AddHeader(hash7, cleanHdr7)
+
+	finalNonce, finalHash := uint64(5), hash5
+
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return finalNonce
+		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return finalHash
+		},
+	}
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	// clean committed block is final and signaled at once
+	sp.UpdateStateStorage(nil, hdr5, hash5)
+	require.Equal(t, [][]byte{hash5}, outportCapture.finalizedHashes)
+	finalInfoNonce, finalInfoHash, _ := dataComponents.BlockChain.GetFinalBlockInfo()
+	require.Equal(t, uint64(5), finalInfoNonce)
+	require.Equal(t, hash5, finalInfoHash)
+
+	// contended committed block and its descendant are not signaled while unsettled
+	sp.UpdateStateStorage(nil, contendedHdr6, hash6)
+	sp.UpdateStateStorage(nil, cleanHdr7, hash7)
+	require.Equal(t, [][]byte{hash5}, outportCapture.finalizedHashes)
+	finalInfoNonce, _, _ = dataComponents.BlockChain.GetFinalBlockInfo()
+	require.Equal(t, uint64(5), finalInfoNonce)
+
+	// settlement advances the final checkpoint: each newly final block is signaled exactly once
+	finalNonce, finalHash = 8, hash8
+	sp.UpdateStateStorage(nil, cleanHdr8, hash8)
+	require.Equal(t, [][]byte{hash5, hash6, hash7, hash8}, outportCapture.finalizedHashes)
+	finalInfoNonce, finalInfoHash, _ = dataComponents.BlockChain.GetFinalBlockInfo()
+	require.Equal(t, uint64(8), finalInfoNonce)
+	require.Equal(t, hash8, finalInfoHash)
 }

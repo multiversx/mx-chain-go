@@ -698,7 +698,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.True(t, removeFromNonceCalled)
 
 		// Verify blockchain was updated to last notarized state
-		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(10), nonce)
 		require.Equal(t, []byte("hash10"), hash)
 		require.Equal(t, []byte("root10"), rootHash)
@@ -766,7 +766,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.True(t, removeFromNonceCalled)
 
 		// Verify blockchain was updated to last notarized state
-		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(9), nonce)
 		require.Equal(t, []byte("hash9"), hash)
 		require.Equal(t, []byte("root9"), rootHash)
@@ -837,7 +837,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.True(t, removeFromNonceCalled)
 
 		// Verify blockchain was updated
-		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(5), nonce)
 		require.Equal(t, []byte("hash5"), hash)
 		require.Equal(t, []byte("root5"), rootHash)
@@ -921,7 +921,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.True(t, removeFromNonceCalled)
 
 		// Verify blockchain was rolled back to last notarized state
-		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(9), nonce)
 		require.Equal(t, []byte("hash9"), hash)
 		require.Equal(t, []byte("root9"), rootHash)
@@ -1064,7 +1064,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify blockchain was updated with last pending
-		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(7), nonce)
 		require.Equal(t, []byte("hash7"), hash)
 		require.Equal(t, []byte("root7"), rootHash)
@@ -1133,6 +1133,144 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.True(t, wasResumeExecutionCalled)
 		require.True(t, wasCacheCleaned)
 		require.Equal(t, lastNotarized, cleanedWith)
+	})
+}
+
+func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
+	t.Parallel()
+
+	newTip := &block.HeaderV3{
+		Nonce: 9,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 7,
+				HeaderHash:  []byte("hash7"),
+				RootHash:    []byte("root7"),
+			},
+		},
+	}
+
+	t.Run("nil header should error", func(t *testing.T) {
+		t.Parallel()
+
+		em, _ := executionManager.NewExecutionManager(createMockArgs())
+
+		err := em.RewindExecutionStateToTip(nil)
+		require.Equal(t, process.ErrNilHeaderHandler, err)
+	})
+
+	t.Run("header without last execution result should error", func(t *testing.T) {
+		t.Parallel()
+
+		em, _ := executionManager.NewExecutionManager(createMockArgs())
+
+		err := em.RewindExecutionStateToTip(&block.HeaderV3{Nonce: 9})
+		require.Error(t, err)
+	})
+
+	t.Run("should rewind watermark below the tip and realign blockchain", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		pauseCalled := false
+		resumeCalled := false
+		cacheCleaned := false
+		var cleanedWith data.BaseExecutionResultHandler
+
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			CleanCalled: func(lastNotarizedResult data.BaseExecutionResultHandler) {
+				cleanedWith = lastNotarizedResult
+			},
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{}, nil
+			},
+		}
+		args.BlocksCache = &processMocks.BlocksCacheMock{
+			CleanCalled: func() {
+				cacheCleaned = true
+			},
+		}
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, []byte("hash7"), hash)
+				return &block.HeaderV3{Nonce: 7}, nil
+			},
+		}
+		chainMock := &testscommon.ChainHandlerMock{}
+		args.BlockChain = chainMock
+
+		em, _ := executionManager.NewExecutionManager(args)
+		_ = em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{
+			PauseExecutionCalled: func() {
+				pauseCalled = true
+			},
+			ResumeExecutionCalled: func() {
+				resumeCalled = true
+			},
+		})
+
+		err := em.RewindExecutionStateToTip(newTip)
+		require.NoError(t, err)
+		require.True(t, pauseCalled)
+		require.True(t, resumeCalled)
+		require.True(t, cacheCleaned)
+		require.NotNil(t, cleanedWith)
+		require.Equal(t, uint64(7), cleanedWith.GetHeaderNonce())
+		require.Equal(t, []byte("hash7"), cleanedWith.GetHeaderHash())
+
+		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
+		require.Equal(t, uint64(7), nonce)
+		require.Equal(t, []byte("hash7"), hash)
+		require.Equal(t, []byte("root7"), rootHash)
+	})
+
+	t.Run("missing header for the new watermark should error without touching any state", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		pauseCalled := false
+		resumeCalled := false
+		cleanCalled := false
+
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{}, nil
+			},
+			CleanCalled: func(lastNotarizedResult data.BaseExecutionResultHandler) {
+				cleanCalled = true
+			},
+		}
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, errExpected
+			},
+		}
+		args.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, errExpected
+					},
+				}, nil
+			},
+		}
+
+		em, _ := executionManager.NewExecutionManager(args)
+		_ = em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{
+			PauseExecutionCalled: func() {
+				pauseCalled = true
+			},
+			ResumeExecutionCalled: func() {
+				resumeCalled = true
+			},
+		})
+
+		err := em.RewindExecutionStateToTip(newTip)
+		require.Error(t, err)
+		// the header is resolved before any mutation, so the rewind is a no-op on failure
+		require.False(t, cleanCalled)
+		require.False(t, pauseCalled)
+		require.False(t, resumeCalled)
 	})
 }
 
