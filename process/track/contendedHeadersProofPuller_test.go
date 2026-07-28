@@ -58,7 +58,7 @@ func addTipWithParent(sbt trackedHeaderAdder, tipRound uint64) {
 	sbt.AddTrackedHeader(tip, []byte("tipHash"))
 }
 
-func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
+func TestBaseBlockTrack_PullProofsForContendedNonces(t *testing.T) {
 	t.Parallel()
 
 	t.Run("non-contended tip should not request", func(t *testing.T) {
@@ -71,7 +71,7 @@ func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 
 		addTipWithParent(sbt, 2) // round 2 = parent round + 1, no skipped round
 
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Empty(t, *requests)
 	})
 
@@ -85,44 +85,61 @@ func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 
 		addTipWithParent(sbt, 5) // rounds 2-4 skipped after parent round 1
 
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Equal(t, []pullRequest{{shardID: 0, nonce: 2}}, *requests)
 
 		// same round: no new request
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Equal(t, 1, len(*requests))
 
 		// backoff 1: next round fires
 		roundHandler.RoundIndex = 11
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Equal(t, 2, len(*requests))
 
 		// backoff 2: round 12 skipped, round 13 fires
 		roundHandler.RoundIndex = 12
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Equal(t, 2, len(*requests))
 		roundHandler.RoundIndex = 13
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Equal(t, 3, len(*requests))
 
 		// backoff 4: round 17 fires
 		roundHandler.RoundIndex = 17
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Equal(t, 4, len(*requests))
 
 		// a shard child does not settle the contended header: pulling must continue at its nonce
 		child := &block.Header{Nonce: 3, Round: 6, PrevHash: []byte("headHash")}
 		sbt.AddTrackedHeader(child, []byte("childHash"))
 		roundHandler.RoundIndex = 25
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Equal(t, 5, len(*requests))
 		require.Equal(t, pullRequest{shardID: 0, nonce: 2}, (*requests)[4])
 
 		// notarization passing the nonce concludes the arbitration and drops the state
 		sbt.AddSelfNotarizedHeader(core.MetachainShardId, &block.Header{Nonce: 2}, []byte("notarizedHash"))
 		roundHandler.RoundIndex = 40
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Equal(t, 5, len(*requests))
+	})
+
+	t.Run("a child arriving before the first pull does not hide its contended parent", func(t *testing.T) {
+		t.Parallel()
+
+		args, _, requests := createProofPullTrackerScaffold(true)
+		sbt, err := track.NewShardBlockTrack(args)
+		require.Nil(t, err)
+		_ = sbt.Close()
+
+		// both land between pulls, e.g. batched delivery: the tip is the ordinary child
+		addTipWithParent(sbt, 5) // contended at nonce 2
+		child := &block.Header{Nonce: 3, Round: 6, PrevHash: []byte("tipHash")}
+		sbt.AddTrackedHeader(child, []byte("childHash"))
+
+		sbt.PullProofsForContendedNonces()
+		require.Equal(t, []pullRequest{{shardID: 0, nonce: 2}}, *requests)
 	})
 
 	t.Run("two unresolved contended nonces pull independently", func(t *testing.T) {
@@ -135,7 +152,7 @@ func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 
 		addTipWithParent(sbt, 5) // contended at nonce 2
 
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Equal(t, []pullRequest{{shardID: 0, nonce: 2}}, *requests)
 
 		// the child skips rounds as well: a second contended nonce while the first is unresolved
@@ -143,7 +160,7 @@ func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 		sbt.AddTrackedHeader(contendedChild, []byte("contendedChildHash"))
 
 		roundHandler.RoundIndex = 20
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Contains(t, *requests, pullRequest{shardID: 0, nonce: 2})
 		require.Contains(t, *requests, pullRequest{shardID: 0, nonce: 3})
 	})
@@ -158,7 +175,7 @@ func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 
 		addTipWithParent(sbt, 5)
 
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Empty(t, *requests)
 	})
 
@@ -173,7 +190,7 @@ func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 		tip := &block.Header{Nonce: 2, Round: 5, PrevHash: []byte("unknownParent")}
 		sbt.AddTrackedHeader(tip, []byte("tipHash"))
 
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Empty(t, *requests)
 	})
 
@@ -187,9 +204,9 @@ func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 
 		addTipWithParent(sbt, 5)
 
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		roundHandler.RoundIndex = 11
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Equal(t, 2, len(*requests))
 
 		// a new contended tip at the next nonce fires immediately, regardless of prior backoff
@@ -197,7 +214,7 @@ func TestBaseBlockTrack_PullProofsForContendedTips(t *testing.T) {
 		sbt.AddTrackedHeader(newTip, []byte("newTipHash"))
 
 		roundHandler.RoundIndex = 12
-		sbt.PullProofsForContendedTips()
+		sbt.PullProofsForContendedNonces()
 		require.Equal(t, 3, len(*requests))
 		require.Equal(t, pullRequest{shardID: 0, nonce: 3}, (*requests)[2])
 	})

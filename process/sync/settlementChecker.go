@@ -27,7 +27,9 @@ type shardSettlementChecker struct {
 }
 
 // prepareInclusionScan resumes the authority scan from the cursor, requesting missing headers and
-// proofs paired, so successive rounds examine every nonce between the fork era anchor and the head
+// proofs paired, so successive rounds examine every nonce between the fork era anchor and the head;
+// the cursor passes a nonce only once a proofed header there is extended by a proofed child, since
+// a lone proofed sibling may be an equivocation loser hiding the still missing authority block
 func (checker *shardSettlementChecker) prepareInclusionScan(scanCursor uint64) (uint64, uint64, uint64) {
 	if scanCursor == 0 {
 		// the cross-notarized meta is frozen at the fork era, anchoring the scan for any stranding
@@ -40,8 +42,9 @@ func (checker *shardSettlementChecker) prepareInclusionScan(scanCursor uint64) (
 
 	scanFrom := scanCursor
 	scanTo := scanFrom + inclusionScanSpan - 1
-	if highest := highestPooledMetaNonce(checker.headers); scanTo > highest {
-		scanTo = highest
+	poolHead := highestPooledMetaNonce(checker.headers)
+	if scanTo > poolHead {
+		scanTo = poolHead
 	}
 	if scanTo < scanFrom {
 		return scanFrom, scanFrom - 1, scanCursor
@@ -49,10 +52,16 @@ func (checker *shardSettlementChecker) prepareInclusionScan(scanCursor uint64) (
 
 	nextCursor := scanCursor
 	for nonce := scanFrom; nonce <= scanTo; nonce++ {
-		if checker.hasProofedMetaHeaderAtNonce(nonce) {
+		if checker.hasWitnessedMetaHeaderAtNonce(nonce) {
 			if nextCursor == nonce {
 				nextCursor = nonce + 1
 			}
+			continue
+		}
+
+		isProofedPoolHead := nonce == poolHead && checker.hasProofedMetaHeaderAtNonce(nonce)
+		if isProofedPoolHead {
+			// no child could be pooled yet; the descending window of the inclusion check covers it
 			continue
 		}
 
@@ -61,6 +70,44 @@ func (checker *shardSettlementChecker) prepareInclusionScan(scanCursor uint64) (
 	}
 
 	return scanFrom, scanTo, nextCursor
+}
+
+// hasWitnessedMetaHeaderAtNonce requires a proofed header extended by a proofed child, the same
+// evidence class the inclusion check itself consumes
+func (checker *shardSettlementChecker) hasWitnessedMetaHeaderAtNonce(nonce uint64) bool {
+	headers, hashes, err := checker.headers.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
+	if err != nil {
+		return false
+	}
+
+	for i, header := range headers {
+		if check.IfNil(header) || !checker.proofs.HasProof(core.MetachainShardId, hashes[i]) {
+			continue
+		}
+		if checker.hasProofedMetaChildOf(hashes[i], nonce+1) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (checker *shardSettlementChecker) hasProofedMetaChildOf(parentHash []byte, childNonce uint64) bool {
+	children, childHashes, err := checker.headers.GetHeadersByNonceAndShardId(childNonce, core.MetachainShardId)
+	if err != nil {
+		return false
+	}
+
+	for i, child := range children {
+		if check.IfNil(child) || !bytes.Equal(child.GetPrevHash(), parentHash) {
+			continue
+		}
+		if checker.proofs.HasProof(core.MetachainShardId, childHashes[i]) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (checker *shardSettlementChecker) hasProofedMetaHeaderAtNonce(nonce uint64) bool {

@@ -66,7 +66,7 @@ type scanRequests struct {
 func newScanChecker(
 	anchorNonce uint64,
 	trackerErr error,
-	pooledNonces map[uint64][][]byte,
+	pooledNonces map[uint64][]pooledHeader,
 	proofedHashes map[string]bool,
 	requests *scanRequests,
 ) *shardSettlementChecker {
@@ -83,13 +83,15 @@ func newScanChecker(
 		metaFinalityView: &testscommon.MetaFinalityViewStub{},
 		headers: &pool.HeadersPoolStub{
 			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {
-				hashes, ok := pooledNonces[hdrNonce]
+				entries, ok := pooledNonces[hdrNonce]
 				if !ok {
 					return nil, nil, errors.New("no headers at nonce")
 				}
-				headers := make([]data.HeaderHandler, len(hashes))
-				for i := range hashes {
-					headers[i] = &block.MetaBlock{Nonce: hdrNonce}
+				headers := make([]data.HeaderHandler, 0, len(entries))
+				hashes := make([][]byte, 0, len(entries))
+				for _, entry := range entries {
+					headers = append(headers, entry.header)
+					hashes = append(hashes, entry.hash)
 				}
 				return headers, hashes, nil
 			},
@@ -121,12 +123,14 @@ func TestShardSettlementChecker_PrepareInclusionScan(t *testing.T) {
 	t.Parallel()
 
 	anchor := uint64(40)
-	proofedRun := func(from, to uint64) (map[uint64][][]byte, map[string]bool) {
-		pooled := make(map[uint64][][]byte)
+	// a linked chain, one header per nonce, every hash proofed
+	proofedRun := func(from, to uint64) (map[uint64][]pooledHeader, map[string]bool) {
+		pooled := make(map[uint64][]pooledHeader)
 		proofed := make(map[string]bool)
 		for nonce := from; nonce <= to; nonce++ {
 			hash := []byte{byte(nonce)}
-			pooled[nonce] = [][]byte{hash}
+			header := &block.MetaBlock{Nonce: nonce, PrevHash: []byte{byte(nonce - 1)}}
+			pooled[nonce] = []pooledHeader{{header: header, hash: hash}}
 			proofed[string(hash)] = true
 		}
 		return pooled, proofed
@@ -160,27 +164,67 @@ func TestShardSettlementChecker_PrepareInclusionScan(t *testing.T) {
 		require.Empty(t, requests.headerNonces)
 	})
 
-	t.Run("the cursor advances only past proofed nonces and missing data is requested paired", func(t *testing.T) {
+	t.Run("the cursor advances only past nonces witnessed by a proofed child and missing data is requested paired", func(t *testing.T) {
 		t.Parallel()
 
 		requests := &scanRequests{}
 		pooled, proofed := proofedRun(anchor, anchor+2)
-		// nonce anchor+3 pooled but UNPROOFED: presence alone must not advance the cursor
-		pooled[anchor+3] = [][]byte{{byte(anchor + 3)}}
-		pooled[anchor+100] = [][]byte{{byte(200)}} // pool head far above
+		// nonce anchor+3 pooled and linked but UNPROOFED: it does not witness anchor+2
+		pooled[anchor+3] = []pooledHeader{{header: &block.MetaBlock{Nonce: anchor + 3, PrevHash: []byte{byte(anchor + 2)}}, hash: []byte{byte(anchor + 3)}}}
+		pooled[anchor+100] = []pooledHeader{{header: &block.MetaBlock{Nonce: anchor + 100}, hash: []byte{200}}} // pool head far above
 		checker := newScanChecker(anchor, nil, pooled, proofed, requests)
 
 		scanFrom, scanTo, nextCursor := checker.prepareInclusionScan(anchor)
 		require.Equal(t, anchor, scanFrom)
 		require.Equal(t, anchor+inclusionScanSpan-1, scanTo)
-		require.Equal(t, anchor+3, nextCursor)
+		require.Equal(t, anchor+2, nextCursor)
 
-		// every non-proofed nonce in the window is requested, header and proof paired
+		// every unwitnessed nonce in the window is requested, header and proof paired
 		require.Equal(t, len(requests.headerNonces), len(requests.proofNonces))
-		require.Equal(t, int(inclusionScanSpan)-3, len(requests.headerNonces))
+		require.Equal(t, int(inclusionScanSpan)-2, len(requests.headerNonces))
+		require.Contains(t, requests.headerNonces, []uint64{anchor + 2})
 	})
 
-	t.Run("the window is capped at the pool head", func(t *testing.T) {
+	t.Run("a lone proofed sibling does not advance the cursor and its nonce keeps being requested", func(t *testing.T) {
+		t.Parallel()
+
+		requests := &scanRequests{}
+		// a proofed decoy at the anchor: no pooled child links back to it, so the canonical
+		// sibling may still be missing and the nonce is not complete evidence
+		decoyHash := []byte("decoyHash")
+		pooled := map[uint64][]pooledHeader{
+			anchor:     {{header: &block.MetaBlock{Nonce: anchor, PrevHash: []byte("forkParent")}, hash: decoyHash}},
+			anchor + 1: {{header: &block.MetaBlock{Nonce: anchor + 1, PrevHash: []byte("missingSibling")}, hash: []byte("childHash")}},
+		}
+		proofed := map[string]bool{string(decoyHash): true, "childHash": true}
+		checker := newScanChecker(anchor, nil, pooled, proofed, requests)
+
+		_, _, nextCursor := checker.prepareInclusionScan(anchor)
+		require.Equal(t, anchor, nextCursor)
+		require.Contains(t, requests.headerNonces, []uint64{anchor})
+		require.Contains(t, requests.proofNonces, []uint64{anchor})
+	})
+
+	t.Run("a proofed header below a pool gap is still requested", func(t *testing.T) {
+		t.Parallel()
+
+		requests := &scanRequests{}
+		// only the true pool head may go unrequested; a gap right above a proofed header can
+		// hide a missing sibling there just as well
+		pooled := map[uint64][]pooledHeader{
+			anchor:     {{header: &block.MetaBlock{Nonce: anchor, PrevHash: []byte("forkParent")}, hash: []byte("decoyHash")}},
+			anchor + 5: {{header: &block.MetaBlock{Nonce: anchor + 5}, hash: []byte("aboveGapHash")}},
+		}
+		proofed := map[string]bool{"decoyHash": true, "aboveGapHash": true}
+		checker := newScanChecker(anchor, nil, pooled, proofed, requests)
+
+		_, _, nextCursor := checker.prepareInclusionScan(anchor)
+		require.Equal(t, anchor, nextCursor)
+		require.Contains(t, requests.headerNonces, []uint64{anchor})
+		require.NotContains(t, requests.headerNonces, []uint64{anchor + 5})
+	})
+
+	t.Run("the window is capped at the pool head and the childless proofed head is not requested", func(t *testing.T) {
 		t.Parallel()
 
 		requests := &scanRequests{}
@@ -190,7 +234,9 @@ func TestShardSettlementChecker_PrepareInclusionScan(t *testing.T) {
 		scanFrom, scanTo, nextCursor := checker.prepareInclusionScan(anchor)
 		require.Equal(t, anchor, scanFrom)
 		require.Equal(t, anchor+3, scanTo)
-		require.Equal(t, anchor+4, nextCursor)
+		// the head cannot have a pooled child yet; the cursor waits there and the descending
+		// window of the inclusion check covers it
+		require.Equal(t, anchor+3, nextCursor)
 		require.Empty(t, requests.headerNonces)
 	})
 
