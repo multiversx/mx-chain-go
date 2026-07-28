@@ -350,6 +350,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		BootStorer:                   tpn.BootstrapStorer,
 		StorageBootstrapper:          tpn.StorageBootstrapper,
 		EpochHandler:                 tpn.EpochStartTrigger,
+		EpochStartTrigger:            tpn.EpochStartTrigger,
 		MiniblocksProvider:           tpn.MiniblocksProvider,
 		Uint64Converter:              TestUint64Converter,
 		AppStatusHandler:             TestAppStatusHandler,
@@ -378,6 +379,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
 		MetaFinalityView:    metaFinalityView,
+		BlockTracker:        tpn.BlockTracker,
 	}
 
 	bootstrap, err := sync.NewShardBootstrap(argsShardBootstrapper)
@@ -409,6 +411,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		BootStorer:                   tpn.BootstrapStorer,
 		StorageBootstrapper:          tpn.StorageBootstrapper,
 		EpochHandler:                 tpn.EpochStartTrigger,
+		EpochStartTrigger:            tpn.EpochStartTrigger,
 		MiniblocksProvider:           tpn.MiniblocksProvider,
 		Uint64Converter:              TestUint64Converter,
 		AppStatusHandler:             TestAppStatusHandler,

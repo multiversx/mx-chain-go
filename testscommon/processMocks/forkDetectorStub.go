@@ -8,23 +8,24 @@ import (
 
 // ForkDetectorStub -
 type ForkDetectorStub struct {
-	AddHeaderCalled                  func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
-	RemoveHeaderCalled               func(nonce uint64, hash []byte)
-	RemoveCommittedHeaderCalled      func(nonce uint64, hash []byte)
-	ReconcileFinalCheckpointCalled   func(nonce uint64)
-	CheckForkCalled                  func() *process.ForkInfo
-	GetHighestFinalBlockNonceCalled  func() uint64
-	GetHighestFinalBlockHashCalled   func() []byte
-	GetHighestSettledBlockInfoCalled func() (uint64, []byte)
-	ProbableHighestNonceCalled       func() uint64
-	ResetForkCalled                  func()
-	GetNotarizedHeaderHashCalled     func(nonce uint64) []byte
-	SetRollBackNonceCalled           func(nonce uint64)
-	RestoreToGenesisCalled           func()
-	ResetProbableHighestNonceCalled  func()
-	SetFinalToLastCheckpointCalled   func()
-	ReceivedProofCalled              func(proof data.HeaderProofHandler)
-	AddCheckpointCalled              func(nonce uint64, round uint64, hash []byte)
+	AddHeaderCalled                     func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
+	RemoveHeaderCalled                  func(nonce uint64, hash []byte)
+	RemoveCommittedHeaderCalled         func(nonce uint64, hash []byte)
+	ReconcileFinalCheckpointCalled      func(nonce uint64)
+	ReconcileFinalCheckpointBelowCalled func(nonce uint64) bool
+	CheckForkCalled                     func() *process.ForkInfo
+	GetHighestFinalBlockNonceCalled     func() uint64
+	GetHighestFinalBlockHashCalled      func() []byte
+	GetHighestSettledBlockInfoCalled    func() (uint64, []byte)
+	ProbableHighestNonceCalled          func() uint64
+	ResetForkCalled                     func()
+	GetNotarizedHeaderHashCalled        func(nonce uint64) []byte
+	SetRollBackNonceCalled              func(nonce uint64)
+	RestoreToGenesisCalled              func()
+	ResetProbableHighestNonceCalled     func()
+	SetFinalToLastCheckpointCalled      func()
+	ReceivedProofCalled                 func(proof data.HeaderProofHandler)
+	AddCheckpointCalled                 func(nonce uint64, round uint64, hash []byte)
 }
 
 // RestoreToGenesis -
@@ -55,6 +56,15 @@ func (fdm *ForkDetectorStub) ReconcileFinalCheckpoint(nonce uint64) {
 	if fdm.ReconcileFinalCheckpointCalled != nil {
 		fdm.ReconcileFinalCheckpointCalled(nonce)
 	}
+}
+
+// ReconcileFinalCheckpointBelow -
+func (fdm *ForkDetectorStub) ReconcileFinalCheckpointBelow(nonce uint64) bool {
+	if fdm.ReconcileFinalCheckpointBelowCalled != nil {
+		return fdm.ReconcileFinalCheckpointBelowCalled(nonce)
+	}
+
+	return true
 }
 
 // CheckFork -

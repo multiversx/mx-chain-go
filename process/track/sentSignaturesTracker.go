@@ -108,7 +108,7 @@ func (tracker *sentSignaturesTracker) RecordSignedNonce(pkBytes []byte, nonce ui
 }
 
 // ReserveSignatureInRound atomically reserves the (key, round) signing slot, false when a different
-// hash was already reserved in that round (R0); in-memory only, crash-restart in-round out of scope
+// hash was already reserved in that round; in-memory only, crash-restart in-round out of scope
 func (tracker *sentSignaturesTracker) ReserveSignatureInRound(pkBytes []byte, roundIndex int64, headerHash []byte) bool {
 	pk := string(pkBytes)
 

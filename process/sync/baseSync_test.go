@@ -1112,8 +1112,8 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.False(t, boot.tryReconcileEquivocation())
 	})
 
-	// spot 2: under per-round R0 a stranded loser can hold a proofed child of its own, so that child
-	// must no longer protect it from the authority's verdict
+	// signing locks per round, not per nonce, so a stranded loser can also hold a proofed child;
+	// that child must no longer protect it from the authority's verdict
 	t.Run("switches away from a local block that has its own proofed child", func(t *testing.T) {
 		t.Parallel()
 
@@ -1140,7 +1140,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.Nil(t, boot.pendingReconcile)
 	})
 
-	// the R-RESOLVE outcome: meta arbitrates the lowest-round sibling, which has no child at all
+	// the arbitration outcome: meta arbitrates the lowest-round sibling, which has no child at all
 	t.Run("switches onto a childless competitor the authority notarized", func(t *testing.T) {
 		t.Parallel()
 
@@ -1158,7 +1158,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		localChildHash, competitorChildHash := []byte("localChildHash"), []byte("competitorChildHash")
 		grandChildHash := []byte("grandChildHash")
 
-		// both siblings hold a proofed child (the 6.5 corner); the competitor gains depth-2 later
+		// both siblings hold a proofed child (per-round signing allows it); the competitor gains depth-2 later
 		childrenByNonce := map[uint64][]pooledHeader{
 			finalNonce + 1: {
 				{&block.MetaBlock{Nonce: finalNonce + 1, PrevHash: localHash}, localChildHash},
@@ -1214,8 +1214,17 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 }
 
 type settlementCheckerStub struct {
-	isSettledCalled func(nonce uint64, headerHash []byte) bool
-	numCalls        int
+	isSettledCalled              func(nonce uint64, headerHash []byte) bool
+	deadCrossNotarizedMetaCalled func() (data.HeaderHandler, []byte, bool)
+	numCalls                     int
+}
+
+func (stub *settlementCheckerStub) deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool) {
+	if stub.deadCrossNotarizedMetaCalled != nil {
+		return stub.deadCrossNotarizedMetaCalled()
+	}
+
+	return nil, nil, false
 }
 
 func (stub *settlementCheckerStub) isSettled(nonce uint64, headerHash []byte) bool {
@@ -1360,4 +1369,297 @@ func TestBaseBootstrap_GetHeaderWithNonceRequestingIfMissingRefusesBlackListedHe
 	// the pool hit was ignored (first guard) and the header re-requested; the answer
 	// still being blacklisted is then refused by the post-wait guard
 	require.True(t, requested)
+}
+
+type epochStartDisarmerStub struct {
+	disarmCalled func(epoch uint32, deadEpochStartHash []byte) bool
+}
+
+func (stub *epochStartDisarmerStub) DisarmDeadEpochStartActivation(epoch uint32, deadEpochStartHash []byte) bool {
+	if stub.disarmCalled != nil {
+		return stub.disarmCalled(epoch, deadEpochStartHash)
+	}
+
+	return false
+}
+
+func TestBaseBootstrap_ReconcileDivergence(t *testing.T) {
+	t.Parallel()
+
+	deadMetaHash := []byte("deadMetaHash")
+	aliveMetaHash := []byte("aliveMetaHash")
+	deadMeta := &block.MetaBlock{Nonce: 30}
+
+	headHash, pointerHash := []byte("ownHash12"), []byte("ownHash11")
+	pointerHeader := &block.HeaderV3{Nonce: 11, MetaBlockHashes: [][]byte{aliveMetaHash, deadMetaHash}}
+	headHeader := &block.HeaderV3{Nonce: 12, PrevHash: pointerHash}
+
+	type divergenceCalls struct {
+		reconciledBelowNonce uint64
+		rollBackNonce        uint64
+		blacklisted          []string
+		numReconcileBelow    int
+	}
+
+	buildBootstrapper := func(
+		calls *divergenceCalls,
+		checker settlementChecker,
+		roundHandler *mock.RoundHandlerMock,
+		reconcileBelowResult bool,
+	) *baseBootstrap {
+		return &baseBootstrap{
+			settlementChecker:        checker,
+			roundHandler:             roundHandler,
+			divergenceEvaluatedRound: -1,
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return headHash
+				},
+			},
+			blockBootstrapper: &blockBootstrapperStub{
+				getCurrHeaderCalled: func() (data.HeaderHandler, error) {
+					return headHeader, nil
+				},
+				getPrevHeaderCalled: func(header data.HeaderHandler, _ storage.Storer) (data.HeaderHandler, error) {
+					if header.GetNonce() == 12 {
+						return pointerHeader, nil
+					}
+					return nil, errors.New("no previous header")
+				},
+			},
+			forkDetector: &mock.ForkDetectorMock{
+				GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+					return 5, nil
+				},
+				ReconcileFinalCheckpointBelowCalled: func(nonce uint64) bool {
+					calls.reconciledBelowNonce = nonce
+					calls.numReconcileBelow++
+					return reconcileBelowResult
+				},
+				SetRollBackNonceCalled: func(nonce uint64) {
+					calls.rollBackNonce = nonce
+				},
+			},
+			blackListHandler: &testscommon.TimeCacheStub{
+				AddCalled: func(key string) error {
+					calls.blacklisted = append(calls.blacklisted, key)
+					return nil
+				},
+			},
+			statusHandler: &statusHandlerMock.AppStatusHandlerStub{},
+		}
+	}
+
+	deadChecker := func() *settlementCheckerStub {
+		return &settlementCheckerStub{
+			deadCrossNotarizedMetaCalled: func() (data.HeaderHandler, []byte, bool) {
+				return deadMeta, deadMetaHash, true
+			},
+		}
+	}
+
+	t.Run("fires once per round and arms the forced rollback below the earliest dead block", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &divergenceCalls{}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 7}
+		boot := buildBootstrapper(calls, deadChecker(), roundHandler, true)
+
+		require.True(t, boot.tryReconcileDivergence())
+		require.Equal(t, uint64(11), calls.reconciledBelowNonce)
+		require.Equal(t, uint64(11), calls.rollBackNonce)
+		require.Equal(t, []string{string(headHash), string(pointerHash)}, calls.blacklisted)
+
+		// gated within the same round, fires again in the next one
+		require.False(t, boot.tryReconcileDivergence())
+		require.Equal(t, 1, calls.numReconcileBelow)
+		roundHandler.RoundIndex = 8
+		require.True(t, boot.tryReconcileDivergence())
+		require.Equal(t, 2, calls.numReconcileBelow)
+	})
+
+	t.Run("no verdict from the authority is a no-op", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &divergenceCalls{}
+		boot := buildBootstrapper(calls, &settlementCheckerStub{}, &mock.RoundHandlerMock{RoundIndex: 7}, true)
+
+		require.False(t, boot.tryReconcileDivergence())
+		require.Zero(t, calls.numReconcileBelow)
+		require.Empty(t, calls.blacklisted)
+	})
+
+	t.Run("aborts when the pointer block does not reference the dead meta", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &divergenceCalls{}
+		boot := buildBootstrapper(calls, deadChecker(), &mock.RoundHandlerMock{RoundIndex: 7}, true)
+		boot.blockBootstrapper = &blockBootstrapperStub{
+			getCurrHeaderCalled: func() (data.HeaderHandler, error) {
+				return headHeader, nil
+			},
+			getPrevHeaderCalled: func(header data.HeaderHandler, _ storage.Storer) (data.HeaderHandler, error) {
+				return &block.HeaderV3{Nonce: 11, MetaBlockHashes: [][]byte{aliveMetaHash}}, nil
+			},
+		}
+
+		require.False(t, boot.tryReconcileDivergence())
+		require.Zero(t, calls.numReconcileBelow)
+		require.Empty(t, calls.blacklisted)
+	})
+
+	t.Run("aborts at the settled floor without a pointer block", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &divergenceCalls{}
+		boot := buildBootstrapper(calls, deadChecker(), &mock.RoundHandlerMock{RoundIndex: 7}, true)
+		boot.forkDetector = &mock.ForkDetectorMock{
+			GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+				return 11, nil
+			},
+			ReconcileFinalCheckpointBelowCalled: func(nonce uint64) bool {
+				calls.numReconcileBelow++
+				return true
+			},
+		}
+
+		require.False(t, boot.tryReconcileDivergence())
+		require.Zero(t, calls.numReconcileBelow)
+	})
+
+	t.Run("a refused finality regression arms nothing", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &divergenceCalls{}
+		boot := buildBootstrapper(calls, deadChecker(), &mock.RoundHandlerMock{RoundIndex: 7}, false)
+
+		require.False(t, boot.tryReconcileDivergence())
+		require.Equal(t, 1, calls.numReconcileBelow)
+		require.Zero(t, calls.rollBackNonce)
+		require.Empty(t, calls.blacklisted)
+	})
+
+	t.Run("disarms a dead epoch start activation", func(t *testing.T) {
+		t.Parallel()
+
+		deadEpochStartMeta := &block.MetaBlock{
+			Nonce: 30,
+			Epoch: 3,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{{ShardID: 0}},
+			},
+		}
+		checker := &settlementCheckerStub{
+			deadCrossNotarizedMetaCalled: func() (data.HeaderHandler, []byte, bool) {
+				return deadEpochStartMeta, deadMetaHash, true
+			},
+		}
+
+		var disarmedEpoch uint32
+		var disarmedHash []byte
+		calls := &divergenceCalls{}
+		boot := buildBootstrapper(calls, checker, &mock.RoundHandlerMock{RoundIndex: 7}, true)
+		boot.epochStartDisarmer = &epochStartDisarmerStub{
+			disarmCalled: func(epoch uint32, deadEpochStartHash []byte) bool {
+				disarmedEpoch = epoch
+				disarmedHash = deadEpochStartHash
+				return true
+			},
+		}
+
+		require.True(t, boot.tryReconcileDivergence())
+		require.Equal(t, uint32(3), disarmedEpoch)
+		require.Equal(t, deadMetaHash, disarmedHash)
+	})
+
+	t.Run("a refused finality regression does not disarm the epoch start activation", func(t *testing.T) {
+		t.Parallel()
+
+		deadEpochStartMeta := &block.MetaBlock{
+			Nonce: 30,
+			Epoch: 3,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{{ShardID: 0}},
+			},
+		}
+		checker := &settlementCheckerStub{
+			deadCrossNotarizedMetaCalled: func() (data.HeaderHandler, []byte, bool) {
+				return deadEpochStartMeta, deadMetaHash, true
+			},
+		}
+
+		disarmed := false
+		calls := &divergenceCalls{}
+		boot := buildBootstrapper(calls, checker, &mock.RoundHandlerMock{RoundIndex: 7}, false)
+		boot.epochStartDisarmer = &epochStartDisarmerStub{
+			disarmCalled: func(epoch uint32, deadEpochStartHash []byte) bool {
+				disarmed = true
+				return true
+			},
+		}
+
+		require.False(t, boot.tryReconcileDivergence())
+		require.Equal(t, 1, calls.numReconcileBelow)
+		require.False(t, disarmed)
+	})
+}
+
+func TestBaseBootstrap_RollBackOneBlockV3RevertsEpochStartTrigger(t *testing.T) {
+	t.Parallel()
+
+	prevHeader := &block.HeaderV3{Nonce: 11}
+	currHeader := &block.HeaderV3{Nonce: 12}
+	currHash, prevHash := []byte("currHash"), []byte("prevHash")
+
+	buildBootstrapper := func(reverted *[]data.HeaderHandler, revertErr error) *baseBootstrap {
+		return &baseBootstrap{
+			chainHandler: &testscommon.ChainHandlerStub{},
+			epochStartTrigger: &testscommon.EpochStartTriggerStub{
+				RevertStateToBlockCalled: func(header data.HeaderHandler) error {
+					*reverted = append(*reverted, header)
+					return revertErr
+				},
+			},
+			executionManager:     &processMocks.ExecutionManagerMock{},
+			blockBootstrapper:    &blockBootstrapperStub{},
+			blockProcessor:       &testscommon.BlockProcessorStub{},
+			headers:              &mock.HeadersCacherStub{},
+			forkDetector:         &mock.ForkDetectorMock{},
+			marshalizer:          &mock.MarshalizerMock{},
+			hasher:               &hashingMocks.HasherMock{},
+			uint64Converter:      &mock.Uint64ByteSliceConverterMock{},
+			headerNonceHashStore: &storageStubs.StorerStub{},
+		}
+	}
+
+	t.Run("reverts the trigger to the new head on every rolled back block", func(t *testing.T) {
+		t.Parallel()
+
+		reverted := make([]data.HeaderHandler, 0)
+		boot := buildBootstrapper(&reverted, nil)
+
+		_, err := boot.rollBackOneBlockV3(currHash, currHeader, prevHash, prevHeader)
+		require.Nil(t, err)
+		require.Equal(t, []data.HeaderHandler{prevHeader}, reverted)
+	})
+
+	t.Run("a failing trigger revert aborts the roll back and restores the head", func(t *testing.T) {
+		t.Parallel()
+
+		expectedRevertErr := errors.New("revert error")
+		reverted := make([]data.HeaderHandler, 0)
+		boot := buildBootstrapper(&reverted, expectedRevertErr)
+
+		restoredHashes := make([][]byte, 0)
+		boot.chainHandler = &testscommon.ChainHandlerStub{
+			SetCurrentBlockHeaderAndHashCalled: func(hash []byte, header data.HeaderHandler) error {
+				restoredHashes = append(restoredHashes, hash)
+				return nil
+			},
+		}
+
+		_, err := boot.rollBackOneBlockV3(currHash, currHeader, prevHash, prevHeader)
+		require.Equal(t, expectedRevertErr, err)
+		require.Equal(t, [][]byte{prevHash, currHash}, restoredHashes)
+	})
 }

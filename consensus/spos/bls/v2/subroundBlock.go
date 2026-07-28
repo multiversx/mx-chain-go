@@ -201,7 +201,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 }
 
 // shouldRefuseCompetingParent applies the signing guard on the meta chain: never build on or
-// accept a proposal over a head with a known lower-round proofed sibling (R-SWITCH mandates moving)
+// accept a proposal over a head with a known lower-round proofed sibling (the chain must move there)
 func (sr *subroundBlock) shouldRefuseCompetingParent() bool {
 	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
 		return false

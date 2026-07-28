@@ -471,6 +471,7 @@ type ForkDetector interface {
 	RemoveHeader(nonce uint64, hash []byte)
 	RemoveCommittedHeader(nonce uint64, hash []byte)
 	ReconcileFinalCheckpoint(nonce uint64)
+	ReconcileFinalCheckpointBelow(nonce uint64) bool
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
 	GetHighestFinalBlockHash() []byte
@@ -1023,8 +1024,8 @@ type HeaderIntegrityVerifier interface {
 // answer false on missing evidence, so a caller never acts on what the node does not hold.
 type MetaFinalityView interface {
 	IsMetaHeaderHeldFinal(header data.HeaderHandler, headerHash []byte) bool
-	IsIncludedInHeldFinalMetaBlock(shardID uint32, headerHash []byte, nonce uint64) bool
-	HasHeldFinalCompetitorAtNonce(metaHeader data.HeaderHandler, metaHash []byte) bool
+	IsIncludedInHeldFinalMetaBlock(shardID uint32, headerHash []byte, nonce uint64, lowMetaNonceAnchor uint64) bool
+	IsDeadMetaBlock(headerHash []byte, nonce uint64) bool
 	IsInterfaceNil() bool
 }
 

@@ -86,6 +86,8 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		bootStorer:                   arguments.BootStorer,
 		storageBootstrapper:          arguments.StorageBootstrapper,
 		epochHandler:                 arguments.EpochHandler,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		divergenceEvaluatedRound:     -1,
 		miniBlocksProvider:           arguments.MiniblocksProvider,
 		uint64Converter:              arguments.Uint64Converter,
 		poolsHolder:                  arguments.PoolsHolder,

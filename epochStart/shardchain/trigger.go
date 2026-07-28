@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -84,6 +85,7 @@ type trigger struct {
 
 	headersPool                   dataRetriever.HeadersPool
 	proofsPool                    dataRetriever.ProofsPool
+	metaFinalityView              process.MetaFinalityView
 	miniBlocksPool                storage.Cacher
 	validatorInfoPool             dataRetriever.ShardedDataCacherNotifier
 	currentEpochValidatorInfoPool epochStart.ValidatorInfoCacher
@@ -233,6 +235,15 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		return nil, err
 	}
 
+	// built over the trigger's own pools so activation shares the node-wide finality definition
+	metaFinalityView, err := track.NewMetaFinalityView(track.ArgsMetaFinalityView{
+		HeadersPool: args.DataPool.Headers(),
+		ProofsPool:  args.DataPool.Proofs(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	triggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
 	t := &trigger{
 		triggerStateKey:               []byte(triggerStateKey),
@@ -252,6 +263,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		mapFinalizedEpochs:            make(map[uint32]string),
 		headersPool:                   args.DataPool.Headers(),
 		proofsPool:                    args.DataPool.Proofs(),
+		metaFinalityView:              metaFinalityView,
 		miniBlocksPool:                args.DataPool.MiniBlocks(),
 		validatorInfoPool:             args.DataPool.ValidatorsInfo(),
 		currentEpochValidatorInfoPool: args.DataPool.CurrentEpochValidatorInfo(),
@@ -837,6 +849,16 @@ func (t *trigger) isMetaBlockFinal(hash string, metaHdr data.HeaderHandler) (boo
 		return t.isMetaBlockFinalLegacy(hash, metaHdr)
 	}
 
+	// under Supernova a contended epoch start must not
+	// activate the trigger until the node holds it final
+	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, metaHdr.GetEpoch()) {
+		if !t.metaFinalityView.IsMetaHeaderHeldFinal(metaHdr, []byte(hash)) {
+			return false, 0
+		}
+
+		return true, metaHdr.GetRound()
+	}
+
 	hasProof := t.proofsPool.HasProof(metaHdr.GetShardID(), []byte(hash))
 	if !hasProof {
 		return false, 0
@@ -1219,6 +1241,108 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	log.Debug("trigger.RevertStateToBlock", "isEpochStart", t.isEpochStart)
 
 	return nil
+}
+
+// DisarmDeadEpochStartActivation reverts an activation armed by a dead epoch start meta block so
+// the canonical sibling can re-arm; covers received-time arming only. Returns true if disarmed.
+func (t *trigger) DisarmDeadEpochStartActivation(epoch uint32, deadEpochStartHash []byte) bool {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+
+	finalizedHash, ok := t.mapFinalizedEpochs[epoch]
+	if !ok || finalizedHash != string(deadEpochStartHash) {
+		return false
+	}
+
+	log.Warn("trigger.DisarmDeadEpochStartActivation",
+		"epoch", epoch,
+		"dead epoch start hash", deadEpochStartHash,
+	)
+
+	delete(t.mapFinalizedEpochs, epoch)
+	t.forgetEpochStartHeader(deadEpochStartHash)
+	t.removeStoredEpochStartMeta(epoch)
+
+	if bytes.Equal(t.epochMetaBlockHash, deadEpochStartHash) {
+		t.restorePreActivationState()
+	}
+
+	err := t.saveState(t.triggerStateKey)
+	if err != nil {
+		log.Warn("DisarmDeadEpochStartActivation saveState", "error", err)
+	}
+
+	return true
+}
+
+// call only if mutex is locked before
+func (t *trigger) forgetEpochStartHeader(hash []byte) {
+	hdr := t.mapHashHdr[string(hash)]
+	delete(t.mapEpochStartHdrs, string(hash))
+	delete(t.mapHashHdr, string(hash))
+	if check.IfNil(hdr) {
+		return
+	}
+
+	hashes := t.mapNonceHashes[hdr.GetNonce()]
+	remaining := make([]string, 0, len(hashes))
+	for _, current := range hashes {
+		if current == string(hash) {
+			continue
+		}
+
+		remaining = append(remaining, current)
+	}
+
+	if len(remaining) == 0 {
+		delete(t.mapNonceHashes, hdr.GetNonce())
+		return
+	}
+
+	t.mapNonceHashes[hdr.GetNonce()] = remaining
+}
+
+// call only if mutex is locked before
+func (t *trigger) removeStoredEpochStartMeta(epoch uint32) {
+	epochStartIdentifier := []byte(core.EpochStartIdentifier(epoch))
+	errNotCritical := t.metaHdrStorage.Remove(epochStartIdentifier)
+	if errNotCritical != nil {
+		log.Debug("removeStoredEpochStartMeta metaHdrStorage remove", "error", errNotCritical)
+	}
+
+	errNotCritical = t.triggerStorage.Remove(epochStartIdentifier)
+	if errNotCritical != nil {
+		log.Debug("removeStoredEpochStartMeta triggerStorage remove", "error", errNotCritical)
+	}
+}
+
+// call only if mutex is locked before
+func (t *trigger) restorePreActivationState() {
+	t.metaEpoch = t.epoch
+	t.isEpochStart = false
+
+	t.epochMetaBlockHash = nil
+	shardHdr, ok := t.epochStartShardHeader.(data.ShardHeaderHandler)
+	if ok && len(shardHdr.GetEpochStartMetaHash()) > 0 {
+		t.epochMetaBlockHash = shardHdr.GetEpochStartMetaHash()
+	}
+
+	epochStartIdentifier := []byte(core.EpochStartIdentifier(t.epoch))
+	metaBuff, err := t.metaHdrStorage.SearchFirst(epochStartIdentifier)
+	if err != nil {
+		log.Debug("restorePreActivationState epoch start meta not in storage", "epoch", t.epoch, "error", err)
+		return
+	}
+
+	prevStartMeta, err := process.UnmarshalMetaHeader(t.marshaller, metaBuff)
+	if err != nil {
+		log.Warn("restorePreActivationState unmarshal", "error", err)
+		return
+	}
+
+	t.epochStartMeta = prevStartMeta
+	t.epochStartRound = prevStartMeta.GetRound()
+	t.epochFinalityAttestingRound = prevStartMeta.GetRound()
 }
 
 // EpochStartMetaHdrHash returns the announcing meta header hash which created the new epoch

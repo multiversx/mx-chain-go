@@ -330,7 +330,7 @@ func (bfd *baseForkDetector) RemoveCommittedHeader(nonce uint64, hash []byte) {
 }
 
 // ReconcileFinalCheckpoint lowers the final checkpoint below the given nonce; this is the only
-// sanctioned finality regression, gated on proven equivocation evidence (R-RECONCILE backstop)
+// sanctioned finality regression, gated on proven equivocation evidence (the reconcile backstop)
 func (bfd *baseForkDetector) ReconcileFinalCheckpoint(nonce uint64) {
 	if nonce == 0 {
 		return
@@ -355,6 +355,61 @@ func (bfd *baseForkDetector) ReconcileFinalCheckpoint(nonce uint64) {
 		"nonce", nonce,
 		"new final nonce", newFinal.nonce,
 		"new final hash", newFinal.hash)
+}
+
+// ReconcileFinalCheckpointBelow purges every record and checkpoint at or above the nonce, records
+// first so no concurrent recomputation re-advances from a purged entry, then lowers the final
+// checkpoint below it; refused at or under the forward-only settled checkpoint
+func (bfd *baseForkDetector) ReconcileFinalCheckpointBelow(nonce uint64) bool {
+	if nonce == 0 {
+		return false
+	}
+
+	settledNonce := bfd.settledCheckpoint().nonce
+	if nonce <= settledNonce {
+		log.Error("forkDetector.ReconcileFinalCheckpointBelow: refused, would cross the settled checkpoint",
+			"nonce", nonce,
+			"settled checkpoint nonce", settledNonce)
+		return false
+	}
+
+	bfd.mutHeaders.Lock()
+	for hdrNonce := range bfd.headers {
+		if hdrNonce >= nonce {
+			delete(bfd.headers, hdrNonce)
+		}
+	}
+	bfd.mutHeaders.Unlock()
+
+	bfd.mutFork.Lock()
+	newFinal := &checkpointInfo{nonce: nonce - 1}
+	preservedCheckpoints := make([]*checkpointInfo, 0, len(bfd.fork.checkpoint))
+	for _, checkpoint := range bfd.fork.checkpoint {
+		if checkpoint.nonce >= nonce {
+			continue
+		}
+
+		preservedCheckpoints = append(preservedCheckpoints, checkpoint)
+		if checkpoint.nonce >= newFinal.nonce {
+			newFinal = checkpoint
+		}
+	}
+	bfd.fork.checkpoint = preservedCheckpoints
+	loweredFinal := bfd.fork.finalCheckpoint.nonce >= nonce
+	if loweredFinal {
+		bfd.fork.finalCheckpoint = newFinal
+	}
+	bfd.mutFork.Unlock()
+
+	probableHighestNonce := bfd.computeProbableHighestNonce()
+	bfd.setProbableHighestNonce(probableHighestNonce)
+
+	log.Error("forkDetector.ReconcileFinalCheckpointBelow: finality regressed on dead cross-notarization evidence",
+		"nonce", nonce,
+		"final checkpoint lowered", loweredFinal,
+		"new final nonce", bfd.finalCheckpoint().nonce)
+
+	return true
 }
 
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
@@ -545,7 +600,7 @@ func isParentCheckpoint(checkpoint *checkpointInfo, header data.HeaderHandler) b
 }
 
 // canInstantlyFinalize returns false for a contended header or one whose parent is not final yet;
-// such headers finalize later, on settlement (R-INTRA)
+// such headers finalize later, on settlement
 func (bfd *baseForkDetector) canInstantlyFinalize(header data.HeaderHandler) bool {
 	if !bfd.isSupernovaForHeader(header) {
 		return true

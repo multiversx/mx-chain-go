@@ -40,6 +40,7 @@ type ArgBaseBootstrapper struct {
 	BootStorer                   process.BootStorer
 	StorageBootstrapper          process.BootstrapperFromStorage
 	EpochHandler                 dataRetriever.EpochHandler
+	EpochStartTrigger            process.EpochStartTriggerHandler
 	MiniblocksProvider           process.MiniBlockProvider
 	Uint64Converter              typeConverters.Uint64ByteSliceConverter
 	AppStatusHandler             core.AppStatusHandler
@@ -61,6 +62,7 @@ type ArgBaseBootstrapper struct {
 type ArgShardBootstrapper struct {
 	ArgBaseBootstrapper
 	MetaFinalityView process.MetaFinalityView
+	BlockTracker     process.BlockTracker
 }
 
 // ArgMetaBootstrapper holds all dependencies required by the bootstrap data factory in order to create

@@ -415,6 +415,9 @@ func TestNewMetaProcessor_NilHeadersDataPoolShouldErr(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	dataComponents.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},

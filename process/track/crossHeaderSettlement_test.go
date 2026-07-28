@@ -201,7 +201,7 @@ func TestMetaBlockTrack_ComputeLongestChain_ContendedShardHeader(t *testing.T) {
 		t.Parallel()
 
 		siblingLowRound := &block.Header{ShardID: 0, Nonce: 6, Round: 12, PrevHash: parentHash}
-		// higher-round sibling, settled by its own proofed child under the old fact-2 rule
+		// higher-round sibling, settled by its own proofed child under the old proofed-child rule
 		contended := &block.Header{ShardID: 0, Nonce: 6, Round: 14, PrevHash: parentHash}
 		child := &block.Header{ShardID: 0, Nonce: 7, Round: 15, PrevHash: hashOf(contended)}
 

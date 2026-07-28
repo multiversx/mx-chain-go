@@ -370,6 +370,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		BootStorer:                   &mock.BoostrapStorerMock{},
 		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
 		EpochHandler:                 &mock.EpochStartTriggerStub{},
+		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerStub{},
@@ -389,6 +390,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
 		MetaFinalityView:    &testscommon.MetaFinalityViewStub{},
+		BlockTracker:        &mock.BlockTrackerMock{},
 	}
 
 	return argsShardBootstrapper
@@ -466,6 +468,30 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T)
 
 	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilTxBlockBody, err)
+}
+
+func TestNewShardBootstrap_NilMetaFinalityViewShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.MetaFinalityView = nil
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.Equal(t, process.ErrNilMetaFinalityView, err)
+}
+
+func TestNewShardBootstrap_NilBlockTrackerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.BlockTracker = nil
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.Equal(t, process.ErrNilBlockTracker, err)
 }
 
 func TestNewShardBootstrap_NilStoreShouldErr(t *testing.T) {
