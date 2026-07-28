@@ -1321,7 +1321,7 @@ func (mp *metaProcessor) isAncestorMetaBlock(view *metaAncestryView, refHash []b
 		return bytes.Equal(view.walked[refNonce], refHash)
 	}
 
-	// below the pooled walk the canonical nonce -> hash storer, written at commit, is the ancestor test
+	// below the ancestry chain created through the pool walk, the canonical nonce -> hash storer, is the ancestor test
 	mp.extendCanonicalHashes(view, refNonce, refsLeft)
 	_, isCanonical := view.canonicalHashes[string(refHash)]
 
