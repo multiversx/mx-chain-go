@@ -177,8 +177,8 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 
 	pInfo, found := holder.data[string(publicKeyBytes)]
 	if found && len(pInfo.pid.Bytes()) != 0 {
-		return fmt.Errorf("%w for provided bytes %s and generated public key %s",
-			ErrDuplicatedKey, hex.EncodeToString(privateKeyBytes), hex.EncodeToString(publicKeyBytes))
+		return fmt.Errorf("%w for generated public key %s",
+			ErrDuplicatedKey, hex.EncodeToString(publicKeyBytes))
 	}
 
 	pInfo, found = holder.providedIdentities[string(publicKeyBytes)]
