@@ -1192,7 +1192,10 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 
 	log.Debug("trigger.RevertStateToBlock behind start of epoch block")
 
-	if t.epochStartShardHeader.GetEpoch() <= 1 {
+	// the revert target's epoch start block is necessarily its stored ancestor: skipped empty
+	// epochs resolve exactly, and a miss means corruption that fabricated state would hide
+	prevEpoch := header.GetEpoch()
+	if prevEpoch == 0 {
 		t.epochStartShardHeader = &block.Header{}
 		t.isEpochStart = true
 		t.newEpochHdrReceived = true
@@ -1201,26 +1204,11 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 		return nil
 	}
 
-	shardHdrBuff := make([]byte, 0)
-	epoch := t.epochStartShardHeader.GetEpoch() - 1
-	for ; epoch > 0; epoch-- {
-		prevEpochStartIdentifier := core.EpochStartIdentifier(epoch)
-		shardHdrBuff, err = t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
-		if err != nil {
-			log.Debug("RevertStateToBlock get header from storage error", "err", err)
-			continue
-		}
-
-		break
-	}
-
-	if epoch == 0 {
-		t.epochStartShardHeader = &block.Header{}
-		t.isEpochStart = true
-		t.newEpochHdrReceived = true
-		log.Debug("trigger.RevertStateToBlock", "isEpochStart", t.isEpochStart)
-
-		return nil
+	prevEpochStartIdentifier := core.EpochStartIdentifier(prevEpoch)
+	shardHdrBuff, err := t.shardHdrStorage.SearchFirst([]byte(prevEpochStartIdentifier))
+	if err != nil {
+		log.Warn("RevertStateToBlock previous epoch start header not found", "epoch", prevEpoch, "err", err)
+		return err
 	}
 
 	shardHdr, err := process.UnmarshalShardHeader(t.marshaller, shardHdrBuff)

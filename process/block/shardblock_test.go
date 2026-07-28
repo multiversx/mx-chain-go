@@ -3716,6 +3716,82 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txFromPool)
 }
 
+func TestShardProcessor_RestoreBlockIntoPoolsPartialMetaFailureKeepsMovedAccounting(t *testing.T) {
+	t.Parallel()
+
+	marshalizerMock := &mock.MarshalizerMock{}
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
+
+	miniBlockHash1 := []byte("mini block hash 1")
+	miniBlockHash2 := []byte("mini block hash 2")
+	metaBlockHash1 := []byte("meta block hash 1")
+	metaBlockHash2 := []byte("meta block hash 2")
+
+	storedMetas := map[string]*block.MetaBlock{
+		string(metaBlockHash1): createDummyMetaBlock(0, 1, miniBlockHash1),
+		string(metaBlockHash2): createDummyMetaBlock(0, 1, miniBlockHash2),
+	}
+	removeFailuresLeft := map[string]int{string(metaBlockHash2): 1}
+
+	metaBlockStorer := &storageStubs.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			metaBlock, ok := storedMetas[string(key)]
+			if !ok {
+				return nil, errors.New("missing meta block")
+			}
+			return marshalizerMock.Marshal(metaBlock)
+		},
+		RemoveCalled: func(key []byte) error {
+			if removeFailuresLeft[string(key)] > 0 {
+				removeFailuresLeft[string(key)]--
+				return errors.New("remove error")
+			}
+			delete(storedMetas, string(key))
+			return nil
+		},
+	}
+	store := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			if unitType == dataRetriever.MetaBlockUnit {
+				return metaBlockStorer, nil
+			}
+			return &storageStubs.StorerStub{
+				RemoveCalled: func(key []byte) error {
+					return nil
+				},
+			}, nil
+		},
+	}
+
+	accountedMetas := make(map[string]int)
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.DataPool = datapool
+	dataComponents.Storage = store
+	coreComponents.IntMarsh = marshalizerMock
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ProcessedMiniBlocksTracker = &testscommon.ProcessedMiniBlocksTrackerStub{
+		SetProcessedMiniBlockInfoCalled: func(metaBlockHash []byte, miniBlockHash []byte, processedMbInfo *processedMb.ProcessedMiniBlockInfo) {
+			accountedMetas[string(metaBlockHash)]++
+		},
+	}
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
+
+	header := &block.Header{MetaBlockHashes: [][]byte{metaBlockHash1, metaBlockHash2}}
+
+	// first attempt: the second meta block's storage removal fails after the first was moved;
+	// the accounting for the moved one must not be lost
+	err = sp.RestoreBlockIntoPools(header, &block.Body{})
+	require.NotNil(t, err)
+	require.Equal(t, 1, accountedMetas[string(metaBlockHash1)])
+
+	// retry: the moved meta block is skipped, the remaining one completes
+	err = sp.RestoreBlockIntoPools(header, &block.Body{})
+	require.Nil(t, err)
+	require.Equal(t, 1, accountedMetas[string(metaBlockHash1)])
+	require.Equal(t, 1, accountedMetas[string(metaBlockHash2)])
+}
+
 func TestShardProcessor_DecodeBlockBody(t *testing.T) {
 	t.Parallel()
 

@@ -360,6 +360,11 @@ func (boot *baseBootstrap) GetPendingV3Realign() bool {
 	return boot.pendingV3Realign
 }
 
+// GetLastRestoredHeaderHash -
+func (boot *baseBootstrap) GetLastRestoredHeaderHash() []byte {
+	return boot.lastRestoredHeaderHash
+}
+
 // SyncBlockBase -
 func (boot *baseBootstrap) SyncBlockBase() error {
 	return boot.syncBlock()

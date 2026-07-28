@@ -727,8 +727,19 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 ) error {
 	headersPool := sp.dataPool.Headers()
 
-	mapMetaHashMiniBlockHashes := make(map[string][][]byte)
-	mapMetaHashMetaBlock := make(map[string]data.MetaHeaderHandler)
+	metablockStorer, err := sp.store.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		log.Debug("unable to get storage unit",
+			"unit", dataRetriever.MetaBlockUnit.String())
+		return err
+	}
+
+	metaHdrNonceHashStorer, err := sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		log.Debug("unable to get storage unit",
+			"unit", dataRetriever.MetaHdrNonceHashDataUnit.String())
+		return err
+	}
 
 	for _, metaBlockHash := range metaBlockHashes {
 		metaBlock, errNotCritical := process.GetMetaHeaderFromStorage(metaBlockHash, sp.marshalizer, sp.store)
@@ -738,20 +749,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 			continue
 		}
 
-		mapMetaHashMetaBlock[string(metaBlockHash)] = metaBlock
-		processedMiniBlocks := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
-		for mbHash := range processedMiniBlocks {
-			mapMetaHashMiniBlockHashes[string(metaBlockHash)] = append(mapMetaHashMiniBlockHashes[string(metaBlockHash)], []byte(mbHash))
-		}
-
 		headersPool.AddHeader(metaBlockHash, metaBlock)
-
-		metablockStorer, err := sp.store.GetStorer(dataRetriever.MetaBlockUnit)
-		if err != nil {
-			log.Debug("unable to get storage unit",
-				"unit", dataRetriever.MetaBlockUnit.String())
-			return err
-		}
 
 		err = metablockStorer.Remove(metaBlockHash)
 		if err != nil {
@@ -761,28 +759,24 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 		}
 
 		nonceToByteSlice := sp.uint64Converter.ToByteSlice(metaBlock.GetNonce())
-
-		metaHdrNonceHashStorer, err := sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
-		if err != nil {
-			log.Debug("unable to get storage unit",
-				"unit", dataRetriever.MetaHdrNonceHashDataUnit.String())
-			return err
-		}
-
 		errNotCritical = metaHdrNonceHashStorer.Remove(nonceToByteSlice)
 		if errNotCritical != nil {
 			log.Debug("error not critical",
 				"error", errNotCritical.Error())
 		}
 
+		// settled per meta block, so a later failure cannot lose the accounting of moved blocks
+		processedMiniBlocks := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+		miniBlockHashes := make([][]byte, 0, len(processedMiniBlocks))
+		for mbHash := range processedMiniBlocks {
+			miniBlockHashes = append(miniBlockHashes, []byte(mbHash))
+		}
+		sp.setProcessedMiniBlocksInfo(miniBlockHashes, string(metaBlockHash), metaBlock)
+
 		log.Trace("meta block has been restored successfully",
 			"round", metaBlock.GetRound(),
 			"nonce", metaBlock.GetNonce(),
 			"hash", metaBlockHash)
-	}
-
-	for metaBlockHash, miniBlockHashes := range mapMetaHashMiniBlockHashes {
-		sp.setProcessedMiniBlocksInfo(miniBlockHashes, metaBlockHash, mapMetaHashMetaBlock[metaBlockHash])
 	}
 
 	sp.rollBackProcessedMiniBlocksInfo(headerHandler, mapMiniBlockHashes)

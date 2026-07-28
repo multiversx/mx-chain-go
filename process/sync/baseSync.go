@@ -1061,11 +1061,18 @@ func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
 }
 
 func (boot *baseBootstrap) syncBlock() error {
+	// an interrupted post-restore rollback keeps pool and tracker state ahead of the chain;
+	// completing it is mandatory before any other sync work
+	if len(boot.lastRestoredHeaderHash) != 0 {
+		return boot.completeInterruptedV3RollBack()
+	}
+
 	// a failed post-rollback realign leaves execution state behind the tip; nothing may run on
 	// top of it, so the loop stays blocked until the rewind goes through
 	if boot.pendingV3Realign {
 		boot.realignAfterV3RollBack()
 		if boot.pendingV3Realign {
+			boot.invalidateNodeState()
 			return ErrExecutionRealignPending
 		}
 		return nil
@@ -1717,9 +1724,8 @@ func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
 }
 
 // rollBack decides if rollBackOneBlock must be called
-func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
+func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) (err error) {
 	var roleBackOneBlockExecuted bool
-	var err error
 	var currHeaderHash []byte
 	var currHeader data.HeaderHandler
 	var prevHeader data.HeaderHandler
@@ -1728,8 +1734,8 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 	defer func() {
 		isHeaderV3 := !check.IfNil(currHeader) && currHeader.IsHeaderV3()
 		if !roleBackOneBlockExecuted && !isHeaderV3 {
-			err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
-			if err != nil {
+			errScheduled := boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
+			if errScheduled != nil {
 				rootHash := boot.chainHandler.GetGenesisHeader().GetRootHash()
 				if currHeader != nil {
 					rootHash = currHeader.GetRootHash()
@@ -1746,10 +1752,15 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 	}()
 
 	rolledBackV3 := false
-	// runs on every exit path: a v3 tip lowered by even one block must never keep a stale watermark
+	// runs on every exit path: a v3 tip lowered by even one block must never keep a stale
+	// watermark; a rewind failure surfaces in the result, so no caller continues on top of it
 	defer func() {
-		if rolledBackV3 {
-			boot.realignAfterV3RollBack()
+		if !rolledBackV3 {
+			return
+		}
+		boot.realignAfterV3RollBack()
+		if err == nil && boot.pendingV3Realign {
+			err = ErrExecutionRealignPending
 		}
 	}()
 
@@ -1865,6 +1876,30 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 	}
 
 	log.Debug("ending roll back")
+	return nil
+}
+
+// completeInterruptedV3RollBack re-drives a roll back that failed after its restore step; every
+// re-run step is idempotent or guarded, so retrying converges
+func (boot *baseBootstrap) completeInterruptedV3RollBack() error {
+	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+	if !bytes.Equal(currentHash, boot.lastRestoredHeaderHash) {
+		// a new commit superseded the interrupted roll back: the chain keeps the block, and the
+		// lagging in-memory tracked state is rebuilt on restart
+		log.Error("interrupted v3 roll back superseded by a new commit",
+			"restored hash", boot.lastRestoredHeaderHash,
+			"current hash", currentHash,
+		)
+		boot.lastRestoredHeaderHash = nil
+		return nil
+	}
+
+	err := boot.rollBack(false)
+	if err != nil {
+		boot.invalidateNodeState()
+		return err
+	}
+
 	return nil
 }
 

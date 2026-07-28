@@ -4163,7 +4163,7 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 		require.True(t, bs.GetPreparedForSync())
 	})
 
-	t.Run("rewind failure does not re-arm the sync prepare step", func(t *testing.T) {
+	t.Run("rewind failure does not re-arm the sync prepare step and surfaces in the result", func(t *testing.T) {
 		t.Parallel()
 
 		bs, _, _, _, _, executionManagerMock := buildBootstrapper(5)
@@ -4172,8 +4172,9 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 			return errors.New("expected error")
 		}
 
+		// the roll back itself succeeded, but no caller may continue on unrewound execution state
 		err := bs.RollBack(true)
-		require.Nil(t, err)
+		require.Equal(t, sync.ErrExecutionRealignPending, err)
 		require.True(t, bs.GetPreparedForSync())
 	})
 
@@ -4244,7 +4245,7 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 		}
 
 		err := bs.RollBack(true)
-		require.Nil(t, err)
+		require.Equal(t, sync.ErrExecutionRealignPending, err)
 
 		require.False(t, resetTrackerCalled)
 		require.True(t, bs.GetPreparedForSync())
@@ -4334,7 +4335,7 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 		}
 
 		err := bs.RollBack(true)
-		require.Nil(t, err)
+		require.Equal(t, sync.ErrExecutionRealignPending, err)
 		require.True(t, bs.GetPendingV3Realign())
 
 		// still failing: the sync loop stays blocked on the mandatory retry
@@ -4352,6 +4353,110 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 		require.False(t, bs.GetPendingV3Realign())
 		require.True(t, resetTrackerCalled)
 		require.False(t, bs.GetPreparedForSync())
+	})
+
+	t.Run("an interrupted roll back is completed before any other sync work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		restoreCalls := 0
+		revertCalls := 0
+		bs, blkc, _, _, calledFlags, _ := buildBootstrapper(5, func(args *sync.ArgShardBootstrapper) {
+			args.BlockProcessor = &testscommon.BlockProcessorStub{
+				RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+					restoreCalls++
+					return nil
+				},
+			}
+			args.EpochStartTrigger = &mock.EpochStartTriggerStub{
+				RevertStateToBlockCalled: func(header data.HeaderHandler) error {
+					revertCalls++
+					if revertCalls == 1 {
+						return expectedErr
+					}
+					return nil
+				},
+			}
+		})
+		bs.SetPreparedForSync(true)
+
+		err := bs.RollBack(true)
+		require.Equal(t, expectedErr, err)
+		require.Equal(t, currHdr.GetNonce(), blkc.GetCurrentBlockHeader().GetNonce())
+
+		// the next sync round must complete the roll back instead of doing any other work
+		err = bs.SyncBlockBase()
+		require.Nil(t, err)
+		require.Equal(t, 1, restoreCalls)
+		require.Equal(t, prevHdr.GetNonce(), blkc.GetCurrentBlockHeader().GetNonce())
+		require.True(t, calledFlags["removeCommittedHeader"])
+	})
+
+	t.Run("a still-failing interrupted roll back keeps sync blocked", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		restoreCalls := 0
+		bs, blkc, _, _, _, _ := buildBootstrapper(5, func(args *sync.ArgShardBootstrapper) {
+			args.BlockProcessor = &testscommon.BlockProcessorStub{
+				RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+					restoreCalls++
+					return nil
+				},
+			}
+			args.EpochStartTrigger = &mock.EpochStartTriggerStub{
+				RevertStateToBlockCalled: func(header data.HeaderHandler) error {
+					return expectedErr
+				},
+			}
+		})
+		bs.SetPreparedForSync(true)
+
+		err := bs.RollBack(true)
+		require.Equal(t, expectedErr, err)
+
+		err = bs.SyncBlockBase()
+		require.Equal(t, expectedErr, err)
+		err = bs.SyncBlockBase()
+		require.Equal(t, expectedErr, err)
+
+		require.Equal(t, 1, restoreCalls)
+		require.Equal(t, currHdr.GetNonce(), blkc.GetCurrentBlockHeader().GetNonce())
+	})
+
+	t.Run("a superseded interrupted roll back stands down instead of reverting the new tip", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		restoreCalls := 0
+		bs, blkc, _, _, _, _ := buildBootstrapper(5, func(args *sync.ArgShardBootstrapper) {
+			args.BlockProcessor = &testscommon.BlockProcessorStub{
+				RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+					restoreCalls++
+					return nil
+				},
+			}
+			args.EpochStartTrigger = &mock.EpochStartTriggerStub{
+				RevertStateToBlockCalled: func(header data.HeaderHandler) error {
+					return expectedErr
+				},
+			}
+		})
+		bs.SetPreparedForSync(true)
+
+		err := bs.RollBack(true)
+		require.Equal(t, expectedErr, err)
+
+		// consensus committed a new block on top before the next sync round
+		newTip := newV3Header(9, 13, currHdrHash)
+		_ = blkc.SetCurrentBlockHeaderAndHash([]byte("newTipHash"), newTip)
+
+		err = bs.SyncBlockBase()
+		require.Nil(t, err)
+		require.Equal(t, 1, restoreCalls)
+		require.Equal(t, newTip.GetNonce(), blkc.GetCurrentBlockHeader().GetNonce())
+		// the marker is cleared: the next round is not a completion round anymore
+		require.Empty(t, bs.GetLastRestoredHeaderHash())
 	})
 
 	t.Run("remove succeeds then restoration and rewind fail: header restored, trigger untouched, recovery armed", func(t *testing.T) {
