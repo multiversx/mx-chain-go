@@ -2,14 +2,38 @@ package components
 
 import (
 	"fmt"
+	"sync/atomic"
 	"testing"
 
 	"github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 )
+
+func TestSyncedBroadcastNetwork_NotifyHeaderCallsOnlyRequestedShard(t *testing.T) {
+	t.Parallel()
+
+	network := NewSyncedBroadcastNetwork()
+	calls := make([]uint32, 0)
+	network.RegisterHeaderNotifier(0, func(_ data.HeaderHandler) {
+		calls = append(calls, 0)
+	})
+	network.RegisterHeaderNotifier(1, func(_ data.HeaderHandler) {
+		calls = append(calls, 1)
+	})
+	network.RegisterHeaderNotifier(0, func(_ data.HeaderHandler) {
+		calls = append(calls, 0)
+	})
+
+	network.NotifyHeader(0, &block.MetaBlock{})
+
+	assert.Equal(t, []uint32{0, 0}, calls)
+}
 
 func TestSyncedBroadcastNetwork_BroadcastShouldWorkOn3Peers(t *testing.T) {
 	t.Parallel()
@@ -78,6 +102,39 @@ func TestSyncedBroadcastNetwork_BroadcastShouldWorkOn3Peers(t *testing.T) {
 	assert.Equal(t, twoThreeMessage, messages[peer3.ID()][twoThreeTopic])
 }
 
+func TestSyncedBroadcastNetwork_ConsensusBroadcastSkipsSenderLoopback(t *testing.T) {
+	t.Parallel()
+
+	network := NewSyncedBroadcastNetwork()
+	sender, err := NewSyncedMessenger(network)
+	assert.NoError(t, err)
+	receiver, err := NewSyncedMessenger(network)
+	assert.NoError(t, err)
+
+	topic := common.ConsensusTopic + "_0"
+	var senderCalls atomic.Uint32
+	var receiverCalls atomic.Uint32
+	_ = sender.CreateTopic(topic, true)
+	_ = receiver.CreateTopic(topic, true)
+	_ = sender.RegisterMessageProcessor(topic, "", &p2pmocks.MessageProcessorStub{
+		ProcessReceivedMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+			senderCalls.Add(1)
+			return nil, nil
+		},
+	})
+	_ = receiver.RegisterMessageProcessor(topic, "", &p2pmocks.MessageProcessorStub{
+		ProcessReceivedMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+			receiverCalls.Add(1)
+			return nil, nil
+		},
+	})
+
+	sender.Broadcast(topic, []byte("consensus message"))
+
+	assert.Equal(t, uint32(0), senderCalls.Load())
+	assert.Equal(t, uint32(1), receiverCalls.Load())
+}
+
 func TestSyncedBroadcastNetwork_BroadcastOnAnUnjoinedTopicShouldDiscardMessage(t *testing.T) {
 	t.Parallel()
 
@@ -116,6 +173,41 @@ func TestSyncedBroadcastNetwork_BroadcastOnAnUnjoinedTopicShouldDiscardMessage(t
 	assert.Nil(t, messages[peer1.ID()][twoThreeTopic])
 	assert.Nil(t, messages[peer2.ID()][twoThreeTopic])
 	assert.Nil(t, messages[peer3.ID()][twoThreeTopic])
+}
+
+func TestSyncedBroadcastNetwork_BroadcastDeduplicatesEquivalentProofsOnly(t *testing.T) {
+	t.Parallel()
+
+	network := NewSyncedBroadcastNetwork()
+	peer, err := NewSyncedMessenger(network)
+	assert.NoError(t, err)
+
+	proofTopic := common.EquivalentProofsTopic + "_0"
+	regularTopic := "regular"
+	var proofCalls atomic.Uint32
+	var regularCalls atomic.Uint32
+	_ = peer.CreateTopic(proofTopic, true)
+	_ = peer.RegisterMessageProcessor(proofTopic, "", &p2pmocks.MessageProcessorStub{
+		ProcessReceivedMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+			proofCalls.Add(1)
+			return nil, nil
+		},
+	})
+	_ = peer.CreateTopic(regularTopic, true)
+	_ = peer.RegisterMessageProcessor(regularTopic, "", &p2pmocks.MessageProcessorStub{
+		ProcessReceivedMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+			regularCalls.Add(1)
+			return nil, nil
+		},
+	})
+
+	peer.Broadcast(proofTopic, []byte("same proof"))
+	peer.Broadcast(proofTopic, []byte("same proof"))
+	peer.Broadcast(regularTopic, []byte("same message"))
+	peer.Broadcast(regularTopic, []byte("same message"))
+
+	assert.Equal(t, uint32(1), proofCalls.Load())
+	assert.Equal(t, uint32(2), regularCalls.Load())
 }
 
 func TestSyncedBroadcastNetwork_SendDirectlyShouldWorkBetween2peers(t *testing.T) {

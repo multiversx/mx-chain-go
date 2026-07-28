@@ -126,6 +126,9 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
 	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
+	for idx := range configs.GeneralConfig.GeneralSettings.EpochStartConfigsByEpoch {
+		configs.GeneralConfig.GeneralSettings.EpochStartConfigsByEpoch[idx].ExtraDelayForRequestBlockInfoInMilliseconds = 1
+	}
 	configs.GeneralConfig.EpochStartConfig.GenesisEpoch = args.InitialEpoch
 
 	// the simulator always builds its own genesis locally (even for a non-zero InitialEpoch) and

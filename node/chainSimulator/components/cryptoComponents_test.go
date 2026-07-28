@@ -96,6 +96,47 @@ func TestCreateCryptoComponents(t *testing.T) {
 		require.Nil(t, comp.Create())
 		require.Nil(t, comp.Close())
 	})
+	t.Run("should install deterministic fast consensus crypto", func(t *testing.T) {
+		t.Parallel()
+
+		args := createArgsCryptoComponentsHolder()
+		args.EnableFastConsensusCrypto = true
+		comp, err := CreateCryptoComponents(args)
+		require.NoError(t, err)
+		require.IsType(t, &fastConsensusSigner{}, comp.BlockSigner())
+		require.IsType(t, &fastConsensusMultiSignerContainer{}, comp.MultiSignerContainer())
+
+		message := []byte("consensus message")
+		signature, err := comp.ConsensusSigningHandler().CreateSignatureForPublicKey(
+			message,
+			comp.PublicKeyBytes(),
+		)
+		require.NoError(t, err)
+		require.NoError(t, comp.ConsensusSigningHandler().VerifySingleSignature(
+			comp.PublicKeyBytes(),
+			message,
+			signature,
+		))
+		require.Error(t, comp.ConsensusSigningHandler().VerifySingleSignature(
+			comp.PublicKeyBytes(),
+			[]byte("different message"),
+			signature,
+		))
+
+		peerID := core.PeerID("simulator peer")
+		peerSignature, err := comp.PeerSignatureHandler().GetPeerSignature(
+			comp.PrivateKey(),
+			peerID.Bytes(),
+		)
+		require.NoError(t, err)
+		require.NoError(t, comp.PeerSignatureHandler().VerifyPeerSignature(
+			comp.PublicKeyBytes(),
+			peerID,
+			peerSignature,
+		))
+
+		require.Nil(t, comp.Close())
+	})
 	t.Run("NewCryptoComponentsFactory failure should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -137,6 +178,62 @@ func TestCryptoComponentsHolder_IsInterfaceNil(t *testing.T) {
 	comp, _ = CreateCryptoComponents(createArgsCryptoComponentsHolder())
 	require.False(t, comp.IsInterfaceNil())
 	require.Nil(t, comp.Close())
+}
+
+func TestFastConsensusCrypto_SigningHandlerBindsAggregateToBitmap(t *testing.T) {
+	args := createArgsCryptoComponentsHolder()
+	args.EnableFastConsensusCrypto = true
+
+	first, err := CreateCryptoComponents(args)
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, first.Close())
+	}()
+	second, err := CreateCryptoComponents(args)
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, second.Close())
+	}()
+
+	message := []byte("proof payload")
+	firstShare, err := first.ConsensusSigningHandler().CreateSignatureForPublicKey(
+		message,
+		first.PublicKeyBytes(),
+	)
+	require.NoError(t, err)
+	secondShare, err := second.ConsensusSigningHandler().CreateSignatureForPublicKey(
+		message,
+		second.PublicKeyBytes(),
+	)
+	require.NoError(t, err)
+
+	publicKeys := []string{
+		string(first.PublicKeyBytes()),
+		string(second.PublicKeyBytes()),
+	}
+	bitmap := []byte{0b00000011}
+	aggregatedSignature, err := first.ConsensusSigningHandler().AggregateSigsWithKeys(
+		publicKeys,
+		bitmap,
+		[][]byte{firstShare, secondShare},
+		0,
+	)
+	require.NoError(t, err)
+	require.NoError(t, first.ConsensusSigningHandler().VerifyAggregatedSigWithKeys(
+		publicKeys,
+		bitmap,
+		message,
+		aggregatedSignature,
+		0,
+	))
+
+	require.Error(t, first.ConsensusSigningHandler().VerifyAggregatedSigWithKeys(
+		publicKeys,
+		[]byte{0b00000001},
+		message,
+		aggregatedSignature,
+		0,
+	))
 }
 
 func TestCryptoComponentsHolder_GettersSetters(t *testing.T) {

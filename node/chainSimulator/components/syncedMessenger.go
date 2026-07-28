@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 const virtualAddressTemplate = "/virtual/p2p/%s"
@@ -37,6 +39,11 @@ type syncedMessenger struct {
 	topics       map[string]map[string]p2p.MessageProcessor
 	network      SyncedBroadcastNetworkHandler
 	pid          core.PeerID
+	// shouldReceiveConsensusMessage is installed only on consensus-path simulator nodes. It avoids
+	// making waiting/non-group validators perform BLS verification for broadcasts they cannot act
+	// on. Those validators still receive direct and non-consensus traffic and are advanced through
+	// the simulator's committed-header/proof delivery and follower catch-up path.
+	shouldReceiveConsensusMessage func() bool
 }
 
 // NewSyncedMessenger creates a new synced network messenger
@@ -48,6 +55,20 @@ func NewSyncedMessenger(network SyncedBroadcastNetworkHandler) (*syncedMessenger
 	_, pid, err := p2pInstanceCreator.CreateRandomP2PIdentity()
 	if err != nil {
 		return nil, err
+	}
+
+	return NewSyncedMessengerWithPeerID(network, pid)
+}
+
+// NewSyncedMessengerWithPeerID creates a new synced network messenger reusing the exact
+// provided peer ID — used by single-key consensus nodes so they broadcast under the peer ID
+// the keys handler associates with their validator key
+func NewSyncedMessengerWithPeerID(network SyncedBroadcastNetworkHandler, pid core.PeerID) (*syncedMessenger, error) {
+	if check.IfNil(network) {
+		return nil, errNilNetwork
+	}
+	if len(pid) == 0 {
+		return nil, errors.New("empty peer ID")
 	}
 
 	messenger := &syncedMessenger{
@@ -77,8 +98,17 @@ func (messenger *syncedMessenger) receive(fromConnectedPeer core.PeerID, message
 	}
 
 	messenger.mutOperation.RLock()
+	shouldReceiveConsensusMessage := messenger.shouldReceiveConsensusMessage
 	handlers := messenger.topics[message.Topic()]
 	messenger.mutOperation.RUnlock()
+
+	if message.BroadcastMethod() == p2p.Broadcast &&
+		len(message.Topic()) >= len(common.ConsensusTopic) &&
+		message.Topic()[:len(common.ConsensusTopic)] == common.ConsensusTopic &&
+		shouldReceiveConsensusMessage != nil &&
+		!shouldReceiveConsensusMessage() {
+		return
+	}
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(handlers))
@@ -95,6 +125,12 @@ func (messenger *syncedMessenger) receive(fromConnectedPeer core.PeerID, message
 	}
 
 	wg.Wait()
+}
+
+func (messenger *syncedMessenger) setConsensusMessageFilter(filter func() bool) {
+	messenger.mutOperation.Lock()
+	messenger.shouldReceiveConsensusMessage = filter
+	messenger.mutOperation.Unlock()
 }
 
 // ProcessReceivedMessage does nothing and returns nil
@@ -206,14 +242,20 @@ func (messenger *syncedMessenger) BroadcastOnChannel(_ string, topic string, buf
 	messenger.Broadcast(topic, buff)
 }
 
-// BroadcastUsingPrivateKey calls the Broadcast method
-func (messenger *syncedMessenger) BroadcastUsingPrivateKey(topic string, buff []byte, _ core.PeerID, _ []byte) {
-	messenger.Broadcast(topic, buff)
+// BroadcastUsingPrivateKey broadcasts under the managed validator key's virtual peer ID. Consensus
+// messages also carry this ID, so using the physical messenger ID here would fail the worker's
+// originator check after validator reshuffling or /simulator/add-keys.
+func (messenger *syncedMessenger) BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, _ []byte) {
+	if messenger.closed() || !messenger.HasTopic(topic) {
+		return
+	}
+
+	messenger.network.Broadcast(pid, topic, buff)
 }
 
 // BroadcastOnChannelUsingPrivateKey calls the Broadcast method
-func (messenger *syncedMessenger) BroadcastOnChannelUsingPrivateKey(_ string, topic string, buff []byte, _ core.PeerID, _ []byte) {
-	messenger.Broadcast(topic, buff)
+func (messenger *syncedMessenger) BroadcastOnChannelUsingPrivateKey(_ string, topic string, buff []byte, pid core.PeerID, privateKey []byte) {
+	messenger.BroadcastUsingPrivateKey(topic, buff, pid, privateKey)
 }
 
 // SendToConnectedPeer will send the message to the peer

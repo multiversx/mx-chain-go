@@ -10,3 +10,6 @@ var ErrNilTransaction = errors.New("nil transaction")
 
 // ErrInvalidMaxNumOfBlocks signals that an invalid max numerof blocks has been provided
 var ErrInvalidMaxNumOfBlocks = errors.New("invalid max number of blocks to generate")
+
+// ErrInvalidConsensusMode signals that an unsupported chain-simulator consensus mode was provided.
+var ErrInvalidConsensusMode = errors.New("invalid chain simulator consensus mode")

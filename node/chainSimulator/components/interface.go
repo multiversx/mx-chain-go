@@ -1,10 +1,16 @@
 package components
 
-import "github.com/multiversx/mx-chain-core-go/core"
+import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+)
 
 // SyncedBroadcastNetworkHandler defines the synced network interface
 type SyncedBroadcastNetworkHandler interface {
 	RegisterMessageReceiver(handler messageReceiver, pid core.PeerID)
+	RegisterPeerAlias(alias core.PeerID, target core.PeerID) error
+	RegisterHeaderNotifier(shardID uint32, notifier func(header data.HeaderHandler))
+	NotifyHeader(shardID uint32, header data.HeaderHandler)
 	Broadcast(pid core.PeerID, topic string, buff []byte)
 	SendDirectly(from core.PeerID, topic string, buff []byte, to core.PeerID) error
 	GetConnectedPeers() []core.PeerID

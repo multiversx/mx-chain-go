@@ -92,6 +92,52 @@ func TestChainSimulatorCheckSupernova(t *testing.T) {
 	chainSimulator.Close()
 }
 
+func TestConsensusAwareAlterConfigs(t *testing.T) {
+	t.Run("direct mode preserves the user alteration", func(t *testing.T) {
+		alterCalled := false
+		alter := consensusAwareAlterConfigs(ArgsBaseChainSimulator{
+			ArgsChainSimulator: ArgsChainSimulator{
+				AlterConfigsFunction: func(_ *config.Configs) {
+					alterCalled = true
+				},
+			},
+		})
+
+		require.NotNil(t, alter)
+		alter(&config.Configs{})
+		require.True(t, alterCalled)
+	})
+
+	t.Run("consensus mode preserves enough proof and header history", func(t *testing.T) {
+		cfg := &config.Configs{
+			GeneralConfig: &config.Config{
+				ProofsPoolConfig: config.ProofsPoolConfig{
+					CleanupNonceDelta: 100,
+				},
+				HeadersPoolConfig: config.HeadersPoolConfig{
+					MaxHeadersPerShard: 100,
+				},
+			},
+		}
+		alterCalled := false
+		alter := consensusAwareAlterConfigs(ArgsBaseChainSimulator{
+			ArgsChainSimulator: ArgsChainSimulator{
+				ConsensusMode: ConsensusModeBLS,
+				AlterConfigsFunction: func(cfg *config.Configs) {
+					alterCalled = true
+					cfg.GeneralConfig.ProofsPoolConfig.CleanupNonceDelta = 2500
+				},
+			},
+		})
+
+		alter(cfg)
+
+		require.True(t, alterCalled)
+		require.Equal(t, uint64(2500), cfg.GeneralConfig.ProofsPoolConfig.CleanupNonceDelta)
+		require.Equal(t, 2000, cfg.GeneralConfig.HeadersPoolConfig.MaxHeadersPerShard)
+	})
+}
+
 func TestNewChainSimulator(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")

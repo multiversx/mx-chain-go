@@ -14,8 +14,12 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
 	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
+	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/vm"
 )
+
+const fastConsensusPublicKeyCacheSize = 5000
 
 // ArgsCryptoComponentsHolder holds all arguments needed to create a crypto components holder
 type ArgsCryptoComponentsHolder struct {
@@ -24,8 +28,16 @@ type ArgsCryptoComponentsHolder struct {
 	Preferences                 config.Preferences
 	CoreComponentsHolder        factory.CoreComponentsHolder
 	AllValidatorKeysPemFileName string
-	BypassTxSignatureCheck      bool
-	BypassBlockSignatureCheck   bool
+	// ValidatorKeyPemFileName, when set, makes the node a single-key validator loading its own
+	// BLS key from this PEM (so consensus messages carry the node's physical p2p identity). When
+	// empty it defaults to "missing.pem" and the node runs in multikey mode over AllValidatorKeys.
+	ValidatorKeyPemFileName   string
+	BypassTxSignatureCheck    bool
+	BypassBlockSignatureCheck bool
+	// EnableFastConsensusCrypto installs the deterministic simulator-only signing backend.
+	// Validator keys and all consensus/proof/quorum logic remain real; only BLS signing and
+	// verification operations are replaced.
+	EnableFastConsensusCrypto bool
 }
 
 type cryptoComponentsHolder struct {
@@ -50,6 +62,13 @@ type cryptoComponentsHolder struct {
 	managedCryptoComponentsCloser io.Closer
 }
 
+func validatorKeyPemFileName(args ArgsCryptoComponentsHolder) string {
+	if len(args.ValidatorKeyPemFileName) > 0 {
+		return args.ValidatorKeyPemFileName
+	}
+	return "missing.pem"
+}
+
 // CreateCryptoComponents will create a new instance of cryptoComponentsHolder
 func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (*cryptoComponentsHolder, error) {
 	instance := &cryptoComponentsHolder{}
@@ -63,8 +82,9 @@ func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (*cryptoComponentsH
 		ActivateBLSPubKeyMessageVerification: false,
 		IsInImportMode:                       false,
 		ImportModeNoSigCheck:                 false,
-		// set validator key pem file with a file that doesn't exist to all validators key pem file
-		ValidatorKeyPemFileName:     "missing.pem",
+		// a missing validator key pem keeps the node in multikey mode; a single-key consensus
+		// node points it at its own key instead
+		ValidatorKeyPemFileName:     validatorKeyPemFileName(args),
 		AllValidatorKeysPemFileName: args.AllValidatorKeysPemFileName,
 	}
 
@@ -114,6 +134,14 @@ func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (*cryptoComponentsH
 	instance.keysHandler = managedCryptoComponents.KeysHandler()
 	instance.managedCryptoComponentsCloser = managedCryptoComponents
 
+	if args.EnableFastConsensusCrypto {
+		err = instance.installFastConsensusCrypto(args.BypassBlockSignatureCheck)
+		if err != nil {
+			_ = managedCryptoComponents.Close()
+			return nil, err
+		}
+	}
+
 	if args.BypassTxSignatureCheck {
 		instance.txSingleSigner = &singlesig.DisabledSingleSig{}
 	} else {
@@ -121,6 +149,52 @@ func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (*cryptoComponentsH
 	}
 
 	return instance, nil
+}
+
+func (c *cryptoComponentsHolder) installFastConsensusCrypto(bypassBlockSignatureCheck bool) error {
+	fastSigner, err := newFastConsensusSigner(c.privateKey, c.publicKey, c.blockSignKeyGen)
+	if err != nil {
+		return err
+	}
+	fastMultiSignerContainer := &fastConsensusMultiSignerContainer{signer: fastSigner}
+
+	pubKeysCache, err := cache.NewLRUCache(fastConsensusPublicKeyCacheSize)
+	if err != nil {
+		return err
+	}
+	fastSigningHandler, err := cryptoComp.NewSigningHandler(cryptoComp.ArgsSigningHandler{
+		PubKeys:              []string{c.publicKeyString},
+		MultiSignerContainer: fastMultiSignerContainer,
+		SingleSigner:         fastSigner,
+		KeyGenerator:         c.blockSignKeyGen,
+		KeysHandler:          c.keysHandler,
+		PubKeysCache:         pubKeysCache,
+	})
+	if err != nil {
+		return err
+	}
+
+	peerSignaturesCache, err := cache.NewLRUCache(fastConsensusPublicKeyCacheSize)
+	if err != nil {
+		return err
+	}
+	fastPeerSignatureHandler, err := peerSignatureHandler.NewPeerSignatureHandler(
+		peerSignaturesCache,
+		fastSigner,
+		c.blockSignKeyGen,
+	)
+	if err != nil {
+		return err
+	}
+
+	c.multiSignerContainer = fastMultiSignerContainer
+	c.consensusSigningHandler = fastSigningHandler
+	c.peerSignatureHandler = fastPeerSignatureHandler
+	if !bypassBlockSignatureCheck {
+		c.blockSigner = fastSigner
+	}
+
+	return nil
 }
 
 // PublicKey will return the public key

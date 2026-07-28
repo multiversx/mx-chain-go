@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -110,6 +111,9 @@ type ArgsCoreComponentsHolder struct {
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMs           uint64
 	GenesisTime                 time.Time
+	// EnableConsensus, when true, makes the round clock advanceable by the consensus drive:
+	// the sync timer becomes a manual timer and the round handler is the production round.NewRound.
+	EnableConsensus bool
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -248,9 +252,32 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		InitialRound:              args.InitialRound,
 		SupernovaStartRound:       int64(supernovaRound),
 	}
-	instance.roundHandler, err = NewManualRoundHandler(argsManualRoundHandler)
-	if err != nil {
-		return nil, err
+	if args.EnableConsensus {
+		manualSyncTimer := NewManualSyncTimer(instance.genesisTime)
+		instance.syncTimer = manualSyncTimer
+		var productionRoundHandler consensus.RoundHandler
+		productionRoundHandler, err = round.NewRound(round.ArgsRound{
+			GenesisTimeStamp:          instance.genesisTime,
+			SupernovaGenesisTimeStamp: instance.supernovaGenesisTime,
+			CurrentTimeStamp:          manualSyncTimer.CurrentTime(),
+			RoundTimeDuration:         roundDuration,
+			SupernovaTimeDuration:     time.Duration(chainParamsForSupernova.RoundDuration) * time.Millisecond,
+			SyncTimer:                 manualSyncTimer,
+			StartRound:                args.InitialRound,
+			SupernovaStartRound:       int64(supernovaRound),
+			EnableRoundsHandler:       instance.enableRoundsHandler,
+		})
+		if err != nil {
+			return nil, err
+		}
+		instance.roundHandler = &boundedWaitRoundHandler{
+			RoundHandler: productionRoundHandler,
+		}
+	} else {
+		instance.roundHandler, err = NewManualRoundHandler(argsManualRoundHandler)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
@@ -287,13 +314,16 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	}
 
 	instance.nodesShuffler, err = nodesCoordinator.NewHashValidatorsShuffler(&nodesCoordinator.NodesShufflerArgs{
-		ShuffleBetweenShards: true,
+		ShuffleBetweenShards: !args.EnableConsensus,
 		MaxNodesEnableConfig: args.EnableEpochsConfig.MaxNodesChangeEnableEpoch,
 		EnableEpochsHandler:  instance.enableEpochsHandler,
 		EnableEpochs:         args.EnableEpochsConfig,
 	})
 	if err != nil {
 		return nil, err
+	}
+	if args.EnableConsensus {
+		instance.nodesShuffler = newFixedShardNodesShuffler(instance.nodesShuffler, instance.genesisNodesSetup)
 	}
 
 	instance.chanStopNodeProcess = args.ChanStopNodeProcess

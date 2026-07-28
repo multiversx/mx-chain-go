@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -57,6 +58,20 @@ type ArgsTestOnlyProcessingNode struct {
 	RoundDurationInMillis       uint64
 	VmQueryDelayAfterStartInMs  uint64
 	GenesisTime                 time.Time
+	BypassCreateBlockTimeCheck  bool
+	CreateBlockMaxTimePercent   float64
+	// EnableConsensus, when true, builds the node with a manual sync timer and the
+	// production round handler so its chronology/SPoS subrounds can be driven manually, and
+	// makes the simulator produce blocks through the consensus stack instead of the direct
+	// block-processor invocation
+	EnableConsensus bool
+	// EnableFastConsensusCrypto replaces only the simulator node's BLS signing operations with
+	// deterministic hash-based signatures while preserving consensus signature handling.
+	EnableFastConsensusCrypto bool
+	// ValidatorKeysPemFileOverride, when set, makes the node load its managed validator keys
+	// from this PEM file instead of the all-validators PEM. Used to build single-key consensus
+	// nodes (one physical node per validator) for real multi-party consensus (S5 phase B).
+	ValidatorKeysPemFileOverride string
 }
 
 type testOnlyProcessingNode struct {
@@ -71,26 +86,34 @@ type testOnlyProcessingNode struct {
 	ProcessComponentsHolder   factory.ProcessComponentsHandler
 	DataComponentsHolder      factory.DataComponentsHandler
 
-	NodesCoordinator      nodesCoordinator.NodesCoordinator
-	ChainHandler          chainData.ChainHandler
-	ArgumentsParser       process.ArgumentsParser
-	TransactionFeeHandler process.TransactionFeeHandler
-	StoreService          dataRetriever.StorageService
-	DataPool              dataRetriever.PoolsHolder
-	broadcastMessenger    consensus.BroadcastMessenger
+	NodesCoordinator       nodesCoordinator.NodesCoordinator
+	ChainHandler           chainData.ChainHandler
+	ArgumentsParser        process.ArgumentsParser
+	TransactionFeeHandler  process.TransactionFeeHandler
+	StoreService           dataRetriever.StorageService
+	DataPool               dataRetriever.PoolsHolder
+	broadcastMessenger     consensus.BroadcastMessenger
+	syncedBroadcastNetwork SyncedBroadcastNetworkHandler
+	enableConsensus        bool
 
 	httpServer    shared.UpgradeableHttpServerHandler
 	facadeHandler shared.FacadeHandler
 
 	basePeers map[uint32]core.PeerID
+
+	// consensusDrive is set only in consensus-path execution mode; it lets the simulator step
+	// this node's chronology and SPoS subrounds forward one round at a time
+	consensusDrive *nodeConsensusDrive
 }
 
 // NewTestOnlyProcessingNode creates a new instance of a node that is able to only process transactions
 func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProcessingNode, error) {
 	instance := &testOnlyProcessingNode{
-		ArgumentsParser: smartContract.NewArgumentParser(),
-		StoreService:    CreateStore(args.NumShards),
-		closeHandler:    NewCloseHandler(),
+		ArgumentsParser:        smartContract.NewArgumentParser(),
+		StoreService:           CreateStore(args.NumShards),
+		closeHandler:           NewCloseHandler(),
+		syncedBroadcastNetwork: args.SyncedBroadcastNetwork,
+		enableConsensus:        args.EnableConsensus,
 	}
 
 	var err error
@@ -115,6 +138,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		RatingConfig:                *args.Configs.RatingsConfig,
 		GenesisTime:                 args.GenesisTime,
 		PrintPrettifiedHeader:       args.Configs.FlagsConfig.PrintPrettifiedHeader,
+		EnableConsensus:             args.EnableConsensus,
 	})
 	if err != nil {
 		return nil, err
@@ -125,6 +149,18 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
+	allValidatorKeysPemFile := args.Configs.ConfigurationPathsHolder.AllValidatorKeys
+	validatorKeyPemFile := ""
+	if len(args.ValidatorKeysPemFileOverride) > 0 {
+		// consensus mode with group size > 1 builds N single-key nodes per shard: each node is a
+		// single-key validator loading only its own BLS key, instead of a multikey node managing
+		// all of them. A single-key node stamps its consensus messages with the node's physical
+		// p2p identity (multikey would use per-key virtual identities the in-memory network has no
+		// way to deliver as), so leader selection and BLS multi-signing run across distinct nodes.
+		validatorKeyPemFile = args.ValidatorKeysPemFileOverride
+		allValidatorKeysPemFile = "missing.pem"
+	}
+
 	instance.CryptoComponentsHolder, err = CreateCryptoComponents(ArgsCryptoComponentsHolder{
 		Config:                      *args.Configs.GeneralConfig,
 		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
@@ -132,13 +168,28 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		CoreComponentsHolder:        instance.CoreComponentsHolder,
 		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
 		BypassBlockSignatureCheck:   args.BypassBlockSignatureCheck,
-		AllValidatorKeysPemFileName: args.Configs.ConfigurationPathsHolder.AllValidatorKeys,
+		EnableFastConsensusCrypto:   args.EnableFastConsensusCrypto,
+		AllValidatorKeysPemFileName: allValidatorKeysPemFile,
+		ValidatorKeyPemFileName:     validatorKeyPemFile,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	instance.NetworkComponentsHolder, err = CreateNetworkComponents(args.SyncedBroadcastNetwork)
+	if len(args.ValidatorKeysPemFileOverride) > 0 {
+		// a single-key consensus node must broadcast under the same peer ID the keys handler
+		// associates with its validator key (the crypto p2p identity); otherwise consensus
+		// messages fail the originator check (the in-memory network stamps the envelope pid from
+		// the messenger, and the worker compares it against the message's keys-handler pid)
+		var pid core.PeerID
+		pid, err = p2pFactory.NewP2PKeyConverter().ConvertPublicKeyToPeerID(instance.CryptoComponentsHolder.P2pPublicKey())
+		if err != nil {
+			return nil, err
+		}
+		instance.NetworkComponentsHolder, err = CreateNetworkComponentsWithPeerID(args.SyncedBroadcastNetwork, pid)
+	} else {
+		instance.NetworkComponentsHolder, err = CreateNetworkComponents(args.SyncedBroadcastNetwork)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +251,9 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
+	if instance.enableConsensus {
+		instance.DataPool = newPoolsHolderWithSyncHeaders(instance.DataPool)
+	}
 
 	err = instance.createNodesCoordinator(args.Configs.PreferencesConfig.Preferences, *args.Configs.GeneralConfig)
 	if err != nil {
@@ -218,7 +272,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	instance.ProcessComponentsHolder, err = CreateProcessComponents(ArgsProcessComponentsHolder{
+	processComponentsHolder, err := CreateProcessComponents(ArgsProcessComponentsHolder{
 		CoreComponents:           instance.CoreComponentsHolder,
 		CryptoComponents:         instance.CryptoComponentsHolder,
 		NetworkComponents:        instance.NetworkComponentsHolder,
@@ -243,6 +297,14 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
+	if args.EnableConsensus && !args.BypassCreateBlockTimeCheck {
+		processComponentsHolder.blockProcessor = newCreateBlockTimeBoundProcessor(
+			processComponentsHolder.blockProcessor,
+			instance.CoreComponentsHolder.RoundHandler(),
+			args.CreateBlockMaxTimePercent,
+		)
+	}
+	instance.ProcessComponentsHolder = processComponentsHolder
 
 	err = instance.StatusComponentsHolder.SetForkDetector(instance.ProcessComponentsHolder.ForkDetector())
 	if err != nil {
@@ -257,6 +319,13 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	err = instance.createBroadcastMessenger()
 	if err != nil {
 		return nil, err
+	}
+
+	if args.EnableConsensus {
+		instance.consensusDrive, err = instance.createConsensusComponents(*args.Configs.GeneralConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = instance.createFacade(args.Configs, args.APIInterface, args.VmQueryDelayAfterStartInMs, args.Monitor)
@@ -274,7 +343,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	instance.collectClosableComponents(args.APIInterface)
+	instance.collectClosableComponents()
 
 	return instance, nil
 }
@@ -385,9 +454,70 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		return err
 	}
 
-	node.broadcastMessenger, err = NewInstantBroadcastMessenger(broadcastMessenger, node.BootstrapComponentsHolder.ShardCoordinator())
+	instantMessenger, err := NewInstantBroadcastMessenger(broadcastMessenger, node.BootstrapComponentsHolder.ShardCoordinator())
+	if err != nil {
+		return err
+	}
 
-	return err
+	if node.enableConsensus {
+		deliveryTracker, _ := node.syncedBroadcastNetwork.(blockBodyDeliveryTracker)
+		instantMessenger.setBlockBodyDeliveryTracker(deliveryTracker)
+		headerDeliveryTracker, _ := node.syncedBroadcastNetwork.(blockHeaderDeliveryTracker)
+		instantMessenger.setBlockHeaderDeliveryTracker(headerDeliveryTracker)
+
+		shardID := node.BootstrapComponentsHolder.ShardCoordinator().SelfId()
+		node.syncedBroadcastNetwork.RegisterHeaderNotifier(shardID, node.CoreComponentsHolder.EpochNotifier().CheckEpoch)
+		instantMessenger.setBeforeBroadcastHeader(func(header chainData.HeaderHandler) {
+			node.syncedBroadcastNetwork.NotifyHeader(shardID, header)
+		})
+		instantMessenger.setProposalDataHandler(func(
+			header chainData.HeaderHandler,
+			bodyBytes []byte,
+			pkBytes []byte,
+		) error {
+			if header.IsHeaderV3() {
+				return nil
+			}
+
+			blockProcessor := node.ProcessComponentsHolder.BlockProcessor()
+			body := blockProcessor.DecodeBlockBody(bodyBytes)
+			if body == nil {
+				return errors.New("cannot decode consensus proposal body")
+			}
+
+			headerHash, errHash := core.CalculateHash(
+				node.CoreComponentsHolder.InternalMarshalizer(),
+				node.CoreComponentsHolder.Hasher(),
+				header,
+			)
+			if errHash != nil {
+				return errHash
+			}
+
+			miniBlocks, transactions, errPrepare := blockProcessor.MarshalizedDataToBroadcast(
+				headerHash,
+				header,
+				body,
+			)
+			if errPrepare != nil {
+				return errPrepare
+			}
+
+			selfBodyBytes, errMarshal := node.CoreComponentsHolder.InternalMarshalizer().Marshal(body)
+			if errMarshal != nil {
+				return errMarshal
+			}
+			if miniBlocks == nil {
+				miniBlocks = make(map[uint32][]byte)
+			}
+			miniBlocks[shardID] = selfBodyBytes
+
+			return instantMessenger.broadcastMiniblockData(miniBlocks, transactions, pkBytes)
+		})
+	}
+	node.broadcastMessenger = instantMessenger
+
+	return nil
 }
 
 // GetProcessComponents will return the process components
@@ -403,6 +533,57 @@ func (node *testOnlyProcessingNode) GetChainHandler() chainData.ChainHandler {
 // GetBroadcastMessenger will return the broadcast messenger
 func (node *testOnlyProcessingNode) GetBroadcastMessenger() consensus.BroadcastMessenger {
 	return node.broadcastMessenger
+}
+
+// AdvanceConsensusClock bumps the node's manual round clock by one round, starting a new consensus
+// round. It is only valid in consensus-path execution mode.
+func (node *testOnlyProcessingNode) AdvanceConsensusClock() error {
+	if node.consensusDrive == nil {
+		return errNodeNotInConsensusMode
+	}
+
+	node.consensusDrive.advanceClock()
+	return nil
+}
+
+// RearmConsensusRound prepares the chronology to retry the current manual-clock round. It is only
+// valid in consensus-path execution mode and does not advance the clock.
+func (node *testOnlyProcessingNode) RearmConsensusRound() error {
+	if node.consensusDrive == nil {
+		return errNodeNotInConsensusMode
+	}
+
+	node.consensusDrive.rearmCurrentRound()
+	return nil
+}
+
+// StepConsensusSubround steps the node's chronology forward by one subround. The simulator
+// interleaves steps across a shard's nodes so their consensus messages flow and quorum is reached.
+func (node *testOnlyProcessingNode) StepConsensusSubround() error {
+	if node.consensusDrive == nil {
+		return errNodeNotInConsensusMode
+	}
+
+	return node.consensusDrive.step()
+}
+
+// WaitConsensusSubround waits for the subround started by StepConsensusSubround to return.
+func (node *testOnlyProcessingNode) WaitConsensusSubround() error {
+	if node.consensusDrive == nil {
+		return errNodeNotInConsensusMode
+	}
+
+	return node.consensusDrive.waitStep()
+}
+
+// ConsensusDriveState returns the current chronology subround and restart generation.
+func (node *testOnlyProcessingNode) ConsensusDriveState() (int, uint64, error) {
+	if node.consensusDrive == nil {
+		return 0, 0, errNodeNotInConsensusMode
+	}
+
+	subround, generation := node.consensusDrive.state()
+	return subround, generation, nil
 }
 
 // GetShardCoordinator will return the shard coordinator
@@ -445,7 +626,7 @@ func (node *testOnlyProcessingNode) GetNetworkComponents() factory.NetworkCompon
 	return node.NetworkComponentsHolder
 }
 
-func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APIConfigurator) {
+func (node *testOnlyProcessingNode) collectClosableComponents() {
 	node.closeHandler.AddComponent(node.ProcessComponentsHolder)
 	node.closeHandler.AddComponent(node.DataComponentsHolder)
 	node.closeHandler.AddComponent(node.StateComponentsHolder)
@@ -456,9 +637,7 @@ func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APICo
 	node.closeHandler.AddComponent(node.CoreComponentsHolder)
 	node.closeHandler.AddComponent(node.facadeHandler)
 
-	// TODO remove this after http server fix
-	shardID := node.GetShardCoordinator().SelfId()
-	if facade.DefaultRestPortOff != apiInterface.RestApiInterface(shardID) {
+	if facade.DefaultRestPortOff != node.facadeHandler.RestApiInterface() {
 		node.closeHandler.AddComponent(node.httpServer)
 	}
 }

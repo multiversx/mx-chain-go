@@ -29,6 +29,9 @@ func TestNewProcessorRunnerChainArguments(t *testing.T) {
 		MetaChainConsensusGroupSize:    1,
 	})
 	require.Nil(t, err)
+	for _, epochConfig := range outputConfig.Configs.GeneralConfig.GeneralSettings.EpochStartConfigsByEpoch {
+		require.Equal(t, uint32(1), epochConfig.ExtraDelayForRequestBlockInfoInMilliseconds)
+	}
 
 	pr := realcomponents.NewProcessorRunner(t, outputConfig.Configs)
 	pr.Close(t)

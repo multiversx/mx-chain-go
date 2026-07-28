@@ -2,10 +2,16 @@ package components
 
 import (
 	"fmt"
+	"sync/atomic"
 	"testing"
 
+	"github.com/multiversx/mx-chain-communication-go/p2p"
+	p2pMessage "github.com/multiversx/mx-chain-communication-go/p2p/message"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 )
 
@@ -260,4 +266,60 @@ func TestSyncedMessenger_UnJoinAllTopics(t *testing.T) {
 		assert.Empty(t, messenger.topics)
 		messenger.mutOperation.RUnlock()
 	})
+}
+
+func TestSyncedMessenger_ConsensusMessageFilter(t *testing.T) {
+	t.Parallel()
+
+	messenger, err := NewSyncedMessenger(NewSyncedBroadcastNetwork())
+	require.NoError(t, err)
+
+	consensusTopic := common.ConsensusTopic + "_0"
+	regularTopic := "regular"
+	require.NoError(t, messenger.CreateTopic(consensusTopic, true))
+	require.NoError(t, messenger.CreateTopic(regularTopic, true))
+
+	var consensusCalls atomic.Uint32
+	var regularCalls atomic.Uint32
+	require.NoError(t, messenger.RegisterMessageProcessor(
+		consensusTopic,
+		"consensus",
+		&p2pmocks.MessageProcessorStub{
+			ProcessReceivedMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+				consensusCalls.Add(1)
+				return nil, nil
+			},
+		},
+	))
+	require.NoError(t, messenger.RegisterMessageProcessor(
+		regularTopic,
+		"regular",
+		&p2pmocks.MessageProcessorStub{
+			ProcessReceivedMessageCalled: func(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+				regularCalls.Add(1)
+				return nil, nil
+			},
+		},
+	))
+
+	receive := func(topic string, method p2p.BroadcastMethod) {
+		messenger.receive("sender", &p2pMessage.Message{
+			FromField:            []byte("sender"),
+			TopicField:           topic,
+			BroadcastMethodField: method,
+		})
+	}
+
+	// Unknown participation preserves the full-network behavior used during START_ROUND.
+	messenger.setConsensusMessageFilter(func() bool { return true })
+	receive(consensusTopic, p2p.Broadcast)
+	require.Equal(t, uint32(1), consensusCalls.Load())
+
+	// A non-participant skips only consensus broadcasts.
+	messenger.setConsensusMessageFilter(func() bool { return false })
+	receive(consensusTopic, p2p.Broadcast)
+	receive(regularTopic, p2p.Broadcast)
+	receive(consensusTopic, p2p.Direct)
+	require.Equal(t, uint32(2), consensusCalls.Load(), "direct consensus messages must still be delivered")
+	require.Equal(t, uint32(1), regularCalls.Load(), "non-consensus broadcasts must still be delivered")
 }

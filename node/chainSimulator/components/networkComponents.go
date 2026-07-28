@@ -1,6 +1,8 @@
 package components
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
+
 	disabledBootstrap "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/factory"
 	disabledFactory "github.com/multiversx/mx-chain-go/factory/disabled"
@@ -33,6 +35,21 @@ func CreateNetworkComponents(network SyncedBroadcastNetworkHandler) (*networkCom
 		return nil, err
 	}
 
+	return newNetworkComponentsHolder(messenger), nil
+}
+
+// CreateNetworkComponentsWithPeerID creates a new networkComponentsHolder instance whose
+// messenger reuses the exact provided peer ID
+func CreateNetworkComponentsWithPeerID(network SyncedBroadcastNetworkHandler, pid core.PeerID) (*networkComponentsHolder, error) {
+	messenger, err := NewSyncedMessengerWithPeerID(network, pid)
+	if err != nil {
+		return nil, err
+	}
+
+	return newNetworkComponentsHolder(messenger), nil
+}
+
+func newNetworkComponentsHolder(messenger p2p.Messenger) *networkComponentsHolder {
 	instance := &networkComponentsHolder{
 		closeHandler:                           NewCloseHandler(),
 		networkMessenger:                       messenger,
@@ -50,7 +67,7 @@ func CreateNetworkComponents(network SyncedBroadcastNetworkHandler) (*networkCom
 
 	instance.collectClosableComponents()
 
-	return instance, nil
+	return instance
 }
 
 // NetworkMessenger returns the network messenger
