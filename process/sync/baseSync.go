@@ -179,6 +179,8 @@ type baseBootstrap struct {
 	processWaitTimeSupernova     time.Duration
 	preparedForSync              bool
 	preparedForSyncAtBootstrap   bool
+	pendingV3Realign             bool
+	lastRestoredHeaderHash       []byte
 
 	repopulateTokensSupplies bool
 
@@ -1059,6 +1061,16 @@ func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
 }
 
 func (boot *baseBootstrap) syncBlock() error {
+	// a failed post-rollback realign leaves execution state behind the tip; nothing may run on
+	// top of it, so the loop stays blocked until the rewind goes through
+	if boot.pendingV3Realign {
+		boot.realignAfterV3RollBack()
+		if boot.pendingV3Realign {
+			return ErrExecutionRealignPending
+		}
+		return nil
+	}
+
 	boot.computeNodeState()
 
 	// evaluated before the synchronized gate: the authority may settle a childless competitor, and
@@ -1857,8 +1869,9 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 }
 
 // realignAfterV3RollBack rewinds the execution results state to the rolled-back tip and re-arms
-// the sync prepare step to rebuild pending execution results and txpool tracking above it
+// the sync prepare step; a failed rewind arms a mandatory retry that blocks the sync loop
 func (boot *baseBootstrap) realignAfterV3RollBack() {
+	boot.pendingV3Realign = false
 	newTip := boot.chainHandler.GetCurrentBlockHeader()
 	if check.IfNil(newTip) || !newTip.IsHeaderV3() {
 		return
@@ -1866,7 +1879,8 @@ func (boot *baseBootstrap) realignAfterV3RollBack() {
 
 	err := boot.executionManager.RewindExecutionStateToTip(newTip)
 	if err != nil {
-		log.Warn("realignAfterV3RollBack: cannot rewind execution state",
+		boot.pendingV3Realign = true
+		log.Warn("realignAfterV3RollBack: cannot rewind execution state, sync blocked until retried",
 			"tip nonce", newTip.GetNonce(),
 			"error", err,
 		)
@@ -2005,13 +2019,6 @@ func (boot *baseBootstrap) rollBackOneBlockV3(
 		}
 	}()
 
-	// no-op unless the rollback crosses the recorded epoch start block, when the epoch boundary
-	// must move back with the chain
-	err = boot.epochStartTrigger.RevertStateToBlock(prevHeader)
-	if err != nil {
-		return nil, err
-	}
-
 	err = boot.executionManager.RemoveAtNonceAndHigher(currHeader.GetNonce())
 	if err != nil {
 		return nil, err
@@ -2022,10 +2029,23 @@ func (boot *baseBootstrap) rollBackOneBlockV3(
 		log.Debug("rollBackOneBlockV3 getBlockBody error", "error", errNotCritical)
 	}
 
-	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
+	// once per header: a retry after a later failure must not double revert the restore-side
+	// accounting (pending miniblocks, notarized pointer pop)
+	if !bytes.Equal(boot.lastRestoredHeaderHash, currHeaderHash) {
+		err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
+		if err != nil {
+			return nil, err
+		}
+		boot.lastRestoredHeaderHash = currHeaderHash
+	}
+
+	// no-op unless the rollback crosses the recorded epoch start; kept after every fallible
+	// step, since nothing can restore a reverted trigger on an abort
+	err = boot.epochStartTrigger.RevertStateToBlock(prevHeader)
 	if err != nil {
 		return nil, err
 	}
+	boot.lastRestoredHeaderHash = nil
 
 	hash := boot.removeHeaderFromPools(currHeader)
 	boot.forkDetector.RemoveCommittedHeader(currHeader.GetNonce(), hash)

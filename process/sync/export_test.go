@@ -355,6 +355,16 @@ func (boot *baseBootstrap) GetPreparedForSync() bool {
 	return boot.preparedForSync
 }
 
+// GetPendingV3Realign -
+func (boot *baseBootstrap) GetPendingV3Realign() bool {
+	return boot.pendingV3Realign
+}
+
+// SyncBlockBase -
+func (boot *baseBootstrap) SyncBlockBase() error {
+	return boot.syncBlock()
+}
+
 // SetPreparedForSync -
 func (boot *baseBootstrap) SetPreparedForSync(prepared bool) {
 	boot.preparedForSync = prepared
