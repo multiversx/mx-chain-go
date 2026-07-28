@@ -691,19 +691,30 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 		return process.ErrNilMetaBlockHeader
 	}
 
-	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	metaBlock, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	hdrHashes := make([][]byte, len(metaBlock.ShardInfo))
-	for i := 0; i < len(metaBlock.ShardInfo); i++ {
-		hdrHashes[i] = metaBlock.ShardInfo[i].HeaderHash
+	// mirror updateCrossShardInfo: v3 references shard headers through the proposal shard info
+	shardInfoHandlers := process.GetShardHeadersReferencedByMeta(metaBlock)
+	hdrHashes := make([][]byte, len(shardInfoHandlers))
+	for i := 0; i < len(shardInfoHandlers); i++ {
+		hdrHashes[i] = shardInfoHandlers[i].GetHeaderHash()
 	}
 
 	err := mp.pendingMiniBlocksHandler.RevertHeader(metaBlock)
 	if err != nil {
 		return err
+	}
+
+	// inverse of the commitEpochStart flag transitions, so the trigger keeps tracking the committed chain
+	if metaBlock.IsHeaderV3() {
+		if metaBlock.IsStartOfEpochBlock() {
+			mp.epochStartTrigger.SetEpochChangeProposed(true)
+		} else if metaBlock.IsEpochChangeProposed() {
+			mp.epochStartTrigger.SetEpochChangeProposed(false)
+		}
 	}
 
 	headersPool := mp.dataPool.Headers()
@@ -1345,12 +1356,6 @@ func (mp *metaProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
-	if header.IsStartOfEpochBlock() {
-		mp.epochStartDataWrapper = &epochStartDataWrapper{
-			Epoch:          header.GetEpoch(),
-			EpochStartData: &block.EpochStart{},
-		}
-	}
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header, headerHash)
@@ -1699,7 +1704,7 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	// for header v3, trie prnning is triggered in async mode from headers executor
 
 	if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, metaBlock.GetEpoch()) {
-		mp.signalNewlyFinalBlocks(metaBlock, metaBlockHash, rootHash, prevMetaBlock)
+		mp.signalNewlyFinalBlocks(metaBlock, metaBlockHash)
 		return
 	}
 
@@ -1715,43 +1720,42 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 // signalNewlyFinalBlocks emits the external finality signals for the blocks settled since the
 // previous commit; external finality is anchored on settlement (settle-on-child), never on
 // instant finality
-func (mp *metaProcessor) signalNewlyFinalBlocks(
-	metaBlock data.MetaHeaderHandler,
-	metaBlockHash []byte,
-	rootHash []byte,
-	prevMetaBlock data.MetaHeaderHandler,
-) {
-	settledNonce, _ := mp.forkDetector.GetHighestSettledBlockInfo()
-	if settledNonce <= mp.lastSignaledFinalNonce {
+func (mp *metaProcessor) signalNewlyFinalBlocks(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
+	settledNonce, settledHash := mp.forkDetector.GetHighestSettledBlockInfo()
+	if len(settledHash) == 0 || settledNonce <= mp.lastSignaledFinalNonce {
 		return
 	}
 
-	// settlement is deferred by exactly one block on meta (settle-on-child), so the previous block
-	// is the only one that can become settled together with the committed one
-	isPrevNewlySettled := settledNonce >= prevMetaBlock.GetNonce() &&
-		prevMetaBlock.GetNonce() > mp.lastSignaledFinalNonce
-	if isPrevNewlySettled {
-		mp.setFinalizedHeaderHashInIndexer(metaBlock.GetPrevHash())
-		if settledNonce == prevMetaBlock.GetNonce() {
-			mp.setSettledBlockInfoForPrev(prevMetaBlock, metaBlock.GetPrevHash())
-		}
+	newlyFinalHashes := mp.getNewlyFinalHashes(settledNonce, settledHash, metaBlock, metaBlockHash)
+	for i := len(newlyFinalHashes) - 1; i >= 0; i-- {
+		mp.setFinalizedHeaderHashInIndexer(newlyFinalHashes[i])
 	}
-
-	if settledNonce >= metaBlock.GetNonce() {
-		mp.setFinalizedHeaderHashInIndexer(metaBlockHash)
-		mp.setSettledBlockInfo(metaBlock, metaBlockHash, rootHash)
-		mp.lastSignaledFinalNonce = metaBlock.GetNonce()
-		return
-	}
-
 	mp.lastSignaledFinalNonce = settledNonce
+
+	mp.setSettledBlockInfo(settledHash, metaBlock, metaBlockHash)
 }
 
 // setSettledBlockInfo anchors the externally visible final block info on the settled block; for v3
 // the (nonce, hash, rootHash) tuple is the last execution result notarized by the settled chain
-func (mp *metaProcessor) setSettledBlockInfo(header data.MetaHeaderHandler, headerHash []byte, rootHash []byte) {
+func (mp *metaProcessor) setSettledBlockInfo(settledHash []byte, metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
+	header := metaBlock
+	if !bytes.Equal(settledHash, metaBlockHash) {
+		var err error
+		header, err = process.GetMetaHeader(settledHash, mp.dataPool.Headers(), mp.marshalizer, mp.store)
+		if err != nil {
+			log.Warn("setSettledBlockInfo: cannot load settled header", "error", err.Error())
+			return
+		}
+	}
+
 	if !header.IsHeaderV3() {
-		mp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, rootHash)
+		rootHash, _, errRootHash := mp.getRootHashAndValidatorRootHash(header)
+		if errRootHash != nil {
+			log.Warn("setSettledBlockInfo: cannot get root hash of the settled block", "error", errRootHash.Error())
+			return
+		}
+
+		mp.blockChain.SetFinalBlockInfo(header.GetNonce(), settledHash, rootHash)
 		return
 	}
 
@@ -1764,19 +1768,45 @@ func (mp *metaProcessor) setSettledBlockInfo(header data.MetaHeaderHandler, head
 	mp.blockChain.SetFinalBlockInfo(result.GetHeaderNonce(), result.GetHeaderHash(), result.GetRootHash())
 }
 
-func (mp *metaProcessor) setSettledBlockInfoForPrev(prevMetaBlock data.MetaHeaderHandler, prevMetaBlockHash []byte) {
-	if prevMetaBlock.IsHeaderV3() {
-		mp.setSettledBlockInfo(prevMetaBlock, prevMetaBlockHash, nil)
-		return
+// getNewlyFinalHashes walks the prev-hash chain from the settled block back to the last signaled
+// nonce and returns the hashes in descending nonce order
+func (mp *metaProcessor) getNewlyFinalHashes(
+	settledNonce uint64,
+	settledHash []byte,
+	metaBlock data.MetaHeaderHandler,
+	metaBlockHash []byte,
+) [][]byte {
+	hashes := [][]byte{settledHash}
+	isFirstSignal := mp.lastSignaledFinalNonce == 0
+	if isFirstSignal || settledNonce == mp.lastSignaledFinalNonce+1 {
+		return hashes
 	}
 
-	prevRootHash, _, err := mp.getRootHashAndValidatorRootHash(prevMetaBlock)
-	if err != nil {
-		log.Warn("setSettledBlockInfoForPrev: cannot get root hash of the newly settled block", "error", err.Error())
-		return
+	header := metaBlock
+	if !bytes.Equal(settledHash, metaBlockHash) {
+		var err error
+		header, err = process.GetMetaHeader(settledHash, mp.dataPool.Headers(), mp.marshalizer, mp.store)
+		if err != nil {
+			log.Warn("getNewlyFinalHashes: cannot load settled header, signaling only its hash",
+				"settled nonce", settledNonce, "error", err.Error())
+			return hashes
+		}
 	}
 
-	mp.blockChain.SetFinalBlockInfo(prevMetaBlock.GetNonce(), prevMetaBlockHash, prevRootHash)
+	for nonce := settledNonce - 1; nonce > mp.lastSignaledFinalNonce; nonce-- {
+		hash := header.GetPrevHash()
+		var err error
+		header, err = process.GetMetaHeader(hash, mp.dataPool.Headers(), mp.marshalizer, mp.store)
+		if err != nil {
+			log.Warn("getNewlyFinalHashes: cannot load newly settled header, skipping older signals",
+				"nonce", nonce, "error", err.Error())
+			break
+		}
+
+		hashes = append(hashes, hash)
+	}
+
+	return hashes
 }
 
 func (mp *metaProcessor) pruneTrieHeaderV3(

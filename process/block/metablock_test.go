@@ -2347,6 +2347,133 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	assert.Equal(t, &hdr, hdrFromPool)
 }
 
+func TestMetaProcessor_RestoreBlockIntoPoolsV3ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	pool := dataRetrieverMock.NewPoolsHolderMock()
+	marshalizerMock := &mock.MarshalizerMock{}
+	body := &block.Body{}
+	hdr := block.Header{Nonce: 1}
+	buffHdr, _ := marshalizerMock.Marshal(&hdr)
+	hdrHash := []byte("hdr_hash1")
+
+	removedKeysByUnit := make(map[dataRetriever.UnitType][][]byte)
+	store := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
+				RemoveCalled: func(key []byte) error {
+					removedKeysByUnit[unitType] = append(removedKeysByUnit[unitType], key)
+					return nil
+				},
+				GetCalled: func(key []byte) ([]byte, error) {
+					return buffHdr, nil
+				},
+			}, nil
+		},
+	}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.DataPool = pool
+	dataComponents.Storage = store
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	revertedHeaders := make([]data.HeaderHandler, 0)
+	arguments.PendingMiniBlocksHandler = &mock.PendingMiniBlocksHandlerStub{
+		RevertHeaderCalled: func(handler data.HeaderHandler) error {
+			revertedHeaders = append(revertedHeaders, handler)
+			return nil
+		},
+	}
+	mp, _ := processBlock.NewMetaProcessor(arguments)
+
+	// v3 meta blocks reference their notarized shard headers through the proposal shard info
+	mhdr := &block.MetaBlockV3{
+		Nonce: 10,
+		ShardInfoProposal: []block.ShardDataProposal{
+			{ShardID: 0, HeaderHash: hdrHash, Nonce: 1},
+		},
+	}
+
+	err := mp.RestoreBlockIntoPools(mhdr, body)
+	assert.Nil(t, err)
+
+	hdrFromPool, _ := pool.Headers().GetHeaderByHash(hdrHash)
+	assert.Equal(t, &hdr, hdrFromPool)
+	assert.Len(t, removedKeysByUnit[dataRetriever.GetHdrNonceHashDataUnit(0)], 1)
+	assert.Len(t, revertedHeaders, 1)
+	assert.Equal(t, mhdr, revertedHeaders[0])
+}
+
+// the trigger flag transitions at commit must be undone at restore, else the flag equality check on
+// the verify path rejects the canonical sibling after an epoch boundary rollback
+func TestMetaProcessor_RestoreBlockIntoPoolsRevertsEpochChangeProposed(t *testing.T) {
+	t.Parallel()
+
+	newProcessor := func(t *testing.T, flagCalls *[]bool) interface {
+		RestoreBlockIntoPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error
+	} {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.Storage = initStore()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			SetEpochChangeProposedCalled: func(value bool) {
+				*flagCalls = append(*flagCalls, value)
+			},
+		}
+		mp, err := processBlock.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		return mp
+	}
+
+	epochStartData := block.EpochStart{
+		LastFinalizedHeaders: []block.EpochStartShardData{{ShardID: 0}},
+	}
+
+	t.Run("v3 epoch start restore rearms the proposed flag", func(t *testing.T) {
+		t.Parallel()
+
+		flagCalls := make([]bool, 0)
+		mp := newProcessor(t, &flagCalls)
+
+		err := mp.RestoreBlockIntoPools(&block.MetaBlockV3{Nonce: 5, EpochStart: epochStartData}, &block.Body{})
+		require.Nil(t, err)
+		require.Equal(t, []bool{true}, flagCalls)
+	})
+
+	t.Run("v3 propose block restore clears the proposed flag", func(t *testing.T) {
+		t.Parallel()
+
+		flagCalls := make([]bool, 0)
+		mp := newProcessor(t, &flagCalls)
+
+		err := mp.RestoreBlockIntoPools(&block.MetaBlockV3{Nonce: 5, EpochChangeProposed: true}, &block.Body{})
+		require.Nil(t, err)
+		require.Equal(t, []bool{false}, flagCalls)
+	})
+
+	t.Run("plain v3 restore leaves the flag untouched", func(t *testing.T) {
+		t.Parallel()
+
+		flagCalls := make([]bool, 0)
+		mp := newProcessor(t, &flagCalls)
+
+		err := mp.RestoreBlockIntoPools(&block.MetaBlockV3{Nonce: 5}, &block.Body{})
+		require.Nil(t, err)
+		require.Empty(t, flagCalls)
+	})
+
+	t.Run("legacy epoch start restore leaves the flag untouched", func(t *testing.T) {
+		t.Parallel()
+
+		flagCalls := make([]bool, 0)
+		mp := newProcessor(t, &flagCalls)
+
+		err := mp.RestoreBlockIntoPools(&block.MetaBlock{Nonce: 5, EpochStart: epochStartData}, &block.Body{})
+		require.Nil(t, err)
+		require.Empty(t, flagCalls)
+	})
+}
+
 func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	t.Parallel()
 
@@ -5963,34 +6090,35 @@ func TestMetaProcessor_UpdateStateSignalsNewlyFinalBlocksUnderSupernova(t *testi
 	outportCapture := &finalizedBlocksCapture{OutportStub: &outport.OutportStub{}}
 	statusComponents.Outport = outportCapture
 
-	finalNonce := uint64(5)
+	settledHashByNonce := map[uint64][]byte{4: hash4, 5: hash5, 6: hash6, 7: hash7, 8: hash8}
+	settledNonce := uint64(5)
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.ForkDetector = &mock.ForkDetectorMock{
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return finalNonce
+		GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+			return settledNonce, settledHashByNonce[settledNonce]
 		},
 	}
 	mp, _ := processBlock.NewMetaProcessor(arguments)
 
-	// clean committed block is final and signaled at once
+	// the settled block is signaled; the first signal never walks back, so hash4 stays unsignaled
 	mp.UpdateState(hdr5, hash5)
-	require.Equal(t, [][]byte{hash4, hash5}, outportCapture.finalizedHashes)
+	require.Equal(t, [][]byte{hash5}, outportCapture.finalizedHashes)
 	require.Equal(t, []uint64{5}, setFinalBlockInfos)
 
 	// contended committed block is not signaled while unsettled
 	mp.UpdateState(contendedHdr6, hash6)
-	require.Equal(t, [][]byte{hash4, hash5}, outportCapture.finalizedHashes)
+	require.Equal(t, [][]byte{hash5}, outportCapture.finalizedHashes)
 	require.Equal(t, []uint64{5}, setFinalBlockInfos)
 
 	// the committed child settles its parent: the parent is signaled, the contended child is not
-	finalNonce = 6
+	settledNonce = 6
 	mp.UpdateState(contendedHdr7, hash7)
-	require.Equal(t, [][]byte{hash4, hash5, hash6}, outportCapture.finalizedHashes)
+	require.Equal(t, [][]byte{hash5, hash6}, outportCapture.finalizedHashes)
 	require.Equal(t, []uint64{5, 6}, setFinalBlockInfos)
 
-	// clean child settles its parent and is instantly final: both signaled exactly once
-	finalNonce = 8
+	// settlement jumps over nonce 7: the skipped block is back filled before the settled one
+	settledNonce = 8
 	mp.UpdateState(cleanHdr8, hash8)
-	require.Equal(t, [][]byte{hash4, hash5, hash6, hash7, hash8}, outportCapture.finalizedHashes)
+	require.Equal(t, [][]byte{hash5, hash6, hash7, hash8}, outportCapture.finalizedHashes)
 	require.Equal(t, []uint64{5, 6, 8}, setFinalBlockInfos)
 }

@@ -82,7 +82,7 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 		return nil, err
 	}
 
-	epochStartData, err := mp.getComputedEpochStartData()
+	epochStartData, err := mp.getComputedEpochStartData(epoch + 1)
 	if err != nil {
 		return nil, err
 	}
@@ -1175,21 +1175,28 @@ func (mp *metaProcessor) getArbitrationCandidate(parentInfo ShardHeaderInfo, anc
 	return best, bestHash
 }
 
-// metaAncestryView is a per proposal nonce -> hash index over the ancestors of the meta block
-// being built; the walk extends lazily downward as probes need older nonces, single threaded
+// metaAncestryView is a per proposal hash index over the ancestors of the meta block being built:
+// a lazy pool walk above the pool horizon and a canonical storer hash cache below it, single threaded
 type metaAncestryView struct {
-	walked       map[uint64][]byte
-	lowestWalked uint64
-	parentNonce  uint64
-	cursor       []byte
+	walked          map[uint64][]byte
+	walkedHashes    map[string]struct{}
+	lowestWalked    uint64
+	parentNonce     uint64
+	cursor          []byte
+	walkFrozen      bool
+	canonicalHashes map[string]struct{}
+	coveredNonces   map[uint64]struct{}
 }
 
 func newMetaAncestryView(parentHeader data.HeaderHandler, parentHash []byte) *metaAncestryView {
 	return &metaAncestryView{
-		walked:       map[uint64][]byte{parentHeader.GetNonce(): parentHash},
-		lowestWalked: parentHeader.GetNonce(),
-		parentNonce:  parentHeader.GetNonce(),
-		cursor:       parentHeader.GetPrevHash(),
+		walked:          map[uint64][]byte{parentHeader.GetNonce(): parentHash},
+		walkedHashes:    map[string]struct{}{string(parentHash): {}},
+		lowestWalked:    parentHeader.GetNonce(),
+		parentNonce:     parentHeader.GetNonce(),
+		cursor:          parentHeader.GetPrevHash(),
+		canonicalHashes: make(map[string]struct{}),
+		coveredNonces:   make(map[uint64]struct{}),
 	}
 }
 
@@ -1257,8 +1264,8 @@ func (mp *metaProcessor) checkReferencedMetaAncestry(header data.HeaderHandler, 
 		return errNilMetaAncestryView
 	}
 
-	for _, metaHash := range metaHashes {
-		if !mp.isAncestorMetaBlock(view, metaHash) {
+	for idx, metaHash := range metaHashes {
+		if !mp.isAncestorMetaBlock(view, metaHash, len(metaHashes)-idx) {
 			return fmt.Errorf("%w with hash %x", errReferencedNonAncestorMetaHeader, metaHash)
 		}
 	}
@@ -1266,7 +1273,16 @@ func (mp *metaProcessor) checkReferencedMetaAncestry(header data.HeaderHandler, 
 	return nil
 }
 
-func (mp *metaProcessor) isAncestorMetaBlock(view *metaAncestryView, refHash []byte) bool {
+// isAncestorMetaBlock answers by hash set membership when possible; a miss resolves the reference
+// once and extends the matching region, so following references of the same run answer with no reads
+func (mp *metaProcessor) isAncestorMetaBlock(view *metaAncestryView, refHash []byte, refsLeft int) bool {
+	if _, isWalked := view.walkedHashes[string(refHash)]; isWalked {
+		return true
+	}
+	if _, isCanonical := view.canonicalHashes[string(refHash)]; isCanonical {
+		return true
+	}
+
 	refHeader, err := process.GetMetaHeader(refHash, mp.dataPool.Headers(), mp.marshalizer, mp.store)
 	if err != nil {
 		return false
@@ -1283,17 +1299,19 @@ func (mp *metaProcessor) isAncestorMetaBlock(view *metaAncestryView, refHash []b
 	}
 
 	// below the pooled walk the canonical nonce -> hash storer, written at commit, is the ancestor test
-	storedHash, err := process.GetHeaderHashFromStorageWithNonce(refNonce, mp.store, mp.uint64Converter, mp.marshalizer, dataRetriever.MetaHdrNonceHashDataUnit)
-	if err != nil {
-		return false
-	}
+	mp.extendCanonicalHashes(view, refNonce, refsLeft)
+	_, isCanonical := view.canonicalHashes[string(refHash)]
 
-	return bytes.Equal(storedHash, refHash)
+	return isCanonical
 }
 
 // extendAncestryWalk steps down the prev hash chain through the pool only; below the pool horizon
-// the storer fallback takes over
+// the canonical storer cache takes over
 func (mp *metaProcessor) extendAncestryWalk(view *metaAncestryView, downToNonce uint64) {
+	if view.walkFrozen {
+		return
+	}
+
 	for view.lowestWalked > downToNonce && view.lowestWalked > 0 {
 		header, err := mp.dataPool.Headers().GetHeaderByHash(view.cursor)
 		if err != nil || check.IfNil(header) || header.GetNonce() >= view.lowestWalked {
@@ -1301,8 +1319,34 @@ func (mp *metaProcessor) extendAncestryWalk(view *metaAncestryView, downToNonce 
 		}
 
 		view.walked[header.GetNonce()] = view.cursor
+		view.walkedHashes[string(view.cursor)] = struct{}{}
 		view.lowestWalked = header.GetNonce()
 		view.cursor = header.GetPrevHash()
+	}
+}
+
+// extendCanonicalHashes sweeps the canonical storer over the run the current shard header still
+// claims, each nonce read at most once; the walk freezes so the two regions cannot overlap
+func (mp *metaProcessor) extendCanonicalHashes(view *metaAncestryView, fromNonce uint64, refsLeft int) {
+	view.walkFrozen = true
+
+	if refsLeft < 1 {
+		return
+	}
+	if refsLeft > process.MaxMetaHeadersAllowedInOneShardBlock {
+		refsLeft = process.MaxMetaHeadersAllowedInOneShardBlock
+	}
+	for nonce := fromNonce; nonce < fromNonce+uint64(refsLeft) && nonce < view.lowestWalked; nonce++ {
+		if _, isCovered := view.coveredNonces[nonce]; isCovered {
+			continue
+		}
+		view.coveredNonces[nonce] = struct{}{}
+
+		storedHash, err := process.GetHeaderHashFromStorageWithNonce(nonce, mp.store, mp.uint64Converter, mp.marshalizer, dataRetriever.MetaHdrNonceHashDataUnit)
+		if err != nil {
+			continue
+		}
+		view.canonicalHashes[string(storedHash)] = struct{}{}
 	}
 }
 
@@ -1317,9 +1361,14 @@ func (mp *metaProcessor) requestShardHeadersInAdvanceIfNeeded(
 func (mp *metaProcessor) verifyEpochStartData(
 	headerHandler data.MetaHeaderHandler,
 ) bool {
-	epochStartData, err := mp.getComputedEpochStartData()
+	epochStartData, err := mp.getComputedEpochStartData(headerHandler.GetEpoch())
 	if err != nil {
-		log.Error("verifyEpochStartData: failed to get epoch start data", "error", err)
+		// only an epoch start header needs the data; for any other header the result is discarded
+		if headerHandler.IsStartOfEpochBlock() {
+			log.Error("verifyEpochStartData: failed to get epoch start data", "error", err)
+		} else {
+			log.Debug("verifyEpochStartData: no epoch start data for header epoch", "error", err)
+		}
 		return false
 	}
 
@@ -1626,12 +1675,15 @@ func (mp *metaProcessor) getPreviousExecutedBlock() data.HeaderHandler {
 	return blockHeader
 }
 
-func (mp *metaProcessor) getComputedEpochStartData() (*block.EpochStart, error) {
+// getComputedEpochStartData returns the epoch start data computed at propose block processing; the
+// epoch guard keeps it valid across an epoch boundary rollback without leaking into other epochs
+func (mp *metaProcessor) getComputedEpochStartData(epoch uint32) (*block.EpochStart, error) {
 	mp.mutEpochStartData.RLock()
 	defer mp.mutEpochStartData.RUnlock()
 
 	if mp.epochStartDataWrapper == nil ||
-		mp.epochStartDataWrapper.EpochStartData == nil {
+		mp.epochStartDataWrapper.EpochStartData == nil ||
+		mp.epochStartDataWrapper.Epoch != epoch {
 		return nil, process.ErrNilEpochStartData
 	}
 
