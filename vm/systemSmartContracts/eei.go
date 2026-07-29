@@ -792,6 +792,7 @@ func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byt
 		destAcc = &vmcommon.OutputAccount{
 			Address:      scAddress,
 			BalanceDelta: big.NewInt(0),
+			Balance:      big.NewInt(0),
 		}
 		host.outputAccounts[string(destAcc.Address)] = destAcc
 	}
