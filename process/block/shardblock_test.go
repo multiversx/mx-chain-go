@@ -3817,6 +3817,8 @@ func TestShardProcessor_RestoreBlockIntoPoolsPartialMetaFailureWritesBackMovedBl
 	// the moved one goes back to storage and its accounting is undone, as if nothing ran
 	err := h.sp.RestoreBlockIntoPools(h.header, &block.Body{})
 	require.NotNil(t, err)
+	var partialErr *process.PartialRestoreError
+	require.False(t, errors.As(err, &partialErr))
 	require.Contains(t, h.storedMetas, string(metaBlockHash1))
 	require.Contains(t, h.storedMetas, string(metaBlockHash2))
 	require.Empty(t, h.accountedMetas)
@@ -3850,6 +3852,41 @@ func TestShardProcessor_RestoreBlockIntoPoolsWriteBackFailureFallsBackToMovedAcc
 	require.Nil(t, err)
 	require.Equal(t, 1, h.accountedMetas[string(metaBlockHash1)])
 	require.Equal(t, 1, h.accountedMetas[string(metaBlockHash2)])
+}
+
+func TestShardProcessor_RestoreBlockIntoPoolsReportsUnrestoredMetaBlocksAndRepairConverges(t *testing.T) {
+	t.Parallel()
+
+	metaBlockHash1 := []byte("meta block hash 1")
+	metaBlockHash2 := []byte("meta block hash 2")
+	h := newPartialRestoreHarness(t, metaBlockHash1, metaBlockHash2)
+	h.removeFailuresLeft[string(metaBlockHash2)] = 1
+	h.putFailuresLeft[string(metaBlockHash1)] = 1
+
+	// the failed write back must be reported: the caller may only drop the roll back once the
+	// moved meta block is proven back in committed storage
+	err := h.sp.RestoreBlockIntoPools(h.header, &block.Body{})
+	require.NotNil(t, err)
+	var partialErr *process.PartialRestoreError
+	require.True(t, errors.As(err, &partialErr))
+	require.Len(t, partialErr.UnrestoredMetaBlocks, 1)
+	require.Equal(t, metaBlockHash1, partialErr.UnrestoredMetaBlocks[0].Hash)
+
+	retrier, ok := h.sp.(interface {
+		RetryRestoreWriteBack([]process.MovedMetaBlock) []process.MovedMetaBlock
+	})
+	require.True(t, ok)
+
+	h.putFailuresLeft[string(metaBlockHash1)] = 1
+	stillFailed := retrier.RetryRestoreWriteBack(partialErr.UnrestoredMetaBlocks)
+	require.Len(t, stillFailed, 1)
+	require.NotContains(t, h.storedMetas, string(metaBlockHash1))
+
+	stillFailed = retrier.RetryRestoreWriteBack(stillFailed)
+	require.Empty(t, stillFailed)
+	require.Contains(t, h.storedMetas, string(metaBlockHash1))
+	require.NotContains(t, h.accountedMetas, string(metaBlockHash1))
+	require.Equal(t, 1, h.nonceMappingPuts)
 }
 
 func TestShardProcessor_DecodeBlockBody(t *testing.T) {

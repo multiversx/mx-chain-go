@@ -193,13 +193,14 @@ type baseBootstrap struct {
 // pendingV3RollBack tracks a v3 roll back interrupted mid-way, so the sync loop can complete or
 // abandon it before any other work; accessed only from the sync goroutine
 type pendingV3RollBack struct {
-	currHeaderHash  []byte
-	currHeader      data.HeaderHandler
-	prevHeaderHash  []byte
-	prevHeader      data.HeaderHandler
-	currBody        data.BodyHandler
-	restoreDone     bool
-	executionPruned bool
+	currHeaderHash       []byte
+	currHeader           data.HeaderHandler
+	prevHeaderHash       []byte
+	prevHeader           data.HeaderHandler
+	currBody             data.BodyHandler
+	restoreDone          bool
+	executionPruned      bool
+	unrestoredMetaBlocks []process.MovedMetaBlock
 }
 
 func (boot *baseBootstrap) getProcessWaitTime(round uint64) time.Duration {
@@ -527,11 +528,11 @@ func (boot *baseBootstrap) waitForHeaderAndProofByHash() error {
 	}
 }
 
-func (boot *baseBootstrap) computeNodeState() {
+func (boot *baseBootstrap) computeNodeState(round int64) {
 	boot.mutNodeState.Lock()
 	defer boot.mutNodeState.Unlock()
 
-	isNodeStateCalculatedInCurrentRound := boot.roundIndex == boot.roundHandler.Index() && boot.isNodeStateCalculated
+	isNodeStateCalculatedInCurrentRound := boot.roundIndex == round && boot.isNodeStateCalculated
 	if isNodeStateCalculatedInCurrentRound {
 		return
 	}
@@ -564,7 +565,7 @@ func (boot *baseBootstrap) computeNodeState() {
 
 	boot.isNodeSynchronized = isNodeSynchronized
 	boot.isNodeStateCalculated = true
-	boot.roundIndex = boot.roundHandler.Index()
+	boot.roundIndex = round
 	boot.notifySyncStateListeners(isNodeSynchronized)
 
 	result := uint64(1)
@@ -1090,19 +1091,23 @@ func (boot *baseBootstrap) syncBlock() error {
 		return nil
 	}
 
+	// one round snapshot for the backstops and the state computation: a state computed across a
+	// mid-tick round change stays attributed to the evaluated round, which GetNodeState rejects
+	evaluationRound := boot.roundHandler.Index()
+
 	// evaluated before the node state is computed: the tip may be dead while the node reads as
 	// synchronized, and a round in which a backstop fires must never publish a synchronized state
-	if boot.tryReconcileEquivocation() {
+	if boot.tryReconcileEquivocation(evaluationRound) {
 		boot.invalidateNodeState()
 		return nil
 	}
 
-	if boot.tryReconcileDivergence() {
+	if boot.tryReconcileDivergence(evaluationRound) {
 		boot.invalidateNodeState()
 		return nil
 	}
 
-	boot.computeNodeState()
+	boot.computeNodeState(evaluationRound)
 
 	nodeState := boot.GetNodeState()
 
@@ -1905,6 +1910,13 @@ func (boot *baseBootstrap) completeInterruptedV3RollBack() error {
 		isSuperseded := !bytes.Equal(currentHash, pending.currHeaderHash)
 		isFinal := pending.currHeader.GetNonce() <= boot.forkDetector.GetHighestFinalBlockNonce()
 		if isSuperseded || isFinal {
+			// the block stays committed, so anything a failed restore moved out of committed
+			// storage must be written back before the roll back may be dropped
+			if !boot.repairPartialRestore(pending) {
+				boot.invalidateNodeState()
+				return ErrPendingStorageRepair
+			}
+
 			log.Error("abandoning the interrupted v3 roll back, the block stays committed",
 				"hash", pending.currHeaderHash,
 				"nonce", pending.currHeader.GetNonce(),
@@ -2113,6 +2125,7 @@ func (boot *baseBootstrap) rollBackOneBlockV3(
 		log.Debug("rollBackOneBlockV3 getBlockBody error", "error", errNotCritical)
 	}
 
+	prior := boot.pendingV3RollBack
 	boot.pendingV3RollBack = &pendingV3RollBack{
 		currHeaderHash: currHeaderHash,
 		currHeader:     currHeader,
@@ -2120,11 +2133,16 @@ func (boot *baseBootstrap) rollBackOneBlockV3(
 		prevHeader:     prevHeader,
 		currBody:       currBlockBody,
 	}
+	// an earlier attempt may have left moved blocks unrepaired; the obligation survives the re-drive
+	if prior != nil && bytes.Equal(prior.currHeaderHash, currHeaderHash) {
+		boot.pendingV3RollBack.unrestoredMetaBlocks = prior.unrestoredMetaBlocks
+	}
 
 	// restore before the tip moves: roll backs run only while consensus is idle, so no commit
-	// races them; a failed restore mutates nothing and can be retried or abandoned freely
+	// races them; a failed restore mutates nothing durable unless it says so, and can be retried
 	err := boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
 	if err != nil {
+		boot.recordPartialRestore(err)
 		return nil, err
 	}
 	boot.pendingV3RollBack.restoreDone = true
@@ -2172,6 +2190,65 @@ func (boot *baseBootstrap) finishRollBackOneBlockV3(pending *pendingV3RollBack) 
 	boot.pendingV3RollBack = nil
 
 	return false, nil
+}
+
+// restoreWriteBackRetrier retries the storage write back of meta blocks moved by a failed restore
+type restoreWriteBackRetrier interface {
+	RetryRestoreWriteBack(movedMetaBlocks []process.MovedMetaBlock) []process.MovedMetaBlock
+}
+
+// repairPartialRestore writes the moved meta blocks of a failed restore back into committed
+// storage; returns false while any of them is still out, keeping the roll back pending
+func (boot *baseBootstrap) repairPartialRestore(pending *pendingV3RollBack) bool {
+	if len(pending.unrestoredMetaBlocks) == 0 {
+		return true
+	}
+
+	retrier, ok := boot.blockProcessor.(restoreWriteBackRetrier)
+	if !ok {
+		log.Error("repairPartialRestore: the block processor cannot retry the restore write back")
+		return false
+	}
+
+	pending.unrestoredMetaBlocks = retrier.RetryRestoreWriteBack(pending.unrestoredMetaBlocks)
+	if len(pending.unrestoredMetaBlocks) > 0 {
+		log.Error("interrupted v3 roll back kept pending, moved meta blocks not yet written back",
+			"num meta blocks", len(pending.unrestoredMetaBlocks),
+			"hash", pending.currHeaderHash,
+		)
+		return false
+	}
+
+	return true
+}
+
+// recordPartialRestore keeps the meta blocks a failed restore could not write back, so an
+// abandon can only follow a completed storage repair
+func (boot *baseBootstrap) recordPartialRestore(err error) {
+	var partialErr *process.PartialRestoreError
+	if !errors.As(err, &partialErr) {
+		return
+	}
+
+	pending := boot.pendingV3RollBack
+	pending.unrestoredMetaBlocks = mergeMovedMetaBlocks(pending.unrestoredMetaBlocks, partialErr.UnrestoredMetaBlocks)
+}
+
+func mergeMovedMetaBlocks(existing []process.MovedMetaBlock, added []process.MovedMetaBlock) []process.MovedMetaBlock {
+	for _, add := range added {
+		found := false
+		for _, have := range existing {
+			if bytes.Equal(have.Hash, add.Hash) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			existing = append(existing, add)
+		}
+	}
+
+	return existing
 }
 
 // finishRollBackV3AfterSiblingCommit closes an interrupted roll back after a same-nonce sibling
@@ -2571,8 +2648,8 @@ func pickCompetitorHash(localHash []byte, headerProof data.HeaderProofHandler, c
 
 // tryReconcileEquivocation overrides the final gate and forces the switch when the settlement
 // authority settled the equivocation competitor and not the local block
-func (boot *baseBootstrap) tryReconcileEquivocation() bool {
-	evidence, shouldEvaluate := boot.reconcileEvidenceToEvaluate()
+func (boot *baseBootstrap) tryReconcileEquivocation(round int64) bool {
+	evidence, shouldEvaluate := boot.reconcileEvidenceToEvaluate(round)
 	if evidence == nil {
 		return false
 	}
@@ -2618,7 +2695,7 @@ func (boot *baseBootstrap) tryReconcileEquivocation() bool {
 }
 
 // the settlement checks walk the pools, so the authority is consulted at most once per round
-func (boot *baseBootstrap) reconcileEvidenceToEvaluate() (*reconcileEvidence, bool) {
+func (boot *baseBootstrap) reconcileEvidenceToEvaluate(round int64) (*reconcileEvidence, bool) {
 	boot.mutReconcile.Lock()
 	defer boot.mutReconcile.Unlock()
 
@@ -2627,10 +2704,9 @@ func (boot *baseBootstrap) reconcileEvidenceToEvaluate() (*reconcileEvidence, bo
 		return nil, false
 	}
 
-	currentRound := boot.roundHandler.Index()
-	shouldEvaluate := evidence.lastEvaluatedRound != currentRound
+	shouldEvaluate := evidence.lastEvaluatedRound != round
 	if shouldEvaluate {
-		evidence.lastEvaluatedRound = currentRound
+		evidence.lastEvaluatedRound = round
 	}
 
 	return evidence, shouldEvaluate
@@ -2656,12 +2732,11 @@ func (boot *baseBootstrap) reconcileEvidenceStillApplies(evidence *reconcileEvid
 
 // tryReconcileDivergence rolls back the certainly-dead own suffix above the block referencing a
 // dead cross-notarized meta; the per-block pointer pops make deeper divergences converge round by round
-func (boot *baseBootstrap) tryReconcileDivergence() bool {
-	currentRound := boot.roundHandler.Index()
-	if boot.divergenceEvaluatedRound == currentRound {
+func (boot *baseBootstrap) tryReconcileDivergence(round int64) bool {
+	if boot.divergenceEvaluatedRound == round {
 		return false
 	}
-	boot.divergenceEvaluatedRound = currentRound
+	boot.divergenceEvaluatedRound = round
 
 	deadMeta, deadMetaHash, isDead := boot.settlementChecker.deadCrossNotarizedMeta()
 	if !isDead {

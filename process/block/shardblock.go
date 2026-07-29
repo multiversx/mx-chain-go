@@ -759,7 +759,10 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 				"hash", metaBlockHash)
 			// a partial restore must not outlive the call: until the whole roll back goes
 			// through, the block stays committed and its references must stay in storage
-			sp.writeBackMovedMetaBlocks(movedMetaBlocks, metablockStorer, metaHdrNonceHashStorer)
+			failed := sp.writeBackMovedMetaBlocks(movedMetaBlocks, metablockStorer, metaHdrNonceHashStorer)
+			if len(failed) > 0 {
+				return process.NewPartialRestoreError(toMovedMetaBlocks(failed), err)
+			}
 			return err
 		}
 
@@ -791,17 +794,19 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 	return nil
 }
 
-// writeBackMovedMetaBlocks undoes the storage and accounting moves of an interrupted restore;
-// write failures fall back to the moved state, which a restore retry converges from
+// writeBackMovedMetaBlocks undoes the storage and accounting moves of an interrupted restore and
+// returns what it could not undo; a failed entry stays fully in the moved, convergeable state
 func (sp *shardProcessor) writeBackMovedMetaBlocks(
 	movedMetaBlocks []*hashAndHdr,
 	metablockStorer storage.Storer,
 	metaHdrNonceHashStorer storage.Storer,
-) {
+) []*hashAndHdr {
+	failed := make([]*hashAndHdr, 0)
 	for _, moved := range movedMetaBlocks {
 		buff, err := sp.marshalizer.Marshal(moved.hdr)
 		if err != nil {
 			log.Error("writeBackMovedMetaBlocks.Marshal", "hash", moved.hash, "error", err)
+			failed = append(failed, moved)
 			continue
 		}
 
@@ -809,6 +814,7 @@ func (sp *shardProcessor) writeBackMovedMetaBlocks(
 		if err != nil {
 			log.Error("writeBackMovedMetaBlocks: cannot write meta block back into MetaBlockUnit",
 				"hash", moved.hash, "error", err)
+			failed = append(failed, moved)
 			continue
 		}
 
@@ -817,10 +823,46 @@ func (sp *shardProcessor) writeBackMovedMetaBlocks(
 		if err != nil {
 			log.Error("writeBackMovedMetaBlocks: cannot write back the nonce mapping",
 				"hash", moved.hash, "error", err)
+			failed = append(failed, moved)
+			continue
 		}
 
 		sp.processedMiniBlocksTracker.RemoveMetaBlockHash(moved.hash)
 	}
+
+	return failed
+}
+
+// RetryRestoreWriteBack retries the storage write back of meta blocks left in the moved state by
+// an interrupted restore; it returns the entries that still could not be written back
+func (sp *shardProcessor) RetryRestoreWriteBack(movedMetaBlocks []process.MovedMetaBlock) []process.MovedMetaBlock {
+	metablockStorer, err := sp.store.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		log.Error("RetryRestoreWriteBack: unable to get MetaBlockUnit storer", "error", err)
+		return movedMetaBlocks
+	}
+
+	metaHdrNonceHashStorer, err := sp.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		log.Error("RetryRestoreWriteBack: unable to get MetaHdrNonceHashDataUnit storer", "error", err)
+		return movedMetaBlocks
+	}
+
+	moved := make([]*hashAndHdr, 0, len(movedMetaBlocks))
+	for _, movedMetaBlock := range movedMetaBlocks {
+		moved = append(moved, &hashAndHdr{hdr: movedMetaBlock.Header, hash: movedMetaBlock.Hash})
+	}
+
+	return toMovedMetaBlocks(sp.writeBackMovedMetaBlocks(moved, metablockStorer, metaHdrNonceHashStorer))
+}
+
+func toMovedMetaBlocks(movedMetaBlocks []*hashAndHdr) []process.MovedMetaBlock {
+	converted := make([]process.MovedMetaBlock, 0, len(movedMetaBlocks))
+	for _, moved := range movedMetaBlocks {
+		converted = append(converted, process.MovedMetaBlock{Hash: moved.hash, Header: moved.hdr})
+	}
+
+	return converted
 }
 
 func (sp *shardProcessor) setProcessedMiniBlocksInfo(miniBlockHashes [][]byte, metaBlockHash string, metaBlock data.MetaHeaderHandler) {

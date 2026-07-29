@@ -4633,6 +4633,95 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 		require.Empty(t, bs.GetPendingV3RollBackHash())
 	})
 
+	t.Run("an abandon waits for the storage repair of a partially restored block", func(t *testing.T) {
+		t.Parallel()
+
+		causeErr := errors.New("remove error")
+		movedMeta := process.MovedMetaBlock{Hash: []byte("moved meta hash"), Header: &block.MetaBlock{Nonce: 3}}
+		repairFailuresLeft := 1
+		repairCalls := 0
+		repaired := make([]process.MovedMetaBlock, 0)
+		bs, blkc, _, _, _, _ := buildBootstrapper(5, func(args *sync.ArgShardBootstrapper) {
+			args.BlockProcessor = &testscommon.BlockProcessorStub{
+				RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+					return process.NewPartialRestoreError([]process.MovedMetaBlock{movedMeta}, causeErr)
+				},
+				RetryRestoreWriteBackCalled: func(moved []process.MovedMetaBlock) []process.MovedMetaBlock {
+					repairCalls++
+					if repairFailuresLeft > 0 {
+						repairFailuresLeft--
+						return moved
+					}
+					repaired = append(repaired, moved...)
+					return nil
+				},
+			}
+		})
+		bs.SetPreparedForSync(true)
+
+		err := bs.RollBack(true)
+		require.ErrorIs(t, err, causeErr)
+
+		// consensus committed on top: the roll back intent is dead, but a moved meta block is
+		// still outside committed storage; the block stays, so the abandon must wait for the repair
+		newTip := newV3Header(9, 13, currHdrHash)
+		_ = blkc.SetCurrentBlockHeaderAndHash([]byte("newTipHash"), newTip)
+
+		err = bs.SyncBlockBase()
+		require.Equal(t, sync.ErrPendingStorageRepair, err)
+		require.NotEmpty(t, bs.GetPendingV3RollBackHash())
+		require.Equal(t, 1, repairCalls)
+
+		err = bs.SyncBlockBase()
+		require.Nil(t, err)
+		require.Equal(t, 2, repairCalls)
+		require.Equal(t, []process.MovedMetaBlock{movedMeta}, repaired)
+		require.Empty(t, bs.GetPendingV3RollBackHash())
+	})
+
+	t.Run("the repair obligation survives a re-driven restore attempt", func(t *testing.T) {
+		t.Parallel()
+
+		causeErr := errors.New("remove error")
+		plainErr := errors.New("plain restore error")
+		movedMeta := process.MovedMetaBlock{Hash: []byte("moved meta hash"), Header: &block.MetaBlock{Nonce: 3}}
+		restoreCalls := 0
+		repairDemanded := false
+		bs, blkc, _, _, _, _ := buildBootstrapper(5, func(args *sync.ArgShardBootstrapper) {
+			args.BlockProcessor = &testscommon.BlockProcessorStub{
+				RestoreBlockIntoPoolsCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+					restoreCalls++
+					if restoreCalls == 1 {
+						return process.NewPartialRestoreError([]process.MovedMetaBlock{movedMeta}, causeErr)
+					}
+					return plainErr
+				},
+				RetryRestoreWriteBackCalled: func(moved []process.MovedMetaBlock) []process.MovedMetaBlock {
+					repairDemanded = true
+					return moved
+				},
+			}
+		})
+		bs.SetPreparedForSync(true)
+
+		err := bs.RollBack(true)
+		require.ErrorIs(t, err, causeErr)
+
+		// the re-driven attempt fails without moving anything new; the earlier moved block
+		// must still be remembered
+		err = bs.SyncBlockBase()
+		require.Equal(t, plainErr, err)
+		require.Equal(t, 2, restoreCalls)
+
+		newTip := newV3Header(9, 13, currHdrHash)
+		_ = blkc.SetCurrentBlockHeaderAndHash([]byte("newTipHash"), newTip)
+
+		err = bs.SyncBlockBase()
+		require.Equal(t, sync.ErrPendingStorageRepair, err)
+		require.True(t, repairDemanded)
+		require.NotEmpty(t, bs.GetPendingV3RollBackHash())
+	})
+
 	t.Run("finality reached mid-completion does not block finishing an already lowered tip", func(t *testing.T) {
 		t.Parallel()
 
