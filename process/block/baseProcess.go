@@ -140,6 +140,7 @@ type baseProcessor struct {
 
 	processDataTriesOnCommitEpoch bool
 	lastRestartNonce              uint64
+	lastSignaledFinalNonce        uint64
 	pruningDelay                  uint32
 	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
 	receiptsRepository            receiptsRepository
@@ -3151,6 +3152,31 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 	return bp.hasher.Compute(string(marshalledHeader)), nil
 }
 
+// hasOwnProof reports whether the block under validation already carries its own proof - the
+// network verdict, which supersedes the subjective local-evidence contention checks
+func (bp *baseProcessor) hasOwnProof(header data.HeaderHandler) bool {
+	headerHash, err := bp.getHeaderHash(header)
+	if err != nil {
+		return false
+	}
+
+	return bp.proofsPool.HasProof(header.GetShardID(), headerHash)
+}
+
+// ownProofResolver memoizes hasOwnProof, so the clean path never pays the hash computation
+func (bp *baseProcessor) ownProofResolver(header data.HeaderHandler) func() bool {
+	resolved := false
+	hasProof := false
+
+	return func() bool {
+		if !resolved {
+			hasProof = bp.hasOwnProof(header)
+			resolved = true
+		}
+		return hasProof
+	}
+}
+
 func (bp *baseProcessor) computeOwnShardStuckIfNeeded(header data.HeaderHandler) error {
 	if !header.IsHeaderV3() {
 		return nil
@@ -4378,6 +4404,41 @@ func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 	for i := len(headersToPrune) - 1; i >= 0; i-- {
 		header := headersToPrune[i]
 		bp.blockProcessor.pruneTrieHeaderV3(header)
+	}
+
+	return nil
+}
+
+// isContendedUnsettledCrossHeader applies the cross-shard referencing gate: a header that
+// skipped a round after its parent is not includable until it settles (see IsSettledCrossHeader)
+func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandler, parentHeader data.HeaderHandler, headerHash []byte) bool {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return false
+	}
+	if !common.IsContendedHeader(header, parentHeader) {
+		return false
+	}
+
+	return !bp.blockTracker.IsSettledCrossHeader(header, headerHash)
+}
+
+// checkNotContendedUnsettled errors when a referenced cross-shard header is contended and not yet
+// settled; the header hash is computed only on the contended path
+func (bp *baseProcessor) checkNotContendedUnsettled(header data.HeaderHandler, parentHeader data.HeaderHandler) error {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return nil
+	}
+	if !common.IsContendedHeader(header, parentHeader) {
+		return nil
+	}
+
+	headerHash, err := bp.getHeaderHash(header)
+	if err != nil {
+		return err
+	}
+
+	if !bp.blockTracker.IsSettledCrossHeader(header, headerHash) {
+		return fmt.Errorf("%w with hash %x", errIncludedContendedUnsettledHeader, headerHash)
 	}
 
 	return nil

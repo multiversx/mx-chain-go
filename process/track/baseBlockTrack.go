@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -19,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ process.ValidityAttester = (*baseBlockTrack)(nil)
@@ -28,12 +26,6 @@ var log = logger.GetOrCreate("process/track")
 
 const maxNonceDifference = 3 // TODO move this to a config file
 
-const maxQuarantineRoundDelta = 3
-
-// lateProofGracePeriodPercent is the fraction of the round duration, from the round start, in which
-// a proof for the previous round is not considered late
-const lateProofGracePeriodPercent = 25
-
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {
 	Hash   []byte
@@ -41,15 +33,14 @@ type HeaderInfo struct {
 }
 
 type baseBlockTrack struct {
-	hasher             hashing.Hasher
-	headerValidator    process.HeaderConstructionValidator
-	marshalizer        marshal.Marshalizer
-	roundHandler       process.RoundHandler
-	shardCoordinator   sharding.Coordinator
-	headersPool        dataRetriever.HeadersPool
-	proofsPool         dataRetriever.ProofsPool
-	store              dataRetriever.StorageService
-	quarantinedHeaders storage.Cacher
+	hasher           hashing.Hasher
+	headerValidator  process.HeaderConstructionValidator
+	marshalizer      marshal.Marshalizer
+	roundHandler     process.RoundHandler
+	shardCoordinator sharding.Coordinator
+	headersPool      dataRetriever.HeadersPool
+	proofsPool       dataRetriever.ProofsPool
+	store            dataRetriever.StorageService
 
 	blockProcessor                        blockProcessorHandler
 	crossNotarizer                        blockNotarizerHandler
@@ -71,6 +62,10 @@ type baseBlockTrack struct {
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
 	maxNumHeadersToKeepPerShard int
+
+	mutProofPull       sync.Mutex
+	proofPullStates    map[proofPullKey]*proofPullState
+	lastProofPullRound int64
 
 	cancelFunc context.CancelFunc
 }
@@ -132,7 +127,6 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		headersPool:                           arguments.PoolsHolder.Headers(),
 		proofsPool:                            arguments.PoolsHolder.Proofs(),
 		store:                                 arguments.Store,
-		quarantinedHeaders:                    arguments.PoolsHolder.QuarantinedHeaders(),
 		crossNotarizer:                        crossNotarizer,
 		selfNotarizer:                         selfNotarizer,
 		crossNotarizedHeadersNotifier:         crossNotarizedHeadersNotifier,
@@ -149,12 +143,14 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		processConfigsHandler:                 arguments.ProcessConfigsHandler,
 		ownShardTracker:                       tracker,
 		requestHandler:                        arguments.RequestHandler,
+		proofPullStates:                       make(map[proofPullKey]*proofPullState),
+		lastProofPullRound:                    -1,
 	}
 
 	var ctx context.Context
 	ctx, bbt.cancelFunc = context.WithCancel(context.Background())
 
-	go bbt.sweepQuarantinedHeaders(ctx)
+	go bbt.pullProofsForContendedNoncesLoop(ctx)
 
 	return bbt, nil
 }
@@ -163,8 +159,6 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 	if check.IfNil(proof) {
 		return
 	}
-
-	bbt.quarantineIfLateProof(proof)
 
 	headerHash := proof.GetHeaderHash()
 	header, err := bbt.getHeaderForProof(proof)
@@ -181,60 +175,7 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 		"hash", proof.GetHeaderHash(),
 	)
 
-	bbt.settleQuarantinedParentIfNeeded(header, headerHash)
-
 	bbt.receivedHeader(header, headerHash)
-}
-
-func (bbt *baseBlockTrack) settleQuarantinedParentIfNeeded(header data.HeaderHandler, headerHash []byte) {
-	prevHash := header.GetPrevHash()
-	if !bbt.quarantinedHeaders.Has(prevHash) {
-		return
-	}
-
-	bbt.quarantinedHeaders.Remove(prevHash)
-
-	log.Debug("settled quarantined header",
-		"quarantinedHash", prevHash,
-		"confirmationHash", headerHash,
-		"confirmationNonce", header.GetNonce())
-}
-
-func (bbt *baseBlockTrack) sweepQuarantinedHeaders(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			bbt.sweepExpiredQuarantinedHeaders()
-		}
-	}
-}
-
-func (bbt *baseBlockTrack) sweepExpiredQuarantinedHeaders() {
-	currentRound := bbt.roundHandler.Index()
-	for _, key := range bbt.quarantinedHeaders.Keys() {
-		val, found := bbt.quarantinedHeaders.Get(key)
-		if !found {
-			continue
-		}
-
-		headerRound, ok := val.(uint64)
-		if !ok {
-			log.Warn("sweepExpiredQuarantinedHeaders: unexpected value type, removing entry", "hash", key)
-			bbt.quarantinedHeaders.Remove(key)
-			continue
-		}
-
-		if currentRound-int64(headerRound) < maxQuarantineRoundDelta {
-			continue
-		}
-
-		bbt.quarantinedHeaders.Remove(key)
-	}
 }
 
 func (bbt *baseBlockTrack) requestHeaderForProof(proof data.HeaderProofHandler) {
@@ -256,8 +197,6 @@ func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, head
 			return
 		}
 	}
-
-	bbt.settleQuarantinedParentIfNeeded(headerHandler, headerHash)
 
 	if headerHandler.GetShardID() == core.MetachainShardId {
 		bbt.receivedMetaBlock(headerHandler, headerHash)
@@ -558,44 +497,6 @@ func (bbt *baseBlockTrack) CheckProofAgainstRoundHandler(proof data.HeaderProofH
 	}
 
 	return bbt.checkAgainstRoundHandler(proof.GetHeaderRound())
-}
-
-func (bbt *baseBlockTrack) quarantineIfLateProof(proof data.HeaderProofHandler) {
-	if bbt.roundHandler.Index() != int64(proof.GetHeaderRound())+1 {
-		return
-	}
-
-	if bbt.shardCoordinator.SelfId() == proof.GetHeaderShardId() {
-		return
-	}
-
-	// a proof processed shortly after the round switch may have arrived on time,
-	// since proofs pool subscribers are notified on separate goroutines
-	gracePeriod := bbt.roundHandler.TimeDuration() * lateProofGracePeriodPercent / 100
-	handler, ok := bbt.roundHandler.(interface {
-		TimeStamp() time.Time
-		RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
-	})
-	if ok && handler.RemainingTime(handler.TimeStamp(), gracePeriod) > 0 {
-		return
-	}
-
-	_, err := bbt.proofsPool.GetProofByNonce(proof.GetHeaderNonce()+1, proof.GetHeaderShardId())
-	if err == nil {
-		return
-	}
-
-	hash := proof.GetHeaderHash()
-	bbt.quarantinedHeaders.Put(hash, proof.GetHeaderRound(), 8)
-	log.Debug("quarantined late proof header hash",
-		"hash", hash, "round", proof.GetHeaderRound(),
-		"nonce", proof.GetHeaderNonce(), "shard", proof.GetHeaderShardId(),
-		"currentRound", bbt.roundHandler.Index())
-}
-
-// IsHeaderQuarantined returns true if the given header hash is currently quarantined (late cross-shard proof)
-func (bbt *baseBlockTrack) IsHeaderQuarantined(hash []byte) bool {
-	return bbt.quarantinedHeaders.Has(hash)
 }
 
 func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
@@ -1007,9 +908,6 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.PoolsHolder.Proofs()) {
 		return process.ErrNilProofsPool
-	}
-	if check.IfNil(arguments.PoolsHolder.QuarantinedHeaders()) {
-		return process.ErrNilQuarantinedHeadersCache
 	}
 	if check.IfNil(arguments.FeeHandler) {
 		return process.ErrNilEconomicsData

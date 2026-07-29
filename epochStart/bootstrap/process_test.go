@@ -1699,6 +1699,76 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 	})
 }
 
+// The walk starts at the anchor's nonce and searches forward, so the target epoch must be ahead of
+// the anchor's own epoch.
+func TestRequestAndProcessForShard_WalkTargetEpochIsAheadOfAnchor(t *testing.T) {
+	t.Parallel()
+
+	const bootstrappedEpoch = uint32(8)
+	const anchorEpoch = uint32(7)
+	const anchorNonce = uint64(6165)
+
+	notarizedShardHeaderHash := []byte("notarizedShardHeaderHash")
+	notarizedMetaHeaderHash := []byte("notarizedMetaHeaderHash")
+
+	args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
+
+	notarizedShardHeader := &block.Header{
+		Nonce: anchorNonce,
+		Epoch: anchorEpoch,
+	}
+
+	// the shard entry still carries the previous epoch; the shard switches on its own epoch start block
+	epochStartMeta := &block.MetaBlock{
+		Epoch: bootstrappedEpoch,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					HeaderHash:            notarizedShardHeaderHash,
+					ShardID:               0,
+					Epoch:                 anchorEpoch,
+					Nonce:                 anchorNonce,
+					FirstPendingMetaBlock: notarizedMetaHeaderHash,
+				},
+			},
+		},
+	}
+
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.syncedHeaders = make(map[string]data.HeaderHandler)
+	epochStartProvider.epochStartMeta = epochStartMeta
+	epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
+	epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+		GetHeadersCalled: func() (map[string]data.HeaderHandler, error) {
+			return map[string]data.HeaderHandler{
+				string(notarizedShardHeaderHash): notarizedShardHeader,
+			}, nil
+		},
+	}
+
+	errStopHere := errors.New("stop after the walk was requested")
+	var gotTargetEpoch uint32
+	var gotStartNonce uint64
+	numCalls := 0
+	epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+		SyncEpochStartShardHeaderCalled: func(shardId uint32, epoch uint32, startNonce uint64, _ context.Context) error {
+			numCalls++
+			gotTargetEpoch = epoch
+			gotStartNonce = startNonce
+			return errStopHere
+		},
+	}
+
+	err := epochStartProvider.requestAndProcessForShard(make([]*block.MiniBlock, 0))
+	require.Equal(t, errStopHere, err)
+	require.Equal(t, 1, numCalls)
+
+	require.Equal(t, anchorNonce, gotStartNonce)
+	require.Equal(t, bootstrappedEpoch, gotTargetEpoch)
+	require.Greater(t, gotTargetEpoch, anchorEpoch,
+		"target epoch must be ahead of the anchor's epoch, otherwise the forward walk can never reach the epoch start block")
+}
+
 func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 	notarizedShardHeaderHash := []byte("notarizedShardHeaderHash")
 	prevShardHeaderHash := []byte("prevShardHeaderHash")

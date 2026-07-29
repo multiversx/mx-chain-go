@@ -46,6 +46,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.epochStartNotifier = t.epochStartNotifier
 	rt.headersPool = t.headersPool
 	rt.proofsPool = t.proofsPool
+	rt.metaFinalityView = t.metaFinalityView
 	rt.epochStartShardHeader = t.epochStartShardHeader
 	rt.epochStartMeta = t.epochStartMeta
 	rt.shardHdrStorage = t.shardHdrStorage

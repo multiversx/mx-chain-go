@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
@@ -28,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state"
 	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -237,13 +239,18 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 	}
 
+	// supernova genesis time = wall time of the supernova activation round, with the
+	// uniform test round duration
+	supernovaGenesisTime := tpn.NodesSetup.GetStartTime()*1000 +
+		int64(tpn.EnableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag))*tpn.RoundHandler.TimeDuration().Milliseconds()
+
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(
 			tpn.RoundHandler,
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
-			0,
-			0,
+			tpn.NodesSetup.GetStartTime(),
+			supernovaGenesisTime,
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs(),
@@ -287,8 +294,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.RoundHandler,
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
-			0,
-			0,
+			tpn.NodesSetup.GetStartTime(),
+			supernovaGenesisTime,
 			tpn.EnableEpochsHandler,
 			tpn.EnableRoundsHandler,
 			tpn.DataPool.Proofs(),
@@ -343,6 +350,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		BootStorer:                   tpn.BootstrapStorer,
 		StorageBootstrapper:          tpn.StorageBootstrapper,
 		EpochHandler:                 tpn.EpochStartTrigger,
+		EpochStartTrigger:            tpn.EpochStartTrigger,
 		MiniblocksProvider:           tpn.MiniblocksProvider,
 		Uint64Converter:              TestUint64Converter,
 		AppStatusHandler:             TestAppStatusHandler,
@@ -360,8 +368,18 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ProcessConfigsHandler:        tpn.ProcessConfigsHandler,
 	}
 
+	metaFinalityView, err := track.NewMetaFinalityView(track.ArgsMetaFinalityView{
+		HeadersPool: tpn.DataPool.Headers(),
+		ProofsPool:  tpn.DataPool.Proofs(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
+		MetaFinalityView:    metaFinalityView,
+		BlockTracker:        tpn.BlockTracker,
 	}
 
 	bootstrap, err := sync.NewShardBootstrap(argsShardBootstrapper)
@@ -393,6 +411,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		BootStorer:                   tpn.BootstrapStorer,
 		StorageBootstrapper:          tpn.StorageBootstrapper,
 		EpochHandler:                 tpn.EpochStartTrigger,
+		EpochStartTrigger:            tpn.EpochStartTrigger,
 		MiniblocksProvider:           tpn.MiniblocksProvider,
 		Uint64Converter:              TestUint64Converter,
 		AppStatusHandler:             TestAppStatusHandler,

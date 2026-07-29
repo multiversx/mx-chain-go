@@ -8,8 +8,13 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
 )
+
+// MaxMetaBlocksScannedForInclusion -
+const MaxMetaBlocksScannedForInclusion = maxMetaBlocksScannedForInclusion
+
+// MaxOwnDescendantsScannedForInclusion -
+const MaxOwnDescendantsScannedForInclusion = maxOwnDescendantsScannedForInclusion
 
 // shardBlockTrack
 
@@ -125,19 +130,9 @@ func (bbt *baseBlockTrack) SetRoundHandler(roundHandler process.RoundHandler) {
 	bbt.roundHandler = roundHandler
 }
 
-// SetQuarantinedHeaders -
-func (bbt *baseBlockTrack) SetQuarantinedHeaders(quarantinedHeaders storage.Cacher) {
-	bbt.quarantinedHeaders = quarantinedHeaders
-}
-
 // SetProofsPool -
 func (bbt *baseBlockTrack) SetProofsPool(proofsPool dataRetriever.ProofsPool) {
 	bbt.proofsPool = proofsPool
-}
-
-// SettleQuarantinedParentIfNeeded -
-func (bbt *baseBlockTrack) SettleQuarantinedParentIfNeeded(header data.HeaderHandler, headerHash []byte) {
-	bbt.settleQuarantinedParentIfNeeded(header, headerHash)
 }
 
 // SetCrossNotarizer -
@@ -179,19 +174,6 @@ func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader data.H
 func (bbt *baseBlockTrack) IsHeaderOutOfRange(headerHandler data.HeaderHandler) bool {
 	return bbt.isHeaderOutOfRange(headerHandler)
 }
-
-// QuarantineIfLateProof -
-func (bbt *baseBlockTrack) QuarantineIfLateProof(proof data.HeaderProofHandler) {
-	bbt.quarantineIfLateProof(proof)
-}
-
-// SweepExpiredQuarantinedHeaders -
-func (bbt *baseBlockTrack) SweepExpiredQuarantinedHeaders() {
-	bbt.sweepExpiredQuarantinedHeaders()
-}
-
-// MaxQuarantineRoundDelta -
-const MaxQuarantineRoundDelta = maxQuarantineRoundDelta
 
 // blockNotifier
 
@@ -334,4 +316,9 @@ func (mbt *miniBlockTrack) GetConfirmedMiniBlockInfo(miniBlockHash []byte) (cach
 		return "", 0, false
 	}
 	return info.cacheID, info.nonce, true
+}
+
+// PullProofsForContendedNonces -
+func (bbt *baseBlockTrack) PullProofsForContendedNonces() {
+	bbt.pullProofsForContendedNonces()
 }

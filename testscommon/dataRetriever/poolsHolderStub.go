@@ -28,7 +28,6 @@ type PoolsHolderStub struct {
 	ExecutedMiniBlocksCalled      func() storage.Cacher
 	PostProcessTransactionsCalled func() storage.Cacher
 	DirectSentTransactionsCalled  func() storage.Cacher
-	QuarantinedHeadersCalled      func() storage.Cacher
 	CloseCalled                   func() error
 }
 
@@ -203,15 +202,6 @@ func (holder *PoolsHolderStub) DirectSentTransactions() storage.Cacher {
 func (holder *PoolsHolderStub) PostProcessTransactions() storage.Cacher {
 	if holder.PostProcessTransactionsCalled != nil {
 		return holder.PostProcessTransactionsCalled()
-	}
-
-	return nil
-}
-
-// QuarantinedHeaders -
-func (holder *PoolsHolderStub) QuarantinedHeaders() storage.Cacher {
-	if holder.QuarantinedHeadersCalled != nil {
-		return holder.QuarantinedHeadersCalled()
 	}
 
 	return nil

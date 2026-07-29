@@ -8,10 +8,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const initUint = uint64(0)
@@ -44,6 +45,8 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersFromPool, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersProcessed, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumTimesInForkChoice, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricNumEquivocationProofs, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricNumReconcileSwitches, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountConsensusAcceptedBlocks, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, initUint)
