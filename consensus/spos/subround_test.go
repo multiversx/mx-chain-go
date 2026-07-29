@@ -675,6 +675,57 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 	testDoWork(t, false, false)
 }
 
+func TestSubround_DoWorkShouldReturnFalseWhenContextClosed(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+
+	sr, _ := spos.NewSubround(
+		-1,
+		bls.SrStartRound,
+		bls.SrBlock,
+		roundTimeDuration,
+		0,
+		0.05,
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	sr.Job = func(_ context.Context) bool {
+		return true
+	}
+
+	firstCheck := true
+	sr.Check = func() bool {
+		if firstCheck {
+			firstCheck = false
+			return false
+		}
+
+		return true
+	}
+
+	maxTime := time.Now().Add(100 * time.Millisecond)
+	roundHandlerMock := &round.RoundHandlerMock{}
+	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
+		return time.Until(maxTime)
+	}
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	cancel()
+
+	r := sr.DoWork(ctx, roundHandlerMock)
+	require.Equal(t, false, r)
+	require.True(t, sr.GetRoundCanceled())
+}
+
 func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T) {
 	t.Parallel()
 
