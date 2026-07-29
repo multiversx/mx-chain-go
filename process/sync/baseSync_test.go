@@ -1051,25 +1051,27 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		}
 	}
 
-	buildBootstrapper := func(childrenOf []byte, calls *reconcileCalls) *baseBootstrap {
+	buildBootstrapper := func(childrenOf []byte, calls *reconcileCalls, roundHandler *mock.RoundHandlerMock) *baseBootstrap {
 		checker := &settlementCheckerStub{
 			isSettledCalled: func(nonce uint64, headerHash []byte) bool {
 				return len(childrenOf) > 0 && bytes.Equal(childrenOf, headerHash)
 			},
 		}
 
-		return buildBootstrapperWithChecker(childrenOf, calls, checker, &mock.RoundHandlerMock{})
+		return buildBootstrapperWithChecker(childrenOf, calls, checker, roundHandler)
 	}
 
 	t.Run("fires when the final head is childless and the competitor has a proofed child", func(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapper(competitorHash, calls)
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapper(competitorHash, calls, roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
 		require.NotNil(t, boot.pendingReconcile)
 
+		roundHandler.RoundIndex++
 		require.True(t, boot.tryReconcileEquivocation())
 		require.Equal(t, finalNonce, calls.reconciledNonce)
 		require.Equal(t, finalNonce, calls.rollBackNonce)
@@ -1081,9 +1083,11 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapper(localHash, calls)
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapper(localHash, calls, roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex++
 		require.False(t, boot.tryReconcileEquivocation())
 		require.Equal(t, uint64(0), calls.reconciledNonce)
 		require.Empty(t, calls.blacklisted)
@@ -1093,9 +1097,11 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapper(nil, calls)
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapper(nil, calls, roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex++
 		require.False(t, boot.tryReconcileEquivocation())
 		require.Equal(t, uint64(0), calls.reconciledNonce)
 		// the settling child may still arrive: the evidence must survive the failed attempt
@@ -1106,7 +1112,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapper(competitorHash, calls)
+		boot := buildBootstrapper(competitorHash, calls, &mock.RoundHandlerMock{})
 
 		otherProof := &block.HeaderProof{HeaderHash: competitorHash, HeaderNonce: finalNonce + 3, HeaderShardId: 0}
 		boot.onEquivocationEvidence(otherProof, nil)
@@ -1120,9 +1126,11 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapperWithChecker(localHash, calls, settlesOnly(competitorHash), &mock.RoundHandlerMock{})
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapperWithChecker(localHash, calls, settlesOnly(competitorHash), roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex++
 		require.True(t, boot.tryReconcileEquivocation())
 		require.Equal(t, finalNonce, calls.reconciledNonce)
 		require.Equal(t, []string{string(localHash)}, calls.blacklisted)
@@ -1133,9 +1141,11 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapperWithChecker(competitorHash, calls, settlesOnly(localHash, competitorHash), &mock.RoundHandlerMock{})
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapperWithChecker(competitorHash, calls, settlesOnly(localHash, competitorHash), roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex++
 		require.False(t, boot.tryReconcileEquivocation())
 		require.Equal(t, uint64(0), calls.reconciledNonce)
 		require.Empty(t, calls.blacklisted)
@@ -1147,9 +1157,11 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(competitorHash), &mock.RoundHandlerMock{})
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(competitorHash), roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex++
 		require.True(t, boot.tryReconcileEquivocation())
 		require.Equal(t, finalNonce, calls.reconciledNonce)
 	})
@@ -1174,6 +1186,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		boot := buildBootstrapperWithChecker(nil, calls, checker, roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex = 2
 
 		require.False(t, boot.tryReconcileEquivocation())
 		require.NotNil(t, boot.pendingReconcile)
@@ -1184,7 +1197,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		childrenByNonce[finalNonce+2] = []pooledHeader{
 			{&block.MetaBlock{Nonce: finalNonce + 2, PrevHash: competitorChildHash}, grandChildHash},
 		}
-		roundHandler.RoundIndex = 2
+		roundHandler.RoundIndex = 3
 
 		require.True(t, boot.tryReconcileEquivocation())
 		require.Equal(t, finalNonce, calls.reconciledNonce)
@@ -1200,6 +1213,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		boot := buildBootstrapperWithChecker(nil, calls, checker, roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex = 8
 
 		require.False(t, boot.tryReconcileEquivocation())
 		callsInFirstRound := checker.numCalls
@@ -1209,7 +1223,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.False(t, boot.tryReconcileEquivocation())
 		require.Equal(t, callsInFirstRound, checker.numCalls)
 
-		roundHandler.RoundIndex = 8
+		roundHandler.RoundIndex = 9
 		require.False(t, boot.tryReconcileEquivocation())
 		require.Greater(t, checker.numCalls, callsInFirstRound)
 	})
@@ -1236,15 +1250,75 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 
 		boot.onEquivocationEvidence(competitorProof, nil)
 
-		require.False(t, boot.tryReconcileEquivocation())
 		roundHandler.RoundIndex = 2
 		require.False(t, boot.tryReconcileEquivocation())
 		roundHandler.RoundIndex = 3
+		require.False(t, boot.tryReconcileEquivocation())
+		roundHandler.RoundIndex = 4
 		require.False(t, boot.tryReconcileEquivocation())
 
 		require.Equal(t, []uint64{0, 5, 10}, gotCursors)
 		require.Equal(t, uint64(7), gotFrom)
 		require.Equal(t, uint64(22), gotTo)
+	})
+
+	// a roll back fired mid-round could race a commit still running in the end round; the
+	// deferral keeps the fire round-aligned, where no commit can be in flight
+	t.Run("evidence armed in a round fires only after the round turns", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 5}
+		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(competitorHash), roundHandler)
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+		require.NotNil(t, boot.pendingReconcile)
+
+		require.False(t, boot.tryReconcileEquivocation())
+		require.Equal(t, uint64(0), calls.rollBackNonce)
+		require.NotNil(t, boot.pendingReconcile)
+
+		roundHandler.RoundIndex = 6
+		require.True(t, boot.tryReconcileEquivocation())
+		require.Equal(t, finalNonce, calls.rollBackNonce)
+	})
+
+	// a synchronized state published on the firing tick would let a consensus round start on
+	// top of the armed roll back
+	t.Run("a round in which the backstop fires never publishes a synchronized state", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 5}
+		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(competitorHash), roundHandler)
+		boot.chainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return localHead },
+			GetCurrentBlockHeaderHashCalled: func() []byte { return localHash },
+			GetGenesisHeaderCalled:          func() data.HeaderHandler { return &block.Header{} },
+		}
+		boot.forkDetector = &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
+			ReconcileFinalCheckpointCalled:  func(nonce uint64) { calls.reconciledNonce = nonce },
+			SetRollBackNonceCalled:          func(nonce uint64) { calls.rollBackNonce = nonce },
+			CheckForkCalled:                 func() *process.ForkInfo { return process.NewForkInfo() },
+			ProbableHighestNonceCalled:      func() uint64 { return finalNonce },
+		}
+		boot.networkWatcher = &mock.NetworkConnectionWatcherStub{
+			IsConnectedToTheNetworkCalled: func() bool { return true },
+		}
+		boot.processConfigsHandler = &testscommon.ProcessConfigsHandlerStub{
+			GetRoundModulusTriggerWhenSyncIsStuckCalled: func(round uint64) uint32 { return 100 },
+		}
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex = 6
+
+		require.Nil(t, boot.syncBlock())
+		require.Equal(t, finalNonce, calls.rollBackNonce)
+		// the state computation feeds both the cached synchronized flag and the listener
+		// notifications; neither may happen on the firing tick
+		require.False(t, boot.isNodeSynchronized)
+		require.Equal(t, int64(0), boot.roundIndex)
 	})
 }
 
@@ -1362,7 +1436,8 @@ func TestBaseBootstrap_ReconcileResumableScan(t *testing.T) {
 		fix.boot.onEquivocationEvidence(competitorProof, nil)
 		require.NotNil(t, fix.boot.pendingReconcile)
 
-		for round := int64(1); round <= maxRounds; round++ {
+		// the arming round never evaluates, so the evaluated rounds start right after it
+		for round := int64(2); round <= maxRounds+1; round++ {
 			fix.roundHandler.RoundIndex = round
 			if fix.boot.tryReconcileEquivocation() {
 				return true

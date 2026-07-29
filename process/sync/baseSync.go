@@ -1090,10 +1090,8 @@ func (boot *baseBootstrap) syncBlock() error {
 		return nil
 	}
 
-	boot.computeNodeState()
-
-	// evaluated before the synchronized gate: the authority may settle a childless competitor, and
-	// that leaves the node reading as synchronized while its final chain tip is already dead
+	// evaluated before the node state is computed: the tip may be dead while the node reads as
+	// synchronized, and a round in which a backstop fires must never publish a synchronized state
 	if boot.tryReconcileEquivocation() {
 		boot.invalidateNodeState()
 		return nil
@@ -1103,6 +1101,8 @@ func (boot *baseBootstrap) syncBlock() error {
 		boot.invalidateNodeState()
 		return nil
 	}
+
+	boot.computeNodeState()
 
 	nodeState := boot.GetNodeState()
 
@@ -2121,8 +2121,8 @@ func (boot *baseBootstrap) rollBackOneBlockV3(
 		currBody:       currBlockBody,
 	}
 
-	// restore before the tip moves: a racing commit is rejected by the chain linkage check, and
-	// the restore fails atomically, so an interrupted attempt can retry or abandon freely
+	// restore before the tip moves: roll backs run only while consensus is idle, so no commit
+	// races them; a failed restore mutates nothing and can be retried or abandoned freely
 	err := boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
 	if err != nil {
 		return nil, err
@@ -2537,10 +2537,12 @@ func (boot *baseBootstrap) onEquivocationEvidence(headerProof data.HeaderProofHa
 
 	boot.mutReconcile.Lock()
 	boot.pendingReconcile = &reconcileEvidence{
-		nonce:              nonce,
-		localHash:          localHash,
-		competitorHash:     competitorHash,
-		lastEvaluatedRound: -1,
+		nonce:          nonce,
+		localHash:      localHash,
+		competitorHash: competitorHash,
+		// first evaluated after the arming round turns: a fired roll back starts round-aligned,
+		// when no consensus commit can still be in flight
+		lastEvaluatedRound: boot.roundHandler.Index(),
 	}
 	boot.mutReconcile.Unlock()
 
