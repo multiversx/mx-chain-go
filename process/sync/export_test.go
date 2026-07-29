@@ -360,9 +360,17 @@ func (boot *baseBootstrap) GetPendingV3Realign() bool {
 	return boot.pendingV3Realign
 }
 
-// GetLastRestoredHeaderHash -
-func (boot *baseBootstrap) GetLastRestoredHeaderHash() []byte {
-	return boot.lastRestoredHeaderHash
+// GetPendingV3RollBackHash -
+func (boot *baseBootstrap) GetPendingV3RollBackHash() []byte {
+	if boot.pendingV3RollBack == nil {
+		return nil
+	}
+	return boot.pendingV3RollBack.currHeaderHash
+}
+
+// IsPendingV3RollBackRestoreDone -
+func (boot *baseBootstrap) IsPendingV3RollBackRestoreDone() bool {
+	return boot.pendingV3RollBack != nil && boot.pendingV3RollBack.restoreDone
 }
 
 // SyncBlockBase -

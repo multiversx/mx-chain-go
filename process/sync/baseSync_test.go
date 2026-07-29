@@ -1816,9 +1816,26 @@ func TestBaseBootstrap_RollBackOneBlockV3RevertsEpochStartTrigger(t *testing.T) 
 	currHeader := &block.HeaderV3{Nonce: 12}
 	currHash, prevHash := []byte("currHash"), []byte("prevHash")
 
-	buildBootstrapper := func(reverted *[]data.HeaderHandler, revertErr error) *baseBootstrap {
+	buildBootstrapper := func(reverted *[]data.HeaderHandler, revertErr error, setHashes *[][]byte) *baseBootstrap {
+		currentHeader := data.HeaderHandler(currHeader)
+		currentHash := currHash
 		return &baseBootstrap{
-			chainHandler: &testscommon.ChainHandlerStub{},
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return currentHeader
+				},
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return currentHash
+				},
+				SetCurrentBlockHeaderAndHashCalled: func(hash []byte, header data.HeaderHandler) error {
+					currentHeader = header
+					currentHash = hash
+					if setHashes != nil {
+						*setHashes = append(*setHashes, hash)
+					}
+					return nil
+				},
+			},
 			epochStartTrigger: &testscommon.EpochStartTriggerStub{
 				RevertStateToBlockCalled: func(header data.HeaderHandler) error {
 					*reverted = append(*reverted, header)
@@ -1841,30 +1858,26 @@ func TestBaseBootstrap_RollBackOneBlockV3RevertsEpochStartTrigger(t *testing.T) 
 		t.Parallel()
 
 		reverted := make([]data.HeaderHandler, 0)
-		boot := buildBootstrapper(&reverted, nil)
+		boot := buildBootstrapper(&reverted, nil, nil)
 
 		_, err := boot.rollBackOneBlockV3(currHash, currHeader, prevHash, prevHeader)
 		require.Nil(t, err)
 		require.Equal(t, []data.HeaderHandler{prevHeader}, reverted)
 	})
 
-	t.Run("a failing trigger revert aborts the roll back and restores the head", func(t *testing.T) {
+	t.Run("a failing trigger revert keeps the lowered tip and the roll back pending", func(t *testing.T) {
 		t.Parallel()
 
 		expectedRevertErr := errors.New("revert error")
 		reverted := make([]data.HeaderHandler, 0)
-		boot := buildBootstrapper(&reverted, expectedRevertErr)
-
-		restoredHashes := make([][]byte, 0)
-		boot.chainHandler = &testscommon.ChainHandlerStub{
-			SetCurrentBlockHeaderAndHashCalled: func(hash []byte, header data.HeaderHandler) error {
-				restoredHashes = append(restoredHashes, hash)
-				return nil
-			},
-		}
+		setHashes := make([][]byte, 0)
+		boot := buildBootstrapper(&reverted, expectedRevertErr, &setHashes)
 
 		_, err := boot.rollBackOneBlockV3(currHash, currHeader, prevHash, prevHeader)
 		require.Equal(t, expectedRevertErr, err)
-		require.Equal(t, [][]byte{prevHash, currHash}, restoredHashes)
+		// the tip moved down once and stays there; completion is owed, not undone
+		require.Equal(t, [][]byte{prevHash}, setHashes)
+		require.NotNil(t, boot.pendingV3RollBack)
+		require.True(t, boot.pendingV3RollBack.restoreDone)
 	})
 }

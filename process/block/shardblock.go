@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ process.BlockProcessor = (*shardProcessor)(nil)
@@ -741,6 +742,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 		return err
 	}
 
+	movedMetaBlocks := make([]*hashAndHdr, 0, len(metaBlockHashes))
 	for _, metaBlockHash := range metaBlockHashes {
 		metaBlock, errNotCritical := process.GetMetaHeaderFromStorage(metaBlockHash, sp.marshalizer, sp.store)
 		if errNotCritical != nil {
@@ -755,6 +757,9 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 		if err != nil {
 			log.Debug("unable to remove hash from MetaBlockUnit",
 				"hash", metaBlockHash)
+			// a partial restore must not outlive the call: until the whole roll back goes
+			// through, the block stays committed and its references must stay in storage
+			sp.writeBackMovedMetaBlocks(movedMetaBlocks, metablockStorer, metaHdrNonceHashStorer)
 			return err
 		}
 
@@ -773,6 +778,8 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 		}
 		sp.setProcessedMiniBlocksInfo(miniBlockHashes, string(metaBlockHash), metaBlock)
 
+		movedMetaBlocks = append(movedMetaBlocks, &hashAndHdr{hdr: metaBlock, hash: metaBlockHash})
+
 		log.Trace("meta block has been restored successfully",
 			"round", metaBlock.GetRound(),
 			"nonce", metaBlock.GetNonce(),
@@ -782,6 +789,38 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 	sp.rollBackProcessedMiniBlocksInfo(headerHandler, mapMiniBlockHashes)
 
 	return nil
+}
+
+// writeBackMovedMetaBlocks undoes the storage and accounting moves of an interrupted restore;
+// write failures fall back to the moved state, which a restore retry converges from
+func (sp *shardProcessor) writeBackMovedMetaBlocks(
+	movedMetaBlocks []*hashAndHdr,
+	metablockStorer storage.Storer,
+	metaHdrNonceHashStorer storage.Storer,
+) {
+	for _, moved := range movedMetaBlocks {
+		buff, err := sp.marshalizer.Marshal(moved.hdr)
+		if err != nil {
+			log.Error("writeBackMovedMetaBlocks.Marshal", "hash", moved.hash, "error", err)
+			continue
+		}
+
+		err = metablockStorer.Put(moved.hash, buff)
+		if err != nil {
+			log.Error("writeBackMovedMetaBlocks: cannot write meta block back into MetaBlockUnit",
+				"hash", moved.hash, "error", err)
+			continue
+		}
+
+		nonceToByteSlice := sp.uint64Converter.ToByteSlice(moved.hdr.GetNonce())
+		err = metaHdrNonceHashStorer.Put(nonceToByteSlice, moved.hash)
+		if err != nil {
+			log.Error("writeBackMovedMetaBlocks: cannot write back the nonce mapping",
+				"hash", moved.hash, "error", err)
+		}
+
+		sp.processedMiniBlocksTracker.RemoveMetaBlockHash(moved.hash)
+	}
 }
 
 func (sp *shardProcessor) setProcessedMiniBlocksInfo(miniBlockHashes [][]byte, metaBlockHash string, metaBlock data.MetaHeaderHandler) {
