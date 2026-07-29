@@ -612,7 +612,8 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 	}
 	et, _ := NewEpochStartTrigger(args)
 
-	prevHdr := &block.Header{Round: 29, Epoch: 2}
+	// epoch 2 produced no shard block: the last block before the epoch 3 start is still epoch 1
+	prevHdr := &block.Header{Round: 29, Epoch: 1}
 	prevHash, _ := core.CalculateHash(et.marshaller, et.hasher, prevHdr)
 
 	epochStartShHdr := &block.Header{
@@ -633,6 +634,50 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 	assert.Nil(t, err)
 	assert.True(t, et.IsEpochStart())
 	assert.Equal(t, et.epochStartShardHeader.GetEpoch(), prevEpochHdr.Epoch)
+}
+
+func TestTrigger_RevertStateToBlockMissingEpochStartHeaderErrors(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return []byte("hash"), nil
+				},
+				PutCalled: func(key, data []byte) error {
+					return nil
+				},
+				SearchFirstCalled: func(key []byte) ([]byte, error) {
+					return nil, epochStart.ErrMissingHeader
+				},
+				RemoveCalled: func(key []byte) error {
+					return nil
+				},
+			}, nil
+		},
+	}
+	et, _ := NewEpochStartTrigger(args)
+
+	prevHdr := &block.Header{Round: 29, Epoch: 2}
+	prevHash, _ := core.CalculateHash(et.marshaller, et.hasher, prevHdr)
+
+	epochStartShHdr := &block.Header{
+		Nonce:              30,
+		PrevHash:           prevHash,
+		Round:              30,
+		EpochStartMetaHash: []byte("metaHash"),
+		Epoch:              3,
+	}
+	et.SetProcessed(epochStartShHdr, nil)
+
+	// the target's own epoch start is missing from storage: corruption must surface, not be
+	// papered over with fabricated older state
+	err := et.RevertStateToBlock(prevHdr)
+	assert.Equal(t, epochStart.ErrMissingHeader, err)
+	assert.Equal(t, epochStartShHdr.Epoch, et.epochStartShardHeader.GetEpoch())
 }
 
 func TestTrigger_ReceivedEpochStartHeaderChangeEpochFinalityAttestingRound(t *testing.T) {

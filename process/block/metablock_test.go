@@ -2403,6 +2403,84 @@ func TestMetaProcessor_RestoreBlockIntoPoolsV3ShouldWork(t *testing.T) {
 	assert.Equal(t, mhdr, revertedHeaders[0])
 }
 
+// pins the execution path contention plumbing: the context must carry the processed meta block's
+// own round and proof state into checkShardHeaderContention
+func TestMetaProcessor_CheckShardHeadersValidityContentionRegimes(t *testing.T) {
+	t.Parallel()
+
+	parentShardHash := []byte("parentShardHash")
+	parentShard := &block.Header{ShardID: 0, Nonce: 10, Round: 10}
+	// rounds 11-13 skipped after the parent -> contended
+	contended := &block.Header{ShardID: 0, Nonce: 11, Round: 14, PrevHash: parentShardHash}
+	metaParent := &block.MetaBlock{Nonce: 99}
+
+	buildProcessor := func(t *testing.T, ownProofed bool) interface {
+		CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error)
+	} {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		if ph, ok := dataComponents.DataPool.(*dataRetrieverMock.PoolsHolderStub); ok {
+			ph.HeadersCalled = func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return metaParent, nil
+					},
+					GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {
+						return nil, nil, errors.New("no headers")
+					},
+				}
+			}
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool { return ownProofed },
+				}
+			}
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
+			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error { return nil },
+		}
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return parentShard, parentShardHash, nil
+			},
+			IsSettledCrossHeaderCalled: func(header data.HeaderHandler, headerHash []byte) bool {
+				return false
+			},
+		}
+		arguments.HeadersForBlock.AddHeaderUsedInBlock("contendedHash", contended)
+		mp, err := processBlock.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		return mp
+	}
+
+	t.Run("unproofed inside the window rejects on the execution path", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t, false)
+		metaHdr := &block.MetaBlock{Nonce: 100, Round: contended.Round + 2, PrevHash: []byte("metaParentHash")}
+
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		require.ErrorIs(t, err, processBlock.ErrContendedHeaderInsideArbitrationWindow)
+	})
+
+	t.Run("own proof skips the contention on the execution path", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t, true)
+		metaHdr := &block.MetaBlock{Nonce: 100, Round: contended.Round + 2, PrevHash: []byte("metaParentHash")}
+
+		// contention superseded; the flow reaches the shard data comparison instead
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		require.ErrorIs(t, err, process.ErrHeaderShardDataMismatch)
+	})
+}
+
 // the trigger flag transitions at commit must be undone at restore, else the flag equality check on
 // the verify path rejects the canonical sibling after an epoch boundary rollback
 func TestMetaProcessor_RestoreBlockIntoPoolsRevertsEpochChangeProposed(t *testing.T) {

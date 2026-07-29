@@ -29,7 +29,8 @@ type syncStarter interface {
 // settlementChecker answers whether a block at the reconcile nonce is settled, per the settlement
 // authority of the chain the node belongs to
 type settlementChecker interface {
-	isSettled(nonce uint64, headerHash []byte) bool
+	prepareInclusionScan(scanCursor uint64) (scanFrom uint64, scanTo uint64, nextCursor uint64)
+	isSettled(nonce uint64, headerHash []byte, scanFrom uint64, scanTo uint64) bool
 	deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool)
 }
 

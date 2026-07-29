@@ -14,6 +14,8 @@ var errIncludedContendedUnsettledHeader = errors.New("included contended header 
 
 var errContendedHeaderWithBetterCompetitor = errors.New("included contended header has a better proofed competitor")
 
+var errContendedHeaderInsideArbitrationWindow = errors.New("included contended header before the arbitration discovery window elapsed")
+
 var errReferencedNonAncestorMetaHeader = errors.New("shard header references a meta block that is not an ancestor of the built block")
 
 var errNilMetaAncestryView = errors.New("nil meta ancestry view")

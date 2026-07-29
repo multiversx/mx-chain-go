@@ -1024,7 +1024,7 @@ type HeaderIntegrityVerifier interface {
 // answer false on missing evidence, so a caller never acts on what the node does not hold.
 type MetaFinalityView interface {
 	IsMetaHeaderHeldFinal(header data.HeaderHandler, headerHash []byte) bool
-	IsIncludedInHeldFinalMetaBlock(shardID uint32, headerHash []byte, nonce uint64, lowMetaNonceAnchor uint64) bool
+	IsIncludedInHeldFinalMetaBlock(shardID uint32, headerHash []byte, nonce uint64, ascendingFrom uint64, ascendingTo uint64) bool
 	IsDeadMetaBlock(headerHash []byte, nonce uint64) bool
 	IsInterfaceNil() bool
 }
