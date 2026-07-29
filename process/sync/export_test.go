@@ -355,6 +355,29 @@ func (boot *baseBootstrap) GetPreparedForSync() bool {
 	return boot.preparedForSync
 }
 
+// GetPendingV3Realign -
+func (boot *baseBootstrap) GetPendingV3Realign() bool {
+	return boot.pendingV3Realign
+}
+
+// GetPendingV3RollBackHash -
+func (boot *baseBootstrap) GetPendingV3RollBackHash() []byte {
+	if boot.pendingV3RollBack == nil {
+		return nil
+	}
+	return boot.pendingV3RollBack.currHeaderHash
+}
+
+// IsPendingV3RollBackRestoreDone -
+func (boot *baseBootstrap) IsPendingV3RollBackRestoreDone() bool {
+	return boot.pendingV3RollBack != nil && boot.pendingV3RollBack.restoreDone
+}
+
+// SyncBlockBase -
+func (boot *baseBootstrap) SyncBlockBase() error {
+	return boot.syncBlock()
+}
+
 // SetPreparedForSync -
 func (boot *baseBootstrap) SetPreparedForSync(prepared bool) {
 	boot.preparedForSync = prepared

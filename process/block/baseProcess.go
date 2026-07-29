@@ -3152,6 +3152,31 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 	return bp.hasher.Compute(string(marshalledHeader)), nil
 }
 
+// hasOwnProof reports whether the block under validation already carries its own proof - the
+// network verdict, which supersedes the subjective local-evidence contention checks
+func (bp *baseProcessor) hasOwnProof(header data.HeaderHandler) bool {
+	headerHash, err := bp.getHeaderHash(header)
+	if err != nil {
+		return false
+	}
+
+	return bp.proofsPool.HasProof(header.GetShardID(), headerHash)
+}
+
+// ownProofResolver memoizes hasOwnProof, so the clean path never pays the hash computation
+func (bp *baseProcessor) ownProofResolver(header data.HeaderHandler) func() bool {
+	resolved := false
+	hasProof := false
+
+	return func() bool {
+		if !resolved {
+			hasProof = bp.hasOwnProof(header)
+			resolved = true
+		}
+		return hasProof
+	}
+}
+
 func (bp *baseProcessor) computeOwnShardStuckIfNeeded(header data.HeaderHandler) error {
 	if !header.IsHeaderV3() {
 		return nil

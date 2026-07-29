@@ -676,6 +676,96 @@ func TestSupernovaSync_DivergenceBackstop_DeadMetaReferenceConverges(t *testing.
 	require.Equal(t, string(canonicalHashes[len(canonicalHashes)-1]), string(convergedPointerHash))
 }
 
+// meta reconcile roll back: the concrete meta processor must restore a committed v3 head,
+// re-adding the shard headers it notarized through the proposal shard info
+func TestSupernovaSync_ReconcileBackstop_MetaV3HeadRestore(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	maxShards := uint32(1)
+	shardId := uint32(0)
+
+	enableEpochs := integrationTests.CreateEnableEpochsConfig()
+	enableEpochs.AndromedaEnableEpoch = uint32(0)
+	enableEpochs.SupernovaEnableEpoch = uint32(0)
+	roundsConfig := integrationTests.GetSupernovaRoundConfigActivatedAt(2)
+
+	newNode := func(nodeShardID uint32) *integrationTests.TestProcessorNode {
+		return integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+			MaxShards:            maxShards,
+			NodeShardId:          nodeShardID,
+			TxSignPrivKeyShardId: shardId,
+			WithSync:             true,
+			EpochsConfig:         &enableEpochs,
+			RoundsConfig:         &roundsConfig,
+		})
+	}
+
+	pShard := newNode(shardId)
+	metaNode := newNode(core.MetachainShardId)
+
+	allNodes := []*integrationTests.TestProcessorNode{pShard, metaNode}
+	integrationTests.ConnectNodes([]integrationTests.Connectable{pShard, metaNode})
+
+	defer func() {
+		for _, n := range allNodes {
+			n.Close()
+		}
+	}()
+
+	for _, n := range allNodes {
+		_ = n.StartSync()
+	}
+	time.Sleep(integrationTests.P2pBootstrapDelay)
+
+	round := uint64(0)
+	shardNonce := uint64(1)
+	metaNonce := uint64(1)
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(allNodes, round)
+
+	// build a real v3 meta chain: the shard proposes, the meta node notarizes it into meta blocks
+	numMetaBlocks := 4
+	for i := 0; i < numMetaBlocks; i++ {
+		integrationTests.ProposeBlockWithProof(allNodes, []*integrationTests.TestProcessorNode{pShard}, round, shardNonce)
+		time.Sleep(integrationTests.SyncDelay)
+
+		integrationTests.ProposeBlockWithProof(allNodes, []*integrationTests.TestProcessorNode{metaNode}, round, metaNonce)
+		time.Sleep(integrationTests.SyncDelay)
+
+		round = integrationTests.IncrementAndPrintRound(round)
+		integrationTests.UpdateRound(allNodes, round)
+		shardNonce++
+		metaNonce++
+	}
+
+	headHeader, _, _ := grabCurrentBlock(t, metaNode)
+	require.True(t, headHeader.IsHeaderV3())
+	metaHandler, ok := headHeader.(data.MetaHeaderHandler)
+	require.True(t, ok)
+
+	referencedShardHashes := make([][]byte, 0)
+	for _, shardInfo := range process.GetShardHeadersReferencedByMeta(metaHandler) {
+		referencedShardHashes = append(referencedShardHashes, shardInfo.GetHeaderHash())
+	}
+	require.NotEmpty(t, referencedShardHashes, "the committed meta head must notarize shard headers")
+
+	// clear the referenced shard headers from the pool so the restore has to re-add them
+	for _, shardHash := range referencedShardHashes {
+		metaNode.DataPool.Headers().RemoveHeaderByHash(shardHash)
+	}
+
+	err := metaNode.BlockProcessor.RestoreBlockIntoPools(headHeader, &block.Body{})
+	require.Nil(t, err, "the concrete meta processor must restore a v3 head")
+
+	// the notarized shard headers referenced through the v3 proposal shard info are back in the pool
+	for _, shardHash := range referencedShardHashes {
+		_, err = metaNode.DataPool.Headers().GetHeaderByHash(shardHash)
+		require.Nil(t, err, "the restore must re-add the notarized shard header from the v3 proposal shard info")
+	}
+}
+
 func hashesAsStrings(hashes [][]byte) []string {
 	asStrings := make([]string, 0, len(hashes))
 	for _, hash := range hashes {

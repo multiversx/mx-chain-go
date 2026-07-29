@@ -85,6 +85,7 @@ type reconcileEvidence struct {
 	localHash          []byte
 	competitorHash     []byte
 	lastEvaluatedRound int64
+	scanCursor         uint64
 }
 
 type baseBootstrap struct {
@@ -178,6 +179,8 @@ type baseBootstrap struct {
 	processWaitTimeSupernova     time.Duration
 	preparedForSync              bool
 	preparedForSyncAtBootstrap   bool
+	pendingV3Realign             bool
+	pendingV3RollBack            *pendingV3RollBack
 
 	repopulateTokensSupplies bool
 
@@ -185,6 +188,18 @@ type baseBootstrap struct {
 	txSyncer         update.TransactionsSyncHandler
 
 	signalProcessCompletionChan chan uint64
+}
+
+// pendingV3RollBack tracks a v3 roll back interrupted mid-way, so the sync loop can complete or
+// abandon it before any other work; accessed only from the sync goroutine
+type pendingV3RollBack struct {
+	currHeaderHash  []byte
+	currHeader      data.HeaderHandler
+	prevHeaderHash  []byte
+	prevHeader      data.HeaderHandler
+	currBody        data.BodyHandler
+	restoreDone     bool
+	executionPruned bool
 }
 
 func (boot *baseBootstrap) getProcessWaitTime(round uint64) time.Duration {
@@ -1058,10 +1073,25 @@ func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
 }
 
 func (boot *baseBootstrap) syncBlock() error {
-	boot.computeNodeState()
+	// an interrupted roll back leaves state no other sync work may build on; resolving it
+	// (completing or abandoning) is mandatory before anything else runs
+	if boot.pendingV3RollBack != nil {
+		return boot.completeInterruptedV3RollBack()
+	}
 
-	// evaluated before the synchronized gate: the authority may settle a childless competitor, and
-	// that leaves the node reading as synchronized while its final chain tip is already dead
+	// a failed post-rollback realign leaves execution state behind the tip; nothing may run on
+	// top of it, so the loop stays blocked until the rewind goes through
+	if boot.pendingV3Realign {
+		boot.realignAfterV3RollBack()
+		if boot.pendingV3Realign {
+			boot.invalidateNodeState()
+			return ErrExecutionRealignPending
+		}
+		return nil
+	}
+
+	// evaluated before the node state is computed: the tip may be dead while the node reads as
+	// synchronized, and a round in which a backstop fires must never publish a synchronized state
 	if boot.tryReconcileEquivocation() {
 		boot.invalidateNodeState()
 		return nil
@@ -1071,6 +1101,8 @@ func (boot *baseBootstrap) syncBlock() error {
 		boot.invalidateNodeState()
 		return nil
 	}
+
+	boot.computeNodeState()
 
 	nodeState := boot.GetNodeState()
 
@@ -1704,9 +1736,8 @@ func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
 }
 
 // rollBack decides if rollBackOneBlock must be called
-func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
+func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) (err error) {
 	var roleBackOneBlockExecuted bool
-	var err error
 	var currHeaderHash []byte
 	var currHeader data.HeaderHandler
 	var prevHeader data.HeaderHandler
@@ -1715,8 +1746,8 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 	defer func() {
 		isHeaderV3 := !check.IfNil(currHeader) && currHeader.IsHeaderV3()
 		if !roleBackOneBlockExecuted && !isHeaderV3 {
-			err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
-			if err != nil {
+			errScheduled := boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
+			if errScheduled != nil {
 				rootHash := boot.chainHandler.GetGenesisHeader().GetRootHash()
 				if currHeader != nil {
 					rootHash = currHeader.GetRootHash()
@@ -1733,10 +1764,15 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 	}()
 
 	rolledBackV3 := false
-	// runs on every exit path: a v3 tip lowered by even one block must never keep a stale watermark
+	// runs on every exit path: a v3 tip lowered by even one block must never keep a stale
+	// watermark; a rewind failure surfaces in the result, so no caller continues on top of it
 	defer func() {
-		if rolledBackV3 {
-			boot.realignAfterV3RollBack()
+		if !rolledBackV3 {
+			return
+		}
+		boot.realignAfterV3RollBack()
+		if err == nil && boot.pendingV3Realign {
+			err = ErrExecutionRealignPending
 		}
 	}()
 
@@ -1775,15 +1811,17 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		)
 
 		if currHeader.IsHeaderV3() {
-			// marked before the call: a partial failure leaves execution state already pruned, so
-			// the realign must run even when the roll back returns an error
-			rolledBackV3 = true
 			currBody, err = boot.rollBackOneBlockV3(
 				currHeaderHash,
 				currHeader,
 				prevHeaderHash,
 				prevHeader,
 			)
+			// sticky across iterations: any completed restore phase moved the tip, so the
+			// realign must run even when a later iteration fails before moving anything
+			if err == nil || (boot.pendingV3RollBack != nil && boot.pendingV3RollBack.restoreDone) {
+				rolledBackV3 = true
+			}
 		} else {
 			currBody, err = boot.rollBackOneBlock(
 				currHeaderHash,
@@ -1855,9 +1893,88 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 	return nil
 }
 
+// completeInterruptedV3RollBack finishes or abandons a roll back interrupted mid-way; retried
+// steps are idempotent or guarded, so re-driving converges
+func (boot *baseBootstrap) completeInterruptedV3RollBack() error {
+	pending := boot.pendingV3RollBack
+
+	if !pending.restoreDone {
+		// the restore failed atomically, so nothing needs undoing: the roll back is simply
+		// dropped once the block is confirmed to stay, by a commit on top or by its own proof
+		currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+		isSuperseded := !bytes.Equal(currentHash, pending.currHeaderHash)
+		isFinal := pending.currHeader.GetNonce() <= boot.forkDetector.GetHighestFinalBlockNonce()
+		if isSuperseded || isFinal {
+			log.Error("abandoning the interrupted v3 roll back, the block stays committed",
+				"hash", pending.currHeaderHash,
+				"nonce", pending.currHeader.GetNonce(),
+				"superseded", isSuperseded,
+				"final", isFinal,
+			)
+			boot.pendingV3RollBack = nil
+			return nil
+		}
+
+		err := boot.rollBack(false)
+		if err != nil {
+			boot.invalidateNodeState()
+			return err
+		}
+		return nil
+	}
+
+	siblingCommitted, err := boot.finishRollBackOneBlockV3(pending)
+	if err != nil {
+		boot.invalidateNodeState()
+		return err
+	}
+
+	boot.postRollBackBookkeeping(pending, !siblingCommitted)
+
+	boot.realignAfterV3RollBack()
+	if boot.pendingV3Realign {
+		boot.invalidateNodeState()
+		return ErrExecutionRealignPending
+	}
+
+	return nil
+}
+
+// postRollBackBookkeeping mirrors the roll back loop tail for a block whose roll back was
+// completed outside the loop; failures here are node-local records, not chain state
+func (boot *baseBootstrap) postRollBackBookkeeping(pending *pendingV3RollBack, updateLastRound bool) {
+	if updateLastRound {
+		err := boot.bootStorer.SaveLastRound(int64(pending.prevHeader.GetRound()))
+		if err != nil {
+			log.Debug("save last round in storage",
+				"error", err.Error(),
+				"round", pending.prevHeader.GetRound(),
+			)
+		}
+	}
+
+	err := boot.historyRepo.RevertBlock(pending.currHeader, pending.currBody)
+	if err != nil {
+		log.Warn("postRollBackBookkeeping: cannot revert history for the rolled back block",
+			"hash", pending.currHeaderHash,
+			"error", err,
+		)
+	}
+
+	err = boot.outportHandler.RevertIndexedBlock(&outportcore.HeaderDataWithBody{
+		Body:       pending.currBody,
+		HeaderHash: pending.currHeaderHash,
+		Header:     pending.currHeader,
+	})
+	if err != nil {
+		log.Warn("baseBootstrap.outportHandler.RevertIndexedBlock cannot revert indexed block", "error", err)
+	}
+}
+
 // realignAfterV3RollBack rewinds the execution results state to the rolled-back tip and re-arms
-// the sync prepare step to rebuild pending execution results and txpool tracking above it
+// the sync prepare step; a failed rewind arms a mandatory retry that blocks the sync loop
 func (boot *baseBootstrap) realignAfterV3RollBack() {
+	boot.pendingV3Realign = false
 	newTip := boot.chainHandler.GetCurrentBlockHeader()
 	if check.IfNil(newTip) || !newTip.IsHeaderV3() {
 		return
@@ -1865,7 +1982,8 @@ func (boot *baseBootstrap) realignAfterV3RollBack() {
 
 	err := boot.executionManager.RewindExecutionStateToTip(newTip)
 	if err != nil {
-		log.Warn("realignAfterV3RollBack: cannot rewind execution state",
+		boot.pendingV3Realign = true
+		log.Warn("realignAfterV3RollBack: cannot rewind execution state, sync blocked until retried",
 			"tip nonce", newTip.GetNonce(),
 			"error", err,
 		)
@@ -1990,48 +2108,98 @@ func (boot *baseBootstrap) rollBackOneBlockV3(
 	prevHeaderHash []byte,
 	prevHeader data.HeaderHandler,
 ) (data.BodyHandler, error) {
-	err := boot.chainHandler.SetCurrentBlockHeaderAndHash(prevHeaderHash, prevHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
-		if err != nil {
-			errNotCritical := boot.chainHandler.SetCurrentBlockHeaderAndHash(currHeaderHash, currHeader)
-			if errNotCritical != nil {
-				log.Warn("rollBackOneBlockV3: cannot restore current block info", "error", errNotCritical)
-			}
-		}
-	}()
-
-	// no-op unless the rollback crosses the recorded epoch start block, when the epoch boundary
-	// must move back with the chain
-	err = boot.epochStartTrigger.RevertStateToBlock(prevHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	err = boot.executionManager.RemoveAtNonceAndHigher(currHeader.GetNonce())
-	if err != nil {
-		return nil, err
-	}
-
 	currBlockBody, errNotCritical := boot.blockBootstrapper.getBlockBody(currHeader)
 	if errNotCritical != nil {
 		log.Debug("rollBackOneBlockV3 getBlockBody error", "error", errNotCritical)
 	}
 
-	err = boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
+	boot.pendingV3RollBack = &pendingV3RollBack{
+		currHeaderHash: currHeaderHash,
+		currHeader:     currHeader,
+		prevHeaderHash: prevHeaderHash,
+		prevHeader:     prevHeader,
+		currBody:       currBlockBody,
+	}
+
+	// restore before the tip moves: roll backs run only while consensus is idle, so no commit
+	// races them; a failed restore mutates nothing and can be retried or abandoned freely
+	err := boot.blockProcessor.RestoreBlockIntoPools(currHeader, currBlockBody)
+	if err != nil {
+		return nil, err
+	}
+	boot.pendingV3RollBack.restoreDone = true
+
+	_, err = boot.finishRollBackOneBlockV3(boot.pendingV3RollBack)
 	if err != nil {
 		return nil, err
 	}
 
-	hash := boot.removeHeaderFromPools(currHeader)
-	boot.forkDetector.RemoveCommittedHeader(currHeader.GetNonce(), hash)
-	nonceToByteSlice := boot.uint64Converter.ToByteSlice(currHeader.GetNonce())
-	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
-
 	return currBlockBody, nil
+}
+
+// finishRollBackOneBlockV3 runs the steps after a completed restore, each idempotent or guarded
+// so a re-driven run converges; returns true when it stood down to a sibling committed meanwhile
+func (boot *baseBootstrap) finishRollBackOneBlockV3(pending *pendingV3RollBack) (bool, error) {
+	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+	if bytes.Equal(currentHash, pending.currHeaderHash) {
+		err := boot.chainHandler.SetCurrentBlockHeaderAndHash(pending.prevHeaderHash, pending.prevHeader)
+		if err != nil {
+			return false, err
+		}
+	} else if !bytes.Equal(currentHash, pending.prevHeaderHash) {
+		return true, boot.finishRollBackV3AfterSiblingCommit(pending)
+	}
+
+	if !pending.executionPruned {
+		err := boot.executionManager.RemoveAtNonceAndHigher(pending.currHeader.GetNonce())
+		if err != nil {
+			return false, err
+		}
+		pending.executionPruned = true
+	}
+
+	// no-op unless the roll back crosses the recorded epoch start; kept after every fallible
+	// step, since nothing can restore a reverted trigger on an abort
+	err := boot.epochStartTrigger.RevertStateToBlock(pending.prevHeader)
+	if err != nil {
+		return false, err
+	}
+
+	hash := boot.removeHeaderFromPools(pending.currHeader)
+	boot.forkDetector.RemoveCommittedHeader(pending.currHeader.GetNonce(), hash)
+	nonceToByteSlice := boot.uint64Converter.ToByteSlice(pending.currHeader.GetNonce())
+	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
+	boot.pendingV3RollBack = nil
+
+	return false, nil
+}
+
+// finishRollBackV3AfterSiblingCommit closes an interrupted roll back after a same-nonce sibling
+// commit: trigger, execution results and nonce mapping belong to the sibling now
+func (boot *baseBootstrap) finishRollBackV3AfterSiblingCommit(pending *pendingV3RollBack) error {
+	newTip := boot.chainHandler.GetCurrentBlockHeader()
+	isSibling := !check.IfNil(newTip) &&
+		newTip.GetNonce() == pending.currHeader.GetNonce() &&
+		bytes.Equal(newTip.GetPrevHash(), pending.prevHeaderHash)
+	if !isSibling {
+		log.Error("unexpected chain tip while completing an interrupted v3 roll back",
+			"rolled back hash", pending.currHeaderHash,
+			"rolled back nonce", pending.currHeader.GetNonce(),
+			"tip hash", boot.chainHandler.GetCurrentBlockHeaderHash(),
+		)
+		return ErrInconsistentRollBackState
+	}
+
+	log.Warn("interrupted v3 roll back closed after a sibling commit",
+		"rolled back hash", pending.currHeaderHash,
+		"nonce", pending.currHeader.GetNonce(),
+	)
+
+	hash := boot.removeHeaderFromPools(pending.currHeader)
+	boot.forkDetector.RemoveCommittedHeader(pending.currHeader.GetNonce(), hash)
+	boot.pendingV3RollBack = nil
+
+	return nil
 }
 
 func (boot *baseBootstrap) getRootHashFromBlock(hdr data.HeaderHandler, hdrHash []byte) []byte {
@@ -2369,10 +2537,12 @@ func (boot *baseBootstrap) onEquivocationEvidence(headerProof data.HeaderProofHa
 
 	boot.mutReconcile.Lock()
 	boot.pendingReconcile = &reconcileEvidence{
-		nonce:              nonce,
-		localHash:          localHash,
-		competitorHash:     competitorHash,
-		lastEvaluatedRound: -1,
+		nonce:          nonce,
+		localHash:      localHash,
+		competitorHash: competitorHash,
+		// first evaluated after the arming round turns: a fired roll back starts round-aligned,
+		// when no consensus commit can still be in flight
+		lastEvaluatedRound: boot.roundHandler.Index(),
 	}
 	boot.mutReconcile.Unlock()
 
@@ -2416,14 +2586,17 @@ func (boot *baseBootstrap) tryReconcileEquivocation() bool {
 		return false
 	}
 
-	if boot.settlementChecker.isSettled(evidence.nonce, evidence.localHash) {
+	scanFrom, scanTo, nextCursor := boot.settlementChecker.prepareInclusionScan(evidence.scanCursor)
+	boot.storeReconcileScanCursor(evidence, nextCursor)
+
+	if boot.settlementChecker.isSettled(evidence.nonce, evidence.localHash, scanFrom, scanTo) {
 		boot.clearReconcileEvidence(evidence)
 		return false
 	}
 
 	selfID := boot.shardCoordinator.SelfId()
 	isCompetitorSettled := boot.proofs.HasProof(selfID, evidence.competitorHash) &&
-		boot.settlementChecker.isSettled(evidence.nonce, evidence.competitorHash)
+		boot.settlementChecker.isSettled(evidence.nonce, evidence.competitorHash, scanFrom, scanTo)
 	if !isCompetitorSettled {
 		// the authority's verdict may still arrive; keep the evidence armed for the next round
 		return false
@@ -2597,6 +2770,14 @@ func (boot *baseBootstrap) disarmDeadEpochStartIfNeeded(deadMeta data.HeaderHand
 		"epoch", deadMeta.GetEpoch(),
 		"hash", deadMetaHash,
 		"disarmed", disarmed)
+}
+
+func (boot *baseBootstrap) storeReconcileScanCursor(evidence *reconcileEvidence, nextCursor uint64) {
+	boot.mutReconcile.Lock()
+	if boot.pendingReconcile == evidence {
+		evidence.scanCursor = nextCursor
+	}
+	boot.mutReconcile.Unlock()
 }
 
 func (boot *baseBootstrap) clearReconcileEvidence(evidence *reconcileEvidence) {

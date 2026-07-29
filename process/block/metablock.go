@@ -2326,6 +2326,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr data.MetaHeaderHandle
 	if err != nil {
 		return nil, fmt.Errorf("%w : checkShardHeadersValidity", err)
 	}
+	contentionCtx := mp.newContentionContext(metaHdr)
 
 	for shardID, hdrsForShard := range usedShardHdrs {
 		for _, shardHdr := range hdrsForShard {
@@ -2335,7 +2336,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr data.MetaHeaderHandle
 					return nil, fmt.Errorf("%w : checkShardHeadersValidity -> isHdrConstructionValid", err)
 				}
 
-				err = mp.checkShardHeaderContentionComputingHash(shardHdr, lastCrossNotarizedHeader[shardID], ancestryView)
+				err = mp.checkShardHeaderContentionComputingHash(shardHdr, lastCrossNotarizedHeader[shardID], ancestryView, contentionCtx)
 				if err != nil {
 					return nil, fmt.Errorf("%w : checkShardHeadersValidity", err)
 				}

@@ -1904,7 +1904,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(metaHash1), meta1)
 	arguments.HeadersForBlock.AddHeaderNotUsedInBlock(string(metaHash2), meta2)
 
-	err := sp.CheckMetaHeadersValidityAndFinality()
+	err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 1})
 	assert.Nil(t, err)
 }
 
@@ -1923,7 +1923,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldReturnNilWhenNo
 		},
 	)
 
-	err := sp.CheckMetaHeadersValidityAndFinality()
+	err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 1})
 	assert.Nil(t, err)
 }
 
@@ -3714,6 +3714,142 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, &miniblock, miniblockFromPool)
 	assert.Equal(t, tx, txFromPool)
+}
+
+type partialRestoreHarness struct {
+	storedMetas        map[string]*block.MetaBlock
+	accountedMetas     map[string]int
+	nonceMappingPuts   int
+	removeFailuresLeft map[string]int
+	putFailuresLeft    map[string]int
+	sp                 process.BlockProcessor
+	header             *block.Header
+}
+
+func newPartialRestoreHarness(t *testing.T, metaBlockHash1 []byte, metaBlockHash2 []byte) *partialRestoreHarness {
+	marshalizerMock := &mock.MarshalizerMock{}
+	h := &partialRestoreHarness{
+		storedMetas: map[string]*block.MetaBlock{
+			string(metaBlockHash1): createDummyMetaBlock(0, 1, []byte("mini block hash 1")),
+			string(metaBlockHash2): createDummyMetaBlock(0, 1, []byte("mini block hash 2")),
+		},
+		accountedMetas:     make(map[string]int),
+		removeFailuresLeft: make(map[string]int),
+		putFailuresLeft:    make(map[string]int),
+	}
+
+	metaBlockStorer := &storageStubs.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			metaBlock, ok := h.storedMetas[string(key)]
+			if !ok {
+				return nil, errors.New("missing meta block")
+			}
+			return marshalizerMock.Marshal(metaBlock)
+		},
+		RemoveCalled: func(key []byte) error {
+			if h.removeFailuresLeft[string(key)] > 0 {
+				h.removeFailuresLeft[string(key)]--
+				return errors.New("remove error")
+			}
+			delete(h.storedMetas, string(key))
+			return nil
+		},
+		PutCalled: func(key, data []byte) error {
+			if h.putFailuresLeft[string(key)] > 0 {
+				h.putFailuresLeft[string(key)]--
+				return errors.New("put error")
+			}
+			metaBlock := &block.MetaBlock{}
+			err := marshalizerMock.Unmarshal(metaBlock, data)
+			require.Nil(t, err)
+			h.storedMetas[string(key)] = metaBlock
+			return nil
+		},
+	}
+	store := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			if unitType == dataRetriever.MetaBlockUnit {
+				return metaBlockStorer, nil
+			}
+			return &storageStubs.StorerStub{
+				RemoveCalled: func(key []byte) error {
+					return nil
+				},
+				PutCalled: func(key, data []byte) error {
+					h.nonceMappingPuts++
+					return nil
+				},
+			}, nil
+		},
+	}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.DataPool = dataRetrieverMock.NewPoolsHolderMock()
+	dataComponents.Storage = store
+	coreComponents.IntMarsh = marshalizerMock
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ProcessedMiniBlocksTracker = &testscommon.ProcessedMiniBlocksTrackerStub{
+		SetProcessedMiniBlockInfoCalled: func(metaBlockHash []byte, miniBlockHash []byte, processedMbInfo *processedMb.ProcessedMiniBlockInfo) {
+			h.accountedMetas[string(metaBlockHash)]++
+		},
+		RemoveMetaBlockHashCalled: func(metaBlockHash []byte) {
+			delete(h.accountedMetas, string(metaBlockHash))
+		},
+	}
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
+
+	h.sp = sp
+	h.header = &block.Header{MetaBlockHashes: [][]byte{metaBlockHash1, metaBlockHash2}}
+
+	return h
+}
+
+func TestShardProcessor_RestoreBlockIntoPoolsPartialMetaFailureWritesBackMovedBlocks(t *testing.T) {
+	t.Parallel()
+
+	metaBlockHash1 := []byte("meta block hash 1")
+	metaBlockHash2 := []byte("meta block hash 2")
+	h := newPartialRestoreHarness(t, metaBlockHash1, metaBlockHash2)
+	h.removeFailuresLeft[string(metaBlockHash2)] = 1
+
+	// first attempt: the second meta block's storage removal fails after the first was moved;
+	// the moved one goes back to storage and its accounting is undone, as if nothing ran
+	err := h.sp.RestoreBlockIntoPools(h.header, &block.Body{})
+	require.NotNil(t, err)
+	require.Contains(t, h.storedMetas, string(metaBlockHash1))
+	require.Contains(t, h.storedMetas, string(metaBlockHash2))
+	require.Empty(t, h.accountedMetas)
+	require.Equal(t, 1, h.nonceMappingPuts)
+
+	// retry: a clean full restore of both meta blocks
+	err = h.sp.RestoreBlockIntoPools(h.header, &block.Body{})
+	require.Nil(t, err)
+	require.Empty(t, h.storedMetas)
+	require.Equal(t, 1, h.accountedMetas[string(metaBlockHash1)])
+	require.Equal(t, 1, h.accountedMetas[string(metaBlockHash2)])
+}
+
+func TestShardProcessor_RestoreBlockIntoPoolsWriteBackFailureFallsBackToMovedAccounting(t *testing.T) {
+	t.Parallel()
+
+	metaBlockHash1 := []byte("meta block hash 1")
+	metaBlockHash2 := []byte("meta block hash 2")
+	h := newPartialRestoreHarness(t, metaBlockHash1, metaBlockHash2)
+	h.removeFailuresLeft[string(metaBlockHash2)] = 1
+	h.putFailuresLeft[string(metaBlockHash1)] = 1
+
+	// the write back of the moved meta block fails too: it stays moved and keeps its accounting,
+	// which the retry converges from by skipping it
+	err := h.sp.RestoreBlockIntoPools(h.header, &block.Body{})
+	require.NotNil(t, err)
+	require.NotContains(t, h.storedMetas, string(metaBlockHash1))
+	require.Equal(t, 1, h.accountedMetas[string(metaBlockHash1)])
+
+	err = h.sp.RestoreBlockIntoPools(h.header, &block.Body{})
+	require.Nil(t, err)
+	require.Equal(t, 1, h.accountedMetas[string(metaBlockHash1)])
+	require.Equal(t, 1, h.accountedMetas[string(metaBlockHash2)])
 }
 
 func TestShardProcessor_DecodeBlockBody(t *testing.T) {
@@ -8176,7 +8312,9 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	buildProcessor := func(settled bool) interface{ CheckMetaHeadersValidityAndFinality() error } {
+	buildProcessor := func(settled bool) (interface {
+		CheckMetaHeadersValidityAndFinality(header data.HeaderHandler) error
+	}, dataRetriever.ProofsPool) {
 		tdp := dataRetrieverMock.NewPoolsHolderMock()
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 		genesisBlocks := createGenesisBlocks(shardCoordinator)
@@ -8227,22 +8365,35 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 		arguments.HeadersForBlock.AddHeaderNotUsedInBlock(string(metaHash2), meta2)
 
 		sp, _ := blproc.NewShardProcessor(arguments)
-		return sp
+		return sp, tdp.Proofs()
 	}
 
 	t.Run("contended unsettled referenced meta header should error", func(t *testing.T) {
 		t.Parallel()
 
-		sp := buildProcessor(false)
-		err := sp.CheckMetaHeadersValidityAndFinality()
+		sp, _ := buildProcessor(false)
+		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
 		assert.ErrorContains(t, err, "included contended header not yet settled")
 	})
 
 	t.Run("contended settled referenced meta header should pass", func(t *testing.T) {
 		t.Parallel()
 
-		sp := buildProcessor(true)
-		err := sp.CheckMetaHeadersValidityAndFinality()
+		sp, _ := buildProcessor(true)
+		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
+		assert.Nil(t, err)
+	})
+
+	t.Run("own proof supersedes the contended gate on the execution path", func(t *testing.T) {
+		t.Parallel()
+
+		sp, proofs := buildProcessor(false)
+		ownHeader := &block.Header{Nonce: 7}
+		headerBytes, _ := marshalizer.Marshal(ownHeader)
+		ownHash := hasher.Compute(string(headerBytes))
+		require.True(t, proofs.AddProof(&block.HeaderProof{HeaderHash: ownHash, HeaderNonce: 7}))
+
+		err := sp.CheckMetaHeadersValidityAndFinality(ownHeader)
 		assert.Nil(t, err)
 	})
 }

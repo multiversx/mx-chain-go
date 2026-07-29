@@ -822,12 +822,16 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 		return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getReferencedMetaHeadersFromPool", err)
 	}
 
+	// a block that already carries its own proof is the network verdict, superseding the
+	// subjective local-evidence checks; late contradicting evidence is the reconcile's job
+	isOwnProofed := sp.ownProofResolver(header)
+
 	for idx, metaHeader := range usedMetaHeaders {
-		if sp.isContendedUnsettledCrossHeader(metaHeader, lastCrossNotarizedHeader, usedMetaHashes[idx]) {
+		if sp.isContendedUnsettledCrossHeader(metaHeader, lastCrossNotarizedHeader, usedMetaHashes[idx]) && !isOwnProofed() {
 			return fmt.Errorf("%w with hash %x", errIncludedContendedUnsettledHeader, usedMetaHashes[idx])
 		}
 
-		if sp.isDeadReferencedMetaHeader(metaHeader, usedMetaHashes[idx]) {
+		if sp.isDeadReferencedMetaHeader(metaHeader, usedMetaHashes[idx]) && !isOwnProofed() {
 			return fmt.Errorf("%w with hash %x", errReferencedDeadMetaHeader, usedMetaHashes[idx])
 		}
 

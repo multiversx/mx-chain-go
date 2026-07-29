@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -1049,25 +1051,27 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		}
 	}
 
-	buildBootstrapper := func(childrenOf []byte, calls *reconcileCalls) *baseBootstrap {
+	buildBootstrapper := func(childrenOf []byte, calls *reconcileCalls, roundHandler *mock.RoundHandlerMock) *baseBootstrap {
 		checker := &settlementCheckerStub{
 			isSettledCalled: func(nonce uint64, headerHash []byte) bool {
 				return len(childrenOf) > 0 && bytes.Equal(childrenOf, headerHash)
 			},
 		}
 
-		return buildBootstrapperWithChecker(childrenOf, calls, checker, &mock.RoundHandlerMock{})
+		return buildBootstrapperWithChecker(childrenOf, calls, checker, roundHandler)
 	}
 
 	t.Run("fires when the final head is childless and the competitor has a proofed child", func(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapper(competitorHash, calls)
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapper(competitorHash, calls, roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
 		require.NotNil(t, boot.pendingReconcile)
 
+		roundHandler.RoundIndex++
 		require.True(t, boot.tryReconcileEquivocation())
 		require.Equal(t, finalNonce, calls.reconciledNonce)
 		require.Equal(t, finalNonce, calls.rollBackNonce)
@@ -1079,9 +1083,11 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapper(localHash, calls)
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapper(localHash, calls, roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex++
 		require.False(t, boot.tryReconcileEquivocation())
 		require.Equal(t, uint64(0), calls.reconciledNonce)
 		require.Empty(t, calls.blacklisted)
@@ -1091,9 +1097,11 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapper(nil, calls)
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapper(nil, calls, roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex++
 		require.False(t, boot.tryReconcileEquivocation())
 		require.Equal(t, uint64(0), calls.reconciledNonce)
 		// the settling child may still arrive: the evidence must survive the failed attempt
@@ -1104,7 +1112,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapper(competitorHash, calls)
+		boot := buildBootstrapper(competitorHash, calls, &mock.RoundHandlerMock{})
 
 		otherProof := &block.HeaderProof{HeaderHash: competitorHash, HeaderNonce: finalNonce + 3, HeaderShardId: 0}
 		boot.onEquivocationEvidence(otherProof, nil)
@@ -1118,9 +1126,11 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapperWithChecker(localHash, calls, settlesOnly(competitorHash), &mock.RoundHandlerMock{})
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapperWithChecker(localHash, calls, settlesOnly(competitorHash), roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex++
 		require.True(t, boot.tryReconcileEquivocation())
 		require.Equal(t, finalNonce, calls.reconciledNonce)
 		require.Equal(t, []string{string(localHash)}, calls.blacklisted)
@@ -1131,9 +1141,11 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapperWithChecker(competitorHash, calls, settlesOnly(localHash, competitorHash), &mock.RoundHandlerMock{})
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapperWithChecker(competitorHash, calls, settlesOnly(localHash, competitorHash), roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex++
 		require.False(t, boot.tryReconcileEquivocation())
 		require.Equal(t, uint64(0), calls.reconciledNonce)
 		require.Empty(t, calls.blacklisted)
@@ -1145,9 +1157,11 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		t.Parallel()
 
 		calls := &reconcileCalls{}
-		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(competitorHash), &mock.RoundHandlerMock{})
+		roundHandler := &mock.RoundHandlerMock{}
+		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(competitorHash), roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex++
 		require.True(t, boot.tryReconcileEquivocation())
 		require.Equal(t, finalNonce, calls.reconciledNonce)
 	})
@@ -1172,6 +1186,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		boot := buildBootstrapperWithChecker(nil, calls, checker, roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex = 2
 
 		require.False(t, boot.tryReconcileEquivocation())
 		require.NotNil(t, boot.pendingReconcile)
@@ -1182,7 +1197,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		childrenByNonce[finalNonce+2] = []pooledHeader{
 			{&block.MetaBlock{Nonce: finalNonce + 2, PrevHash: competitorChildHash}, grandChildHash},
 		}
-		roundHandler.RoundIndex = 2
+		roundHandler.RoundIndex = 3
 
 		require.True(t, boot.tryReconcileEquivocation())
 		require.Equal(t, finalNonce, calls.reconciledNonce)
@@ -1198,6 +1213,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		boot := buildBootstrapperWithChecker(nil, calls, checker, roundHandler)
 
 		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex = 8
 
 		require.False(t, boot.tryReconcileEquivocation())
 		callsInFirstRound := checker.numCalls
@@ -1207,16 +1223,268 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.False(t, boot.tryReconcileEquivocation())
 		require.Equal(t, callsInFirstRound, checker.numCalls)
 
-		roundHandler.RoundIndex = 8
+		roundHandler.RoundIndex = 9
 		require.False(t, boot.tryReconcileEquivocation())
 		require.Greater(t, checker.numCalls, callsInFirstRound)
+	})
+
+	t.Run("the scan cursor persists across rounds and the window reaches the settled calls", func(t *testing.T) {
+		t.Parallel()
+
+		gotCursors := make([]uint64, 0)
+		var gotFrom, gotTo uint64
+		checker := &settlementCheckerStub{
+			prepareInclusionScanCalled: func(scanCursor uint64) (uint64, uint64, uint64) {
+				gotCursors = append(gotCursors, scanCursor)
+				return 7, 22, scanCursor + 5
+			},
+			isSettledCalled: func(_ uint64, _ []byte) bool { return false },
+		}
+		checker.isSettledWindowCalled = func(from uint64, to uint64) {
+			gotFrom, gotTo = from, to
+		}
+
+		calls := &reconcileCalls{}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 1}
+		boot := buildBootstrapperWithChecker(nil, calls, checker, roundHandler)
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+
+		roundHandler.RoundIndex = 2
+		require.False(t, boot.tryReconcileEquivocation())
+		roundHandler.RoundIndex = 3
+		require.False(t, boot.tryReconcileEquivocation())
+		roundHandler.RoundIndex = 4
+		require.False(t, boot.tryReconcileEquivocation())
+
+		require.Equal(t, []uint64{0, 5, 10}, gotCursors)
+		require.Equal(t, uint64(7), gotFrom)
+		require.Equal(t, uint64(22), gotTo)
+	})
+
+	// a roll back fired mid-round could race a commit still running in the end round; the
+	// deferral keeps the fire round-aligned, where no commit can be in flight
+	t.Run("evidence armed in a round fires only after the round turns", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 5}
+		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(competitorHash), roundHandler)
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+		require.NotNil(t, boot.pendingReconcile)
+
+		require.False(t, boot.tryReconcileEquivocation())
+		require.Equal(t, uint64(0), calls.rollBackNonce)
+		require.NotNil(t, boot.pendingReconcile)
+
+		roundHandler.RoundIndex = 6
+		require.True(t, boot.tryReconcileEquivocation())
+		require.Equal(t, finalNonce, calls.rollBackNonce)
+	})
+
+	// a synchronized state published on the firing tick would let a consensus round start on
+	// top of the armed roll back
+	t.Run("a round in which the backstop fires never publishes a synchronized state", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 5}
+		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(competitorHash), roundHandler)
+		boot.chainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return localHead },
+			GetCurrentBlockHeaderHashCalled: func() []byte { return localHash },
+			GetGenesisHeaderCalled:          func() data.HeaderHandler { return &block.Header{} },
+		}
+		boot.forkDetector = &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
+			ReconcileFinalCheckpointCalled:  func(nonce uint64) { calls.reconciledNonce = nonce },
+			SetRollBackNonceCalled:          func(nonce uint64) { calls.rollBackNonce = nonce },
+			CheckForkCalled:                 func() *process.ForkInfo { return process.NewForkInfo() },
+			ProbableHighestNonceCalled:      func() uint64 { return finalNonce },
+		}
+		boot.networkWatcher = &mock.NetworkConnectionWatcherStub{
+			IsConnectedToTheNetworkCalled: func() bool { return true },
+		}
+		boot.processConfigsHandler = &testscommon.ProcessConfigsHandlerStub{
+			GetRoundModulusTriggerWhenSyncIsStuckCalled: func(round uint64) uint32 { return 100 },
+		}
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+		roundHandler.RoundIndex = 6
+
+		require.Nil(t, boot.syncBlock())
+		require.Equal(t, finalNonce, calls.rollBackNonce)
+		// the state computation feeds both the cached synchronized flag and the listener
+		// notifications; neither may happen on the firing tick
+		require.False(t, boot.isNodeSynchronized)
+		require.Equal(t, int64(0), boot.roundIndex)
+	})
+}
+
+// the meta block notarizing the competitor sits far above the fork era anchor and outside the pool head window,
+// so only the resumable cursor with paired requests can reach it
+func TestBaseBootstrap_ReconcileResumableScan(t *testing.T) {
+	t.Parallel()
+
+	finalNonce := uint64(10)
+	anchor := uint64(40)
+	notarizingNonce := anchor + 20
+	tipNonce := anchor + 50
+	localHash, competitorHash := []byte("localHash"), []byte("competitorHash")
+	localHead := &block.HeaderV3{Nonce: finalNonce, Round: 12}
+	competitorProof := &block.HeaderProof{HeaderHash: competitorHash, HeaderNonce: finalNonce, HeaderRound: 11, HeaderShardId: 0}
+
+	metaHash := func(n uint64) []byte { return []byte(fmt.Sprintf("m%d", n)) }
+
+	type fixture struct {
+		boot            *baseBootstrap
+		roundHandler    *mock.RoundHandlerMock
+		reconciledNonce *uint64
+	}
+
+	// notarizingRef is what the block at notarizingNonce references; tipRef goes on a tip region
+	// block inside the descending head window
+	build := func(t *testing.T, notarizingRef []byte, tipRef []byte, shardBranch [][]byte) fixture {
+		pools := testscommonDataRetriever.NewPoolsHolderMock()
+		headersPool := pools.Headers()
+		proofsPool := pools.Proofs()
+
+		addMeta := func(n uint64, refHash []byte) {
+			meta := &block.MetaBlock{Nonce: n, Round: n, PrevHash: metaHash(n - 1)}
+			if len(refHash) > 0 {
+				meta.ShardInfo = []block.ShardData{{ShardID: 0, HeaderHash: refHash}}
+			}
+			headersPool.AddHeader(metaHash(n), meta)
+			_ = proofsPool.AddProof(&block.HeaderProof{HeaderHash: metaHash(n), HeaderShardId: core.MetachainShardId, HeaderNonce: n, HeaderRound: n})
+		}
+
+		// tip region occupies the descending head window; it never references the branch root
+		for n := tipNonce - 6; n <= tipNonce; n++ {
+			ref := []byte(nil)
+			if n == tipNonce-2 {
+				ref = tipRef
+			}
+			addMeta(n, ref)
+		}
+
+		// the shard branch of the competitor, for the descendant walk
+		prevHash := competitorHash
+		for i, branchHash := range shardBranch {
+			headersPool.AddHeader(branchHash, &block.Header{ShardID: 0, Nonce: finalNonce + 1 + uint64(i), PrevHash: prevHash})
+			prevHash = branchHash
+		}
+
+		// the competitor proof makes the evaluator precondition pass
+		_ = proofsPool.AddProof(competitorProof)
+
+		requestHandler := &testscommon.RequestHandlerStub{
+			// the network serves canonical fork era data on request: header and proof by nonce
+			RequestMetaHeaderByNonceCalled: func(n uint64) {
+				if n == notarizingNonce {
+					addMeta(n, notarizingRef)
+					return
+				}
+				if n >= anchor && n < tipNonce-6 {
+					addMeta(n, nil)
+				}
+			},
+		}
+
+		view, err := track.NewMetaFinalityView(track.ArgsMetaFinalityView{
+			HeadersPool: headersPool,
+			ProofsPool:  proofsPool,
+		})
+		require.Nil(t, err)
+
+		reconciledNonce := new(uint64)
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 1}
+		boot := &baseBootstrap{
+			settlementChecker: &shardSettlementChecker{
+				metaFinalityView: view,
+				blockTracker: &mock.BlockTrackerMock{
+					GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+						return &block.MetaBlock{Nonce: anchor}, metaHash(anchor), nil
+					},
+				},
+				headers:        headersPool,
+				proofs:         proofsPool,
+				requestHandler: requestHandler,
+				selfShardID:    0,
+			},
+			roundHandler: roundHandler,
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return localHead },
+				GetCurrentBlockHeaderHashCalled: func() []byte { return localHash },
+			},
+			forkDetector: &mock.ForkDetectorMock{
+				GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
+				ReconcileFinalCheckpointCalled:  func(nonce uint64) { *reconciledNonce = nonce },
+				SetRollBackNonceCalled:          func(nonce uint64) {},
+			},
+			headers:          headersPool,
+			proofs:           proofsPool,
+			shardCoordinator: mock.NewOneShardCoordinatorMock(),
+			blackListHandler: &testscommon.TimeCacheStub{},
+			statusHandler:    &statusHandlerMock.AppStatusHandlerStub{},
+		}
+
+		return fixture{boot: boot, roundHandler: roundHandler, reconciledNonce: reconciledNonce}
+	}
+
+	runUntilFired := func(t *testing.T, fix fixture, maxRounds int64) bool {
+		fix.boot.onEquivocationEvidence(competitorProof, nil)
+		require.NotNil(t, fix.boot.pendingReconcile)
+
+		// the arming round never evaluates, so the evaluated rounds start right after it
+		for round := int64(2); round <= maxRounds+1; round++ {
+			fix.roundHandler.RoundIndex = round
+			if fix.boot.tryReconcileEquivocation() {
+				return true
+			}
+		}
+		return false
+	}
+
+	t.Run("notarization far above the anchor is found through the cursor", func(t *testing.T) {
+		t.Parallel()
+
+		fix := build(t, competitorHash, nil, nil)
+		require.True(t, runUntilFired(t, fix, 6))
+		require.Equal(t, finalNonce, *fix.reconciledNonce)
+	})
+
+	// if this ever fails, the meta notarization contiguity assumption broke and
+	// the depth bound of the branch walk must be revisited as an independent defect
+	t.Run("a head window reference beyond the branch walk depth still converges through the cursor", func(t *testing.T) {
+		t.Parallel()
+
+		branch := make([][]byte, 0)
+		for i := 0; i < 9; i++ {
+			branch = append(branch, []byte(fmt.Sprintf("b%d", i)))
+		}
+
+		fix := build(t, competitorHash, branch[8], branch)
+		require.True(t, runUntilFired(t, fix, 6))
+		require.Equal(t, finalNonce, *fix.reconciledNonce)
+	})
+
+	t.Run("without a notarizing reference the evidence stays armed", func(t *testing.T) {
+		t.Parallel()
+
+		fix := build(t, nil, nil, nil)
+		require.False(t, runUntilFired(t, fix, 4))
+		require.NotNil(t, fix.boot.pendingReconcile)
 	})
 }
 
 type settlementCheckerStub struct {
 	isSettledCalled              func(nonce uint64, headerHash []byte) bool
+	isSettledWindowCalled        func(scanFrom uint64, scanTo uint64)
+	prepareInclusionScanCalled   func(scanCursor uint64) (uint64, uint64, uint64)
 	deadCrossNotarizedMetaCalled func() (data.HeaderHandler, []byte, bool)
 	numCalls                     int
+	numPrepareCalls              int
 }
 
 func (stub *settlementCheckerStub) deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool) {
@@ -1227,8 +1495,20 @@ func (stub *settlementCheckerStub) deadCrossNotarizedMeta() (data.HeaderHandler,
 	return nil, nil, false
 }
 
-func (stub *settlementCheckerStub) isSettled(nonce uint64, headerHash []byte) bool {
+func (stub *settlementCheckerStub) prepareInclusionScan(scanCursor uint64) (uint64, uint64, uint64) {
+	stub.numPrepareCalls++
+	if stub.prepareInclusionScanCalled != nil {
+		return stub.prepareInclusionScanCalled(scanCursor)
+	}
+
+	return 0, 0, 0
+}
+
+func (stub *settlementCheckerStub) isSettled(nonce uint64, headerHash []byte, scanFrom uint64, scanTo uint64) bool {
 	stub.numCalls++
+	if stub.isSettledWindowCalled != nil {
+		stub.isSettledWindowCalled(scanFrom, scanTo)
+	}
 	if stub.isSettledCalled != nil {
 		return stub.isSettledCalled(nonce, headerHash)
 	}
@@ -1611,9 +1891,26 @@ func TestBaseBootstrap_RollBackOneBlockV3RevertsEpochStartTrigger(t *testing.T) 
 	currHeader := &block.HeaderV3{Nonce: 12}
 	currHash, prevHash := []byte("currHash"), []byte("prevHash")
 
-	buildBootstrapper := func(reverted *[]data.HeaderHandler, revertErr error) *baseBootstrap {
+	buildBootstrapper := func(reverted *[]data.HeaderHandler, revertErr error, setHashes *[][]byte) *baseBootstrap {
+		currentHeader := data.HeaderHandler(currHeader)
+		currentHash := currHash
 		return &baseBootstrap{
-			chainHandler: &testscommon.ChainHandlerStub{},
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return currentHeader
+				},
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return currentHash
+				},
+				SetCurrentBlockHeaderAndHashCalled: func(hash []byte, header data.HeaderHandler) error {
+					currentHeader = header
+					currentHash = hash
+					if setHashes != nil {
+						*setHashes = append(*setHashes, hash)
+					}
+					return nil
+				},
+			},
 			epochStartTrigger: &testscommon.EpochStartTriggerStub{
 				RevertStateToBlockCalled: func(header data.HeaderHandler) error {
 					*reverted = append(*reverted, header)
@@ -1636,30 +1933,26 @@ func TestBaseBootstrap_RollBackOneBlockV3RevertsEpochStartTrigger(t *testing.T) 
 		t.Parallel()
 
 		reverted := make([]data.HeaderHandler, 0)
-		boot := buildBootstrapper(&reverted, nil)
+		boot := buildBootstrapper(&reverted, nil, nil)
 
 		_, err := boot.rollBackOneBlockV3(currHash, currHeader, prevHash, prevHeader)
 		require.Nil(t, err)
 		require.Equal(t, []data.HeaderHandler{prevHeader}, reverted)
 	})
 
-	t.Run("a failing trigger revert aborts the roll back and restores the head", func(t *testing.T) {
+	t.Run("a failing trigger revert keeps the lowered tip and the roll back pending", func(t *testing.T) {
 		t.Parallel()
 
 		expectedRevertErr := errors.New("revert error")
 		reverted := make([]data.HeaderHandler, 0)
-		boot := buildBootstrapper(&reverted, expectedRevertErr)
-
-		restoredHashes := make([][]byte, 0)
-		boot.chainHandler = &testscommon.ChainHandlerStub{
-			SetCurrentBlockHeaderAndHashCalled: func(hash []byte, header data.HeaderHandler) error {
-				restoredHashes = append(restoredHashes, hash)
-				return nil
-			},
-		}
+		setHashes := make([][]byte, 0)
+		boot := buildBootstrapper(&reverted, expectedRevertErr, &setHashes)
 
 		_, err := boot.rollBackOneBlockV3(currHash, currHeader, prevHash, prevHeader)
 		require.Equal(t, expectedRevertErr, err)
-		require.Equal(t, [][]byte{prevHash, currHash}, restoredHashes)
+		// the tip moved down once and stays there; completion is owed, not undone
+		require.Equal(t, [][]byte{prevHash}, setHashes)
+		require.NotNil(t, boot.pendingV3RollBack)
+		require.True(t, boot.pendingV3RollBack.restoreDone)
 	})
 }

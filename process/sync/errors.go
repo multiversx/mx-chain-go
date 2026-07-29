@@ -47,3 +47,9 @@ var ErrGenesisTimeMissmatch = errors.New("genesis time missmatch")
 
 // ErrHeaderNotFound signals that the needed header is not found
 var ErrHeaderNotFound = errors.New("header is not found")
+
+// ErrExecutionRealignPending signals that a failed execution state realignment blocks syncing
+var ErrExecutionRealignPending = errors.New("execution state realignment pending after roll back")
+
+// ErrInconsistentRollBackState signals that the chain tip no longer matches an interrupted roll back
+var ErrInconsistentRollBackState = errors.New("inconsistent chain state while completing an interrupted roll back")
