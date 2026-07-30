@@ -815,7 +815,7 @@ func (e *epochStartBootstrap) syncEpochStartDataInfo(
 
 	// sync last notarized meta header references by epoch start header for shard
 	// this will sync based on the meta block hashes references on header and based on the provided LastFinishedMetaBlock
-	err = e.syncLastNotarizedMetaForEpochStartData(syncedHeaders, syncedHeader)
+	lastNotarizedMetaForShard, err := e.syncLastNotarizedMetaForEpochStartData(syncedHeaders, syncedHeader)
 	if err != nil {
 		return err
 	}
@@ -830,20 +830,36 @@ func (e *epochStartBootstrap) syncEpochStartDataInfo(
 		return process.ErrMissingHeader
 	}
 
-	// sync meta blocks from epoch start meta blocks up to last finished metablock referenced on shard
-	return e.syncIntermediateBlocksIfNeeded(syncedHeaders, epochStartMeta, lastFinishedMetaBlockForShard.GetNonce())
+	// Sync the complete meta chain needed by the shard. The last notarized meta can be older than
+	// LastFinishedMetaBlock; using only the latter as the lower bound would leave a gap between them.
+	lowestMetaNonceToSync := core.MinUint64(
+		lastNotarizedMetaForShard.GetNonce(),
+		lastFinishedMetaBlockForShard.GetNonce(),
+	)
+
+	return e.syncIntermediateBlocksIfNeeded(syncedHeaders, epochStartMeta, lowestMetaNonceToSync)
 }
 
 func (e *epochStartBootstrap) syncLastNotarizedMetaForEpochStartData(
 	syncedHeaders map[string]data.HeaderHandler,
 	header data.HeaderHandler,
-) error {
+) (data.HeaderHandler, error) {
 	lastReferencedMetaHash, err := getLastReferencedMetaHash(syncedHeaders, e.syncPrevShardHeaderHandler, header)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return e.syncOneHeader(syncedHeaders, lastReferencedMetaHash, core.MetachainShardId)
+	err = e.syncOneHeader(syncedHeaders, lastReferencedMetaHash, core.MetachainShardId)
+	if err != nil {
+		return nil, err
+	}
+
+	lastReferencedMeta, ok := syncedHeaders[string(lastReferencedMetaHash)]
+	if !ok {
+		return nil, epochStart.ErrMissingHeader
+	}
+
+	return lastReferencedMeta, nil
 }
 
 func getLastReferencedMetaHash(

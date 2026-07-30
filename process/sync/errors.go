@@ -53,3 +53,6 @@ var ErrExecutionRealignPending = errors.New("execution state realignment pending
 
 // ErrInconsistentRollBackState signals that the chain tip no longer matches an interrupted roll back
 var ErrInconsistentRollBackState = errors.New("inconsistent chain state while completing an interrupted roll back")
+
+// ErrPendingStorageRepair signals that data moved by an interrupted roll back is not yet written back
+var ErrPendingStorageRepair = errors.New("pending storage repair after an interrupted roll back")

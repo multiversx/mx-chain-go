@@ -326,7 +326,7 @@ func (boot *baseBootstrap) SetNodeStateCalculated(state bool) {
 
 // ComputeNodeState -
 func (boot *baseBootstrap) ComputeNodeState() {
-	boot.computeNodeState()
+	boot.computeNodeState(boot.roundHandler.Index())
 }
 
 // DoJobOnSyncBlockFail -
