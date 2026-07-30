@@ -380,7 +380,7 @@
     ConsumedGasInEconomicsFixEnableEpoch = 1
 
     # AttributeExtraGasUsageEnableEpoch represents the epoch when the extra gas usage for attributes is enabled
-    AttributeExtraGasUsageEnableEpoch = 2
+    AttributeExtraGasUsageEnableEpoch = 1
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
