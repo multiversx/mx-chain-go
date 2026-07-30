@@ -1020,7 +1020,8 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.AttributeExtraGasUsageEnableEpoch
 			},
-			activationEpoch: handler.enableEpochsConfig.AttributeExtraGasUsageEnableEpoch,
+			activationEpoch:     handler.enableEpochsConfig.AttributeExtraGasUsageEnableEpoch,
+			activationEpochName: "AttributeExtraGasUsageEnableEpoch",
 		},
 	}
 }

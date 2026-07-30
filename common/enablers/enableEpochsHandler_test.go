@@ -139,7 +139,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FullShardDataValidationEnableEpoch:                       119,
 		ConsumedGasInEconomicsFixEnableEpoch:                     120,
 		AttributeExtraGasUsageEnableEpoch:                        121,
-		SupernovaEnableEpoch:                                     121,
+		SupernovaEnableEpoch:                                     122,
 	}
 }
 
