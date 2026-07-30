@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
+	"runtime"
 	"sync"
 	"time"
 
@@ -18,6 +20,11 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+)
+
+const (
+	minSnapshotGoroutines     = 4
+	snapshotGoroutinesPerCore = 2
 )
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
@@ -88,13 +95,30 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		identifier:         args.Identifier,
 		statsCollector:     args.StatsCollector,
 	}
-	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(int32(args.GeneralConfig.SnapshotsGoroutineNum))
+	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(snapshotsGoroutineNum(args.GeneralConfig.SnapshotsGoroutineNum))
 	if err != nil {
 		return nil, err
 	}
 
 	go tsm.doSnapshot(ctx, args.Marshalizer, args.Hasher, goRoutinesThrottler)
 	return tsm, nil
+}
+
+// snapshotsGoroutineNum caps the configured fan-out so the snapshot run queue cannot delay a waking
+// consensus goroutine; keeping the CPU free for the node is the idle provider's job, not this bound's
+func snapshotsGoroutineNum(configured uint32) int32 {
+	// GOMAXPROCS, not NumCPU: it is what the scheduler actually runs on, and it honours the cgroup
+	// quota of a containerized node
+	maxForHost := int32(snapshotGoroutinesPerCore * runtime.GOMAXPROCS(0))
+	if maxForHost < minSnapshotGoroutines {
+		maxForHost = minSnapshotGoroutines
+	}
+
+	if configured > math.MaxInt32 || int32(configured) > maxForHost {
+		return maxForHost
+	}
+
+	return int32(configured)
 }
 
 func (tsm *trieStorageManager) doSnapshot(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher, goRoutinesThrottler core.Throttler) {

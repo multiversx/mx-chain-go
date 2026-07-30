@@ -2207,6 +2207,32 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	}
 }
 
+// setEpochForPutOperation points the storers at the committed block's epoch, timed because it waits on
+// the storers' own locks, which the epoch change holds while it opens and closes persisters
+func (bp *baseProcessor) setEpochForPutOperation(epoch uint32) {
+	startTime := time.Now()
+	bp.store.SetEpochForPutOperation(epoch)
+
+	elapsedTime := time.Since(startTime)
+	if elapsedTime >= bp.getPutInStorerMaxTime() {
+		log.Warn("baseProcessor.setEpochForPutOperation", "elapsed time", elapsedTime, "epoch", epoch)
+	}
+}
+
+// warnIfSlowCommitPrologue splits a slow start of CommitBlock between the code before the first
+// commit log line and that log write itself, which can stall for seconds on a saturated disk
+func (bp *baseProcessor) warnIfSlowCommitPrologue(entryTime time.Time, beforeLogTime time.Time) {
+	logWriteTime := time.Since(beforeLogTime)
+	preLogTime := beforeLogTime.Sub(entryTime)
+	maxTime := bp.getPutInStorerMaxTime()
+	if preLogTime >= maxTime {
+		log.Warn("slow CommitBlock prologue", "elapsed time", preLogTime)
+	}
+	if logWriteTime >= maxTime {
+		log.Warn("slow CommitBlock prologue log write", "elapsed time", logWriteTime)
+	}
+}
+
 func (bp *baseProcessor) getPutInStorerMaxTime() time.Duration {
 	if bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
 		return common.PutInStorerMaxTimeSupernova

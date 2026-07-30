@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
@@ -110,4 +111,9 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 		Identifier:     dataRetriever.UserAccountsUnit.String(),
 		StatsCollector: statistics.NewStateStatistics(),
 	}
+}
+
+// SnapshotsGoroutineNum -
+func SnapshotsGoroutineNum(configured uint32) int32 {
+	return snapshotsGoroutineNum(configured)
 }

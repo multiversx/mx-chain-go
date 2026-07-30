@@ -2,12 +2,17 @@ package trie_test
 
 import (
 	errorsGo "errors"
+	"math"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	storageMx "github.com/multiversx/mx-chain-go/storage"
@@ -16,8 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -677,4 +680,21 @@ func TestTrieStorageManager_IsSnapshotSupportedShouldReturnTrue(t *testing.T) {
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	assert.True(t, ts.IsSnapshotSupported())
+}
+
+func TestSnapshotsGoroutineNum(t *testing.T) {
+	t.Parallel()
+
+	expected := int32(2 * runtime.GOMAXPROCS(0))
+	if expected < 4 {
+		expected = 4
+	}
+
+	// the configured value is only an upper bound
+	assert.Equal(t, expected, trie.SnapshotsGoroutineNum(200))
+	assert.Equal(t, expected, trie.SnapshotsGoroutineNum(math.MaxUint32))
+	assert.Equal(t, int32(1), trie.SnapshotsGoroutineNum(1))
+
+	// enough to overlap disk waits even on a single core host
+	assert.GreaterOrEqual(t, expected, int32(4))
 }

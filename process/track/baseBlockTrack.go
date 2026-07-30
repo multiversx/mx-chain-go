@@ -500,7 +500,9 @@ func (bbt *baseBlockTrack) CheckProofAgainstRoundHandler(proof data.HeaderProofH
 }
 
 func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
-	nextRound := bbt.roundHandler.Index() + 1
+	// bound against the round the current time falls into: gating on the stored index would make a
+	// node that is slow to advance its chronology reject, and stop relaying, the data it needs most
+	nextRound := bbt.roundHandler.IndexForCurrentTime() + 1
 	if int64(round) > nextRound {
 		return fmt.Errorf("%w header round: %d, next chronology round: %d",
 			process.ErrHigherRoundInBlock,

@@ -459,6 +459,11 @@ func (mp *metaProcessor) CommitBlockProposalState(headerHandler data.HeaderHandl
 		return process.ErrNilBlockHeader
 	}
 
+	// runs on the execution goroutine outside CommitBlock; the snapshot yields for the duration so it
+	// cannot steal CPU/disk from this span - a latency concern only, trie nodes are immutable
+	mp.processStatusHandler.BlockBackgroundJobs("metaProcessor.CommitBlockProposalState")
+	defer mp.processStatusHandler.UnblockBackgroundJobs()
+
 	mp.cleanupDismissedEWLEntries()
 
 	err := mp.commitState(headerHandler)

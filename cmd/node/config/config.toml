@@ -1084,7 +1084,9 @@
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
     [Debug.EpochStart]
-        GoRoutineAnalyserEnabled = true
+        # dumps every goroutine stack on each epoch start, which stops the world and floods the log
+        # exactly while the epoch start snapshot runs; enable only when investigating goroutine leaks
+        GoRoutineAnalyserEnabled = false
         ProcessDataTrieOnCommitEpoch = true
     [Debug.Process]
         Enabled = true

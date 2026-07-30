@@ -1066,6 +1066,7 @@ func (sp *shardProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
+	commitEntryTime := time.Now()
 	err := checkForNils(headerHandler, bodyHandler)
 	if err != nil {
 		return err
@@ -1085,22 +1086,28 @@ func (sp *shardProcessor) CommitBlock(
 			sp.processStatusHandler.SetIdle()
 		}()
 	} else {
+		// no exclusion here, consensus and sync may both be in flight; released after the deferred
+		// cleanup so the whole span, storage writes included, keeps the trie snapshot out of the way
+		sp.processStatusHandler.BlockBackgroundJobs("shardProcessor.CommitBlock")
 		defer func() {
 			if err != nil {
 				sp.RevertHeaderV3OnCommit(headerHandler)
 				_ = sp.blockChain.SetCurrentBlockHeaderAndHash(prevBlockHeaderHash, prevBlockHeader)
 			}
+			sp.processStatusHandler.UnblockBackgroundJobs()
 		}()
 	}
 
-	sp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
+	sp.setEpochForPutOperation(headerHandler.GetEpoch())
 
+	beforeLogTime := time.Now()
 	log.Debug("started committing block",
 		"epoch", headerHandler.GetEpoch(),
 		"shard", headerHandler.GetShardID(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
+	sp.warnIfSlowCommitPrologue(commitEntryTime, beforeLogTime)
 
 	err = sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {

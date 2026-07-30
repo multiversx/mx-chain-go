@@ -222,6 +222,33 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testi
 	assert.Equal(t, sync.ErrLowerNonceInBlock, err)
 }
 
+func TestBasicForkDetector_CheckBlockValidityUsesTheRoundOfTheCurrentTime(t *testing.T) {
+	t.Parallel()
+
+	// while the chronology goroutine is blocked the stored index lags the clock; the fork detector
+	// must still record the headers of the rounds it has not reached, or the node cannot catch up
+	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 1, RoundIndexForCurrentTime: 40}
+	bfd, _ := sync.NewShardForkDetector(
+		roundHandlerMock,
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
+	)
+
+	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 40, PubKeysBitmap: []byte("X")}, []byte("hash"))
+	assert.Nil(t, err)
+
+	err = bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 42, PubKeysBitmap: []byte("X")}, []byte("hash"))
+	assert.Equal(t, sync.ErrHigherRoundInBlock, err)
+}
+
 func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *testing.T) {
 	t.Parallel()
 

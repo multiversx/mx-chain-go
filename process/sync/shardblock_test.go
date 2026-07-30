@@ -4766,3 +4766,172 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 		require.Empty(t, bs.GetPendingV3RollBackHash())
 	})
 }
+
+func TestShardBootstrap_GetNextHeaderRequestsTheHeaderWhenOnlyAnUnprovenOneIsHeld(t *testing.T) {
+	t.Parallel()
+
+	// an unproven fork header at the next nonce must not stop the header from being requested: its
+	// proof never arrives, while a request by nonce is answered with the proven header
+	forkHash := []byte("unproven-fork-hash")
+	forkHeader := &block.Header{Nonce: 2, Round: 2}
+
+	args := CreateShardBootstrapMockArguments()
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+	args.ChainHandler = &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 1}
+		},
+	}
+	args.ForkDetector = &mock.ForkDetectorMock{
+		GetNotarizedHeaderHashCalled: func(nonce uint64) []byte {
+			return nil
+		},
+		ProbableHighestNonceCalled: func() uint64 {
+			return 2
+		},
+	}
+
+	pools := createMockPools()
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(nonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				return []data.HeaderHandler{forkHeader}, [][]byte{forkHash}, nil
+			},
+		}
+	}
+	args.PoolsHolder = pools
+
+	requestedNonces := make([]uint64, 0)
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {
+			requestedNonces = append(requestedNonces, nonce)
+		},
+	}
+
+	bs, err := sync.NewShardBootstrap(args)
+	require.Nil(t, err)
+
+	_, _, err = bs.GetNextHeaderRequestingIfMissing()
+	require.Equal(t, process.ErrTimeIsOut, err)
+	require.Equal(t, []uint64{2}, requestedNonces)
+}
+
+func TestShardBootstrap_GetNextHeaderPrefersTheProvenHeaderOverALaterForkAtTheSameNonce(t *testing.T) {
+	t.Parallel()
+
+	// the proof arrives while the sync waits; the pool keeps every header seen at the nonce and the
+	// fork received last must not shadow the one the proof attests
+	provenHash := []byte("proven-hash")
+	forkHash := []byte("later-fork-hash")
+	provenHeader := &block.Header{Nonce: 2, Round: 2}
+	forkHeader := &block.Header{Nonce: 2, Round: 3}
+
+	args := CreateShardBootstrapMockArguments()
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+	args.RoundHandler = &mock.RoundHandlerMock{RoundTimeDuration: 10 * time.Second}
+	args.ChainHandler = &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 1}
+		},
+	}
+	args.ForkDetector = &mock.ForkDetectorMock{
+		GetNotarizedHeaderHashCalled: func(nonce uint64) []byte {
+			return nil
+		},
+		ProbableHighestNonceCalled: func() uint64 {
+			return 2
+		},
+	}
+
+	proofKnown := &atomic.Bool{}
+	proofsPool := &dataRetrieverMock.ProofsPoolMock{
+		GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+			if !proofKnown.Load() {
+				return nil, errors.New("no proof at this nonce yet")
+			}
+
+			return &block.HeaderProof{HeaderHash: provenHash, HeaderNonce: 2, HeaderRound: 2}, nil
+		},
+		HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+			return proofKnown.Load() && bytes.Equal(headerHash, provenHash)
+		},
+	}
+
+	pools := createMockPools()
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return proofsPool
+	}
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			// the fork header is last, so a plain lookup by nonce returns it
+			GetHeaderByNonceAndShardIdCalled: func(nonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				return []data.HeaderHandler{provenHeader, forkHeader}, [][]byte{provenHash, forkHash}, nil
+			},
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, provenHash) {
+					return provenHeader, nil
+				}
+
+				return nil, errors.New("header not found")
+			},
+		}
+	}
+	args.PoolsHolder = pools
+
+	var bs *sync.ShardBootstrap
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {
+			proofKnown.Store(true)
+			// unbuffered channel: the send lands only once the sync is actually waiting
+			go bs.SetRcvHdrNonce()
+		},
+	}
+
+	bs, err := sync.NewShardBootstrap(args)
+	require.Nil(t, err)
+
+	header, hash, err := bs.GetNextHeaderRequestingIfMissing()
+	require.Nil(t, err)
+	require.Equal(t, provenHash, hash)
+	require.Equal(t, provenHeader, header)
+}
+
+func TestShardBootstrap_MaxSyncWithErrorsAllowedFallsBackToTheCurrentRound(t *testing.T) {
+	t.Parallel()
+
+	// with no header for the nonce the limit must still come from the active config: reading it for
+	// round zero would pick the genesis entry
+	roundsAskedFor := make([]uint64, 0)
+	args := CreateShardBootstrapMockArguments()
+	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: 78401}
+	args.ProcessConfigsHandler = &testscommon.ProcessConfigsHandlerStub{
+		GetMaxSyncWithErrorsAllowedCalled: func(round uint64) uint32 {
+			roundsAskedFor = append(roundsAskedFor, round)
+			return 10
+		},
+	}
+
+	bs, err := sync.NewShardBootstrap(args)
+	require.Nil(t, err)
+
+	bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+	require.Equal(t, []uint64{78401}, roundsAskedFor)
+
+	roundsAskedFor = roundsAskedFor[:0]
+	bs.DoJobOnSyncBlockFail(&block.Body{}, &block.Header{Round: 500}, process.ErrTimeIsOut)
+	require.Equal(t, []uint64{500}, roundsAskedFor)
+}

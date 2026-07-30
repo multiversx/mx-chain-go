@@ -115,7 +115,9 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	roundDif := int64(header.GetRound()) - int64(bfd.finalCheckpoint().round)
 	nonceDif := int64(header.GetNonce()) - int64(bfd.finalCheckpoint().nonce)
 	// TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
-	nextRound := bfd.roundHandler.Index() + 1
+	// bound against the round the current time falls into, not the stored index: a node slow to
+	// advance its chronology must still record the headers it needs to catch up
+	nextRound := bfd.roundHandler.IndexForCurrentTime() + 1
 
 	bfd.blackListHandler.Sweep()
 	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
