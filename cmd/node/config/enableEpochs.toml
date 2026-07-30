@@ -379,6 +379,9 @@
     # ConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas in accumulated economics is fixed
     ConsumedGasInEconomicsFixEnableEpoch = 1
 
+    # AttributeExtraGasUsageEnableEpoch represents the epoch when the extra gas usage for attributes is enabled
+    AttributeExtraGasUsageEnableEpoch = 2
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

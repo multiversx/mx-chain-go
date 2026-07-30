@@ -137,6 +137,7 @@ type EnableEpochs struct {
 	RelayedTransactionsV1V2DisableEpoch                      uint32
 	FullShardDataValidationEnableEpoch                       uint32
 	ConsumedGasInEconomicsFixEnableEpoch                     uint32
+	AttributeExtraGasUsageEnableEpoch                        uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 
