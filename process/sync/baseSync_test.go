@@ -1072,7 +1072,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.NotNil(t, boot.pendingReconcile)
 
 		roundHandler.RoundIndex++
-		require.True(t, boot.tryReconcileEquivocation())
+		require.True(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.Equal(t, finalNonce, calls.reconciledNonce)
 		require.Equal(t, finalNonce, calls.rollBackNonce)
 		require.Equal(t, []string{string(localHash)}, calls.blacklisted)
@@ -1088,7 +1088,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 
 		boot.onEquivocationEvidence(competitorProof, nil)
 		roundHandler.RoundIndex++
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.Equal(t, uint64(0), calls.reconciledNonce)
 		require.Empty(t, calls.blacklisted)
 	})
@@ -1102,7 +1102,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 
 		boot.onEquivocationEvidence(competitorProof, nil)
 		roundHandler.RoundIndex++
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.Equal(t, uint64(0), calls.reconciledNonce)
 		// the settling child may still arrive: the evidence must survive the failed attempt
 		require.NotNil(t, boot.pendingReconcile)
@@ -1117,7 +1117,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		otherProof := &block.HeaderProof{HeaderHash: competitorHash, HeaderNonce: finalNonce + 3, HeaderShardId: 0}
 		boot.onEquivocationEvidence(otherProof, nil)
 		require.Nil(t, boot.pendingReconcile)
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 	})
 
 	// signing locks per round, not per nonce, so a stranded loser can also hold a proofed child;
@@ -1131,7 +1131,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 
 		boot.onEquivocationEvidence(competitorProof, nil)
 		roundHandler.RoundIndex++
-		require.True(t, boot.tryReconcileEquivocation())
+		require.True(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.Equal(t, finalNonce, calls.reconciledNonce)
 		require.Equal(t, []string{string(localHash)}, calls.blacklisted)
 	})
@@ -1146,7 +1146,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 
 		boot.onEquivocationEvidence(competitorProof, nil)
 		roundHandler.RoundIndex++
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.Equal(t, uint64(0), calls.reconciledNonce)
 		require.Empty(t, calls.blacklisted)
 		require.Nil(t, boot.pendingReconcile)
@@ -1162,7 +1162,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 
 		boot.onEquivocationEvidence(competitorProof, nil)
 		roundHandler.RoundIndex++
-		require.True(t, boot.tryReconcileEquivocation())
+		require.True(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.Equal(t, finalNonce, calls.reconciledNonce)
 	})
 
@@ -1188,7 +1188,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		boot.onEquivocationEvidence(competitorProof, nil)
 		roundHandler.RoundIndex = 2
 
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.NotNil(t, boot.pendingReconcile)
 		require.Equal(t, uint64(0), calls.reconciledNonce)
 
@@ -1199,7 +1199,7 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		}
 		roundHandler.RoundIndex = 3
 
-		require.True(t, boot.tryReconcileEquivocation())
+		require.True(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.Equal(t, finalNonce, calls.reconciledNonce)
 		require.Equal(t, []string{string(localHash)}, calls.blacklisted)
 	})
@@ -1215,16 +1215,16 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		boot.onEquivocationEvidence(competitorProof, nil)
 		roundHandler.RoundIndex = 8
 
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		callsInFirstRound := checker.numCalls
 		require.NotZero(t, callsInFirstRound)
 
-		require.False(t, boot.tryReconcileEquivocation())
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.Equal(t, callsInFirstRound, checker.numCalls)
 
 		roundHandler.RoundIndex = 9
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.Greater(t, checker.numCalls, callsInFirstRound)
 	})
 
@@ -1251,11 +1251,11 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		boot.onEquivocationEvidence(competitorProof, nil)
 
 		roundHandler.RoundIndex = 2
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		roundHandler.RoundIndex = 3
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		roundHandler.RoundIndex = 4
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 
 		require.Equal(t, []uint64{0, 5, 10}, gotCursors)
 		require.Equal(t, uint64(7), gotFrom)
@@ -1274,12 +1274,12 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		boot.onEquivocationEvidence(competitorProof, nil)
 		require.NotNil(t, boot.pendingReconcile)
 
-		require.False(t, boot.tryReconcileEquivocation())
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.Equal(t, uint64(0), calls.rollBackNonce)
 		require.NotNil(t, boot.pendingReconcile)
 
 		roundHandler.RoundIndex = 6
-		require.True(t, boot.tryReconcileEquivocation())
+		require.True(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
 		require.Equal(t, finalNonce, calls.rollBackNonce)
 	})
 
@@ -1319,6 +1319,54 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		// notifications; neither may happen on the firing tick
 		require.False(t, boot.isNodeSynchronized)
 		require.Equal(t, int64(0), boot.roundIndex)
+	})
+
+	// the round may turn between the backstop checks and the state computation of one tick;
+	// state computed then must not count for the new round, or consensus starts before the
+	// deferred evidence is ever evaluated
+	t.Run("a round turning mid-tick cannot publish a synchronized state for the unevaluated round", func(t *testing.T) {
+		t.Parallel()
+
+		calls := &reconcileCalls{}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 5}
+		checker := settlesOnly(competitorHash)
+		// the divergence probe runs between the evidence gate and the state computation; the
+		// round turning right there is the raced schedule
+		checker.deadCrossNotarizedMetaCalled = func() (data.HeaderHandler, []byte, bool) {
+			roundHandler.RoundIndex = 6
+			return nil, nil, false
+		}
+		boot := buildBootstrapperWithChecker(nil, calls, checker, roundHandler)
+		boot.chainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return localHead },
+			GetCurrentBlockHeaderHashCalled: func() []byte { return localHash },
+			GetGenesisHeaderCalled:          func() data.HeaderHandler { return &block.Header{} },
+		}
+		boot.forkDetector = &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
+			ReconcileFinalCheckpointCalled:  func(nonce uint64) { calls.reconciledNonce = nonce },
+			SetRollBackNonceCalled:          func(nonce uint64) { calls.rollBackNonce = nonce },
+			CheckForkCalled:                 func() *process.ForkInfo { return process.NewForkInfo() },
+			ProbableHighestNonceCalled:      func() uint64 { return finalNonce },
+		}
+		boot.networkWatcher = &mock.NetworkConnectionWatcherStub{
+			IsConnectedToTheNetworkCalled: func() bool { return true },
+		}
+		boot.processConfigsHandler = &testscommon.ProcessConfigsHandlerStub{
+			GetRoundModulusTriggerWhenSyncIsStuckCalled: func(round uint64) uint32 { return 100 },
+		}
+		boot.currentEpochProvider = &testscommon.CurrentEpochProviderStub{}
+		boot.preparedForSyncAtBootstrap = true
+
+		boot.onEquivocationEvidence(competitorProof, nil)
+
+		require.Nil(t, boot.syncBlock())
+		require.Equal(t, uint64(0), calls.rollBackNonce)
+		require.Equal(t, common.NsNotCalculated, boot.GetNodeState())
+
+		// the next tick evaluates the evidence for the new round first, and fires
+		require.Nil(t, boot.syncBlock())
+		require.Equal(t, finalNonce, calls.rollBackNonce)
 	})
 }
 
@@ -1439,7 +1487,7 @@ func TestBaseBootstrap_ReconcileResumableScan(t *testing.T) {
 		// the arming round never evaluates, so the evaluated rounds start right after it
 		for round := int64(2); round <= maxRounds+1; round++ {
 			fix.roundHandler.RoundIndex = round
-			if fix.boot.tryReconcileEquivocation() {
+			if fix.boot.tryReconcileEquivocation(fix.roundHandler.Index()) {
 				return true
 			}
 		}
@@ -1745,16 +1793,16 @@ func TestBaseBootstrap_ReconcileDivergence(t *testing.T) {
 		roundHandler := &mock.RoundHandlerMock{RoundIndex: 7}
 		boot := buildBootstrapper(calls, deadChecker(), roundHandler, true)
 
-		require.True(t, boot.tryReconcileDivergence())
+		require.True(t, boot.tryReconcileDivergence(boot.roundHandler.Index()))
 		require.Equal(t, uint64(11), calls.reconciledBelowNonce)
 		require.Equal(t, uint64(11), calls.rollBackNonce)
 		require.Equal(t, []string{string(headHash), string(pointerHash)}, calls.blacklisted)
 
 		// gated within the same round, fires again in the next one
-		require.False(t, boot.tryReconcileDivergence())
+		require.False(t, boot.tryReconcileDivergence(boot.roundHandler.Index()))
 		require.Equal(t, 1, calls.numReconcileBelow)
 		roundHandler.RoundIndex = 8
-		require.True(t, boot.tryReconcileDivergence())
+		require.True(t, boot.tryReconcileDivergence(boot.roundHandler.Index()))
 		require.Equal(t, 2, calls.numReconcileBelow)
 	})
 
@@ -1764,7 +1812,7 @@ func TestBaseBootstrap_ReconcileDivergence(t *testing.T) {
 		calls := &divergenceCalls{}
 		boot := buildBootstrapper(calls, &settlementCheckerStub{}, &mock.RoundHandlerMock{RoundIndex: 7}, true)
 
-		require.False(t, boot.tryReconcileDivergence())
+		require.False(t, boot.tryReconcileDivergence(boot.roundHandler.Index()))
 		require.Zero(t, calls.numReconcileBelow)
 		require.Empty(t, calls.blacklisted)
 	})
@@ -1783,7 +1831,7 @@ func TestBaseBootstrap_ReconcileDivergence(t *testing.T) {
 			},
 		}
 
-		require.False(t, boot.tryReconcileDivergence())
+		require.False(t, boot.tryReconcileDivergence(boot.roundHandler.Index()))
 		require.Zero(t, calls.numReconcileBelow)
 		require.Empty(t, calls.blacklisted)
 	})
@@ -1803,7 +1851,7 @@ func TestBaseBootstrap_ReconcileDivergence(t *testing.T) {
 			},
 		}
 
-		require.False(t, boot.tryReconcileDivergence())
+		require.False(t, boot.tryReconcileDivergence(boot.roundHandler.Index()))
 		require.Zero(t, calls.numReconcileBelow)
 	})
 
@@ -1813,7 +1861,7 @@ func TestBaseBootstrap_ReconcileDivergence(t *testing.T) {
 		calls := &divergenceCalls{}
 		boot := buildBootstrapper(calls, deadChecker(), &mock.RoundHandlerMock{RoundIndex: 7}, false)
 
-		require.False(t, boot.tryReconcileDivergence())
+		require.False(t, boot.tryReconcileDivergence(boot.roundHandler.Index()))
 		require.Equal(t, 1, calls.numReconcileBelow)
 		require.Zero(t, calls.rollBackNonce)
 		require.Empty(t, calls.blacklisted)
@@ -1847,7 +1895,7 @@ func TestBaseBootstrap_ReconcileDivergence(t *testing.T) {
 			},
 		}
 
-		require.True(t, boot.tryReconcileDivergence())
+		require.True(t, boot.tryReconcileDivergence(boot.roundHandler.Index()))
 		require.Equal(t, uint32(3), disarmedEpoch)
 		require.Equal(t, deadMetaHash, disarmedHash)
 	})
@@ -1878,7 +1926,7 @@ func TestBaseBootstrap_ReconcileDivergence(t *testing.T) {
 			},
 		}
 
-		require.False(t, boot.tryReconcileDivergence())
+		require.False(t, boot.tryReconcileDivergence(boot.roundHandler.Index()))
 		require.Equal(t, 1, calls.numReconcileBelow)
 		require.False(t, disarmed)
 	})
