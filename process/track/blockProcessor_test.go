@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1328,5 +1329,54 @@ func TestBlockProcessorComputeLongestChain_ContendedUnsettledCrossHeader(t *test
 
 		require.Equal(t, 1, len(headers))
 		assert.Equal(t, selfHeader2, headers[0])
+	})
+}
+
+func TestBlockProcessor_RequestHeadersProofPairingEraGating(t *testing.T) {
+	t.Parallel()
+
+	andromedaFromEpochOne := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag && epoch >= 1
+		},
+	}
+
+	runScenario := func(t *testing.T, pooledHeaders []data.HeaderHandler, poolErr error, expectedProofRequests int32) {
+		proofRequests := &atomic.Int32{}
+
+		arguments := CreateBlockProcessorMockArguments()
+		arguments.EnableEpochsHandler = andromedaFromEpochOne
+		arguments.HeadersPool = &pool.HeadersPoolStub{
+			GetHeaderByNonceAndShardIdCalled: func(_ uint64, _ uint32) ([]data.HeaderHandler, [][]byte, error) {
+				return pooledHeaders, nil, poolErr
+			},
+		}
+		arguments.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByNonceCalled: func(_ uint32, _ uint64) {
+				proofRequests.Add(1)
+			},
+		}
+
+		bp, err := track.NewBlockProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.RequestHeadersWithProofPairing(0, 103)
+
+		require.Equal(t, expectedProofRequests, proofRequests.Load())
+	}
+
+	t.Run("all pooled candidates predate the proofs flag, no proof requests", func(t *testing.T) {
+		t.Parallel()
+		runScenario(t, []data.HeaderHandler{&dataBlock.Header{Epoch: 0}}, nil, 0)
+	})
+
+	t.Run("a proofs-era candidate keeps the pairing", func(t *testing.T) {
+		t.Parallel()
+		runScenario(t, []data.HeaderHandler{&dataBlock.Header{Epoch: 0}, &dataBlock.Header{Epoch: 1}}, nil, 2)
+	})
+
+	t.Run("unknown candidates keep the fail-safe pairing", func(t *testing.T) {
+		t.Parallel()
+		runScenario(t, nil, errors.New("not found"), 2)
 	})
 }
