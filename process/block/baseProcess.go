@@ -4363,31 +4363,47 @@ func (bp *baseProcessor) PruneTrieAsyncHeader() {
 	bp.mutLastPrunedHeader.Lock()
 	defer bp.mutLastPrunedHeader.Unlock()
 
-	header := bp.blockChain.GetCurrentBlockHeader()
-	headerHash := bp.blockChain.GetCurrentBlockHeaderHash()
-
-	if len(bp.lastPrunedHeaderHash) == 0 {
-		// last pruned header hash not set, trigger prune trie for the provided header
-		bp.blockProcessor.pruneTrieHeaderV3(header)
-		bp.lastPrunedHeaderHash = headerHash
-		bp.lastPrunedHeaderNonce = header.GetNonce()
+	// prune keyed on the settled checkpoint, never the committed tip: a rollback can legally land
+	// on any block down to the settled one and re-execution then needs its notarized state root
+	settledNonce, settledHash := bp.forkDetector.GetHighestSettledBlockInfo()
+	if len(settledHash) == 0 {
 		return
 	}
 
-	// extra check by nonce
-	if header.GetNonce() <= bp.lastPrunedHeaderNonce {
+	hasPrunedBefore := len(bp.lastPrunedHeaderHash) != 0
+	if hasPrunedBefore && settledNonce <= bp.lastPrunedHeaderNonce {
 		return
 	}
 
-	err := bp.pruneTrieForHeadersUnprotected(headerHash, header)
+	settledHeader, err := process.GetHeader(
+		settledHash,
+		bp.dataPool.Headers(),
+		bp.store,
+		bp.marshalizer,
+		bp.shardCoordinator.SelfId(),
+	)
 	if err != nil {
-		// there was an error while fetching intermediate headers
-		// reset pruning context
-		bp.blockProcessor.resetPruning()
+		log.Debug("PruneTrieAsyncHeader: settled header not available, pruning postponed",
+			"nonce", settledNonce,
+			"hash", settledHash,
+			"error", err,
+		)
+		return
 	}
 
-	bp.lastPrunedHeaderHash = headerHash
-	bp.lastPrunedHeaderNonce = header.GetNonce()
+	if !hasPrunedBefore {
+		bp.blockProcessor.pruneTrieHeaderV3(settledHeader)
+	} else {
+		err = bp.pruneTrieForHeadersUnprotected(settledHash, settledHeader)
+		if err != nil {
+			// there was an error while fetching intermediate headers
+			// reset pruning context
+			bp.blockProcessor.resetPruning()
+		}
+	}
+
+	bp.lastPrunedHeaderHash = settledHash
+	bp.lastPrunedHeaderNonce = settledNonce
 }
 
 func (bp *baseProcessor) pruneTrieForHeadersUnprotected(

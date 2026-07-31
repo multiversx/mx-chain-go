@@ -56,3 +56,6 @@ var ErrInconsistentRollBackState = errors.New("inconsistent chain state while co
 
 // ErrPendingStorageRepair signals that data moved by an interrupted roll back is not yet written back
 var ErrPendingStorageRepair = errors.New("pending storage repair after an interrupted roll back")
+
+// ErrRollBackExecutionBaseMissing signals a roll back refused for a non-recreatable execution base
+var ErrRollBackExecutionBaseMissing = errors.New("roll back refused: execution base state is missing")

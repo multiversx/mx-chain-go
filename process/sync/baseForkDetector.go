@@ -877,13 +877,20 @@ func (bfd *baseForkDetector) isConsensusStuck() bool {
 		return false
 	}
 
-	lastCheckpointRound := bfd.lastCheckpoint().round
-	roundsDifference := bfd.roundHandler.Index() - int64(lastCheckpointRound)
+	lastCheckpoint := bfd.lastCheckpoint()
+	roundsDifference := bfd.roundHandler.Index() - int64(lastCheckpoint.round)
 	if roundsDifference <= bfd.getMaxRoundsWithoutCommittedBlock(uint64(bfd.roundHandler.Index())) {
 		return false
 	}
 
 	if !process.IsInProperRound(bfd.roundHandler.Index()) {
+		return false
+	}
+
+	// never blind-rollback a proven block: a proven tip can only be wrong through equivocation,
+	// which the evidence-driven rollback paths detect and prove before acting
+	hasProvenTip := len(lastCheckpoint.hash) != 0 && bfd.proofsPool.HasProof(bfd.shardID, lastCheckpoint.hash)
+	if hasProvenTip {
 		return false
 	}
 

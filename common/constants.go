@@ -259,6 +259,10 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 // MetricNumTimesInForkChoice is the metric that counts how many times a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
+// MetricNumRollBacksRefusedMissingState is the metric that counts the roll backs refused because
+// the post-rollback execution base state was not recreatable
+const MetricNumRollBacksRefusedMissingState = "erd_rollbacks_refused_missing_state_count"
+
 // MetricNumEquivocationProofs is the metric that counts the equivocation events observed by the
 // proofs pool (different-hash proofs received for the same header nonce)
 const MetricNumEquivocationProofs = "erd_num_equivocation_proofs"
@@ -823,6 +827,9 @@ const (
 	// MetricConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas for accumulated fees is fixed
 	MetricConsumedGasInEconomicsFixEnableEpoch = "erd_consumed_gas_in_economics_fix_enable_epoch"
 
+	// MetricAttributeExtraGasUsageEnableEpoch represents the epoch when attributes are using extra gas usage fees
+	MetricAttributeExtraGasUsageEnableEpoch = "erd_attribute_extra_gasusage_enable_epoch"
+
 	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
 	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
 
@@ -1353,6 +1360,7 @@ const (
 	RelayedTransactionsV1V2DisableFlag                  core.EnableEpochFlag = "RelayedTransactionsV1V2DisableFlag"
 	FullShardDataValidationFlag                         core.EnableEpochFlag = "FullShardDataValidationFlag"
 	ConsumedGasInEconomicsFlag                          core.EnableEpochFlag = "ConsumedGasInEconomicsFlag"
+	AttributeExtraGasUsageFlag                          core.EnableEpochFlag = "AttributeExtraGasUsageFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
 

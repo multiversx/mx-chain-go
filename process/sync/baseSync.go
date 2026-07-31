@@ -1826,6 +1826,11 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) (err error) {
 		)
 
 		if currHeader.IsHeaderV3() {
+			err = boot.checkRollBackExecutionBase(prevHeader)
+			if err != nil {
+				return err
+			}
+
 			currBody, err = boot.rollBackOneBlockV3(
 				currHeaderHash,
 				currHeader,
@@ -2068,6 +2073,33 @@ func (boot *baseBootstrap) canRollbackBlock(currHeader data.HeaderHandler) bool 
 	firstCommittedNonce := boot.blockProcessor.NonceOfFirstCommittedBlock()
 
 	return currHeader.GetNonce() >= firstCommittedNonce.Value && firstCommittedNonce.HasValue
+}
+
+// checkRollBackExecutionBase refuses a roll back whose post-rollback execution base state cannot
+// be recreated: proceeding would strand the node unable to execute forward or roll back further
+func (boot *baseBootstrap) checkRollBackExecutionBase(prevHeader data.HeaderHandler) error {
+	if !prevHeader.IsHeaderV3() {
+		return nil
+	}
+
+	lastExecResult, err := common.GetLastBaseExecutionResultHandler(prevHeader)
+	if err != nil {
+		return err
+	}
+
+	rootHash := lastExecResult.GetRootHash()
+	_, err = boot.accounts.GetTrie(rootHash)
+	if err != nil {
+		boot.statusHandler.Increment(common.MetricNumRollBacksRefusedMissingState)
+		log.Error("roll back refused: execution base state is missing",
+			"nonce", prevHeader.GetNonce(),
+			"root hash", rootHash,
+			"error", err,
+		)
+		return ErrRollBackExecutionBaseMissing
+	}
+
+	return nil
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(

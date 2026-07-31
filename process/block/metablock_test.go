@@ -4778,17 +4778,32 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 	rootHash2 := []byte("state root hash 2")
 	validatorStatsRootHash2 := []byte("validator stats root hash 2")
 
+	metaBlockHash := []byte("metaHash")
+	var metaBlockInPool data.HeaderHandler
+
 	coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 	dataPool := initDataPool()
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, metaBlockHash) {
+					return metaBlockInPool, nil
+				}
+
 				return prevHeader, nil
 			},
 		}
 	}
 	dataComponents.DataPool = dataPool
 	arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	metaCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	metaCoordinator.CurrentShard = core.MetachainShardId
+	boostrapComponents.Coordinator = metaCoordinator
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+			return 1, metaBlockHash
+		},
+	}
 	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 		state.UserAccountsState: &stateMock.AccountsStub{
 			IsPruningEnabledCalled: func() bool {
@@ -4876,14 +4891,7 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 		},
 	}
 
-	blkc := createTestBlockchain()
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return metaBlock
-	}
-	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-		return []byte("metaHash")
-	}
-	dataComponents.BlockChain = blkc
+	metaBlockInPool = metaBlock
 
 	mp, _ := processBlock.NewMetaProcessor(arguments)
 

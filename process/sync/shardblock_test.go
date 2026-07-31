@@ -4163,6 +4163,36 @@ func TestBootstrap_RollBackV3(t *testing.T) {
 		require.True(t, bs.GetPreparedForSync())
 	})
 
+	t.Run("refuses the roll back when the execution base state is missing", func(t *testing.T) {
+		t.Parallel()
+
+		refusedMetricIncremented := false
+		bs, blkc, outportCapture, removedAtNonce, calledFlags, _ := buildBootstrapper(5, func(args *sync.ArgShardBootstrapper) {
+			args.Accounts = &stateMock.AccountsStub{
+				GetTrieCalled: func(rootHash []byte) (common.Trie, error) {
+					return nil, errors.New("missing trie node")
+				},
+			}
+			args.AppStatusHandler = &statusHandlerMock.AppStatusHandlerStub{
+				IncrementHandler: func(key string) {
+					if key == common.MetricNumRollBacksRefusedMissingState {
+						refusedMetricIncremented = true
+					}
+				},
+			}
+		})
+		bs.SetPreparedForSync(true)
+
+		err := bs.RollBack(true)
+		require.Equal(t, sync.ErrRollBackExecutionBaseMissing, err)
+
+		require.True(t, refusedMetricIncremented)
+		require.Equal(t, currHdr.GetNonce(), blkc.GetCurrentBlockHeader().GetNonce())
+		require.Empty(t, removedAtNonce)
+		require.Empty(t, calledFlags)
+		require.Empty(t, outportCapture.revertedHashes)
+	})
+
 	t.Run("rewind failure does not re-arm the sync prepare step and surfaces in the result", func(t *testing.T) {
 		t.Parallel()
 

@@ -835,6 +835,61 @@ func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 	assert.Equal(t, 3, len(hInfos))
 }
 
+func TestBasicForkDetector_CheckForkConsensusStuck(t *testing.T) {
+	t.Parallel()
+
+	createStuckForkDetector := func(hasProofForTip bool) process.ForkDetector {
+		roundHandlerMock := &mock.RoundHandlerMock{}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return hasProofForTip
+			},
+		}
+		sfd, _ := sync.NewShardForkDetector(
+			roundHandlerMock,
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			0,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			&testscommon.EnableRoundsHandlerStub{},
+			proofsPool,
+			&chainParameters.ChainParametersHandlerStub{},
+			testscommon.GetDefaultProcessConfigsHandler(),
+			0,
+		)
+		roundHandlerMock.RoundIndex = 1
+		_ = sfd.AddHeader(
+			&block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")},
+			[]byte("tipHash"),
+			process.BHProcessed,
+			nil,
+			nil)
+		// well past MaxRoundsWithoutCommittedBlock (10) and on a proper round (multiple of 5)
+		roundHandlerMock.RoundIndex = 100
+
+		return sfd
+	}
+
+	t.Run("unproven tip keeps the legacy stuck escape hatch", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createStuckForkDetector(false)
+
+		forkInfo := sfd.CheckFork()
+		assert.True(t, forkInfo.IsDetected)
+	})
+
+	t.Run("proven tip is never blindly rolled back", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createStuckForkDetector(true)
+
+		forkInfo := sfd.CheckFork()
+		assert.False(t, forkInfo.IsDetected)
+	})
+}
+
 func TestBasicForkDetector_CheckForkShouldReturnFalseWhenForkIsOnFinalCheckpointNonce(t *testing.T) {
 	t.Parallel()
 
