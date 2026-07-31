@@ -126,8 +126,8 @@
             SubroundsTiming = [
                 { StartTime = 0.0,  EndTime = 0.05 },  # start round
                 { StartTime = 0.05, EndTime = 0.35 },  # block
-                { StartTime = 0.35, EndTime = 0.55 },  # signature
-                { StartTime = 0.55, EndTime = 0.95 },  # end round
+                { StartTime = 0.35, EndTime = 0.65 },  # signature
+                { StartTime = 0.65, EndTime = 0.95 },  # end round
             ],
             ProcessingThresholdPercent = 85
         }
