@@ -852,7 +852,12 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 	}
 
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
-	isProcessWithError := processBlockStarted && !errors.Is(err, process.ErrTimeIsOut)
+	// missing data is not evidence against the local chain: keep the header and the fetched txs so
+	// retries accumulate; the errors limit below stays the last resort
+	isMissingDataFailure := errors.Is(err, process.ErrTimeIsOut) ||
+		errors.Is(err, process.ErrTxNotFound) ||
+		errors.Is(err, process.ErrMissingTransaction)
+	isProcessWithError := processBlockStarted && !isMissingDataFailure
 
 	numSyncedWithErrors := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
 	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= boot.getMaxSyncWithErrorsAllowed(headerHandler)

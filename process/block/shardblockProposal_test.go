@@ -1650,9 +1650,12 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
-		providedOrderedMetaBlocksCopy := make([]data.HeaderHandler, len(providedOrderedMetaBlocks))
-		copy(providedOrderedMetaBlocksCopy, providedOrderedMetaBlocks)
-		_ = providedOrderedMetaBlocksCopy[1].SetNonce(10)
+		// fresh headers, not a shallow copy: mutating shared header pointers races with the
+		// parallel sibling subtests
+		providedOrderedMetaBlocksCopy := []data.HeaderHandler{
+			&block.MetaBlockV3{Nonce: 2},
+			&block.MetaBlockV3{Nonce: 10},
+		}
 		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, providedOrderedMetaBlocksCopy, providedOrderedMetaBlocksHashes, haveTimeTrue)
 		require.NoError(t, err)
 		require.Equal(t, 1, cntHasProof)

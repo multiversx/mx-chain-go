@@ -932,7 +932,11 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 		preservedHdrsInfo := make([]*headerInfo, 0)
 
 		for _, hdrInfo := range hdrsInfo {
-			if hdrInfo.state != process.BHNotarized {
+			// a proven record is hard evidence of the network tip; purging it would let the probable
+			// nonce collapse below a proven block and re-arm same-nonce proposals
+			isProvenRecord := hdrInfo.hasProof &&
+				bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdrInfo.epoch)
+			if hdrInfo.state != process.BHNotarized && !isProvenRecord {
 				continue
 			}
 

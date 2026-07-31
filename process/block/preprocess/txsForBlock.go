@@ -126,14 +126,6 @@ func (tfb *txsForBlock) GetMissingTxsCount() int {
 	return tfb.numMissingTxs
 }
 
-// ClearMissingTxsCount resets the missing transactions counter to zero
-func (tfb *txsForBlock) ClearMissingTxsCount() {
-	tfb.mutTxsForBlock.Lock()
-	defer tfb.mutTxsForBlock.Unlock()
-
-	tfb.numMissingTxs = 0
-}
-
 // ComputeExistingAndRequestMissing processes the block body to compute existing transactions (in the node tx pool) and request missing ones.
 func (tfb *txsForBlock) ComputeExistingAndRequestMissing(
 	body *block.Body,

@@ -437,3 +437,6 @@ func (boot *baseBootstrap) SaveProposedTxsToPool(
 ) error {
 	return boot.saveProposedTxsToPool(header, body)
 }
+
+// ShardForkDetectorExported -
+type ShardForkDetectorExported = shardForkDetector

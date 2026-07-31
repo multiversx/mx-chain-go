@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewBasicForkDetector_ShouldErrNilRoundHandler(t *testing.T) {
@@ -1951,4 +1952,68 @@ func TestBaseForkDetector_ReconcileFinalCheckpoint(t *testing.T) {
 	// lowers the final checkpoint below the equivocated nonce
 	sfd.ReconcileFinalCheckpoint(2)
 	assert.Equal(t, uint64(1), sfd.FinalCheckpointNonce())
+}
+
+func TestBaseForkDetector_ResetProbableHighestNonceProvenRecords(t *testing.T) {
+	t.Parallel()
+
+	newDetector := func(andromedaInEpoch bool) *sync.ShardForkDetectorExported {
+		bfd, err := sync.NewShardForkDetector(
+			&mock.RoundHandlerMock{},
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			0,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+					return andromedaInEpoch && flag == common.AndromedaFlag
+				},
+			},
+			&testscommon.EnableRoundsHandlerStub{},
+			&dataRetriever.ProofsPoolMock{},
+			&chainParameters.ChainParametersHandlerStub{},
+			testscommon.GetDefaultProcessConfigsHandler(),
+			0,
+		)
+		require.Nil(t, err)
+		return bfd
+	}
+
+	t.Run("proven proofs-era record survives the reset", func(t *testing.T) {
+		t.Parallel()
+
+		bfd := newDetector(true)
+		bfd.Append(&sync.HeaderInfo{
+			Epoch:    1,
+			Nonce:    5,
+			Round:    5,
+			Hash:     []byte("hash5"),
+			State:    process.BHReceived,
+			HasProof: true,
+		})
+
+		bfd.ResetProbableHighestNonce()
+
+		require.Equal(t, uint64(5), bfd.ProbableHighestNonce())
+		require.Len(t, bfd.GetHeaders(5), 1)
+	})
+
+	t.Run("pre-proofs record is purged as before", func(t *testing.T) {
+		t.Parallel()
+
+		bfd := newDetector(false)
+		bfd.Append(&sync.HeaderInfo{
+			Epoch:    1,
+			Nonce:    5,
+			Round:    5,
+			Hash:     []byte("hash5"),
+			State:    process.BHReceived,
+			HasProof: true,
+		})
+
+		bfd.ResetProbableHighestNonce()
+
+		require.Equal(t, uint64(0), bfd.ProbableHighestNonce())
+		require.Nil(t, bfd.GetHeaders(5))
+	})
 }

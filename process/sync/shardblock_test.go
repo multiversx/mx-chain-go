@@ -4965,3 +4965,72 @@ func TestShardBootstrap_MaxSyncWithErrorsAllowedFallsBackToTheCurrentRound(t *te
 	bs.DoJobOnSyncBlockFail(&block.Body{}, &block.Header{Round: 500}, process.ErrTimeIsOut)
 	require.Equal(t, []uint64{500}, roundsAskedFor)
 }
+
+func TestShardBootstrap_DoJobOnSyncBlockFailMissingDataShouldNotRollBack(t *testing.T) {
+	t.Parallel()
+
+	testWithError := func(t *testing.T, syncErr error) {
+		args := CreateShardBootstrapMockArguments()
+		args.ForkDetector = &mock.ForkDetectorMock{
+			RemoveHeaderCalled: func(nonce uint64, hash []byte) {
+				require.Fail(t, "should not remove the header on a missing-data failure")
+			},
+			ResetProbableHighestNonceCalled: func() {
+				require.Fail(t, "should not reset the probable highest nonce on a missing-data failure")
+			},
+		}
+		args.ChainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{Nonce: 1}
+			},
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		}
+
+		bs, _ := sync.NewShardBootstrap(args)
+
+		initialSyncErrors := bs.GetNumSyncedWithErrorsForNonce(2)
+		bs.DoJobOnSyncBlockFail(&block.Body{}, &block.Header{Nonce: 2}, fmt.Errorf("wrapped: %w", syncErr))
+
+		require.Equal(t, initialSyncErrors+1, bs.GetNumSyncedWithErrorsForNonce(2))
+	}
+
+	t.Run("tx not found", func(t *testing.T) {
+		t.Parallel()
+		testWithError(t, process.ErrTxNotFound)
+	})
+	t.Run("missing transaction", func(t *testing.T) {
+		t.Parallel()
+		testWithError(t, process.ErrMissingTransaction)
+	})
+	t.Run("time is out", func(t *testing.T) {
+		t.Parallel()
+		testWithError(t, process.ErrTimeIsOut)
+	})
+}
+
+func TestShardBootstrap_DoJobOnSyncBlockFailProcessErrorStillRollsBack(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	removeHeaderCalled := false
+	args.ForkDetector = &mock.ForkDetectorMock{
+		RemoveHeaderCalled: func(nonce uint64, hash []byte) {
+			removeHeaderCalled = true
+		},
+	}
+	args.ChainHandler = &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 1}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{}
+		},
+	}
+
+	bs, _ := sync.NewShardBootstrap(args)
+	bs.DoJobOnSyncBlockFail(&block.Body{}, &block.Header{Nonce: 2}, errors.New("process error"))
+
+	require.True(t, removeHeaderCalled)
+}
