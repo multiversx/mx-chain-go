@@ -827,12 +827,12 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
 	header data.HeaderHandler,
 ) uint32 {
-	// no header means the sync never got one for this nonce: fall back to the current round so the
-	// limit still comes from the active config and not from the genesis one
+	// no header means the sync never got one for this nonce: fall back to the wall-clock round so
+	// the limit comes from the active config even when the chronology-backed index lags
 	round := uint64(0)
 	if !check.IfNil(header) {
 		round = header.GetRound()
-	} else if currentRound := boot.roundHandler.Index(); currentRound > 0 {
+	} else if currentRound := boot.roundHandler.IndexForCurrentTime(); currentRound > 0 {
 		round = uint64(currentRound)
 	}
 
