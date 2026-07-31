@@ -5034,3 +5034,56 @@ func TestShardBootstrap_DoJobOnSyncBlockFailProcessErrorStillRollsBack(t *testin
 
 	require.True(t, removeHeaderCalled)
 }
+
+func TestShardBootstrap_GetMaxSyncWithErrorsAllowedRoundSelection(t *testing.T) {
+	t.Parallel()
+
+	buildBootstrapper := func(t *testing.T, chronologyIndex int64, wallClockIndex int64, capturedRound *uint64) *sync.ShardBootstrap {
+		args := CreateShardBootstrapMockArguments()
+		args.RoundHandler = &mock.RoundHandlerMock{
+			RoundIndex: chronologyIndex,
+			IndexForCurrentTimeCalled: func() int64 {
+				return wallClockIndex
+			},
+		}
+		args.ProcessConfigsHandler = &testscommon.ProcessConfigsHandlerStub{
+			GetMaxSyncWithErrorsAllowedCalled: func(round uint64) uint32 {
+				*capturedRound = round
+				return 10
+			},
+		}
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+		return bs
+	}
+
+	t.Run("nil header uses the wall-clock round, not the chronology index", func(t *testing.T) {
+		t.Parallel()
+
+		capturedRound := uint64(0)
+		bs := buildBootstrapper(t, 0, 500, &capturedRound)
+
+		_ = bs.GetMaxSyncWithErrorsAllowed(nil)
+		require.Equal(t, uint64(500), capturedRound)
+	})
+
+	t.Run("negative wall-clock round falls back to round zero", func(t *testing.T) {
+		t.Parallel()
+
+		capturedRound := uint64(1)
+		bs := buildBootstrapper(t, 700, -5, &capturedRound)
+
+		_ = bs.GetMaxSyncWithErrorsAllowed(nil)
+		require.Equal(t, uint64(0), capturedRound)
+	})
+
+	t.Run("header round wins over both indexes", func(t *testing.T) {
+		t.Parallel()
+
+		capturedRound := uint64(0)
+		bs := buildBootstrapper(t, 700, 500, &capturedRound)
+
+		_ = bs.GetMaxSyncWithErrorsAllowed(&block.Header{Round: 42})
+		require.Equal(t, uint64(42), capturedRound)
+	})
+}
