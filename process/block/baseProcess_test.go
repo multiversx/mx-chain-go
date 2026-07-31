@@ -197,10 +197,11 @@ func createArgBaseProcessor(
 		)
 
 		missingDataArgs := missingData.ResolverArgs{
-			HeadersPool:        dataComponents.DataPool.Headers(),
-			ProofsPool:         dataComponents.DataPool.Proofs(),
-			RequestHandler:     &testscommon.RequestHandlerStub{},
-			BlockDataRequester: blockDataRequester,
+			HeadersPool:         dataComponents.DataPool.Headers(),
+			ProofsPool:          dataComponents.DataPool.Proofs(),
+			RequestHandler:      &testscommon.RequestHandlerStub{},
+			BlockDataRequester:  blockDataRequester,
+			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 		}
 		missingDataResolver, _ = missingData.NewMissingDataResolver(missingDataArgs)
 	}
@@ -3796,7 +3797,8 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
-	bp, _ := blproc.NewShardProcessor(arguments)
+	bp, errCtor := blproc.NewShardProcessor(arguments)
+	require.Nil(t, errCtor)
 
 	bp.SetLastRestartNonce(1)
 	ph := bp.GetPruningHandler(10)

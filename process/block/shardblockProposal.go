@@ -546,8 +546,8 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			continue
 		}
 
-		hasProofForHdr := sp.proofsPool.HasProof(core.MetachainShardId, currentMetaBlockHash)
-		if !hasProofForHdr {
+		needsProof := common.IsProofsFlagEnabledForHeader(sp.enableEpochsHandler, currentMetaBlock)
+		if needsProof && !sp.proofsPool.HasProof(core.MetachainShardId, currentMetaBlockHash) {
 			log.Trace("no proof for meta header",
 				"hash", logger.DisplayByteSlice(currentMetaBlockHash),
 			)
@@ -845,9 +845,11 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> isHdrConstructionValid", err)
 		}
 
-		err = sp.checkHeaderHasProof(metaHeader)
-		if err != nil {
-			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> checkHeaderHasProof", err)
+		if common.IsProofsFlagEnabledForHeader(sp.enableEpochsHandler, metaHeader) {
+			err = sp.checkHeaderHasProof(metaHeader)
+			if err != nil {
+				return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> checkHeaderHasProof", err)
+			}
 		}
 		lastCrossNotarizedHeader = metaHeader
 	}

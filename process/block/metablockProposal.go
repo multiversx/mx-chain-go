@@ -965,8 +965,8 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 			continue
 		}
 
-		hasProofForHdr := mp.proofsPool.HasProof(currHdr.GetShardID(), currHdrHash)
-		if !hasProofForHdr {
+		needsProof := common.IsProofsFlagEnabledForHeader(mp.enableEpochsHandler, currHdr)
+		if needsProof && !mp.proofsPool.HasProof(currHdr.GetShardID(), currHdrHash) {
 			log.Trace("no proof for shard header",
 				"shard", currHdr.GetShardID(),
 				"hash", logger.DisplayByteSlice(currHdrHash),
@@ -1144,7 +1144,7 @@ func (mp *metaProcessor) checkShardHeaderContention(header data.HeaderHandler, h
 
 // checkShardHeaderContentionComputingHash computes the hashes only on the contended path
 func (mp *metaProcessor) checkShardHeaderContentionComputingHash(header data.HeaderHandler, parentHeader data.HeaderHandler, ancestryView *metaAncestryView, contentionCtx contentionContext) error {
-	if !mp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	if !mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
 		return nil
 	}
 	if !common.IsContendedHeader(header, parentHeader) {
@@ -1180,7 +1180,8 @@ func (mp *metaProcessor) getArbitrationCandidate(parentInfo ShardHeaderInfo, anc
 		if check.IfNil(header) || !bytes.Equal(header.GetPrevHash(), parentInfo.Hash) {
 			continue
 		}
-		if !mp.proofsPool.HasProof(shardID, hashes[i]) {
+		needsProof := common.IsProofsFlagEnabledForHeader(mp.enableEpochsHandler, header)
+		if needsProof && !mp.proofsPool.HasProof(shardID, hashes[i]) {
 			continue
 		}
 		errValidity := mp.headerValidator.IsHeaderConstructionValid(header, parentInfo.Header)
@@ -1623,6 +1624,9 @@ func (mp *metaProcessor) checkHeadersSequenceCorrectness(
 func (mp *metaProcessor) hasProofsForHeaders(headersPerShard map[uint32][]ShardHeaderInfo) bool {
 	for _, headersForShard := range headersPerShard {
 		for _, headerInfo := range headersForShard {
+			if !common.IsProofsFlagEnabledForHeader(mp.enableEpochsHandler, headerInfo.Header) {
+				continue
+			}
 			if !mp.proofsPool.HasProof(headerInfo.Header.GetShardID(), headerInfo.Hash) {
 				log.Debug("missing proof for shard header", "shard", headerInfo.Header.GetShardID(), "headerHash", headerInfo.Hash)
 				return false

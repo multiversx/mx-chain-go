@@ -324,7 +324,9 @@ func (bp *blockProcessor) isContendedUnsettledCrossHeader(header data.HeaderHand
 	if header.GetShardID() == bp.shardCoordinator.SelfId() {
 		return false
 	}
-	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	// keyed on the header's own epoch: a pre-Supernova header predates the settlement rules and
+	// could never satisfy them
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
 		return false
 	}
 	if !common.IsContendedHeader(header, parentHeader) {

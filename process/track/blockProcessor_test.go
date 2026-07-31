@@ -1222,6 +1222,9 @@ func TestBlockProcessorComputeLongestChain_ContendedUnsettledCrossHeader(t *test
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.SupernovaFlag
 			},
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+				return flag == common.SupernovaFlag
+			},
 		}
 		blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
 			SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
@@ -1261,6 +1264,37 @@ func TestBlockProcessorComputeLongestChain_ContendedUnsettledCrossHeader(t *test
 		assert.Equal(t, headerHash2, hashes[0])
 	})
 
+	t.Run("pre-Supernova contended cross header is not subject to settlement", func(t *testing.T) {
+		t.Parallel()
+
+		blockProcessorArguments := CreateBlockProcessorMockArguments()
+		blockProcessorArguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+			IsFlagEnabledInEpochCalled: func(_ core.EnableEpochFlag, _ uint32) bool {
+				return false
+			},
+		}
+		blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
+			SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
+				return []data.HeaderHandler{header2, header3}, [][]byte{headerHash2, headerHash3}
+			},
+			IsSettledCrossHeaderCalled: func(header data.HeaderHandler, headerHash []byte) bool {
+				require.Fail(t, "settlement must not be consulted for a pre-Supernova header")
+				return false
+			},
+		}
+
+		bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+
+		headers, hashes := bp.ComputeLongestChain(1, header1)
+
+		require.Equal(t, 1, len(headers))
+		assert.Equal(t, header2, headers[0])
+		assert.Equal(t, headerHash2, hashes[0])
+	})
+
 	t.Run("non-contended cross header is included without settlement lookup", func(t *testing.T) {
 		t.Parallel()
 
@@ -1274,6 +1308,9 @@ func TestBlockProcessorComputeLongestChain_ContendedUnsettledCrossHeader(t *test
 		blockProcessorArguments := CreateBlockProcessorMockArguments()
 		blockProcessorArguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
 				return flag == common.SupernovaFlag
 			},
 		}
@@ -1311,6 +1348,9 @@ func TestBlockProcessorComputeLongestChain_ContendedUnsettledCrossHeader(t *test
 		blockProcessorArguments := CreateBlockProcessorMockArguments()
 		blockProcessorArguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
 				return flag == common.SupernovaFlag
 			},
 		}

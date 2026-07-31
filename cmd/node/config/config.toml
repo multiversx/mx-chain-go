@@ -50,7 +50,7 @@
 
     # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
     EpochChangeGracePeriodByEpoch = [
-        {EnableEpoch = 0, GracePeriodInRounds = 1 },
+        {EnableEpoch = 0, GracePeriodInRounds = 5 },
         {EnableEpoch = 1, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
         {EnableEpoch = 2, GracePeriodInRounds = 100 }, # Supernova epoch comes with an even longer grace period due to round duration reduction
     ]

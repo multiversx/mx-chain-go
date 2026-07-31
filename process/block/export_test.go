@@ -266,10 +266,11 @@ func NewShardProcessorEmptyWith3shards(
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        dataComponents.DataPool.Headers(),
-		ProofsPool:         dataComponents.DataPool.Proofs(),
-		RequestHandler:     &testscommon.RequestHandlerStub{},
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         dataComponents.DataPool.Headers(),
+		ProofsPool:          dataComponents.DataPool.Proofs(),
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 
@@ -1092,6 +1093,11 @@ func ConstructPartialShardBlockProcessorForTest(subcomponents map[string]interfa
 		return nil, err
 	}
 	return sp, err
+}
+
+// HasProofsForHeaders -
+func (mp *metaProcessor) HasProofsForHeaders(headersPerShard map[uint32][]ShardHeaderInfo) bool {
+	return mp.hasProofsForHeaders(headersPerShard)
 }
 
 // ConstructPartialMetaBlockProcessorForTest -

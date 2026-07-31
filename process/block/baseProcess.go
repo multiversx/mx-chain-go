@@ -4454,7 +4454,9 @@ func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 // isContendedUnsettledCrossHeader applies the cross-shard referencing gate: a header that
 // skipped a round after its parent is not includable until it settles (see IsSettledCrossHeader)
 func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandler, parentHeader data.HeaderHandler, headerHash []byte) bool {
-	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	// keyed on the header's own epoch: a pre-Supernova header predates the settlement rules and
+	// could never satisfy them
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
 		return false
 	}
 	if !common.IsContendedHeader(header, parentHeader) {
@@ -4467,7 +4469,7 @@ func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandl
 // checkNotContendedUnsettled errors when a referenced cross-shard header is contended and not yet
 // settled; the header hash is computed only on the contended path
 func (bp *baseProcessor) checkNotContendedUnsettled(header data.HeaderHandler, parentHeader data.HeaderHandler) error {
-	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
 		return nil
 	}
 	if !common.IsContendedHeader(header, parentHeader) {
