@@ -437,3 +437,11 @@ func (boot *baseBootstrap) SaveProposedTxsToPool(
 ) error {
 	return boot.saveProposedTxsToPool(header, body)
 }
+
+// ShardForkDetectorExported -
+type ShardForkDetectorExported = shardForkDetector
+
+// GetMaxSyncWithErrorsAllowed -
+func (boot *baseBootstrap) GetMaxSyncWithErrorsAllowed(header data.HeaderHandler) uint32 {
+	return boot.getMaxSyncWithErrorsAllowed(header)
+}

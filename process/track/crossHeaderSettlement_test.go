@@ -170,7 +170,7 @@ func TestMetaBlockTrack_ComputeLongestChain_ContendedShardHeader(t *testing.T) {
 				return flag == common.SupernovaFlag
 			},
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
-				return flag == common.AndromedaFlag
+				return flag == common.AndromedaFlag || flag == common.SupernovaFlag
 			},
 		}
 		// the tracker settles from PoolsHolder, the block processor attests finality from

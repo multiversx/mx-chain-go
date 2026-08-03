@@ -115,7 +115,9 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	roundDif := int64(header.GetRound()) - int64(bfd.finalCheckpoint().round)
 	nonceDif := int64(header.GetNonce()) - int64(bfd.finalCheckpoint().nonce)
 	// TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
-	nextRound := bfd.roundHandler.Index() + 1
+	// bound against the round the current time falls into, not the stored index: a node slow to
+	// advance its chronology must still record the headers it needs to catch up
+	nextRound := bfd.roundHandler.IndexForCurrentTime() + 1
 
 	bfd.blackListHandler.Sweep()
 	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
@@ -875,8 +877,8 @@ func (bfd *baseForkDetector) isConsensusStuck() bool {
 		return false
 	}
 
-	lastCheckpointRound := bfd.lastCheckpoint().round
-	roundsDifference := bfd.roundHandler.Index() - int64(lastCheckpointRound)
+	lastCheckpoint := bfd.lastCheckpoint()
+	roundsDifference := bfd.roundHandler.Index() - int64(lastCheckpoint.round)
 	if roundsDifference <= bfd.getMaxRoundsWithoutCommittedBlock(uint64(bfd.roundHandler.Index())) {
 		return false
 	}
@@ -885,7 +887,11 @@ func (bfd *baseForkDetector) isConsensusStuck() bool {
 		return false
 	}
 
-	return true
+	// never blind-rollback a proven block: a proven tip can only be wrong through equivocation,
+	// which the evidence-driven rollback paths detect and prove before acting
+	hasProvenTip := len(lastCheckpoint.hash) != 0 && bfd.proofsPool.HasProof(bfd.shardID, lastCheckpoint.hash)
+
+	return !hasProvenTip
 }
 
 func (bfd *baseForkDetector) getMaxRoundsWithoutCommittedBlock(round uint64) int64 {
@@ -923,7 +929,11 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 		preservedHdrsInfo := make([]*headerInfo, 0)
 
 		for _, hdrInfo := range hdrsInfo {
-			if hdrInfo.state != process.BHNotarized {
+			// a proven record is hard evidence of the network tip; purging it would let the probable
+			// nonce collapse below a proven block and re-arm same-nonce proposals
+			isProvenRecord := hdrInfo.hasProof &&
+				bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdrInfo.epoch)
+			if hdrInfo.state != process.BHNotarized && !isProvenRecord {
 				continue
 			}
 

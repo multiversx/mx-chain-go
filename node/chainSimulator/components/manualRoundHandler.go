@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -63,6 +64,11 @@ func (handler *manualRoundHandler) RevertOneRound() {
 // Index returns the current index
 func (handler *manualRoundHandler) Index() int64 {
 	return atomic.LoadInt64(&handler.index)
+}
+
+// IndexForCurrentTime returns the current index, as rounds are advanced manually and not by the clock
+func (handler *manualRoundHandler) IndexForCurrentTime() int64 {
+	return handler.Index()
 }
 
 // BeforeGenesis returns false

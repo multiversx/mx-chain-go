@@ -191,7 +191,6 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 		log.Debug("requested missing txs", "num txs", requestedTxs)
 		err := txs.txsForCurrBlock.WaitForRequestedData(haveTime())
 		missingTxs := txs.txsForCurrBlock.GetMissingTxsCount()
-		txs.txsForCurrBlock.ClearMissingTxsCount()
 		log.Debug("received missing txs", "num txs", requestedTxs-missingTxs, "requested", requestedTxs, "missing", missingTxs)
 		if err != nil {
 			return err

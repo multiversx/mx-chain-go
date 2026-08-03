@@ -8349,7 +8349,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	buildProcessor := func(settled bool) (interface {
+	buildProcessor := func(settled bool, preSupernovaEra bool) (interface {
 		CheckMetaHeadersValidityAndFinality(header data.HeaderHandler) error
 	}, dataRetriever.ProofsPool) {
 		tdp := dataRetrieverMock.NewPoolsHolderMock()
@@ -8388,6 +8388,9 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.SupernovaFlag
 			},
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+				return !preSupernovaEra && flag == common.SupernovaFlag
+			},
 		}
 		dataComponents.DataPool = tdp
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -8408,7 +8411,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	t.Run("contended unsettled referenced meta header should error", func(t *testing.T) {
 		t.Parallel()
 
-		sp, _ := buildProcessor(false)
+		sp, _ := buildProcessor(false, false)
 		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
 		assert.ErrorContains(t, err, "included contended header not yet settled")
 	})
@@ -8416,7 +8419,15 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	t.Run("contended settled referenced meta header should pass", func(t *testing.T) {
 		t.Parallel()
 
-		sp, _ := buildProcessor(true)
+		sp, _ := buildProcessor(true, false)
+		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
+		assert.Nil(t, err)
+	})
+
+	t.Run("pre-Supernova contended referenced meta header is not gated", func(t *testing.T) {
+		t.Parallel()
+
+		sp, _ := buildProcessor(false, true)
 		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
 		assert.Nil(t, err)
 	})
@@ -8424,7 +8435,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	t.Run("own proof supersedes the contended gate on the execution path", func(t *testing.T) {
 		t.Parallel()
 
-		sp, proofs := buildProcessor(false)
+		sp, proofs := buildProcessor(false, false)
 		ownHeader := &block.Header{Nonce: 7}
 		headerBytes, _ := marshalizer.Marshal(ownHeader)
 		ownHash := hasher.Compute(string(headerBytes))
@@ -8500,4 +8511,86 @@ func TestShardProcessor_UpdateStateSignalsNewlyFinalBlocksUnderSupernova(t *test
 	finalInfoNonce, finalInfoHash, _ = dataComponents.BlockChain.GetFinalBlockInfo()
 	require.Equal(t, uint64(8), finalInfoNonce)
 	require.Equal(t, hash8, finalInfoHash)
+}
+
+func TestShardProcessor_CommitBlockV3BlocksBackgroundJobs(t *testing.T) {
+	t.Parallel()
+
+	// the storage work in the commit must push the trie snapshot aside without claiming the block
+	// processing exclusion, which the header v3 path deliberately dropped
+	blockedFor := make([]string, 0)
+	unblockCount := 0
+	releaseOrder := make([]string, 0)
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	coreComponents.ProcessStatusHandlerField = &testscommon.ProcessStatusHandlerStub{
+		BlockBackgroundJobsCalled: func(reason string) {
+			blockedFor = append(blockedFor, reason)
+		},
+		UnblockBackgroundJobsCalled: func() {
+			unblockCount++
+			releaseOrder = append(releaseOrder, "unblock")
+		},
+		TrySetBusyCalled: func(reason string) bool {
+			require.Fail(t, "the header v3 commit must not claim the processing exclusion")
+			return false
+		},
+	}
+
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+		RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+			releaseOrder = append(releaseOrder, "revert")
+			return nil
+		},
+	}
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
+
+	// the commit fails on validity, which is past the bracket and enough to pin it and its release
+	err = sp.CommitBlock(&block.HeaderV3{Nonce: 1}, &block.Body{})
+	require.NotNil(t, err)
+
+	require.Equal(t, []string{"shardProcessor.CommitBlock"}, blockedFor)
+	require.Equal(t, 1, unblockCount)
+	// the deferred cleanup touches the execution manager, so it runs before the release
+	require.Equal(t, []string{"revert", "unblock"}, releaseOrder)
+}
+
+func TestShardProcessor_CommitBlockProposalStateBlocksBackgroundJobs(t *testing.T) {
+	t.Parallel()
+
+	// the accounts state commit runs on the execution goroutine and writes the very tries the
+	// snapshot reads, so it must hold the snapshot off for its duration
+	blockedFor := make([]string, 0)
+	unblockCount := 0
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	coreComponents.ProcessStatusHandlerField = &testscommon.ProcessStatusHandlerStub{
+		BlockBackgroundJobsCalled: func(reason string) {
+			blockedFor = append(blockedFor, reason)
+		},
+		UnblockBackgroundJobsCalled: func() {
+			unblockCount++
+		},
+		TrySetBusyCalled: func(reason string) bool {
+			require.Fail(t, "the state commit must not claim the processing exclusion")
+			return false
+		},
+	}
+
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
+
+	err = sp.CommitBlockProposalState(&block.HeaderV3{Nonce: 1})
+	require.Nil(t, err)
+
+	require.Equal(t, []string{"shardProcessor.CommitBlockProposalState"}, blockedFor)
+	require.Equal(t, 1, unblockCount)
+
+	// a nil header returns before the bracket, so it must not leak an unblock
+	err = sp.CommitBlockProposalState(nil)
+	require.Equal(t, process.ErrNilBlockHeader, err)
+	require.Equal(t, 1, unblockCount)
 }

@@ -113,7 +113,6 @@ func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func
 			"num scrs", requestedScrs)
 		err := scr.scrForBlock.WaitForRequestedData(haveTime())
 		missingScrs := scr.scrForBlock.GetMissingTxsCount()
-		scr.scrForBlock.ClearMissingTxsCount()
 		log.Debug("received missing scrs",
 			"num scrs", requestedScrs-missingScrs)
 		if err != nil {

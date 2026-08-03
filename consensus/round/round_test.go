@@ -738,3 +738,84 @@ func TestRound_GetTimeStampForRound(t *testing.T) {
 	expRoundTimeStamp = supernovaGenesisTimeStamp.Add((1000 - 10) * supernovaRoundTimeDuration)
 	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
 }
+
+func TestRound_IndexForCurrentTimeIsIndependentOfTheStoredIndex(t *testing.T) {
+	t.Parallel()
+
+	genesisTime := time.Unix(0, 0)
+
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
+	elapsedRounds := int64(0)
+	syncTimerMock.CurrentTimeCalled = func() time.Time {
+		return time.Unix(0, elapsedRounds*int64(roundTimeDuration))
+	}
+
+	args := createDefaultRoundArgs()
+	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime
+	args.CurrentTimeStamp = genesisTime
+	args.SyncTimer = syncTimerMock
+
+	rnd, err := round.NewRound(args)
+	require.Nil(t, err)
+	require.Equal(t, int64(0), rnd.Index())
+	require.Equal(t, int64(0), rnd.IndexForCurrentTime())
+
+	// time moves on without anybody calling UpdateRound, as a blocked chronology goroutine would
+	elapsedRounds = 37
+
+	require.Equal(t, int64(0), rnd.Index(), "the stored index only advances through UpdateRound")
+	require.Equal(t, int64(37), rnd.IndexForCurrentTime())
+
+	rnd.UpdateRound(genesisTime, syncTimerMock.CurrentTime())
+	require.Equal(t, int64(37), rnd.Index())
+	require.Equal(t, int64(37), rnd.IndexForCurrentTime())
+}
+
+func TestRound_IndexForCurrentTimeUsesTheStartRoundOffset(t *testing.T) {
+	t.Parallel()
+
+	genesisTime := time.Unix(0, 0)
+
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
+	syncTimerMock.CurrentTimeCalled = func() time.Time {
+		return time.Unix(0, 5*int64(roundTimeDuration))
+	}
+
+	args := createDefaultRoundArgs()
+	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime
+	args.CurrentTimeStamp = genesisTime
+	args.SyncTimer = syncTimerMock
+	args.StartRound = 100
+	args.SupernovaStartRound = 100
+
+	rnd, err := round.NewRound(args)
+	require.Nil(t, err)
+
+	require.Equal(t, int64(105), rnd.IndexForCurrentTime())
+}
+
+func TestRound_IndexForCurrentTimeBeforeGenesis(t *testing.T) {
+	t.Parallel()
+
+	genesisTime := time.Unix(0, 10*int64(roundTimeDuration))
+
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
+	syncTimerMock.CurrentTimeCalled = func() time.Time {
+		return time.Unix(0, 0)
+	}
+
+	args := createDefaultRoundArgs()
+	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime
+	args.CurrentTimeStamp = genesisTime
+	args.SyncTimer = syncTimerMock
+
+	rnd, err := round.NewRound(args)
+	require.Nil(t, err)
+
+	// before genesis the derived index is negative, matching what UpdateRound would store; the gates
+	// add one to it, so they must not treat it as a huge unsigned bound
+	require.Equal(t, int64(-10), rnd.IndexForCurrentTime())
+}

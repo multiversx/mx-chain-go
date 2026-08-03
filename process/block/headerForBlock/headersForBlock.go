@@ -540,6 +540,12 @@ func (hfb *headersForBlock) requestProofIfNeeded(currentHeaderHash []byte, heade
 		return true
 	}
 
+	hInfo, ok := hfb.hdrHashAndInfo[string(currentHeaderHash)]
+	if ok && hInfo.HasProofRequested() {
+		// already accounted in missingProofs; re-runs of the walks must not inflate the counter
+		return false
+	}
+
 	hfb.setHasProofRequested(string(currentHeaderHash))
 	go hfb.requestHandler.RequestEquivalentProofByHash(header.GetShardID(), currentHeaderHash)
 
@@ -573,22 +579,38 @@ func (hfb *headersForBlock) requestMissingFinalityAttestingHeaders(
 			continue
 		}
 
+		hasPreProofsAttester := false
 		for index := range headers {
-			hfb.hdrHashAndInfo[string(headersHashes[index])] = newHeaderInfo(
-				headers[index],
-				false,
-				false,
-				false,
-			)
+			existingInfo, exists := hfb.hdrHashAndInfo[string(headersHashes[index])]
+			if !exists {
+				hfb.hdrHashAndInfo[string(headersHashes[index])] = newHeaderInfo(
+					headers[index],
+					false,
+					false,
+					false,
+				)
+			} else if check.IfNil(existingInfo.GetHeader()) {
+				existingInfo.SetHeader(headers[index])
+			}
 
 			if !hfb.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, headers[index].GetEpoch()) {
-				continue
+				hasPreProofsAttester = true
 			}
+		}
 
-			_, err = hfb.dataPool.Proofs().GetProofByNonce(i, shardID)
-			if err != nil {
-				hfb.requestProofIfNeeded(headersHashes[index], headers[index])
-			}
+		// attestation is existential: a pre-proofs candidate attests under its era's rule, and a
+		// sibling candidate's proof is then not a validity requirement of the block being built
+		if hasPreProofsAttester {
+			continue
+		}
+
+		_, err = hfb.dataPool.Proofs().GetProofByNonce(i, shardID)
+		if err == nil {
+			continue
+		}
+
+		for index := range headers {
+			hfb.requestProofIfNeeded(headersHashes[index], headers[index])
 		}
 	}
 

@@ -266,10 +266,11 @@ func NewShardProcessorEmptyWith3shards(
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        dataComponents.DataPool.Headers(),
-		ProofsPool:         dataComponents.DataPool.Proofs(),
-		RequestHandler:     &testscommon.RequestHandlerStub{},
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         dataComponents.DataPool.Headers(),
+		ProofsPool:          dataComponents.DataPool.Proofs(),
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 
@@ -454,7 +455,7 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 
 // CheckHeaderBodyCorrelation -
 func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID(), false)
+	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID(), hdr.GetEpoch(), false)
 }
 
 // IsHdrConstructionValid -
@@ -479,7 +480,7 @@ func (sp *shardProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 // CheckHeaderBodyCorrelation -
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID(), false)
+	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID(), hdr.GetEpoch(), false)
 }
 
 // CheckAndRequestIfMetaHeadersMissing -
@@ -871,8 +872,8 @@ func (bp *baseProcessor) SetMiniBlockSelectionSession(session MiniBlocksSelectio
 }
 
 // CheckHeaderBodyCorrelationProposal -
-func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, headerShardID uint32) error {
-	return bp.checkHeaderBodyCorrelation(miniBlockHeaders, body, headerShardID, true)
+func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, headerShardID uint32, headerEpoch uint32) error {
+	return bp.checkHeaderBodyCorrelation(miniBlockHeaders, body, headerShardID, headerEpoch, true)
 }
 
 // GetFinalMiniBlocksFromExecutionResults -
@@ -1092,6 +1093,11 @@ func ConstructPartialShardBlockProcessorForTest(subcomponents map[string]interfa
 		return nil, err
 	}
 	return sp, err
+}
+
+// HasProofsForHeaders -
+func (mp *metaProcessor) HasProofsForHeaders(headersPerShard map[uint32][]ShardHeaderInfo) bool {
+	return mp.hasProofsForHeaders(headersPerShard)
 }
 
 // ConstructPartialMetaBlockProcessorForTest -

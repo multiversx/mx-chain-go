@@ -257,6 +257,14 @@ type ProcessStatusHandler interface {
 	SetBusy(reason string)
 	TrySetBusy(reason string) bool
 	SetIdle()
+	// BlockBackgroundJobs marks latency critical work that background jobs must yield to, without
+	// claiming the block processing exclusion, so the spans may overlap and are reference counted
+	BlockBackgroundJobs(reason string)
+	UnblockBackgroundJobs()
+	// SuspendBackgroundJobBlocking makes IsIdle ignore active blockers: for a caller that waits on a
+	// background job while itself holding a blocker, which would otherwise deadlock the wait
+	SuspendBackgroundJobBlocking(reason string)
+	ResumeBackgroundJobBlocking()
 	IsIdle() bool
 	IsInterfaceNil() bool
 }

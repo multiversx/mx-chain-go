@@ -805,6 +805,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		common.CurrentRandomnessOnSortingFlag,
 		common.AndromedaFlag,
 		common.FullShardDataValidationFlag,
+		common.RelayedTransactionsV1V2DisableFlag,
 	})
 	if err != nil {
 		return err
@@ -1242,7 +1243,7 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr 
 }
 
 // check if header has the same mini blocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32, proposal bool) error {
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32, headerEpoch uint32, proposal bool) error {
 	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
 		if miniBlockHeaders[i] == nil {
@@ -1297,9 +1298,9 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		delete(mbHashesFromHdr, mbHashStr)
 	}
 
-	err = checkForDuplicatedTxHashes(body)
-	if err != nil {
-		return err
+	// duplicated tx hashes were legitimate while failed relayed txs v1/v2 were added to invalid miniblocks
+	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, headerEpoch) {
+		return checkForDuplicatedTxHashes(body)
 	}
 
 	return nil
@@ -2204,6 +2205,32 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= bp.getPutInStorerMaxTime() {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
+	}
+}
+
+// setEpochForPutOperation points the storers at the committed block's epoch, timed because it waits on
+// the storers' own locks, which the epoch change holds while it opens and closes persisters
+func (bp *baseProcessor) setEpochForPutOperation(epoch uint32) {
+	startTime := time.Now()
+	bp.store.SetEpochForPutOperation(epoch)
+
+	elapsedTime := time.Since(startTime)
+	if elapsedTime >= bp.getPutInStorerMaxTime() {
+		log.Warn("baseProcessor.setEpochForPutOperation", "elapsed time", elapsedTime, "epoch", epoch)
+	}
+}
+
+// warnIfSlowCommitPrologue splits a slow start of CommitBlock between the code before the first
+// commit log line and that log write itself, which can stall for seconds on a saturated disk
+func (bp *baseProcessor) warnIfSlowCommitPrologue(entryTime time.Time, beforeLogTime time.Time) {
+	logWriteTime := time.Since(beforeLogTime)
+	preLogTime := beforeLogTime.Sub(entryTime)
+	maxTime := bp.getPutInStorerMaxTime()
+	if preLogTime >= maxTime {
+		log.Warn("slow CommitBlock prologue", "elapsed time", preLogTime)
+	}
+	if logWriteTime >= maxTime {
+		log.Warn("slow CommitBlock prologue log write", "elapsed time", logWriteTime)
 	}
 }
 
@@ -4337,31 +4364,47 @@ func (bp *baseProcessor) PruneTrieAsyncHeader() {
 	bp.mutLastPrunedHeader.Lock()
 	defer bp.mutLastPrunedHeader.Unlock()
 
-	header := bp.blockChain.GetCurrentBlockHeader()
-	headerHash := bp.blockChain.GetCurrentBlockHeaderHash()
-
-	if len(bp.lastPrunedHeaderHash) == 0 {
-		// last pruned header hash not set, trigger prune trie for the provided header
-		bp.blockProcessor.pruneTrieHeaderV3(header)
-		bp.lastPrunedHeaderHash = headerHash
-		bp.lastPrunedHeaderNonce = header.GetNonce()
+	// prune keyed on the settled checkpoint, never the committed tip: a rollback can legally land
+	// on any block down to the settled one and re-execution then needs its notarized state root
+	settledNonce, settledHash := bp.forkDetector.GetHighestSettledBlockInfo()
+	if len(settledHash) == 0 {
 		return
 	}
 
-	// extra check by nonce
-	if header.GetNonce() <= bp.lastPrunedHeaderNonce {
+	hasPrunedBefore := len(bp.lastPrunedHeaderHash) != 0
+	if hasPrunedBefore && settledNonce <= bp.lastPrunedHeaderNonce {
 		return
 	}
 
-	err := bp.pruneTrieForHeadersUnprotected(headerHash, header)
+	settledHeader, err := process.GetHeader(
+		settledHash,
+		bp.dataPool.Headers(),
+		bp.store,
+		bp.marshalizer,
+		bp.shardCoordinator.SelfId(),
+	)
 	if err != nil {
-		// there was an error while fetching intermediate headers
-		// reset pruning context
-		bp.blockProcessor.resetPruning()
+		log.Debug("PruneTrieAsyncHeader: settled header not available, pruning postponed",
+			"nonce", settledNonce,
+			"hash", settledHash,
+			"error", err,
+		)
+		return
 	}
 
-	bp.lastPrunedHeaderHash = headerHash
-	bp.lastPrunedHeaderNonce = header.GetNonce()
+	if !hasPrunedBefore {
+		bp.blockProcessor.pruneTrieHeaderV3(settledHeader)
+	} else {
+		err = bp.pruneTrieForHeadersUnprotected(settledHash, settledHeader)
+		if err != nil {
+			// there was an error while fetching intermediate headers
+			// reset pruning context
+			bp.blockProcessor.resetPruning()
+		}
+	}
+
+	bp.lastPrunedHeaderHash = settledHash
+	bp.lastPrunedHeaderNonce = settledNonce
 }
 
 func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
@@ -4412,7 +4455,9 @@ func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 // isContendedUnsettledCrossHeader applies the cross-shard referencing gate: a header that
 // skipped a round after its parent is not includable until it settles (see IsSettledCrossHeader)
 func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandler, parentHeader data.HeaderHandler, headerHash []byte) bool {
-	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	// keyed on the header's own epoch: a pre-Supernova header predates the settlement rules and
+	// could never satisfy them
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
 		return false
 	}
 	if !common.IsContendedHeader(header, parentHeader) {
@@ -4425,7 +4470,7 @@ func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandl
 // checkNotContendedUnsettled errors when a referenced cross-shard header is contended and not yet
 // settled; the header hash is computed only on the contended path
 func (bp *baseProcessor) checkNotContendedUnsettled(header data.HeaderHandler, parentHeader data.HeaderHandler) error {
-	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
 		return nil
 	}
 	if !common.IsContendedHeader(header, parentHeader) {

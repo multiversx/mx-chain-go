@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/statistics"
@@ -84,7 +85,7 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 		Marshalizer: args.Marshalizer,
 		Hasher:      args.Hasher,
 		GeneralConfig: config.TrieStorageManagerConfig{
-			SnapshotsGoroutineNum: 2,
+			SnapshotsGoroutinesPerCore: 2,
 		},
 		IdleProvider:   commonDisabled.NewProcessStatusHandler(),
 		Identifier:     dataRetriever.UserAccountsUnit.String(),

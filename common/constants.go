@@ -259,6 +259,10 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 // MetricNumTimesInForkChoice is the metric that counts how many times a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
+// MetricNumRollBacksRefusedMissingState is the metric that counts the roll backs refused because
+// the post-rollback execution base state was not recreatable
+const MetricNumRollBacksRefusedMissingState = "erd_rollbacks_refused_missing_state_count"
+
 // MetricNumEquivocationProofs is the metric that counts the equivocation events observed by the
 // proofs pool (different-hash proofs received for the same header nonce)
 const MetricNumEquivocationProofs = "erd_num_equivocation_proofs"

@@ -615,10 +615,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        pcf.data.Datapool().Headers(),
-		ProofsPool:         pcf.data.Datapool().Proofs(),
-		RequestHandler:     requestHandler,
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         pcf.data.Datapool().Headers(),
+		ProofsPool:          pcf.data.Datapool().Proofs(),
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {
@@ -1200,10 +1201,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        pcf.data.Datapool().Headers(),
-		ProofsPool:         pcf.data.Datapool().Proofs(),
-		RequestHandler:     requestHandler,
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         pcf.data.Datapool().Headers(),
+		ProofsPool:          pcf.data.Datapool().Proofs(),
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {

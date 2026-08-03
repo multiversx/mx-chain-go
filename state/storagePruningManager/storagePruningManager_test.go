@@ -25,9 +25,9 @@ import (
 
 func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.AccountsDB, *storagePruningManager) {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
+		PruningBufferLen:           1000,
+		SnapshotsBufferLen:         10,
+		SnapshotsGoroutinesPerCore: 1,
 	}
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}

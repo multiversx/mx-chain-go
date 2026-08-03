@@ -197,10 +197,11 @@ func createArgBaseProcessor(
 		)
 
 		missingDataArgs := missingData.ResolverArgs{
-			HeadersPool:        dataComponents.DataPool.Headers(),
-			ProofsPool:         dataComponents.DataPool.Proofs(),
-			RequestHandler:     &testscommon.RequestHandlerStub{},
-			BlockDataRequester: blockDataRequester,
+			HeadersPool:         dataComponents.DataPool.Headers(),
+			ProofsPool:          dataComponents.DataPool.Proofs(),
+			RequestHandler:      &testscommon.RequestHandlerStub{},
+			BlockDataRequester:  blockDataRequester,
+			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 		}
 		missingDataResolver, _ = missingData.NewMissingDataResolver(missingDataArgs)
 	}
@@ -3796,7 +3797,8 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
-	bp, _ := blproc.NewShardProcessor(arguments)
+	bp, errCtor := blproc.NewShardProcessor(arguments)
+	require.Nil(t, errCtor)
 
 	bp.SetLastRestartNonce(1)
 	ph := bp.GetPruningHandler(10)
@@ -4342,6 +4344,15 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 	t.Parallel()
 
 	shardID := uint32(0)
+	epoch := uint32(0)
+	relayedV1V2DisableEpoch := uint32(5)
+	createEnableEpochsHandlerStub := func() *enableEpochsHandlerMock.EnableEpochsHandlerStub {
+		return &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.RelayedTransactionsV1V2DisableFlag && epoch >= relayedV1V2DisableEpoch
+			},
+		}
+	}
 	t.Run("different number of miniblock headers and miniblocks should error ", func(t *testing.T) {
 		t.Parallel()
 
@@ -4354,6 +4365,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				{SenderShardID: 0},
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrHeaderBodyMismatch, err)
 	})
@@ -4371,6 +4383,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				nil,
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrNilMiniBlock, err)
 	})
@@ -4388,6 +4401,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				{},
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrNilMiniBlockHeader, err)
 	})
@@ -4406,6 +4420,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				{},
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrHeaderBodyMismatch, err)
 	})
@@ -4430,6 +4445,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrHeaderBodyMismatch, err)
 	})
@@ -4456,6 +4472,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 	})
@@ -4484,6 +4501,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 	})
@@ -4519,6 +4537,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrWrongMiniBlockConstructionState, err)
 	})
@@ -4555,6 +4574,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrWrongMiniBlockProcessingType, err)
 	})
@@ -4593,13 +4613,15 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.NoError(t, err)
 	})
 
-	t.Run("duplicate tx hash across miniblocks with proposal should error", func(t *testing.T) {
+	t.Run("duplicate tx hash across miniblocks with proposal should error only after relayed v1/v2 disable epoch", func(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.EnableEpochsHandlerField = createEnableEpochsHandlerStub()
 		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
@@ -4644,17 +4666,19 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 		_ = mbHeaders[1].SetConstructionState(int32(block.Proposed))
 		_ = mbHeaders[1].SetProcessingType(int32(block.Normal))
 
-		err := bp.CheckHeaderBodyCorrelationProposal(
-			mbHeaders,
-			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock1, miniBlock2}},
-			shardID,
-		)
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock1, miniBlock2}}
+
+		err := bp.CheckHeaderBodyCorrelationProposal(mbHeaders, body, shardID, relayedV1V2DisableEpoch-1)
+		require.NoError(t, err)
+
+		err = bp.CheckHeaderBodyCorrelationProposal(mbHeaders, body, shardID, relayedV1V2DisableEpoch)
 		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
 	})
 
-	t.Run("duplicate tx hash within single miniblock with proposal should error", func(t *testing.T) {
+	t.Run("duplicate tx hash within single miniblock with proposal should error only after relayed v1/v2 disable epoch", func(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.EnableEpochsHandlerField = createEnableEpochsHandlerStub()
 		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
@@ -4681,17 +4705,19 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 		_ = mbHeaders[0].SetConstructionState(int32(block.Proposed))
 		_ = mbHeaders[0].SetProcessingType(int32(block.Normal))
 
-		err := bp.CheckHeaderBodyCorrelationProposal(
-			mbHeaders,
-			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}},
-			shardID,
-		)
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}
+
+		err := bp.CheckHeaderBodyCorrelationProposal(mbHeaders, body, shardID, relayedV1V2DisableEpoch-1)
+		require.NoError(t, err)
+
+		err = bp.CheckHeaderBodyCorrelationProposal(mbHeaders, body, shardID, relayedV1V2DisableEpoch)
 		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
 	})
 
-	t.Run("duplicate tx hash across miniblocks without proposal should error", func(t *testing.T) {
+	t.Run("duplicate tx hash across miniblocks without proposal should error only after relayed v1/v2 disable epoch", func(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.EnableEpochsHandlerField = createEnableEpochsHandlerStub()
 		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
@@ -4716,6 +4742,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 
 		hdr := &block.Header{
 			ShardID: shardID,
+			Epoch:   relayedV1V2DisableEpoch - 1,
 			MiniBlockHeaders: []block.MiniBlockHeader{
 				{
 					Hash:            mbHash1,
@@ -4735,17 +4762,20 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				},
 			},
 		}
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock1, miniBlock2}}
 
-		err := bp.CheckHeaderBodyCorrelation(
-			hdr,
-			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock1, miniBlock2}},
-		)
+		err := bp.CheckHeaderBodyCorrelation(hdr, body)
+		require.NoError(t, err)
+
+		hdr.Epoch = relayedV1V2DisableEpoch
+		err = bp.CheckHeaderBodyCorrelation(hdr, body)
 		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
 	})
 
-	t.Run("duplicate tx hash within single miniblock without proposal should error", func(t *testing.T) {
+	t.Run("duplicate tx hash within single miniblock without proposal should error only after relayed v1/v2 disable epoch", func(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.EnableEpochsHandlerField = createEnableEpochsHandlerStub()
 		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
@@ -4762,6 +4792,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 
 		hdr := &block.Header{
 			ShardID: shardID,
+			Epoch:   relayedV1V2DisableEpoch - 1,
 			MiniBlockHeaders: []block.MiniBlockHeader{
 				{
 					Hash:            mbHash,
@@ -4773,11 +4804,13 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				},
 			},
 		}
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}
 
-		err := bp.CheckHeaderBodyCorrelation(
-			hdr,
-			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}},
-		)
+		err := bp.CheckHeaderBodyCorrelation(hdr, body)
+		require.NoError(t, err)
+
+		hdr.Epoch = relayedV1V2DisableEpoch
+		err = bp.CheckHeaderBodyCorrelation(hdr, body)
 		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
 	})
 }
@@ -6782,14 +6815,26 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 			},
 		}
 
-		blkc := createTestBlockchain()
-		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-			return header1
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, headerHash1) {
+					return header1, nil
+				}
+
+				return nil, errors.New("header not found")
+			},
 		}
-		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-			return headerHash1
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return headersPool
 		}
-		dataComponents.BlockChain = blkc
+		dataComponents.DataPool = dataPool
+
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+				return header1.GetNonce(), headerHash1
+			},
+		}
 
 		bp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
@@ -6826,14 +6871,11 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 			},
 		}
 
-		blkc := createTestBlockchain()
-		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-			return header2
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+				return header2.GetNonce(), headerHash2
+			},
 		}
-		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-			return headerHash2
-		}
-		dataComponents.BlockChain = blkc
 
 		bp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
@@ -6891,14 +6933,11 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		}
 		dataComponents.DataPool = dataPool
 
-		blkc := createTestBlockchain()
-		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-			return header3
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+				return header3.GetNonce(), headerHash3
+			},
 		}
-		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-			return headerHash3
-		}
-		dataComponents.BlockChain = blkc
 
 		bp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
@@ -6979,14 +7018,11 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		}
 		dataComponents.DataPool = dataPool
 
-		blkc := createTestBlockchain()
-		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-			return header6
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+				return header6.GetNonce(), headerHash6
+			},
 		}
-		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-			return headerHash6
-		}
-		dataComponents.BlockChain = blkc
 
 		bp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
@@ -7059,14 +7095,11 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		}
 		dataComponents.DataPool = dataPool
 
-		blkc := createTestBlockchain()
-		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-			return header9
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+				return header9.GetNonce(), headerHash9
+			},
 		}
-		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-			return headerHash9
-		}
-		dataComponents.BlockChain = blkc
 
 		bp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
@@ -7093,6 +7126,149 @@ func TestBaseProcessor_PruneTrieAsyncHeader(t *testing.T) {
 		require.Equal(t, 3, len(cancelPruneRootHashes))
 		require.Equal(t, 3, len(pruneTrieRootHashes))
 		require.Equal(t, headerHash9, bp.GetLastPrunedHash())
+	})
+
+	t.Run("no settled block yet, should not prune", func(t *testing.T) {
+		t.Parallel()
+
+		pruneTrieCalled := false
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				pruneTrieCalled = true
+			},
+		}
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+				return 0, nil
+			},
+		}
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.PruneTrieAsyncHeader()
+
+		require.False(t, pruneTrieCalled)
+		require.Nil(t, bp.GetLastPrunedHash())
+	})
+
+	t.Run("settled header not resolvable, pruning postponed", func(t *testing.T) {
+		t.Parallel()
+
+		pruneTrieCalled := false
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				pruneTrieCalled = true
+			},
+		}
+
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, errors.New("header not found")
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return headersPool
+		}
+		dataComponents.DataPool = dataPool
+
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+				return header1.GetNonce(), headerHash1
+			},
+		}
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.PruneTrieAsyncHeader()
+
+		require.False(t, pruneTrieCalled)
+		require.Nil(t, bp.GetLastPrunedHash())
+	})
+
+	t.Run("settled behind committed tip retains its execution base root", func(t *testing.T) {
+		t.Parallel()
+
+		pruneTrieRootHashes := make([][]byte, 0)
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				pruneTrieRootHashes = append(pruneTrieRootHashes, rootHash)
+			},
+		}
+
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, headerHash1) {
+					return header1, nil
+				}
+				if bytes.Equal(hash, headerHash2) {
+					return header2, nil
+				}
+				if bytes.Equal(hash, headerHash3) {
+					return header3, nil
+				}
+
+				return nil, errors.New("header not found")
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return headersPool
+		}
+		dataComponents.DataPool = dataPool
+
+		// the committed tip is header3, the settled checkpoint lags at header2
+		settledNonce := header2.GetNonce()
+		settledHash := headerHash2
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+				return settledNonce, settledHash
+			},
+		}
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		bp.SetLastPrunedHash(headerHash1)
+
+		bp.PruneTrieAsyncHeader()
+
+		// header2's last notarized root (rootHash23) and everything newer must survive: a legal
+		// rollback to the settled block re-executes from rootHash23
+		require.Equal(t, [][]byte{rootHash11, rootHash20, rootHash21, rootHash22}, pruneTrieRootHashes)
+		require.Equal(t, headerHash2, bp.GetLastPrunedHash())
+
+		// once settlement advances to the tip, the retained roots become prunable
+		settledNonce = header3.GetNonce()
+		settledHash = headerHash3
+
+		bp.PruneTrieAsyncHeader()
+
+		require.Equal(t, [][]byte{rootHash11, rootHash20, rootHash21, rootHash22, rootHash23, rootHash30}, pruneTrieRootHashes)
+		require.Equal(t, headerHash3, bp.GetLastPrunedHash())
 	})
 }
 

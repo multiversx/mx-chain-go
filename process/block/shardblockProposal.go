@@ -182,7 +182,7 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), true)
+	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), header.GetEpoch(), true)
 	if err != nil {
 		return err
 	}
@@ -403,6 +403,11 @@ func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHand
 		return process.ErrNilBlockHeader
 	}
 
+	// runs on the execution goroutine outside CommitBlock; the snapshot yields for the duration so it
+	// cannot steal CPU/disk from this span - a latency concern only, trie nodes are immutable
+	sp.processStatusHandler.BlockBackgroundJobs("shardProcessor.CommitBlockProposalState")
+	defer sp.processStatusHandler.UnblockBackgroundJobs()
+
 	sp.cleanupDismissedEWLEntries()
 
 	err := sp.commitState(headerHandler)
@@ -541,8 +546,8 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			continue
 		}
 
-		hasProofForHdr := sp.proofsPool.HasProof(core.MetachainShardId, currentMetaBlockHash)
-		if !hasProofForHdr {
+		needsProof := common.IsProofsFlagEnabledForHeader(sp.enableEpochsHandler, currentMetaBlock)
+		if needsProof && !sp.proofsPool.HasProof(core.MetachainShardId, currentMetaBlockHash) {
 			log.Trace("no proof for meta header",
 				"hash", logger.DisplayByteSlice(currentMetaBlockHash),
 			)
@@ -840,9 +845,11 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> isHdrConstructionValid", err)
 		}
 
-		err = sp.checkHeaderHasProof(metaHeader)
-		if err != nil {
-			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> checkHeaderHasProof", err)
+		if common.IsProofsFlagEnabledForHeader(sp.enableEpochsHandler, metaHeader) {
+			err = sp.checkHeaderHasProof(metaHeader)
+			if err != nil {
+				return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> checkHeaderHasProof", err)
+			}
 		}
 		lastCrossNotarizedHeader = metaHeader
 	}

@@ -50,7 +50,7 @@
 
     # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
     EpochChangeGracePeriodByEpoch = [
-        {EnableEpoch = 0, GracePeriodInRounds = 1 },
+        {EnableEpoch = 0, GracePeriodInRounds = 5 },
         {EnableEpoch = 1, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
         {EnableEpoch = 2, GracePeriodInRounds = 100 }, # Supernova epoch comes with an even longer grace period due to round duration reduction
     ]
@@ -126,8 +126,8 @@
             SubroundsTiming = [
                 { StartTime = 0.0,  EndTime = 0.05 },  # start round
                 { StartTime = 0.05, EndTime = 0.35 },  # block
-                { StartTime = 0.35, EndTime = 0.55 },  # signature
-                { StartTime = 0.55, EndTime = 0.95 },  # end round
+                { StartTime = 0.35, EndTime = 0.65 },  # signature
+                { StartTime = 0.65, EndTime = 0.95 },  # end round
             ],
             ProcessingThresholdPercent = 85
         }
@@ -516,7 +516,10 @@
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
-    SnapshotsGoroutineNum = 200
+    # SnapshotsGoroutinesPerCore scales the snapshot fan-out with the host: effective goroutines =
+    # value * GOMAXPROCS, minimum 4. Keep it low: a deep snapshot run queue can delay waking
+    # consensus goroutines
+    SnapshotsGoroutinesPerCore = 2
 
 [HeadersPoolConfig]
     MaxHeadersPerShard = 1000
@@ -1084,7 +1087,9 @@
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
     [Debug.EpochStart]
-        GoRoutineAnalyserEnabled = true
+        # dumps every goroutine stack on each epoch start, which stops the world and floods the log
+        # exactly while the epoch start snapshot runs; enable only when investigating goroutine leaks
+        GoRoutineAnalyserEnabled = false
         ProcessDataTrieOnCommitEpoch = true
     [Debug.Process]
         Enabled = true
