@@ -197,7 +197,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = mp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), false)
+	err = mp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), header.GetEpoch(), false)
 	if err != nil {
 		return err
 	}
@@ -1290,6 +1290,7 @@ func (mp *metaProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
+	commitEntryTime := time.Now()
 	err := checkForNils(headerHandler, bodyHandler)
 	if err != nil {
 		return err
@@ -1309,28 +1310,34 @@ func (mp *metaProcessor) CommitBlock(
 			mp.processStatusHandler.SetIdle()
 		}()
 	} else {
+		// no exclusion here, consensus and sync may both be in flight; released after the deferred
+		// cleanup so the whole span, storage writes included, keeps the trie snapshot out of the way
+		mp.processStatusHandler.BlockBackgroundJobs("metaProcessor.CommitBlock")
 		defer func() {
 			if err != nil {
 				mp.RevertHeaderV3OnCommit(headerHandler)
 				_ = mp.blockChain.SetCurrentBlockHeader(prevBlockHeader)
 				mp.blockChain.SetCurrentBlockHeaderHash(prevBlockHeaderHash)
 			}
+			mp.processStatusHandler.UnblockBackgroundJobs()
 		}()
 	}
 
+	beforeLogTime := time.Now()
 	log.Debug("started committing block",
 		"epoch", headerHandler.GetEpoch(),
 		"shard", headerHandler.GetShardID(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
+	mp.warnIfSlowCommitPrologue(commitEntryTime, beforeLogTime)
 
 	err = mp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
 
-	mp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
+	mp.setEpochForPutOperation(headerHandler.GetEpoch())
 
 	header, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {

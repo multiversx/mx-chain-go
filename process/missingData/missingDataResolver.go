@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -20,22 +21,24 @@ var log = logger.GetOrCreate("missingDataResolver")
 
 // ResolverArgs holds the arguments needed to create a Resolver
 type ResolverArgs struct {
-	HeadersPool        dataRetriever.HeadersPool
-	ProofsPool         dataRetriever.ProofsPool
-	RequestHandler     process.RequestHandler
-	BlockDataRequester process.BlockDataRequester
+	HeadersPool         dataRetriever.HeadersPool
+	ProofsPool          dataRetriever.ProofsPool
+	RequestHandler      process.RequestHandler
+	BlockDataRequester  process.BlockDataRequester
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // Resolver is responsible for requesting and tracking missing headers and proofs.
 type Resolver struct {
-	mutHeaders         sync.RWMutex
-	missingHeaders     map[string]struct{}
-	mutProofs          sync.RWMutex
-	missingProofs      map[string]struct{}
-	headersPool        dataRetriever.HeadersPool
-	proofsPool         dataRetriever.ProofsPool
-	requestHandler     process.RequestHandler
-	blockDataRequester process.BlockDataRequester
+	mutHeaders          sync.RWMutex
+	missingHeaders      map[string]struct{}
+	mutProofs           sync.RWMutex
+	missingProofs       map[string]struct{}
+	headersPool         dataRetriever.HeadersPool
+	proofsPool          dataRetriever.ProofsPool
+	requestHandler      process.RequestHandler
+	blockDataRequester  process.BlockDataRequester
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewMissingDataResolver creates a new instance of Resolver.
@@ -52,14 +55,18 @@ func NewMissingDataResolver(args ResolverArgs) (*Resolver, error) {
 	if check.IfNil(args.BlockDataRequester) {
 		return nil, process.ErrNilBlockDataRequester
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	r := &Resolver{
-		missingHeaders:     make(map[string]struct{}),
-		missingProofs:      make(map[string]struct{}),
-		headersPool:        args.HeadersPool,
-		proofsPool:         args.ProofsPool,
-		requestHandler:     args.RequestHandler,
-		blockDataRequester: args.BlockDataRequester,
+		missingHeaders:      make(map[string]struct{}),
+		missingProofs:       make(map[string]struct{}),
+		headersPool:         args.HeadersPool,
+		proofsPool:          args.ProofsPool,
+		requestHandler:      args.RequestHandler,
+		blockDataRequester:  args.BlockDataRequester,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 
 	r.monitorReceivedData()
@@ -94,8 +101,7 @@ func (r *Resolver) RequestMissingMetaHeaders(
 	}
 
 	for i := 0; i < len(metaBlockHashes); i++ {
-		r.requestHeaderIfNeeded(core.MetachainShardId, metaBlockHashes[i])
-		r.requestProofIfNeeded(core.MetachainShardId, metaBlockHashes[i])
+		r.requestHeaderAndProofIfNeeded(core.MetachainShardId, metaBlockHashes[i])
 	}
 	return nil
 }
@@ -178,15 +184,15 @@ func (r *Resolver) monitorReceivedData() {
 func (r *Resolver) requestHeaderIfNeeded(
 	shardID uint32,
 	headerHash []byte,
-) {
-	_, err := r.headersPool.GetHeaderByHash(headerHash)
+) data.HeaderHandler {
+	header, err := r.headersPool.GetHeaderByHash(headerHash)
 	if err == nil {
-		return
+		return header
 	}
 
 	added := r.addMissingHeader(headerHash)
 	if !added {
-		return
+		return nil
 	}
 
 	if shardID == core.MetachainShardId {
@@ -194,9 +200,16 @@ func (r *Resolver) requestHeaderIfNeeded(
 	} else {
 		go r.requestHandler.RequestShardHeader(shardID, headerHash)
 	}
+
+	return nil
 }
 
-func (r *Resolver) requestProofIfNeeded(shardID uint32, headerHash []byte) {
+// requestProofIfNeeded requests the proof unless the pooled header predates the proofs flag (no
+// proof can exist then); an unresolved header (nil) keeps the fail-safe request
+func (r *Resolver) requestProofIfNeeded(shardID uint32, headerHash []byte, header data.HeaderHandler) {
+	if !check.IfNil(header) && !r.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
+		return
+	}
 	if r.proofsPool.HasProof(shardID, headerHash) {
 		return
 	}
@@ -207,6 +220,11 @@ func (r *Resolver) requestProofIfNeeded(shardID uint32, headerHash []byte) {
 	}
 
 	go r.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
+}
+
+func (r *Resolver) requestHeaderAndProofIfNeeded(shardID uint32, headerHash []byte) {
+	header := r.requestHeaderIfNeeded(shardID, headerHash)
+	r.requestProofIfNeeded(shardID, headerHash, header)
 }
 
 // WaitForMissingData waits until all missing data is received or the timeout is reached.
@@ -284,8 +302,7 @@ func (r *Resolver) RequestMissingShardHeaders(
 		shardID := shardProposalData.GetShardID()
 		storeNonceToShardDataIfGreater(shardDataProposedNonces, shardProposalData.GetNonce(), shardID)
 
-		r.requestHeaderIfNeeded(shardID, shardProposalData.GetHeaderHash())
-		r.requestProofIfNeeded(shardID, shardProposalData.GetHeaderHash())
+		r.requestHeaderAndProofIfNeeded(shardID, shardProposalData.GetHeaderHash())
 	}
 
 	shardDataFinalizedNonces := getShardDataFinalizedNonces(metaHeader.GetShardInfoHandlers())
@@ -296,8 +313,7 @@ func (r *Resolver) RequestMissingShardHeaders(
 
 func (r *Resolver) requestEpochStartLastFinalizedHeaders(epochStartHandler data.EpochStartHandler) {
 	for _, finalizedHdr := range epochStartHandler.GetLastFinalizedHeaderHandlers() {
-		r.requestHeaderIfNeeded(finalizedHdr.GetShardID(), finalizedHdr.GetHeaderHash())
-		r.requestProofIfNeeded(finalizedHdr.GetShardID(), finalizedHdr.GetHeaderHash())
+		r.requestHeaderAndProofIfNeeded(finalizedHdr.GetShardID(), finalizedHdr.GetHeaderHash())
 	}
 }
 
@@ -360,7 +376,27 @@ func (r *Resolver) requestShardProofByNonceIfNeeded(shardID uint32, nonce uint64
 		return
 	}
 
+	headers, _, err := r.headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
+	if err == nil && r.allHeadersBeforeProofsFlag(headers) {
+		return
+	}
+
 	go r.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
+}
+
+// allHeadersBeforeProofsFlag returns true when every pooled candidate predates the proofs flag,
+// so no proof can exist at this nonce; an empty or unknown candidate set keeps the fail-safe path
+func (r *Resolver) allHeadersBeforeProofsFlag(headers []data.HeaderHandler) bool {
+	if len(headers) == 0 {
+		return false
+	}
+	for _, header := range headers {
+		if r.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // RequestBlockTransactions requests the transactions for the given block body.

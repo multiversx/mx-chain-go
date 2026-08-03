@@ -322,3 +322,8 @@ func (mbt *miniBlockTrack) GetConfirmedMiniBlockInfo(miniBlockHash []byte) (cach
 func (bbt *baseBlockTrack) PullProofsForContendedNonces() {
 	bbt.pullProofsForContendedNonces()
 }
+
+// RequestHeadersWithProofPairing -
+func (bp *blockProcessor) RequestHeadersWithProofPairing(shardID uint32, fromNonce uint64) {
+	bp.requestHeaders(shardID, fromNonce)
+}

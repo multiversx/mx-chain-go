@@ -22,6 +22,9 @@ var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized
 // ErrHasherCreation signals that the hasher cannot be created based on provided data
 var ErrHasherCreation = errors.New("error creating hasher")
 
+// ErrSupernovaActivationConfigMismatch signals that the configs carrying the Supernova activation boundary disagree
+var ErrSupernovaActivationConfigMismatch = errors.New("supernova activation configs mismatch")
+
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in consensus")
 

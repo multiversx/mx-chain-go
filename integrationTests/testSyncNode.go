@@ -170,10 +170,11 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        tpn.DataPool.Headers(),
-		ProofsPool:         tpn.DataPool.Proofs(),
-		RequestHandler:     tpn.RequestHandler,
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         tpn.DataPool.Headers(),
+		ProofsPool:          tpn.DataPool.Proofs(),
+		RequestHandler:      tpn.RequestHandler,
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {

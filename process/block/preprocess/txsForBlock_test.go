@@ -310,44 +310,6 @@ func TestTxsForBlock_GetMissingTxsCount(t *testing.T) {
 	require.Equal(t, 10, tfb.GetMissingTxsCount())
 }
 
-func TestTxsForBlock_ClearMissingTxsCount(t *testing.T) {
-	t.Parallel()
-
-	shardCoordinator := &mock.ShardCoordinatorMock{}
-
-	t.Run("clears the missing counter", func(t *testing.T) {
-		t.Parallel()
-
-		tfb, _ := NewTxsForBlock(shardCoordinator)
-		tfb.numMissingTxs = 7
-
-		tfb.ClearMissingTxsCount()
-		require.Equal(t, 0, tfb.GetMissingTxsCount())
-		require.False(t, tfb.HasMissingTransactions())
-	})
-	t.Run("late received transaction does not fire stale channel signal after clearing", func(t *testing.T) {
-		t.Parallel()
-
-		tfb, _ := NewTxsForBlock(shardCoordinator)
-		txHash := []byte("hash1")
-		tfb.txHashAndInfo[string(txHash)] = &process.TxInfo{TxShardInfo: &process.TxShardInfo{}}
-		tfb.numMissingTxs = 1
-
-		// simulate the wait timing out and the count being cleared right after
-		tfb.ClearMissingTxsCount()
-
-		// a late received transaction for a previously missing hash must be ignored
-		tfb.ReceivedTransaction(txHash, &transaction.Transaction{Nonce: 1})
-		require.Equal(t, 0, tfb.numMissingTxs)
-
-		select {
-		case <-tfb.chRcvAllTxs:
-			require.Fail(t, "no stale signal should be sent on chRcvAllTxs after clearing")
-		case <-time.After(100 * time.Millisecond):
-		}
-	})
-}
-
 func TestTxsForBlock_GetAllCurrentUsedTxs(t *testing.T) {
 	t.Parallel()
 

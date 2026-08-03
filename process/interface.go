@@ -1227,6 +1227,9 @@ type RoundTimeDurationHandler interface {
 // RoundHandler defines the actions which should be handled by a round implementation
 type RoundHandler interface {
 	Index() int64
+	// IndexForCurrentTime returns the round index the current time falls into, which does not
+	// depend on the chronology goroutine having advanced the stored index
+	IndexForCurrentTime() int64
 	TimeDuration() time.Duration
 	IsInterfaceNil() bool
 }

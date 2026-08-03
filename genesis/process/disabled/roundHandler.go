@@ -16,6 +16,11 @@ func (rh *RoundHandler) Index() int64 {
 	return 0
 }
 
+// IndexForCurrentTime returns 0
+func (rh *RoundHandler) IndexForCurrentTime() int64 {
+	return 0
+}
+
 // TimeDuration -
 func (rh *RoundHandler) TimeDuration() time.Duration {
 	return 0
@@ -27,11 +32,11 @@ func (rh *RoundHandler) TimeStamp() time.Time {
 }
 
 // UpdateRound -
-func (rh *RoundHandler) UpdateRound(genesisRoundTimeStamp time.Time, timeStamp time.Time) {
+func (rh *RoundHandler) UpdateRound(_ time.Time, _ time.Time) {
 }
 
 // RemainingTime -
-func (rh *RoundHandler) RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration {
+func (rh *RoundHandler) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
 	return 0
 }
 
@@ -40,7 +45,7 @@ func (rh *RoundHandler) IncrementIndex() {
 }
 
 // GetTimeStampForRound -
-func (rh *RoundHandler) GetTimeStampForRound(round uint64) uint64 {
+func (rh *RoundHandler) GetTimeStampForRound(_ uint64) uint64 {
 	return 0
 }
 

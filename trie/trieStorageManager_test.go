@@ -2,12 +2,17 @@ package trie_test
 
 import (
 	errorsGo "errors"
+	"math"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	storageMx "github.com/multiversx/mx-chain-go/storage"
@@ -16,8 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -75,10 +78,10 @@ func TestNewTrieStorageManager(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.GeneralConfig.SnapshotsGoroutineNum = 0
+		args.GeneralConfig.SnapshotsGoroutinesPerCore = 0
 		ts, err := trie.NewTrieStorageManager(args)
 		assert.Nil(t, ts)
-		assert.Error(t, err)
+		assert.Equal(t, trie.ErrInvalidSnapshotsGoroutinesPerCore, err)
 	})
 	t.Run("invalid identifier", func(t *testing.T) {
 		t.Parallel()
@@ -677,4 +680,23 @@ func TestTrieStorageManager_IsSnapshotSupportedShouldReturnTrue(t *testing.T) {
 	ts, _ := trie.NewTrieStorageManager(args)
 
 	assert.True(t, ts.IsSnapshotSupported())
+}
+
+func TestSnapshotsGoroutineNum(t *testing.T) {
+	t.Parallel()
+
+	cores := int32(runtime.GOMAXPROCS(0))
+	floored := func(num int32) int32 {
+		if num < 4 {
+			return 4
+		}
+		return num
+	}
+
+	assert.Equal(t, floored(2*cores), trie.SnapshotsGoroutineNum(2))
+	assert.Equal(t, floored(cores), trie.SnapshotsGoroutineNum(1))
+	// enough to overlap disk waits even on a single core host
+	assert.Equal(t, int32(4), trie.SnapshotsGoroutineNum(0))
+	// absurd config values must not overflow
+	assert.Equal(t, int32(math.MaxInt32), trie.SnapshotsGoroutineNum(math.MaxUint32))
 }

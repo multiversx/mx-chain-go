@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewBasicForkDetector_ShouldErrNilRoundHandler(t *testing.T) {
@@ -220,6 +221,33 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrLowerNonceInBlock(t *testi
 	bfd.SetFinalCheckpoint(2, 2, nil)
 	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 3, PubKeysBitmap: []byte("X")}, []byte("hash"))
 	assert.Equal(t, sync.ErrLowerNonceInBlock, err)
+}
+
+func TestBasicForkDetector_CheckBlockValidityUsesTheRoundOfTheCurrentTime(t *testing.T) {
+	t.Parallel()
+
+	// while the chronology goroutine is blocked the stored index lags the clock; the fork detector
+	// must still record the headers of the rounds it has not reached, or the node cannot catch up
+	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 1, RoundIndexForCurrentTime: 40}
+	bfd, _ := sync.NewShardForkDetector(
+		roundHandlerMock,
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
+	)
+
+	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 40, PubKeysBitmap: []byte("X")}, []byte("hash"))
+	assert.Nil(t, err)
+
+	err = bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 42, PubKeysBitmap: []byte("X")}, []byte("hash"))
+	assert.Equal(t, sync.ErrHigherRoundInBlock, err)
 }
 
 func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *testing.T) {
@@ -806,6 +834,61 @@ func TestBasicForkDetector_CheckForkShouldReturnTrue(t *testing.T) {
 
 	hInfos = bfd.GetHeaders(1)
 	assert.Equal(t, 3, len(hInfos))
+}
+
+func TestBasicForkDetector_CheckForkConsensusStuck(t *testing.T) {
+	t.Parallel()
+
+	createStuckForkDetector := func(hasProofForTip bool) process.ForkDetector {
+		roundHandlerMock := &mock.RoundHandlerMock{}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return hasProofForTip
+			},
+		}
+		sfd, _ := sync.NewShardForkDetector(
+			roundHandlerMock,
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			0,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			&testscommon.EnableRoundsHandlerStub{},
+			proofsPool,
+			&chainParameters.ChainParametersHandlerStub{},
+			testscommon.GetDefaultProcessConfigsHandler(),
+			0,
+		)
+		roundHandlerMock.RoundIndex = 1
+		_ = sfd.AddHeader(
+			&block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")},
+			[]byte("tipHash"),
+			process.BHProcessed,
+			nil,
+			nil)
+		// well past MaxRoundsWithoutCommittedBlock (10) and on a proper round (multiple of 5)
+		roundHandlerMock.RoundIndex = 100
+
+		return sfd
+	}
+
+	t.Run("unproven tip keeps the legacy stuck escape hatch", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createStuckForkDetector(false)
+
+		forkInfo := sfd.CheckFork()
+		assert.True(t, forkInfo.IsDetected)
+	})
+
+	t.Run("proven tip is never blindly rolled back", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createStuckForkDetector(true)
+
+		forkInfo := sfd.CheckFork()
+		assert.False(t, forkInfo.IsDetected)
+	})
 }
 
 func TestBasicForkDetector_CheckForkShouldReturnFalseWhenForkIsOnFinalCheckpointNonce(t *testing.T) {
@@ -1869,4 +1952,68 @@ func TestBaseForkDetector_ReconcileFinalCheckpoint(t *testing.T) {
 	// lowers the final checkpoint below the equivocated nonce
 	sfd.ReconcileFinalCheckpoint(2)
 	assert.Equal(t, uint64(1), sfd.FinalCheckpointNonce())
+}
+
+func TestBaseForkDetector_ResetProbableHighestNonceProvenRecords(t *testing.T) {
+	t.Parallel()
+
+	newDetector := func(andromedaInEpoch bool) *sync.ShardForkDetectorExported {
+		bfd, err := sync.NewShardForkDetector(
+			&mock.RoundHandlerMock{},
+			&testscommon.TimeCacheStub{},
+			&mock.BlockTrackerMock{},
+			0,
+			0,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+					return andromedaInEpoch && flag == common.AndromedaFlag
+				},
+			},
+			&testscommon.EnableRoundsHandlerStub{},
+			&dataRetriever.ProofsPoolMock{},
+			&chainParameters.ChainParametersHandlerStub{},
+			testscommon.GetDefaultProcessConfigsHandler(),
+			0,
+		)
+		require.Nil(t, err)
+		return bfd
+	}
+
+	t.Run("proven proofs-era record survives the reset", func(t *testing.T) {
+		t.Parallel()
+
+		bfd := newDetector(true)
+		bfd.Append(&sync.HeaderInfo{
+			Epoch:    1,
+			Nonce:    5,
+			Round:    5,
+			Hash:     []byte("hash5"),
+			State:    process.BHReceived,
+			HasProof: true,
+		})
+
+		bfd.ResetProbableHighestNonce()
+
+		require.Equal(t, uint64(5), bfd.ProbableHighestNonce())
+		require.Len(t, bfd.GetHeaders(5), 1)
+	})
+
+	t.Run("pre-proofs record is purged as before", func(t *testing.T) {
+		t.Parallel()
+
+		bfd := newDetector(false)
+		bfd.Append(&sync.HeaderInfo{
+			Epoch:    1,
+			Nonce:    5,
+			Round:    5,
+			Hash:     []byte("hash5"),
+			State:    process.BHReceived,
+			HasProof: true,
+		})
+
+		bfd.ResetProbableHighestNonce()
+
+		require.Equal(t, uint64(0), bfd.ProbableHighestNonce())
+		require.Nil(t, bfd.GetHeaders(5))
+	})
 }

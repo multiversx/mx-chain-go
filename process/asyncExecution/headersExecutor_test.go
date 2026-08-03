@@ -1,6 +1,7 @@
 package asyncExecution
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"sync/atomic"
@@ -83,6 +84,34 @@ func TestNewHeadersExecutor(t *testing.T) {
 		err = executor.Close()
 		require.NoError(t, err)
 	})
+}
+
+func TestHeadersExecutor_HandleProcessErrorContextCancelDuringBackoff(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+	executor, err := NewHeadersExecutor(args)
+	require.NoError(t, err)
+
+	pair := cache.HeaderBodyPair{
+		Header:     &block.HeaderV3{Nonce: 1},
+		HeaderHash: []byte("hash"),
+		Body:       &block.Body{},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(2500 * time.Millisecond)
+		cancel()
+	}()
+
+	// cancel lands inside the 4th backoff sleep (2.4s starting at t=2.1s); without a
+	// context-aware sleep the call would return only after that sleep ends (~4.5s)
+	start := time.Now()
+	executor.handleProcessError(ctx, pair)
+	elapsed := time.Since(start)
+	require.Less(t, elapsed, 4*time.Second)
+	require.GreaterOrEqual(t, elapsed, 2400*time.Millisecond)
 }
 
 func TestHeadersExecutor_StartAndClose(t *testing.T) {

@@ -140,10 +140,11 @@ func createMetaBlockProcessor(
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        dataComponents.Datapool().Headers(),
-		ProofsPool:         dataComponents.Datapool().Proofs(),
-		RequestHandler:     &testscommon.RequestHandlerStub{},
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         dataComponents.Datapool().Headers(),
+		ProofsPool:          dataComponents.Datapool().Proofs(),
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 

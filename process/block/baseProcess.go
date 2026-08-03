@@ -805,6 +805,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		common.CurrentRandomnessOnSortingFlag,
 		common.AndromedaFlag,
 		common.FullShardDataValidationFlag,
+		common.RelayedTransactionsV1V2DisableFlag,
 	})
 	if err != nil {
 		return err
@@ -1174,7 +1175,11 @@ func isPartiallyExecuted(
 	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
 }
 
-func (bp *baseProcessor) checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(miniBlockHeader data.MiniBlockHeaderHandler) error {
+func checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(
+	miniBlockHeader data.MiniBlockHeaderHandler,
+	miniBlock *block.MiniBlock,
+	blockShardID uint32,
+) error {
 	// for Supernova all miniBlocks not part of an execution result need to have construction state Proposed
 	if miniBlockHeader.GetConstructionState() != int32(block.Proposed) {
 		return process.ErrWrongMiniBlockConstructionState
@@ -1182,15 +1187,45 @@ func (bp *baseProcessor) checkConstructionStateProcessingTypeAndIndexesCorrectne
 	if miniBlockHeader.GetProcessingType() != int32(block.Normal) {
 		return process.ErrWrongMiniBlockProcessingType
 	}
+	if miniBlock.SenderShardID != blockShardID {
+		// incoming miniBlock bytes are pinned to meta-notarized source results and
+		// their body processing type is never read on execution, so it is not constrained
+		return nil
+	}
+
+	return checkSelfSenderMiniBlockProposal(miniBlockHeader, miniBlock, blockShardID)
+}
+
+func checkSelfSenderMiniBlockProposal(
+	miniBlockHeader data.MiniBlockHeaderHandler,
+	miniBlock *block.MiniBlock,
+	blockShardID uint32,
+) error {
+	if blockShardID == core.MetachainShardId {
+		return process.ErrSelfSenderMiniBlockOnMeta
+	}
+	if miniBlock.GetProcessingType() != int32(block.Normal) {
+		return fmt.Errorf("%w: body processing type %d", process.ErrInvalidSelfSenderMiniBlock, miniBlock.GetProcessingType())
+	}
+	if miniBlock.ReceiverShardID != blockShardID {
+		return fmt.Errorf("%w: receiver shard id %d", process.ErrInvalidSelfSenderMiniBlock, miniBlock.ReceiverShardID)
+	}
+	if miniBlock.Type != block.TxBlock {
+		return fmt.Errorf("%w: type %s", process.ErrInvalidSelfSenderMiniBlock, miniBlock.Type)
+	}
+	if len(miniBlock.TxHashes) == 0 {
+		return fmt.Errorf("%w: no transactions", process.ErrInvalidSelfSenderMiniBlock)
+	}
+
+	lastTxIndex := int32(len(miniBlock.TxHashes)) - 1
+	if miniBlockHeader.GetIndexOfFirstTxProcessed() != 0 || miniBlockHeader.GetIndexOfLastTxProcessed() != lastTxIndex {
+		return process.ErrInvalidSelfSenderIndexes
+	}
 
 	return nil
 }
 
-func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
-	if !bytes.Equal(mbHash, mbHdr.GetHash()) {
-		return process.ErrHeaderBodyMismatch
-	}
-
+func checkMiniBlockFieldsAgainstHeader(mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
 	if mbHdr.GetTxCount() != uint32(len(miniBlock.TxHashes)) {
 		return process.ErrHeaderBodyMismatch
 	}
@@ -1207,7 +1242,99 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAnd
 		return fmt.Errorf("%w: different mb sender type", process.ErrHeaderBodyMismatch)
 	}
 
-	err := process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
+	return nil
+}
+
+// checkProposalMiniBlocksConsistency validates created proposal miniBlocks against the
+// same per-miniblock and ordering rules enforced at verification, without re-hashing
+func checkProposalMiniBlocksConsistency(
+	miniBlockHeaders []data.MiniBlockHeaderHandler,
+	miniBlocks block.MiniBlockSlice,
+	blockShardID uint32,
+) error {
+	if len(miniBlocks) != len(miniBlockHeaders) {
+		log.Warn("checkProposalMiniBlocksConsistency: num of mini blocks and mini block headers does not match",
+			"num of mb", len(miniBlocks), "num of mbh", len(miniBlockHeaders))
+		return process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
+	}
+
+	selfSenderSeen := false
+	for i, miniBlock := range miniBlocks {
+		if miniBlock == nil {
+			return process.ErrNilMiniBlock
+		}
+		mbHeader := miniBlockHeaders[i]
+		if mbHeader == nil {
+			return process.ErrNilMiniBlockHeader
+		}
+
+		err := checkMiniBlockFieldsAgainstHeader(mbHeader, miniBlock)
+		if err != nil {
+			return err
+		}
+
+		if selfSenderSeen {
+			if miniBlock.SenderShardID == blockShardID {
+				return process.ErrMultipleSelfSenderMiniBlocks
+			}
+			return process.ErrSelfSenderMiniBlockNotLast
+		}
+		selfSenderSeen = miniBlock.SenderShardID == blockShardID
+
+		err = checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHeader, miniBlock, blockShardID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// checkLegacyPredecessorReadyForV3 hard-stops the Supernova transition when the last
+// legacy block still carries non-final mini blocks, whose work V3 would discard
+func (bp *baseProcessor) checkLegacyPredecessorReadyForV3(header data.HeaderHandler) error {
+	prevHeader := bp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(prevHeader) || prevHeader.IsHeaderV3() {
+		return nil
+	}
+	if !bytes.Equal(bp.blockChain.GetCurrentBlockHeaderHash(), header.GetPrevHash()) {
+		return nil
+	}
+
+	nonFinalMbHashes := make([][]byte, 0)
+	for _, mbHeader := range prevHeader.GetMiniBlockHeaderHandlers() {
+		if !mbHeader.IsFinal() {
+			nonFinalMbHashes = append(nonFinalMbHashes, mbHeader.GetHash())
+		}
+	}
+	if len(nonFinalMbHashes) == 0 {
+		return nil
+	}
+
+	log.Error("supernova transition blocked: the last legacy block still carries non-final mini blocks and their work would be discarded",
+		"legacy nonce", prevHeader.GetNonce(),
+		"num mini blocks", len(nonFinalMbHashes),
+		"hashes", nonFinalMbHashes,
+	)
+
+	return fmt.Errorf("%w: %d non-final mini blocks in legacy block with nonce %d",
+		process.ErrLeftoverScheduledMiniBlocksOnTransition,
+		len(nonFinalMbHashes),
+		prevHeader.GetNonce(),
+	)
+}
+
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
+	if !bytes.Equal(mbHash, mbHdr.GetHash()) {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	err := checkMiniBlockFieldsAgainstHeader(mbHdr, miniBlock)
+	if err != nil {
+		return err
+	}
+
+	err = process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
 	if err != nil {
 		return err
 	}
@@ -1220,12 +1347,12 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAnd
 	return nil
 }
 
-func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, _ uint32) error {
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
 	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock)
 	if err != nil {
 		return err
 	}
-	err = bp.checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr)
+	err = checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr, miniBlock, blockShardID)
 	if err != nil {
 		return err
 	}
@@ -1242,7 +1369,7 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr 
 }
 
 // check if header has the same mini blocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32, proposal bool) error {
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32, headerEpoch uint32, proposal bool) error {
 	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
 		if miniBlockHeaders[i] == nil {
@@ -1264,6 +1391,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 	var miniBlock *block.MiniBlock
 	var mbHash []byte
 	var err error
+	selfSenderSeen := false
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock = body.MiniBlocks[i]
 		mbHdr = miniBlockHeaders[i]
@@ -1288,6 +1416,13 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if !proposal {
 			err = bp.checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock, blockShardID)
 		} else {
+			if selfSenderSeen {
+				if miniBlock.SenderShardID == blockShardID {
+					return process.ErrMultipleSelfSenderMiniBlocks
+				}
+				return process.ErrSelfSenderMiniBlockNotLast
+			}
+			selfSenderSeen = miniBlock.SenderShardID == blockShardID
 			err = bp.checkMiniBlockWithMiniBlockHeaderProposal(mbHash, mbHdr, miniBlock, blockShardID)
 		}
 		if err != nil {
@@ -1297,9 +1432,9 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		delete(mbHashesFromHdr, mbHashStr)
 	}
 
-	err = checkForDuplicatedTxHashes(body)
-	if err != nil {
-		return err
+	// duplicated tx hashes were legitimate while failed relayed txs v1/v2 were added to invalid miniblocks
+	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, headerEpoch) {
+		return checkForDuplicatedTxHashes(body)
 	}
 
 	return nil
@@ -2207,6 +2342,32 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	}
 }
 
+// setEpochForPutOperation points the storers at the committed block's epoch, timed because it waits on
+// the storers' own locks, which the epoch change holds while it opens and closes persisters
+func (bp *baseProcessor) setEpochForPutOperation(epoch uint32) {
+	startTime := time.Now()
+	bp.store.SetEpochForPutOperation(epoch)
+
+	elapsedTime := time.Since(startTime)
+	if elapsedTime >= bp.getPutInStorerMaxTime() {
+		log.Warn("baseProcessor.setEpochForPutOperation", "elapsed time", elapsedTime, "epoch", epoch)
+	}
+}
+
+// warnIfSlowCommitPrologue splits a slow start of CommitBlock between the code before the first
+// commit log line and that log write itself, which can stall for seconds on a saturated disk
+func (bp *baseProcessor) warnIfSlowCommitPrologue(entryTime time.Time, beforeLogTime time.Time) {
+	logWriteTime := time.Since(beforeLogTime)
+	preLogTime := beforeLogTime.Sub(entryTime)
+	maxTime := bp.getPutInStorerMaxTime()
+	if preLogTime >= maxTime {
+		log.Warn("slow CommitBlock prologue", "elapsed time", preLogTime)
+	}
+	if logWriteTime >= maxTime {
+		log.Warn("slow CommitBlock prologue log write", "elapsed time", logWriteTime)
+	}
+}
+
 func (bp *baseProcessor) getPutInStorerMaxTime() time.Duration {
 	if bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
 		return common.PutInStorerMaxTimeSupernova
@@ -2306,7 +2467,7 @@ func (bp *baseProcessor) revertAccountState() {
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(0)
 		if err != nil {
-			log.Debug("RevertToSnapshot", "error", err.Error())
+			log.Error("RevertToSnapshot", "error", err.Error())
 		}
 	}
 }
@@ -4337,31 +4498,47 @@ func (bp *baseProcessor) PruneTrieAsyncHeader() {
 	bp.mutLastPrunedHeader.Lock()
 	defer bp.mutLastPrunedHeader.Unlock()
 
-	header := bp.blockChain.GetCurrentBlockHeader()
-	headerHash := bp.blockChain.GetCurrentBlockHeaderHash()
-
-	if len(bp.lastPrunedHeaderHash) == 0 {
-		// last pruned header hash not set, trigger prune trie for the provided header
-		bp.blockProcessor.pruneTrieHeaderV3(header)
-		bp.lastPrunedHeaderHash = headerHash
-		bp.lastPrunedHeaderNonce = header.GetNonce()
+	// prune keyed on the settled checkpoint, never the committed tip: a rollback can legally land
+	// on any block down to the settled one and re-execution then needs its notarized state root
+	settledNonce, settledHash := bp.forkDetector.GetHighestSettledBlockInfo()
+	if len(settledHash) == 0 {
 		return
 	}
 
-	// extra check by nonce
-	if header.GetNonce() <= bp.lastPrunedHeaderNonce {
+	hasPrunedBefore := len(bp.lastPrunedHeaderHash) != 0
+	if hasPrunedBefore && settledNonce <= bp.lastPrunedHeaderNonce {
 		return
 	}
 
-	err := bp.pruneTrieForHeadersUnprotected(headerHash, header)
+	settledHeader, err := process.GetHeader(
+		settledHash,
+		bp.dataPool.Headers(),
+		bp.store,
+		bp.marshalizer,
+		bp.shardCoordinator.SelfId(),
+	)
 	if err != nil {
-		// there was an error while fetching intermediate headers
-		// reset pruning context
-		bp.blockProcessor.resetPruning()
+		log.Debug("PruneTrieAsyncHeader: settled header not available, pruning postponed",
+			"nonce", settledNonce,
+			"hash", settledHash,
+			"error", err,
+		)
+		return
 	}
 
-	bp.lastPrunedHeaderHash = headerHash
-	bp.lastPrunedHeaderNonce = header.GetNonce()
+	if !hasPrunedBefore {
+		bp.blockProcessor.pruneTrieHeaderV3(settledHeader)
+	} else {
+		err = bp.pruneTrieForHeadersUnprotected(settledHash, settledHeader)
+		if err != nil {
+			// there was an error while fetching intermediate headers
+			// reset pruning context
+			bp.blockProcessor.resetPruning()
+		}
+	}
+
+	bp.lastPrunedHeaderHash = settledHash
+	bp.lastPrunedHeaderNonce = settledNonce
 }
 
 func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
@@ -4412,7 +4589,9 @@ func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 // isContendedUnsettledCrossHeader applies the cross-shard referencing gate: a header that
 // skipped a round after its parent is not includable until it settles (see IsSettledCrossHeader)
 func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandler, parentHeader data.HeaderHandler, headerHash []byte) bool {
-	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	// keyed on the header's own epoch: a pre-Supernova header predates the settlement rules and
+	// could never satisfy them
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
 		return false
 	}
 	if !common.IsContendedHeader(header, parentHeader) {
@@ -4425,7 +4604,7 @@ func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandl
 // checkNotContendedUnsettled errors when a referenced cross-shard header is contended and not yet
 // settled; the header hash is computed only on the contended path
 func (bp *baseProcessor) checkNotContendedUnsettled(header data.HeaderHandler, parentHeader data.HeaderHandler) error {
-	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
 		return nil
 	}
 	if !common.IsContendedHeader(header, parentHeader) {
