@@ -134,6 +134,11 @@ func (mp *metaProcessor) CreateBlockProposal(
 
 	mbsToMe := mp.miniBlocksSelectionSession.GetMiniBlocks()
 	miniBlocksHeadersToMe := mp.miniBlocksSelectionSession.GetMiniBlockHeaderHandlers()
+	err = checkProposalMiniBlocksConsistency(miniBlocksHeadersToMe, mbsToMe, metaHdr.GetShardID())
+	if err != nil {
+		return nil, nil, err
+	}
+
 	numTxs := mp.miniBlocksSelectionSession.GetNumTxsAdded()
 	referencedShardHeaderHashes := mp.miniBlocksSelectionSession.GetReferencedHeaderHashes()
 	referencedShardHeaders := mp.miniBlocksSelectionSession.GetReferencedHeaders()

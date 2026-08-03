@@ -977,16 +977,37 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 		validMetaHeaderV3 := &block.MetaBlockV3{}
 		checkCreateBlockProposalResult(t, mp, validMetaHeaderV3, haveTimeTrue, expectedErr)
 	})
+	t.Run("consistency check fails on meta-sender miniblock in created proposal", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		mb := &block.MiniBlock{
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("rwd1")},
+			Type:            block.RewardsBlock,
+		}
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			GetMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{mb}
+			},
+			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler {
+				return []data.MiniBlockHeaderHandler{newProposalMbHeaderForMb(mb)}
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, _, err = mp.CreateBlockProposal(&block.MetaBlockV3{}, haveTimeTrue)
+		require.ErrorIs(t, err, process.ErrSelfSenderMiniBlockOnMeta)
+	})
 	t.Run("set shard info error", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
-			GetMiniBlocksCalled: func() block.MiniBlockSlice {
-				return make([]*block.MiniBlock, 5) // coverage
-			},
-		}
 		var invalidShardData data.ShardDataHandler
 		arguments.ShardInfoCreator = &processMocks.ShardInfoCreatorMock{
 			CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
@@ -1018,13 +1039,16 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 		validMetaHeaderV3 := &block.MetaBlockV3{}
 		checkCreateBlockProposalResult(t, mp, validMetaHeaderV3, haveTimeTrue, data.ErrInvalidTypeAssertion)
 	})
-	t.Run("set mini block header handlers error", func(t *testing.T) {
+	t.Run("nil mini block header from selection session", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		var invalidMiniBlockHeader data.MiniBlockHeaderHandler
 		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			GetMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{{SenderShardID: 0, ReceiverShardID: core.MetachainShardId, TxHashes: [][]byte{[]byte("tx1")}}}
+			},
 			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler {
 				return []data.MiniBlockHeaderHandler{invalidMiniBlockHeader}
 			},
@@ -1034,7 +1058,7 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 		require.Nil(t, err)
 
 		validMetaHeaderV3 := &block.MetaBlockV3{}
-		checkCreateBlockProposalResult(t, mp, validMetaHeaderV3, haveTimeTrue, data.ErrInvalidTypeAssertion)
+		checkCreateBlockProposalResult(t, mp, validMetaHeaderV3, haveTimeTrue, process.ErrNilMiniBlockHeader)
 	})
 	t.Run("marshall error", func(t *testing.T) {
 		t.Parallel()

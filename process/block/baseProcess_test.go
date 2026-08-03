@@ -4837,7 +4837,7 @@ func createProposalMbHeader(
 	return mbHeader
 }
 
-func TestCheckHeaderBodyCorrelationProposal_BodyGrammar(t *testing.T) {
+func TestCheckHeaderBodyCorrelationProposal_BodyStructure(t *testing.T) {
 	t.Parallel()
 
 	selfShardID := uint32(0)
@@ -5060,7 +5060,7 @@ func TestCheckHeaderBodyCorrelationProposal_BodyGrammar(t *testing.T) {
 		require.ErrorIs(t, err, process.ErrIndexOfFirstTxProcessedMismatch)
 	})
 
-	t.Run("legacy path still accepts shapes the proposal grammar forbids", func(t *testing.T) {
+	t.Run("legacy path still accepts shapes the proposal rules forbid", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := newMockArguments()
@@ -5094,6 +5094,114 @@ func TestCheckHeaderBodyCorrelationProposal_BodyGrammar(t *testing.T) {
 		}
 		err = bp.CheckHeaderBodyCorrelation(hdrSched, &block.Body{MiniBlocks: []*block.MiniBlock{mbSched}})
 		require.ErrorIs(t, err, process.ErrProcessingTypeBodyHeaderMismatch)
+	})
+}
+
+func TestCheckProposalMiniBlocksConsistency(t *testing.T) {
+	t.Parallel()
+
+	selfShardID := uint32(0)
+	scheduledReserved, _ := (&block.MiniBlockReserved{ExecutionType: block.Scheduled}).Marshal()
+
+	newSelfMb := func(txHashes ...[]byte) *block.MiniBlock {
+		return &block.MiniBlock{SenderShardID: selfShardID, ReceiverShardID: selfShardID, TxHashes: txHashes, Type: block.TxBlock}
+	}
+	newIncomingMb := func(txHashes ...[]byte) *block.MiniBlock {
+		return &block.MiniBlock{SenderShardID: 1, ReceiverShardID: selfShardID, TxHashes: txHashes, Type: block.TxBlock}
+	}
+	headersFor := func(mbs ...*block.MiniBlock) []data.MiniBlockHeaderHandler {
+		mbHeaders := make([]data.MiniBlockHeaderHandler, 0, len(mbs))
+		for _, mb := range mbs {
+			mbHeaders = append(mbHeaders, newProposalMbHeaderForMb(mb))
+		}
+		return mbHeaders
+	}
+
+	t.Run("count mismatch should error", func(t *testing.T) {
+		t.Parallel()
+
+		mb := newIncomingMb([]byte("tx1"))
+		err := blproc.CheckProposalMiniBlocksConsistency(headersFor(mb, mb), block.MiniBlockSlice{mb}, selfShardID)
+		require.Equal(t, process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch, err)
+	})
+
+	t.Run("nil miniblock should error", func(t *testing.T) {
+		t.Parallel()
+
+		err := blproc.CheckProposalMiniBlocksConsistency(headersFor(newIncomingMb([]byte("tx1"))), block.MiniBlockSlice{nil}, selfShardID)
+		require.Equal(t, process.ErrNilMiniBlock, err)
+	})
+
+	t.Run("nil miniblock header should error", func(t *testing.T) {
+		t.Parallel()
+
+		err := blproc.CheckProposalMiniBlocksConsistency([]data.MiniBlockHeaderHandler{nil}, block.MiniBlockSlice{newIncomingMb([]byte("tx1"))}, selfShardID)
+		require.Equal(t, process.ErrNilMiniBlockHeader, err)
+	})
+
+	t.Run("header body field mismatch should error", func(t *testing.T) {
+		t.Parallel()
+
+		mb := newIncomingMb([]byte("tx1"))
+		otherMb := newIncomingMb([]byte("tx1"))
+		otherMb.ReceiverShardID = 1
+		err := blproc.CheckProposalMiniBlocksConsistency(headersFor(otherMb), block.MiniBlockSlice{mb}, selfShardID)
+		require.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
+	})
+
+	t.Run("scheduled-marked self-sender should error", func(t *testing.T) {
+		t.Parallel()
+
+		mb := newSelfMb([]byte("tx1"))
+		mb.Reserved = scheduledReserved
+		err := blproc.CheckProposalMiniBlocksConsistency(headersFor(mb), block.MiniBlockSlice{mb}, selfShardID)
+		require.ErrorIs(t, err, process.ErrInvalidSelfSenderMiniBlock)
+	})
+
+	t.Run("two self-sender miniblocks should error", func(t *testing.T) {
+		t.Parallel()
+
+		mb1 := newSelfMb([]byte("tx1"))
+		mb2 := newSelfMb([]byte("tx2"))
+		err := blproc.CheckProposalMiniBlocksConsistency(headersFor(mb1, mb2), block.MiniBlockSlice{mb1, mb2}, selfShardID)
+		require.ErrorIs(t, err, process.ErrMultipleSelfSenderMiniBlocks)
+	})
+
+	t.Run("incoming after self-sender should error", func(t *testing.T) {
+		t.Parallel()
+
+		selfMb := newSelfMb([]byte("tx1"))
+		incomingMb := newIncomingMb([]byte("tx2"))
+		err := blproc.CheckProposalMiniBlocksConsistency(headersFor(selfMb, incomingMb), block.MiniBlockSlice{selfMb, incomingMb}, selfShardID)
+		require.ErrorIs(t, err, process.ErrSelfSenderMiniBlockNotLast)
+	})
+
+	t.Run("meta-sender miniblock on meta should error", func(t *testing.T) {
+		t.Parallel()
+
+		mb := &block.MiniBlock{
+			SenderShardID:   core.MetachainShardId,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("rwd1")},
+			Type:            block.RewardsBlock,
+		}
+		err := blproc.CheckProposalMiniBlocksConsistency(headersFor(mb), block.MiniBlockSlice{mb}, core.MetachainShardId)
+		require.ErrorIs(t, err, process.ErrSelfSenderMiniBlockOnMeta)
+	})
+
+	t.Run("canonical, incoming-only and empty should work", func(t *testing.T) {
+		t.Parallel()
+
+		incomingMb := newIncomingMb([]byte("tx1"))
+		selfMb := newSelfMb([]byte("tx2"), []byte("tx3"))
+		err := blproc.CheckProposalMiniBlocksConsistency(headersFor(incomingMb, selfMb), block.MiniBlockSlice{incomingMb, selfMb}, selfShardID)
+		require.NoError(t, err)
+
+		err = blproc.CheckProposalMiniBlocksConsistency(headersFor(incomingMb), block.MiniBlockSlice{incomingMb}, selfShardID)
+		require.NoError(t, err)
+
+		err = blproc.CheckProposalMiniBlocksConsistency(nil, block.MiniBlockSlice{}, selfShardID)
+		require.NoError(t, err)
 	})
 }
 

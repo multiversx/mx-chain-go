@@ -69,6 +69,20 @@ func haveTimeFalse() bool {
 	return false
 }
 
+func newProposalMbHeaderForMb(mb *block.MiniBlock) data.MiniBlockHeaderHandler {
+	mbHeader := &block.MiniBlockHeader{
+		Hash:            []byte("mbHash"),
+		SenderShardID:   mb.SenderShardID,
+		ReceiverShardID: mb.ReceiverShardID,
+		TxCount:         uint32(len(mb.TxHashes)),
+		Type:            mb.Type,
+	}
+	_ = mbHeader.SetConstructionState(int32(block.Proposed))
+	_ = mbHeader.SetProcessingType(int32(block.Normal))
+
+	return mbHeader
+}
+
 type processorTest interface {
 	CreateBlockProposal(
 		initialHdr data.HeaderHandler,
@@ -293,7 +307,114 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 
 		checkCreateBlockProposalResult(t, sp, getSimpleHeaderV3Mock(), haveTimeTrue, expectedErr)
 	})
-	t.Run("checkMiniBlocksAndMiniBlockHeadersConsistency fails due to different lengths", func(t *testing.T) {
+	t.Run("consistency check fails on scheduled-marked self-sender miniblock", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		updateBlockchainForOnProposed(dataComponents)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		scheduledReserved, _ := (&block.MiniBlockReserved{ExecutionType: block.Scheduled}).Marshal()
+		mb := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("tx1")},
+			Type:            block.TxBlock,
+			Reserved:        scheduledReserved,
+		}
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			GetMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{mb}
+			},
+			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler {
+				return []data.MiniBlockHeaderHandler{newProposalMbHeaderForMb(mb)}
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := getSimpleHeaderV3Mock()
+		header.GetShardIDCalled = func() uint32 { return 0 }
+
+		_, _, err = sp.CreateBlockProposal(header, haveTimeTrue)
+		require.ErrorIs(t, err, process.ErrInvalidSelfSenderMiniBlock)
+	})
+	t.Run("consistency check fails on self-sender miniblock not last", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		updateBlockchainForOnProposed(dataComponents)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		selfMb := &block.MiniBlock{
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("tx1")},
+			Type:            block.TxBlock,
+		}
+		incomingMb := &block.MiniBlock{
+			SenderShardID:   1,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("tx2")},
+			Type:            block.TxBlock,
+		}
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			GetMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{selfMb, incomingMb}
+			},
+			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler {
+				return []data.MiniBlockHeaderHandler{newProposalMbHeaderForMb(selfMb), newProposalMbHeaderForMb(incomingMb)}
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := getSimpleHeaderV3Mock()
+		header.GetShardIDCalled = func() uint32 { return 0 }
+
+		_, _, err = sp.CreateBlockProposal(header, haveTimeTrue)
+		require.ErrorIs(t, err, process.ErrSelfSenderMiniBlockNotLast)
+	})
+	t.Run("consistency check fails on header body field mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		updateBlockchainForOnProposed(dataComponents)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		mb := &block.MiniBlock{
+			SenderShardID:   1,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("tx1")},
+			Type:            block.TxBlock,
+		}
+		mismatchedHeader := &block.MiniBlockHeader{
+			Hash:            []byte("mbHash"),
+			SenderShardID:   2,
+			ReceiverShardID: 0,
+			TxCount:         1,
+			Type:            block.TxBlock,
+		}
+		_ = mismatchedHeader.SetConstructionState(int32(block.Proposed))
+		_ = mismatchedHeader.SetProcessingType(int32(block.Normal))
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			GetMiniBlocksCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{mb}
+			},
+			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler {
+				return []data.MiniBlockHeaderHandler{mismatchedHeader}
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := getSimpleHeaderV3Mock()
+		header.GetShardIDCalled = func() uint32 { return 0 }
+
+		_, _, err = sp.CreateBlockProposal(header, haveTimeTrue)
+		require.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
+	})
+	t.Run("consistency check fails due to different lengths", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
@@ -570,13 +691,19 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 		}
 		providedMb := &block.MiniBlock{
-			TxHashes: [][]byte{[]byte("tx_hash")},
+			SenderShardID:   1,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("tx_hash")},
 		}
 		providedPendingMb := &block.MiniBlock{
-			TxHashes: [][]byte{[]byte("tx_hash2")},
+			SenderShardID:   1,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("tx_hash2")},
 		}
 		providedPendingMb2 := &block.MiniBlock{
-			TxHashes: [][]byte{[]byte("tx_hash3")},
+			SenderShardID:   1,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("tx_hash3")},
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
@@ -857,10 +984,14 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 		}
 		providedMb := &block.MiniBlock{
-			TxHashes: [][]byte{[]byte("tx_hash")},
+			SenderShardID:   1,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("tx_hash")},
 		}
 		providedPendingMb := &block.MiniBlock{
-			TxHashes: [][]byte{[]byte("tx_hash2")},
+			SenderShardID:   1,
+			ReceiverShardID: 0,
+			TxHashes:        [][]byte{[]byte("tx_hash2")},
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {

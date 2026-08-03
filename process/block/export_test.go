@@ -876,6 +876,11 @@ func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []d
 	return bp.checkHeaderBodyCorrelation(miniBlockHeaders, body, headerShardID, headerEpoch, true)
 }
 
+// CheckProposalMiniBlocksConsistency -
+func CheckProposalMiniBlocksConsistency(miniBlockHeaders []data.MiniBlockHeaderHandler, miniBlocks block.MiniBlockSlice, blockShardID uint32) error {
+	return checkProposalMiniBlocksConsistency(miniBlockHeaders, miniBlocks, blockShardID)
+}
+
 // GetFinalMiniBlocksFromExecutionResults -
 func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
 	header data.HeaderHandler,

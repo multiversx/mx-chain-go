@@ -1175,7 +1175,7 @@ func isPartiallyExecuted(
 	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
 }
 
-func (bp *baseProcessor) checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(
+func checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(
 	miniBlockHeader data.MiniBlockHeaderHandler,
 	miniBlock *block.MiniBlock,
 	blockShardID uint32,
@@ -1225,11 +1225,7 @@ func checkSelfSenderMiniBlockProposal(
 	return nil
 }
 
-func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
-	if !bytes.Equal(mbHash, mbHdr.GetHash()) {
-		return process.ErrHeaderBodyMismatch
-	}
-
+func checkMiniBlockFieldsAgainstHeader(mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
 	if mbHdr.GetTxCount() != uint32(len(miniBlock.TxHashes)) {
 		return process.ErrHeaderBodyMismatch
 	}
@@ -1246,7 +1242,65 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAnd
 		return fmt.Errorf("%w: different mb sender type", process.ErrHeaderBodyMismatch)
 	}
 
-	err := process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
+	return nil
+}
+
+// checkProposalMiniBlocksConsistency validates created proposal miniBlocks against the
+// same per-miniblock and ordering rules enforced at verification, without re-hashing
+func checkProposalMiniBlocksConsistency(
+	miniBlockHeaders []data.MiniBlockHeaderHandler,
+	miniBlocks block.MiniBlockSlice,
+	blockShardID uint32,
+) error {
+	if len(miniBlocks) != len(miniBlockHeaders) {
+		log.Warn("checkProposalMiniBlocksConsistency: num of mini blocks and mini block headers does not match",
+			"num of mb", len(miniBlocks), "num of mbh", len(miniBlockHeaders))
+		return process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
+	}
+
+	selfSenderSeen := false
+	for i, miniBlock := range miniBlocks {
+		if miniBlock == nil {
+			return process.ErrNilMiniBlock
+		}
+		mbHeader := miniBlockHeaders[i]
+		if mbHeader == nil {
+			return process.ErrNilMiniBlockHeader
+		}
+
+		err := checkMiniBlockFieldsAgainstHeader(mbHeader, miniBlock)
+		if err != nil {
+			return err
+		}
+
+		if selfSenderSeen {
+			if miniBlock.SenderShardID == blockShardID {
+				return process.ErrMultipleSelfSenderMiniBlocks
+			}
+			return process.ErrSelfSenderMiniBlockNotLast
+		}
+		selfSenderSeen = miniBlock.SenderShardID == blockShardID
+
+		err = checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHeader, miniBlock, blockShardID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
+	if !bytes.Equal(mbHash, mbHdr.GetHash()) {
+		return process.ErrHeaderBodyMismatch
+	}
+
+	err := checkMiniBlockFieldsAgainstHeader(mbHdr, miniBlock)
+	if err != nil {
+		return err
+	}
+
+	err = process.CheckIfIndexesAreOutOfBound(mbHdr.GetIndexOfFirstTxProcessed(), mbHdr.GetIndexOfLastTxProcessed(), miniBlock)
 	if err != nil {
 		return err
 	}
@@ -1264,7 +1318,7 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte
 	if err != nil {
 		return err
 	}
-	err = bp.checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr, miniBlock, blockShardID)
+	err = checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr, miniBlock, blockShardID)
 	if err != nil {
 		return err
 	}

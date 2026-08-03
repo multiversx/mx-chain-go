@@ -97,7 +97,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 	}
 
 	miniBlocks := sp.miniBlocksSelectionSession.GetMiniBlocks()
-	err = checkMiniBlocksAndMiniBlockHeadersConsistency(miniBlocks, miniBlockHeaderHandlers)
+	err = checkProposalMiniBlocksConsistency(miniBlockHeaderHandlers, miniBlocks, shardHdr.GetShardID())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -434,16 +434,6 @@ func computeTxTotalTxCount(miniBlockHeaders []data.MiniBlockHeaderHandler) uint3
 		totalTxCount += miniBlockHeaders[i].GetTxCount()
 	}
 	return totalTxCount
-}
-
-func checkMiniBlocksAndMiniBlockHeadersConsistency(miniBlocks block.MiniBlockSlice, miniBlockHeaders []data.MiniBlockHeaderHandler) error {
-	if len(miniBlocks) != len(miniBlockHeaders) {
-		log.Warn("transactionCoordinator.verifyFees: num of mini blocks and mini blocks headers does not match", "num of mb", len(miniBlocks), "num of mbh", len(miniBlockHeaders))
-		return process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
-	}
-
-	// TODO: check if the reserved field or other fields are consistent.
-	return nil
 }
 
 func (sp *shardProcessor) createBlockBodyProposal(
