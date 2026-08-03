@@ -516,7 +516,10 @@
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
-    SnapshotsGoroutineNum = 200
+    # SnapshotsGoroutinesPerCore scales the snapshot fan-out with the host: effective goroutines =
+    # value * GOMAXPROCS, minimum 4. Keep it low: a deep snapshot run queue can delay waking
+    # consensus goroutines
+    SnapshotsGoroutinesPerCore = 2
 
 [HeadersPoolConfig]
     MaxHeadersPerShard = 1000

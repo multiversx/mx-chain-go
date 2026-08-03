@@ -134,9 +134,9 @@ func getDefaultStateComponents(
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (*state.AccountsDB, common.Trie, common.StorageManager) {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
+		PruningBufferLen:           1000,
+		SnapshotsBufferLen:         10,
+		SnapshotsGoroutinesPerCore: 1,
 	}
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
@@ -1081,7 +1081,6 @@ func TestAccountsDB_LoadDataNotFoundRootShouldReturnErr(t *testing.T) {
 	// should return error
 	err := adb.LoadDataTrieConcurrentSafe(account)
 	assert.NotNil(t, err)
-	fmt.Println(err.Error())
 }
 
 func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {

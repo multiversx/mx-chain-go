@@ -78,10 +78,10 @@ func TestNewTrieStorageManager(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
-		args.GeneralConfig.SnapshotsGoroutineNum = 0
+		args.GeneralConfig.SnapshotsGoroutinesPerCore = 0
 		ts, err := trie.NewTrieStorageManager(args)
 		assert.Nil(t, ts)
-		assert.Error(t, err)
+		assert.Equal(t, trie.ErrInvalidSnapshotsGoroutinesPerCore, err)
 	})
 	t.Run("invalid identifier", func(t *testing.T) {
 		t.Parallel()
@@ -685,16 +685,18 @@ func TestTrieStorageManager_IsSnapshotSupportedShouldReturnTrue(t *testing.T) {
 func TestSnapshotsGoroutineNum(t *testing.T) {
 	t.Parallel()
 
-	expected := int32(2 * runtime.GOMAXPROCS(0))
-	if expected < 4 {
-		expected = 4
+	cores := int32(runtime.GOMAXPROCS(0))
+	floored := func(num int32) int32 {
+		if num < 4 {
+			return 4
+		}
+		return num
 	}
 
-	// the configured value is only an upper bound
-	assert.Equal(t, expected, trie.SnapshotsGoroutineNum(200))
-	assert.Equal(t, expected, trie.SnapshotsGoroutineNum(math.MaxUint32))
-	assert.Equal(t, int32(1), trie.SnapshotsGoroutineNum(1))
-
+	assert.Equal(t, floored(2*cores), trie.SnapshotsGoroutineNum(2))
+	assert.Equal(t, floored(cores), trie.SnapshotsGoroutineNum(1))
 	// enough to overlap disk waits even on a single core host
-	assert.GreaterOrEqual(t, expected, int32(4))
+	assert.Equal(t, int32(4), trie.SnapshotsGoroutineNum(0))
+	// absurd config values must not overflow
+	assert.Equal(t, int32(math.MaxInt32), trie.SnapshotsGoroutineNum(math.MaxUint32))
 }

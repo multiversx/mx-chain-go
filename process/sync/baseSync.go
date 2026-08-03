@@ -62,7 +62,7 @@ const defaultTimeToWaitForRequestedData = 5 * time.Minute
 const defaultExecutionResultsRecoveryCooldown = time.Minute
 
 // maxFetchFailuresBeforeDroppingUnprovenHeader bounds how long an unproven header may block the sync
-// at a nonce. Each failure costs about one round plus the failure backoff, so this is a few seconds
+// at a nonce: one round plus the failure backoff per failure (~10s at 600ms rounds, ~1min at 6s rounds)
 const maxFetchFailuresBeforeDroppingUnprovenHeader = 10
 
 // hdrInfo hold the data related to a header

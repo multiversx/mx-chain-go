@@ -22,10 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
 
-const (
-	minSnapshotGoroutines     = 4
-	snapshotGoroutinesPerCore = 2
-)
+const minSnapshotGoroutines = 4
 
 // trieStorageManager manages all the storage operations of the trie (commit, snapshot, checkpoint, pruning)
 type trieStorageManager struct {
@@ -82,6 +79,9 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	if check.IfNil(args.StatsCollector) {
 		return nil, storage.ErrNilStatsCollector
 	}
+	if args.GeneralConfig.SnapshotsGoroutinesPerCore == 0 {
+		return nil, ErrInvalidSnapshotsGoroutinesPerCore
+	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
@@ -95,7 +95,14 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		identifier:         args.Identifier,
 		statsCollector:     args.StatsCollector,
 	}
-	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(snapshotsGoroutineNum(args.GeneralConfig.SnapshotsGoroutineNum))
+	numSnapshotGoroutines := snapshotsGoroutineNum(args.GeneralConfig.SnapshotsGoroutinesPerCore)
+	log.Debug("trieStorageManager: snapshot goroutines",
+		"identifier", args.Identifier,
+		"perCore", args.GeneralConfig.SnapshotsGoroutinesPerCore,
+		"gomaxprocs", runtime.GOMAXPROCS(0),
+		"effective", numSnapshotGoroutines,
+	)
+	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(numSnapshotGoroutines)
 	if err != nil {
 		return nil, err
 	}
@@ -104,21 +111,18 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 	return tsm, nil
 }
 
-// snapshotsGoroutineNum caps the configured fan-out so the snapshot run queue cannot delay a waking
-// consensus goroutine; keeping the CPU free for the node is the idle provider's job, not this bound's
-func snapshotsGoroutineNum(configured uint32) int32 {
-	// GOMAXPROCS, not NumCPU: it is what the scheduler actually runs on, and it honours the cgroup
-	// quota of a containerized node
-	maxForHost := int32(snapshotGoroutinesPerCore * runtime.GOMAXPROCS(0))
-	if maxForHost < minSnapshotGoroutines {
-		maxForHost = minSnapshotGoroutines
+// snapshotsGoroutineNum scales the configured per-core fan-out with GOMAXPROCS (honours the cgroup
+// quota of a containerized node); floored so disk waits overlap even on a single core host
+func snapshotsGoroutineNum(perCore uint32) int32 {
+	num := int64(perCore) * int64(runtime.GOMAXPROCS(0))
+	if num < minSnapshotGoroutines {
+		return minSnapshotGoroutines
+	}
+	if num > math.MaxInt32 {
+		return math.MaxInt32
 	}
 
-	if configured > math.MaxInt32 || int32(configured) > maxForHost {
-		return maxForHost
-	}
-
-	return int32(configured)
+	return int32(num)
 }
 
 func (tsm *trieStorageManager) doSnapshot(ctx context.Context, msh marshal.Marshalizer, hsh hashing.Hasher, goRoutinesThrottler core.Throttler) {

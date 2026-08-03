@@ -97,9 +97,9 @@ func NewBaseIterator(trie common.Trie) (*baseIterator, error) {
 // GetDefaultTrieStorageManagerParameters -
 func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
+		PruningBufferLen:           1000,
+		SnapshotsBufferLen:         10,
+		SnapshotsGoroutinesPerCore: 1,
 	}
 
 	return NewTrieStorageManagerArgs{
@@ -114,6 +114,6 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 }
 
 // SnapshotsGoroutineNum -
-func SnapshotsGoroutineNum(configured uint32) int32 {
-	return snapshotsGoroutineNum(configured)
+func SnapshotsGoroutineNum(perCore uint32) int32 {
+	return snapshotsGoroutineNum(perCore)
 }

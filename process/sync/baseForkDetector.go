@@ -890,11 +890,8 @@ func (bfd *baseForkDetector) isConsensusStuck() bool {
 	// never blind-rollback a proven block: a proven tip can only be wrong through equivocation,
 	// which the evidence-driven rollback paths detect and prove before acting
 	hasProvenTip := len(lastCheckpoint.hash) != 0 && bfd.proofsPool.HasProof(bfd.shardID, lastCheckpoint.hash)
-	if hasProvenTip {
-		return false
-	}
 
-	return true
+	return !hasProvenTip
 }
 
 func (bfd *baseForkDetector) getMaxRoundsWithoutCommittedBlock(round uint64) int64 {
