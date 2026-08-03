@@ -4344,6 +4344,15 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 	t.Parallel()
 
 	shardID := uint32(0)
+	epoch := uint32(0)
+	relayedV1V2DisableEpoch := uint32(5)
+	createEnableEpochsHandlerStub := func() *enableEpochsHandlerMock.EnableEpochsHandlerStub {
+		return &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.RelayedTransactionsV1V2DisableFlag && epoch >= relayedV1V2DisableEpoch
+			},
+		}
+	}
 	t.Run("different number of miniblock headers and miniblocks should error ", func(t *testing.T) {
 		t.Parallel()
 
@@ -4356,6 +4365,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				{SenderShardID: 0},
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrHeaderBodyMismatch, err)
 	})
@@ -4373,6 +4383,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				nil,
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrNilMiniBlock, err)
 	})
@@ -4390,6 +4401,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				{},
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrNilMiniBlockHeader, err)
 	})
@@ -4408,6 +4420,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				{},
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrHeaderBodyMismatch, err)
 	})
@@ -4432,6 +4445,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrHeaderBodyMismatch, err)
 	})
@@ -4458,6 +4472,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 	})
@@ -4486,6 +4501,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
 	})
@@ -4521,6 +4537,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrWrongMiniBlockConstructionState, err)
 	})
@@ -4557,6 +4574,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.Equal(t, process.ErrWrongMiniBlockProcessingType, err)
 	})
@@ -4595,13 +4613,15 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				miniBlock,
 			}},
 			shardID,
+			epoch,
 		)
 		require.NoError(t, err)
 	})
 
-	t.Run("duplicate tx hash across miniblocks with proposal should error", func(t *testing.T) {
+	t.Run("duplicate tx hash across miniblocks with proposal should error only after relayed v1/v2 disable epoch", func(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.EnableEpochsHandlerField = createEnableEpochsHandlerStub()
 		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
@@ -4646,17 +4666,19 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 		_ = mbHeaders[1].SetConstructionState(int32(block.Proposed))
 		_ = mbHeaders[1].SetProcessingType(int32(block.Normal))
 
-		err := bp.CheckHeaderBodyCorrelationProposal(
-			mbHeaders,
-			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock1, miniBlock2}},
-			shardID,
-		)
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock1, miniBlock2}}
+
+		err := bp.CheckHeaderBodyCorrelationProposal(mbHeaders, body, shardID, relayedV1V2DisableEpoch-1)
+		require.NoError(t, err)
+
+		err = bp.CheckHeaderBodyCorrelationProposal(mbHeaders, body, shardID, relayedV1V2DisableEpoch)
 		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
 	})
 
-	t.Run("duplicate tx hash within single miniblock with proposal should error", func(t *testing.T) {
+	t.Run("duplicate tx hash within single miniblock with proposal should error only after relayed v1/v2 disable epoch", func(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.EnableEpochsHandlerField = createEnableEpochsHandlerStub()
 		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
@@ -4683,17 +4705,19 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 		_ = mbHeaders[0].SetConstructionState(int32(block.Proposed))
 		_ = mbHeaders[0].SetProcessingType(int32(block.Normal))
 
-		err := bp.CheckHeaderBodyCorrelationProposal(
-			mbHeaders,
-			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}},
-			shardID,
-		)
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}
+
+		err := bp.CheckHeaderBodyCorrelationProposal(mbHeaders, body, shardID, relayedV1V2DisableEpoch-1)
+		require.NoError(t, err)
+
+		err = bp.CheckHeaderBodyCorrelationProposal(mbHeaders, body, shardID, relayedV1V2DisableEpoch)
 		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
 	})
 
-	t.Run("duplicate tx hash across miniblocks without proposal should error", func(t *testing.T) {
+	t.Run("duplicate tx hash across miniblocks without proposal should error only after relayed v1/v2 disable epoch", func(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.EnableEpochsHandlerField = createEnableEpochsHandlerStub()
 		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
@@ -4718,6 +4742,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 
 		hdr := &block.Header{
 			ShardID: shardID,
+			Epoch:   relayedV1V2DisableEpoch - 1,
 			MiniBlockHeaders: []block.MiniBlockHeader{
 				{
 					Hash:            mbHash1,
@@ -4737,17 +4762,20 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				},
 			},
 		}
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock1, miniBlock2}}
 
-		err := bp.CheckHeaderBodyCorrelation(
-			hdr,
-			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock1, miniBlock2}},
-		)
+		err := bp.CheckHeaderBodyCorrelation(hdr, body)
+		require.NoError(t, err)
+
+		hdr.Epoch = relayedV1V2DisableEpoch
+		err = bp.CheckHeaderBodyCorrelation(hdr, body)
 		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
 	})
 
-	t.Run("duplicate tx hash within single miniblock without proposal should error", func(t *testing.T) {
+	t.Run("duplicate tx hash within single miniblock without proposal should error only after relayed v1/v2 disable epoch", func(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.EnableEpochsHandlerField = createEnableEpochsHandlerStub()
 		bootstrapComponents.Coordinator, _ = sharding.NewMultiShardCoordinator(3, 0)
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
@@ -4764,6 +4792,7 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 
 		hdr := &block.Header{
 			ShardID: shardID,
+			Epoch:   relayedV1V2DisableEpoch - 1,
 			MiniBlockHeaders: []block.MiniBlockHeader{
 				{
 					Hash:            mbHash,
@@ -4775,11 +4804,13 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 				},
 			},
 		}
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}
 
-		err := bp.CheckHeaderBodyCorrelation(
-			hdr,
-			&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}},
-		)
+		err := bp.CheckHeaderBodyCorrelation(hdr, body)
+		require.NoError(t, err)
+
+		hdr.Epoch = relayedV1V2DisableEpoch
+		err = bp.CheckHeaderBodyCorrelation(hdr, body)
 		require.Equal(t, process.ErrDuplicatedTransactionInBlockBody, err)
 	})
 }

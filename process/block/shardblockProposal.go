@@ -182,7 +182,7 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), true)
+	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), header.GetEpoch(), true)
 	if err != nil {
 		return err
 	}

@@ -805,6 +805,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		common.CurrentRandomnessOnSortingFlag,
 		common.AndromedaFlag,
 		common.FullShardDataValidationFlag,
+		common.RelayedTransactionsV1V2DisableFlag,
 	})
 	if err != nil {
 		return err
@@ -1242,7 +1243,7 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeader(mbHash []byte, mbHdr 
 }
 
 // check if header has the same mini blocks as presented in body
-func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32, proposal bool) error {
+func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, blockShardID uint32, headerEpoch uint32, proposal bool) error {
 	mbHashesFromHdr := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaders))
 	for i := 0; i < len(miniBlockHeaders); i++ {
 		if miniBlockHeaders[i] == nil {
@@ -1297,9 +1298,9 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		delete(mbHashesFromHdr, mbHashStr)
 	}
 
-	err = checkForDuplicatedTxHashes(body)
-	if err != nil {
-		return err
+	// duplicated tx hashes were legitimate while failed relayed txs v1/v2 were added to invalid miniblocks
+	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, headerEpoch) {
+		return checkForDuplicatedTxHashes(body)
 	}
 
 	return nil
