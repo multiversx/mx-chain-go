@@ -2433,7 +2433,7 @@ func (bp *baseProcessor) revertAccountState() {
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(0)
 		if err != nil {
-			log.Debug("RevertToSnapshot", "error", err.Error())
+			log.Error("RevertToSnapshot", "error", err.Error())
 		}
 	}
 }
