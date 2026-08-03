@@ -214,6 +214,7 @@ func (he *headersExecutor) start(ctx context.Context) {
 func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.HeaderBodyPair) {
 	retryCount := 0
 	backoffTime := timeToSleepOnError
+	var lastErr error
 
 	for retryCount < maxRetryAttempts {
 		he.mutPaused.Lock()
@@ -243,7 +244,11 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 			}
 
 			// Exponential backoff with maximum limit
-			time.Sleep(backoffTime)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(backoffTime):
+			}
 			backoffTime = backoffTime * 2
 			if backoffTime > maxBackoffTime {
 				backoffTime = maxBackoffTime
@@ -267,6 +272,7 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 			}
 
 			retryCount++
+			lastErr = err
 			log.Warn("headersExecutor.handleProcessError - retry failed",
 				"nonce", pair.Header.GetNonce(),
 				"retry_count", retryCount,
@@ -275,9 +281,10 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 		}
 	}
 
-	log.Error("headersExecutor.handleProcessError - max retries exceeded, skipping block",
+	log.Error("headersExecutor.handleProcessError - max retries exceeded, execution blocked at nonce, the same block will be retried",
 		"nonce", pair.Header.GetNonce(),
-		"max_retries", maxRetryAttempts)
+		"max_retries", maxRetryAttempts,
+		"last_error", lastErr)
 }
 
 func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
