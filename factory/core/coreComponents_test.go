@@ -3,6 +3,7 @@ package core_test
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -344,6 +345,21 @@ func TestCoreComponentsFactory_CreateSupernovaFarAwayEpochSkipsTupleCheck(t *tes
 	cc, err := ccf.Create()
 	require.NoError(t, err)
 	require.NotNil(t, cc)
+}
+
+func TestCoreComponentsFactory_CreateSupernovaDisabledMainnetStyleShouldWork(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 999999
+	args.RoundConfig.RoundActivations["SupernovaEnableRound"] = config.ActivationRoundByName{Round: "99999999999"}
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.NoError(t, err)
+	require.NotNil(t, cc)
+	// must stay far in the future, otherwise round.isSupernovaActivated force-activates
+	require.True(t, cc.SupernovaGenesisTime().After(time.Now().AddDate(100, 0, 0)))
 }
 
 func TestValidateSupernovaActivationTuple(t *testing.T) {

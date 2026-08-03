@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -303,7 +304,16 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	startTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
 
 	genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(genesisNodesConfig.GetStartTime(), enableEpochsHandler)
-	supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRound * genesisRoundDuration.Nanoseconds()))
+
+	if genesisRoundDuration <= 0 {
+		return nil, fmt.Errorf("invalid genesis round duration %d", genesisRoundDuration)
+	}
+	// saturate instead of overflowing for far-away activation rounds used to disable Supernova
+	supernovaOffset := time.Duration(math.MaxInt64)
+	if supernovaStartRound <= math.MaxInt64/genesisRoundDuration.Nanoseconds() {
+		supernovaOffset = time.Duration(supernovaStartRound * genesisRoundDuration.Nanoseconds())
+	}
+	supernovaGenesisTime := genesisTime.Add(supernovaOffset)
 
 	if supernovaStartRound < startRound {
 		return nil, fmt.Errorf("supernovaStartRound %d lower then startRound %d",
