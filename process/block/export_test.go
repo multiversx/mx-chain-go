@@ -881,6 +881,11 @@ func CheckProposalMiniBlocksConsistency(miniBlockHeaders []data.MiniBlockHeaderH
 	return checkProposalMiniBlocksConsistency(miniBlockHeaders, miniBlocks, blockShardID)
 }
 
+// CheckLegacyPredecessorReadyForV3 -
+func (bp *baseProcessor) CheckLegacyPredecessorReadyForV3(header data.HeaderHandler) error {
+	return bp.checkLegacyPredecessorReadyForV3(header)
+}
+
 // GetFinalMiniBlocksFromExecutionResults -
 func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
 	header data.HeaderHandler,

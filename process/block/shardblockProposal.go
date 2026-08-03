@@ -66,7 +66,12 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	err := sp.updateEpochIfNeeded(shardHdr)
+	err := sp.checkLegacyPredecessorReadyForV3(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sp.updateEpochIfNeeded(shardHdr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -180,6 +185,11 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
+	}
+
+	err = sp.checkLegacyPredecessorReadyForV3(header)
+	if err != nil {
+		return err
 	}
 
 	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), header.GetEpoch(), true)

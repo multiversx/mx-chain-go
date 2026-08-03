@@ -1488,6 +1488,9 @@ var ErrInvalidSelfSenderMiniBlock = errors.New("invalid self-sender mini block i
 // ErrInvalidSelfSenderIndexes signals that a self-sender proposal mini block does not cover all its transactions
 var ErrInvalidSelfSenderIndexes = errors.New("self-sender mini block indexes do not cover all transactions")
 
+// ErrLeftoverScheduledMiniBlocksOnTransition signals that the legacy predecessor of the first Supernova block carries non-final mini blocks
+var ErrLeftoverScheduledMiniBlocksOnTransition = errors.New("leftover scheduled mini blocks on supernova transition")
+
 // ErrInvalidNumberOfExecutionResultsInHeader signals that the number of execution results in header is invalid
 var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of execution results in header")
 

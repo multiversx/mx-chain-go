@@ -307,6 +307,34 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 
 		checkCreateBlockProposalResult(t, sp, getSimpleHeaderV3Mock(), haveTimeTrue, expectedErr)
 	})
+	t.Run("legacy predecessor with non-final mini blocks should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		leftoverMbHeader := block.MiniBlockHeader{Hash: []byte("leftover")}
+		_ = leftoverMbHeader.SetProcessingType(int32(block.Scheduled))
+		_ = leftoverMbHeader.SetConstructionState(int32(block.Proposed))
+		legacyHeader := &block.Header{
+			Nonce:            1,
+			MiniBlockHeaders: []block.MiniBlockHeader{leftoverMbHeader},
+		}
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return legacyHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("prev hash")
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		_, _, err = sp.CreateBlockProposal(getSimpleHeaderV3Mock(), haveTimeTrue)
+		require.ErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
+	})
 	t.Run("consistency check fails on scheduled-marked self-sender miniblock", func(t *testing.T) {
 		t.Parallel()
 
@@ -2234,6 +2262,67 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		}
 		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("legacy predecessor with non-final mini blocks should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		leftoverMbHeader := block.MiniBlockHeader{Hash: []byte("leftover")}
+		_ = leftoverMbHeader.SetProcessingType(int32(block.Scheduled))
+		_ = leftoverMbHeader.SetConstructionState(int32(block.Proposed))
+		legacyHeader := &block.Header{
+			Nonce:            1,
+			Round:            1,
+			MiniBlockHeaders: []block.MiniBlockHeader{leftoverMbHeader},
+		}
+		_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(legacyHeader, []byte("root"))
+		dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("prevHash"))
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{
+			Nonce:    2,
+			Round:    2,
+			PrevHash: []byte("prevHash"),
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+		err = sp.VerifyBlockProposal(header, &block.Body{}, haveTime)
+		require.ErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
+	})
+
+	t.Run("legacy predecessor with only final mini blocks should not trip the transition stop", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		legacyHeader := &block.Header{
+			Nonce:            1,
+			Round:            1,
+			MiniBlockHeaders: []block.MiniBlockHeader{{Hash: []byte("final")}},
+		}
+		_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(legacyHeader, []byte("root"))
+		dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("prevHash"))
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{
+			Nonce:    2,
+			Round:    2,
+			PrevHash: []byte("prevHash"),
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+		err = sp.VerifyBlockProposal(header, &block.Body{}, haveTime)
+		require.NotErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
 	})
 
 	t.Run("wrong header version should error", func(t *testing.T) {

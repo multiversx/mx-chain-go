@@ -117,6 +117,11 @@ func (mp *metaProcessor) CreateBlockProposal(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
+	err := mp.checkLegacyPredecessorReadyForV3(metaHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch, metaHdr.Round))
 
 	if metaHdr.IsStartOfEpochBlock() || metaHdr.GetEpochChangeProposed() || mp.epochStartTrigger.GetEpochChangeProposed() {
@@ -127,7 +132,7 @@ func (mp *metaProcessor) CreateBlockProposal(
 
 	mp.gasComputation.Reset()
 	mp.miniBlocksSelectionSession.ResetSelectionSession()
-	err := mp.createBlockBodyProposal(metaHdr, haveTime)
+	err = mp.createBlockBodyProposal(metaHdr, haveTime)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -226,6 +231,11 @@ func (mp *metaProcessor) VerifyBlockProposal(
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
+	}
+
+	err = mp.checkLegacyPredecessorReadyForV3(header)
+	if err != nil {
+		return err
 	}
 
 	shouldProposeEpochChange := mp.epochStartTrigger.ShouldProposeEpochChange(headerHandler.GetRound(), headerHandler.GetNonce())

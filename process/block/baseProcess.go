@@ -1290,6 +1290,40 @@ func checkProposalMiniBlocksConsistency(
 	return nil
 }
 
+// checkLegacyPredecessorReadyForV3 hard-stops the Supernova transition when the last
+// legacy block still carries non-final mini blocks, whose work V3 would discard
+func (bp *baseProcessor) checkLegacyPredecessorReadyForV3(header data.HeaderHandler) error {
+	prevHeader := bp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(prevHeader) || prevHeader.IsHeaderV3() {
+		return nil
+	}
+	if !bytes.Equal(bp.blockChain.GetCurrentBlockHeaderHash(), header.GetPrevHash()) {
+		return nil
+	}
+
+	nonFinalMbHashes := make([][]byte, 0)
+	for _, mbHeader := range prevHeader.GetMiniBlockHeaderHandlers() {
+		if !mbHeader.IsFinal() {
+			nonFinalMbHashes = append(nonFinalMbHashes, mbHeader.GetHash())
+		}
+	}
+	if len(nonFinalMbHashes) == 0 {
+		return nil
+	}
+
+	log.Error("supernova transition blocked: the last legacy block still carries non-final mini blocks and their work would be discarded",
+		"legacy nonce", prevHeader.GetNonce(),
+		"num mini blocks", len(nonFinalMbHashes),
+		"hashes", nonFinalMbHashes,
+	)
+
+	return fmt.Errorf("%w: %d non-final mini blocks in legacy block with nonce %d",
+		process.ErrLeftoverScheduledMiniBlocksOnTransition,
+		len(nonFinalMbHashes),
+		prevHeader.GetNonce(),
+	)
+}
+
 func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
 	if !bytes.Equal(mbHash, mbHdr.GetHash()) {
 		return process.ErrHeaderBodyMismatch

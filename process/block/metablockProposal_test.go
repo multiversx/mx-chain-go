@@ -977,6 +977,34 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 		validMetaHeaderV3 := &block.MetaBlockV3{}
 		checkCreateBlockProposalResult(t, mp, validMetaHeaderV3, haveTimeTrue, expectedErr)
 	})
+	t.Run("legacy predecessor with non-final mini blocks should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+
+		leftoverMbHeader := block.MiniBlockHeader{Hash: []byte("leftover")}
+		_ = leftoverMbHeader.SetProcessingType(int32(block.Scheduled))
+		_ = leftoverMbHeader.SetConstructionState(int32(block.Proposed))
+		legacyHeader := &block.MetaBlock{
+			Nonce:            1,
+			MiniBlockHeaders: []block.MiniBlockHeader{leftoverMbHeader},
+		}
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return legacyHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("prevHash")
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, _, err = mp.CreateBlockProposal(&block.MetaBlockV3{PrevHash: []byte("prevHash")}, haveTimeTrue)
+		require.ErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
+	})
 	t.Run("consistency check fails on meta-sender miniblock in created proposal", func(t *testing.T) {
 		t.Parallel()
 
@@ -1244,6 +1272,47 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 		body := &block.Body{}
 		err = mp.VerifyBlockProposal(header, body, haveTime)
 		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+	})
+	t.Run("legacy predecessor with non-final mini blocks should error", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+
+		leftoverMbHeader := block.MiniBlockHeader{Hash: []byte("leftover")}
+		_ = leftoverMbHeader.SetProcessingType(int32(block.Scheduled))
+		_ = leftoverMbHeader.SetConstructionState(int32(block.Proposed))
+		legacyHeader := &block.MetaBlock{
+			Nonce:            1,
+			Round:            1,
+			MiniBlockHeaders: []block.MiniBlockHeader{leftoverMbHeader},
+		}
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return legacyHeader
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		lastExecRes, err := common.CreateLastExecutionResultFromPrevHeader(legacyHeader, prevBlockHash)
+		require.Nil(t, err)
+		header := &block.MetaBlockV3{
+			PrevHash:            prevBlockHash,
+			Nonce:               2,
+			Round:               2,
+			LastExecutionResult: lastExecRes.(*block.MetaExecutionResultInfo),
+		}
+		err = mp.VerifyBlockProposal(header, &block.Body{}, haveTime)
+		require.ErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
 	})
 	t.Run("header handler of type MetaBlock, should error", func(t *testing.T) {
 		t.Parallel()

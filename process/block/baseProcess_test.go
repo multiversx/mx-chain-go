@@ -5205,6 +5205,87 @@ func TestCheckProposalMiniBlocksConsistency(t *testing.T) {
 	})
 }
 
+func TestCheckLegacyPredecessorReadyForV3(t *testing.T) {
+	t.Parallel()
+
+	prevHash := []byte("prev hash")
+
+	buildProcessor := func(t *testing.T, currentHeader data.HeaderHandler, currentHash []byte) interface {
+		CheckLegacyPredecessorReadyForV3(header data.HeaderHandler) error
+	} {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return currentHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return currentHash
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+		return bp
+	}
+
+	newLegacyHeader := func(mbHeaders ...block.MiniBlockHeader) *block.Header {
+		return &block.Header{Nonce: 1, MiniBlockHeaders: mbHeaders}
+	}
+	newScheduledMbHeader := func(hash string) block.MiniBlockHeader {
+		mbh := block.MiniBlockHeader{Hash: []byte(hash)}
+		_ = mbh.SetProcessingType(int32(block.Scheduled))
+		_ = mbh.SetConstructionState(int32(block.Proposed))
+		return mbh
+	}
+	candidate := &block.HeaderV3{Nonce: 2, PrevHash: prevHash}
+
+	t.Run("nil chain head should work", func(t *testing.T) {
+		t.Parallel()
+
+		bp := buildProcessor(t, nil, prevHash)
+		require.NoError(t, bp.CheckLegacyPredecessorReadyForV3(candidate))
+	})
+
+	t.Run("v3 predecessor should work", func(t *testing.T) {
+		t.Parallel()
+
+		bp := buildProcessor(t, &block.HeaderV3{Nonce: 1}, prevHash)
+		require.NoError(t, bp.CheckLegacyPredecessorReadyForV3(candidate))
+	})
+
+	t.Run("prev hash mismatch should skip the check", func(t *testing.T) {
+		t.Parallel()
+
+		bp := buildProcessor(t, newLegacyHeader(newScheduledMbHeader("leftover")), []byte("other hash"))
+		require.NoError(t, bp.CheckLegacyPredecessorReadyForV3(candidate))
+	})
+
+	t.Run("clean legacy predecessor should work", func(t *testing.T) {
+		t.Parallel()
+
+		bp := buildProcessor(t, newLegacyHeader(block.MiniBlockHeader{Hash: []byte("final")}), prevHash)
+		require.NoError(t, bp.CheckLegacyPredecessorReadyForV3(candidate))
+	})
+
+	t.Run("scheduled leftover should error", func(t *testing.T) {
+		t.Parallel()
+
+		bp := buildProcessor(t, newLegacyHeader(newScheduledMbHeader("leftover")), prevHash)
+		err := bp.CheckLegacyPredecessorReadyForV3(candidate)
+		require.ErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
+	})
+
+	t.Run("partially executed leftover should error", func(t *testing.T) {
+		t.Parallel()
+
+		partialMbHeader := block.MiniBlockHeader{Hash: []byte("partial")}
+		_ = partialMbHeader.SetConstructionState(int32(block.PartialExecuted))
+		bp := buildProcessor(t, newLegacyHeader(partialMbHeader), prevHash)
+		err := bp.CheckLegacyPredecessorReadyForV3(candidate)
+		require.ErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
+	})
+}
+
 func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 	t.Parallel()
 
