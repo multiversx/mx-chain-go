@@ -1175,13 +1175,51 @@ func isPartiallyExecuted(
 	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
 }
 
-func (bp *baseProcessor) checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(miniBlockHeader data.MiniBlockHeaderHandler) error {
+func (bp *baseProcessor) checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(
+	miniBlockHeader data.MiniBlockHeaderHandler,
+	miniBlock *block.MiniBlock,
+	blockShardID uint32,
+) error {
 	// for Supernova all miniBlocks not part of an execution result need to have construction state Proposed
 	if miniBlockHeader.GetConstructionState() != int32(block.Proposed) {
 		return process.ErrWrongMiniBlockConstructionState
 	}
 	if miniBlockHeader.GetProcessingType() != int32(block.Normal) {
 		return process.ErrWrongMiniBlockProcessingType
+	}
+	if miniBlock.SenderShardID != blockShardID {
+		// incoming miniBlock bytes are pinned to meta-notarized source results and
+		// their body processing type is never read on execution, so it is not constrained
+		return nil
+	}
+
+	return checkSelfSenderMiniBlockProposal(miniBlockHeader, miniBlock, blockShardID)
+}
+
+func checkSelfSenderMiniBlockProposal(
+	miniBlockHeader data.MiniBlockHeaderHandler,
+	miniBlock *block.MiniBlock,
+	blockShardID uint32,
+) error {
+	if blockShardID == core.MetachainShardId {
+		return process.ErrSelfSenderMiniBlockOnMeta
+	}
+	if miniBlock.GetProcessingType() != int32(block.Normal) {
+		return fmt.Errorf("%w: body processing type %d", process.ErrInvalidSelfSenderMiniBlock, miniBlock.GetProcessingType())
+	}
+	if miniBlock.ReceiverShardID != blockShardID {
+		return fmt.Errorf("%w: receiver shard id %d", process.ErrInvalidSelfSenderMiniBlock, miniBlock.ReceiverShardID)
+	}
+	if miniBlock.Type != block.TxBlock {
+		return fmt.Errorf("%w: type %s", process.ErrInvalidSelfSenderMiniBlock, miniBlock.Type)
+	}
+	if len(miniBlock.TxHashes) == 0 {
+		return fmt.Errorf("%w: no transactions", process.ErrInvalidSelfSenderMiniBlock)
+	}
+
+	lastTxIndex := int32(len(miniBlock.TxHashes)) - 1
+	if miniBlockHeader.GetIndexOfFirstTxProcessed() != 0 || miniBlockHeader.GetIndexOfLastTxProcessed() != lastTxIndex {
+		return process.ErrInvalidSelfSenderIndexes
 	}
 
 	return nil
@@ -1221,12 +1259,12 @@ func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAnd
 	return nil
 }
 
-func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, _ uint32) error {
+func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderProposal(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
 	err := bp.checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash, mbHdr, miniBlock)
 	if err != nil {
 		return err
 	}
-	err = bp.checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr)
+	err = bp.checkConstructionStateProcessingTypeAndIndexesCorrectnessProposal(mbHdr, miniBlock, blockShardID)
 	if err != nil {
 		return err
 	}
@@ -1265,6 +1303,7 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 	var miniBlock *block.MiniBlock
 	var mbHash []byte
 	var err error
+	selfSenderSeen := false
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock = body.MiniBlocks[i]
 		mbHdr = miniBlockHeaders[i]
@@ -1289,6 +1328,13 @@ func (bp *baseProcessor) checkHeaderBodyCorrelation(miniBlockHeaders []data.Mini
 		if !proposal {
 			err = bp.checkMiniBlockWithMiniBlockHeader(mbHash, mbHdr, miniBlock, blockShardID)
 		} else {
+			if selfSenderSeen {
+				if miniBlock.SenderShardID == blockShardID {
+					return process.ErrMultipleSelfSenderMiniBlocks
+				}
+				return process.ErrSelfSenderMiniBlockNotLast
+			}
+			selfSenderSeen = miniBlock.SenderShardID == blockShardID
 			err = bp.checkMiniBlockWithMiniBlockHeaderProposal(mbHash, mbHdr, miniBlock, blockShardID)
 		}
 		if err != nil {

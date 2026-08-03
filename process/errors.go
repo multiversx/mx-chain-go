@@ -1473,6 +1473,21 @@ var ErrWrongMiniBlockConstructionState = errors.New("wrong mini block constructi
 // ErrWrongMiniBlockProcessingType signals that the mini block processing type is not as expected
 var ErrWrongMiniBlockProcessingType = errors.New("wrong mini block processing type")
 
+// ErrMultipleSelfSenderMiniBlocks signals that a proposal body holds more than one self-sender mini block
+var ErrMultipleSelfSenderMiniBlocks = errors.New("multiple self-sender mini blocks in proposal body")
+
+// ErrSelfSenderMiniBlockNotLast signals that a proposal body holds an incoming mini block after the self-sender one
+var ErrSelfSenderMiniBlockNotLast = errors.New("self-sender mini block is not the last in proposal body")
+
+// ErrSelfSenderMiniBlockOnMeta signals that a meta proposal body holds a self-sender mini block
+var ErrSelfSenderMiniBlockOnMeta = errors.New("self-sender mini block in meta proposal body")
+
+// ErrInvalidSelfSenderMiniBlock signals that a self-sender proposal mini block has an invalid shape
+var ErrInvalidSelfSenderMiniBlock = errors.New("invalid self-sender mini block in proposal body")
+
+// ErrInvalidSelfSenderIndexes signals that a self-sender proposal mini block does not cover all its transactions
+var ErrInvalidSelfSenderIndexes = errors.New("self-sender mini block indexes do not cover all transactions")
+
 // ErrInvalidNumberOfExecutionResultsInHeader signals that the number of execution results in header is invalid
 var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of execution results in header")
 
