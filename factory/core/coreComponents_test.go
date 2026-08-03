@@ -4,12 +4,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	coreComp "github.com/multiversx/mx-chain-go/factory/core"
 	"github.com/multiversx/mx-chain-go/state"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewCoreComponentsFactory_OkValuesShouldWork(t *testing.T) {
@@ -317,6 +318,194 @@ func TestCoreComponentsFactory_CreateCoreComponentsShouldWorkAfterHardfork(t *te
 	cc, err := ccf.Create()
 	require.NoError(t, err)
 	require.NotNil(t, cc)
+}
+
+func TestCoreComponentsFactory_CreateSupernovaActivationTupleMismatchShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
+	args.RoundConfig.RoundActivations["SupernovaEnableRound"] = config.ActivationRoundByName{Round: "100"}
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.Nil(t, cc)
+	require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+}
+
+func TestCoreComponentsFactory_CreateSupernovaFarAwayEpochSkipsTupleCheck(t *testing.T) {
+	t.Parallel()
+
+	args := componentsMock.GetCoreArgs()
+	args.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 1000000
+	args.RoundConfig.RoundActivations["SupernovaEnableRound"] = config.ActivationRoundByName{Round: "100"}
+	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+
+	cc, err := ccf.Create()
+	require.NoError(t, err)
+	require.NotNil(t, cc)
+}
+
+func TestValidateSupernovaActivationTuple(t *testing.T) {
+	t.Parallel()
+
+	supernovaEpoch := uint32(2)
+	supernovaRound := uint64(440)
+
+	coherentConfig := func() config.Config {
+		return config.Config{
+			Versions: config.VersionsConfig{
+				VersionsByEpochs: []config.VersionByEpochs{
+					{StartEpoch: 0, StartRound: 0, Version: "*"},
+					{StartEpoch: 2, StartRound: 440, Version: "3"},
+				},
+			},
+			GeneralSettings: config.GeneralSettingsConfig{
+				ChainParametersByEpoch:        []config.ChainParametersByEpochConfig{{EnableEpoch: 0}, {EnableEpoch: 2}},
+				EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0}, {EnableEpoch: 2}},
+				ProcessConfigsByEpoch:         []config.ProcessConfigByEpoch{{EnableEpoch: 0}, {EnableEpoch: 2}},
+				EpochStartConfigsByEpoch:      []config.EpochStartConfigByEpoch{{EnableEpoch: 0}, {EnableEpoch: 2}},
+				ConsensusConfigsByEpoch:       []config.ConsensusConfigByEpoch{{EnableEpoch: 0}, {EnableEpoch: 2}},
+				ProcessConfigsByRound:         []config.ProcessConfigByRound{{EnableRound: 0}, {EnableRound: 440}},
+				EpochStartConfigsByRound:      []config.EpochStartConfigByRound{{EnableRound: 0}, {EnableRound: 440}},
+				ConsensusConfigsByRound:       []config.ConsensusConfigByRound{{EnableRound: 0}, {EnableRound: 440}},
+			},
+		}
+	}
+
+	t.Run("coherent tuple should work", func(t *testing.T) {
+		t.Parallel()
+
+		err := coreComp.ValidateSupernovaActivationTuple(coherentConfig(), supernovaEpoch, supernovaRound)
+		require.NoError(t, err)
+	})
+
+	t.Run("far away epoch skips the boundary alignment check", func(t *testing.T) {
+		t.Parallel()
+
+		err := coreComp.ValidateSupernovaActivationTuple(config.Config{}, 999999, supernovaRound)
+		require.NoError(t, err)
+	})
+
+	t.Run("disabled supernova with coherent far away values should work", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.Config{
+			Versions: config.VersionsConfig{
+				VersionsByEpochs: []config.VersionByEpochs{
+					{StartEpoch: 0, StartRound: 0, Version: "*"},
+					{StartEpoch: 9999999, StartRound: 99_999_999_999, Version: "3"},
+				},
+			},
+			GeneralSettings: config.GeneralSettingsConfig{
+				ProcessConfigsByRound:    []config.ProcessConfigByRound{{EnableRound: 0}, {EnableRound: 99_999_999_999}},
+				EpochStartConfigsByRound: []config.EpochStartConfigByRound{{EnableRound: 0}},
+				ConsensusConfigsByRound:  []config.ConsensusConfigByRound{{EnableRound: 0}},
+			},
+		}
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, 9999999, 99_999_999_999)
+		require.NoError(t, err)
+	})
+
+	t.Run("disabled supernova with near version 3 entry should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := coherentConfig()
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, 9999999, 9999999)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+		require.ErrorContains(t, err, "StartEpoch 2")
+	})
+
+	t.Run("disabled supernova with near round-keyed entries should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := coherentConfig()
+		cfg.Versions.VersionsByEpochs[1].StartEpoch = 9999999
+		cfg.Versions.VersionsByEpochs[1].StartRound = 9999999
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, 9999999, 9999999)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+		require.ErrorContains(t, err, "GeneralSettings.ProcessConfigsByRound")
+		require.ErrorContains(t, err, "GeneralSettings.EpochStartConfigsByRound")
+		require.ErrorContains(t, err, "GeneralSettings.ConsensusConfigsByRound")
+	})
+
+	t.Run("disabled supernova with mainnet-scale round leftover should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := coherentConfig()
+		cfg.Versions.VersionsByEpochs[1].StartEpoch = 9999999
+		cfg.GeneralSettings.EpochStartConfigsByRound = []config.EpochStartConfigByRound{{EnableRound: 0}}
+		cfg.GeneralSettings.ConsensusConfigsByRound = []config.ConsensusConfigByRound{{EnableRound: 0}}
+		cfg.GeneralSettings.ProcessConfigsByRound = []config.ProcessConfigByRound{{EnableRound: 0}, {EnableRound: 31608234}}
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, 9999999, 9999999)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+		require.ErrorContains(t, err, "GeneralSettings.ProcessConfigsByRound")
+	})
+
+	t.Run("missing version 3 entry should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := coherentConfig()
+		cfg.Versions.VersionsByEpochs = cfg.Versions.VersionsByEpochs[:1]
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, supernovaEpoch, supernovaRound)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+	})
+
+	t.Run("wrong version start epoch should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := coherentConfig()
+		cfg.Versions.VersionsByEpochs[1].StartEpoch = 3
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, supernovaEpoch, supernovaRound)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+	})
+
+	t.Run("wrong version start round should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := coherentConfig()
+		cfg.Versions.VersionsByEpochs[1].StartRound = 441
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, supernovaEpoch, supernovaRound)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+	})
+
+	listMutations := map[string]func(cfg *config.Config){
+		"GeneralSettings.ChainParametersByEpoch": func(cfg *config.Config) {
+			cfg.GeneralSettings.ChainParametersByEpoch = cfg.GeneralSettings.ChainParametersByEpoch[:1]
+		},
+		"GeneralSettings.EpochChangeGracePeriodByEpoch": func(cfg *config.Config) {
+			cfg.GeneralSettings.EpochChangeGracePeriodByEpoch = cfg.GeneralSettings.EpochChangeGracePeriodByEpoch[:1]
+		},
+		"GeneralSettings.ProcessConfigsByEpoch": func(cfg *config.Config) {
+			cfg.GeneralSettings.ProcessConfigsByEpoch = cfg.GeneralSettings.ProcessConfigsByEpoch[:1]
+		},
+		"GeneralSettings.EpochStartConfigsByEpoch": func(cfg *config.Config) {
+			cfg.GeneralSettings.EpochStartConfigsByEpoch = cfg.GeneralSettings.EpochStartConfigsByEpoch[:1]
+		},
+		"GeneralSettings.ConsensusConfigsByEpoch": func(cfg *config.Config) {
+			cfg.GeneralSettings.ConsensusConfigsByEpoch = cfg.GeneralSettings.ConsensusConfigsByEpoch[:1]
+		},
+		"GeneralSettings.ProcessConfigsByRound": func(cfg *config.Config) {
+			cfg.GeneralSettings.ProcessConfigsByRound = cfg.GeneralSettings.ProcessConfigsByRound[:1]
+		},
+		"GeneralSettings.EpochStartConfigsByRound": func(cfg *config.Config) {
+			cfg.GeneralSettings.EpochStartConfigsByRound = cfg.GeneralSettings.EpochStartConfigsByRound[:1]
+		},
+		"GeneralSettings.ConsensusConfigsByRound": func(cfg *config.Config) {
+			cfg.GeneralSettings.ConsensusConfigsByRound = cfg.GeneralSettings.ConsensusConfigsByRound[:1]
+		},
+	}
+	for listName, mutate := range listMutations {
+		t.Run("missing boundary entry in "+listName, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := coherentConfig()
+			mutate(&cfg)
+			err := coreComp.ValidateSupernovaActivationTuple(cfg, supernovaEpoch, supernovaRound)
+			require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+			require.ErrorContains(t, err, listName)
+		})
+	}
 }
 
 // ------------ Test CoreComponents --------------------
