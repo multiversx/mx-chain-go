@@ -905,7 +905,11 @@
 
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
-    ExtraDelayForRequestBlockInfoInMilliseconds = 220
+    # fallback prefetch patience, measured from the local (header + proof) observation; only
+    # data still missing at expiry is requested, so the healthy path pays nothing. Must exceed
+    # the sender's broadcast chain (30ms miniblocks + 50ms transactions) plus the gossip
+    # delivery time of the broadcast data; generous margin is free safety
+    ExtraDelayForRequestBlockInfoInMilliseconds = 400
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.

@@ -524,6 +524,16 @@ func hasConfigEntry[T any](entries []T, matches func(T) bool) bool {
 // activation boundary agrees with the activation flags
 func validateSupernovaActivationTuple(cfg config.Config, supernovaEpoch uint32, supernovaRound uint64) error {
 	if supernovaEpoch >= supernovaFarAwayActivationEpoch {
+		// a live round with a disabled epoch would switch chronology and force-activate on the
+		// round flag alone while headers stay legacy
+		if supernovaRound < supernovaFarAwayActivationRound {
+			return fmt.Errorf("%w: supernova epoch is disabled (%d) but activation round %d is below %d",
+				errors.ErrSupernovaActivationConfigMismatch,
+				supernovaEpoch,
+				supernovaRound,
+				supernovaFarAwayActivationRound,
+			)
+		}
 		return checkDisabledSupernovaCoherence(cfg)
 	}
 

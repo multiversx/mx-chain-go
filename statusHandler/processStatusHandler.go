@@ -113,7 +113,8 @@ func (psh *processStatusHandler) IsIdle() bool {
 	psh.mutStatus.RLock()
 	defer psh.mutStatus.RUnlock()
 
-	return psh.isIdle && (psh.numBackgroundJobBlockers == 0 || psh.numBlockingSuspensions > 0)
+	// idle only when every active blocker is covered by a suspension from its own waiting chain
+	return psh.isIdle && psh.numBackgroundJobBlockers <= psh.numBlockingSuspensions
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

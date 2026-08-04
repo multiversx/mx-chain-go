@@ -118,7 +118,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 					Round: "18446744073709551615",
 				},
 				"SupernovaEnableRound": {
-					Round: "9999999",
+					Round: "99999999999",
 				},
 			},
 		},
