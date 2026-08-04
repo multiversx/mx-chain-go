@@ -81,7 +81,7 @@
             NumHeadersToRequestInAdvance = 10
         },
         {
-            EnableRound = 999999999,
+            EnableRound = 99999999999,
             MaxRoundsWithoutNewBlockReceived = 100,
             MaxRoundsWithoutCommittedBlock = 100,
             RoundModulusTriggerWhenSyncIsStuck = 200,
@@ -102,7 +102,7 @@
 
     EpochStartConfigsByRound = [
         { EnableRound = 0, MaxRoundsWithoutCommittedStartInEpochBlock = 50 },
-        { EnableRound = 999999999, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
+        { EnableRound = 99999999999, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
     ]
 
     ConsensusConfigsByEpoch = [
@@ -122,7 +122,7 @@
             ProcessingThresholdPercent = 85
         },
         {
-            EnableRound = 999999999,
+            EnableRound = 99999999999,
             SubroundsTiming = [
                 { StartTime = 0.0,  EndTime = 0.05 },  # start round
                 { StartTime = 0.05, EndTime = 0.35 },  # block
@@ -145,7 +145,7 @@
 
         # StartEpoch and StartRound for version 3 must equal SupernovaEnableEpoch (enableEpochs.toml) and
         # SupernovaEnableRound (enableRounds.toml); this is enforced at node startup
-        { StartEpoch = 9999999, StartRound = 999999999, Version = "3" },
+        { StartEpoch = 9999999, StartRound = 99999999999, Version = "3" },
     ]
 
 [StoragePruning]
@@ -763,7 +763,7 @@
             MaxDeviationTimeInMilliseconds = 25
 
     [[Antiflood.ConfigsByRound]]
-        Round = 999999999
+        Round = 99999999999
         NumConcurrentResolverJobs = 50 # TODO: analyse for meta on bootstrap there was a constant used with value 10
         NumConcurrentResolvingTrieNodesJobs = 3
 
