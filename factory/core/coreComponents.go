@@ -331,6 +331,8 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	err = validateSupernovaActivationTuple(
 		ccf.config,
+		ccf.economicsConfig,
+		ccf.ratingsConfig,
 		enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag),
 		uint64(supernovaStartRound),
 	)
@@ -522,7 +524,13 @@ func hasConfigEntry[T any](entries []T, matches func(T) bool) bool {
 
 // validateSupernovaActivationTuple checks that every config list carrying the Supernova
 // activation boundary agrees with the activation flags
-func validateSupernovaActivationTuple(cfg config.Config, supernovaEpoch uint32, supernovaRound uint64) error {
+func validateSupernovaActivationTuple(
+	cfg config.Config,
+	economicsCfg config.EconomicsConfig,
+	ratingsCfg config.RatingsConfig,
+	supernovaEpoch uint32,
+	supernovaRound uint64,
+) error {
 	if supernovaEpoch >= supernovaFarAwayActivationEpoch {
 		// a live round with a disabled epoch would switch chronology and force-activate on the
 		// round flag alone while headers stay legacy
@@ -574,6 +582,19 @@ func validateSupernovaActivationTuple(cfg config.Config, supernovaEpoch uint32, 
 	checkList("GeneralSettings.ConsensusConfigsByRound", hasConfigEntry(gs.ConsensusConfigsByRound, func(e config.ConsensusConfigByRound) bool {
 		return e.EnableRound == supernovaRound
 	}))
+	checkList("Antiflood.ConfigsByRound", hasConfigEntry(cfg.Antiflood.ConfigsByRound, func(e config.AntifloodConfigByRound) bool {
+		return e.Round == supernovaRound
+	}))
+	// supernova-paired entries outside config.Config: they must move together with the flags
+	checkList("FeeSettings.GasLimitSettings", hasConfigEntry(economicsCfg.FeeSettings.GasLimitSettings, func(e config.GasLimitSetting) bool {
+		return e.EnableEpoch == supernovaEpoch
+	}))
+	checkList("ShardChain.RatingStepsByEpoch", hasConfigEntry(ratingsCfg.ShardChain.RatingStepsByEpoch, func(e config.RatingSteps) bool {
+		return e.EnableEpoch == supernovaEpoch
+	}))
+	checkList("MetaChain.RatingStepsByEpoch", hasConfigEntry(ratingsCfg.MetaChain.RatingStepsByEpoch, func(e config.RatingSteps) bool {
+		return e.EnableEpoch == supernovaEpoch
+	}))
 
 	if len(missingLists) > 0 {
 		return fmt.Errorf("%w: no entry at supernova activation epoch %d or round %d in: %s",
@@ -604,6 +625,23 @@ func checkDisabledSupernovaCoherence(cfg config.Config) error {
 		}
 	}
 
+	// round duration changes exist only via the Supernova machinery; an entry parked at or
+	// beyond the far-away epoch is the disabled convention itself and stays allowed
+	chainParams := cfg.GeneralSettings.ChainParametersByEpoch
+	for i := 1; i < len(chainParams); i++ {
+		if chainParams[i].EnableEpoch >= supernovaFarAwayActivationEpoch {
+			continue
+		}
+		if chainParams[i].RoundDuration != chainParams[0].RoundDuration {
+			return fmt.Errorf("%w: supernova is disabled but [ChainParametersByEpoch] entry at epoch %d changes RoundDuration from %d to %d",
+				errors.ErrSupernovaActivationConfigMismatch,
+				chainParams[i].EnableEpoch,
+				chainParams[0].RoundDuration,
+				chainParams[i].RoundDuration,
+			)
+		}
+	}
+
 	isNearRound := func(round uint64) bool {
 		return round != 0 && round < supernovaFarAwayActivationRound
 	}
@@ -624,6 +662,9 @@ func checkDisabledSupernovaCoherence(cfg config.Config) error {
 	}))
 	checkList("GeneralSettings.ConsensusConfigsByRound", hasConfigEntry(gs.ConsensusConfigsByRound, func(e config.ConsensusConfigByRound) bool {
 		return isNearRound(e.EnableRound)
+	}))
+	checkList("Antiflood.ConfigsByRound", hasConfigEntry(cfg.Antiflood.ConfigsByRound, func(e config.AntifloodConfigByRound) bool {
+		return isNearRound(e.Round)
 	}))
 
 	if len(nearLists) > 0 {

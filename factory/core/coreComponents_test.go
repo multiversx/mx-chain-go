@@ -386,29 +386,148 @@ func TestValidateSupernovaActivationTuple(t *testing.T) {
 				EpochStartConfigsByRound:      []config.EpochStartConfigByRound{{EnableRound: 0}, {EnableRound: 440}},
 				ConsensusConfigsByRound:       []config.ConsensusConfigByRound{{EnableRound: 0}, {EnableRound: 440}},
 			},
+			Antiflood: config.AntifloodConfig{
+				ConfigsByRound: []config.AntifloodConfigByRound{{Round: 0}, {Round: 440}},
+			},
+		}
+	}
+
+	coherentEconomics := func() config.EconomicsConfig {
+		return config.EconomicsConfig{
+			FeeSettings: config.FeeSettings{
+				GasLimitSettings: []config.GasLimitSetting{{EnableEpoch: 0}, {EnableEpoch: 2}},
+			},
+		}
+	}
+	coherentRatings := func() config.RatingsConfig {
+		return config.RatingsConfig{
+			ShardChain: config.ShardChain{RatingStepsByEpoch: []config.RatingSteps{{EnableEpoch: 0}, {EnableEpoch: 2}}},
+			MetaChain:  config.MetaChain{RatingStepsByEpoch: []config.RatingSteps{{EnableEpoch: 0}, {EnableEpoch: 2}}},
 		}
 	}
 
 	t.Run("coherent tuple should work", func(t *testing.T) {
 		t.Parallel()
 
-		err := coreComp.ValidateSupernovaActivationTuple(coherentConfig(), supernovaEpoch, supernovaRound)
+		err := coreComp.ValidateSupernovaActivationTuple(coherentConfig(), coherentEconomics(), coherentRatings(), supernovaEpoch, supernovaRound)
 		require.NoError(t, err)
 	})
 
 	t.Run("far away epoch skips the boundary alignment check", func(t *testing.T) {
 		t.Parallel()
 
-		err := coreComp.ValidateSupernovaActivationTuple(config.Config{}, 999999, 99_999_999_999)
+		err := coreComp.ValidateSupernovaActivationTuple(config.Config{}, config.EconomicsConfig{}, config.RatingsConfig{}, 999999, 99_999_999_999)
 		require.NoError(t, err)
 	})
 
 	t.Run("disabled supernova with near activation round should error", func(t *testing.T) {
 		t.Parallel()
 
-		err := coreComp.ValidateSupernovaActivationTuple(config.Config{}, 999999, supernovaRound)
+		err := coreComp.ValidateSupernovaActivationTuple(config.Config{}, config.EconomicsConfig{}, config.RatingsConfig{}, 999999, supernovaRound)
 		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
 		require.ErrorContains(t, err, "below")
+	})
+
+	t.Run("enabled supernova with missing antiflood round entry should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := coherentConfig()
+		cfg.Antiflood.ConfigsByRound = []config.AntifloodConfigByRound{{Round: 0}}
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, coherentEconomics(), coherentRatings(), supernovaEpoch, supernovaRound)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+		require.ErrorContains(t, err, "Antiflood.ConfigsByRound")
+	})
+
+	t.Run("disabled supernova with near antiflood round entry should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.Config{
+			Antiflood: config.AntifloodConfig{
+				ConfigsByRound: []config.AntifloodConfigByRound{{Round: 0}, {Round: 440}},
+			},
+		}
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, config.EconomicsConfig{}, config.RatingsConfig{}, 999999, 99_999_999_999)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+		require.ErrorContains(t, err, "Antiflood.ConfigsByRound")
+	})
+
+	t.Run("enabled supernova with missing paired gas limit entry should error", func(t *testing.T) {
+		t.Parallel()
+
+		economics := config.EconomicsConfig{
+			FeeSettings: config.FeeSettings{GasLimitSettings: []config.GasLimitSetting{{EnableEpoch: 0}}},
+		}
+		err := coreComp.ValidateSupernovaActivationTuple(coherentConfig(), economics, coherentRatings(), supernovaEpoch, supernovaRound)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+		require.ErrorContains(t, err, "FeeSettings.GasLimitSettings")
+	})
+
+	t.Run("enabled supernova with missing paired shard rating steps should error", func(t *testing.T) {
+		t.Parallel()
+
+		ratings := coherentRatings()
+		ratings.ShardChain.RatingStepsByEpoch = []config.RatingSteps{{EnableEpoch: 0}}
+		err := coreComp.ValidateSupernovaActivationTuple(coherentConfig(), coherentEconomics(), ratings, supernovaEpoch, supernovaRound)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+		require.ErrorContains(t, err, "ShardChain.RatingStepsByEpoch")
+	})
+
+	t.Run("enabled supernova with missing paired meta rating steps should error", func(t *testing.T) {
+		t.Parallel()
+
+		ratings := coherentRatings()
+		ratings.MetaChain.RatingStepsByEpoch = []config.RatingSteps{{EnableEpoch: 0}}
+		err := coreComp.ValidateSupernovaActivationTuple(coherentConfig(), coherentEconomics(), ratings, supernovaEpoch, supernovaRound)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+		require.ErrorContains(t, err, "MetaChain.RatingStepsByEpoch")
+	})
+
+	t.Run("disabled supernova with round duration change should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.Config{
+			GeneralSettings: config.GeneralSettingsConfig{
+				ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
+					{EnableEpoch: 0, RoundDuration: 6000},
+					{EnableEpoch: 2, RoundDuration: 600},
+				},
+			},
+		}
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, config.EconomicsConfig{}, config.RatingsConfig{}, 999999, 99_999_999_999)
+		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
+		require.ErrorContains(t, err, "RoundDuration")
+	})
+
+	t.Run("disabled supernova with uniform round duration should work", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.Config{
+			GeneralSettings: config.GeneralSettingsConfig{
+				ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
+					{EnableEpoch: 0, RoundDuration: 6000},
+					{EnableEpoch: 2, RoundDuration: 6000},
+				},
+			},
+		}
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, config.EconomicsConfig{}, config.RatingsConfig{}, 999999, 99_999_999_999)
+		require.NoError(t, err)
+	})
+
+	t.Run("disabled supernova with duration change parked at far away epoch should work", func(t *testing.T) {
+		t.Parallel()
+
+		// mainnet-style disabled convention: the supernova chain-params entry moved to the sentinel
+		cfg := config.Config{
+			GeneralSettings: config.GeneralSettingsConfig{
+				ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
+					{EnableEpoch: 0, RoundDuration: 6000},
+					{EnableEpoch: 1763, RoundDuration: 6000},
+					{EnableEpoch: 999999, RoundDuration: 600},
+				},
+			},
+		}
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, config.EconomicsConfig{}, config.RatingsConfig{}, 999999, 99_999_999_999)
+		require.NoError(t, err)
 	})
 
 	t.Run("disabled supernova with coherent far away values should work", func(t *testing.T) {
@@ -427,7 +546,7 @@ func TestValidateSupernovaActivationTuple(t *testing.T) {
 				ConsensusConfigsByRound:  []config.ConsensusConfigByRound{{EnableRound: 0}},
 			},
 		}
-		err := coreComp.ValidateSupernovaActivationTuple(cfg, 9999999, 99_999_999_999)
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, config.EconomicsConfig{}, config.RatingsConfig{}, 9999999, 99_999_999_999)
 		require.NoError(t, err)
 	})
 
@@ -435,7 +554,7 @@ func TestValidateSupernovaActivationTuple(t *testing.T) {
 		t.Parallel()
 
 		cfg := coherentConfig()
-		err := coreComp.ValidateSupernovaActivationTuple(cfg, 9999999, 99_999_999_999)
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, config.EconomicsConfig{}, config.RatingsConfig{}, 9999999, 99_999_999_999)
 		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
 		require.ErrorContains(t, err, "StartEpoch 2")
 	})
@@ -446,7 +565,7 @@ func TestValidateSupernovaActivationTuple(t *testing.T) {
 		cfg := coherentConfig()
 		cfg.Versions.VersionsByEpochs[1].StartEpoch = 9999999
 		cfg.Versions.VersionsByEpochs[1].StartRound = 9999999
-		err := coreComp.ValidateSupernovaActivationTuple(cfg, 9999999, 99_999_999_999)
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, config.EconomicsConfig{}, config.RatingsConfig{}, 9999999, 99_999_999_999)
 		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
 		require.ErrorContains(t, err, "GeneralSettings.ProcessConfigsByRound")
 		require.ErrorContains(t, err, "GeneralSettings.EpochStartConfigsByRound")
@@ -461,7 +580,7 @@ func TestValidateSupernovaActivationTuple(t *testing.T) {
 		cfg.GeneralSettings.EpochStartConfigsByRound = []config.EpochStartConfigByRound{{EnableRound: 0}}
 		cfg.GeneralSettings.ConsensusConfigsByRound = []config.ConsensusConfigByRound{{EnableRound: 0}}
 		cfg.GeneralSettings.ProcessConfigsByRound = []config.ProcessConfigByRound{{EnableRound: 0}, {EnableRound: 31608234}}
-		err := coreComp.ValidateSupernovaActivationTuple(cfg, 9999999, 99_999_999_999)
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, config.EconomicsConfig{}, config.RatingsConfig{}, 9999999, 99_999_999_999)
 		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
 		require.ErrorContains(t, err, "GeneralSettings.ProcessConfigsByRound")
 	})
@@ -471,7 +590,7 @@ func TestValidateSupernovaActivationTuple(t *testing.T) {
 
 		cfg := coherentConfig()
 		cfg.Versions.VersionsByEpochs = cfg.Versions.VersionsByEpochs[:1]
-		err := coreComp.ValidateSupernovaActivationTuple(cfg, supernovaEpoch, supernovaRound)
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, coherentEconomics(), coherentRatings(), supernovaEpoch, supernovaRound)
 		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
 	})
 
@@ -480,7 +599,7 @@ func TestValidateSupernovaActivationTuple(t *testing.T) {
 
 		cfg := coherentConfig()
 		cfg.Versions.VersionsByEpochs[1].StartEpoch = 3
-		err := coreComp.ValidateSupernovaActivationTuple(cfg, supernovaEpoch, supernovaRound)
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, coherentEconomics(), coherentRatings(), supernovaEpoch, supernovaRound)
 		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
 	})
 
@@ -489,7 +608,7 @@ func TestValidateSupernovaActivationTuple(t *testing.T) {
 
 		cfg := coherentConfig()
 		cfg.Versions.VersionsByEpochs[1].StartRound = 441
-		err := coreComp.ValidateSupernovaActivationTuple(cfg, supernovaEpoch, supernovaRound)
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, coherentEconomics(), coherentRatings(), supernovaEpoch, supernovaRound)
 		require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
 	})
 
@@ -525,7 +644,7 @@ func TestValidateSupernovaActivationTuple(t *testing.T) {
 
 			cfg := coherentConfig()
 			mutate(&cfg)
-			err := coreComp.ValidateSupernovaActivationTuple(cfg, supernovaEpoch, supernovaRound)
+			err := coreComp.ValidateSupernovaActivationTuple(cfg, coherentEconomics(), coherentRatings(), supernovaEpoch, supernovaRound)
 			require.True(t, errors.Is(err, errorsMx.ErrSupernovaActivationConfigMismatch))
 			require.ErrorContains(t, err, listName)
 		})

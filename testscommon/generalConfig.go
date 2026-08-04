@@ -613,7 +613,7 @@ func GetDefaultAntifloodConfig() config.AntifloodConfig {
 				},
 			},
 			{
-				Round:                               100,
+				Round:                               99_999_999_999, // far-away supernova round, coherent with the disabled default
 				NumConcurrentResolverJobs:           10,
 				NumConcurrentResolvingTrieNodesJobs: 3,
 				Cache: config.CacheConfig{

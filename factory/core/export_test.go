@@ -7,8 +7,14 @@ import (
 )
 
 // ValidateSupernovaActivationTuple -
-func ValidateSupernovaActivationTuple(cfg config.Config, supernovaEpoch uint32, supernovaRound uint64) error {
-	return validateSupernovaActivationTuple(cfg, supernovaEpoch, supernovaRound)
+func ValidateSupernovaActivationTuple(
+	cfg config.Config,
+	economicsCfg config.EconomicsConfig,
+	ratingsCfg config.RatingsConfig,
+	supernovaEpoch uint32,
+	supernovaRound uint64,
+) error {
+	return validateSupernovaActivationTuple(cfg, economicsCfg, ratingsCfg, supernovaEpoch, supernovaRound)
 }
 
 // SupernovaGenesisTime -
