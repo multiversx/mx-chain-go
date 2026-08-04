@@ -254,4 +254,31 @@ func TestProcessStatusHandler_SuspendBackgroundJobBlocking(t *testing.T) {
 		psh.SuspendBackgroundJobBlocking("waiting for the snapshot")
 		assert.True(t, psh.IsIdle())
 	})
+	t.Run("a single suspension must not neutralize an unrelated second blocker", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.BlockBackgroundJobs("commit waiting for the snapshot")
+		psh.SuspendBackgroundJobBlocking("waiting for the snapshot")
+		assert.True(t, psh.IsIdle())
+
+		psh.BlockBackgroundJobs("execution commit")
+		assert.False(t, psh.IsIdle(), "the unsuspended execution commit must keep background jobs blocked")
+
+		psh.UnblockBackgroundJobs()
+		assert.True(t, psh.IsIdle())
+	})
+	t.Run("paired blocker and suspension chains compose", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.BlockBackgroundJobs("commit A")
+		psh.SuspendBackgroundJobBlocking("commit A waits for the snapshot")
+		psh.BlockBackgroundJobs("commit B")
+		psh.SuspendBackgroundJobBlocking("commit B waits for the snapshot")
+		assert.True(t, psh.IsIdle())
+
+		psh.ResumeBackgroundJobBlocking()
+		assert.False(t, psh.IsIdle())
+	})
 }
