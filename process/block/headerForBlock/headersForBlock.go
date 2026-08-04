@@ -21,6 +21,14 @@ import (
 
 var log = logger.GetOrCreate("headersForBlock")
 
+const maxPendingMiniBlockRequests = 100
+const pendingMiniBlockRequestFallbackDelay = 3 * time.Second
+
+type pendingMbRequest struct {
+	header  data.HeaderHandler
+	addedAt time.Time
+}
+
 // ArgHeadersForBlock is the DTO that holds data needed to create a new instance of headersForBlock
 type ArgHeadersForBlock struct {
 	DataPool                                    dataRetriever.PoolsHolder
@@ -53,6 +61,11 @@ type headersForBlock struct {
 	mutHdrsForBlock              sync.RWMutex
 	hdrHashAndInfo               map[string]HeaderInfo
 	lastNotarizedShardHeaders    map[uint32]LastNotarizedHeaderInfoHandler
+
+	mutPendingMbRequests          sync.Mutex
+	pendingMbRequests             map[string]*pendingMbRequest
+	maxPendingMbRequests          int
+	pendingMbRequestFallbackDelay time.Duration
 }
 
 type crossShardMetaData interface {
@@ -83,6 +96,10 @@ func NewHeadersForBlock(args ArgHeadersForBlock) (*headersForBlock, error) {
 		hdrHashAndInfo:             make(map[string]HeaderInfo),
 		highestHdrNonce:            make(map[uint32]uint64),
 		lastNotarizedShardHeaders:  make(map[uint32]LastNotarizedHeaderInfoHandler),
+
+		pendingMbRequests:             make(map[string]*pendingMbRequest),
+		maxPendingMbRequests:          maxPendingMiniBlockRequests,
+		pendingMbRequestFallbackDelay: pendingMiniBlockRequestFallbackDelay,
 	}
 
 	instance.dataPool.Headers().RegisterHandler(instance.receivedMetaBlock)
@@ -632,6 +649,9 @@ func (hfb *headersForBlock) requestHeaderByShardAndNonce(shardID uint32, nonce u
 }
 
 func (hfb *headersForBlock) checkReceivedProofIfAttestingIsNeeded(proof data.HeaderProofHandler) {
+	hfb.dispatchPendingMbRequest(string(proof.GetHeaderHash()))
+	hfb.sweepStalePendingMbRequests()
+
 	hfb.mutHdrsForBlock.Lock()
 	hInfo, ok := hfb.hdrHashAndInfo[string(proof.GetHeaderHash())]
 	if !ok {
@@ -730,7 +750,7 @@ func (hfb *headersForBlock) receivedShardBlock(headerHandler data.HeaderHandler,
 		hfb.mutHdrsForBlock.Unlock()
 	}
 
-	go hfb.requestMiniBlocksIfNeeded(headerHandler)
+	hfb.scheduleMiniBlocksRequestIfNeeded(headerHandler, shardHeaderHash)
 }
 
 // requestMissingFinalityAttestingShardHeaders requests the headers needed to accept the current selected headers for
@@ -818,7 +838,7 @@ func (hfb *headersForBlock) receivedMetaBlock(headerHandler data.HeaderHandler, 
 		hfb.mutHdrsForBlock.Unlock()
 	}
 
-	go hfb.requestMiniBlocksIfNeeded(headerHandler)
+	hfb.scheduleMiniBlocksRequestIfNeeded(headerHandler, metaBlockHash)
 }
 
 func (hfb *headersForBlock) checkFinalityRequestingMissing(metaBlock data.MetaHeaderHandler) {
@@ -852,6 +872,96 @@ func (hfb *headersForBlock) updateLastNotarizedBlockForShard(hdr data.ShardHeade
 	}
 }
 
+// scheduleMiniBlocksRequestIfNeeded defers the miniblocks prefetch until the header's proof is
+// available - the same event that releases the sender's broadcast; requesting earlier duplicates the delivery
+func (hfb *headersForBlock) scheduleMiniBlocksRequestIfNeeded(header data.HeaderHandler, headerHash []byte) {
+	hfb.sweepStalePendingMbRequests()
+
+	if !common.IsProofsFlagEnabledForHeader(hfb.enableEpochsHandler, header) {
+		go hfb.requestMiniBlocksIfNeeded(header)
+		return
+	}
+
+	isNodeBehind := hfb.roundHandler.IndexForCurrentTime()-int64(header.GetRound()) > 1
+	if isNodeBehind || hfb.dataPool.Proofs().HasProof(header.GetShardID(), headerHash) {
+		go hfb.requestMiniBlocksIfNeeded(header)
+		return
+	}
+
+	hfb.addPendingMbRequest(headerHash, header)
+
+	// the proof may have arrived between the check above and the add
+	if hfb.dataPool.Proofs().HasProof(header.GetShardID(), headerHash) {
+		hfb.dispatchPendingMbRequest(string(headerHash))
+	}
+}
+
+func (hfb *headersForBlock) addPendingMbRequest(headerHash []byte, header data.HeaderHandler) {
+	var evicted *pendingMbRequest
+
+	hfb.mutPendingMbRequests.Lock()
+	key := string(headerHash)
+	_, exists := hfb.pendingMbRequests[key]
+	if !exists {
+		hfb.pendingMbRequests[key] = &pendingMbRequest{header: header, addedAt: time.Now()}
+		if len(hfb.pendingMbRequests) > hfb.maxPendingMbRequests {
+			evicted = hfb.removeOldestPendingMbRequestUnprotected()
+		}
+	}
+	hfb.mutPendingMbRequests.Unlock()
+
+	if evicted != nil {
+		go hfb.requestMiniBlocksIfNeeded(evicted.header)
+	}
+}
+
+// called under mutPendingMbRequests
+func (hfb *headersForBlock) removeOldestPendingMbRequestUnprotected() *pendingMbRequest {
+	var oldestKey string
+	var oldest *pendingMbRequest
+	for key, entry := range hfb.pendingMbRequests {
+		if oldest == nil || entry.addedAt.Before(oldest.addedAt) {
+			oldestKey = key
+			oldest = entry
+		}
+	}
+	delete(hfb.pendingMbRequests, oldestKey)
+
+	return oldest
+}
+
+func (hfb *headersForBlock) dispatchPendingMbRequest(key string) {
+	hfb.mutPendingMbRequests.Lock()
+	entry, found := hfb.pendingMbRequests[key]
+	if found {
+		delete(hfb.pendingMbRequests, key)
+	}
+	hfb.mutPendingMbRequests.Unlock()
+
+	if found {
+		go hfb.requestMiniBlocksIfNeeded(entry.header)
+	}
+}
+
+// sweepStalePendingMbRequests dispatches entries whose proof never arrived; a liveness
+// fallback - requests self-whitelist, so the responses are accepted even without the proof
+func (hfb *headersForBlock) sweepStalePendingMbRequests() {
+	var stale []*pendingMbRequest
+
+	hfb.mutPendingMbRequests.Lock()
+	for key, entry := range hfb.pendingMbRequests {
+		if time.Since(entry.addedAt) > hfb.pendingMbRequestFallbackDelay {
+			delete(hfb.pendingMbRequests, key)
+			stale = append(stale, entry)
+		}
+	}
+	hfb.mutPendingMbRequests.Unlock()
+
+	for _, entry := range stale {
+		go hfb.requestMiniBlocksIfNeeded(entry.header)
+	}
+}
+
 func (hfb *headersForBlock) requestMiniBlocksIfNeeded(headerHandler data.HeaderHandler) {
 	lastCrossNotarizedHeader, _, err := hfb.blockTracker.GetLastCrossNotarizedHeader(headerHandler.GetShardID())
 	if err != nil {
@@ -867,7 +977,9 @@ func (hfb *headersForBlock) requestMiniBlocksIfNeeded(headerHandler data.HeaderH
 	}
 
 	waitTime := hfb.extraDelayRequestBlockInfo
-	roundDifferences := hfb.roundHandler.Index() - int64(headerHandler.GetRound())
+	// the arithmetic index: the stored one lags on a node stalled in commit, which would
+	// disable the request-immediately bypass on exactly the node that needs it
+	roundDifferences := hfb.roundHandler.IndexForCurrentTime() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0
 	}
