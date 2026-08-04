@@ -22,7 +22,7 @@ import (
 var log = logger.GetOrCreate("headersForBlock")
 
 const maxPendingMiniBlockRequests = 100
-const pendingMiniBlockRequestFallbackDelay = 3 * time.Second
+const pendingMiniBlockRequestMaxAge = time.Minute
 
 type pendingMbRequest struct {
 	header  data.HeaderHandler
@@ -62,10 +62,10 @@ type headersForBlock struct {
 	hdrHashAndInfo               map[string]HeaderInfo
 	lastNotarizedShardHeaders    map[uint32]LastNotarizedHeaderInfoHandler
 
-	mutPendingMbRequests          sync.Mutex
-	pendingMbRequests             map[string]*pendingMbRequest
-	maxPendingMbRequests          int
-	pendingMbRequestFallbackDelay time.Duration
+	mutPendingMbRequests   sync.Mutex
+	pendingMbRequests      map[string]*pendingMbRequest
+	maxPendingMbRequests   int
+	pendingMbRequestMaxAge time.Duration
 }
 
 type crossShardMetaData interface {
@@ -97,9 +97,9 @@ func NewHeadersForBlock(args ArgHeadersForBlock) (*headersForBlock, error) {
 		highestHdrNonce:            make(map[uint32]uint64),
 		lastNotarizedShardHeaders:  make(map[uint32]LastNotarizedHeaderInfoHandler),
 
-		pendingMbRequests:             make(map[string]*pendingMbRequest),
-		maxPendingMbRequests:          maxPendingMiniBlockRequests,
-		pendingMbRequestFallbackDelay: pendingMiniBlockRequestFallbackDelay,
+		pendingMbRequests:      make(map[string]*pendingMbRequest),
+		maxPendingMbRequests:   maxPendingMiniBlockRequests,
+		pendingMbRequestMaxAge: pendingMiniBlockRequestMaxAge,
 	}
 
 	instance.dataPool.Headers().RegisterHandler(instance.receivedMetaBlock)
@@ -650,7 +650,7 @@ func (hfb *headersForBlock) requestHeaderByShardAndNonce(shardID uint32, nonce u
 
 func (hfb *headersForBlock) checkReceivedProofIfAttestingIsNeeded(proof data.HeaderProofHandler) {
 	hfb.dispatchPendingMbRequest(string(proof.GetHeaderHash()))
-	hfb.sweepStalePendingMbRequests()
+	hfb.removeStalePendingMbRequests()
 
 	hfb.mutHdrsForBlock.Lock()
 	hInfo, ok := hfb.hdrHashAndInfo[string(proof.GetHeaderHash())]
@@ -750,7 +750,7 @@ func (hfb *headersForBlock) receivedShardBlock(headerHandler data.HeaderHandler,
 		hfb.mutHdrsForBlock.Unlock()
 	}
 
-	hfb.scheduleMiniBlocksRequestIfNeeded(headerHandler, shardHeaderHash)
+	hfb.requestMiniBlocksOnProofIfNeeded(headerHandler, shardHeaderHash)
 }
 
 // requestMissingFinalityAttestingShardHeaders requests the headers needed to accept the current selected headers for
@@ -838,7 +838,7 @@ func (hfb *headersForBlock) receivedMetaBlock(headerHandler data.HeaderHandler, 
 		hfb.mutHdrsForBlock.Unlock()
 	}
 
-	hfb.scheduleMiniBlocksRequestIfNeeded(headerHandler, metaBlockHash)
+	hfb.requestMiniBlocksOnProofIfNeeded(headerHandler, metaBlockHash)
 }
 
 func (hfb *headersForBlock) checkFinalityRequestingMissing(metaBlock data.MetaHeaderHandler) {
@@ -872,18 +872,17 @@ func (hfb *headersForBlock) updateLastNotarizedBlockForShard(hdr data.ShardHeade
 	}
 }
 
-// scheduleMiniBlocksRequestIfNeeded defers the miniblocks prefetch until the header's proof is
-// available - the same event that releases the sender's broadcast; requesting earlier duplicates the delivery
-func (hfb *headersForBlock) scheduleMiniBlocksRequestIfNeeded(header data.HeaderHandler, headerHash []byte) {
-	hfb.sweepStalePendingMbRequests()
+// requestMiniBlocksOnProofIfNeeded releases the miniblocks prefetch only on the header's proof, the
+// event that releases the sender's broadcast; requests self-whitelist, so unproven headers must never trigger one
+func (hfb *headersForBlock) requestMiniBlocksOnProofIfNeeded(header data.HeaderHandler, headerHash []byte) {
+	hfb.removeStalePendingMbRequests()
 
 	if !common.IsProofsFlagEnabledForHeader(hfb.enableEpochsHandler, header) {
 		go hfb.requestMiniBlocksIfNeeded(header)
 		return
 	}
 
-	isNodeBehind := hfb.roundHandler.IndexForCurrentTime()-int64(header.GetRound()) > 1
-	if isNodeBehind || hfb.dataPool.Proofs().HasProof(header.GetShardID(), headerHash) {
+	if hfb.dataPool.Proofs().HasProof(header.GetShardID(), headerHash) {
 		go hfb.requestMiniBlocksIfNeeded(header)
 		return
 	}
@@ -910,8 +909,11 @@ func (hfb *headersForBlock) addPendingMbRequest(headerHash []byte, header data.H
 	}
 	hfb.mutPendingMbRequests.Unlock()
 
+	// dropped, not requested: without its proof the header must never trigger a request
 	if evicted != nil {
-		go hfb.requestMiniBlocksIfNeeded(evicted.header)
+		log.Debug("addPendingMbRequest: dropped oldest pending entry on cap",
+			"nonce", evicted.header.GetNonce(),
+			"shard", evicted.header.GetShardID())
 	}
 }
 
@@ -943,22 +945,19 @@ func (hfb *headersForBlock) dispatchPendingMbRequest(key string) {
 	}
 }
 
-// sweepStalePendingMbRequests dispatches entries whose proof never arrived; a liveness
-// fallback - requests self-whitelist, so the responses are accepted even without the proof
-func (hfb *headersForBlock) sweepStalePendingMbRequests() {
-	var stale []*pendingMbRequest
-
+// removeStalePendingMbRequests drops entries whose proof never arrived; never-proven headers
+// must never trigger a request, so this is cleanup only, no dispatch
+func (hfb *headersForBlock) removeStalePendingMbRequests() {
 	hfb.mutPendingMbRequests.Lock()
-	for key, entry := range hfb.pendingMbRequests {
-		if time.Since(entry.addedAt) > hfb.pendingMbRequestFallbackDelay {
-			delete(hfb.pendingMbRequests, key)
-			stale = append(stale, entry)
-		}
-	}
-	hfb.mutPendingMbRequests.Unlock()
+	defer hfb.mutPendingMbRequests.Unlock()
 
-	for _, entry := range stale {
-		go hfb.requestMiniBlocksIfNeeded(entry.header)
+	for key, entry := range hfb.pendingMbRequests {
+		if time.Since(entry.addedAt) > hfb.pendingMbRequestMaxAge {
+			delete(hfb.pendingMbRequests, key)
+			log.Trace("removeStalePendingMbRequests: dropped entry without proof",
+				"nonce", entry.header.GetNonce(),
+				"shard", entry.header.GetShardID())
+		}
 	}
 }
 

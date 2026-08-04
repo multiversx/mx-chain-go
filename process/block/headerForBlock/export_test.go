@@ -71,14 +71,14 @@ func (hfb *headersForBlock) RequestMissingFinalityAttestingShardHeaders() uint32
 	return hfb.requestMissingFinalityAttestingShardHeaders()
 }
 
-// ScheduleMiniBlocksRequestIfNeeded -
-func (hfb *headersForBlock) ScheduleMiniBlocksRequestIfNeeded(header data.HeaderHandler, headerHash []byte) {
-	hfb.scheduleMiniBlocksRequestIfNeeded(header, headerHash)
+// RequestMiniBlocksOnProofIfNeeded -
+func (hfb *headersForBlock) RequestMiniBlocksOnProofIfNeeded(header data.HeaderHandler, headerHash []byte) {
+	hfb.requestMiniBlocksOnProofIfNeeded(header, headerHash)
 }
 
-// SetPendingMbRequestFallbackDelay -
-func (hfb *headersForBlock) SetPendingMbRequestFallbackDelay(delay time.Duration) {
-	hfb.pendingMbRequestFallbackDelay = delay
+// SetPendingMbRequestMaxAge -
+func (hfb *headersForBlock) SetPendingMbRequestMaxAge(maxAge time.Duration) {
+	hfb.pendingMbRequestMaxAge = maxAge
 }
 
 // SetMaxPendingMbRequests -

@@ -46,7 +46,7 @@ func (rr *requestRecorder) has(nonce uint64) bool {
 	return false
 }
 
-func createSchedulingArgs(recorder *requestRecorder) headerForBlock.ArgHeadersForBlock {
+func createRequestOnProofArgs(recorder *requestRecorder) headerForBlock.ArgHeadersForBlock {
 	args := createMockArgs()
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
@@ -89,49 +89,49 @@ func requireEventuallyNumRequests(t *testing.T, recorder *requestRecorder, expec
 	}, time.Second, 5*time.Millisecond)
 }
 
-func TestScheduleMiniBlocksRequest_PreAndromedaRequestsImmediately(t *testing.T) {
+func TestRequestMiniBlocksOnProof_PreAndromedaRequestsImmediately(t *testing.T) {
 	t.Parallel()
 
 	recorder := &requestRecorder{}
-	args := createSchedulingArgs(recorder)
+	args := createRequestOnProofArgs(recorder)
 	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 	hfb, err := headerForBlock.NewHeadersForBlock(args)
 	require.NoError(t, err)
 
 	header, hash := createTestMetaHeader(1)
-	hfb.ScheduleMiniBlocksRequestIfNeeded(header, hash)
+	hfb.RequestMiniBlocksOnProofIfNeeded(header, hash)
 
 	requireEventuallyNumRequests(t, recorder, 1)
 	require.Zero(t, hfb.NumPendingMbRequests())
 }
 
-func TestScheduleMiniBlocksRequest_ProofAlreadyPresentRequestsImmediately(t *testing.T) {
+func TestRequestMiniBlocksOnProof_ProofAlreadyPresentRequestsImmediately(t *testing.T) {
 	t.Parallel()
 
 	recorder := &requestRecorder{}
-	args := createSchedulingArgs(recorder)
+	args := createRequestOnProofArgs(recorder)
 	hfb, err := headerForBlock.NewHeadersForBlock(args)
 	require.NoError(t, err)
 
 	header, hash := createTestMetaHeader(1)
 	require.True(t, args.DataPool.Proofs().AddProof(createTestProof(hash, 1)))
 
-	hfb.ScheduleMiniBlocksRequestIfNeeded(header, hash)
+	hfb.RequestMiniBlocksOnProofIfNeeded(header, hash)
 
 	requireEventuallyNumRequests(t, recorder, 1)
 	require.Zero(t, hfb.NumPendingMbRequests())
 }
 
-func TestScheduleMiniBlocksRequest_WaitsForProofThenRequestsOnce(t *testing.T) {
+func TestRequestMiniBlocksOnProof_WaitsForProofThenRequestsOnce(t *testing.T) {
 	t.Parallel()
 
 	recorder := &requestRecorder{}
-	args := createSchedulingArgs(recorder)
+	args := createRequestOnProofArgs(recorder)
 	hfb, err := headerForBlock.NewHeadersForBlock(args)
 	require.NoError(t, err)
 
 	header, hash := createTestMetaHeader(1)
-	hfb.ScheduleMiniBlocksRequestIfNeeded(header, hash)
+	hfb.RequestMiniBlocksOnProofIfNeeded(header, hash)
 
 	time.Sleep(100 * time.Millisecond)
 	require.Zero(t, recorder.count())
@@ -146,11 +146,11 @@ func TestScheduleMiniBlocksRequest_WaitsForProofThenRequestsOnce(t *testing.T) {
 	require.Equal(t, 1, recorder.count())
 }
 
-func TestScheduleMiniBlocksRequest_EndToEndThroughHeadersPool(t *testing.T) {
+func TestRequestMiniBlocksOnProof_EndToEndThroughHeadersPool(t *testing.T) {
 	t.Parallel()
 
 	recorder := &requestRecorder{}
-	args := createSchedulingArgs(recorder)
+	args := createRequestOnProofArgs(recorder)
 	_, err := headerForBlock.NewHeadersForBlock(args)
 	require.NoError(t, err)
 
@@ -165,65 +165,71 @@ func TestScheduleMiniBlocksRequest_EndToEndThroughHeadersPool(t *testing.T) {
 	requireEventuallyNumRequests(t, recorder, 1)
 }
 
-func TestScheduleMiniBlocksRequest_NodeBehindRequestsImmediately(t *testing.T) {
+func TestRequestMiniBlocksOnProof_BehindNodeStillRequiresProof(t *testing.T) {
 	t.Parallel()
 
 	recorder := &requestRecorder{}
-	args := createSchedulingArgs(recorder)
+	args := createRequestOnProofArgs(recorder)
 	args.RoundHandler = &testscommon.RoundHandlerMock{
 		IndexForCurrentTimeCalled: func() int64 {
 			return 10
 		},
 		IndexCalled: func() int64 {
-			return 1 // stale stored index; the arithmetic index must be used instead
+			return 1 // stale stored index; the arithmetic index must be used for the wait bypass
 		},
 	}
 	hfb, err := headerForBlock.NewHeadersForBlock(args)
 	require.NoError(t, err)
 
 	header, hash := createTestMetaHeader(1)
-	hfb.ScheduleMiniBlocksRequestIfNeeded(header, hash)
+	hfb.RequestMiniBlocksOnProofIfNeeded(header, hash)
+
+	time.Sleep(100 * time.Millisecond)
+	require.Zero(t, recorder.count()) // behind or not, no proof means no request
+	require.Equal(t, 1, hfb.NumPendingMbRequests())
+
+	require.True(t, args.DataPool.Proofs().AddProof(createTestProof(hash, 1)))
 
 	requireEventuallyNumRequests(t, recorder, 1)
 	require.Zero(t, hfb.NumPendingMbRequests())
 }
 
-func TestScheduleMiniBlocksRequest_FallbackDispatchesStaleEntries(t *testing.T) {
+func TestRequestMiniBlocksOnProof_StaleEntriesDroppedNotRequested(t *testing.T) {
 	t.Parallel()
 
 	recorder := &requestRecorder{}
-	args := createSchedulingArgs(recorder)
+	args := createRequestOnProofArgs(recorder)
 	hfb, err := headerForBlock.NewHeadersForBlock(args)
 	require.NoError(t, err)
-	hfb.SetPendingMbRequestFallbackDelay(50 * time.Millisecond)
+	hfb.SetPendingMbRequestMaxAge(50 * time.Millisecond)
 
 	header1, hash1 := createTestMetaHeader(1)
-	hfb.ScheduleMiniBlocksRequestIfNeeded(header1, hash1)
+	hfb.RequestMiniBlocksOnProofIfNeeded(header1, hash1)
 
 	time.Sleep(100 * time.Millisecond)
-	require.Zero(t, recorder.count()) // no events yet, sweep not triggered
 
 	header2, hash2 := createTestMetaHeader(2)
-	hfb.ScheduleMiniBlocksRequestIfNeeded(header2, hash2)
+	hfb.RequestMiniBlocksOnProofIfNeeded(header2, hash2)
 
-	require.Eventually(t, func() bool {
-		return recorder.has(1)
-	}, time.Second, 5*time.Millisecond)
-	require.False(t, recorder.has(2))
-	require.Equal(t, 1, hfb.NumPendingMbRequests())
+	require.Equal(t, 1, hfb.NumPendingMbRequests()) // header1 dropped by cleanup, header2 pending
+
+	// a late proof for the dropped entry must not trigger a request
+	require.True(t, args.DataPool.Proofs().AddProof(createTestProof(hash1, 1)))
+	time.Sleep(100 * time.Millisecond)
+	require.Zero(t, recorder.count())
 }
 
-func TestScheduleMiniBlocksRequest_DuplicateScheduleSingleRequest(t *testing.T) {
+func TestRequestMiniBlocksOnProof_DuplicateScheduleSingleRequest(t *testing.T) {
 	t.Parallel()
 
 	recorder := &requestRecorder{}
-	args := createSchedulingArgs(recorder)
+	args := createRequestOnProofArgs(recorder)
 	hfb, err := headerForBlock.NewHeadersForBlock(args)
 	require.NoError(t, err)
 
 	header, hash := createTestMetaHeader(1)
-	hfb.ScheduleMiniBlocksRequestIfNeeded(header, hash)
-	hfb.ScheduleMiniBlocksRequestIfNeeded(header, hash)
+	hfb.RequestMiniBlocksOnProofIfNeeded(header, hash)
+	hfb.RequestMiniBlocksOnProofIfNeeded(header, hash)
 	require.Equal(t, 1, hfb.NumPendingMbRequests())
 
 	require.True(t, args.DataPool.Proofs().AddProof(createTestProof(hash, 1)))
@@ -233,32 +239,38 @@ func TestScheduleMiniBlocksRequest_DuplicateScheduleSingleRequest(t *testing.T) 
 	require.Equal(t, 1, recorder.count())
 }
 
-func TestScheduleMiniBlocksRequest_CapEvictionDispatchesOldest(t *testing.T) {
+func TestRequestMiniBlocksOnProof_CapEvictionDropsOldestWithoutRequest(t *testing.T) {
 	t.Parallel()
 
 	recorder := &requestRecorder{}
-	args := createSchedulingArgs(recorder)
+	args := createRequestOnProofArgs(recorder)
 	hfb, err := headerForBlock.NewHeadersForBlock(args)
 	require.NoError(t, err)
 	hfb.SetMaxPendingMbRequests(2)
 
 	for nonce := uint64(1); nonce <= 3; nonce++ {
 		header, hash := createTestMetaHeader(nonce)
-		hfb.ScheduleMiniBlocksRequestIfNeeded(header, hash)
+		hfb.RequestMiniBlocksOnProofIfNeeded(header, hash)
 	}
 
+	time.Sleep(100 * time.Millisecond)
+	require.Zero(t, recorder.count()) // evicted oldest is dropped, never requested
+	require.Equal(t, 2, hfb.NumPendingMbRequests())
+
+	// remaining pending entries still dispatch on their proofs
+	_, hash2 := createTestMetaHeader(2)
+	require.True(t, args.DataPool.Proofs().AddProof(createTestProof(hash2, 2)))
 	require.Eventually(t, func() bool {
-		return recorder.has(1)
+		return recorder.has(2)
 	}, time.Second, 5*time.Millisecond)
 	require.Equal(t, 1, recorder.count())
-	require.Equal(t, 2, hfb.NumPendingMbRequests())
 }
 
-func TestScheduleMiniBlocksRequest_ConcurrentScheduleAndProof(t *testing.T) {
+func TestRequestMiniBlocksOnProof_ConcurrentScheduleAndProof(t *testing.T) {
 	t.Parallel()
 
 	recorder := &requestRecorder{}
-	args := createSchedulingArgs(recorder)
+	args := createRequestOnProofArgs(recorder)
 	hfb, err := headerForBlock.NewHeadersForBlock(args)
 	require.NoError(t, err)
 
@@ -269,7 +281,7 @@ func TestScheduleMiniBlocksRequest_ConcurrentScheduleAndProof(t *testing.T) {
 		proof := createTestProof(hash, uint64(i))
 		wg.Add(2)
 		go func() {
-			hfb.ScheduleMiniBlocksRequestIfNeeded(header, hash)
+			hfb.RequestMiniBlocksOnProofIfNeeded(header, hash)
 			wg.Done()
 		}()
 		go func() {
