@@ -1356,6 +1356,12 @@ var ErrInvalidChainParameters = errors.New("invalid chain parameters")
 // ErrDuplicatedHashInBlock signals that the same hash appears more than once where uniqueness is expected
 var ErrDuplicatedHashInBlock = errors.New("duplicated hash in block")
 
+// ErrMetaBlockHashesNotInCanonicalOrder signals that referenced metablocks are not strictly ordered by nonce
+var ErrMetaBlockHashesNotInCanonicalOrder = errors.New("metablock hashes are not in canonical order")
+
+// ErrTooManyMetaBlockHashes signals that a shard header references more metablocks than allowed
+var ErrTooManyMetaBlockHashes = errors.New("too many metablock hashes")
+
 // ErrDoubleTransactionsFound signals that double transactions found
 var ErrDoubleTransactionsFound = errors.New("double transactions found")
 

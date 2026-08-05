@@ -1826,7 +1826,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldPass(t *testing
 	sp.SetHdrForCurrentBlock(metaHash1, meta1, true)
 	sp.SetHdrForCurrentBlock(metaHash2, meta2, false)
 
-	err := sp.CheckMetaHeadersValidityAndFinality()
+	err := sp.CheckMetaHeadersValidityAndFinality(&hdr)
 	assert.Nil(t, err)
 }
 
@@ -1845,8 +1845,168 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldReturnNilWhenNo
 		},
 	)
 
-	err := sp.CheckMetaHeadersValidityAndFinality()
+	err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{})
 	assert.Nil(t, err)
+}
+
+func TestShardProcessor_CheckMetaBlockHashesOrder(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		hashes      [][]byte
+		nonces      []uint64
+		expectedErr error
+	}{
+		{
+			name: "empty",
+		},
+		{
+			name:   "single reference",
+			hashes: [][]byte{[]byte("hash45")},
+			nonces: []uint64{45},
+		},
+		{
+			name:   "canonical order",
+			hashes: [][]byte{[]byte("hash45"), []byte("hash46"), []byte("hash47")},
+			nonces: []uint64{45, 46, 47},
+		},
+		{
+			name:        "reversed order",
+			hashes:      [][]byte{[]byte("hash46"), []byte("hash45")},
+			nonces:      []uint64{46, 45},
+			expectedErr: process.ErrMetaBlockHashesNotInCanonicalOrder,
+		},
+		{
+			name:        "duplicate lowest",
+			hashes:      [][]byte{[]byte("hash45"), []byte("hash45"), []byte("hash46")},
+			nonces:      []uint64{45, 45, 46},
+			expectedErr: process.ErrMetaBlockHashesNotInCanonicalOrder,
+		},
+		{
+			name:        "duplicate highest",
+			hashes:      [][]byte{[]byte("hash45"), []byte("hash46"), []byte("hash46")},
+			nonces:      []uint64{45, 46, 46},
+			expectedErr: process.ErrMetaBlockHashesNotInCanonicalOrder,
+		},
+		{
+			name:        "non-adjacent duplicate",
+			hashes:      [][]byte{[]byte("hash45"), []byte("hash46"), []byte("hash45")},
+			nonces:      []uint64{45, 46, 45},
+			expectedErr: process.ErrMetaBlockHashesNotInCanonicalOrder,
+		},
+		{
+			name:        "different hashes with same nonce",
+			hashes:      [][]byte{[]byte("hash45a"), []byte("hash45b")},
+			nonces:      []uint64{45, 45},
+			expectedErr: process.ErrMetaBlockHashesNotInCanonicalOrder,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			tdp := dataRetrieverMock.NewPoolsHolderMock()
+			genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+			sp, err := blproc.NewShardProcessorEmptyWith3shards(
+				tdp,
+				genesisBlocks,
+				&testscommon.ChainHandlerStub{
+					GetGenesisHeaderCalled: func() data.HeaderHandler {
+						return &block.Header{Nonce: 0}
+					},
+				},
+			)
+			require.NoError(t, err)
+
+			for index, hash := range tc.hashes {
+				sp.SetHdrForCurrentBlock(hash, &block.MetaBlock{Nonce: tc.nonces[index]}, true)
+			}
+
+			header := &block.Header{MetaBlockHashes: tc.hashes}
+			var originalHashes [][]byte
+			if tc.hashes != nil {
+				originalHashes = make([][]byte, len(tc.hashes))
+				for index, hash := range tc.hashes {
+					originalHashes[index] = append([]byte(nil), hash...)
+				}
+			}
+
+			err = sp.CheckMetaBlockHashesOrder(header)
+			require.ErrorIs(t, err, tc.expectedErr)
+			require.Equal(t, originalHashes, header.MetaBlockHashes)
+		})
+	}
+}
+
+func TestShardProcessor_CheckMetaBlockHashesOrderMaxReferences(t *testing.T) {
+	t.Parallel()
+
+	tdp := dataRetrieverMock.NewPoolsHolderMock()
+	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+	sp, err := blproc.NewShardProcessorEmptyWith3shards(
+		tdp,
+		genesisBlocks,
+		&testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{Nonce: 0}
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	hashes := make([][]byte, process.MaxMetaHeadersAllowedInOneShardBlock)
+	for index := range hashes {
+		hashes[index] = []byte(fmt.Sprintf("hash%d", index))
+		sp.SetHdrForCurrentBlock(hashes[index], &block.MetaBlock{Nonce: uint64(index + 1)}, true)
+	}
+
+	err = blproc.CheckMetaBlockHashesBasicValidity(&block.Header{MetaBlockHashes: hashes})
+	require.NoError(t, err)
+	err = sp.CheckMetaBlockHashesOrder(&block.Header{MetaBlockHashes: hashes})
+	require.NoError(t, err)
+
+	hashes = append(hashes, []byte("hash-over-limit"))
+	err = blproc.CheckMetaBlockHashesBasicValidity(&block.Header{MetaBlockHashes: hashes})
+	require.ErrorIs(t, err, process.ErrTooManyMetaBlockHashes)
+}
+
+func TestCheckMetaBlockHashesBasicValidityRejectsDuplicateBeforeHeaderResolution(t *testing.T) {
+	t.Parallel()
+
+	header := &block.Header{
+		MetaBlockHashes: [][]byte{[]byte("hash45"), []byte("hash46"), []byte("hash45")},
+	}
+
+	err := blproc.CheckMetaBlockHashesBasicValidity(header)
+	require.ErrorIs(t, err, process.ErrMetaBlockHashesNotInCanonicalOrder)
+}
+
+func TestShardProcessor_CheckMetaHeadersValidityAndFinalityRejectsNonCanonicalRawOrder(t *testing.T) {
+	t.Parallel()
+
+	tdp := dataRetrieverMock.NewPoolsHolderMock()
+	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
+	sp, err := blproc.NewShardProcessorEmptyWith3shards(
+		tdp,
+		genesisBlocks,
+		&testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{Nonce: 0}
+			},
+		},
+	)
+	require.NoError(t, err)
+
+	hash45 := []byte("hash45")
+	hash46 := []byte("hash46")
+	sp.SetHdrForCurrentBlock(hash45, &block.MetaBlock{Nonce: 45}, true)
+	sp.SetHdrForCurrentBlock(hash46, &block.MetaBlock{Nonce: 46}, true)
+
+	header := &block.Header{MetaBlockHashes: [][]byte{hash46, hash45}}
+	err = sp.CheckMetaHeadersValidityAndFinality(header)
+	require.ErrorIs(t, err, process.ErrMetaBlockHashesNotInCanonicalOrder)
 }
 
 // ------- CommitBlock

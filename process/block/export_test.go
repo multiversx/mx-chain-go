@@ -389,8 +389,18 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 }
 
 // CheckMetaHeadersValidityAndFinality -
-func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
-	return sp.checkMetaHeadersValidityAndFinality()
+func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(header data.ShardHeaderHandler) error {
+	return sp.checkMetaHeadersValidityAndFinality(header)
+}
+
+// CheckMetaBlockHashesOrder -
+func (sp *shardProcessor) CheckMetaBlockHashesOrder(header data.ShardHeaderHandler) error {
+	return sp.checkMetaBlockHashesOrder(header)
+}
+
+// CheckMetaBlockHashesBasicValidity -
+func CheckMetaBlockHashesBasicValidity(header data.ShardHeaderHandler) error {
+	return checkMetaBlockHashesBasicValidity(header)
 }
 
 // VerifyCrossShardMiniBlockDstMe -

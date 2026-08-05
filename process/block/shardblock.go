@@ -214,6 +214,10 @@ func (sp *shardProcessor) ProcessBlock(
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
+	err = checkMetaBlockHashesBasicValidity(header)
+	if err != nil {
+		return err
+	}
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
@@ -324,7 +328,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.checkMetaHeadersValidityAndFinality()
+	err = sp.checkMetaHeadersValidityAndFinality(header)
 	if err != nil {
 		return err
 	}
@@ -584,7 +588,12 @@ func (sp *shardProcessor) SetNumProcessedObj(numObj uint64) {
 }
 
 // checkMetaHeadersValidity - checks if listed metaheaders are valid as construction
-func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
+func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(shardHeader data.ShardHeaderHandler) error {
+	err := sp.checkMetaBlockHashesOrder(shardHeader)
+	if err != nil {
+		return err
+	}
+
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return err
@@ -612,6 +621,66 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	err = sp.checkMetaHdrFinality(lastCrossNotarizedHeader)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (sp *shardProcessor) checkMetaBlockHashesOrder(shardHeader data.ShardHeaderHandler) error {
+	metaBlockHashes := shardHeader.GetMetaBlockHashes()
+
+	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	defer sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	var previousNonce uint64
+	for index, metaBlockHash := range metaBlockHashes {
+		headerInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+		if !ok || headerInfo == nil || check.IfNil(headerInfo.hdr) {
+			return fmt.Errorf("%w: metablock hash at index %d = %s",
+				process.ErrMissingHeader,
+				index,
+				logger.DisplayByteSlice(metaBlockHash),
+			)
+		}
+
+		currentNonce := headerInfo.hdr.GetNonce()
+		if index > 0 && currentNonce <= previousNonce {
+			return fmt.Errorf("%w: nonce %d at index %d after nonce %d",
+				process.ErrMetaBlockHashesNotInCanonicalOrder,
+				currentNonce,
+				index,
+				previousNonce,
+			)
+		}
+
+		previousNonce = currentNonce
+	}
+
+	return nil
+}
+
+func checkMetaBlockHashesBasicValidity(shardHeader data.ShardHeaderHandler) error {
+	metaBlockHashes := shardHeader.GetMetaBlockHashes()
+	if len(metaBlockHashes) > process.MaxMetaHeadersAllowedInOneShardBlock {
+		return fmt.Errorf("%w: got %d, maximum %d",
+			process.ErrTooManyMetaBlockHashes,
+			len(metaBlockHashes),
+			process.MaxMetaHeadersAllowedInOneShardBlock,
+		)
+	}
+
+	// The number of references is capped at 50. A pairwise scan avoids a per-block map allocation
+	// while rejecting duplicates before they can trigger duplicate header requests.
+	for firstIndex := 0; firstIndex < len(metaBlockHashes); firstIndex++ {
+		for secondIndex := firstIndex + 1; secondIndex < len(metaBlockHashes); secondIndex++ {
+			if bytes.Equal(metaBlockHashes[firstIndex], metaBlockHashes[secondIndex]) {
+				return fmt.Errorf("%w: duplicate metablock hash at indexes %d and %d",
+					process.ErrMetaBlockHashesNotInCanonicalOrder,
+					firstIndex,
+					secondIndex,
+				)
+			}
+		}
 	}
 
 	return nil
@@ -2017,24 +2086,18 @@ func (sp *shardProcessor) checkReferencedMetaBlocksFullyConsumed(header data.Sha
 		bodyMiniBlockHeaders[string(miniBlockHeader.GetHash())] = miniBlockHeader
 	}
 
-	type metaBlockConsumption struct {
-		nonce         uint64
-		fullyConsumed bool
+	type referencedMetaBlock struct {
+		hash      []byte
+		metaBlock *block.MetaBlock
 	}
 
 	metaBlockHashes := header.GetMetaBlockHashes()
-	referencedMetaBlocks := make([]metaBlockConsumption, 0, len(metaBlockHashes))
-	seenMetaBlockHashes := make(map[string]struct{}, len(metaBlockHashes))
+	referencedMetaBlocks := make([]referencedMetaBlock, 0, len(metaBlockHashes))
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for _, metaBlockHash := range metaBlockHashes {
-		if _, seen := seenMetaBlockHashes[string(metaBlockHash)]; seen {
-			continue
-		}
-		seenMetaBlockHashes[string(metaBlockHash)] = struct{}{}
-
 		headerInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
-		if !ok {
+		if !ok || headerInfo == nil || check.IfNil(headerInfo.hdr) {
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return fmt.Errorf("%w : checkReferencedMetaBlocksFullyConsumed metaBlockHash = %s",
 				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
@@ -2044,34 +2107,27 @@ func (sp *shardProcessor) checkReferencedMetaBlocksFullyConsumed(header data.Sha
 			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return process.ErrWrongTypeAssertion
 		}
-
-		fullyConsumed := true
-		for hash := range metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId()) {
-			miniBlockHeader, isInBody := bodyMiniBlockHeaders[hash]
-			isConsumed := sp.processedMiniBlocksTracker.IsMiniBlockFullyProcessed(metaBlockHash, []byte(hash))
-			if isInBody {
-				isConsumed = miniBlockHeader.IsFinal()
-			}
-			if !isConsumed {
-				fullyConsumed = false
-				break
-			}
-		}
-
-		referencedMetaBlocks = append(referencedMetaBlocks, metaBlockConsumption{
-			nonce:         metaBlock.GetNonce(),
-			fullyConsumed: fullyConsumed,
+		referencedMetaBlocks = append(referencedMetaBlocks, referencedMetaBlock{
+			hash:      metaBlockHash,
+			metaBlock: metaBlock,
 		})
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
-	sort.Slice(referencedMetaBlocks, func(i, j int) bool {
-		return referencedMetaBlocks[i].nonce < referencedMetaBlocks[j].nonce
-	})
-
 	for i := 0; i+1 < len(referencedMetaBlocks); i++ {
-		if !referencedMetaBlocks[i].fullyConsumed {
-			return fmt.Errorf("%w : meta block nonce = %d", process.ErrMetaBlockNotFullyConsumed, referencedMetaBlocks[i].nonce)
+		referencedMeta := referencedMetaBlocks[i]
+		for hash := range referencedMeta.metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId()) {
+			miniBlockHeader, isInBody := bodyMiniBlockHeaders[hash]
+			isConsumed := sp.processedMiniBlocksTracker.IsMiniBlockFullyProcessed(referencedMeta.hash, []byte(hash))
+			if isInBody {
+				isConsumed = miniBlockHeader.IsFinal()
+			}
+			if !isConsumed {
+				return fmt.Errorf("%w : meta block nonce = %d",
+					process.ErrMetaBlockNotFullyConsumed,
+					referencedMeta.metaBlock.GetNonce(),
+				)
+			}
 		}
 	}
 
