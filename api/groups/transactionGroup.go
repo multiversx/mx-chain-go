@@ -450,7 +450,7 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 	for idx, receivedTx := range ftxs {
 		tx, txHash, err = tg.createTransaction(&receivedTx)
 		if err != nil {
-			log.Error("failed to create transaction",
+			log.Trace("failed to create transaction",
 				"sender", receivedTx.Sender, "nonce", receivedTx.Nonce,
 				"err", err,
 			)
@@ -459,7 +459,7 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 
 		err = tg.getFacade().ValidateTransaction(tx)
 		if err != nil {
-			log.Error("failed to validate transaction",
+			log.Trace("failed to validate transaction",
 				"sender", tx.SndAddr, "nonce", tx.Nonce,
 				"err", err,
 			)
