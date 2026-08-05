@@ -1,17 +1,20 @@
 package crypto_test
 
 import (
+	"context"
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgsSigningHandler() cryptoFactory.ArgsSigningHandler {
@@ -164,7 +167,7 @@ func TestSigningHandler_CreateSignatureShareForPublicKey(t *testing.T) {
 		t.Parallel()
 
 		signer, _ := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
-		sigShare, err := signer.CreateSignatureShareForPublicKey(nil, selfIndex, epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey(context.TODO(), nil, selfIndex, epoch, pkBytes)
 		require.Nil(t, sigShare)
 		require.Equal(t, cryptoFactory.ErrNilMessage, err)
 	})
@@ -182,7 +185,7 @@ func TestSigningHandler_CreateSignatureShareForPublicKey(t *testing.T) {
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := cryptoFactory.NewSigningHandler(args)
-		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("msg1"), selfIndex, epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey(context.TODO(), []byte("msg1"), selfIndex, epoch, pkBytes)
 		require.Nil(t, sigShare)
 		require.Equal(t, expectedErr, err)
 	})
@@ -200,7 +203,7 @@ func TestSigningHandler_CreateSignatureShareForPublicKey(t *testing.T) {
 
 		signer, _ := cryptoFactory.NewSigningHandler(args)
 
-		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("message"), uint16(0), epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey(context.TODO(), []byte("message"), uint16(0), epoch, pkBytes)
 		require.Nil(t, sigShare)
 		require.Equal(t, expectedErr, err)
 	})
@@ -227,7 +230,7 @@ func TestSigningHandler_CreateSignatureShareForPublicKey(t *testing.T) {
 		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 
 		signer, _ := cryptoFactory.NewSigningHandler(args)
-		sigShare, err := signer.CreateSignatureShareForPublicKey([]byte("msg1"), selfIndex, epoch, pkBytes)
+		sigShare, err := signer.CreateSignatureShareForPublicKey(context.TODO(), []byte("msg1"), selfIndex, epoch, pkBytes)
 		require.Nil(t, err)
 		require.Equal(t, expectedSigShare, sigShare)
 		assert.True(t, getHandledPrivateKeyCalled)
@@ -701,5 +704,189 @@ func TestSigningHandler_VerifySingleSignature(t *testing.T) {
 		err := signer.VerifySingleSignature(providedPkBytes, providedMsg, providedSig)
 		assert.Nil(t, err)
 		assert.True(t, verifyCalled)
+	})
+}
+
+func TestSigningHandler_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsSigningHandler()
+
+	multiSigner := &cryptoMocks.MultiSignerStub{}
+	args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+
+	signer, err := cryptoFactory.NewSigningHandler(args)
+	require.Nil(t, err)
+
+	numOperations := 1000
+
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx % 11 {
+			case 0:
+				_, _ = signer.AggregateSigs([]byte("bitmap"), 0)
+			case 1:
+				_, _ = signer.Create([]string{"pubkey1"})
+			case 2:
+				_, _ = signer.CreateSignatureForPublicKey([]byte("msg"), []byte("pubKey"))
+			case 3:
+				_, _ = signer.CreateSignatureShareForPublicKey(context.TODO(), []byte("data"), 1, 0, []byte("key"))
+			case 4:
+				_, _ = signer.GetPubKeysFromBytes([][]byte{[]byte("pubkey")})
+			case 5:
+				_ = signer.Reset([]string{"pubkey1"})
+			case 6:
+				_ = signer.SetAggregatedSig([]byte("aggSig"))
+			case 7:
+				_ = signer.StoreSignatureShare(1, []byte("sigShare"))
+			case 8:
+				_ = signer.Verify([]byte("msg"), []byte("bitmap1"), 0)
+			case 9:
+				_ = signer.VerifySignatureShare(1, []byte("sig"), []byte("msg"), 0)
+			case 10:
+				_ = signer.VerifySingleSignature([]byte("pubkey"), []byte("msg"), []byte("sig"))
+			default:
+				assert.Fail(t, "should have not been called")
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+}
+
+func TestSigningHandler_AggregateSigsWithKeys(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(0)
+	pubKeys := []string{"pk1", "pk2", "pk3", "pk4"}
+
+	t.Run("nil bitmap", func(t *testing.T) {
+		t.Parallel()
+
+		signer, _ := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
+
+		aggSig, err := signer.AggregateSigsWithKeys(pubKeys, nil, make([][]byte, 4), epoch)
+		require.Nil(t, aggSig)
+		require.Equal(t, cryptoFactory.ErrNilBitmap, err)
+	})
+	t.Run("bitmap mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		signer, _ := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
+
+		manyPubKeys := []string{"pk1", "pk2", "pk3", "pk4", "pk5", "pk6", "pk7", "pk8", "pk9"}
+		aggSig, err := signer.AggregateSigsWithKeys(manyPubKeys, []byte{0x07}, make([][]byte, 9), epoch)
+		require.Nil(t, aggSig)
+		require.Equal(t, cryptoFactory.ErrBitmapMismatch, err)
+	})
+	t.Run("sig shares length mismatch", func(t *testing.T) {
+		t.Parallel()
+
+		signer, _ := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
+
+		aggSig, err := signer.AggregateSigsWithKeys(pubKeys, []byte{0x07}, make([][]byte, 3), epoch)
+		require.Nil(t, aggSig)
+		require.Equal(t, cryptoFactory.ErrIndexOutOfBounds, err)
+	})
+	t.Run("nil share for selected index", func(t *testing.T) {
+		t.Parallel()
+
+		signer, _ := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
+
+		sigShares := [][]byte{[]byte("sig1"), nil, []byte("sig3"), []byte("sig4")}
+		aggSig, err := signer.AggregateSigsWithKeys(pubKeys, []byte{0x07}, sigShares, epoch)
+		require.Nil(t, aggSig)
+		require.Equal(t, cryptoFactory.ErrNilElement, err)
+	})
+	t.Run("should aggregate only the shares selected by the bitmap", func(t *testing.T) {
+		t.Parallel()
+
+		expectedAggSig := []byte("agg sig")
+		var numSigs int
+		multiSigner := &cryptoMocks.MultiSignerStub{
+			AggregateSigsV2Called: func(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error) {
+				numSigs = len(signatures)
+				return expectedAggSig, nil
+			},
+		}
+
+		args := createMockArgsSigningHandler()
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
+
+		sigShares := [][]byte{[]byte("sig1"), nil, []byte("sig3"), nil}
+		aggSig, err := signer.AggregateSigsWithKeys(pubKeys, []byte{0x05}, sigShares, epoch)
+		require.Nil(t, err)
+		require.Equal(t, expectedAggSig, aggSig)
+		require.Equal(t, 2, numSigs)
+	})
+}
+
+func TestSigningHandler_VerifyAggregatedSigWithKeys(t *testing.T) {
+	t.Parallel()
+
+	pubKeys := []string{"pk1", "pk2", "pk3", "pk4"}
+
+	t.Run("nil bitmap", func(t *testing.T) {
+		t.Parallel()
+
+		signer, _ := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
+
+		err := signer.VerifyAggregatedSigWithKeys(pubKeys, nil, []byte("msg"), []byte("aggSig"), 0)
+		require.Equal(t, cryptoFactory.ErrNilBitmap, err)
+	})
+	t.Run("should verify with the keys selected by the bitmap", func(t *testing.T) {
+		t.Parallel()
+
+		var numKeys int
+		multiSigner := &cryptoMocks.MultiSignerStub{
+			VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
+				numKeys = len(pubKeysSigners)
+				return nil
+			},
+		}
+
+		args := createMockArgsSigningHandler()
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
+
+		err := signer.VerifyAggregatedSigWithKeys(pubKeys, []byte{0x0B}, []byte("msg"), []byte("aggSig"), 0)
+		require.Nil(t, err)
+		require.Equal(t, 3, numKeys)
+	})
+}
+
+func TestSigningHandler_VerifySigShareWithKey(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty signature", func(t *testing.T) {
+		t.Parallel()
+
+		signer, _ := cryptoFactory.NewSigningHandler(createMockArgsSigningHandler())
+
+		err := signer.VerifySigShareWithKey([]byte("pk1"), nil, []byte("msg"), 0)
+		require.Equal(t, cryptoFactory.ErrInvalidSignature, err)
+	})
+	t.Run("should delegate to the multi signer", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		multiSigner := &cryptoMocks.MultiSignerStub{
+			VerifySignatureShareV2Called: func(publicKey crypto.PublicKey, message []byte, sig []byte) error {
+				return expectedErr
+			},
+		}
+
+		args := createMockArgsSigningHandler()
+		args.MultiSignerContainer = cryptoMocks.NewMultiSignerContainerMock(multiSigner)
+		signer, _ := cryptoFactory.NewSigningHandler(args)
+
+		err := signer.VerifySigShareWithKey([]byte("pk1"), []byte("sig"), []byte("msg"), 0)
+		require.Equal(t, expectedErr, err)
 	})
 }

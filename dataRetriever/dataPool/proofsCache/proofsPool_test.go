@@ -3,16 +3,19 @@ package proofscache_test
 import (
 	"crypto/rand"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 )
 
 const cleanupDelta = 3
@@ -145,32 +148,37 @@ func TestProofsPool_UpsertMultipleHashes(t *testing.T) {
 
 	pp := proofscache.NewProofsPool(3, 10)
 
-	// Upsert 10 different proofs for the same nonce
-	// Each upsert should clean up the previous hash
+	// Upsert 10 different-hash proofs for the same nonce, increasing rounds.
+	// They are kept as competing proofs, capped at the max per nonce (lowest rounds win).
 	for i := 0; i < 10; i++ {
 		proof := &block.HeaderProof{
 			HeaderHash:    []byte{byte(i)}, // Different hash each time
 			HeaderNonce:   5,               // Same nonce
+			HeaderRound:   uint64(10 + i),
 			HeaderShardId: shardID,
 		}
 		ok := pp.UpsertProof(proof)
 		require.True(t, ok, "upsert %d should succeed", i)
 	}
 
-	// All previous hashes (hash[0] through hash[8]) should be cleaned up
-	for i := 0; i < 9; i++ {
-		hasOldHash := pp.HasProof(shardID, []byte{byte(i)})
-		require.False(t, hasOldHash, "old hash[%d] should be cleaned up", i)
+	// The lowest-round proofs are retained up to the cap
+	for i := 0; i < proofscache.MaxProofsPerNonce; i++ {
+		require.True(t, pp.HasProof(shardID, []byte{byte(i)}), "low round hash[%d] should be retained", i)
 	}
 
-	// Only the latest hash should be present
-	hasLatestHash := pp.HasProof(shardID, []byte{9})
-	require.True(t, hasLatestHash, "latest hash[9] should be in pool")
+	// The higher-round proofs beyond the cap are evicted
+	for i := proofscache.MaxProofsPerNonce; i < 10; i++ {
+		require.False(t, pp.HasProof(shardID, []byte{byte(i)}), "high round hash[%d] should be evicted", i)
+	}
 
-	// Verify nonce 5 maps to the latest hash
+	// The canonical proof at nonce 5 is the lowest-round one
 	proofByNonce, err := pp.GetProofByNonce(5, shardID)
 	require.Nil(t, err)
-	require.Equal(t, []byte{9}, proofByNonce.GetHeaderHash(), "nonce 5 should map to latest hash")
+	require.Equal(t, []byte{0}, proofByNonce.GetHeaderHash(), "nonce 5 should map to the lowest round hash")
+
+	proofs, err := pp.GetProofsByNonce(5, shardID)
+	require.Nil(t, err)
+	require.Equal(t, proofscache.MaxProofsPerNonce, len(proofs))
 }
 
 func TestProofsPool_IsProofEqual(t *testing.T) {
@@ -309,7 +317,7 @@ func TestProofsPool_Concurrency(t *testing.T) {
 
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
-			switch idx % 7 {
+			switch idx % 9 {
 			case 0, 1, 2:
 				_ = pp.AddProof(generateProof())
 			case 3:
@@ -325,6 +333,12 @@ func TestProofsPool_Concurrency(t *testing.T) {
 				handler := func(proof data.HeaderProofHandler) {
 				}
 				pp.RegisterHandler(handler)
+			case 7:
+				_, _ = pp.GetProofsByNonce(generateRandomNonce(100), generateRandomShardID())
+			case 8:
+				handler := func(proof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler) {
+				}
+				pp.RegisterEquivocationHandler(handler)
 			default:
 				assert.Fail(t, "should have not beed called")
 			}
@@ -366,4 +380,275 @@ func generateRandomShardID() uint32 {
 func generateRandomInt(max int64) *big.Int {
 	rantInt, _ := rand.Int(rand.Reader, big.NewInt(max))
 	return rantInt
+}
+
+func TestProofsPool_CompetingProofsAtSameNonce(t *testing.T) {
+	t.Parallel()
+
+	proofRound6 := &block.HeaderProof{
+		HeaderHash:    []byte("hashA"),
+		HeaderNonce:   5,
+		HeaderRound:   6,
+		HeaderShardId: shardID,
+	}
+	proofRound7 := &block.HeaderProof{
+		HeaderHash:    []byte("hashB"),
+		HeaderNonce:   5,
+		HeaderRound:   7,
+		HeaderShardId: shardID,
+	}
+
+	t.Run("both proofs retained, canonical is lowest round regardless of add order", func(t *testing.T) {
+		t.Parallel()
+
+		for _, proofs := range [][]*block.HeaderProof{
+			{proofRound6, proofRound7},
+			{proofRound7, proofRound6},
+		} {
+			pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+			require.True(t, pp.AddProof(proofs[0]))
+			require.True(t, pp.AddProof(proofs[1]))
+
+			require.True(t, pp.HasProof(shardID, []byte("hashA")))
+			require.True(t, pp.HasProof(shardID, []byte("hashB")))
+
+			proof, err := pp.GetProofByNonce(5, shardID)
+			require.Nil(t, err)
+			require.Equal(t, proofRound6, proof)
+
+			allProofs, err := pp.GetProofsByNonce(5, shardID)
+			require.Nil(t, err)
+			require.Equal(t, 2, len(allProofs))
+			require.Equal(t, proofRound6, allProofs[0])
+			require.Equal(t, proofRound7, allProofs[1])
+		}
+	})
+
+	t.Run("same round ties break on lowest hash", func(t *testing.T) {
+		t.Parallel()
+
+		tieHigh := &block.HeaderProof{HeaderHash: []byte("hashZ"), HeaderNonce: 5, HeaderRound: 6, HeaderShardId: shardID}
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+		require.True(t, pp.AddProof(tieHigh))
+		require.True(t, pp.AddProof(proofRound6))
+
+		proof, err := pp.GetProofByNonce(5, shardID)
+		require.Nil(t, err)
+		require.Equal(t, proofRound6, proof)
+	})
+
+	t.Run("equivocation handler notified with competing proofs", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		type equivocationEvent struct {
+			newProof  data.HeaderProofHandler
+			competing []data.HeaderProofHandler
+		}
+		eventChan := make(chan equivocationEvent, 2)
+		pp.RegisterEquivocationHandler(nil)
+		pp.RegisterEquivocationHandler(func(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler) {
+			eventChan <- equivocationEvent{newProof: headerProof, competing: competingProofs}
+		})
+
+		require.True(t, pp.AddProof(proofRound6))
+		select {
+		case <-eventChan:
+			require.Fail(t, "must not notify on the first proof at a nonce")
+		case <-time.After(50 * time.Millisecond):
+		}
+
+		require.True(t, pp.AddProof(proofRound7))
+		select {
+		case event := <-eventChan:
+			require.Equal(t, proofRound7, event.newProof)
+			require.Equal(t, []data.HeaderProofHandler{proofRound6}, event.competing)
+		case <-time.After(time.Second):
+			require.Fail(t, "equivocation handler was not notified")
+		}
+
+		// re-adding an already stored proof at the equivocated nonce must not re-fire the event
+		require.True(t, pp.UpsertProof(proofRound7))
+		select {
+		case <-eventChan:
+			require.Fail(t, "must not notify again on a same-hash re-add")
+		case <-time.After(50 * time.Millisecond):
+		}
+	})
+
+	t.Run("no notification for different nonces or same hash re-add", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		notified := make(chan struct{}, 2)
+		pp.RegisterEquivocationHandler(func(_ data.HeaderProofHandler, _ []data.HeaderProofHandler) {
+			notified <- struct{}{}
+		})
+
+		require.True(t, pp.AddProof(proof1))
+		require.True(t, pp.AddProof(proof2))
+		require.False(t, pp.AddProof(proof1))
+		require.True(t, pp.UpsertProof(proof1))
+
+		select {
+		case <-notified:
+			require.Fail(t, "must not notify without a different-hash proof at the same nonce")
+		case <-time.After(50 * time.Millisecond):
+		}
+	})
+
+	t.Run("cleanup removes all proofs at the nonce", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+		require.True(t, pp.AddProof(proofRound6))
+		require.True(t, pp.AddProof(proofRound7))
+
+		err := pp.CleanupProofsBehindNonce(shardID, 5+cleanupDelta+1)
+		require.Nil(t, err)
+
+		require.False(t, pp.HasProof(shardID, []byte("hashA")))
+		require.False(t, pp.HasProof(shardID, []byte("hashB")))
+		_, err = pp.GetProofsByNonce(5, shardID)
+		require.NotNil(t, err)
+	})
+}
+
+func TestProofsPool_GetProofsByNonce_Missing(t *testing.T) {
+	t.Parallel()
+
+	pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+	_, err := pp.GetProofsByNonce(5, shardID)
+	require.NotNil(t, err)
+
+	_ = pp.AddProof(proof1)
+	_, err = pp.GetProofsByNonce(5, shardID)
+	require.NotNil(t, err)
+}
+
+func TestProofsPool_AddProofIfNoneAtNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil proof should not be added", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		added, existing := pp.AddProofIfNoneAtNonce(nil)
+		require.False(t, added)
+		require.Nil(t, existing)
+	})
+
+	t.Run("should add on free nonce and notify subscribers", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		notifyChan := make(chan data.HeaderProofHandler, 2)
+		pp.RegisterHandler(func(headerProof data.HeaderProofHandler) {
+			notifyChan <- headerProof
+		})
+
+		added, existing := pp.AddProofIfNoneAtNonce(proof1)
+		require.True(t, added)
+		require.Nil(t, existing)
+
+		proof, err := pp.GetProofByNonce(proof1.GetHeaderNonce(), shardID)
+		require.Nil(t, err)
+		require.Equal(t, proof1, proof)
+
+		select {
+		case notified := <-notifyChan:
+			require.Equal(t, proof1, notified)
+		case <-time.After(time.Second):
+			require.Fail(t, "subscriber was not notified on add")
+		}
+
+		// rejected adds must not notify
+		added, _ = pp.AddProofIfNoneAtNonce(proof1)
+		require.False(t, added)
+		select {
+		case <-notifyChan:
+			require.Fail(t, "subscriber must not be notified on a rejected add")
+		case <-time.After(50 * time.Millisecond):
+		}
+	})
+
+	t.Run("should reject same hash at nonce", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		_, _ = pp.AddProofIfNoneAtNonce(proof1)
+		added, existing := pp.AddProofIfNoneAtNonce(proof1)
+		require.False(t, added)
+		require.Equal(t, proof1, existing)
+	})
+
+	t.Run("should reject different hash at nonce without eviction", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		competingProof := &block.HeaderProof{
+			PubKeysBitmap:       []byte("pubKeysBitmap2"),
+			AggregatedSignature: []byte("aggSig2"),
+			HeaderHash:          []byte("competing hash"),
+			HeaderEpoch:         1,
+			HeaderNonce:         proof1.GetHeaderNonce(),
+			HeaderShardId:       shardID,
+		}
+
+		_, _ = pp.AddProofIfNoneAtNonce(proof1)
+		added, existing := pp.AddProofIfNoneAtNonce(competingProof)
+		require.False(t, added)
+		require.Equal(t, proof1, existing)
+
+		// the first proof is still reachable both by nonce and by hash
+		proof, err := pp.GetProofByNonce(proof1.GetHeaderNonce(), shardID)
+		require.Nil(t, err)
+		require.Equal(t, proof1, proof)
+
+		proof, err = pp.GetProof(shardID, proof1.GetHeaderHash())
+		require.Nil(t, err)
+		require.Equal(t, proof1, proof)
+
+		require.False(t, pp.HasProof(shardID, competingProof.GetHeaderHash()))
+	})
+
+	t.Run("concurrent adds at the same nonce should admit exactly one", func(t *testing.T) {
+		t.Parallel()
+
+		pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+
+		numConcurrent := 100
+		var numAdded uint32
+		var wg sync.WaitGroup
+		wg.Add(numConcurrent)
+		for i := 0; i < numConcurrent; i++ {
+			go func(idx int) {
+				defer wg.Done()
+
+				proof := &block.HeaderProof{
+					HeaderHash:    []byte(fmt.Sprintf("hash_%d", idx)),
+					HeaderNonce:   42,
+					HeaderShardId: shardID,
+				}
+				added, _ := pp.AddProofIfNoneAtNonce(proof)
+				if added {
+					atomic.AddUint32(&numAdded, 1)
+				}
+			}(i)
+		}
+		wg.Wait()
+
+		require.Equal(t, uint32(1), numAdded)
+
+		_, err := pp.GetProofByNonce(42, shardID)
+		require.Nil(t, err)
+	})
 }

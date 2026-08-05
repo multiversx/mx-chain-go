@@ -18,9 +18,9 @@ type ExecutionManagerMock struct {
 	CleanOnConsensusReachedCalled                func(headerHash []byte, header data.HeaderHandler)
 	SetLastNotarizedResultCalled                 func(executionResult data.BaseExecutionResultHandler) error
 	RemoveAtNonceAndHigherCalled                 func(nonce uint64) error
-	ResetAndResumeExecutionCalled                func(lastNotarizedResult data.BaseExecutionResultHandler) error
 	GetLastNotarizedExecutionResultCalled        func() (data.BaseExecutionResultHandler, error)
 	RemovePendingExecutionResultsFromNonceCalled func(nonce uint64) error
+	RewindExecutionStateToTipCalled              func(newTip data.HeaderHandler) error
 	GetSignalProcessCompletionChanCalled         func() chan uint64
 	PopDismissedResultsCalled                    func() []executionTrack.DismissedBatch
 	CloseCalled                                  func() error
@@ -88,14 +88,6 @@ func (emm *ExecutionManagerMock) RemoveAtNonceAndHigher(nonce uint64) error {
 	return nil
 }
 
-// ResetAndResumeExecution -
-func (emm *ExecutionManagerMock) ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error {
-	if emm.ResetAndResumeExecutionCalled != nil {
-		return emm.ResetAndResumeExecutionCalled(lastNotarizedResult)
-	}
-	return nil
-}
-
 // GetLastNotarizedExecutionResult -
 func (emm *ExecutionManagerMock) GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error) {
 	if emm.GetLastNotarizedExecutionResultCalled != nil {
@@ -108,6 +100,14 @@ func (emm *ExecutionManagerMock) GetLastNotarizedExecutionResult() (data.BaseExe
 func (emm *ExecutionManagerMock) RemovePendingExecutionResultsFromNonce(nonce uint64) error {
 	if emm.RemovePendingExecutionResultsFromNonceCalled != nil {
 		return emm.RemovePendingExecutionResultsFromNonceCalled(nonce)
+	}
+	return nil
+}
+
+// RewindExecutionStateToTip -
+func (emm *ExecutionManagerMock) RewindExecutionStateToTip(newTip data.HeaderHandler) error {
+	if emm.RewindExecutionStateToTipCalled != nil {
+		return emm.RewindExecutionStateToTipCalled(newTip)
 	}
 	return nil
 }

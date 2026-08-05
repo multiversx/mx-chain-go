@@ -17,6 +17,9 @@ const BlsConsensusType = "bls"
 // RoundHandler defines the actions which should be handled by a round implementation
 type RoundHandler interface {
 	Index() int64
+	// IndexForCurrentTime returns the round index the current time falls into, which does not
+	// depend on the chronology goroutine having advanced the stored index
+	IndexForCurrentTime() int64
 	BeforeGenesis() bool
 	// UpdateRound updates the index and the time stamp of the round depending on the genesis time and the current time given
 	UpdateRound(time.Time, time.Time)
@@ -49,6 +52,12 @@ type SubroundHandler interface {
 	EndTime() int64
 	// SetBaseDuration sets the base duration
 	SetBaseDuration(baseDuration time.Duration)
+	// SetTimingPercentage sets the start time and end time percent of the subround
+	SetTimingPercentage(startTimePercent float64, endTimePercent float64)
+	// SetSignatureSubroundEndTimePercentage sets the end time percent of the signature subround
+	SetSignatureSubroundEndTimePercentage(percent float64)
+	// SetProcessingThresholdPercent sets the processing threshold percent of the subround
+	SetProcessingThresholdPercent(percent int)
 	// Name returns the name of the current roundHandler
 	Name() string
 	// ConsensusChannel returns the consensus channel
@@ -189,7 +198,7 @@ type PeerBlacklistHandler interface {
 // SigningHandler defines the behaviour of a component that handles multi and single signatures used in consensus operations
 type SigningHandler interface {
 	Reset(pubKeys []string) error
-	CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
+	CreateSignatureShareForPublicKey(ctx context.Context, message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error)
 	CreateSignatureForPublicKey(message []byte, publicKeyBytes []byte) ([]byte, error)
 	VerifySingleSignature(publicKeyBytes []byte, message []byte, signature []byte) error
 	StoreSignatureShare(index uint16, sig []byte) error
@@ -199,6 +208,9 @@ type SigningHandler interface {
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte, epoch uint32) error
 	GetPubKeysFromBytes(pubKeysBytes [][]byte) ([]crypto.PublicKey, error)
+	AggregateSigsWithKeys(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error)
+	VerifyAggregatedSigWithKeys(pubKeys []string, bitmap []byte, message []byte, aggSig []byte, epoch uint32) error
+	VerifySigShareWithKey(pubKey []byte, sigShare []byte, message []byte, epoch uint32) error
 	IsInterfaceNil() bool
 }
 
@@ -219,6 +231,7 @@ type KeysHandler interface {
 // EquivalentProofsPool defines the behaviour of a proofs pool components
 type EquivalentProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
+	AddProofIfNoneAtNonce(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler)
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool

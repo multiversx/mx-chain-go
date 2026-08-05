@@ -612,7 +612,8 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 	}
 	et, _ := NewEpochStartTrigger(args)
 
-	prevHdr := &block.Header{Round: 29, Epoch: 2}
+	// epoch 2 produced no shard block: the last block before the epoch 3 start is still epoch 1
+	prevHdr := &block.Header{Round: 29, Epoch: 1}
 	prevHash, _ := core.CalculateHash(et.marshaller, et.hasher, prevHdr)
 
 	epochStartShHdr := &block.Header{
@@ -633,6 +634,50 @@ func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T
 	assert.Nil(t, err)
 	assert.True(t, et.IsEpochStart())
 	assert.Equal(t, et.epochStartShardHeader.GetEpoch(), prevEpochHdr.Epoch)
+}
+
+func TestTrigger_RevertStateToBlockMissingEpochStartHeaderErrors(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					return []byte("hash"), nil
+				},
+				PutCalled: func(key, data []byte) error {
+					return nil
+				},
+				SearchFirstCalled: func(key []byte) ([]byte, error) {
+					return nil, epochStart.ErrMissingHeader
+				},
+				RemoveCalled: func(key []byte) error {
+					return nil
+				},
+			}, nil
+		},
+	}
+	et, _ := NewEpochStartTrigger(args)
+
+	prevHdr := &block.Header{Round: 29, Epoch: 2}
+	prevHash, _ := core.CalculateHash(et.marshaller, et.hasher, prevHdr)
+
+	epochStartShHdr := &block.Header{
+		Nonce:              30,
+		PrevHash:           prevHash,
+		Round:              30,
+		EpochStartMetaHash: []byte("metaHash"),
+		Epoch:              3,
+	}
+	et.SetProcessed(epochStartShHdr, nil)
+
+	// the target's own epoch start is missing from storage: corruption must surface, not be
+	// papered over with fabricated older state
+	err := et.RevertStateToBlock(prevHdr)
+	assert.Equal(t, epochStart.ErrMissingHeader, err)
+	assert.Equal(t, epochStartShHdr.Epoch, et.epochStartShardHeader.GetEpoch())
 }
 
 func TestTrigger_ReceivedEpochStartHeaderChangeEpochFinalityAttestingRound(t *testing.T) {
@@ -1469,5 +1514,348 @@ func TestTrigger_WatchdogRequestEpochStartMetaBlock(t *testing.T) {
 
 		time.Sleep(50 * time.Millisecond)
 		require.Equal(t, int32(0), proofRequested.Load())
+	})
+}
+
+func createHeldFinalTriggerArgs(
+	headersByHash map[string]data.HeaderHandler,
+	proofed map[string]struct{},
+	withSupernova bool,
+) *ArgsShardEpochStartTrigger {
+	args := createMockShardEpochStartTriggerArguments()
+	args.Validity = 1
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			if flag == common.AndromedaFlag {
+				return true
+			}
+			return withSupernova && flag == common.SupernovaFlag
+		},
+	}
+	args.RoundHandler = &mock.RoundHandlerStub{
+		IndexCalled: func() int64 {
+			return 1000
+		},
+	}
+
+	headersPool := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+			header, ok := headersByHash[string(hash)]
+			if !ok {
+				return nil, errors.New("header not found")
+			}
+			return header, nil
+		},
+		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+			headers := make([]data.HeaderHandler, 0)
+			hashes := make([][]byte, 0)
+			for hash, header := range headersByHash {
+				if header.GetNonce() == hdrNonce && header.GetShardID() == shardId {
+					headers = append(headers, header)
+					hashes = append(hashes, []byte(hash))
+				}
+			}
+			if len(headers) == 0 {
+				return nil, nil, errors.New("no headers at nonce")
+			}
+			return headers, hashes, nil
+		},
+	}
+	proofsPool := &dataRetrieverMock.ProofsPoolMock{
+		HasProofCalled: func(_ uint32, headerHash []byte) bool {
+			_, ok := proofed[string(headerHash)]
+			return ok
+		},
+		GetProofCalled: func(_ uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+			if _, ok := proofed[string(headerHash)]; !ok {
+				return nil, errors.New("proof not found")
+			}
+			return &block.HeaderProof{HeaderHash: headerHash}, nil
+		},
+	}
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return headersPool
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return proofsPool
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &vic.ValidatorInfoCacherStub{}
+		},
+	}
+
+	return args
+}
+
+func newEpochStartMetaForTest(epoch uint32, nonce uint64, round uint64, prevHash []byte) *block.MetaBlock {
+	return &block.MetaBlock{
+		Epoch:    epoch,
+		Nonce:    nonce,
+		Round:    round,
+		PrevHash: prevHash,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0},
+			},
+		},
+	}
+}
+
+func TestTrigger_SupernovaEpochStartActivation(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("parentHash")
+	esHash := []byte("epochStartHash")
+	childHash := []byte("childHash")
+
+	t.Run("contested epoch start defers activation until settled", func(t *testing.T) {
+		t.Parallel()
+
+		parent := &block.MetaBlock{Nonce: 9, Round: 15}
+		epochStartMeta := newEpochStartMetaForTest(1, 10, 20, parentHash)
+
+		headersByHash := map[string]data.HeaderHandler{
+			string(parentHash): parent,
+			string(esHash):     epochStartMeta,
+		}
+		proofed := map[string]struct{}{
+			string(parentHash): {},
+			string(esHash):     {},
+		}
+		epochStartTrigger, err := NewEpochStartTrigger(createHeldFinalTriggerArgs(headersByHash, proofed, true))
+		require.Nil(t, err)
+
+		epochStartTrigger.receivedMetaBlock(epochStartMeta, esHash)
+		require.False(t, epochStartTrigger.IsEpochStart())
+
+		headersByHash[string(childHash)] = &block.MetaBlock{Epoch: 1, Nonce: 11, Round: 21, PrevHash: esHash}
+		proofed[string(childHash)] = struct{}{}
+		epochStartTrigger.receivedProof(&block.HeaderProof{
+			HeaderShardId: core.MetachainShardId,
+			HeaderHash:    childHash,
+		})
+
+		require.True(t, epochStartTrigger.IsEpochStart())
+		require.Equal(t, uint32(1), epochStartTrigger.MetaEpoch())
+		require.Equal(t, esHash, epochStartTrigger.EpochStartMetaHdrHash())
+	})
+
+	t.Run("non contended proofed epoch start activates instantly", func(t *testing.T) {
+		t.Parallel()
+
+		parent := &block.MetaBlock{Nonce: 9, Round: 15}
+		epochStartMeta := newEpochStartMetaForTest(1, 10, 16, parentHash)
+
+		headersByHash := map[string]data.HeaderHandler{
+			string(parentHash): parent,
+			string(esHash):     epochStartMeta,
+		}
+		proofed := map[string]struct{}{
+			string(parentHash): {},
+			string(esHash):     {},
+		}
+		epochStartTrigger, err := NewEpochStartTrigger(createHeldFinalTriggerArgs(headersByHash, proofed, true))
+		require.Nil(t, err)
+
+		epochStartTrigger.receivedMetaBlock(epochStartMeta, esHash)
+
+		require.True(t, epochStartTrigger.IsEpochStart())
+		require.Equal(t, esHash, epochStartTrigger.EpochStartMetaHdrHash())
+	})
+
+	t.Run("pre Supernova keeps proof only activation", func(t *testing.T) {
+		t.Parallel()
+
+		parent := &block.MetaBlock{Nonce: 9, Round: 15}
+		epochStartMeta := newEpochStartMetaForTest(1, 10, 20, parentHash)
+
+		headersByHash := map[string]data.HeaderHandler{
+			string(parentHash): parent,
+			string(esHash):     epochStartMeta,
+		}
+		proofed := map[string]struct{}{
+			string(esHash): {},
+		}
+		epochStartTrigger, err := NewEpochStartTrigger(createHeldFinalTriggerArgs(headersByHash, proofed, false))
+		require.Nil(t, err)
+
+		epochStartTrigger.receivedMetaBlock(epochStartMeta, esHash)
+
+		require.True(t, epochStartTrigger.IsEpochStart())
+	})
+}
+
+func TestTrigger_DisarmDeadEpochStartActivation(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("parentHash")
+	deadHash := []byte("deadEpochStartHash")
+	canonicalHash := []byte("canonicalEpochStartHash")
+
+	t.Run("no armed activation for the epoch is a no-op", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardEpochStartTriggerArguments()
+		epochStartTrigger, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+
+		require.False(t, epochStartTrigger.DisarmDeadEpochStartActivation(1, deadHash))
+	})
+
+	t.Run("different armed hash is a no-op", func(t *testing.T) {
+		t.Parallel()
+
+		parent := &block.MetaBlock{Nonce: 9, Round: 15}
+		epochStartMeta := newEpochStartMetaForTest(1, 10, 16, parentHash)
+
+		headersByHash := map[string]data.HeaderHandler{
+			string(parentHash): parent,
+			string(deadHash):   epochStartMeta,
+		}
+		proofed := map[string]struct{}{
+			string(parentHash): {},
+			string(deadHash):   {},
+		}
+		epochStartTrigger, err := NewEpochStartTrigger(createHeldFinalTriggerArgs(headersByHash, proofed, true))
+		require.Nil(t, err)
+
+		epochStartTrigger.receivedMetaBlock(epochStartMeta, deadHash)
+		require.True(t, epochStartTrigger.IsEpochStart())
+
+		require.False(t, epochStartTrigger.DisarmDeadEpochStartActivation(1, []byte("otherHash")))
+		require.True(t, epochStartTrigger.IsEpochStart())
+	})
+
+	t.Run("disarms, restores state and lets the canonical sibling re-arm", func(t *testing.T) {
+		t.Parallel()
+
+		parent := &block.MetaBlock{Nonce: 9, Round: 15}
+		deadEpochStart := newEpochStartMetaForTest(1, 10, 16, parentHash)
+
+		headersByHash := map[string]data.HeaderHandler{
+			string(parentHash): parent,
+			string(deadHash):   deadEpochStart,
+		}
+		proofed := map[string]struct{}{
+			string(parentHash): {},
+			string(deadHash):   {},
+		}
+		args := createHeldFinalTriggerArgs(headersByHash, proofed, true)
+
+		removedKeys := make(map[string]int)
+		registryPuts := make([][]byte, 0)
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					PutCalled: func(key, value []byte) error {
+						if strings.HasPrefix(string(key), common.TriggerRegistryKeyPrefix) {
+							registryPuts = append(registryPuts, value)
+						}
+						return nil
+					},
+					RemoveCalled: func(key []byte) error {
+						removedKeys[string(key)]++
+						return nil
+					},
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						return nil, errors.New("not found")
+					},
+				}, nil
+			},
+		}
+		epochStartTrigger, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+
+		epochStartTrigger.receivedMetaBlock(deadEpochStart, deadHash)
+		require.True(t, epochStartTrigger.IsEpochStart())
+		require.Equal(t, uint32(1), epochStartTrigger.MetaEpoch())
+
+		numRegistryPuts := len(registryPuts)
+		require.True(t, epochStartTrigger.DisarmDeadEpochStartActivation(1, deadHash))
+
+		require.False(t, epochStartTrigger.IsEpochStart())
+		require.Equal(t, uint32(0), epochStartTrigger.MetaEpoch())
+		require.Empty(t, epochStartTrigger.EpochStartMetaHdrHash())
+		require.Empty(t, epochStartTrigger.mapFinalizedEpochs)
+		require.Empty(t, epochStartTrigger.mapEpochStartHdrs)
+		require.NotContains(t, epochStartTrigger.mapHashHdr, string(deadHash))
+		require.NotContains(t, epochStartTrigger.mapNonceHashes[10], string(deadHash))
+
+		epochStartIdentifier := core.EpochStartIdentifier(1)
+		require.Equal(t, 2, removedKeys[epochStartIdentifier])
+
+		require.Greater(t, len(registryPuts), numRegistryPuts)
+		registry, errUnmarshal := epochStart.UnmarshalShardTrigger(args.Marshalizer, registryPuts[len(registryPuts)-1])
+		require.Nil(t, errUnmarshal)
+		require.False(t, registry.GetIsEpochStart())
+		require.Equal(t, uint32(0), registry.GetMetaEpoch())
+
+		require.False(t, epochStartTrigger.DisarmDeadEpochStartActivation(1, deadHash))
+
+		canonicalEpochStart := newEpochStartMetaForTest(1, 10, 16, parentHash)
+		canonicalEpochStart.TimeStamp = 1
+		headersByHash[string(canonicalHash)] = canonicalEpochStart
+		proofed[string(canonicalHash)] = struct{}{}
+		epochStartTrigger.receivedMetaBlock(canonicalEpochStart, canonicalHash)
+
+		require.True(t, epochStartTrigger.IsEpochStart())
+		require.Equal(t, uint32(1), epochStartTrigger.MetaEpoch())
+		require.Equal(t, canonicalHash, epochStartTrigger.EpochStartMetaHdrHash())
+	})
+
+	t.Run("restores the current epoch start round from storage", func(t *testing.T) {
+		t.Parallel()
+
+		parent := &block.MetaBlock{Epoch: 2, Nonce: 9, Round: 15}
+		deadEpochStart := newEpochStartMetaForTest(3, 10, 16, parentHash)
+
+		headersByHash := map[string]data.HeaderHandler{
+			string(parentHash): parent,
+			string(deadHash):   deadEpochStart,
+		}
+		proofed := map[string]struct{}{
+			string(parentHash): {},
+			string(deadHash):   {},
+		}
+		args := createHeldFinalTriggerArgs(headersByHash, proofed, true)
+		args.Epoch = 2
+
+		prevEpochStartMeta := &block.MetaBlock{Epoch: 2, Round: 55}
+		prevEpochStartMetaBuff, errMarshal := args.Marshalizer.Marshal(prevEpochStartMeta)
+		require.Nil(t, errMarshal)
+		args.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					PutCalled: func(key, value []byte) error {
+						return nil
+					},
+					RemoveCalled: func(key []byte) error {
+						return nil
+					},
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						require.Equal(t, []byte(core.EpochStartIdentifier(2)), key)
+						return prevEpochStartMetaBuff, nil
+					},
+				}, nil
+			},
+		}
+		epochStartTrigger, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+
+		epochStartTrigger.receivedMetaBlock(deadEpochStart, deadHash)
+		require.True(t, epochStartTrigger.IsEpochStart())
+		require.Equal(t, uint32(3), epochStartTrigger.MetaEpoch())
+		require.Equal(t, uint64(16), epochStartTrigger.EpochStartRound())
+
+		require.True(t, epochStartTrigger.DisarmDeadEpochStartActivation(3, deadHash))
+
+		require.False(t, epochStartTrigger.IsEpochStart())
+		require.Equal(t, uint32(2), epochStartTrigger.MetaEpoch())
+		require.Equal(t, uint64(55), epochStartTrigger.EpochStartRound())
+		require.Equal(t, uint64(55), epochStartTrigger.EpochFinalityAttestingRound())
 	})
 }

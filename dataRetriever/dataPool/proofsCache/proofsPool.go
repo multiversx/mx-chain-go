@@ -21,8 +21,12 @@ type proofsPool struct {
 
 	mutAddedProofSubscribers sync.RWMutex
 	addedProofSubscribers    []func(headerProof data.HeaderProofHandler)
-	cleanupNonceDelta        uint64
-	bucketSize               int
+
+	mutEquivocationSubscribers sync.RWMutex
+	equivocationSubscribers    []func(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler)
+
+	cleanupNonceDelta uint64
+	bucketSize        int
 }
 
 // NewProofsPool creates a new proofs pool component
@@ -37,15 +41,16 @@ func NewProofsPool(cleanupNonceDelta uint64, bucketSize int) *proofsPool {
 	}
 
 	return &proofsPool{
-		cache:                 make(map[uint32]*proofsCache),
-		addedProofSubscribers: make([]func(headerProof data.HeaderProofHandler), 0),
-		cleanupNonceDelta:     cleanupNonceDelta,
-		bucketSize:            bucketSize,
+		cache:                   make(map[uint32]*proofsCache),
+		addedProofSubscribers:   make([]func(headerProof data.HeaderProofHandler), 0),
+		equivocationSubscribers: make([]func(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler), 0),
+		cleanupNonceDelta:       cleanupNonceDelta,
+		bucketSize:              bucketSize,
 	}
 }
 
-// UpsertProof will add the provided proof to the pool. If there is already an existing proof,
-// it will overwrite it.
+// UpsertProof will add the provided proof to the pool. A proof with the same hash is overwritten;
+// a different-hash proof at the same nonce is kept alongside the existing ones (see AddProof).
 func (pp *proofsPool) UpsertProof(
 	headerProof data.HeaderProofHandler,
 ) bool {
@@ -58,6 +63,7 @@ func (pp *proofsPool) UpsertProof(
 
 // AddProof will add the provided proof to the pool, if it's not already in the pool.
 // It will return true if the proof was added to the pool.
+// A different-hash proof at the same nonce is kept alongside the existing ones and notifies the equivocation handlers.
 func (pp *proofsPool) AddProof(
 	headerProof data.HeaderProofHandler,
 ) bool {
@@ -73,18 +79,50 @@ func (pp *proofsPool) AddProof(
 	return pp.addProof(headerProof)
 }
 
-func (pp *proofsPool) addProof(
+// AddProofIfNoneAtNonce will add the provided proof only if its (nonce, shard) slot is free; an
+// occupied slot (same or different hash) rejects the add and returns the pre-existing proof
+func (pp *proofsPool) AddProofIfNoneAtNonce(
 	headerProof data.HeaderProofHandler,
-) bool {
-	shardID := headerProof.GetHeaderShardId()
+) (bool, data.HeaderProofHandler) {
+	if check.IfNil(headerProof) {
+		return false, nil
+	}
 
+	proofsPerShard := pp.getOrCreateProofsCache(headerProof.GetHeaderShardId())
+
+	added, existingProof := proofsPerShard.addProofIfNoneAtNonce(headerProof)
+	if !added {
+		return false, existingProof
+	}
+
+	log.Debug("added proof to pool at free nonce",
+		"header hash", headerProof.GetHeaderHash(),
+		"nonce", headerProof.GetHeaderNonce(),
+		"shardID", headerProof.GetHeaderShardId(),
+	)
+
+	pp.callAddedProofSubscribers(headerProof)
+
+	return true, nil
+}
+
+func (pp *proofsPool) getOrCreateProofsCache(shardID uint32) *proofsCache {
 	pp.mutCache.Lock()
+	defer pp.mutCache.Unlock()
+
 	proofsPerShard, ok := pp.cache[shardID]
 	if !ok {
 		proofsPerShard = newProofsCache(pp.bucketSize)
 		pp.cache[shardID] = proofsPerShard
 	}
-	pp.mutCache.Unlock()
+
+	return proofsPerShard
+}
+
+func (pp *proofsPool) addProof(
+	headerProof data.HeaderProofHandler,
+) bool {
+	proofsPerShard := pp.getOrCreateProofsCache(headerProof.GetHeaderShardId())
 
 	log.Debug("added proof to pool",
 		"header hash", headerProof.GetHeaderHash(),
@@ -97,7 +135,19 @@ func (pp *proofsPool) addProof(
 		"isStartOfEpoch", headerProof.GetIsStartOfEpoch(),
 	)
 
-	proofsPerShard.addProof(headerProof)
+	competingProofs := proofsPerShard.addProof(headerProof)
+	if len(competingProofs) > 0 {
+		log.Error("proofsPool: equivocation - multiple proofs at the same nonce",
+			"shardID", headerProof.GetHeaderShardId(),
+			"nonce", headerProof.GetHeaderNonce(),
+			"new hash", headerProof.GetHeaderHash(),
+			"new round", headerProof.GetHeaderRound(),
+			"num competing proofs", len(competingProofs),
+			"first competing hash", competingProofs[0].GetHeaderHash(),
+			"first competing round", competingProofs[0].GetHeaderRound(),
+		)
+		pp.callEquivocationSubscribers(headerProof, competingProofs)
+	}
 
 	pp.callAddedProofSubscribers(headerProof)
 
@@ -186,7 +236,8 @@ func (pp *proofsPool) GetProof(
 	return proofsPerShard.getProofByHash(headerHash)
 }
 
-// GetProofByNonce will get the proof from pool for the provided header nonce, searching through all shards
+// GetProofByNonce will get the canonical proof from pool for the provided header nonce: the one
+// with the lowest round, lowest hash as tie-break, among all proofs held at that nonce
 func (pp *proofsPool) GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
 	log.Trace("trying to get proof",
 		"headerNonce", headerNonce,
@@ -201,6 +252,24 @@ func (pp *proofsPool) GetProofByNonce(headerNonce uint64, shardID uint32) (data.
 	}
 
 	return proofsPerShard.getProofByNonce(headerNonce)
+}
+
+// GetProofsByNonce will get all the proofs held for the provided header nonce, ordered by
+// (round, hash) ascending; more than one returned proof is evidence of equivocation
+func (pp *proofsPool) GetProofsByNonce(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+	pp.mutCache.RLock()
+	proofsPerShard, ok := pp.cache[shardID]
+	pp.mutCache.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("%w: proofs cache per shard not found, shard ID: %d", ErrMissingProof, shardID)
+	}
+
+	proofs := proofsPerShard.getProofsByNonce(headerNonce)
+	if len(proofs) == 0 {
+		return nil, ErrMissingProof
+	}
+
+	return proofs, nil
 }
 
 // HasProof will check if there is a proof for the provided hash
@@ -222,6 +291,28 @@ func (pp *proofsPool) RegisterHandler(handler func(headerProof data.HeaderProofH
 	pp.mutAddedProofSubscribers.Lock()
 	pp.addedProofSubscribers = append(pp.addedProofSubscribers, handler)
 	pp.mutAddedProofSubscribers.Unlock()
+}
+
+// RegisterEquivocationHandler registers a new handler to be called when a proof is added for a
+// nonce that already holds one or more proofs with a different header hash
+func (pp *proofsPool) RegisterEquivocationHandler(handler func(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler)) {
+	if handler == nil {
+		log.Error("attempt to register a nil equivocation handler to proofs pool")
+		return
+	}
+
+	pp.mutEquivocationSubscribers.Lock()
+	pp.equivocationSubscribers = append(pp.equivocationSubscribers, handler)
+	pp.mutEquivocationSubscribers.Unlock()
+}
+
+func (pp *proofsPool) callEquivocationSubscribers(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler) {
+	pp.mutEquivocationSubscribers.RLock()
+	defer pp.mutEquivocationSubscribers.RUnlock()
+
+	for _, handler := range pp.equivocationSubscribers {
+		go handler(headerProof, competingProofs)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
@@ -373,6 +374,15 @@ func (wrk *Worker) convertHeaderToConsensusMessage(header data.HeaderHandler) (*
 
 // ReceivedHeader process the received header, calling each received header handler registered in worker instance
 func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("recovered from panic in Worker.ReceivedHeader",
+				"panic", r,
+				"stack", string(debug.Stack()),
+			)
+		}
+	}()
+
 	if check.IfNil(headerHandler) {
 		log.Trace("ReceivedHeader: nil header handler")
 		return
@@ -565,8 +575,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		}
 	}
 
+	shouldExecuteReceivedMessage := true
 	if wrk.consensusService.IsMessageWithSignature(msgType) {
-		wrk.doJobOnMessageWithSignature(cnsMsg, message)
+		shouldExecuteReceivedMessage = wrk.doJobOnMessageWithSignature(cnsMsg, message)
 	}
 
 	if isMessageWithInvalidSigners {
@@ -581,6 +592,10 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		log.Trace("checkSelfState", "error", errNotCritical.Error())
 		// in this case should return nil but do not process the message
 		// nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
+		return []byte{}, nil
+	}
+
+	if !shouldExecuteReceivedMessage {
 		return []byte{}, nil
 	}
 
@@ -688,19 +703,27 @@ func (wrk *Worker) verifyHeaderHash(hash []byte, marshalledHeader []byte) bool {
 	return bytes.Equal(hash, computedHash)
 }
 
-func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg p2p.MessageP2P) {
+func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg p2p.MessageP2P) bool {
+	wasAdded := wrk.consensusState.AddMessageWithSignatureIfMissing(
+		SignatureMessageKey(cnsMsg.BlockHeaderHash, string(cnsMsg.PubKey)),
+		p2pMsg,
+	)
+	if !wasAdded {
+		return false
+	}
+
 	wrk.mutDisplayHashConsensusMessage.Lock()
 	defer wrk.mutDisplayHashConsensusMessage.Unlock()
 
 	hash := string(cnsMsg.BlockHeaderHash)
 	wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsMsg)
 
-	wrk.consensusState.AddMessageWithSignature(string(cnsMsg.PubKey), p2pMsg)
-
 	log.Trace("received message with signature",
 		"from", core.GetTrimmedPk(hex.EncodeToString(cnsMsg.PubKey)),
 		"header hash", cnsMsg.BlockHeaderHash,
 	)
+
+	return true
 }
 
 func (wrk *Worker) addBlockToPool(bodyBytes []byte) error {
@@ -894,6 +917,8 @@ func (wrk *Worker) callReceivedHeaderCallbacks(message *consensus.Message) {
 // Extend does an extension for the subround with subroundId
 func (wrk *Worker) Extend(subroundId int) {
 	wrk.consensusState.SetExtendedCalled(true)
+	wrk.consensusState.SignaturesCtxCancel()
+
 	log.Debug("extend function is called",
 		"subround", wrk.consensusService.GetSubroundName(subroundId))
 
@@ -907,14 +932,12 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
-	log.Debug("current block is reverted")
-
 	if !wrk.isAsyncExecEnabled() {
 		wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
 		wrk.blockProcessor.RevertCurrentBlock()
+		wrk.removeConsensusHeaderFromPool()
+		log.Debug("current block is reverted")
 	}
-
-	wrk.removeConsensusHeaderFromPool()
 }
 
 func (wrk *Worker) isAsyncExecEnabled() bool {

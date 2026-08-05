@@ -1331,7 +1331,7 @@ func startChainSimulator(
 	}
 	supernovaRoundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
-		Value:    roundsPerEpoch * 10,
+		Value:    roundsPerEpoch,
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{

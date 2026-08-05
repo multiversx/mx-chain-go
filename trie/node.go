@@ -3,16 +3,18 @@ package trie
 
 import (
 	"context"
+	"fmt"
 	"runtime/debug"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 )
 
 const (
@@ -23,6 +25,9 @@ const (
 	pointerSizeInBytes   = 8
 	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
 	pollingIdleNode      = time.Millisecond
+	// maxUnreportedParkedTime bounds how long a snapshot goroutine may sit parked behind node
+	// operations before reporting it: sustained parking starves the snapshot and defers pruning
+	maxUnreportedParkedTime = time.Minute
 )
 
 type baseNode struct {
@@ -197,10 +202,32 @@ func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.
 		return nil, err
 	}
 
+	err = validateDecodedNode(newNode)
+	if err != nil {
+		return nil, err
+	}
+
 	newNode.setMarshalizer(marshalizer)
 	newNode.setHasher(hasher)
 
 	return newNode, nil
+}
+
+func validateDecodedNode(n node) error {
+	bn, ok := n.(*branchNode)
+	if !ok {
+		return nil
+	}
+
+	if len(bn.EncodedChildren) != nrOfChildren {
+		return fmt.Errorf("%w for EncodedChildren, len is %d", ErrInvalidEncoding, len(bn.EncodedChildren))
+	}
+
+	if len(bn.ChildrenVersion) != 0 && len(bn.ChildrenVersion) != nrOfChildren {
+		return fmt.Errorf("%w for ChildrenVersion, len is %d", ErrInvalidEncoding, len(bn.ChildrenVersion))
+	}
+
+	return nil
 }
 
 func getEmptyNodeOfType(t byte) (node, error) {
@@ -256,6 +283,8 @@ func prefixLen(a, b []byte) int {
 }
 
 func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider IdleNodeProvider) bool {
+	var parkedSince time.Time
+	hasReportedParking := false
 	for {
 		select {
 		case <-ctx.Done():
@@ -265,6 +294,13 @@ func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider Idl
 
 		if idleProvider.IsIdle() {
 			return false
+		}
+
+		if parkedSince.IsZero() {
+			parkedSince = time.Now()
+		} else if !hasReportedParking && time.Since(parkedSince) >= maxUnreportedParkedTime {
+			hasReportedParking = true
+			log.Warn("snapshot goroutine parked behind node operations", "parked time", time.Since(parkedSince))
 		}
 
 		select {

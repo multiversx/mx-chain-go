@@ -106,3 +106,8 @@ type AccountHandlerWithDataTrieMigrationStatus interface {
 	vmcommon.AccountHandler
 	IsDataTrieMigrated() (bool, error)
 }
+
+// Journalize exposes journalize for tests.
+func (adb *AccountsDB) Journalize(entry JournalEntry) {
+	adb.journalize(entry)
+}

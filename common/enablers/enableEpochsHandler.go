@@ -1016,6 +1016,13 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			activationEpoch:     handler.enableEpochsConfig.ConsumedGasInEconomicsFixEnableEpoch,
 			activationEpochName: "ConsumedGasInEconomicsFixEnableEpoch",
 		},
+		common.AttributeExtraGasUsageFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.AttributeExtraGasUsageEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.AttributeExtraGasUsageEnableEpoch,
+			activationEpochName: "AttributeExtraGasUsageEnableEpoch",
+		},
 	}
 }
 

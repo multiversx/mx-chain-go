@@ -11,8 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
 
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -914,6 +915,101 @@ func TestHeadersForBlock_ComputeHeadersForCurrentBlock(t *testing.T) {
 	})
 }
 
+func TestHeadersForBlock_RequestMissingFinalityAttestingShardHeaders(t *testing.T) {
+	t.Parallel()
+
+	t.Run("attestation header present but proof missing should request proof", func(t *testing.T) {
+		t.Parallel()
+
+		referencedHeaderHash := []byte("sh0TestHash1")
+		referencedHeader := &block.HeaderV2{
+			Header: &block.Header{
+				ShardID: 0,
+				Round:   100,
+				Nonce:   100,
+			},
+		}
+		attestationHeaderHash := []byte("sh0TestHash2")
+		attestationHeader := &block.HeaderV2{
+			Header: &block.Header{
+				ShardID:  0,
+				Round:    101,
+				Nonce:    101,
+				PrevHash: referencedHeaderHash,
+			},
+		}
+
+		counter := 0
+		var requestedShardID uint32
+		var requestedHash []byte
+		var mutRequestEquivalentProof sync.Mutex
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
+
+		args := createMockArgs()
+		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
+			NoShards: 2,
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+				mutRequestEquivalentProof.Lock()
+				counter++
+				requestedShardID = headerShard
+				requestedHash = append([]byte(nil), headerHash...)
+				mutRequestEquivalentProof.Unlock()
+
+				wg.Done()
+			},
+		}
+
+		poolsHolder, ok := args.DataPool.(*dataRetriever.PoolsHolderMock)
+		require.True(t, ok)
+		poolsHolder.SetHeadersPool(createPoolsHolderForHeaderRequests())
+		poolsHolder.SetProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return false // no proof available for the attestation header
+			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, errors.New("GetProofByNonce error")
+			},
+		})
+
+		args.BlockTracker = &mock.BlockTrackerStub{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return referencedHeader, referencedHeaderHash, nil
+			},
+		}
+
+		hfb, err := headerForBlock.NewHeadersForBlock(args)
+		require.NoError(t, err)
+
+		hfb.SetShardBlockFinality(1)
+		hfb.SetHighestHdrNonceForCurrentBlock(referencedHeader.GetShardID(), referencedHeader.GetNonce())
+		hfb.SetLastNotarizedHeaderForShard(
+			referencedHeader.GetShardID(),
+			headerForBlock.NewLastNotarizedHeaderInfo(referencedHeader, referencedHeaderHash, false, false),
+		)
+
+		poolsHolder.Headers().AddHeader(attestationHeaderHash, attestationHeader)
+
+		missingFinalityHeaders := hfb.RequestMissingFinalityAttestingShardHeaders()
+		require.Equal(t, uint32(0), missingFinalityHeaders)
+
+		wg.Wait()
+
+		mutRequestEquivalentProof.Lock()
+		require.Equal(t, 1, counter)
+		require.Equal(t, attestationHeader.GetShardID(), requestedShardID)
+		require.Equal(t, attestationHeaderHash, requestedHash)
+		mutRequestEquivalentProof.Unlock()
+	})
+}
+
 type headerData struct {
 	header     data.HeaderHandler
 	headerHash []byte
@@ -1043,4 +1139,94 @@ func createShardInfo(referencedHeaders []*headerData) []block.ShardData {
 	}
 
 	return shardData
+}
+
+func TestHeadersForBlock_AttestationWithFlagBoundaryCandidates(t *testing.T) {
+	t.Parallel()
+
+	preProofsHeader := &block.Header{Nonce: 103, Epoch: 0, ShardID: 0}
+	preProofsHeaderHash := []byte("preProofsHeaderHash")
+	proofsEraHeader := &block.Header{Nonce: 103, Epoch: 1, ShardID: 0}
+	proofsEraHeaderHash := []byte("proofsEraHeaderHash")
+	includedHeader := &block.Header{Nonce: 102, Epoch: 0, ShardID: 0}
+	includedHeaderHash := []byte("includedHeaderHash")
+
+	createArgsForBoundary := func(requestedProofHashes *[][]byte, mutRequested *sync.Mutex) headerForBlock.ArgHeadersForBlock {
+		args := createMockArgs()
+		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{NoShards: 1}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag && epoch >= 1
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+				mutRequested.Lock()
+				*requestedProofHashes = append(*requestedProofHashes, append([]byte(nil), headerHash...))
+				mutRequested.Unlock()
+			},
+		}
+
+		return args
+	}
+
+	t.Run("a pre-proofs candidate attests, sibling proofs are not demanded", func(t *testing.T) {
+		t.Parallel()
+
+		requestedProofHashes := make([][]byte, 0)
+		mutRequested := &sync.Mutex{}
+		args := createArgsForBoundary(&requestedProofHashes, mutRequested)
+
+		args.DataPool.Headers().AddHeader(preProofsHeaderHash, preProofsHeader)
+		args.DataPool.Headers().AddHeader(proofsEraHeaderHash, proofsEraHeader)
+
+		hfb, err := headerForBlock.NewHeadersForBlock(args)
+		require.Nil(t, err)
+
+		hfb.SetHighestHdrNonceForCurrentBlock(0, 102)
+		hfb.SetShardBlockFinality(1)
+		hfb.SetLastNotarizedHeaderForShard(0, headerForBlock.NewLastNotarizedHeaderInfo(includedHeader, includedHeaderHash, false, false))
+
+		missing := hfb.RequestMissingFinalityAttestingShardHeaders()
+
+		require.Equal(t, uint32(0), missing)
+		_, missingProofs, _ := hfb.GetMissingData()
+		require.Equal(t, uint32(0), missingProofs)
+		mutRequested.Lock()
+		require.Empty(t, requestedProofHashes)
+		mutRequested.Unlock()
+	})
+
+	t.Run("proofs-era candidates without any attester get proofs requested exactly once across re-runs", func(t *testing.T) {
+		t.Parallel()
+
+		requestedProofHashes := make([][]byte, 0)
+		mutRequested := &sync.Mutex{}
+		args := createArgsForBoundary(&requestedProofHashes, mutRequested)
+
+		args.DataPool.Headers().AddHeader(proofsEraHeaderHash, proofsEraHeader)
+
+		hfb, err := headerForBlock.NewHeadersForBlock(args)
+		require.Nil(t, err)
+
+		hfb.SetHighestHdrNonceForCurrentBlock(0, 102)
+		hfb.SetShardBlockFinality(1)
+		hfb.SetLastNotarizedHeaderForShard(0, headerForBlock.NewLastNotarizedHeaderInfo(includedHeader, includedHeaderHash, false, false))
+
+		_ = hfb.RequestMissingFinalityAttestingShardHeaders()
+		_, missingProofs, _ := hfb.GetMissingData()
+		require.Equal(t, uint32(1), missingProofs)
+
+		// walk re-runs (received-block callbacks) must not inflate the counter or re-request
+		_ = hfb.RequestMissingFinalityAttestingShardHeaders()
+		_ = hfb.RequestMissingFinalityAttestingShardHeaders()
+
+		_, missingProofs, _ = hfb.GetMissingData()
+		require.Equal(t, uint32(1), missingProofs)
+		require.Eventually(t, func() bool {
+			mutRequested.Lock()
+			defer mutRequested.Unlock()
+			return len(requestedProofHashes) == 1
+		}, time.Second, 10*time.Millisecond)
+	})
 }

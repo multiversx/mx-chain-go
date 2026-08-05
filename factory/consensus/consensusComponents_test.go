@@ -76,6 +76,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			EnableRoundsHandlerField:   &testscommon.EnableRoundsHandlerStub{},
 			ProcessConfigsHandlerField: testscommon.GetDefaultProcessConfigsHandler(),
 			CommonConfigsHandlerField:  testscommon.GetDefaultCommonConfigsHandler(),
+			RoundChangeNotifier:        &epochNotifier.RoundNotifierStub{},
 		},
 		NetworkComponents: &testsMocks.NetworkComponentsStub{
 			Messenger:      &p2pmocks.MessengerStub{},

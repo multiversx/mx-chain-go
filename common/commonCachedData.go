@@ -140,7 +140,10 @@ func GetCachedBody(cache storage.Cacher, marshaller marshal.Marshalizer, baseExe
 			return nil, ErrMissingMiniBlock
 		}
 
-		cachedMiniBlockBytes := cachedMiniBlock.([]byte)
+		cachedMiniBlockBytes, ok := cachedMiniBlock.([]byte)
+		if !ok {
+			return nil, fmt.Errorf("%w for cached mini block %s", ErrWrongTypeAssertion, mbHash)
+		}
 
 		miniBlock := &block.MiniBlock{}
 		err = marshaller.Unmarshal(miniBlock, cachedMiniBlockBytes)

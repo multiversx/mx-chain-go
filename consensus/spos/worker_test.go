@@ -2190,6 +2190,95 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 	assert.Equal(t, int32(1), atomic.LoadInt32(&executed))
 }
 
+func TestWorker_ExtendShouldNotRemoveConsensusHeaderFromPoolsWhenAsyncExecutionIsEnabled(t *testing.T) {
+	t.Parallel()
+
+	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
+	headerHash := []byte("header hash")
+	header := &block.HeaderV3{
+		Nonce: 7,
+		Epoch: 1,
+	}
+	wrk.ConsensusState().SetHeader(header)
+	wrk.ConsensusState().SetData(headerHash)
+
+	revertCalled := false
+	removeHeaderFromPoolCalled := false
+	blockProcessor := &testscommon.BlockProcessorStub{
+		RevertCurrentBlockCalled: func() {
+			revertCalled = true
+		},
+		RemoveHeaderFromPoolCalled: func(headerHash []byte) {
+			removeHeaderFromPoolCalled = true
+		},
+	}
+	wrk.SetBlockProcessor(blockProcessor)
+
+	removeHeaderFromForkDetectorCalled := false
+	wrk.SetForkDetector(&processMocks.ForkDetectorStub{
+		RemoveHeaderCalled: func(nonce uint64, hash []byte) {
+			removeHeaderFromForkDetectorCalled = true
+		},
+	})
+	wrk.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	})
+
+	wrk.Extend(1)
+
+	require.False(t, revertCalled)
+	require.False(t, removeHeaderFromPoolCalled)
+	require.False(t, removeHeaderFromForkDetectorCalled)
+}
+
+func TestWorker_ExtendShouldRemoveConsensusHeaderFromPoolsWhenAsyncExecutionIsDisabled(t *testing.T) {
+	t.Parallel()
+
+	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
+	headerHash := []byte("header hash")
+	header := &block.Header{
+		Nonce: 7,
+		Epoch: 1,
+	}
+	wrk.ConsensusState().SetHeader(header)
+	wrk.ConsensusState().SetData(headerHash)
+
+	revertCalled := false
+	removeHeaderFromPoolCalled := false
+	blockProcessor := &testscommon.BlockProcessorStub{
+		RevertCurrentBlockCalled: func() {
+			revertCalled = true
+		},
+		RemoveHeaderFromPoolCalled: func(hash []byte) {
+			removeHeaderFromPoolCalled = true
+			require.Equal(t, headerHash, hash)
+		},
+	}
+	wrk.SetBlockProcessor(blockProcessor)
+
+	removeHeaderFromForkDetectorCalled := false
+	wrk.SetForkDetector(&processMocks.ForkDetectorStub{
+		RemoveHeaderCalled: func(nonce uint64, hash []byte) {
+			removeHeaderFromForkDetectorCalled = true
+			require.Equal(t, header.GetNonce(), nonce)
+			require.Equal(t, headerHash, hash)
+		},
+	})
+	wrk.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	})
+
+	wrk.Extend(1)
+
+	require.True(t, revertCalled)
+	require.True(t, removeHeaderFromPoolCalled)
+	require.True(t, removeHeaderFromForkDetectorCalled)
+}
+
 func TestWorker_ExecuteStoredMessagesShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
@@ -2331,7 +2420,19 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Len(t, msgID, 0)
 
-		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(string(pubKey))
+		msgType := consensus.MessageType(cnsMsg.MsgType)
+		require.Eventually(t, func() bool {
+			return len(wrk.ReceivedMessages()[msgType]) == 1
+		}, time.Second, time.Millisecond)
+
+		msgID, err = wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
+		assert.Nil(t, err)
+		assert.Len(t, msgID, 0)
+
+		time.Sleep(10 * time.Millisecond)
+		require.Len(t, wrk.ReceivedMessages()[msgType], 1)
+
+		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(spos.SignatureMessageKey(hdrHash, string(pubKey)))
 		require.True(t, ok)
 		require.Equal(t, msg, p2pMsgWithSignature)
 	})

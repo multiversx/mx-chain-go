@@ -97,7 +97,7 @@ func initConsensusState() *spos.ConsensusState {
 		&mock.NodeRedundancyHandlerStub{},
 	)
 
-	cns.Data = []byte("X")
+	cns.SetData([]byte("X"))
 	cns.SetRoundIndex(0)
 	return cns
 }
@@ -673,6 +673,57 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 	t.Parallel()
 
 	testDoWork(t, false, false)
+}
+
+func TestSubround_DoWorkShouldReturnFalseWhenContextClosed(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+
+	sr, _ := spos.NewSubround(
+		-1,
+		bls.SrStartRound,
+		bls.SrBlock,
+		roundTimeDuration,
+		0,
+		0.05,
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	sr.Job = func(_ context.Context) bool {
+		return true
+	}
+
+	firstCheck := true
+	sr.Check = func() bool {
+		if firstCheck {
+			firstCheck = false
+			return false
+		}
+
+		return true
+	}
+
+	maxTime := time.Now().Add(100 * time.Millisecond)
+	roundHandlerMock := &round.RoundHandlerMock{}
+	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
+		return time.Until(maxTime)
+	}
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	cancel()
+
+	r := sr.DoWork(ctx, roundHandlerMock)
+	require.Equal(t, false, r)
+	require.True(t, sr.GetRoundCanceled())
 }
 
 func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T) {
@@ -1499,4 +1550,181 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 
 		assert.True(t, sr.HasProofForCompetingBlock())
 	})
+}
+
+func TestSubround_HasProofForCompetingParent(t *testing.T) {
+	t.Parallel()
+
+	headNonce := uint64(10)
+	headRound := uint64(14)
+	headHash := []byte("headHash")
+
+	createSubround := func(currentHeader data.HeaderHandler, lowestProof data.HeaderProofHandler) *spos.Subround {
+		consensusState := internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
+		ch := make(chan bool, 1)
+		container := consensus.InitConsensusCore()
+		container.SetBlockchain(&testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return currentHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return headHash
+			},
+		})
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				if headerNonce != headNonce || lowestProof == nil {
+					return nil, errors.New("proof not found")
+				}
+				return lowestProof, nil
+			},
+		})
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			roundTimeDuration,
+			0.05,
+			0.25,
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+		return sr
+	}
+
+	head := &block.Header{Nonce: headNonce, Round: headRound}
+
+	t.Run("nil current block", func(t *testing.T) {
+		t.Parallel()
+
+		sr := createSubround(nil, &block.HeaderProof{HeaderRound: headRound - 4})
+		assert.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("no proof at the head nonce", func(t *testing.T) {
+		t.Parallel()
+
+		sr := createSubround(head, nil)
+		assert.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("lower-round sibling proof", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("siblingHash"), HeaderNonce: headNonce, HeaderRound: headRound - 4}
+		sr := createSubround(head, proof)
+		assert.True(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("own proof is the lowest", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: headHash, HeaderNonce: headNonce, HeaderRound: headRound}
+		sr := createSubround(head, proof)
+		assert.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("higher-round sibling proof", func(t *testing.T) {
+		t.Parallel()
+
+		// the head is the lower-round branch and must keep extending
+		proof := &block.HeaderProof{HeaderHash: []byte("siblingHash"), HeaderNonce: headNonce, HeaderRound: headRound + 3}
+		sr := createSubround(head, proof)
+		assert.False(t, sr.HasProofForCompetingParent())
+	})
+}
+
+func TestSubround_SetSignatureSubroundEndTimePercentage(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+	sr, err := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		roundTimeDuration,
+		0.05,
+		0.25,
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, time.Duration(0), sr.SignatureSubroundEndTime())
+
+	sr.SetSignatureSubroundEndTimePercentage(0.85)
+	require.Equal(t, time.Duration(float64(roundTimeDuration)*0.85), sr.SignatureSubroundEndTime())
+}
+
+func TestSubround_SignatureSubroundEndTime(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+	sr, err := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		roundTimeDuration,
+		0.05,
+		0.25,
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	require.Nil(t, err)
+
+	sr.SetSignatureSubroundEndTimePercentage(0.85)
+	require.Equal(t, time.Duration(float64(roundTimeDuration)*0.85), sr.SignatureSubroundEndTime())
+}
+
+func TestSubround_SetProcessingThresholdPercent(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+	sr, err := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		roundTimeDuration,
+		0.05,
+		0.25,
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, 0, sr.ProcessingThresholdPercent())
+
+	sr.SetProcessingThresholdPercent(85)
+	require.Equal(t, 85, sr.ProcessingThresholdPercent())
 }

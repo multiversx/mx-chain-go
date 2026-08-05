@@ -59,6 +59,7 @@ type blockProcessorAndVmFactories struct {
 	vmFactoryForProcessing process.VirtualMachinesContainerFactory
 	epochSystemSCProcessor process.EpochStartSystemSCProcessor
 	aotSelector            process.AOTTransactionSelector
+	transactionProcessor   process.TransactionProcessor
 }
 
 func (pcf *processComponentsFactory) newBlockProcessor(
@@ -394,7 +395,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	// TODO: evaluate disabling this entirely (for old flows) - the check is not triggered if async enabled but there are still some checks in the old flow
 	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
@@ -425,6 +425,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
 		BlockSizeComputation:              blockSizeComputationProposalHandler,
+		BlockTracker:                      blockTracker,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -614,10 +615,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        pcf.data.Datapool().Headers(),
-		ProofsPool:         pcf.data.Datapool().Proofs(),
-		RequestHandler:     requestHandler,
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         pcf.data.Datapool().Headers(),
+		ProofsPool:          pcf.data.Datapool().Proofs(),
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {
@@ -688,6 +690,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: factoryDisabled.NewDisabledEpochStartSystemSC(),
 		aotSelector:            aotSelector,
+		transactionProcessor:   transactionProcessor,
 	}
 
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
@@ -884,6 +887,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
 		BlockSizeComputation:              blockSizeComputationProposalHandler,
+		BlockTracker:                      blockTracker,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -1042,6 +1046,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Marshalizer:           pcf.coreData.InternalMarshalizer(),
 		Hasher:                pcf.coreData.Hasher(),
 		Store:                 pcf.data.StorageService(),
+		Headers:               pcf.data.Datapool().Headers(),
 		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
 		RewardsHandler:        pcf.coreData.EconomicsData(),
 		RoundTime:             pcf.coreData.RoundHandler(),
@@ -1196,10 +1201,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        pcf.data.Datapool().Headers(),
-		ProofsPool:         pcf.data.Datapool().Proofs(),
-		RequestHandler:     requestHandler,
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         pcf.data.Datapool().Headers(),
+		ProofsPool:          pcf.data.Datapool().Proofs(),
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {
@@ -1379,6 +1385,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: epochStartSystemSCProcessor,
 		aotSelector:            aotSelector,
+		transactionProcessor:   transactionProcessor,
 	}
 
 	return blockProcessorComponents, nil

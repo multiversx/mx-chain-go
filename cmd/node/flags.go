@@ -416,6 +416,12 @@ var (
 		Name:  "state-accesses-types-to-collect",
 		Usage: "String slice option for enabling collecting specified state accesses types. Can be (READ, WRITE)",
 	}
+
+	// printPrettifiedHeader defines a flag for enabling prettified header logging
+	printPrettifiedHeader = cli.BoolFlag{
+		Name:  "print-prettified-header",
+		Usage: "Boolean option for enabling the logging of prettified headers in consensus",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -479,6 +485,7 @@ func getFlags() []cli.Flag {
 		repopulateTokensSupplies,
 		p2pPrometheusMetrics,
 		stateAccessesTypesToCollect,
+		printPrettifiedHeader,
 	}
 }
 
@@ -508,6 +515,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
 	flagsConfig.RepopulateTokensSupplies = ctx.GlobalBool(repopulateTokensSupplies.Name)
 	flagsConfig.P2PPrometheusMetricsEnabled = ctx.GlobalBool(p2pPrometheusMetrics.Name)
+	flagsConfig.PrintPrettifiedHeader = ctx.GlobalBool(printPrettifiedHeader.Name)
 
 	if ctx.GlobalBool(noKey.Name) {
 		log.Warn("the provided -no-key option is deprecated and will soon be removed. To start a node without " +

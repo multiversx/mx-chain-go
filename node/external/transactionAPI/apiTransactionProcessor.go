@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
@@ -21,9 +21,9 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
-	"github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -36,8 +36,7 @@ import (
 var log = logger.GetOrCreate("node/transactionAPI")
 
 type apiTransactionProcessor struct {
-	roundDuration               uint64
-	genesisTime                 time.Time
+	roundHandler                consensus.RoundHandler
 	marshalizer                 marshal.Marshalizer
 	addressPubKeyConverter      core.PubkeyConverter
 	shardCoordinator            sharding.Coordinator
@@ -54,6 +53,8 @@ type apiTransactionProcessor struct {
 	enableEpochsHandler         common.EnableEpochsHandler
 	enableRoundsHandler         common.EnableRoundsHandler
 	txVersionChecker            process.TxVersionCheckerHandler
+	chainHandler                data.ChainHandler
+	txProcessor                 process.TransactionProcessor
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -92,8 +93,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	)
 
 	return &apiTransactionProcessor{
-		roundDuration:               args.RoundDuration,
-		genesisTime:                 args.GenesisTime,
+		roundHandler:                args.RoundHandler,
 		marshalizer:                 args.Marshalizer,
 		addressPubKeyConverter:      args.AddressPubKeyConverter,
 		shardCoordinator:            args.ShardCoordinator,
@@ -110,6 +110,8 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		enableEpochsHandler:         args.EnableEpochsHandler,
 		enableRoundsHandler:         args.EnableRoundsHandler,
 		txVersionChecker:            args.TxVersionChecker,
+		chainHandler:                args.ChainHandler,
+		txProcessor:                 args.TxProcessor,
 	}, nil
 }
 
@@ -577,11 +579,9 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, ErrCouldNotCastToTxCache
 	}
 
-	// TODO use the right object, not a disabled one
-	txProcessor := disabled.TxProcessor{}
 	argsSelectionSession := preprocess.ArgsSelectionSession{
 		AccountsAdapter:         accountsAdapter,
-		TransactionsProcessor:   &txProcessor,
+		TransactionsProcessor:   atp.txProcessor,
 		TxVersionCheckerHandler: atp.txVersionChecker,
 	}
 
@@ -625,11 +625,12 @@ func (atp *apiTransactionProcessor) getVirtualNonceWithBlockInfo(
 
 	// the SelectionSession is used in this flow for fallbacks (e.g. the account does not exist in the proposed blocks, unexpected errors etc.)
 
-	// TODO use the right information below
-	// these variables will also be used for the response
-	// NOTE: should not remain like this
-	var latestCommittedBlockHash []byte
-	var currentNonce uint64
+	latestCommittedBlockHash := atp.chainHandler.GetCurrentBlockHeaderHash()
+	currentHeader := atp.chainHandler.GetCurrentBlockHeader()
+	currentNonce := uint64(0)
+	if !check.IfNil(currentHeader) {
+		currentNonce = currentHeader.GetNonce()
+	}
 
 	virtualNonce, rootHash, err := txCache.GetVirtualNonceAndRootHash(address)
 	if err != nil {
@@ -737,31 +738,15 @@ func (atp *apiTransactionProcessor) getApiResultFromObj(txObj interface{}, txTyp
 	return tx
 }
 
-// computeTimestampForRound will return the timestamp for the given round
-func (atp *apiTransactionProcessor) computeTimestampForRound(round uint64) int64 {
+func (atp *apiTransactionProcessor) computeTimestampsForRound(round uint64) (int64, int64) {
 	if round == 0 {
-		return 0
+		return 0, 0
 	}
 
-	secondsSinceGenesis := round * atp.roundDuration
-	timestamp := atp.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
+	timestampMs := int64(atp.roundHandler.GetTimeStampForRound(round))
+	timestampSec := timestampMs / 1000
 
-	if atp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
-		return timestamp.UnixMilli()
-	}
-
-	return timestamp.Unix()
-}
-
-func (atp *apiTransactionProcessor) computeTimestampForRoundAsMs(round uint64) int64 {
-	if round == 0 {
-		return 0
-	}
-
-	secondsSinceGenesis := round * atp.roundDuration
-	timestamp := atp.genesisTime.Add(time.Duration(secondsSinceGenesis) * time.Millisecond)
-
-	return timestamp.UnixMilli()
+	return timestampSec, timestampMs
 }
 
 func (atp *apiTransactionProcessor) checkExecutionResultAndTx(miniblockMetadata *dblookupext.MiniblockMetadata) (bool, error) {
@@ -844,8 +829,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
-	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
-	tx.TimestampMs = atp.computeTimestampForRoundAsMs(tx.Round)
+	tx.Timestamp, tx.TimestampMs = atp.computeTimestampsForRound(tx.Round)
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
@@ -912,8 +896,7 @@ func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*tra
 		return nil, err
 	}
 
-	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
-	tx.TimestampMs = atp.computeTimestampForRoundAsMs(tx.Round)
+	tx.Timestamp, tx.TimestampMs = atp.computeTimestampsForRound(tx.Round)
 
 	// TODO: take care of this when integrating the adaptivity
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)

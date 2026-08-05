@@ -146,14 +146,14 @@ func (st *storageBootstrapper) loadBlocks() error {
 		_, numHdrs := metricsLoader.UpdateMetricsFromStorage(st.store, st.uint64Converter, st.marshalizer, st.appStatusHandler, headerInfo.LastHeader.Nonce)
 		st.blkExecutor.SetNumProcessedObj(numHdrs)
 
-		err = st.applyHeaderInfo(headerInfo)
+		var bootInfos []bootstrapStorage.BootstrapData
+		bootInfos, err = st.getBootInfos(headerInfo)
 		if err != nil {
 			round = headerInfo.LastRound
 			continue
 		}
 
-		var bootInfos []bootstrapStorage.BootstrapData
-		bootInfos, err = st.getBootInfos(headerInfo)
+		err = st.applyHeaderInfo(headerInfo)
 		if err != nil {
 			round = headerInfo.LastRound
 			continue
@@ -170,6 +170,8 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	if err != nil {
 		log.Warn("bootstrapper", "error", err)
+		st.blockTracker.RestoreToGenesis()
+		st.forkDetector.RestoreToGenesis()
 		st.restoreBlockChainToGenesis()
 		err = st.bootStorer.SaveLastRound(0)
 		log.LogIfError(
@@ -300,22 +302,27 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return err
 	}
 
+	proof, err := st.getProofForHeader(headerHash, headerFromStorage)
+	if err != nil {
+		log.Debug("cannot load proof for header",
+			"nonce", headerFromStorage.GetNonce(), "error", err)
+		return err
+	}
+
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage, rootHash)
 	if err != nil {
 		log.Debug("cannot recreate trie for header with nonce", "nonce", headerFromStorage.GetNonce())
 		return err
 	}
 
-	err = st.applyBlock(headerHash, headerFromStorage, rootHash)
+	err = st.applyBlock(headerHash, headerFromStorage, rootHash, hdrInfo.HighestFinalBlockNonce)
 	if err != nil {
 		log.Debug("cannot apply block for header", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
 		return err
 	}
 
-	err = st.getAndApplyProofForHeader(headerHash, headerFromStorage)
-	if err != nil {
-		log.Debug("cannot apply proof for header", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
-		return err
+	if proof != nil {
+		st.proofsPool.AddProof(proof)
 	}
 
 	return nil
@@ -392,6 +399,8 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 		}
 	}()
 
+	isSupernovaLastHeader := st.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, bootInfos[0].LastHeader.Epoch)
+
 	for i := len(bootInfos) - 1; i >= 0; i-- {
 		log.Debug("apply header",
 			"shard", bootInfos[i].LastHeader.ShardId,
@@ -430,9 +439,16 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			"nonce", header.GetNonce(),
 			"hash", bootInfos[i].LastHeader.Hash)
 
-		err = st.forkDetector.AddHeader(header, bootInfos[i].LastHeader.Hash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
-		if err != nil {
-			log.Warn("cannot add header to fork detector", "error", err.Error())
+		errAddHeader := st.forkDetector.AddHeader(header, bootInfos[i].LastHeader.Hash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+		if errAddHeader != nil {
+			log.Warn("cannot add header to fork detector", "error", errAddHeader.Error())
+		}
+
+		isPersistedFinalHeader := errAddHeader == nil &&
+			header.GetNonce() == bootInfos[0].HighestFinalBlockNonce &&
+			isSupernovaLastHeader
+		if isPersistedFinalHeader {
+			st.forkDetector.SetFinalToLastCheckpoint()
 		}
 
 		if i > 0 {
@@ -454,6 +470,15 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 	}
 
 	if len(bootInfos) == 1 {
+		st.forkDetector.SetFinalToLastCheckpoint()
+	}
+
+	if isSupernovaLastHeader && st.forkDetector.GetHighestFinalBlockNonce() < bootInfos[0].HighestFinalBlockNonce {
+		// fallback to the pre-deferred-finality behavior, never leave the final checkpoint behind
+		// the persisted one
+		log.Warn("could not restore final checkpoint to the persisted nonce, falling back to the last checkpoint",
+			"persisted final nonce", bootInfos[0].HighestFinalBlockNonce,
+			"restored final nonce", st.forkDetector.GetHighestFinalBlockNonce())
 		st.forkDetector.SetFinalToLastCheckpoint()
 	}
 
@@ -500,7 +525,7 @@ func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.Bootst
 		"hash", headerInfo.Hash)
 }
 
-func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderHandler, rootHash []byte) error {
+func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderHandler, rootHash []byte, highestFinalBlockNonce uint64) error {
 	err := st.setCurrentBlockInfo(header, headerHash, rootHash)
 	if err != nil {
 		return err
@@ -514,11 +539,23 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 
 	st.forkDetector.AddCheckpoint(header.GetNonce(), header.GetRound(), headerHash)
 	if header.GetShardID() == core.MetachainShardId || isFlagEnabledAfterEpochStart {
-		st.forkDetector.SetFinalToLastCheckpoint()
+		if st.shouldSetRestoredHeadAsFinal(header, highestFinalBlockNonce) {
+			st.forkDetector.SetFinalToLastCheckpoint()
+		}
 		st.forkDetector.ResetProbableHighestNonce()
 	}
 
 	return nil
+}
+
+// shouldSetRestoredHeadAsFinal returns false when Supernova deferred finality left the persisted
+// final nonce behind the restored head; the final checkpoint is then restored in applyBootInfos
+func (st *storageBootstrapper) shouldSetRestoredHeadAsFinal(header data.HeaderHandler, highestFinalBlockNonce uint64) bool {
+	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
+		return true
+	}
+
+	return highestFinalBlockNonce >= header.GetNonce()
 }
 
 func (st *storageBootstrapper) setCurrentBlockInfo(
@@ -573,10 +610,7 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 		return err
 	}
 
-	st.blkc.SetLastExecutedBlockHeaderAndRootHash(lastExecutedHeader, lastBaseExecutionResult.GetHeaderHash(), lastBaseExecutionResult.GetRootHash())
-
-	st.blkc.SetCurrentBlockHeaderHash(headerHash)
-	err = st.blkc.SetCurrentBlockHeader(header)
+	err = st.blkc.SetCurrentBlockHeaderAndHash(headerHash, header)
 	if err != nil {
 		return err
 	}
@@ -592,7 +626,7 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 		return err
 	}
 
-	st.blkc.SetLastExecutionResult(lastExecutionResult)
+	st.blkc.SetLastExecutionInfo(lastExecutedHeader, lastExecutionResult)
 
 	return nil
 }
@@ -647,29 +681,44 @@ func findExecutionResultOnHeader(
 	return nil, false
 }
 
-func (st *storageBootstrapper) getAndApplyProofForHeader(headerHash []byte, header data.HeaderHandler) error {
+func (st *storageBootstrapper) getProofForHeader(headerHash []byte, header data.HeaderHandler) (*block.HeaderProof, error) {
 	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
-		return nil
+		return nil, nil
 	}
 
 	proofsStorer, err := st.store.GetStorer(dataRetriever.ProofsUnit)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	marshaledProof, err := proofsStorer.SearchFirst(headerHash)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	proof := &block.HeaderProof{}
 	err = st.marshalizer.Unmarshal(proof, marshaledProof)
 	if err != nil {
+		return nil, err
+	}
+
+	return proof, nil
+}
+
+func (st *storageBootstrapper) getAndApplyProofForHeader(
+	headerHash []byte,
+	header data.HeaderHandler,
+) error {
+	if st.proofsPool.HasProof(header.GetShardID(), headerHash) {
+		return nil
+	}
+
+	proof, err := st.getProofForHeader(headerHash, header)
+	if err != nil || proof == nil {
 		return err
 	}
 
 	st.proofsPool.AddProof(proof)
-
 	return nil
 }
 

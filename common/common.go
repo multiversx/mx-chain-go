@@ -303,6 +303,21 @@ func PrepareTimestampBasedOnHeaderData(headerTimestamp uint64, headerEpoch uint3
 	return timestampSec, timestampMs, nil
 }
 
+// LogPrettifiedHeader logs the prettified representation of the provided header or an error if prettification fails
+func LogPrettifiedHeader(header data.HeaderHandler, sentOrReceived string, version string, configsHandler CommonConfigsHandler) {
+	if !configsHandler.PrintPrettifiedHeader() {
+		return
+	}
+
+	headerOutput, err := PrettifyStruct(header)
+	message := fmt.Sprintf("Proposed header %s %s", sentOrReceived, version)
+	if err != nil {
+		log.Debug(message, "error", err)
+	} else {
+		log.Debug(message, "header", headerOutput)
+	}
+}
+
 // PrettifyStruct returns a JSON string representation of a struct, converting byte slices to hex
 // and formatting big number values into readable strings. Useful for logging or debugging.
 func PrettifyStruct(x interface{}) (string, error) {
@@ -625,6 +640,22 @@ func GetFeePayer(tx data.TransactionHandler) []byte {
 	}
 
 	return tx.GetSndAddr()
+}
+
+// IsContendedHeader returns true if rounds were skipped between the parent and the header, so a
+// competing proof could exist at the header's nonce in a skipped round
+func IsContendedHeader(header data.HeaderHandler, parentHeader data.HeaderHandler) bool {
+	if check.IfNil(header) || check.IfNil(parentHeader) {
+		return false
+	}
+
+	return IsContendedRound(header.GetRound(), parentHeader.GetRound())
+}
+
+// IsContendedRound returns true if rounds were skipped between a parent at parentRound and its
+// child at round
+func IsContendedRound(round uint64, parentRound uint64) bool {
+	return round > parentRound+1
 }
 
 type EnableEpochsHandlerWithSet interface {

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
@@ -204,22 +205,22 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	// first pause the headers executor which will block it from popping new headers
 	// but allow it to finish anything currently processing
 	em.headersExecutor.PauseExecution()
+	defer em.headersExecutor.ResumeExecution()
 
 	// remove from queue
 	_ = em.blocksCache.RemoveAtNonceAndHigher(nonceToRemove)
 	err = em.executionResultsTracker.RemoveFromNonce(nonceToRemove)
 	if err != nil {
+		em.resetTrackerToLastNotarized(lastNotarizedResult)
 		return err
 	}
 
 	// update blockchain with the last executed header, similar to headersExecution
 	err = em.updateBlockchainAfterRemoval(lastNotarizedResult)
 	if err != nil {
+		em.resetTrackerToLastNotarized(lastNotarizedResult)
 		return err
 	}
-
-	// resume execution
-	em.headersExecutor.ResumeExecution()
 
 	return nil
 }
@@ -229,36 +230,57 @@ func (em *executionManager) RemovePendingExecutionResultsFromNonce(nonce uint64)
 	return em.executionResultsTracker.RemoveFromNonce(nonce)
 }
 
-// PopDismissedResults returns all batches of dismissed execution results and clears the internal queue
-func (em *executionManager) PopDismissedResults() []executionTrack.DismissedBatch {
-	return em.executionResultsTracker.PopDismissedResults()
-}
+// RewindExecutionStateToTip realigns the tracker's notarized watermark and the blockchain last-executed
+// marker to the rolled-back tip; unlike RemoveAtNonceAndHigher it can lower the watermark
+func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler) error {
+	if check.IfNil(newTip) {
+		return process.ErrNilHeaderHandler
+	}
 
-// ResetAndResumeExecution resets the managed components to the last notarized result and resumes execution
-func (em *executionManager) ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error {
-	if check.IfNil(lastNotarizedResult) {
-		return process.ErrNilLastExecutionResultHandler
+	newLastNotarized, err := common.GetLastBaseExecutionResultHandler(newTip)
+	if err != nil {
+		return err
+	}
+
+	// resolved before any mutation: the tracker reset below cannot be undone, so a rewind that
+	// fails has to leave the state untouched for the caller to retry
+	lastExecutedHeader, err := process.GetHeader(newLastNotarized.GetHeaderHash(), em.headers, em.storageService, em.marshaller, em.shardCoordinator.SelfId())
+	if err != nil {
+		log.Debug("executionManager.RewindExecutionStateToTip: could not find header in pool or storage",
+			"hash", newLastNotarized.GetHeaderHash(),
+			"nonce", newLastNotarized.GetHeaderNonce(),
+			"error", err,
+		)
+		return err
 	}
 
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
-	// even though the headers executor might already be paused, safe to try it one more time
 	em.headersExecutor.PauseExecution()
+	defer em.headersExecutor.ResumeExecution()
 
-	em.executionResultsTracker.Clean(lastNotarizedResult)
-
-	em.blocksCache.Clean()
-
-	em.headersExecutor.ResumeExecution()
+	// the tracker reset empties the pending results, so the tip's own result is the last executed one
+	em.resetTrackerToLastNotarized(newLastNotarized)
+	em.blockChain.SetLastExecutionInfo(lastExecutedHeader, newLastNotarized)
 
 	return nil
+}
+
+// PopDismissedResults returns all batches of dismissed execution results and clears the internal queue
+func (em *executionManager) PopDismissedResults() []executionTrack.DismissedBatch {
+	return em.executionResultsTracker.PopDismissedResults()
+}
+
+// caller must hold em.mut with the executor paused
+func (em *executionManager) resetTrackerToLastNotarized(lastNotarizedResult data.BaseExecutionResultHandler) {
+	em.executionResultsTracker.Clean(lastNotarizedResult)
+	em.blocksCache.Clean()
 }
 
 func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult data.BaseExecutionResultHandler) error {
 	lastExecutedHeaderHash := lastNotarizedResult.GetHeaderHash()
 	lastExecutedHeaderNonce := lastNotarizedResult.GetHeaderNonce()
-	lastExecutedHeaderRootHash := lastNotarizedResult.GetRootHash()
 	pendingExecutionResults, err := em.executionResultsTracker.GetPendingExecutionResults()
 	if err != nil {
 		return err
@@ -270,7 +292,6 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 		lastPending := pendingExecutionResults[len(pendingExecutionResults)-1]
 		lastExecutedHeaderHash = lastPending.GetHeaderHash()
 		lastExecutedHeaderNonce = lastPending.GetHeaderNonce()
-		lastExecutedHeaderRootHash = lastPending.GetRootHash()
 
 		lastExecutionResult = lastPending
 	}
@@ -286,14 +307,7 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 	}
 
 	// update blockchain
-	em.blockChain.SetFinalBlockInfo(
-		lastExecutedHeaderNonce,
-		lastExecutedHeaderHash,
-		lastExecutedHeaderRootHash,
-	)
-
-	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, lastExecutedHeaderHash, lastExecutedHeaderRootHash)
-	em.blockChain.SetLastExecutionResult(lastExecutionResult)
+	em.blockChain.SetLastExecutionInfo(header, lastExecutionResult)
 
 	return nil
 }

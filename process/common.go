@@ -19,9 +19,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/storage"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -1630,9 +1631,17 @@ func UpdateContextForReplacedHeader(
 		return err
 	}
 
-	err = CleanCachesForExecutionResult(blockChain.GetLastExecutionResult(), postProcessTransactions, executedMiniBlocks)
-	if err != nil {
-		return err
+	currentExecResult := blockChain.GetLastExecutionResult()
+	if !check.IfNil(currentExecResult) {
+		if bytes.Equal(currentExecResult.GetHeaderHash(), executionResultToSet.GetHeaderHash()) {
+			// already at the desired state
+			return nil
+		}
+
+		err = CleanCachesForExecutionResult(currentExecResult, postProcessTransactions, executedMiniBlocks)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Debug("UpdateContextForReplacedHeader last executed header",
@@ -1640,8 +1649,7 @@ func UpdateContextForReplacedHeader(
 		"nonce", headerToSet.GetNonce(),
 		"hash", executionResultToSet.GetHeaderHash())
 
-	blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
-	blockChain.SetLastExecutionResult(executionResultToSet)
+	blockChain.SetLastExecutionInfo(headerToSet, executionResultToSet)
 
 	// need to remove all execution results after the one set
 	err = executionManager.RemovePendingExecutionResultsFromNonce(executionResultToSet.GetHeaderNonce() + 1)
@@ -1727,6 +1735,32 @@ func checkForNils(
 		return ErrNilMarshalizer
 	}
 	return nil
+}
+
+// ShardInfoHandler exposes the shard header identity common to both meta shard info flavors
+type ShardInfoHandler interface {
+	GetHeaderHash() []byte
+	GetShardID() uint32
+}
+
+// GetShardHeadersReferencedByMeta returns the shard headers the meta block references, reading the
+// proposal shard info for V3 headers and the classic shard info otherwise
+func GetShardHeadersReferencedByMeta(header data.MetaHeaderHandler) []ShardInfoHandler {
+	var shardInfoHandlers []ShardInfoHandler
+
+	if header.IsHeaderV3() {
+		for _, shardInfo := range header.GetShardInfoProposalHandlers() {
+			shardInfoHandlers = append(shardInfoHandlers, shardInfo)
+		}
+
+		return shardInfoHandlers
+	}
+
+	for _, shardInfo := range header.GetShardInfoHandlers() {
+		shardInfoHandlers = append(shardInfoHandlers, shardInfo)
+	}
+
+	return shardInfoHandlers
 }
 
 func getExecutionResultToSetOnReplacedHeader(

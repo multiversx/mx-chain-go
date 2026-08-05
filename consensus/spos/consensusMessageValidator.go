@@ -168,7 +168,12 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidity(cnsMsg *cons
 			cnsMsg.RoundIndex)
 	}
 
-	if cmv.consensusState.GetRoundIndex() > cnsMsg.RoundIndex {
+	allowedPastRounds := int64(0)
+	if cmv.consensusService.IsMessageWithInvalidSigners(msgType) {
+		allowedPastRounds = NumRoundsInvalidSignersPropagation
+	}
+
+	if cmv.consensusState.GetRoundIndex()-allowedPastRounds > cnsMsg.RoundIndex {
 		log.Trace("received message from consensus topic has a past round",
 			"msg type", cmv.consensusService.GetStringValue(msgType),
 			"from", cnsMsg.PubKey,
@@ -432,16 +437,32 @@ func (cmv *consensusMessageValidator) checkMessageWithFinalInfoValidity(cnsMsg *
 			len(cnsMsg.PubKeysBitmap))
 	}
 
+	if len(cnsMsg.AggregateSignature) != cmv.signatureSize {
+		return fmt.Errorf("%w : received aggregate signature from consensus topic has an invalid size: %d",
+			ErrInvalidSignatureSize,
+			len(cnsMsg.AggregateSignature))
+	}
+
+	if cmv.shouldNotVerifyLeaderSignature() {
+		return nil
+	}
+
+	if len(cnsMsg.LeaderSignature) != cmv.signatureSize {
+		return fmt.Errorf("%w : received leader signature from consensus topic has an invalid size: %d",
+			ErrInvalidSignatureSize,
+			len(cnsMsg.LeaderSignature))
+	}
+
 	return nil
 }
 
 func (cmv *consensusMessageValidator) shouldNotVerifyLeaderSignature() bool {
-	// TODO: this check needs to be removed when equivalent messages are sent separately from the final info
-	if check.IfNil(cmv.consensusState.GetHeader()) {
+	header := cmv.consensusState.GetHeader()
+	if check.IfNil(header) {
 		return true
 	}
 
-	return cmv.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, cmv.consensusState.GetHeader().GetEpoch())
+	return cmv.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch())
 
 }
 

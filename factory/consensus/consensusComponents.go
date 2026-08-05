@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
@@ -269,13 +270,16 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ScheduledProcessor:            ccf.scheduledProcessor,
 		MessageSigningHandler:         p2pSigningHandler,
 		PeerBlacklistHandler:          cc.peerBlacklistHandler,
+		PeerSignatureHandler:          ccf.cryptoComponents.PeerSignatureHandler(),
 		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:           ccf.coreComponents.EnableRoundsHandler(),
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
 		InvalidSignersCache:           invalidSignersCache,
+		MessagesHandler:               consensusService,
 		AOTSelector:                   ccf.processComponents.AOTSelector(),
+		CommonConfigsHandler:          ccf.coreComponents.CommonConfigsHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -514,6 +518,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		BootStorer:                   ccf.processComponents.BootStorer(),
 		StorageBootstrapper:          shardStorageBootstrapper,
 		EpochHandler:                 ccf.processComponents.EpochStartTrigger(),
+		EpochStartTrigger:            ccf.processComponents.EpochStartTrigger(),
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
@@ -532,8 +537,19 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
 	}
 
+	dataPool := ccf.dataComponents.Datapool()
+	metaFinalityView, err := track.NewMetaFinalityView(track.ArgsMetaFinalityView{
+		HeadersPool: dataPool.Headers(),
+		ProofsPool:  dataPool.Proofs(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
+		MetaFinalityView:    metaFinalityView,
+		BlockTracker:        ccf.processComponents.BlockTracker(),
 	}
 
 	return sync.NewShardBootstrap(argsShardBootstrapper)
@@ -652,6 +668,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		BootStorer:                   ccf.processComponents.BootStorer(),
 		StorageBootstrapper:          metaStorageBootstrapper,
 		EpochHandler:                 ccf.processComponents.EpochStartTrigger(),
+		EpochStartTrigger:            ccf.processComponents.EpochStartTrigger(),
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),

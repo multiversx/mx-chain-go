@@ -389,11 +389,14 @@ type PeerAuthenticationPayloadValidator interface {
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
+	AddProofIfNoneAtNonce(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler)
 	UpsertProof(headerProof data.HeaderProofHandler) bool
 	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
+	RegisterEquivocationHandler(handler func(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler))
 	CleanupProofsBehindNonce(shardID uint32, nonce uint64) error
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
+	GetProofsByNonce(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool

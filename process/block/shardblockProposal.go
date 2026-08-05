@@ -66,7 +66,12 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	err := sp.updateEpochIfNeeded(shardHdr)
+	err := sp.checkLegacyPredecessorReadyForV3(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sp.updateEpochIfNeeded(shardHdr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -79,7 +84,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 	}
 
 	miniBlockHeaderHandlers := sp.miniBlocksSelectionSession.GetMiniBlockHeaderHandlers()
-	// todo: check empty mini blocks vs nil. Same for block.Body.MiniBlocks
+
 	err = shardHdr.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
 	if err != nil {
 		return nil, nil, err
@@ -97,7 +102,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 	}
 
 	miniBlocks := sp.miniBlocksSelectionSession.GetMiniBlocks()
-	err = checkMiniBlocksAndMiniBlockHeadersConsistency(miniBlocks, miniBlockHeaderHandlers)
+	err = checkProposalMiniBlocksConsistency(miniBlockHeaderHandlers, miniBlocks, shardHdr.GetShardID())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -112,11 +117,14 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	// TODO: sanity check use the verify execution results method
+	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	body := &block.Body{MiniBlocks: miniBlocks}
 
-	err = sp.verifyGasLimit(shardHdr, miniBlocks)
+	err = sp.verifyGasLimit(shardHdr, miniBlocks, true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -179,7 +187,12 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), true)
+	err = sp.checkLegacyPredecessorReadyForV3(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), header.GetEpoch(), true)
 	if err != nil {
 		return err
 	}
@@ -238,7 +251,7 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	err = sp.verifyGasLimit(header, body.MiniBlocks)
+	err = sp.verifyGasLimit(header, body.MiniBlocks, false)
 	if err != nil {
 		return err
 	}
@@ -338,8 +351,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: improvement - add also a request if it is missing as a fallback, although it should not be missing at this point
-	err = sp.checkEpochStartInfoAvailableIfNeeded(header)
+	err = sp.ensureEpochStartInfoAvailable(header, haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +361,6 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: check again before saving the last executed result
 	err = sp.blockChainHook.SetCurrentHeader(header)
 	if err != nil {
 		return nil, err
@@ -402,6 +413,11 @@ func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHand
 		return process.ErrNilBlockHeader
 	}
 
+	// runs on the execution goroutine outside CommitBlock; the snapshot yields for the duration so it
+	// cannot steal CPU/disk from this span - a latency concern only, trie nodes are immutable
+	sp.processStatusHandler.BlockBackgroundJobs("shardProcessor.CommitBlockProposalState")
+	defer sp.processStatusHandler.UnblockBackgroundJobs()
+
 	sp.cleanupDismissedEWLEntries()
 
 	err := sp.commitState(headerHandler)
@@ -428,16 +444,6 @@ func computeTxTotalTxCount(miniBlockHeaders []data.MiniBlockHeaderHandler) uint3
 		totalTxCount += miniBlockHeaders[i].GetTxCount()
 	}
 	return totalTxCount
-}
-
-func checkMiniBlocksAndMiniBlockHeadersConsistency(miniBlocks block.MiniBlockSlice, miniBlockHeaders []data.MiniBlockHeaderHandler) error {
-	if len(miniBlocks) != len(miniBlockHeaders) {
-		log.Warn("transactionCoordinator.verifyFees: num of mini blocks and mini blocks headers does not match", "num of mb", len(miniBlocks), "num of mbh", len(miniBlockHeaders))
-		return process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
-	}
-
-	// TODO: check if the reserved field or other fields are consistent.
-	return nil
 }
 
 func (sp *shardProcessor) createBlockBodyProposal(
@@ -540,8 +546,8 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			continue
 		}
 
-		hasProofForHdr := sp.proofsPool.HasProof(core.MetachainShardId, currentMetaBlockHash)
-		if !hasProofForHdr {
+		needsProof := common.IsProofsFlagEnabledForHeader(sp.enableEpochsHandler, currentMetaBlock)
+		if needsProof && !sp.proofsPool.HasProof(core.MetachainShardId, currentMetaBlockHash) {
 			log.Trace("no proof for meta header",
 				"hash", logger.DisplayByteSlice(currentMetaBlockHash),
 			)
@@ -655,7 +661,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 		return err
 	}
 
-	// todo: maybe sanitize, removing empty miniBlocks
+	sp.miniBlocksSelectionSession.RemoveEmptyMiniBlocks()
 
 	return nil
 }
@@ -786,6 +792,16 @@ func (sp *shardProcessor) selectOutgoingTransactions(
 ) ([][]byte, []data.MiniBlockHeaderHandler) {
 	log.Debug("selectOutgoingTransactions has been started")
 
+	if sp.blockTracker.IsShardStuck(core.MetachainShardId) {
+		log.Debug("selectOutgoingTransactions meta stuck")
+		return [][]byte{}, []data.MiniBlockHeaderHandler{}
+	}
+
+	if sp.blockTracker.ShouldSkipMiniBlocksCreationFromSelf() {
+		log.Debug("selectOutgoingTransactions global stuck")
+		return [][]byte{}, []data.MiniBlockHeaderHandler{}
+	}
+
 	sw := core.NewStopWatch()
 	sw.Start("selectOutgoingTransactions")
 	defer func() {
@@ -806,25 +822,49 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	if err != nil {
 		return err
 	}
-	_, usedMetaHeaders, err := sp.getReferencedMetaHeadersFromPool(header)
+	usedMetaHashes, usedMetaHeaders, err := sp.getReferencedMetaHeadersFromPool(header)
 	if err != nil {
 		return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getReferencedMetaHeadersFromPool", err)
 	}
 
-	for _, metaHeader := range usedMetaHeaders {
+	// a block that already carries its own proof is the network verdict, superseding the
+	// subjective local-evidence checks; late contradicting evidence is the reconcile's job
+	isOwnProofed := sp.ownProofResolver(header)
+
+	for idx, metaHeader := range usedMetaHeaders {
+		if sp.isContendedUnsettledCrossHeader(metaHeader, lastCrossNotarizedHeader, usedMetaHashes[idx]) && !isOwnProofed() {
+			return fmt.Errorf("%w with hash %x", errIncludedContendedUnsettledHeader, usedMetaHashes[idx])
+		}
+
+		if sp.isDeadReferencedMetaHeader(metaHeader, usedMetaHashes[idx]) && !isOwnProofed() {
+			return fmt.Errorf("%w with hash %x", errReferencedDeadMetaHeader, usedMetaHashes[idx])
+		}
+
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHeader, lastCrossNotarizedHeader)
 		if err != nil {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> isHdrConstructionValid", err)
 		}
 
-		err = sp.checkHeaderHasProof(metaHeader)
-		if err != nil {
-			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> checkHeaderHasProof", err)
+		if common.IsProofsFlagEnabledForHeader(sp.enableEpochsHandler, metaHeader) {
+			err = sp.checkHeaderHasProof(metaHeader)
+			if err != nil {
+				return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> checkHeaderHasProof", err)
+			}
 		}
 		lastCrossNotarizedHeader = metaHeader
 	}
 
 	return nil
+}
+
+// isDeadReferencedMetaHeader rejects on local evidence only; validators without the competitor
+// evidence accept, the same liveness model as the contention checks
+func (sp *shardProcessor) isDeadReferencedMetaHeader(metaHeader data.HeaderHandler, metaHash []byte) bool {
+	if !sp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return false
+	}
+
+	return sp.metaFinalityView.IsDeadMetaBlock(metaHash, metaHeader.GetNonce())
 }
 
 func (sp *shardProcessor) getReferencedMetaHeadersFromPool(header data.ShardHeaderHandler) ([][]byte, []data.HeaderHandler, error) {

@@ -695,6 +695,10 @@ func (en *extensionNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 		return false, nil, nil
 	}
 
+	if len(en.Key) > len(key) || !bytes.HasPrefix(key, en.Key) {
+		return false, nil, nil
+	}
+
 	nextKey := key[len(en.Key):]
 	wantHash := en.EncodedChild
 

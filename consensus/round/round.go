@@ -116,6 +116,24 @@ func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.
 	rnd.updateRound(baseTimeStamp, currentTimeStamp, startRound, roundDuration)
 }
 
+// IndexForCurrentTime returns the round index the current time falls into, independently of the
+// stored index, which only advances when the chronology goroutine gets to update it
+func (rnd *round) IndexForCurrentTime() int64 {
+	currentTimeStamp := rnd.syncTimer.CurrentTime()
+
+	baseTimeStamp := rnd.supernovaGenesisTimeStamp
+	roundDuration := rnd.supernovaTimeDuration
+	startRound := rnd.supernovaStartRound
+
+	if !rnd.isSupernovaActivated(currentTimeStamp) {
+		baseTimeStamp = rnd.genesisTimeStamp
+		roundDuration = rnd.timeDuration
+		startRound = rnd.startRound
+	}
+
+	return computeRoundIndex(baseTimeStamp, currentTimeStamp, startRound, roundDuration)
+}
+
 func (rnd *round) isSupernovaRoundActivated() bool {
 	rnd.RLock()
 	index := rnd.index
@@ -154,7 +172,7 @@ func (rnd *round) updateRound(
 ) {
 	delta := currentTimeStamp.Sub(genesisTimeStamp).Nanoseconds()
 
-	index := int64(math.Floor(float64(delta)/float64(roundDuration.Nanoseconds()))) + startRound
+	index := computeRoundIndex(genesisTimeStamp, currentTimeStamp, startRound, roundDuration)
 
 	rnd.Lock()
 	if rnd.index != index {
@@ -172,6 +190,17 @@ func (rnd *round) updateRound(
 	)
 
 	rnd.Unlock()
+}
+
+func computeRoundIndex(
+	baseTimeStamp time.Time,
+	currentTimeStamp time.Time,
+	startRound int64,
+	roundDuration time.Duration,
+) int64 {
+	delta := currentTimeStamp.Sub(baseTimeStamp).Nanoseconds()
+
+	return int64(math.Floor(float64(delta)/float64(roundDuration.Nanoseconds()))) + startRound
 }
 
 // Index returns the index of the round in current epoch

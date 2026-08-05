@@ -86,6 +86,8 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		bootStorer:                   arguments.BootStorer,
 		storageBootstrapper:          arguments.StorageBootstrapper,
 		epochHandler:                 arguments.EpochHandler,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		divergenceEvaluatedRound:     -1,
 		miniBlocksProvider:           arguments.MiniblocksProvider,
 		uint64Converter:              arguments.Uint64Converter,
 		poolsHolder:                  arguments.PoolsHolder,
@@ -117,6 +119,10 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
+	base.settlementChecker = &metaSettlementChecker{
+		headers: arguments.PoolsHolder.Headers(),
+		proofs:  arguments.PoolsHolder.Proofs(),
+	}
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
@@ -226,7 +232,7 @@ func (boot *MetaBootstrap) requestEpochStartBlockIfStuck() {
 
 	targetNonce := currentNonce + 1
 
-	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(targetNonce, boot.headers)
+	header, headerHash, err := boot.getHeaderFromPoolPreferProven(targetNonce, boot.getProvenHashForNonce(targetNonce))
 	if err == nil && !check.IfNil(header) {
 		if boot.proofs.HasProof(core.MetachainShardId, headerHash) {
 			return

@@ -37,6 +37,11 @@ func (rndm *RoundHandlerMock) Index() int64 {
 	return rndm.index
 }
 
+// IndexForCurrentTime -
+func (rndm *RoundHandlerMock) IndexForCurrentTime() int64 {
+	return rndm.Index()
+}
+
 // TimeDuration -
 func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
 	if rndm.TimeDurationCalled != nil {

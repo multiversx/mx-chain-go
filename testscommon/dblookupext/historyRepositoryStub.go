@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
 )
@@ -18,6 +19,7 @@ type HistoryRepositoryStub struct {
 	GetEventsHashesByTxHashCalled      func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error)
 	GetESDTSupplyCalled                func(token string) (*esdtSupply.SupplyESDT, error)
 	IsEnabledCalled                    func() bool
+	RevertBlockCalled                  func(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
 }
 
 // RecordBlock -
@@ -76,7 +78,10 @@ func (hp *HistoryRepositoryStub) GetResultsHashesByTxHash(hash []byte, epoch uin
 }
 
 // RevertBlock -
-func (hp *HistoryRepositoryStub) RevertBlock(_ data.HeaderHandler, _ data.BodyHandler) error {
+func (hp *HistoryRepositoryStub) RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
+	if hp.RevertBlockCalled != nil {
+		return hp.RevertBlockCalled(blockHeader, blockBody)
+	}
 	return nil
 }
 

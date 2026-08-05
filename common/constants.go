@@ -259,6 +259,18 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 // MetricNumTimesInForkChoice is the metric that counts how many times a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
+// MetricNumRollBacksRefusedMissingState is the metric that counts the roll backs refused because
+// the post-rollback execution base state was not recreatable
+const MetricNumRollBacksRefusedMissingState = "erd_rollbacks_refused_missing_state_count"
+
+// MetricNumEquivocationProofs is the metric that counts the equivocation events observed by the
+// proofs pool (different-hash proofs received for the same header nonce)
+const MetricNumEquivocationProofs = "erd_num_equivocation_proofs"
+
+// MetricNumReconcileSwitches is the metric that counts the reconcile backstop activations, each a
+// switch away from a finalized block on equivocation evidence
+const MetricNumReconcileSwitches = "erd_num_reconcile_switches"
+
 // MetricHighestFinalBlock is the metric for the nonce of the highest final block
 const MetricHighestFinalBlock = "erd_highest_final_nonce"
 
@@ -815,6 +827,9 @@ const (
 	// MetricConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas for accumulated fees is fixed
 	MetricConsumedGasInEconomicsFixEnableEpoch = "erd_consumed_gas_in_economics_fix_enable_epoch"
 
+	// MetricAttributeExtraGasUsageEnableEpoch represents the epoch when attributes are using extra gas usage fees
+	MetricAttributeExtraGasUsageEnableEpoch = "erd_attribute_extra_gasusage_enable_epoch"
+
 	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
 	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
 
@@ -1031,13 +1046,13 @@ const TimeToWaitForP2PBootstrap = 20 * time.Second
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
 
-// ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
-// moment when its components, like mini blocks and transactions, would be broadcast too
-const ExtraDelayForBroadcastBlockInfo = 120 * time.Millisecond
+// ExtraDelayForBroadcastBlockInfo is the wait between the (metablock + proof) trigger and the
+// miniblocks broadcast; jitter allowance only - all mean terms cancel against the receivers
+const ExtraDelayForBroadcastBlockInfo = 30 * time.Millisecond
 
-// ExtraDelayBetweenBroadcastMbsAndTxs represents the number of seconds to wait since miniblocks have been broadcast
-// and the moment when theirs transactions would be broadcast too
-const ExtraDelayBetweenBroadcastMbsAndTxs = 100 * time.Millisecond
+// ExtraDelayBetweenBroadcastMbsAndTxs is the wait between the miniblocks broadcast and the
+// transactions broadcast; covers only the tx-before-its-mb arrival tail at receivers
+const ExtraDelayBetweenBroadcastMbsAndTxs = 50 * time.Millisecond
 
 // ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
 // moment when its components, like mini blocks and transactions, would be requested too if they are still missing
@@ -1345,6 +1360,7 @@ const (
 	RelayedTransactionsV1V2DisableFlag                  core.EnableEpochFlag = "RelayedTransactionsV1V2DisableFlag"
 	FullShardDataValidationFlag                         core.EnableEpochFlag = "FullShardDataValidationFlag"
 	ConsumedGasInEconomicsFlag                          core.EnableEpochFlag = "ConsumedGasInEconomicsFlag"
+	AttributeExtraGasUsageFlag                          core.EnableEpochFlag = "AttributeExtraGasUsageFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
 

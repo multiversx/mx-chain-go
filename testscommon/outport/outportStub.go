@@ -2,6 +2,7 @@ package outport
 
 import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
@@ -12,6 +13,7 @@ type OutportStub struct {
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys *outportcore.ValidatorsPubKeys)
 	HasDriversCalled            func() bool
 	SaveRoundsInfoCalled        func(roundsInfo *outportcore.RoundsInfo)
+	FinalizedBlockCalled        func(finalizedBlock *outportcore.FinalizedBlock)
 }
 
 // SaveBlock -
@@ -79,5 +81,8 @@ func (as *OutportStub) SubscribeDriver(_ outport.Driver) error {
 }
 
 // FinalizedBlock -
-func (as *OutportStub) FinalizedBlock(_ *outportcore.FinalizedBlock) {
+func (as *OutportStub) FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) {
+	if as.FinalizedBlockCalled != nil {
+		as.FinalizedBlockCalled(finalizedBlock)
+	}
 }

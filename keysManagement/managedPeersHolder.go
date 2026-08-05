@@ -156,13 +156,13 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 	if actualPrivateKey {
 		privateKey, err = holder.keyGenerator.PrivateKeyFromByteArray(privateKeyBytes)
 		if err != nil {
-			return fmt.Errorf("%w for provided bytes %s", err, hex.EncodeToString(privateKeyBytes))
+			return err
 		}
 
 		publicKey := privateKey.GeneratePublic()
 		publicKeyBytes, err = publicKey.ToByteArray()
 		if err != nil {
-			return fmt.Errorf("%w for provided bytes %s", err, hex.EncodeToString(privateKeyBytes))
+			return err
 		}
 	} else {
 		publicKeyBytes = privateKeyBytes
@@ -186,8 +186,8 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 
 	pInfo, found := holder.data[string(publicKeyBytes)]
 	if found && len(pInfo.pid.Bytes()) != 0 {
-		return fmt.Errorf("%w for provided bytes %s and generated public key %s",
-			ErrDuplicatedKey, hex.EncodeToString(privateKeyBytes), hex.EncodeToString(publicKeyBytes))
+		return fmt.Errorf("%w for generated public key %s",
+			ErrDuplicatedKey, hex.EncodeToString(publicKeyBytes))
 	}
 
 	pInfo, found = holder.providedIdentities[string(publicKeyBytes)]

@@ -108,6 +108,9 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 					},
 				},
 			},
+			EnableEpochs: config.EnableEpochs{
+				SupernovaEnableEpoch: 9999999,
+			},
 		},
 		RoundConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
@@ -115,7 +118,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 					Round: "18446744073709551615",
 				},
 				"SupernovaEnableRound": {
-					Round: "9999999",
+					Round: "99999999999",
 				},
 			},
 		},

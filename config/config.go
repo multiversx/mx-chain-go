@@ -52,7 +52,6 @@ type ProofsPoolConfig struct {
 }
 
 // ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read-only thereafter.
-// TODO add also max estimated block gas capacity
 type ExecutionResultInclusionEstimatorConfig struct {
 	SafetyMargin       uint64
 	MaxResultsPerBlock uint64
@@ -353,6 +352,19 @@ type ConsensusConfigByEpoch struct {
 	NumRoundsToWaitBeforeSignalingChronologyStuck uint32
 }
 
+// ConsensusConfigByRound defines consensus configuration parameters by round
+type ConsensusConfigByRound struct {
+	EnableRound                uint64
+	SubroundsTiming            []SubroundTiming
+	ProcessingThresholdPercent uint32
+}
+
+// SubroundTiming holds the start and end time ratios (of the round duration) for a single subround
+type SubroundTiming struct {
+	StartTime float64
+	EndTime   float64
+}
+
 // EpochStartConfigByEpoch defines epoch start configuration parameters by epoch
 type EpochStartConfigByEpoch struct {
 	EnableEpoch uint32
@@ -444,6 +456,7 @@ type GeneralSettingsConfig struct {
 	EpochStartConfigsByEpoch         []EpochStartConfigByEpoch
 	EpochStartConfigsByRound         []EpochStartConfigByRound
 	ConsensusConfigsByEpoch          []ConsensusConfigByEpoch
+	ConsensusConfigsByRound          []ConsensusConfigByRound
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config
@@ -478,9 +491,9 @@ type StateAccessesCollectorConfig struct {
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
 type TrieStorageManagerConfig struct {
-	PruningBufferLen      uint32
-	SnapshotsBufferLen    uint32
-	SnapshotsGoroutineNum uint32
+	PruningBufferLen           uint32
+	SnapshotsBufferLen         uint32
+	SnapshotsGoroutinesPerCore uint32
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines

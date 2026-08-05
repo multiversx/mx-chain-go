@@ -7,18 +7,21 @@ import (
 
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/stretchr/testify/require"
 )
 
 func getAntifloodConfigsByRound() []config.AntifloodConfigByRound {
 	defaultAntifloodConfig := testscommon.GetDefaultAntifloodConfig()
-	return defaultAntifloodConfig.ConfigsByRound
+	configsByRound := defaultAntifloodConfig.ConfigsByRound
+	configsByRound[1].Round = 100 // explicit boundary for the round-selection tests
+	return configsByRound
 }
 
 func TestNewAntifloodConfigsHandler(t *testing.T) {
