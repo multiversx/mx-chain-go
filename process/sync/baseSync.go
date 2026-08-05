@@ -1619,6 +1619,9 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	err = txPool.OnExecutedBlock(lastNotarizedExecutedHeader, rootHash)
 	if err != nil {
 		txPool.ResetTracker()
+		// the emptied tracker must be rebuilt from the notarized anchor: the realign drops the
+		// pending execution results, else the backfill starts above the anchor and leaves a gap
+		boot.pendingV3Realign = true
 		return 0, nil, err
 	}
 
