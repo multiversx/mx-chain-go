@@ -393,6 +393,16 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
 	return sp.checkMetaHeadersValidityAndFinality()
 }
 
+// VerifyCrossShardMiniBlockDstMe -
+func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
+	return sp.verifyCrossShardMiniBlockDstMe(header)
+}
+
+// CheckReferencedMetaBlocksFullyConsumed -
+func (sp *shardProcessor) CheckReferencedMetaBlocksFullyConsumed(header data.ShardHeaderHandler) error {
+	return sp.checkReferencedMetaBlocksFullyConsumed(header)
+}
+
 // CreateAndProcessMiniBlocksDstMe -
 func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
