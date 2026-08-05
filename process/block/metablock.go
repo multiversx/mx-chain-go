@@ -36,7 +36,7 @@ import (
 
 const (
 	firstHeaderNonce           = uint64(1)
-    minRoundModulus = uint64(4)
+	minRoundModulus            = uint64(4)
 	defaultMaxProposalNonceGap = 10
 )
 

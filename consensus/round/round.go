@@ -45,7 +45,7 @@ type round struct {
 	supernovaStartRound       int64
 	importDBMode              bool
 
-	initialGenesisTime        time.Time
+	initialGenesisTime time.Time
 	*sync.RWMutex
 
 	enableRoundsHandler common.EnableRoundsHandler

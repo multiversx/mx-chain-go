@@ -755,11 +755,11 @@ func patchFileRoundValues(filePath string, roundStr string, isRoundConfig bool) 
 	modified := original
 
 	if isRoundConfig {
-		modified = strings.ReplaceAll(modified, `Round = "99999999"`, `Round = "`+roundStr+`"`)
+		modified = strings.ReplaceAll(modified, `Round = "99999999999"`, `Round = "`+roundStr+`"`)
 	} else {
-		modified = strings.ReplaceAll(modified, "EnableRound = 99999999", "EnableRound = "+roundStr)
-		modified = strings.ReplaceAll(modified, "StartRound = 99999999", "StartRound = "+roundStr)
-		modified = strings.ReplaceAll(modified, "Round = 99999999", "Round = "+roundStr)
+		modified = strings.ReplaceAll(modified, "EnableRound = 99999999999", "EnableRound = "+roundStr)
+		modified = strings.ReplaceAll(modified, "StartRound = 99999999999", "StartRound = "+roundStr)
+		modified = strings.ReplaceAll(modified, "Round = 99999999999", "Round = "+roundStr)
 	}
 
 	if modified == original {
