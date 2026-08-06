@@ -1,6 +1,7 @@
 package testscommon
 
 import (
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
@@ -186,6 +187,7 @@ func GetGeneralConfig() config.Config {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               100,
 			PropagationGracePeriodMs:       0,
+			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
 		},
 		TxCacheSelection: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
