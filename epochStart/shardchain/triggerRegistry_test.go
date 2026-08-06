@@ -63,6 +63,11 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.epochStartConfigsHandler = t.epochStartConfigsHandler
 	rt.chanMetaBlockReceived = t.chanMetaBlockReceived
 	rt.mapPreparedEpochStartHdrs = t.mapPreparedEpochStartHdrs
+	rt.pendingEpochStartProofs = t.pendingEpochStartProofs
+	rt.pendingEpochStartHeaders = t.pendingEpochStartHeaders
+	rt.chanPendingEpochStartData = t.chanPendingEpochStartData
+	rt.pendingProofRetryInterval = t.pendingProofRetryInterval
+	rt.nextProofRequestSequence = t.nextProofRequestSequence
 	return rt
 }
 

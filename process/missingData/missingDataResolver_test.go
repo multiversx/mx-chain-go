@@ -1066,8 +1066,8 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		mdr, _ := NewMissingDataResolver(args)
 
 		finalizedNonces := map[uint32]uint64{0: 10}
-		proposedNonces := map[uint32]uint64{0: 5}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 5}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1097,8 +1097,42 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		mdr, _ := NewMissingDataResolver(args)
 
 		finalizedNonces := map[uint32]uint64{0: 10}
-		proposedNonces := map[uint32]uint64{0: 10}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 10}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
+
+		require.Equal(t, 0, numRequests)
+	})
+
+	t.Run("proposed header finalized in the same meta block (transition) should not request", func(t *testing.T) {
+		t.Parallel()
+
+		numRequests := 0
+		headersPool := &pool.HeadersPoolStub{}
+		proofsPool := &dataRetriever.ProofsPoolMock{}
+		requestHandler := &testscommon.RequestHandlerStub{
+			RequestShardHeaderByNonceCalled: func(_ uint32, _ uint64) {
+				numRequests++
+			},
+			RequestEquivalentProofByNonceCalled: func(_ uint32, _ uint64) {
+				numRequests++
+			},
+		}
+		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
+		args := ResolverArgs{
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
+		}
+		mdr, _ := NewMissingDataResolver(args)
+
+		finalizedNonces := map[uint32]uint64{0: 10}
+		finalizedHeaders := map[finalizedHeaderKey]struct{}{
+			{shardID: 0, nonce: 10, hash: "legacyHash"}: {},
+		}
+		proposals := map[uint32]proposalInfo{0: {nonce: 10, hash: []byte("legacyHash")}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, finalizedHeaders, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1128,8 +1162,8 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		mdr, _ := NewMissingDataResolver(args)
 
 		finalizedNonces := map[uint32]uint64{0: 10}
-		proposedNonces := map[uint32]uint64{0: 11}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 11}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1159,8 +1193,8 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		mdr, _ := NewMissingDataResolver(args)
 
 		finalizedNonces := map[uint32]uint64{0: math.MaxUint64}
-		proposedNonces := map[uint32]uint64{0: math.MaxUint64 - 1}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: math.MaxUint64 - 1}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1201,8 +1235,8 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 
 		// finalized=5, proposed=7: gap=2, should request nonce 6
 		finalizedNonces := map[uint32]uint64{0: 5}
-		proposedNonces := map[uint32]uint64{0: 7}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 7}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		// wait for goroutines spawned by requestShardHeaderByNonceIfNeeded
 		time.Sleep(50 * time.Millisecond)
@@ -1238,8 +1272,8 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 
 		// proposed has shard 0, finalized has shard 1 - no match
 		finalizedNonces := map[uint32]uint64{1: 5}
-		proposedNonces := map[uint32]uint64{0: 10}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 10}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1269,8 +1303,8 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		mdr, _ := NewMissingDataResolver(args)
 
 		finalizedNonces := map[uint32]uint64{0: 0}
-		proposedNonces := map[uint32]uint64{0: 0}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 0}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1314,12 +1348,12 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 			1: 20,             // shard 1: proposed < finalized (invalid)
 			2: math.MaxUint64, // shard 2: underflow scenario (invalid)
 		}
-		proposedNonces := map[uint32]uint64{
-			0: 13,                 // gap=3, valid
-			1: 5,                  // proposed < finalized, should skip
-			2: math.MaxUint64 - 1, // underflow, should skip
+		proposals := map[uint32]proposalInfo{
+			0: {nonce: 13},                 // gap=3, valid
+			1: {nonce: 5},                  // proposed < finalized, should skip
+			2: {nonce: math.MaxUint64 - 1}, // underflow, should skip
 		}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		// wait for goroutines spawned by requestShardHeaderByNonceIfNeeded
 		time.Sleep(50 * time.Millisecond)
@@ -1330,6 +1364,93 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		require.ElementsMatch(t, []uint64{11, 12}, requestedShardNonces[0])
 		mut.Unlock()
 	})
+}
+
+func TestStoreProposalIfGreater(t *testing.T) {
+	t.Parallel()
+
+	highestProposals := make(map[uint32]proposalInfo)
+	storeProposalIfGreater(highestProposals, &block.ShardDataProposal{ShardID: 0, Nonce: 5, HeaderHash: []byte("hash5")})
+	storeProposalIfGreater(highestProposals, &block.ShardDataProposal{ShardID: 0, Nonce: 7, HeaderHash: []byte("hash7")})
+	storeProposalIfGreater(highestProposals, &block.ShardDataProposal{ShardID: 0, Nonce: 6, HeaderHash: []byte("hash6")})
+	storeProposalIfGreater(highestProposals, &block.ShardDataProposal{ShardID: 1, Nonce: 0, HeaderHash: []byte("hash0")})
+
+	require.Equal(t, proposalInfo{nonce: 7, hash: []byte("hash7")}, highestProposals[0])
+	require.Equal(t, proposalInfo{nonce: 0, hash: []byte("hash0")}, highestProposals[1])
+}
+
+func TestGetShardDataFinalizedInfo(t *testing.T) {
+	t.Parallel()
+
+	nonces, finalizedHeaders := getShardDataFinalizedInfo([]data.ShardDataHandler{
+		&block.ShardData{ShardID: 0, Nonce: 10, HeaderHash: []byte("hash10")},
+		&block.ShardData{ShardID: 0, Nonce: 9, HeaderHash: []byte("hash9")},
+		&block.ShardData{ShardID: 1, Nonce: 4, HeaderHash: []byte("hash4")},
+	})
+
+	require.Equal(t, map[uint32]uint64{0: 10, 1: 4}, nonces)
+	require.Equal(t, map[finalizedHeaderKey]struct{}{
+		{shardID: 0, nonce: 10, hash: "hash10"}: {},
+		{shardID: 0, nonce: 9, hash: "hash9"}:   {},
+		{shardID: 1, nonce: 4, hash: "hash4"}:   {},
+	}, finalizedHeaders)
+}
+
+func TestIsFinalizedTransitionHeader(t *testing.T) {
+	t.Parallel()
+
+	finalizedHeaders := map[finalizedHeaderKey]struct{}{
+		{shardID: 0, nonce: 10, hash: "legacyHash"}:     {},
+		{shardID: 1, nonce: 10, hash: "otherShardHash"}: {},
+	}
+
+	testCases := []struct {
+		name               string
+		shardID            uint32
+		lastFinalizedNonce uint64
+		proposal           proposalInfo
+		expected           bool
+	}{
+		{
+			name:               "same shard nonce and hash",
+			shardID:            0,
+			lastFinalizedNonce: 10,
+			proposal:           proposalInfo{nonce: 10, hash: []byte("legacyHash")},
+			expected:           true,
+		},
+		{
+			name:               "different hash",
+			shardID:            0,
+			lastFinalizedNonce: 10,
+			proposal:           proposalInfo{nonce: 10, hash: []byte("otherShardHash")},
+		},
+		{
+			name:               "different shard",
+			shardID:            1,
+			lastFinalizedNonce: 10,
+			proposal:           proposalInfo{nonce: 10, hash: []byte("legacyHash")},
+		},
+		{
+			name:               "proposal below finalized nonce",
+			shardID:            0,
+			lastFinalizedNonce: 11,
+			proposal:           proposalInfo{nonce: 10, hash: []byte("legacyHash")},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			actual := isFinalizedTransitionHeader(
+				testCase.shardID,
+				testCase.lastFinalizedNonce,
+				testCase.proposal,
+				finalizedHeaders,
+			)
+			require.Equal(t, testCase.expected, actual)
+		})
+	}
 }
 
 func TestResolver_RequestMissingShardHeaders_NonceGapProtection(t *testing.T) {

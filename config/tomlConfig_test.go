@@ -179,6 +179,7 @@ func TestTomlParser(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               100,
 			PropagationGracePeriodMs:       200,
+			MaxTxNonceDeltaAllowed:         100,
 		},
 		TxCacheSelection: TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
@@ -438,6 +439,7 @@ func TestTomlParser(t *testing.T) {
 	MaxNumBytesPerSenderUpperBound = 33_554_432
 	MaxTrackedBlocks = 100
 	PropagationGracePeriodMs = 200
+	MaxTxNonceDeltaAllowed = 100
 
 [TxCacheSelection]
 	SelectionMaxNumTxs = 30000
