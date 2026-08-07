@@ -81,7 +81,7 @@ func TestNewTrieStorageManager(t *testing.T) {
 		args.GeneralConfig.SnapshotsGoroutinesPerCore = 0
 		ts, err := trie.NewTrieStorageManager(args)
 		assert.Nil(t, ts)
-		assert.Equal(t, trie.ErrInvalidSnapshotsGoroutinesPerCore, err)
+		assert.ErrorIs(t, err, trie.ErrInvalidSnapshotsGoroutinesPerCore)
 	})
 	t.Run("invalid identifier", func(t *testing.T) {
 		t.Parallel()
