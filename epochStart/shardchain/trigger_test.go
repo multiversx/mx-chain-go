@@ -825,6 +825,7 @@ func TestTrigger_ReceivedMetaBlock_WithoutProof(t *testing.T) {
 		var proofRequested atomic.Int32
 		var requestedHashMut sync.Mutex
 		var requestedHash []byte
+		var requestedEpoch uint32
 
 		args := createMockShardEpochStartTriggerArguments()
 		args.Epoch = 5
@@ -834,9 +835,10 @@ func TestTrigger_ReceivedMetaBlock_WithoutProof(t *testing.T) {
 			},
 		}
 		args.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
 				requestedHashMut.Lock()
 				requestedHash = headerHash
+				requestedEpoch = epoch
 				requestedHashMut.Unlock()
 				proofRequested.Add(1)
 			},
@@ -881,6 +883,7 @@ func TestTrigger_ReceivedMetaBlock_WithoutProof(t *testing.T) {
 
 		requestedHashMut.Lock()
 		require.Equal(t, metaBlockHash, requestedHash)
+		require.Equal(t, uint32(6), requestedEpoch)
 		requestedHashMut.Unlock()
 	})
 }
@@ -892,6 +895,7 @@ type pendingProofTestHarness struct {
 
 	mutRequested        sync.Mutex
 	lastProofRequested  []byte
+	lastProofEpoch      uint32
 	lastHeaderEpoch     uint32
 	proofRequestsByHash map[string]int
 
@@ -919,9 +923,10 @@ func newPendingProofTestHarness(t *testing.T, triggerEpoch uint32) *pendingProof
 		return 1000
 	}}
 	args.RequestHandler = &testscommon.RequestHandlerStub{
-		RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+		RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
 			h.mutRequested.Lock()
 			h.lastProofRequested = headerHash
+			h.lastProofEpoch = epoch
 			h.proofRequestsByHash[string(headerHash)]++
 			h.mutRequested.Unlock()
 			h.proofRequests.Add(1)
@@ -1075,6 +1080,7 @@ func TestTrigger_PendingEpochStartProofRecovery(t *testing.T) {
 
 		h.mutRequested.Lock()
 		require.Equal(t, metaHash, h.lastProofRequested)
+		require.Equal(t, uint32(6), h.lastProofEpoch)
 		h.mutRequested.Unlock()
 
 		time.Sleep(100 * time.Millisecond)
@@ -1248,6 +1254,10 @@ func TestTrigger_PendingEpochStartProofRecovery(t *testing.T) {
 		for _, hash := range hashes {
 			require.GreaterOrEqual(t, h.proofRequestCount(hash), 2)
 		}
+
+		h.mutRequested.Lock()
+		require.Equal(t, uint32(6), h.lastProofEpoch)
+		h.mutRequested.Unlock()
 	})
 
 	t.Run("proof discovery is not limited by the request budget", func(t *testing.T) {
@@ -1961,6 +1971,7 @@ func TestTrigger_WatchdogRequestEpochStartMetaBlock(t *testing.T) {
 		var proofRequested atomic.Int32
 		var requestedHashMut sync.Mutex
 		var requestedHash []byte
+		var requestedEpoch uint32
 		args := createMockShardEpochStartTriggerArguments()
 		args.Epoch = 5
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -1969,9 +1980,10 @@ func TestTrigger_WatchdogRequestEpochStartMetaBlock(t *testing.T) {
 			},
 		}
 		args.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
 				requestedHashMut.Lock()
 				requestedHash = headerHash
+				requestedEpoch = epoch
 				requestedHashMut.Unlock()
 				proofRequested.Add(1)
 			},
@@ -2014,6 +2026,7 @@ func TestTrigger_WatchdogRequestEpochStartMetaBlock(t *testing.T) {
 		require.Equal(t, int32(1), proofRequested.Load())
 		requestedHashMut.Lock()
 		require.Equal(t, metaBlockHash, requestedHash)
+		require.Equal(t, uint32(6), requestedEpoch)
 		requestedHashMut.Unlock()
 
 		proofRequested.Store(0)

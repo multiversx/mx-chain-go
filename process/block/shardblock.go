@@ -402,7 +402,7 @@ func (sp *shardProcessor) requestEpochStartProofIfNeeded(hash []byte, epoch uint
 		return true
 	}
 
-	go sp.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, hash)
+	go sp.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, hash, epoch)
 
 	return false
 }

@@ -219,7 +219,13 @@ func (r *Resolver) requestProofIfNeeded(shardID uint32, headerHash []byte, heade
 		return
 	}
 
-	go r.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
+	if check.IfNil(header) {
+		// unknown target epoch; the current-epoch label keeps the fail-safe request
+		go r.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
+		return
+	}
+
+	go r.requestHandler.RequestEquivalentProofByHashForEpoch(shardID, headerHash, header.GetEpoch())
 }
 
 func (r *Resolver) requestHeaderAndProofIfNeeded(shardID uint32, headerHash []byte) {

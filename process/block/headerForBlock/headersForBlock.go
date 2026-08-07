@@ -564,7 +564,7 @@ func (hfb *headersForBlock) requestProofIfNeeded(currentHeaderHash []byte, heade
 	}
 
 	hfb.setHasProofRequested(string(currentHeaderHash))
-	go hfb.requestHandler.RequestEquivalentProofByHash(header.GetShardID(), currentHeaderHash)
+	go hfb.requestHandler.RequestEquivalentProofByHashForEpoch(header.GetShardID(), currentHeaderHash, header.GetEpoch())
 
 	return false
 }

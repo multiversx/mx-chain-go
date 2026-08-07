@@ -828,7 +828,8 @@ func (t *trigger) retryPendingEpochStartProofs() bool {
 			continue
 		}
 
-		t.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, []byte(proofRequest.key))
+		// stamp the target epoch: the requester drops requests labeled before Andromeda activation
+		t.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, []byte(proofRequest.key), proofRequest.info.epoch)
 	}
 
 	for epoch := range pendingHeaders {
@@ -867,7 +868,8 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 				)
 				// record before requesting, so a fast response cannot complete unpended
 				t.addPendingEpochStartProof(metaBlockHash, metaHdr.GetEpoch())
-				go t.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, metaBlockHash)
+				// stamp the target epoch: the requester drops requests labeled before Andromeda activation
+				go t.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, metaBlockHash, metaHdr.GetEpoch())
 			}
 			return
 		}
