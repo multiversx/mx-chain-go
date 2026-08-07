@@ -3078,6 +3078,9 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
 				receive <- true
 			},
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
+				receive <- true
+			},
 		}
 
 		bs, _ := sync.NewShardBootstrap(args)
