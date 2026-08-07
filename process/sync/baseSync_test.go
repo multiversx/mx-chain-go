@@ -463,7 +463,7 @@ func TestBaseBootstrap_confirmHeaderReceivedByHashShouldRequestMissingProof(t *t
 
 	requestHandler := &requestHandlerWithSetEpochStub{
 		RequestHandlerStub: testscommon.RequestHandlerStub{
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, hash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, hash []byte, epoch uint32) {
 				requestedShardID = headerShard
 				requestedHash = append([]byte(nil), hash...)
 			},
@@ -515,7 +515,7 @@ func TestBaseBootstrap_confirmHeaderReceivedByNonceShouldRequestMissingProof(t *
 
 	requestHandler := &requestHandlerWithSetEpochStub{
 		RequestHandlerStub: testscommon.RequestHandlerStub{
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, hash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, hash []byte, epoch uint32) {
 				requestedShardID = headerShard
 				requestedHash = append([]byte(nil), hash...)
 			},

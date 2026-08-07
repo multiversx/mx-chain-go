@@ -351,6 +351,9 @@ func TestResolver_requestProofIfNeeded(t *testing.T) {
 			RequestEquivalentProofByHashCalled: func(shardID uint32, hash []byte) {
 				require.Fail(t, "RequestHeaderProof should not be called again for existing proof")
 			},
+			RequestEquivalentProofByHashForEpochCalled: func(shardID uint32, hash []byte, epoch uint32) {
+				require.Fail(t, "RequestHeaderProof should not be called again for existing proof")
+			},
 		}
 		commonArgsCopy := commonArgs
 		commonArgsCopy.ProofsPool = proofsPool
@@ -1699,6 +1702,9 @@ func TestResolver_ProofRequestsEraGating(t *testing.T) {
 				RequestEquivalentProofByHashCalled: func(_ uint32, _ []byte) {
 					requestedByHash.Add(1)
 				},
+				RequestEquivalentProofByHashForEpochCalled: func(_ uint32, _ []byte, _ uint32) {
+					requestedByHash.Add(1)
+				},
 				RequestEquivalentProofByNonceCalled: func(_ uint32, _ uint64) {
 					requestedByNonce.Add(1)
 				},
@@ -1731,6 +1737,7 @@ func TestResolver_ProofRequestsEraGating(t *testing.T) {
 		mdr.requestProofIfNeeded(0, []byte("hash"), &block.Header{Epoch: 1})
 
 		require.False(t, mdr.allProofsReceived())
+		require.Eventually(t, func() bool { return requestedByHash.Load() == 1 }, time.Second, 10*time.Millisecond)
 	})
 
 	t.Run("unresolved header keeps the fail-safe request", func(t *testing.T) {
@@ -1743,6 +1750,7 @@ func TestResolver_ProofRequestsEraGating(t *testing.T) {
 		mdr.requestProofIfNeeded(0, []byte("hash"), nil)
 
 		require.False(t, mdr.allProofsReceived())
+		require.Eventually(t, func() bool { return requestedByHash.Load() == 1 }, time.Second, 10*time.Millisecond)
 	})
 
 	t.Run("nonce gap fill skips proofs when all pooled candidates predate the flag", func(t *testing.T) {

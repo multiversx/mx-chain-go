@@ -8248,7 +8248,7 @@ func TestShardProcessor_EnsureEpochStartInfoAvailable(t *testing.T) {
 			},
 		}
 		arguments.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestEquivalentProofByHashCalled: func(shardID uint32, hash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(shardID uint32, hash []byte, epoch uint32) {
 				requestProofCt.Increment()
 			},
 		}
@@ -8319,7 +8319,7 @@ func TestShardProcessor_EnsureEpochStartInfoAvailable(t *testing.T) {
 			},
 		}
 		arguments.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestEquivalentProofByHashCalled: func(shardID uint32, hash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(shardID uint32, hash []byte, epoch uint32) {
 			},
 		}
 
