@@ -44,7 +44,7 @@ func TestNode_GenerateSendInterceptBulkTransactionsWithMessenger(t *testing.T) {
 
 	//set the account's nonce to startingNonce
 	_ = n.SetAccountNonce(startingNonce)
-	noOfTx := common.MaxTxNonceDeltaAllowed
+	noOfTx := integrationTests.MaxTxNonceDeltaAllowed
 
 	time.Sleep(stepDelay)
 

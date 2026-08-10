@@ -304,6 +304,15 @@ func WithEnableSignTxWithHashEpoch(enableSignTxWithHashEpoch uint32) Option {
 	}
 }
 
+// WithMaxTxNonceDeltaAllowed sets up the maximum difference between an account's nonce and a received
+// transaction's nonce in order to mark the transaction as valid
+func WithMaxTxNonceDeltaAllowed(maxTxNonceDeltaAllowed int) Option {
+	return func(n *Node) error {
+		n.maxTxNonceDeltaAllowed = maxTxNonceDeltaAllowed
+		return nil
+	}
+}
+
 // WithImportMode sets up the flag if the node is running in import mode
 func WithImportMode(importMode bool) Option {
 	return func(n *Node) error {

@@ -20,7 +20,7 @@ func TestTransactionsRequestsShouldWorkForHigherMaxTxNonceDeltaAllowed(t *testin
 		t.Skip("this is not a short test")
 	}
 
-	numTxs := common.MaxTxNonceDeltaAllowed * 3
+	numTxs := integrationTests.MaxTxNonceDeltaAllowed * 3
 	mutMap := sync.Mutex{}
 	txHashesMap := make(map[string]struct{})
 

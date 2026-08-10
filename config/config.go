@@ -312,6 +312,7 @@ type GeneralSettingsConfig struct {
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
 	SetGuardianEpochsDelay               uint32
+	MaxTxNonceDeltaAllowed               int
 	ChainParametersByEpoch               []ChainParametersByEpochConfig
 	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
 }

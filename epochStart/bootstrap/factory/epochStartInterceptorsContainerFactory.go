@@ -89,7 +89,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		FullArchiveMessenger:                    args.FullArchiveMessenger,
 		Store:                                   storer,
 		DataPool:                                args.DataPool,
-		MaxTxNonceDeltaAllowed:                  common.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:                  args.Config.GeneralSettings.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:                            feeHandler,
 		BlockBlackList:                          blackListHandler,
 		HeaderSigVerifier:                       headerSigVerifier,

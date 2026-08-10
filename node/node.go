@@ -84,6 +84,7 @@ type Node struct {
 	addressSignatureHexSize int
 	validatorSignatureSize  int
 	publicKeySize           int
+	maxTxNonceDeltaAllowed  int
 
 	chanStopNodeProcess chan endProcess.ArgEndProcess
 
@@ -807,7 +808,7 @@ func (n *Node) commonTransactionValidation(
 		whiteListRequest,
 		n.coreComponents.AddressPubKeyConverter(),
 		n.coreComponents.TxVersionChecker(),
-		common.MaxTxNonceDeltaAllowed,
+		n.maxTxNonceDeltaAllowed,
 	)
 
 	if err != nil {

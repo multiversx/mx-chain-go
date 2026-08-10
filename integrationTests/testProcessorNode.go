@@ -231,6 +231,10 @@ var DelegationManagerConfigChangeAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02c
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
 
+// MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's
+// nonce in order to mark the transaction as valid, as used in integration tests
+const MaxTxNonceDeltaAllowed = 100
+
 // UnreachableEpoch defines an unreachable epoch for integration tests
 const UnreachableEpoch = uint32(1000000)
 
@@ -1371,7 +1375,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			FullArchiveMessenger:                    tpn.FullArchiveMessenger,
 			Store:                                   tpn.Storage,
 			DataPool:                                tpn.DataPool,
-			MaxTxNonceDeltaAllowed:                  common.MaxTxNonceDeltaAllowed,
+			MaxTxNonceDeltaAllowed:                  MaxTxNonceDeltaAllowed,
 			TxFeeHandler:                            tpn.EconomicsData,
 			BlockBlackList:                          tpn.BlockBlackListHandler,
 			HeaderSigVerifier:                       tpn.HeaderSigVerifier,
@@ -1443,7 +1447,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			FullArchiveMessenger:                    tpn.FullArchiveMessenger,
 			Store:                                   tpn.Storage,
 			DataPool:                                tpn.DataPool,
-			MaxTxNonceDeltaAllowed:                  common.MaxTxNonceDeltaAllowed,
+			MaxTxNonceDeltaAllowed:                  MaxTxNonceDeltaAllowed,
 			TxFeeHandler:                            tpn.EconomicsData,
 			BlockBlackList:                          tpn.BlockBlackListHandler,
 			HeaderSigVerifier:                       tpn.HeaderSigVerifier,

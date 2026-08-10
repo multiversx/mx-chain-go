@@ -57,6 +57,7 @@ func GetGeneralConfig() config.Config {
 			SyncProcessTimeInMillis:              6000,
 			SetGuardianEpochsDelay:               20,
 			StatusPollingIntervalSec:             10,
+			MaxTxNonceDeltaAllowed:               100,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,

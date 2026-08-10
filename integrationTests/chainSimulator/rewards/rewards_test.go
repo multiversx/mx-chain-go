@@ -148,7 +148,7 @@ func getRewardTxForAddress(block *apiCore.Block, address string) *transaction.Ap
 }
 
 func generateMoveBalance(t *testing.T, cs chainSimulator.ChainSimulator, numTxs int, senderShardID, receiverShardID uint32) []*transaction.Transaction {
-	numSenders := (numTxs + common.MaxTxNonceDeltaAllowed - 1) / common.MaxTxNonceDeltaAllowed
+	numSenders := (numTxs + integrationTests.MaxTxNonceDeltaAllowed - 1) / integrationTests.MaxTxNonceDeltaAllowed
 	tenEGLD := big.NewInt(0).Mul(csUtils.OneEGLD, big.NewInt(10))
 
 	senders := make([]dtos.WalletAddress, 0, numSenders)
@@ -165,12 +165,12 @@ func generateMoveBalance(t *testing.T, cs chainSimulator.ChainSimulator, numTxs 
 
 	txs := make([]*transaction.Transaction, 0, numTxs)
 	for i := 0; i < numSenders-1; i++ {
-		txs = append(txs, generateMoveBalanceTxs(t, cs, senders[i], common.MaxTxNonceDeltaAllowed, receiverShardID)...)
+		txs = append(txs, generateMoveBalanceTxs(t, cs, senders[i], integrationTests.MaxTxNonceDeltaAllowed, receiverShardID)...)
 	}
 
-	lastBatchSize := numTxs % common.MaxTxNonceDeltaAllowed
+	lastBatchSize := numTxs % integrationTests.MaxTxNonceDeltaAllowed
 	if lastBatchSize == 0 {
-		lastBatchSize = common.MaxTxNonceDeltaAllowed
+		lastBatchSize = integrationTests.MaxTxNonceDeltaAllowed
 	}
 
 	txs = append(txs, generateMoveBalanceTxs(t, cs, senders[len(senders)-1], lastBatchSize, receiverShardID)...)

@@ -89,6 +89,7 @@ func CreateNode(
 		WithValidatorSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
+		WithMaxTxNonceDeltaAllowed(config.GeneralSettings.MaxTxNonceDeltaAllowed),
 		WithImportMode(isInImportMode),
 		WithESDTNFTStorageHandler(processComponents.ESDTDataStorageHandlerForAPI()),
 	)

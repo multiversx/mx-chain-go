@@ -40,6 +40,10 @@
     # Make sure that this is greater than the unbonding period!
     SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
 
+    # MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's
+    # nonce in order to mark the transaction as valid
+    MaxTxNonceDeltaAllowed = 100
+
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
         { EnableEpoch = 0, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },

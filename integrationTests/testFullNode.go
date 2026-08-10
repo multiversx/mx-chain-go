@@ -729,7 +729,7 @@ func (tcn *TestFullNode) initInterceptors(
 		FullArchiveMessenger:                    tcn.FullArchiveMessenger,
 		Store:                                   storage,
 		DataPool:                                tcn.DataPool,
-		MaxTxNonceDeltaAllowed:                  common.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:                  MaxTxNonceDeltaAllowed,
 		TxFeeHandler:                            &economicsmocks.EconomicsHandlerMock{},
 		BlockBlackList:                          blockBlackListHandler,
 		HeaderSigVerifier:                       &consensusMocks.HeaderSigVerifierMock{},
