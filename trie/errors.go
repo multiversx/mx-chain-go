@@ -116,7 +116,7 @@ var ErrNilTrieIteratorErrChannel = errors.New("nil trie iterator error channel")
 var ErrInvalidIdentifier = errors.New("invalid identifier")
 
 // ErrInvalidSnapshotsGoroutinesPerCore signals that the configured snapshots goroutines per core is invalid
-var ErrInvalidSnapshotsGoroutinesPerCore = errors.New("invalid snapshots goroutines per core, must be at least 1")
+var ErrInvalidSnapshotsGoroutinesPerCore = errors.New("invalid snapshots goroutines per core")
 
 // ErrNilKeyBuilder signals that a nil key builder has been provided
 var ErrNilKeyBuilder = errors.New("nil key builder")

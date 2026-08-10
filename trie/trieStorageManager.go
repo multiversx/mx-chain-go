@@ -80,7 +80,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		return nil, storage.ErrNilStatsCollector
 	}
 	if args.GeneralConfig.SnapshotsGoroutinesPerCore == 0 {
-		return nil, ErrInvalidSnapshotsGoroutinesPerCore
+		return nil, fmt.Errorf("%w, must be at least 1", ErrInvalidSnapshotsGoroutinesPerCore)
 	}
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
