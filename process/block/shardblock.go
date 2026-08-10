@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -213,6 +214,10 @@ func (sp *shardProcessor) ProcessBlock(
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
+	err = checkMetaBlockHashesBasicValidity(header)
+	if err != nil {
+		return err
+	}
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
@@ -323,7 +328,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.checkMetaHeadersValidityAndFinality()
+	err = sp.checkMetaHeadersValidityAndFinality(header)
 	if err != nil {
 		return err
 	}
@@ -583,7 +588,12 @@ func (sp *shardProcessor) SetNumProcessedObj(numObj uint64) {
 }
 
 // checkMetaHeadersValidity - checks if listed metaheaders are valid as construction
-func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
+func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(shardHeader data.ShardHeaderHandler) error {
+	err := sp.checkMetaBlockHashesOrder(shardHeader)
+	if err != nil {
+		return err
+	}
+
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return err
@@ -611,6 +621,66 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	err = sp.checkMetaHdrFinality(lastCrossNotarizedHeader)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (sp *shardProcessor) checkMetaBlockHashesOrder(shardHeader data.ShardHeaderHandler) error {
+	metaBlockHashes := shardHeader.GetMetaBlockHashes()
+
+	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	defer sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	var previousNonce uint64
+	for index, metaBlockHash := range metaBlockHashes {
+		headerInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+		if !ok || headerInfo == nil || check.IfNil(headerInfo.hdr) {
+			return fmt.Errorf("%w: metablock hash at index %d = %s",
+				process.ErrMissingHeader,
+				index,
+				logger.DisplayByteSlice(metaBlockHash),
+			)
+		}
+
+		currentNonce := headerInfo.hdr.GetNonce()
+		if index > 0 && currentNonce <= previousNonce {
+			return fmt.Errorf("%w: nonce %d at index %d after nonce %d",
+				process.ErrMetaBlockHashesNotInCanonicalOrder,
+				currentNonce,
+				index,
+				previousNonce,
+			)
+		}
+
+		previousNonce = currentNonce
+	}
+
+	return nil
+}
+
+func checkMetaBlockHashesBasicValidity(shardHeader data.ShardHeaderHandler) error {
+	metaBlockHashes := shardHeader.GetMetaBlockHashes()
+	if len(metaBlockHashes) > process.MaxMetaHeadersAllowedInOneShardBlock {
+		return fmt.Errorf("%w: got %d, maximum %d",
+			process.ErrTooManyMetaBlockHashes,
+			len(metaBlockHashes),
+			process.MaxMetaHeadersAllowedInOneShardBlock,
+		)
+	}
+
+	// The number of references is capped at 50. A pairwise scan avoids a per-block map allocation
+	// while rejecting duplicates before they can trigger duplicate header requests.
+	for firstIndex := 0; firstIndex < len(metaBlockHashes); firstIndex++ {
+		for secondIndex := firstIndex + 1; secondIndex < len(metaBlockHashes); secondIndex++ {
+			if bytes.Equal(metaBlockHashes[firstIndex], metaBlockHashes[secondIndex]) {
+				return fmt.Errorf("%w: duplicate metablock hash at indexes %d and %d",
+					process.ErrMetaBlockHashesNotInCanonicalOrder,
+					firstIndex,
+					secondIndex,
+				)
+			}
+		}
 	}
 
 	return nil
@@ -1738,7 +1808,11 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 	miniBlockHashes map[int][]byte,
 ) ([]data.HeaderHandler, error) {
 
-	processedMetaHdrs := make([]data.HeaderHandler, 0, len(sp.hdrsForCurrBlock.hdrHashAndInfo))
+	type metaBlockConsumption struct {
+		metaBlock    *block.MetaBlock
+		processedAll bool
+	}
+	usedMetaBlocks := make([]metaBlockConsumption, 0, len(sp.hdrsForCurrBlock.hdrHashAndInfo))
 	processedCrossMiniBlocksHashes := make(map[string]bool, len(sp.hdrsForCurrBlock.hdrHashAndInfo))
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
@@ -1785,13 +1859,32 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 			}
 		}
 
-		if processedAll {
-			processedMetaHdrs = append(processedMetaHdrs, metaBlock)
-		}
+		usedMetaBlocks = append(usedMetaBlocks, metaBlockConsumption{
+			metaBlock:    metaBlock,
+			processedAll: processedAll,
+		})
 	}
 	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
-	process.SortHeadersByNonce(processedMetaHdrs)
+	sort.Slice(usedMetaBlocks, func(i, j int) bool {
+		return usedMetaBlocks[i].metaBlock.GetNonce() < usedMetaBlocks[j].metaBlock.GetNonce()
+	})
+
+	// advance only over the contiguous fully processed prefix
+	processedMetaHdrs := make([]data.HeaderHandler, 0, len(usedMetaBlocks))
+	for i := 0; i < len(usedMetaBlocks); i++ {
+		if !usedMetaBlocks[i].processedAll {
+			for j := i + 1; j < len(usedMetaBlocks); j++ {
+				if usedMetaBlocks[j].processedAll {
+					log.Warn("getOrderedProcessedMetaBlocksFromMiniBlockHashes: fully processed meta block above a not fully processed one",
+						"not fully processed nonce", usedMetaBlocks[i].metaBlock.GetNonce(),
+						"fully processed nonce", usedMetaBlocks[j].metaBlock.GetNonce())
+				}
+			}
+			break
+		}
+		processedMetaHdrs = append(processedMetaHdrs, usedMetaBlocks[i].metaBlock)
+	}
 
 	return processedMetaHdrs, nil
 }
@@ -1978,6 +2071,63 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header data.ShardHeader
 	for hash := range crossMiniBlockHashes {
 		if _, ok := miniBlockMetaHashes[hash]; !ok {
 			return process.ErrCrossShardMBWithoutConfirmationFromMeta
+		}
+	}
+
+	return sp.checkReferencedMetaBlocksFullyConsumed(header)
+}
+
+// checkReferencedMetaBlocksFullyConsumed verifies every referenced meta block except the highest nonce
+// one is fully consumed (dst-me miniblocks final in this body or already processed in previous blocks)
+func (sp *shardProcessor) checkReferencedMetaBlocksFullyConsumed(header data.ShardHeaderHandler) error {
+	miniBlockHeaderHandlers := header.GetMiniBlockHeaderHandlers()
+	bodyMiniBlockHeaders := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaderHandlers))
+	for _, miniBlockHeader := range miniBlockHeaderHandlers {
+		bodyMiniBlockHeaders[string(miniBlockHeader.GetHash())] = miniBlockHeader
+	}
+
+	type referencedMetaBlock struct {
+		hash      []byte
+		metaBlock *block.MetaBlock
+	}
+
+	metaBlockHashes := header.GetMetaBlockHashes()
+	referencedMetaBlocks := make([]referencedMetaBlock, 0, len(metaBlockHashes))
+
+	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	for _, metaBlockHash := range metaBlockHashes {
+		headerInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+		if !ok || headerInfo == nil || check.IfNil(headerInfo.hdr) {
+			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+			return fmt.Errorf("%w : checkReferencedMetaBlocksFullyConsumed metaBlockHash = %s",
+				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
+		}
+		metaBlock, ok := headerInfo.hdr.(*block.MetaBlock)
+		if !ok {
+			sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+			return process.ErrWrongTypeAssertion
+		}
+		referencedMetaBlocks = append(referencedMetaBlocks, referencedMetaBlock{
+			hash:      metaBlockHash,
+			metaBlock: metaBlock,
+		})
+	}
+	sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
+	for i := 0; i+1 < len(referencedMetaBlocks); i++ {
+		referencedMeta := referencedMetaBlocks[i]
+		for hash := range referencedMeta.metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId()) {
+			miniBlockHeader, isInBody := bodyMiniBlockHeaders[hash]
+			isConsumed := sp.processedMiniBlocksTracker.IsMiniBlockFullyProcessed(referencedMeta.hash, []byte(hash))
+			if isInBody {
+				isConsumed = miniBlockHeader.IsFinal()
+			}
+			if !isConsumed {
+				return fmt.Errorf("%w : meta block nonce = %d",
+					process.ErrMetaBlockNotFullyConsumed,
+					referencedMeta.metaBlock.GetNonce(),
+				)
+			}
 		}
 	}
 
