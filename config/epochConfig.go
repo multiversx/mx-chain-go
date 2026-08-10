@@ -100,6 +100,7 @@ type EnableEpochs struct {
 	DeterministicSortOnValidatorsInfoEnableEpoch             uint32
 	KeepExecOrderOnCreatedSCRsEnableEpoch                    uint32
 	MultiClaimOnDelegationEnableEpoch                        uint32
+	DelegationOnBehalfEnableEpoch                            uint32
 	ChangeUsernameEnableEpoch                                uint32
 	AutoBalanceDataTriesEnableEpoch                          uint32
 	MigrateDataTrieEnableEpoch                               uint32

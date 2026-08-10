@@ -386,6 +386,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricDeterministicSortOnValidatorsInfoEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricKeepExecOrderOnCreatedSCRsEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricMultiClaimOnDelegationEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricDelegationOnBehalfEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricChangeUsernameEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricAutoBalanceDataTriesEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricMigrateDataTrieEnableEpoch, uint64(4))
@@ -526,6 +527,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricDeterministicSortOnValidatorsInfoEnableEpoch:             uint64(4),
 		common.MetricKeepExecOrderOnCreatedSCRsEnableEpoch:                    uint64(4),
 		common.MetricMultiClaimOnDelegationEnableEpoch:                        uint64(4),
+		common.MetricDelegationOnBehalfEnableEpoch:                            uint64(4),
 		common.MetricChangeUsernameEnableEpoch:                                uint64(4),
 		common.MetricAutoBalanceDataTriesEnableEpoch:                          uint64(4),
 		common.MetricMigrateDataTrieEnableEpoch:                               uint64(4),
