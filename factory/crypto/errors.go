@@ -40,3 +40,6 @@ var ErrNilMessage = errors.New("message to be signed or to be verified is nil")
 
 // ErrBitmapMismatch is raised when an invalid bitmap is passed to the multisigner
 var ErrBitmapMismatch = errors.New("multi signer reported a mismatch in used bitmap")
+
+// ErrEmptyWhitelistedAddressHex is raised when an empty whitelisted address hex is provided
+var ErrEmptyWhitelistedAddressHex = errors.New("whitelisted address hex is empty")
