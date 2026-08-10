@@ -12,6 +12,7 @@
 [![Contributors](https://img.shields.io/github/contributors/multiversx/mx-chain-go)](https://github.com/multiversx/mx-chain-go/graphs/contributors)
 
 # mx-chain-go
+# FORK TEST
 
 The go implementation for the MultiversX protocol
 
