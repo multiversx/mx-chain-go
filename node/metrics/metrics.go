@@ -47,6 +47,7 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetUInt64Value(common.MetricNumTimesInForkChoice, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumEquivocationProofs, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumReconcileSwitches, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricNumRollBacksRefusedMissingState, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountConsensusAcceptedBlocks, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, initUint)

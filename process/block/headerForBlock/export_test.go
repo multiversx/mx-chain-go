@@ -1,6 +1,8 @@
 package headerForBlock
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
@@ -67,4 +69,27 @@ func (hfb *headersForBlock) SetShardBlockFinality(finality uint32) {
 // RequestMissingFinalityAttestingShardHeaders -
 func (hfb *headersForBlock) RequestMissingFinalityAttestingShardHeaders() uint32 {
 	return hfb.requestMissingFinalityAttestingShardHeaders()
+}
+
+// RequestMiniBlocksOnProofIfNeeded -
+func (hfb *headersForBlock) RequestMiniBlocksOnProofIfNeeded(header data.HeaderHandler, headerHash []byte) {
+	hfb.requestMiniBlocksOnProofIfNeeded(header, headerHash)
+}
+
+// SetPendingMbRequestMaxAge -
+func (hfb *headersForBlock) SetPendingMbRequestMaxAge(maxAge time.Duration) {
+	hfb.pendingMbRequestMaxAge = maxAge
+}
+
+// SetMaxPendingMbRequests -
+func (hfb *headersForBlock) SetMaxPendingMbRequests(maxPending int) {
+	hfb.maxPendingMbRequests = maxPending
+}
+
+// NumPendingMbRequests -
+func (hfb *headersForBlock) NumPendingMbRequests() int {
+	hfb.mutPendingMbRequests.Lock()
+	defer hfb.mutPendingMbRequests.Unlock()
+
+	return len(hfb.pendingMbRequests)
 }

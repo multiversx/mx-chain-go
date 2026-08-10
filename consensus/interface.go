@@ -17,6 +17,9 @@ const BlsConsensusType = "bls"
 // RoundHandler defines the actions which should be handled by a round implementation
 type RoundHandler interface {
 	Index() int64
+	// IndexForCurrentTime returns the round index the current time falls into, which does not
+	// depend on the chronology goroutine having advanced the stored index
+	IndexForCurrentTime() int64
 	BeforeGenesis() bool
 	// UpdateRound updates the index and the time stamp of the round depending on the genesis time and the current time given
 	UpdateRound(time.Time, time.Time)

@@ -196,10 +196,11 @@ func createMockMetaArguments(
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        dataComponents.DataPool.Headers(),
-		ProofsPool:         dataComponents.DataPool.Proofs(),
-		RequestHandler:     &testscommon.RequestHandlerStub{},
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         dataComponents.DataPool.Headers(),
+		ProofsPool:          dataComponents.DataPool.Proofs(),
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 
@@ -2420,6 +2421,9 @@ func TestMetaProcessor_CheckShardHeadersValidityContentionRegimes(t *testing.T) 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
 				return flag == common.SupernovaFlag
 			},
 		}
@@ -4778,17 +4782,32 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 	rootHash2 := []byte("state root hash 2")
 	validatorStatsRootHash2 := []byte("validator stats root hash 2")
 
+	metaBlockHash := []byte("metaHash")
+	var metaBlockInPool data.HeaderHandler
+
 	coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 	dataPool := initDataPool()
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, metaBlockHash) {
+					return metaBlockInPool, nil
+				}
+
 				return prevHeader, nil
 			},
 		}
 	}
 	dataComponents.DataPool = dataPool
 	arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	metaCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	metaCoordinator.CurrentShard = core.MetachainShardId
+	boostrapComponents.Coordinator = metaCoordinator
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+			return 1, metaBlockHash
+		},
+	}
 	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 		state.UserAccountsState: &stateMock.AccountsStub{
 			IsPruningEnabledCalled: func() bool {
@@ -4876,14 +4895,7 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 		},
 	}
 
-	blkc := createTestBlockchain()
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return metaBlock
-	}
-	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-		return []byte("metaHash")
-	}
-	dataComponents.BlockChain = blkc
+	metaBlockInPool = metaBlock
 
 	mp, _ := processBlock.NewMetaProcessor(arguments)
 
@@ -5990,7 +6002,7 @@ func TestMetaProcessor_VerifyShardDataAgainstHeadersFlagGating(t *testing.T) {
 func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Parallel()
 
-	buildProcessorAndHeader := func(settled bool, withCompetitor bool) (interface {
+	buildProcessorAndHeader := func(settled bool, withCompetitor bool, preSupernovaEra bool) (interface {
 		CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error)
 	}, *block.MetaBlock) {
 		pool := dataRetrieverMock.NewPoolsHolderMock()
@@ -6000,6 +6012,9 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.SupernovaFlag
+			},
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+				return !preSupernovaEra && flag == common.SupernovaFlag
 			},
 		}
 		dataComponents.DataPool = pool
@@ -6087,7 +6102,7 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Run("contended unsettled referenced shard header without competitor should pass", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(false, false)
+		mp, metaHdr := buildProcessorAndHeader(false, false, false)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.Nil(t, err)
 	})
@@ -6095,7 +6110,7 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Run("contended unsettled referenced shard header with better proofed competitor should error", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(false, true)
+		mp, metaHdr := buildProcessorAndHeader(false, true, false)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.ErrorContains(t, err, "better proofed competitor")
 	})
@@ -6103,7 +6118,15 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Run("contended settled referenced shard header should pass", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(true, false)
+		mp, metaHdr := buildProcessorAndHeader(true, false, false)
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		assert.Nil(t, err)
+	})
+
+	t.Run("pre-Supernova contended referenced shard header skips the contention gate", func(t *testing.T) {
+		t.Parallel()
+
+		mp, metaHdr := buildProcessorAndHeader(false, true, true)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.Nil(t, err)
 	})

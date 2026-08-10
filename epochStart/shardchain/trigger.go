@@ -42,6 +42,9 @@ const sleepTime = 200 * time.Millisecond
 
 const numRoundsWithoutReceivedMetaBlocks = 5
 
+const defaultPendingProofRetryInterval = time.Second
+const maxPendingProofRequestsPerPass = 16
+
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {
 	Marshalizer marshal.Marshalizer
@@ -123,6 +126,18 @@ type trigger struct {
 	cancelFunc               func()
 
 	chanMetaBlockReceived chan struct{}
+
+	mutPendingEpochStartData  sync.Mutex
+	pendingEpochStartProofs   map[string]pendingEpochStartProof
+	pendingEpochStartHeaders  map[uint32]struct{}
+	chanPendingEpochStartData chan struct{}
+	pendingProofRetryInterval time.Duration
+	nextProofRequestSequence  uint64
+}
+
+type pendingEpochStartProof struct {
+	epoch           uint32
+	requestSequence uint64
 }
 
 type metaInfo struct {
@@ -286,6 +301,10 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		enableEpochsHandler:           args.EnableEpochsHandler,
 		epochStartConfigsHandler:      args.CommonConfigsHandler,
 		chanMetaBlockReceived:         make(chan struct{}, 1),
+		pendingEpochStartProofs:       make(map[string]pendingEpochStartProof),
+		pendingEpochStartHeaders:      make(map[uint32]struct{}),
+		chanPendingEpochStartData:     make(chan struct{}, 1),
+		pendingProofRetryInterval:     defaultPendingProofRetryInterval,
 	}
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
@@ -305,6 +324,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	go t.requestMissingMiniBlocks(ctx)
 	go t.requestMissingValidatorsInfo(ctx)
 	go t.watchdogRequestEpochStartMetaBlock(ctx)
+	go t.requestPendingEpochStartProofs(ctx)
 
 	return t, nil
 }
@@ -597,15 +617,231 @@ func (t *trigger) receivedProof(headerProof data.HeaderProofHandler) {
 	}
 
 	log.Debug("received proof in trigger", "proof for header hash", headerProof.GetHeaderHash())
-	t.mutTrigger.Lock()
-	defer t.mutTrigger.Unlock()
-
 	header, err := t.headersPool.GetHeaderByHash(headerProof.GetHeaderHash())
-	if err != nil {
+	if err != nil || check.IfNil(header) {
 		return
 	}
 
-	t.checkMetaHeaderForEpochTriggerEquivalentProofs(header, headerProof.GetHeaderHash())
+	t.processMetaHeaderWithProof(header, headerProof.GetHeaderHash())
+	t.removePendingEpochStartProof(string(headerProof.GetHeaderHash()), header.GetEpoch())
+	t.removePendingEpochStartHeader(header.GetEpoch())
+}
+
+func (t *trigger) processMetaHeaderWithProof(header data.HeaderHandler, metaBlockHash []byte) {
+	t.mutTrigger.Lock()
+	t.checkMetaHeaderForEpochTriggerEquivalentProofs(header, metaBlockHash)
+	t.mutTrigger.Unlock()
+}
+
+func (t *trigger) addPendingEpochStartProof(metaBlockHash []byte, epoch uint32) {
+	key := string(metaBlockHash)
+
+	t.mutPendingEpochStartData.Lock()
+	_, exists := t.pendingEpochStartProofs[key]
+	if !exists {
+		t.nextProofRequestSequence++
+		t.pendingEpochStartProofs[key] = pendingEpochStartProof{
+			epoch:           epoch,
+			requestSequence: t.nextProofRequestSequence,
+		}
+	}
+	t.mutPendingEpochStartData.Unlock()
+
+	if exists {
+		return
+	}
+
+	select {
+	case t.chanPendingEpochStartData <- struct{}{}:
+	default:
+	}
+}
+
+func (t *trigger) movePendingProofToHeaderRecovery(key string, epoch uint32) {
+	t.mutPendingEpochStartData.Lock()
+	current, found := t.pendingEpochStartProofs[key]
+	if found && current.epoch == epoch {
+		delete(t.pendingEpochStartProofs, key)
+		t.pendingEpochStartHeaders[epoch] = struct{}{}
+	}
+	t.mutPendingEpochStartData.Unlock()
+}
+
+// removePendingEpochStartProof deletes the entry only if it still holds the same epoch, so a
+// stale snapshot cannot remove state recreated by a concurrent callback
+func (t *trigger) removePendingEpochStartProof(key string, epoch uint32) {
+	t.mutPendingEpochStartData.Lock()
+	current, found := t.pendingEpochStartProofs[key]
+	if found && current.epoch == epoch {
+		delete(t.pendingEpochStartProofs, key)
+	}
+	t.mutPendingEpochStartData.Unlock()
+}
+
+func (t *trigger) removePendingEpochStartHeader(epoch uint32) {
+	t.mutPendingEpochStartData.Lock()
+	delete(t.pendingEpochStartHeaders, epoch)
+	t.mutPendingEpochStartData.Unlock()
+}
+
+func (t *trigger) pendingEpochStartDataSnapshot() (map[string]pendingEpochStartProof, map[uint32]struct{}) {
+	t.mutPendingEpochStartData.Lock()
+	defer t.mutPendingEpochStartData.Unlock()
+
+	pending := make(map[string]pendingEpochStartProof, len(t.pendingEpochStartProofs))
+	for key, info := range t.pendingEpochStartProofs {
+		pending[key] = info
+	}
+
+	pendingHeaders := make(map[uint32]struct{}, len(t.pendingEpochStartHeaders))
+	for epoch := range t.pendingEpochStartHeaders {
+		pendingHeaders[epoch] = struct{}{}
+	}
+
+	return pending, pendingHeaders
+}
+
+func (t *trigger) markPendingProofRequested(key string, epoch uint32) bool {
+	t.mutPendingEpochStartData.Lock()
+	defer t.mutPendingEpochStartData.Unlock()
+
+	current, found := t.pendingEpochStartProofs[key]
+	if !found || current.epoch != epoch {
+		return false
+	}
+
+	t.nextProofRequestSequence++
+	current.requestSequence = t.nextProofRequestSequence
+	t.pendingEpochStartProofs[key] = current
+	return true
+}
+
+func (t *trigger) hasPendingEpochStartData() bool {
+	t.mutPendingEpochStartData.Lock()
+	defer t.mutPendingEpochStartData.Unlock()
+
+	return len(t.pendingEpochStartProofs) > 0 || len(t.pendingEpochStartHeaders) > 0
+}
+
+func (t *trigger) getPendingProofRetryInterval() time.Duration {
+	t.mutPendingEpochStartData.Lock()
+	defer t.mutPendingEpochStartData.Unlock()
+
+	return t.pendingProofRetryInterval
+}
+
+// requestPendingEpochStartProofs re-requests proofs for pending epoch-start meta headers,
+// independently of metablock traffic; dormant while there is nothing pending
+func (t *trigger) requestPendingEpochStartProofs(ctx context.Context) {
+	// created stopped; armed only when pending work appears
+	timer := time.NewTimer(time.Hour)
+	if !timer.Stop() {
+		<-timer.C
+	}
+	defer timer.Stop()
+
+	timerActive := false
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug("requestPendingEpochStartProofs: trigger's go routine is stopping...")
+			return
+		case <-t.chanPendingEpochStartData:
+			// the callback already sent the immediate request; first retry is due one interval later
+			if !timerActive {
+				timer.Reset(t.getPendingProofRetryInterval())
+				timerActive = true
+			}
+		case <-timer.C:
+			// ctx.Done may be ready in the same select round; do not run a pass after cancellation
+			if ctx.Err() != nil {
+				log.Debug("requestPendingEpochStartProofs: trigger's go routine is stopping...")
+				return
+			}
+			timerActive = false
+			if t.retryPendingEpochStartProofs() {
+				timer.Reset(t.getPendingProofRetryInterval())
+				timerActive = true
+			}
+		}
+	}
+}
+
+// retryPendingEpochStartProofs runs one retry pass and returns true if entries remain pending
+func (t *trigger) retryPendingEpochStartProofs() bool {
+	currentEpoch := t.Epoch()
+	pendingProofs, pendingHeaders := t.pendingEpochStartDataSnapshot()
+	proofRequests := make([]struct {
+		key  string
+		info pendingEpochStartProof
+	}, 0, len(pendingProofs))
+
+	for key, info := range pendingProofs {
+		epoch := info.epoch
+		if epoch <= currentEpoch {
+			t.removePendingEpochStartProof(key, epoch)
+			continue
+		}
+
+		metaBlockHash := []byte(key)
+		header, err := t.headersPool.GetHeaderByHash(metaBlockHash)
+		if err != nil || check.IfNil(header) {
+			t.movePendingProofToHeaderRecovery(key, epoch)
+
+			// Close the race in which the header returned between the failed lookup and the
+			// state transition; duplicate pool insertion would not invoke receivedMetaBlock.
+			header, err = t.headersPool.GetHeaderByHash(metaBlockHash)
+			if err == nil && !check.IfNil(header) {
+				t.addPendingEpochStartProof(metaBlockHash, epoch)
+				continue
+			}
+
+			t.requestHandler.RequestStartOfEpochMetaBlock(epoch)
+			continue
+		}
+
+		_, err = t.proofsPool.GetProof(core.MetachainShardId, metaBlockHash)
+		if err != nil {
+			proofRequests = append(proofRequests, struct {
+				key  string
+				info pendingEpochStartProof
+			}{key: key, info: info})
+			continue
+		}
+
+		t.processMetaHeaderWithProof(header, metaBlockHash)
+		t.removePendingEpochStartProof(key, epoch)
+		t.removePendingEpochStartHeader(epoch)
+	}
+
+	sort.Slice(proofRequests, func(i, j int) bool {
+		if proofRequests[i].info.requestSequence == proofRequests[j].info.requestSequence {
+			return proofRequests[i].key < proofRequests[j].key
+		}
+
+		return proofRequests[i].info.requestSequence < proofRequests[j].info.requestSequence
+	})
+
+	numRequests := min(len(proofRequests), maxPendingProofRequestsPerPass)
+	for _, proofRequest := range proofRequests[:numRequests] {
+		if !t.markPendingProofRequested(proofRequest.key, proofRequest.info.epoch) {
+			continue
+		}
+
+		// stamp the target epoch: the requester drops requests labeled before Andromeda activation
+		t.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, []byte(proofRequest.key), proofRequest.info.epoch)
+	}
+
+	for epoch := range pendingHeaders {
+		if epoch <= currentEpoch {
+			t.removePendingEpochStartHeader(epoch)
+			continue
+		}
+
+		t.requestHandler.RequestStartOfEpochMetaBlock(epoch)
+	}
+
+	return t.hasPendingEpochStartData()
 }
 
 // receivedMetaBlock is a callback function when a new metablock was received
@@ -630,14 +866,16 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 					"header hash", metaBlockHash,
 					"epoch", headerHandler.GetEpoch(),
 				)
-				go t.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, metaBlockHash)
+				// record before requesting, so a fast response cannot complete unpended
+				t.addPendingEpochStartProof(metaBlockHash, metaHdr.GetEpoch())
+				// stamp the target epoch: the requester drops requests labeled before Andromeda activation
+				go t.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, metaBlockHash, metaHdr.GetEpoch())
 			}
 			return
 		}
 
-		t.mutTrigger.Lock()
-		t.checkMetaHeaderForEpochTriggerEquivalentProofs(headerHandler, proof.GetHeaderHash())
-		t.mutTrigger.Unlock()
+		t.removePendingEpochStartHeader(headerHandler.GetEpoch())
+		t.processMetaHeaderWithProof(headerHandler, proof.GetHeaderHash())
 		return
 	}
 

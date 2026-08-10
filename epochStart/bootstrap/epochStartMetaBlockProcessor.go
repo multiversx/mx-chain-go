@@ -11,6 +11,7 @@ import (
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -215,7 +216,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.GetEpoch()) {
 		e.headersPool.AddHeader([]byte(metaBlockHash), metaBlock)
 
-		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash))
+		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash), metaBlock.GetEpoch())
 		if err != nil {
 			return nil, err
 		}
@@ -255,12 +256,13 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (co
 func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(
 	ctx context.Context,
 	metaBlockHash []byte,
+	epoch uint32,
 ) error {
 	if e.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
 		return nil
 	}
 
-	err := e.requestProofForMetaBlock(metaBlockHash)
+	err := e.requestProofForMetaBlock(metaBlockHash, epoch)
 	if err != nil {
 		return err
 	}
@@ -274,7 +276,7 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(
 		case <-ctx.Done():
 			return epochStart.ErrTimeoutWaitingForMetaBlock
 		case <-chanRequests:
-			err = e.requestProofForMetaBlock(metaBlockHash)
+			err = e.requestProofForMetaBlock(metaBlockHash, epoch)
 			if err != nil {
 				return err
 			}
@@ -315,7 +317,7 @@ func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
 	return nil
 }
 
-func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(metablockHash []byte) error {
+func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(metablockHash []byte, epoch uint32) error {
 	numConnectedPeers := len(e.messenger.ConnectedPeers())
 	topic := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
 	err := e.requestHandler.SetNumPeersToQuery(topic, numConnectedPeers, numConnectedPeers)
@@ -323,7 +325,8 @@ func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(metablockHash []
 		return err
 	}
 
-	e.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, metablockHash)
+	// stamp the target epoch: the requester drops requests labeled before Andromeda activation
+	e.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, metablockHash, epoch)
 
 	return nil
 }

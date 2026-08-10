@@ -11,8 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
 
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -626,7 +627,7 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 
 		args := createMockArgs()
 		args.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestEquivalentProofByHashCalled: func(shardID uint32, hash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(shardID uint32, hash []byte, epoch uint32) {
 				mutRequestEquivalentProof.Lock()
 				counter++
 				mutRequestEquivalentProof.Unlock()
@@ -955,7 +956,7 @@ func TestHeadersForBlock_RequestMissingFinalityAttestingShardHeaders(t *testing.
 			},
 		}
 		args.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
 				mutRequestEquivalentProof.Lock()
 				counter++
 				requestedShardID = headerShard
@@ -1138,4 +1139,94 @@ func createShardInfo(referencedHeaders []*headerData) []block.ShardData {
 	}
 
 	return shardData
+}
+
+func TestHeadersForBlock_AttestationWithFlagBoundaryCandidates(t *testing.T) {
+	t.Parallel()
+
+	preProofsHeader := &block.Header{Nonce: 103, Epoch: 0, ShardID: 0}
+	preProofsHeaderHash := []byte("preProofsHeaderHash")
+	proofsEraHeader := &block.Header{Nonce: 103, Epoch: 1, ShardID: 0}
+	proofsEraHeaderHash := []byte("proofsEraHeaderHash")
+	includedHeader := &block.Header{Nonce: 102, Epoch: 0, ShardID: 0}
+	includedHeaderHash := []byte("includedHeaderHash")
+
+	createArgsForBoundary := func(requestedProofHashes *[][]byte, mutRequested *sync.Mutex) headerForBlock.ArgHeadersForBlock {
+		args := createMockArgs()
+		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{NoShards: 1}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag && epoch >= 1
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
+				mutRequested.Lock()
+				*requestedProofHashes = append(*requestedProofHashes, append([]byte(nil), headerHash...))
+				mutRequested.Unlock()
+			},
+		}
+
+		return args
+	}
+
+	t.Run("a pre-proofs candidate attests, sibling proofs are not demanded", func(t *testing.T) {
+		t.Parallel()
+
+		requestedProofHashes := make([][]byte, 0)
+		mutRequested := &sync.Mutex{}
+		args := createArgsForBoundary(&requestedProofHashes, mutRequested)
+
+		args.DataPool.Headers().AddHeader(preProofsHeaderHash, preProofsHeader)
+		args.DataPool.Headers().AddHeader(proofsEraHeaderHash, proofsEraHeader)
+
+		hfb, err := headerForBlock.NewHeadersForBlock(args)
+		require.Nil(t, err)
+
+		hfb.SetHighestHdrNonceForCurrentBlock(0, 102)
+		hfb.SetShardBlockFinality(1)
+		hfb.SetLastNotarizedHeaderForShard(0, headerForBlock.NewLastNotarizedHeaderInfo(includedHeader, includedHeaderHash, false, false))
+
+		missing := hfb.RequestMissingFinalityAttestingShardHeaders()
+
+		require.Equal(t, uint32(0), missing)
+		_, missingProofs, _ := hfb.GetMissingData()
+		require.Equal(t, uint32(0), missingProofs)
+		mutRequested.Lock()
+		require.Empty(t, requestedProofHashes)
+		mutRequested.Unlock()
+	})
+
+	t.Run("proofs-era candidates without any attester get proofs requested exactly once across re-runs", func(t *testing.T) {
+		t.Parallel()
+
+		requestedProofHashes := make([][]byte, 0)
+		mutRequested := &sync.Mutex{}
+		args := createArgsForBoundary(&requestedProofHashes, mutRequested)
+
+		args.DataPool.Headers().AddHeader(proofsEraHeaderHash, proofsEraHeader)
+
+		hfb, err := headerForBlock.NewHeadersForBlock(args)
+		require.Nil(t, err)
+
+		hfb.SetHighestHdrNonceForCurrentBlock(0, 102)
+		hfb.SetShardBlockFinality(1)
+		hfb.SetLastNotarizedHeaderForShard(0, headerForBlock.NewLastNotarizedHeaderInfo(includedHeader, includedHeaderHash, false, false))
+
+		_ = hfb.RequestMissingFinalityAttestingShardHeaders()
+		_, missingProofs, _ := hfb.GetMissingData()
+		require.Equal(t, uint32(1), missingProofs)
+
+		// walk re-runs (received-block callbacks) must not inflate the counter or re-request
+		_ = hfb.RequestMissingFinalityAttestingShardHeaders()
+		_ = hfb.RequestMissingFinalityAttestingShardHeaders()
+
+		_, missingProofs, _ = hfb.GetMissingData()
+		require.Equal(t, uint32(1), missingProofs)
+		require.Eventually(t, func() bool {
+			mutRequested.Lock()
+			defer mutRequested.Unlock()
+			return len(requestedProofHashes) == 1
+		}, time.Second, 10*time.Millisecond)
+	})
 }

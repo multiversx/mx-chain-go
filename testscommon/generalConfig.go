@@ -1,6 +1,7 @@
 package testscommon
 
 import (
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
@@ -171,9 +172,9 @@ func GetGeneralConfig() config.Config {
 			MaxPeerTrieLevelInMemory:    5,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-			PruningBufferLen:      1000,
-			SnapshotsBufferLen:    10,
-			SnapshotsGoroutineNum: 2,
+			PruningBufferLen:           1000,
+			SnapshotsBufferLen:         10,
+			SnapshotsGoroutinesPerCore: 2,
 		},
 		TxDataPool: config.CacheConfig{
 			Capacity:             10000,
@@ -186,6 +187,7 @@ func GetGeneralConfig() config.Config {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               100,
 			PropagationGracePeriodMs:       0,
+			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
 		},
 		TxCacheSelection: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
@@ -613,7 +615,7 @@ func GetDefaultAntifloodConfig() config.AntifloodConfig {
 				},
 			},
 			{
-				Round:                               100,
+				Round:                               99_999_999_999, // far-away supernova round, coherent with the disabled default
 				NumConcurrentResolverJobs:           10,
 				NumConcurrentResolvingTrieNodesJobs: 3,
 				Cache: config.CacheConfig{

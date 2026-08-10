@@ -324,7 +324,9 @@ func (bp *blockProcessor) isContendedUnsettledCrossHeader(header data.HeaderHand
 	if header.GetShardID() == bp.shardCoordinator.SelfId() {
 		return false
 	}
-	if !bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	// keyed on the header's own epoch: a pre-Supernova header predates the settlement rules and
+	// could never satisfy them
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
 		return false
 	}
 	if !common.IsContendedHeader(header, parentHeader) {
@@ -518,12 +520,31 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 
 		if shardID == core.MetachainShardId {
 			bp.requestHandler.RequestMetaHeaderByNonce(nonce)
-			bp.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
 		} else {
 			bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
-			bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
+		}
+		bp.requestProofByNonceIfPossible(shardID, nonce)
+	}
+}
+
+// requestProofByNonceIfPossible pairs a proof request with the header request, unless every pooled
+// candidate at the nonce predates the proofs flag, in which case no proof can exist
+func (bp *blockProcessor) requestProofByNonceIfPossible(shardID uint32, nonce uint64) {
+	headers, _, err := bp.headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
+	if err == nil && len(headers) > 0 {
+		allBeforeProofsFlag := true
+		for _, header := range headers {
+			if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
+				allBeforeProofsFlag = false
+				break
+			}
+		}
+		if allBeforeProofsFlag {
+			return
 		}
 	}
+
+	bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

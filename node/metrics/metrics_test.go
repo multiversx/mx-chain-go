@@ -41,6 +41,7 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricNumTimesInForkChoice,
 		common.MetricNumEquivocationProofs,
 		common.MetricNumReconcileSwitches,
+		common.MetricNumRollBacksRefusedMissingState,
 		common.MetricHighestFinalBlock,
 		common.MetricCountConsensusAcceptedBlocks,
 		common.MetricRoundsPassedInCurrentEpoch,

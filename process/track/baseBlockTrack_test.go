@@ -2401,6 +2401,61 @@ func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerHigherRoundShouldErr(t *tes
 	assert.True(t, errors.Is(err, process.ErrHigherRoundInBlock))
 }
 
+func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerUsesTheRoundOfTheCurrentTime(t *testing.T) {
+	t.Parallel()
+
+	// the stored index lags behind the clock while the chronology goroutine is blocked; the headers
+	// and proofs of the rounds it has not reached yet must still be accepted and relayed
+	storedRound := int64(50)
+	roundForCurrentTime := int64(88)
+
+	t.Run("header of a round the chronology has not reached is accepted", func(t *testing.T) {
+		t.Parallel()
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetRoundHandler(
+			&mock.RoundHandlerMock{
+				RoundIndex:               storedRound,
+				RoundIndexForCurrentTime: roundForCurrentTime,
+			},
+		)
+
+		err := bbt.CheckBlockAgainstRoundHandler(&block.Header{Round: uint64(roundForCurrentTime)})
+
+		assert.Nil(t, err)
+	})
+	t.Run("proof of a round the chronology has not reached is accepted", func(t *testing.T) {
+		t.Parallel()
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetRoundHandler(
+			&mock.RoundHandlerMock{
+				RoundIndex:               storedRound,
+				RoundIndexForCurrentTime: roundForCurrentTime,
+			},
+		)
+
+		err := bbt.CheckProofAgainstRoundHandler(&block.HeaderProof{HeaderRound: uint64(roundForCurrentTime)})
+
+		assert.Nil(t, err)
+	})
+	t.Run("header beyond the round of the current time is still rejected", func(t *testing.T) {
+		t.Parallel()
+
+		bbt := track.NewBaseBlockTrack()
+		bbt.SetRoundHandler(
+			&mock.RoundHandlerMock{
+				RoundIndex:               storedRound,
+				RoundIndexForCurrentTime: roundForCurrentTime,
+			},
+		)
+
+		err := bbt.CheckBlockAgainstRoundHandler(&block.Header{Round: uint64(roundForCurrentTime + 2)})
+
+		assert.True(t, errors.Is(err, process.ErrHigherRoundInBlock))
+	})
+}
+
 func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldWork(t *testing.T) {
 	t.Parallel()
 

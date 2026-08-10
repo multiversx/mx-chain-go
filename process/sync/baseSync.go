@@ -61,6 +61,10 @@ const defaultTimeToWaitForRequestedData = 5 * time.Minute
 // the same diverging execution result nonce
 const defaultExecutionResultsRecoveryCooldown = time.Minute
 
+// maxFetchFailuresBeforeDroppingUnprovenHeader bounds how long an unproven header may block the sync
+// at a nonce: one round plus the failure backoff per failure (~10s at 600ms rounds, ~1min at 6s rounds)
+const maxFetchFailuresBeforeDroppingUnprovenHeader = 10
+
 // hdrInfo hold the data related to a header
 type hdrInfo struct {
 	Nonce uint64
@@ -365,7 +369,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.Heade
 		}
 
 		boot.requestHandler.SetEpoch(headerHandler.GetEpoch())
-		boot.requestHandler.RequestEquivalentProofByHash(headerHandler.GetShardID(), hdrHash)
+		boot.requestHandler.RequestEquivalentProofByHashForEpoch(headerHandler.GetShardID(), hdrHash, headerHandler.GetEpoch())
 
 		return
 	}
@@ -415,7 +419,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 		}
 
 		boot.requestHandler.SetEpoch(headerHandler.GetEpoch())
-		boot.requestHandler.RequestEquivalentProofByHash(headerHandler.GetShardID(), hdrHash)
+		boot.requestHandler.RequestEquivalentProofByHashForEpoch(headerHandler.GetShardID(), hdrHash, headerHandler.GetEpoch())
 
 		return
 	}
@@ -823,9 +827,13 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
 	header data.HeaderHandler,
 ) uint32 {
+	// no header means the sync never got one for this nonce: fall back to the wall-clock round so
+	// the limit comes from the active config even when the chronology-backed index lags
 	round := uint64(0)
 	if !check.IfNil(header) {
 		round = header.GetRound()
+	} else if currentRound := boot.roundHandler.IndexForCurrentTime(); currentRound > 0 {
+		round = uint64(currentRound)
 	}
 
 	return boot.processConfigsHandler.GetMaxSyncWithErrorsAllowed(round)
@@ -844,7 +852,12 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 	}
 
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
-	isProcessWithError := processBlockStarted && !errors.Is(err, process.ErrTimeIsOut)
+	// missing data is not evidence against the local chain: keep the header and the fetched txs so
+	// retries accumulate; the errors limit below stays the last resort
+	isMissingDataFailure := errors.Is(err, process.ErrTimeIsOut) ||
+		errors.Is(err, process.ErrTxNotFound) ||
+		errors.Is(err, process.ErrMissingTransaction)
+	isProcessWithError := processBlockStarted && !isMissingDataFailure
 
 	numSyncedWithErrors := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
 	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= boot.getMaxSyncWithErrorsAllowed(headerHandler)
@@ -877,12 +890,14 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 	// stuck fetching the next header (no processing, no rollback): drop a non-final fork header whose proof
 	// will never arrive so it gets re-requested
 	if check.IfNil(headerHandler) && !didRollBack {
-		boot.removeBlockingUnprovenNextHeader(allowedSyncWithErrorsLimitReached)
+		boot.removeBlockingUnprovenNextHeader(numSyncedWithErrors)
 	}
 }
 
-func (boot *baseBootstrap) removeBlockingUnprovenNextHeader(limitReached bool) {
-	if !limitReached {
+func (boot *baseBootstrap) removeBlockingUnprovenNextHeader(numFetchFailures uint32) {
+	// paced by its own bound, not by the rollback tolerance: this loop waits on the wall clock, one
+	// round plus the failure backoff per attempt, so a round based allowance would overshoot
+	if numFetchFailures < maxFetchFailuresBeforeDroppingUnprovenHeader {
 		return
 	}
 
@@ -1604,6 +1619,9 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	err = txPool.OnExecutedBlock(lastNotarizedExecutedHeader, rootHash)
 	if err != nil {
 		txPool.ResetTracker()
+		// the emptied tracker must be rebuilt from the notarized anchor: the realign drops the
+		// pending execution results, else the backfill starts above the anchor and leaves a gap
+		boot.pendingV3Realign = true
 		return 0, nil, err
 	}
 
@@ -1816,6 +1834,11 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) (err error) {
 		)
 
 		if currHeader.IsHeaderV3() {
+			err = boot.checkRollBackExecutionBase(prevHeader)
+			if err != nil {
+				return err
+			}
+
 			currBody, err = boot.rollBackOneBlockV3(
 				currHeaderHash,
 				currHeader,
@@ -2058,6 +2081,33 @@ func (boot *baseBootstrap) canRollbackBlock(currHeader data.HeaderHandler) bool 
 	firstCommittedNonce := boot.blockProcessor.NonceOfFirstCommittedBlock()
 
 	return currHeader.GetNonce() >= firstCommittedNonce.Value && firstCommittedNonce.HasValue
+}
+
+// checkRollBackExecutionBase refuses a roll back whose post-rollback execution base state cannot
+// be recreated: proceeding would strand the node unable to execute forward or roll back further
+func (boot *baseBootstrap) checkRollBackExecutionBase(prevHeader data.HeaderHandler) error {
+	if !prevHeader.IsHeaderV3() {
+		return nil
+	}
+
+	lastExecResult, err := common.GetLastBaseExecutionResultHandler(prevHeader)
+	if err != nil {
+		return err
+	}
+
+	rootHash := lastExecResult.GetRootHash()
+	_, err = boot.accounts.GetTrie(rootHash)
+	if err != nil {
+		boot.statusHandler.Increment(common.MetricNumRollBacksRefusedMissingState)
+		log.Error("roll back refused: execution base state is missing",
+			"nonce", prevHeader.GetNonce(),
+			"root hash", rootHash,
+			"error", err,
+		)
+		return ErrRollBackExecutionBaseMissing
+	}
+
+	return nil
 }
 
 func (boot *baseBootstrap) rollBackOneBlock(
@@ -2356,7 +2406,7 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 		return hdr, nil
 	}
 
-	boot.requestHeaderAndProofByHashIfMissing(hash, !hasHeader, needsProof)
+	boot.requestHeaderAndProofByHashIfMissing(hash, hdr, !hasHeader, needsProof)
 
 	err = boot.waitForHeaderAndProofByHash()
 	if err != nil {
@@ -2411,14 +2461,17 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 		boot.requestHandler.SetEpoch(hdr.GetEpoch())
 	}
 
-	boot.requestHeaderAndProofByNonceIfMissing(hash, nonce, !hasHeader, needsProof)
+	// no usable header is held here, so ask for one even when the pool has an unproven fork: that
+	// fork may never gain a proof, while a request by nonce is answered with the proven header
+	boot.requestHeaderAndProofByNonce(hash, hdr, nonce, needsProof)
 
 	err = boot.waitForHeaderAndProofByNonce()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hdr, hash, err = boot.getHeaderFromPoolWithNonce(nonce)
+	// re-read the proven hash: the wait above is what a freshly arrived proof releases
+	hdr, hash, err = boot.getHeaderFromPoolPreferProven(nonce, boot.getProvenHashForNonce(nonce))
 	if err != nil {
 		log.Debug("getHeaderWithNonceRequestingIfMissing: failed to get header with nonce", "nonce", nonce, "error", err)
 		return nil, nil, err
@@ -2467,6 +2520,7 @@ func (boot *baseBootstrap) checkNeedsProofByNonce(
 
 func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	hash []byte,
+	header data.HeaderHandler,
 	needsHeader bool,
 	needsProof bool,
 ) {
@@ -2485,7 +2539,18 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	)
 
 	boot.setRequestedHeaderHash(hash)
-	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	boot.requestSelfShardProof(hash, header)
+}
+
+// requestSelfShardProof requests the proof stamped with the header's epoch; with the header
+// unknown, the current-epoch label keeps the fail-safe request
+func (boot *baseBootstrap) requestSelfShardProof(hash []byte, header data.HeaderHandler) {
+	if check.IfNil(header) {
+		boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+		return
+	}
+
+	boot.requestHandler.RequestEquivalentProofByHashForEpoch(boot.shardCoordinator.SelfId(), hash, header.GetEpoch())
 }
 
 func (boot *baseBootstrap) requestHeaderByHash(hash []byte) {
@@ -2512,17 +2577,15 @@ func (boot *baseBootstrap) getShardLabel() string {
 	return shardLabel
 }
 
-func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
+func (boot *baseBootstrap) requestHeaderAndProofByNonce(
 	hash []byte,
+	header data.HeaderHandler,
 	nonce uint64,
-	needsHeader bool,
 	needsProof bool,
 ) {
 	_ = core.EmptyChannel(boot.chRcvHdrNonce)
-	if needsHeader {
-		boot.setRequestedHeaderNonce(&nonce)
-		boot.requestHeaderByNonce(nonce)
-	}
+	boot.setRequestedHeaderNonce(&nonce)
+	boot.requestHeaderByNonce(nonce)
 
 	if !needsProof {
 		return
@@ -2533,7 +2596,6 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
 			"nonce", nonce,
 		)
 
-		boot.setRequestedHeaderNonce(&nonce)
 		boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce)
 		return
 	}
@@ -2542,8 +2604,7 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonceIfMissing(
 		"hash", hex.EncodeToString(hash),
 	)
 
-	boot.setRequestedHeaderNonce(&nonce)
-	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	boot.requestSelfShardProof(hash, header)
 }
 
 func (boot *baseBootstrap) requestHeaderByNonce(nonce uint64) {
@@ -2586,6 +2647,32 @@ func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
 	}
 
 	return process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
+}
+
+// getProvenHashForNonce returns the hash a proof at the given nonce attests, if such a proof is known
+func (boot *baseBootstrap) getProvenHashForNonce(nonce uint64) []byte {
+	proof, err := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+	if err != nil {
+		return nil
+	}
+
+	return proof.GetHeaderHash()
+}
+
+// getHeaderFromPoolPreferProven returns the header at the given nonce, preferring the proven one: the
+// pool keeps every header received at a nonce and a later fork header must not shadow the proven one
+func (boot *baseBootstrap) getHeaderFromPoolPreferProven(
+	nonce uint64,
+	provenHash []byte,
+) (data.HeaderHandler, []byte, error) {
+	if len(provenHash) > 0 {
+		hdr, err := boot.getHeaderFromPool(provenHash)
+		if err == nil {
+			return hdr, provenHash, nil
+		}
+	}
+
+	return boot.getHeaderFromPoolWithNonce(nonce)
 }
 
 // onEquivocationEvidence records reconcile evidence, an equivocation proof at the final
