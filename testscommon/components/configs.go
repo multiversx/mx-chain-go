@@ -2,6 +2,7 @@ package components
 
 import (
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // GetGeneralConfig -
@@ -64,9 +65,9 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-			PruningBufferLen:      1000,
-			SnapshotsBufferLen:    10,
-			SnapshotsGoroutineNum: 1,
+			PruningBufferLen:           1000,
+			SnapshotsBufferLen:         10,
+			SnapshotsGoroutinesPerCore: 1,
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
 			Querying: config.QueryVirtualMachineConfig{
@@ -113,10 +114,6 @@ func GetGeneralConfig() config.Config {
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
 		},
-		PoolsCleanersConfig: config.PoolsCleanersConfig{
-			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
-			MaxRoundsToKeepUnprocessedTransactions: 50,
-		},
 		BuiltInFunctions: config.BuiltInFunctionsConfig{
 			AutomaticCrawlerAddresses: []string{
 				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", // shard 0
@@ -156,6 +153,7 @@ func GetGeneralConfig() config.Config {
 			MinTransactionVersion:    1,
 			GenesisMaxNumberOfShards: 3,
 			SetGuardianEpochsDelay:   20,
+			MaxProposalNonceGap:      10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,
@@ -166,9 +164,57 @@ func GetGeneralConfig() config.Config {
 					MetachainMinNumNodes:        1,
 					Hysteresis:                  0,
 					Adaptivity:                  false,
+					RoundsPerEpoch:              20,
+					MinRoundsBetweenEpochs:      10,
 				},
 			},
 			EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}},
+			ProcessConfigsByEpoch: []config.ProcessConfigByEpoch{{
+				EnableEpoch:                       0,
+				MaxMetaNoncesBehind:               15,
+				MaxMetaNoncesBehindForGlobalStuck: 30,
+				MaxShardNoncesBehind:              15,
+			}},
+			ProcessConfigsByRound: []config.ProcessConfigByRound{
+				{
+					EnableRound:                            0,
+					MaxRoundsWithoutNewBlockReceived:       10,
+					MaxRoundsWithoutCommittedBlock:         10,
+					MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+					MaxRoundsToKeepUnprocessedTransactions: 50,
+					NumFloodingRoundsFastReacting:          20,
+					NumFloodingRoundsOutOfSpecs:            20,
+					NumFloodingRoundsSlowReacting:          20,
+					MaxConsecutiveRoundsOfRatingDecrease:   600,
+					MaxBlockProcessingTimeMs:               1000,
+					NumHeadersToRequestInAdvance:           10,
+					RoundModulusTriggerWhenSyncIsStuck:     20,
+				},
+			},
+			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
+				{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+			},
+			EpochStartConfigsByRound: []config.EpochStartConfigByRound{
+				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
+			},
+			ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
+				{
+					EnableEpoch: 0,
+					NumRoundsToWaitBeforeSignalingChronologyStuck: 10,
+				},
+			},
+			ConsensusConfigsByRound: []config.ConsensusConfigByRound{
+				{
+					EnableRound: 0,
+					SubroundsTiming: []config.SubroundTiming{
+						{StartTime: 0.0, EndTime: 0.05},
+						{StartTime: 0.05, EndTime: 0.25},
+						{StartTime: 0.25, EndTime: 0.85},
+						{StartTime: 0.85, EndTime: 0.95},
+					},
+					ProcessingThresholdPercent: 85,
+				},
+			},
 		},
 		Marshalizer: config.MarshalizerConfig{
 			Type:           TestMarshalizer,
@@ -198,11 +244,6 @@ func GetGeneralConfig() config.Config {
 		Versions: config.VersionsConfig{
 			DefaultVersion:   "1",
 			VersionsByEpochs: nil,
-			Cache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 1000,
-				Shards:   1,
-			},
 		},
 		Hardfork: config.HardforkConfig{
 			PublicKeyToListenFrom: DummyPk,
@@ -227,14 +268,13 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		Antiflood: testscommon.GetDefaultAntifloodConfig(),
 	}
 }
 
 // GetEpochStartConfig -
 func GetEpochStartConfig() config.EpochStartConfig {
 	return config.EpochStartConfig{
-		MinRoundsBetweenEpochs:            20,
-		RoundsPerEpoch:                    20,
 		MaxShuffledOutRestartThreshold:    0.2,
 		MinShuffledOutRestartThreshold:    0.1,
 		MinNumConnectedPeersToStart:       2,
@@ -263,6 +303,10 @@ func CreateDummyEconomicsConfig() config.EconomicsConfig {
 					ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 					TopUpFactor:                      0.25,
 					TopUpGradientPoint:               "3000000000000000000000000",
+					EcosystemGrowthPercentage:        0.0,
+					EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+					GrowthDividendPercentage:         0.0,
+					GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 				},
 			},
 		},

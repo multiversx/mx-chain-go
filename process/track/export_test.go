@@ -4,10 +4,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
+
+// MaxMetaBlocksScannedForInclusion -
+const MaxMetaBlocksScannedForInclusion = maxMetaBlocksScannedForInclusion
+
+// MaxOwnDescendantsScannedForInclusion -
+const MaxOwnDescendantsScannedForInclusion = maxOwnDescendantsScannedForInclusion
 
 // shardBlockTrack
 
@@ -39,7 +46,7 @@ func (sbt *shardBlockTrack) GetTrackedShardHeaderWithNonceAndHash(shardID uint32
 // metaBlockTrack
 
 // GetTrackedMetaBlockWithHash -
-func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.MetaBlock, error) {
+func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (data.MetaHeaderHandler, error) {
 	return mbt.getTrackedMetaBlockWithHash(hash)
 }
 
@@ -48,6 +55,11 @@ func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.Meta
 // ReceivedHeader -
 func (bbt *baseBlockTrack) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	bbt.receivedHeader(headerHandler, headerHash)
+}
+
+// ReceivedProof -
+func (bbt *baseBlockTrack) ReceivedProof(proof data.HeaderProofHandler) {
+	bbt.receivedProof(proof)
 }
 
 // CheckTrackerNilParameters -
@@ -118,6 +130,11 @@ func (bbt *baseBlockTrack) SetRoundHandler(roundHandler process.RoundHandler) {
 	bbt.roundHandler = roundHandler
 }
 
+// SetProofsPool -
+func (bbt *baseBlockTrack) SetProofsPool(proofsPool dataRetriever.ProofsPool) {
+	bbt.proofsPool = proofsPool
+}
+
 // SetCrossNotarizer -
 func (bbt *baseBlockTrack) SetCrossNotarizer(notarizer blockNotarizerHandler) {
 	bbt.crossNotarizer = notarizer
@@ -143,8 +160,13 @@ func (bbt *baseBlockTrack) DoWhitelistWithMetaBlockIfNeeded(metaBlock *block.Met
 	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
 }
 
+// DoWhitelistWithMetaHeaderIfNeeded -
+func (bbt *baseBlockTrack) DoWhitelistWithMetaHeaderIfNeeded(metaBlock data.MetaHeaderHandler) {
+	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
+}
+
 // DoWhitelistWithShardHeaderIfNeeded -
-func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader *block.Header) {
+func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader data.HeaderHandler) {
 	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
 }
 
@@ -285,4 +307,23 @@ func (mbt *miniBlockTrack) GetTransactionPool(mbType block.Type) dataRetriever.S
 // SetBlockTransactionsPool -
 func (mbt *miniBlockTrack) SetBlockTransactionsPool(blockTransactionsPool dataRetriever.ShardedDataCacherNotifier) {
 	mbt.blockTransactionsPool = blockTransactionsPool
+}
+
+// GetConfirmedMiniBlockInfo - test accessor for the local registry
+func (mbt *miniBlockTrack) GetConfirmedMiniBlockInfo(miniBlockHash []byte) (cacheID string, nonce uint64, ok bool) {
+	info, found := mbt.getConfirmedMiniBlockInfo(miniBlockHash)
+	if !found {
+		return "", 0, false
+	}
+	return info.cacheID, info.nonce, true
+}
+
+// PullProofsForContendedNonces -
+func (bbt *baseBlockTrack) PullProofsForContendedNonces() {
+	bbt.pullProofsForContendedNonces()
+}
+
+// RequestHeadersWithProofPairing -
+func (bp *blockProcessor) RequestHeadersWithProofPairing(shardID uint32, fromNonce uint64) {
+	bp.requestHeaders(shardID, fromNonce)
 }

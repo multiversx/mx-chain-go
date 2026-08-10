@@ -28,7 +28,7 @@ func (pmbts *ProcessedMiniBlocksTrackerStub) SetProcessedMiniBlockInfo(metaBlock
 // RemoveMetaBlockHash -
 func (pmbts *ProcessedMiniBlocksTrackerStub) RemoveMetaBlockHash(metaBlockHash []byte) {
 	if pmbts.RemoveMetaBlockHashCalled != nil {
-		pmbts.RemoveMiniBlockHashCalled(metaBlockHash)
+		pmbts.RemoveMetaBlockHashCalled(metaBlockHash)
 	}
 }
 

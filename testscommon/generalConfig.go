@@ -1,6 +1,7 @@
 package testscommon
 
 import (
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
@@ -50,13 +51,14 @@ func GetGeneralConfig() config.Config {
 			CacheRefreshIntervalInSec: uint32(100),
 		},
 		GeneralSettings: config.GeneralSettingsConfig{
-			StartInEpochEnabled:                  true,
-			GenesisMaxNumberOfShards:             100,
-			MaxComputableRounds:                  1000,
-			MaxConsecutiveRoundsOfRatingDecrease: 2000,
-			SyncProcessTimeInMillis:              6000,
-			SetGuardianEpochsDelay:               20,
-			StatusPollingIntervalSec:             10,
+			StartInEpochEnabled:              true,
+			GenesisMaxNumberOfShards:         100,
+			MaxComputableRounds:              1000,
+			SyncProcessTimeInMillis:          6000,
+			SyncProcessTimeSupernovaInMillis: 3000,
+			SetGuardianEpochsDelay:           20,
+			StatusPollingIntervalSec:         10,
+			MaxProposalNonceGap:              10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,
@@ -67,13 +69,58 @@ func GetGeneralConfig() config.Config {
 					MetachainMinNumNodes:        1,
 					Hysteresis:                  0,
 					Adaptivity:                  false,
+					RoundsPerEpoch:              10,
+					MinRoundsBetweenEpochs:      5,
 				},
 			},
 			EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}},
+			ProcessConfigsByEpoch: []config.ProcessConfigByEpoch{{
+				EnableEpoch:                       0,
+				MaxMetaNoncesBehind:               15,
+				MaxMetaNoncesBehindForGlobalStuck: 30,
+				MaxShardNoncesBehind:              15,
+			}},
+			ProcessConfigsByRound: []config.ProcessConfigByRound{
+				{
+					EnableRound:                            0,
+					MaxRoundsWithoutNewBlockReceived:       10,
+					MaxRoundsWithoutCommittedBlock:         10,
+					MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+					MaxRoundsToKeepUnprocessedTransactions: 50,
+					NumFloodingRoundsSlowReacting:          20,
+					NumFloodingRoundsFastReacting:          30,
+					NumFloodingRoundsOutOfSpecs:            40,
+					MaxConsecutiveRoundsOfRatingDecrease:   2000,
+					MaxBlockProcessingTimeMs:               1000,
+					NumHeadersToRequestInAdvance:           10,
+				},
+			},
+			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
+				{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+			},
+			EpochStartConfigsByRound: []config.EpochStartConfigByRound{
+				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
+			},
+			ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
+				{
+					EnableEpoch: 0,
+					NumRoundsToWaitBeforeSignalingChronologyStuck: 10,
+				},
+			},
+			ConsensusConfigsByRound: []config.ConsensusConfigByRound{
+				{
+					EnableRound: 0,
+					SubroundsTiming: []config.SubroundTiming{
+						{StartTime: 0.0, EndTime: 0.05},
+						{StartTime: 0.05, EndTime: 0.25},
+						{StartTime: 0.25, EndTime: 0.85},
+						{StartTime: 0.85, EndTime: 0.95},
+					},
+					ProcessingThresholdPercent: 85,
+				},
+			},
 		},
 		EpochStartConfig: config.EpochStartConfig{
-			MinRoundsBetweenEpochs:            5,
-			RoundsPerEpoch:                    10,
 			MinNumConnectedPeersToStart:       2,
 			MinNumOfPeersToConsiderBlockValid: 2,
 		},
@@ -125,9 +172,9 @@ func GetGeneralConfig() config.Config {
 			MaxPeerTrieLevelInMemory:    5,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-			PruningBufferLen:      1000,
-			SnapshotsBufferLen:    10,
-			SnapshotsGoroutineNum: 2,
+			PruningBufferLen:           1000,
+			SnapshotsBufferLen:         10,
+			SnapshotsGoroutinesPerCore: 2,
 		},
 		TxDataPool: config.CacheConfig{
 			Capacity:             10000,
@@ -135,6 +182,19 @@ func GetGeneralConfig() config.Config {
 			SizeInBytes:          1000000000,
 			SizeInBytesPerSender: 10000000,
 			Shards:               1,
+		},
+		TxCacheBounds: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               100,
+			PropagationGracePeriodMs:       0,
+			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
+		},
+		TxCacheSelection: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopDurationCheckInterval:            10,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,
@@ -221,6 +281,16 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		ExecutionResultsStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("ExecutionResults"),
+				Type:              string(storageunit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
 		MetaHdrNonceHashStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -262,7 +332,7 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		HeartbeatV2: config.HeartbeatV2Config{
-			PeerAuthenticationTimeBetweenSendsInSec:          1,
+			PeerAuthenticationTimeBetweenSendsInSec:          10,
 			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 			PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 			HeartbeatTimeBetweenSendsInSec:                   1,
@@ -363,11 +433,6 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		Versions: config.VersionsConfig{
-			Cache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 1000,
-				Shards:   1,
-			},
 			DefaultVersion: "default",
 			VersionsByEpochs: []config.VersionByEpochs{
 				{
@@ -385,14 +450,7 @@ func GetGeneralConfig() config.Config {
 			TrieSyncerVersion:         2,
 			CheckNodesOnDisk:          false,
 		},
-		Antiflood: config.AntifloodConfig{
-			NumConcurrentResolverJobs:           2,
-			NumConcurrentResolvingTrieNodesJobs: 1,
-			TxAccumulator: config.TxAccumulatorConfig{
-				MaxAllowedTimeInMilliseconds:   10,
-				MaxDeviationTimeInMilliseconds: 1,
-			},
-		},
+		Antiflood: GetDefaultAntifloodConfig(),
 		Requesters: config.RequesterConfig{
 			NumCrossShardPeers:  2,
 			NumTotalPeers:       3,
@@ -432,10 +490,6 @@ func GetGeneralConfig() config.Config {
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
 		},
-		PoolsCleanersConfig: config.PoolsCleanersConfig{
-			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
-			MaxRoundsToKeepUnprocessedTransactions: 50,
-		},
 		BuiltInFunctions: config.BuiltInFunctionsConfig{
 			AutomaticCrawlerAddresses: []string{
 				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", // shard 0
@@ -456,6 +510,21 @@ func GetGeneralConfig() config.Config {
 			CacheSpanInSec:   1,
 			CacheExpiryInSec: 1,
 		},
+		ExecutedMiniBlocksCache:      getLRUCacheConfig(),
+		PostProcessTransactionsCache: getLRUCacheConfig(),
+		BlockSizeThrottleConfig: config.BlockSizeThrottleConfig{
+			MinSizeInBytes:        1,
+			MaxSizeInBytes:        10000,
+			MaxExecResSizeInBytes: 10000,
+		},
+		ExecutionResultInclusionEstimator: config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       0,
+			MaxResultsPerBlock: 10,
+		},
+		DirectSentTransactions: config.DirectSentTransactionsConfig{
+			CacheSpanInSec:   1,
+			CacheExpiryInSec: 1,
+		},
 	}
 }
 
@@ -464,5 +533,158 @@ func getLRUCacheConfig() config.CacheConfig {
 		Type:     "LRU",
 		Capacity: 1000,
 		Shards:   1,
+	}
+}
+
+// GetDefaultAntifloodConfig -
+func GetDefaultAntifloodConfig() config.AntifloodConfig {
+	return config.AntifloodConfig{
+		Enabled:                              true,
+		MaxAllowedTrieNodeChunks:             10,
+		TrieNodeChunksInactivityTimeoutInSec: 10,
+		ConfigsByRound: []config.AntifloodConfigByRound{
+			{
+				Round:                               0,
+				NumConcurrentResolverJobs:           10,
+				NumConcurrentResolvingTrieNodesJobs: 3,
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 10,
+					Shards:   2,
+				},
+				PeerMaxOutput: config.FloodPreventerConfig{
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 10,
+						TotalSizePerInterval:    10,
+					},
+				},
+				Topic: config.TopicAntifloodConfig{
+					DefaultMaxMessagesPerSec: 10,
+				},
+				TxAccumulator: config.TxAccumulatorConfig{
+					MaxAllowedTimeInMilliseconds:   10,
+					MaxDeviationTimeInMilliseconds: 1,
+				},
+				FastReacting: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 100,
+						ThresholdSizePerInterval:        1024,
+						PeerBanDurationInSeconds:        100,
+						NumFloodingRounds:               5,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 100,
+						TotalSizePerInterval:    1024,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 1.0,
+						},
+					},
+					ReservedPercent: 50.0,
+				},
+				SlowReacting: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 100,
+						ThresholdSizePerInterval:        1024,
+						PeerBanDurationInSeconds:        100,
+						NumFloodingRounds:               5,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 100,
+						TotalSizePerInterval:    1024,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 1.0,
+						},
+					},
+					ReservedPercent: 50.0,
+				},
+				OutOfSpecs: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 100,
+						ThresholdSizePerInterval:        1024,
+						PeerBanDurationInSeconds:        100,
+						NumFloodingRounds:               5,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 100,
+						TotalSizePerInterval:    1024,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 1.0,
+						},
+					},
+					ReservedPercent: 50.0,
+				},
+			},
+			{
+				Round:                               99_999_999_999, // far-away supernova round, coherent with the disabled default
+				NumConcurrentResolverJobs:           10,
+				NumConcurrentResolvingTrieNodesJobs: 3,
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 10,
+					Shards:   2,
+				},
+				PeerMaxOutput: config.FloodPreventerConfig{
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 101,
+						TotalSizePerInterval:    102,
+					},
+				},
+				Topic: config.TopicAntifloodConfig{
+					DefaultMaxMessagesPerSec: 103,
+				},
+				TxAccumulator: config.TxAccumulatorConfig{
+					MaxAllowedTimeInMilliseconds:   104,
+					MaxDeviationTimeInMilliseconds: 11,
+				},
+				FastReacting: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 201,
+						ThresholdSizePerInterval:        2041,
+						PeerBanDurationInSeconds:        201,
+						NumFloodingRounds:               12,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 202,
+						TotalSizePerInterval:    2042,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 2.0,
+						},
+					},
+					ReservedPercent: 60.0,
+				},
+				SlowReacting: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 203,
+						ThresholdSizePerInterval:        2043,
+						PeerBanDurationInSeconds:        203,
+						NumFloodingRounds:               13,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 203,
+						TotalSizePerInterval:    2043,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 2.0,
+						},
+					},
+					ReservedPercent: 60.0,
+				},
+				OutOfSpecs: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 204,
+						ThresholdSizePerInterval:        2044,
+						PeerBanDurationInSeconds:        204,
+						NumFloodingRounds:               14,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 204,
+						TotalSizePerInterval:    2044,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 2.0,
+						},
+					},
+					ReservedPercent: 60.0,
+				},
+			},
+		},
 	}
 }

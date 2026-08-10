@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug/handler"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,6 +16,7 @@ func TestNewInterceptorResolverDebuggerFactory_DisabledShouldWork(t *testing.T) 
 		config.InterceptorResolverDebugConfig{
 			Enabled: false,
 		},
+		&testscommon.SyncTimerStub{},
 	)
 
 	assert.Nil(t, err)
@@ -30,12 +32,13 @@ func TestNewInterceptorResolverDebuggerFactory_InterceptorResolver(t *testing.T)
 			Enabled:   true,
 			CacheSize: 1000,
 		},
+		&testscommon.SyncTimerStub{},
 	)
 
 	assert.Nil(t, err)
 	expected, _ := handler.NewInterceptorDebugHandler(config.InterceptorResolverDebugConfig{
 		Enabled:   false,
 		CacheSize: 1,
-	})
+	}, &testscommon.SyncTimerStub{})
 	assert.IsType(t, expected, idf)
 }

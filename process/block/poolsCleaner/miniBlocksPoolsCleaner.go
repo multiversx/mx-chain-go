@@ -161,8 +161,9 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 			continue
 		}
 
-		roundDif := mbpc.roundHandler.Index() - mbi.round
-		if roundDif <= mbpc.maxRoundsToKeepUnprocessedData {
+		round := mbpc.roundHandler.Index()
+		roundDif := round - mbi.round
+		if roundDif <= int64(mbpc.processConfigsHandler.GetMaxRoundsToKeepUnprocessedMiniBlocks(uint64(round))) {
 			log.Trace("cleaning miniblock not yet allowed",
 				"hash", []byte(hash),
 				"round", mbi.round,

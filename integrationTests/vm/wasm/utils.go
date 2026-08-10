@@ -45,8 +45,8 @@ import (
 	processTransaction "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -54,6 +54,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -92,7 +93,7 @@ type TestContext struct {
 	GasSchedule map[string]map[string]uint64
 
 	EpochNotifier       process.EpochNotifier
-	EnableRoundsHandler process.EnableRoundsHandler
+	EnableRoundsHandler common.EnableRoundsHandler
 	RoundNotifier       process.RoundNotifier
 	EnableEpochsHandler common.EnableEpochsHandler
 	UnsignexTxHandler   process.TransactionFeeHandler
@@ -114,7 +115,7 @@ type TestContext struct {
 	LastTxHash    []byte
 	SCRForwarder  *mock.IntermediateTransactionHandlerMock
 	LastSCResults []*smartContractResult.SmartContractResult
-	LastLogs      []*data.LogData
+	LastLogs      []data.LogDataHandler
 }
 
 type testParticipant struct {
@@ -214,7 +215,9 @@ func (context *TestContext) initFeeHandlers() {
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
 	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -235,6 +238,10 @@ func (context *TestContext) initFeeHandlers() {
 						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
 						TopUpGradientPoint:               "1000000",
 						TopUpFactor:                      0,
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           testProtocolSustainabilityAddress,
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            testProtocolSustainabilityAddress,
 					},
 				},
 			},

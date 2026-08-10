@@ -6,10 +6,18 @@ import (
 
 // SyncTimerMock is a mock implementation of SyncTimer interface
 type SyncTimerMock struct {
+	ForceSyncCalled            func()
 	StartSyncingTimeCalled     func()
 	ClockOffsetCalled          func() time.Duration
 	FormattedCurrentTimeCalled func() string
 	CurrentTimeCalled          func() time.Time
+}
+
+// ForceSync -
+func (stm *SyncTimerMock) ForceSync() {
+	if stm.ForceSyncCalled != nil {
+		stm.ForceSyncCalled()
+	}
 }
 
 // StartSyncingTime is a mock implementation for StartSyncingTime

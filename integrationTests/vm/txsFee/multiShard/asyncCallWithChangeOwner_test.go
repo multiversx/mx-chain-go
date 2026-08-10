@@ -92,5 +92,5 @@ func TestDoChangeOwnerCrossShardFromAContract(t *testing.T) {
 
 	logs = testContextSecondContract.TxsLogsProcessor.GetAllCurrentLogs()
 	require.NotNil(t, logs)
-	require.Equal(t, core.BuiltInFunctionChangeOwnerAddress, string(logs[0].GetLogEvents()[0].GetIdentifier()))
+	require.Equal(t, core.BuiltInFunctionChangeOwnerAddress, string(logs[0].GetLogHandler().GetLogEvents()[0].GetIdentifier()))
 }

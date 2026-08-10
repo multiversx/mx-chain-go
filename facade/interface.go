@@ -138,6 +138,8 @@ type ApiResolver interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetSelectedTransactions(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error)
+	GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error)
 	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error)

@@ -6,9 +6,10 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // simulationAccountsDB is a wrapper over an accounts db which works read-only. write operation are disabled
@@ -132,12 +133,21 @@ func (r *simulationAccountsDB) RecreateTrie(_ common.RootHashHolder) error {
 	return nil
 }
 
+// RecreateTrieIfNeeded won't do anything as write operations are disabled on this component
+func (r *simulationAccountsDB) RecreateTrieIfNeeded(_ common.RootHashHolder) error {
+	return nil
+}
+
 // PruneTrie won't do anything as write operations are disabled on this component
 func (r *simulationAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 }
 
 // CancelPrune won't do anything as write operations are disabled on this component
 func (r *simulationAccountsDB) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
+}
+
+// ResetPruning won't do anything as write operations are disabled on this component
+func (r *simulationAccountsDB) ResetPruning() {
 }
 
 // SnapshotState won't do anything as write operations are disabled on this component
@@ -182,6 +192,11 @@ func (r *simulationAccountsDB) SetTxHashForLatestStateAccesses(txHash []byte) {
 // Close will handle the closing of the underlying components
 func (r *simulationAccountsDB) Close() error {
 	return nil
+}
+
+// GetEvictionWaitingListSize returns 0 for the simulation accounts DB
+func (adb *simulationAccountsDB) GetEvictionWaitingListSize() int {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

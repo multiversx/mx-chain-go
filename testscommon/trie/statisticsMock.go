@@ -6,6 +6,7 @@ import (
 
 // MockStatistics -
 type MockStatistics struct {
+	AddTrieStatsCalled             func(common.TrieStatisticsHandler, common.TrieType)
 	WaitForSnapshotsToFinishCalled func()
 }
 
@@ -25,7 +26,10 @@ func (m *MockStatistics) WaitForSnapshotsToFinish() {
 }
 
 // AddTrieStats -
-func (m *MockStatistics) AddTrieStats(_ common.TrieStatisticsHandler, _ common.TrieType) {
+func (m *MockStatistics) AddTrieStats(stats common.TrieStatisticsHandler, t common.TrieType) {
+	if m.AddTrieStatsCalled != nil {
+		m.AddTrieStatsCalled(stats, t)
+	}
 }
 
 // GetSnapshotDuration -
@@ -37,6 +41,9 @@ func (m *MockStatistics) GetSnapshotDuration() int64 {
 func (m *MockStatistics) GetSnapshotNumNodes() uint64 {
 	return 0
 }
+
+// IncrementThrottlerWaits -
+func (m *MockStatistics) IncrementThrottlerWaits() {}
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *MockStatistics) IsInterfaceNil() bool {

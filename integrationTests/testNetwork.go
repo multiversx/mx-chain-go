@@ -423,13 +423,15 @@ func (net *TestNetwork) createNodes() {
 		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 		AndromedaEnableEpoch:                 UnreachableEpoch,
+		SupernovaEnableEpoch:                 UnreachableEpoch,
 	}
 
-	net.Nodes = CreateNodesWithEnableEpochs(
+	net.Nodes = CreateNodesWithEnableEpochsAndEnableRounds(
 		net.NumShards,
 		net.NodesPerShard,
 		net.NodesInMetashard,
 		enableEpochsConfig,
+		GetDefaultRoundsConfig(),
 	)
 }
 

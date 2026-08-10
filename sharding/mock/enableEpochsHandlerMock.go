@@ -12,6 +12,11 @@ type EnableEpochsHandlerMock struct {
 	CurrentEpoch                              uint32
 }
 
+// GetAllEnableEpochs -
+func (mock *EnableEpochsHandlerMock) GetAllEnableEpochs() map[string]uint32 {
+	return map[string]uint32{}
+}
+
 // GetActivationEpoch -
 func (mock *EnableEpochsHandlerMock) GetActivationEpoch(flag core.EnableEpochFlag) uint32 {
 	switch flag {

@@ -3,6 +3,7 @@ package components
 import (
 	"bytes"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -38,6 +39,7 @@ import (
 	hashingFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	marshalFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	commonConfigs "github.com/multiversx/mx-chain-go/common/configs"
 )
 
 type coreComponentsHolder struct {
@@ -62,11 +64,12 @@ type coreComponentsHolder struct {
 	genesisNodesSetup             sharding.GenesisNodesSetupHandler
 	nodesShuffler                 nodesCoordinator.NodesShuffler
 	epochNotifier                 process.EpochNotifier
-	enableRoundsHandler           process.EnableRoundsHandler
+	enableRoundsHandler           common.EnableRoundsHandler
 	roundNotifier                 process.RoundNotifier
 	epochStartNotifierWithConfirm factory.EpochStartNotifierWithConfirm
 	chanStopNodeProcess           chan endProcess.ArgEndProcess
 	genesisTime                   time.Time
+	supernovaGenesisTime          time.Time
 	chainID                       string
 	minTransactionVersion         uint32
 	txVersionChecker              process.TxVersionCheckerHandler
@@ -80,6 +83,10 @@ type coreComponentsHolder struct {
 	chainParametersHandler        process.ChainParametersHandler
 	fieldsSizeChecker             common.FieldsSizeChecker
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	processConfigsHandler         common.ProcessConfigsHandler
+	epochStartConfigsHandler      common.CommonConfigsHandler
+	antifloodConfigsHandler       common.AntifloodConfigsHandler
+	closingNodeStarted            *atomic.Bool
 }
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
@@ -99,15 +106,18 @@ type ArgsCoreComponentsHolder struct {
 	MinNodesPerShard            uint32
 	ConsensusGroupSize          uint32
 	MinNodesMeta                uint32
+	PrintPrettifiedHeader       bool
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMs           uint64
+	GenesisTime                 time.Time
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
 func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder, error) {
 	var err error
 	instance := &coreComponentsHolder{
-		closeHandler: NewCloseHandler(),
+		closeHandler:       NewCloseHandler(),
+		closingNodeStarted: &atomic.Bool{},
 	}
 
 	instance.internalMarshaller, err = marshalFactory.NewMarshalizer(args.Config.Marshalizer.Type)
@@ -155,8 +165,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.syncTimer = &testscommon.SyncTimerStub{}
 
 	instance.epochStartNotifierWithConfirm = notifier.NewEpochStartSubscriptionHandler()
-	instance.chainParametersSubscriber = chainparametersnotifier.NewChainParametersNotifier()
 	chainParametersNotifier := chainparametersnotifier.NewChainParametersNotifier()
+	instance.chainParametersSubscriber = chainParametersNotifier
 	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
 		EpochStartEventNotifier: instance.epochStartNotifierWithConfirm,
 		ChainParameters:         args.Config.GeneralSettings.ChainParametersByEpoch,
@@ -172,28 +182,82 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	var nodesSetup config.NodesConfig
-	err = core.LoadJsonFile(&nodesSetup, args.NodesSetupPath)
-	if err != nil {
-		return nil, err
-	}
-	instance.genesisNodesSetup, err = sharding.NewNodesSetup(nodesSetup, instance.chainParametersHandler, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
-	if err != nil {
-		return nil, err
-	}
-
-	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
-	instance.roundHandler = NewManualRoundHandler(instance.genesisNodesSetup.GetStartTime(), roundDuration, args.InitialRound)
-
-	instance.wasmVMChangeLocker = &sync.RWMutex{}
-	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
 	instance.epochNotifier = forking.NewGenericEpochNotifier()
 	instance.enableEpochsHandler, err = enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, instance.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
 
+	var nodesSetup config.NodesConfig
+	err = core.LoadJsonFile(&nodesSetup, args.NodesSetupPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if nodesSetup.StartTime == 0 {
+		// the genesis/epoch-start header for InitialRound/InitialEpoch is a synthetic checkpoint
+		// standing in for a chain that has already reached that round "as of now", so its
+		// timestamp should be the real wall-clock time rather than offset by InitialRound - the
+		// round handler already accounts for InitialRound when converting a round index to a
+		// timestamp
+		if instance.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, 0) {
+			nodesSetup.StartTime = args.GenesisTime.UnixMilli()
+		} else {
+			nodesSetup.StartTime = args.GenesisTime.Unix()
+		}
+	}
+
+	instance.genesisNodesSetup, err = sharding.NewNodesSetup(nodesSetup, instance.chainParametersHandler, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
+
+	log.Debug("chain simulator start time",
+		"startTime", instance.genesisNodesSetup.GetStartTime(),
+		"nodesSetup start time", nodesSetup.StartTime,
+	)
+
+	instance.roundNotifier = forking.NewGenericRoundNotifier()
+	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
+	if err != nil {
+		return nil, err
+	}
+
+	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
+	supernovaRound := instance.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
+
+	instance.supernovaGenesisTime = instance.genesisTime.Add(time.Duration(supernovaRound-uint64(args.InitialRound)) * roundDuration)
+	if instance.supernovaGenesisTime.Before(instance.genesisTime) {
+		instance.supernovaGenesisTime = instance.genesisTime
+	}
+
+	supernovaActivationEpoch := instance.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+	chainParamsForSupernova, err := instance.chainParametersHandler.ChainParametersForEpoch(supernovaActivationEpoch)
+	if err != nil {
+		return nil, err
+	}
+
+	argsManualRoundHandler := ArgManualRoundHandler{
+		EnableRoundsHandler:       instance.enableRoundsHandler,
+		GenesisTimeStamp:          instance.genesisTime.UnixMilli(),
+		SupernovaGenesisTimeStamp: instance.supernovaGenesisTime.UnixMilli(),
+		RoundDuration:             roundDuration,
+		SupernovaRoundDuration:    time.Duration(chainParamsForSupernova.RoundDuration) * time.Millisecond,
+		InitialRound:              args.InitialRound,
+		SupernovaStartRound:       int64(supernovaRound),
+	}
+	instance.roundHandler, err = NewManualRoundHandler(argsManualRoundHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.wasmVMChangeLocker = &sync.RWMutex{}
+	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
+
 	argsEconomicsHandler := economics.ArgsNewEconomicsData{
+		ChainParamsHandler:  instance.chainParametersHandler,
 		TxVersionChecker:    instance.txVersionChecker,
 		Economics:           &args.EconomicsConfig,
 		EpochNotifier:       instance.epochNotifier,
@@ -209,16 +273,15 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.apiEconomicsData = instance.economicsData
 
 	instance.ratingsData, err = rating.NewRatingsData(rating.RatingsDataArg{
-		EpochNotifier:             instance.epochNotifier,
-		Config:                    args.RatingConfig,
-		ChainParametersHolder:     instance.chainParametersHandler,
-		RoundDurationMilliseconds: args.RoundDurationInMs,
+		EpochNotifier:         instance.epochNotifier,
+		Config:                args.RatingConfig,
+		ChainParametersHolder: instance.chainParametersHandler,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	instance.rater, err = rating.NewBlockSigningRater(instance.ratingsData)
+	instance.rater, err = rating.NewBlockSigningRater(instance.ratingsData, instance.enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -233,14 +296,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	instance.roundNotifier = forking.NewGenericRoundNotifier()
-	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
-	if err != nil {
-		return nil, err
-	}
-
 	instance.chanStopNodeProcess = args.ChanStopNodeProcess
-	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
 	instance.chainID = args.Config.GeneralSettings.ChainID
 	instance.minTransactionVersion = args.Config.GeneralSettings.MinTransactionVersion
 	instance.encodedAddressLen, err = computeEncodedAddressLen(instance.addressPubKeyConverter)
@@ -262,6 +318,34 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 	instance.fieldsSizeChecker = fchecker
+
+	instance.processConfigsHandler, err = commonConfigs.NewProcessConfigsHandler(
+		args.Config.GeneralSettings.ProcessConfigsByEpoch,
+		args.Config.GeneralSettings.ProcessConfigsByRound,
+		instance.roundNotifier,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.epochStartConfigsHandler, err = commonConfigs.NewCommonConfigsHandler(
+		args.Config.GeneralSettings.EpochStartConfigsByEpoch,
+		args.Config.GeneralSettings.EpochStartConfigsByRound,
+		args.Config.GeneralSettings.ConsensusConfigsByEpoch,
+		args.Config.GeneralSettings.ConsensusConfigsByRound,
+		true,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.antifloodConfigsHandler, err = commonConfigs.NewAntifloodConfigsHandler(
+		args.Config.Antiflood,
+		instance.roundNotifier,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	instance.collectClosableComponents()
 
@@ -385,7 +469,7 @@ func (c *coreComponentsHolder) EpochNotifier() process.EpochNotifier {
 }
 
 // EnableRoundsHandler will return the enable rounds handler
-func (c *coreComponentsHolder) EnableRoundsHandler() process.EnableRoundsHandler {
+func (c *coreComponentsHolder) EnableRoundsHandler() common.EnableRoundsHandler {
 	return c.enableRoundsHandler
 }
 
@@ -407,6 +491,11 @@ func (c *coreComponentsHolder) ChanStopNodeProcess() chan endProcess.ArgEndProce
 // GenesisTime will return the genesis time
 func (c *coreComponentsHolder) GenesisTime() time.Time {
 	return c.genesisTime
+}
+
+// SupernovaGenesisTime will return the genesis time
+func (c *coreComponentsHolder) SupernovaGenesisTime() time.Time {
+	return c.supernovaGenesisTime
 }
 
 // ChainID will return the chain id
@@ -472,6 +561,26 @@ func (c *coreComponentsHolder) FieldsSizeChecker() common.FieldsSizeChecker {
 // EpochChangeGracePeriodHandler will return the epoch change grace period handler
 func (c *coreComponentsHolder) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
 	return c.epochChangeGracePeriodHandler
+}
+
+// ProcessConfigsHandler returns process configs handler component
+func (c *coreComponentsHolder) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	return c.processConfigsHandler
+}
+
+// CommonConfigsHandler returns epoch start configs handler component
+func (c *coreComponentsHolder) CommonConfigsHandler() common.CommonConfigsHandler {
+	return c.epochStartConfigsHandler
+}
+
+// AntifloodConfigsHandler returns epoch start configs handler component
+func (c *coreComponentsHolder) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	return c.antifloodConfigsHandler
+}
+
+// ClosingNodeStarted returns the atomic bool that signals if the closing of the node has started
+func (c *coreComponentsHolder) ClosingNodeStarted() *atomic.Bool {
+	return c.closingNodeStarted
 }
 
 func (c *coreComponentsHolder) collectClosableComponents() {

@@ -98,7 +98,7 @@ func (tu *txUnmarshaller) unmarshalTransaction(
 		return nil, err
 	}
 
-	res := tu.dataFieldParser.Parse(apiTx.Data, apiTx.Tx.GetSndAddr(), apiTx.Tx.GetRcvAddr(), tu.shardCoordinator.NumberOfShards())
+	res := tu.dataFieldParser.Parse(apiTx.Data, apiTx.Tx.GetSndAddr(), apiTx.Tx.GetRcvAddr(), tu.shardCoordinator.NumberOfShards(), txEpoch)
 	apiTx.Operation = res.Operation
 	apiTx.Function = res.Function
 	apiTx.ESDTValues = res.ESDTValues

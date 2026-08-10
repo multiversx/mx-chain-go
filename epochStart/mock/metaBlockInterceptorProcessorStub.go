@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -20,8 +21,8 @@ func (m *MetaBlockInterceptorProcessorStub) Validate(_ process.InterceptedData, 
 }
 
 // Save -
-func (m *MetaBlockInterceptorProcessorStub) Save(_ process.InterceptedData, _ core.PeerID, _ string) error {
-	return nil
+func (m *MetaBlockInterceptorProcessorStub) Save(_ process.InterceptedData, _ core.PeerID, _ string, _ p2p.BroadcastMethod) (bool, error) {
+	return true, nil
 }
 
 // RegisterHandler -

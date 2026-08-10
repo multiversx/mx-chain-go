@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -21,8 +22,6 @@ const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 95 / 100)
 // subroundBlock defines the data needed by the subround Block
 type subroundBlock struct {
 	*spos.Subround
-
-	processingThresholdPercentage int
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -36,9 +35,10 @@ func NewSubroundBlock(
 		return nil, err
 	}
 
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
+
 	srBlock := subroundBlock{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
+		Subround: baseSubround,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -66,7 +66,7 @@ func checkNewSubroundBlockParams(
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
 	}
@@ -229,6 +229,8 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 	sr.SetBody(bodyHandler)
 	sr.SetHeader(headerHandler)
 
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(headerHandler, "sent", "v1", sr.CommonConfigsHandler())
 	return true
 }
 
@@ -359,7 +361,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	err = hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
+	err = hdr.SetTimeStamp(sr.GetUnixTimestampForHeader(hdr.GetEpoch()))
 	if err != nil {
 		return nil, err
 	}
@@ -447,6 +449,9 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
+
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(sr.GetHeader(), "received", "v1", sr.CommonConfigsHandler())
 
 	return blockProcessedWithSuccess
 }
@@ -606,7 +611,7 @@ func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *conse
 	node := string(cnsDta.PubKey)
 
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	remainingTimeInCurrentRound := func() time.Duration {
 		return sr.RoundHandler().RemainingTime(startTime, maxTime)
 	}

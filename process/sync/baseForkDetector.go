@@ -18,6 +18,7 @@ type headerInfo struct {
 	nonce    uint64
 	round    uint64
 	hash     []byte
+	prevHash []byte
 	state    process.BlockHeaderState
 	hasProof bool
 }
@@ -31,6 +32,7 @@ type checkpointInfo struct {
 type forkInfo struct {
 	checkpoint              []*checkpointInfo
 	finalCheckpoint         *checkpointInfo
+	settledCheckpoint       *checkpointInfo
 	probableHighestNonce    uint64
 	highestNonceReceived    uint64
 	rollBackNonce           uint64
@@ -46,16 +48,21 @@ type baseForkDetector struct {
 	fork       forkInfo
 	mutFork    sync.RWMutex
 
-	blackListHandler    process.TimeCacher
-	genesisTime         int64
-	blockTracker        process.BlockTracker
-	forkDetector        forkDetector
-	genesisNonce        uint64
-	genesisRound        uint64
-	maxForkHeaderEpoch  uint32
-	genesisEpoch        uint32
-	enableEpochsHandler common.EnableEpochsHandler
-	proofsPool          process.ProofsPool
+	shardID                uint32
+	blackListHandler       process.TimeCacher
+	genesisTime            int64
+	supernovaGenesisTime   int64
+	blockTracker           process.BlockTracker
+	forkDetector           forkDetector
+	genesisNonce           uint64
+	genesisRound           uint64
+	maxForkHeaderEpoch     uint32
+	genesisEpoch           uint32
+	enableEpochsHandler    common.EnableEpochsHandler
+	enableRoundsHandler    common.EnableRoundsHandler
+	proofsPool             process.ProofsPool
+	chainParametersHandler common.ChainParametersHandler
+	processConfigsHandler  common.ProcessConfigsHandler
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -108,8 +115,9 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	roundDif := int64(header.GetRound()) - int64(bfd.finalCheckpoint().round)
 	nonceDif := int64(header.GetNonce()) - int64(bfd.finalCheckpoint().nonce)
 	// TODO: Analyze if the acceptance of some headers which came for the next round could generate some attack vectors
-	nextRound := bfd.roundHandler.Index() + 1
-	genesisTimeFromHeader := bfd.computeGenesisTimeFromHeader(header)
+	// bound against the round the current time falls into, not the stored index: a node slow to
+	// advance its chronology must still record the headers it needs to catch up
+	nextRound := bfd.roundHandler.IndexForCurrentTime() + 1
 
 	bfd.blackListHandler.Sweep()
 	if bfd.blackListHandler.Has(string(header.GetPrevHash())) {
@@ -117,7 +125,9 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 		return process.ErrHeaderIsBlackListed
 	}
 	// TODO: This check could be removed when this protection mechanism would be implemented on interceptors side
-	if genesisTimeFromHeader != bfd.genesisTime {
+
+	err := bfd.checkGenesisTimeForHeader(header)
+	if err != nil {
 		process.AddHeaderToBlackList(bfd.blackListHandler, headerHash)
 		return ErrGenesisTimeMissmatch
 	}
@@ -137,12 +147,14 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	return nil
 }
 
+// removePastHeaders retains entries down to the settled checkpoint, so instantly finalized blocks
+// keep their processed entries until the meta notarization arrives and settles them
 func (bfd *baseForkDetector) removePastHeaders() {
-	finalCheckpointNonce := bfd.finalCheckpoint().nonce
+	settledCheckpointNonce := bfd.settledCheckpoint().nonce
 
 	bfd.mutHeaders.Lock()
 	for nonce := range bfd.headers {
-		if nonce < finalCheckpointNonce {
+		if nonce < settledCheckpointNonce {
 			delete(bfd.headers, nonce)
 		}
 	}
@@ -229,6 +241,14 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 		return
 	}
 
+	if bfd.proofsPool.HasProof(bfd.shardID, hash) {
+		log.Debug("baseForkDetector.RemoveHeader: proof available for the given header, skipping removal",
+			"nonce", nonce,
+			"hash", hash,
+			"final checkpoint nonce", finalCheckpointNonce)
+		return
+	}
+
 	bfd.removeCheckpointWithNonce(nonce)
 
 	preservedHdrsInfo := make([]*headerInfo, 0)
@@ -262,6 +282,136 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 		"hash", hash,
 		"probable highest nonce", probableHighestNonce,
 		"final checkpoint nonce", bfd.finalCheckpoint().nonce)
+}
+
+// RemoveCommittedHeader removes a reverted committed header together with its checkpoint, proof
+// included, so a same-nonce sibling can be adopted; it never removes at or below the final checkpoint
+func (bfd *baseForkDetector) RemoveCommittedHeader(nonce uint64, hash []byte) {
+	finalCheckpointNonce := bfd.finalCheckpoint().nonce
+	if nonce <= finalCheckpointNonce {
+		log.Warn("baseForkDetector.RemoveCommittedHeader: refusing removal at or below the final checkpoint",
+			"nonce", nonce,
+			"hash", hash,
+			"final checkpoint nonce", finalCheckpointNonce)
+		return
+	}
+
+	bfd.removeCheckpointWithNonce(nonce)
+
+	preservedHdrsInfo := make([]*headerInfo, 0)
+
+	bfd.mutHeaders.Lock()
+
+	hdrsInfo := bfd.headers[nonce]
+	for _, hdrInfo := range hdrsInfo {
+		if hdrInfo.state != process.BHNotarized && bytes.Equal(hash, hdrInfo.hash) {
+			continue
+		}
+
+		preservedHdrsInfo = append(preservedHdrsInfo, hdrInfo)
+	}
+
+	if len(preservedHdrsInfo) == 0 {
+		delete(bfd.headers, nonce)
+	} else {
+		bfd.headers[nonce] = preservedHdrsInfo
+	}
+
+	bfd.mutHeaders.Unlock()
+
+	bfd.forkDetector.computeFinalCheckpoint()
+
+	probableHighestNonce := bfd.computeProbableHighestNonce()
+	bfd.setProbableHighestNonce(probableHighestNonce)
+
+	log.Debug("forkDetector.RemoveCommittedHeader",
+		"nonce", nonce,
+		"hash", hash,
+		"probable highest nonce", probableHighestNonce,
+		"final checkpoint nonce", bfd.finalCheckpoint().nonce)
+}
+
+// ReconcileFinalCheckpoint lowers the final checkpoint below the given nonce; this is the only
+// sanctioned finality regression, gated on proven equivocation evidence (the reconcile backstop)
+func (bfd *baseForkDetector) ReconcileFinalCheckpoint(nonce uint64) {
+	if nonce == 0 {
+		return
+	}
+	// only the exact final nonce may be reconciled: a higher final means settled descendants exist
+	if bfd.finalCheckpoint().nonce != nonce {
+		return
+	}
+
+	newFinal := &checkpointInfo{nonce: nonce - 1}
+
+	bfd.mutFork.Lock()
+	for _, checkpoint := range bfd.fork.checkpoint {
+		if checkpoint.nonce < nonce && checkpoint.nonce >= newFinal.nonce {
+			newFinal = checkpoint
+		}
+	}
+	bfd.fork.finalCheckpoint = newFinal
+	bfd.mutFork.Unlock()
+
+	log.Error("forkDetector.ReconcileFinalCheckpoint: final checkpoint lowered on equivocation evidence",
+		"nonce", nonce,
+		"new final nonce", newFinal.nonce,
+		"new final hash", newFinal.hash)
+}
+
+// ReconcileFinalCheckpointBelow purges every record and checkpoint at or above the nonce, records
+// first so no concurrent recomputation re-advances from a purged entry, then lowers the final
+// checkpoint below it; refused at or under the forward-only settled checkpoint
+func (bfd *baseForkDetector) ReconcileFinalCheckpointBelow(nonce uint64) bool {
+	if nonce == 0 {
+		return false
+	}
+
+	settledNonce := bfd.settledCheckpoint().nonce
+	if nonce <= settledNonce {
+		log.Error("forkDetector.ReconcileFinalCheckpointBelow: refused, would cross the settled checkpoint",
+			"nonce", nonce,
+			"settled checkpoint nonce", settledNonce)
+		return false
+	}
+
+	bfd.mutHeaders.Lock()
+	for hdrNonce := range bfd.headers {
+		if hdrNonce >= nonce {
+			delete(bfd.headers, hdrNonce)
+		}
+	}
+	bfd.mutHeaders.Unlock()
+
+	bfd.mutFork.Lock()
+	newFinal := &checkpointInfo{nonce: nonce - 1}
+	preservedCheckpoints := make([]*checkpointInfo, 0, len(bfd.fork.checkpoint))
+	for _, checkpoint := range bfd.fork.checkpoint {
+		if checkpoint.nonce >= nonce {
+			continue
+		}
+
+		preservedCheckpoints = append(preservedCheckpoints, checkpoint)
+		if checkpoint.nonce >= newFinal.nonce {
+			newFinal = checkpoint
+		}
+	}
+	bfd.fork.checkpoint = preservedCheckpoints
+	loweredFinal := bfd.fork.finalCheckpoint.nonce >= nonce
+	if loweredFinal {
+		bfd.fork.finalCheckpoint = newFinal
+	}
+	bfd.mutFork.Unlock()
+
+	probableHighestNonce := bfd.computeProbableHighestNonce()
+	bfd.setProbableHighestNonce(probableHighestNonce)
+
+	log.Error("forkDetector.ReconcileFinalCheckpointBelow: finality regressed on dead cross-notarization evidence",
+		"nonce", nonce,
+		"final checkpoint lowered", loweredFinal,
+		"new final nonce", bfd.finalCheckpoint().nonce)
+
+	return true
 }
 
 func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
@@ -398,6 +548,74 @@ func (bfd *baseForkDetector) setFinalCheckpoint(finalCheckpoint *checkpointInfo)
 	bfd.mutFork.Unlock()
 }
 
+// advanceFinalCheckpoint sets the final checkpoint only forward, so concurrent computations
+// cannot regress an already finalized nonce
+func (bfd *baseForkDetector) advanceFinalCheckpoint(finalCheckpoint *checkpointInfo) {
+	bfd.mutFork.Lock()
+	if finalCheckpoint.nonce > bfd.fork.finalCheckpoint.nonce {
+		bfd.fork.finalCheckpoint = finalCheckpoint
+	}
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) setSettledCheckpoint(settledCheckpoint *checkpointInfo) {
+	bfd.mutFork.Lock()
+	bfd.fork.settledCheckpoint = settledCheckpoint
+	bfd.mutFork.Unlock()
+}
+
+// advanceSettledCheckpoint sets the settled checkpoint only forward; settlement is never undone
+func (bfd *baseForkDetector) advanceSettledCheckpoint(settledCheckpoint *checkpointInfo) {
+	bfd.mutFork.Lock()
+	if settledCheckpoint.nonce > bfd.fork.settledCheckpoint.nonce {
+		bfd.fork.settledCheckpoint = settledCheckpoint
+	}
+	bfd.mutFork.Unlock()
+}
+
+func (bfd *baseForkDetector) settledCheckpoint() *checkpointInfo {
+	bfd.mutFork.RLock()
+	settledCheckpoint := bfd.fork.settledCheckpoint
+	bfd.mutFork.RUnlock()
+
+	return settledCheckpoint
+}
+
+// GetHighestSettledBlockInfo gets the nonce and hash of the settled block as a consistent pair;
+// unlike the final checkpoint, the settled one is settlement-anchored and never reconciled
+func (bfd *baseForkDetector) GetHighestSettledBlockInfo() (uint64, []byte) {
+	settledCheckpoint := bfd.settledCheckpoint()
+
+	return settledCheckpoint.nonce, settledCheckpoint.hash
+}
+
+func (bfd *baseForkDetector) isSupernovaForHeader(header data.HeaderHandler) bool {
+	return bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch())
+}
+
+func isParentCheckpoint(checkpoint *checkpointInfo, header data.HeaderHandler) bool {
+	if checkpoint.nonce+1 != header.GetNonce() {
+		return false
+	}
+
+	return len(checkpoint.hash) == 0 || bytes.Equal(checkpoint.hash, header.GetPrevHash())
+}
+
+// canInstantlyFinalize returns false for a contended header or one whose parent is not final yet;
+// such headers finalize later, on settlement
+func (bfd *baseForkDetector) canInstantlyFinalize(header data.HeaderHandler) bool {
+	if !bfd.isSupernovaForHeader(header) {
+		return true
+	}
+
+	finalCheckpoint := bfd.finalCheckpoint()
+	if !isParentCheckpoint(finalCheckpoint, header) {
+		return false
+	}
+
+	return !common.IsContendedRound(header.GetRound(), finalCheckpoint.round)
+}
+
 // RestoreToGenesis sets class variables to theirs initial values
 func (bfd *baseForkDetector) RestoreToGenesis() {
 	bfd.mutHeaders.Lock()
@@ -412,6 +630,7 @@ func (bfd *baseForkDetector) RestoreToGenesis() {
 	}
 	bfd.fork.checkpoint = []*checkpointInfo{checkpoint}
 	bfd.fork.finalCheckpoint = checkpoint
+	bfd.fork.settledCheckpoint = checkpoint
 	bfd.fork.probableHighestNonce = bfd.genesisNonce
 	bfd.fork.highestNonceReceived = bfd.genesisNonce
 	bfd.mutFork.Unlock()
@@ -458,6 +677,25 @@ func (bfd *baseForkDetector) highestNonceReceived() uint64 {
 	bfd.mutFork.RUnlock()
 
 	return highestNonceReceived
+}
+
+// logFinalityLag exposes how far the final checkpoint trails the received frontier;
+// a steadily growing lag means finality stopped advancing while the chain moved on
+func (bfd *baseForkDetector) logFinalityLag() {
+	finalNonce := bfd.finalCheckpoint().nonce
+	highestNonce := bfd.highestNonceReceived()
+	lag := uint64(0)
+	if highestNonce > finalNonce {
+		lag = highestNonce - finalNonce
+	}
+
+	log.Debug("forkDetector finality lag",
+		"final checkpoint nonce", finalNonce,
+		"settled checkpoint nonce", bfd.settledCheckpoint().nonce,
+		"probable highest nonce", bfd.probableHighestNonce(),
+		"highest received nonce", highestNonce,
+		"lag", lag,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -639,8 +877,9 @@ func (bfd *baseForkDetector) isConsensusStuck() bool {
 		return false
 	}
 
-	roundsDifference := bfd.roundHandler.Index() - int64(bfd.lastCheckpoint().round)
-	if roundsDifference <= process.MaxRoundsWithoutCommittedBlock {
+	lastCheckpoint := bfd.lastCheckpoint()
+	roundsDifference := bfd.roundHandler.Index() - int64(lastCheckpoint.round)
+	if roundsDifference <= bfd.getMaxRoundsWithoutCommittedBlock(uint64(bfd.roundHandler.Index())) {
 		return false
 	}
 
@@ -648,7 +887,15 @@ func (bfd *baseForkDetector) isConsensusStuck() bool {
 		return false
 	}
 
-	return true
+	// never blind-rollback a proven block: a proven tip can only be wrong through equivocation,
+	// which the evidence-driven rollback paths detect and prove before acting
+	hasProvenTip := len(lastCheckpoint.hash) != 0 && bfd.proofsPool.HasProof(bfd.shardID, lastCheckpoint.hash)
+
+	return !hasProvenTip
+}
+
+func (bfd *baseForkDetector) getMaxRoundsWithoutCommittedBlock(round uint64) int64 {
+	return int64(bfd.processConfigsHandler.GetMaxRoundsWithoutCommittedBlock(round))
 }
 
 func (bfd *baseForkDetector) isSyncing() bool {
@@ -682,7 +929,11 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 		preservedHdrsInfo := make([]*headerInfo, 0)
 
 		for _, hdrInfo := range hdrsInfo {
-			if hdrInfo.state != process.BHNotarized {
+			// a proven record is hard evidence of the network tip; purging it would let the probable
+			// nonce collapse below a proven block and re-arm same-nonce proposals
+			isProvenRecord := hdrInfo.hasProof &&
+				bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdrInfo.epoch)
+			if hdrInfo.state != process.BHNotarized && !isProvenRecord {
 				continue
 			}
 
@@ -699,9 +950,140 @@ func (bfd *baseForkDetector) cleanupReceivedHeadersHigherThanNonce(nonce uint64)
 	bfd.mutHeaders.Unlock()
 }
 
-func (bfd *baseForkDetector) computeGenesisTimeFromHeader(headerHandler data.HeaderHandler) int64 {
-	genesisTime := int64(headerHandler.GetTimeStamp() - (headerHandler.GetRound()-bfd.genesisRound)*uint64(bfd.roundHandler.TimeDuration().Seconds()))
-	return genesisTime
+func (bfd *baseForkDetector) checkGenesisTimeForHeaderBeforeSupernova(
+	headerHandler data.HeaderHandler,
+) error {
+	chainParams, err := bfd.chainParametersHandler.ChainParametersForEpoch(headerHandler.GetEpoch())
+	if err != nil {
+		return err
+	}
+	roundDuration := int64(chainParams.RoundDuration)
+
+	// The round duration is provided as milliseconds in the configuration. It needs to be
+	// converted to seconds to ensure correct calculations for genesis time before
+	// supernova activation.
+	roundDuration /= 1000
+
+	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
+	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
+
+	if genesisTime != bfd.genesisTime {
+		log.Error("checkGenesisTimeForHeaderBeforeSupernova: genesis time mismatch",
+			"localGenesisTime", bfd.genesisTime,
+			"calculatedGenesisTime", genesisTime,
+			"header timestamp", headerHandler.GetTimeStamp(),
+		)
+
+		return ErrGenesisTimeMissmatch
+	}
+
+	return nil
+}
+
+func (bfd *baseForkDetector) getPrevSupernovaActivationEpoch(currentEpoch uint32) uint32 {
+	// in this interval, chain parameters have to be taken from the epoch previous to supernova
+	if currentEpoch == 0 {
+		return currentEpoch
+	}
+
+	return currentEpoch - 1
+}
+
+func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation(
+	headerHandler data.HeaderHandler,
+) error {
+	chainParams, err := bfd.chainParametersHandler.ChainParametersForEpoch(bfd.getPrevSupernovaActivationEpoch(headerHandler.GetEpoch()))
+	if err != nil {
+		return err
+	}
+	roundDuration := int64(chainParams.RoundDuration)
+	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
+	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
+
+	log.Trace("getGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation",
+		"roundDuration", roundDuration,
+		"roundDifference", roundDifference,
+		"calculated genesisTime", genesisTime,
+		"genesisTime", bfd.genesisTime,
+	)
+
+	// if supernova is activated from genesis (epoch zero) this reduction is not needed since
+	// genesisTime from config will be directly as milliseconds; otherwise it has to be
+	// reduced to seconds granularity, in this specific interval (when supernova epoch is
+	// activated but supernova round is not yet activated)
+	supernovaActivatedInEpochZero := bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, 0)
+	if !supernovaActivatedInEpochZero {
+		genesisTime /= 1000
+	}
+
+	if genesisTime != bfd.genesisTime {
+		log.Error("checkGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation: genesis time mismatch",
+			"localGenesisTime", bfd.genesisTime,
+			"calculatedGenesisTime", genesisTime,
+			"header timestamp", headerHandler.GetTimeStamp(),
+		)
+		return ErrGenesisTimeMissmatch
+	}
+
+	return nil
+}
+
+func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithRoundActivation(
+	headerHandler data.HeaderHandler,
+) error {
+	activationRound := bfd.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
+
+	chainParams, err := bfd.chainParametersHandler.ChainParametersForEpoch(headerHandler.GetEpoch())
+	if err != nil {
+		return err
+	}
+	roundDuration := int64(chainParams.RoundDuration)
+
+	roundDifference := int64(headerHandler.GetRound()) - int64(activationRound)
+	if roundDifference < 0 {
+		log.Warn("current round lower than supernova activation round",
+			"current round", headerHandler.GetRound(),
+			"supernova activationRound", activationRound,
+		)
+
+		return ErrGenesisTimeMissmatch
+	}
+
+	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
+
+	log.Trace("getGenesisTimeForHeaderAfterSupernovaWithRoundActivation",
+		"activationRound", activationRound,
+		"roundDuration", roundDuration,
+		"roundDifference", roundDifference,
+		"genesisTime", genesisTime,
+		"supernovaGenesisTime", bfd.supernovaGenesisTime,
+	)
+
+	if genesisTime != bfd.supernovaGenesisTime {
+		log.Error("checkGenesisTimeForHeaderAfterSupernovaWithRoundActivation: genesis time mismatch",
+			"localGenesisTime", bfd.supernovaGenesisTime,
+			"calculatedGenesisTime", genesisTime,
+			"header timestamp", headerHandler.GetTimeStamp(),
+		)
+		return ErrGenesisTimeMissmatch
+	}
+
+	return nil
+}
+
+func (bfd *baseForkDetector) checkGenesisTimeForHeader(headerHandler data.HeaderHandler) error {
+	supernovaInEpochActivated := bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, headerHandler.GetEpoch())
+	supernovaInRoundActivated := bfd.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, headerHandler.GetRound())
+
+	if !supernovaInEpochActivated {
+		return bfd.checkGenesisTimeForHeaderBeforeSupernova(headerHandler)
+	}
+
+	if !supernovaInRoundActivated {
+		return bfd.checkGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation(headerHandler)
+	}
+
+	return bfd.checkGenesisTimeForHeaderAfterSupernovaWithRoundActivation(headerHandler)
 }
 
 func (bfd *baseForkDetector) addHeader(
@@ -785,6 +1167,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		nonce:    header.GetNonce(),
 		round:    header.GetRound(),
 		hash:     headerHash,
+		prevHash: header.GetPrevHash(),
 		state:    state,
 		hasProof: hasProof,
 	}
@@ -812,7 +1195,10 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		"has proof", hInfo.hasProof)
 }
 
-// SetFinalToLastCheckpoint sets the final checkpoint to the last checkpoint added in list
+// SetFinalToLastCheckpoint sets the final and settled checkpoints to the last checkpoint added in
+// list; used only at bootstrap restore, where the persisted nonce is the settled one
 func (bfd *baseForkDetector) SetFinalToLastCheckpoint() {
-	bfd.setFinalCheckpoint(bfd.lastCheckpoint())
+	lastCheckpoint := bfd.lastCheckpoint()
+	bfd.setFinalCheckpoint(lastCheckpoint)
+	bfd.setSettledCheckpoint(lastCheckpoint)
 }

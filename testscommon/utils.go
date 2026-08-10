@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -27,4 +28,17 @@ func CreateMemUnit() storage.Storer {
 	persist, _ := database.NewlruDB(100000)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
 	return unit
+}
+
+// NewNTPGoogleConfig creates an NTPConfig object that configures NTP to use a predefined list of hosts. This is useful
+// for tests, for example, to avoid loading a configuration file just to have a NTPConfig
+func NewNTPGoogleConfig() config.NTPConfig {
+	return config.NTPConfig{
+		Hosts:                []string{"time.google.com", "time.cloudflare.com", "time.apple.com", "time.windows.com"},
+		Port:                 123,
+		Version:              0,
+		TimeoutMilliseconds:  100,
+		SyncPeriodSeconds:    3600,
+		OutOfBoundsThreshold: 120,
+	}
 }

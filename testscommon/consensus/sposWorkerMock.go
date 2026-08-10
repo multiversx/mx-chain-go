@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
 
@@ -35,6 +36,7 @@ type SposWorkerMock struct {
 	ReceivedProofCalled                    func(proofHandler consensus.ProofHandler)
 	ResetConsensusRoundStateCalled         func()
 	ResetInvalidSignersCacheCalled         func()
+	ConsensusMetricsCalled                 func() spos.ConsensusMetricsHandler
 }
 
 // ResetConsensusRoundState -
@@ -180,4 +182,13 @@ func (sposWorkerMock *SposWorkerMock) ResetInvalidSignersCache() {
 	if sposWorkerMock.ResetInvalidSignersCacheCalled != nil {
 		sposWorkerMock.ResetInvalidSignersCacheCalled()
 	}
+}
+
+// ConsensusMetrics -
+func (sposWorkerMock *SposWorkerMock) ConsensusMetrics() spos.ConsensusMetricsHandler {
+	if sposWorkerMock.ConsensusMetricsCalled != nil {
+		return sposWorkerMock.ConsensusMetricsCalled()
+	}
+	consensusMetrics, _ := spos.NewConsensusMetrics(nil)
+	return consensusMetrics
 }

@@ -10,8 +10,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	cacheStubs "github.com/multiversx/mx-chain-go/testscommon/cache"
 )
 
 var timeoutWaitForWaitGroups = time.Second * 2
@@ -112,7 +115,7 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 
 	wg.Wait()
 
-	//checking
+	// checking
 	for i := 0; i < vals; i++ {
 		key := []byte(strconv.Itoa(i))
 		assert.True(t, sd.shardStore("1").cache.Has(key), fmt.Sprintf("for val %d", i))
@@ -271,10 +274,10 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 
 	sd, _ := NewShardedData("", defaultTestConfig)
 
-	//first add, no call
+	// first add, no call
 	sd.AddData([]byte("aaaa"), "bbbb", 4, "0")
 	sd.RegisterOnAdded(f)
-	//second add, should not call as the data was found
+	// second add, should not call as the data was found
 	sd.AddData([]byte("aaaa"), "bbbb", 4, "0")
 
 	select {
@@ -330,7 +333,38 @@ func TestShardedData_ImmunizeSetOfDataAgainstEviction(t *testing.T) {
 	t.Parallel()
 
 	sd, _ := NewShardedData("", defaultTestConfig)
-	sd.ImmunizeSetOfDataAgainstEviction([][]byte{[]byte("aaa")}, "0")
+	sd.ImmunizeSetOfDataAgainstEviction([][]byte{[]byte("aaa")}, "0", 7)
+	sd.SetOldestImmuneNonce("0", 7)
+}
+
+func TestShardedData_SetOldestImmuneNonceForAllCaches(t *testing.T) {
+	t.Parallel()
+
+	sd, _ := NewShardedData("", defaultTestConfig)
+
+	cacheIDs := []string{"0", "1", "2_0"}
+	received := make(map[string]uint64)
+	var mu sync.Mutex
+	for _, id := range cacheIDs {
+		idCopy := id
+		spy := &cacheStubs.ImmunityCacheSpy{
+			CacherStub: cacheStubs.NewCacherStub(),
+			SetOldestImmuneNonceCalled: func(nonce uint64) {
+				mu.Lock()
+				received[idCopy] = nonce
+				mu.Unlock()
+			},
+		}
+		sd.shardedDataStore[id] = &shardStore{cacheID: id, cache: spy}
+	}
+
+	sd.SetOldestImmuneNonceForAllCaches(42)
+
+	assert.Equal(t, len(cacheIDs), len(sd.shardedDataStore), "no new stores should be created")
+	assert.Equal(t, len(cacheIDs), len(received), "every store should receive the threshold once")
+	for _, id := range cacheIDs {
+		assert.Equal(t, uint64(42), received[id], "store %s did not receive the threshold", id)
+	}
 }
 
 func TestShardedData_GetCounts(t *testing.T) {
@@ -356,4 +390,23 @@ func TestShardedData_Diagnose(t *testing.T) {
 	sd.AddData([]byte("aaa"), "a1", 2, "0")
 	sd.AddData([]byte("bbb"), "b1", 2, "0")
 	sd.Diagnose(true)
+}
+
+func TestShardedData_NotImplemented(t *testing.T) {
+	t.Parallel()
+
+	sd, err := NewShardedData("", defaultTestConfig)
+	require.Nil(t, err)
+
+	require.NotPanics(t, func() {
+		sd.CleanupSelfShardTxCache(nil, 0, 0, 0)
+	})
+
+	err = sd.OnExecutedBlock(nil, nil)
+	require.Nil(t, err)
+
+	err = sd.OnProposedBlock(nil, nil, nil, nil, nil)
+	require.Nil(t, err)
+
+	sd.ResetTracker()
 }

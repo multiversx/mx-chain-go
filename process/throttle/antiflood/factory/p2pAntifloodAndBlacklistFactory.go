@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	antifloodDebug "github.com/multiversx/mx-chain-go/debug/antiflood"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -25,10 +26,6 @@ import (
 var log = logger.GetOrCreate("p2p/antiflood/factory")
 
 const defaultSpan = 300 * time.Second
-const fastReactingIdentifier = "fast_reacting"
-const slowReactingIdentifier = "slow_reacting"
-const outOfSpecsIdentifier = "out_of_specs"
-const outputIdentifier = "output"
 
 var durationSweepP2PBlacklist = time.Second * 5
 
@@ -42,12 +39,21 @@ type AntiFloodComponents struct {
 }
 
 // NewP2PAntiFloodComponents will return instances of antiflood and blacklist, based on the config
-func NewP2PAntiFloodComponents(ctx context.Context, config config.Config, statusHandler core.AppStatusHandler, currentPid core.PeerID) (*AntiFloodComponents, error) {
+func NewP2PAntiFloodComponents(
+	ctx context.Context,
+	mainConfig config.Config,
+	statusHandler core.AppStatusHandler,
+	currentPid core.PeerID,
+	antifloodConfigsHandler common.AntifloodConfigsHandler,
+) (*AntiFloodComponents, error) {
 	if check.IfNil(statusHandler) {
 		return nil, p2p.ErrNilStatusHandler
 	}
-	if config.Antiflood.Enabled {
-		return initP2PAntiFloodComponents(ctx, config, statusHandler, currentPid)
+	if check.IfNil(antifloodConfigsHandler) {
+		return nil, process.ErrNilAntifloodConfigsHandler
+	}
+	if antifloodConfigsHandler.IsEnabled() {
+		return initP2PAntiFloodComponents(ctx, mainConfig, statusHandler, currentPid, antifloodConfigsHandler)
 	}
 
 	return &AntiFloodComponents{
@@ -64,6 +70,7 @@ func initP2PAntiFloodComponents(
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
 	currentPid core.PeerID,
+	antifloodConfigsHandler common.AntifloodConfigsHandler,
 ) (*AntiFloodComponents, error) {
 	timeCache := cache.NewTimeCache(defaultSpan)
 	p2pPeerBlackList, err := cache.NewPeerTimeCache(timeCache)
@@ -75,10 +82,9 @@ func initP2PAntiFloodComponents(
 
 	fastReactingFloodPreventer, err := createFloodPreventer(
 		ctx,
-		mainConfig.Antiflood.FastReacting,
-		mainConfig.Antiflood.Cache,
+		antifloodConfigsHandler,
 		statusHandler,
-		fastReactingIdentifier,
+		common.FastReacting,
 		p2pPeerBlackList,
 		currentPid,
 	)
@@ -88,10 +94,9 @@ func initP2PAntiFloodComponents(
 
 	slowReactingFloodPreventer, err := createFloodPreventer(
 		ctx,
-		mainConfig.Antiflood.SlowReacting,
-		mainConfig.Antiflood.Cache,
+		antifloodConfigsHandler,
 		statusHandler,
-		slowReactingIdentifier,
+		common.SlowReacting,
 		p2pPeerBlackList,
 		currentPid,
 	)
@@ -101,10 +106,9 @@ func initP2PAntiFloodComponents(
 
 	outOfSpecsFloodPreventer, err := createFloodPreventer(
 		ctx,
-		mainConfig.Antiflood.OutOfSpecs,
-		mainConfig.Antiflood.Cache,
+		antifloodConfigsHandler,
 		statusHandler,
-		outOfSpecsIdentifier,
+		common.OutOfSpecs,
 		p2pPeerBlackList,
 		currentPid,
 	)
@@ -112,12 +116,14 @@ func initP2PAntiFloodComponents(
 		return nil, fmt.Errorf("%w when creating out of specs flood preventer", err)
 	}
 
-	topicFloodPreventer, err := floodPreventers.NewTopicFloodPreventer(mainConfig.Antiflood.Topic.DefaultMaxMessagesPerSec)
+	initialAntifloodConf := antifloodConfigsHandler.GetCurrentConfig()
+
+	topicFloodPreventer, err := floodPreventers.NewTopicFloodPreventer(initialAntifloodConf.Topic.DefaultMaxMessagesPerSec)
 	if err != nil {
 		return nil, err
 	}
 
-	topicMaxMessages := mainConfig.Antiflood.Topic.MaxMessages
+	topicMaxMessages := initialAntifloodConf.Topic.MaxMessages
 	setMaxMessages(topicFloodPreventer, topicMaxMessages)
 
 	p2pAntiflood, err := antiflood.NewP2PAntiflood(
@@ -212,14 +218,16 @@ func startSweepingTimeCaches(ctx context.Context, p2pPeerBlackList process.PeerB
 
 func createFloodPreventer(
 	ctx context.Context,
-	floodPreventerConfig config.FloodPreventerConfig,
-	antifloodCacheConfig config.CacheConfig,
+	antifloodConfigsHandler common.AntifloodConfigsHandler,
 	statusHandler core.AppStatusHandler,
-	quotaIdentifier string,
+	quotaIdentifier common.FloodPreventerType,
 	blackListHandler process.PeerBlackListCacher,
 	selfPid core.PeerID,
 ) (process.FloodPreventer, error) {
-	cacheConfig := storageFactory.GetCacherFromConfig(antifloodCacheConfig)
+	initialAntifloodConf := antifloodConfigsHandler.GetCurrentConfig()
+
+	// TODO: this config section have to be loaded with new configration from the start
+	cacheConfig := storageFactory.GetCacherFromConfig(initialAntifloodConf.Cache)
 	blackListCache, err := storageunit.NewCache(cacheConfig)
 	if err != nil {
 		return nil, err
@@ -228,12 +236,9 @@ func createFloodPreventer(
 	blackListProcessor, err := blackList.NewP2PBlackListProcessor(
 		blackListCache,
 		blackListHandler,
-		floodPreventerConfig.BlackList.ThresholdNumMessagesPerInterval,
-		floodPreventerConfig.BlackList.ThresholdSizePerInterval,
-		floodPreventerConfig.BlackList.NumFloodingRounds,
-		time.Duration(floodPreventerConfig.BlackList.PeerBanDurationInSeconds)*time.Second,
 		quotaIdentifier,
 		selfPid,
+		antifloodConfigsHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -249,39 +254,33 @@ func createFloodPreventer(
 		return nil, err
 	}
 
-	basePeerMaxMessagesPerInterval := floodPreventerConfig.PeerMaxInput.BaseMessagesPerInterval
-	peerMaxTotalSizePerInterval := floodPreventerConfig.PeerMaxInput.TotalSizePerInterval
-	reservedPercent := floodPreventerConfig.ReservedPercent
-
 	argFloodPreventer := floodPreventers.ArgQuotaFloodPreventer{
-		Name:                      quotaIdentifier,
-		Cacher:                    antifloodCache,
-		StatusHandlers:            []floodPreventers.QuotaStatusHandler{quotaProcessor, blackListProcessor},
-		BaseMaxNumMessagesPerPeer: basePeerMaxMessagesPerInterval,
-		MaxTotalSizePerPeer:       peerMaxTotalSizePerInterval,
-		PercentReserved:           reservedPercent,
-		IncreaseThreshold:         floodPreventerConfig.PeerMaxInput.IncreaseFactor.Threshold,
-		IncreaseFactor:            floodPreventerConfig.PeerMaxInput.IncreaseFactor.Factor,
+		Name:             quotaIdentifier,
+		Cacher:           antifloodCache,
+		StatusHandlers:   []floodPreventers.QuotaStatusHandler{quotaProcessor, blackListProcessor},
+		AntifloodConfigs: antifloodConfigsHandler,
 	}
 	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(argFloodPreventer)
 	if err != nil {
 		return nil, err
 	}
 
+	floodPreventerConfig := antifloodConfigsHandler.GetFloodPreventerConfigByType(quotaIdentifier)
+
 	log.Debug("started antiflood & blacklist component",
 		"type", quotaIdentifier,
 		"interval in seconds", floodPreventerConfig.IntervalInSeconds,
-		"base peerMaxMessagesPerInterval", basePeerMaxMessagesPerInterval,
-		"peerMaxTotalSizePerInterval", core.ConvertBytes(peerMaxTotalSizePerInterval),
+		"base peerMaxMessagesPerInterval", floodPreventerConfig.PeerMaxInput.BaseMessagesPerInterval,
+		"peerMaxTotalSizePerInterval", core.ConvertBytes(floodPreventerConfig.PeerMaxInput.TotalSizePerInterval),
 		"peerBanDurationInSeconds", floodPreventerConfig.BlackList.PeerBanDurationInSeconds,
 		"thresholdNumMessagesPerSecond", floodPreventerConfig.BlackList.ThresholdNumMessagesPerInterval,
 		"thresholdSizePerSecond", floodPreventerConfig.BlackList.ThresholdSizePerInterval,
-		"numFloodingRounds", floodPreventerConfig.BlackList.NumFloodingRounds,
 		"increase threshold", floodPreventerConfig.PeerMaxInput.IncreaseFactor.Threshold,
 		"increase factor", floodPreventerConfig.PeerMaxInput.IncreaseFactor.Factor,
 	)
 
 	go func() {
+		floodPreventerConfig := antifloodConfigsHandler.GetFloodPreventerConfigByType(quotaIdentifier)
 		wait := time.Duration(floodPreventerConfig.IntervalInSeconds) * time.Second
 
 		for {

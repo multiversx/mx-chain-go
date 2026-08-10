@@ -2,8 +2,9 @@ package disabled
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // TxProcessor implements the TransactionProcessor interface but does nothing as it is disabled

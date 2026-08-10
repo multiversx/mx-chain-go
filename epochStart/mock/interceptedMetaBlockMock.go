@@ -27,6 +27,11 @@ func (i *interceptedMetaBlockMock) CheckValidity() error {
 	return nil
 }
 
+// ShouldAllowDuplicates -
+func (i *interceptedMetaBlockMock) ShouldAllowDuplicates() bool {
+	return true
+}
+
 // IsForCurrentShard -
 func (i *interceptedMetaBlockMock) IsForCurrentShard() bool {
 	return true

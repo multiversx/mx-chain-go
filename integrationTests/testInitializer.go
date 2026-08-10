@@ -413,6 +413,8 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ProofsUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.ExecutionResultsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -486,6 +488,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
 		StateStatsHandler:    statistics.NewStateStatistics(),
 	})
+	_ = snapshotsManager.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	args := state.ArgsAccountsDB{
 		Trie:                   tr,
@@ -496,6 +499,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       snapshotsManager,
 		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		PruningEnabled:         trieStorageManager.IsPruningEnabled(),
 	}
 	adb, _ := state.NewAccountsDB(args)
 
@@ -541,21 +545,19 @@ func CreateMetaChain() data.ChainHandler {
 }
 
 // CreateSimpleGenesisBlocks creates empty genesis blocks for all known shards, including metachain
-func CreateSimpleGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
+func CreateSimpleGenesisBlocks(shardCoordinator sharding.Coordinator, rootHash []byte) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId, rootHash)
 	}
 
-	genesisBlocks[core.MetachainShardId] = CreateSimpleGenesisMetaBlock()
+	genesisBlocks[core.MetachainShardId] = CreateSimpleGenesisMetaBlock(rootHash)
 
 	return genesisBlocks
 }
 
 // CreateSimpleGenesisBlock creates a new mock shard genesis block
-func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
-	rootHash := []byte("root hash")
-
+func CreateSimpleGenesisBlock(shardId uint32, rootHash []byte) *dataBlock.Header {
 	return &dataBlock.Header{
 		Nonce:           0,
 		Round:           0,
@@ -572,9 +574,7 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 }
 
 // CreateSimpleGenesisMetaBlock creates a new mock meta genesis block
-func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
-	rootHash := []byte("root hash")
-
+func CreateSimpleGenesisMetaBlock(rootHash []byte) *dataBlock.MetaBlock {
 	return &dataBlock.MetaBlock{
 		Nonce:                  0,
 		Epoch:                  0,
@@ -613,11 +613,16 @@ func CreateGenesisBlocks(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	chainParametersHandler common.ChainParametersHandler,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+		rootHash, err := accounts.RootHash()
+		if err != nil {
+			log.Debug("Creating genesis block for shard ", "shardId", shardId, "err", err)
+		}
+		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId, rootHash)
 	}
 
 	genesisBlocks[core.MetachainShardId] = CreateGenesisMetaBlock(
@@ -635,6 +640,7 @@ func CreateGenesisBlocks(
 		dataPool,
 		economics,
 		enableEpochsConfig,
+		chainParametersHandler,
 	)
 
 	return genesisBlocks
@@ -684,6 +690,7 @@ func CreateFullGenesisBlocks(
 		GenesisTime:       0,
 		StartEpochNum:     0,
 		Accounts:          accounts,
+		AccountsProposal:  accounts,
 		InitialNodesSetup: nodesSetup,
 		Economics:         economics,
 		ShardCoordinator:  shardCoordinator,
@@ -722,6 +729,7 @@ func CreateFullGenesisBlocks(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -753,10 +761,21 @@ func CreateFullGenesisBlocks(
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		FeeSettings: config.FeeSettings{
+			BlockCapacityOverestimationFactor: 200,
+			PercentDecreaseLimitsStep:         10,
+		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopDurationCheckInterval:            10,
+		},
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -781,6 +800,7 @@ func CreateGenesisMetaBlock(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	_ common.ChainParametersHandler,
 ) data.MetaHeaderHandler {
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -803,6 +823,7 @@ func CreateGenesisMetaBlock(
 		Data:                dataComponents,
 		GenesisTime:         0,
 		Accounts:            accounts,
+		AccountsProposal:    accounts,
 		TrieStorageManagers: trieStorageManagers,
 		InitialNodesSetup:   nodesSetup,
 		ShardCoordinator:    shardCoordinator,
@@ -842,6 +863,7 @@ func CreateGenesisMetaBlock(
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -872,10 +894,21 @@ func CreateGenesisMetaBlock(
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		FeeSettings: config.FeeSettings{
+			BlockCapacityOverestimationFactor: 200,
+			PercentDecreaseLimitsStep:         10,
+		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopDurationCheckInterval:            10,
+		},
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
@@ -910,6 +943,42 @@ func CreateGenesisMetaBlock(
 	)
 
 	return metaHdr
+}
+
+// SetRootHashOfGenesisBlocks updates the root hash of the genesis block of each node and calls the OnGenesisExecutedBlock method
+func SetRootHashOfGenesisBlocks(nodes []*TestProcessorNode) {
+	for _, tpn := range nodes {
+		rootHash, err := tpn.Node.GetStateComponents().AccountsAdapter().RootHash()
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
+
+		shardID := tpn.ShardCoordinator.SelfId()
+		genesisBlock := tpn.GenesisBlocks[shardID]
+		err = genesisBlock.SetRootHash(rootHash)
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
+
+		err = tpn.Node.GetDataComponents().Blockchain().SetGenesisHeader(genesisBlock)
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
+
+		err = OnGenesisExecutedBlock(tpn)
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
+	}
+}
+
+// OnGenesisExecutedBlock resets the tracker and calls the OnGenesisExecutedBlock with the genesis block
+func OnGenesisExecutedBlock(node *TestProcessorNode) error {
+	shardID := node.ShardCoordinator.SelfId()
+	genesisBlock := node.GenesisBlocks[shardID]
+	node.DataPool.Transactions().ResetTracker()
+
+	return node.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
 }
 
 // CreateRandomAddress creates a random byte array with fixed size
@@ -1170,8 +1239,13 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
 
-		_ = addProofIfNeeded(n, header)
+		proof := createProofIfNeeded(n, header)
 		n.CommitBlock(body, header)
+
+		if check.IfNil(proof) {
+			continue
+		}
+		n.BroadcastProof(proof, pk)
 	}
 
 	log.Info("Delaying for disseminating headers and miniblocks...")
@@ -1192,20 +1266,34 @@ func ProposeBlockWithProof(
 
 	for _, n := range leaders {
 		body, header, _ := n.ProposeBlock(round, nonce)
+		if check.IfNil(header) {
+			log.Warn("ProposeBlockWithProof: leader could not propose", "round", round, "nonce", nonce)
+			continue
+		}
 		n.WhiteListBody(nodes, body)
 		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
 
-		proof := addProofIfNeeded(n, header)
+		proof := createProofIfNeeded(n, header)
+		if !check.IfNil(proof) {
+			// the leader aggregates the proof itself in real consensus
+			_ = n.DataPool.Proofs().AddProof(proof)
+		}
+
+		if header.IsHeaderV3() {
+			err := n.VerifyBlockProposalAndAddToExecutionQueue(body, header)
+			if err != nil {
+				continue
+			}
+		}
 		n.CommitBlock(body, header)
 
 		time.Sleep(SyncDelay)
 
-		// cleanup proof from pool before broadcasting so that the interceptor will propagate the proof to the other nodes
-		_ = n.Node.GetDataComponents().Datapool().Proofs().CleanupProofsBehindNonce(n.ShardCoordinator.SelfId(), nonce+4) // default cleanup delta is 3
-
+		if check.IfNil(proof) {
+			continue
+		}
 		n.BroadcastProof(proof, pk)
-
 	}
 
 	log.Info("Delaying for disseminating headers and miniblocks...")
@@ -1213,7 +1301,10 @@ func ProposeBlockWithProof(
 	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
 }
 
-func addProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) data.HeaderProofHandler {
+func createProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) data.HeaderProofHandler {
+	if check.IfNil(header) {
+		return nil
+	}
 	coreComp := node.Node.GetCoreComponents()
 	if !common.IsProofsFlagEnabledForHeader(coreComp.EnableEpochsHandler(), header) {
 		return nil
@@ -1230,8 +1321,6 @@ func addProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) data.H
 		HeaderRound:         header.GetRound(),
 		IsStartOfEpoch:      header.IsStartOfEpochBlock(),
 	}
-
-	node.Node.GetDataComponents().Datapool().Proofs().AddProof(proof)
 
 	return proof
 }
@@ -1405,11 +1494,39 @@ func CreateNodesWithEnableEpochsConfig(
 	return createNodesWithEpochsConfig(numOfShards, nodesPerShard, numMetaChainNodes, enableEpochsConfig)
 }
 
+// CreateNodesWithEnableConfigs -
+func CreateNodesWithEnableConfigs(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	enableEpochsConfig *config.EnableEpochs,
+	enableRoundsConfig *config.RoundConfig,
+) []*TestProcessorNode {
+	return createNodesWithEnableConfigs(numOfShards, nodesPerShard, numMetaChainNodes, enableEpochsConfig, enableRoundsConfig)
+}
+
 func createNodesWithEpochsConfig(
 	numOfShards int,
 	nodesPerShard int,
 	numMetaChainNodes int,
 	enableEpochsConfig *config.EnableEpochs,
+) []*TestProcessorNode {
+	defaultRoundsConfig := testscommon.GetDefaultRoundsConfig()
+	return createNodesWithEnableConfigs(
+		numOfShards,
+		nodesPerShard,
+		numMetaChainNodes,
+		enableEpochsConfig,
+		&defaultRoundsConfig,
+	)
+}
+
+func createNodesWithEnableConfigs(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	enableEpochsConfig *config.EnableEpochs,
+	enableRoundsConfig *config.RoundConfig,
 ) []*TestProcessorNode {
 	nodes := make([]*TestProcessorNode, numOfShards*nodesPerShard+numMetaChainNodes)
 	connectableNodes := make([]Connectable, len(nodes))
@@ -1422,6 +1539,7 @@ func createNodesWithEpochsConfig(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
 				EpochsConfig:         enableEpochsConfig,
+				RoundsConfig:         enableRoundsConfig,
 			})
 			nodes[idx] = n
 			connectableNodes[idx] = n
@@ -1435,6 +1553,7 @@ func createNodesWithEpochsConfig(
 			NodeShardId:          core.MetachainShardId,
 			TxSignPrivKeyShardId: 0,
 			EpochsConfig:         enableEpochsConfig,
+			RoundsConfig:         enableRoundsConfig,
 		})
 		idx = i + numOfShards*nodesPerShard
 		nodes[idx] = metaNode
@@ -1444,6 +1563,24 @@ func createNodesWithEpochsConfig(
 	ConnectNodes(connectableNodes)
 
 	return nodes
+}
+
+// CreateNodesWithEnableEpochsAndEnableRounds
+func CreateNodesWithEnableEpochsAndEnableRounds(
+	numOfShards int,
+	nodesPerShard int,
+	numMetaChainNodes int,
+	epochConfig config.EnableEpochs,
+	roundConfig config.RoundConfig,
+) []*TestProcessorNode {
+	return CreateNodesWithEnableEpochsAndVmConfigWithRoundsConfig(
+		numOfShards,
+		nodesPerShard,
+		numMetaChainNodes,
+		epochConfig,
+		roundConfig,
+		nil,
+	)
 }
 
 // CreateNodesWithEnableEpochs creates multiple nodes with custom epoch config
@@ -2276,6 +2413,7 @@ func generateValidTx(
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = accnts
+	stateComponents.AccountsProposal = accnts
 	stateComponents.AccountsAPI = accnts
 
 	mockNode, _ := node.NewNode(

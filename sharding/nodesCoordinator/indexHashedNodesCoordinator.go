@@ -701,7 +701,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		return
 	}
 
-	_, castOk := metaHdr.(*block.MetaBlock)
+	_, castOk := metaHdr.(data.MetaHeaderHandler)
 	if !castOk {
 		log.Error("could not process EpochStartPrepare on nodesCoordinator - not metaBlock")
 		return

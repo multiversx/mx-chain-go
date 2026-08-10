@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -33,6 +34,12 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	if check.IfNil(arguments.PoolsHolder.MiniBlocks()) {
 		return nil, process.ErrNilTxBlockBody
 	}
+	if check.IfNil(arguments.MetaFinalityView) {
+		return nil, process.ErrNilMetaFinalityView
+	}
+	if check.IfNil(arguments.BlockTracker) {
+		return nil, process.ErrNilBlockTracker
+	}
 
 	err := checkBaseBootstrapParameters(arguments.ArgBaseBootstrapper)
 	if err != nil {
@@ -42,11 +49,12 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base := &baseBootstrap{
 		chainHandler:                 arguments.ChainHandler,
 		blockProcessor:               arguments.BlockProcessor,
+		executionManager:             arguments.ExecutionManager,
 		store:                        arguments.Store,
 		headers:                      arguments.PoolsHolder.Headers(),
 		proofs:                       arguments.PoolsHolder.Proofs(),
+		dataPool:                     arguments.PoolsHolder,
 		roundHandler:                 arguments.RoundHandler,
-		waitTime:                     arguments.WaitTime,
 		hasher:                       arguments.Hasher,
 		marshalizer:                  arguments.Marshalizer,
 		forkDetector:                 arguments.ForkDetector,
@@ -58,6 +66,8 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		bootStorer:                   arguments.BootStorer,
 		storageBootstrapper:          arguments.StorageBootstrapper,
 		epochHandler:                 arguments.EpochHandler,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		divergenceEvaluatedRound:     -1,
 		miniBlocksProvider:           arguments.MiniblocksProvider,
 		uint64Converter:              arguments.Uint64Converter,
 		poolsHolder:                  arguments.PoolsHolder,
@@ -69,8 +79,11 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
+		processWaitTimeSupernova:     arguments.ProcessWaitTimeSupernova,
 		repopulateTokensSupplies:     arguments.RepopulateTokensSupplies,
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
+		enableRoundsHandler:          arguments.EnableRoundsHandler,
+		processConfigsHandler:        arguments.ProcessConfigsHandler,
 	}
 
 	if base.isInImportMode {
@@ -83,6 +96,16 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
+	base.settlementChecker = &shardSettlementChecker{
+		metaFinalityView: arguments.MetaFinalityView,
+		blockTracker:     arguments.BlockTracker,
+		headers:          arguments.PoolsHolder.Headers(),
+		proofs:           arguments.PoolsHolder.Proofs(),
+		requestHandler:   arguments.RequestHandler,
+		selfShardID:      arguments.ShardCoordinator.SelfId(),
+	}
+	// the disarm capability exists only on the production shard trigger; test triggers may lack it
+	base.epochStartDisarmer, _ = arguments.EpochStartTrigger.(epochStartTriggerDisarmer)
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
@@ -93,6 +116,11 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 
 	hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(boot.shardCoordinator.SelfId())
 	base.headerNonceHashStore, err = boot.store.GetStorer(hdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	err = base.createTxSyncer()
 	if err != nil {
 		return nil, err
 	}
@@ -108,19 +136,9 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	hashes := make([][]byte, len(header.GetMiniBlockHeaderHandlers()))
-	for i := 0; i < len(header.GetMiniBlockHeaderHandlers()); i++ {
-		hashes[i] = header.GetMiniBlockHeaderHandlers()[i].GetHash()
-	}
-
-	miniBlocksAndHashes, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
-	if len(missingMiniBlocksHashes) > 0 {
-		return nil, process.ErrMissingBody
-	}
-
-	miniBlocks := make([]*block.MiniBlock, len(miniBlocksAndHashes))
-	for index, miniBlockAndHash := range miniBlocksAndHashes {
-		miniBlocks[index] = miniBlockAndHash.Miniblock
+	miniBlocks, err := boot.getHeaderMiniBlocks(header)
+	if err != nil {
+		return nil, err
 	}
 
 	return &block.Body{MiniBlocks: miniBlocks}, nil
@@ -245,14 +263,7 @@ func (boot *ShardBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.H
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	hashes := make([][]byte, len(header.GetMiniBlockHeaderHandlers()))
-	for i := 0; i < len(header.GetMiniBlockHeaderHandlers()); i++ {
-		hashes[i] = header.GetMiniBlockHeaderHandlers()[i].GetHash()
-	}
-
-	boot.setRequestedMiniBlocks(nil)
-
-	miniBlockSlice, err := boot.getMiniBlocksRequestingIfMissing(hashes)
+	miniBlockSlice, err := boot.getHeaderMiniBlocksRequestingIfMissing(header)
 	if err != nil {
 		return nil, err
 	}

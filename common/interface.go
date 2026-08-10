@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -9,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
 )
 
@@ -189,6 +191,7 @@ type SnapshotStatisticsHandler interface {
 	AddTrieStats(handler TrieStatisticsHandler, trieType TrieType)
 	GetSnapshotDuration() int64
 	GetSnapshotNumNodes() uint64
+	IncrementThrottlerWaits()
 	IsInterfaceNil() bool
 }
 
@@ -252,7 +255,16 @@ type StateStatisticsHandler interface {
 // able to tell if the node is idle or processing/committing a block
 type ProcessStatusHandler interface {
 	SetBusy(reason string)
+	TrySetBusy(reason string) bool
 	SetIdle()
+	// BlockBackgroundJobs marks latency critical work that background jobs must yield to, without
+	// claiming the block processing exclusion, so the spans may overlap and are reference counted
+	BlockBackgroundJobs(reason string)
+	UnblockBackgroundJobs()
+	// SuspendBackgroundJobBlocking makes IsIdle ignore active blockers: for a caller that waits on a
+	// background job while itself holding a blocker, which would otherwise deadlock the wait
+	SuspendBackgroundJobBlocking(reason string)
+	ResumeBackgroundJobBlocking()
 	IsIdle() bool
 	IsInterfaceNil() bool
 }
@@ -278,6 +290,21 @@ type RootHashHolder interface {
 	GetEpoch() core.OptionalUint32
 	String() string
 	IsInterfaceNil() bool
+}
+
+// TxSelectionOptions holds transactions selection options (parameters)
+type TxSelectionOptions interface {
+	GetGasRequested() uint64
+	GetMaxNumTxs() int
+	HaveTimeForSelection() bool
+	GetLoopDurationCheckInterval() int
+	IsInterfaceNil() bool
+}
+
+// TxSelectionOptionsAPI holds transactions selection options (parameters) for the API call
+type TxSelectionOptionsAPI interface {
+	TxSelectionOptions
+	GetRequestedFields() string
 }
 
 // GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
@@ -306,6 +333,20 @@ type EnableEpochsHandler interface {
 	IsFlagEnabled(flag core.EnableEpochFlag) bool
 	IsFlagEnabledInEpoch(flag core.EnableEpochFlag, epoch uint32) bool
 	GetActivationEpoch(flag core.EnableEpochFlag) uint32
+	GetAllEnableEpochs() map[string]uint32
+
+	IsInterfaceNil() bool
+}
+
+// EnableRoundsHandler defines the operations of an entity that manages round activation flags
+type EnableRoundsHandler interface {
+	RoundConfirmed(round uint64, timestamp uint64)
+	GetCurrentRound() uint64
+	IsFlagDefined(flag EnableRoundFlag) bool
+	IsFlagEnabled(flag EnableRoundFlag) bool
+	IsFlagEnabledInRound(flag EnableRoundFlag, round uint64) bool
+	GetActivationRound(flag EnableRoundFlag) uint64
+	GetAllEnableRounds() map[string]uint64
 
 	IsInterfaceNil() bool
 }
@@ -389,6 +430,7 @@ type ChainParametersSubscriptionHandler interface {
 // HeadersPool defines what a headers pool structure can perform
 type HeadersPool interface {
 	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+	IsInterfaceNil() bool
 }
 
 // FieldsSizeChecker defines the behavior of a fields size checker common component
@@ -423,5 +465,76 @@ type DfsIterator interface {
 // it will continue to iterate from the checkpoint.
 type TrieLeavesRetriever interface {
 	GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error)
+	IsInterfaceNil() bool
+}
+
+// AccountNonceAndBalanceProvider provides the nonce and balance of accounts
+type AccountNonceAndBalanceProvider interface {
+	GetAccountNonceAndBalance(accountKey []byte) (uint64, *big.Int, bool, error)
+	GetRootHash() ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// AccountNonceProvider provides the nonce of accounts
+type AccountNonceProvider interface {
+	GetAccountNonce(accountKey []byte) (uint64, bool, error)
+	GetRootHash() ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	AllChainParameters() []config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
+	IsInterfaceNil() bool
+}
+
+// ProcessConfigsHandler defines the behavior of a component that can return the process configs for a specific epoch or round
+type ProcessConfigsHandler interface {
+	GetMaxMetaNoncesBehindByEpoch(epoch uint32) uint32
+	GetMaxMetaNoncesBehindForGlobalStuckByEpoch(epoch uint32) uint32
+	GetMaxShardNoncesBehindByEpoch(epoch uint32) uint32
+
+	GetMaxRoundsWithoutNewBlockReceivedByRound(round uint64) uint32
+	GetMaxRoundsWithoutCommittedBlock(round uint64) uint32
+	GetRoundModulusTriggerWhenSyncIsStuck(round uint64) uint32
+	GetMaxSyncWithErrorsAllowed(round uint64) uint32
+	GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64
+	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
+	GetMaxBlockProcessingTime(round uint64) time.Duration
+	GetNumHeadersToRequestInAdvance(round uint64) uint64
+
+	GetValue(variable dto.ConfigVariable) uint64
+
+	IsInterfaceNil() bool
+}
+
+// CommonConfigsHandler defines the behavior of a component that can return epoch start configurations by epoch or by round
+type CommonConfigsHandler interface {
+	GetGracePeriodRoundsByEpoch(epoch uint32) uint32
+	GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32
+	GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round uint64) uint32
+	GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32
+	GetSubroundsTimingByRound(round uint64) config.ConsensusConfigByRound
+	GetActiveTimingBoundaryRound(round uint64) uint64
+	PrintPrettifiedHeader() bool
+
+	IsInterfaceNil() bool
+}
+
+// AntifloodConfigsHandler defines the behavior of a component that can return antiflood config by round
+type AntifloodConfigsHandler interface {
+	GetCurrentConfig() config.AntifloodConfigByRound
+	GetFloodPreventerConfigByType(configType FloodPreventerType) config.FloodPreventerConfig
+	IsEnabled() bool
+	IsInterfaceNil() bool
+}
+
+// AOTSelectionPreempter defines the interface for preempting AOT transaction selection
+type AOTSelectionPreempter interface {
+	// CancelOngoingSelection aborts ongoing AOT selection if one is in progress
+	// Called before OnProposed/OnExecuted to avoid conflicts
+	CancelOngoingSelection()
 	IsInterfaceNil() bool
 }

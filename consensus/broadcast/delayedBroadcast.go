@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -26,11 +25,21 @@ import (
 const prefixHeaderAlarm = "header_"
 const prefixDelayDataAlarm = "delay_"
 const sizeHeadersCache = 1000 // 1000 hashes in cache
+const sizeProcessedMetaHeadersCache = 1000
+const maxPendingMetaHeaders = 50
+
+type shardDataHandler interface {
+	GetHeaderHash() []byte
+	GetRound() uint64
+	GetShardID() uint32
+}
 
 // ArgsDelayedBlockBroadcaster holds the arguments to create a delayed block broadcaster
 type ArgsDelayedBlockBroadcaster struct {
 	InterceptorsContainer process.InterceptorsContainer
 	HeadersSubscriber     consensus.HeadersPoolSubscriber
+	ProofsPool            consensus.EquivalentProofsPool
+	EnableEpochsHandler   common.EnableEpochsHandler
 	ShardCoordinator      sharding.Coordinator
 	LeaderCacheSize       uint32
 	ValidatorCacheSize    uint32
@@ -46,8 +55,14 @@ type timersScheduler interface {
 }
 
 type headerDataForValidator struct {
-	round        uint64
-	prevRandSeed []byte
+	round      uint64
+	headerHash []byte
+}
+
+type pendingHeaderInfo struct {
+	header data.HeaderHandler
+	hash   []byte
+	nonce  uint64
 }
 
 type delayedBlockBroadcaster struct {
@@ -55,6 +70,8 @@ type delayedBlockBroadcaster struct {
 	interceptorsContainer      process.InterceptorsContainer
 	shardCoordinator           sharding.Coordinator
 	headersSubscriber          consensus.HeadersPoolSubscriber
+	proofsPool                 consensus.EquivalentProofsPool
+	enableEpochsHandler        common.EnableEpochsHandler
 	valHeaderBroadcastData     []*shared.ValidatorHeaderBroadcastData
 	valBroadcastData           []*shared.DelayedBroadcastData
 	delayedBroadcastData       []*shared.DelayedBroadcastData
@@ -67,6 +84,11 @@ type delayedBlockBroadcaster struct {
 	broadcastConsensusMessage  func(message *consensus.Message) error
 	cacheHeaders               storage.Cacher
 	mutHeadersCache            sync.RWMutex
+	// pendingMetaHeaders stores metachain headers waiting for proof arrival before broadcast.
+	// mutPendingMetaHeaders and mutDataForBroadcast are never held simultaneously.
+	pendingMetaHeaders        map[string]*pendingHeaderInfo
+	mutPendingMetaHeaders     sync.RWMutex
+	cacheProcessedMetaHeaders storage.Cacher
 }
 
 // NewDelayedBlockBroadcaster create a new instance of a delayed block data broadcaster
@@ -80,6 +102,12 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 	if check.IfNil(args.HeadersSubscriber) {
 		return nil, spos.ErrNilHeadersSubscriber
 	}
+	if check.IfNil(args.ProofsPool) {
+		return nil, spos.ErrNilEquivalentProofPool
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, spos.ErrNilEnableEpochsHandler
+	}
 	if check.IfNil(args.AlarmScheduler) {
 		return nil, spos.ErrNilAlarmScheduler
 	}
@@ -89,11 +117,18 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		return nil, err
 	}
 
+	cacheProcessedMetaHeaders, err := cache.NewLRUCache(sizeProcessedMetaHeadersCache)
+	if err != nil {
+		return nil, err
+	}
+
 	dbb := &delayedBlockBroadcaster{
 		alarm:                      args.AlarmScheduler,
 		shardCoordinator:           args.ShardCoordinator,
 		interceptorsContainer:      args.InterceptorsContainer,
 		headersSubscriber:          args.HeadersSubscriber,
+		proofsPool:                 args.ProofsPool,
+		enableEpochsHandler:        args.EnableEpochsHandler,
 		valHeaderBroadcastData:     make([]*shared.ValidatorHeaderBroadcastData, 0),
 		valBroadcastData:           make([]*shared.DelayedBroadcastData, 0),
 		delayedBroadcastData:       make([]*shared.DelayedBroadcastData, 0),
@@ -102,9 +137,12 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		mutDataForBroadcast:        sync.RWMutex{},
 		cacheHeaders:               cacheHeaders,
 		mutHeadersCache:            sync.RWMutex{},
+		pendingMetaHeaders:         make(map[string]*pendingHeaderInfo),
+		cacheProcessedMetaHeaders:  cacheProcessedMetaHeaders,
 	}
 
 	dbb.headersSubscriber.RegisterHandler(dbb.headerReceived)
+	dbb.proofsPool.RegisterHandler(dbb.proofReceived)
 	err = dbb.registerHeaderInterceptorCallback(dbb.interceptedHeader)
 	if err != nil {
 		return nil, err
@@ -261,13 +299,62 @@ func (dbb *delayedBlockBroadcaster) Close() {
 }
 
 func (dbb *delayedBlockBroadcaster) headerReceived(headerHandler data.HeaderHandler, headerHash []byte) {
+	if headerHandler.GetShardID() != core.MetachainShardId {
+		return
+	}
+
+	if !common.IsProofsFlagEnabledForHeader(dbb.enableEpochsHandler, headerHandler) {
+		dbb.processMetachainHeader(headerHandler, headerHash)
+		return
+	}
+
+	dbb.addPendingMetaHeader(headerHandler, headerHash)
+	dbb.tryProcessPendingMetaHeader(headerHash)
+}
+
+func (dbb *delayedBlockBroadcaster) proofReceived(proof data.HeaderProofHandler) {
+	if check.IfNil(proof) {
+		return
+	}
+	if proof.GetHeaderShardId() != core.MetachainShardId {
+		return
+	}
+
+	headerHash := proof.GetHeaderHash()
+	dbb.tryProcessPendingMetaHeader(headerHash)
+
+	dbb.mutPendingMetaHeaders.Lock()
+	dbb.evictPendingMetaHeadersUpToNonce(proof.GetHeaderNonce())
+	dbb.mutPendingMetaHeaders.Unlock()
+}
+
+func (dbb *delayedBlockBroadcaster) tryProcessPendingMetaHeader(headerHash []byte) {
+	dbb.mutPendingMetaHeaders.Lock()
+	hashStr := string(headerHash)
+	pending, found := dbb.pendingMetaHeaders[hashStr]
+	if !found {
+		dbb.mutPendingMetaHeaders.Unlock()
+		return
+	}
+	if !dbb.proofsPool.HasProof(core.MetachainShardId, headerHash) {
+		dbb.mutPendingMetaHeaders.Unlock()
+		return
+	}
+	delete(dbb.pendingMetaHeaders, hashStr)
+	dbb.mutPendingMetaHeaders.Unlock()
+
+	dbb.processMetachainHeader(pending.header, pending.hash)
+}
+
+func (dbb *delayedBlockBroadcaster) processMetachainHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	if alreadyProcessed, _ := dbb.cacheProcessedMetaHeaders.HasOrAdd(headerHash, struct{}{}, 0); alreadyProcessed {
+		return
+	}
+
 	dbb.mutDataForBroadcast.RLock()
 	defer dbb.mutDataForBroadcast.RUnlock()
 
 	if len(dbb.delayedBroadcastData) == 0 && len(dbb.valBroadcastData) == 0 {
-		return
-	}
-	if headerHandler.GetShardID() != core.MetachainShardId {
 		return
 	}
 
@@ -276,25 +363,65 @@ func (dbb *delayedBlockBroadcaster) headerReceived(headerHandler data.HeaderHand
 		dbb.shardCoordinator.SelfId(),
 	)
 	if err != nil {
-		log.Error("delayedBlockBroadcaster.headerReceived", "error", err.Error(),
+		log.Error("delayedBlockBroadcaster.processMetachainHeader", "error", err.Error(),
 			"headerHash", headerHash,
 		)
 		return
 	}
 	if len(headerHashes) == 0 {
-		log.Trace("delayedBlockBroadcaster.headerReceived: header received with no shardData for current shard",
+		log.Trace("delayedBlockBroadcaster.processMetachainHeader: no shardData for current shard",
 			"headerHash", headerHash,
 		)
 		return
 	}
 
-	log.Trace("delayedBlockBroadcaster.headerReceived", "nbHeaderHashes", len(headerHashes))
+	log.Trace("delayedBlockBroadcaster.processMetachainHeader", "nbHeaderHashes", len(headerHashes))
 	for i := range headerHashes {
-		log.Trace("delayedBlockBroadcaster.headerReceived", "headerHash", headerHashes[i])
+		log.Trace("delayedBlockBroadcaster.processMetachainHeader", "headerHash", headerHashes[i])
 	}
 
 	go dbb.scheduleValidatorBroadcast(dataForValidators)
 	go dbb.broadcastDataForHeaders(headerHashes)
+}
+
+func (dbb *delayedBlockBroadcaster) addPendingMetaHeader(header data.HeaderHandler, headerHash []byte) {
+	dbb.mutPendingMetaHeaders.Lock()
+	defer dbb.mutPendingMetaHeaders.Unlock()
+
+	if len(dbb.pendingMetaHeaders) >= maxPendingMetaHeaders {
+		dbb.evictOldestPendingMetaHeader()
+	}
+
+	dbb.pendingMetaHeaders[string(headerHash)] = &pendingHeaderInfo{
+		header: header,
+		hash:   headerHash,
+		nonce:  header.GetNonce(),
+	}
+}
+
+func (dbb *delayedBlockBroadcaster) evictOldestPendingMetaHeader() {
+	var oldestKey string
+	var oldestNonce uint64
+	first := true
+	for key, pending := range dbb.pendingMetaHeaders {
+		if first || pending.nonce < oldestNonce {
+			oldestKey = key
+			oldestNonce = pending.nonce
+			first = false
+		}
+	}
+	if !first {
+		delete(dbb.pendingMetaHeaders, oldestKey)
+	}
+}
+
+// must be called under mutPendingMetaHeaders lock
+func (dbb *delayedBlockBroadcaster) evictPendingMetaHeadersUpToNonce(nonce uint64) {
+	for key, pending := range dbb.pendingMetaHeaders {
+		if pending.nonce <= nonce {
+			delete(dbb.pendingMetaHeaders, key)
+		}
+	}
 }
 
 func (dbb *delayedBlockBroadcaster) broadcastDataForHeaders(headerHashes [][]byte) {
@@ -348,7 +475,7 @@ func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators
 	for i := range dataForValidators {
 		log.Trace("delayedBlockBroadcaster.scheduleValidatorBroadcast",
 			"round", dataForValidators[i].round,
-			"prevRandSeed", dataForValidators[i].prevRandSeed,
+			"headerHash", dataForValidators[i].headerHash,
 		)
 	}
 
@@ -363,9 +490,9 @@ func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators
 	for _, headerData := range dataForValidators {
 		for _, broadcastData := range dbb.valBroadcastData {
 			sameRound := headerData.round == broadcastData.Header.GetRound()
-			samePrevRandomness := bytes.Equal(headerData.prevRandSeed, broadcastData.Header.GetPrevRandSeed())
-			if sameRound && samePrevRandomness {
-				duration := validatorDelayPerOrder*time.Duration(broadcastData.Order) + common.ExtraDelayForBroadcastBlockInfo
+			sameHeaderHash := bytes.Equal(headerData.headerHash, broadcastData.HeaderHash)
+			if sameRound && sameHeaderHash {
+				duration := common.ExtraDelayForBroadcastBlockInfo
 				alarmID := prefixDelayDataAlarm + hex.EncodeToString(broadcastData.HeaderHash)
 
 				alarmsToAdd = append(alarmsToAdd, alarmParams{
@@ -376,7 +503,7 @@ func (dbb *delayedBlockBroadcaster) scheduleValidatorBroadcast(dataForValidators
 					"headerHash", broadcastData.HeaderHash,
 					"alarmID", alarmID,
 					"round", headerData.round,
-					"prevRandSeed", headerData.prevRandSeed,
+					"headerHash", headerData.headerHash,
 					"consensusOrder", broadcastData.Order,
 				)
 			}
@@ -503,25 +630,67 @@ func getShardDataFromMetaChainBlock(
 	headerHandler data.HeaderHandler,
 	shardID uint32,
 ) ([][]byte, []*headerDataForValidator, error) {
-	metaHeader, ok := headerHandler.(*block.MetaBlock)
-	if !ok {
-		return nil, nil, spos.ErrInvalidMetaHeader
+	if check.IfNil(headerHandler) {
+		return nil, nil, spos.ErrNilHeader
 	}
 
 	dataForValidators := make([]*headerDataForValidator, 0)
 	shardHeaderHashes := make([][]byte, 0)
-	shardsInfo := metaHeader.GetShardInfo()
+
+	var shardsInfo []shardDataHandler
+	shardsInfo, err := getShardInfoHandlers(headerHandler)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	for _, shardInfo := range shardsInfo {
-		if shardInfo.ShardID == shardID {
-			shardHeaderHashes = append(shardHeaderHashes, shardInfo.HeaderHash)
+		if shardInfo.GetShardID() == shardID {
+			shardHeaderHashes = append(shardHeaderHashes, shardInfo.GetHeaderHash())
 			headerData := &headerDataForValidator{
-				round:        shardInfo.GetRound(),
-				prevRandSeed: shardInfo.GetPrevRandSeed(),
+				round:      shardInfo.GetRound(),
+				headerHash: shardInfo.GetHeaderHash(),
 			}
 			dataForValidators = append(dataForValidators, headerData)
 		}
 	}
 	return shardHeaderHashes, dataForValidators, nil
+}
+
+func getShardInfoHandlers(
+	headerHandler data.HeaderHandler,
+) ([]shardDataHandler, error) {
+	metaBlock, ok := headerHandler.(data.MetaHeaderHandler)
+	if !ok {
+		return nil, spos.ErrInvalidMetaHeader
+	}
+
+	if metaBlock.IsHeaderV3() {
+		// the alarm was registered with the header hash keys based on the proposal block
+		// but the data to be broadcasted was set based on execution results.
+		// here, we fetch the shard info proposal only for header hash key, so we have to
+		// fetch based on shard infos proposal (which was associated with the data to broadcast)
+		// and not based on shard infos for execution
+		return getShardInfoProposalHandlers(metaBlock)
+	}
+
+	shardsInfo := make([]shardDataHandler, 0)
+	for _, shardInfo := range metaBlock.GetShardInfoHandlers() {
+		shardsInfo = append(shardsInfo, shardInfo)
+	}
+
+	return shardsInfo, nil
+}
+
+func getShardInfoProposalHandlers(
+	metaBlock data.MetaHeaderHandler,
+) ([]shardDataHandler, error) {
+	shardsInfo := make([]shardDataHandler, 0)
+
+	for _, shardInfo := range metaBlock.GetShardInfoProposalHandlers() {
+		shardsInfo = append(shardsInfo, shardInfo)
+	}
+
+	return shardsInfo, nil
 }
 
 func (dbb *delayedBlockBroadcaster) registerHeaderInterceptorCallback(

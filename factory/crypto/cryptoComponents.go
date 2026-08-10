@@ -27,6 +27,8 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/keysManagement"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -36,6 +38,8 @@ import (
 
 const (
 	disabledSigChecking = "disabled"
+	// TODO: add to config
+	pubKeysCacheSize = 5000
 )
 
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
@@ -68,6 +72,8 @@ type cryptoComponentsFactory struct {
 	isInImportMode                       bool
 	importModeNoSigCheck                 bool
 	p2pKeyPemFileName                    string
+
+	coreComponentsHolder factory.CoreComponentsHolder
 }
 
 // cryptoParams holds the node public/private key data
@@ -113,6 +119,10 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 	if check.IfNil(args.CoreComponentsHolder.ValidatorPubKeyConverter()) {
 		return nil, errors.ErrNilPubKeyConverter
 	}
+	if check.IfNil(args.CoreComponentsHolder.ProcessConfigsHandler()) {
+		return nil, process.ErrNilProcessConfigsHandler
+	}
+
 	if len(args.ValidatorKeyPemFileName) == 0 {
 		return nil, errors.ErrNilPath
 	}
@@ -134,6 +144,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		enableEpochs:                         args.EnableEpochs,
 		p2pKeyPemFileName:                    args.P2pKeyPemFileName,
 		allValidatorKeysPemFileName:          args.AllValidatorKeysPemFileName,
+		coreComponentsHolder:                 args.CoreComponentsHolder,
 	}
 
 	return ccf, nil
@@ -201,12 +212,10 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	redundancyLevel := int(ccf.prefsConfig.Preferences.RedundancyLevel)
-	maxRoundsOfInactivity := redundancyLevel * ccf.config.Redundancy.MaxRoundsOfInactivityAccepted
 	argsManagedPeersHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:          blockSignKeyGen,
 		P2PKeyGenerator:       p2pKeyGenerator,
-		MaxRoundsOfInactivity: maxRoundsOfInactivity,
+		ProcessConfigsHandler: ccf.coreComponentsHolder.ProcessConfigsHandler(),
 		PrefsConfig:           ccf.prefsConfig,
 		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
 	}
@@ -239,12 +248,17 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
+	pubKeysCache, err := cache.NewLRUCache(pubKeysCacheSize)
+	if err != nil {
+		return nil, err
+	}
 	signingHandlerArgs := ArgsSigningHandler{
 		PubKeys:              []string{cp.publicKeyString},
 		MultiSignerContainer: multiSigner,
 		KeyGenerator:         blockSignKeyGen,
 		SingleSigner:         interceptSingleSigner,
 		KeysHandler:          keysHandler,
+		PubKeysCache:         pubKeysCache,
 	}
 	consensusSigningHandler, err := NewSigningHandler(signingHandlerArgs)
 	if err != nil {

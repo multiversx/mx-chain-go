@@ -15,14 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/multiversx/mx-chain-vm-go/vmhost"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -36,8 +28,8 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -46,6 +38,14 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
+	"github.com/multiversx/mx-chain-go/txcache"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/multiversx/mx-chain-vm-go/vmhost"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const maxEpoch = math.MaxUint32
@@ -482,7 +482,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 
 	allLogs := tsc.GetTxLogsProcessor().GetAllCurrentLogs()
 	require.Equal(t, 1, len(allLogs))
-	require.Equal(t, expectedError, string(allLogs[0].LogHandler.GetLogEvents()[0].GetData()))
+	require.Equal(t, expectedError, string(allLogs[0].GetLogHandler().GetLogEvents()[0].GetData()))
 	require.Equal(t, vmcommon.UserError, returnCode)
 	require.Equal(t, uint64(1), acntSrc.GetNonce())
 	require.True(t, acntSrc.GetBalance().Cmp(tx.Value) == 0)
@@ -529,7 +529,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	expectedError := "@" + hex.EncodeToString([]byte(createError.Error()))
 	allLogs := tsc.GetTxLogsProcessor().GetAllCurrentLogs()
 	require.Equal(t, 1, len(allLogs))
-	require.Equal(t, expectedError, string(allLogs[0].LogHandler.GetLogEvents()[0].GetData()))
+	require.Equal(t, expectedError, string(allLogs[0].GetLogHandler().GetLogEvents()[0].GetData()))
 }
 
 func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
@@ -3593,6 +3593,7 @@ func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	sc, _ := NewSmartContractProcessorV2(arguments)
+	sc.argsParser = smartContract.NewArgumentParser()
 
 	acntSnd := &stateMock.UserAccountStub{}
 	scr, consumedFee := sc.createSCRsWhenError(nil, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"), 0)
@@ -3605,40 +3606,39 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
 	assert.Equal(t, expectedError, string(scr.Data))
-
 	scr, consumedFee = sc.createSCRsWhenError(
 		acntSnd,
 		[]byte("txHash"),
-		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall},
+		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, Data: []byte("a@aa@bb@cc")},
 		"string",
 		[]byte("msg"),
 		0)
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
-	assert.Equal(t, "@04@6d7367", string(scr.Data))
+	assert.True(t, strings.Contains(string(scr.Data), "@04@6d7367"))
 
 	scr, consumedFee = sc.createSCRsWhenError(
 		acntSnd,
 		[]byte("txHash"),
-		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, GasPrice: 1, GasLimit: 100},
+		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, GasPrice: 1, GasLimit: 100, Data: []byte("a@aa@bb@cc")},
 		"string",
 		[]byte("msg"),
 		20)
 	assert.Equal(t, uint64(1), scr.GasPrice)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(80)), 0)
-	assert.Equal(t, "@04@6d7367", string(scr.Data))
+	assert.True(t, strings.Contains(string(scr.Data), "@04@6d7367"))
 	assert.Equal(t, uint64(20), scr.GasLimit)
 
 	scr, consumedFee = sc.createSCRsWhenError(
 		acntSnd,
 		[]byte("txHash"),
-		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, GasPrice: 1, GasLimit: 100},
+		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, GasPrice: 1, GasLimit: 100, Data: []byte("a@aa@bb@cc")},
 		"string",
 		[]byte("msg"),
 		0)
 	assert.Equal(t, uint64(1), scr.GasPrice)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(100)), 0)
-	assert.Equal(t, "@04@6d7367", string(scr.Data))
+	assert.True(t, strings.Contains(string(scr.Data), "@04@6d7367"))
 	assert.Equal(t, uint64(0), scr.GasLimit)
 }
 
@@ -4276,7 +4276,9 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 }
 
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
+
 	return &economics.ArgsNewEconomicsData{
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "20000000000000000000000000",
@@ -4295,6 +4297,10 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 						ProtocolSustainabilityAddress:    "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5",
 						TopUpGradientPoint:               "300000000000000000000",
 						TopUpFactor:                      0.25,
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 					},
 				},
 			},

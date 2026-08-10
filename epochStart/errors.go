@@ -74,6 +74,9 @@ var ErrNilMetaBlocksPool = errors.New("nil metablocks pool")
 // ErrNilProofsPool signals that nil proofs pool has been provided
 var ErrNilProofsPool = errors.New("nil proofs pool")
 
+// ErrNilHeadersDataPool signals that nil headers data pool has been provided
+var ErrNilHeadersDataPool = errors.New("nil headers data pool")
+
 // ErrNilValidatorInfoProcessor signals that a nil validator info processor has been provided
 var ErrNilValidatorInfoProcessor = errors.New("nil validator info processor")
 
@@ -356,5 +359,11 @@ var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("auction node has b
 // ErrNilEquivalentProofsProcessor signals that a nil equivalent proofs processor was provided
 var ErrNilEquivalentProofsProcessor = errors.New("nil equivalent proofs processor")
 
-// ErrNilHeadersDataPool signals that a nil headers pool has been provided
-var ErrNilHeadersDataPool = errors.New("nil headers data pool")
+// ErrInvalidHeader signals that an invalid header was provided
+var ErrInvalidHeader = errors.New("invalid header")
+
+// ErrNilPrevBlockExecutionResults signals that nil previous block execution results were provided
+var ErrNilPrevBlockExecutionResults = errors.New("nil previous block execution results")
+
+// ErrMissingNodesConfigForBootstrapEpoch signals that the nodes coordinator config does not contain the resolved bootstrap epoch
+var ErrMissingNodesConfigForBootstrapEpoch = errors.New("nodes coordinator config missing for resolved bootstrap epoch")

@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strings"
 	goSync "sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -18,6 +19,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -27,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -40,7 +44,7 @@ import (
 func createMetaBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessorStub {
 	blockProcessorMock := &testscommon.BlockProcessorStub{
 		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
-			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.MetaBlock), hdr.GetRootHash())
+			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(data.MetaHeaderHandler), hdr.GetRootHash())
 			return nil
 		},
 		RevertCurrentBlockCalled: func() {
@@ -66,7 +70,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		ChainHandler:                 initBlockchain(),
 		RoundHandler:                 &mock.RoundHandlerMock{},
 		BlockProcessor:               &testscommon.BlockProcessorStub{},
-		WaitTime:                     waitTime,
+		ExecutionManager:             &processMocks.ExecutionManagerMock{},
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
 		ForkDetector:                 &mock.ForkDetectorMock{},
@@ -78,6 +82,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		BootStorer:                   &mock.BoostrapStorerMock{},
 		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
 		EpochHandler:                 &mock.EpochStartTriggerStub{},
+		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerStub{},
@@ -87,8 +92,11 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
+		ProcessWaitTimeSupernova:     testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		ProcessConfigsHandler:        testscommon.GetDefaultProcessConfigsHandler(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -96,9 +104,227 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		EpochBootstrapper:           &mock.EpochStartTriggerStub{},
 		ValidatorAccountsDB:         &stateMock.AccountsStub{},
 		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
+		Watchdog:                    &testscommon.WatchdogMock{},
 	}
 
 	return argsMetaBootstrapper
+}
+
+func TestMetaBootstrap_RequestEpochStartBlockIfStuck(t *testing.T) {
+	t.Parallel()
+
+	const currentNonce = uint64(100)
+	const currentEpoch = uint32(0)
+
+	newArgs := func() (sync.ArgMetaBootstrapper, *headerRequestsRecorder) {
+		recorder := &headerRequestsRecorder{}
+		args := CreateMetaBootstrapMockArguments()
+		args.ChainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlock{Nonce: currentNonce, Epoch: currentEpoch}
+			},
+		}
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
+				recorder.startOfEpochCalls++
+				recorder.startOfEpochArg = epoch
+			},
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
+				recorder.proofByHashCalls++
+				recorder.proofByHashArg = headerHash
+			},
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
+				recorder.proofByNonceCalls++
+				recorder.proofByNonceArg = headerNonce
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		return args, recorder
+	}
+
+	t.Run("not stuck (nonce advanced since last arm) does not request anything", func(t *testing.T) {
+		t.Parallel()
+
+		args, recorder := newArgs()
+		boot, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+
+		// baseline is behind the current nonce -> progress was made during the interval
+		boot.SetWatchdogLastNonce(currentNonce - 1)
+		boot.RequestEpochStartBlockIfStuck()
+		require.Zero(t, recorder.total())
+	})
+
+	t.Run("stuck, header absent, requests start of epoch block and proof by nonce", func(t *testing.T) {
+		t.Parallel()
+
+		args, recorder := newArgs()
+		boot, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+
+		boot.SetWatchdogLastNonce(currentNonce)
+		boot.RequestEpochStartBlockIfStuck()
+
+		require.Equal(t, 1, recorder.startOfEpochCalls)
+		require.Equal(t, currentEpoch+1, recorder.startOfEpochArg)
+		require.Equal(t, 1, recorder.proofByNonceCalls)
+		require.Equal(t, currentNonce+1, recorder.proofByNonceArg)
+		require.Equal(t, 0, recorder.proofByHashCalls)
+	})
+
+	t.Run("stuck, header present without proof, requests proof by hash", func(t *testing.T) {
+		t.Parallel()
+
+		expectedHash := []byte("epoch-change-hash")
+		args, recorder := newArgs()
+		args.PoolsHolder = poolsWithMetaHeader(currentNonce+1, currentEpoch+1, expectedHash, false)
+		boot, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+
+		boot.SetWatchdogLastNonce(currentNonce)
+		boot.RequestEpochStartBlockIfStuck()
+
+		require.Equal(t, 1, recorder.proofByHashCalls)
+		require.Equal(t, expectedHash, recorder.proofByHashArg)
+		require.Equal(t, 0, recorder.startOfEpochCalls)
+		require.Equal(t, 0, recorder.proofByNonceCalls)
+	})
+
+	t.Run("stuck, header present with proof, does not request anything", func(t *testing.T) {
+		t.Parallel()
+
+		args, recorder := newArgs()
+		args.PoolsHolder = poolsWithMetaHeader(currentNonce+1, currentEpoch+1, []byte("hash"), true)
+		boot, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+
+		boot.SetWatchdogLastNonce(currentNonce)
+		boot.RequestEpochStartBlockIfStuck()
+
+		require.Zero(t, recorder.total())
+	})
+
+	t.Run("stuck, proven header present alongside a more recent fork, recognizes the proof and requests nothing", func(t *testing.T) {
+		t.Parallel()
+
+		hashX := []byte("proven-hash")
+		hashY := []byte("fork-hash")
+		headerX := &block.MetaBlock{Nonce: currentNonce + 1, Epoch: currentEpoch + 1}
+		headerY := &block.MetaBlock{Nonce: currentNonce + 1, Epoch: currentEpoch + 1}
+
+		args, recorder := newArgs()
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+					if hdrNonce != currentNonce+1 {
+						return nil, nil, errors.New("not found")
+					}
+					// Y is the last-seen (more recently received) header for the nonce
+					return []data.HeaderHandler{headerX, headerY}, [][]byte{hashX, hashY}, nil
+				},
+				GetHeaderByHashCalled: func(h []byte) (data.HeaderHandler, error) {
+					if bytes.Equal(h, hashX) {
+						return headerX, nil
+					}
+					return nil, errors.New("not found")
+				},
+			}
+		}
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+					if headerNonce == currentNonce+1 {
+						return &block.HeaderProof{HeaderHash: hashX, HeaderNonce: headerNonce}, nil
+					}
+					return nil, errors.New("missing proof")
+				},
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return bytes.Equal(headerHash, hashX)
+				},
+			}
+		}
+		args.PoolsHolder = pools
+
+		boot, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+
+		boot.SetWatchdogLastNonce(currentNonce)
+		boot.RequestEpochStartBlockIfStuck()
+
+		// without proof-preference the last-seen fork Y (no proof) would be picked and its proof requested
+		require.Zero(t, recorder.total())
+	})
+
+	t.Run("stuck but andromeda not enabled does not request anything", func(t *testing.T) {
+		t.Parallel()
+
+		args, recorder := newArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+		boot, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+
+		boot.SetWatchdogLastNonce(currentNonce)
+		boot.RequestEpochStartBlockIfStuck()
+
+		require.Zero(t, recorder.total())
+	})
+}
+
+type headerRequestsRecorder struct {
+	startOfEpochCalls int
+	startOfEpochArg   uint32
+	proofByHashCalls  int
+	proofByHashArg    []byte
+	proofByNonceCalls int
+	proofByNonceArg   uint64
+}
+
+func (r *headerRequestsRecorder) total() int {
+	return r.startOfEpochCalls + r.proofByHashCalls + r.proofByNonceCalls
+}
+
+func poolsWithMetaHeader(nonce uint64, epoch uint32, hash []byte, hasProof bool) *dataRetrieverMock.PoolsHolderStub {
+	metaHeader := &block.MetaBlock{Nonce: nonce, Epoch: epoch}
+	pools := createMockPools()
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				if hdrNonce != nonce {
+					return nil, nil, errors.New("not found")
+				}
+				return []data.HeaderHandler{metaHeader}, [][]byte{hash}, nil
+			},
+			GetHeaderByHashCalled: func(h []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(h, hash) {
+					return metaHeader, nil
+				}
+				return nil, errors.New("not found")
+			},
+		}
+	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return hasProof
+			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				if hasProof && headerNonce == nonce {
+					return &block.HeaderProof{HeaderHash: hash, HeaderNonce: nonce}, nil
+				}
+				return nil, errors.New("missing proof")
+			},
+		}
+	}
+	return pools
 }
 
 // ------- NewMetaBootstrap
@@ -113,6 +339,18 @@ func TestNewMetaBootstrap_NilPoolsHolderShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilPoolsHolder, err)
+}
+
+func TestNewMetaBootstrap_NilWatchdogShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.Watchdog = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.Equal(t, process.ErrNilWatchdog, err)
 }
 
 func TestNewMetaBootstrap_NilValidatorDBShouldErr(t *testing.T) {
@@ -494,6 +732,21 @@ func TestNewMetaBootstrap_OkValsShouldWork(t *testing.T) {
 
 // ------- processing
 
+func createDefaultRoundArgs() round.ArgsRound {
+	genesisTime := time.Now()
+	return round.ArgsRound{
+		GenesisTimeStamp:          genesisTime,
+		SupernovaGenesisTimeStamp: genesisTime,
+		CurrentTimeStamp:          genesisTime.Add(2 * 100 * time.Millisecond),
+		RoundTimeDuration:         100 * time.Millisecond,
+		SupernovaTimeDuration:     100 * time.Millisecond,
+		SyncTimer:                 &mock.SyncTimerMock{},
+		StartRound:                0,
+		SupernovaStartRound:       0,
+		EnableRoundsHandler:       &testscommon.EnableRoundsHandlerStub{},
+	}
+}
+
 func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 	t.Parallel()
 
@@ -521,12 +774,8 @@ func TestMetaBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(time.Now(),
-		time.Now().Add(2*100*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+
+	args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 	args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -633,13 +882,10 @@ func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return nil, nil
 	}
 	args.Accounts = account
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(200*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+
+	roundArgs := createDefaultRoundArgs()
+	roundArgs.CurrentTimeStamp = time.Now().Add(200 * time.Millisecond)
+	args.RoundHandler, _ = round.NewRound(roundArgs)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	_ = bs.StartSyncingBlocks()
@@ -719,13 +965,7 @@ func TestMetaBootstrap_ShouldReturnNilErr(t *testing.T) {
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(2*100*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+	args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	r := bs.SyncBlock(context.Background())
@@ -794,13 +1034,7 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(2*100*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+	args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	err := bs.SyncBlock(context.Background())
@@ -820,7 +1054,11 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenCurrentBlockIsNil
 		return 0
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(time.Now(), time.Now(), 200*time.Millisecond, &mock.SyncTimerMock{}, 0)
+
+	roundArgs := createDefaultRoundArgs()
+	roundArgs.CurrentTimeStamp = time.Now()
+	roundArgs.RoundTimeDuration = 200 * time.Millisecond
+	args.RoundHandler, _ = round.NewRound(roundArgs)
 
 	bs, err := sync.NewMetaBootstrap(args)
 	assert.Nil(t, err)
@@ -845,7 +1083,11 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIs
 		return []byte("hash")
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{}, 0)
+
+	roundArgs := createDefaultRoundArgs()
+	roundArgs.CurrentTimeStamp = time.Now().Add(100 * time.Millisecond)
+	roundArgs.RoundTimeDuration = 200 * time.Millisecond
+	args.RoundHandler, _ = round.NewRound(roundArgs)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
@@ -909,7 +1151,10 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynce
 		return 1
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(time.Now(), time.Now().Add(100*time.Millisecond), 100*time.Millisecond, &mock.SyncTimerMock{}, 0)
+
+	roundArgs := createDefaultRoundArgs()
+	roundArgs.CurrentTimeStamp = time.Now().Add(100 * time.Millisecond)
+	args.RoundHandler, _ = round.NewRound(roundArgs)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	bs.ComputeNodeState()
@@ -960,8 +1205,12 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -1027,8 +1276,12 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -1069,7 +1322,10 @@ func TestMetaBootstrap_GetHeaderFromPoolShouldReturnNil(t *testing.T) {
 		return 0
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(time.Now(), time.Now(), 200*time.Millisecond, &mock.SyncTimerMock{}, 0)
+	roundArgs := createDefaultRoundArgs()
+	roundArgs.CurrentTimeStamp = time.Now()
+	roundArgs.RoundTimeDuration = 200 * time.Millisecond
+	args.RoundHandler, _ = round.NewRound(roundArgs)
 
 	bs, _ := sync.NewMetaBootstrap(args)
 	hdr, _, _ := process.GetMetaHeaderFromPoolWithNonce(0, pools.HeadersCalled())
@@ -1697,13 +1953,7 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(2*100*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+	args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 	accountsSyncCalled := false
 	args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
 		SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
@@ -1787,12 +2037,7 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			return nil
 		}
 		args.ForkDetector = forkDetector
-		args.RoundHandler, _ = round.NewRound(time.Now(),
-			time.Now().Add(2*100*time.Millisecond),
-			100*time.Millisecond,
-			&mock.SyncTimerMock{},
-			0,
-		)
+		args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 		args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 		pools := createMockPools()
@@ -1845,12 +2090,7 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			return nil
 		}
 		args.ForkDetector = forkDetector
-		args.RoundHandler, _ = round.NewRound(time.Now(),
-			time.Now().Add(2*100*time.Millisecond),
-			100*time.Millisecond,
-			&mock.SyncTimerMock{},
-			0,
-		)
+		args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 		args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 		pools := createMockPools()
@@ -1865,12 +2105,12 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			}
 		}
 
-		numHeaderCalls := 0
+		var numHeaderCalls atomic.Uint64
 		pools.HeadersCalled = func() dataRetriever.HeadersPool {
 			sds := &mock.HeadersCacherStub{}
 			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
-				if numHeaderCalls == 0 {
-					numHeaderCalls++
+				if numHeaderCalls.Load() == 0 {
+					numHeaderCalls.Add(1)
 					return nil, nil, errors.New("err")
 				}
 
@@ -1947,12 +2187,7 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			return hash
 		}
 		args.ForkDetector = forkDetector
-		args.RoundHandler, _ = round.NewRound(time.Now(),
-			time.Now().Add(2*100*time.Millisecond),
-			100*time.Millisecond,
-			&mock.SyncTimerMock{},
-			0,
-		)
+		args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 		args.BlockProcessor = createMetaBlockProcessor(args.ChainHandler)
 
 		pools := createMockPools()
@@ -1961,6 +2196,9 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		pools.ProofsCalled = func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{
 				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+					return nil, errors.New("missing proof")
+				},
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
 					return nil, errors.New("missing proof")
 				},
 				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
@@ -1998,6 +2236,9 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 				receive <- true
 			},
 			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+				receive <- true
+			},
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
 				receive <- true
 			},
 		}

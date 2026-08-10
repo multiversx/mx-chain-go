@@ -1,12 +1,17 @@
 package spos
 
 import (
+	"bytes"
 	"context"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -25,14 +30,20 @@ type Subround struct {
 	ConsensusCoreHandler
 	ConsensusStateHandler
 
-	previous   int
-	current    int
-	next       int
-	startTime  int64
-	endTime    int64
-	name       string
-	chainID    []byte
-	currentPid core.PeerID
+	previous                        int
+	current                         int
+	next                            int
+	mutDuration                     sync.RWMutex
+	baseDuration                    time.Duration
+	startTimePercent                float64
+	endTimePercent                  float64
+	signatureSubroundEndTimePercent float64
+	processingThresholdPercent      int
+	startTime                       int64
+	endTime                         int64
+	name                            string
+	chainID                         []byte
+	currentPid                      core.PeerID
 
 	consensusStateChangedChannel chan bool
 	executeStoredMessages        func()
@@ -48,8 +59,9 @@ func NewSubround(
 	previous int,
 	current int,
 	next int,
-	startTime int64,
-	endTime int64,
+	baseDuration time.Duration,
+	startTimePercent float64,
+	endTimePercent float64,
 	name string,
 	consensusState ConsensusStateHandler,
 	consensusStateChangedChannel chan bool,
@@ -71,12 +83,16 @@ func NewSubround(
 		return nil, err
 	}
 
+	startTime, endTime := computeStartAndEndTime(baseDuration, startTimePercent, endTimePercent)
 	sr := Subround{
 		ConsensusCoreHandler:         container,
 		ConsensusStateHandler:        consensusState,
 		previous:                     previous,
 		current:                      current,
 		next:                         next,
+		baseDuration:                 baseDuration,
+		startTimePercent:             startTimePercent,
+		endTimePercent:               endTimePercent,
 		startTime:                    startTime,
 		endTime:                      endTime,
 		name:                         name,
@@ -124,6 +140,12 @@ func checkNewSubroundParams(
 	return nil
 }
 
+func computeStartAndEndTime(baseDuration time.Duration, startTimePercent float64, endTimePercent float64) (int64, int64) {
+	startTime := int64(float64(baseDuration) * startTimePercent)
+	endTime := int64(float64(baseDuration) * endTimePercent)
+	return startTime, endTime
+}
+
 // DoWork method actually does the work of this Subround. First it tries to do the Job of the Subround then it will
 // Check the consensus. If the upper time limit of this Subround is reached, the Extend method will be called before
 // returning. If this method returns true the chronology will advance to the next Subround.
@@ -145,6 +167,9 @@ func (sr *Subround) DoWork(ctx context.Context, roundHandler consensus.RoundHand
 
 	for {
 		select {
+		case <-ctx.Done():
+			sr.SetRoundCanceled(true)
+			return false
 		case <-sr.consensusStateChangedChannel:
 			if sr.Check() {
 				return true
@@ -177,12 +202,69 @@ func (sr *Subround) Next() int {
 
 // StartTime method returns the start time of the Subround
 func (sr *Subround) StartTime() int64 {
+	sr.mutDuration.RLock()
+	defer sr.mutDuration.RUnlock()
+
 	return sr.startTime
 }
 
 // EndTime method returns the upper time limit of the Subround
 func (sr *Subround) EndTime() int64 {
+	sr.mutDuration.RLock()
+	defer sr.mutDuration.RUnlock()
+
 	return sr.endTime
+}
+
+// SignatureSubroundEndTime returns the end time limit of the signature subround
+func (sr *Subround) SignatureSubroundEndTime() time.Duration {
+	sr.mutDuration.RLock()
+	defer sr.mutDuration.RUnlock()
+
+	return time.Duration(float64(sr.baseDuration) * sr.signatureSubroundEndTimePercent)
+}
+
+// SetSignatureSubroundEndTimePercentage sets the end time percent of the signature subround
+func (sr *Subround) SetSignatureSubroundEndTimePercentage(percent float64) {
+	sr.mutDuration.Lock()
+	defer sr.mutDuration.Unlock()
+
+	sr.signatureSubroundEndTimePercent = percent
+}
+
+// ProcessingThresholdPercent returns the processing threshold percent of the subround
+func (sr *Subround) ProcessingThresholdPercent() int {
+	sr.mutDuration.RLock()
+	defer sr.mutDuration.RUnlock()
+
+	return sr.processingThresholdPercent
+}
+
+// SetProcessingThresholdPercent sets the processing threshold percent of the subround
+func (sr *Subround) SetProcessingThresholdPercent(percent int) {
+	sr.mutDuration.Lock()
+	defer sr.mutDuration.Unlock()
+
+	sr.processingThresholdPercent = percent
+}
+
+// SetBaseDuration sets the base duration of the subround
+func (sr *Subround) SetBaseDuration(baseDuration time.Duration) {
+	sr.mutDuration.Lock()
+	defer sr.mutDuration.Unlock()
+
+	sr.baseDuration = baseDuration
+	sr.startTime, sr.endTime = computeStartAndEndTime(baseDuration, sr.startTimePercent, sr.endTimePercent)
+}
+
+// SetTimingPercentage sets the start time and end time percent of the subround and recomputes its start and end time
+func (sr *Subround) SetTimingPercentage(startTimePercent float64, endTimePercent float64) {
+	sr.mutDuration.Lock()
+	defer sr.mutDuration.Unlock()
+
+	sr.startTimePercent = startTimePercent
+	sr.endTimePercent = endTimePercent
+	sr.startTime, sr.endTime = computeStartAndEndTime(sr.baseDuration, sr.startTimePercent, sr.endTimePercent)
 }
 
 // Name method returns the name of the Subround
@@ -210,21 +292,50 @@ func (sr *Subround) ConsensusChannel() chan bool {
 	return sr.consensusStateChangedChannel
 }
 
+// HasProofForCompetingBlock checks if there is a proof for a competing block in the equivalent proofs pool
+func (sr *Subround) HasProofForCompetingBlock() bool {
+	prevBlock := sr.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(prevBlock) {
+		return false
+	}
+	competingBlockNonce := prevBlock.GetNonce() + 1
+	proof, err := sr.EquivalentProofsPool().GetProofByNonce(competingBlockNonce, sr.ShardCoordinator().SelfId())
+	if err != nil || check.IfNil(proof) {
+		return false
+	}
+
+	consensusBlockHash := sr.GetData()
+	if len(consensusBlockHash) == 0 {
+		return true
+	}
+
+	// proof for current consensus block does not count as competing
+	if bytes.Equal(proof.GetHeaderHash(), consensusBlockHash) {
+		return false
+	}
+
+	return true
+}
+
+// HasProofForCompetingParent returns true if the proofs pool holds a proof for a lower-round sibling
+// of the current block header; a proof for the current header has its own round, so it never triggers
+func (sr *Subround) HasProofForCompetingParent() bool {
+	currentBlock := sr.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(currentBlock) {
+		return false
+	}
+
+	lowestProof, err := sr.EquivalentProofsPool().GetProofByNonce(currentBlock.GetNonce(), sr.ShardCoordinator().SelfId())
+	if err != nil || check.IfNil(lowestProof) {
+		return false
+	}
+
+	return lowestProof.GetHeaderRound() < currentBlock.GetRound()
+}
+
 // GetAssociatedPid returns the associated PeerID to the provided public key bytes
 func (sr *Subround) GetAssociatedPid(pkBytes []byte) core.PeerID {
 	return sr.GetKeysHandler().GetAssociatedPid(pkBytes)
-}
-
-// ShouldConsiderSelfKeyInConsensus returns true if current machine is the main one, or it is a backup machine but the main
-// machine failed
-func (sr *Subround) ShouldConsiderSelfKeyInConsensus() bool {
-	isMainMachine := !sr.NodeRedundancyHandler().IsRedundancyNode()
-	if isMainMachine {
-		return true
-	}
-	isMainMachineInactive := !sr.NodeRedundancyHandler().IsMainMachineActive()
-
-	return isMainMachineInactive
 }
 
 // IsSelfInConsensusGroup returns true is the current node is in consensus group in single
@@ -241,7 +352,7 @@ func (sr *Subround) IsSelfLeader() bool {
 
 // IsSelfLeaderInCurrentRound method checks if the current node is leader in the current round
 func (sr *Subround) IsSelfLeaderInCurrentRound() bool {
-	return sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
+	return sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 }
 
 // GetLeaderStartRoundMessage returns the leader start round message based on single key
@@ -255,6 +366,17 @@ func (sr *Subround) GetLeaderStartRoundMessage() string {
 	}
 
 	return ""
+}
+
+// GetUnixTimestampForHeader returns unix timestamp in seconds or milliseconds based on epoch
+func (sr *Subround) GetUnixTimestampForHeader(
+	headerEpoch uint32,
+) uint64 {
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.SupernovaFlag, headerEpoch) {
+		return uint64(sr.RoundHandler().TimeStamp().UnixMilli())
+	}
+
+	return uint64(sr.RoundHandler().TimeStamp().Unix())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

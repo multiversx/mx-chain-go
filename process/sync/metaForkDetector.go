@@ -25,10 +25,13 @@ func NewMetaForkDetector(
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
+	supernovaGenesisTime int64,
 	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
 	proofsPool process.ProofsPool,
+	chainParametersHandler common.ChainParametersHandler,
+	processConfigsHandler common.ProcessConfigsHandler,
 ) (*metaForkDetector, error) {
-
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
@@ -41,8 +44,17 @@ func NewMetaForkDetector(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(enableRoundsHandler) {
+		return nil, process.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(proofsPool) {
 		return nil, process.ErrNilProofsPool
+	}
+	if check.IfNil(chainParametersHandler) {
+		return nil, process.ErrNilChainParametersHandler
+	}
+	if check.IfNil(processConfigsHandler) {
+		return nil, process.ErrNilProcessConfigsHandler
 	}
 
 	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
@@ -51,15 +63,20 @@ func NewMetaForkDetector(
 	}
 
 	bfd := &baseForkDetector{
-		roundHandler:        roundHandler,
-		blackListHandler:    blackListHandler,
-		genesisTime:         genesisTime,
-		blockTracker:        blockTracker,
-		genesisNonce:        genesisHdr.GetNonce(),
-		genesisRound:        genesisHdr.GetRound(),
-		genesisEpoch:        genesisHdr.GetEpoch(),
-		enableEpochsHandler: enableEpochsHandler,
-		proofsPool:          proofsPool,
+		roundHandler:           roundHandler,
+		blackListHandler:       blackListHandler,
+		genesisTime:            genesisTime,
+		supernovaGenesisTime:   supernovaGenesisTime,
+		blockTracker:           blockTracker,
+		genesisNonce:           genesisHdr.GetNonce(),
+		genesisRound:           genesisHdr.GetRound(),
+		genesisEpoch:           genesisHdr.GetEpoch(),
+		enableEpochsHandler:    enableEpochsHandler,
+		enableRoundsHandler:    enableRoundsHandler,
+		proofsPool:             proofsPool,
+		chainParametersHandler: chainParametersHandler,
+		processConfigsHandler:  processConfigsHandler,
+		shardID:                core.MetachainShardId,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
@@ -69,6 +86,7 @@ func NewMetaForkDetector(
 		round: bfd.genesisRound,
 	}
 	bfd.setFinalCheckpoint(checkpoint)
+	bfd.setSettledCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
 	bfd.fork.rollBackNonce = math.MaxUint64
 	bfd.fork.probableHighestNonce = bfd.genesisNonce
@@ -107,13 +125,24 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 	_ []data.HeaderHandler,
 	_ [][]byte,
 ) {
-	mfd.setFinalCheckpoint(mfd.lastCheckpoint())
+	lastCheckpoint := mfd.lastCheckpoint()
+	// under Supernova the committed header settles only the block it extends (settle-on-child)
+	canSettleLastCheckpoint := !mfd.isSupernovaForHeader(header) || isParentCheckpoint(lastCheckpoint, header)
+	if canSettleLastCheckpoint {
+		mfd.advanceFinalCheckpoint(lastCheckpoint)
+		mfd.advanceSettledCheckpoint(lastCheckpoint)
+	}
 	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
 	mfd.addCheckpoint(newCheckpoint)
-	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) {
+	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) && mfd.canInstantlyFinalize(header) {
 		mfd.setFinalCheckpoint(newCheckpoint)
+		// under Supernova the settled checkpoint advances only on settle-on-child
+		if !mfd.isSupernovaForHeader(header) {
+			mfd.setSettledCheckpoint(newCheckpoint)
+		}
 	}
 	mfd.removePastOrInvalidRecords()
+	mfd.logFinalityLag()
 }
 
 func (mfd *metaForkDetector) computeFinalCheckpoint() {

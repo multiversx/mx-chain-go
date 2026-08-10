@@ -7,10 +7,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
@@ -20,6 +22,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	epochstartmock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
@@ -53,7 +56,7 @@ func InitBlockProcessorMock(marshaller marshal.Marshalizer) *testscommon.BlockPr
 
 		return header
 	}
-	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	blockProcessorMock.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
@@ -90,7 +93,7 @@ func InitBlockProcessorHeaderV2Mock() *testscommon.BlockProcessorStub {
 			ScheduledRootHash: []byte{},
 		}
 	}
-	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	blockProcessorMock.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
@@ -113,13 +116,25 @@ func InitMultiSignerMock() *cryptoMocks.MultisignerMock {
 	multiSigner.VerifySignatureShareCalled = func(publicKey []byte, message []byte, sig []byte) error {
 		return nil
 	}
+	multiSigner.VerifySignatureShareV2Called = func(publicKey crypto.PublicKey, message []byte, sig []byte) error {
+		return nil
+	}
 	multiSigner.VerifyAggregatedSigCalled = func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+		return nil
+	}
+	multiSigner.VerifyAggregatedSigV2Called = func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 		return nil
 	}
 	multiSigner.AggregateSigsCalled = func(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
 		return []byte("aggregatedSig"), nil
 	}
+	multiSigner.AggregateSigsV2Called = func(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error) {
+		return []byte("aggregatedSig"), nil
+	}
 	multiSigner.CreateSignatureShareCalled = func(privateKeyBytes []byte, message []byte) ([]byte, error) {
+		return []byte("partialSign"), nil
+	}
+	multiSigner.CreateSignatureShareV2Called = func(privateKeyBytes crypto.PrivateKey, message []byte) ([]byte, error) {
 		return []byte("partialSign"), nil
 	}
 	return multiSigner
@@ -165,7 +180,7 @@ func InitConsensusCore() *spos.ConsensusCore {
 }
 
 // InitConsensusCoreWithMultiSigner -
-func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.ConsensusCore {
+func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSignerV2) *spos.ConsensusCore {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
@@ -175,6 +190,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 	}
 	marshalizerMock := mock.MarshalizerMock{}
 	blockProcessorMock := InitBlockProcessorMock(marshalizerMock)
+	executionManager := &processMocks.ExecutionManagerMock{}
 	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
 	broadcastMessengerMock := &BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
@@ -184,7 +200,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
 	hasherMock := &hashingMocks.HasherMock{}
-	roundHandlerMock := &RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
 	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
@@ -213,15 +229,19 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 	scheduledProcessor := &ScheduledProcessorStub{}
 	messageSigningHandler := &mock.MessageSigningHandlerStub{}
 	peerBlacklistHandler := &mock.PeerBlacklistHandlerStub{}
+	peerSignatureHandler := &cryptoMocks.PeerSignatureHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 	signingHandler := &SigningHandlerStub{}
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
 	equivalentProofsPool := &dataRetriever.ProofsPoolMock{}
 	epochNotifier := &epochNotifierMock.EpochNotifierStub{}
+	consensusService, _ := bls.NewConsensusService()
 
 	container, _ := spos.NewConsensusCore(&spos.ConsensusCoreArgs{
 		BlockChain:                    blockChain,
 		BlockProcessor:                blockProcessorMock,
+		ExecutionManager:              executionManager,
 		Bootstrapper:                  bootstrapperMock,
 		BroadcastMessenger:            broadcastMessengerMock,
 		ChronologyHandler:             chronologyHandlerMock,
@@ -241,11 +261,15 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 		ScheduledProcessor:            scheduledProcessor,
 		MessageSigningHandler:         messageSigningHandler,
 		PeerBlacklistHandler:          peerBlacklistHandler,
+		PeerSignatureHandler:          peerSignatureHandler,
 		SigningHandler:                signingHandler,
 		EnableEpochsHandler:           enableEpochsHandler,
+		EnableRoundsHandler:           enableRoundsHandler,
 		EquivalentProofsPool:          equivalentProofsPool,
 		EpochNotifier:                 epochNotifier,
 		InvalidSignersCache:           &InvalidSignersCacheMock{},
+		MessagesHandler:               consensusService,
+		CommonConfigsHandler:          testscommon.GetDefaultCommonConfigsHandler(),
 	})
 
 	return container

@@ -46,6 +46,11 @@ func (inTn *InterceptedTrieNode) CheckValidity() error {
 	return nil
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (inTn *InterceptedTrieNode) ShouldAllowDuplicates() bool {
+	return true
+}
+
 // IsForCurrentShard checks if the intercepted data is for the current shard
 func (inTn *InterceptedTrieNode) IsForCurrentShard() bool {
 	return true

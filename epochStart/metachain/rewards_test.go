@@ -9,6 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -17,8 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/vm"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewRewardsCreator_NilShardCoordinator(t *testing.T) {
@@ -241,15 +242,16 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *test
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addAcceleratorRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	dust := big.NewInt(1000)
 	rwd1 := rewardsCreator{
-		baseRewardsCreator: rwd,
+		baseRewardsCreator:          rwd,
+		protocolSustainabilityValue: big.NewInt(0),
 	}
 	rwd1.adjustProtocolSustainabilityRewards(protRwTx, dust)
 	require.Zero(t, protRwTx.Value.Cmp(big.NewInt(0).Add(dust, initialProtRewardValue)))
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	setProtValue := rwd1.GetAcceleratorRewards()
 	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
 }
 
@@ -272,17 +274,18 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsNegValueShouldWork(t 
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addAcceleratorRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd1 := rewardsCreator{
-		baseRewardsCreator: rwd,
+		baseRewardsCreator:          rwd,
+		protocolSustainabilityValue: big.NewInt(0),
 	}
 
 	dust := big.NewInt(-10)
 	rwd1.adjustProtocolSustainabilityRewards(protRwTx, dust)
 	expected := big.NewInt(0).Add(dust, initialProtRewardValue).String()
 	assert.Equal(t, expected, protRwTx.Value.String())
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	setProtValue := rwd1.GetAcceleratorRewards()
 	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
 }
 
@@ -305,16 +308,17 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsInitialNegativeValue(
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addAcceleratorRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd1 := rewardsCreator{
-		baseRewardsCreator: rwd,
+		baseRewardsCreator:          rwd,
+		protocolSustainabilityValue: big.NewInt(0),
 	}
 
 	dust := big.NewInt(0)
 	rwd1.adjustProtocolSustainabilityRewards(protRwTx, dust)
 	require.Zero(t, protRwTx.Value.Cmp(big.NewInt(0)))
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	setProtValue := rwd1.GetAcceleratorRewards()
 	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
 }
 
@@ -566,7 +570,7 @@ func TestRewardsCreator_addValidatorRewardsToMiniBlocks(t *testing.T) {
 	miniBlocks[0].Type = block.RewardsBlock
 	miniBlocks[0].TxHashes = make([][]byte, 0)
 
-	cloneMb := &(*miniBlocks[0]) //nolint
+	cloneMb := &(*miniBlocks[0]) // nolint
 	cloneMb.TxHashes = make([][]byte, 0)
 	expectedRwdTx := &rewardTx.RewardTx{
 		Round:   0,
@@ -653,7 +657,7 @@ func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing
 		Epoch:   0,
 	}
 
-	rwdTx, _, err := rwdc.createProtocolSustainabilityRewardTransaction(mb, &mb.EpochStart.Economics)
+	rwdTx, _, err := rwdc.createProtocolSustainabilityRewardTransaction(mb.GetEpoch(), mb.GetRound(), mb.EpochStart.Economics.GetRewardsForProtocolSustainability())
 	assert.Equal(t, expectedRewardTx, rwdTx)
 	assert.Nil(t, err)
 }
@@ -675,7 +679,7 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 	miniBlocks[0].Type = block.RewardsBlock
 	miniBlocks[0].TxHashes = make([][]byte, 0)
 
-	cloneMb := &(*miniBlocks[0]) //nolint
+	cloneMb := &(*miniBlocks[0]) // nolint
 	cloneMb.TxHashes = make([][]byte, 0)
 	expectedRewardTx := &rewardTx.RewardTx{
 		Round:   0,

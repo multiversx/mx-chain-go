@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -38,6 +39,9 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	if check.IfNil(arg.TxTypeHandler) {
 		return process.ErrNilTxTypeHandler
 	}
+	if check.IfNil(arg.RoundHandler) {
+		return process.ErrNilRoundHandler
+	}
 	if check.IfNil(arg.LogsFacade) {
 		return ErrNilLogsFacade
 	}
@@ -49,6 +53,18 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	}
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arg.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
+	}
+	if check.IfNil(arg.TxVersionChecker) {
+		return process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(arg.ChainHandler) {
+		return process.ErrNilBlockChain
+	}
+	if check.IfNil(arg.TxProcessor) {
+		return process.ErrNilTxProcessor
 	}
 
 	return nil

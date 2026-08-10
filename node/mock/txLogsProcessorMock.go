@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -12,8 +13,8 @@ type TxLogProcessorMock struct {
 }
 
 // GetLogFromCache -
-func (t *TxLogProcessorMock) GetLogFromCache(_ []byte) (*data.LogData, bool) {
-	return &data.LogData{}, false
+func (t *TxLogProcessorMock) GetLogFromCache(_ []byte) (data.LogDataHandler, bool) {
+	return &transaction.LogData{}, false
 }
 
 // EnableLogToBeSavedInCache -

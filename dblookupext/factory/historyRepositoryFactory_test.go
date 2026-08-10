@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
@@ -44,6 +45,12 @@ func TestNewHistoryRepositoryFactory(t *testing.T) {
 	argsNilUint64Converter.Uint64ByteSliceConverter = nil
 	hrf, err = factory.NewHistoryRepositoryFactory(argsNilUint64Converter)
 	require.Equal(t, process.ErrNilUint64Converter, err)
+	require.Nil(t, hrf)
+
+	argsNilDataPool := getArgs()
+	argsNilDataPool.DataPool = nil
+	hrf, err = factory.NewHistoryRepositoryFactory(argsNilDataPool)
+	require.Equal(t, process.ErrNilDataPoolHolder, err)
 	require.Nil(t, hrf)
 
 	hrf, err = factory.NewHistoryRepositoryFactory(args)
@@ -82,11 +89,13 @@ func TestHistoryRepositoryFactory_CreateMissingStorersReturnsError(t *testing.T)
 
 	t.Run("missing ESDTSuppliesUnit", testWithMissingStorer(dataRetriever.ESDTSuppliesUnit))
 	t.Run("missing TxLogsUnit", testWithMissingStorer(dataRetriever.TxLogsUnit))
+	t.Run("missing MiniBlockUnit", testWithMissingStorer(dataRetriever.MiniBlockUnit))
 	t.Run("missing RoundHdrHashDataUnit", testWithMissingStorer(dataRetriever.RoundHdrHashDataUnit))
 	t.Run("missing MiniblocksMetadataUnit", testWithMissingStorer(dataRetriever.MiniblocksMetadataUnit))
 	t.Run("missing EpochByHashUnit", testWithMissingStorer(dataRetriever.EpochByHashUnit))
 	t.Run("missing MiniblockHashByTxHashUnit", testWithMissingStorer(dataRetriever.MiniblockHashByTxHashUnit))
 	t.Run("missing ResultsHashesByTxHashUnit", testWithMissingStorer(dataRetriever.ResultsHashesByTxHashUnit))
+	t.Run("missing ExecutionResultsUnit", testWithMissingStorer(dataRetriever.ExecutionResultsUnit))
 }
 
 func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {
@@ -120,5 +129,6 @@ func getArgs() *factory.ArgsHistoryRepositoryFactory {
 		Marshalizer:              &mock.MarshalizerMock{},
 		Hasher:                   &hashingMocks.HasherMock{},
 		Uint64ByteSliceConverter: &processMock.Uint64ByteSliceConverterMock{},
+		DataPool:                 &dataRetrieverMock.PoolsHolderMock{},
 	}
 }

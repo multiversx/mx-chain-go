@@ -77,11 +77,12 @@ func createCoreComponents() factory.CoreComponentsHolder {
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, epochNotifier)
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+	statusMetrics, _ := statusHandler.NewStatusMetrics(enableEpochsHandler, &testscommon.EnableRoundsHandlerStub{})
 	return &integrationMocks.CoreComponentsStub{
 		InternalMarshalizerField:           &marshal.GogoProtoMarshalizer{},
 		HasherField:                        sha256.NewSha256(),
 		Uint64ByteSliceConverterField:      uint64ByteSlice.NewBigEndianConverter(),
-		StatusHandlerField:                 statusHandler.NewStatusMetrics(),
+		StatusHandlerField:                 statusMetrics,
 		RoundHandlerField:                  &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
 		EpochStartNotifierWithConfirmField: notifier.NewEpochStartSubscriptionHandler(),
 		EpochNotifierField:                 epochNotifier,
@@ -95,6 +96,9 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		RoundNotifierField:                 &notifierMocks.RoundNotifierStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
+		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
+		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+		AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 
@@ -140,7 +144,7 @@ func createBootstrapComponents(
 		ShCoordinator:        shardCoordinator,
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
-			CreateCalled: func(epoch uint32) data.HeaderHandler {
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
 				return &block.MetaBlock{Epoch: epoch}
 			},
 		},
@@ -177,8 +181,9 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	_ = peerAccountsDB.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	return &factoryTests.StateComponentsMock{
-		PeersAcc: peerAccountsDB,
-		Accounts: userAccountsDB,
+		PeersAcc:         peerAccountsDB,
+		Accounts:         userAccountsDB,
+		AccountsProposal: userAccountsDB,
 	}
 }
 
@@ -187,7 +192,7 @@ func getNewTrieStorageManagerArgs(coreComponents factory.CoreComponentsHolder) t
 		MainStorer:     testscommon.CreateMemUnit(),
 		Marshalizer:    coreComponents.InternalMarshalizer(),
 		Hasher:         coreComponents.Hasher(),
-		GeneralConfig:  config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
+		GeneralConfig:  config.TrieStorageManagerConfig{SnapshotsGoroutinesPerCore: 1},
 		IdleProvider:   &testscommon.ProcessStatusHandlerStub{},
 		Identifier:     "id",
 		StatsCollector: disabled.NewStateStatistics(),

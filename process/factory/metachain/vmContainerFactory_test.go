@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -58,6 +59,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -78,6 +80,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakeFlag),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
 			return 1000
 		}},
@@ -279,6 +282,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -299,6 +303,10 @@ func TestVmContainerFactory_Create(t *testing.T) {
 						ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 						TopUpGradientPoint:               "300000000000000000000",
 						TopUpFactor:                      0.25,
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 					},
 				},
 			},
@@ -363,6 +371,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MinStepValue:                         "100",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,
@@ -393,6 +402,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
 			return 1000
 		}},

@@ -120,12 +120,12 @@ func Test_RemoveHeaderByHash(t *testing.T) {
 	headersCacher.RemoveHeaderByHash(headerHash1)
 	header, err := headersCacher.GetHeaderByHash(headerHash1)
 	require.Nil(t, header)
-	require.Equal(t, headersCache.ErrHeaderNotFound, err)
+	require.ErrorIs(t, err, headersCache.ErrHeaderNotFound)
 
 	headersCacher.RemoveHeaderByHash(headerHash2)
 	header, err = headersCacher.GetHeaderByHash(headerHash2)
 	require.Nil(t, header)
-	require.Equal(t, headersCache.ErrHeaderNotFound, err)
+	require.ErrorIs(t, err, headersCache.ErrHeaderNotFound)
 }
 
 func TestHeadersCacher_AddHeadersInCacheAndRemoveByNonceAndShardId(t *testing.T) {
@@ -153,11 +153,11 @@ func TestHeadersCacher_AddHeadersInCacheAndRemoveByNonceAndShardId(t *testing.T)
 	headersCacher.RemoveHeaderByNonceAndShardId(nonce, shardId)
 	header, err := headersCacher.GetHeaderByHash(headerHash1)
 	require.Nil(t, header)
-	require.Equal(t, headersCache.ErrHeaderNotFound, err)
+	require.ErrorIs(t, err, headersCache.ErrHeaderNotFound)
 
 	header, err = headersCacher.GetHeaderByHash(headerHash2)
 	require.Nil(t, header)
-	require.Equal(t, headersCache.ErrHeaderNotFound, err)
+	require.ErrorIs(t, err, headersCache.ErrHeaderNotFound)
 }
 
 func TestHeadersCacher_Eviction(t *testing.T) {
@@ -455,7 +455,7 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader(t *testing.T) {
 
 	header, err = headersCacher.GetHeaderByHash(headersHashes[1])
 	require.Nil(t, header)
-	require.Equal(t, headersCache.ErrHeaderNotFound, err)
+	require.ErrorIs(t, err, headersCache.ErrHeaderNotFound)
 }
 
 func TestHeadersCacher_TestEvictionRemoveCorrectHeader2(t *testing.T) {
@@ -489,7 +489,7 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader2(t *testing.T) {
 
 	header, err = headersCacher.GetHeaderByHash(headersHashes[1])
 	require.Nil(t, header)
-	require.Equal(t, headersCache.ErrHeaderNotFound, err)
+	require.ErrorIs(t, err, headersCache.ErrHeaderNotFound)
 
 	for i := 2; i <= cacheSize; i++ {
 		header, err := headersCacher.GetHeaderByHash(headersHashes[i])

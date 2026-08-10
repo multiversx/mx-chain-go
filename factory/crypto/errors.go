@@ -20,6 +20,9 @@ var ErrNoPublicKeySet = errors.New("no public key was set")
 // ErrNilKeyGenerator is raised when a valid key generator is expected but nil used
 var ErrNilKeyGenerator = errors.New("key generator is nil")
 
+// ErrNilCacher is raised when a valid cacher is expected but nil used
+var ErrNilCacher = errors.New("cacher is nil")
+
 // ErrNilPublicKeys is raised when public keys are expected but received nil
 var ErrNilPublicKeys = errors.New("public keys are nil")
 
@@ -40,3 +43,6 @@ var ErrNilMessage = errors.New("message to be signed or to be verified is nil")
 
 // ErrBitmapMismatch is raised when an invalid bitmap is passed to the multisigner
 var ErrBitmapMismatch = errors.New("multi signer reported a mismatch in used bitmap")
+
+// ErrTimeIsOut is raised when time is out for signing operation
+var ErrTimeIsOut = errors.New("timeout while handling signatures")

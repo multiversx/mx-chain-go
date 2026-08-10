@@ -29,8 +29,8 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 }
 
 // ResetStateAccessesCollector -
-func (adb *AccountsDB) ResetStateAccessesCollector() (map[string]*data.StateAccesses, error) {
-	stateChanges := adb.stateAccessesCollector.GetCollectedAccesses()
+func (adb *AccountsDB) ResetStateAccessesCollector(rootHash []byte) (map[string]*data.StateAccesses, error) {
+	stateChanges := adb.stateAccessesCollector.GetStateAccessesForRootHash(rootHash)
 	adb.stateAccessesCollector.Reset()
 
 	return stateChanges, nil
@@ -105,4 +105,9 @@ func NewNilSnapshotsManager() *snapshotsManager {
 type AccountHandlerWithDataTrieMigrationStatus interface {
 	vmcommon.AccountHandler
 	IsDataTrieMigrated() (bool, error)
+}
+
+// Journalize exposes journalize for tests.
+func (adb *AccountsDB) Journalize(entry JournalEntry) {
+	adb.journalize(entry)
 }

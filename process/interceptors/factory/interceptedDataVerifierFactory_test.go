@@ -2,15 +2,18 @@ package factory
 
 import (
 	"testing"
-	"time"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgInterceptedDataVerifierFactory() InterceptedDataVerifierFactoryArgs {
 	return InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Second,
-		CacheExpiry: time.Second,
+		InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+			EnableCaching:    true,
+			CacheSpanInSec:   1,
+			CacheExpiryInSec: 1,
+		},
 	}
 }
 
@@ -34,11 +37,41 @@ func TestNewInterceptedDataVerifierFactory(t *testing.T) {
 func TestInterceptedDataVerifierFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	factory := NewInterceptedDataVerifierFactory(createMockArgInterceptedDataVerifierFactory())
-	require.NotNil(t, factory)
+	t.Run("should fail if cache creation fails", func(t *testing.T) {
+		t.Parallel()
 
-	interceptedDataVerifier, err := factory.Create("mockTopic")
-	require.NoError(t, err)
+		args := createMockArgInterceptedDataVerifierFactory()
+		args.InterceptedDataVerifierConfig.CacheSpanInSec = 0
+		factory := NewInterceptedDataVerifierFactory(args)
+		require.NotNil(t, factory)
 
-	require.False(t, interceptedDataVerifier.IsInterfaceNil())
+		interceptedDataVerifier, err := factory.Create("mockTopic")
+		require.Error(t, err)
+		require.Nil(t, interceptedDataVerifier)
+	})
+	t.Run("should work with caching enabled", func(t *testing.T) {
+		t.Parallel()
+
+		factory := NewInterceptedDataVerifierFactory(createMockArgInterceptedDataVerifierFactory())
+		require.NotNil(t, factory)
+
+		interceptedDataVerifier, err := factory.Create("mockTopic")
+		require.NoError(t, err)
+
+		require.False(t, interceptedDataVerifier.IsInterfaceNil())
+		require.NoError(t, factory.Close())
+	})
+	t.Run("should work with caching disabled", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedDataVerifierFactory()
+		args.InterceptedDataVerifierConfig.EnableCaching = false
+		factory := NewInterceptedDataVerifierFactory(args)
+		require.NotNil(t, factory)
+
+		interceptedDataVerifier, err := factory.Create("mockTopic")
+		require.NoError(t, err)
+
+		require.False(t, interceptedDataVerifier.IsInterfaceNil())
+	})
 }

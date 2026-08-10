@@ -2,12 +2,15 @@ package resolverscontainer
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
@@ -24,13 +27,18 @@ func NewShardResolversContainerFactory(
 	if args.SizeCheckDelta > 0 {
 		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
 	}
+	if check.IfNil(args.AntifloodConfigsHandler) {
+		return nil, process.ErrNilAntifloodConfigsHandler
+	}
 
-	mainThrottler, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingJobs)
+	currentConfig := args.AntifloodConfigsHandler.GetCurrentConfig()
+
+	mainThrottler, err := throttler.NewNumGoRoutinesThrottler(currentConfig.NumConcurrentResolverJobs)
 	if err != nil {
 		return nil, err
 	}
 
-	trieNodesThrottler, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingTrieNodesJobs)
+	trieNodesThrottler, err := throttler.NewNumGoRoutinesThrottler(currentConfig.NumConcurrentResolvingTrieNodesJobs)
 	if err != nil {
 		return nil, err
 	}
@@ -137,6 +145,11 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 	return srcf.container, nil
 }
 
+// AddShardTrieNodeResolvers returns nil
+func (srcf *shardResolversContainerFactory) AddShardTrieNodeResolvers(_ dataRetriever.ResolversContainer) error {
+	return nil
+}
+
 // ------- Hdr resolver
 
 func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
@@ -168,6 +181,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 			Throttler:        srcf.throttler,
 		},
 		Headers:              srcf.dataPools.Headers(),
+		Proofs:               srcf.dataPools.Proofs(),
 		HdrStorage:           hdrStorer,
 		HeadersNoncesStorage: hdrNonceStore,
 		NonceConverter:       srcf.uint64ByteSliceConverter,
@@ -221,6 +235,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 			Throttler:        srcf.throttler,
 		},
 		Headers:              srcf.dataPools.Headers(),
+		Proofs:               srcf.dataPools.Proofs(),
 		HdrStorage:           hdrStorer,
 		HeadersNoncesStorage: hdrNonceStore,
 		NonceConverter:       srcf.uint64ByteSliceConverter,

@@ -38,6 +38,7 @@ type blockTrackerHandler interface {
 	ComputeLongestSelfChain() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
 	SortHeadersFromNonce(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	AddHeaderFromPool(shardID uint32, nonce uint64)
+	IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool
 	IsInterfaceNil() bool
 }
 
@@ -54,4 +55,10 @@ type blockBalancerHandler interface {
 type KeysHandler interface {
 	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	IsInterfaceNil() bool
+}
+
+// OwnShardTrackerHandler defines the operations implemented by a component that will track the own shard
+type OwnShardTrackerHandler interface {
+	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	IsOwnShardStuck() bool
 }
