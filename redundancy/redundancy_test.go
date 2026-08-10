@@ -4,15 +4,19 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/redundancy"
 	"github.com/multiversx/mx-chain-go/redundancy/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockArguments(maxRoundsOfInactivity int) redundancy.ArgNodeRedundancy {
 	return redundancy.ArgNodeRedundancy{
-		MaxRoundsOfInactivity: maxRoundsOfInactivity,
+		RedundancyLevel:       maxRoundsOfInactivity,
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 		Messenger:             &p2pmocks.MessengerStub{},
 		ObserverPrivateKey:    &mock.PrivateKeyStub{},
 	}
@@ -38,6 +42,17 @@ func TestNewNodeRedundancy_ShouldErrNilObserverPrivateKey(t *testing.T) {
 
 	assert.Nil(t, nr)
 	assert.Equal(t, redundancy.ErrNilObserverPrivateKey, err)
+}
+
+func TestNewNodeRedundancy_ShouldErrNilProcessConfigsHandler(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments(0)
+	arg.ProcessConfigsHandler = nil
+	nr, err := redundancy.NewNodeRedundancy(arg)
+
+	require.Nil(t, nr)
+	require.Equal(t, process.ErrNilProcessConfigsHandler, err)
 }
 
 func TestNewNodeRedundancy_ShouldErrIfMaxRoundsOfInactivityIsInvalid(t *testing.T) {
@@ -169,10 +184,10 @@ func TestAdjustInactivityIfNeeded_ShouldNotAdjustIfSelfPubKeyIsNotContainedInCon
 	nr.AdjustInactivityIfNeeded(selfPubKey, consensusPubKeys, 1)
 	assert.Equal(t, 0, nr.GetRoundsOfInactivity())
 
-	nr.SetRoundsOfInactivity(arg.MaxRoundsOfInactivity)
+	nr.SetRoundsOfInactivity(nr.CalcMaxRoundsOfInactivity())
 
 	nr.AdjustInactivityIfNeeded(selfPubKey, consensusPubKeys, 2)
-	assert.Equal(t, arg.MaxRoundsOfInactivity, nr.GetRoundsOfInactivity())
+	assert.Equal(t, nr.CalcMaxRoundsOfInactivity(), nr.GetRoundsOfInactivity())
 }
 
 func TestAdjustInactivityIfNeeded_ShouldAdjustOnlyOneTimeInTheSameRound(t *testing.T) {

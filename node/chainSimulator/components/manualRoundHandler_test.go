@@ -94,3 +94,25 @@ func TestManualRoundHandler_Operations(t *testing.T) {
 	require.Equal(t, args.SupernovaGenesisTimeStamp, handler.TimeStamp().UnixMilli())
 	require.Equal(t, args.SupernovaRoundDuration.Milliseconds(), handler.TimeDuration().Milliseconds())
 }
+
+func TestManualRoundHandler_GetTimeStampForRound(t *testing.T) {
+	t.Parallel()
+
+	arg := ArgManualRoundHandler{
+		EnableRoundsHandler:       &testscommon.EnableRoundsHandlerStub{},
+		GenesisTimeStamp:          1000,
+		SupernovaGenesisTimeStamp: 1500,
+		RoundDuration:             time.Second,
+		SupernovaRoundDuration:    time.Millisecond * 500,
+		InitialRound:              0,
+		SupernovaStartRound:       100,
+	}
+	handler, err := NewManualRoundHandler(arg)
+	require.NoError(t, err)
+
+	res := handler.GetTimeStampForRound(10)
+	require.Equal(t, uint64(11000), res)
+
+	res = handler.GetTimeStampForRound(120)
+	require.Equal(t, uint64(11500), res)
+}

@@ -27,6 +27,7 @@ func newBaseDataInterceptorForPreProcess(
 		throttler:            throttler,
 		antifloodHandler:     antifloodHandler,
 		preferredPeersHolder: preferredPeersHolder,
+		managedPeersHolder:   &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
@@ -36,6 +37,7 @@ func newBaseDataInterceptorForProcess(processor process.InterceptorProcessor, de
 		processor:               processor,
 		debugHandler:            debugHandler,
 		interceptedDataVerifier: defaultInterceptedDataVerifier(time.Second),
+		managedPeersHolder:      &testscommon.ManagedPeersHolderStub{},
 	}
 }
 

@@ -2,6 +2,8 @@ package headersCache
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -176,17 +178,17 @@ func (cache *headersCache) removeHeaderFromNonceMap(headerInfo headerInfo, heade
 func (cache *headersCache) getHeaderByHash(hash []byte) (data.HeaderHandler, error) {
 	info, ok := cache.headersByHash.getElement(hash)
 	if !ok {
-		return nil, ErrHeaderNotFound
+		return nil, fmt.Errorf("%w: header hash: %s", ErrHeaderNotFound, hex.EncodeToString(hash))
 	}
 
 	shard, ok := cache.headersNonceCache[info.headerShardId]
 	if !ok {
-		return nil, ErrHeaderNotFound
+		return nil, fmt.Errorf("%w: header hash: %s", ErrHeaderNotFound, hex.EncodeToString(hash))
 	}
 
 	headers := shard.getListOfHeaders(info.headerNonce)
 	if headers.isEmpty() {
-		return nil, ErrHeaderNotFound
+		return nil, fmt.Errorf("%w: header hash: %s", ErrHeaderNotFound, hex.EncodeToString(hash))
 	}
 
 	headers.timestamp = time.Now()
@@ -196,7 +198,7 @@ func (cache *headersCache) getHeaderByHash(hash []byte) (data.HeaderHandler, err
 		return header, nil
 	}
 
-	return nil, ErrHeaderNotFound
+	return nil, fmt.Errorf("%w: header hash: %s", ErrHeaderNotFound, hex.EncodeToString(hash))
 }
 
 func (cache *headersCache) getHeadersByNonceAndShardId(headerNonce uint64, shardId uint32) ([]headerDetails, bool) {

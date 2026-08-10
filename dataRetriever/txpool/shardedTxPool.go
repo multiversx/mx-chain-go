@@ -9,12 +9,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
@@ -146,7 +147,7 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	if isForSenderMe {
 		config := txPool.configPrototypeSourceMe
 		config.Name = cacheID
-		cache, err := txcache.NewTxCache(config, txPool.host)
+		cache, err := txcache.NewTxCache(config, txPool.host, txPool.selfShardID)
 		if err != nil {
 			log.Error("shardedTxPool.createTxCache()", "err", err)
 			return txcache.NewDisabledCache()
@@ -166,10 +167,29 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	return cache
 }
 
-// ImmunizeSetOfDataAgainstEviction marks the items as non-evictable
-func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
+// ImmunizeSetOfDataAgainstEviction marks the items as non-evictable for the provided confirmation nonce
+func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string, nonce uint64) {
 	shard := txPool.getOrCreateShard(cacheID)
-	shard.Cache.ImmunizeTxsAgainstEviction(keys)
+	shard.Cache.ImmunizeTxsAgainstEviction(keys, nonce)
+}
+
+// SetOldestImmuneNonce deactivates immunity below the provided nonce
+func (txPool *shardedTxPool) SetOldestImmuneNonce(cacheID string, nonce uint64) {
+	shard := txPool.getOrCreateShard(cacheID)
+	shard.Cache.SetOldestImmuneNonce(nonce)
+}
+
+// SetOldestImmuneNonceForAllCaches deactivates immunity below the provided nonce
+// on every backing cache. Called from the shard's commit path once cross-notarized
+// metablock processing has advanced and the items confirmed up to (nonce - 1)
+// are guaranteed to have been executed.
+func (txPool *shardedTxPool) SetOldestImmuneNonceForAllCaches(nonce uint64) {
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
+
+	for _, shard := range txPool.backingMap {
+		shard.Cache.SetOldestImmuneNonce(nonce)
+	}
 }
 
 // AddData adds the transaction to the cache
@@ -435,8 +455,20 @@ func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.
 	return cache.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 }
 
-// OnExecutedBlock notifies the underlying TxCache
-func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+// OnBackfilledBlock notifies the underlying TxCache
+func (txPool *shardedTxPool) OnBackfilledBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler) error {
 	cache := txPool.getSelfShardTxCache()
-	return cache.OnExecutedBlock(blockHeader)
+	return cache.OnBackfilledBlock(blockHash, blockBody, blockHeader)
+}
+
+// OnExecutedBlock notifies the underlying TxCache
+func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
+	cache := txPool.getSelfShardTxCache()
+	return cache.OnExecutedBlock(blockHeader, rootHash)
+}
+
+// ResetTracker resets the underlying TxCache
+func (txPool *shardedTxPool) ResetTracker() {
+	cache := txPool.getSelfShardTxCache()
+	cache.ResetTracker()
 }

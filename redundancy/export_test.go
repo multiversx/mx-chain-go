@@ -10,6 +10,11 @@ func (nr *nodeRedundancy) GetRoundsOfInactivity() int {
 	return nr.handler.RoundsOfInactivity()
 }
 
+// CalcMaxRoundsOfInactivity -
+func (nr *nodeRedundancy) CalcMaxRoundsOfInactivity() int {
+	return nr.calcMaxRoundsOfInactivity()
+}
+
 // SetRoundsOfInactivity -
 func (nr *nodeRedundancy) SetRoundsOfInactivity(roundsOfInactivity int) {
 	nr.handler.ResetRoundsOfInactivity()

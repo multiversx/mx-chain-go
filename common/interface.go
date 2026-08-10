@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
 )
 
@@ -190,6 +191,7 @@ type SnapshotStatisticsHandler interface {
 	AddTrieStats(handler TrieStatisticsHandler, trieType TrieType)
 	GetSnapshotDuration() int64
 	GetSnapshotNumNodes() uint64
+	IncrementThrottlerWaits()
 	IsInterfaceNil() bool
 }
 
@@ -253,6 +255,7 @@ type StateStatisticsHandler interface {
 // able to tell if the node is idle or processing/committing a block
 type ProcessStatusHandler interface {
 	SetBusy(reason string)
+	TrySetBusy(reason string) bool
 	SetIdle()
 	IsIdle() bool
 	IsInterfaceNil() bool
@@ -285,7 +288,7 @@ type RootHashHolder interface {
 type TxSelectionOptions interface {
 	GetGasRequested() uint64
 	GetMaxNumTxs() int
-	GetLoopMaximumDurationMs() int
+	HaveTimeForSelection() bool
 	GetLoopDurationCheckInterval() int
 	IsInterfaceNil() bool
 }
@@ -322,6 +325,7 @@ type EnableEpochsHandler interface {
 	IsFlagEnabled(flag core.EnableEpochFlag) bool
 	IsFlagEnabledInEpoch(flag core.EnableEpochFlag, epoch uint32) bool
 	GetActivationEpoch(flag core.EnableEpochFlag) uint32
+	GetAllEnableEpochs() map[string]uint32
 
 	IsInterfaceNil() bool
 }
@@ -334,6 +338,7 @@ type EnableRoundsHandler interface {
 	IsFlagEnabled(flag EnableRoundFlag) bool
 	IsFlagEnabledInRound(flag EnableRoundFlag, round uint64) bool
 	GetActivationRound(flag EnableRoundFlag) uint64
+	GetAllEnableRounds() map[string]uint64
 
 	IsInterfaceNil() bool
 }
@@ -417,6 +422,7 @@ type ChainParametersSubscriptionHandler interface {
 // HeadersPool defines what a headers pool structure can perform
 type HeadersPool interface {
 	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+	IsInterfaceNil() bool
 }
 
 // FieldsSizeChecker defines the behavior of a fields size checker common component
@@ -464,6 +470,7 @@ type AccountNonceAndBalanceProvider interface {
 // AccountNonceProvider provides the nonce of accounts
 type AccountNonceProvider interface {
 	GetAccountNonce(accountKey []byte) (uint64, bool, error)
+	GetRootHash() ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -484,6 +491,13 @@ type ProcessConfigsHandler interface {
 	GetMaxRoundsWithoutNewBlockReceivedByRound(round uint64) uint32
 	GetMaxRoundsWithoutCommittedBlock(round uint64) uint32
 	GetRoundModulusTriggerWhenSyncIsStuck(round uint64) uint32
+	GetMaxSyncWithErrorsAllowed(round uint64) uint32
+	GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64
+	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
+	GetMaxBlockProcessingTime(round uint64) time.Duration
+	GetNumHeadersToRequestInAdvance(round uint64) uint64
+
+	GetValue(variable dto.ConfigVariable) uint64
 
 	IsInterfaceNil() bool
 }
@@ -495,5 +509,21 @@ type CommonConfigsHandler interface {
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round uint64) uint32
 	GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32
 
+	IsInterfaceNil() bool
+}
+
+// AntifloodConfigsHandler defines the behavior of a component that can return antiflood config by round
+type AntifloodConfigsHandler interface {
+	GetCurrentConfig() config.AntifloodConfigByRound
+	GetFloodPreventerConfigByType(configType FloodPreventerType) config.FloodPreventerConfig
+	IsEnabled() bool
+	IsInterfaceNil() bool
+}
+
+// AOTSelectionPreempter defines the interface for preempting AOT transaction selection
+type AOTSelectionPreempter interface {
+	// CancelOngoingSelection aborts ongoing AOT selection if one is in progress
+	// Called before OnProposed/OnExecuted to avoid conflicts
+	CancelOngoingSelection()
 	IsInterfaceNil() bool
 }

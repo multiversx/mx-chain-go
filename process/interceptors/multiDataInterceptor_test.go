@@ -40,6 +40,7 @@ func createMockArgMultiDataInterceptor() interceptors.ArgMultiDataInterceptor {
 		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		CurrentPeerId:           "pid",
 		InterceptedDataVerifier: &mock.InterceptedDataVerifierMock{},
+		ManagedPeersHolder:      &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
@@ -151,6 +152,17 @@ func TestNewMultiDataInterceptor_EmptyPeerIDShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrEmptyPeerID, err)
+}
+
+func TestNewMultiDataInterceptor_NilManagedPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMultiDataInterceptor()
+	arg.ManagedPeersHolder = nil
+	mdi, err := interceptors.NewMultiDataInterceptor(arg)
+
+	assert.True(t, check.IfNil(mdi))
+	assert.Equal(t, process.ErrNilManagedPeersHolder, err)
 }
 
 func TestNewMultiDataInterceptor(t *testing.T) {
@@ -556,7 +568,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageWhitelistedShouldRetNil(t *t
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 		HashCalled: func() []byte {
 			return msgHash
@@ -619,7 +631,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 			return expectedErr
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 	}
 
@@ -708,7 +720,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteLis
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 		HashCalled: func() []byte {
 			return msgHash

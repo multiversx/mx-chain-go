@@ -3,6 +3,7 @@ package mock
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -12,8 +13,10 @@ type BlockTrackerStub struct {
 	AddCrossNotarizedHeaderCalled                      func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
 	AddSelfNotarizedHeaderCalled                       func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
 	CheckBlockAgainstFinalCalled                       func(headerHandler data.HeaderHandler) error
+	CheckProofAgainstFinalCalled                       func(proof data.HeaderProofHandler) error
 	CheckBlockAgainstRoundHandlerCalled                func(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelistCalled                   func(interceptedData process.InterceptedData) bool
+	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
+	CheckAgainstWhitelistCalled                        func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarizedCalled     func() ([]data.HeaderHandler, [][]byte, error)
@@ -28,6 +31,7 @@ type BlockTrackerStub struct {
 	GetTrackedHeadersForAllShardsCalled                func() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonceCalled                   func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	IsShardStuckCalled                                 func(shardId uint32) bool
+	IsOwnShardStuckCalled                              func() bool
 	ShouldSkipMiniBlocksCreationFromSelfCalled         func() bool
 	RegisterCrossNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedFromCrossHeadersHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
@@ -36,6 +40,7 @@ type BlockTrackerStub struct {
 	RemoveLastNotarizedHeadersCalled                   func()
 	RestoreToGenesisCalled                             func()
 	ShouldAddHeaderCalled                              func(headerHandler data.HeaderHandler) bool
+	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 }
 
 // AddTrackedHeader -
@@ -77,10 +82,28 @@ func (bts *BlockTrackerStub) CheckBlockAgainstFinal(headerHandler data.HeaderHan
 	return nil
 }
 
-// CheckBlockAgainstWhitelist -
-func (bts *BlockTrackerStub) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
-	if bts.CheckBlockAgainstWhitelistCalled != nil {
-		return bts.CheckBlockAgainstWhitelistCalled(interceptedData)
+// CheckProofAgainstFinal -
+func (bts *BlockTrackerStub) CheckProofAgainstFinal(proof data.HeaderProofHandler) error {
+	if bts.CheckProofAgainstFinalCalled != nil {
+		return bts.CheckProofAgainstFinalCalled(proof)
+	}
+
+	return nil
+}
+
+// CheckProofAgainstRoundHandler -
+func (bts *BlockTrackerStub) CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error {
+	if bts.CheckProofAgainstRoundHandlerCalled != nil {
+		return bts.CheckProofAgainstRoundHandlerCalled(proof)
+	}
+
+	return nil
+}
+
+// CheckAgainstWhitelist -
+func (bts *BlockTrackerStub) CheckAgainstWhitelist(interceptedData process.InterceptedData) bool {
+	if bts.CheckAgainstWhitelistCalled != nil {
+		return bts.CheckAgainstWhitelistCalled(interceptedData)
 	}
 
 	return false
@@ -211,6 +234,15 @@ func (bts *BlockTrackerStub) IsShardStuck(shardId uint32) bool {
 	return false
 }
 
+// IsOwnShardStuck -
+func (bts *BlockTrackerStub) IsOwnShardStuck() bool {
+	if bts.IsOwnShardStuckCalled != nil {
+		return bts.IsOwnShardStuckCalled()
+	}
+
+	return false
+}
+
 // ShouldSkipMiniBlocksCreationFromSelf -
 func (bts *BlockTrackerStub) ShouldSkipMiniBlocksCreationFromSelf() bool {
 	if bts.ShouldSkipMiniBlocksCreationFromSelfCalled != nil {
@@ -268,6 +300,13 @@ func (bts *BlockTrackerStub) ShouldAddHeader(headerHandler data.HeaderHandler) b
 	}
 
 	return true
+}
+
+// ComputeOwnShardStuck -
+func (bts *BlockTrackerStub) ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64) {
+	if bts.ComputeOwnShardStuckCalled != nil {
+		bts.ComputeOwnShardStuckCalled(lastExecutionResultsInfo, currentNonce)
+	}
 }
 
 // IsInterfaceNil -

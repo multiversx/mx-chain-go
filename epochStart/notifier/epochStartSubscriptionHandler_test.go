@@ -7,9 +7,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewEpochStartSubscriptionHandler(t *testing.T) {
@@ -143,8 +144,9 @@ func TestEpochStartSubscriptionHandler_NotifyAll(t *testing.T) {
 		essh.NotifyAll(&block.Header{})
 
 		time.Sleep(10 * time.Millisecond)
-
+		calledHandlersLock.RLock()
 		assert.Len(t, calledHandlers, 3)
+		calledHandlersLock.RUnlock()
 	})
 
 	t.Run("should work with async action handler", func(t *testing.T) {

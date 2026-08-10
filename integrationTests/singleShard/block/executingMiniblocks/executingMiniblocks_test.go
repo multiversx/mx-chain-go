@@ -129,6 +129,8 @@ func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
 	transferValue := uint64(1000000)
 	mintAllNodes(nodes, transferValue)
 
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
+
 	txs, hashes := generateTransferTxs(transferValue, leader.OwnAccount.SkTxSign, nodes[1].OwnAccount.PkTxSign)
 	addTxsInDataPool(leader, txs, hashes)
 
@@ -194,20 +196,19 @@ func testStateOnNodes(t *testing.T, nodes []*integrationTests.TestProcessorNode,
 
 	testSameBlockHeight(t, nodes, idxProposer, expectedHeaderNonce)
 	testTxIsInMiniblock(t, proposer, hashes[txValidIdx], block.TxBlock)
-	testTxIsInMiniblock(t, proposer, hashes[txInvalidIdx], block.InvalidBlock)
+	testTxIsInNotInBody(t, proposer, hashes[txInvalidIdx])
 	testTxIsInNotInBody(t, proposer, hashes[txDeletedIdx])
 
 	// Removed from mempool.
 	_, ok := proposer.DataPool.Transactions().SearchFirstData(hashes[txValidIdx])
 	assert.False(t, ok)
 
-	// Removed from mempool.
+	// Not removed from mempool.
 	_, ok = proposer.DataPool.Transactions().SearchFirstData(hashes[txInvalidIdx])
-	assert.False(t, ok)
+	assert.True(t, ok)
 
 	// Not removed from mempool (see MX-16200).
 	_, ok = proposer.DataPool.Transactions().SearchFirstData(hashes[txDeletedIdx])
-
 	assert.True(t, ok)
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
@@ -112,8 +113,8 @@ func TestEpochStartMetaBlockInterceptor_EntireFlowShouldWorkAndSetTheEpoch(t *te
 	expectedEpoch := uint32(37)
 	wasCalled := false
 	args := getArgsEpochStartMetaBlockInterceptor()
-	handlerFunc := func(topic string, hash []byte, data interface{}) {
-		mbEpoch := data.(*block.MetaBlock).Epoch
+	handlerFunc := func(topic string, hash []byte, blockData interface{}) {
+		mbEpoch := blockData.(data.MetaHeaderHandler).GetEpoch()
 		require.Equal(t, expectedEpoch, mbEpoch)
 		wasCalled = true
 	}

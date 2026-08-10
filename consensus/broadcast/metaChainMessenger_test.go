@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -346,10 +347,16 @@ func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 		require.NotNil(t, mcm)
 		mcm.PrepareBroadcastHeaderValidator(nil, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
 	})
+
 	t.Run("Err on core.CalculateHash", func(t *testing.T) {
 		t.Parallel()
 
 		args := createDefaultMetaChainArgs()
+		args.Marshalizer = &testscommon.MarshallerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, errors.New("some err")
+			},
+		}
 		delayedBroadcaster := &consensusMock.DelayedBroadcasterMock{
 			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
 				require.Fail(t, "SetHeaderForValidator should not be called")
@@ -361,9 +368,10 @@ func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 		header := &block.Header{}
 		mcm, _ := broadcast.NewMetaChainMessenger(args)
 		require.NotNil(t, mcm)
-		mcm.SetMarshalizerMeta(nil)
+
 		mcm.PrepareBroadcastHeaderValidator(header, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
 	})
+
 	t.Run("Err on SetHeaderForValidator", func(t *testing.T) {
 		t.Parallel()
 

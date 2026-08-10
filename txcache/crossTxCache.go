@@ -4,9 +4,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/immunitycache"
 	"github.com/multiversx/mx-chain-storage-go/types"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 var _ types.Cacher = (*CrossTxCache)(nil)
@@ -47,16 +48,22 @@ func NewCrossTxCache(config ConfigDestinationMe) (*CrossTxCache, error) {
 	return &cache, nil
 }
 
-// ImmunizeTxsAgainstEviction marks items as non-evictable
-func (cache *CrossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
-	numNow, numFuture := cache.ImmunityCache.ImmunizeKeys(keys)
+// ImmunizeTxsAgainstEviction marks items as non-evictable for the provided confirmation nonce
+func (cache *CrossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte, nonce uint64) {
+	numNow, numFuture := cache.ImmunityCache.ImmunizeKeys(keys, nonce)
 	log.Trace("CrossTxCache.ImmunizeTxsAgainstEviction",
 		"name", cache.config.Name,
 		"len(keys)", len(keys),
 		"numNow", numNow,
 		"numFuture", numFuture,
+		"nonce", nonce,
 	)
 	cache.Diagnose(false)
+}
+
+// SetOldestImmuneNonce deactivates immunity below the provided nonce
+func (cache *CrossTxCache) SetOldestImmuneNonce(nonce uint64) {
+	cache.ImmunityCache.SetOldestImmuneNonce(nonce)
 }
 
 // AddTx adds a transaction in the cache
@@ -126,8 +133,13 @@ func (cache *CrossTxCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data.
 	return nil
 }
 
+// OnBackfilledBlock does nothing (only to satisfy the interface)
+func (cache *CrossTxCache) OnBackfilledBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler) error {
+	return nil
+}
+
 // OnExecutedBlock does nothing (only to satisfy the interface)
-func (cache *CrossTxCache) OnExecutedBlock(data.HeaderHandler) error {
+func (cache *CrossTxCache) OnExecutedBlock(data.HeaderHandler, []byte) error {
 	return nil
 }
 

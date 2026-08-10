@@ -223,6 +223,10 @@ func (trs *topicRequestSender) sendOnTopic(
 	for idx := 0; idx < len(shuffledIndexes); idx++ {
 		peer := getPeerID(shuffledIndexes[idx], topRatedPeersList, preferredPeer, peerType, topicToSendRequest, histogramMap)
 
+		// no matter the outcome of sendToConnectedPeer, decrease the peer's rating
+		// this way we avoid(decreasing) peers with invalid connections or blacklisted by antiflooder
+		trs.peersRatingHandler.DecreaseRating(peer)
+
 		err := trs.sendToConnectedPeer(topicToSendRequest, buff, peer, messenger)
 		if err != nil {
 			log.Trace("sendToConnectedPeer failed",
@@ -232,7 +236,6 @@ func (trs *topicRequestSender) sendOnTopic(
 				"error", err.Error())
 			continue
 		}
-		trs.peersRatingHandler.DecreaseRating(peer)
 
 		logData = append(logData, peerType)
 		logData = append(logData, peer.Pretty())

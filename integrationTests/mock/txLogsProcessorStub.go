@@ -39,6 +39,6 @@ func (txls *TxLogsProcessorStub) IsInterfaceNil() bool {
 }
 
 // GetAllCurrentLogs -
-func (txls *TxLogsProcessorStub) GetAllCurrentLogs() []*data.LogData {
+func (txls *TxLogsProcessorStub) GetAllCurrentLogs() []data.LogDataHandler {
 	return nil
 }

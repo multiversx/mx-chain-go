@@ -89,6 +89,12 @@ func NewStakingSmartContract(
 	if args.MinNumNodes > args.StakingSCConfig.MaxNumberOfNodesForStake {
 		return nil, vm.ErrInvalidMaxNumberOfNodes
 	}
+	if args.StakingSCConfig.UnBondPeriod == 0 {
+		return nil, fmt.Errorf("%w for UnBondPeriod", vm.ErrInvalidValue)
+	}
+	if args.StakingSCConfig.UnBondPeriodSupernova == 0 {
+		return nil, fmt.Errorf("%w for UnBondPeriodSupernova", vm.ErrInvalidValue)
+	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}

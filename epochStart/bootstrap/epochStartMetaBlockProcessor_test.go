@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,6 +34,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMessengerShouldErr(t *testing.T) {
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilMessenger, err)
@@ -52,6 +54,7 @@ func TestNewEpochStartMetaBlockProcessor_NilRequestHandlerShouldErr(t *testing.T
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilRequestHandler, err)
@@ -71,6 +74,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMarshalizerShouldErr(t *testing.T) {
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
@@ -90,9 +94,50 @@ func TestNewEpochStartMetaBlockProcessor_NilHasherShouldErr(t *testing.T) {
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilHasher, err)
+	assert.True(t, check.IfNil(esmbp))
+}
+
+func TestNewEpochStartMetaBlockProcessor_NilProofsPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	esmbp, err := NewEpochStartMetaBlockProcessor(
+		&p2pmocks.MessengerStub{},
+		&testscommon.RequestHandlerStub{},
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		50,
+		3,
+		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		nil,
+		&pool.HeadersPoolStub{},
+	)
+
+	assert.Equal(t, epochStart.ErrNilProofsPool, err)
+	assert.True(t, check.IfNil(esmbp))
+}
+
+func TestNewEpochStartMetaBlockProcessor_NilHeadersPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	esmbp, err := NewEpochStartMetaBlockProcessor(
+		&p2pmocks.MessengerStub{},
+		&testscommon.RequestHandlerStub{},
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		50,
+		3,
+		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
+		nil,
+	)
+
+	assert.Equal(t, epochStart.ErrNilHeadersDataPool, err)
 	assert.True(t, check.IfNil(esmbp))
 }
 
@@ -109,6 +154,7 @@ func TestNewEpochStartMetaBlockProcessor_InvalidConsensusPercentageShouldErr(t *
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrInvalidConsensusThreshold, err)
@@ -131,6 +177,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWork(t *testing.T) {
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	assert.NoError(t, err)
@@ -169,6 +216,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWorkAfterMoreTriesWaitingFor
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	assert.NoError(t, err)
@@ -191,6 +239,7 @@ func TestEpochStartMetaBlockProcessor_Validate(t *testing.T) {
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	assert.Nil(t, esmbp.Validate(nil, ""))
@@ -212,9 +261,10 @@ func TestEpochStartMetaBlockProcessor_SaveNilInterceptedDataShouldNotReturnError
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
-	_, err := esmbp.Save(nil, "peer0", "")
+	_, err := esmbp.Save(nil, "peer0", "", "")
 	assert.NoError(t, err)
 }
 
@@ -235,6 +285,7 @@ func TestEpochStartMetaBlockProcessor_SaveOkInterceptedDataShouldWork(t *testing
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	assert.Zero(t, len(esmbp.GetMapMetaBlock()))
@@ -243,7 +294,7 @@ func TestEpochStartMetaBlockProcessor_SaveOkInterceptedDataShouldWork(t *testing
 		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
 	}
 	intData := mock.NewInterceptedMetaBlockMock(mb, []byte("hash"))
-	_, err := esmbp.Save(intData, "peer0", "")
+	_, err := esmbp.Save(intData, "peer0", "", "")
 	assert.NoError(t, err)
 
 	assert.Equal(t, 1, len(esmbp.GetMapMetaBlock()))
@@ -266,6 +317,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldTimeOut(t *tes
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
@@ -292,6 +344,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 		5,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	expectedMetaBlock := &block.MetaBlock{
@@ -305,11 +358,11 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 	intData2 := mock.NewInterceptedMetaBlockMock(confirmationMetaBlock, []byte("hash2"))
 
 	for i := 0; i < esmbp.minNumOfPeersToConsiderBlockValid; i++ {
-		_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
+		_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)), "", "")
 	}
 
 	for i := 0; i < esmbp.minNumOfPeersToConsiderBlockValid; i++ {
-		_, _ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
+		_, _ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", i)), "", "")
 	}
 
 	// we need a slightly more time than 1 second in order to also properly test the select branches
@@ -338,6 +391,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 
 	expectedMetaBlock := &block.MetaBlock{
@@ -351,11 +405,11 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 	intData2 := mock.NewInterceptedMetaBlockMock(confirmationMetaBlock, []byte("hash2"))
 
 	for i := 0; i < 6; i++ {
-		_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
+		_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)), "", "")
 	}
 
 	for i := 0; i < 6; i++ {
-		_, _ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
+		_, _ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", i)), "", "")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -384,6 +438,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_BeforeAndromeda(t *
 		3,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		&dataRetriever.ProofsPoolMock{},
+		&pool.HeadersPoolStub{},
 	)
 	expectedMetaBlock := &block.MetaBlock{
 		Nonce:      10,
@@ -395,8 +450,8 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_BeforeAndromeda(t *
 		index := 0
 		for {
 			time.Sleep(tts)
-			_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index)), "")
-			_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index+1)), "")
+			_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index)), "", "")
+			_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index+1)), "", "")
 			index += 2
 		}
 	}()
@@ -435,6 +490,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_AfterAndromeda(t *t
 				return true
 			},
 		},
+		&pool.HeadersPoolStub{},
 	)
 	expectedMetaBlock := &block.MetaBlock{
 		Nonce:      10,
@@ -451,8 +507,8 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_AfterAndromeda(t *t
 		index := 0
 		for {
 			time.Sleep(tts)
-			_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index)), "")
-			_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index+1)), "")
+			_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index)), "", "")
+			_, _ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", index+1)), "", "")
 			index += 2
 		}
 	}()
@@ -461,8 +517,8 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlock_AfterAndromeda(t *t
 		index := 0
 		for {
 			time.Sleep(tts)
-			_, _ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", index)), "")
-			_, _ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", index+1)), "")
+			_, _ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", index)), "", "")
+			_, _ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", index+1)), "", "")
 			index += 2
 		}
 	}()

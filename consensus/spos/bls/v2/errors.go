@@ -10,3 +10,21 @@ var ErrTimeOut = errors.New("time is out")
 
 // ErrProofAlreadyPropagated signals that the proof was already propagated
 var ErrProofAlreadyPropagated = errors.New("proof already propagated")
+
+// ErrValidSignatureFromInvalidSigner signals that a valid signature was received on invalid signers message
+var ErrValidSignatureFromInvalidSigner = errors.New("valid signature from invalid sender")
+
+// ErrHeaderHashMismatch signals that header hash does not match
+var ErrHeaderHashMismatch = errors.New("header hash does not match")
+
+// ErrNilRoundSyncController signals that a nil round sync controller has been provided
+var ErrNilRoundSyncController = errors.New("nil round sync controller")
+
+// ErrTooManyInvalidSigners signals that too many invalid signers were received
+var ErrTooManyInvalidSigners = errors.New("too many invalid signers")
+
+// ErrPublicKeyMismatch signals that the BLS public key in the message does not belong to the transport sender
+var ErrPublicKeyMismatch = errors.New("public key does not match the message sender")
+
+// ErrSignerNotInConsensusGroup signals that the signer is not part of the current consensus group
+var ErrSignerNotInConsensusGroup = errors.New("signer is not part of the consensus group")

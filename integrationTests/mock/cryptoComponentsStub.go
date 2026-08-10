@@ -125,7 +125,7 @@ func (ccs *CryptoComponentsStub) SetMultiSignerContainer(ms cryptoCommon.MultiSi
 }
 
 // GetMultiSigner -
-func (ccs *CryptoComponentsStub) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+func (ccs *CryptoComponentsStub) GetMultiSigner(epoch uint32) (crypto.MultiSignerV2, error) {
 	ccs.mutMultiSig.RLock()
 	defer ccs.mutMultiSig.RUnlock()
 

@@ -1,6 +1,8 @@
 package mock
 
 import (
+	"sync/atomic"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
@@ -47,8 +49,10 @@ type CoreComponentsMock struct {
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandlerField         common.ProcessConfigsHandler
-	CommonConfigsHandlerField      common.CommonConfigsHandler
+	CommonConfigsHandlerField          common.CommonConfigsHandler
 	SyncTimerField                     ntp.SyncTimer
+	AntifloodConfigsHandlerField       common.AntifloodConfigsHandler
+	ClosingNodeStartedField            *atomic.Bool
 }
 
 // SyncTimer -
@@ -218,9 +222,19 @@ func (ccm *CoreComponentsMock) ProcessConfigsHandler() common.ProcessConfigsHand
 	return ccm.ProcessConfigsHandlerField
 }
 
-// EpochChangeGracePeriodHandler -
+// CommonConfigsHandler -
 func (ccm *CoreComponentsMock) CommonConfigsHandler() common.CommonConfigsHandler {
 	return ccm.CommonConfigsHandlerField
+}
+
+// AntifloodConfigsHandler -
+func (ccm *CoreComponentsMock) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	return ccm.AntifloodConfigsHandlerField
+}
+
+// ClosingNodeStarted -
+func (ccm *CoreComponentsMock) ClosingNodeStarted() *atomic.Bool {
+	return ccm.ClosingNodeStartedField
 }
 
 // IsInterfaceNil -

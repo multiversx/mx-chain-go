@@ -29,11 +29,13 @@ func newTransactionsHeapItem(bunch bunchOfTransactions) (*transactionsHeapItem, 
 	}, nil
 }
 
-func (item *transactionsHeapItem) selectCurrentTransaction() *WrappedTransaction {
+func (item *transactionsHeapItem) getCurrentTransaction() *WrappedTransaction {
+	return item.currentTransaction
+}
+
+func (item *transactionsHeapItem) selectCurrentTransaction() {
 	item.latestSelectedTransaction = item.currentTransaction
 	item.latestSelectedTransactionNonce = item.currentTransactionNonce
-
-	return item.currentTransaction
 }
 
 func (item *transactionsHeapItem) gotoNextTransaction() bool {

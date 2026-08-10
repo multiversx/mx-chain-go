@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -63,6 +64,8 @@ type CoreComponentsHolderStub struct {
 	EpochChangeGracePeriodHandlerCalled func() common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandlerCalled         func() common.ProcessConfigsHandler
 	CommonConfigsHandlerCalled          func() common.CommonConfigsHandler
+	AntifloodConfigsHandlerCalled       func() common.AntifloodConfigsHandler
+	ClosingNodeStartedCalled            func() *atomic.Bool
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
@@ -109,6 +112,7 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 		EpochChangeGracePeriodHandlerCalled: coreComponents.EpochChangeGracePeriodHandler,
 		ProcessConfigsHandlerCalled:         coreComponents.ProcessConfigsHandler,
 		CommonConfigsHandlerCalled:          coreComponents.CommonConfigsHandler,
+		AntifloodConfigsHandlerCalled:       coreComponents.AntifloodConfigsHandler,
 	}
 }
 
@@ -446,6 +450,24 @@ func (stub *CoreComponentsHolderStub) CommonConfigsHandler() common.CommonConfig
 		return stub.CommonConfigsHandlerCalled()
 	}
 	return nil
+}
+
+// AntifloodConfigsHandler -
+func (stub *CoreComponentsHolderStub) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	if stub.AntifloodConfigsHandlerCalled != nil {
+		return stub.AntifloodConfigsHandlerCalled()
+	}
+
+	return nil
+}
+
+// ClosingNodeStarted -
+func (stub *CoreComponentsHolderStub) ClosingNodeStarted() *atomic.Bool {
+	if stub.ClosingNodeStartedCalled != nil {
+		return stub.ClosingNodeStartedCalled()
+	}
+
+	return &atomic.Bool{}
 }
 
 // IsInterfaceNil -

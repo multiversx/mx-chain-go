@@ -2402,6 +2402,7 @@ func TestESDTIssueUnderProtectedKeyWillReturnTokensBack(t *testing.T) {
 
 	initialVal := int64(10000000000)
 	integrationTests.MintAllNodes(nodes, big.NewInt(initialVal))
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
 
 	round := uint64(0)
 	nonce := uint64(0)

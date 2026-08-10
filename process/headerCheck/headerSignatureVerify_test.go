@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -65,6 +66,7 @@ func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 		},
 		ProofsPool:     &dataRetrieverMocks.ProofsPoolMock{},
 		StorageService: &genericMocks.ChainStorerMock{},
+		PubKeysHandler: &consensusMocks.SigningHandlerStub{},
 	}
 }
 
@@ -656,7 +658,7 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErr(t *testing.T) {
 
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
-		PubKeysBitmap: []byte("A"),
+		PubKeysBitmap: []byte{0x03},
 		RandSeed:      []byte("randSeed"),
 		PrevRandSeed:  []byte("prevRandSeed"),
 	}
@@ -680,14 +682,14 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 	args.NodesCoordinator = nc
 
 	args.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{
-		VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+		VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 			wasCalled = true
 			return nil
 		}})
 
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
-		PubKeysBitmap: []byte("1"),
+		PubKeysBitmap: []byte{0x01},
 		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
@@ -714,7 +716,7 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThre
 		},
 	}
 	multiSigVerifier := &cryptoMocks.MultisignerMock{
-		VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+		VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 			wasCalled = true
 			return nil
 		},
@@ -726,7 +728,7 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThre
 
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.MetaBlock{
-		PubKeysBitmap: []byte("C"),
+		PubKeysBitmap: []byte{0x03},
 		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
@@ -753,7 +755,7 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 		},
 	}
 	multiSigVerifier := &cryptoMocks.MultisignerMock{
-		VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+		VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 			wasCalled = true
 			return nil
 		}}
@@ -812,7 +814,7 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 
 		args.NodesCoordinator = nc
 		args.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{
-			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+			VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 				wasCalled = true
 				return nil
 			}})
@@ -833,9 +835,10 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 		require.Nil(t, err)
 		require.False(t, wasCalled)
 
+		var bitmap byte = 1<<numValidatorsConsensusBeforeActivation - 1 // only the first 7 validators signed
 		// check current block proof
 		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{
-			PubKeysBitmap:       []byte{0xff}, // bitmap should still have the old format
+			PubKeysBitmap:       []byte{bitmap}, // bitmap should still have the old format
 			AggregatedSignature: []byte("aggregated signature"),
 			HeaderHash:          []byte("hash"),
 			HeaderEpoch:         1,
@@ -852,6 +855,18 @@ func getFilledHeader() data.HeaderHandler {
 		RandSeed:        []byte("rand seed"),
 		PubKeysBitmap:   []byte{0xFF},
 		LeaderSignature: []byte("leader signature"),
+	}
+}
+
+func getFilledHeaderV2() data.HeaderHandler {
+	return &dataBlock.HeaderV2{
+		Header: &dataBlock.Header{
+			PrevHash:        []byte("prev hash"),
+			PrevRandSeed:    []byte("prev rand seed"),
+			RandSeed:        []byte("rand seed"),
+			PubKeysBitmap:   []byte{0xFF},
+			LeaderSignature: []byte("leader signature"),
+		},
 	}
 }
 
@@ -892,7 +907,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				cnt++
 				if cnt > 1 {
 					return nil, expectedErr
@@ -923,9 +938,9 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				return &cryptoMocks.MultiSignerStub{
-					VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+					VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 						wasVerifyAggregatedSigCalled = true
 						return nil
 					},
@@ -958,8 +973,8 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		args.StorageService = &testscommonStorage.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &testscommonStorage.StorerStub{
-					SearchFirstCalled: func(key []byte) ([]byte, error) {
-						return nil, errors.New("not found")
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, process.ErrMissingHeader
 					},
 				}, nil
 			},
@@ -970,10 +985,10 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 				if numCalls < 2 {
 					numCalls++
-					return nil, errors.New("not found")
+					return nil, process.ErrMissingHeader
 				}
 
-				return getFilledHeader(), nil
+				return getFilledHeaderV2(), nil
 			},
 		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -982,9 +997,9 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				return &cryptoMocks.MultiSignerStub{
-					VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+					VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 						wasVerifyAggregatedSigCalled = true
 						return nil
 					},
@@ -1022,9 +1037,9 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				return &cryptoMocks.MultiSignerStub{
-					VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+					VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 						wasVerifyAggregatedSigCalled = true
 						return nil
 					},

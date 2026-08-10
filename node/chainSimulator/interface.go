@@ -10,7 +10,7 @@ import (
 // ChainHandler defines what a chain handler should be able to do
 type ChainHandler interface {
 	IncrementRound()
-	CreateNewBlock() error
+	CreateNewBlock() (*dtos.BroadcastData, error)
 	IsInterfaceNil() bool
 }
 

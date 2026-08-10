@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -86,6 +87,7 @@ type RequestersFinder interface {
 // ResolversContainerFactory defines the functionality to create a resolvers container
 type ResolversContainerFactory interface {
 	Create() (ResolversContainer, error)
+	AddShardTrieNodeResolvers(container ResolversContainer) error
 	IsInterfaceNil() bool
 }
 
@@ -118,6 +120,7 @@ type RequestersContainer interface {
 // RequestersContainerFactory defines the functionality to create a requesters container
 type RequestersContainerFactory interface {
 	Create() (RequestersContainer, error)
+	AddShardTrieNodeRequesters(container RequestersContainer) error
 	IsInterfaceNil() bool
 }
 
@@ -175,7 +178,9 @@ type ShardedDataCacherNotifier interface {
 	SearchFirstData(key []byte) (value interface{}, ok bool)
 	RemoveData(key []byte, cacheId string)
 	RemoveSetOfDataFromPool(keys [][]byte, cacheId string)
-	ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string)
+	ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string, nonce uint64)
+	SetOldestImmuneNonce(cacheId string, nonce uint64)
+	SetOldestImmuneNonceForAllCaches(nonce uint64)
 	RemoveDataFromAllShards(key []byte)
 	MergeShardStores(sourceCacheID, destCacheID string)
 	Clear()
@@ -186,7 +191,20 @@ type ShardedDataCacherNotifier interface {
 	CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
 	GetNumTrackedBlocks() uint64
 	GetNumTrackedAccounts() uint64
-	OnExecutedBlock(blockHeader data.HeaderHandler) error
+	OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error
+	OnProposedBlock(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+		accountsProvider common.AccountNonceAndBalanceProvider,
+		latestExecutedHash []byte,
+	) error
+	OnBackfilledBlock(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+	) error
+	ResetTracker()
 }
 
 // ShardIdHashMap represents a map for shardId and hash
@@ -247,6 +265,9 @@ type PoolsHolder interface {
 	Heartbeats() storage.Cacher
 	ValidatorsInfo() ShardedDataCacherNotifier
 	Proofs() ProofsPool
+	ExecutedMiniBlocks() storage.Cacher
+	PostProcessTransactions() storage.Cacher
+	DirectSentTransactions() storage.Cacher
 	Close() error
 	IsInterfaceNil() bool
 }

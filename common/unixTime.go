@@ -9,10 +9,12 @@ import (
 const (
 	genesisEpoch = 0
 
+	numMillisecondsInSec = 1000
+
 	// NumberOfSecondsInDay defines the number of seconds in a day
 	NumberOfSecondsInDay = 86400
 	// NumberOfMillisecondsInDay defines the number of milliseconds in a day
-	NumberOfMillisecondsInDay = NumberOfSecondsInDay * 1000
+	NumberOfMillisecondsInDay = NumberOfSecondsInDay * numMillisecondsInSec
 )
 
 const (
@@ -34,16 +36,16 @@ func GetGenesisUnixTimestampFromStartTime(
 }
 
 // GetGenesisStartTimeFromUnixTimestamp returns genesis time based on the provided
-// unix timestamp
+// unix timestamp as seconds
 func GetGenesisStartTimeFromUnixTimestamp(
-	unixTime int64,
+	unixTimestampAsSeconds int64,
 	enableEpochsHandler EnableEpochsHandler,
 ) time.Time {
 	if enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, genesisEpoch) {
-		return time.UnixMilli(unixTime)
+		return time.UnixMilli(unixTimestampAsSeconds * numMillisecondsInSec)
 	}
 
-	return time.Unix(unixTime, 0)
+	return time.Unix(unixTimestampAsSeconds, 0)
 }
 
 // CheckRoundDuration checks round duration based on current configuration
@@ -59,7 +61,7 @@ func CheckRoundDuration(
 }
 
 func checkRoundDurationSec(roundDuration uint64) error {
-	roundDurationSec := roundDuration / 1000
+	roundDurationSec := roundDuration / numMillisecondsInSec
 	if roundDurationSec < minRoundDurationSec {
 		return errors.ErrInvalidRoundDuration
 	}

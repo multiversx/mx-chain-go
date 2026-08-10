@@ -181,6 +181,7 @@ func getDefaultStateComponents(
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       snapshotsManager,
 		StateAccessesCollector: collector,
+		PruningEnabled:         true,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -451,7 +452,7 @@ func TestAccountsDB_MigrateDataTrieLeafCollectsDeleteAndUpdateStateChanges(t *te
 
 	txHash := []byte("accountCreationTxHash")
 	adb.SetTxHashForLatestStateAccesses(txHash)
-	_, err := adb.ResetStateAccessesCollector()
+	_, err := adb.ResetStateAccessesCollector([]byte{})
 	assert.Nil(t, err)
 
 	// enable auto-balance and migrate the data trie leaf
@@ -473,7 +474,10 @@ func TestAccountsDB_MigrateDataTrieLeafCollectsDeleteAndUpdateStateChanges(t *te
 	txHash = []byte("accountMigrationTxHash")
 	adb.SetTxHashForLatestStateAccesses(txHash)
 
-	collectedStateAccesses, err := adb.ResetStateAccessesCollector()
+	rootHash, err := adb.Commit()
+	assert.Nil(t, err)
+
+	collectedStateAccesses, err := adb.ResetStateAccessesCollector(rootHash)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 1, len(collectedStateAccesses))
@@ -523,7 +527,7 @@ func TestAccountsDB_DeleteStateChangesHaveProperVersion(t *testing.T) {
 
 	txHash := []byte("accountCreationTxHash")
 	adb.SetTxHashForLatestStateAccesses(txHash)
-	_, err := adb.ResetStateAccessesCollector()
+	_, err := adb.ResetStateAccessesCollector([]byte{})
 	assert.Nil(t, err)
 
 	// enable auto-balance and delete the data trie leaf
@@ -536,7 +540,10 @@ func TestAccountsDB_DeleteStateChangesHaveProperVersion(t *testing.T) {
 	txHash = []byte("DeleteDataTrieTxHash")
 	adb.SetTxHashForLatestStateAccesses(txHash)
 
-	collectedStateAccesses, err := adb.ResetStateAccessesCollector()
+	rootHash, err := adb.Commit()
+	assert.Nil(t, err)
+
+	collectedStateAccesses, err := adb.ResetStateAccessesCollector(rootHash)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 1, len(collectedStateAccesses))
@@ -595,7 +602,10 @@ func stepCreateAccountWithDataTrieAndCode(
 	serializedAcc, _ := marshaller.Marshal(userAcc)
 	codeHash := userAcc.GetCodeHash()
 
-	stateChangesForTx, err := adb.ResetStateAccessesCollector()
+	rootHash, err := adb.Commit()
+	assert.Nil(t, err)
+
+	stateChangesForTx, err := adb.ResetStateAccessesCollector(rootHash)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(stateChangesForTx))
 
@@ -642,7 +652,10 @@ func stepMigrateDataTrieValAndChangeCode(
 
 	adb.SetTxHashForLatestStateAccesses(txHash)
 
-	stateChangesForTx, err := adb.ResetStateAccessesCollector()
+	rootHash, err := adb.Commit()
+	assert.Nil(t, err)
+
+	stateChangesForTx, err := adb.ResetStateAccessesCollector(rootHash)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(stateChangesForTx))
 	assert.Equal(t, 3, len(stateChangesForTx[string(txHash)].StateAccess))
@@ -1244,6 +1257,77 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
+// ------- RecreateTrieIfNeeded
+
+func TestAccountsDB_RecreateTrieIfNeededShouldRecreate(t *testing.T) {
+	t.Parallel()
+
+	currentHash := []byte("hash1")
+	newHash := []byte("hash2")
+
+	recreatedCalled := false
+	trieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return currentHash, nil
+		},
+		RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+			recreatedCalled = true
+			return &trieMock.TrieStub{}, nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+
+	adb := generateAccountDBFromTrie(trieStub)
+	holder := holders.NewDefaultRootHashesHolder(newHash)
+
+	err := adb.RecreateTrieIfNeeded(holder)
+	assert.Nil(t, err)
+	assert.True(t, recreatedCalled)
+}
+
+func TestAccountsDB_RecreateTrieIfNeededShouldNotRecreate(t *testing.T) {
+	t.Parallel()
+
+	currentHash := []byte("hash1")
+	recreatedCalled := false
+	trieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return currentHash, nil
+		},
+		RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+			recreatedCalled = true
+			return &trieMock.TrieStub{}, nil
+		},
+	}
+
+	adb := generateAccountDBFromTrie(trieStub)
+	holder := holders.NewDefaultRootHashesHolder(currentHash)
+
+	err := adb.RecreateTrieIfNeeded(holder)
+	assert.Nil(t, err)
+	assert.False(t, recreatedCalled)
+}
+
+func TestAccountsDB_RecreateTrieIfNeededRootHashError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("root hash err")
+	trieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return nil, expectedErr
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+
+	adb := generateAccountDBFromTrie(trieStub)
+	err := adb.RecreateTrieIfNeeded(holders.NewDefaultRootHashesHolder([]byte("x")))
+	assert.Equal(t, expectedErr, err)
+}
+
 func TestAccountsDB_SnapshotState(t *testing.T) {
 	t.Parallel()
 
@@ -1574,19 +1658,16 @@ func TestAccountsDB_SnapshotStateCallsRemoveFromAllActiveEpochs(t *testing.T) {
 func TestAccountsDB_IsPruningEnabled(t *testing.T) {
 	t.Parallel()
 
-	trieStub := &trieMock.TrieStub{
-		GetStorageManagerCalled: func() common.StorageManager {
-			return &storageManager.StorageManagerStub{
-				IsPruningEnabledCalled: func() bool {
-					return true
-				},
-			}
-		},
-	}
-	adb := generateAccountDBFromTrie(trieStub)
-	res := adb.IsPruningEnabled()
+	args := createMockAccountsDBArgs()
+	args.PruningEnabled = true
+	adb, err := state.NewAccountsDB(args)
+	assert.Nil(t, err)
+	assert.True(t, adb.IsPruningEnabled())
 
-	assert.Equal(t, true, res)
+	args.PruningEnabled = false
+	adb, err = state.NewAccountsDB(args)
+	assert.Nil(t, err)
+	assert.False(t, adb.IsPruningEnabled())
 }
 
 func TestAccountsDB_RevertToSnapshotOutOfBounds(t *testing.T) {
@@ -2052,6 +2133,7 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.PruningEnabled = true
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
@@ -2134,6 +2216,7 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.PruningEnabled = true
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
@@ -3117,6 +3200,7 @@ func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
 	tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochsHandler, uint(5))
 	spm := &stateMock.StoragePruningManagerStub{}
 	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.PruningEnabled = true
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
@@ -3191,7 +3275,7 @@ func testAccountMethodsConcurrency(
 	addresses [][]byte,
 	rootHash []byte,
 ) {
-	numOperations := 100
+	numOperations := 1000
 	marshaller := &marshallerMock.MarshalizerMock{}
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
@@ -3207,7 +3291,7 @@ func testAccountMethodsConcurrency(
 	assert.Nil(t, err)
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
-			switch idx % 21 {
+			switch idx % 22 {
 			case 0:
 				_, _ = adb.GetExistingAccount(addresses[idx])
 			case 1:
@@ -3250,6 +3334,8 @@ func testAccountMethodsConcurrency(
 				_ = adb.GetStackDebugFirstEntry()
 			case 20:
 				_ = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+			case 21:
+				_ = adb.RecreateTrieIfNeeded(holders.NewDefaultRootHashesHolder(rootHash))
 			}
 			wg.Done()
 		}(i)

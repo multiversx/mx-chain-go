@@ -24,7 +24,6 @@ type printedTransaction struct {
 type printedTrackedBlock struct {
 	Hash         string `json:"hash"`
 	PreviousHash string `json:"previousHash"`
-	RootHash     string `json:"rootHash"`
 	Nonce        uint64 `json:"nonce"`
 }
 
@@ -113,7 +112,6 @@ func convertTrackedBlockToPrintedBlock(block *trackedBlock) *printedTrackedBlock
 	return &printedTrackedBlock{
 		Hash:         hex.EncodeToString(block.hash),
 		PreviousHash: hex.EncodeToString(block.prevHash),
-		RootHash:     hex.EncodeToString(block.rootHash),
 		Nonce:        block.nonce,
 	}
 }

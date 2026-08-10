@@ -51,9 +51,7 @@ func TestCrossTxCache_DoImmunizeTxsAgainstEviction(t *testing.T) {
 	cache := newCrossTxCacheToTest(1, 8, math.MaxUint16)
 
 	cache.addTestTxs("a", "b", "c", "d")
-	numNow, numFuture := cache.ImmunizeKeys(hashesAsBytes([]string{"a", "b", "e", "f"}))
-	require.Equal(t, 2, numNow)
-	require.Equal(t, 2, numFuture)
+	cache.ImmunizeTxsAgainstEviction(hashesAsBytes([]string{"a", "b", "e", "f"}), 7)
 	require.Equal(t, 4, cache.Len())
 
 	cache.addTestTxs("e", "f", "g", "h")
@@ -102,7 +100,7 @@ func TestCrossTxCache_NotImplemented(t *testing.T) {
 	err := cache.OnProposedBlock(nil, nil, nil, nil, nil)
 	require.Nil(t, err)
 
-	err = cache.OnExecutedBlock(nil)
+	err = cache.OnExecutedBlock(nil, nil)
 	require.Nil(t, err)
 
 	diagnosis := cache.GetTrackerDiagnosis()

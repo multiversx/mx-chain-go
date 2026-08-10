@@ -19,22 +19,33 @@ func TestNewSelectionSession(t *testing.T) {
 	t.Parallel()
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       nil,
-		TransactionsProcessor: &testscommon.TxProcessorStub{},
+		AccountsAdapter:         nil,
+		TransactionsProcessor:   &testscommon.TxProcessorStub{},
+		TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{},
 	})
 	require.Nil(t, session)
 	require.ErrorIs(t, err, state.ErrNilAccountsAdapter)
 
 	session, err = NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       &stateMock.AccountsStub{},
-		TransactionsProcessor: nil,
+		AccountsAdapter:         &stateMock.AccountsStub{},
+		TransactionsProcessor:   nil,
+		TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{},
 	})
 	require.Nil(t, session)
 	require.ErrorIs(t, err, process.ErrNilTxProcessor)
 
 	session, err = NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       &stateMock.AccountsStub{},
-		TransactionsProcessor: &testscommon.TxProcessorStub{},
+		AccountsAdapter:         &stateMock.AccountsStub{},
+		TransactionsProcessor:   &testscommon.TxProcessorStub{},
+		TxVersionCheckerHandler: nil,
+	})
+	require.Nil(t, session)
+	require.ErrorIs(t, err, process.ErrNilTransactionVersionChecker)
+
+	session, err = NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:         &stateMock.AccountsStub{},
+		TransactionsProcessor:   &testscommon.TxProcessorStub{},
+		TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, session)
@@ -67,8 +78,9 @@ func TestSelectionSession_GetAccountNonceAndBalance(t *testing.T) {
 	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       accounts,
-		TransactionsProcessor: processor,
+		AccountsAdapter:         accounts,
+		TransactionsProcessor:   processor,
+		TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, session)
@@ -103,8 +115,9 @@ func TestSelectionSession_GetRootHash(t *testing.T) {
 	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       accounts,
-		TransactionsProcessor: processor,
+		AccountsAdapter:         accounts,
+		TransactionsProcessor:   processor,
+		TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, session)
@@ -141,8 +154,9 @@ func TestSelectionSession_IsIncorrectlyGuarded(t *testing.T) {
 	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       accounts,
-		TransactionsProcessor: processor,
+		AccountsAdapter:         accounts,
+		TransactionsProcessor:   processor,
+		TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, session)

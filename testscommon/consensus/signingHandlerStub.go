@@ -1,5 +1,7 @@
 package consensus
 
+import crypto "github.com/multiversx/mx-chain-crypto-go"
+
 // SigningHandlerStub implements SigningHandler interface
 type SigningHandlerStub struct {
 	ResetCalled                            func(pubKeys []string) error
@@ -12,6 +14,7 @@ type SigningHandlerStub struct {
 	AggregateSigsCalled                    func(bitmap []byte, epoch uint32) ([]byte, error)
 	SetAggregatedSigCalled                 func(_ []byte) error
 	VerifyCalled                           func(msg []byte, bitmap []byte, epoch uint32) error
+	GetPubKeysFromBytesCalled              func(pubKeysBytes [][]byte) ([]crypto.PublicKey, error)
 }
 
 // Reset -
@@ -102,6 +105,17 @@ func (stub *SigningHandlerStub) Verify(msg []byte, bitmap []byte, epoch uint32) 
 	}
 
 	return nil
+}
+
+// GetPubKeysFromBytes -
+func (stub *SigningHandlerStub) GetPubKeysFromBytes(
+	pubKeysBytes [][]byte,
+) ([]crypto.PublicKey, error) {
+	if stub.GetPubKeysFromBytesCalled != nil {
+		return stub.GetPubKeysFromBytesCalled(pubKeysBytes)
+	}
+
+	return nil, nil
 }
 
 // IsInterfaceNil -

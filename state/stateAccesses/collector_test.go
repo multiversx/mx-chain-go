@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -120,10 +122,8 @@ func TestStateAccessesCollector_AddTxHashToCollectedStateAccesses(t *testing.T) 
 
 	c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
 	assert.Equal(t, 0, len(c.stateAccesses))
-	assert.Equal(t, 0, len(c.GetCollectedAccesses()))
 	c.AddTxHashToCollectedStateAccesses([]byte("txHash0"))
 	assert.Equal(t, 0, len(c.stateAccesses))
-	assert.Equal(t, 0, len(c.GetCollectedAccesses()))
 
 	stateAccess := &data.StateAccess{
 		Type:            data.Write,
@@ -134,10 +134,13 @@ func TestStateAccessesCollector_AddTxHashToCollectedStateAccesses(t *testing.T) 
 	c.AddStateAccess(stateAccess)
 	c.AddTxHashToCollectedStateAccesses([]byte("txHash"))
 
+	rootHash := []byte("rootHash")
 	assert.Equal(t, 1, len(c.stateAccesses))
-	assert.Equal(t, 1, len(c.GetCollectedAccesses()))
+	err := c.CommitCollectedAccesses(rootHash)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(c.GetStateAccessesForRootHash(rootHash)))
 
-	stateAccessesForTx := c.GetCollectedAccesses()
+	stateAccessesForTx := c.GetStateAccessesForRootHash(rootHash)
 	stateAccesses, ok := stateAccessesForTx["txHash"]
 	require.True(t, ok)
 	assert.Equal(t, 1, len(stateAccessesForTx))
@@ -259,16 +262,18 @@ func TestStateAccessesCollector_Reset(t *testing.T) {
 	}
 	c.AddTxHashToCollectedStateAccesses([]byte("txHash"))
 	assert.Equal(t, numStateAccesses, len(c.stateAccesses))
-	assert.Equal(t, 1, len(c.GetCollectedAccesses()))
-	assert.Equal(t, 1, len(c.stateAccessesForTxs))
+	rootHash := []byte("rootHash")
+	err := c.CommitCollectedAccesses(rootHash)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(c.GetStateAccessesForRootHash(rootHash)))
+	assert.Equal(t, 1, len(c.stateAccessesForBlock))
 
 	c.Reset()
 	assert.Equal(t, 0, len(c.stateAccesses))
 	assert.Equal(t, 0, len(c.stateAccessesForTxs))
-	assert.Equal(t, 0, len(c.GetCollectedAccesses()))
 }
 
-func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
+func TestStateAccessesCollector_GetStateAccessesForRootHash(t *testing.T) {
 	t.Parallel()
 
 	t.Run("collect only write", func(t *testing.T) {
@@ -296,7 +301,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			}
 		}
 
-		stateAccessesForTx := c.GetCollectedAccesses()
+		rootHash := []byte("rootHash")
+		_ = c.CommitCollectedAccesses(rootHash)
+		stateAccessesForTx := c.GetStateAccessesForRootHash(rootHash)
 
 		require.Len(t, stateAccessesForTx, 1)
 		require.Len(t, stateAccessesForTx["hash0"].StateAccess, 10)
@@ -344,7 +351,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			}
 		}
 
-		stateAccessesForTx := c.GetCollectedAccesses()
+		rootHash := []byte("rootHash")
+		_ = c.CommitCollectedAccesses(rootHash)
+		stateAccessesForTx := c.GetStateAccessesForRootHash(rootHash)
 
 		require.Len(t, stateAccessesForTx, 1)
 		require.Len(t, stateAccessesForTx["hash1"].StateAccess, 10)
@@ -392,7 +401,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			}
 		}
 
-		stateAccessesForTx := c.GetCollectedAccesses()
+		rootHash := []byte("rootHash")
+		_ = c.CommitCollectedAccesses(rootHash)
+		stateAccessesForTx := c.GetStateAccessesForRootHash(rootHash)
 
 		require.Len(t, stateAccessesForTx, 2)
 		require.Len(t, stateAccessesForTx["hash0"].StateAccess, 10)
@@ -451,7 +462,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			MainTrieVal: []byte("mainTrieVal2"),
 		})
 
-		stateChangesForTx := c.GetCollectedAccesses()
+		rootHash := []byte("rootHash")
+		_ = c.CommitCollectedAccesses(rootHash)
+		stateChangesForTx := c.GetStateAccessesForRootHash(rootHash)
 
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 2)
@@ -487,7 +500,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			MainTrieVal: []byte("mainTrieVal2"),
 		})
 
-		stateChangesForTx := c.GetCollectedAccesses()
+		rootHash := []byte("rootHash")
+		_ = c.CommitCollectedAccesses(rootHash)
+		stateChangesForTx := c.GetStateAccessesForRootHash(rootHash)
 
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 2)
@@ -523,7 +538,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			MainTrieVal: []byte("mainTrieVal2"),
 		})
 
-		stateChangesForTx := c.GetCollectedAccesses()
+		rootHash := []byte("rootHash")
+		_ = c.CommitCollectedAccesses(rootHash)
+		stateChangesForTx := c.GetStateAccessesForRootHash(rootHash)
 
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
@@ -565,7 +582,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			AccountChanges: defaultAccChanges,
 		})
 
-		stateChangesForTx := c.GetCollectedAccesses()
+		rootHash := []byte("rootHash")
+		_ = c.CommitCollectedAccesses(rootHash)
+		stateChangesForTx := c.GetStateAccessesForRootHash(rootHash)
 
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
@@ -606,7 +625,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			AccountChanges: data.NonceChanged | data.CodeHashChanged | data.DeveloperRewardChanged | data.UserNameChanged,
 		})
 
-		stateChangesForTx := c.GetCollectedAccesses()
+		rootHash := []byte("rootHash")
+		_ = c.CommitCollectedAccesses(rootHash)
+		stateChangesForTx := c.GetStateAccessesForRootHash(rootHash)
 
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
@@ -653,7 +674,7 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			},
 		})
 
-		stateChangesForTx := c.GetCollectedAccesses()
+		stateChangesForTx := c.getStateAccessesForTxs()
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 2)
@@ -677,7 +698,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			},
 		})
 
-		stateChangesForTx = c.GetCollectedAccesses()
+		rootHash := []byte("rootHash")
+		_ = c.CommitCollectedAccesses(rootHash)
+		stateChangesForTx = c.GetStateAccessesForRootHash(rootHash)
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 2)
@@ -738,7 +761,9 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 			}
 		}
 
-		stateChangesForTx := c.GetCollectedAccesses()
+		rootHash := []byte("rootHash")
+		_ = c.CommitCollectedAccesses(rootHash)
+		stateChangesForTx := c.GetStateAccessesForRootHash(rootHash)
 
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["txHash"].StateAccess, 2)
@@ -832,7 +857,7 @@ func TestCollector_GetAccountChanges(t *testing.T) {
 	})
 }
 
-func TestCollector_Store(t *testing.T) {
+func TestCollector_CommitCollectedAccesses(t *testing.T) {
 	t.Parallel()
 
 	t.Run("with storer", func(t *testing.T) {
@@ -855,9 +880,9 @@ func TestCollector_Store(t *testing.T) {
 		}
 		c.AddTxHashToCollectedStateAccesses([]byte("txHash1"))
 
-		err := c.Store()
+		rootHash := []byte("rootHash")
+		err := c.CommitCollectedAccesses(rootHash)
 		require.Nil(t, err)
-
 		require.True(t, putCalled)
 	})
 
@@ -872,7 +897,8 @@ func TestCollector_Store(t *testing.T) {
 		}
 		c.AddTxHashToCollectedStateAccesses([]byte("txHash1"))
 
-		err := c.Store()
+		rootHash := []byte("rootHash")
+		err := c.CommitCollectedAccesses(rootHash)
 		require.Nil(t, err)
 	})
 }
@@ -913,4 +939,70 @@ func TestStateAccessToString(t *testing.T) {
 		" version: 0," +
 		" accountChanges: 3"
 	assert.Equal(t, expectedStr, strStateAccess)
+}
+
+func TestStateAccessesCollector_RemoveStateAccessesSForRootHash(t *testing.T) {
+	t.Parallel()
+
+	c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
+	assert.Equal(t, 0, len(c.stateAccessesForBlock))
+
+	numStateAccesses := 10
+	for i := 0; i < numStateAccesses; i++ {
+		c.AddStateAccess(getWriteStateAccess())
+	}
+	c.AddTxHashToCollectedStateAccesses([]byte("txHash"))
+	assert.Equal(t, numStateAccesses, len(c.stateAccesses))
+	rootHash := []byte("rootHash")
+	err := c.CommitCollectedAccesses(rootHash)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(c.GetStateAccessesForRootHash(rootHash)))
+	assert.Equal(t, 1, len(c.stateAccessesForBlock))
+
+	c.RemoveStateAccessesForRootHash(rootHash)
+	assert.Equal(t, 0, len(c.stateAccessesForBlock))
+}
+
+func TestStateAccessesCollector_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite())
+
+	numOperations := 1000
+
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx % 10 {
+			case 0:
+				c.AddStateAccess(getWriteStateAccess())
+			case 1:
+				c.AddStateAccess(getReadStateAccess())
+			case 2:
+				c.AddTxHashToCollectedStateAccesses([]byte("txHash" + fmt.Sprintf("%d", rand.Intn(100))))
+			case 3:
+				_ = c.CommitCollectedAccesses([]byte("rootHash"))
+			case 4:
+				c.GetAccountChanges(&mockState.UserAccountStub{}, &mockState.UserAccountStub{})
+			case 5:
+				c.GetStateAccessesForRootHash([]byte("rootHash"))
+			case 6:
+				c.RemoveStateAccessesForRootHash([]byte("rootHash"))
+			case 7:
+				c.Reset()
+			case 8:
+				_ = c.RevertToIndex(rand.Intn(10))
+			case 9:
+				_ = c.SetIndexToLatestStateAccesses(rand.Intn(10))
+			default:
+				assert.Fail(t, "should have not been called")
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }

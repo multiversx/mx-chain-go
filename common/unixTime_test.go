@@ -57,13 +57,14 @@ func TestTimeToUnixInEpoch(t *testing.T) {
 			},
 		}
 
-		tt := time.Now().Truncate(time.Millisecond)
+		tt := time.Now().Truncate(time.Second)
 
 		unixTimeStamp := common.GetGenesisUnixTimestampFromStartTime(tt, enableEpochsHandler)
 		require.Equal(t, tt.UnixMilli(), unixTimeStamp)
 
+		// should not work properly to get start time from unix timestamp as milliseconds
 		timeFromUnixTimeStamp := common.GetGenesisStartTimeFromUnixTimestamp(unixTimeStamp, enableEpochsHandler)
-		require.Equal(t, tt, timeFromUnixTimeStamp)
+		require.NotEqual(t, tt, timeFromUnixTimeStamp)
 	})
 
 	t.Run("without supernova flag enabled", func(t *testing.T) {

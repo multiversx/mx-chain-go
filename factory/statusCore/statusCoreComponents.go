@@ -3,6 +3,8 @@ package statusCore
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
@@ -15,29 +17,30 @@ import (
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/statusHandler/persister"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")
 
 // StatusCoreComponentsFactoryArgs holds the arguments needed for creating a status core components factory
 type StatusCoreComponentsFactoryArgs struct {
-	Config          config.Config
-	EpochConfig     config.EpochConfig
-	RoundConfig     config.RoundConfig
-	RatingsConfig   config.RatingsConfig
-	EconomicsConfig config.EconomicsConfig
-	CoreComp        factory.CoreComponentsHolder
+	Config                     config.Config
+	EpochConfig                config.EpochConfig
+	RoundConfig                config.RoundConfig
+	RatingsConfig              config.RatingsConfig
+	EconomicsConfig            config.EconomicsConfig
+	SystemSmartContractsConfig config.SystemSmartContractsConfig
+	CoreComp                   factory.CoreComponentsHolder
 }
 
 // statusCoreComponentsFactory is responsible for creating the status core components
 type statusCoreComponentsFactory struct {
-	config          config.Config
-	epochConfig     config.EpochConfig
-	roundConfig     config.RoundConfig
-	ratingsConfig   config.RatingsConfig
-	economicsConfig config.EconomicsConfig
-	coreComp        factory.CoreComponentsHolder
+	config                     config.Config
+	epochConfig                config.EpochConfig
+	roundConfig                config.RoundConfig
+	ratingsConfig              config.RatingsConfig
+	economicsConfig            config.EconomicsConfig
+	systemSmartContractsConfig config.SystemSmartContractsConfig
+	coreComp                   factory.CoreComponentsHolder
 }
 
 // statusCoreComponents is the DTO used for core components
@@ -59,12 +62,13 @@ func NewStatusCoreComponentsFactory(args StatusCoreComponentsFactoryArgs) (*stat
 	}
 
 	return &statusCoreComponentsFactory{
-		config:          args.Config,
-		epochConfig:     args.EpochConfig,
-		roundConfig:     args.RoundConfig,
-		ratingsConfig:   args.RatingsConfig,
-		economicsConfig: args.EconomicsConfig,
-		coreComp:        args.CoreComp,
+		config:                     args.Config,
+		epochConfig:                args.EpochConfig,
+		roundConfig:                args.RoundConfig,
+		ratingsConfig:              args.RatingsConfig,
+		economicsConfig:            args.EconomicsConfig,
+		systemSmartContractsConfig: args.SystemSmartContractsConfig,
+		coreComp:                   args.CoreComp,
 	}, nil
 }
 
@@ -129,7 +133,10 @@ func (sccf *statusCoreComponentsFactory) createStateStatsHandler() common.StateS
 func (sccf *statusCoreComponentsFactory) createStatusHandler() (core.AppStatusHandler, external.StatusMetricsHandler, factory.PersistentStatusHandler, error) {
 	var appStatusHandlers []core.AppStatusHandler
 	var handler core.AppStatusHandler
-	statusMetrics := statusHandler.NewStatusMetrics()
+	statusMetrics, err := statusHandler.NewStatusMetrics(sccf.coreComp.EnableEpochsHandler(), sccf.coreComp.EnableRoundsHandler())
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	appStatusHandlers = append(appStatusHandlers, statusMetrics)
 
 	persistentHandler, err := persister.NewPersistentStatusHandler(sccf.coreComp.InternalMarshalizer(), sccf.coreComp.Uint64ByteSliceConverter())
@@ -153,7 +160,7 @@ func (sccf *statusCoreComponentsFactory) createStatusHandler() (core.AppStatusHa
 		return nil, nil, nil, err
 	}
 
-	err = metrics.InitConfigMetrics(handler, sccf.epochConfig, sccf.economicsConfig, sccf.coreComp.GenesisNodesSetup(), sccf.config.GatewayMetricsConfig)
+	err = metrics.InitConfigMetrics(handler, sccf.epochConfig, sccf.economicsConfig, sccf.coreComp.GenesisNodesSetup(), sccf.config.GatewayMetricsConfig, sccf.systemSmartContractsConfig)
 	if err != nil {
 		return nil, nil, nil, err
 	}

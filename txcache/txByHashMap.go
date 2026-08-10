@@ -52,6 +52,11 @@ func (txMap *txByHashMap) removeTx(txHash string) (*WrappedTransaction, bool) {
 	return tx, true
 }
 
+// hasTx checks if a transaction exists in the map (without retrieving it)
+func (txMap *txByHashMap) hasTx(txHash string) bool {
+	return txMap.backingMap.Has(txHash)
+}
+
 // getTx gets a transaction from the map
 func (txMap *txByHashMap) getTx(txHash string) (*WrappedTransaction, bool) {
 	txUntyped, ok := txMap.backingMap.Get(txHash)

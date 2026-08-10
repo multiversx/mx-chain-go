@@ -16,26 +16,29 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 )
 
 // PoolsHolderMock -
 type PoolsHolderMock struct {
-	transactions           dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
-	headers                dataRetriever.HeadersPool
-	miniBlocks             storage.Cacher
-	peerChangesBlocks      storage.Cacher
-	trieNodes              storage.Cacher
-	trieNodesChunks        storage.Cacher
-	smartContracts         storage.Cacher
-	currBlockTxs           dataRetriever.TransactionCacher
-	currEpochValidatorInfo dataRetriever.ValidatorInfoCacher
-	peerAuthentications    storage.Cacher
-	heartbeats             storage.Cacher
-	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
-	proofs                 dataRetriever.ProofsPool
+	transactions            dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions    dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions      dataRetriever.ShardedDataCacherNotifier
+	headers                 dataRetriever.HeadersPool
+	miniBlocks              storage.Cacher
+	peerChangesBlocks       storage.Cacher
+	trieNodes               storage.Cacher
+	trieNodesChunks         storage.Cacher
+	smartContracts          storage.Cacher
+	currBlockTxs            dataRetriever.TransactionCacher
+	currEpochValidatorInfo  dataRetriever.ValidatorInfoCacher
+	peerAuthentications     storage.Cacher
+	heartbeats              storage.Cacher
+	validatorsInfo          dataRetriever.ShardedDataCacherNotifier
+	proofs                  dataRetriever.ProofsPool
+	executedMiniBlocks      storage.Cacher
+	postProcessTransactions storage.Cacher
+	directSentTransactions  storage.Cacher
 }
 
 // NewPoolsHolderMock -
@@ -52,7 +55,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 				SizeInBytesPerSender: 10000000,
 				Shards:               16,
 			},
-			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+			TxGasHandler:   mempool.NewTxGasHandlerMock(),
 			Marshalizer:    &marshal.GogoProtoMarshalizer{},
 			NumberOfShards: 1,
 			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
@@ -115,6 +118,18 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.proofs = proofscache.NewProofsPool(3, 100)
+
+	holder.executedMiniBlocks, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.postProcessTransactions, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.directSentTransactions, err = cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: 10 * time.Second,
+		CacheExpiry: 10 * time.Second,
+	})
+	panicIfError("NewPoolsHolderMock", err)
 
 	return holder
 }
@@ -207,6 +222,26 @@ func (holder *PoolsHolderMock) ValidatorsInfo() dataRetriever.ShardedDataCacherN
 // Proofs -
 func (holder *PoolsHolderMock) Proofs() dataRetriever.ProofsPool {
 	return holder.proofs
+}
+
+// ExecutedMiniBlocks -
+func (holder *PoolsHolderMock) ExecutedMiniBlocks() storage.Cacher {
+	return holder.executedMiniBlocks
+}
+
+// PostProcessTransactions -
+func (holder *PoolsHolderMock) PostProcessTransactions() storage.Cacher {
+	return holder.postProcessTransactions
+}
+
+// DirectSentTransactions -
+func (holder *PoolsHolderMock) DirectSentTransactions() storage.Cacher {
+	return holder.directSentTransactions
+}
+
+// SetProofsPool -
+func (holder *PoolsHolderMock) SetProofsPool(proofsPool dataRetriever.ProofsPool) {
+	holder.proofs = proofsPool
 }
 
 // Close -

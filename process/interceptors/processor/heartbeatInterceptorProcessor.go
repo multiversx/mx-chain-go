@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -58,7 +59,7 @@ func (hip *heartbeatInterceptorProcessor) Validate(_ process.InterceptedData, _ 
 }
 
 // Save will save the intercepted heartbeat inside the heartbeat cacher
-func (hip *heartbeatInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) (bool, error) {
+func (hip *heartbeatInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string, _ p2p.BroadcastMethod) (bool, error) {
 	interceptedHeartbeat, ok := data.(interceptedHeartbeatMessageHandler)
 	if !ok {
 		return false, process.ErrWrongTypeAssertion

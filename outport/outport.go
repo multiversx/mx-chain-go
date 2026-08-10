@@ -125,6 +125,7 @@ func (o *outport) prepareBlockData(
 		IntraShardMiniBlocks: headerBodyData.IntraShardMiniBlocks,
 		HeaderProof:          proof,
 		TimestampMs:          timestampMs,
+		Results:              headerBodyData.Results,
 	}, nil
 }
 

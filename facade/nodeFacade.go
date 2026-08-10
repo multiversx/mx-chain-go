@@ -41,6 +41,8 @@ const DefaultRestInterface = "localhost:8080"
 // to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
 
+const simulateSelectionMaxDuration = time.Millisecond * 150
+
 var log = logger.GetOrCreate("facade")
 
 // ArgNodeFacade represents the argument for the nodeFacade
@@ -345,12 +347,21 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
 func (nf *nodeFacade) GetSelectedTransactions(fields string) (*common.TransactionsSelectionSimulationResult, error) {
-	selectionOptions := holders.NewTxSelectionOptions(
+	// simulation only, should be safe to pass true here
+	startTime := time.Now()
+	haveTimeForSimulation := func() bool {
+		return time.Since(startTime) <= simulateSelectionMaxDuration
+	}
+
+	selectionOptions, err := holders.NewTxSelectionOptions(
 		nf.config.TxCacheSelectionConfig.SelectionGasRequested,
 		nf.config.TxCacheSelectionConfig.SelectionMaxNumTxs,
-		nf.config.TxCacheSelectionConfig.SelectionLoopMaximumDuration,
 		nf.config.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+		haveTimeForSimulation,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
 		selectionOptions,
@@ -625,7 +636,7 @@ func (nf *nodeFacade) GetProofDataTrie(rootHash string, address string, key stri
 
 // GetProofCurrentRootHash returns the Merkle proof for the given address and current root hash
 func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofResponse, error) {
-	rootHash := nf.blockchain.GetCurrentBlockRootHash()
+	rootHash := nf.getCurrentRootHash()
 	if len(rootHash) == 0 {
 		return nil, ErrEmptyRootHash
 	}
@@ -633,6 +644,16 @@ func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofR
 	hexRootHash := hex.EncodeToString(rootHash)
 
 	return nf.node.GetProof(hexRootHash, address)
+}
+
+func (nf *nodeFacade) getCurrentRootHash() []byte {
+	currentHeader := nf.blockchain.GetCurrentBlockHeader()
+	if currentHeader != nil && currentHeader.IsHeaderV3() {
+		_, _, lastExecutedRootHash := nf.blockchain.GetLastExecutedBlockInfo()
+		return lastExecutedRootHash
+	}
+
+	return nf.blockchain.GetCurrentBlockRootHash()
 }
 
 // VerifyProof verifies the given Merkle proof

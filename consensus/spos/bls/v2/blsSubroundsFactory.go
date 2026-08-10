@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls/ntpsync"
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
@@ -203,10 +204,20 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
+	syncController, err := ntpsync.NewNtpSyncController(
+		subround.EquivalentProofsPool(),
+		subround.ConsensusCoreHandler.SyncTimer(),
+		fct.consensusCore.ShardCoordinator().SelfId(),
+	)
+	if err != nil {
+		return err
+	}
+
 	subroundBlockInstance, err := NewSubroundBlock(
 		subround,
 		processingThresholdPercent,
 		fct.worker,
+		syncController,
 	)
 	if err != nil {
 		return err
@@ -283,7 +294,6 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
 		fct.worker,
-		fct.signatureThrottler,
 	)
 	if err != nil {
 		return err

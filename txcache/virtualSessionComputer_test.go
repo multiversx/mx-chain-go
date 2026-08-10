@@ -6,8 +6,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 )
 
 func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
@@ -95,8 +96,8 @@ func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
 func Test_createVirtualSelectionSession(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should ignore carol because it has discontinuous nonce with session nonce", func(t *testing.T) {
-		sessionMock := txcachemocks.SelectionSessionMock{
+	t.Run("should create blocked record for carol because it has discontinuous nonce with session nonce", func(t *testing.T) {
+		sessionMock := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 2, big.NewInt(2), true, nil
 			},
@@ -130,7 +131,8 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 		}
 
 		breadcrumb2 := map[string]*accountBreadcrumb{
-			// carol's virtual record will not be saved because the firstNonce is != session nonce
+			// carol has discontinuous nonce (firstNonce=10 != sessionNonce=2),
+			// so a blocked virtual record is created (initialNonce.HasValue=false)
 			"carol": {
 				firstNonce: core.OptionalUint64{
 					Value:    10,
@@ -185,6 +187,17 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 					consumedBalance: big.NewInt(6),
 				},
 			},
+			// carol gets a blocked virtual record: nonce not set, but consumed balance preserved
+			"carol": {
+				initialNonce: core.OptionalUint64{
+					Value:    0,
+					HasValue: false,
+				},
+				virtualBalance: &virtualAccountBalance{
+					initialBalance:  big.NewInt(2),
+					consumedBalance: big.NewInt(2),
+				},
+			},
 		}
 
 		gabc.updateOnAddedBlock(trackedBlocks[0])
@@ -198,7 +211,7 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 
 	t.Run("should return error from selection session", func(t *testing.T) {
 		var expectedErr = errors.New("expected err")
-		sessionMock := txcachemocks.SelectionSessionMock{
+		sessionMock := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, big.NewInt(0), true, expectedErr
 			},
@@ -272,5 +285,72 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 		computer := newVirtualSessionComputer(&sessionMock)
 		_, err := computer.createVirtualSelectionSession(gabc.getGlobalBreadcrumbs())
 		require.Equal(t, expectedErr, err)
+	})
+}
+
+func Test_createBlockedVirtualRecord(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should create blocked record with unset nonce", func(t *testing.T) {
+		t.Parallel()
+
+		address := "alice"
+		accountBalance := big.NewInt(100)
+		globalBreadcrumb := &globalAccountBreadcrumb{
+			firstNonce: core.OptionalUint64{
+				Value:    52,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    55,
+				HasValue: true,
+			},
+			consumedBalance: big.NewInt(30),
+		}
+
+		computer := newVirtualSessionComputer(nil)
+		err := computer.createBlockedVirtualRecord(address, accountBalance, globalBreadcrumb)
+		require.Nil(t, err)
+
+		record, ok := computer.virtualAccountsByAddress[address]
+		require.True(t, ok)
+
+		// Nonce should NOT be set (blocked)
+		require.False(t, record.initialNonce.HasValue)
+
+		// getInitialNonce should return error
+		_, err = record.getInitialNonce()
+		require.Equal(t, errNonceNotSet, err)
+
+		// Balance should be preserved
+		require.Equal(t, big.NewInt(100), record.getInitialBalance())
+		require.Equal(t, big.NewInt(30), record.getConsumedBalance())
+	})
+
+	t.Run("should not overwrite existing record", func(t *testing.T) {
+		t.Parallel()
+
+		address := "alice"
+		accountBalance := big.NewInt(100)
+		globalBreadcrumb := &globalAccountBreadcrumb{
+			firstNonce:      core.OptionalUint64{Value: 52, HasValue: true},
+			lastNonce:       core.OptionalUint64{Value: 55, HasValue: true},
+			consumedBalance: big.NewInt(30),
+		}
+
+		computer := newVirtualSessionComputer(nil)
+
+		// Add an existing record first
+		existingRecord, err := newVirtualAccountRecord(core.OptionalUint64{Value: 10, HasValue: true}, big.NewInt(50))
+		require.Nil(t, err)
+		computer.virtualAccountsByAddress[address] = existingRecord
+
+		// Try to create a blocked record - should not overwrite
+		err = computer.createBlockedVirtualRecord(address, accountBalance, globalBreadcrumb)
+		require.Nil(t, err)
+
+		record := computer.virtualAccountsByAddress[address]
+		require.True(t, record.initialNonce.HasValue)
+		require.Equal(t, uint64(10), record.initialNonce.Value)
 	})
 }

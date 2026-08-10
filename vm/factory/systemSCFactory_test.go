@@ -66,6 +66,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 				MinStepValue:                         "10",
 				MinStakeValue:                        "1",
 				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                1,
 				MaximumPercentageToBleed:             1,
 				BleedPercentagePerRound:              1,

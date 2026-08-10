@@ -12,12 +12,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/update"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const hardforkTriggerString = "hardfork trigger"
@@ -153,6 +154,14 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	return t, nil
 }
 
+func (t *trigger) getHardforkGracePeriod() int64 {
+	if t.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return int64(hardforkGracePeriod.Milliseconds())
+	}
+
+	return int64(hardforkGracePeriod.Seconds())
+}
+
 func (t *trigger) getCurrentUnixTime() int64 {
 	if t.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
 		return time.Now().UnixMilli()
@@ -226,7 +235,7 @@ func (t *trigger) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 		return fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
 
-	shouldTrigger, err := t.computeAndSetTrigger(epoch, nil, withEarlyEndOfEpoch, round) //original payload is nil because this node is the originator
+	shouldTrigger, err := t.computeAndSetTrigger(epoch, nil, withEarlyEndOfEpoch, round) // original payload is nil because this node is the originator
 	if err != nil {
 		return err
 	}
@@ -248,7 +257,7 @@ func (t *trigger) computeHardforkRound(withEarlyEndOfEpoch bool) uint64 {
 
 	currentRound := t.roundHandler.Index()
 	if currentRound < 0 {
-		//do not overflow on uint64 when current round is negative
+		// do not overflow on uint64 when current round is negative
 		return deltaRoundsForForcedEpoch
 	}
 
@@ -385,17 +394,18 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 	}
 
 	currentTimeStamp := t.getTimestampHandler()
-	if timestamp+int64(hardforkGracePeriod.Seconds()) < currentTimeStamp {
+	if timestamp+t.getHardforkGracePeriod() < currentTimeStamp {
 		return true, fmt.Errorf("%w message timestamp out of grace period message", update.ErrIncorrectHardforkMessage)
 	}
 
-	epoch, err := t.getIntFromArgument(string(arguments[1]))
+	epochUint64, err := strconv.ParseUint(string(arguments[1]), 10, 32)
 	if err != nil {
 		return true, err
 	}
-	if epoch < minimumEpochForHarfork {
+	if epochUint64 < minimumEpochForHarfork {
 		return true, fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
+	epoch := uint32(epochUint64)
 
 	earlyEndOfEpochRound := disabledRoundForForceEpochStart
 	withEarlyEndOfEpoch := false
@@ -407,12 +417,12 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		}
 	}
 
-	currentEpoch := int64(t.epochProvider.MetaEpoch())
-	if currentEpoch-epoch > epochGracePeriod {
+	currentEpoch := t.epochProvider.MetaEpoch()
+	if currentEpoch > epoch && currentEpoch-epoch > epochGracePeriod {
 		return true, fmt.Errorf("%w epoch out of grace period", update.ErrIncorrectHardforkMessage)
 	}
 
-	shouldTrigger, err := t.computeAndSetTrigger(uint32(epoch), originalPayload, withEarlyEndOfEpoch, earlyEndOfEpochRound)
+	shouldTrigger, err := t.computeAndSetTrigger(epoch, originalPayload, withEarlyEndOfEpoch, earlyEndOfEpochRound)
 	if err != nil {
 		log.Debug("received trigger", "status", err)
 		return true, nil

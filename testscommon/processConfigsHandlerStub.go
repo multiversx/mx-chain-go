@@ -1,9 +1,13 @@
 package testscommon
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 )
 
 // GetDefaultProcessConfigsHandler -
@@ -16,12 +20,22 @@ func GetDefaultProcessConfigsHandler() common.ProcessConfigsHandler {
 	}},
 		[]config.ProcessConfigByRound{
 			{
-				EnableRound:                        0,
-				MaxRoundsWithoutNewBlockReceived:   10,
-				MaxRoundsWithoutCommittedBlock:     10,
-				RoundModulusTriggerWhenSyncIsStuck: 20,
+				EnableRound:                            0,
+				MaxRoundsWithoutNewBlockReceived:       10,
+				MaxRoundsWithoutCommittedBlock:         10,
+				RoundModulusTriggerWhenSyncIsStuck:     20,
+				MaxSyncWithErrorsAllowed:               10,
+				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+				MaxRoundsToKeepUnprocessedTransactions: 50,
+				NumFloodingRoundsSlowReacting:          20,
+				NumFloodingRoundsFastReacting:          30,
+				NumFloodingRoundsOutOfSpecs:            40,
+				MaxConsecutiveRoundsOfRatingDecrease:   600,
+				MaxBlockProcessingTimeMs:               1000,
+				NumHeadersToRequestInAdvance:           10,
 			},
 		},
+		&epochNotifier.RoundNotifierStub{},
 	)
 
 	return processConfigsHandler
@@ -35,6 +49,12 @@ type ProcessConfigsHandlerStub struct {
 	GetMaxRoundsWithoutNewBlockReceivedByRoundCalled  func(round uint64) uint32
 	GetMaxRoundsWithoutCommittedBlockCalled           func(round uint64) uint32
 	GetRoundModulusTriggerWhenSyncIsStuckCalled       func(round uint64) uint32
+	GetMaxSyncWithErrorsAllowedCalled                 func(round uint64) uint32
+	GetMaxRoundsToKeepUnprocessedTransactionsCalled   func(round uint64) uint64
+	GetMaxRoundsToKeepUnprocessedMiniBlocksCalled     func(round uint64) uint64
+	GetValueCalled                                    func(variable dto.ConfigVariable) uint64
+	GetMaxBlockProcessingTimeCalled                   func(round uint64) time.Duration
+	GetNumHeadersToRequestInAdvanceCalled             func(round uint64) uint64
 }
 
 // GetMaxMetaNoncesBehindByEpoch -
@@ -89,6 +109,59 @@ func (p *ProcessConfigsHandlerStub) GetRoundModulusTriggerWhenSyncIsStuck(round 
 	}
 
 	return 0
+}
+
+// GetMaxSyncWithErrorsAllowed -
+func (p *ProcessConfigsHandlerStub) GetMaxSyncWithErrorsAllowed(round uint64) uint32 {
+	if p.GetMaxSyncWithErrorsAllowedCalled != nil {
+		return p.GetMaxSyncWithErrorsAllowedCalled(round)
+	}
+
+	return 0
+}
+
+// GetMaxRoundsToKeepUnprocessedTransactions -
+func (p *ProcessConfigsHandlerStub) GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64 {
+	if p.GetMaxRoundsToKeepUnprocessedTransactionsCalled != nil {
+		return p.GetMaxRoundsToKeepUnprocessedTransactionsCalled(round)
+	}
+	return 0
+}
+
+// GetMaxRoundsToKeepUnprocessedMiniBlocks -
+func (p *ProcessConfigsHandlerStub) GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64 {
+	if p.GetMaxRoundsToKeepUnprocessedMiniBlocksCalled != nil {
+		return p.GetMaxRoundsToKeepUnprocessedMiniBlocksCalled(round)
+	}
+
+	return 0
+}
+
+// GetValue -
+func (p *ProcessConfigsHandlerStub) GetValue(variable dto.ConfigVariable) uint64 {
+	if p.GetValueCalled != nil {
+		return p.GetValueCalled(variable)
+	}
+
+	return 1
+}
+
+// GetMaxBlockProcessingTime -
+func (p *ProcessConfigsHandlerStub) GetMaxBlockProcessingTime(round uint64) time.Duration {
+	if p.GetMaxBlockProcessingTimeCalled != nil {
+		return p.GetMaxBlockProcessingTimeCalled(round)
+	}
+
+	return time.Millisecond
+}
+
+// GetNumHeadersToRequestInAdvance -
+func (p *ProcessConfigsHandlerStub) GetNumHeadersToRequestInAdvance(round uint64) uint64 {
+	if p.GetNumHeadersToRequestInAdvanceCalled != nil {
+		return p.GetNumHeadersToRequestInAdvanceCalled(round)
+	}
+
+	return 10
 }
 
 // IsInterfaceNil -

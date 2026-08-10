@@ -8,10 +8,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -34,14 +34,15 @@ type epochStartMetaBlockProcessor struct {
 	hasher              hashing.Hasher
 	enableEpochsHandler common.EnableEpochsHandler
 	proofsPool          ProofsPool
+	headersPool         HeadersPool
 
 	mutReceivedMetaBlocks  sync.RWMutex
-	mapReceivedMetaBlocks  map[string]data.MetaHeaderHandler
+	mapReceivedMetaBlocks  map[string]coreData.MetaHeaderHandler
 	mapMetaBlocksFromPeers map[string][]core.PeerID
 
 	chanMetaBlockProofReached         chan bool
 	chanMetaBlockReached              chan bool
-	metaBlock                         data.MetaHeaderHandler
+	metaBlock                         coreData.MetaHeaderHandler
 	metaBlockHash                     string
 	peerCountTarget                   int
 	minNumConnectedPeers              int
@@ -59,6 +60,7 @@ func NewEpochStartMetaBlockProcessor(
 	minNumOfPeersToConsiderBlockValidConfig int,
 	enableEpochsHandler common.EnableEpochsHandler,
 	proofsPool ProofsPool,
+	headersPool HeadersPool,
 ) (*epochStartMetaBlockProcessor, error) {
 	if check.IfNil(messenger) {
 		return nil, epochStart.ErrNilMessenger
@@ -87,6 +89,9 @@ func NewEpochStartMetaBlockProcessor(
 	if check.IfNil(proofsPool) {
 		return nil, epochStart.ErrNilProofsPool
 	}
+	if check.IfNil(headersPool) {
+		return nil, epochStart.ErrNilHeadersDataPool
+	}
 
 	processor := &epochStartMetaBlockProcessor{
 		messenger:                         messenger,
@@ -97,11 +102,12 @@ func NewEpochStartMetaBlockProcessor(
 		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValidConfig,
 		enableEpochsHandler:               enableEpochsHandler,
 		mutReceivedMetaBlocks:             sync.RWMutex{},
-		mapReceivedMetaBlocks:             make(map[string]data.MetaHeaderHandler),
+		mapReceivedMetaBlocks:             make(map[string]coreData.MetaHeaderHandler),
 		mapMetaBlocksFromPeers:            make(map[string][]core.PeerID),
 		chanMetaBlockProofReached:         make(chan bool, 1),
 		chanMetaBlockReached:              make(chan bool, 1),
 		proofsPool:                        proofsPool,
+		headersPool:                       headersPool,
 	}
 
 	proofsPool.RegisterHandler(processor.receivedProof)
@@ -137,7 +143,7 @@ func (e *epochStartMetaBlockProcessor) waitForEnoughNumConnectedPeers(messenger 
 // Save will handle the consensus mechanism for the fetched metablocks
 // All errors are just logged because if this function returns an error, the processing is finished. This way, we ignore
 // wrong received data and wait for relevant intercepted data
-func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) (dataSaved bool, err error) {
+func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string, _ p2p.BroadcastMethod) (dataSaved bool, err error) {
 	if check.IfNil(data) {
 		log.Debug("epoch bootstrapper: nil intercepted data")
 		return false, nil
@@ -150,7 +156,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return false, nil
 	}
 
-	metaBlock, ok := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	metaBlock, ok := interceptedHdr.HeaderHandler().(coreData.MetaHeaderHandler)
 	if !ok {
 		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion,
 			"header", interceptedHdr.HeaderHandler())
@@ -185,7 +191,7 @@ func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer core.Peer
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
-func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error) {
+func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (coreData.MetaHeaderHandler, error) {
 	originalIntra, originalCross, err := e.requestHandler.GetNumPeersToQuery(factory.MetachainBlocksTopic)
 	if err != nil {
 		return nil, err
@@ -207,6 +213,8 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 
 	e.requestHandler.SetEpoch(metaBlock.GetEpoch())
 	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.GetEpoch()) {
+		e.headersPool.AddHeader([]byte(metaBlockHash), metaBlock)
+
 		err = e.waitForMetaBlockProof(ctx, []byte(metaBlockHash))
 		if err != nil {
 			return nil, err
@@ -216,7 +224,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 	return metaBlock, nil
 }
 
-func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (data.MetaHeaderHandler, string, error) {
+func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (coreData.MetaHeaderHandler, string, error) {
 	err := e.requestMetaBlock()
 	if err != nil {
 		return nil, "", err
@@ -275,7 +283,7 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlockProof(
 	}
 }
 
-func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (data.MetaHeaderHandler, string, error) {
+func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (coreData.MetaHeaderHandler, string, error) {
 	e.mutReceivedMetaBlocks.RLock()
 	defer e.mutReceivedMetaBlocks.RUnlock()
 
@@ -320,7 +328,7 @@ func (e *epochStartMetaBlockProcessor) requestProofForMetaBlock(metablockHash []
 	return nil
 }
 
-func (e *epochStartMetaBlockProcessor) receivedProof(proof data.HeaderProofHandler) {
+func (e *epochStartMetaBlockProcessor) receivedProof(proof coreData.HeaderProofHandler) {
 	startOfEpochMetaBlock, hash, err := e.getMostReceivedMetaBlock()
 	if err != nil {
 		return

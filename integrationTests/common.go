@@ -1,11 +1,14 @@
 package integrationTests
 
 import (
+	"strconv"
+
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ProcessSCOutputAccounts will save account changes in accounts db from vmOutput
@@ -38,8 +41,8 @@ func ProcessSCOutputAccounts(vmOutput *vmcommon.VMOutput, accountsDB state.Accou
 	return nil
 }
 
-// GetSupernovaRoundsConfig -
-func GetSupernovaRoundsConfig() config.RoundConfig {
+// GetSupernovaRoundsConfigActivated -
+func GetSupernovaRoundsConfigActivated() config.RoundConfig {
 	return config.RoundConfig{
 		RoundActivations: map[string]config.ActivationRoundByName{
 			"DisableAsyncCallV1": {
@@ -47,6 +50,32 @@ func GetSupernovaRoundsConfig() config.RoundConfig {
 			},
 			"SupernovaEnableRound": {
 				Round: "0",
+			},
+		},
+	}
+}
+
+func GetSupernovaRoundsConfigDeactivated() config.RoundConfig {
+	return config.RoundConfig{
+		RoundActivations: map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
+		},
+	}
+}
+
+func GetSupernovaRoundConfigActivatedAt(round int64) config.RoundConfig {
+	return config.RoundConfig{
+		RoundActivations: map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: strconv.Itoa(int(round)),
 			},
 		},
 	}

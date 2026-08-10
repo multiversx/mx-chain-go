@@ -24,9 +24,13 @@ type Presenter interface {
 	GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent() uint64
 	GetNumTrackedBlocks() uint64
 	GetNumTrackedAccounts() uint64
+	GetRejectedExecutionResults() uint64
+	GetDeltaHeaderNonceLastExecutionResultNonce() uint64
 	GetIsSyncing() uint64
 	GetTxPoolLoad() uint64
 	GetNonce() uint64
+	GetProposedNonce() uint64
+	GetLastExecutedNonce() uint64
 	GetProbableHighestNonce() uint64
 	GetSynchronizedRound() uint64
 	GetRoundTime() uint64

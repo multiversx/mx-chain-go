@@ -1,11 +1,13 @@
 module github.com/multiversx/mx-chain-go
 
-go 1.23
+go 1.23.0
+
+toolchain go1.23.9
 
 require (
 	github.com/beevik/ntp v1.3.0
 	github.com/davecgh/go-spew v1.1.1
-	github.com/gin-contrib/cors v1.4.0
+	github.com/gin-contrib/cors v1.6.0
 	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/gizak/termui/v3 v3.1.0
@@ -16,15 +18,15 @@ require (
 	github.com/libp2p/go-libp2p v0.38.2
 	github.com/libp2p/go-libp2p-pubsub v0.13.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.3.0
-	github.com/multiversx/mx-chain-core-go v1.4.2-0.20251022090220-a99e14e45706
-	github.com/multiversx/mx-chain-crypto-go v1.3.0
-	github.com/multiversx/mx-chain-es-indexer-go v1.9.3-0.20251021150757-bd6aa66a0a90
+	github.com/multiversx/mx-chain-communication-go v1.3.3-0.20260608072730-982186a1ad78
+	github.com/multiversx/mx-chain-core-go v1.5.1-0.20260608073155-f1f550c8a612
+	github.com/multiversx/mx-chain-crypto-go v1.3.1
+	github.com/multiversx/mx-chain-es-indexer-go v1.10.3-0.20260608081825-40e586306036
 	github.com/multiversx/mx-chain-logger-go v1.1.0
 	github.com/multiversx/mx-chain-scenario-go v1.6.0
-	github.com/multiversx/mx-chain-storage-go v1.1.0
-	github.com/multiversx/mx-chain-vm-common-go v1.6.0
-	github.com/multiversx/mx-chain-vm-go v1.5.43
+	github.com/multiversx/mx-chain-storage-go v1.1.2-0.20260608080818-1fde35395146
+	github.com/multiversx/mx-chain-vm-common-go v1.6.7
+	github.com/multiversx/mx-chain-vm-go v1.6.1-0.20260709131117-b8afa5c1796f
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.69
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.70
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.99
@@ -34,8 +36,9 @@ require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli v1.22.16
-	golang.org/x/crypto v0.32.0
+	golang.org/x/crypto v0.35.0
 	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c
+	golang.org/x/sync v0.11.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
@@ -196,9 +199,8 @@ require (
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/tools v0.29.0 // indirect
 	gonum.org/v1/gonum v0.15.1 // indirect
 	google.golang.org/protobuf v1.36.4 // indirect

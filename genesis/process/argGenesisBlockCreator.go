@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -52,6 +53,7 @@ type ArgsGenesisBlockCreator struct {
 	Data                    dataComponentsHandler
 	Core                    coreComponentsHandler
 	Accounts                state.AccountsAdapter
+	AccountsProposal        state.AccountsAdapter
 	ValidatorAccounts       state.AccountsAdapter
 	InitialNodesSetup       genesis.InitialNodesHandler
 	Economics               process.EconomicsDataHandler
@@ -66,6 +68,7 @@ type ArgsGenesisBlockCreator struct {
 	SystemSCConfig          config.SystemSmartContractsConfig
 	RoundConfig             config.RoundConfig
 	EpochConfig             config.EpochConfig
+	FeeSettings             config.FeeSettings
 	HeaderVersionConfigs    config.VersionsConfig
 	TxCacheSelectionConfig  config.TxCacheSelectionConfig
 	WorkingDir              string

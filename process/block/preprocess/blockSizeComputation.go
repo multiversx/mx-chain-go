@@ -18,8 +18,8 @@ type blockSizeComputation struct {
 	miniblockSize uint32
 	txSize        uint32
 
-	numMiniBlocks      uint32
-	numTxs             uint32
+	numMiniBlocks      int32
+	numTxs             int32
 	blockSizeThrottler BlockSizeThrottler
 	maxSize            uint32
 }
@@ -30,7 +30,6 @@ func NewBlockSizeComputation(
 	blockSizeThrottler BlockSizeThrottler,
 	maxSize uint32,
 ) (*blockSizeComputation, error) {
-
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
@@ -121,30 +120,61 @@ func (bsc *blockSizeComputation) generateDummyMiniblock(numTxHashes int) *block.
 
 // Init reset the stored values of accumulated numTxs and numMiniBlocks
 func (bsc *blockSizeComputation) Init() {
-	atomic.StoreUint32(&bsc.numTxs, 0)
-	atomic.StoreUint32(&bsc.numMiniBlocks, 0)
+	atomic.StoreInt32(&bsc.numTxs, 0)
+	atomic.StoreInt32(&bsc.numMiniBlocks, 0)
 }
 
 // AddNumMiniBlocks adds the provided value to numMiniBlocks in a concurrent safe manner
 func (bsc *blockSizeComputation) AddNumMiniBlocks(numMiniBlocks int) {
-	atomic.AddUint32(&bsc.numMiniBlocks, uint32(numMiniBlocks))
+	atomic.AddInt32(&bsc.numMiniBlocks, int32(numMiniBlocks))
+}
+
+// DecNumMiniBlocks decrements the provided value to numMiniBlocks in a concurrent safe manner
+func (bsc *blockSizeComputation) DecNumMiniBlocks(numMiniBlocks int) {
+	bsc.decCounter(&bsc.numMiniBlocks, numMiniBlocks)
+}
+
+func (bsc *blockSizeComputation) decCounter(cntAddr *int32, n int) {
+	if n <= 0 {
+		return
+	}
+
+	currentCnt := atomic.LoadInt32(cntAddr)
+	if currentCnt <= 0 {
+		return
+	}
+
+	newCnt := currentCnt - int32(n)
+	if newCnt < 0 {
+		newCnt = 0
+	}
+
+	atomic.CompareAndSwapInt32(cntAddr, currentCnt, newCnt)
 }
 
 // AddNumTxs adds the provided value to numTxs in a concurrent safe manner
 func (bsc *blockSizeComputation) AddNumTxs(numTxs int) {
-	atomic.AddUint32(&bsc.numTxs, uint32(numTxs))
+	atomic.AddInt32(&bsc.numTxs, int32(numTxs))
+}
+
+// DecNumTxs decrements the provided value to numTxs in a concurrent safe manner
+func (bsc *blockSizeComputation) DecNumTxs(numTxs int) {
+	bsc.decCounter(&bsc.numTxs, numTxs)
 }
 
 // IsMaxBlockSizeReached returns true if the provided number of new miniblocks and txs go over
 // the maximum allowed throttled block size
 func (bsc *blockSizeComputation) IsMaxBlockSizeReached(numNewMiniBlocks int, numNewTxs int) bool {
-	totalMiniBlocks := atomic.LoadUint32(&bsc.numMiniBlocks) + uint32(numNewMiniBlocks)
-	totalTxs := atomic.LoadUint32(&bsc.numTxs) + uint32(numNewTxs)
+	totalMiniBlocks := uint32(atomic.LoadInt32(&bsc.numMiniBlocks)) + uint32(numNewMiniBlocks)
+	totalTxs := uint32(atomic.LoadInt32(&bsc.numTxs)) + uint32(numNewTxs)
 
 	return bsc.isMaxBlockSizeReached(totalMiniBlocks, totalTxs)
 }
 
-func (bsc *blockSizeComputation) isMaxBlockSizeReached(totalMiniBlocks uint32, totalTxs uint32) bool {
+func (bsc *blockSizeComputation) isMaxBlockSizeReached(
+	totalMiniBlocks uint32,
+	totalTxs uint32,
+) bool {
 	miniblocksSize := bsc.miniblockSize * totalMiniBlocks
 	txsSize := bsc.txSize * totalTxs
 
@@ -154,8 +184,8 @@ func (bsc *blockSizeComputation) isMaxBlockSizeReached(totalMiniBlocks uint32, t
 // IsMaxBlockSizeWithoutThrottleReached returns true if the provided number of new miniblocks and txs go over
 // the maximum allowed not throttled block size
 func (bsc *blockSizeComputation) IsMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks int, numNewTxs int) bool {
-	totalMiniBlocks := atomic.LoadUint32(&bsc.numMiniBlocks) + uint32(numNewMiniBlocks)
-	totalTxs := atomic.LoadUint32(&bsc.numTxs) + uint32(numNewTxs)
+	totalMiniBlocks := uint32(atomic.LoadInt32(&bsc.numMiniBlocks)) + uint32(numNewMiniBlocks)
+	totalTxs := uint32(atomic.LoadInt32(&bsc.numTxs)) + uint32(numNewTxs)
 
 	return bsc.isMaxBlockSizeWithoutThrottleReached(totalMiniBlocks, totalTxs)
 }

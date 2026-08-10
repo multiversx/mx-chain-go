@@ -1,6 +1,8 @@
 package metachain
 
-import "github.com/multiversx/mx-chain-go/process"
+import (
+	"github.com/multiversx/mx-chain-go/process"
+)
 
 // SetInCache -
 func (sdp *stakingDataProvider) SetInCache(key []byte, ownerData *ownerStats) {

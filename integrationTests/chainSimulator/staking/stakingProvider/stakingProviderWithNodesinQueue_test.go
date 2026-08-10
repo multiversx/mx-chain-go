@@ -46,6 +46,7 @@ func TestStakingProviderWithNodes(t *testing.T) {
 func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4ActivationEpoch uint32) {
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    3,

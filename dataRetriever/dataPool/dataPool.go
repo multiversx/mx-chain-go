@@ -12,21 +12,24 @@ var _ dataRetriever.PoolsHolder = (*dataPool)(nil)
 var log = logger.GetOrCreate("dataRetriever/dataPool")
 
 type dataPool struct {
-	transactions           dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
-	headers                dataRetriever.HeadersPool
-	miniBlocks             storage.Cacher
-	peerChangesBlocks      storage.Cacher
-	trieNodes              storage.Cacher
-	trieNodesChunks        storage.Cacher
-	currBlockTxs           dataRetriever.TransactionCacher
-	currEpochValidatorInfo dataRetriever.ValidatorInfoCacher
-	smartContracts         storage.Cacher
-	peerAuthentications    storage.Cacher
-	heartbeats             storage.Cacher
-	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
-	proofs                 dataRetriever.ProofsPool
+	transactions            dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions    dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions      dataRetriever.ShardedDataCacherNotifier
+	headers                 dataRetriever.HeadersPool
+	miniBlocks              storage.Cacher
+	peerChangesBlocks       storage.Cacher
+	trieNodes               storage.Cacher
+	trieNodesChunks         storage.Cacher
+	currBlockTxs            dataRetriever.TransactionCacher
+	currEpochValidatorInfo  dataRetriever.ValidatorInfoCacher
+	smartContracts          storage.Cacher
+	peerAuthentications     storage.Cacher
+	heartbeats              storage.Cacher
+	validatorsInfo          dataRetriever.ShardedDataCacherNotifier
+	proofs                  dataRetriever.ProofsPool
+	executedMiniBlocks      storage.Cacher
+	postProcessTransactions storage.Cacher
+	directSentTransactions  storage.Cacher
 }
 
 // DataPoolArgs represents the data pool's constructor structure
@@ -46,6 +49,9 @@ type DataPoolArgs struct {
 	Heartbeats                storage.Cacher
 	ValidatorsInfo            dataRetriever.ShardedDataCacherNotifier
 	Proofs                    dataRetriever.ProofsPool
+	ExecutedMiniBlocks        storage.Cacher
+	PostProcessTransactions   storage.Cacher
+	DirectSentTransactions    storage.Cacher
 }
 
 // NewDataPool creates a data pools holder object
@@ -95,23 +101,35 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	if check.IfNil(args.Proofs) {
 		return nil, dataRetriever.ErrNilProofsPool
 	}
+	if check.IfNil(args.ExecutedMiniBlocks) {
+		return nil, dataRetriever.ErrNilExecutedMiniBlocksCache
+	}
+	if check.IfNil(args.PostProcessTransactions) {
+		return nil, dataRetriever.ErrNilPostProcessTransactionsCache
+	}
+	if check.IfNil(args.DirectSentTransactions) {
+		return nil, dataRetriever.ErrNilDirectSentTransactionsCache
+	}
 
 	return &dataPool{
-		transactions:           args.Transactions,
-		unsignedTransactions:   args.UnsignedTransactions,
-		rewardTransactions:     args.RewardTransactions,
-		headers:                args.Headers,
-		miniBlocks:             args.MiniBlocks,
-		peerChangesBlocks:      args.PeerChangesBlocks,
-		trieNodes:              args.TrieNodes,
-		trieNodesChunks:        args.TrieNodesChunks,
-		currBlockTxs:           args.CurrentBlockTransactions,
-		currEpochValidatorInfo: args.CurrentEpochValidatorInfo,
-		smartContracts:         args.SmartContracts,
-		peerAuthentications:    args.PeerAuthentications,
-		heartbeats:             args.Heartbeats,
-		validatorsInfo:         args.ValidatorsInfo,
-		proofs:                 args.Proofs,
+		transactions:            args.Transactions,
+		unsignedTransactions:    args.UnsignedTransactions,
+		rewardTransactions:      args.RewardTransactions,
+		headers:                 args.Headers,
+		miniBlocks:              args.MiniBlocks,
+		peerChangesBlocks:       args.PeerChangesBlocks,
+		trieNodes:               args.TrieNodes,
+		trieNodesChunks:         args.TrieNodesChunks,
+		currBlockTxs:            args.CurrentBlockTransactions,
+		currEpochValidatorInfo:  args.CurrentEpochValidatorInfo,
+		smartContracts:          args.SmartContracts,
+		peerAuthentications:     args.PeerAuthentications,
+		heartbeats:              args.Heartbeats,
+		validatorsInfo:          args.ValidatorsInfo,
+		proofs:                  args.Proofs,
+		executedMiniBlocks:      args.ExecutedMiniBlocks,
+		postProcessTransactions: args.PostProcessTransactions,
+		directSentTransactions:  args.DirectSentTransactions,
 	}, nil
 }
 
@@ -190,6 +208,21 @@ func (dp *dataPool) Proofs() dataRetriever.ProofsPool {
 	return dp.proofs
 }
 
+// ExecutedMiniBlocks returns the holder for executed miniBlocks
+func (dp *dataPool) ExecutedMiniBlocks() storage.Cacher {
+	return dp.executedMiniBlocks
+}
+
+// DirectSentTransactions returns the holder for direct-sent transactions
+func (dp *dataPool) DirectSentTransactions() storage.Cacher {
+	return dp.directSentTransactions
+}
+
+// PostProcessTransactions returns the holder for post-process transactions
+func (dp *dataPool) PostProcessTransactions() storage.Cacher {
+	return dp.postProcessTransactions
+}
+
 // Close closes all the components
 func (dp *dataPool) Close() error {
 	var lastError error
@@ -207,6 +240,15 @@ func (dp *dataPool) Close() error {
 		err := dp.peerAuthentications.Close()
 		if err != nil {
 			log.Error("failed to close peer authentications data pool", "error", err.Error())
+			lastError = err
+		}
+	}
+
+	if !check.IfNil(dp.directSentTransactions) {
+		log.Debug("closing direct sent transactions pool....")
+		err := dp.directSentTransactions.Close()
+		if err != nil {
+			log.Error("failed to close direct sent transactions pool", "error", err.Error())
 			lastError = err
 		}
 	}

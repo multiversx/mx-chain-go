@@ -10,7 +10,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 )
 
 const oneMilion = 1000000
@@ -23,8 +24,15 @@ const addressLength = 32
 var oneQuintillionBig = big.NewInt(oneQuintillion)
 
 // The GitHub Actions runners are (extremely) slow. The variable is expressed in milliseconds.
-const selectionLoopMaximumDuration = 30_000
 const cleanupLoopMaximumDuration = 30_000
+
+func haveTimeTrueForSelection() bool {
+	return true
+}
+
+func haveTimeFalseForSelection() bool {
+	return false
+}
 
 var randomHashes = newRandomData(math.MaxUint16, hashLength)
 var randomAddresses = newRandomData(math.MaxUint16, addressLength)
@@ -110,9 +118,8 @@ func (listForSender *txListForSender) getTxsHashes() [][]byte {
 
 	result := make([][]byte, 0, listForSender.countTx())
 
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(*WrappedTransaction)
-		result = append(result, value.TxHash)
+	for _, tx := range listForSender.list.items {
+		result = append(result, tx.TxHash)
 	}
 
 	return result
@@ -143,7 +150,7 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 		for nonce := nTransactionsPerSender - 1; nonce >= 0; nonce-- {
 			transactionHash := createFakeTxHash(sender, nonce)
 			gasPrice := oneBillion + rand.Intn(3*oneBillion)
-			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice))
+			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice)).withValue(big.NewInt(0))
 
 			cache.AddTx(transaction)
 		}
@@ -152,7 +159,7 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 
 func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransactionsPerSender int) []bunchOfTransactions {
 	bunches := make([]bunchOfTransactions, 0, nSenders)
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
 		bunch := make(bunchOfTransactions, 0, nTransactionsPerSender)
@@ -161,7 +168,7 @@ func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransacti
 		for nonce := 0; nonce < nTransactionsPerSender; nonce++ {
 			transactionHash := createFakeTxHash(sender, nonce)
 			gasPrice := oneBillion + rand.Intn(3*oneBillion)
-			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice))
+			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice)).withValue(big.NewInt(0))
 			transaction.precomputeFields(host)
 
 			bunch = append(bunch, transaction)
@@ -185,6 +192,24 @@ func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {
 		Tx:     tx,
 		TxHash: hash,
 		Size:   int64(estimatedSizeOfBoundedTxFields),
+	}
+}
+
+func createRelayedTx(hash []byte, sender string, relayer string, nonce uint64) *WrappedTransaction {
+	tx := &transaction.Transaction{
+		SndAddr:  []byte(sender),
+		Nonce:    nonce,
+		GasLimit: 50000,
+		GasPrice: oneBillion,
+		Value:    big.NewInt(0),
+	}
+
+	return &WrappedTransaction{
+		Tx:       tx,
+		TxHash:   hash,
+		Size:     int64(estimatedSizeOfBoundedTxFields),
+		FeePayer: []byte(relayer),
+		Fee:      big.NewInt(0),
 	}
 }
 

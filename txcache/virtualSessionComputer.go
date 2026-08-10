@@ -53,11 +53,16 @@ func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 		}
 
 		if !globalBreadcrumb.isContinuousWithSessionNonce(accountNonce) {
-			log.Debug("virtualSessionComputer.handleGlobalAccountBreadcrumbs global breadcrumb not continuous with session nonce",
+			log.Debug("virtualSessionComputer.handleGlobalAccountBreadcrumbs global breadcrumb not continuous with session nonce, creating blocked record",
 				"address", address,
 				"accountNonce", accountNonce,
 				"breadcrumb nonce", globalBreadcrumb.firstNonce,
 			)
+
+			err = computer.createBlockedVirtualRecord(address, accountBalance, globalBreadcrumb)
+			if err != nil {
+				return err
+			}
 			continue
 		}
 
@@ -107,6 +112,40 @@ func (computer *virtualSessionComputer) fromGlobalBreadcrumbToVirtualRecord(
 	record, err := newVirtualAccountRecord(initialNonce, initialBalance)
 	if err != nil {
 		log.Debug("virtualSessionComputer.fromGlobalBreadcrumbToVirtualRecord",
+			"err", err,
+			"address", address,
+			"accountBalance", accountBalance,
+		)
+		return err
+	}
+
+	record.accumulateConsumedBalance(globalBreadcrumb.consumedBalance)
+	computer.virtualAccountsByAddress[address] = record
+	return nil
+}
+
+// createBlockedVirtualRecord creates a virtual record with an unset nonce (blocked) for an account
+// whose global breadcrumb is discontinuous with the session nonce.
+// This prevents the selection logic from selecting transactions for this sender,
+// because detectSkippableSender will see errNonceNotSet and skip the sender entirely.
+// The consumed balance from the global breadcrumb is still preserved for correct relayer balance tracking.
+func (computer *virtualSessionComputer) createBlockedVirtualRecord(
+	address string,
+	accountBalance *big.Int,
+	globalBreadcrumb *globalAccountBreadcrumb,
+) error {
+	_, ok := computer.virtualAccountsByAddress[address]
+	if ok {
+		return nil
+	}
+
+	blockedNonce := core.OptionalUint64{
+		HasValue: false,
+	}
+
+	record, err := newVirtualAccountRecord(blockedNonce, accountBalance)
+	if err != nil {
+		log.Debug("virtualSessionComputer.createBlockedVirtualRecord",
 			"err", err,
 			"address", address,
 			"accountBalance", accountBalance,

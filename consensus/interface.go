@@ -23,6 +23,7 @@ type RoundHandler interface {
 	TimeStamp() time.Time
 	TimeDuration() time.Duration
 	RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
+	GetTimeStampForRound(round uint64) uint64
 	IsInterfaceNil() bool
 }
 
@@ -114,6 +115,12 @@ type HeadersPoolSubscriber interface {
 	IsInterfaceNil() bool
 }
 
+// HeadersPoolGetter can retrieve a header by its hash from the headers pool
+type HeadersPoolGetter interface {
+	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+	IsInterfaceNil() bool
+}
+
 // PeerHonestyHandler defines the behaivour of a component able to handle/monitor the peer honesty of nodes which are
 // participating in consensus
 type PeerHonestyHandler interface {
@@ -191,6 +198,7 @@ type SigningHandler interface {
 	AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error)
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte, epoch uint32) error
+	GetPubKeysFromBytes(pubKeysBytes [][]byte) ([]crypto.PublicKey, error)
 	IsInterfaceNil() bool
 }
 

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -73,7 +74,11 @@ func (provider *AccountsEphemeralProvider) GetUserAccount(address []byte) (UserA
 	}
 
 	account, err := provider.getExistingAccountTypedAsUserAccount(address)
-	if err != nil && err != ErrAccNotFound {
+
+	var errAccountNotFoundAtBlock *ErrAccountNotFoundAtBlock
+	isAccountNotFoundError := errors.Is(err, ErrAccNotFound) || errors.As(err, &errAccountNotFoundAtBlock)
+
+	if err != nil && !isAccountNotFoundError {
 		// Unexpected failure (error different from "ErrAccNotFound").
 		// Account won't be cached.
 		return nil, err

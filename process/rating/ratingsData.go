@@ -304,6 +304,10 @@ func (rd *RatingsData) EpochConfirmed(epoch uint32, _ uint64) {
 }
 
 func (rd *RatingsData) getMatchingVersion(epoch uint32) (ratingsStepsData, error) {
+	if rd.currentRatingsStepData.enableEpoch == epoch {
+		return rd.currentRatingsStepData, nil
+	}
+
 	// the config values are sorted in descending order, so the matching version is the first one whose enable epoch is less or equal than the provided epoch
 	for _, ratingsStepConfig := range rd.ratingsStepsConfig {
 		if ratingsStepConfig.enableEpoch <= epoch {
@@ -463,12 +467,40 @@ func (rd *RatingsData) MetaChainRatingsStepHandler() process.RatingsStepHandler 
 	return rd.currentRatingsStepData.metaRatingsStepData
 }
 
+// MetaChainRatingsStepHandlerForEpoch returns the RatingsStepHandler used for the Metachain in a specific epoch
+func (rd *RatingsData) MetaChainRatingsStepHandlerForEpoch(epoch uint32) process.RatingsStepHandler {
+	rd.mutConfiguration.RLock()
+	defer rd.mutConfiguration.RUnlock()
+
+	stepsForEpoch, err := rd.getMatchingVersion(epoch)
+	if err != nil {
+		log.Warn("%w, MetaChainRatingsStepHandlerForEpoch failed to get matching version for epoch %d, returning current one", err, epoch)
+		return rd.currentRatingsStepData.shardRatingsStepData
+	}
+
+	return stepsForEpoch.metaRatingsStepData
+}
+
 // ShardChainRatingsStepHandler returns the RatingsStepHandler used for the ShardChains
 func (rd *RatingsData) ShardChainRatingsStepHandler() process.RatingsStepHandler {
 	rd.mutConfiguration.RLock()
 	defer rd.mutConfiguration.RUnlock()
 
 	return rd.currentRatingsStepData.shardRatingsStepData
+}
+
+// ShardChainRatingsStepHandlerForEpoch returns the RatingsStepHandler used for the ShardChains in a specific epoch
+func (rd *RatingsData) ShardChainRatingsStepHandlerForEpoch(epoch uint32) process.RatingsStepHandler {
+	rd.mutConfiguration.RLock()
+	defer rd.mutConfiguration.RUnlock()
+
+	stepsForEpoch, err := rd.getMatchingVersion(epoch)
+	if err != nil {
+		log.Warn("%w, ShardChainRatingsStepHandlerForEpoch failed to get matching version for epoch %d, returning current one", err, epoch)
+		return rd.currentRatingsStepData.shardRatingsStepData
+	}
+
+	return stepsForEpoch.shardRatingsStepData
 }
 
 // SetStatusHandler sets the provided status handler if not nil

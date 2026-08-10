@@ -252,6 +252,9 @@ func (sm *snapshotsManager) snapshotState(
 		stats.NewSnapshotStarted()
 
 		trieStorageManager.TakeSnapshot("", rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
+
+		// TODO if the leaf was retrieved from epoch db n-2, the data trie should start retrieving from
+		// epoch n-2 and checking only older dbs
 		sm.snapshotUserAccountDataTrie(rootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
 
 		stats.SnapshotFinished()

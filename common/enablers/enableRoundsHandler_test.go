@@ -156,6 +156,19 @@ func TestEnableRoundsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.SupernovaRoundFlag))
 }
 
+func TestEnableRoundsHandler_GetAllEnableRounds(t *testing.T) {
+	t.Parallel()
+
+	cfg := createEnableRoundsConfig()
+	handler, _ := NewEnableRoundsHandler(cfg, &epochNotifier.RoundNotifierStub{})
+	require.NotNil(t, handler)
+
+	result := handler.GetAllEnableRounds()
+	require.Equal(t, 2, len(result))
+	require.Equal(t, uint64(1), result[string(common.DisableAsyncCallV1Flag)])
+	require.Equal(t, uint64(2), result[string(common.SupernovaRoundFlag)])
+}
+
 func TestEnableRoundsHandler_GetActivationRound(t *testing.T) {
 	t.Parallel()
 

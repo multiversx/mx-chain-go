@@ -16,3 +16,16 @@ func CloseKeyValueHolderChan(ch chan core.KeyValueHolder) {
 		close(ch)
 	}
 }
+
+// EmptyUint64Channel will return the number of reads from the channel
+func EmptyUint64Channel(ch chan uint64) int {
+	nrReads := 0
+	for {
+		select {
+		case <-ch:
+			nrReads++
+		default:
+			return nrReads
+		}
+	}
+}

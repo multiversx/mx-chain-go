@@ -3,6 +3,7 @@ package processor
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -31,7 +32,7 @@ func (tnip *TrieNodeInterceptorProcessor) Validate(_ process.InterceptedData, _ 
 }
 
 // Save saves the intercepted trie node in the intercepted nodes cacher
-func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) (bool, error) {
+func (tnip *TrieNodeInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string, _ p2p.BroadcastMethod) (bool, error) {
 	nodeData, ok := data.(interceptedDataSizeHandler)
 	if !ok {
 		return false, process.ErrWrongTypeAssertion

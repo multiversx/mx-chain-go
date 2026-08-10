@@ -92,7 +92,7 @@ func TestInterceptedDataVerifier_checkCachedData(t *testing.T) {
 
 		verifier := defaultInterceptedDataVerifier(defaultSpan)
 
-		verifier.PutInCache(interceptedData, interceptedDataStatus(1)) // not validInterceptedData
+		verifier.PutInCache(interceptedData, interceptedDataStatus(2)) // not validInterceptedData
 
 		err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 		require.Equal(t, process.ErrInvalidInterceptedData, err)
@@ -339,4 +339,52 @@ func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
 		require.Equal(t, process.ErrInvalidInterceptedData, err)
 		require.Equal(t, int64(3), checkValidityCounter.Get())
 	})
+}
+
+func TestInterceptedDataVerifier_ConcurrentCheckValidity(t *testing.T) {
+	t.Parallel()
+
+	verifier := defaultInterceptedDataVerifier(defaultSpan)
+
+	checkValidityCounter := atomic.Counter{}
+	hash := []byte("hash")
+
+	interceptedData := &testscommon.InterceptedDataStub{
+		CheckValidityCalled: func() error {
+			checkValidityCounter.Add(1)
+			// widen the race window
+			time.Sleep(10 * time.Millisecond)
+			return nil
+		},
+		HashCalled: func() []byte {
+			return hash
+		},
+	}
+
+	numConcurrent := 10
+	wg := sync.WaitGroup{}
+
+	// Launch multiple concurrent Verify calls for the same hash
+	for i := 0; i < numConcurrent; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			err := verifier.Verify(interceptedData, "topic_0_1", p2p.Broadcast)
+			require.NoError(t, err)
+		}()
+	}
+
+	wg.Wait()
+
+	require.Equal(t, int64(1), checkValidityCounter.Get(), "CheckValidity should only be called once per unique hash")
+
+	verifier.MarkVerified(interceptedData, p2p.Broadcast)
+
+	// Future calls should not re-run CheckValidity (they should still succeed)
+	err := verifier.Verify(interceptedData, "topic_0_1", p2p.Broadcast)
+	require.NoError(t, err)
+
+	// CheckValidity should not be called again
+	require.Equal(t, int64(1), checkValidityCounter.Get())
 }

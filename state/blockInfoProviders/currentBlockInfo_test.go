@@ -56,7 +56,7 @@ func TestCurrentBlockInfo_GetBlockInfo(t *testing.T) {
 		hash := []byte("hash")
 		rootHash := []byte("root hash")
 		chainHandler := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{
 					Nonce: nonce,
 				}

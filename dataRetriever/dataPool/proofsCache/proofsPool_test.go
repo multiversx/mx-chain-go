@@ -140,6 +140,39 @@ func TestProofsPool_Upsert(t *testing.T) {
 	require.Equal(t, newProof1.GetPubKeysBitmap(), proof.GetPubKeysBitmap())
 }
 
+func TestProofsPool_UpsertMultipleHashes(t *testing.T) {
+	t.Parallel()
+
+	pp := proofscache.NewProofsPool(3, 10)
+
+	// Upsert 10 different proofs for the same nonce
+	// Each upsert should clean up the previous hash
+	for i := 0; i < 10; i++ {
+		proof := &block.HeaderProof{
+			HeaderHash:    []byte{byte(i)}, // Different hash each time
+			HeaderNonce:   5,               // Same nonce
+			HeaderShardId: shardID,
+		}
+		ok := pp.UpsertProof(proof)
+		require.True(t, ok, "upsert %d should succeed", i)
+	}
+
+	// All previous hashes (hash[0] through hash[8]) should be cleaned up
+	for i := 0; i < 9; i++ {
+		hasOldHash := pp.HasProof(shardID, []byte{byte(i)})
+		require.False(t, hasOldHash, "old hash[%d] should be cleaned up", i)
+	}
+
+	// Only the latest hash should be present
+	hasLatestHash := pp.HasProof(shardID, []byte{9})
+	require.True(t, hasLatestHash, "latest hash[9] should be in pool")
+
+	// Verify nonce 5 maps to the latest hash
+	proofByNonce, err := pp.GetProofByNonce(5, shardID)
+	require.Nil(t, err)
+	require.Equal(t, []byte{9}, proofByNonce.GetHeaderHash(), "nonce 5 should map to latest hash")
+}
+
 func TestProofsPool_IsProofEqual(t *testing.T) {
 	t.Parallel()
 

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -27,6 +28,7 @@ type ArgBaseBootstrapper struct {
 	ChainHandler                 data.ChainHandler
 	RoundHandler                 consensus.RoundHandler
 	BlockProcessor               process.BlockProcessor
+	ExecutionManager             process.ExecutionManager
 	Hasher                       hashing.Hasher
 	Marshalizer                  marshal.Marshalizer
 	ForkDetector                 process.ForkDetector
@@ -47,6 +49,7 @@ type ArgBaseBootstrapper struct {
 	IsInImportMode               bool
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessWaitTime              time.Duration
+	ProcessWaitTimeSupernova     time.Duration
 	RepopulateTokensSupplies     bool
 	EnableEpochsHandler          common.EnableEpochsHandler
 	EnableRoundsHandler          common.EnableRoundsHandler
@@ -66,4 +69,5 @@ type ArgMetaBootstrapper struct {
 	EpochBootstrapper           process.EpochBootstrapper
 	ValidatorStatisticsDBSyncer process.AccountsDBSyncer
 	ValidatorAccountsDB         state.AccountsAdapter
+	Watchdog                    core.WatchdogTimer
 }

@@ -7,8 +7,9 @@ import (
 )
 
 type virtualAccountRecord struct {
-	initialNonce   core.OptionalUint64
-	virtualBalance *virtualAccountBalance
+	initialNonce                        core.OptionalUint64
+	virtualBalance                      *virtualAccountBalance
+	hasPendingChangeGuardianTransaction bool
 }
 
 func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *big.Int) (*virtualAccountRecord, error) {
@@ -43,4 +44,8 @@ func (virtualRecord *virtualAccountRecord) getConsumedBalance() *big.Int {
 
 func (virtualRecord *virtualAccountRecord) accumulateConsumedBalance(consumedBalance *big.Int) {
 	virtualRecord.virtualBalance.accumulateConsumedBalance(consumedBalance)
+}
+
+func (virtualRecord *virtualAccountRecord) hasPendingChangeGuardian() bool {
+	return virtualRecord.hasPendingChangeGuardianTransaction
 }

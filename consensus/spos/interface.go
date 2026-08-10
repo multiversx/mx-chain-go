@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
@@ -25,6 +26,7 @@ import (
 type ConsensusCoreHandler interface {
 	Blockchain() data.ChainHandler
 	BlockProcessor() process.BlockProcessor
+	ExecutionManager() process.ExecutionManager
 	BootStrapper() process.Bootstrapper
 	BroadcastMessenger() consensus.BroadcastMessenger
 	Chronology() consensus.ChronologyHandler
@@ -44,11 +46,15 @@ type ConsensusCoreHandler interface {
 	ScheduledProcessor() consensus.ScheduledProcessor
 	MessageSigningHandler() consensus.P2PSigningHandler
 	PeerBlacklistHandler() consensus.PeerBlacklistHandler
+	PeerSignatureHandler() crypto.PeerSignatureHandler
 	SigningHandler() consensus.SigningHandler
 	EnableEpochsHandler() common.EnableEpochsHandler
+	EnableRoundsHandler() common.EnableRoundsHandler
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache
+	MessagesHandler() ConsensusService
+	AOTSelector() process.AOTTransactionSelector
 	IsInterfaceNil() bool
 }
 
@@ -173,6 +179,8 @@ type PeerBlackListCacher interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
+	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte)
+	GetSignedHash(pkBytes []byte, nonce uint64) ([]byte, bool)
 	IsInterfaceNil() bool
 }
 
@@ -278,5 +286,15 @@ type InvalidSignersCache interface {
 	AddInvalidSigners(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string)
 	CheckKnownInvalidSigners(headerHash []byte, invalidSigners []byte) bool
 	Reset()
+	IsInterfaceNil() bool
+}
+
+// NtpSyncControllerHandler detects round desynchronization and triggers a forced NTP resync.
+// If the local clock drifts and the node repeatedly receives valid block proofs for rounds
+// that fall outside the expected range, the handler identifies this pattern as a de-sync
+// condition and initiates time resynchronization.
+type NtpSyncControllerHandler interface {
+	AddOutOfRangeNonce(nonce uint64, hash string)
+	AddLeaderNonceAsOutOfRange(nonce uint64, hash string)
 	IsInterfaceNil() bool
 }

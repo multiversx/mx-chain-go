@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -70,7 +71,7 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 
 // Save will save the received data into the headers cacher as hash<->[plain header structure]
 // and in headersNonces as nonce<->hash
-func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string) (bool, error) {
+func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string, _ p2p.BroadcastMethod) (bool, error) {
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
 		return false, process.ErrWrongTypeAssertion

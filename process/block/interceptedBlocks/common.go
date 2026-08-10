@@ -10,8 +10,19 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
-const maxLenMiniBlockReservedField = 10
 const maxLenMiniBlockHeaderReservedField = 32
+
+func checkForDuplicateHashes(hashes [][]byte) error {
+	mapHashes := make(map[string]struct{}, len(hashes))
+	for _, hash := range hashes {
+		hashStr := string(hash)
+		if _, exists := mapHashes[hashStr]; exists {
+			return process.ErrDuplicatedHashInBlock
+		}
+		mapHashes[hashStr] = struct{}{}
+	}
+	return nil
+}
 
 func checkBlockHeaderArgument(arg *ArgInterceptedBlockHeader) error {
 	if arg == nil {
@@ -77,7 +88,7 @@ func checkHeaderHandler(
 ) error {
 	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
 
-	if len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
+	if !hdr.IsHeaderV3() && len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilPubKeysBitmap
 	}
 	if len(hdr.GetPrevHash()) == 0 {
@@ -86,7 +97,7 @@ func checkHeaderHandler(
 	if len(hdr.GetSignature()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilSignature
 	}
-	if len(hdr.GetRootHash()) == 0 {
+	if !hdr.IsHeaderV3() && len(hdr.GetRootHash()) == 0 {
 		return process.ErrNilRootHash
 	}
 	if len(hdr.GetRandSeed()) == 0 {
@@ -96,7 +107,11 @@ func checkHeaderHandler(
 		return process.ErrNilPrevRandSeed
 	}
 
-	return hdr.CheckFieldsForNil()
+	err := hdr.CheckFieldsForNil()
+	if err != nil {
+		return err
+	}
+	return hdr.CheckFieldsIntegrity()
 }
 
 func checkMetaShardInfo(
@@ -118,11 +133,25 @@ func checkMetaShardInfo(
 		}
 	}
 
-	return nil
+	shardDataHashes := make([][]byte, len(shardInfo))
+	for i, sd := range shardInfo {
+		shardDataHashes[i] = sd.GetHeaderHash()
+	}
+
+	return checkForDuplicateHashes(shardDataHashes)
 }
 
 func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) error {
-	for _, smbh := range sd.GetShardMiniBlockHeaderHandlers() {
+	shardMBHeaders := sd.GetShardMiniBlockHeaderHandlers()
+	mbHashes := make([][]byte, len(shardMBHeaders))
+	for i, smbh := range shardMBHeaders {
+		mbHashes[i] = smbh.GetHash()
+	}
+	if err := checkForDuplicateHashes(mbHashes); err != nil {
+		return err
+	}
+
+	for _, smbh := range shardMBHeaders {
 		isWrongSenderShardId := smbh.GetSenderShardID() >= coordinator.NumberOfShards() &&
 			smbh.GetSenderShardID() != core.MetachainShardId &&
 			smbh.GetSenderShardID() != core.AllShardId
@@ -143,6 +172,14 @@ func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) 
 }
 
 func checkMiniBlocksHeaders(mbHeaders []data.MiniBlockHeaderHandler, coordinator sharding.Coordinator) error {
+	mbHashes := make([][]byte, len(mbHeaders))
+	for i, mbHeader := range mbHeaders {
+		mbHashes[i] = mbHeader.GetHash()
+	}
+	if err := checkForDuplicateHashes(mbHashes); err != nil {
+		return err
+	}
+
 	for _, mbHeader := range mbHeaders {
 		isWrongSenderShardId := mbHeader.GetSenderShardID() >= coordinator.NumberOfShards() &&
 			mbHeader.GetSenderShardID() != core.MetachainShardId &&

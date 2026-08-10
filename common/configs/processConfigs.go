@@ -1,50 +1,43 @@
 package configs
 
 import (
-	"errors"
+	"fmt"
 	"sort"
+	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-const (
-	defaultMaxMetaNoncesBehind                = 15
-	defaultMaxMetaNoncesBehindForGlobalStuck  = 30
-	defaultMaxShardNoncesBehind               = 15
-	defaultMaxRoundsWithoutNewBlockReceived   = 10
-	defaultMaxRoundsWithoutCommittedBlock     = 10
-	defaultRoundModulusTriggerWhenSyncIsStuck = 20
-)
+var log = logger.GetOrCreate("processConfigs")
 
-// ErrEmptyProcessConfigsByEpoch signals that an empty process configs by epoch has been provided
-var ErrEmptyProcessConfigsByEpoch = errors.New("empty process configs by epoch")
-
-// ErrEmptyProcessConfigsByEpoch signals that an empty process configs by round has been provided
-var ErrEmptyProcessConfigsByRound = errors.New("empty process configs by round")
-
-// ErrDuplicatedEpochConfig signals that a duplicated config section has been provided
-var ErrDuplicatedEpochConfig = errors.New("duplicated epoch config")
-
-// ErrDuplicatedRoundConfig signals that a duplicated config section has been provided
-var ErrDuplicatedRoundConfig = errors.New("duplicated round config")
-
-// ErrMissingEpochZeroConfig signals that epoch zero configuration is missing
-var ErrMissingEpochZeroConfig = errors.New("missing configuration for epoch 0")
-
-// ErrMissingRoundZeroConfig signals that base round configuration is missing
-var ErrMissingRoundZeroConfig = errors.New("missing base configuration for round")
+type configByRoundSelector[T any] func(config.ProcessConfigByRound) T
+type configVariableHandler struct {
+	valueSelector configByRoundSelector[uint64]
+	defaultValue  uint64
+}
 
 // processConfigsByEpoch holds the process configuration for epoch changes
 type processConfigsByEpoch struct {
 	orderedConfigByEpoch []config.ProcessConfigByEpoch
 	orderedConfigByRound []config.ProcessConfigByRound
+	roundNotifier        process.RoundNotifier
+	variablesMap         map[dto.ConfigVariable]configVariableHandler
 }
 
 // NewProcessConfigsHandler creates a new process configs by epoch component
 func NewProcessConfigsHandler(
 	configsByEpoch []config.ProcessConfigByEpoch,
 	configsByRound []config.ProcessConfigByRound,
+	roundNotifier process.RoundNotifier,
 ) (*processConfigsByEpoch, error) {
+	if check.IfNil(roundNotifier) {
+		return nil, fmt.Errorf("%w in NewProcessConfigsHandler", process.ErrNilRoundNotifier)
+	}
+
 	err := checkConfigsByEpoch(configsByEpoch)
 	if err != nil {
 		return nil, err
@@ -58,6 +51,8 @@ func NewProcessConfigsHandler(
 	pce := &processConfigsByEpoch{
 		orderedConfigByEpoch: make([]config.ProcessConfigByEpoch, len(configsByEpoch)),
 		orderedConfigByRound: make([]config.ProcessConfigByRound, len(configsByRound)),
+		roundNotifier:        roundNotifier,
+		variablesMap:         initCfgVarMap(),
 	}
 
 	// sort the config values in ascending order
@@ -110,6 +105,11 @@ func checkConfigsByRound(configsByRound []config.ProcessConfigByRound) error {
 		if exists {
 			return ErrDuplicatedRoundConfig
 		}
+		err := checkRoundConfigValues(cfg)
+		if err != nil {
+			return fmt.Errorf("%w in checkConfigsByRound for enable round: %d", err, cfg.EnableRound)
+		}
+
 		seen[cfg.EnableRound] = struct{}{}
 	}
 
@@ -120,6 +120,28 @@ func checkConfigsByRound(configsByRound []config.ProcessConfigByRound) error {
 
 	return nil
 }
+
+func checkRoundConfigValues(cfg config.ProcessConfigByRound) error {
+	if cfg.MaxRoundsToKeepUnprocessedTransactions < minRoundsToKeepUnprocessedData {
+		return fmt.Errorf("%w for MaxRoundsToKeepUnprocessedTransactions, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.MaxRoundsToKeepUnprocessedTransactions, minRoundsToKeepUnprocessedData)
+	}
+	if cfg.MaxRoundsToKeepUnprocessedMiniBlocks < minRoundsToKeepUnprocessedData {
+		return fmt.Errorf("%w for MaxRoundsToKeepUnprocessedMiniBlocks, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.MaxRoundsToKeepUnprocessedMiniBlocks, minRoundsToKeepUnprocessedData)
+	}
+	if cfg.MaxConsecutiveRoundsOfRatingDecrease == 0 {
+		return process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease
+	}
+	if cfg.MaxBlockProcessingTimeMs < minBlockProcessingTimeMs {
+		return fmt.Errorf("%w for MaxBlockProcessingTimeMs, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.MaxBlockProcessingTimeMs, minBlockProcessingTimeMs)
+	}
+
+	return nil
+}
+
+// TODO: We should probably get rid of all these functions and use only GetValue func, similar to how enableEpochsHandler works
 
 // GetMaxMetaNoncesBehindByEpoch returns the max meta nonces behind by epoch
 func (pce *processConfigsByEpoch) GetMaxMetaNoncesBehindByEpoch(epoch uint32) uint32 {
@@ -132,7 +154,7 @@ func (pce *processConfigsByEpoch) GetMaxMetaNoncesBehindByEpoch(epoch uint32) ui
 	return defaultMaxMetaNoncesBehind // this should not happen
 }
 
-// GetMaxMetaNoncesBehindForBlobalStuckByEpoch returns the max meta nonces behind for global stuck by epoch
+// GetMaxMetaNoncesBehindForGlobalStuckByEpoch returns the max meta nonces behind for global stuck by epoch
 func (pce *processConfigsByEpoch) GetMaxMetaNoncesBehindForGlobalStuckByEpoch(epoch uint32) uint32 {
 	for i := len(pce.orderedConfigByEpoch) - 1; i >= 0; i-- {
 		if pce.orderedConfigByEpoch[i].EnableEpoch <= epoch {
@@ -143,7 +165,7 @@ func (pce *processConfigsByEpoch) GetMaxMetaNoncesBehindForGlobalStuckByEpoch(ep
 	return defaultMaxMetaNoncesBehindForGlobalStuck // this should not happen
 }
 
-// GetMaxMetaNoncesBehindForBlobalStuckByEpoch returns the max meta nonces behind for global stuck by epoch
+// GetMaxShardNoncesBehindByEpoch returns the max meta nonces behind for global stuck by epoch
 func (pce *processConfigsByEpoch) GetMaxShardNoncesBehindByEpoch(epoch uint32) uint32 {
 	for i := len(pce.orderedConfigByEpoch) - 1; i >= 0; i-- {
 		if pce.orderedConfigByEpoch[i].EnableEpoch <= epoch {
@@ -154,37 +176,138 @@ func (pce *processConfigsByEpoch) GetMaxShardNoncesBehindByEpoch(epoch uint32) u
 	return defaultMaxShardNoncesBehind // this should not happen
 }
 
-// GetMaxRoundsWithoutNewBlockReceivedByRound returns max rounds without new block received by epoch
-func (pce *processConfigsByEpoch) GetMaxRoundsWithoutNewBlockReceivedByRound(round uint64) uint32 {
-	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
-		if pce.orderedConfigByRound[i].EnableRound <= round {
-			return pce.orderedConfigByRound[i].MaxRoundsWithoutNewBlockReceived
+func getConfigValueByRound[T any](
+	configs []config.ProcessConfigByRound,
+	round uint64,
+	selector configByRoundSelector[T],
+	defaultValue T,
+) T {
+	for i := len(configs) - 1; i >= 0; i-- {
+		if configs[i].EnableRound <= round {
+			return selector(configs[i])
 		}
 	}
 
-	return defaultMaxRoundsWithoutNewBlockReceived // this should not happen
+	return defaultValue
+}
+
+// GetMaxRoundsWithoutNewBlockReceivedByRound returns max rounds without new block received by epoch
+func (pce *processConfigsByEpoch) GetMaxRoundsWithoutNewBlockReceivedByRound(round uint64) uint32 {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint32 {
+			return cfg.MaxRoundsWithoutNewBlockReceived
+		},
+		defaultMaxRoundsWithoutNewBlockReceived,
+	)
 }
 
 // GetMaxRoundsWithoutCommittedBlock returns max rounds without commited block
 func (pce *processConfigsByEpoch) GetMaxRoundsWithoutCommittedBlock(round uint64) uint32 {
-	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
-		if pce.orderedConfigByRound[i].EnableRound <= round {
-			return pce.orderedConfigByRound[i].MaxRoundsWithoutCommittedBlock
-		}
-	}
-
-	return defaultMaxRoundsWithoutCommittedBlock // this should not happen
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint32 {
+			return cfg.MaxRoundsWithoutCommittedBlock
+		},
+		defaultMaxRoundsWithoutCommittedBlock,
+	)
 }
 
 // GetRoundModulusTriggerWhenSyncIsStuck returns round modulus when sync is stuck
 func (pce *processConfigsByEpoch) GetRoundModulusTriggerWhenSyncIsStuck(round uint64) uint32 {
-	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
-		if pce.orderedConfigByRound[i].EnableRound <= round {
-			return pce.orderedConfigByRound[i].RoundModulusTriggerWhenSyncIsStuck
-		}
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint32 {
+			return cfg.RoundModulusTriggerWhenSyncIsStuck
+		},
+		defaultRoundModulusTriggerWhenSyncIsStuck,
+	)
+}
+
+// GetMaxSyncWithErrorsAllowed returns max allowed sync errors until an error event is triggered
+func (pce *processConfigsByEpoch) GetMaxSyncWithErrorsAllowed(round uint64) uint32 {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint32 {
+			return cfg.MaxSyncWithErrorsAllowed
+		},
+		defaultMaxSyncWithErrorsAllowed,
+	)
+}
+
+// GetMaxRoundsToKeepUnprocessedMiniBlocks returns max rounds to keep unprocessed mini blocks based on round
+func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64 {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint64 {
+			return cfg.MaxRoundsToKeepUnprocessedMiniBlocks
+		},
+		defaultMaxRoundsToKeepUnprocessedMiniBlocks,
+	)
+}
+
+// GetMaxRoundsToKeepUnprocessedTransactions returns max rounds to keep unprocessed transaction blocks based on round
+func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64 {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint64 {
+			return cfg.MaxRoundsToKeepUnprocessedTransactions
+		},
+		defaultMaxRoundsToKeepUnprocessedTransactions,
+	)
+}
+
+// GetMaxBlockProcessingTime returns max block processing time
+func (pce *processConfigsByEpoch) GetMaxBlockProcessingTime(round uint64) time.Duration {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) time.Duration {
+			return time.Duration(cfg.MaxBlockProcessingTimeMs) * time.Millisecond
+		},
+		defaultMaxBlockProcessingTimeMs,
+	)
+}
+
+// GetNumHeadersToRequestInAdvance returns the number of headers to request in advance based on round
+func (pce *processConfigsByEpoch) GetNumHeadersToRequestInAdvance(round uint64) uint64 {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint64 {
+			return cfg.NumHeadersToRequestInAdvance
+		},
+		defaultNumHeadersToRequestInAdvance,
+	)
+}
+
+// GetValue returns the value of the provided variable for the current round
+func (pce *processConfigsByEpoch) GetValue(variable dto.ConfigVariable) uint64 {
+	return pce.getValueByRound(variable, pce.roundNotifier.CurrentRound())
+}
+
+func (pce *processConfigsByEpoch) getValueByRound(
+	variable dto.ConfigVariable,
+	round uint64,
+) uint64 {
+	cfgVarHandler, ok := pce.variablesMap[variable]
+	if !ok {
+		log.Warn("processConfigsByEpoch.getValueByRound: variable not found in pce.variablesMap", "variable", variable)
+		return 0
 	}
 
-	return defaultRoundModulusTriggerWhenSyncIsStuck // this should not happen
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		cfgVarHandler.valueSelector,
+		cfgVarHandler.defaultValue,
+	)
 }
 
 // IsInterfaceNil checks if the instance is nil

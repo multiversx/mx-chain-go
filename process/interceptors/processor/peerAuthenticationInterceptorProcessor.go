@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -64,7 +65,7 @@ func (paip *peerAuthenticationInterceptorProcessor) Validate(_ process.Intercept
 }
 
 // Save will save the intercepted peer authentication inside the peer authentication cacher
-func (paip *peerAuthenticationInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) (bool, error) {
+func (paip *peerAuthenticationInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string, _ p2p.BroadcastMethod) (bool, error) {
 	interceptedPeerAuthenticationData, ok := data.(interceptedPeerAuthenticationMessageHandler)
 	if !ok {
 		return false, process.ErrWrongTypeAssertion
@@ -82,10 +83,10 @@ func (paip *peerAuthenticationInterceptorProcessor) Save(data process.Intercepte
 		return false, err
 	}
 
-	return paip.updatePeerInfo(interceptedPeerAuthenticationData.Message(), interceptedPeerAuthenticationData.SizeInBytes())
+	return paip.updatePeerInfo(interceptedPeerAuthenticationData.Message(), interceptedPeerAuthenticationData.SizeInBytes(), payload.Timestamp)
 }
 
-func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message interface{}, messageSize int) (bool, error) {
+func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message interface{}, messageSize int, payloadTimestamp int64) (bool, error) {
 	peerAuthenticationData, ok := message.(*heartbeat.PeerAuthentication)
 	if !ok {
 		return false, process.ErrWrongTypeAssertion
@@ -93,7 +94,7 @@ func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message inter
 
 	pidBytes := peerAuthenticationData.GetPid()
 	paip.peerAuthenticationCacher.Put(peerAuthenticationData.Pubkey, message, messageSize)
-	paip.peerShardMapper.UpdatePeerIDPublicKeyPair(core.PeerID(pidBytes), peerAuthenticationData.GetPubkey())
+	paip.peerShardMapper.UpdatePeerIDPublicKeyPair(core.PeerID(pidBytes), peerAuthenticationData.GetPubkey(), payloadTimestamp)
 
 	log.Trace("PeerAuthentication message saved")
 

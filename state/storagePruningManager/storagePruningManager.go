@@ -7,10 +7,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/pruningBuffer"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type pruningOperation byte
@@ -75,7 +76,6 @@ func (spm *storagePruningManager) markForEviction(
 	}
 
 	rootHash = append(rootHash, byte(identifier))
-
 	err := spm.dbEvictionWaitingList.Put(rootHash, hashes)
 	if err != nil {
 		return err
@@ -232,6 +232,19 @@ func (spm *storagePruningManager) removeFromDb(
 	}
 
 	return nil
+}
+
+// EvictionWaitingListCacheLen returns the number of entries in the eviction waiting list cache
+func (spm *storagePruningManager) EvictionWaitingListCacheLen() int {
+	return spm.dbEvictionWaitingList.CacheLen()
+}
+
+func (spm *storagePruningManager) Reset() {
+	bufferedHashes := spm.pruningBuffer.RemoveAll()
+	for _, hash := range bufferedHashes {
+		log.Trace("trie storage manager reset", "hash", hash)
+	}
+	spm.dbEvictionWaitingList.Reset()
 }
 
 // Close will handle the closing of the underlying components

@@ -55,3 +55,9 @@ type KeysHandler interface {
 	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	IsInterfaceNil() bool
 }
+
+// OwnShardTrackerHandler defines the operations implemented by a component that will track the own shard
+type OwnShardTrackerHandler interface {
+	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	IsOwnShardStuck() bool
+}

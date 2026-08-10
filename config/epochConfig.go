@@ -70,7 +70,6 @@ type EnableEpochs struct {
 	IsPayableBySCEnableEpoch                                 uint32
 	CleanUpInformativeSCRsEnableEpoch                        uint32
 	StorageAPICostOptimizationEnableEpoch                    uint32
-	TransformToMultiShardCreateEnableEpoch                   uint32
 	ESDTRegisterAndSetAllRolesEnableEpoch                    uint32
 	DoNotReturnOldBlockInBlockchainHookEnableEpoch           uint32
 	AddFailedRelayedTxToInvalidMBsDisableEpoch               uint32
@@ -136,6 +135,8 @@ type EnableEpochs struct {
 	FixGetBalanceEnableEpoch                                 uint32
 	AutomaticActivationOfNodesDisableEpoch                   uint32
 	RelayedTransactionsV1V2DisableEpoch                      uint32
+	FullShardDataValidationEnableEpoch                       uint32
+	ConsumedGasInEconomicsFixEnableEpoch                     uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

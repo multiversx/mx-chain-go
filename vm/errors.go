@@ -285,3 +285,6 @@ var ErrCannotChangeToDynamic = errors.New("cannot change to dynamic because of d
 
 // ErrDivisionByZero signals that tokenID division by zero will happen
 var ErrDivisionByZero = errors.New("division by zero")
+
+// ErrInvalidValue signals that an invalid value was provided
+var ErrInvalidValue = errors.New("invalid value")

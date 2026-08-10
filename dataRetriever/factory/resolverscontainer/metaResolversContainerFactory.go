@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/process"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -26,13 +27,18 @@ func NewMetaResolversContainerFactory(
 	if args.SizeCheckDelta > 0 {
 		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
 	}
+	if check.IfNil(args.AntifloodConfigsHandler) {
+		return nil, process.ErrNilAntifloodConfigsHandler
+	}
 
-	mainThrottler, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingJobs)
+	currentConfig := args.AntifloodConfigsHandler.GetCurrentConfig()
+
+	mainThrottler, err := throttler.NewNumGoRoutinesThrottler(currentConfig.NumConcurrentResolverJobs)
 	if err != nil {
 		return nil, err
 	}
 
-	trieNodesThrottler, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingTrieNodesJobs)
+	trieNodesThrottler, err := throttler.NewNumGoRoutinesThrottler(currentConfig.NumConcurrentResolvingTrieNodesJobs)
 	if err != nil {
 		return nil, err
 	}

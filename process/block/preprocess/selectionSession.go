@@ -12,14 +12,16 @@ import (
 )
 
 type selectionSession struct {
-	transactionsProcessor process.TransactionProcessor
-	accountsProvider      *state.AccountsEphemeralProvider
+	transactionsProcessor   process.TransactionProcessor
+	accountsProvider        *state.AccountsEphemeralProvider
+	txVersionCheckerHandler process.TxVersionCheckerHandler
 }
 
 // ArgsSelectionSession holds the arguments for creating a new selection session.
 type ArgsSelectionSession struct {
-	AccountsAdapter       state.AccountsAdapter
-	TransactionsProcessor process.TransactionProcessor
+	AccountsAdapter         state.AccountsAdapter
+	TransactionsProcessor   process.TransactionProcessor
+	TxVersionCheckerHandler process.TxVersionCheckerHandler
 }
 
 // NewSelectionSession creates a new selection session.
@@ -27,6 +29,9 @@ type ArgsSelectionSession struct {
 func NewSelectionSession(args ArgsSelectionSession) (*selectionSession, error) {
 	if check.IfNil(args.TransactionsProcessor) {
 		return nil, process.ErrNilTxProcessor
+	}
+	if check.IfNil(args.TxVersionCheckerHandler) {
+		return nil, process.ErrNilTransactionVersionChecker
 	}
 
 	// Provider is not concurrency-safe, but it's never accessed concurrently.
@@ -36,8 +41,9 @@ func NewSelectionSession(args ArgsSelectionSession) (*selectionSession, error) {
 	}
 
 	return &selectionSession{
-		transactionsProcessor: args.TransactionsProcessor,
-		accountsProvider:      accountsProvider,
+		transactionsProcessor:   args.TransactionsProcessor,
+		accountsProvider:        accountsProvider,
+		txVersionCheckerHandler: args.TxVersionCheckerHandler,
 	}, nil
 }
 
@@ -64,6 +70,16 @@ func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler
 
 	err = session.transactionsProcessor.VerifyGuardian(txTyped, account)
 	return errors.Is(err, process.ErrTransactionNotExecutable)
+}
+
+// IsGuarded checks if the transaction is guarded
+func (session *selectionSession) IsGuarded(tx data.TransactionHandler) bool {
+	txPtr, ok := tx.(*transaction.Transaction)
+	if !ok {
+		return false
+	}
+
+	return session.txVersionCheckerHandler.IsGuardedTransaction(txPtr)
 }
 
 // GetRootHash returns the current root hash

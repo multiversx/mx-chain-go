@@ -11,9 +11,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/common"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
@@ -26,6 +28,7 @@ type subroundBlock struct {
 	processingThresholdPercentage int
 	worker                        spos.WorkerHandler
 	mutBlockProcessing            sync.Mutex
+	syncController                spos.NtpSyncControllerHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -33,6 +36,7 @@ func NewSubroundBlock(
 	baseSubround *spos.Subround,
 	processingThresholdPercentage int,
 	worker spos.WorkerHandler,
+	syncController spos.NtpSyncControllerHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
@@ -42,11 +46,15 @@ func NewSubroundBlock(
 	if check.IfNil(worker) {
 		return nil, spos.ErrNilWorker
 	}
+	if check.IfNil(syncController) {
+		return nil, ErrNilRoundSyncController
+	}
 
 	srBlock := subroundBlock{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
 		worker:                        worker,
+		syncController:                syncController,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -89,6 +97,10 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
+	if sr.HasProofForCompetingBlock() {
+		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
+		return false
+	}
 
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricCreatedProposedBlock)
@@ -120,7 +132,13 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
-		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
+		printLogMessage(ctx, "doBlockJob.GetLeader", errGetLeader)
+		return false
+	}
+
+	// check again there is no proof for competing block before sending the block
+	if sr.HasProofForCompetingBlock() {
+		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
 		return false
 	}
 
@@ -128,6 +146,14 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	if !sentWithSuccess {
 		return false
 	}
+
+	err = sr.prepareBlockForExecution(header, body)
+	if err != nil {
+		printLogMessage(ctx, "doBlockJob.prepareBlockForExecution", err)
+		return false
+	}
+
+	// placeholder for subroundBlock.doBlockJob script
 
 	sr.updateConsensusMetricsProposedBlockReceivedOrSent()
 
@@ -139,9 +165,30 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 
 	// placeholder for subroundBlock.doBlockJob script
 
-	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body, sr.GetRoundTimeStamp())
+	if !header.IsHeaderV3() {
+		sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body, sr.GetRoundTimeStamp())
+	}
 
 	return true
+}
+
+func (sr *subroundBlock) prepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
+	if !header.IsHeaderV3() {
+		return nil
+	}
+
+	// metachain does not need to select outgoing txs from txpool
+	if header.GetShardID() != core.MetachainShardId {
+		err := sr.BlockProcessor().OnProposedBlock(body, header, sr.GetData())
+		if err != nil {
+			return err
+		}
+	}
+	return sr.ExecutionManager().AddPairForExecution(cache.HeaderBodyPair{
+		Header:     header,
+		Body:       body,
+		HeaderHash: sr.GetData(),
+	})
 }
 
 func (sr *subroundBlock) signBlockHeader(header data.HeaderHandler) ([]byte, error) {
@@ -173,7 +220,7 @@ func printLogMessage(ctx context.Context, baseMessage string, err error) {
 	log.Debug(baseMessage, "error", err.Error())
 }
 
-func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler, _ string) bool {
+func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler, leader string) bool {
 	marshalledBody, err := sr.Marshalizer().Marshal(body)
 	if err != nil {
 		log.Debug("sendBlock.Marshal: body", "error", err.Error())
@@ -187,9 +234,15 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 	}
 
 	sr.logBlockSize(marshalledBody, marshalledHeader)
-	if !sr.sendBlockBody(body, marshalledBody) || !sr.sendBlockHeader(header, marshalledHeader) {
+	headerHash := sr.Hasher().Compute(string(marshalledHeader))
+
+	if !sr.sendBlockBody(body, marshalledBody) || !sr.sendBlockHeader(header, headerHash) {
 		return false
 	}
+
+	sr.sendDirectSentTransactions(header, body, leader)
+
+	sr.syncController.AddLeaderNonceAsOutOfRange(header.GetNonce(), string(headerHash))
 
 	return true
 }
@@ -210,15 +263,11 @@ func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHand
 		return sr.RoundHandler().RemainingTime(startTime, maxTime) > 0
 	}
 
-	finalHeader, blockBody, err := sr.BlockProcessor().CreateBlock(
-		header,
-		haveTimeInCurrentSubround,
-	)
-	if err != nil {
-		return nil, nil, err
+	if header.IsHeaderV3() {
+		return sr.BlockProcessor().CreateBlockProposal(header, haveTimeInCurrentSubround)
 	}
 
-	return finalHeader, blockBody, nil
+	return sr.BlockProcessor().CreateBlock(header, haveTimeInCurrentSubround)
 }
 
 // sendBlockBody method sends the proposed block body in the subround Block
@@ -265,7 +314,7 @@ func (sr *subroundBlock) sendBlockBody(
 // sendBlockHeader method sends the proposed block header in the subround Block
 func (sr *subroundBlock) sendBlockHeader(
 	headerHandler data.HeaderHandler,
-	marshalledHeader []byte,
+	headerHash []byte,
 ) bool {
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
@@ -279,8 +328,6 @@ func (sr *subroundBlock) sendBlockHeader(
 		return false
 	}
 
-	headerHash := sr.Hasher().Compute(string(marshalledHeader))
-
 	log.Debug("step 1: block header has been sent",
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash,
@@ -289,7 +336,39 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(headerHandler)
+	if err == nil {
+		log.Debug("proposed header sent", "header", headerOutput)
+	}
+
 	return true
+}
+
+func (sr *subroundBlock) sendDirectSentTransactions(
+	header data.HeaderHandler,
+	body data.BodyHandler,
+	leader string,
+) {
+	if !header.IsHeaderV3() {
+		return
+	}
+
+	mrsTxs := sr.BlockProcessor().ProposedDirectSentTransactionsToBroadcast(body)
+	if len(mrsTxs) == 0 {
+		return
+	}
+
+	err := sr.BroadcastMessenger().BroadcastTransactions(mrsTxs, []byte(leader))
+	if err != nil {
+		log.Warn("sendDirectSentTransactions.BroadcastTransactions", "error", err.Error())
+		return
+	}
+
+	log.Debug("proposed direct sent transactions sent")
+	for topic, txs := range mrsTxs {
+		log.Trace("on topic", "topic", topic, "txs", len(txs))
+	}
 }
 
 func (sr *subroundBlock) getPrevHeaderAndHash() (data.HeaderHandler, []byte) {
@@ -309,7 +388,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	prevRandSeed := prevHeader.GetRandSeed()
 
 	round := uint64(sr.RoundHandler().Index())
-	hdr, err := sr.BlockProcessor().CreateNewHeader(round, nonce)
+	hdr, err := sr.createHeaderBasedOnRound(round, nonce)
 	if err != nil {
 		return nil, err
 	}
@@ -357,9 +436,23 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	return hdr, nil
 }
 
+func (sr *subroundBlock) createHeaderBasedOnRound(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	isSupernovaActiveInRound := sr.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round)
+	isSupernovaActiveInEpoch := sr.EnableEpochsHandler().IsFlagEnabled(common.SupernovaFlag)
+	if isSupernovaActiveInRound && !isSupernovaActiveInEpoch {
+		log.Warn("Supernova is active in round but not in epoch, creating header v2...")
+	}
+
+	if isSupernovaActiveInRound && isSupernovaActiveInEpoch {
+		return sr.BlockProcessor().CreateNewHeaderProposal(round, nonce)
+	}
+
+	return sr.BlockProcessor().CreateNewHeader(round, nonce)
+}
+
 // receivedBlockBody method is called when a block body is received through the block body channel
 func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensus.Message) bool {
-	if !sr.waitForStartRoundToFinishBlocking() {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
 
@@ -409,7 +502,8 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 	if header.GetShardID() != sr.ShardCoordinator().SelfId() {
 		return false
 	}
-	if header.GetRound() != uint64(sr.RoundHandler().Index()) {
+	if header.GetRound() != uint64(sr.GetRoundIndex()) {
+		sr.addOutOfRangeHeader(header)
 		return false
 	}
 
@@ -426,6 +520,16 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 	prevRandSeed := prevHeader.GetRandSeed()
 
 	return bytes.Equal(header.GetPrevRandSeed(), prevRandSeed)
+}
+
+func (sr *subroundBlock) addOutOfRangeHeader(header data.HeaderHandler) {
+	hash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
+	if err != nil {
+		log.Error("failed to calculate hash for out of range header", "err", err, "round", header.GetRound())
+		return
+	}
+
+	sr.syncController.AddOutOfRangeNonce(header.GetNonce(), string(hash))
 }
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
@@ -454,42 +558,29 @@ func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([
 	return leader.PubKey(), err
 }
 
-func (sr *subroundBlock) waitForStartRoundToFinishBlocking() bool {
-	if sr.IsSubroundFinished(bls.SrStartRound) {
-		return true
-	}
-
-	timerStartRoundChecks := time.NewTimer(timeSpentBetweenChecks)
-
-	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
-	defer cancel()
-
-	for {
-		timerStartRoundChecks.Reset(timeSpentBetweenChecks)
-
-		select {
-		case <-timerStartRoundChecks.C:
-			if sr.IsSubroundFinished(bls.SrStartRound) {
-				return true
-			}
-		case <-ctx.Done():
-			log.Debug("subroundBlock timeout while waiting for start round to finish")
-			return false
-		}
-	}
-}
-
 func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) {
+		log.Debug("subroundBlock.receivedBlockHeader - header is nil")
 		return
 	}
 
 	log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
 	if headerHandler.CheckFieldsForNil() != nil {
+		log.Debug("subroundBlock.receivedBlockHeader - header fields are nil")
 		return
 	}
 
-	if !sr.waitForStartRoundToFinishBlocking() {
+	ok := sr.checkSupernovaHeader(headerHandler)
+	if !ok {
+		return
+	}
+
+	if sr.IsSubroundFinished(sr.Current()) {
+		return
+	}
+
+	if !sr.IsSubroundFinished(bls.SrStartRound) {
+		log.Debug("subroundBlock.receivedBlockHeader subroundStartRound not finished yet")
 		return
 	}
 
@@ -561,6 +652,29 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
+
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(headerHandler)
+	if err == nil {
+		log.Debug("proposed header received", "header", headerOutput)
+	}
+}
+
+func (sr *subroundBlock) checkSupernovaHeader(headerHandler data.HeaderHandler) bool {
+	isSupernovaActive := common.IsAsyncExecutionEnabledForEpochAndRound(sr.EnableEpochsHandler(), sr.EnableRoundsHandler(), headerHandler.GetEpoch(), headerHandler.GetRound())
+	isNotHeaderV3AfterSupernova := isSupernovaActive && !headerHandler.IsHeaderV3()
+	if isNotHeaderV3AfterSupernova {
+		log.Debug("checkSupernovaHeader received old header after supernova")
+		return false
+	}
+
+	isHeaderV3BeforeSupernova := !isSupernovaActive && headerHandler.IsHeaderV3()
+	if isHeaderV3BeforeSupernova {
+		log.Debug("checkSupernovaHeader received header v3 before supernova")
+		return false
+	}
+
+	return true
 }
 
 // CanProcessReceivedHeader method returns true if the received header can be processed and false otherwise
@@ -569,7 +683,7 @@ func (sr *subroundBlock) CanProcessReceivedHeader(headerLeader string) bool {
 }
 
 func (sr *subroundBlock) shouldProcessBlock(headerLeader string) bool {
-	if sr.IsNodeSelf(headerLeader) {
+	if sr.IsNodeSelf(headerLeader) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
 		return false
 	}
 	if sr.IsJobDone(headerLeader, sr.Current()) {
@@ -649,11 +763,7 @@ func (sr *subroundBlock) processBlock(
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricProcessedProposedBlock)
 
-	err := sr.BlockProcessor().ProcessBlock(
-		sr.GetHeader(),
-		sr.GetBody(),
-		remainingTimeInCurrentRound,
-	)
+	err := sr.processBlockBasedOnType(remainingTimeInCurrentRound)
 
 	if roundIndex < sr.RoundHandler().Index() {
 		log.Debug("canceled round, round index has been changed",
@@ -678,9 +788,32 @@ func (sr *subroundBlock) processBlock(
 		return false
 	}
 
-	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(sr.GetHeader(), sr.GetBody(), sr.GetRoundTimeStamp())
+	if !check.IfNil(sr.GetHeader()) && !sr.GetHeader().IsHeaderV3() {
+		sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(sr.GetHeader(), sr.GetBody(), sr.GetRoundTimeStamp())
+	}
 
 	return true
+}
+
+func (sr *subroundBlock) processBlockBasedOnType(haveTime func() time.Duration) error {
+	if sr.GetHeader().IsHeaderV3() {
+		err := sr.BlockProcessor().VerifyBlockProposal(sr.GetHeader(), sr.GetBody(), haveTime)
+		if err != nil {
+			return err
+		}
+
+		return sr.ExecutionManager().AddPairForExecution(cache.HeaderBodyPair{
+			Header:     sr.GetHeader(),
+			Body:       sr.GetBody(),
+			HeaderHash: sr.GetData(),
+		})
+	}
+
+	return sr.BlockProcessor().ProcessBlock(
+		sr.GetHeader(),
+		sr.GetBody(),
+		haveTime,
+	)
 }
 
 func (sr *subroundBlock) printCancelRoundLogMessage(ctx context.Context, err error) {

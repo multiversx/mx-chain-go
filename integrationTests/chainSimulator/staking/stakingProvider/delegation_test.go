@@ -37,7 +37,7 @@ const gasLimitForConvertOperation = 510_000_000
 const gasLimitForDelegationContractCreationOperation = 100_000_000
 const gasLimitForAddNodesOperation = 500_000_000
 const gasLimitForUndelegateOperation = 500_000_000
-const gasLimitForMergeOperation = 600_000_000
+const gasLimitForMergeOperation = 510_000_000
 const gasLimitForDelegate = 12_000_000
 
 const maxCap = "00"          // no cap
@@ -77,6 +77,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -104,6 +105,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
 
 				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -124,6 +126,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	t.Run("staking ph 4 is not active and all is done in epoch 0", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -152,6 +155,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
 
 				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -178,6 +182,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -196,6 +201,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -216,6 +223,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -234,6 +242,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -254,6 +264,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -272,6 +283,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -308,7 +321,7 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	delegator2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	err = cs.GenerateBlocks(1)
+	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
 	log.Info("working with the following addresses",
@@ -501,6 +514,7 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -531,6 +545,7 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -549,6 +564,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -561,6 +578,7 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -579,6 +597,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -591,6 +611,7 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -609,6 +630,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -727,6 +750,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -759,6 +783,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -777,6 +802,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -792,6 +818,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -810,6 +837,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -825,6 +853,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -843,6 +872,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -1048,6 +1078,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -1088,6 +1119,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -1104,6 +1136,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1128,6 +1161,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -1144,6 +1178,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1168,6 +1203,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -1184,6 +1220,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1417,6 +1454,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -1459,6 +1497,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -1475,6 +1514,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1501,6 +1541,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -1517,6 +1558,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1543,6 +1585,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -1828,6 +1871,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -1860,6 +1904,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -1893,6 +1938,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -1926,6 +1972,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            defaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -2085,18 +2132,19 @@ func TestChainSimulator_CreateDelegationContractAndWithdraw(t *testing.T) {
 
 	// Staking V4 activated
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              3,
-		GenesisTimestamp:         time.Now().Unix(),
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  3,
-		NumNodesWaitingListShard: 3,
+		BypassTxSignatureCheck:     true,
+		BypassCreateBlockTimeCheck: true,
+		TempDir:                    t.TempDir(),
+		PathToInitialConfig:        defaultPathToInitialConfig,
+		NumOfShards:                3,
+		GenesisTimestamp:           time.Now().Unix(),
+		RoundDurationInMillis:      roundDurationInMillis,
+		RoundsPerEpoch:             roundsPerEpoch,
+		ApiInterface:               api.NewNoApiInterface(),
+		MinNodesPerShard:           3,
+		MetaChainMinNodes:          3,
+		NumNodesWaitingListMeta:    3,
+		NumNodesWaitingListShard:   3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
