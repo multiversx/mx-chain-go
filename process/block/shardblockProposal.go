@@ -177,6 +177,11 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return process.ErrInvalidHeader
 	}
 
+	err = checkMetaBlockHashesBasicValidity(header)
+	if err != nil {
+		return err
+	}
+
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
