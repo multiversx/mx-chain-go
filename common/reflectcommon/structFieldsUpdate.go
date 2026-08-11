@@ -51,7 +51,7 @@ func AdaptStructureValueBasedOnPath(structure interface{}, path string, newValue
 	splitStr := strings.Split(path, ".")
 
 	value := reflect.ValueOf(structure)
-	if value.Kind() != reflect.Ptr {
+	if value.Kind() != reflect.Pointer {
 		return errCannotUpdateValueStructure
 	}
 
@@ -269,33 +269,33 @@ func isIntegerType(value reflect.Type) bool {
 }
 
 func fitsWithinSignedIntegerRange(value reflect.Value, targetType reflect.Type) bool {
-	min, errMin := getMinInt(targetType)
-	max, errMax := getMaxInt(targetType)
+	minVal, errMin := getMinInt(targetType)
+	maxVal, errMax := getMaxInt(targetType)
 	if errMin != nil || errMax != nil {
 		return false
 	}
 
 	switch value.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return value.Int() >= min && value.Int() <= max
+		return value.Int() >= minVal && value.Int() <= maxVal
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return value.Uint() <= uint64(max)
+		return value.Uint() <= uint64(maxVal)
 	}
 
 	return false
 }
 
 func fitsWithinUnsignedIntegerRange(value reflect.Value, targetType reflect.Type) bool {
-	max, err := getMaxUint(targetType)
+	maxVal, err := getMaxUint(targetType)
 	if err != nil {
 		return false
 	}
 
 	switch value.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return value.Int() >= 0 && uint64(value.Int()) <= max
+		return value.Int() >= 0 && uint64(value.Int()) <= maxVal
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return value.Uint() <= max
+		return value.Uint() <= maxVal
 	}
 
 	return false
@@ -326,13 +326,13 @@ func isFloatType(value reflect.Type) bool {
 }
 
 func fitsWithinFloatRange(value reflect.Value, targetType reflect.Type) bool {
-	min, errMin := getMinFloat(targetType)
-	max, errMax := getMaxFloat(targetType)
+	minVal, errMin := getMinFloat(targetType)
+	maxVal, errMax := getMaxFloat(targetType)
 	if errMin != nil || errMax != nil {
 		return false
 	}
 
-	return value.Float() >= min && value.Float() <= max
+	return value.Float() >= minVal && value.Float() <= maxVal
 }
 
 func getMinInt(targetType reflect.Type) (int64, error) {
