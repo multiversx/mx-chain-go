@@ -1925,8 +1925,8 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 	sp.blockTracker.AddCrossNotarizedHeader(shardId, lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash)
 	DisplayLastNotarized(sp.marshalizer, sp.hasher, lastCrossNotarizedHeader, shardId)
 
-	// processedHdrs only contains fully-processed metablocks (see processedAll gate in
-	// getOrderedProcessedMetaBlocksFromMiniBlockHashes), so lastNonce+1 releases items
+	// processedHdrs only contains the contiguous fully-processed metablock prefix from the
+	// legacy or V3 ordered-processed gate, so lastNonce+1 releases items
 	// from those metablocks now that the consuming shard block is being committed.
 	if shardId == core.MetachainShardId && !check.IfNil(lastCrossNotarizedHeader) && !check.IfNil(sp.miniBlockTracker) {
 		threshold := lastCrossNotarizedHeader.GetNonce() + 1
@@ -2355,8 +2355,9 @@ func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header data.ShardHeader
 }
 
 // checkReferencedMetaBlocksFullyConsumed verifies every referenced meta block except the highest nonce
-// one is fully consumed (dst-me miniblocks final in this body or already processed in previous blocks)
+// one is fully consumed in this body or already processed in previous blocks
 func (sp *shardProcessor) checkReferencedMetaBlocksFullyConsumed(header data.ShardHeaderHandler) error {
+	isHeaderV3 := header.IsHeaderV3()
 	miniBlockHeaderHandlers := header.GetMiniBlockHeaderHandlers()
 	bodyMiniBlockHeaders := make(map[string]data.MiniBlockHeaderHandler, len(miniBlockHeaderHandlers))
 	for _, miniBlockHeader := range miniBlockHeaderHandlers {
@@ -2393,7 +2394,7 @@ func (sp *shardProcessor) checkReferencedMetaBlocksFullyConsumed(header data.Sha
 			miniBlockHeader, isInBody := bodyMiniBlockHeaders[hash]
 			isConsumed := sp.processedMiniBlocksTracker.IsMiniBlockFullyProcessed(referencedMeta.hash, []byte(hash))
 			if isInBody {
-				isConsumed = miniBlockHeader.IsFinal()
+				isConsumed = isHeaderV3 || miniBlockHeader.IsFinal()
 			}
 			if !isConsumed {
 				return fmt.Errorf("%w : meta block nonce = %d",

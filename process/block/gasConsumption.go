@@ -361,7 +361,7 @@ func (gc *gasConsumption) addPendingIncomingMiniBlocks() ([]data.MiniBlockHeader
 
 	bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
 	bandwidthForIncomingMiniBlocks += gc.getGasLeftFromTransactions()
-	lastIndexAdded := 0
+	lastIndexAdded := initialLastIndex
 	for i := 0; i < len(gc.pendingMiniBlocks); i++ {
 		mb := gc.pendingMiniBlocks[i]
 		gasConsumedByIncomingBefore := gc.totalGasConsumed[incoming]

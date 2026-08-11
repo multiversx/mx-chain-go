@@ -11,10 +11,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	coreBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -494,6 +495,25 @@ func TestGasConsumption_AddOutgoingTransactions(t *testing.T) {
 
 		pending = gc.GetPendingMiniBlocks()
 		require.Len(t, pending, 0)
+	})
+	t.Run("first pending mini block that does not fit remains pending", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		miniBlocks := generateMiniBlocks(9, 5)
+		transactionsInMiniBlocks := generateTxsForMiniBlocks(miniBlocks)
+		lastMiniBlockIndex, pendingMiniBlocks, err := gc.AddIncomingMiniBlocks(miniBlocks, transactionsInMiniBlocks)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMiniBlockIndex)
+		require.Equal(t, 1, pendingMiniBlocks)
+
+		txHashes, transactions := generateTxs(maxGasLimitPerTx, 40)
+		_, addedPendingMiniBlocks, err := gc.AddOutgoingTransactions(txHashes, transactions, true)
+		require.NoError(t, err)
+		require.Empty(t, addedPendingMiniBlocks)
+		require.Equal(t, []data.MiniBlockHeaderHandler{miniBlocks[8]}, gc.GetPendingMiniBlocks())
 	})
 	t.Run("should work with multiple destination shards", func(t *testing.T) {
 		t.Parallel()

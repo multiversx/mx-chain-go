@@ -5376,11 +5376,12 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		require.Equal(t, expectedFullyReferencedMetaBlocks, fullyReferencedMetaBlocks)
 	})
 
-	t.Run("shouldn't mark a meta block as fully referenced in case not all hashes are referenced on block", func(t *testing.T) {
+	t.Run("fully referenced meta block above a partial one is trimmed", func(t *testing.T) {
 		t.Parallel()
 
 		headersByHash := map[string]data.HeaderHandler{
 			string(metaHeaderHash1): &block.MetaBlockV3{
+				Nonce: 1,
 				ShardInfo: []block.ShardData{
 					{
 						ShardID: 0,
@@ -5394,6 +5395,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 				},
 			},
 			string(metaHeaderHash2): &block.MetaBlockV3{
+				Nonce: 2,
 				ShardInfo: []block.ShardData{
 					{
 						ShardID: 0,
@@ -5430,14 +5432,16 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		header := &block.HeaderV3{
 			MetaBlockHashes: [][]byte{metaHeaderHash1, metaHeaderHash2},
 		}
-		fullyReferencedMetaBlocks, _, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+		fullyReferencedMetaBlocks, partialReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			map[int][]byte{
-				0: mbHash1,
+				0: mbHash2,
 			},
 		)
 		require.Nil(t, err)
-		require.Equal(t, 1, len(fullyReferencedMetaBlocks))
+		require.Empty(t, fullyReferencedMetaBlocks)
+		require.Len(t, partialReferencedMetaBlocks, 1)
+		require.Equal(t, uint64(1), partialReferencedMetaBlocks[0].GetHeader().GetNonce())
 	})
 	t.Run("metablock fully referenced across multiple shard headers", func(t *testing.T) {
 		t.Parallel()
@@ -5507,6 +5511,223 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		require.Equal(t, 2, len(fullyReferencedMetaBlocks))
 		require.Equal(t, expectedFullyReferencedMetaBlocks, fullyReferencedMetaBlocks)
 	})
+}
+
+func TestAppendPendingMiniBlocksAfterSelectingOutgoingTransactions_LastReferencedHeaderAlreadyFinished(t *testing.T) {
+	t.Parallel()
+
+	session, err := blproc.NewMiniBlocksSelectionSession(0, &mock.MarshalizerMock{}, &hashingMocks.HasherMock{})
+	require.NoError(t, err)
+
+	metaHeader1 := &block.MetaBlockV3{Nonce: 1}
+	metaHeader2 := &block.MetaBlockV3{Nonce: 2}
+	metaHeaderHash1 := []byte("metaHeaderHash1")
+	metaHeaderHash2 := []byte("metaHeaderHash2")
+	miniBlockHash := []byte("miniBlockHash")
+	miniBlock := &block.MiniBlock{
+		SenderShardID:   1,
+		ReceiverShardID: 0,
+		TxHashes:        [][]byte{[]byte("txHash")},
+	}
+
+	session.AddReferencedHeader(metaHeader1, metaHeaderHash1)
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{})
+	require.NoError(t, err)
+	sp.SetMiniBlockSelectionSession(session)
+
+	pendingBlocks := []*blproc.PendingMiniBlocksAfterSelection{
+		blproc.NewPendingMiniBlocksAfterSelection(metaHeaderHash2, metaHeader2, map[string]*block.MiniBlock{
+			string(miniBlockHash): miniBlock,
+		}),
+	}
+	pendingHeaders := []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{Hash: miniBlockHash}}
+
+	err = sp.AppendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocks, pendingHeaders)
+	require.NoError(t, err)
+	require.Equal(t, [][]byte{metaHeaderHash1, metaHeaderHash2}, session.GetReferencedHeaderHashes())
+	require.Equal(t, [][]byte{miniBlockHash}, session.GetMiniBlockHashes())
+}
+
+func TestAppendPendingMiniBlocksAfterSelectingOutgoingTransactions_CompletesLastHeaderThenAddsNext(t *testing.T) {
+	t.Parallel()
+
+	session, err := blproc.NewMiniBlocksSelectionSession(0, &mock.MarshalizerMock{}, &hashingMocks.HasherMock{})
+	require.NoError(t, err)
+	session.AddReferencedHeader(&block.MetaBlockV3{Nonce: 1}, []byte("metaHeaderHash1"))
+
+	miniBlockHash1 := []byte("miniBlockHash1")
+	miniBlockHash2 := []byte("miniBlockHash2")
+	pendingBlocks := []*blproc.PendingMiniBlocksAfterSelection{
+		blproc.NewPendingMiniBlocksAfterSelection([]byte("metaHeaderHash1"), &block.MetaBlockV3{Nonce: 1}, map[string]*block.MiniBlock{
+			string(miniBlockHash1): {SenderShardID: 1, ReceiverShardID: 0},
+		}),
+		blproc.NewPendingMiniBlocksAfterSelection([]byte("metaHeaderHash2"), &block.MetaBlockV3{Nonce: 2}, map[string]*block.MiniBlock{
+			string(miniBlockHash2): {SenderShardID: 1, ReceiverShardID: 0},
+		}),
+	}
+
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{})
+	require.NoError(t, err)
+	sp.SetMiniBlockSelectionSession(session)
+
+	err = sp.AppendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocks, []data.MiniBlockHeaderHandler{
+		&block.MiniBlockHeader{Hash: miniBlockHash1},
+		&block.MiniBlockHeader{Hash: miniBlockHash2},
+	})
+	require.NoError(t, err)
+	require.Equal(t, [][]byte{[]byte("metaHeaderHash1"), []byte("metaHeaderHash2")}, session.GetReferencedHeaderHashes())
+	require.Equal(t, [][]byte{miniBlockHash1, miniBlockHash2}, session.GetMiniBlockHashes())
+}
+
+func TestAppendPendingMiniBlocksAfterSelectingOutgoingTransactions_StopsAtReferenceLimit(t *testing.T) {
+	t.Parallel()
+
+	session, err := blproc.NewMiniBlocksSelectionSession(0, &mock.MarshalizerMock{}, &hashingMocks.HasherMock{})
+	require.NoError(t, err)
+	for nonce := uint64(1); nonce < process.MaxMetaHeadersAllowedInOneShardBlock; nonce++ {
+		session.AddReferencedHeader(&block.MetaBlockV3{Nonce: nonce}, []byte(fmt.Sprintf("metaHeaderHash%d", nonce)))
+	}
+
+	miniBlockHash50 := []byte("miniBlockHash50")
+	miniBlockHash51 := []byte("miniBlockHash51")
+	pendingBlocks := []*blproc.PendingMiniBlocksAfterSelection{
+		blproc.NewPendingMiniBlocksAfterSelection([]byte("metaHeaderHash50"), &block.MetaBlockV3{Nonce: 50}, map[string]*block.MiniBlock{
+			string(miniBlockHash50): {SenderShardID: 1, ReceiverShardID: 0},
+		}),
+		blproc.NewPendingMiniBlocksAfterSelection([]byte("metaHeaderHash51"), &block.MetaBlockV3{Nonce: 51}, map[string]*block.MiniBlock{
+			string(miniBlockHash51): {SenderShardID: 1, ReceiverShardID: 0},
+		}),
+	}
+
+	var revertedHashes [][]byte
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"gasComputation": &testscommon.GasComputationMock{
+			RevertIncomingMiniBlocksCalled: func(hashes [][]byte) {
+				revertedHashes = hashes
+			},
+		},
+	})
+	require.NoError(t, err)
+	sp.SetMiniBlockSelectionSession(session)
+
+	err = sp.AppendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocks, []data.MiniBlockHeaderHandler{
+		&block.MiniBlockHeader{Hash: miniBlockHash50},
+		&block.MiniBlockHeader{Hash: miniBlockHash51},
+	})
+	require.NoError(t, err)
+	require.Len(t, session.GetReferencedHeaders(), process.MaxMetaHeadersAllowedInOneShardBlock)
+	require.Equal(t, [][]byte{miniBlockHash50}, session.GetMiniBlockHashes())
+	require.Equal(t, [][]byte{miniBlockHash51}, revertedHashes)
+}
+
+func TestAppendPendingMiniBlocksAfterSelectingOutgoingTransactions_StopsAfterPartialHeader(t *testing.T) {
+	t.Parallel()
+
+	session, err := blproc.NewMiniBlocksSelectionSession(0, &mock.MarshalizerMock{}, &hashingMocks.HasherMock{})
+	require.NoError(t, err)
+	session.AddReferencedHeader(&block.MetaBlockV3{Nonce: 1}, []byte("metaHeaderHash1"))
+
+	miniBlockHash1 := []byte("miniBlockHash1")
+	miniBlockHash2 := []byte("miniBlockHash2")
+	miniBlockHash3 := []byte("miniBlockHash3")
+	pendingBlocks := []*blproc.PendingMiniBlocksAfterSelection{
+		blproc.NewPendingMiniBlocksAfterSelection([]byte("metaHeaderHash1"), &block.MetaBlockV3{Nonce: 1}, map[string]*block.MiniBlock{
+			string(miniBlockHash1): {SenderShardID: 1, ReceiverShardID: 0},
+			string(miniBlockHash2): {SenderShardID: 1, ReceiverShardID: 0},
+		}),
+		blproc.NewPendingMiniBlocksAfterSelection([]byte("metaHeaderHash2"), &block.MetaBlockV3{Nonce: 2}, map[string]*block.MiniBlock{
+			string(miniBlockHash3): {SenderShardID: 1, ReceiverShardID: 0},
+		}),
+	}
+
+	var revertedHashes [][]byte
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"gasComputation": &testscommon.GasComputationMock{
+			RevertIncomingMiniBlocksCalled: func(hashes [][]byte) {
+				revertedHashes = hashes
+			},
+		},
+	})
+	require.NoError(t, err)
+	sp.SetMiniBlockSelectionSession(session)
+
+	err = sp.AppendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocks, []data.MiniBlockHeaderHandler{
+		&block.MiniBlockHeader{Hash: miniBlockHash1},
+		&block.MiniBlockHeader{Hash: miniBlockHash3},
+	})
+	require.NoError(t, err)
+	require.Equal(t, [][]byte{[]byte("metaHeaderHash1")}, session.GetReferencedHeaderHashes())
+	require.Equal(t, [][]byte{miniBlockHash1}, session.GetMiniBlockHashes())
+	require.Equal(t, [][]byte{miniBlockHash3}, revertedHashes)
+}
+
+func TestAppendPendingMiniBlocksAfterSelectingOutgoingTransactions_StopsWhenGapFillerReachesLimit(t *testing.T) {
+	t.Parallel()
+
+	session, err := blproc.NewMiniBlocksSelectionSession(0, &mock.MarshalizerMock{}, &hashingMocks.HasherMock{})
+	require.NoError(t, err)
+	for nonce := uint64(1); nonce < process.MaxMetaHeadersAllowedInOneShardBlock; nonce++ {
+		session.AddReferencedHeader(&block.MetaBlockV3{Nonce: nonce}, []byte(fmt.Sprintf("metaHeaderHash%d", nonce)))
+	}
+
+	miniBlockHash52 := []byte("miniBlockHash52")
+	pendingBlocks := []*blproc.PendingMiniBlocksAfterSelection{
+		blproc.NewPendingMiniBlocksAfterSelection([]byte("metaHeaderHash50"), &block.MetaBlockV3{Nonce: 50}, nil),
+		blproc.NewPendingMiniBlocksAfterSelection([]byte("metaHeaderHash51"), &block.MetaBlockV3{Nonce: 51}, nil),
+		blproc.NewPendingMiniBlocksAfterSelection([]byte("metaHeaderHash52"), &block.MetaBlockV3{Nonce: 52}, map[string]*block.MiniBlock{
+			string(miniBlockHash52): {SenderShardID: 1, ReceiverShardID: 0},
+		}),
+	}
+
+	var revertedHashes [][]byte
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"gasComputation": &testscommon.GasComputationMock{
+			RevertIncomingMiniBlocksCalled: func(hashes [][]byte) {
+				revertedHashes = hashes
+			},
+		},
+	})
+	require.NoError(t, err)
+	sp.SetMiniBlockSelectionSession(session)
+
+	err = sp.AppendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocks, []data.MiniBlockHeaderHandler{
+		&block.MiniBlockHeader{Hash: miniBlockHash52},
+	})
+	require.NoError(t, err)
+	require.Len(t, session.GetReferencedHeaders(), process.MaxMetaHeadersAllowedInOneShardBlock)
+	require.Equal(t, uint64(50), session.GetLastHeader().GetNonce())
+	require.Empty(t, session.GetMiniBlockHashes())
+	require.Equal(t, [][]byte{miniBlockHash52}, revertedHashes)
+}
+
+func TestAppendPendingMiniBlocksAfterSelectingOutgoingTransactions_TrailingEmptyHeadersRespectLimit(t *testing.T) {
+	t.Parallel()
+
+	session, err := blproc.NewMiniBlocksSelectionSession(0, &mock.MarshalizerMock{}, &hashingMocks.HasherMock{})
+	require.NoError(t, err)
+	for nonce := uint64(1); nonce < process.MaxMetaHeadersAllowedInOneShardBlock; nonce++ {
+		session.AddReferencedHeader(&block.MetaBlockV3{Nonce: nonce}, []byte(fmt.Sprintf("metaHeaderHash%d", nonce)))
+	}
+
+	miniBlockHash50 := []byte("miniBlockHash50")
+	pendingBlocks := []*blproc.PendingMiniBlocksAfterSelection{
+		blproc.NewPendingMiniBlocksAfterSelection([]byte("metaHeaderHash50"), &block.MetaBlockV3{Nonce: 50}, map[string]*block.MiniBlock{
+			string(miniBlockHash50): {SenderShardID: 1, ReceiverShardID: 0},
+		}),
+		blproc.NewPendingMiniBlocksAfterSelection([]byte("metaHeaderHash51"), &block.MetaBlockV3{Nonce: 51}, nil),
+	}
+
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{})
+	require.NoError(t, err)
+	sp.SetMiniBlockSelectionSession(session)
+
+	err = sp.AppendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocks, []data.MiniBlockHeaderHandler{
+		&block.MiniBlockHeader{Hash: miniBlockHash50},
+	})
+	require.NoError(t, err)
+	require.Len(t, session.GetReferencedHeaders(), process.MaxMetaHeadersAllowedInOneShardBlock)
+	require.Equal(t, uint64(50), session.GetLastHeader().GetNonce())
+	require.Equal(t, [][]byte{miniBlockHash50}, session.GetMiniBlockHashes())
 }
 
 func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}, data.HeaderHandler, *block.Body) {
