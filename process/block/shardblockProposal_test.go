@@ -43,6 +43,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/round"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
 func getSimpleHeaderV3Mock() *testscommon.HeaderHandlerStub {
@@ -2361,6 +2362,38 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 
+		marshaller := &mock.MarshalizerMock{}
+		metaHdr1Bytes, errMarshal := marshaller.Marshal(&block.MetaBlockV3{
+			Nonce: 1,
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{},
+			},
+		})
+		require.Nil(t, errMarshal)
+		metaHdr2Bytes, errMarshal := marshaller.Marshal(&block.MetaBlockV3{
+			Nonce: 2,
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{},
+			},
+		})
+		require.Nil(t, errMarshal)
+		subcomponents["store"] = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType retriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						switch string(key) {
+						case "hash1":
+							return metaHdr1Bytes, nil
+						case "hash2":
+							return metaHdr2Bytes, nil
+						default:
+							return nil, expectedError
+						}
+					},
+				}, nil
+			},
+		}
+
 		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subcomponents)
 		require.Nil(t, err)
 
@@ -2768,7 +2801,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		dataPool.HeadersCalled = func() retriever.HeadersPool {
 			return &pool.HeadersPoolStub{
 				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-					return &block.Header{}, nil
+					return &block.MetaBlockV3{}, nil
 				},
 			}
 		}
@@ -2806,7 +2839,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		dataPool.HeadersCalled = func() retriever.HeadersPool {
 			return &pool.HeadersPoolStub{
 				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-					return &block.Header{}, nil
+					return &block.MetaBlockV3{}, nil
 				},
 			}
 		}
@@ -2847,7 +2880,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		dataPool.HeadersCalled = func() retriever.HeadersPool {
 			return &pool.HeadersPoolStub{
 				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-					return &block.Header{}, nil
+					return &block.MetaBlockV3{}, nil
 				},
 			}
 		}
@@ -2886,9 +2919,15 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		require.True(t, ok)
 
 		expectedError := errors.New("expected error from GetHeaderByHash")
+		numCalls := 0
 		dataPool.HeadersCalled = func() retriever.HeadersPool {
 			return &pool.HeadersPoolStub{
 				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					numCalls++
+					if numCalls == 1 {
+						// first call comes from checkMetaBlockHashesOrder which should pass
+						return &block.MetaBlockV3{}, nil
+					}
 					return nil, expectedError
 				},
 			}
@@ -2937,7 +2976,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		dataPool.HeadersCalled = func() retriever.HeadersPool {
 			return &pool.HeadersPoolStub{
 				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-					return &block.Header{}, nil
+					return &block.MetaBlockV3{}, nil
 				},
 			}
 		}
