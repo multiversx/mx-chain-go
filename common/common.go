@@ -341,7 +341,7 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
 		return bigValue
 	}
 
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		if val.IsNil() {
 			return nil
 		}

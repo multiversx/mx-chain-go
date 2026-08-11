@@ -17,6 +17,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -25,9 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewValidatorsProvider_WithNilValidatorStatisticsShouldErr(t *testing.T) {
@@ -95,7 +96,7 @@ func TestNewValidatorsProvider_WithNilStartOfEpochTriggerShouldErr(t *testing.T)
 
 func TestNewValidatorsProvider_WithZeroRefreshCacheIntervalInSecShouldErr(t *testing.T) {
 	arg := createDefaultValidatorsProviderArg()
-	arg.CacheRefreshIntervalDurationInSec = 0
+	arg.CacheRefreshIntervalDuration = 0
 	vp, err := NewValidatorsProvider(arg)
 
 	assert.Equal(t, process.ErrInvalidCacheRefreshIntervalInSec, err)
@@ -192,7 +193,7 @@ func TestValidatorsProvider_CallsPopulateAndRegister(t *testing.T) {
 	numPopulateCacheCalled := int32(0)
 
 	arg := createDefaultValidatorsProviderArg()
-	arg.CacheRefreshIntervalDurationInSec = 10 * time.Millisecond
+	arg.CacheRefreshIntervalDuration = 10 * time.Millisecond
 	arg.EpochStartEventNotifier = &mock.EpochStartNotifierStub{
 		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
 			atomic.AddInt32(&numRegisterHandlerCalled, 1)
@@ -242,7 +243,7 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 		nodesCoordinator:             nodesCoordinator,
 		validatorStatistics:          validatorProc,
 		cache:                        nil,
-		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
+		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
 		refreshCache:                 nil,
 		lock:                         sync.RWMutex{},
 		validatorPubKeyConverter:     testscommon.NewPubkeyConverterMock(32),
@@ -257,12 +258,12 @@ func TestValidatorsProvider_UpdateCache_WithError(t *testing.T) {
 func TestValidatorsProvider_Cancel_startRefreshProcess(t *testing.T) {
 	arg := createDefaultValidatorsProviderArg()
 
-	arg.CacheRefreshIntervalDurationInSec = 1 * time.Millisecond
+	arg.CacheRefreshIntervalDuration = 1 * time.Millisecond
 	vsp := validatorsProvider{
 		nodesCoordinator:             arg.NodesCoordinator,
 		validatorStatistics:          arg.ValidatorStatistics,
 		cache:                        make(map[string]*validator.ValidatorStatistics),
-		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
+		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
 		stakingDataProvider:          &stakingcommon.StakingDataProviderStub{},
@@ -319,7 +320,7 @@ func TestValidatorsProvider_UpdateCache(t *testing.T) {
 		nodesCoordinator:             arg.NodesCoordinator,
 		validatorStatistics:          validatorProc,
 		cache:                        nil,
-		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
+		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
 		refreshCache:                 nil,
 		validatorPubKeyConverter:     testscommon.NewPubkeyConverterMock(32),
 		lock:                         sync.RWMutex{},
@@ -433,7 +434,7 @@ func TestValidatorsProvider_createCache(t *testing.T) {
 		nodesCoordinator:             arg.NodesCoordinator,
 		validatorStatistics:          arg.ValidatorStatistics,
 		cache:                        nil,
-		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
+		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
 		validatorPubKeyConverter:     pubKeyConverter,
 		lock:                         sync.RWMutex{},
 	}
@@ -506,7 +507,7 @@ func TestValidatorsProvider_createCache_combined(t *testing.T) {
 		validatorStatistics:          arg.ValidatorStatistics,
 		validatorPubKeyConverter:     arg.ValidatorPubKeyConverter,
 		cache:                        nil,
-		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDurationInSec,
+		cacheRefreshIntervalDuration: arg.CacheRefreshIntervalDuration,
 		lock:                         sync.RWMutex{},
 	}
 
@@ -529,7 +530,7 @@ func TestValidatorsProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 	populateCacheCalled := &zeroNumner
 
 	arg := createDefaultValidatorsProviderArg()
-	arg.CacheRefreshIntervalDurationInSec = time.Millisecond * 10
+	arg.CacheRefreshIntervalDuration = time.Millisecond * 10
 	validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
 		LastFinalizedRootHashCalled: func() []byte {
 			return []byte("rootHash")
@@ -556,9 +557,9 @@ func TestValidatorsProvider_CallsPopulateOnlyAfterTimeout(t *testing.T) {
 	assert.Equal(t, int32(0), atomic.LoadInt32(populateCacheCalled))
 
 	// outside refreshInterval
-	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
+	time.Sleep(arg.CacheRefreshIntervalDuration)
 	_ = vsp.GetLatestValidators()
-	//allow call to go through
+	// allow call to go through
 	time.Sleep(time.Millisecond)
 	assert.True(t, atomic.LoadInt32(populateCacheCalled) > 0)
 }
@@ -568,7 +569,7 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	callNumber := 0
 	epochStartNotifier := &mock.EpochStartNotifierStub{}
 	arg.EpochStartEventNotifier = epochStartNotifier
-	arg.CacheRefreshIntervalDurationInSec = 5 * time.Millisecond
+	arg.CacheRefreshIntervalDuration = 5 * time.Millisecond
 	pkEligibleInTrie := []byte("pk1")
 
 	validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
@@ -596,7 +597,7 @@ func TestValidatorsProvider_CallsUpdateCacheOnEpochChange(t *testing.T) {
 	encodedEligible, _ := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
 	epochStartNotifier.NotifyAll(&block.Header{Nonce: 1, ShardID: 2, Round: 3})
-	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
+	time.Sleep(arg.CacheRefreshIntervalDuration)
 	assert.Equal(t, 1, len(vsp.GetCache()))
 	assert.NotNil(t, vsp.GetCache()[encodedEligible])
 }
@@ -606,7 +607,7 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 	callNumber := 0
 	epochStartNotifier := &mock.EpochStartNotifierStub{}
 	arg.EpochStartEventNotifier = epochStartNotifier
-	arg.CacheRefreshIntervalDurationInSec = 5 * time.Millisecond
+	arg.CacheRefreshIntervalDuration = 5 * time.Millisecond
 	pkEligibleInTrie := []byte("pk1")
 
 	validatorStatisticsProcessor := &testscommon.ValidatorStatisticsProcessorStub{
@@ -633,9 +634,9 @@ func TestValidatorsProvider_DoesntCallUpdateUpdateCacheWithoutRequests(t *testin
 	vsp, _ := NewValidatorsProvider(arg)
 	encodedEligible, _ := arg.ValidatorPubKeyConverter.Encode(pkEligibleInTrie)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
-	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
+	time.Sleep(arg.CacheRefreshIntervalDuration)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
-	time.Sleep(arg.CacheRefreshIntervalDurationInSec)
+	time.Sleep(arg.CacheRefreshIntervalDuration)
 	assert.Equal(t, 0, len(vsp.GetCache())) // nothing in cache
 
 	resp := vsp.GetLatestValidators()
@@ -656,7 +657,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 			},
 		}
 		vp, _ := NewValidatorsProvider(args)
-		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+		time.Sleep(args.CacheRefreshIntervalDuration)
 
 		list, err := vp.GetAuctionList()
 		require.Nil(t, list)
@@ -678,7 +679,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 			},
 		}
 		vp, _ := NewValidatorsProvider(args)
-		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+		time.Sleep(args.CacheRefreshIntervalDuration)
 
 		list, err := vp.GetAuctionList()
 		require.Nil(t, list)
@@ -714,7 +715,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 			},
 		}
 		vp, _ := NewValidatorsProvider(args)
-		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+		time.Sleep(args.CacheRefreshIntervalDuration)
 
 		list, err := vp.GetAuctionList()
 		require.Nil(t, list)
@@ -739,7 +740,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 			},
 		}
 		vp, _ := NewValidatorsProvider(args)
-		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+		time.Sleep(args.CacheRefreshIntervalDuration)
 
 		list, err := vp.GetAuctionList()
 		require.Nil(t, list)
@@ -792,7 +793,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 			},
 		}
 		vp, _ := NewValidatorsProvider(args)
-		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+		time.Sleep(args.CacheRefreshIntervalDuration)
 
 		list, err := vp.GetAuctionList()
 		require.Nil(t, err)
@@ -944,7 +945,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		}
 
 		vp, _ := NewValidatorsProvider(args)
-		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+		time.Sleep(args.CacheRefreshIntervalDuration)
 
 		expectedList := []*common.AuctionListValidatorAPIResponse{
 			{
@@ -1049,7 +1050,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 
 		args := createDefaultValidatorsProviderArg()
 
-		args.CacheRefreshIntervalDurationInSec = time.Second * 5
+		args.CacheRefreshIntervalDuration = time.Second * 5
 
 		expectedRootHash := []byte("root hash")
 		ctRootHashCalled := uint32(0)
@@ -1090,7 +1091,7 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 			},
 		}
 		vp, _ := NewValidatorsProvider(args)
-		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+		time.Sleep(args.CacheRefreshIntervalDuration)
 
 		numCalls := 99
 		wg := sync.WaitGroup{}
@@ -1165,11 +1166,11 @@ func createMockShardValidatorInfo() *state.ShardValidatorInfo {
 
 func createDefaultValidatorsProviderArg() ArgValidatorsProvider {
 	return ArgValidatorsProvider{
-		NodesCoordinator:                  &shardingMocks.NodesCoordinatorMock{},
-		StartEpoch:                        1,
-		EpochStartEventNotifier:           &mock.EpochStartNotifierStub{},
-		StakingDataProvider:               &stakingcommon.StakingDataProviderStub{},
-		CacheRefreshIntervalDurationInSec: 1 * time.Millisecond,
+		NodesCoordinator:             &shardingMocks.NodesCoordinatorMock{},
+		StartEpoch:                   1,
+		EpochStartEventNotifier:      &mock.EpochStartNotifierStub{},
+		StakingDataProvider:          &stakingcommon.StakingDataProviderStub{},
+		CacheRefreshIntervalDuration: 1 * time.Millisecond,
 		ValidatorStatistics: &testscommon.ValidatorStatisticsProcessorStub{
 			LastFinalizedRootHashCalled: func() []byte {
 				return []byte("rootHash")
