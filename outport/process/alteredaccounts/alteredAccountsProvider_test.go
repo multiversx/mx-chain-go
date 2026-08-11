@@ -1499,6 +1499,157 @@ func textExtractAlteredAccountsFromPoolTransactionValueNil(t *testing.T) {
 	}, res)
 }
 
+func TestAlteredAccountsProvider_ExtractAddressesFromLogs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil logs should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs(nil, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
+
+	t.Run("no sc deploy events should not add addresses", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs([]*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+							},
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
+
+	t.Run("sc deploy event with no topics should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs([]*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.SCDeployIdentifier),
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
+
+	t.Run("sc deploy events should add addresses", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		args.AddressConverter = testscommon.NewPubkeyConverterMock(3)
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs([]*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.SCDeployIdentifier),
+							Topics: [][]byte{
+								[]byte("sc0"),
+							},
+						},
+					},
+				},
+			},
+			{
+				TxHash: "hash1",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.SCDeployIdentifier),
+							Topics: [][]byte{
+								[]byte("sc1"),
+							},
+						},
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte("notASCDeploy"),
+							Topics: [][]byte{
+								[]byte("sc2"),
+							},
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+
+		require.Len(t, markedAccounts, 2)
+		require.Contains(t, markedAccounts, "sc0")
+		require.Contains(t, markedAccounts, "sc1")
+		require.True(t, markedAccounts["sc0"].balanceChanged)
+		require.True(t, markedAccounts["sc1"].balanceChanged)
+		require.False(t, markedAccounts["sc0"].isSender)
+		require.False(t, markedAccounts["sc1"].isSender)
+	})
+
+	t.Run("sc deploy event with an invalid address should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		args.AddressConverter = testscommon.NewPubkeyConverterMock(32)
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs([]*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.SCDeployIdentifier),
+							Topics: [][]byte{
+								[]byte("invalidLenAddress"),
+							},
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
+}
+
 func getMockArgs() ArgsAlteredAccountsProvider {
 	return ArgsAlteredAccountsProvider{
 		ShardCoordinator:       &testscommon.ShardsCoordinatorMock{},

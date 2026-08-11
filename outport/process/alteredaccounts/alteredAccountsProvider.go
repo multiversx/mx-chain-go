@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -279,6 +280,28 @@ func (aap *alteredAccountsProvider) extractAddressesWithBalanceChange(
 	aap.extractAddressesFromTxsHandlers(selfShardID, scrs, markedAlteredAccounts, process.SCInvoking)
 	aap.extractAddressesFromTxsHandlers(selfShardID, rewards, markedAlteredAccounts, process.RewardTx)
 	aap.extractAddressesFromTxsHandlers(selfShardID, invalidTxs, markedAlteredAccounts, process.InvalidTransaction)
+	aap.extractAddressesFromLogs(txPool.Logs, markedAlteredAccounts)
+}
+
+func (aap *alteredAccountsProvider) extractAddressesFromLogs(
+	logs []*transaction.LogData,
+	markedAlteredAccounts map[string]*markedAlteredAccount) {
+	for _, logEvent := range logs {
+		if logEvent.Log == nil {
+			continue
+		}
+		for _, event := range logEvent.Log.Events {
+			if string(event.Identifier) != core.SCDeployIdentifier {
+				continue
+			}
+			if len(event.Topics) < 1 {
+				continue
+			}
+
+			scAddress := event.Topics[0]
+			aap.addAddressWithBalanceChangeInMap(scAddress, markedAlteredAccounts, false)
+		}
+	}
 }
 
 func txsMapToTxHandlerSlice(txs map[string]*outportcore.TxInfo) []data.TransactionHandler {
