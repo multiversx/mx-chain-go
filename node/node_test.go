@@ -4908,7 +4908,7 @@ func sameMessages(provided, received []heartbeatData.PubKeyHeartbeat) bool {
 		return false
 	}
 
-	areEqual := true
+	var areEqual bool
 	for i := 0; i < providedLen; i++ {
 		p := provided[i]
 		r := received[i]

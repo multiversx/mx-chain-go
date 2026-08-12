@@ -685,10 +685,20 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 		log.Error("appendPendingMiniBlocksAfterSelectingOutgoingTransactions: no header referenced yet")
 		return process.ErrNoReferencedHeader
 	}
-
-	extraMiniBlocksAdded := make([]block.MiniblockAndHash, len(pendingIncomingMiniBlocksAdded))
+	extraMiniBlocksAdded := make([]block.MiniblockAndHash, 0, len(pendingIncomingMiniBlocksAdded))
 	lastNonceReferenced := referencedHeaders[len(referencedHeaders)-1].GetNonce()
-	lastHeaderReferencedFinished := false
+	lastHeaderReferencedFinished := true
+	for _, pendingBlock := range pendingBlocksLeft {
+		if pendingBlock.header.GetNonce() == lastNonceReferenced {
+			lastHeaderReferencedFinished = false
+			break
+		}
+	}
+
+	numReferencedHeaders := len(referencedHeaders)
+	firstDroppedIndex := len(pendingIncomingMiniBlocksAdded)
+
+grantsLoop:
 	for i, pendingMbAdded := range pendingIncomingMiniBlocksAdded {
 		miniBlockAndHash, headerHash, header, found, isHeaderFinished := findPendingMiniBlock(pendingBlocksLeft, pendingMbAdded)
 		if !found {
@@ -696,49 +706,78 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 			return process.ErrInvalidHash
 		}
 
-		extraMiniBlocksAdded[i] = miniBlockAndHash
-
 		// if this is still the last one referenced, continue adding its mini blocks
 		// possible gaps should have been filled already and the current one already referenced
 		if header.GetNonce() == lastNonceReferenced {
+			extraMiniBlocksAdded = append(extraMiniBlocksAdded, miniBlockAndHash)
+			lastHeaderReferencedFinished = isHeaderFinished
 			continue
+		}
+		if !lastHeaderReferencedFinished {
+			firstDroppedIndex = i
+			break
 		}
 
 		// if the header is consecutive to the previous one, reference it
 		if header.GetNonce() == lastNonceReferenced+1 {
+			if numReferencedHeaders >= process.MaxMetaHeadersAllowedInOneShardBlock {
+				firstDroppedIndex = i
+				break
+			}
 			sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
+			numReferencedHeaders++
 			lastNonceReferenced = header.GetNonce()
 			lastHeaderReferencedFinished = isHeaderFinished
+			extraMiniBlocksAdded = append(extraMiniBlocksAdded, miniBlockAndHash)
 			continue
 		}
 
 		// if the header is not consecutive, check for all headers that should be in between
 		// return error if missing, all of them should be available and without mini blocks with dest me
 		for missingNonce := lastNonceReferenced + 1; missingNonce < header.GetNonce(); missingNonce++ {
+			if numReferencedHeaders >= process.MaxMetaHeadersAllowedInOneShardBlock {
+				firstDroppedIndex = i
+				break grantsLoop
+			}
 			hash, hdr, err := findPendingHeaderWithNonceAndNoMiniBlocksDstMe(missingNonce, pendingBlocksLeft)
 			if err != nil {
 				return err
 			}
 
 			sp.miniBlocksSelectionSession.AddReferencedHeader(hdr, hash)
+			numReferencedHeaders++
+			lastNonceReferenced = hdr.GetNonce()
 		}
 
+		if numReferencedHeaders >= process.MaxMetaHeadersAllowedInOneShardBlock {
+			firstDroppedIndex = i
+			break
+		}
 		sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
+		numReferencedHeaders++
 		lastNonceReferenced = header.GetNonce()
 		lastHeaderReferencedFinished = isHeaderFinished
+		extraMiniBlocksAdded = append(extraMiniBlocksAdded, miniBlockAndHash)
+	}
+
+	if firstDroppedIndex < len(pendingIncomingMiniBlocksAdded) {
+		droppedMiniBlocks := make([]block.MiniblockAndHash, len(pendingIncomingMiniBlocksAdded)-firstDroppedIndex)
+		for i, miniBlockHeader := range pendingIncomingMiniBlocksAdded[firstDroppedIndex:] {
+			droppedMiniBlocks[i].Hash = miniBlockHeader.GetHash()
+		}
+		sp.revertGasForCrossShardDstMeMiniBlocks(droppedMiniBlocks, nil)
 	}
 
 	// if the last header referenced was finished, continue referencing headers that do not have mini blocks dest me
 	if lastHeaderReferencedFinished {
-		referencedHeaders = sp.miniBlocksSelectionSession.GetReferencedHeaders()
-		lastNonceReferenced = referencedHeaders[len(referencedHeaders)-1].GetNonce()
-		for {
+		for numReferencedHeaders < process.MaxMetaHeadersAllowedInOneShardBlock {
 			hash, hdr, err := findPendingHeaderWithNonceAndNoMiniBlocksDstMe(lastNonceReferenced+1, pendingBlocksLeft)
 			if err != nil {
 				break
 			}
 
 			sp.miniBlocksSelectionSession.AddReferencedHeader(hdr, hash)
+			numReferencedHeaders++
 			lastNonceReferenced = hdr.GetNonce()
 		}
 	}
@@ -1004,6 +1043,18 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	sort.Slice(partialReferencedMetaBlocks, func(i, j int) bool {
 		return partialReferencedMetaBlocks[i].hdr.GetNonce() < partialReferencedMetaBlocks[j].hdr.GetNonce()
 	})
+	if len(partialReferencedMetaBlocks) > 0 {
+		firstPartialNonce := partialReferencedMetaBlocks[0].hdr.GetNonce()
+		firstTrimmedIndex := sort.Search(len(fullyReferencedMetaBlocks), func(i int) bool {
+			return fullyReferencedMetaBlocks[i].GetNonce() >= firstPartialNonce
+		})
+		if firstTrimmedIndex < len(fullyReferencedMetaBlocks) {
+			log.Warn("getOrderedProcessedMetaBlocksFromMiniBlockHashesV3: fully processed meta block above a not fully processed one",
+				"not fully processed nonce", firstPartialNonce,
+				"first trimmed fully processed nonce", fullyReferencedMetaBlocks[firstTrimmedIndex].GetNonce())
+			fullyReferencedMetaBlocks = fullyReferencedMetaBlocks[:firstTrimmedIndex]
+		}
+	}
 
 	return fullyReferencedMetaBlocks, partialReferencedMetaBlocks, nil
 }

@@ -56,6 +56,11 @@ import (
 // HashAndHdr -
 type HashAndHdr = hashAndHdr
 
+// GetHeader -
+func (hah *hashAndHdr) GetHeader() data.HeaderHandler {
+	return hah.hdr
+}
+
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
@@ -843,6 +848,27 @@ func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 
 // PendingMiniBlocksAfterSelection -
 type PendingMiniBlocksAfterSelection = pendingBlocksAfterSelection
+
+// NewPendingMiniBlocksAfterSelection -
+func NewPendingMiniBlocksAfterSelection(
+	headerHash []byte,
+	header data.HeaderHandler,
+	pendingMiniBlocks map[string]*block.MiniBlock,
+) *PendingMiniBlocksAfterSelection {
+	return &pendingBlocksAfterSelection{
+		headerHash:        headerHash,
+		header:            header,
+		pendingMiniBlocks: pendingMiniBlocks,
+	}
+}
+
+// AppendPendingMiniBlocksAfterSelectingOutgoingTransactions -
+func (sp *shardProcessor) AppendPendingMiniBlocksAfterSelectingOutgoingTransactions(
+	pendingBlocksLeft []*PendingMiniBlocksAfterSelection,
+	pendingIncomingMiniBlocksAdded []data.MiniBlockHeaderHandler,
+) error {
+	return sp.appendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocksLeft, pendingIncomingMiniBlocksAdded)
+}
 
 // GetHeaderHash -
 func (p *PendingMiniBlocksAfterSelection) GetHeaderHash() []byte {
