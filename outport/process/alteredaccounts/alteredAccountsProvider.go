@@ -285,12 +285,17 @@ func (aap *alteredAccountsProvider) extractAddressesWithBalanceChange(
 
 func (aap *alteredAccountsProvider) extractAddressesFromLogs(
 	logs []*transaction.LogData,
-	markedAlteredAccounts map[string]*markedAlteredAccount) {
+	markedAlteredAccounts map[string]*markedAlteredAccount,
+) {
 	for _, logEvent := range logs {
-		if logEvent.Log == nil {
+		if logEvent.Log == nil || check.IfNil(logEvent.Log) {
 			continue
 		}
 		for _, event := range logEvent.Log.Events {
+			if check.IfNil(event) {
+				continue
+			}
+
 			if string(event.Identifier) != core.SCDeployIdentifier {
 				continue
 			}
