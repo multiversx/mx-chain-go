@@ -982,6 +982,7 @@
         MaxOpenFiles = 10
         BloomFilterBitsPerKey = 10
 
+
 [Logs]
     LogFileLifeSpanInMB = 1024 # 1GB
     LogFileLifeSpanInSec = 86400 # 1 day

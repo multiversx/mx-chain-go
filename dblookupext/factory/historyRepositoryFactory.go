@@ -79,6 +79,8 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		hpf.marshalizer,
 		esdtSuppliesStorer,
 		txLogsStorer,
+		hpf.dbLookupExtensionsConfig.SupplyCorrections,
+		hpf.selfShardID,
 	)
 	if err != nil {
 		return nil, err
