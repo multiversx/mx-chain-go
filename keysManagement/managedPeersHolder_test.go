@@ -15,6 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/keysManagement"
@@ -22,8 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -80,7 +81,7 @@ func createMockKeyGenerator() crypto.KeyGenerator {
 				GeneratePublicStub: func() crypto.PublicKey {
 					pk := &cryptoMocks.PublicKeyStub{
 						ToByteArrayStub: func() ([]byte, error) {
-							pkBytes := bytes.Replace(b, []byte("private"), []byte("public"), -1)
+							pkBytes := bytes.ReplaceAll(b, []byte("private"), []byte("public"))
 
 							return pkBytes, nil
 						},

@@ -182,6 +182,11 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return process.ErrInvalidHeader
 	}
 
+	err = checkMetaBlockHashesBasicValidity(header)
+	if err != nil {
+		return err
+	}
+
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -818,6 +823,11 @@ func (sp *shardProcessor) selectOutgoingTransactions(
 }
 
 func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header data.ShardHeaderHandler) error {
+	err := sp.checkMetaBlockHashesOrder(header)
+	if err != nil {
+		return err
+	}
+
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return err
