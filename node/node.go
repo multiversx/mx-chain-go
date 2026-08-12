@@ -22,6 +22,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -40,8 +43,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -102,6 +103,7 @@ type Node struct {
 
 	closableComponents        []mainFactory.Closer
 	enableSignTxWithHashEpoch uint32
+	maxTxNonceDeltaAllowed    int
 	isInImportMode            bool
 }
 
@@ -119,7 +121,8 @@ func (n *Node) ApplyOptions(opts ...Option) error {
 // NewNode creates a new Node instance
 func NewNode(opts ...Option) (*Node, error) {
 	node := &Node{
-		queryHandlers: make(map[string]debug.QueryHandler),
+		queryHandlers:          make(map[string]debug.QueryHandler),
+		maxTxNonceDeltaAllowed: common.MaxTxNonceDeltaAllowed,
 	}
 
 	node.closableComponents = make([]mainFactory.Closer, 0)
@@ -807,7 +810,7 @@ func (n *Node) commonTransactionValidation(
 		n.coreComponents.AddressPubKeyConverter(),
 		n.coreComponents.TxVersionChecker(),
 		n.coreComponents.EnableEpochsHandler(),
-		common.MaxTxNonceDeltaAllowed,
+		n.maxTxNonceDeltaAllowed,
 	)
 
 	if err != nil {

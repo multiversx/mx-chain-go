@@ -148,7 +148,7 @@ func (dummy *dummyClock) getEventToHappenNoLock() (eventToHappen *dummyEvent, ev
 
 	for element := dummy.eventsSchedule.Front(); element != nil; element = element.Next() {
 		event := element.Value.(*dummyEvent)
-		if now.After(event.time) || now == event.time {
+		if now.After(event.time) || now.Equal(event.time) {
 			eventToHappen = event
 			eventToHappenElement = element
 			break

@@ -219,7 +219,13 @@ func (r *Resolver) requestProofIfNeeded(shardID uint32, headerHash []byte, heade
 		return
 	}
 
-	go r.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
+	if check.IfNil(header) {
+		// unknown target epoch; the current-epoch label keeps the fail-safe request
+		go r.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
+		return
+	}
+
+	go r.requestHandler.RequestEquivalentProofByHashForEpoch(shardID, headerHash, header.GetEpoch())
 }
 
 func (r *Resolver) requestHeaderAndProofIfNeeded(shardID uint32, headerHash []byte) {
@@ -297,16 +303,15 @@ func (r *Resolver) RequestMissingShardHeaders(
 		r.requestEpochStartLastFinalizedHeaders(metaHeader.GetEpochStartHandler())
 	}
 
-	shardDataProposedNonces := make(map[uint32]uint64)
+	highestProposals := make(map[uint32]proposalInfo)
 	for _, shardProposalData := range metaHeader.GetShardInfoProposalHandlers() {
-		shardID := shardProposalData.GetShardID()
-		storeNonceToShardDataIfGreater(shardDataProposedNonces, shardProposalData.GetNonce(), shardID)
+		storeProposalIfGreater(highestProposals, shardProposalData)
 
-		r.requestHeaderAndProofIfNeeded(shardID, shardProposalData.GetHeaderHash())
+		r.requestHeaderAndProofIfNeeded(shardProposalData.GetShardID(), shardProposalData.GetHeaderHash())
 	}
 
-	shardDataFinalizedNonces := getShardDataFinalizedNonces(metaHeader.GetShardInfoHandlers())
-	r.requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataProposedNonces)
+	shardDataFinalizedNonces, finalizedHeaders := getShardDataFinalizedInfo(metaHeader.GetShardInfoHandlers())
+	r.requestNonceGapsIfNeeded(shardDataFinalizedNonces, finalizedHeaders, highestProposals)
 
 	return nil
 }
@@ -317,42 +322,93 @@ func (r *Resolver) requestEpochStartLastFinalizedHeaders(epochStartHandler data.
 	}
 }
 
-func storeNonceToShardDataIfGreater(shardDataProposedNonces map[uint32]uint64, nonce uint64, shardID uint32) {
-	if nonce > shardDataProposedNonces[shardID] {
-		shardDataProposedNonces[shardID] = nonce
+type proposalInfo struct {
+	nonce uint64
+	hash  []byte
+}
+
+type finalizedHeaderKey struct {
+	shardID uint32
+	nonce   uint64
+	hash    string
+}
+
+func storeProposalIfGreater(highestProposals map[uint32]proposalInfo, proposal data.ShardDataProposalHandler) {
+	shardID := proposal.GetShardID()
+	current, found := highestProposals[shardID]
+	if !found || proposal.GetNonce() > current.nonce {
+		highestProposals[shardID] = proposalInfo{nonce: proposal.GetNonce(), hash: proposal.GetHeaderHash()}
 	}
 }
 
-func getShardDataFinalizedNonces(shardInfoHandlers []data.ShardDataHandler) map[uint32]uint64 {
+func getShardDataFinalizedInfo(shardInfoHandlers []data.ShardDataHandler) (map[uint32]uint64, map[finalizedHeaderKey]struct{}) {
 	shardDataFinalizedNonces := make(map[uint32]uint64)
+	finalizedHeaders := make(map[finalizedHeaderKey]struct{}, len(shardInfoHandlers))
 	for _, shardData := range shardInfoHandlers {
-		shardDataFinalizedNonces[shardData.GetShardID()] = shardData.GetNonce()
+		shardID := shardData.GetShardID()
+		nonce := shardData.GetNonce()
+		currentNonce, found := shardDataFinalizedNonces[shardID]
+		if !found || nonce > currentNonce {
+			shardDataFinalizedNonces[shardID] = nonce
+		}
+
+		key := finalizedHeaderKey{shardID: shardID, nonce: nonce, hash: string(shardData.GetHeaderHash())}
+		finalizedHeaders[key] = struct{}{}
 	}
-	return shardDataFinalizedNonces
+	return shardDataFinalizedNonces, finalizedHeaders
 }
 
-func (r *Resolver) requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataProposedNonces map[uint32]uint64) {
-	for shardID, proposedNonce := range shardDataProposedNonces {
+func (r *Resolver) requestNonceGapsIfNeeded(
+	shardDataFinalizedNonces map[uint32]uint64,
+	finalizedHeaders map[finalizedHeaderKey]struct{},
+	highestProposals map[uint32]proposalInfo,
+) {
+	for shardID, proposal := range highestProposals {
 		lastFinalizedNonce, found := shardDataFinalizedNonces[shardID]
 		if !found {
 			continue
 		}
 
-		if proposedNonce <= lastFinalizedNonce {
-			log.Warn("requestNonceGapsIfNeeded: proposed nonce is not greater than finalized nonce, skipping",
-				"shardID", shardID,
-				"proposedNonce", proposedNonce,
-				"lastFinalizedNonce", lastFinalizedNonce)
+		highestProposedNonce := proposal.nonce
+		if highestProposedNonce <= lastFinalizedNonce {
+			// Legacy transition headers appear in both proposal and finalized data.
+			alreadyFinalized := isFinalizedTransitionHeader(shardID, lastFinalizedNonce, proposal, finalizedHeaders)
+			if alreadyFinalized {
+				log.Debug("requestNonceGapsIfNeeded: proposed header is finalized in the same meta block, skipping",
+					"shardID", shardID,
+					"highestProposedNonce", highestProposedNonce,
+					"lastFinalizedNonce", lastFinalizedNonce)
+			} else {
+				log.Warn("requestNonceGapsIfNeeded: highest proposed nonce is not greater than last finalized nonce, skipping",
+					"shardID", shardID,
+					"highestProposedNonce", highestProposedNonce,
+					"lastFinalizedNonce", lastFinalizedNonce)
+			}
 			continue
 		}
 
-		nonceGap := proposedNonce - lastFinalizedNonce
+		nonceGap := highestProposedNonce - lastFinalizedNonce
 		if nonceGap < 2 {
 			continue
 		}
 
-		r.requestShardHeadersAndProofsByNonce(shardID, lastFinalizedNonce+1, proposedNonce)
+		r.requestShardHeadersAndProofsByNonce(shardID, lastFinalizedNonce+1, highestProposedNonce)
 	}
+}
+
+func isFinalizedTransitionHeader(
+	shardID uint32,
+	lastFinalizedNonce uint64,
+	proposal proposalInfo,
+	finalizedHeaders map[finalizedHeaderKey]struct{},
+) bool {
+	if proposal.nonce != lastFinalizedNonce {
+		return false
+	}
+
+	key := finalizedHeaderKey{shardID: shardID, nonce: proposal.nonce, hash: string(proposal.hash)}
+	_, found := finalizedHeaders[key]
+	return found
 }
 
 // requestShardHeadersAndProofsByNonce will request shard headers and proofs if needed without blocking

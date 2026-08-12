@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/estimator"
@@ -54,6 +55,11 @@ import (
 
 // HashAndHdr -
 type HashAndHdr = hashAndHdr
+
+// GetHeader -
+func (hah *hashAndHdr) GetHeader() data.HeaderHandler {
+	return hah.hdr
+}
 
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
@@ -274,6 +280,19 @@ func NewShardProcessorEmptyWith3shards(
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 
+	blockTracker := mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks)
+	headersForBlockComponent, _ := headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
+		DataPool:            dataComponents.DataPool,
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:    boostrapComponents.ShardCoordinator(),
+		BlockTracker:        blockTracker,
+		TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
+		RoundHandler:        coreComponents.RoundHandler(),
+		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
+		GenesisNonce: 0,
+	})
+
 	argsGasConsumption := ArgsGasConsumption{
 		EconomicsFee:                      &economicsmocks.EconomicsHandlerMock{},
 		ShardCoordinator:                  boostrapComponents.ShardCoordinator(),
@@ -307,7 +326,7 @@ func NewShardProcessorEmptyWith3shards(
 					return nil
 				},
 			},
-			BlockTracker:                       mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			BlockTracker:                       blockTracker,
 			MiniBlockTracker:                   &testscommon.MiniBlockTrackerStub{},
 			BlockSizeThrottler:                 &mock.BlockSizeThrottlerStub{},
 			Version:                            "softwareVersion",
@@ -321,7 +340,7 @@ func NewShardProcessorEmptyWith3shards(
 			ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 			SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
 			StateAccessesCollector:             disabled.NewDisabledStateAccessesCollector(),
-			HeadersForBlock:                    &testscommon.HeadersForBlockMock{},
+			HeadersForBlock:                    headersForBlockComponent,
 			MiniBlocksSelectionSession:         mbSelectionSession,
 			ExecutionResultsVerifier:           execResultsVerifier,
 			MissingDataResolver:                missingDataResolver,
@@ -493,9 +512,38 @@ func (sp *shardProcessor) GetHashAndHdrStruct(header data.HeaderHandler, hash []
 	return &hashAndHdr{header, hash}
 }
 
+// SetHdrForCurrentBlock -
+func (bp *baseProcessor) SetHdrForCurrentBlock(headerHash []byte, headerHandler data.HeaderHandler, usedInBlock bool) {
+	if usedInBlock {
+		bp.hdrsForCurrBlock.AddHeaderUsedInBlock(string(headerHash), headerHandler)
+		return
+	}
+	bp.hdrsForCurrBlock.AddHeaderNotUsedInBlock(string(headerHash), headerHandler)
+}
+
 // CheckMetaHeadersValidityAndFinality -
-func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(header data.HeaderHandler) error {
+func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(header data.ShardHeaderHandler) error {
 	return sp.checkMetaHeadersValidityAndFinality(header)
+}
+
+// CheckMetaBlockHashesOrder -
+func (sp *shardProcessor) CheckMetaBlockHashesOrder(header data.ShardHeaderHandler) error {
+	return sp.checkMetaBlockHashesOrder(header)
+}
+
+// CheckMetaBlockHashesBasicValidity -
+func CheckMetaBlockHashesBasicValidity(header data.ShardHeaderHandler) error {
+	return checkMetaBlockHashesBasicValidity(header)
+}
+
+// VerifyCrossShardMiniBlockDstMe -
+func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
+	return sp.verifyCrossShardMiniBlockDstMe(header)
+}
+
+// CheckReferencedMetaBlocksFullyConsumed -
+func (sp *shardProcessor) CheckReferencedMetaBlocksFullyConsumed(header data.ShardHeaderHandler) error {
+	return sp.checkReferencedMetaBlocksFullyConsumed(header)
 }
 
 // CreateAndProcessMiniBlocksDstMe -
@@ -801,6 +849,27 @@ func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 // PendingMiniBlocksAfterSelection -
 type PendingMiniBlocksAfterSelection = pendingBlocksAfterSelection
 
+// NewPendingMiniBlocksAfterSelection -
+func NewPendingMiniBlocksAfterSelection(
+	headerHash []byte,
+	header data.HeaderHandler,
+	pendingMiniBlocks map[string]*block.MiniBlock,
+) *PendingMiniBlocksAfterSelection {
+	return &pendingBlocksAfterSelection{
+		headerHash:        headerHash,
+		header:            header,
+		pendingMiniBlocks: pendingMiniBlocks,
+	}
+}
+
+// AppendPendingMiniBlocksAfterSelectingOutgoingTransactions -
+func (sp *shardProcessor) AppendPendingMiniBlocksAfterSelectingOutgoingTransactions(
+	pendingBlocksLeft []*PendingMiniBlocksAfterSelection,
+	pendingIncomingMiniBlocksAdded []data.MiniBlockHeaderHandler,
+) error {
+	return sp.appendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocksLeft, pendingIncomingMiniBlocksAdded)
+}
+
 // GetHeaderHash -
 func (p *PendingMiniBlocksAfterSelection) GetHeaderHash() []byte {
 	return p.headerHash
@@ -905,11 +974,6 @@ func (bp *baseProcessor) RequestProofIfNeeded(
 	epoch uint32,
 ) {
 	bp.requestProofIfNeeded(nonce, shardID, epoch)
-}
-
-// VerifyCrossShardMiniBlockDstMe -
-func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
-	return sp.verifyCrossShardMiniBlockDstMe(header)
 }
 
 // AddCrossShardMiniBlocksDstMeToMap -

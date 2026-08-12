@@ -520,7 +520,7 @@
     # SnapshotsGoroutinesPerCore scales the snapshot fan-out with the host: effective goroutines =
     # value * GOMAXPROCS, minimum 4. Keep it low: a deep snapshot run queue can delay waking
     # consensus goroutines
-    SnapshotsGoroutinesPerCore = 2
+    SnapshotsGoroutinesPerCore = 10
 
 [HeadersPoolConfig]
     MaxHeadersPerShard = 1000
@@ -561,6 +561,7 @@
     MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
     MaxTrackedBlocks = 100
     PropagationGracePeriodMs = 200
+    MaxTxNonceDeltaAllowed = 100
 
 [TxCacheSelection]
     SelectionMaxNumTxs = 30000
@@ -905,10 +906,9 @@
 
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
-    # fallback prefetch patience, measured from the local (header + proof) observation; only
-    # data still missing at expiry is requested, so the healthy path pays nothing. Must exceed
-    # the sender's broadcast chain (30ms miniblocks + 50ms transactions) plus the gossip
-    # delivery time of the broadcast data; generous margin is free safety
+    # fallback prefetch patience, measured from the local (header + proof) observation.
+    # Must exceed the sender's broadcast chain (30ms miniblocks + 50ms transactions)
+    # plus the gossip delivery time of the broadcast data
     ExtraDelayForRequestBlockInfoInMilliseconds = 400
 
 # ResourceStats, if enabled, will output in a folder called "stats"
