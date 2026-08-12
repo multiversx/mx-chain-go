@@ -1509,7 +1509,7 @@ func TestAlteredAccountsProvider_ExtractAddressesFromLogs(t *testing.T) {
 		aap, _ := NewAlteredAccountsProvider(args)
 
 		markedAccounts := make(map[string]*markedAlteredAccount)
-		aap.extractAddressesFromLogs(nil, markedAccounts)
+		aap.extractAddressesFromLogs(0, nil, markedAccounts)
 		require.Empty(t, markedAccounts)
 	})
 
@@ -1520,7 +1520,7 @@ func TestAlteredAccountsProvider_ExtractAddressesFromLogs(t *testing.T) {
 		aap, _ := NewAlteredAccountsProvider(args)
 
 		markedAccounts := make(map[string]*markedAlteredAccount)
-		aap.extractAddressesFromLogs([]*transaction.LogData{
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
@@ -1547,7 +1547,7 @@ func TestAlteredAccountsProvider_ExtractAddressesFromLogs(t *testing.T) {
 		aap, _ := NewAlteredAccountsProvider(args)
 
 		markedAccounts := make(map[string]*markedAlteredAccount)
-		aap.extractAddressesFromLogs([]*transaction.LogData{
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
@@ -1572,14 +1572,14 @@ func TestAlteredAccountsProvider_ExtractAddressesFromLogs(t *testing.T) {
 		aap, _ := NewAlteredAccountsProvider(args)
 
 		markedAccounts := make(map[string]*markedAlteredAccount)
-		aap.extractAddressesFromLogs([]*transaction.LogData{
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
-					Address: []byte("addr"),
+					Address: []byte("sc0"),
 					Events: []*transaction.Event{
 						{
-							Address:    []byte("addr"),
+							Address:    []byte("sc0"),
 							Identifier: []byte(core.SCDeployIdentifier),
 							Topics: [][]byte{
 								[]byte("sc0"),
@@ -1591,17 +1591,17 @@ func TestAlteredAccountsProvider_ExtractAddressesFromLogs(t *testing.T) {
 			{
 				TxHash: "hash1",
 				Log: &transaction.Log{
-					Address: []byte("addr"),
+					Address: []byte("sc1"),
 					Events: []*transaction.Event{
 						{
-							Address:    []byte("addr"),
+							Address:    []byte("sc1"),
 							Identifier: []byte(core.SCDeployIdentifier),
 							Topics: [][]byte{
 								[]byte("sc1"),
 							},
 						},
 						{
-							Address:    []byte("addr"),
+							Address:    []byte("sc2"),
 							Identifier: []byte("notASCDeploy"),
 							Topics: [][]byte{
 								[]byte("sc2"),
@@ -1629,17 +1629,79 @@ func TestAlteredAccountsProvider_ExtractAddressesFromLogs(t *testing.T) {
 		aap, _ := NewAlteredAccountsProvider(args)
 
 		markedAccounts := make(map[string]*markedAlteredAccount)
-		aap.extractAddressesFromLogs([]*transaction.LogData{
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
-					Address: []byte("addr"),
+					Address: []byte("invalidLenAddress"),
 					Events: []*transaction.Event{
 						{
-							Address:    []byte("addr"),
+							Address:    []byte("invalidLenAddress"),
 							Identifier: []byte(core.SCDeployIdentifier),
 							Topics: [][]byte{
 								[]byte("invalidLenAddress"),
+							},
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
+
+	t.Run("sc deploy event with event address different than the first topic should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		args.AddressConverter = testscommon.NewPubkeyConverterMock(3)
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("sc0"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("sc0"),
+							Identifier: []byte(core.SCDeployIdentifier),
+							Topics: [][]byte{
+								[]byte("sc1"),
+							},
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
+
+	t.Run("sc deploy event with address from another shard should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		args.AddressConverter = testscommon.NewPubkeyConverterMock(3)
+		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
+			CurrentShard: 0,
+			ComputeIdCalled: func(address []byte) uint32 {
+				return 1
+			},
+		}
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("sc0"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("sc0"),
+							Identifier: []byte(core.SCDeployIdentifier),
+							Topics: [][]byte{
+								[]byte("sc0"),
 							},
 						},
 					},

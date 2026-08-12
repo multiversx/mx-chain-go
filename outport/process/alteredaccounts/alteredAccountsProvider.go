@@ -1,6 +1,7 @@
 package alteredaccounts
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -280,10 +281,11 @@ func (aap *alteredAccountsProvider) extractAddressesWithBalanceChange(
 	aap.extractAddressesFromTxsHandlers(selfShardID, scrs, markedAlteredAccounts, process.SCInvoking)
 	aap.extractAddressesFromTxsHandlers(selfShardID, rewards, markedAlteredAccounts, process.RewardTx)
 	aap.extractAddressesFromTxsHandlers(selfShardID, invalidTxs, markedAlteredAccounts, process.InvalidTransaction)
-	aap.extractAddressesFromLogs(txPool.Logs, markedAlteredAccounts)
+	aap.extractAddressesFromLogs(selfShardID, txPool.Logs, markedAlteredAccounts)
 }
 
 func (aap *alteredAccountsProvider) extractAddressesFromLogs(
+	selfShardID uint32,
 	logs []*transaction.LogData,
 	markedAlteredAccounts map[string]*markedAlteredAccount,
 ) {
@@ -304,6 +306,13 @@ func (aap *alteredAccountsProvider) extractAddressesFromLogs(
 			}
 
 			scAddress := event.Topics[0]
+			if !bytes.Equal(event.Address, scAddress) {
+				continue
+			}
+			if aap.shardCoordinator.ComputeId(scAddress) != selfShardID {
+				continue
+			}
+
 			aap.addAddressWithBalanceChangeInMap(scAddress, markedAlteredAccounts, false)
 		}
 	}
