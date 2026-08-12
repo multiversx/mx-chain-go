@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sync"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
@@ -78,6 +79,10 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 	err := interceptedData.CheckValidity()
 	if err != nil {
 		logInterceptedDataCheckValidityErr(interceptedData, err)
+		if errors.Is(err, common.ErrAlreadyExistingEquivalentProof) {
+			return err
+		}
+
 		// TODO: investigate to selectively add as invalid intercepted data only when data is indeed invalid instead of missing
 		// idv.cache.Put(interceptedData.Hash(), invalidInterceptedData, interceptedDataStatusBytesSize)
 		return process.ErrInvalidInterceptedData

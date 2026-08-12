@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -76,7 +77,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		RoundHandler:         &mock.RoundHandlerStub{},
 		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+		ExtraDelayForRequestBlockInfoInMilliseconds: 0,
 	}
 }
 
@@ -268,6 +269,31 @@ func TestNewEpochStartTrigger_InvalidEnableEpochsHandlerShouldErr(t *testing.T) 
 
 	assert.Nil(t, epochStartTrigger)
 	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
+}
+
+func TestNewEpochStartTrigger_ExtraDelayForRequestBlockInfo(t *testing.T) {
+	t.Parallel()
+
+	t.Run("negative delay should error", func(t *testing.T) {
+		args := createMockShardEpochStartTriggerArguments()
+		args.ExtraDelayForRequestBlockInfoInMilliseconds = -1
+
+		trigger, err := NewEpochStartTrigger(args)
+
+		require.Nil(t, trigger)
+		require.ErrorIs(t, err, process.ErrNegativeValue)
+	})
+
+	t.Run("configured delay should be stored", func(t *testing.T) {
+		args := createMockShardEpochStartTriggerArguments()
+		args.ExtraDelayForRequestBlockInfoInMilliseconds = 400
+
+		trigger, err := NewEpochStartTrigger(args)
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, trigger.Close()) })
+
+		require.Equal(t, 400*time.Millisecond, trigger.getExtraDelayForRequestsBlockInfo())
+	})
 }
 
 func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
