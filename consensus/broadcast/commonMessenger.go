@@ -23,6 +23,8 @@ import (
 
 var log = logger.GetOrCreate("consensus/broadcast")
 
+const equivalentProofOriginatorDelay = 50 * time.Millisecond
+
 type commonMessenger struct {
 	marshalizer             marshal.Marshalizer
 	hasher                  hashing.Hasher
@@ -244,6 +246,7 @@ func (cm *commonMessenger) broadcastEquivalentProof(proof data.HeaderProofHandle
 		return err
 	}
 
+	time.Sleep(equivalentProofOriginatorDelay)
 	cm.broadcast(topic, msgProof, pkBytes)
 
 	return nil
