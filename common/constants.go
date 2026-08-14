@@ -1054,10 +1054,6 @@ const ExtraDelayForBroadcastBlockInfo = 30 * time.Millisecond
 // transactions broadcast; covers only the tx-before-its-mb arrival tail at receivers
 const ExtraDelayBetweenBroadcastMbsAndTxs = 50 * time.Millisecond
 
-// ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
-// moment when its components, like mini blocks and transactions, would be requested too if they are still missing
-const ExtraDelayForRequestBlockInfo = ExtraDelayForBroadcastBlockInfo + ExtraDelayBetweenBroadcastMbsAndTxs
-
 // CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
 const CommitMaxTime = 3 * time.Second
 

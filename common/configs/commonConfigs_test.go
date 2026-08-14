@@ -3,9 +3,10 @@ package configs_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/stretchr/testify/require"
 )
 
 func defaultConsensusConfigsByRound() []config.ConsensusConfigByRound {
@@ -160,9 +161,9 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 	t.Parallel()
 
 	conf := []config.EpochStartConfigByEpoch{
-		{EnableEpoch: 0, GracePeriodRounds: 10, ExtraDelayForRequestBlockInfoInMilliseconds: 20},
-		{EnableEpoch: 1, GracePeriodRounds: 11, ExtraDelayForRequestBlockInfoInMilliseconds: 21},
-		{EnableEpoch: 2, GracePeriodRounds: 12, ExtraDelayForRequestBlockInfoInMilliseconds: 22},
+		{EnableEpoch: 0, GracePeriodRounds: 10},
+		{EnableEpoch: 1, GracePeriodRounds: 11},
+		{EnableEpoch: 2, GracePeriodRounds: 12},
 	}
 
 	confByRound := []config.EpochStartConfigByRound{
@@ -208,18 +209,6 @@ func TestCommonConfigsByEpoch_Getters(t *testing.T) {
 
 		gracePeriodRounds = cc.GetGracePeriodRoundsByEpoch(1)
 		require.Equal(t, uint32(11), gracePeriodRounds)
-	})
-
-	t.Run("get extra delay for request block info", func(t *testing.T) {
-		t.Parallel()
-
-		cc, _ := configs.NewCommonConfigsHandler(conf, confByRound, consensusConf, consensusConfByRound, false)
-
-		extraDelayForRequests := cc.GetExtraDelayForRequestBlockInfoInMs(0)
-		require.Equal(t, uint32(20), extraDelayForRequests)
-
-		extraDelayForRequests = cc.GetExtraDelayForRequestBlockInfoInMs(1)
-		require.Equal(t, uint32(21), extraDelayForRequests)
 	})
 
 	t.Run("get max rounds without committed start in epoch block by round", func(t *testing.T) {

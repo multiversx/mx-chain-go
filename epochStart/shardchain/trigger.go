@@ -53,15 +53,15 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool             dataRetriever.PoolsHolder
-	Storage              dataRetriever.StorageService
-	RequestHandler       epochStart.RequestHandler
-	EpochStartNotifier   epochStart.Notifier
-	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
-	RoundHandler         process.RoundHandler
-	AppStatusHandler     core.AppStatusHandler
-	EnableEpochsHandler  common.EnableEpochsHandler
-	CommonConfigsHandler common.CommonConfigsHandler
+	DataPool                                    dataRetriever.PoolsHolder
+	Storage                                     dataRetriever.StorageService
+	RequestHandler                              epochStart.RequestHandler
+	EpochStartNotifier                          epochStart.Notifier
+	PeerMiniBlocksSyncer                        process.ValidatorInfoSyncer
+	RoundHandler                                process.RoundHandler
+	AppStatusHandler                            core.AppStatusHandler
+	EnableEpochsHandler                         common.EnableEpochsHandler
+	ExtraDelayForRequestBlockInfoInMilliseconds int
 
 	Epoch    uint32
 	Validity uint64
@@ -115,9 +115,9 @@ type trigger struct {
 
 	peerMiniBlocksSyncer process.ValidatorInfoSyncer
 
-	appStatusHandler         core.AppStatusHandler
-	enableEpochsHandler      common.EnableEpochsHandler
-	epochStartConfigsHandler common.CommonConfigsHandler
+	appStatusHandler              core.AppStatusHandler
+	enableEpochsHandler           common.EnableEpochsHandler
+	extraDelayForRequestBlockInfo time.Duration
 
 	mapMissingMiniBlocks     map[string]uint32
 	mapMissingValidatorsInfo map[string]uint32
@@ -223,6 +223,9 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
+	if args.ExtraDelayForRequestBlockInfoInMilliseconds < 0 {
+		return nil, process.ErrNegativeValue
+	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.RefactorPeersMiniBlocksFlag,
 	})
@@ -299,7 +302,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		appStatusHandler:              args.AppStatusHandler,
 		roundHandler:                  args.RoundHandler,
 		enableEpochsHandler:           args.EnableEpochsHandler,
-		epochStartConfigsHandler:      args.CommonConfigsHandler,
+		extraDelayForRequestBlockInfo: time.Duration(args.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 		chanMetaBlockReceived:         make(chan struct{}, 1),
 		pendingEpochStartProofs:       make(map[string]pendingEpochStartProof),
 		pendingEpochStartHeaders:      make(map[uint32]struct{}),
@@ -329,9 +332,8 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	return t, nil
 }
 
-func (t *trigger) getExtraDelayForRequestsBlockInfo(epoch uint32) time.Duration {
-	extraDelayForRequestBlockInfoInMilliseconds := t.epochStartConfigsHandler.GetExtraDelayForRequestBlockInfoInMs(epoch)
-	return time.Duration(extraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond
+func (t *trigger) getExtraDelayForRequestsBlockInfo() time.Duration {
+	return t.extraDelayForRequestBlockInfo
 }
 
 func (t *trigger) clearMissingMiniBlocksMap(epoch uint32) {
@@ -951,7 +953,7 @@ func (t *trigger) updateTriggerHeaderData(metaHdr data.MetaHeaderHandler, metaBl
 		t.newEpochHdrReceived = true
 		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
 		// waiting for late broadcast of mini blocks and transactions to be done and received
-		wait := t.getExtraDelayForRequestsBlockInfo(metaHdr.GetEpoch())
+		wait := t.getExtraDelayForRequestsBlockInfo()
 		roundDifferences := t.roundHandler.Index() - int64(metaHdr.GetRound())
 		if roundDifferences > 1 {
 			wait = 0

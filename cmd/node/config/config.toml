@@ -96,8 +96,8 @@
     ]
 
     EpochStartConfigsByEpoch = [
-        { EnableEpoch = 0, GracePeriodRounds = 25, ExtraDelayForRequestBlockInfoInMilliseconds = 3000 },
-        { EnableEpoch = 2, GracePeriodRounds = 250, ExtraDelayForRequestBlockInfoInMilliseconds = 220 },
+        { EnableEpoch = 0, GracePeriodRounds = 25 },
+        { EnableEpoch = 2, GracePeriodRounds = 250 },
     ]
 
     EpochStartConfigsByRound = [

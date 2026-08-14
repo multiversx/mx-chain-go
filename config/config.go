@@ -367,8 +367,7 @@ type SubroundTiming struct {
 type EpochStartConfigByEpoch struct {
 	EnableEpoch uint32
 
-	GracePeriodRounds                           uint32
-	ExtraDelayForRequestBlockInfoInMilliseconds uint32
+	GracePeriodRounds uint32
 }
 
 // EpochStartConfigByRound defines epoch start configuration parameters by round
