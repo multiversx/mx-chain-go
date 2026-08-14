@@ -53,6 +53,57 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
+func TestSortedMiniBlockMapKeys(t *testing.T) {
+	t.Parallel()
+
+	miniBlocksMap := map[string]block.MiniBlockSlice{
+		"header-c": nil,
+		"header-a": nil,
+		"header-b": nil,
+	}
+
+	require.Equal(t, []string{"header-a", "header-b", "header-c"}, sortedMiniBlockMapKeys(miniBlocksMap))
+}
+
+func TestTransactionCoordinator_CreateMarshalledDataV3ShouldBeDeterministic(t *testing.T) {
+	t.Parallel()
+
+	txs := map[string]*transaction.Transaction{
+		"tx-a": {Nonce: 1},
+		"tx-b": {Nonce: 2},
+	}
+	tc := &transactionCoordinator{
+		dataPool: &dataRetrieverMock.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{GetCalled: func(_ []byte) (interface{}, bool) {
+					return map[block.Type]map[string]data.TransactionHandler{}, true
+				}}
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{SearchFirstDataCalled: func(key []byte) (interface{}, bool) {
+					tx, ok := txs[string(key)]
+					return tx, ok
+				}}
+			},
+		},
+		shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+		marshalizer: &marshallerMock.MarshalizerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return []byte(fmt.Sprintf("nonce-%d", obj.(*transaction.Transaction).Nonce)), nil
+		}},
+	}
+	miniBlockA := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 1, Type: block.TxBlock, TxHashes: [][]byte{[]byte("tx-a")}}
+	miniBlockB := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 1, Type: block.TxBlock, TxHashes: [][]byte{[]byte("tx-b")}}
+	firstMap := map[string]block.MiniBlockSlice{"header-b": {miniBlockB}, "header-a": {miniBlockA}}
+	secondMap := map[string]block.MiniBlockSlice{"header-a": {miniBlockA}, "header-b": {miniBlockB}}
+
+	first := tc.createMarshalledDataV3(firstMap)
+	second := tc.createMarshalledDataV3(secondMap)
+
+	require.Equal(t, first, second)
+	require.Contains(t, first, factory.TransactionTopic+"_0_1")
+	require.Equal(t, [][]byte{[]byte("nonce-1"), []byte("nonce-2")}, first[factory.TransactionTopic+"_0_1"])
+}
+
 const MaxGasLimitPerBlock = uint64(100000)
 
 var txHash = []byte("tx_hash1")

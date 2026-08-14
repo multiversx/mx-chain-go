@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/consensus/blacklist"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockPeerBlacklistArgs() blacklist.PeerBlackListArgs {
@@ -51,7 +52,7 @@ func TestNewPeerBlacklist(t *testing.T) {
 		pb, err := blacklist.NewPeerBlacklist(args)
 		require.Nil(t, err)
 		require.False(t, pb.IsInterfaceNil())
-		defer pb.Close()
+		defer func() { _ = pb.Close() }()
 
 		wg.Wait()
 

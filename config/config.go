@@ -18,6 +18,7 @@ type TxCacheBoundsConfig struct {
 	MaxNumBytesPerSenderUpperBound uint32
 	MaxTrackedBlocks               uint32
 	PropagationGracePeriodMs       uint32
+	MaxTxNonceDeltaAllowed         int
 }
 
 // TxCacheSelectionConfig will map the mempool selection config
@@ -366,8 +367,7 @@ type SubroundTiming struct {
 type EpochStartConfigByEpoch struct {
 	EnableEpoch uint32
 
-	GracePeriodRounds                           uint32
-	ExtraDelayForRequestBlockInfoInMilliseconds uint32
+	GracePeriodRounds uint32
 }
 
 // EpochStartConfigByRound defines epoch start configuration parameters by round

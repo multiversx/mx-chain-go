@@ -369,7 +369,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByNonce(headerHandler data.Heade
 		}
 
 		boot.requestHandler.SetEpoch(headerHandler.GetEpoch())
-		boot.requestHandler.RequestEquivalentProofByHash(headerHandler.GetShardID(), hdrHash)
+		boot.requestHandler.RequestEquivalentProofByHashForEpoch(headerHandler.GetShardID(), hdrHash, headerHandler.GetEpoch())
 
 		return
 	}
@@ -419,7 +419,7 @@ func (boot *baseBootstrap) confirmHeaderReceivedByHash(headerHandler data.Header
 		}
 
 		boot.requestHandler.SetEpoch(headerHandler.GetEpoch())
-		boot.requestHandler.RequestEquivalentProofByHash(headerHandler.GetShardID(), hdrHash)
+		boot.requestHandler.RequestEquivalentProofByHashForEpoch(headerHandler.GetShardID(), hdrHash, headerHandler.GetEpoch())
 
 		return
 	}
@@ -1619,6 +1619,9 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	err = txPool.OnExecutedBlock(lastNotarizedExecutedHeader, rootHash)
 	if err != nil {
 		txPool.ResetTracker()
+		// the emptied tracker must be rebuilt from the notarized anchor: the realign drops the
+		// pending execution results, else the backfill starts above the anchor and leaves a gap
+		boot.pendingV3Realign = true
 		return 0, nil, err
 	}
 
@@ -2403,7 +2406,7 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 		return hdr, nil
 	}
 
-	boot.requestHeaderAndProofByHashIfMissing(hash, !hasHeader, needsProof)
+	boot.requestHeaderAndProofByHashIfMissing(hash, hdr, !hasHeader, needsProof)
 
 	err = boot.waitForHeaderAndProofByHash()
 	if err != nil {
@@ -2460,7 +2463,7 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 
 	// no usable header is held here, so ask for one even when the pool has an unproven fork: that
 	// fork may never gain a proof, while a request by nonce is answered with the proven header
-	boot.requestHeaderAndProofByNonce(hash, nonce, needsProof)
+	boot.requestHeaderAndProofByNonce(hash, hdr, nonce, needsProof)
 
 	err = boot.waitForHeaderAndProofByNonce()
 	if err != nil {
@@ -2517,6 +2520,7 @@ func (boot *baseBootstrap) checkNeedsProofByNonce(
 
 func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	hash []byte,
+	header data.HeaderHandler,
 	needsHeader bool,
 	needsProof bool,
 ) {
@@ -2535,7 +2539,18 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	)
 
 	boot.setRequestedHeaderHash(hash)
-	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	boot.requestSelfShardProof(hash, header)
+}
+
+// requestSelfShardProof requests the proof stamped with the header's epoch; with the header
+// unknown, the current-epoch label keeps the fail-safe request
+func (boot *baseBootstrap) requestSelfShardProof(hash []byte, header data.HeaderHandler) {
+	if check.IfNil(header) {
+		boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+		return
+	}
+
+	boot.requestHandler.RequestEquivalentProofByHashForEpoch(boot.shardCoordinator.SelfId(), hash, header.GetEpoch())
 }
 
 func (boot *baseBootstrap) requestHeaderByHash(hash []byte) {
@@ -2564,6 +2579,7 @@ func (boot *baseBootstrap) getShardLabel() string {
 
 func (boot *baseBootstrap) requestHeaderAndProofByNonce(
 	hash []byte,
+	header data.HeaderHandler,
 	nonce uint64,
 	needsProof bool,
 ) {
@@ -2588,7 +2604,7 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonce(
 		"hash", hex.EncodeToString(hash),
 	)
 
-	boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
+	boot.requestSelfShardProof(hash, header)
 }
 
 func (boot *baseBootstrap) requestHeaderByNonce(nonce uint64) {

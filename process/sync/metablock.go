@@ -244,7 +244,7 @@ func (boot *MetaBootstrap) requestEpochStartBlockIfStuck() {
 			"hash", headerHash,
 		)
 		boot.requestHandler.SetEpoch(header.GetEpoch())
-		boot.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, headerHash)
+		boot.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, headerHash, header.GetEpoch())
 		return
 	}
 

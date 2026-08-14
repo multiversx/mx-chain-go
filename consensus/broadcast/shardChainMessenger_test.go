@@ -297,7 +297,6 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 			case <-channelBroadcastCalled:
 				called++
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 
@@ -313,7 +312,6 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 			case <-channelBroadcastUsingPrivateKeyCalled:
 				called++
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 
@@ -396,7 +394,6 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 			case <-channelBroadcastCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 
@@ -412,7 +409,6 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 			case <-channelBroadcastUsingPrivateKeyCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 
@@ -473,7 +469,6 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 			case <-channelBroadcastCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 
@@ -489,7 +484,6 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 			case <-channelBroadcastUsingPrivateKeyCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 

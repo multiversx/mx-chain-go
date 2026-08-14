@@ -244,6 +244,14 @@ func (cache *TxCache) SetSelectionOffsetsByLastNonce(lastNoncePerSender map[stri
 	}
 }
 
+// ResetAllSelectionOffsets makes every sender's transactions selectable again.
+// This is called on tracker reset: with no tracked blocks left, no transaction is "already proposed".
+func (cache *TxCache) ResetAllSelectionOffsets() {
+	for _, listForSender := range cache.getSenders() {
+		listForSender.resetSelectionOffset()
+	}
+}
+
 // ResetSelectionOffsetsToNonce resets the selection offset for each sender to point to the first
 // transaction with nonce >= the given nonce. This is called during block replacement.
 func (cache *TxCache) ResetSelectionOffsetsToNonce(sendersWithFirstNonce map[string]uint64) {

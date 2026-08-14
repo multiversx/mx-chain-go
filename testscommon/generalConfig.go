@@ -1,6 +1,7 @@
 package testscommon
 
 import (
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
@@ -95,7 +96,7 @@ func GetGeneralConfig() config.Config {
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
-				{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+				{EnableEpoch: 0, GracePeriodRounds: 25},
 			},
 			EpochStartConfigsByRound: []config.EpochStartConfigByRound{
 				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
@@ -186,6 +187,7 @@ func GetGeneralConfig() config.Config {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               100,
 			PropagationGracePeriodMs:       0,
+			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
 		},
 		TxCacheSelection: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
@@ -613,7 +615,7 @@ func GetDefaultAntifloodConfig() config.AntifloodConfig {
 				},
 			},
 			{
-				Round:                               100,
+				Round:                               99_999_999_999, // far-away supernova round, coherent with the disabled default
 				NumConcurrentResolverJobs:           10,
 				NumConcurrentResolvingTrieNodesJobs: 3,
 				Cache: config.CacheConfig{

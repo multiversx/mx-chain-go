@@ -3078,6 +3078,9 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
 				receive <- true
 			},
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
+				receive <- true
+			},
 		}
 
 		bs, _ := sync.NewShardBootstrap(args)
@@ -3189,6 +3192,53 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		assert.True(t, verifyBlockProposalCalled)
 		assert.True(t, commitBlockCalled)
 		assert.True(t, addToQueueCalled)
+	})
+
+	t.Run("OnExecutedBlock error resets the tracker and re-arms the execution realign", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSyncBlockV3Args()
+
+		numOnExecutedCalls := 0
+		numResetTrackerCalls := 0
+		poolsStub := args.PoolsHolder.(*dataRetrieverMock.PoolsHolderStub)
+		poolsStub.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				OnExecutedBlockCalled: func(header data.HeaderHandler, rootHash []byte) error {
+					numOnExecutedCalls++
+					if numOnExecutedCalls == 1 {
+						return errors.New("tracker inconsistency")
+					}
+					return nil
+				},
+				ResetTrackerCalled: func() {
+					numResetTrackerCalls++
+				},
+			}
+		}
+
+		numRewindCalls := 0
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			RewindExecutionStateToTipCalled: func(newTip data.HeaderHandler) error {
+				numRewindCalls++
+				return nil
+			},
+		}
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.SyncBlock(context.Background())
+		require.NotNil(t, err)
+		require.Equal(t, 1, numResetTrackerCalls)
+		require.Equal(t, 0, numRewindCalls)
+
+		// the next sync iteration must run the realign before any other sync work, so the
+		// retry drops the pending execution results and rebuilds from the notarized anchor
+		err = bs.SyncBlock(context.Background())
+		require.Nil(t, err)
+		require.Equal(t, 1, numRewindCalls)
+		require.Equal(t, 2, numResetTrackerCalls)
 	})
 
 	t.Run("should work and prepare the tx pool with multiple blocks", func(t *testing.T) {

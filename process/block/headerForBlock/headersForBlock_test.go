@@ -627,7 +627,7 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 
 		args := createMockArgs()
 		args.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestEquivalentProofByHashCalled: func(shardID uint32, hash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(shardID uint32, hash []byte, epoch uint32) {
 				mutRequestEquivalentProof.Lock()
 				counter++
 				mutRequestEquivalentProof.Unlock()
@@ -956,7 +956,7 @@ func TestHeadersForBlock_RequestMissingFinalityAttestingShardHeaders(t *testing.
 			},
 		}
 		args.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
 				mutRequestEquivalentProof.Lock()
 				counter++
 				requestedShardID = headerShard
@@ -1160,7 +1160,7 @@ func TestHeadersForBlock_AttestationWithFlagBoundaryCandidates(t *testing.T) {
 			},
 		}
 		args.RequestHandler = &testscommon.RequestHandlerStub{
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
 				mutRequested.Lock()
 				*requestedProofHashes = append(*requestedProofHashes, append([]byte(nil), headerHash...))
 				mutRequested.Unlock()
