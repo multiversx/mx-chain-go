@@ -341,7 +341,7 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
 		return bigValue
 	}
 
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		if val.IsNil() {
 			return nil
 		}
@@ -639,4 +639,20 @@ func GetFeePayer(tx data.TransactionHandler) []byte {
 	}
 
 	return tx.GetSndAddr()
+}
+
+// IsContendedHeader returns true if rounds were skipped between the parent and the header, so a
+// competing proof could exist at the header's nonce in a skipped round
+func IsContendedHeader(header data.HeaderHandler, parentHeader data.HeaderHandler) bool {
+	if check.IfNil(header) || check.IfNil(parentHeader) {
+		return false
+	}
+
+	return IsContendedRound(header.GetRound(), parentHeader.GetRound())
+}
+
+// IsContendedRound returns true if rounds were skipped between a parent at parentRound and its
+// child at round
+func IsContendedRound(round uint64, parentRound uint64) bool {
+	return round > parentRound+1
 }

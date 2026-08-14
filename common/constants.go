@@ -259,6 +259,18 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 // MetricNumTimesInForkChoice is the metric that counts how many times a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
+// MetricNumRollBacksRefusedMissingState is the metric that counts the roll backs refused because
+// the post-rollback execution base state was not recreatable
+const MetricNumRollBacksRefusedMissingState = "erd_rollbacks_refused_missing_state_count"
+
+// MetricNumEquivocationProofs is the metric that counts the equivocation events observed by the
+// proofs pool (different-hash proofs received for the same header nonce)
+const MetricNumEquivocationProofs = "erd_num_equivocation_proofs"
+
+// MetricNumReconcileSwitches is the metric that counts the reconcile backstop activations, each a
+// switch away from a finalized block on equivocation evidence
+const MetricNumReconcileSwitches = "erd_num_reconcile_switches"
+
 // MetricHighestFinalBlock is the metric for the nonce of the highest final block
 const MetricHighestFinalBlock = "erd_highest_final_nonce"
 
@@ -1034,17 +1046,13 @@ const TimeToWaitForP2PBootstrap = 20 * time.Second
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
 
-// ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
-// moment when its components, like mini blocks and transactions, would be broadcast too
-const ExtraDelayForBroadcastBlockInfo = 120 * time.Millisecond
+// ExtraDelayForBroadcastBlockInfo is the wait between the (metablock + proof) trigger and the
+// miniblocks broadcast; jitter allowance only - all mean terms cancel against the receivers
+const ExtraDelayForBroadcastBlockInfo = 30 * time.Millisecond
 
-// ExtraDelayBetweenBroadcastMbsAndTxs represents the number of seconds to wait since miniblocks have been broadcast
-// and the moment when theirs transactions would be broadcast too
-const ExtraDelayBetweenBroadcastMbsAndTxs = 100 * time.Millisecond
-
-// ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
-// moment when its components, like mini blocks and transactions, would be requested too if they are still missing
-const ExtraDelayForRequestBlockInfo = ExtraDelayForBroadcastBlockInfo + ExtraDelayBetweenBroadcastMbsAndTxs
+// ExtraDelayBetweenBroadcastMbsAndTxs is the wait between the miniblocks broadcast and the
+// transactions broadcast; covers only the tx-before-its-mb arrival tail at receivers
+const ExtraDelayBetweenBroadcastMbsAndTxs = 50 * time.Millisecond
 
 // CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
 const CommitMaxTime = 3 * time.Second

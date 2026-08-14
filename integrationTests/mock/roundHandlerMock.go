@@ -30,6 +30,11 @@ func (mock *RoundHandlerMock) Index() int64 {
 	return mock.IndexField
 }
 
+// IndexForCurrentTime -
+func (mock *RoundHandlerMock) IndexForCurrentTime() int64 {
+	return mock.Index()
+}
+
 // UpdateRound -
 func (mock *RoundHandlerMock) UpdateRound(time.Time, time.Time) {
 }

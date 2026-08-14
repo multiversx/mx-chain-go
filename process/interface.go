@@ -357,6 +357,7 @@ type ExecutionManager interface {
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	RemoveAtNonceAndHigher(nonce uint64) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
+	RewindExecutionStateToTip(newTip data.HeaderHandler) error
 	PopDismissedResults() []executionTrack.DismissedBatch
 	GetSignalProcessCompletionChan() chan uint64
 	Close() error
@@ -468,9 +469,13 @@ type Bootstrapper interface {
 type ForkDetector interface {
 	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
 	RemoveHeader(nonce uint64, hash []byte)
+	RemoveCommittedHeader(nonce uint64, hash []byte)
+	ReconcileFinalCheckpoint(nonce uint64)
+	ReconcileFinalCheckpointBelow(nonce uint64) bool
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
 	GetHighestFinalBlockHash() []byte
+	GetHighestSettledBlockInfo() (uint64, []byte)
 	ProbableHighestNonce() uint64
 	ResetFork()
 	SetRollBackNonce(nonce uint64)
@@ -1015,6 +1020,15 @@ type HeaderIntegrityVerifier interface {
 	IsInterfaceNil() bool
 }
 
+// MetaFinalityView defines the node's subjective finality view over the meta chain. All methods
+// answer false on missing evidence, so a caller never acts on what the node does not hold.
+type MetaFinalityView interface {
+	IsMetaHeaderHeldFinal(header data.HeaderHandler, headerHash []byte) bool
+	IsIncludedInHeldFinalMetaBlock(shardID uint32, headerHash []byte, nonce uint64, ascendingFrom uint64, ascendingTo uint64) bool
+	IsDeadMetaBlock(headerHash []byte, nonce uint64) bool
+	IsInterfaceNil() bool
+}
+
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
 	AddCrossNotarizedHeader(shradID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
@@ -1050,7 +1064,7 @@ type BlockTracker interface {
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 	IsOwnShardStuck() bool
-	IsHeaderQuarantined(hash []byte) bool
+	IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -1213,6 +1227,9 @@ type RoundTimeDurationHandler interface {
 // RoundHandler defines the actions which should be handled by a round implementation
 type RoundHandler interface {
 	Index() int64
+	// IndexForCurrentTime returns the round index the current time falls into, which does not
+	// depend on the chronology goroutine having advanced the stored index
+	IndexForCurrentTime() int64
 	TimeDuration() time.Duration
 	IsInterfaceNil() bool
 }
@@ -1596,6 +1613,7 @@ type SentSignaturesTracker interface {
 	SignatureSent(pkBytes []byte)
 	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
 	GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
+	ReserveSignatureInRound(pkBytes []byte, roundIndex int64, headerHash []byte) bool
 	ResetCountersForManagedBlockSigner(signerPk []byte)
 	IsInterfaceNil() bool
 }

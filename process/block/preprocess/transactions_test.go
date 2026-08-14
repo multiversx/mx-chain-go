@@ -2961,3 +2961,22 @@ func Test_SelectOutgoingTransactions(t *testing.T) {
 		require.Equal(t, 2, len(txInstances))
 	})
 }
+
+func TestTransactions_IsDataPrepared_TimeoutKeepsMissingBookkeeping(t *testing.T) {
+	t.Parallel()
+
+	dataPool := initDataPool()
+	txs := createGoodPreprocessor(dataPool)
+
+	haveTimeShorter := func() time.Duration {
+		return time.Millisecond
+	}
+
+	txs.SetMissingTxs(2)
+	err := txs.IsDataPrepared(2, haveTimeShorter)
+	assert.Equal(t, process.ErrTimeIsOut, err)
+
+	// a retried wait must time out again while the txs are still missing, not report ready
+	err = txs.IsDataPrepared(2, haveTimeShorter)
+	assert.Equal(t, process.ErrTimeIsOut, err)
+}

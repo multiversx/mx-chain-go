@@ -1644,7 +1644,6 @@ func UpdateContextForReplacedHeader(
 		}
 	}
 
-
 	log.Debug("UpdateContextForReplacedHeader last executed header",
 		"round", headerToSet.GetRound(),
 		"nonce", headerToSet.GetNonce(),
@@ -1736,6 +1735,32 @@ func checkForNils(
 		return ErrNilMarshalizer
 	}
 	return nil
+}
+
+// ShardInfoHandler exposes the shard header identity common to both meta shard info flavors
+type ShardInfoHandler interface {
+	GetHeaderHash() []byte
+	GetShardID() uint32
+}
+
+// GetShardHeadersReferencedByMeta returns the shard headers the meta block references, reading the
+// proposal shard info for V3 headers and the classic shard info otherwise
+func GetShardHeadersReferencedByMeta(header data.MetaHeaderHandler) []ShardInfoHandler {
+	var shardInfoHandlers []ShardInfoHandler
+
+	if header.IsHeaderV3() {
+		for _, shardInfo := range header.GetShardInfoProposalHandlers() {
+			shardInfoHandlers = append(shardInfoHandlers, shardInfo)
+		}
+
+		return shardInfoHandlers
+	}
+
+	for _, shardInfo := range header.GetShardInfoHandlers() {
+		shardInfoHandlers = append(shardInfoHandlers, shardInfo)
+	}
+
+	return shardInfoHandlers
 }
 
 func getExecutionResultToSetOnReplacedHeader(

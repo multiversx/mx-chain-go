@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
@@ -22,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -162,12 +163,6 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the executed mini blocks", err)
 	}
 
-	cacherCfg = factory.GetCacherFromConfig(mainConfig.QuarantinedHeadersCache)
-	quarantinedHeaders, err := storageunit.NewCache(cacherCfg)
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating the cache for the quarantined headers", err)
-	}
-
 	cacherCfg = factory.GetCacherFromConfig(mainConfig.PostProcessTransactionsCache)
 	postProcessTransactionsCache, err := storageunit.NewCache(cacherCfg)
 	if err != nil {
@@ -201,7 +196,6 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		ExecutedMiniBlocks:        executedMiniBlocksCache,
 		PostProcessTransactions:   postProcessTransactionsCache,
 		DirectSentTransactions:    directSentTransactionsCache,
-		QuarantinedHeaders:        quarantinedHeaders,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }

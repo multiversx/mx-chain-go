@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage/storageEpochChange"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
@@ -81,7 +82,7 @@ func NewSnapshotsManager(args ArgsNewSnapshotsManager) (*snapshotsManager, error
 		stateMetrics:             args.StateMetrics,
 		marshaller:               args.Marshaller,
 		addressConverter:         args.AddressConverter,
-		trieSyncer:               nil, //this will be set later
+		trieSyncer:               nil, // this will be set later
 		processStatusHandler:     args.ProcessStatusHandler,
 		channelsProvider:         args.ChannelsProvider,
 		mutex:                    sync.RWMutex{},
@@ -402,6 +403,10 @@ func (sm *snapshotsManager) waitForCompletionIfAppropriate(stats common.Snapshot
 
 	log.Debug("manually setting idle on the process status handler in order to be able to start & complete the snapshotting/checkpointing process")
 	sm.processStatusHandler.SetIdle()
+	// a commit that triggered this snapshot may hold a background job blocker while we wait for the
+	// snapshot, and the snapshot yields to blockers: suspend them or neither side can ever advance
+	sm.processStatusHandler.SuspendBackgroundJobBlocking("snapshotsManager.waitForCompletionIfAppropriate")
+	defer sm.processStatusHandler.ResumeBackgroundJobBlocking()
 
 	stats.WaitForSnapshotsToFinish()
 }

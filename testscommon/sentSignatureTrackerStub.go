@@ -6,6 +6,7 @@ type SentSignatureTrackerStub struct {
 	SignatureSentCalled                      func(pkBytes []byte)
 	RecordSignedNonceCalled                  func(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
 	GetSignedNonceInfoCalled                 func(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
+	ReserveSignatureInRoundCalled            func(pkBytes []byte, roundIndex int64, headerHash []byte) bool
 	ResetCountersForManagedBlockSignerCalled func(signerPk []byte)
 }
 
@@ -36,6 +37,14 @@ func (stub *SentSignatureTrackerStub) GetSignedNonceInfo(pkBytes []byte, nonce u
 		return stub.GetSignedNonceInfoCalled(pkBytes, nonce)
 	}
 	return nil, 0, false
+}
+
+// ReserveSignatureInRound -
+func (stub *SentSignatureTrackerStub) ReserveSignatureInRound(pkBytes []byte, roundIndex int64, headerHash []byte) bool {
+	if stub.ReserveSignatureInRoundCalled != nil {
+		return stub.ReserveSignatureInRoundCalled(pkBytes, roundIndex, headerHash)
+	}
+	return true
 }
 
 // ResetCountersForManagedBlockSigner -

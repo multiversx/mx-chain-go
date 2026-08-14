@@ -82,6 +82,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		BootStorer:                   &mock.BoostrapStorerMock{},
 		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
 		EpochHandler:                 &mock.EpochStartTriggerStub{},
+		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerStub{},
@@ -128,7 +129,7 @@ func TestMetaBootstrap_RequestEpochStartBlockIfStuck(t *testing.T) {
 				recorder.startOfEpochCalls++
 				recorder.startOfEpochArg = epoch
 			},
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
 				recorder.proofByHashCalls++
 				recorder.proofByHashArg = headerHash
 			},
@@ -2235,6 +2236,9 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 				receive <- true
 			},
 			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+				receive <- true
+			},
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
 				receive <- true
 			},
 		}

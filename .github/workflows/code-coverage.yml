@@ -13,18 +13,18 @@ permissions:
 
 jobs:
   build:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [ self-hosted, Linux, X64 ]
     name: Build
     steps:
-      - name: Set up Go 1.x
-        uses: actions/setup-go@v6
-        with:
-          go-version: 1.26.2
-          cache: false
-        id: go
-
       - name: Check out code into the Go module directory
         uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+        id: go
 
       - name: Get dependencies
         run: |

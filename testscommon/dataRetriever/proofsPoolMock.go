@@ -7,15 +7,17 @@ import (
 
 // ProofsPoolMock -
 type ProofsPoolMock struct {
-	AddProofCalled                 func(headerProof data.HeaderProofHandler) bool
-	AddProofIfNoneAtNonceCalled    func(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler)
-	UpsertProofCalled              func(headerProof data.HeaderProofHandler) bool
-	CleanupProofsBehindNonceCalled func(shardID uint32, nonce uint64) error
-	GetProofCalled                 func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
-	GetProofByNonceCalled          func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
-	HasProofCalled                 func(shardID uint32, headerHash []byte) bool
-	IsProofInPoolEqualToCalled     func(headerProof data.HeaderProofHandler) bool
-	RegisterHandlerCalled          func(handler func(headerProof data.HeaderProofHandler))
+	AddProofCalled                    func(headerProof data.HeaderProofHandler) bool
+	AddProofIfNoneAtNonceCalled       func(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler)
+	UpsertProofCalled                 func(headerProof data.HeaderProofHandler) bool
+	CleanupProofsBehindNonceCalled    func(shardID uint32, nonce uint64) error
+	GetProofCalled                    func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	GetProofByNonceCalled             func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
+	GetProofsByNonceCalled            func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error)
+	HasProofCalled                    func(shardID uint32, headerHash []byte) bool
+	IsProofInPoolEqualToCalled        func(headerProof data.HeaderProofHandler) bool
+	RegisterHandlerCalled             func(handler func(headerProof data.HeaderProofHandler))
+	RegisterEquivocationHandlerCalled func(handler func(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler))
 }
 
 // AddProof -
@@ -72,6 +74,15 @@ func (p *ProofsPoolMock) GetProofByNonce(headerNonce uint64, shardID uint32) (da
 	return &block.HeaderProof{}, nil
 }
 
+// GetProofsByNonce -
+func (p *ProofsPoolMock) GetProofsByNonce(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+	if p.GetProofsByNonceCalled != nil {
+		return p.GetProofsByNonceCalled(headerNonce, shardID)
+	}
+
+	return []data.HeaderProofHandler{&block.HeaderProof{}}, nil
+}
+
 // HasProof -
 func (p *ProofsPoolMock) HasProof(shardID uint32, headerHash []byte) bool {
 	if p.HasProofCalled != nil {
@@ -94,6 +105,13 @@ func (p *ProofsPoolMock) IsProofInPoolEqualTo(headerProof data.HeaderProofHandle
 func (p *ProofsPoolMock) RegisterHandler(handler func(headerProof data.HeaderProofHandler)) {
 	if p.RegisterHandlerCalled != nil {
 		p.RegisterHandlerCalled(handler)
+	}
+}
+
+// RegisterEquivocationHandler -
+func (p *ProofsPoolMock) RegisterEquivocationHandler(handler func(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler)) {
+	if p.RegisterEquivocationHandlerCalled != nil {
+		p.RegisterEquivocationHandlerCalled(handler)
 	}
 }
 

@@ -760,7 +760,7 @@ func (tfn *TestFullNode) createEpochStartTrigger() TestEpochStartTrigger {
 			RoundHandler:         tfn.RoundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  tfn.EnableEpochsHandler,
-			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+			ExtraDelayForRequestBlockInfoInMilliseconds: 0,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		if err != nil {
@@ -876,7 +876,7 @@ func (tfn *TestFullNode) initInterceptors(
 			RoundHandler:         roundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  enableEpochsHandler,
-			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+			ExtraDelayForRequestBlockInfoInMilliseconds: 0,
 		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
 
@@ -1001,10 +1001,11 @@ func (tpn *TestFullNode) initBlockProcessor(
 	}
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        tpn.DataPool.Headers(),
-		ProofsPool:         tpn.DataPool.Proofs(),
-		RequestHandler:     tpn.RequestHandler,
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         tpn.DataPool.Headers(),
+		ProofsPool:          tpn.DataPool.Proofs(),
+		RequestHandler:      tpn.RequestHandler,
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {
@@ -1388,10 +1389,11 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 	}
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        tpn.DataPool.Headers(),
-		ProofsPool:         tpn.DataPool.Proofs(),
-		RequestHandler:     tpn.RequestHandler,
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         tpn.DataPool.Headers(),
+		ProofsPool:          tpn.DataPool.Proofs(),
+		RequestHandler:      tpn.RequestHandler,
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {

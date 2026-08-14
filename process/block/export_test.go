@@ -1,6 +1,7 @@
 package block
 
 import (
+	"math"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -55,6 +56,11 @@ import (
 // HashAndHdr -
 type HashAndHdr = hashAndHdr
 
+// GetHeader -
+func (hah *hashAndHdr) GetHeader() data.HeaderHandler {
+	return hah.hdr
+}
+
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
@@ -63,6 +69,18 @@ type EpochStartDataWrapper = epochStartDataWrapper
 
 // ErrNilPreviousHdr -
 var ErrNilPreviousHdr = errNilPreviousHeader
+
+// ErrReferencedNonAncestorMetaHeader -
+var ErrReferencedNonAncestorMetaHeader = errReferencedNonAncestorMetaHeader
+
+// ErrContendedHeaderWithBetterCompetitor -
+var ErrContendedHeaderWithBetterCompetitor = errContendedHeaderWithBetterCompetitor
+
+// ErrContendedHeaderInsideArbitrationWindow -
+var ErrContendedHeaderInsideArbitrationWindow = errContendedHeaderInsideArbitrationWindow
+
+// ErrReferencedDeadMetaHeader -
+var ErrReferencedDeadMetaHeader = errReferencedDeadMetaHeader
 
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -254,10 +272,11 @@ func NewShardProcessorEmptyWith3shards(
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        dataComponents.DataPool.Headers(),
-		ProofsPool:         dataComponents.DataPool.Proofs(),
-		RequestHandler:     &testscommon.RequestHandlerStub{},
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         dataComponents.DataPool.Headers(),
+		ProofsPool:          dataComponents.DataPool.Proofs(),
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 
@@ -455,7 +474,7 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 
 // CheckHeaderBodyCorrelation -
 func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID(), false)
+	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID(), hdr.GetEpoch(), false)
 }
 
 // IsHdrConstructionValid -
@@ -480,7 +499,7 @@ func (sp *shardProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 // CheckHeaderBodyCorrelation -
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID(), false)
+	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID(), hdr.GetEpoch(), false)
 }
 
 // CheckAndRequestIfMetaHeadersMissing -
@@ -656,6 +675,21 @@ func (mp *metaProcessor) UpdateState(metaBlock data.MetaHeaderHandler, metaBlock
 	mp.updateState(metaBlock, metaBlockHash)
 }
 
+// SignalNewlyFinalBlocks -
+func (mp *metaProcessor) SignalNewlyFinalBlocks(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
+	mp.signalNewlyFinalBlocks(metaBlock, metaBlockHash)
+}
+
+// SetLastSignaledFinalNonce -
+func (mp *metaProcessor) SetLastSignaledFinalNonce(nonce uint64) {
+	mp.lastSignaledFinalNonce = nonce
+}
+
+// GetLastSignaledFinalNonce -
+func (mp *metaProcessor) GetLastSignaledFinalNonce() uint64 {
+	return mp.lastSignaledFinalNonce
+}
+
 // CheckScheduledData -
 func (bp *baseProcessor) CheckScheduledData(headerHandler data.HeaderHandler) error {
 	return bp.checkScheduledData(headerHandler)
@@ -815,6 +849,27 @@ func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 // PendingMiniBlocksAfterSelection -
 type PendingMiniBlocksAfterSelection = pendingBlocksAfterSelection
 
+// NewPendingMiniBlocksAfterSelection -
+func NewPendingMiniBlocksAfterSelection(
+	headerHash []byte,
+	header data.HeaderHandler,
+	pendingMiniBlocks map[string]*block.MiniBlock,
+) *PendingMiniBlocksAfterSelection {
+	return &pendingBlocksAfterSelection{
+		headerHash:        headerHash,
+		header:            header,
+		pendingMiniBlocks: pendingMiniBlocks,
+	}
+}
+
+// AppendPendingMiniBlocksAfterSelectingOutgoingTransactions -
+func (sp *shardProcessor) AppendPendingMiniBlocksAfterSelectingOutgoingTransactions(
+	pendingBlocksLeft []*PendingMiniBlocksAfterSelection,
+	pendingIncomingMiniBlocksAdded []data.MiniBlockHeaderHandler,
+) error {
+	return sp.appendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocksLeft, pendingIncomingMiniBlocksAdded)
+}
+
 // GetHeaderHash -
 func (p *PendingMiniBlocksAfterSelection) GetHeaderHash() []byte {
 	return p.headerHash
@@ -886,8 +941,18 @@ func (bp *baseProcessor) SetMiniBlockSelectionSession(session MiniBlocksSelectio
 }
 
 // CheckHeaderBodyCorrelationProposal -
-func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, headerShardID uint32) error {
-	return bp.checkHeaderBodyCorrelation(miniBlockHeaders, body, headerShardID, true)
+func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body, headerShardID uint32, headerEpoch uint32) error {
+	return bp.checkHeaderBodyCorrelation(miniBlockHeaders, body, headerShardID, headerEpoch, true)
+}
+
+// CheckProposalMiniBlocksConsistency -
+func CheckProposalMiniBlocksConsistency(miniBlockHeaders []data.MiniBlockHeaderHandler, miniBlocks block.MiniBlockSlice, blockShardID uint32) error {
+	return checkProposalMiniBlocksConsistency(miniBlockHeaders, miniBlocks, blockShardID)
+}
+
+// CheckLegacyPredecessorReadyForV3 -
+func (bp *baseProcessor) CheckLegacyPredecessorReadyForV3(header data.HeaderHandler) error {
+	return bp.checkLegacyPredecessorReadyForV3(header)
 }
 
 // GetFinalMiniBlocksFromExecutionResults -
@@ -1019,9 +1084,22 @@ func (mp *metaProcessor) CheckShardInfoValidity(
 	return mp.checkShardInfoValidity(metaHeaderHandler, usedShardHeadersInfo)
 }
 
-// CheckHeadersSequenceCorrectness -
+// CheckHeadersSequenceCorrectness runs with a permissive contention context: past the window and
+// unproofed, preserving the pre-regime behavior for the existing fixtures
 func (mp *metaProcessor) CheckHeadersSequenceCorrectness(hdrsForShard []ShardHeaderInfo, lastNotarizedHeaderInfoForShard ShardHeaderInfo) error {
-	return mp.checkHeadersSequenceCorrectness(hdrsForShard, lastNotarizedHeaderInfoForShard)
+	permissiveCtx := contentionContext{metaRound: math.MaxUint64, isOwnProofed: func() bool { return false }}
+	return mp.checkHeadersSequenceCorrectness(hdrsForShard, lastNotarizedHeaderInfoForShard, mp.newProposalAncestryView(), permissiveCtx)
+}
+
+// CheckHeadersSequenceCorrectnessWithContention -
+func (mp *metaProcessor) CheckHeadersSequenceCorrectnessWithContention(
+	hdrsForShard []ShardHeaderInfo,
+	lastNotarizedHeaderInfoForShard ShardHeaderInfo,
+	metaRound uint64,
+	metaProofed bool,
+) error {
+	contentionCtx := contentionContext{metaRound: metaRound, isOwnProofed: func() bool { return metaProofed }}
+	return mp.checkHeadersSequenceCorrectness(hdrsForShard, lastNotarizedHeaderInfoForShard, mp.newProposalAncestryView(), contentionCtx)
 }
 
 // CheckShardHeadersValidityAndFinalityProposal -
@@ -1029,6 +1107,32 @@ func (mp *metaProcessor) CheckShardHeadersValidityAndFinalityProposal(
 	metaHeaderHandler data.MetaHeaderHandler,
 ) error {
 	return mp.checkShardHeadersValidityAndFinalityProposal(metaHeaderHandler)
+}
+
+// SetComputedEpochStartData -
+func (mp *metaProcessor) SetComputedEpochStartData(epoch uint32, epochStartData *block.EpochStart) {
+	mp.mutEpochStartData.Lock()
+	defer mp.mutEpochStartData.Unlock()
+	mp.epochStartDataWrapper.Epoch = epoch
+	mp.epochStartDataWrapper.EpochStartData = epochStartData
+}
+
+// GetComputedEpochStartData -
+func (mp *metaProcessor) GetComputedEpochStartData(epoch uint32) (*block.EpochStart, error) {
+	return mp.getComputedEpochStartData(epoch)
+}
+
+// CheckReferencedMetaAncestryForProposal probes the ancestry gate for all headers sharing one view
+func (mp *metaProcessor) CheckReferencedMetaAncestryForProposal(headers []data.HeaderHandler) error {
+	view := mp.newProposalAncestryView()
+	for _, header := range headers {
+		err := mp.checkReferencedMetaAncestry(header, view)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // GetLastExecutionResultsRootHash -
@@ -1063,6 +1167,11 @@ func ConstructPartialShardBlockProcessorForTest(subcomponents map[string]interfa
 		return nil, err
 	}
 	return sp, err
+}
+
+// HasProofsForHeaders -
+func (mp *metaProcessor) HasProofsForHeaders(headersPerShard map[uint32][]ShardHeaderInfo) bool {
+	return mp.hasProofsForHeaders(headersPerShard)
 }
 
 // ConstructPartialMetaBlockProcessorForTest -
@@ -1109,15 +1218,16 @@ func HasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders []data.MiniBlockHeaderHa
 }
 
 // CreateProposalMiniBlocks -
-func (mp *metaProcessor) CreateProposalMiniBlocks(haveTime func() bool) error {
-	return mp.createProposalMiniBlocks(haveTime)
+func (mp *metaProcessor) CreateProposalMiniBlocks(round uint64, haveTime func() bool) error {
+	return mp.createProposalMiniBlocks(round, haveTime)
 }
 
 // SelectIncomingMiniBlocksForProposal -
 func (mp *metaProcessor) SelectIncomingMiniBlocksForProposal(
+	round uint64,
 	haveTime func() bool,
 ) error {
-	return mp.selectIncomingMiniBlocksForProposal(haveTime)
+	return mp.selectIncomingMiniBlocksForProposal(round, haveTime)
 }
 
 // SelectIncomingMiniBlocks -
@@ -1127,8 +1237,18 @@ func (mp *metaProcessor) SelectIncomingMiniBlocks(
 	orderedHdrsHashes [][]byte,
 	maxNumHeadersFromSameShard uint32,
 	haveTime func() bool,
+) (map[uint32]uint32, error) {
+	return mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, mp.newProposalAncestryView(), haveTime)
+}
+
+// SelectContendedShardHeaders -
+func (mp *metaProcessor) SelectContendedShardHeaders(
+	round uint64,
+	lastShardHdrs map[uint32]ShardHeaderInfo,
+	hdrsAddedForShard map[uint32]uint32,
+	haveTime func() bool,
 ) error {
-	return mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
+	return mp.selectContendedShardHeaders(round, lastShardHdrs, hdrsAddedForShard, mp.newProposalAncestryView(), haveTime)
 }
 
 // VerifyEpochStartData -

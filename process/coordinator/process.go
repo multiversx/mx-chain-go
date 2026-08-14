@@ -1013,7 +1013,8 @@ func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[strin
 
 	shouldNotSkipTransactionFunc := func(_ []byte) bool { return false }
 
-	for headerHash, miniBlocks := range miniBlocksMap {
+	for _, headerHash := range sortedMiniBlockMapKeys(miniBlocksMap) {
+		miniBlocks := miniBlocksMap[headerHash]
 		cachedIntermediateTxsMap, err := common.GetCachedIntermediateTxs(tc.dataPool.PostProcessTransactions(), []byte(headerHash))
 		if err != nil {
 			log.Warn("createMarshalledDataV3.GetCachedIntermediateTxs", "error", err.Error())
@@ -1030,6 +1031,16 @@ func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[strin
 	}
 
 	return mrsTxs
+}
+
+func sortedMiniBlockMapKeys(miniBlocksMap map[string]block.MiniBlockSlice) []string {
+	headerHashes := make([]string, 0, len(miniBlocksMap))
+	for headerHash := range miniBlocksMap {
+		headerHashes = append(headerHashes, headerHash)
+	}
+	sort.Strings(headerHashes)
+
+	return headerHashes
 }
 
 func (tc *transactionCoordinator) appendTransactionsForMiniBlock(

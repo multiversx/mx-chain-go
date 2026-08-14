@@ -6,13 +6,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/headersCache"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewDataPoolFromConfig(t *testing.T) {
@@ -143,13 +144,6 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.Nil(t, holder)
 	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
 	require.True(t, strings.Contains(err.Error(), "the cache for the executed mini blocks"))
-
-	args = getGoodArgs()
-	args.Config.QuarantinedHeadersCache.Type = "invalid cache type"
-	holder, err = NewDataPoolFromConfig(args)
-	require.Nil(t, holder)
-	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
-	require.True(t, strings.Contains(err.Error(), "the cache for the quarantined headers"))
 
 	args = getGoodArgs()
 	args.Config.PostProcessTransactionsCache.Type = "invalid cache type"

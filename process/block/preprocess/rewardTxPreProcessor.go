@@ -101,7 +101,6 @@ func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime
 			"num reward txs", requestedRewardTxs)
 		err := rtp.rewardTxsForBlock.WaitForRequestedData(haveTime())
 		missingRewardTxs := rtp.rewardTxsForBlock.GetMissingTxsCount()
-		rtp.rewardTxsForBlock.ClearMissingTxsCount()
 		log.Debug("received reward txs",
 			"num reward txs", requestedRewardTxs-missingRewardTxs)
 		if err != nil {

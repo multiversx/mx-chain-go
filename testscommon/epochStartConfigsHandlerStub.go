@@ -10,7 +10,7 @@ import (
 func GetDefaultCommonConfigsHandler() common.CommonConfigsHandler {
 	commonConfigsHandler, _ := configs.NewCommonConfigsHandler(
 		[]config.EpochStartConfigByEpoch{
-			{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+			{EnableEpoch: 0, GracePeriodRounds: 25},
 		},
 		[]config.EpochStartConfigByRound{
 			{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
@@ -42,7 +42,6 @@ func GetDefaultCommonConfigsHandler() common.CommonConfigsHandler {
 // CommonConfigsHandlerStub -
 type CommonConfigsHandlerStub struct {
 	GetGracePeriodRoundsByEpochCalled                          func(epoch uint32) uint32
-	GetExtraDelayForRequestBlockInfoInMsCalled                 func(epoch uint32) uint32
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRoundCalled func(round uint64) uint32
 	GetNumRoundsToWaitBeforeSignalingChronologyStuckCalled     func(epoch uint32) uint32
 	GetSubroundsTimingByRoundCalled                            func(round uint64) config.ConsensusConfigByRound
@@ -54,15 +53,6 @@ type CommonConfigsHandlerStub struct {
 func (e *CommonConfigsHandlerStub) GetGracePeriodRoundsByEpoch(epoch uint32) uint32 {
 	if e.GetGracePeriodRoundsByEpochCalled != nil {
 		return e.GetGracePeriodRoundsByEpochCalled(epoch)
-	}
-
-	return 0
-}
-
-// GetExtraDelayForRequestBlockInfoInMs -
-func (e *CommonConfigsHandlerStub) GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32 {
-	if e.GetExtraDelayForRequestBlockInfoInMsCalled != nil {
-		return e.GetExtraDelayForRequestBlockInfoInMsCalled(epoch)
 	}
 
 	return 0

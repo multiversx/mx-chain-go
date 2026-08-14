@@ -87,7 +87,8 @@ import (
 	"github.com/multiversx/mx-chain-go/update/trigger"
 )
 
-// timeSpanForBadHeaders is the expiry time for an added block header hash
+// timeSpanForBadHeaders is the expiry time for an added block header hash; it is a wall-clock
+// network-healing window (fetch retries, partition heal), intentionally NOT scaled with round duration
 var timeSpanForBadHeaders = time.Minute * 2
 
 // processComponents struct holds the process components
@@ -288,6 +289,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	pcf.epochNotifier.RegisterNotifyHandler(currentEpochProvider)
+
+	appStatusHandler := pcf.statusCoreComponents.AppStatusHandler()
+	pcf.data.Datapool().Proofs().RegisterEquivocationHandler(func(_ data.HeaderProofHandler, _ []data.HeaderProofHandler) {
+		appStatusHandler.Increment(common.MetricNumEquivocationProofs)
+	})
 
 	fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
 		pcf.data.Datapool().Headers(),
@@ -729,16 +735,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
 	argVSP := peer.ArgValidatorsProvider{
-		NodesCoordinator:                  pcf.nodesCoordinator,
-		StartEpoch:                        startEpochNum,
-		EpochStartEventNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
-		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
-		ValidatorStatistics:               validatorStatisticsProcessor,
-		MaxRating:                         pcf.maxRating,
-		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
-		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
-		AuctionListSelector:               pcf.auctionListSelectorAPI,
-		StakingDataProvider:               pcf.stakingDataProviderAPI,
+		NodesCoordinator:             pcf.nodesCoordinator,
+		StartEpoch:                   startEpochNum,
+		EpochStartEventNotifier:      pcf.coreData.EpochStartNotifierWithConfirm(),
+		CacheRefreshIntervalDuration: cacheRefreshDuration,
+		ValidatorStatistics:          validatorStatisticsProcessor,
+		MaxRating:                    pcf.maxRating,
+		ValidatorPubKeyConverter:     pcf.coreData.ValidatorPubKeyConverter(),
+		AddressPubKeyConverter:       pcf.coreData.AddressPubKeyConverter(),
+		AuctionListSelector:          pcf.auctionListSelectorAPI,
+		StakingDataProvider:          pcf.stakingDataProviderAPI,
 	}
 
 	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
@@ -925,7 +931,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			RoundHandler:         pcf.coreData.RoundHandler(),
 			AppStatusHandler:     pcf.statusCoreComponents.AppStatusHandler(),
 			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
-			CommonConfigsHandler: pcf.coreData.CommonConfigsHandler(),
+			ExtraDelayForRequestBlockInfoInMilliseconds: pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds,
 		}
 		return shardchain.NewEpochStartTrigger(argEpochStart)
 	}
@@ -1775,7 +1781,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		FullArchiveMessenger:                    pcf.network.FullArchiveNetworkMessenger(),
 		Store:                                   pcf.data.StorageService(),
 		DataPool:                                pcf.data.Datapool(),
-		MaxTxNonceDeltaAllowed:                  common.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:                  pcf.config.TxCacheBounds.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:                            pcf.coreData.EconomicsData(),
 		BlockBlackList:                          headerBlackList,
 		HeaderSigVerifier:                       headerSigVerifier,
@@ -1833,7 +1839,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		Store:                                   pcf.data.StorageService(),
 		DataPool:                                pcf.data.Datapool(),
 		Accounts:                                pcf.state.AccountsAdapterAPI(),
-		MaxTxNonceDeltaAllowed:                  common.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:                  pcf.config.TxCacheBounds.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:                            pcf.coreData.EconomicsData(),
 		BlockBlackList:                          headerBlackList,
 		HeaderSigVerifier:                       headerSigVerifier,

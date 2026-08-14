@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -185,7 +186,8 @@ func (bbc *baseBlockChain) GetLastExecutionResult() data.BaseExecutionResultHand
 	return bbc.lastExecutionResult
 }
 
-// SetLastExecutionInfo sets header, execution result and final block info atomically
+// SetLastExecutionInfo sets header and execution result atomically; the final block info is
+// settlement-anchored and set separately by the block processors
 func (bbc *baseBlockChain) SetLastExecutionInfo(
 	header data.HeaderHandler,
 	result data.BaseExecutionResultHandler,
@@ -199,9 +201,7 @@ func (bbc *baseBlockChain) SetLastExecutionInfo(
 
 	headerHash := result.GetHeaderHash()
 	rootHash := result.GetRootHash()
-	headerNonce := result.GetHeaderNonce()
 
-	bbc.setFinalBlockInfoUnprotected(headerNonce, headerHash, rootHash)
 	bbc.setLastExecutedBlockHeaderAndRootHashUnprotected(header, headerHash, rootHash)
 	bbc.lastExecutionResult = result
 }

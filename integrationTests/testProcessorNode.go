@@ -1531,7 +1531,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			RoundHandler:         tpn.RoundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  tpn.EnableEpochsHandler,
-			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+			ExtraDelayForRequestBlockInfoInMilliseconds: 0,
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -2606,10 +2606,11 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        tpn.DataPool.Headers(),
-		ProofsPool:         tpn.DataPool.Proofs(),
-		RequestHandler:     tpn.RequestHandler,
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         tpn.DataPool.Headers(),
+		ProofsPool:          tpn.DataPool.Proofs(),
+		RequestHandler:      tpn.RequestHandler,
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {
@@ -2891,7 +2892,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				RoundHandler:         tpn.RoundHandler,
 				AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 				EnableEpochsHandler:  tpn.EnableEpochsHandler,
-				CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+				ExtraDelayForRequestBlockInfoInMilliseconds: 0,
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -3181,7 +3182,13 @@ func (tpn *TestProcessorNode) ProposeBlock(
 		return remainingTime > 0
 	}
 
-	blockHeader, err := tpn.BlockProcessor.CreateNewHeader(round, nonce)
+	var blockHeader data.HeaderHandler
+	var err error
+	if tpn.EnableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		blockHeader, err = tpn.BlockProcessor.CreateNewHeaderProposal(round, nonce)
+	} else {
+		blockHeader, err = tpn.BlockProcessor.CreateNewHeader(round, nonce)
+	}
 	if err != nil {
 		log.Warn("blockHeader.CreateNewHeader", "error", err.Error())
 		return nil, nil, nil
@@ -3232,7 +3239,7 @@ func (tpn *TestProcessorNode) ProposeBlock(
 
 	genesisRound := tpn.BlockChain.GetGenesisHeader().GetRound()
 
-	if tpn.EnableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+	if tpn.EnableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, blockHeader.GetEpoch()) {
 		err = blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Milliseconds()))
 	} else {
 		err = blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Seconds()))
@@ -3242,7 +3249,12 @@ func (tpn *TestProcessorNode) ProposeBlock(
 		return nil, nil, nil
 	}
 
-	blockHeader, blockBody, err := tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
+	var blockBody data.BodyHandler
+	if blockHeader.IsHeaderV3() {
+		blockHeader, blockBody, err = tpn.BlockProcessor.CreateBlockProposal(blockHeader, haveTime)
+	} else {
+		blockHeader, blockBody, err = tpn.BlockProcessor.CreateBlock(blockHeader, haveTime)
+	}
 	if err != nil {
 		log.Warn("createBlockBody", "error", err.Error())
 		return nil, nil, nil
@@ -3285,6 +3297,11 @@ func (tpn *TestProcessorNode) setBlockSignatures(
 	if err != nil {
 		log.Warn("blockHeader.SetLeaderSignature", "error", err.Error())
 		return err
+	}
+
+	if blockHeader.IsHeaderV3() {
+		// v3 headers carry no aggregated signature fields; the proof does
+		return nil
 	}
 
 	err = blockHeader.SetPubKeysBitmap(pubKeysBitmap)
@@ -3360,6 +3377,36 @@ func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.Hea
 	if err != nil {
 		log.Error("TestProcessorNode.CommitBlock", "error", err.Error())
 	}
+}
+
+// VerifyBlockProposalAndAddToExecutionQueue verifies a v3 block proposal and queues it for async
+// execution; it stands in for the process step of the propose-process-commit loop for v3 headers
+func (tpn *TestProcessorNode) VerifyBlockProposalAndAddToExecutionQueue(body data.BodyHandler, header data.HeaderHandler) error {
+	err := tpn.BlockProcessor.VerifyBlockProposal(header, body, func() time.Duration {
+		return time.Second
+	})
+	if err != nil {
+		log.Error("TestProcessorNode.VerifyBlockProposalAndAddToExecutionQueue VerifyBlockProposal", "error", err.Error())
+		return err
+	}
+
+	headerHash, err := core.CalculateHash(TestMarshalizer, TestHasher, header)
+	if err != nil {
+		log.Error("TestProcessorNode.VerifyBlockProposalAndAddToExecutionQueue CalculateHash", "error", err.Error())
+		return err
+	}
+
+	err = tpn.ExecutionManager.AddPairForExecution(headersCache.HeaderBodyPair{
+		Header:     header,
+		Body:       body,
+		HeaderHash: headerHash,
+	})
+	if err != nil {
+		log.Error("TestProcessorNode.VerifyBlockProposalAndAddToExecutionQueue AddPairForExecution", "error", err.Error())
+		return err
+	}
+
+	return nil
 }
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
@@ -3479,13 +3526,17 @@ func (tpn *TestProcessorNode) syncShardNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.ProcessBlock(
-		header,
-		body,
-		func() time.Duration {
-			return time.Second * 5
-		},
-	)
+	if header.IsHeaderV3() {
+		err = tpn.VerifyBlockProposalAndAddToExecutionQueue(body, header)
+	} else {
+		err = tpn.BlockProcessor.ProcessBlock(
+			header,
+			body,
+			func() time.Duration {
+				return time.Second * 5
+			},
+		)
+	}
 	if err != nil {
 		return err
 	}
@@ -3509,13 +3560,17 @@ func (tpn *TestProcessorNode) syncMetaNode(nonce uint64) error {
 		return err
 	}
 
-	err = tpn.BlockProcessor.ProcessBlock(
-		header,
-		body,
-		func() time.Duration {
-			return time.Second * 2
-		},
-	)
+	if header.IsHeaderV3() {
+		err = tpn.VerifyBlockProposalAndAddToExecutionQueue(body, header)
+	} else {
+		err = tpn.BlockProcessor.ProcessBlock(
+			header,
+			body,
+			func() time.Duration {
+				return time.Second * 2
+			},
+		)
+	}
 	if err != nil {
 		return err
 	}

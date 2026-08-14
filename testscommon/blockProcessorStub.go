@@ -5,6 +5,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // BlockProcessorStub mocks the implementation for a blockProcessor
@@ -21,6 +23,7 @@ type BlockProcessorStub struct {
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	CreateBlockProposalCalled        func(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
+	RetryRestoreWriteBackCalled      func(movedMetaBlocks []process.MovedMetaBlock) []process.MovedMetaBlock
 	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled func(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
@@ -146,6 +149,15 @@ func (bps *BlockProcessorStub) CreateBlockProposal(initialHdr data.HeaderHandler
 func (bps *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	if bps.RestoreBlockIntoPoolsCalled != nil {
 		return bps.RestoreBlockIntoPoolsCalled(header, body)
+	}
+
+	return nil
+}
+
+// RetryRestoreWriteBack -
+func (bps *BlockProcessorStub) RetryRestoreWriteBack(movedMetaBlocks []process.MovedMetaBlock) []process.MovedMetaBlock {
+	if bps.RetryRestoreWriteBackCalled != nil {
+		return bps.RetryRestoreWriteBackCalled(movedMetaBlocks)
 	}
 
 	return nil

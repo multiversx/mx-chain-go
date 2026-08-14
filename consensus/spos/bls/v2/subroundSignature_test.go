@@ -444,6 +444,61 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestSubroundSignature_DoSignatureJobRefusesSecondHashInSameRound(t *testing.T) {
+	t.Parallel()
+
+	container := consensusMocks.InitConsensusCore()
+	consensusState := initializers.InitConsensusState()
+	ch := make(chan bool, 1)
+
+	sr, _ := spos.NewSubround(
+		bls.SrBlock,
+		bls.SrSignature,
+		bls.SrEndRound,
+		roundTimeDuration,
+		0.7,
+		0.85,
+		"(SIGNATURE)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+
+	broadcastCalled := false
+	container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
+		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+			broadcastCalled = true
+			return nil
+		},
+	})
+
+	srSignature, _ := v2.NewSubroundSignature(
+		sr,
+		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.SentSignatureTrackerStub{
+			ReserveSignatureInRoundCalled: func(pkBytes []byte, roundIndex int64, headerHash []byte) bool {
+				return false
+			},
+		},
+		&consensusMocks.SposWorkerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
+	)
+
+	srSignature.SetHeader(&block.Header{})
+	leader, err := srSignature.GetLeader()
+	assert.Nil(t, err)
+	srSignature.SetSelfPubKey(leader)
+
+	r := srSignature.DoSignatureJob()
+	assert.False(t, r)
+	assert.False(t, broadcastCalled)
+}
+
 func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	t.Parallel()
 

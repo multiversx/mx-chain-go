@@ -118,6 +118,10 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
 		return false
 	}
+	if sr.shouldRefuseCompetingParent() {
+		log.Debug("doBlockJob - lower-round sibling proof exists for the current head, skipping block proposal")
+		return false
+	}
 	if sr.hasQuorumEvidenceForCompetingBlock() {
 		return false
 	}
@@ -161,6 +165,10 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
 		return false
 	}
+	if sr.shouldRefuseCompetingParent() {
+		log.Debug("doBlockJob - lower-round sibling proof exists for the current head, skipping block proposal")
+		return false
+	}
 
 	sentWithSuccess := sr.sendBlock(ctx, header, body, leader)
 	if !sentWithSuccess {
@@ -190,6 +198,23 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	}
 
 	return true
+}
+
+// shouldRefuseCompetingParent applies the signing guard on the meta chain: never build on or
+// accept a proposal over a head with a known lower-round proofed sibling (the chain must move there)
+func (sr *subroundBlock) shouldRefuseCompetingParent() bool {
+	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
+		return false
+	}
+
+	round := uint64(sr.RoundHandler().Index())
+	isSupernovaActiveInRound := sr.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round)
+	isSupernovaActiveInEpoch := sr.EnableEpochsHandler().IsFlagEnabled(common.SupernovaFlag)
+	if !isSupernovaActiveInRound || !isSupernovaActiveInEpoch {
+		return false
+	}
+
+	return sr.HasProofForCompetingParent()
 }
 
 // hasQuorumEvidenceForCompetingBlock refuses to propose a block doomed by quorum-level signature
@@ -750,6 +775,12 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	isHeaderForCurrentConsensus := sr.isHeaderForCurrentConsensus(headerHandler)
 	if !isHeaderForCurrentConsensus {
 		log.Debug("subroundBlock.receivedBlockHeader - header is not for current consensus")
+		return
+	}
+
+	// the proposal's parent is the current head, pinned by isHeaderForCurrentConsensus
+	if sr.shouldRefuseCompetingParent() {
+		log.Debug("subroundBlock.receivedBlockHeader - lower-round sibling proof exists for the proposal parent, refusing")
 		return
 	}
 

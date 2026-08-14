@@ -196,10 +196,11 @@ func createMockMetaArguments(
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        dataComponents.DataPool.Headers(),
-		ProofsPool:         dataComponents.DataPool.Proofs(),
-		RequestHandler:     &testscommon.RequestHandlerStub{},
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         dataComponents.DataPool.Headers(),
+		ProofsPool:          dataComponents.DataPool.Proofs(),
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 
@@ -415,6 +416,9 @@ func TestNewMetaProcessor_NilHeadersDataPoolShouldErr(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	dataComponents.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			return nil
 		},
@@ -2342,6 +2346,214 @@ func TestMetaProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	hdrFromPool, _ := pool.Headers().GetHeaderByHash(hdrHash)
 	assert.Nil(t, err)
 	assert.Equal(t, &hdr, hdrFromPool)
+}
+
+func TestMetaProcessor_RestoreBlockIntoPoolsV3ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	pool := dataRetrieverMock.NewPoolsHolderMock()
+	marshalizerMock := &mock.MarshalizerMock{}
+	body := &block.Body{}
+	hdr := block.Header{Nonce: 1}
+	buffHdr, _ := marshalizerMock.Marshal(&hdr)
+	hdrHash := []byte("hdr_hash1")
+
+	removedKeysByUnit := make(map[dataRetriever.UnitType][][]byte)
+	store := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
+				RemoveCalled: func(key []byte) error {
+					removedKeysByUnit[unitType] = append(removedKeysByUnit[unitType], key)
+					return nil
+				},
+				GetCalled: func(key []byte) ([]byte, error) {
+					return buffHdr, nil
+				},
+			}, nil
+		},
+	}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.DataPool = pool
+	dataComponents.Storage = store
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	revertedHeaders := make([]data.HeaderHandler, 0)
+	arguments.PendingMiniBlocksHandler = &mock.PendingMiniBlocksHandlerStub{
+		RevertHeaderCalled: func(handler data.HeaderHandler) error {
+			revertedHeaders = append(revertedHeaders, handler)
+			return nil
+		},
+	}
+	mp, _ := processBlock.NewMetaProcessor(arguments)
+
+	// v3 meta blocks reference their notarized shard headers through the proposal shard info
+	mhdr := &block.MetaBlockV3{
+		Nonce: 10,
+		ShardInfoProposal: []block.ShardDataProposal{
+			{ShardID: 0, HeaderHash: hdrHash, Nonce: 1},
+		},
+	}
+
+	err := mp.RestoreBlockIntoPools(mhdr, body)
+	assert.Nil(t, err)
+
+	hdrFromPool, _ := pool.Headers().GetHeaderByHash(hdrHash)
+	assert.Equal(t, &hdr, hdrFromPool)
+	assert.Len(t, removedKeysByUnit[dataRetriever.GetHdrNonceHashDataUnit(0)], 1)
+	assert.Len(t, revertedHeaders, 1)
+	assert.Equal(t, mhdr, revertedHeaders[0])
+}
+
+// pins the execution path contention plumbing: the context must carry the processed meta block's
+// own round and proof state into checkShardHeaderContention
+func TestMetaProcessor_CheckShardHeadersValidityContentionRegimes(t *testing.T) {
+	t.Parallel()
+
+	parentShardHash := []byte("parentShardHash")
+	parentShard := &block.Header{ShardID: 0, Nonce: 10, Round: 10}
+	// rounds 11-13 skipped after the parent -> contended
+	contended := &block.Header{ShardID: 0, Nonce: 11, Round: 14, PrevHash: parentShardHash}
+	metaParent := &block.MetaBlock{Nonce: 99}
+
+	buildProcessor := func(t *testing.T, ownProofed bool) interface {
+		CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error)
+	} {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		if ph, ok := dataComponents.DataPool.(*dataRetrieverMock.PoolsHolderStub); ok {
+			ph.HeadersCalled = func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return metaParent, nil
+					},
+					GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {
+						return nil, nil, errors.New("no headers")
+					},
+				}
+			}
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool { return ownProofed },
+				}
+			}
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
+			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error { return nil },
+		}
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return parentShard, parentShardHash, nil
+			},
+			IsSettledCrossHeaderCalled: func(header data.HeaderHandler, headerHash []byte) bool {
+				return false
+			},
+		}
+		arguments.HeadersForBlock.AddHeaderUsedInBlock("contendedHash", contended)
+		mp, err := processBlock.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		return mp
+	}
+
+	t.Run("unproofed inside the window rejects on the execution path", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t, false)
+		metaHdr := &block.MetaBlock{Nonce: 100, Round: contended.Round + 2, PrevHash: []byte("metaParentHash")}
+
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		require.ErrorIs(t, err, processBlock.ErrContendedHeaderInsideArbitrationWindow)
+	})
+
+	t.Run("own proof skips the contention on the execution path", func(t *testing.T) {
+		t.Parallel()
+
+		mp := buildProcessor(t, true)
+		metaHdr := &block.MetaBlock{Nonce: 100, Round: contended.Round + 2, PrevHash: []byte("metaParentHash")}
+
+		// contention superseded; the flow reaches the shard data comparison instead
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		require.ErrorIs(t, err, process.ErrHeaderShardDataMismatch)
+	})
+}
+
+// the trigger flag transitions at commit must be undone at restore, else the flag equality check on
+// the verify path rejects the canonical sibling after an epoch boundary rollback
+func TestMetaProcessor_RestoreBlockIntoPoolsRevertsEpochChangeProposed(t *testing.T) {
+	t.Parallel()
+
+	newProcessor := func(t *testing.T, flagCalls *[]bool) interface {
+		RestoreBlockIntoPools(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error
+	} {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.Storage = initStore()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			SetEpochChangeProposedCalled: func(value bool) {
+				*flagCalls = append(*flagCalls, value)
+			},
+		}
+		mp, err := processBlock.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		return mp
+	}
+
+	epochStartData := block.EpochStart{
+		LastFinalizedHeaders: []block.EpochStartShardData{{ShardID: 0}},
+	}
+
+	t.Run("v3 epoch start restore rearms the proposed flag", func(t *testing.T) {
+		t.Parallel()
+
+		flagCalls := make([]bool, 0)
+		mp := newProcessor(t, &flagCalls)
+
+		err := mp.RestoreBlockIntoPools(&block.MetaBlockV3{Nonce: 5, EpochStart: epochStartData}, &block.Body{})
+		require.Nil(t, err)
+		require.Equal(t, []bool{true}, flagCalls)
+	})
+
+	t.Run("v3 propose block restore clears the proposed flag", func(t *testing.T) {
+		t.Parallel()
+
+		flagCalls := make([]bool, 0)
+		mp := newProcessor(t, &flagCalls)
+
+		err := mp.RestoreBlockIntoPools(&block.MetaBlockV3{Nonce: 5, EpochChangeProposed: true}, &block.Body{})
+		require.Nil(t, err)
+		require.Equal(t, []bool{false}, flagCalls)
+	})
+
+	t.Run("plain v3 restore leaves the flag untouched", func(t *testing.T) {
+		t.Parallel()
+
+		flagCalls := make([]bool, 0)
+		mp := newProcessor(t, &flagCalls)
+
+		err := mp.RestoreBlockIntoPools(&block.MetaBlockV3{Nonce: 5}, &block.Body{})
+		require.Nil(t, err)
+		require.Empty(t, flagCalls)
+	})
+
+	t.Run("legacy epoch start restore leaves the flag untouched", func(t *testing.T) {
+		t.Parallel()
+
+		flagCalls := make([]bool, 0)
+		mp := newProcessor(t, &flagCalls)
+
+		err := mp.RestoreBlockIntoPools(&block.MetaBlock{Nonce: 5, EpochStart: epochStartData}, &block.Body{})
+		require.Nil(t, err)
+		require.Empty(t, flagCalls)
+	})
 }
 
 func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
@@ -4570,17 +4782,32 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 	rootHash2 := []byte("state root hash 2")
 	validatorStatsRootHash2 := []byte("validator stats root hash 2")
 
+	metaBlockHash := []byte("metaHash")
+	var metaBlockInPool data.HeaderHandler
+
 	coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 	dataPool := initDataPool()
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, metaBlockHash) {
+					return metaBlockInPool, nil
+				}
+
 				return prevHeader, nil
 			},
 		}
 	}
 	dataComponents.DataPool = dataPool
 	arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	metaCoordinator := mock.NewMultipleShardsCoordinatorMock()
+	metaCoordinator.CurrentShard = core.MetachainShardId
+	boostrapComponents.Coordinator = metaCoordinator
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+			return 1, metaBlockHash
+		},
+	}
 	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
 		state.UserAccountsState: &stateMock.AccountsStub{
 			IsPruningEnabledCalled: func() bool {
@@ -4668,14 +4895,7 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 		},
 	}
 
-	blkc := createTestBlockchain()
-	blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
-		return metaBlock
-	}
-	blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
-		return []byte("metaHash")
-	}
-	dataComponents.BlockChain = blkc
+	metaBlockInPool = metaBlock
 
 	mp, _ := processBlock.NewMetaProcessor(arguments)
 
@@ -5777,4 +5997,229 @@ func TestMetaProcessor_VerifyShardDataAgainstHeadersFlagGating(t *testing.T) {
 
 		require.ErrorIs(t, mp.VerifyShardDataAgainstHeaders(metaHdr), process.ErrHeaderShardDataMismatch)
 	})
+}
+
+func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
+	t.Parallel()
+
+	buildProcessorAndHeader := func(settled bool, withCompetitor bool, preSupernovaEra bool) (interface {
+		CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error)
+	}, *block.MetaBlock) {
+		pool := dataRetrieverMock.NewPoolsHolderMock()
+		noOfShards := uint32(5)
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+				return !preSupernovaEra && flag == common.SupernovaFlag
+			},
+		}
+		dataComponents.DataPool = pool
+		dataComponents.Storage = initStore()
+		bootstrapComponents.Coordinator = mock.NewMultiShardsCoordinatorMock(noOfShards)
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
+		blockTracker := mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
+		blockTracker.IsSettledCrossHeaderCalled = func(header data.HeaderHandler, headerHash []byte) bool {
+			return settled
+		}
+		arguments.BlockTracker = blockTracker
+
+		argsHeaderValidator := processBlock.ArgsHeaderValidator{
+			Hasher:              coreComponents.Hash,
+			Marshalizer:         coreComponents.InternalMarshalizer(),
+			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		}
+		arguments.HeaderValidator, _ = processBlock.NewHeaderValidator(argsHeaderValidator)
+
+		mp, _ := processBlock.NewMetaProcessor(arguments)
+
+		prevRandSeed := []byte("prevrand")
+		currRandSeed := []byte("currrand")
+		notarizedHdrs := mp.NotarizedHdrs()
+		setLastNotarizedHdr(noOfShards, 9, 44, prevRandSeed, notarizedHdrs, arguments.BlockTracker)
+
+		// rounds 10-11 skipped after the last notarized shard header (round 9) -> contended
+		prevHash, _ := mp.ComputeHeaderHash(mp.LastNotarizedHdrForShard(0).(*block.Header))
+		contendedHdr := &block.Header{
+			Round:           12,
+			Nonce:           45,
+			ShardID:         0,
+			PrevRandSeed:    prevRandSeed,
+			RandSeed:        currRandSeed,
+			PrevHash:        prevHash,
+			RootHash:        []byte("rootHash"),
+			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
+		}
+		contendedHash, _ := mp.ComputeHeaderHash(contendedHdr)
+		pool.Headers().AddHeader(contendedHash, contendedHdr)
+
+		if withCompetitor {
+			competitorHdr := &block.Header{
+				Round:           10,
+				Nonce:           45,
+				ShardID:         0,
+				PrevRandSeed:    prevRandSeed,
+				RandSeed:        []byte("competitorRand"),
+				PrevHash:        prevHash,
+				RootHash:        []byte("competitorRootHash"),
+				AccumulatedFees: big.NewInt(0),
+				DeveloperFees:   big.NewInt(0),
+			}
+			competitorHash, _ := mp.ComputeHeaderHash(competitorHdr)
+			pool.Headers().AddHeader(competitorHash, competitorHdr)
+			_ = pool.Proofs().AddProof(&block.HeaderProof{
+				HeaderHash:    competitorHash,
+				HeaderNonce:   competitorHdr.Nonce,
+				HeaderRound:   competitorHdr.Round,
+				HeaderShardId: competitorHdr.ShardID,
+			})
+		}
+
+		metaHdr := &block.MetaBlock{Round: 20}
+		metaHdr.ShardInfo = []block.ShardData{{
+			ShardID:         0,
+			HeaderHash:      contendedHash,
+			Round:           contendedHdr.Round,
+			Nonce:           contendedHdr.Nonce,
+			PrevRandSeed:    contendedHdr.PrevRandSeed,
+			PrevHash:        contendedHdr.PrevHash,
+			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
+			TxCount:         contendedHdr.TxCount,
+		}}
+
+		arguments.HeadersForBlock.AddHeaderUsedInBlock(string(contendedHash), contendedHdr)
+
+		return mp, metaHdr
+	}
+
+	t.Run("contended unsettled referenced shard header without competitor should pass", func(t *testing.T) {
+		t.Parallel()
+
+		mp, metaHdr := buildProcessorAndHeader(false, false, false)
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		assert.Nil(t, err)
+	})
+
+	t.Run("contended unsettled referenced shard header with better proofed competitor should error", func(t *testing.T) {
+		t.Parallel()
+
+		mp, metaHdr := buildProcessorAndHeader(false, true, false)
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		assert.ErrorContains(t, err, "better proofed competitor")
+	})
+
+	t.Run("contended settled referenced shard header should pass", func(t *testing.T) {
+		t.Parallel()
+
+		mp, metaHdr := buildProcessorAndHeader(true, false, false)
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		assert.Nil(t, err)
+	})
+
+	t.Run("pre-Supernova contended referenced shard header skips the contention gate", func(t *testing.T) {
+		t.Parallel()
+
+		mp, metaHdr := buildProcessorAndHeader(false, true, true)
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		assert.Nil(t, err)
+	})
+}
+
+func TestMetaProcessor_UpdateStateSignalsNewlyFinalBlocksUnderSupernova(t *testing.T) {
+	t.Parallel()
+
+	hash4, hash5, hash6, hash7, hash8 := []byte("hash4"), []byte("hash5"), []byte("hash6"), []byte("hash7"), []byte("hash8")
+	newMetaBlock := func(nonce uint64, round uint64, prevHash []byte) *block.MetaBlock {
+		return &block.MetaBlock{
+			Nonce:                  nonce,
+			Round:                  round,
+			PrevHash:               prevHash,
+			RootHash:               append([]byte("rootHash"), byte(nonce)),
+			ValidatorStatsRootHash: append([]byte("validatorRootHash"), byte(nonce)),
+		}
+	}
+	hdr4 := newMetaBlock(4, 4, []byte("hash3"))
+	hdr5 := newMetaBlock(5, 5, hash4)
+	contendedHdr6 := newMetaBlock(6, 8, hash5)
+	contendedHdr7 := newMetaBlock(7, 11, hash6)
+	cleanHdr8 := newMetaBlock(8, 12, hash7)
+	headersByHash := map[string]data.HeaderHandler{
+		string(hash4): hdr4,
+		string(hash5): hdr5,
+		string(hash6): contendedHdr6,
+		string(hash7): contendedHdr7,
+	}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag || flag == common.SupernovaFlag
+		},
+	}
+
+	dataPool := initDataPool()
+	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				header, ok := headersByHash[string(hash)]
+				if !ok {
+					return nil, errors.New("header not found")
+				}
+				return header, nil
+			},
+		}
+	}
+	dataComponents.DataPool = dataPool
+
+	setFinalBlockInfos := make([]uint64, 0)
+	dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Nonce: 0}
+		},
+		SetFinalBlockInfoCalled: func(nonce uint64, headerHash []byte, rootHash []byte) {
+			setFinalBlockInfos = append(setFinalBlockInfos, nonce)
+		},
+	}
+
+	outportCapture := &finalizedBlocksCapture{OutportStub: &outport.OutportStub{}}
+	statusComponents.Outport = outportCapture
+
+	settledHashByNonce := map[uint64][]byte{4: hash4, 5: hash5, 6: hash6, 7: hash7, 8: hash8}
+	settledNonce := uint64(5)
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+			return settledNonce, settledHashByNonce[settledNonce]
+		},
+	}
+	mp, _ := processBlock.NewMetaProcessor(arguments)
+
+	// the settled block is signaled; the first signal never walks back, so hash4 stays unsignaled
+	mp.UpdateState(hdr5, hash5)
+	require.Equal(t, [][]byte{hash5}, outportCapture.finalizedHashes)
+	require.Equal(t, []uint64{5}, setFinalBlockInfos)
+
+	// contended committed block is not signaled while unsettled
+	mp.UpdateState(contendedHdr6, hash6)
+	require.Equal(t, [][]byte{hash5}, outportCapture.finalizedHashes)
+	require.Equal(t, []uint64{5}, setFinalBlockInfos)
+
+	// the committed child settles its parent: the parent is signaled, the contended child is not
+	settledNonce = 6
+	mp.UpdateState(contendedHdr7, hash7)
+	require.Equal(t, [][]byte{hash5, hash6}, outportCapture.finalizedHashes)
+	require.Equal(t, []uint64{5, 6}, setFinalBlockInfos)
+
+	// settlement jumps over nonce 7: the skipped block is back filled before the settled one
+	settledNonce = 8
+	mp.UpdateState(cleanHdr8, hash8)
+	require.Equal(t, [][]byte{hash5, hash6, hash7, hash8}, outportCapture.finalizedHashes)
+	require.Equal(t, []uint64{5, 6, 8}, setFinalBlockInfos)
 }

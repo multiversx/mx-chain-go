@@ -8,22 +8,24 @@ import (
 
 // EpochStartTriggerStub -
 type EpochStartTriggerStub struct {
-	ForceEpochStartCalled             func(round uint64)
-	IsEpochStartCalled                func() bool
-	EpochCalled                       func() uint32
-	MetaEpochCalled                   func() uint32
-	LastCommitedEpochStartHdrCalled   func() (data.HeaderHandler, error)
-	GetEpochStartHdrFromStorageCalled func(epoch uint32) (data.HeaderHandler, error)
-	ReceivedHeaderCalled              func(handler data.HeaderHandler)
-	UpdateCalled                      func(round uint64, nonce uint64)
-	ProcessedCalled                   func(header data.HeaderHandler)
-	EpochStartRoundCalled             func() uint64
-	EpochFinalityAttestingRoundCalled func() uint64
-	EpochStartMetaHdrHashCalled       func() []byte
-	ShouldProposeEpochChangeCalled    func(round uint64, nonce uint64) bool
-	SetEpochChangeCalled              func(round uint64)
-	SetEpochChangeProposedCalled      func(value bool)
-	GetEpochChangeProposedCalled      func() bool
+	RevertStateToBlockCalled              func(header data.HeaderHandler) error
+	DisarmDeadEpochStartActivationHandler func(epoch uint32, deadEpochStartHash []byte) bool
+	ForceEpochStartCalled                 func(round uint64)
+	IsEpochStartCalled                    func() bool
+	EpochCalled                           func() uint32
+	MetaEpochCalled                       func() uint32
+	LastCommitedEpochStartHdrCalled       func() (data.HeaderHandler, error)
+	GetEpochStartHdrFromStorageCalled     func(epoch uint32) (data.HeaderHandler, error)
+	ReceivedHeaderCalled                  func(handler data.HeaderHandler)
+	UpdateCalled                          func(round uint64, nonce uint64)
+	ProcessedCalled                       func(header data.HeaderHandler)
+	EpochStartRoundCalled                 func() uint64
+	EpochFinalityAttestingRoundCalled     func() uint64
+	EpochStartMetaHdrHashCalled           func() []byte
+	ShouldProposeEpochChangeCalled        func(round uint64, nonce uint64) bool
+	SetEpochChangeCalled                  func(round uint64)
+	SetEpochChangeProposedCalled          func(value bool)
+	GetEpochChangeProposedCalled          func() bool
 }
 
 // SetEpochChange -
@@ -34,7 +36,11 @@ func (e *EpochStartTriggerStub) SetEpochChange(round uint64) {
 }
 
 // RevertStateToBlock -
-func (e *EpochStartTriggerStub) RevertStateToBlock(_ data.HeaderHandler) error {
+func (e *EpochStartTriggerStub) RevertStateToBlock(header data.HeaderHandler) error {
+	if e.RevertStateToBlockCalled != nil {
+		return e.RevertStateToBlockCalled(header)
+	}
+
 	return nil
 }
 
@@ -190,4 +196,13 @@ func (e *EpochStartTriggerStub) Close() error {
 // IsInterfaceNil -
 func (e *EpochStartTriggerStub) IsInterfaceNil() bool {
 	return e == nil
+}
+
+// DisarmDeadEpochStartActivation -
+func (e *EpochStartTriggerStub) DisarmDeadEpochStartActivation(epoch uint32, deadEpochStartHash []byte) bool {
+	if e.DisarmDeadEpochStartActivationHandler != nil {
+		return e.DisarmDeadEpochStartActivationHandler(epoch, deadEpochStartHash)
+	}
+
+	return false
 }

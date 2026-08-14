@@ -18,6 +18,7 @@ type TxCacheBoundsConfig struct {
 	MaxNumBytesPerSenderUpperBound uint32
 	MaxTrackedBlocks               uint32
 	PropagationGracePeriodMs       uint32
+	MaxTxNonceDeltaAllowed         int
 }
 
 // TxCacheSelectionConfig will map the mempool selection config
@@ -227,7 +228,6 @@ type Config struct {
 	SmartContractDataPool        CacheConfig
 	ValidatorInfoPool            CacheConfig
 	ExecutedMiniBlocksCache      CacheConfig
-	QuarantinedHeadersCache      CacheConfig
 	PostProcessTransactionsCache CacheConfig
 	HeaderBodyCacheConfig        HeaderBodyCacheConfig
 	TrieSyncStorage              TrieSyncStorageConfig
@@ -367,8 +367,7 @@ type SubroundTiming struct {
 type EpochStartConfigByEpoch struct {
 	EnableEpoch uint32
 
-	GracePeriodRounds                           uint32
-	ExtraDelayForRequestBlockInfoInMilliseconds uint32
+	GracePeriodRounds uint32
 }
 
 // EpochStartConfigByRound defines epoch start configuration parameters by round
@@ -489,9 +488,9 @@ type StateAccessesCollectorConfig struct {
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
 type TrieStorageManagerConfig struct {
-	PruningBufferLen      uint32
-	SnapshotsBufferLen    uint32
-	SnapshotsGoroutineNum uint32
+	PruningBufferLen           uint32
+	SnapshotsBufferLen         uint32
+	SnapshotsGoroutinesPerCore uint32
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines

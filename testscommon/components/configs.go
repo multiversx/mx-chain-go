@@ -65,9 +65,9 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-			PruningBufferLen:      1000,
-			SnapshotsBufferLen:    10,
-			SnapshotsGoroutineNum: 1,
+			PruningBufferLen:           1000,
+			SnapshotsBufferLen:         10,
+			SnapshotsGoroutinesPerCore: 1,
 		},
 		VirtualMachine: config.VirtualMachineServicesConfig{
 			Querying: config.QueryVirtualMachineConfig{
@@ -192,7 +192,7 @@ func GetGeneralConfig() config.Config {
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
-				{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+				{EnableEpoch: 0, GracePeriodRounds: 25},
 			},
 			EpochStartConfigsByRound: []config.EpochStartConfigByRound{
 				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},

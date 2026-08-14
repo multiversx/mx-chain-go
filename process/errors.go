@@ -254,8 +254,8 @@ var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 // ErrNilProofsPool signals that a nil proofs pool was used
 var ErrNilProofsPool = errors.New("nil proofs pool")
 
-// ErrNilQuarantinedHeadersCache signals that a nil quarantined headers cache was used
-var ErrNilQuarantinedHeadersCache = errors.New("nil quarantined headers cache")
+// ErrNilMetaFinalityView signals that a nil meta finality view was used
+var ErrNilMetaFinalityView = errors.New("nil meta finality view")
 
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
@@ -1481,6 +1481,24 @@ var ErrWrongMiniBlockConstructionState = errors.New("wrong mini block constructi
 
 // ErrWrongMiniBlockProcessingType signals that the mini block processing type is not as expected
 var ErrWrongMiniBlockProcessingType = errors.New("wrong mini block processing type")
+
+// ErrMultipleSelfSenderMiniBlocks signals that a proposal body holds more than one self-sender mini block
+var ErrMultipleSelfSenderMiniBlocks = errors.New("multiple self-sender mini blocks in proposal body")
+
+// ErrSelfSenderMiniBlockNotLast signals that a proposal body holds an incoming mini block after the self-sender one
+var ErrSelfSenderMiniBlockNotLast = errors.New("self-sender mini block is not the last in proposal body")
+
+// ErrSelfSenderMiniBlockOnMeta signals that a meta proposal body holds a self-sender mini block
+var ErrSelfSenderMiniBlockOnMeta = errors.New("self-sender mini block in meta proposal body")
+
+// ErrInvalidSelfSenderMiniBlock signals that a self-sender proposal mini block has an invalid shape
+var ErrInvalidSelfSenderMiniBlock = errors.New("invalid self-sender mini block in proposal body")
+
+// ErrInvalidSelfSenderIndexes signals that a self-sender proposal mini block does not cover all its transactions
+var ErrInvalidSelfSenderIndexes = errors.New("self-sender mini block indexes do not cover all transactions")
+
+// ErrLeftoverScheduledMiniBlocksOnTransition signals that the legacy predecessor of the first Supernova block carries non-final mini blocks
+var ErrLeftoverScheduledMiniBlocksOnTransition = errors.New("leftover scheduled mini blocks on supernova transition")
 
 // ErrInvalidNumberOfExecutionResultsInHeader signals that the number of execution results in header is invalid
 var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of execution results in header")
