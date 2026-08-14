@@ -30,10 +30,10 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 
 // ResetStateAccessesCollector -
 func (adb *AccountsDB) ResetStateAccessesCollector(rootHash []byte) (map[string]*data.StateAccesses, error) {
-	stateChanges := adb.stateAccessesCollector.GetStateAccessesForRootHash(rootHash)
+	stateChanges, err := adb.stateAccessesCollector.TakeStateAccessesForHeader(rootHash, rootHash)
 	adb.stateAccessesCollector.Reset()
 
-	return stateChanges, nil
+	return stateChanges, err
 }
 
 // GetCode -

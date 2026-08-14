@@ -2540,6 +2540,38 @@ func (bp *baseProcessor) commitState(headerHandler data.HeaderHandler) error {
 	return bp.commit()
 }
 
+func (bp *baseProcessor) commitStateForHeader(headerHandler data.HeaderHandler, headerHash []byte) error {
+	if !bp.outportHandler.HasDrivers() {
+		return bp.commitState(headerHandler)
+	}
+
+	generation := bp.stateAccessesCollector.BeginExecution(headerHash)
+	defer bp.stateAccessesCollector.EndExecution(generation)
+
+	err := bp.commitState(headerHandler)
+	if err != nil {
+		bp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
+	}
+
+	return err
+}
+
+// DiscardStateAccessesForHeader removes accesses retained for a header
+func (bp *baseProcessor) DiscardStateAccessesForHeader(headerHash []byte) {
+	bp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
+}
+
+func (bp *baseProcessor) cleanupStateAccessesAfterOutport(header data.HeaderHandler, headerHash []byte) {
+	if !header.IsHeaderV3() {
+		bp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
+		return
+	}
+
+	for _, executionResult := range header.GetExecutionResultsHandlers() {
+		bp.stateAccessesCollector.DiscardStateAccessesForHeader(executionResult.GetHeaderHash())
+	}
+}
+
 func (bp *baseProcessor) commitInLastEpoch(currentEpoch uint32) error {
 	lastEpoch := uint32(0)
 	if currentEpoch > 0 {

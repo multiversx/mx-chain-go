@@ -32,14 +32,37 @@ type executionResultsTracker struct {
 	lastExecutedResultHash   []byte
 	consensusCommittedHashes map[uint64][]byte // tracks which hash was committed by consensus for each nonce
 	dismissedBatches         []DismissedBatch
+	dismissedNotifications   [][]byte
+	dismissedHandler         DismissedExecutionHandler
 }
 
 // NewExecutionResultsTracker will create a new instance of *executionResultsTracker
-func NewExecutionResultsTracker() *executionResultsTracker {
+func NewExecutionResultsTracker(dismissedHandler DismissedExecutionHandler) (*executionResultsTracker, error) {
+	if check.IfNil(dismissedHandler) {
+		return nil, ErrNilDismissedExecutionHandler
+	}
+
 	return &executionResultsTracker{
 		executionResultsByHash:   make(map[string]data.BaseExecutionResultHandler),
 		nonceHash:                newNonceHash(),
 		consensusCommittedHashes: make(map[uint64][]byte),
+		dismissedHandler:         dismissedHandler,
+	}, nil
+}
+
+func (ert *executionResultsTracker) unlockAndNotifyDismissed() {
+	notifications := ert.dismissedNotifications
+	ert.dismissedNotifications = nil
+	ert.mutex.Unlock()
+
+	for _, hash := range notifications {
+		ert.dismissedHandler.DiscardStateAccessesForHeader(hash)
+	}
+}
+
+func (ert *executionResultsTracker) notifyDismissed(results []data.BaseExecutionResultHandler) {
+	for _, result := range results {
+		ert.dismissedNotifications = append(ert.dismissedNotifications, result.GetHeaderHash())
 	}
 }
 
@@ -52,7 +75,7 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 	}
 
 	ert.mutex.Lock()
-	defer ert.mutex.Unlock()
+	defer ert.unlockAndNotifyDismissed()
 	if ert.lastNotarizedResult == nil {
 		return false, ErrNilLastNotarizedExecutionResult
 	}
@@ -85,6 +108,20 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 
 	executionResultByHash := ert.nonceHash.getHashByNonce(executionResult.GetHeaderNonce())
 	if len(executionResultByHash) > 0 {
+		oldResult := ert.executionResultsByHash[executionResultByHash]
+		if oldResult != nil && !bytes.Equal(oldResult.GetHeaderHash(), executionResult.GetHeaderHash()) {
+			anchor := ert.lastNotarizedResult
+			if oldResult.GetHeaderNonce() > ert.lastNotarizedResult.GetHeaderNonce()+1 {
+				previousResult, errGet := ert.getPendingExecutionResultsByNonce(oldResult.GetHeaderNonce() - 1)
+				if errGet == nil {
+					anchor = previousResult
+				}
+			}
+			ert.addDismissedBatch(DismissedBatch{
+				AnchorResult: anchor,
+				Results:      []data.BaseExecutionResultHandler{oldResult},
+			})
+		}
 		delete(ert.executionResultsByHash, executionResultByHash)
 	}
 
@@ -188,7 +225,7 @@ func (ert *executionResultsTracker) getPendingExecutionResultsByNonce(nonce uint
 // CleanConfirmedExecutionResults will clean the confirmed execution results
 func (ert *executionResultsTracker) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
 	ert.mutex.Lock()
-	defer ert.mutex.Unlock()
+	defer ert.unlockAndNotifyDismissed()
 
 	headerExecutionResults := header.GetExecutionResultsHandlers()
 
@@ -276,7 +313,7 @@ func (ert *executionResultsTracker) CleanOnConsensusReached(headerHash []byte, h
 	}
 
 	ert.mutex.Lock()
-	defer ert.mutex.Unlock()
+	defer ert.unlockAndNotifyDismissed()
 
 	if header.IsHeaderV3() {
 		// record the committed hash to prevent stale results being added later
@@ -323,7 +360,7 @@ func (ert *executionResultsTracker) SetLastNotarizedResult(executionResult data.
 // RemoveFromNonce will remove the execution result with the provided nonce and all execution results with higher nonces
 func (ert *executionResultsTracker) RemoveFromNonce(nonce uint64) error {
 	ert.mutex.Lock()
-	defer ert.mutex.Unlock()
+	defer ert.unlockAndNotifyDismissed()
 
 	return ert.removePendingFromNonceUnprotected(nonce)
 }
@@ -335,7 +372,7 @@ func (ert *executionResultsTracker) Clean(lastNotarizedResult data.BaseExecution
 	}
 
 	ert.mutex.Lock()
-	defer ert.mutex.Unlock()
+	defer ert.unlockAndNotifyDismissed()
 
 	pending, _ := ert.getPendingExecutionResults()
 	if len(pending) > 0 {
@@ -411,6 +448,7 @@ func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint
 }
 
 func (ert *executionResultsTracker) addDismissedBatch(batch DismissedBatch) {
+	ert.notifyDismissed(batch.Results)
 	if len(ert.dismissedBatches) >= maxDismissedBatches {
 		log.Warn("dismissed batches queue is full, dropping oldest batch",
 			"maxDismissedBatches", maxDismissedBatches,

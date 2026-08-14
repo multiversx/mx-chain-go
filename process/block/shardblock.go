@@ -718,6 +718,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	header data.HeaderHandler,
 	lastBlockHeader data.HeaderHandler,
 ) {
+	defer sp.cleanupStateAccessesAfterOutport(header, headerHash)
 	if !sp.outportHandler.HasDrivers() {
 		return
 	}
@@ -1234,7 +1235,10 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	if !headerHandler.IsHeaderV3() {
-		err = sp.commitState(headerHandler)
+		if sp.outportHandler.HasDrivers() {
+			defer sp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
+		}
+		err = sp.commitStateForHeader(headerHandler, headerHash)
 		if err != nil {
 			return err
 		}

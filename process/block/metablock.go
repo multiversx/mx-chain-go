@@ -636,6 +636,7 @@ func (mp *metaProcessor) indexBlock(
 	notarizedHeadersHashes []string,
 	rewardsTxs map[string]data.TransactionHandler,
 ) {
+	defer mp.cleanupStateAccessesAfterOutport(metaBlock, headerHash)
 	if !mp.outportHandler.HasDrivers() {
 		return
 	}
@@ -1369,7 +1370,10 @@ func (mp *metaProcessor) CommitBlock(
 
 	if !headerHandler.IsHeaderV3() {
 		// TODO commit state on ProcessBlockProposal for meta and header v3
-		err = mp.commitState(headerHandler)
+		if mp.outportHandler.HasDrivers() {
+			defer mp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
+		}
+		err = mp.commitStateForHeader(headerHandler, headerHash)
 		if err != nil {
 			return err
 		}

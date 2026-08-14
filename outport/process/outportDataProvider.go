@@ -3,6 +3,7 @@ package process
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -18,8 +19,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/storage"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -227,7 +229,7 @@ func (odp *outportDataProvider) getStateAccesses(
 			rootHash = scheduledRootHash
 		}
 
-		stateAccesses := odp.getStateAccessForRootHash(rootHash)
+		stateAccesses := odp.getStateAccessForHeader(headerHash, rootHash)
 		stateAccessesForBlock[hex.EncodeToString(headerHash)] = &outportcore.StateAccessesForBlock{StateAccesses: stateAccesses}
 		// for backward compatibility, in case some driver is still using StateAccesses instead of StateAccessesForBlock
 		return stateAccessesForBlock, stateAccesses
@@ -235,19 +237,30 @@ func (odp *outportDataProvider) getStateAccesses(
 
 	executionResults := header.GetExecutionResultsHandlers()
 	for _, execResult := range executionResults {
-		stateAccesses := odp.getStateAccessForRootHash(execResult.GetRootHash())
+		stateAccesses := odp.getStateAccessForHeader(execResult.GetHeaderHash(), execResult.GetRootHash())
 		stateAccessesForBlock[hex.EncodeToString(execResult.GetHeaderHash())] = &outportcore.StateAccessesForBlock{StateAccesses: stateAccesses}
 	}
 	return stateAccessesForBlock, nil
 }
 
-func (odp *outportDataProvider) getStateAccessForRootHash(rootHash []byte) map[string]*stateChange.StateAccesses {
-	stateAccessesMap := odp.stateAccessesCollector.GetStateAccessesForRootHash(rootHash)
-	if len(stateAccessesMap) == 0 {
+func (odp *outportDataProvider) getStateAccessForHeader(headerHash, rootHash []byte) map[string]*stateChange.StateAccesses {
+	stateAccessesMap, err := odp.stateAccessesCollector.TakeStateAccessesForHeader(headerHash, rootHash)
+	if err == nil {
+		return stateAccessesMap
+	}
+
+	var mismatchErr *state.StateAccessesRootMismatchError
+	if errors.As(err, &mismatchErr) {
+		log.Error("state accesses root hash mismatch",
+			"headerHash", mismatchErr.HeaderHash,
+			"expectedRootHash", mismatchErr.ExpectedRoot,
+			"actualRootHash", mismatchErr.ActualRoot,
+		)
 		return nil
 	}
-	odp.stateAccessesCollector.RemoveStateAccessesForRootHash(rootHash)
-	return stateAccessesMap
+
+	log.Error("cannot take state accesses", "headerHash", headerHash, "error", err)
+	return nil
 }
 
 func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultData, error) {
@@ -720,7 +733,7 @@ func (odp *outportDataProvider) IsInterfaceNil() bool {
 func (odp *outportDataProvider) getIntraShardMiniBlocks(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) ([]*block.MiniBlock, error) {
 	if headerHandler.IsHeaderV3() {
 		// skip intra-shard miniblocks.
-		// they are returned later when this block’s execution result is included in a future block.
+		// they are returned later when this block\u2019s execution result is included in a future block.
 		return []*block.MiniBlock{}, nil
 	}
 

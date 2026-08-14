@@ -9052,14 +9052,14 @@ func TestShardProcessor_CommitBlockProposalStateBlocksBackgroundJobs(t *testing.
 	sp, err := blproc.NewShardProcessor(arguments)
 	require.Nil(t, err)
 
-	err = sp.CommitBlockProposalState(&block.HeaderV3{Nonce: 1})
+	err = sp.CommitBlockProposalState(&block.HeaderV3{Nonce: 1}, []byte("header hash"))
 	require.Nil(t, err)
 
 	require.Equal(t, []string{"shardProcessor.CommitBlockProposalState"}, blockedFor)
 	require.Equal(t, 1, unblockCount)
 
 	// a nil header returns before the bracket, so it must not leak an unblock
-	err = sp.CommitBlockProposalState(nil)
+	err = sp.CommitBlockProposalState(nil, nil)
 	require.Equal(t, process.ErrNilBlockHeader, err)
 	require.Equal(t, 1, unblockCount)
 }

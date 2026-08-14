@@ -13,8 +13,10 @@ type StateAccessesCollectorStub struct {
 	AddTxHashToCollectedStateAccessesCalled func(txHash []byte)
 	SetIndexToLatestStateAccessesCalled     func(index int) error
 	RevertToIndexCalled                     func(index int) error
-	GetStateAccessesForRootHashCalled       func(rootHash []byte) map[string]*stateChange.StateAccesses
-	RemoveStateAccessesForRootHashCalled    func(rootHash []byte)
+	BeginExecutionCalled                    func(headerHash []byte) uint64
+	EndExecutionCalled                      func(generation uint64)
+	TakeStateAccessesForHeaderCalled        func(headerHash, expectedRootHash []byte) (map[string]*stateChange.StateAccesses, error)
+	DiscardStateAccessesForHeaderCalled     func(headerHash []byte)
 	CommitCollectedAccessesCalled           func(rootHash []byte) error
 	IsInterfaceNilCalled                    func() bool
 }
@@ -66,19 +68,33 @@ func (s *StateAccessesCollectorStub) RevertToIndex(index int) error {
 	return nil
 }
 
-// GetStateAccessesForRootHash -
-func (s *StateAccessesCollectorStub) GetStateAccessesForRootHash(rootHash []byte) map[string]*stateChange.StateAccesses {
-	if s.GetStateAccessesForRootHashCalled != nil {
-		return s.GetStateAccessesForRootHashCalled(rootHash)
+// BeginExecution -
+func (s *StateAccessesCollectorStub) BeginExecution(headerHash []byte) uint64 {
+	if s.BeginExecutionCalled != nil {
+		return s.BeginExecutionCalled(headerHash)
 	}
-
-	return nil
+	return 0
 }
 
-// RemoveStateAccessesForRootHash -
-func (s *StateAccessesCollectorStub) RemoveStateAccessesForRootHash(rootHash []byte) {
-	if s.RemoveStateAccessesForRootHashCalled != nil {
-		s.RemoveStateAccessesForRootHashCalled(rootHash)
+// EndExecution -
+func (s *StateAccessesCollectorStub) EndExecution(generation uint64) {
+	if s.EndExecutionCalled != nil {
+		s.EndExecutionCalled(generation)
+	}
+}
+
+// TakeStateAccessesForHeader -
+func (s *StateAccessesCollectorStub) TakeStateAccessesForHeader(headerHash, expectedRootHash []byte) (map[string]*stateChange.StateAccesses, error) {
+	if s.TakeStateAccessesForHeaderCalled != nil {
+		return s.TakeStateAccessesForHeaderCalled(headerHash, expectedRootHash)
+	}
+	return nil, nil
+}
+
+// DiscardStateAccessesForHeader -
+func (s *StateAccessesCollectorStub) DiscardStateAccessesForHeader(headerHash []byte) {
+	if s.DiscardStateAccessesForHeaderCalled != nil {
+		s.DiscardStateAccessesForHeaderCalled(headerHash)
 	}
 }
 
