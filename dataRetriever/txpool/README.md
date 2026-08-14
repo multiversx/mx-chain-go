@@ -15,7 +15,7 @@ Above, `N` is the number of shards.
  
  1. **selection (`TxCache`):** this function retrieves a number (e.g. 30000) of transactions from the **TxCache** so that they are further fed to the transaction processing components. This function is required **on "my turn"** only.
  
- 1. **removal (both caches):** this function is required by components such as the **transactions cleaner** (which cleans old, stale transactions from time to time), the **transactions processor** (which removes bad transactions at processing time), the **base processor** (which removes transactions included in commited blocks) etc.
+ 1. **removal (both caches):** this function is required by components such as the **transactions cleaner** (which cleans old, stale transactions from time to time), the **transactions processor** (which removes bad transactions at processing time), the **base processor** (which removes transactions included in committed blocks) etc.
 
  1. **eviction (both caches):** when capacity is closed to be reached, the caches heuristically discard bulks of transactions. The high-load conditions are checked at the time of insertion.
 

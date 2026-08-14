@@ -32,8 +32,8 @@ var ErrNilCurrentHeader = errors.New("nil current header")
 // ErrNilEpochStartHeader signals that a nil epoch start header was provided
 var ErrNilEpochStartHeader = errors.New("nil epoch start header")
 
-// ErrNilLastCommitedEpochStartHdr signals that a nil last commited epoch start header was provided
-var ErrNilLastCommitedEpochStartHdr = errors.New("nil last commited epoch start header")
+// ErrNilLastCommitedEpochStartHdr signals that a nil last committed epoch start header was provided
+var ErrNilLastCommitedEpochStartHdr = errors.New("nil last committed epoch start header")
 
-// ErrLastCommitedEpochStartHdrMismatch signals that the current header epoch and last commited epoch start header epoch do not match
-var ErrLastCommitedEpochStartHdrMismatch = errors.New("current header epoch and last commited epoch start header epoch do not match")
+// ErrLastCommitedEpochStartHdrMismatch signals that the current header epoch and last committed epoch start header epoch do not match
+var ErrLastCommitedEpochStartHdrMismatch = errors.New("current header epoch and last committed epoch start header epoch do not match")
