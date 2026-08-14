@@ -96,6 +96,8 @@ func (c *collector) Reset() {
 		c.removeStateAccessesForRootHash(c.lastCollectedRootHash)
 		log.Trace("removed last collected root hash from stateAccessesForBlock", "rootHash", c.lastCollectedRootHash)
 	}
+	c.lastCollectedRootHash = nil
+	c.lastCommitHasStateChanges = false
 	c.stateAccessesMut.Unlock()
 
 	c.stateAccessesForBlockMut.RLock()
@@ -248,18 +250,22 @@ func (c *collector) CommitCollectedAccesses(rootHash []byte) error {
 	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
 	c.stateAccesses = make([]*data.StateAccess, 0)
 
-	c.lastCollectedRootHash = rootHash
-	c.lastCommitHasStateChanges = true
-	c.stateAccessesMut.Unlock()
-
 	c.stateAccessesForBlockMut.Lock()
-	c.stateAccessesForBlock[string(rootHash)] = collectedStateAccesses
-	log.Trace("state accesses collected", "numStateAccesses", len(collectedStateAccesses), "rootHash", rootHash)
+	_, alreadyCollected := c.stateAccessesForBlock[string(rootHash)]
+	if !alreadyCollected {
+		c.stateAccessesForBlock[string(rootHash)] = collectedStateAccesses
+		log.Trace("state accesses collected", "numStateAccesses", len(collectedStateAccesses), "rootHash", rootHash)
+	} else {
+		log.Debug("state accesses already collected for root hash, keeping previous accesses", "rootHash", rootHash)
+	}
 
+	c.lastCollectedRootHash = append([]byte(nil), rootHash...)
+	c.lastCommitHasStateChanges = !alreadyCollected
 	if len(c.stateAccessesForBlock) > maxNumBlocksInMemory {
 		log.Warn("max number of blocks in memory exceeded", "numBlocksInMemory", len(c.stateAccessesForBlock))
 	}
 	c.stateAccessesForBlockMut.Unlock()
+	c.stateAccessesMut.Unlock()
 
 	return c.storer.Store(collectedStateAccesses)
 }
