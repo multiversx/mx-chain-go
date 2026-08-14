@@ -53,6 +53,53 @@ func TestNewStateAccessesCollector(t *testing.T) {
 	})
 }
 
+func TestCollector_CommitCollectedAccessesSameRootDoesNotOverwrite(t *testing.T) {
+	t.Parallel()
+
+	c, err := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
+	require.NoError(t, err)
+
+	rootHash := []byte("shared-root-hash")
+	firstTxHash := []byte("first-tx-hash")
+	secondTxHash := []byte("second-tx-hash")
+
+	c.AddStateAccess(&data.StateAccess{Type: data.Write, TxHash: firstTxHash})
+	require.NoError(t, c.CommitCollectedAccesses(rootHash))
+
+	c.AddStateAccess(&data.StateAccess{Type: data.Write, TxHash: secondTxHash})
+	require.NoError(t, c.CommitCollectedAccesses(rootHash))
+
+	stateAccesses := c.GetStateAccessesForRootHash(rootHash)
+	require.Contains(t, stateAccesses, string(firstTxHash))
+	require.NotContains(t, stateAccesses, string(secondTxHash))
+	require.Len(t, c.stateAccessesForBlock, 1)
+}
+
+func TestCollector_ResetAfterSameRootCommitKeepsPreviousStateAccesses(t *testing.T) {
+	t.Parallel()
+
+	c, err := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
+	require.NoError(t, err)
+
+	rootHash := []byte("shared-root-hash")
+	firstTxHash := []byte("first-tx-hash")
+	secondTxHash := []byte("second-tx-hash")
+
+	c.AddStateAccess(&data.StateAccess{Type: data.Write, TxHash: firstTxHash})
+	require.NoError(t, c.CommitCollectedAccesses(rootHash))
+
+	c.AddStateAccess(&data.StateAccess{Type: data.Write, TxHash: secondTxHash})
+	require.NoError(t, c.CommitCollectedAccesses(rootHash))
+
+	// The second commit did not own the existing root-hash entry, so reverting it
+	// must not remove the accesses collected by the first commit.
+	c.Reset()
+
+	stateAccesses := c.GetStateAccessesForRootHash(rootHash)
+	require.Contains(t, stateAccesses, string(firstTxHash))
+	require.NotContains(t, stateAccesses, string(secondTxHash))
+}
+
 func TestStateAccessesCollector_AddStateAccess(t *testing.T) {
 	t.Parallel()
 
@@ -271,6 +318,8 @@ func TestStateAccessesCollector_Reset(t *testing.T) {
 	c.Reset()
 	assert.Equal(t, 0, len(c.stateAccesses))
 	assert.Equal(t, 0, len(c.stateAccessesForTxs))
+	_, found := c.stateAccessesForBlock[string(rootHash)]
+	assert.False(t, found)
 }
 
 func TestStateAccessesCollector_GetStateAccessesForRootHash(t *testing.T) {
