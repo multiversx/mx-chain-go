@@ -478,6 +478,23 @@ func (bh *BlockChainHookImpl) CurrentRound() uint64 {
 	return bh.currentHdr.GetRound()
 }
 
+// ApplyDRWASyncEnvelopeBytes applies a DRWA sync batch atomically from an encoded envelope payload.
+func (bh *BlockChainHookImpl) ApplyDRWASyncEnvelopeBytes(payload []byte, callerAddress []byte) error {
+	envelope, err := decodeDRWASyncEnvelope(payload)
+	if err != nil {
+		return err
+	}
+
+	_, err = applyDRWASyncEnvelope(
+		newDRWAHookStateAdapter(bh.accounts),
+		envelope,
+		drwaSyncMaxOperations,
+		callerAddress,
+	)
+
+	return err
+}
+
 // CurrentTimeStamp return the timestamp from the current block
 func (bh *BlockChainHookImpl) CurrentTimeStamp() uint64 {
 	bh.mutCurrentHdr.RLock()
