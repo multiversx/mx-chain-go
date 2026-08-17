@@ -2716,6 +2716,17 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	dataComponents.BlockChain = blkc
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	var scopedHeaderHash []byte
+	var endedGeneration uint64
+	arguments.StateAccessesCollector = &stateMock.StateAccessesCollectorStub{
+		BeginExecutionCalled: func(headerHash []byte) uint64 {
+			scopedHeaderHash = append([]byte(nil), headerHash...)
+			return 7
+		},
+		EndExecutionCalled: func(generation uint64) {
+			endedGeneration = generation
+		},
+	}
 
 	called := false
 	statusComponents.Outport = &outport.OutportStub{
@@ -2751,8 +2762,12 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	err := sp.ProcessBlock(hdr, body, haveTime)
 	assert.Nil(t, err)
+	require.Nil(t, scopedHeaderHash)
+	hdr.Header.Signature = []byte("final aggregate signature")
 	err = sp.CommitBlock(hdr, body)
 	assert.Nil(t, err)
+	require.Equal(t, hdrHash, scopedHeaderHash)
+	require.Equal(t, uint64(7), endedGeneration)
 
 	// Wait for the index block go routine to start
 	time.Sleep(time.Second * 2)

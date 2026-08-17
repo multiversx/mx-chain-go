@@ -1370,9 +1370,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	if !headerHandler.IsHeaderV3() {
 		// TODO commit state on ProcessBlockProposal for meta and header v3
-		if mp.outportHandler.HasDrivers() {
-			defer mp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
-		}
+		defer mp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
 		err = mp.commitStateForHeader(headerHandler, headerHash)
 		if err != nil {
 			return err

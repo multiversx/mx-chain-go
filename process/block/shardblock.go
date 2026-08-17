@@ -1235,9 +1235,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	if !headerHandler.IsHeaderV3() {
-		if sp.outportHandler.HasDrivers() {
-			defer sp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
-		}
+		defer sp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
 		err = sp.commitStateForHeader(headerHandler, headerHash)
 		if err != nil {
 			return err

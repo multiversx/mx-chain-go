@@ -733,7 +733,7 @@ func (odp *outportDataProvider) IsInterfaceNil() bool {
 func (odp *outportDataProvider) getIntraShardMiniBlocks(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) ([]*block.MiniBlock, error) {
 	if headerHandler.IsHeaderV3() {
 		// skip intra-shard miniblocks.
-		// they are returned later when this block\u2019s execution result is included in a future block.
+		// they are returned later when this block's execution result is included in a future block.
 		return []*block.MiniBlock{}, nil
 	}
 
