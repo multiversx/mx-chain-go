@@ -2980,10 +2980,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		bs, _ := sync.NewShardBootstrap(args)
 
 		go func() {
-			// wait for both header and proof requests
 			<-receive
-			<-receive
-
 			bs.SetRcvHdrNonce()
 		}()
 
@@ -3032,7 +3029,6 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 
 		pools := createMockPools()
 
-		numProofCalls := 0
 		pools.ProofsCalled = func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{
 				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
@@ -3042,12 +3038,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 					return nil, errors.New("missing proof")
 				},
 				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-					if numProofCalls == 0 {
-						numProofCalls++
-						return false
-					}
-
-					return true // second check after wait is done by hash
+					return true
 				},
 			}
 		}
@@ -3086,10 +3077,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		bs, _ := sync.NewShardBootstrap(args)
 
 		go func() {
-			// wait for both header and proof requests
 			<-receive
-			<-receive
-
 			bs.SetRcvHdrHash()
 		}()
 

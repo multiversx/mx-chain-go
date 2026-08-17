@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -137,8 +138,14 @@ type baseBootstrap struct {
 
 	forkInfo *process.ForkInfo
 
-	mutReconcile     sync.Mutex
-	pendingReconcile *reconcileEvidence
+	mutReconcile      sync.Mutex
+	pendingReconcile  *reconcileEvidence
+	mutRecovery       sync.Mutex
+	recoveryState     resyncRecoveryState
+	recoveryActive    atomic.Bool
+	recoveryBypass    atomic.Bool
+	recoveryEvalSet   atomic.Bool
+	recoveryEvalRound atomic.Int64
 
 	// only touched from the sync goroutine, no lock needed
 	divergenceEvaluatedRound int64
@@ -249,6 +256,7 @@ func (boot *baseBootstrap) processReceivedProof(headerProof data.HeaderProofHand
 	}
 
 	boot.forkDetector.ReceivedProof(headerProof)
+	boot.clearRecoveryAfterProgress()
 
 	boot.checkProofCorrespondsToRequestedHash(headerProof)
 	boot.checkProofCorrespondsToRequestedNonce(headerProof)
@@ -320,6 +328,8 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 	if err != nil {
 		log.Debug("forkDetector.AddHeader", "error", err.Error())
 	}
+
+	boot.observeRecoveryHeader(headerHandler)
 
 	go boot.requestMiniBlocks(headerHandler)
 
@@ -582,29 +592,43 @@ func (boot *baseBootstrap) computeNodeState(round int64) {
 		"isNodeStateCalculated", boot.isNodeStateCalculated,
 		"isNodeSynchronized", boot.isNodeSynchronized)
 
-	if boot.shouldTryToRequestHeaders() {
-		go boot.requestHeadersIfSyncIsStuck()
+	shouldRequest, bypassGeneration := boot.shouldTryToRequestHeaders()
+	if shouldRequest {
+		go boot.requestHeadersIfSyncIsStuckForGeneration(bypassGeneration)
 	}
 }
 
-func (boot *baseBootstrap) shouldTryToRequestHeaders() bool {
+func (boot *baseBootstrap) shouldTryToRequestHeaders() (bool, uint64) {
 	if boot.roundHandler.BeforeGenesis() {
-		return false
+		return false, 0
 	}
 	if boot.isForcedRollBackOneBlock() {
-		return false
+		return false, 0
 	}
 	if boot.isForcedRollBackToNonce() {
-		return false
+		return false, 0
 	}
 	if !boot.isNodeSynchronized {
-		return true
+		return true, 0
 	}
 
 	roundIndex := boot.roundHandler.Index()
+	useBypass, generation := boot.usePostBootstrapWatchdogBypass(roundIndex)
+	if useBypass {
+		return true, generation
+	}
+
 	roundModulusTriggerWhenSyncIsStuck := boot.processConfigsHandler.GetRoundModulusTriggerWhenSyncIsStuck(uint64(roundIndex))
 
-	return roundIndex%int64(roundModulusTriggerWhenSyncIsStuck) == 0
+	return roundIndex%int64(roundModulusTriggerWhenSyncIsStuck) == 0, 0
+}
+
+func (boot *baseBootstrap) requestHeadersIfSyncIsStuckForGeneration(generation uint64) {
+	if generation != 0 && !boot.isWatchdogBypassGenerationActive(generation) {
+		return
+	}
+
+	boot.requestHeadersIfSyncIsStuck()
 }
 
 func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
@@ -614,7 +638,12 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 		lastSyncedRound = currHeader.GetRound()
 	}
 
-	roundDiff := uint64(boot.roundHandler.Index()) - lastSyncedRound
+	currentRound := boot.roundHandler.Index()
+	if currentRound < 0 || uint64(currentRound) <= lastSyncedRound {
+		return
+	}
+
+	roundDiff := uint64(currentRound) - lastSyncedRound
 	if roundDiff <= boot.getMaxRoundsWithoutBlockReceived(lastSyncedRound) {
 		return
 	}
@@ -1066,6 +1095,7 @@ func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
 
 	if !currentHeader.IsHeaderV3() {
 		boot.preparedForSyncAtBootstrap = true
+		boot.armPostBootstrapWatchdogBypass()
 
 		return nil
 	}
@@ -1084,6 +1114,7 @@ func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
 	}
 
 	boot.preparedForSyncAtBootstrap = true
+	boot.armPostBootstrapWatchdogBypass()
 
 	return nil
 }
@@ -1123,6 +1154,8 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	boot.computeNodeState(evaluationRound)
+	boot.clearRecoveryAfterProgress()
+	boot.evaluateFastRecovery(evaluationRound)
 
 	nodeState := boot.GetNodeState()
 
@@ -2406,7 +2439,10 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 		return hdr, nil
 	}
 
-	boot.requestHeaderAndProofByHashIfMissing(hash, hdr, !hasHeader, needsProof)
+	readyHeader := boot.requestHeaderAndProofByHashIfMissing(hash, hdr, !hasHeader, needsProof)
+	if !check.IfNil(readyHeader) {
+		return readyHeader, nil
+	}
 
 	err = boot.waitForHeaderAndProofByHash()
 	if err != nil {
@@ -2432,7 +2468,7 @@ func (boot *baseBootstrap) checkNeedsProofByHash(hash []byte, header data.Header
 	// 		if it needs a proof, request and wait for the proof
 	// if header does not exist
 	//		if it has a proof, request the header
-	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
+	//		if it does not have the proof, request the header first; its callback requests the proof
 	_, errGetProof := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
 	hasProof := errGetProof == nil
 	needsProof := !hasProof
@@ -2463,7 +2499,10 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 
 	// no usable header is held here, so ask for one even when the pool has an unproven fork: that
 	// fork may never gain a proof, while a request by nonce is answered with the proven header
-	boot.requestHeaderAndProofByNonce(hash, hdr, nonce, needsProof)
+	readyHeader, readyHash := boot.requestHeaderAndProofByNonce(hash, hdr, nonce, needsProof)
+	if !check.IfNil(readyHeader) {
+		return readyHeader, readyHash, nil
+	}
 
 	err = boot.waitForHeaderAndProofByNonce()
 	if err != nil {
@@ -2499,7 +2538,7 @@ func (boot *baseBootstrap) checkNeedsProofByNonce(
 	// 		if it needs a proof, request and wait for the proof
 	// if header does not exist
 	//		if it has a proof, request the header
-	//		if it does not have the proof, request both and decide when header is received if it truly needed the proof
+	//		if it does not have the proof, request the header first; its callback requests the proof
 	proof, errGetProof := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
 	hasProof := errGetProof == nil
 	needsProof := !hasProof
@@ -2523,15 +2562,31 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	header data.HeaderHandler,
 	needsHeader bool,
 	needsProof bool,
-) {
+) data.HeaderHandler {
 	_ = core.EmptyChannel(boot.chRcvHdrHash)
 	if needsHeader {
+		boot.mutRcvHdrHash.Lock()
 		boot.setRequestedHeaderHash(hash)
+		receivedHeader, err := boot.getHeaderFromPool(hash)
+		if err == nil && !check.IfNil(receivedHeader) {
+			if boot.hasProof(hash, receivedHeader) {
+				boot.setRequestedHeaderHash(nil)
+				boot.mutRcvHdrHash.Unlock()
+				return receivedHeader
+			}
+
+			boot.mutRcvHdrHash.Unlock()
+			boot.requestSelfShardProof(hash, receivedHeader)
+			return nil
+		}
+
+		boot.mutRcvHdrHash.Unlock()
 		boot.requestHeaderByHash(hash)
+		return nil
 	}
 
 	if !needsProof {
-		return
+		return header
 	}
 
 	log.Debug("requesting equivalent proof from network",
@@ -2540,16 +2595,10 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 
 	boot.setRequestedHeaderHash(hash)
 	boot.requestSelfShardProof(hash, header)
+	return nil
 }
 
-// requestSelfShardProof requests the proof stamped with the header's epoch; with the header
-// unknown, the current-epoch label keeps the fail-safe request
 func (boot *baseBootstrap) requestSelfShardProof(hash []byte, header data.HeaderHandler) {
-	if check.IfNil(header) {
-		boot.requestHandler.RequestEquivalentProofByHash(boot.shardCoordinator.SelfId(), hash)
-		return
-	}
-
 	boot.requestHandler.RequestEquivalentProofByHashForEpoch(boot.shardCoordinator.SelfId(), hash, header.GetEpoch())
 }
 
@@ -2582,13 +2631,35 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonce(
 	header data.HeaderHandler,
 	nonce uint64,
 	needsProof bool,
-) {
+) (data.HeaderHandler, []byte) {
 	_ = core.EmptyChannel(boot.chRcvHdrNonce)
+	boot.mutRcvHdrNonce.Lock()
 	boot.setRequestedHeaderNonce(&nonce)
+	if check.IfNil(header) {
+		receivedHeader, receivedHash, err := boot.getHeaderFromPoolWithNonce(nonce)
+		if err == nil && !boot.blackListHandler.Has(string(receivedHash)) {
+			if boot.hasProof(receivedHash, receivedHeader) {
+				boot.setRequestedHeaderNonce(nil)
+				boot.mutRcvHdrNonce.Unlock()
+				return receivedHeader, receivedHash
+			}
+
+			boot.mutRcvHdrNonce.Unlock()
+			boot.requestHandler.SetEpoch(receivedHeader.GetEpoch())
+			boot.requestHeaderByNonce(nonce)
+			boot.requestSelfShardProof(receivedHash, receivedHeader)
+			return nil, nil
+		}
+
+		boot.mutRcvHdrNonce.Unlock()
+		boot.requestHeaderByNonce(nonce)
+		return nil, nil
+	}
+	boot.mutRcvHdrNonce.Unlock()
 	boot.requestHeaderByNonce(nonce)
 
 	if !needsProof {
-		return
+		return nil, nil
 	}
 
 	if len(hash) == 0 {
@@ -2597,7 +2668,7 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonce(
 		)
 
 		boot.requestHandler.RequestEquivalentProofByNonce(boot.shardCoordinator.SelfId(), nonce)
-		return
+		return nil, nil
 	}
 
 	log.Debug("requesting equivalent proof from network",
@@ -2605,6 +2676,7 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonce(
 	)
 
 	boot.requestSelfShardProof(hash, header)
+	return nil, nil
 }
 
 func (boot *baseBootstrap) requestHeaderByNonce(nonce uint64) {
@@ -3286,6 +3358,7 @@ func (boot *baseBootstrap) Close() error {
 	}
 
 	boot.cleanChannels()
+	boot.closeRecovery()
 
 	return nil
 }
