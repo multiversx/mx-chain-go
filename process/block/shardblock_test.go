@@ -2763,8 +2763,12 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	err := sp.ProcessBlock(hdr, body, haveTime)
 	assert.Nil(t, err)
 	require.Nil(t, scopedHeaderHash)
-	hdr.Header.Signature = []byte("final aggregate signature")
-	err = sp.CommitBlock(hdr, body)
+	// commit a copy: ProcessBlock's async metrics goroutine still reads hdr
+	finalHeader := *hdr.Header
+	finalHeader.Signature = []byte("final aggregate signature")
+	finalHdr := *hdr
+	finalHdr.Header = &finalHeader
+	err = sp.CommitBlock(&finalHdr, body)
 	assert.Nil(t, err)
 	require.Equal(t, hdrHash, scopedHeaderHash)
 	require.Equal(t, uint64(7), endedGeneration)
