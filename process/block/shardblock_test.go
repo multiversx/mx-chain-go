@@ -2716,6 +2716,17 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	dataComponents.BlockChain = blkc
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	var scopedHeaderHash []byte
+	var endedGeneration uint64
+	arguments.StateAccessesCollector = &stateMock.StateAccessesCollectorStub{
+		BeginExecutionCalled: func(headerHash []byte) uint64 {
+			scopedHeaderHash = append([]byte(nil), headerHash...)
+			return 7
+		},
+		EndExecutionCalled: func(generation uint64) {
+			endedGeneration = generation
+		},
+	}
 
 	called := false
 	statusComponents.Outport = &outport.OutportStub{
@@ -2751,8 +2762,16 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	err := sp.ProcessBlock(hdr, body, haveTime)
 	assert.Nil(t, err)
-	err = sp.CommitBlock(hdr, body)
+	require.Nil(t, scopedHeaderHash)
+	// commit a copy: ProcessBlock's async metrics goroutine still reads hdr
+	finalHeader := *hdr.Header
+	finalHeader.Signature = []byte("final aggregate signature")
+	finalHdr := *hdr
+	finalHdr.Header = &finalHeader
+	err = sp.CommitBlock(&finalHdr, body)
 	assert.Nil(t, err)
+	require.Equal(t, hdrHash, scopedHeaderHash)
+	require.Equal(t, uint64(7), endedGeneration)
 
 	// Wait for the index block go routine to start
 	time.Sleep(time.Second * 2)

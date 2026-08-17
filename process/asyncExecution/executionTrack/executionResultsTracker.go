@@ -110,17 +110,7 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 	if len(executionResultByHash) > 0 {
 		oldResult := ert.executionResultsByHash[executionResultByHash]
 		if oldResult != nil && !bytes.Equal(oldResult.GetHeaderHash(), executionResult.GetHeaderHash()) {
-			anchor := ert.lastNotarizedResult
-			if oldResult.GetHeaderNonce() > ert.lastNotarizedResult.GetHeaderNonce()+1 {
-				previousResult, errGet := ert.getPendingExecutionResultsByNonce(oldResult.GetHeaderNonce() - 1)
-				if errGet == nil {
-					anchor = previousResult
-				}
-			}
-			ert.addDismissedBatch(DismissedBatch{
-				AnchorResult: anchor,
-				Results:      []data.BaseExecutionResultHandler{oldResult},
-			})
+			ert.notifyDismissed([]data.BaseExecutionResultHandler{oldResult})
 		}
 		delete(ert.executionResultsByHash, executionResultByHash)
 	}

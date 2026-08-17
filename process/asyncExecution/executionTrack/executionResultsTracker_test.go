@@ -105,13 +105,10 @@ func TestAddExecutionResult_ReplacementNotifiesAfterUnlock(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, added)
 	require.Equal(t, []byte("old hash"), discardedHash)
-
-	dismissed := tracker.PopDismissedResults()
-	require.Len(t, dismissed, 1)
-	require.Equal(t, oldResult, dismissed[0].Results[0])
+	require.Empty(t, tracker.PopDismissedResults())
 }
 
-func TestExecutionResultsTracker_DismissalNotificationIsIndependentOfBatchLimit(t *testing.T) {
+func TestExecutionResultsTracker_ReplacementNotificationsDoNotUseDismissedQueue(t *testing.T) {
 	t.Parallel()
 
 	numDiscarded := 0
@@ -142,7 +139,7 @@ func TestExecutionResultsTracker_DismissalNotificationIsIndependentOfBatchLimit(
 	}
 
 	require.Equal(t, maxDismissedBatches+1, numDiscarded)
-	require.Len(t, tracker.PopDismissedResults(), maxDismissedBatches)
+	require.Empty(t, tracker.PopDismissedResults())
 }
 
 func TestExecutionResultsTracker_ConfirmedCleanupDoesNotNotifyDismissal(t *testing.T) {
