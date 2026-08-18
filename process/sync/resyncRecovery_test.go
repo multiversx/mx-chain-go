@@ -162,6 +162,41 @@ func TestResyncRecovery_RotatingParentsDoNotArmCandidate(t *testing.T) {
 	require.Equal(t, maxResyncRecoveryCandidates, activeCandidates)
 }
 
+func TestResyncRecovery_StaleEvaluationRoundDoesNotResetFresherRecoveryState(t *testing.T) {
+	t.Parallel()
+
+	roundHandler := &mock.RoundHandlerMock{RoundIndex: 101}
+	probableNonce := uint64(5)
+	currentHeader := &block.Header{ShardID: 1, Nonce: probableNonce, Round: 5, Epoch: 6}
+	boot := newRecoveryBootstrap(roundHandler, currentHeader, &probableNonce, &recoveryRequestHandlerStub{})
+	boot.recoveryState.chronologySet = true
+	boot.recoveryState.lastChronologyRound = 101
+	boot.recoveryState.candidates[0] = resyncRecoveryCandidate{
+		active:         true,
+		firstRound:     101,
+		observations:   1,
+		committedNonce: probableNonce,
+		probableNonce:  probableNonce,
+	}
+	boot.recoveryState.bypass = postBootstrapWatchdogBypass{
+		armed:          true,
+		generation:     1,
+		armedRound:     101,
+		committedNonce: probableNonce,
+		probableNonce:  probableNonce,
+	}
+	boot.recoveryActive.Store(true)
+	boot.recoveryBypass.Store(true)
+
+	boot.evaluateFastRecovery(100)
+
+	require.True(t, boot.recoveryState.candidates[0].active)
+	require.True(t, boot.recoveryState.bypass.armed)
+	require.True(t, boot.recoveryActive.Load())
+	require.True(t, boot.recoveryBypass.Load())
+	require.Equal(t, int64(101), boot.recoveryState.lastChronologyRound)
+}
+
 func TestResyncRecovery_StaleActionDoesNotRequestAfterClose(t *testing.T) {
 	t.Parallel()
 

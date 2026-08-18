@@ -90,14 +90,14 @@ func (boot *baseBootstrap) observeRecoveryHeader(header data.HeaderHandler) {
 		return
 	}
 
-	round := boot.roundHandler.Index()
-	if round < 0 {
-		return
-	}
 	committedNonce := boot.currentCommittedNonce()
 
 	boot.mutRecovery.Lock()
 	defer boot.mutRecovery.Unlock()
+	round := boot.roundHandler.Index()
+	if round < 0 {
+		return
+	}
 	if boot.recoveryState.closed {
 		return
 	}
@@ -115,7 +115,7 @@ func (boot *baseBootstrap) observeRecoveryHeader(header data.HeaderHandler) {
 			continue
 		}
 		if candidate.committedNonce != committedNonce || candidate.probableNonce != probableNonce {
-			*candidate = resyncRecoveryCandidate{}
+			boot.recoveryState.candidates[idx] = resyncRecoveryCandidate{}
 			break
 		}
 		if round > candidate.lastObservedRound {
@@ -132,8 +132,7 @@ func (boot *baseBootstrap) observeRecoveryHeader(header data.HeaderHandler) {
 		return
 	}
 	for idx := range boot.recoveryState.candidates {
-		candidate := &boot.recoveryState.candidates[idx]
-		if candidate.active {
+		if boot.recoveryState.candidates[idx].active {
 			continue
 		}
 
@@ -141,7 +140,7 @@ func (boot *baseBootstrap) observeRecoveryHeader(header data.HeaderHandler) {
 		if boot.recoveryState.nextGeneration == 0 {
 			boot.recoveryState.nextGeneration++
 		}
-		*candidate = resyncRecoveryCandidate{
+		boot.recoveryState.candidates[idx] = resyncRecoveryCandidate{
 			active:            true,
 			generation:        boot.recoveryState.nextGeneration,
 			parentHash:        append([]byte(nil), parentHash...),
@@ -200,14 +199,19 @@ func (boot *baseBootstrap) evaluateFastRecovery(round int64) {
 		boot.mutRecovery.Unlock()
 		return
 	}
-	if boot.recoveryState.chronologySet && round < boot.recoveryState.lastChronologyRound {
+	chronologyRound := boot.roundHandler.Index()
+	if chronologyRound < 0 {
+		boot.mutRecovery.Unlock()
+		return
+	}
+	if boot.recoveryState.chronologySet && chronologyRound < boot.recoveryState.lastChronologyRound {
 		boot.resetRecoveryStateLocked()
 		boot.mutRecovery.Unlock()
 		return
 	}
 	boot.recoveryState.chronologySet = true
-	boot.recoveryState.lastChronologyRound = round
-	boot.cleanupRecoveryCandidatesLocked(round)
+	boot.recoveryState.lastChronologyRound = chronologyRound
+	boot.cleanupRecoveryCandidatesLocked(chronologyRound)
 	if boot.recoveryState.fastActionSet && boot.recoveryState.lastFastActionRound == round {
 		boot.mutRecovery.Unlock()
 		return
@@ -246,7 +250,7 @@ func (boot *baseBootstrap) evaluateFastRecovery(round int64) {
 	boot.recoveryState.lastFastActionTime = now
 	boot.mutRecovery.Unlock()
 
-	boot.executeFastRecoveryAction(action, round)
+	boot.executeFastRecoveryAction(action, chronologyRound)
 }
 
 func recoveryCandidateLess(candidate *resyncRecoveryCandidate, selected *resyncRecoveryCandidate) bool {
@@ -327,7 +331,7 @@ func (boot *baseBootstrap) expireRecoveryCandidate(action resyncRecoveryAction, 
 			continue
 		}
 		boot.addRecoveryCooldownLocked(candidate.parentHash, round)
-		*candidate = resyncRecoveryCandidate{}
+		boot.recoveryState.candidates[idx] = resyncRecoveryCandidate{}
 		boot.updateRecoveryActiveLocked()
 		return
 	}
@@ -340,7 +344,7 @@ func (boot *baseBootstrap) removeRecoveryCandidate(action resyncRecoveryAction) 
 	for idx := range boot.recoveryState.candidates {
 		candidate := &boot.recoveryState.candidates[idx]
 		if candidate.active && recoveryActionMatchesCandidate(action, candidate) {
-			*candidate = resyncRecoveryCandidate{}
+			boot.recoveryState.candidates[idx] = resyncRecoveryCandidate{}
 			boot.updateRecoveryActiveLocked()
 			return
 		}
@@ -380,7 +384,7 @@ func (boot *baseBootstrap) cleanupRecoveryCandidatesLocked(round int64) {
 			continue
 		}
 		boot.addRecoveryCooldownLocked(candidate.parentHash, round)
-		*candidate = resyncRecoveryCandidate{}
+		boot.recoveryState.candidates[idx] = resyncRecoveryCandidate{}
 	}
 	boot.updateRecoveryActiveLocked()
 }
@@ -508,7 +512,7 @@ func (boot *baseBootstrap) clearRecoveryAfterProgress() {
 	for idx := range boot.recoveryState.candidates {
 		candidate := &boot.recoveryState.candidates[idx]
 		if candidate.active && (candidate.committedNonce != committedNonce || candidate.probableNonce != probableNonce) {
-			*candidate = resyncRecoveryCandidate{}
+			boot.recoveryState.candidates[idx] = resyncRecoveryCandidate{}
 		}
 	}
 	boot.updateRecoveryActiveLocked()
