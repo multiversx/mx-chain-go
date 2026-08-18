@@ -1204,6 +1204,78 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 	assert.False(t, haveTimeInCurrentSubound())
 }
 
+func TestSubroundBlock_CreateBlockShouldUseNinetyPercentOfSubround(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name            string
+		header          data.HeaderHandler
+		roundDuration   time.Duration
+		startPercentage float64
+		endPercentage   float64
+		expectedMaxTime time.Duration
+	}{
+		{
+			name:            "before Supernova",
+			header:          &block.Header{},
+			roundDuration:   6 * time.Second,
+			startPercentage: 0.05,
+			endPercentage:   0.25,
+			expectedMaxTime: 1380 * time.Millisecond,
+		},
+		{
+			name:            "after Supernova",
+			header:          &block.HeaderV3{},
+			roundDuration:   600 * time.Millisecond,
+			startPercentage: 0.05,
+			endPercentage:   0.35,
+			expectedMaxTime: 192 * time.Millisecond,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			container := consensusMocks.InitConsensusCore()
+			var elapsedTime time.Duration
+			var providedMaxTime time.Duration
+			container.SetRoundHandler(&round.RoundHandlerMock{
+				RemainingTimeCalled: func(_ time.Time, maxTime time.Duration) time.Duration {
+					providedMaxTime = maxTime
+					return maxTime - elapsedTime
+				},
+			})
+
+			assertCreationTime := func(haveTime func() bool) {
+				elapsedTime = testCase.expectedMaxTime - time.Nanosecond
+				require.True(t, haveTime())
+				elapsedTime = testCase.expectedMaxTime
+				require.False(t, haveTime())
+			}
+
+			blockProcessor := &testscommon.BlockProcessorStub{
+				CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+					assertCreationTime(haveTime)
+					return header, &block.Body{}, nil
+				},
+				CreateBlockProposalCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+					assertCreationTime(haveTime)
+					return header, &block.Body{}, nil
+				},
+			}
+
+			sr := initSubroundBlockWithBlockProcessor(blockProcessor, container)
+			sr.SetBaseDuration(testCase.roundDuration)
+			sr.SetTimingPercentage(testCase.startPercentage, testCase.endPercentage)
+
+			_, _, err := sr.CreateBlock(testCase.header)
+			require.NoError(t, err)
+			require.Equal(t, testCase.expectedMaxTime, providedMaxTime)
+		})
+	}
+}
+
 func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {

@@ -2331,25 +2331,29 @@ func TestShardBootstrap_DoJobOnSyncBlockFailRemovesBlockingUnprovenHeader(t *tes
 		return args, c
 	}
 
-	t.Run("removes the unproven blocking header and resets the error counter when the limit is reached", func(t *testing.T) {
+	t.Run("removes the unproven blocking header after its presence window, error counter untouched", func(t *testing.T) {
 		t.Parallel()
 
 		args, c := buildArgs(false)
 		bs, _ := sync.NewShardBootstrap(args)
-		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 100)
 
+		for i := 0; i < 9; i++ {
+			bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+			assert.Nil(t, c.removedFromPool)
+		}
 		bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
 
 		assert.Equal(t, hashY, c.removedFromPool)
 		assert.True(t, c.removedFromForkDetector)
 		assert.Equal(t, nextNonce, c.removedNonce)
-		assert.Equal(t, uint32(0), bs.GetNumSyncedWithErrorsForNonce(nextNonce))
+		// the rollback-limit counter keeps its own accumulation, no reset on removal
+		assert.Equal(t, uint32(10), bs.GetNumSyncedWithErrorsForNonce(nextNonce))
 	})
 
-	t.Run("does not remove a header that has a proof", func(t *testing.T) {
+	t.Run("a high error counter alone does not trigger removal", func(t *testing.T) {
 		t.Parallel()
 
-		args, c := buildArgs(true)
+		args, c := buildArgs(false)
 		bs, _ := sync.NewShardBootstrap(args)
 		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 100)
 
@@ -2359,14 +2363,29 @@ func TestShardBootstrap_DoJobOnSyncBlockFailRemovesBlockingUnprovenHeader(t *tes
 		assert.False(t, c.removedFromForkDetector)
 	})
 
-	t.Run("does not remove before the error limit is reached", func(t *testing.T) {
+	t.Run("does not remove a header that has a proof", func(t *testing.T) {
+		t.Parallel()
+
+		args, c := buildArgs(true)
+		bs, _ := sync.NewShardBootstrap(args)
+
+		for i := 0; i < 10; i++ {
+			bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+		}
+
+		assert.Nil(t, c.removedFromPool)
+		assert.False(t, c.removedFromForkDetector)
+	})
+
+	t.Run("does not remove before the presence window elapses", func(t *testing.T) {
 		t.Parallel()
 
 		args, c := buildArgs(false)
 		bs, _ := sync.NewShardBootstrap(args)
-		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 0)
 
-		bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+		for i := 0; i < 9; i++ {
+			bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+		}
 
 		assert.Nil(t, c.removedFromPool)
 		assert.False(t, c.removedFromForkDetector)

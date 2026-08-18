@@ -7,13 +7,15 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	commonErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/stretchr/testify/assert"
 )
 
 func getUnixHandler(unix int64) func() int64 {
@@ -37,9 +39,10 @@ func TestNewArithmeticEpochProvider_NilChainParameterHandler(t *testing.T) {
 	t.Parallel()
 
 	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: nil,
-		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StartTime:              1,
+		AssumedPeersNumActivePersisters: 3,
+		ChainParametersHandler:          nil,
+		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StartTime:                       1,
 	}
 
 	aep, err := NewArithmeticEpochProvider(arg)
@@ -52,9 +55,10 @@ func TestNewArithmeticEpochProvider_NilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
 	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: getMockChainParametersHandler(),
-		EnableEpochsHandler:    nil,
-		StartTime:              1,
+		AssumedPeersNumActivePersisters: 3,
+		ChainParametersHandler:          getMockChainParametersHandler(),
+		EnableEpochsHandler:             nil,
+		StartTime:                       1,
 	}
 
 	aep, err := NewArithmeticEpochProvider(arg)
@@ -67,9 +71,10 @@ func TestNewArithmeticEpochProvider_InvalidStartTime(t *testing.T) {
 	t.Parallel()
 
 	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: getMockChainParametersHandler(),
-		StartTime:              -1,
-		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		AssumedPeersNumActivePersisters: 3,
+		ChainParametersHandler:          getMockChainParametersHandler(),
+		StartTime:                       -1,
+		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	aep, err := NewArithmeticEpochProvider(arg)
@@ -85,9 +90,10 @@ func TestNewArithmeticEpochProvider_ShouldWork(t *testing.T) {
 		t.Parallel()
 
 		arg := ArgArithmeticEpochProvider{
-			ChainParametersHandler: getMockChainParametersHandler(),
-			StartTime:              time.Now().Unix(),
-			EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			AssumedPeersNumActivePersisters: 3,
+			ChainParametersHandler:          getMockChainParametersHandler(),
+			StartTime:                       time.Now().Unix(),
+			EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		}
 
 		aep, err := NewArithmeticEpochProvider(arg)
@@ -101,8 +107,9 @@ func TestNewArithmeticEpochProvider_ShouldWork(t *testing.T) {
 		t.Parallel()
 
 		arg := ArgArithmeticEpochProvider{
-			ChainParametersHandler: getMockChainParametersHandler(),
-			StartTime:              time.Now().UnixMilli(),
+			AssumedPeersNumActivePersisters: 3,
+			ChainParametersHandler:          getMockChainParametersHandler(),
+			StartTime:                       time.Now().UnixMilli(),
 			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 					return flag == common.SupernovaFlag
@@ -125,9 +132,10 @@ func TestArithmeticEpochProvider_ComputeEpochAtGenesis(t *testing.T) {
 		t.Parallel()
 
 		arg := ArgArithmeticEpochProvider{
-			ChainParametersHandler: getMockChainParametersHandler(),
-			StartTime:              1000,
-			EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			AssumedPeersNumActivePersisters: 3,
+			ChainParametersHandler:          getMockChainParametersHandler(),
+			StartTime:                       1000,
+			EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		}
 		aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(0))
 		assert.Equal(t, uint32(0), aep.CurrentComputedEpoch())
@@ -164,6 +172,7 @@ func TestArithmeticEpochProvider_ComputeEpochAtGenesis(t *testing.T) {
 		t.Parallel()
 
 		arg := ArgArithmeticEpochProvider{
+			AssumedPeersNumActivePersisters: 3,
 			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 					return config.ChainParametersByEpochConfig{
@@ -215,6 +224,7 @@ func TestArithmeticEpochProvider_EpochConfirmedInvalidTimestamp(t *testing.T) {
 	t.Parallel()
 
 	arg := ArgArithmeticEpochProvider{
+		AssumedPeersNumActivePersisters: 3,
 		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
@@ -241,9 +251,10 @@ func TestArithmeticEpochProvider_EpochConfirmed(t *testing.T) {
 		t.Parallel()
 
 		arg := ArgArithmeticEpochProvider{
-			ChainParametersHandler: getMockChainParametersHandler(),
-			StartTime:              1000,
-			EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			AssumedPeersNumActivePersisters: 3,
+			ChainParametersHandler:          getMockChainParametersHandler(),
+			StartTime:                       1000,
+			EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		}
 		aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(15500))
 		assert.Equal(t, uint32(1), aep.CurrentComputedEpoch())
@@ -259,6 +270,7 @@ func TestArithmeticEpochProvider_EpochConfirmed(t *testing.T) {
 		t.Parallel()
 
 		arg := ArgArithmeticEpochProvider{
+			AssumedPeersNumActivePersisters: 3,
 			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 					return config.ChainParametersByEpochConfig{
@@ -290,6 +302,7 @@ func TestArithmeticEpochProvider_EpochConfirmed(t *testing.T) {
 		supernovaActivationEpoch := uint32(2)
 
 		arg := ArgArithmeticEpochProvider{
+			AssumedPeersNumActivePersisters: 3,
 			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 				CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 					return config.ChainParametersByEpochConfig{
@@ -374,6 +387,7 @@ func TestArithmeticEpochProvider_ComputeCurrentEpoch_WithRealConfigs(t *testing.
 	supernovaActivationTime := roundsPerEpoch * 2 * int64(roundDurationS)
 
 	arg := ArgArithmeticEpochProvider{
+		AssumedPeersNumActivePersisters: 3,
 		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
@@ -435,9 +449,10 @@ func TestArithmeticEpochProvider_EpochIsActiveInNetwork(t *testing.T) {
 	t.Parallel()
 
 	arg := ArgArithmeticEpochProvider{
-		ChainParametersHandler: getMockChainParametersHandler(),
-		StartTime:              1,
-		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		AssumedPeersNumActivePersisters: 3,
+		ChainParametersHandler:          getMockChainParametersHandler(),
+		StartTime:                       1,
+		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(1))
 
@@ -477,4 +492,45 @@ func TestArithmeticEpochProvider_EpochsDiff(t *testing.T) {
 	diffEpochs := diffRounds / uint64(roundsPerEpoch+1)
 
 	assert.Equal(t, uint64(1), diffEpochs)
+}
+
+func TestNewArithmeticEpochProvider_InvalidAssumedPeersNumActivePersisters(t *testing.T) {
+	t.Parallel()
+
+	arg := ArgArithmeticEpochProvider{
+		AssumedPeersNumActivePersisters: 0,
+		ChainParametersHandler:          getMockChainParametersHandler(),
+		StartTime:                       1,
+		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+
+	aep, err := NewArithmeticEpochProvider(arg)
+
+	assert.True(t, errors.Is(err, ErrInvalidAssumedPeersNumActivePersisters))
+	assert.True(t, check.IfNil(aep))
+}
+
+func TestArithmeticEpochProvider_EpochIsAvailableOnMainPeers(t *testing.T) {
+	t.Parallel()
+
+	arg := ArgArithmeticEpochProvider{
+		AssumedPeersNumActivePersisters: 3,
+		ChainParametersHandler:          getMockChainParametersHandler(),
+		StartTime:                       1,
+		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	aep, err := NewArithmeticEpochProvider(arg)
+	require.Nil(t, err)
+
+	aep.SetCurrentComputedEpoch(10)
+
+	assert.True(t, aep.EpochIsAvailableOnMainPeers(10)) // delta 0
+	assert.True(t, aep.EpochIsAvailableOnMainPeers(9))  // delta 1
+	assert.True(t, aep.EpochIsAvailableOnMainPeers(8))  // delta 2 = assumed - 1
+	assert.False(t, aep.EpochIsAvailableOnMainPeers(7)) // delta 3, beyond the window
+	assert.True(t, aep.EpochIsAvailableOnMainPeers(11)) // epoch ahead of computed: overflow guard
+
+	// EpochIsActiveInNetwork keeps its own, narrower window
+	assert.True(t, aep.EpochIsActiveInNetwork(9))  // delta 1
+	assert.False(t, aep.EpochIsActiveInNetwork(8)) // delta 2
 }

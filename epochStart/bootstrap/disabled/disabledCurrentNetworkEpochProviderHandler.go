@@ -18,6 +18,11 @@ func (cneph *currentNetworkEpochProviderHandler) EpochIsActiveInNetwork(_ uint32
 	return true
 }
 
+// EpochIsAvailableOnMainPeers returns true
+func (cneph *currentNetworkEpochProviderHandler) EpochIsAvailableOnMainPeers(_ uint32) bool {
+	return true
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (cneph *currentNetworkEpochProviderHandler) IsInterfaceNil() bool {
 	return cneph == nil

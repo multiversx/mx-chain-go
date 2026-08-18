@@ -348,6 +348,7 @@ type DebugHandler interface {
 // CurrentNetworkEpochProviderHandler is an interface able to compute if the provided epoch is active on the network or not
 type CurrentNetworkEpochProviderHandler interface {
 	EpochIsActiveInNetwork(epoch uint32) bool
+	EpochIsAvailableOnMainPeers(epoch uint32) bool
 	EpochConfirmed(newEpoch uint32, newTimestamp uint64)
 	IsInterfaceNil() bool
 }

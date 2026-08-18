@@ -62,8 +62,9 @@ const defaultTimeToWaitForRequestedData = 5 * time.Minute
 // the same diverging execution result nonce
 const defaultExecutionResultsRecoveryCooldown = time.Minute
 
-// maxFetchFailuresBeforeDroppingUnprovenHeader bounds how long an unproven header may block the sync
-// at a nonce: one round plus the failure backoff per failure (~10s at 600ms rounds, ~1min at 6s rounds)
+// maxFetchFailuresBeforeDroppingUnprovenHeader bounds how many consecutive failed sync iterations
+// an unproven header may sit in the pool before being dropped for a re-request; counted only while
+// the header is present, so a re-fetched header always gets the full window for its proof
 const maxFetchFailuresBeforeDroppingUnprovenHeader = 10
 
 // hdrInfo hold the data related to a header
@@ -160,6 +161,10 @@ type baseBootstrap struct {
 	mapNonceSyncedWithErrors map[uint64]uint32
 	mapNonceRecoveryAttempts map[uint64]*nonceRecoveryInfo // guarded by mutNonceSyncedWithErrors
 	mutNonceSyncedWithErrors sync.RWMutex
+
+	// owned by the single sync goroutine (doJobOnSyncBlockFail and the post-commit cleanup), no mutex
+	blockingUnprovenHdrHash     []byte
+	blockingUnprovenHdrFailures uint32
 
 	executionResultsRecoveryCooldown time.Duration
 
@@ -919,23 +924,33 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 	// stuck fetching the next header (no processing, no rollback): drop a non-final fork header whose proof
 	// will never arrive so it gets re-requested
 	if check.IfNil(headerHandler) && !didRollBack {
-		boot.removeBlockingUnprovenNextHeader(numSyncedWithErrors)
+		boot.removeBlockingUnprovenNextHeader()
 	}
 }
 
-func (boot *baseBootstrap) removeBlockingUnprovenNextHeader(numFetchFailures uint32) {
-	// paced by its own bound, not by the rollback tolerance: this loop waits on the wall clock, one
-	// round plus the failure backoff per attempt, so a round based allowance would overshoot
-	if numFetchFailures < maxFetchFailuresBeforeDroppingUnprovenHeader {
-		return
-	}
-
+func (boot *baseBootstrap) removeBlockingUnprovenNextHeader() {
+	// paced by its own tracker, decoupled from the rollback-limit counter: counting only consecutive
+	// iterations with the unproven header present guarantees a re-fetched header the full window
 	nonce := boot.getNonceForNextBlock()
 	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
+		boot.clearBlockingUnprovenHdrTracker()
 		return
 	}
 	if boot.hasProof(hash, hdr) {
+		boot.clearBlockingUnprovenHdrTracker()
+		return
+	}
+
+	if !bytes.Equal(hash, boot.blockingUnprovenHdrHash) {
+		// copied: the pool owns the returned slice
+		boot.blockingUnprovenHdrHash = append(boot.blockingUnprovenHdrHash[:0], hash...)
+		boot.blockingUnprovenHdrFailures = 1
+		return
+	}
+
+	boot.blockingUnprovenHdrFailures++
+	if boot.blockingUnprovenHdrFailures < maxFetchFailuresBeforeDroppingUnprovenHeader {
 		return
 	}
 
@@ -947,8 +962,12 @@ func (boot *baseBootstrap) removeBlockingUnprovenNextHeader(numFetchFailures uin
 
 	boot.headers.RemoveHeaderByHash(hash)
 	boot.forkDetector.RemoveHeader(nonce, hash)
-	// reset so the re-requested header gets a full window before it could be removed in turn
-	boot.resetSyncedWithErrorsForNonce(nonce)
+	boot.clearBlockingUnprovenHdrTracker()
+}
+
+func (boot *baseBootstrap) clearBlockingUnprovenHdrTracker() {
+	boot.blockingUnprovenHdrHash = boot.blockingUnprovenHdrHash[:0]
+	boot.blockingUnprovenHdrFailures = 0
 }
 
 func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint32 {
@@ -1290,6 +1309,7 @@ func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.He
 	)
 
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
+	boot.clearBlockingUnprovenHdrTracker()
 	boot.cleanProofsBehindFinal(header)
 
 	return nil
@@ -1372,6 +1392,7 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 	)
 
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
+	boot.clearBlockingUnprovenHdrTracker()
 	boot.cleanProofsBehindFinal(header)
 
 	return nil
