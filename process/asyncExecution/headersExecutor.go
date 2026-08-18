@@ -340,7 +340,7 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 	}
 
 	// All post-execution checks passed, commit the state now
-	err = he.blockProcessor.CommitBlockProposalState(pair.Header)
+	err = he.blockProcessor.CommitBlockProposalState(pair.Header, executionResult.GetHeaderHash())
 	if err != nil {
 		log.Warn("headersExecutor.process commit block proposal state failed",
 			"nonce", pair.Header.GetNonce(),
@@ -354,6 +354,7 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 	// holds a result whose state was not persisted.
 	added, err := he.executionTracker.AddExecutionResult(executionResult)
 	if err != nil {
+		he.blockProcessor.DiscardStateAccessesForHeader(executionResult.GetHeaderHash())
 		log.Warn("headersExecutor.process add execution result failed",
 			"nonce", pair.Header.GetNonce(),
 			"err", err,
@@ -361,6 +362,7 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 		return err
 	}
 	if !added {
+		he.blockProcessor.DiscardStateAccessesForHeader(executionResult.GetHeaderHash())
 		// Result was rejected because consensus already committed a different block for this nonce.
 		// State was already committed but the corrective flow on the next processing iteration
 		// will recreate the trie from the expected root hash.

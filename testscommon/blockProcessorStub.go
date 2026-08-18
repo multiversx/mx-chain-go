@@ -14,7 +14,8 @@ type BlockProcessorStub struct {
 	SetNumProcessedObjCalled         func(numObj uint64)
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	ProcessBlockProposalCalled       func(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
-	CommitBlockProposalStateCalled   func(headerHandler data.HeaderHandler) error
+	CommitBlockProposalStateCalled   func(headerHandler data.HeaderHandler, headerHash []byte) error
+	DiscardStateAccessesCalled       func(headerHash []byte)
 	RevertBlockProposalStateCalled   func()
 	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
@@ -80,12 +81,19 @@ func (bps *BlockProcessorStub) ProcessBlockProposal(header data.HeaderHandler, h
 }
 
 // CommitBlockProposalState -
-func (bps *BlockProcessorStub) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+func (bps *BlockProcessorStub) CommitBlockProposalState(headerHandler data.HeaderHandler, headerHash []byte) error {
 	if bps.CommitBlockProposalStateCalled != nil {
-		return bps.CommitBlockProposalStateCalled(headerHandler)
+		return bps.CommitBlockProposalStateCalled(headerHandler, headerHash)
 	}
 
 	return nil
+}
+
+// DiscardStateAccessesForHeader -
+func (bps *BlockProcessorStub) DiscardStateAccessesForHeader(headerHash []byte) {
+	if bps.DiscardStateAccessesCalled != nil {
+		bps.DiscardStateAccessesCalled(headerHash)
+	}
 }
 
 // RevertBlockProposalState -
