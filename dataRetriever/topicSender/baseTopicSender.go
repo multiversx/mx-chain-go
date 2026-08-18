@@ -19,8 +19,8 @@ var log = logger.GetOrCreate("dataretriever/topicsender")
 const (
 	minPeersToQuery    = 2
 	preferredPeerIndex = -1
-	// numFullArchivePeersInDualBand is the insurance-only full-archive budget used when the same
-	// request is also sent to the main network
+	// numFullArchivePeersInDualBand is the insurance-only full-archive peer count used when the
+	// same request is also sent to the main network
 	numFullArchivePeersInDualBand = 1
 )
 

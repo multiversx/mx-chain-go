@@ -130,13 +130,13 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 	fullHistoryPeers := make([]core.PeerID, 0)
 	requestedNetworks := make([]string, 0)
 	if sendToFullArchive {
-		fullArchiveBudget := trs.numFullHistoryPeers
+		maxFullArchivePeersToQuery := trs.numFullHistoryPeers
 		if sendToMain {
 			// dual-send band: the main network is the primary source, full-archive is insurance only
-			fullArchiveBudget = min(numFullArchivePeersInDualBand, trs.numFullHistoryPeers)
+			maxFullArchivePeersToQuery = min(numFullArchivePeersInDualBand, trs.numFullHistoryPeers)
 		}
 
-		numSentFullArchive, fullHistoryPeers = trs.sendOnFullArchiveNetwork(topicToSendRequest, buff, fullArchiveBudget)
+		numSentFullArchive, fullHistoryPeers = trs.sendOnFullArchiveNetwork(topicToSendRequest, buff, maxFullArchivePeersToQuery)
 
 		requestedNetworks = append(requestedNetworks, "full archive network")
 	}
@@ -186,22 +186,22 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 }
 
 // sendOnFullArchiveNetwork queries the topic subscribers first, then explores the rest of the
-// connected peers with the leftover budget; the topic view is a cached gossip-mesh snapshot that
+// connected peers with the leftover capacity; the topic view is a cached gossip-mesh snapshot that
 // can be incomplete, so one exploration slot is always reserved while unexplored peers exist
-func (trs *topicRequestSender) sendOnFullArchiveNetwork(topicToSendRequest string, buff []byte, budget int) (int, []core.PeerID) {
+func (trs *topicRequestSender) sendOnFullArchiveNetwork(topicToSendRequest string, buff []byte, maxPeersToQuery int) (int, []core.PeerID) {
 	topicPeers := trs.fullArchiveMessenger.ConnectedPeersOnTopic(trs.topicName)
 	allConnectedPeers := trs.fullArchiveMessenger.ConnectedPeers()
 	fillPeers := peersNotIn(allConnectedPeers, topicPeers)
 	preferredPeer := trs.getPreferredFullArchivePeer()
 
-	pass1Budget := budget
-	if len(fillPeers) > 0 && budget > 1 {
-		pass1Budget = budget - 1
+	pass1MaxPeers := maxPeersToQuery
+	if len(fillPeers) > 0 && maxPeersToQuery > 1 {
+		pass1MaxPeers = maxPeersToQuery - 1
 	}
 
-	numSent := trs.sendFullArchivePass(topicPeers, preferredPeer, topicToSendRequest, buff, pass1Budget)
+	numSent := trs.sendFullArchivePass(topicPeers, preferredPeer, topicToSendRequest, buff, pass1MaxPeers)
 
-	remaining := budget - numSent
+	remaining := maxPeersToQuery - numSent
 	if remaining > 0 {
 		numSent += trs.sendFullArchivePass(fillPeers, preferredPeer, topicToSendRequest, buff, remaining)
 	}
