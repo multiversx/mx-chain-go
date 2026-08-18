@@ -14,6 +14,11 @@ func (ep *epochProvider) EpochIsActiveInNetwork(_ uint32) bool {
 	return true
 }
 
+// EpochIsAvailableOnMainPeers returns true
+func (ep *epochProvider) EpochIsAvailableOnMainPeers(_ uint32) bool {
+	return true
+}
+
 // EpochConfirmed does nothing
 func (ep *epochProvider) EpochConfirmed(_ uint32, _ uint64) {
 }

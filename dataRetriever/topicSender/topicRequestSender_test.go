@@ -9,13 +9,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	topicsender "github.com/multiversx/mx-chain-go/dataRetriever/topicSender"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgBaseTopicSender() topicsender.ArgBaseTopicSender {
@@ -524,7 +525,9 @@ func TestTopicResolverSender_SendOnRequestTopic(t *testing.T) {
 		}
 		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
-				return []core.PeerID{regularPeer0, regularPeer1}
+				// the preferred peer must be a connected candidate: non-member preferred
+				// peers are deliberately not injected anymore
+				return []core.PeerID{regularPeer0, regularPeer1, pidPreferred}
 			},
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 				if bytes.Equal(peerID.Bytes(), pidPreferred.Bytes()) {
@@ -839,4 +842,385 @@ func TestTopicRequestSender_NumPeersToQuery(t *testing.T) {
 
 	assert.Equal(t, intra, recoveredIntra)
 	assert.Equal(t, cross, recoveredCross)
+}
+
+var bandTestHashes = [][]byte{[]byte("hash")}
+
+func createBandArg(
+	epochIsRecent bool,
+	epochOnMainPeers bool,
+	topicPeers []core.PeerID,
+	connectedPeers []core.PeerID,
+	sentFullArchive *[]core.PeerID,
+	sentMain *[]core.PeerID,
+) topicsender.ArgTopicRequestSender {
+	arg := createMockArgTopicRequestSender()
+	arg.CurrentNetworkEpochProvider = &mock.CurrentNetworkEpochProviderStub{
+		EpochIsActiveInNetworkCalled: func(epoch uint32) bool {
+			return epochIsRecent
+		},
+		EpochIsAvailableOnMainPeersCalled: func(epoch uint32) bool {
+			return epochOnMainPeers
+		},
+	}
+	arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
+		ConnectedPeersOnTopicCalled: func(topic string) []core.PeerID {
+			return topicPeers
+		},
+		ConnectedPeersCalled: func() []core.PeerID {
+			return connectedPeers
+		},
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			*sentFullArchive = append(*sentFullArchive, peerID)
+			return nil
+		},
+	}
+	arg.PeerListCreator = &mock.PeerListCreatorStub{
+		CrossShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{"cross0", "cross1"}
+		},
+		IntraShardPeerListCalled: func() []core.PeerID {
+			return []core.PeerID{"intra0"}
+		},
+	}
+	arg.MainMessenger = &p2pmocks.MessengerStub{
+		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+			*sentMain = append(*sentMain, peerID)
+			return nil
+		},
+	}
+
+	return arg
+}
+
+func countOccurrences(peers []core.PeerID, target core.PeerID) int {
+	num := 0
+	for _, peer := range peers {
+		if peer == target {
+			num++
+		}
+	}
+
+	return num
+}
+
+func TestTopicRequestSender_ThreeBandRouting(t *testing.T) {
+	t.Parallel()
+
+	t.Run("band 1: recent epoch sends main only, wider predicate not consulted", func(t *testing.T) {
+		t.Parallel()
+
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		arg := createBandArg(true, false, nil, nil, &sentFullArchive, &sentMain)
+		arg.CurrentNetworkEpochProvider = &mock.CurrentNetworkEpochProviderStub{
+			EpochIsActiveInNetworkCalled: func(epoch uint32) bool {
+				return true
+			},
+			EpochIsAvailableOnMainPeersCalled: func(epoch uint32) bool {
+				assert.Fail(t, "wider predicate should not be consulted for a recent epoch")
+				return true
+			},
+		}
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Empty(t, sentFullArchive)
+		assert.Equal(t, 3, len(sentMain)) // 2 cross + 1 intra
+	})
+	t.Run("band 2: main with full budget plus exactly one full-archive insurance send", func(t *testing.T) {
+		t.Parallel()
+
+		topicPeers := []core.PeerID{"fa0", "fa1", "fa2"}
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		numReqIntra, numReqCross := 0, 0
+		arg := createBandArg(false, true, topicPeers, topicPeers, &sentFullArchive, &sentMain)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+		_ = trs.SetDebugHandler(&mock.DebugHandler{
+			LogRequestedDataCalled: func(topic string, hash [][]byte, intra int, cross int) {
+				numReqIntra, numReqCross = intra, cross
+			},
+		})
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(sentFullArchive))
+		assert.Equal(t, 3, len(sentMain))
+		// debug accounting keeps the full-archive count inside the intra aggregate
+		assert.Equal(t, 2, numReqIntra) // 1 main intra + 1 full-archive
+		assert.Equal(t, 2, numReqCross)
+	})
+	t.Run("band 3: full-archive only, full budget, exploration slot outside the topic view", func(t *testing.T) {
+		t.Parallel()
+
+		topicPeers := []core.PeerID{"fa0", "fa1", "fa2"}
+		connectedPeers := []core.PeerID{"fa0", "fa1", "fa2", "hidden"}
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		arg := createBandArg(false, false, topicPeers, connectedPeers, &sentFullArchive, &sentMain)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Empty(t, sentMain)
+		assert.Equal(t, 2, len(sentFullArchive)) // NumFullHistoryPeers
+		assert.Equal(t, 1, countOccurrences(sentFullArchive, "hidden"))
+	})
+	t.Run("band 3: no exploration reservation when the topic view covers all connected peers", func(t *testing.T) {
+		t.Parallel()
+
+		topicPeers := []core.PeerID{"fa0", "fa1", "fa2"}
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		arg := createBandArg(false, false, topicPeers, topicPeers, &sentFullArchive, &sentMain)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Empty(t, sentMain)
+		assert.Equal(t, 2, len(sentFullArchive))
+		for _, peer := range sentFullArchive {
+			assert.Equal(t, 1, countOccurrences(topicPeers, peer))
+		}
+	})
+	t.Run("band 3: falls back to main network when no full-archive send succeeds", func(t *testing.T) {
+		t.Parallel()
+
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		arg := createBandArg(false, false, nil, nil, &sentFullArchive, &sentMain)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Empty(t, sentFullArchive)
+		assert.Equal(t, 3, len(sentMain))
+	})
+}
+
+func TestTopicRequestSender_TwoPassSelection(t *testing.T) {
+	t.Parallel()
+
+	t.Run("topic view smaller than the budget fills from the remaining connected peers", func(t *testing.T) {
+		t.Parallel()
+
+		topicPeers := []core.PeerID{"fa0"}
+		connectedPeers := []core.PeerID{"fa0", "fa1", "fa2"}
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		arg := createBandArg(false, false, topicPeers, connectedPeers, &sentFullArchive, &sentMain)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(sentFullArchive))
+		assert.Equal(t, 1, countOccurrences(sentFullArchive, "fa0"))
+	})
+	t.Run("empty topic view degenerates to all connected peers", func(t *testing.T) {
+		t.Parallel()
+
+		connectedPeers := []core.PeerID{"fa0", "fa1", "fa2"}
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		arg := createBandArg(false, false, nil, connectedPeers, &sentFullArchive, &sentMain)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Empty(t, sentMain)
+		assert.Equal(t, 2, len(sentFullArchive))
+	})
+}
+
+func TestTopicRequestSender_PreferredPeerHandling(t *testing.T) {
+	t.Parallel()
+
+	pidPreferred := core.PeerID("preferred")
+	setPreferred := func(arg *topicsender.ArgTopicRequestSender) {
+		arg.FullArchivePreferredPeersHolder = &p2pmocks.PeersHolderStub{
+			GetCalled: func() map[uint32][]core.PeerID {
+				return map[uint32][]core.PeerID{0: {pidPreferred}}
+			},
+		}
+	}
+
+	t.Run("preferred topic peer is contacted exactly once and consumes one slot", func(t *testing.T) {
+		t.Parallel()
+
+		topicPeers := []core.PeerID{pidPreferred, "fa0", "fa1"}
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		arg := createBandArg(false, false, topicPeers, topicPeers, &sentFullArchive, &sentMain)
+		setPreferred(&arg)
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(sentFullArchive))
+		assert.Equal(t, 1, countOccurrences(sentFullArchive, pidPreferred))
+		assert.Equal(t, pidPreferred, sentFullArchive[0]) // injected first
+	})
+	t.Run("failed preferred send does not consume the budget", func(t *testing.T) {
+		t.Parallel()
+
+		topicPeers := []core.PeerID{pidPreferred, "fa0", "fa1"}
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		arg := createBandArg(false, false, topicPeers, topicPeers, &sentFullArchive, &sentMain)
+		setPreferred(&arg)
+		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
+			ConnectedPeersOnTopicCalled: func(topic string) []core.PeerID {
+				return topicPeers
+			},
+			ConnectedPeersCalled: func() []core.PeerID {
+				return topicPeers
+			},
+			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
+				if peerID == pidPreferred {
+					return errors.New("send failed")
+				}
+				sentFullArchive = append(sentFullArchive, peerID)
+				return nil
+			},
+		}
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(sentFullArchive)) // full budget still used on the other peers
+		assert.Zero(t, countOccurrences(sentFullArchive, pidPreferred))
+	})
+	t.Run("single-slot insurance keeps the preferred peer as ordinary candidate with full rating coverage", func(t *testing.T) {
+		t.Parallel()
+
+		topicPeers := []core.PeerID{pidPreferred, "fa0"}
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		fullArchiveCoverage := 0
+		arg := createBandArg(false, true, topicPeers, topicPeers, &sentFullArchive, &sentMain)
+		setPreferred(&arg)
+		arg.PeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
+			GetTopRatedPeersFromListCalled: func(peers []core.PeerID, numOfPeers int) []core.PeerID {
+				if countOccurrences(peers, pidPreferred) == 1 {
+					// the full-archive pass: the preferred peer was NOT stripped from the list
+					fullArchiveCoverage = numOfPeers
+				}
+				return peers
+			},
+		}
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(sentFullArchive))
+		assert.Equal(t, len(topicPeers), fullArchiveCoverage) // coverage = len(candidates), not 1
+	})
+}
+
+func TestTopicRequestSender_RatingCoverageForwarding(t *testing.T) {
+	t.Parallel()
+
+	// two top-rated + one bad-rated topic peers plus one fill peer: the reserved exploration slot
+	// caps the topic pass at budget 2, but the rating coverage must still span all 3 topic peers
+	// so the bad-rated one keeps a nonzero selection probability
+	topicPeers := []core.PeerID{"topRated0", "topRated1", "badRated"}
+	connectedPeers := []core.PeerID{"topRated0", "topRated1", "badRated", "fill"}
+	sentFullArchive := make([]core.PeerID, 0)
+	sentMain := make([]core.PeerID, 0)
+	topicPassCoverage := 0
+	explorationPassCoverage := 0
+	arg := createBandArg(false, false, topicPeers, connectedPeers, &sentFullArchive, &sentMain)
+	arg.NumFullHistoryPeers = 3
+	arg.PeersRatingHandler = &p2pmocks.PeersRatingHandlerStub{
+		GetTopRatedPeersFromListCalled: func(peers []core.PeerID, numOfPeers int) []core.PeerID {
+			switch {
+			case countOccurrences(peers, "badRated") == 1:
+				topicPassCoverage = numOfPeers
+			case countOccurrences(peers, "fill") == 1:
+				explorationPassCoverage = numOfPeers
+			}
+			return peers
+		},
+	}
+	trs, _ := topicsender.NewTopicRequestSender(arg)
+
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+	assert.Nil(t, err)
+	assert.Equal(t, len(topicPeers), topicPassCoverage)
+	assert.Equal(t, 1, explorationPassCoverage)
+	assert.Equal(t, 3, len(sentFullArchive))
+	assert.Equal(t, 1, countOccurrences(sentFullArchive, "fill"))
+}
+
+func TestTopicRequestSender_ZeroFullHistoryPeersIsDefensive(t *testing.T) {
+	t.Parallel()
+
+	t.Run("band 2 with zero budget sends main only", func(t *testing.T) {
+		t.Parallel()
+
+		topicPeers := []core.PeerID{"fa0", "fa1"}
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		arg := createBandArg(false, true, topicPeers, topicPeers, &sentFullArchive, &sentMain)
+		arg.NumFullHistoryPeers = 0
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Empty(t, sentFullArchive)
+		assert.Equal(t, 3, len(sentMain))
+	})
+	t.Run("band 3 with zero budget falls back to main", func(t *testing.T) {
+		t.Parallel()
+
+		topicPeers := []core.PeerID{"fa0", "fa1"}
+		sentFullArchive := make([]core.PeerID, 0)
+		sentMain := make([]core.PeerID, 0)
+		arg := createBandArg(false, false, topicPeers, topicPeers, &sentFullArchive, &sentMain)
+		arg.NumFullHistoryPeers = 0
+		trs, _ := topicsender.NewTopicRequestSender(arg)
+
+		err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+		assert.Nil(t, err)
+		assert.Empty(t, sentFullArchive)
+		assert.Equal(t, 3, len(sentMain))
+	})
+}
+
+func TestTopicRequestSender_PreferredPeerAsSoleCandidateIsStillQueried(t *testing.T) {
+	t.Parallel()
+
+	pidPreferred := core.PeerID("preferred")
+	topicPeers := []core.PeerID{pidPreferred}
+	sentFullArchive := make([]core.PeerID, 0)
+	sentMain := make([]core.PeerID, 0)
+	arg := createBandArg(false, false, topicPeers, topicPeers, &sentFullArchive, &sentMain)
+	arg.NumFullHistoryPeers = 3
+	arg.FullArchivePreferredPeersHolder = &p2pmocks.PeersHolderStub{
+		GetCalled: func() map[uint32][]core.PeerID {
+			return map[uint32][]core.PeerID{0: {pidPreferred}}
+		},
+	}
+	trs, _ := topicsender.NewTopicRequestSender(arg)
+
+	err := trs.SendOnRequestTopic(&dataRetriever.RequestData{}, bandTestHashes)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 1, countOccurrences(sentFullArchive, pidPreferred))
+	assert.Equal(t, 1, len(sentFullArchive))
 }

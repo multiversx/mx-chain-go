@@ -172,7 +172,7 @@ func createMockMetaArguments(
 		coreComponents.Hasher(),
 	)
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(disabled.NewDisabledStateAccessesCollector())
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 		BlocksCache:             &processMocks.BlocksCacheMock{},
 		ExecutionResultsTracker: executionResultsTracker,

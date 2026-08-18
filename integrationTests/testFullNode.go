@@ -959,7 +959,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		log.LogIfError(err)
 	}
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(disabled.NewDisabledStateAccessesCollector())
 	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
@@ -1347,7 +1347,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		log.LogIfError(err)
 	}
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(disabled.NewDisabledStateAccessesCollector())
 	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{

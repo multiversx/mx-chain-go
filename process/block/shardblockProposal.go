@@ -413,7 +413,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 
 // CommitBlockProposalState commits the accounts state after processing a block proposal
 // and performs any post-commit operations (e.g. saving epoch start economics metrics).
-func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHandler, headerHash []byte) error {
 	if check.IfNil(headerHandler) {
 		return process.ErrNilBlockHeader
 	}
@@ -425,7 +425,7 @@ func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHand
 
 	sp.cleanupDismissedEWLEntries()
 
-	err := sp.commitState(headerHandler)
+	err := sp.commitStateForHeader(headerHandler, headerHash)
 	if err != nil {
 		return err
 	}

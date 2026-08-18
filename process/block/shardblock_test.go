@@ -2716,6 +2716,16 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	dataComponents.BlockChain = blkc
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	var scopedHeaderHash []byte
+	var endedHeaderHash []byte
+	arguments.StateAccessesCollector = &stateMock.StateAccessesCollectorStub{
+		BeginExecutionCalled: func(headerHash []byte) {
+			scopedHeaderHash = append([]byte(nil), headerHash...)
+		},
+		EndExecutionCalled: func(headerHash []byte) {
+			endedHeaderHash = append([]byte(nil), headerHash...)
+		},
+	}
 
 	called := false
 	statusComponents.Outport = &outport.OutportStub{
@@ -2751,8 +2761,16 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	err := sp.ProcessBlock(hdr, body, haveTime)
 	assert.Nil(t, err)
-	err = sp.CommitBlock(hdr, body)
+	require.Nil(t, scopedHeaderHash)
+	// commit a copy: ProcessBlock's async metrics goroutine still reads hdr
+	finalHeader := *hdr.Header
+	finalHeader.Signature = []byte("final aggregate signature")
+	finalHdr := *hdr
+	finalHdr.Header = &finalHeader
+	err = sp.CommitBlock(&finalHdr, body)
 	assert.Nil(t, err)
+	require.Equal(t, hdrHash, scopedHeaderHash)
+	require.Equal(t, hdrHash, endedHeaderHash)
 
 	// Wait for the index block go routine to start
 	time.Sleep(time.Second * 2)
@@ -9052,14 +9070,14 @@ func TestShardProcessor_CommitBlockProposalStateBlocksBackgroundJobs(t *testing.
 	sp, err := blproc.NewShardProcessor(arguments)
 	require.Nil(t, err)
 
-	err = sp.CommitBlockProposalState(&block.HeaderV3{Nonce: 1})
+	err = sp.CommitBlockProposalState(&block.HeaderV3{Nonce: 1}, []byte("header hash"))
 	require.Nil(t, err)
 
 	require.Equal(t, []string{"shardProcessor.CommitBlockProposalState"}, blockedFor)
 	require.Equal(t, 1, unblockCount)
 
 	// a nil header returns before the bracket, so it must not leak an unblock
-	err = sp.CommitBlockProposalState(nil)
+	err = sp.CommitBlockProposalState(nil, nil)
 	require.Equal(t, process.ErrNilBlockHeader, err)
 	require.Equal(t, 1, unblockCount)
 }

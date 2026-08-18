@@ -340,7 +340,8 @@ func (sr *subroundBlock) logBlockSize(marshalledBody []byte, marshalledHeader []
 
 func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := time.Duration(sr.EndTime())
+	blockSubroundDuration := sr.EndTime() - sr.StartTime()
+	maxTime := time.Duration(sr.StartTime() + blockSubroundDuration*blockCreationMaxTimePercentage/100)
 	haveTimeInCurrentSubround := func() bool {
 		return sr.RoundHandler().RemainingTime(startTime, maxTime) > 0
 	}
