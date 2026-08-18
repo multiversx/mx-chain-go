@@ -117,7 +117,7 @@ func createMetaBlockProcessor(
 	)
 
 	blocksCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(disabled.NewDisabledStateAccessesCollector())
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 		BlocksCache:             blocksCache,
 		ExecutionResultsTracker: executionResultsTracker,

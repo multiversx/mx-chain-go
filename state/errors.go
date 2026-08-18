@@ -174,3 +174,28 @@ var ErrStateAccessesIndexOutOfBounds = errors.New("state access index out of bou
 
 // ErrNilStateAccessesStorer signals that a nil state accesses storer has been given
 var ErrNilStateAccessesStorer = errors.New("nil state accesses storer")
+
+// ErrStateAccessesRootMismatch signals that retained state accesses have an unexpected root hash
+var ErrStateAccessesRootMismatch = errors.New("state accesses root hash mismatch")
+
+// StateAccessesRootMismatchError contains state-access identity diagnostics
+type StateAccessesRootMismatchError struct {
+	HeaderHash   []byte
+	ExpectedRoot []byte
+	ActualRoot   []byte
+}
+
+// Error returns the root mismatch message
+func (e *StateAccessesRootMismatchError) Error() string {
+	return fmt.Sprintf("%s: headerHash = %s, expectedRoot = %s, actualRoot = %s",
+		ErrStateAccessesRootMismatch.Error(),
+		hex.EncodeToString(e.HeaderHash),
+		hex.EncodeToString(e.ExpectedRoot),
+		hex.EncodeToString(e.ActualRoot),
+	)
+}
+
+// Unwrap returns the root mismatch sentinel
+func (e *StateAccessesRootMismatchError) Unwrap() error {
+	return ErrStateAccessesRootMismatch
+}

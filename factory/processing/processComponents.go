@@ -645,7 +645,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	blocksCache := headersCache.NewHeaderBodyCache(pcf.config.HeaderBodyCacheConfig)
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, err := executionTrack.NewExecutionResultsTracker(pcf.state.StateAccessesCollector())
+	if err != nil {
+		return nil, err
+	}
 
 	argExecManager := executionManager.ArgsExecutionManager{
 		BlocksCache:             blocksCache,

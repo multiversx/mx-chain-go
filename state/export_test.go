@@ -28,12 +28,22 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 	return adb.obsoleteDataTrieHashes
 }
 
-// ResetStateAccessesCollector -
-func (adb *AccountsDB) ResetStateAccessesCollector(rootHash []byte) (map[string]*data.StateAccesses, error) {
-	stateChanges := adb.stateAccessesCollector.GetStateAccessesForRootHash(rootHash)
-	adb.stateAccessesCollector.Reset()
+// CommitWithStateAccessesForHeader -
+func (adb *AccountsDB) CommitWithStateAccessesForHeader(headerHash []byte) ([]byte, error) {
+	adb.stateAccessesCollector.BeginExecution(headerHash)
+	defer adb.stateAccessesCollector.EndExecution(headerHash)
 
-	return stateChanges, nil
+	return adb.Commit()
+}
+
+// TakeStateAccessesForHeader -
+func (adb *AccountsDB) TakeStateAccessesForHeader(headerHash, rootHash []byte) (map[string]*data.StateAccesses, error) {
+	return adb.stateAccessesCollector.TakeStateAccessesForHeader(headerHash, rootHash)
+}
+
+// ResetStateAccessesCollector -
+func (adb *AccountsDB) ResetStateAccessesCollector() {
+	adb.stateAccessesCollector.Reset()
 }
 
 // GetCode -

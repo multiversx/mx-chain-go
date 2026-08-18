@@ -469,7 +469,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 
 // CommitBlockProposalState commits the accounts state after processing a block proposal
 // and performs any post-commit operations (e.g. saving epoch start economics metrics).
-func (mp *metaProcessor) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+func (mp *metaProcessor) CommitBlockProposalState(headerHandler data.HeaderHandler, headerHash []byte) error {
 	if check.IfNil(headerHandler) {
 		return process.ErrNilBlockHeader
 	}
@@ -481,7 +481,7 @@ func (mp *metaProcessor) CommitBlockProposalState(headerHandler data.HeaderHandl
 
 	mp.cleanupDismissedEWLEntries()
 
-	err := mp.commitState(headerHandler)
+	err := mp.commitStateForHeader(headerHandler, headerHash)
 	if err != nil {
 		return err
 	}
