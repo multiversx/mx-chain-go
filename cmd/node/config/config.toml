@@ -185,7 +185,8 @@
 
     # AssumedPeersNumActivePersisters represents the NumActivePersisters value the other (pruning) nodes in the
     # network are assumed to run with. Used only to decide up to which epoch data can still be requested from
-    # regular peers. Keep in sync with the NumActivePersisters default shipped to validators/observers
+    # regular peers. Keep in sync with the NumActivePersisters default shipped to validators/observers.
+    # A missing or 0 value falls back to the default of 3, with a warning at startup
     AssumedPeersNumActivePersisters = 3
 
     # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response

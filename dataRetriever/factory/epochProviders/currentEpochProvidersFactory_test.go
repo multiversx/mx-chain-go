@@ -44,19 +44,36 @@ func TestCreateCurrentEpochProvider_RegularNodeIgnoresZeroAssumedPersisters(t *t
 	assert.IsType(t, disabled.NewEpochProvider(), cnep)
 }
 
-func TestCreateCurrentEpochProvider_FullArchiveRejectsZeroAssumedPersisters(t *testing.T) {
+func TestCreateCurrentEpochProvider_FullArchiveFallsBackOnZeroAssumedPersisters(t *testing.T) {
 	t.Parallel()
 
+	chainParameterHandler := &chainParameters.ChainParametersHandlerStub{
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return config.ChainParametersByEpochConfig{
+				RoundsPerEpoch: 1,
+				RoundDuration:  1,
+			}
+		},
+	}
 	cnep, err := CreateCurrentEpochProvider(
-		&chainParameters.ChainParametersHandlerStub{},
-		0,
+		chainParameterHandler,
+		1,
 		true,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		0,
 	)
 
-	assert.ErrorIs(t, err, epochproviders.ErrInvalidAssumedPeersNumActivePersisters)
-	assert.True(t, check.IfNil(cnep))
+	assert.Nil(t, err)
+	aep, _ := epochproviders.NewArithmeticEpochProvider(
+		epochproviders.ArgArithmeticEpochProvider{
+			StartTime:                       1,
+			ChainParametersHandler:          chainParameterHandler,
+			EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			AssumedPeersNumActivePersisters: defaultAssumedPeersNumActivePersisters,
+		},
+	)
+	require.False(t, check.IfNil(aep))
+	assert.IsType(t, aep, cnep)
 }
 
 func TestCreateCurrentEpochProvider_ArithmeticEpochProvider(t *testing.T) {
