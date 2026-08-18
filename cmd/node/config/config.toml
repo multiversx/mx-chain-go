@@ -183,6 +183,11 @@
     # smaller or equal to the NumOfEpochsToKeep flag
     NumActivePersisters = 3
 
+    # AssumedPeersNumActivePersisters represents the NumActivePersisters value the other (pruning) nodes in the
+    # network are assumed to run with. Used only to decide up to which epoch data can still be requested from
+    # regular peers. Keep in sync with the NumActivePersisters default shipped to validators/observers
+    AssumedPeersNumActivePersisters = 3
+
     # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response
     # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so
     # it is a good idea to increase the maximum number of opened files allowed by the operating system

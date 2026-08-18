@@ -14,15 +14,17 @@ func CreateCurrentEpochProvider(
 	startTime int64,
 	isFullArchive bool,
 	enableEpochsHandler common.EnableEpochsHandler,
+	assumedPeersNumActivePersisters uint32,
 ) (dataRetriever.CurrentNetworkEpochProviderHandler, error) {
 	if !isFullArchive {
 		return disabled.NewEpochProvider(), nil
 	}
 
 	arg := epochproviders.ArgArithmeticEpochProvider{
-		ChainParametersHandler: chainParametersHandler,
-		StartTime:              startTime,
-		EnableEpochsHandler:    enableEpochsHandler,
+		ChainParametersHandler:          chainParametersHandler,
+		StartTime:                       startTime,
+		EnableEpochsHandler:             enableEpochsHandler,
+		AssumedPeersNumActivePersisters: assumedPeersNumActivePersisters,
 	}
 
 	return epochproviders.NewArithmeticEpochProvider(arg)

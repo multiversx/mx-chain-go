@@ -5,11 +5,12 @@ import "github.com/multiversx/mx-chain-go/process"
 // NewTestArithmeticEpochProvider -
 func NewTestArithmeticEpochProvider(arg ArgArithmeticEpochProvider, unixHandler func() int64) *arithmeticEpochProvider {
 	aep := &arithmeticEpochProvider{
-		headerEpoch:                0,
-		headerTimestampForNewEpoch: uint64(arg.StartTime),
-		chainParamsHandler:         arg.ChainParametersHandler,
-		getUnixHandler:             unixHandler,
-		enableEpochsHandler:        arg.EnableEpochsHandler,
+		headerEpoch:                     0,
+		headerTimestampForNewEpoch:      uint64(arg.StartTime),
+		chainParamsHandler:              arg.ChainParametersHandler,
+		getUnixHandler:                  unixHandler,
+		enableEpochsHandler:             arg.EnableEpochsHandler,
+		assumedPeersNumActivePersisters: arg.AssumedPeersNumActivePersisters,
 	}
 	aep.computeCurrentEpoch()
 

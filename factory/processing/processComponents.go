@@ -283,6 +283,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		genesisUnixTime,
 		pcf.prefConfigs.Preferences.FullArchive,
 		pcf.coreData.EnableEpochsHandler(),
+		pcf.config.StoragePruning.AssumedPeersNumActivePersisters,
 	)
 	if err != nil {
 		return nil, err
