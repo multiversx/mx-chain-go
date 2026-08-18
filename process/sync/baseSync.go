@@ -2610,10 +2610,6 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 		return header
 	}
 
-	log.Debug("requesting equivalent proof from network",
-		"hash", hex.EncodeToString(hash),
-	)
-
 	boot.mutRcvHdrHash.Lock()
 	boot.setRequestedHeaderHash(hash)
 	if boot.hasProof(hash, header) {
@@ -2623,6 +2619,9 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	}
 	boot.mutRcvHdrHash.Unlock()
 
+	log.Debug("requesting equivalent proof from network",
+		"hash", hex.EncodeToString(hash),
+	)
 	boot.requestSelfShardProof(hash, header)
 	return nil
 }
