@@ -305,6 +305,7 @@ type StoragePruningConfig struct {
 	AccountsTrieSkipRemovalCustomPattern string
 	NumEpochsToKeep                      uint64
 	NumActivePersisters                  uint64
+	AssumedPeersNumActivePersisters      uint32
 	FullArchiveNumActivePersisters       uint32
 }
 

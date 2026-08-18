@@ -112,6 +112,7 @@ func TestNewChainParametersHolder(t *testing.T) {
 
 		args := getDummyArgs()
 		newChainParameters := args.ChainParameters[0]
+		newChainParameters.EnableEpoch = 1
 		newChainParameters.ShardConsensusGroupSize = 0
 		args.ChainParameters = append(args.ChainParameters, newChainParameters)
 
@@ -129,6 +130,37 @@ func TestNewChainParametersHolder(t *testing.T) {
 		paramsHolder, err := NewChainParametersHolder(args)
 		require.True(t, check.IfNil(paramsHolder))
 		require.ErrorIs(t, err, ErrMissingConfigurationForEpochZero)
+	})
+
+	t.Run("duplicate enable epoch", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDummyArgs()
+		args.ChainParameters = append(args.ChainParameters, args.ChainParameters[0])
+
+		paramsHolder, err := NewChainParametersHolder(args)
+		require.True(t, check.IfNil(paramsHolder))
+		require.ErrorIs(t, err, ErrDuplicateChainParametersEpoch)
+		require.ErrorContains(t, err, "0")
+	})
+
+	t.Run("should not mutate the provided chain parameters slice", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDummyArgs()
+		secondChainParams := args.ChainParameters[0]
+		secondChainParams.EnableEpoch = 5
+		// ascending input order must survive the constructor's internal descending sort
+		args.ChainParameters = append(args.ChainParameters, secondChainParams)
+
+		paramsHolder, err := NewChainParametersHolder(args)
+		require.NoError(t, err)
+		require.False(t, check.IfNil(paramsHolder))
+
+		require.Equal(t, uint32(0), args.ChainParameters[0].EnableEpoch)
+		require.Equal(t, uint32(5), args.ChainParameters[1].EnableEpoch)
+		require.Equal(t, uint32(5), paramsHolder.chainParameters[0].EnableEpoch)
+		require.Equal(t, uint32(0), paramsHolder.chainParameters[1].EnableEpoch)
 	})
 
 	t.Run("should work and have the data ready", func(t *testing.T) {
@@ -364,7 +396,7 @@ func TestChainParametersHolder_AllChainParameters(t *testing.T) {
 	require.NoError(t, err)
 
 	returnedAllChainsParameters := paramsHolder.AllChainParameters()
-	require.Equal(t, params, returnedAllChainsParameters)
+	require.Equal(t, []config.ChainParametersByEpochConfig{params[1], params[0]}, returnedAllChainsParameters)
 	require.NotEqual(t, fmt.Sprintf("%p", returnedAllChainsParameters), fmt.Sprintf("%p", paramsHolder.chainParameters))
 }
 

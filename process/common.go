@@ -953,7 +953,9 @@ func IsScheduledMode(
 	return false, nil
 }
 
-const additionalTimeForCreatingScheduledMiniBlocks = 150 * time.Millisecond
+// additionalTimeForCreatingScheduledMiniBlocks is intended to leave 50ms of the legacy block subround
+// for finalizing and sending a block when scheduled processing starts at the normal 90% creation cutoff.
+const additionalTimeForCreatingScheduledMiniBlocks = 70 * time.Millisecond
 
 // HaveAdditionalTime returns if the additional time allocated for scheduled mini blocks is elapsed
 func HaveAdditionalTime() func() bool {

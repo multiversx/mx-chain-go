@@ -44,12 +44,11 @@ func (d *disabledStateAccessesCollector) RevertToIndex(_ int) error {
 }
 
 // BeginExecution -
-func (d *disabledStateAccessesCollector) BeginExecution(_ []byte) uint64 {
-	return 0
+func (d *disabledStateAccessesCollector) BeginExecution(_ []byte) {
 }
 
 // EndExecution -
-func (d *disabledStateAccessesCollector) EndExecution(_ uint64) {
+func (d *disabledStateAccessesCollector) EndExecution(_ []byte) {
 }
 
 // TakeStateAccessesForHeader -

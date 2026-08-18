@@ -35,7 +35,6 @@ type collector struct {
 	stateAccessesForHeader map[string]*committedStateAccesses
 	retainedMut            sync.RWMutex
 	headerHash             []byte
-	headerGeneration       uint64
 	headerScopeMut         sync.RWMutex
 
 	storer           state.StateAccessesStorer
@@ -106,26 +105,19 @@ func (c *collector) Reset() {
 }
 
 // BeginExecution sets the identity for the next state commit
-func (c *collector) BeginExecution(headerHash []byte) uint64 {
+func (c *collector) BeginExecution(headerHash []byte) {
 	c.headerScopeMut.Lock()
-	c.headerGeneration++
-	if c.headerGeneration == 0 {
-		c.headerGeneration++
-	}
-	generation := c.headerGeneration
 	if len(c.headerHash) > 0 {
 		log.Warn("replacing active state accesses header scope", "headerHash", c.headerHash)
 	}
 	c.headerHash = append(c.headerHash[:0], headerHash...)
 	c.headerScopeMut.Unlock()
-
-	return generation
 }
 
-// EndExecution clears the identity when the generation is still current
-func (c *collector) EndExecution(generation uint64) {
+// EndExecution clears the identity when it still belongs to the given header
+func (c *collector) EndExecution(headerHash []byte) {
 	c.headerScopeMut.Lock()
-	if c.headerGeneration == generation {
+	if bytes.Equal(c.headerHash, headerHash) {
 		c.headerHash = nil
 	}
 	c.headerScopeMut.Unlock()

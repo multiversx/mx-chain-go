@@ -187,7 +187,12 @@ type StateAccessesRootMismatchError struct {
 
 // Error returns the root mismatch message
 func (e *StateAccessesRootMismatchError) Error() string {
-	return ErrStateAccessesRootMismatch.Error()
+	return fmt.Sprintf("%s: headerHash = %s, expectedRoot = %s, actualRoot = %s",
+		ErrStateAccessesRootMismatch.Error(),
+		hex.EncodeToString(e.HeaderHash),
+		hex.EncodeToString(e.ExpectedRoot),
+		hex.EncodeToString(e.ActualRoot),
+	)
 }
 
 // Unwrap returns the root mismatch sentinel

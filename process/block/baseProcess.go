@@ -2545,8 +2545,8 @@ func (bp *baseProcessor) commitStateForHeader(headerHandler data.HeaderHandler, 
 		return bp.commitState(headerHandler)
 	}
 
-	generation := bp.stateAccessesCollector.BeginExecution(headerHash)
-	defer bp.stateAccessesCollector.EndExecution(generation)
+	bp.stateAccessesCollector.BeginExecution(headerHash)
+	defer bp.stateAccessesCollector.EndExecution(headerHash)
 
 	err := bp.commitState(headerHandler)
 	if err != nil {

@@ -11,6 +11,9 @@ var log = logger.GetOrCreate("consensus/spos/bls/v2")
 // waitingAllSigsMaxTimeThreshold specifies the max allocated time for waiting all signatures from the total time of the subround signature
 const waitingAllSigsMaxTimeThreshold = 0.5
 
+// blockCreationMaxTimePercentage specifies the percentage of the block subround allocated to block creation
+const blockCreationMaxTimePercentage = 90
+
 // competingBlockSignDelay is the fraction of the full round time to wait before signing
 // a competing block for the same nonce, giving the previous block's proof time to arrive.
 const competingBlockSignDelay = 0.5

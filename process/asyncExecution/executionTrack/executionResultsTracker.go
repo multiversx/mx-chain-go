@@ -50,11 +50,14 @@ func NewExecutionResultsTracker(dismissedHandler DismissedExecutionHandler) (*ex
 	}, nil
 }
 
-func (ert *executionResultsTracker) unlockAndNotifyDismissed() {
+func (ert *executionResultsTracker) takeDismissedNotificationsUnprotected() [][]byte {
 	notifications := ert.dismissedNotifications
 	ert.dismissedNotifications = nil
-	ert.mutex.Unlock()
 
+	return notifications
+}
+
+func (ert *executionResultsTracker) deliverDismissedNotifications(notifications [][]byte) {
 	for _, hash := range notifications {
 		ert.dismissedHandler.DiscardStateAccessesForHeader(hash)
 	}
@@ -70,12 +73,21 @@ func (ert *executionResultsTracker) notifyDismissed(results []data.BaseExecution
 // It returns true if the execution result was added, false if it was rejected
 // because consensus already committed a different block for this nonce.
 func (ert *executionResultsTracker) AddExecutionResult(executionResult data.BaseExecutionResultHandler) (bool, error) {
+	ert.mutex.Lock()
+	added, err := ert.addExecutionResultUnprotected(executionResult)
+	notifications := ert.takeDismissedNotificationsUnprotected()
+	ert.mutex.Unlock()
+
+	ert.deliverDismissedNotifications(notifications)
+
+	return added, err
+}
+
+func (ert *executionResultsTracker) addExecutionResultUnprotected(executionResult data.BaseExecutionResultHandler) (bool, error) {
 	if executionResult == nil {
 		return false, ErrNilExecutionResult
 	}
 
-	ert.mutex.Lock()
-	defer ert.unlockAndNotifyDismissed()
 	if ert.lastNotarizedResult == nil {
 		return false, ErrNilLastNotarizedExecutionResult
 	}
@@ -215,8 +227,16 @@ func (ert *executionResultsTracker) getPendingExecutionResultsByNonce(nonce uint
 // CleanConfirmedExecutionResults will clean the confirmed execution results
 func (ert *executionResultsTracker) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
 	ert.mutex.Lock()
-	defer ert.unlockAndNotifyDismissed()
+	err := ert.cleanConfirmedExecutionResultsForHeaderUnprotected(header)
+	notifications := ert.takeDismissedNotificationsUnprotected()
+	ert.mutex.Unlock()
 
+	ert.deliverDismissedNotifications(notifications)
+
+	return err
+}
+
+func (ert *executionResultsTracker) cleanConfirmedExecutionResultsForHeaderUnprotected(header data.HeaderHandler) error {
 	headerExecutionResults := header.GetExecutionResultsHandlers()
 
 	return ert.cleanConfirmedExecutionResults(headerExecutionResults)
@@ -298,12 +318,18 @@ func (ert *executionResultsTracker) removeExecutionResultsFromMaps(executionResu
 // passed consensus, remove it and all higher nonces from the tracker.
 // It also records the committed hash to prevent stale results from being added later.
 func (ert *executionResultsTracker) CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler) {
+	ert.mutex.Lock()
+	ert.cleanOnConsensusReachedUnprotected(headerHash, header)
+	notifications := ert.takeDismissedNotificationsUnprotected()
+	ert.mutex.Unlock()
+
+	ert.deliverDismissedNotifications(notifications)
+}
+
+func (ert *executionResultsTracker) cleanOnConsensusReachedUnprotected(headerHash []byte, header data.HeaderHandler) {
 	if check.IfNil(header) {
 		return
 	}
-
-	ert.mutex.Lock()
-	defer ert.unlockAndNotifyDismissed()
 
 	if header.IsHeaderV3() {
 		// record the committed hash to prevent stale results being added later
@@ -350,19 +376,29 @@ func (ert *executionResultsTracker) SetLastNotarizedResult(executionResult data.
 // RemoveFromNonce will remove the execution result with the provided nonce and all execution results with higher nonces
 func (ert *executionResultsTracker) RemoveFromNonce(nonce uint64) error {
 	ert.mutex.Lock()
-	defer ert.unlockAndNotifyDismissed()
+	err := ert.removePendingFromNonceUnprotected(nonce)
+	notifications := ert.takeDismissedNotificationsUnprotected()
+	ert.mutex.Unlock()
 
-	return ert.removePendingFromNonceUnprotected(nonce)
+	ert.deliverDismissedNotifications(notifications)
+
+	return err
 }
 
 // Clean cleans the execution results tracker and sets its state to the last notarized result provided
 func (ert *executionResultsTracker) Clean(lastNotarizedResult data.BaseExecutionResultHandler) {
+	ert.mutex.Lock()
+	ert.cleanUnprotected(lastNotarizedResult)
+	notifications := ert.takeDismissedNotificationsUnprotected()
+	ert.mutex.Unlock()
+
+	ert.deliverDismissedNotifications(notifications)
+}
+
+func (ert *executionResultsTracker) cleanUnprotected(lastNotarizedResult data.BaseExecutionResultHandler) {
 	if check.IfNil(lastNotarizedResult) {
 		return
 	}
-
-	ert.mutex.Lock()
-	defer ert.unlockAndNotifyDismissed()
 
 	pending, _ := ert.getPendingExecutionResults()
 	if len(pending) > 0 {

@@ -2,9 +2,10 @@ package mock
 
 // CurrentNetworkEpochProviderStub -
 type CurrentNetworkEpochProviderStub struct {
-	SetNetworkEpochAtBootstrapCalled func(epoch uint32)
-	EpochIsActiveInNetworkCalled     func(epoch uint32) bool
-	EpochConfirmedCalled             func(epoch uint32, timestamp uint64)
+	SetNetworkEpochAtBootstrapCalled  func(epoch uint32)
+	EpochIsActiveInNetworkCalled      func(epoch uint32) bool
+	EpochIsAvailableOnMainPeersCalled func(epoch uint32) bool
+	EpochConfirmedCalled              func(epoch uint32, timestamp uint64)
 }
 
 // EpochIsActiveInNetwork -
@@ -14,6 +15,16 @@ func (cneps *CurrentNetworkEpochProviderStub) EpochIsActiveInNetwork(epoch uint3
 	}
 
 	return true
+}
+
+// EpochIsAvailableOnMainPeers -
+func (cneps *CurrentNetworkEpochProviderStub) EpochIsAvailableOnMainPeers(epoch uint32) bool {
+	if cneps.EpochIsAvailableOnMainPeersCalled != nil {
+		return cneps.EpochIsAvailableOnMainPeersCalled(epoch)
+	}
+
+	// default mirrors EpochIsActiveInNetwork to keep pre-existing tests' band semantics
+	return cneps.EpochIsActiveInNetwork(epoch)
 }
 
 // EpochConfirmed -
