@@ -2593,7 +2593,15 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 		"hash", hex.EncodeToString(hash),
 	)
 
+	boot.mutRcvHdrHash.Lock()
 	boot.setRequestedHeaderHash(hash)
+	if boot.hasProof(hash, header) {
+		boot.setRequestedHeaderHash(nil)
+		boot.mutRcvHdrHash.Unlock()
+		return header
+	}
+	boot.mutRcvHdrHash.Unlock()
+
 	boot.requestSelfShardProof(hash, header)
 	return nil
 }
@@ -2654,6 +2662,11 @@ func (boot *baseBootstrap) requestHeaderAndProofByNonce(
 		boot.mutRcvHdrNonce.Unlock()
 		boot.requestHeaderByNonce(nonce)
 		return nil, nil
+	}
+	if !boot.blackListHandler.Has(string(hash)) && boot.hasProof(hash, header) {
+		boot.setRequestedHeaderNonce(nil)
+		boot.mutRcvHdrNonce.Unlock()
+		return header, hash
 	}
 	boot.mutRcvHdrNonce.Unlock()
 	boot.requestHeaderByNonce(nonce)

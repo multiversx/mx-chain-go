@@ -376,6 +376,75 @@ func TestBaseBootstrap_RequestByNonceRechecksHeaderAfterRegisteringExpectation(t
 	require.Equal(t, header.GetNonce(), *boot.requestedHeaderNonce())
 }
 
+func TestBaseBootstrap_RequestByHashRechecksProofAfterRegisteringExpectation(t *testing.T) {
+	t.Parallel()
+
+	roundHandler := &mock.RoundHandlerMock{RoundIndex: 10}
+	probableNonce := uint64(5)
+	headerHash := []byte("header hash")
+	header := &block.Header{ShardID: 1, Nonce: 6, Epoch: 6}
+	proofRequests := 0
+	requestHandler := &recoveryRequestHandlerStub{
+		RequestHandlerStub: testscommon.RequestHandlerStub{
+			RequestEquivalentProofByHashForEpochCalled: func(_ uint32, _ []byte, _ uint32) {
+				proofRequests++
+			},
+		},
+	}
+	boot := newRecoveryBootstrap(roundHandler, header, &probableNonce, requestHandler)
+	boot.chRcvHdrHash = make(chan bool)
+	boot.proofs = &testscommonDataRetriever.ProofsPoolMock{
+		HasProofCalled: func(shardID uint32, hash []byte) bool {
+			require.Equal(t, uint32(1), shardID)
+			require.Equal(t, headerHash, hash)
+			return true
+		},
+	}
+
+	readyHeader := boot.requestHeaderAndProofByHashIfMissing(headerHash, header, false, true)
+
+	require.Same(t, header, readyHeader)
+	require.Zero(t, proofRequests)
+	require.Nil(t, boot.requestedHeaderHash())
+}
+
+func TestBaseBootstrap_RequestByNonceRechecksProofAfterRegisteringExpectation(t *testing.T) {
+	t.Parallel()
+
+	roundHandler := &mock.RoundHandlerMock{RoundIndex: 10}
+	probableNonce := uint64(5)
+	headerHash := []byte("header hash")
+	header := &block.Header{ShardID: 1, Nonce: 6, Epoch: 6}
+	headerRequests := 0
+	proofRequests := 0
+	requestHandler := &recoveryRequestHandlerStub{
+		RequestHandlerStub: testscommon.RequestHandlerStub{
+			RequestShardHeaderByNonceCalled: func(_ uint32, _ uint64) { headerRequests++ },
+			RequestEquivalentProofByHashForEpochCalled: func(_ uint32, _ []byte, _ uint32) {
+				proofRequests++
+			},
+		},
+	}
+	boot := newRecoveryBootstrap(roundHandler, header, &probableNonce, requestHandler)
+	boot.chRcvHdrNonce = make(chan bool)
+	boot.blackListHandler = &testscommon.TimeCacheStub{}
+	boot.proofs = &testscommonDataRetriever.ProofsPoolMock{
+		HasProofCalled: func(shardID uint32, hash []byte) bool {
+			require.Equal(t, uint32(1), shardID)
+			require.Equal(t, headerHash, hash)
+			return true
+		},
+	}
+
+	readyHeader, readyHash := boot.requestHeaderAndProofByNonce(headerHash, header, header.GetNonce(), true)
+
+	require.Same(t, header, readyHeader)
+	require.Equal(t, headerHash, readyHash)
+	require.Zero(t, headerRequests)
+	require.Zero(t, proofRequests)
+	require.Nil(t, boot.requestedHeaderNonce())
+}
+
 func TestResyncRecovery_StaleWatchdogGenerationDoesNotRequest(t *testing.T) {
 	t.Parallel()
 
