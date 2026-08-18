@@ -2717,14 +2717,13 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	var scopedHeaderHash []byte
-	var endedGeneration uint64
+	var endedHeaderHash []byte
 	arguments.StateAccessesCollector = &stateMock.StateAccessesCollectorStub{
-		BeginExecutionCalled: func(headerHash []byte) uint64 {
+		BeginExecutionCalled: func(headerHash []byte) {
 			scopedHeaderHash = append([]byte(nil), headerHash...)
-			return 7
 		},
-		EndExecutionCalled: func(generation uint64) {
-			endedGeneration = generation
+		EndExecutionCalled: func(headerHash []byte) {
+			endedHeaderHash = append([]byte(nil), headerHash...)
 		},
 	}
 
@@ -2771,7 +2770,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	err = sp.CommitBlock(&finalHdr, body)
 	assert.Nil(t, err)
 	require.Equal(t, hdrHash, scopedHeaderHash)
-	require.Equal(t, uint64(7), endedGeneration)
+	require.Equal(t, hdrHash, endedHeaderHash)
 
 	// Wait for the index block go routine to start
 	time.Sleep(time.Second * 2)

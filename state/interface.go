@@ -368,8 +368,8 @@ type StateAccessesCollector interface {
 	AddStateAccess(stateAccess *data.StateAccess)
 	GetAccountChanges(oldAccount, account vmcommon.AccountHandler) uint32
 	Reset()
-	BeginExecution(headerHash []byte) uint64
-	EndExecution(generation uint64)
+	BeginExecution(headerHash []byte)
+	EndExecution(headerHash []byte)
 	TakeStateAccessesForHeader(headerHash, expectedRootHash []byte) (map[string]*data.StateAccesses, error)
 	DiscardStateAccessesForHeader(headerHash []byte)
 	CommitCollectedAccesses(rootHash []byte) error

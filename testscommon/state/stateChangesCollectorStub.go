@@ -13,8 +13,8 @@ type StateAccessesCollectorStub struct {
 	AddTxHashToCollectedStateAccessesCalled func(txHash []byte)
 	SetIndexToLatestStateAccessesCalled     func(index int) error
 	RevertToIndexCalled                     func(index int) error
-	BeginExecutionCalled                    func(headerHash []byte) uint64
-	EndExecutionCalled                      func(generation uint64)
+	BeginExecutionCalled                    func(headerHash []byte)
+	EndExecutionCalled                      func(headerHash []byte)
 	TakeStateAccessesForHeaderCalled        func(headerHash, expectedRootHash []byte) (map[string]*stateChange.StateAccesses, error)
 	DiscardStateAccessesForHeaderCalled     func(headerHash []byte)
 	CommitCollectedAccessesCalled           func(rootHash []byte) error
@@ -69,17 +69,16 @@ func (s *StateAccessesCollectorStub) RevertToIndex(index int) error {
 }
 
 // BeginExecution -
-func (s *StateAccessesCollectorStub) BeginExecution(headerHash []byte) uint64 {
+func (s *StateAccessesCollectorStub) BeginExecution(headerHash []byte) {
 	if s.BeginExecutionCalled != nil {
-		return s.BeginExecutionCalled(headerHash)
+		s.BeginExecutionCalled(headerHash)
 	}
-	return 0
 }
 
 // EndExecution -
-func (s *StateAccessesCollectorStub) EndExecution(generation uint64) {
+func (s *StateAccessesCollectorStub) EndExecution(headerHash []byte) {
 	if s.EndExecutionCalled != nil {
-		s.EndExecutionCalled(generation)
+		s.EndExecutionCalled(headerHash)
 	}
 }
 

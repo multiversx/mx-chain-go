@@ -30,8 +30,8 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 
 // CommitWithStateAccessesForHeader -
 func (adb *AccountsDB) CommitWithStateAccessesForHeader(headerHash []byte) ([]byte, error) {
-	generation := adb.stateAccessesCollector.BeginExecution(headerHash)
-	defer adb.stateAccessesCollector.EndExecution(generation)
+	adb.stateAccessesCollector.BeginExecution(headerHash)
+	defer adb.stateAccessesCollector.EndExecution(headerHash)
 
 	return adb.Commit()
 }
