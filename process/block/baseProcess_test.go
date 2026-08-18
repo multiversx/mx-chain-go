@@ -173,7 +173,7 @@ func createArgBaseProcessor(
 		)
 
 		blocksCache := headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
-		executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+		executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(disabled.NewDisabledStateAccessesCollector())
 		_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
 		execManager, _ = executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 			BlocksCache:             blocksCache,

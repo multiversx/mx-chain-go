@@ -5504,7 +5504,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Nil(t, err)
 		require.False(t, commitCalled)
 
-		err = mp.CommitBlockProposalState(&newBlock)
+		err = mp.CommitBlockProposalState(&newBlock, []byte("header hash"))
 		require.Nil(t, err)
 		require.True(t, commitCalled)
 	})

@@ -452,8 +452,7 @@ func TestAccountsDB_MigrateDataTrieLeafCollectsDeleteAndUpdateStateChanges(t *te
 
 	txHash := []byte("accountCreationTxHash")
 	adb.SetTxHashForLatestStateAccesses(txHash)
-	_, err := adb.ResetStateAccessesCollector([]byte{})
-	assert.Nil(t, err)
+	adb.ResetStateAccessesCollector()
 
 	// enable auto-balance and migrate the data trie leaf
 	autoBalanceFlagEnabled = true
@@ -474,10 +473,11 @@ func TestAccountsDB_MigrateDataTrieLeafCollectsDeleteAndUpdateStateChanges(t *te
 	txHash = []byte("accountMigrationTxHash")
 	adb.SetTxHashForLatestStateAccesses(txHash)
 
-	rootHash, err := adb.Commit()
+	headerHash := []byte("migration header hash")
+	rootHash, err := adb.CommitWithStateAccessesForHeader(headerHash)
 	assert.Nil(t, err)
 
-	collectedStateAccesses, err := adb.ResetStateAccessesCollector(rootHash)
+	collectedStateAccesses, err := adb.TakeStateAccessesForHeader(headerHash, rootHash)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 1, len(collectedStateAccesses))
@@ -527,8 +527,7 @@ func TestAccountsDB_DeleteStateChangesHaveProperVersion(t *testing.T) {
 
 	txHash := []byte("accountCreationTxHash")
 	adb.SetTxHashForLatestStateAccesses(txHash)
-	_, err := adb.ResetStateAccessesCollector([]byte{})
-	assert.Nil(t, err)
+	adb.ResetStateAccessesCollector()
 
 	// enable auto-balance and delete the data trie leaf
 	autoBalanceFlagEnabled = true
@@ -540,10 +539,11 @@ func TestAccountsDB_DeleteStateChangesHaveProperVersion(t *testing.T) {
 	txHash = []byte("DeleteDataTrieTxHash")
 	adb.SetTxHashForLatestStateAccesses(txHash)
 
-	rootHash, err := adb.Commit()
+	headerHash := []byte("delete header hash")
+	rootHash, err := adb.CommitWithStateAccessesForHeader(headerHash)
 	assert.Nil(t, err)
 
-	collectedStateAccesses, err := adb.ResetStateAccessesCollector(rootHash)
+	collectedStateAccesses, err := adb.TakeStateAccessesForHeader(headerHash, rootHash)
 	assert.Nil(t, err)
 
 	assert.Equal(t, 1, len(collectedStateAccesses))
@@ -602,10 +602,11 @@ func stepCreateAccountWithDataTrieAndCode(
 	serializedAcc, _ := marshaller.Marshal(userAcc)
 	codeHash := userAcc.GetCodeHash()
 
-	rootHash, err := adb.Commit()
+	headerHash := []byte("creation header hash")
+	rootHash, err := adb.CommitWithStateAccessesForHeader(headerHash)
 	assert.Nil(t, err)
 
-	stateChangesForTx, err := adb.ResetStateAccessesCollector(rootHash)
+	stateChangesForTx, err := adb.TakeStateAccessesForHeader(headerHash, rootHash)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(stateChangesForTx))
 
@@ -652,10 +653,11 @@ func stepMigrateDataTrieValAndChangeCode(
 
 	adb.SetTxHashForLatestStateAccesses(txHash)
 
-	rootHash, err := adb.Commit()
+	headerHash := []byte("code migration header hash")
+	rootHash, err := adb.CommitWithStateAccessesForHeader(headerHash)
 	assert.Nil(t, err)
 
-	stateChangesForTx, err := adb.ResetStateAccessesCollector(rootHash)
+	stateChangesForTx, err := adb.TakeStateAccessesForHeader(headerHash, rootHash)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(stateChangesForTx))
 	assert.Equal(t, 3, len(stateChangesForTx[string(txHash)].StateAccess))

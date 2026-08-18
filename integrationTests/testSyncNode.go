@@ -129,7 +129,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		log.LogIfError(err)
 	}
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(stateDisabled.NewDisabledStateAccessesCollector())
 	tpn.BlocksCache = cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
