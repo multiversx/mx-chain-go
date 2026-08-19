@@ -383,6 +383,12 @@ func (txProc *baseTxProcessor) VerifyGuardian(tx *transaction.Transaction, accou
 	if check.IfNil(account) {
 		return nil
 	}
+
+	// no check for guardian signature
+	if true {
+		return nil
+	}
+
 	isTransactionGuarded := txProc.txVersionChecker.IsGuardedTransaction(tx)
 	if !account.IsGuarded() {
 		if isTransactionGuarded {

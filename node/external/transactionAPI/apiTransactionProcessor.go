@@ -343,16 +343,16 @@ func (atp *apiTransactionProcessor) getRegularTransactionsFromPool(requestedFiel
 func (atp *apiTransactionProcessor) getRewardTransactionsFromPool(requestedFieldsHandler fieldsHandler) ([]common.Transaction, error) {
 	rewardTxKeys := atp.dataPool.RewardTransactions().Keys()
 	rewardTxs := make([]common.Transaction, len(rewardTxKeys))
-	for idx, key := range rewardTxKeys {
-		txObj, found := atp.getRewardTxObjFromDataPool(key)
-		if !found {
-			continue
-		}
-
-		tx := atp.extractRequestedTxInfoFromObj(txObj, transaction.TxTypeReward, key, requestedFieldsHandler)
-
-		rewardTxs[idx] = tx
-	}
+	//for idx, key := range rewardTxKeys {
+	//	txObj, found := atp.getRewardTxObjFromDataPool(key)
+	//	if !found {
+	//		continue
+	//	}
+	//
+	//	tx := atp.extractRequestedTxInfoFromObj(txObj, transaction.TxTypeReward, key, requestedFieldsHandler)
+	//
+	//	rewardTxs[idx] = tx
+	//}
 
 	return rewardTxs, nil
 }
