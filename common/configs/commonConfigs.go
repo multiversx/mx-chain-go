@@ -10,7 +10,6 @@ import (
 
 const (
 	defaultGracePeriodRounds                             = 25
-	defaultExtraDelayForRequestBlockInfoInMs             = 3000
 	defaultMaxRoundsWithoutCommittedStartInEpochBlock    = 50
 	defaultNumRoundsToWaitBeforeSignalingChronologyStuck = 10
 )
@@ -244,17 +243,6 @@ func (cc *commonConfigs) GetGracePeriodRoundsByEpoch(epoch uint32) uint32 {
 	}
 
 	return defaultGracePeriodRounds // this should not happen
-}
-
-// GetExtraDelayForRequestBlockInfoInMs returns the extra delay for request block info by epoch
-func (cc *commonConfigs) GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32 {
-	for i := len(cc.orderedEpochStartConfigByEpoch) - 1; i >= 0; i-- {
-		if cc.orderedEpochStartConfigByEpoch[i].EnableEpoch <= epoch {
-			return cc.orderedEpochStartConfigByEpoch[i].ExtraDelayForRequestBlockInfoInMilliseconds
-		}
-	}
-
-	return defaultExtraDelayForRequestBlockInfoInMs // this should not happen
 }
 
 // GetMaxRoundsWithoutCommittedStartInEpochBlockInRound returns max rounds without commited start in epoch block

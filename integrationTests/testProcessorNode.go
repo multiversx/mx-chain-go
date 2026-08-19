@@ -121,6 +121,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
+	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -1531,7 +1532,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			RoundHandler:         tpn.RoundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  tpn.EnableEpochsHandler,
-			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+			ExtraDelayForRequestBlockInfoInMilliseconds: 0,
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -2565,7 +2566,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		log.LogIfError(err)
 	}
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(stateDisabled.NewDisabledStateAccessesCollector())
 	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
@@ -2892,7 +2893,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				RoundHandler:         tpn.RoundHandler,
 				AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 				EnableEpochsHandler:  tpn.EnableEpochsHandler,
-				CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+				ExtraDelayForRequestBlockInfoInMilliseconds: 0,
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}

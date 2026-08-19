@@ -283,6 +283,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		genesisUnixTime,
 		pcf.prefConfigs.Preferences.FullArchive,
 		pcf.coreData.EnableEpochsHandler(),
+		pcf.config.StoragePruning.AssumedPeersNumActivePersisters,
 	)
 	if err != nil {
 		return nil, err
@@ -644,7 +645,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	blocksCache := headersCache.NewHeaderBodyCache(pcf.config.HeaderBodyCacheConfig)
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, err := executionTrack.NewExecutionResultsTracker(pcf.state.StateAccessesCollector())
+	if err != nil {
+		return nil, err
+	}
 
 	argExecManager := executionManager.ArgsExecutionManager{
 		BlocksCache:             blocksCache,
@@ -931,7 +935,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			RoundHandler:         pcf.coreData.RoundHandler(),
 			AppStatusHandler:     pcf.statusCoreComponents.AppStatusHandler(),
 			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
-			CommonConfigsHandler: pcf.coreData.CommonConfigsHandler(),
+			ExtraDelayForRequestBlockInfoInMilliseconds: pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds,
 		}
 		return shardchain.NewEpochStartTrigger(argEpochStart)
 	}

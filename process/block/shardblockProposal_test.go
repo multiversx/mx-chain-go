@@ -3829,7 +3829,7 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 	}
 	dataComponents.BlockChain = blkc
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(&stateMock.StateAccessesCollectorStub{})
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 		BlocksCache:             &processMocks.BlocksCacheMock{},
 		ExecutionResultsTracker: executionResultsTracker,
@@ -3991,7 +3991,7 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	}
 	dataComponents.BlockChain = blkc
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(&stateMock.StateAccessesCollectorStub{})
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 		BlocksCache:             &processMocks.BlocksCacheMock{},
 		ExecutionResultsTracker: executionResultsTracker,
@@ -4665,7 +4665,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Nil(t, err)
 		require.False(t, commitCalled)
 
-		err = sp.CommitBlockProposalState(header)
+		err = sp.CommitBlockProposalState(header, []byte("header hash"))
 		require.Nil(t, err)
 		require.True(t, commitCalled)
 	})

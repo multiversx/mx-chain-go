@@ -308,6 +308,7 @@ type StoragePruningConfig struct {
 	AccountsTrieSkipRemovalCustomPattern string
 	NumEpochsToKeep                      uint64
 	NumActivePersisters                  uint64
+	AssumedPeersNumActivePersisters      uint32
 	FullArchiveNumActivePersisters       uint32
 }
 
@@ -370,8 +371,7 @@ type SubroundTiming struct {
 type EpochStartConfigByEpoch struct {
 	EnableEpoch uint32
 
-	GracePeriodRounds                           uint32
-	ExtraDelayForRequestBlockInfoInMilliseconds uint32
+	GracePeriodRounds uint32
 }
 
 // EpochStartConfigByRound defines epoch start configuration parameters by round

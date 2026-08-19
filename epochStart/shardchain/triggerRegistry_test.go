@@ -60,7 +60,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.mapFinalizedEpochs = t.mapFinalizedEpochs
 	rt.roundHandler = t.roundHandler
 	rt.enableEpochsHandler = t.enableEpochsHandler
-	rt.epochStartConfigsHandler = t.epochStartConfigsHandler
+	rt.extraDelayForRequestBlockInfo = t.extraDelayForRequestBlockInfo
 	rt.chanMetaBlockReceived = t.chanMetaBlockReceived
 	rt.mapPreparedEpochStartHdrs = t.mapPreparedEpochStartHdrs
 	rt.pendingEpochStartProofs = t.pendingEpochStartProofs

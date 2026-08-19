@@ -96,7 +96,7 @@ func GetGeneralConfig() config.Config {
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
-				{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+				{EnableEpoch: 0, GracePeriodRounds: 25},
 			},
 			EpochStartConfigsByRound: []config.EpochStartConfigByRound{
 				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
@@ -127,11 +127,12 @@ func GetGeneralConfig() config.Config {
 		WhiteListPool:          getLRUCacheConfig(),
 		WhiteListerVerifiedTxs: getLRUCacheConfig(),
 		StoragePruning: config.StoragePruningConfig{
-			Enabled:                     false,
-			ValidatorCleanOldEpochsData: false,
-			ObserverCleanOldEpochsData:  false,
-			NumEpochsToKeep:             3,
-			NumActivePersisters:         3,
+			Enabled:                         false,
+			ValidatorCleanOldEpochsData:     false,
+			ObserverCleanOldEpochsData:      false,
+			NumEpochsToKeep:                 3,
+			NumActivePersisters:             3,
+			AssumedPeersNumActivePersisters: 3,
 		},
 		EvictionWaitingList: config.EvictionWaitingListConfig{
 			HashesSize:     100,

@@ -760,7 +760,7 @@ func (tfn *TestFullNode) createEpochStartTrigger() TestEpochStartTrigger {
 			RoundHandler:         tfn.RoundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  tfn.EnableEpochsHandler,
-			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+			ExtraDelayForRequestBlockInfoInMilliseconds: 0,
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		if err != nil {
@@ -876,7 +876,7 @@ func (tfn *TestFullNode) initInterceptors(
 			RoundHandler:         roundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  enableEpochsHandler,
-			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+			ExtraDelayForRequestBlockInfoInMilliseconds: 0,
 		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
 
@@ -959,7 +959,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		log.LogIfError(err)
 	}
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(disabled.NewDisabledStateAccessesCollector())
 	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
@@ -1347,7 +1347,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		log.LogIfError(err)
 	}
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(disabled.NewDisabledStateAccessesCollector())
 	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{

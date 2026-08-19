@@ -96,8 +96,8 @@
     ]
 
     EpochStartConfigsByEpoch = [
-        { EnableEpoch = 0, GracePeriodRounds = 25, ExtraDelayForRequestBlockInfoInMilliseconds = 3000 },
-        { EnableEpoch = 2, GracePeriodRounds = 250, ExtraDelayForRequestBlockInfoInMilliseconds = 220 },
+        { EnableEpoch = 0, GracePeriodRounds = 25 },
+        { EnableEpoch = 2, GracePeriodRounds = 250 },
     ]
 
     EpochStartConfigsByRound = [
@@ -182,6 +182,12 @@
     # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
     # smaller or equal to the NumOfEpochsToKeep flag
     NumActivePersisters = 3
+
+    # AssumedPeersNumActivePersisters represents the NumActivePersisters value the other (pruning) nodes in the
+    # network are assumed to run with. Used only to decide up to which epoch data can still be requested from
+    # regular peers. Keep in sync with the NumActivePersisters default shipped to validators/observers.
+    # A missing or 0 value falls back to the default of 3, with a warning at startup
+    AssumedPeersNumActivePersisters = 3
 
     # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response
     # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so

@@ -21,20 +21,24 @@ const maxNumBlocksInMemory = 20
 
 type stateAccessesForTxs map[string]*data.StateAccesses
 
+type committedStateAccesses struct {
+	rootHash []byte
+	accesses stateAccessesForTxs
+}
+
 type collector struct {
-	collectRead              bool
-	collectWrite             bool
-	withAccountChanges       bool
-	stateAccesses            []*data.StateAccess
-	stateAccessesForTxs      stateAccessesForTxs
-	stateAccessesForBlock    map[string]stateAccessesForTxs
-	stateAccessesForBlockMut sync.RWMutex
+	collectRead            bool
+	collectWrite           bool
+	withAccountChanges     bool
+	stateAccesses          []*data.StateAccess
+	stateAccessesForTxs    stateAccessesForTxs
+	stateAccessesForHeader map[string]*committedStateAccesses
+	retainedMut            sync.RWMutex
+	headerHash             []byte
+	headerScopeMut         sync.RWMutex
 
 	storer           state.StateAccessesStorer
 	stateAccessesMut sync.RWMutex
-
-	lastCollectedRootHash     []byte
-	lastCommitHasStateChanges bool
 }
 
 // NewCollector will create a new collector which gathers the state accesses based on the provided options.
@@ -44,9 +48,9 @@ func NewCollector(storer state.StateAccessesStorer, opts ...CollectorOption) (*c
 	}
 
 	c := &collector{
-		stateAccesses:         make([]*data.StateAccess, 0),
-		stateAccessesForTxs:   make(map[string]*data.StateAccesses),
-		stateAccessesForBlock: make(map[string]stateAccessesForTxs),
+		stateAccesses:          make([]*data.StateAccess, 0),
+		stateAccessesForTxs:    make(map[string]*data.StateAccesses),
+		stateAccessesForHeader: make(map[string]*committedStateAccesses),
 	}
 	for _, opt := range opts {
 		opt(c)
@@ -88,51 +92,64 @@ func (c *collector) GetAccountChanges(oldAccount, account vmcommon.AccountHandle
 // Reset resets the state accesses collector
 func (c *collector) Reset() {
 	c.stateAccessesMut.Lock()
-
 	c.stateAccesses = make([]*data.StateAccess, 0)
 	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
-
-	if c.lastCommitHasStateChanges {
-		c.removeStateAccessesForRootHash(c.lastCollectedRootHash)
-		log.Trace("removed last collected root hash from stateAccessesForBlock", "rootHash", c.lastCollectedRootHash)
-	}
 	c.stateAccessesMut.Unlock()
 
-	c.stateAccessesForBlockMut.RLock()
-	if len(c.stateAccessesForBlock) > maxNumBlocksInMemory {
-		// TODO remove oldest entries instead of logging a warning
-		log.Warn("max number of blocks in memory exceeded", "numBlocksInMemory", len(c.stateAccessesForBlock))
+	c.retainedMut.RLock()
+	if len(c.stateAccessesForHeader) > maxNumBlocksInMemory {
+		log.Warn("max number of executions in memory exceeded", "numExecutionsInMemory", len(c.stateAccessesForHeader))
 	}
-
-	log.Trace("reset state accesses collector", "num state accesses for block", len(c.stateAccessesForBlock))
-	c.stateAccessesForBlockMut.RUnlock()
+	log.Trace("reset state accesses collector", "num executions", len(c.stateAccessesForHeader))
+	c.retainedMut.RUnlock()
 }
 
-// GetStateAccessesForRootHash will return the collected state accesses
-func (c *collector) GetStateAccessesForRootHash(rootHash []byte) map[string]*data.StateAccesses {
-	c.stateAccessesForBlockMut.RLock()
-	defer c.stateAccessesForBlockMut.RUnlock()
+// BeginExecution sets the identity for the next state commit
+func (c *collector) BeginExecution(headerHash []byte) {
+	c.headerScopeMut.Lock()
+	if len(c.headerHash) > 0 {
+		log.Warn("replacing active state accesses header scope", "headerHash", c.headerHash)
+	}
+	c.headerHash = append(c.headerHash[:0], headerHash...)
+	c.headerScopeMut.Unlock()
+}
 
-	stateAccessesForRootHash, ok := c.stateAccessesForBlock[string(rootHash)]
+// EndExecution clears the identity when it still belongs to the given header
+func (c *collector) EndExecution(headerHash []byte) {
+	c.headerScopeMut.Lock()
+	if bytes.Equal(c.headerHash, headerHash) {
+		c.headerHash = nil
+	}
+	c.headerScopeMut.Unlock()
+}
+
+// TakeStateAccessesForHeader atomically validates and removes retained state accesses
+func (c *collector) TakeStateAccessesForHeader(headerHash, expectedRootHash []byte) (map[string]*data.StateAccesses, error) {
+	c.retainedMut.Lock()
+	retained, ok := c.stateAccessesForHeader[string(headerHash)]
 	if !ok {
-		log.Warn("stateAccessesForRootHash not found in stateAccessesForBlock", "rootHash", rootHash)
-		return nil
+		c.retainedMut.Unlock()
+		return nil, nil
+	}
+	delete(c.stateAccessesForHeader, string(headerHash))
+	c.retainedMut.Unlock()
+
+	if !bytes.Equal(retained.rootHash, expectedRootHash) {
+		return nil, &state.StateAccessesRootMismatchError{
+			HeaderHash:   append([]byte(nil), headerHash...),
+			ExpectedRoot: append([]byte(nil), expectedRootHash...),
+			ActualRoot:   append([]byte(nil), retained.rootHash...),
+		}
 	}
 
-	return stateAccessesForRootHash
+	return retained.accesses, nil
 }
 
-// RemoveStateAccessesForRootHash will remove the collected state accesses for the given root hash
-func (c *collector) RemoveStateAccessesForRootHash(rootHash []byte) {
-	c.removeStateAccessesForRootHash(rootHash)
-}
-
-func (c *collector) removeStateAccessesForRootHash(rootHash []byte) {
-	c.stateAccessesForBlockMut.Lock()
-	defer c.stateAccessesForBlockMut.Unlock()
-
-	delete(c.stateAccessesForBlock, string(rootHash))
-	log.Trace("removed stateAccessesForRootHash from stateAccessesForBlock", "rootHash", rootHash)
+// DiscardStateAccessesForHeader removes retained accesses for one header
+func (c *collector) DiscardStateAccessesForHeader(headerHash []byte) {
+	c.retainedMut.Lock()
+	delete(c.stateAccessesForHeader, string(headerHash))
+	c.retainedMut.Unlock()
 }
 
 func (c *collector) getStateAccessesForTxs() map[string]*data.StateAccesses {
@@ -233,35 +250,59 @@ func stateAccessToString(stateAccess *data.StateAccess) string {
 // CommitCollectedAccesses will call the Store method of the underlying storer, giving it the collected state accesses.
 func (c *collector) CommitCollectedAccesses(rootHash []byte) error {
 	c.stateAccessesMut.Lock()
-
 	collectedStateAccesses := c.getStateAccessesForTxs()
 	if len(collectedStateAccesses) == 0 {
-		c.lastCollectedRootHash = rootHash
-		c.lastCommitHasStateChanges = false
 		c.stateAccessesMut.Unlock()
-
 		log.Trace("no state accesses collected, skipping commit", "rootHash", rootHash)
+		return nil
+	}
+	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
+	c.stateAccesses = make([]*data.StateAccess, 0)
+	c.stateAccessesMut.Unlock()
 
+	c.headerScopeMut.RLock()
+	headerHash := append([]byte(nil), c.headerHash...)
+	c.headerScopeMut.RUnlock()
+
+	if len(headerHash) > 0 {
+		c.retainedMut.RLock()
+		retained := c.stateAccessesForHeader[string(headerHash)]
+		c.retainedMut.RUnlock()
+		if retained != nil {
+			if bytes.Equal(retained.rootHash, rootHash) {
+				return nil
+			}
+
+			return &state.StateAccessesRootMismatchError{
+				HeaderHash:   headerHash,
+				ExpectedRoot: append([]byte(nil), retained.rootHash...),
+				ActualRoot:   append([]byte(nil), rootHash...),
+			}
+		}
+	}
+
+	err := c.storer.Store(collectedStateAccesses)
+	if err != nil {
+		return err
+	}
+
+	if len(headerHash) == 0 {
 		return nil
 	}
 
-	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
-	c.stateAccesses = make([]*data.StateAccess, 0)
-
-	c.lastCollectedRootHash = rootHash
-	c.lastCommitHasStateChanges = true
-	c.stateAccessesMut.Unlock()
-
-	c.stateAccessesForBlockMut.Lock()
-	c.stateAccessesForBlock[string(rootHash)] = collectedStateAccesses
-	log.Trace("state accesses collected", "numStateAccesses", len(collectedStateAccesses), "rootHash", rootHash)
-
-	if len(c.stateAccessesForBlock) > maxNumBlocksInMemory {
-		log.Warn("max number of blocks in memory exceeded", "numBlocksInMemory", len(c.stateAccessesForBlock))
+	c.retainedMut.Lock()
+	c.stateAccessesForHeader[string(headerHash)] = &committedStateAccesses{
+		rootHash: append([]byte(nil), rootHash...),
+		accesses: collectedStateAccesses,
 	}
-	c.stateAccessesForBlockMut.Unlock()
+	numExecutions := len(c.stateAccessesForHeader)
+	c.retainedMut.Unlock()
 
-	return c.storer.Store(collectedStateAccesses)
+	if numExecutions > maxNumBlocksInMemory {
+		log.Warn("max number of executions in memory exceeded", "numExecutionsInMemory", numExecutions)
+	}
+
+	return nil
 }
 
 // AddTxHashToCollectedStateAccesses will try to set txHash field to each state access
