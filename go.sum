@@ -433,8 +433,8 @@ github.com/multiversx/concurrent-map v0.1.4 h1:hdnbM8VE4b0KYJaGY5yJS2aNIW9TFFsUY
 github.com/multiversx/concurrent-map v0.1.4/go.mod h1:8cWFRJDOrWHOTNSqgYCUvwT7c7eFQ4U2vKMOp4A/9+o=
 github.com/multiversx/mx-chain-communication-go v1.3.3-0.20260813144301-82eeb3f13e41 h1:FpMxMVRq50M0TErTzwPJcvjeOCiCD5waVqvbGe7iIjI=
 github.com/multiversx/mx-chain-communication-go v1.3.3-0.20260813144301-82eeb3f13e41/go.mod h1:UsPv7V/4Ymp9BTed4Uduy1+5gFGDzjrwIoDon7LD0kE=
-github.com/multiversx/mx-chain-core-go v1.5.1-0.20260721064337-e17a03faa70b h1:hiD83E4W3/qsxxvm4YXHF8dJFTSLvyXIXcIAI3+E60s=
-github.com/multiversx/mx-chain-core-go v1.5.1-0.20260721064337-e17a03faa70b/go.mod h1:xEQ823/jcHNqHsMUoxStOCczO09/EDEbZl35A3esT6Q=
+github.com/multiversx/mx-chain-core-go v1.5.1-0.20260819073904-dd39a099d6c2 h1:3BY4zJcgZafuM8So+pZIod9644NqoUMR75jksNcbGos=
+github.com/multiversx/mx-chain-core-go v1.5.1-0.20260819073904-dd39a099d6c2/go.mod h1:xEQ823/jcHNqHsMUoxStOCczO09/EDEbZl35A3esT6Q=
 github.com/multiversx/mx-chain-crypto-go v1.3.2-0.20260713100639-c3cf05776cb6 h1:7Kcjj07qzQFAT3FjUk007FPPBhs0jBMXtyJM+bRQM60=
 github.com/multiversx/mx-chain-crypto-go v1.3.2-0.20260713100639-c3cf05776cb6/go.mod h1:lGUmLNiZBjl+lzfqmHs6hIruzu7eq70OBXhO3jDDokk=
 github.com/multiversx/mx-chain-es-indexer-go v1.10.3-0.20260723124531-43479b3571e7 h1:cYXgloIKOtisq67cU8CBGYtIKvWiTkaYrjoQ39IOuzk=

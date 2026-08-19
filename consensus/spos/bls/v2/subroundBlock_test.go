@@ -607,7 +607,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		assert.False(t, r)
 	})
 
-	t.Run("no remaining time left should return false", func(t *testing.T) {
+	t.Run("no remaining time left should send legacy block", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
@@ -640,6 +640,59 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		container.SetBlockProcessor(bpm)
 
 		r := sr.DoBlockJob()
+		assert.True(t, r)
+	})
+
+	t.Run("no remaining time left should not send header V3 block", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		container.SetRoundHandler(&testscommon.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 1
+			},
+			RemainingTimeCalled: func(_ time.Time, _ time.Duration) time.Duration {
+				return 0
+			},
+		})
+		container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, _ uint64) bool {
+				return flag == common.SupernovaRoundFlag
+			},
+		})
+		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		})
+
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			GetProofCalled: func(_ uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{
+					HeaderHash: headerHash,
+				}, nil
+			},
+			GetProofByNonceCalled: func(_ uint64, _ uint32) (data.HeaderProofHandler, error) {
+				return nil, fmt.Errorf("no proof for nonce")
+			},
+		})
+
+		leader, err := sr.GetLeader()
+		assert.Nil(t, err)
+		sr.SetSelfPubKey(leader)
+		bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
+		bpm.CreateNewHeaderProposalCalled = func(_ uint64, _ uint64) (data.HeaderHandler, error) {
+			return &block.HeaderV3{}, nil
+		}
+		bpm.CreateBlockProposalCalled = func(header data.HeaderHandler, _ func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+			return header, &block.Body{}, nil
+		}
+		container.SetBlockProcessor(bpm)
+
+		r := sr.DoBlockJob()
+
 		assert.False(t, r)
 	})
 
