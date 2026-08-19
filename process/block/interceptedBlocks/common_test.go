@@ -656,3 +656,120 @@ func TestCheckMiniBlocksHeaders_OkValsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 }
+
+func TestCheckForDuplicateHashes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil or empty should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Nil(t, checkForDuplicateHashes(nil))
+		assert.Nil(t, checkForDuplicateHashes([][]byte{}))
+	})
+
+	t.Run("single hash should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Nil(t, checkForDuplicateHashes([][]byte{[]byte("hash1")}))
+	})
+
+	t.Run("unique hashes should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		err := checkForDuplicateHashes([][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")})
+		assert.Nil(t, err)
+	})
+
+	t.Run("duplicate hashes should return error", func(t *testing.T) {
+		t.Parallel()
+
+		err := checkForDuplicateHashes([][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash1")})
+		assert.Equal(t, process.ErrDuplicatedHashInBlock, err)
+	})
+
+	t.Run("all same hashes should return error", func(t *testing.T) {
+		t.Parallel()
+
+		err := checkForDuplicateHashes([][]byte{[]byte("hash1"), []byte("hash1")})
+		assert.Equal(t, process.ErrDuplicatedHashInBlock, err)
+	})
+}
+
+func TestCheckMiniBlocksHeaders_DuplicateHashesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	mbh1 := block.MiniBlockHeader{
+		Hash:            []byte("hash1"),
+		SenderShardID:   shardCoordinator.SelfId(),
+		ReceiverShardID: shardCoordinator.SelfId(),
+	}
+	mbh2 := block.MiniBlockHeader{
+		Hash:            []byte("hash1"),
+		SenderShardID:   shardCoordinator.SelfId(),
+		ReceiverShardID: shardCoordinator.SelfId(),
+	}
+
+	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&mbh1, &mbh2}, shardCoordinator)
+	assert.Equal(t, process.ErrDuplicatedHashInBlock, err)
+}
+
+func TestCheckShardData_DuplicateMiniBlockHashesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
+
+	sd := &block.ShardData{
+		ShardID:    shardCoordinator.SelfId(),
+		HeaderHash: []byte("headerHash1"),
+		ShardMiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:            []byte("mbHash1"),
+				SenderShardID:   shardCoordinator.SelfId(),
+				ReceiverShardID: shardCoordinator.SelfId(),
+			},
+			{
+				Hash:            []byte("mbHash1"),
+				SenderShardID:   shardCoordinator.SelfId(),
+				ReceiverShardID: shardCoordinator.SelfId(),
+			},
+		},
+	}
+
+	err := checkShardData(sd, shardCoordinator)
+	assert.Equal(t, process.ErrDuplicatedHashInBlock, err)
+}
+
+func TestCheckMetaShardInfo_DuplicateShardDataHashesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
+
+	sd1 := &block.ShardData{
+		ShardID:    shardCoordinator.SelfId(),
+		HeaderHash: []byte("headerHash1"),
+		ShardMiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:            []byte("mbHash1"),
+				SenderShardID:   shardCoordinator.SelfId(),
+				ReceiverShardID: shardCoordinator.SelfId(),
+			},
+		},
+	}
+	sd2 := &block.ShardData{
+		ShardID:    shardCoordinator.SelfId(),
+		HeaderHash: []byte("headerHash1"),
+		ShardMiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:            []byte("mbHash2"),
+				SenderShardID:   shardCoordinator.SelfId(),
+				ReceiverShardID: shardCoordinator.SelfId(),
+			},
+		},
+	}
+
+	err := checkMetaShardInfo([]data.ShardDataHandler{sd1, sd2}, shardCoordinator)
+	assert.Equal(t, process.ErrDuplicatedHashInBlock, err)
+}

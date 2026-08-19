@@ -164,6 +164,8 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
 		ccf.cryptoComponents.KeysHandler(),
+		ccf.dataComponents.Datapool().Proofs(),
+		ccf.coreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -216,6 +218,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NetworkShardingCollector: ccf.processComponents.PeerShardMapper(),
 		AntifloodHandler:         ccf.networkComponents.InputAntiFloodHandler(),
 		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
+		WhiteListHandler:         ccf.processComponents.WhiteListHandler(),
 		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
 		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
 		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),
@@ -264,11 +267,13 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ScheduledProcessor:            ccf.scheduledProcessor,
 		MessageSigningHandler:         p2pSigningHandler,
 		PeerBlacklistHandler:          cc.peerBlacklistHandler,
+		PeerSignatureHandler:          ccf.cryptoComponents.PeerSignatureHandler(),
 		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
 		InvalidSignersCache:           invalidSignersCache,
+		MessagesHandler:               consensusService,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -654,6 +659,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EpochBootstrapper:           ccf.processComponents.EpochStartTrigger(),
 		ValidatorAccountsDB:         ccf.stateComponents.PeerAccounts(),
 		ValidatorStatisticsDBSyncer: validatorAccountsDBSyncer,
+		Watchdog:                    ccf.coreComponents.Watchdog(),
 	}
 
 	return sync.NewMetaBootstrap(argsMetaBootstrapper)

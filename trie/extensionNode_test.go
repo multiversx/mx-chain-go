@@ -986,6 +986,26 @@ func TestExtensionNode_getNextHashAndKeyNilNode(t *testing.T) {
 	assert.Nil(t, nextKey)
 }
 
+func TestExtensionNode_getNextHashAndKeyInvalidKeyShouldNotAdvance(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedEn := getEnAndCollapsedEn()
+
+	collapsedEn.Key = []byte("dog")
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("do"))
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+
+	collapsedEn.Key = []byte("dog")
+	proofVerified, nextHash, nextKey = collapsedEn.getNextHashAndKey([]byte("cat"))
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
+
 func TestExtensionNode_SizeInBytes(t *testing.T) {
 	t.Parallel()
 

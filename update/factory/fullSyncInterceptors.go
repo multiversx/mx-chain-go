@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -54,30 +53,31 @@ type fullSyncInterceptorsContainerFactory struct {
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
 type ArgsNewFullSyncInterceptorsContainerFactory struct {
-	CoreComponents                   process.CoreComponentsHolder
-	CryptoComponents                 process.CryptoComponentsHolder
-	Accounts                         state.AccountsAdapter
-	ShardCoordinator                 sharding.Coordinator
-	NodesCoordinator                 nodesCoordinator.NodesCoordinator
-	MainMessenger                    process.TopicHandler
-	FullArchiveMessenger             process.TopicHandler
-	Store                            dataRetriever.StorageService
-	DataPool                         dataRetriever.PoolsHolder
-	MaxTxNonceDeltaAllowed           int
-	TxFeeHandler                     process.FeeHandler
-	BlockBlackList                   process.TimeCacher
-	HeaderSigVerifier                process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier          process.HeaderIntegrityVerifier
-	SizeCheckDelta                   uint32
-	ValidityAttester                 process.ValidityAttester
-	EpochStartTrigger                process.EpochStartTriggerHandler
-	WhiteListHandler                 update.WhiteListHandler
-	WhiteListerVerifiedTxs           update.WhiteListHandler
-	MainInterceptorsContainer        process.InterceptorsContainer
-	FullArchiveInterceptorsContainer process.InterceptorsContainer
-	AntifloodHandler                 process.P2PAntifloodHandler
-	NodeOperationMode                common.NodeOperation
-	InterceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
+	CoreComponents                          process.CoreComponentsHolder
+	CryptoComponents                        process.CryptoComponentsHolder
+	Accounts                                state.AccountsAdapter
+	ShardCoordinator                        sharding.Coordinator
+	NodesCoordinator                        nodesCoordinator.NodesCoordinator
+	MainMessenger                           process.TopicHandler
+	FullArchiveMessenger                    process.TopicHandler
+	Store                                   dataRetriever.StorageService
+	DataPool                                dataRetriever.PoolsHolder
+	MaxTxNonceDeltaAllowed                  int
+	TxFeeHandler                            process.FeeHandler
+	BlockBlackList                          process.TimeCacher
+	HeaderSigVerifier                       process.InterceptedHeaderSigVerifier
+	HeaderIntegrityVerifier                 process.HeaderIntegrityVerifier
+	SizeCheckDelta                          uint32
+	ValidityAttester                        process.ValidityAttester
+	EpochStartTrigger                       process.EpochStartTriggerHandler
+	WhiteListHandler                        update.WhiteListHandler
+	WhiteListerVerifiedTxs                  update.WhiteListHandler
+	MainInterceptorsContainer               process.InterceptorsContainer
+	FullArchiveInterceptorsContainer        process.InterceptorsContainer
+	AntifloodHandler                        process.P2PAntifloodHandler
+	NodeOperationMode                       common.NodeOperation
+	InterceptedDataVerifierFactory          process.InterceptedDataVerifierFactory
+	PeerAuthenticationTimeBetweenSendsInSec int64
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -140,17 +140,19 @@ func NewFullSyncInterceptorsContainerFactory(
 	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		CoreComponents:          args.CoreComponents,
-		CryptoComponents:        args.CryptoComponents,
-		ShardCoordinator:        args.ShardCoordinator,
-		NodesCoordinator:        args.NodesCoordinator,
-		FeeHandler:              args.TxFeeHandler,
-		HeaderSigVerifier:       args.HeaderSigVerifier,
-		HeaderIntegrityVerifier: args.HeaderIntegrityVerifier,
-		ValidityAttester:        args.ValidityAttester,
-		EpochStartTrigger:       args.EpochStartTrigger,
-		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
-		ArgsParser:              smartContract.NewArgumentParser(),
+		CoreComponents:                          args.CoreComponents,
+		CryptoComponents:                        args.CryptoComponents,
+		ShardCoordinator:                        args.ShardCoordinator,
+		NodesCoordinator:                        args.NodesCoordinator,
+		FeeHandler:                              args.TxFeeHandler,
+		HeaderSigVerifier:                       args.HeaderSigVerifier,
+		HeaderIntegrityVerifier:                 args.HeaderIntegrityVerifier,
+		ValidityAttester:                        args.ValidityAttester,
+		EpochStartTrigger:                       args.EpochStartTrigger,
+		WhiteListerVerifiedTxs:                  args.WhiteListerVerifiedTxs,
+		ArgsParser:                              smartContract.NewArgumentParser(),
+		PeerAuthCacher:                          args.DataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: args.PeerAuthenticationTimeBetweenSendsInSec,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
@@ -221,6 +223,11 @@ func (ficf *fullSyncInterceptorsContainerFactory) Create() (process.Interceptors
 	}
 
 	return ficf.mainContainer, ficf.fullArchiveContainer, nil
+}
+
+// AddShardTrieNodeInterceptors returns nil
+func (ficf *fullSyncInterceptorsContainerFactory) AddShardTrieNodeInterceptors(_ process.InterceptorsContainer) error {
+	return nil
 }
 
 func checkBaseParams(

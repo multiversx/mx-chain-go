@@ -32,31 +32,33 @@ const (
 )
 
 type baseInterceptorsContainerFactory struct {
-	mainContainer                  process.InterceptorsContainer
-	fullArchiveContainer           process.InterceptorsContainer
-	shardCoordinator               sharding.Coordinator
-	accounts                       state.AccountsAdapter
-	store                          dataRetriever.StorageService
-	dataPool                       dataRetriever.PoolsHolder
-	mainMessenger                  process.TopicHandler
-	fullArchiveMessenger           process.TopicHandler
-	nodesCoordinator               nodesCoordinator.NodesCoordinator
-	blockBlackList                 process.TimeCacher
-	argInterceptorFactory          *interceptorFactory.ArgInterceptedDataFactory
-	globalThrottler                process.InterceptorThrottler
-	maxTxNonceDeltaAllowed         int
-	antifloodHandler               process.P2PAntifloodHandler
-	whiteListHandler               process.WhiteListHandler
-	whiteListerVerifiedTxs         process.WhiteListHandler
-	preferredPeersHolder           process.PreferredPeersHolderHandler
-	hasher                         hashing.Hasher
-	requestHandler                 process.RequestHandler
-	mainPeerShardMapper            process.PeerShardMapper
-	fullArchivePeerShardMapper     process.PeerShardMapper
-	hardforkTrigger                heartbeat.HardforkTrigger
-	nodeOperationMode              common.NodeOperation
-	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
-	enableEpochsHandler            common.EnableEpochsHandler
+	mainContainer                   process.InterceptorsContainer
+	fullArchiveContainer            process.InterceptorsContainer
+	shardCoordinator                sharding.Coordinator
+	accounts                        state.AccountsAdapter
+	store                           dataRetriever.StorageService
+	dataPool                        dataRetriever.PoolsHolder
+	mainMessenger                   process.TopicHandler
+	fullArchiveMessenger            process.TopicHandler
+	nodesCoordinator                nodesCoordinator.NodesCoordinator
+	blockBlackList                  process.TimeCacher
+	argInterceptorFactory           *interceptorFactory.ArgInterceptedDataFactory
+	globalThrottler                 process.InterceptorThrottler
+	maxTxNonceDeltaAllowed          int
+	antifloodHandler                process.P2PAntifloodHandler
+	whiteListHandler                process.WhiteListHandler
+	whiteListerVerifiedTxs          process.WhiteListHandler
+	preferredPeersHolder            process.PreferredPeersHolderHandler
+	hasher                          hashing.Hasher
+	requestHandler                  process.RequestHandler
+	maxAllowedTrieNodeChunks        uint32
+	trieNodeChunksInactivityTimeout time.Duration
+	mainPeerShardMapper             process.PeerShardMapper
+	fullArchivePeerShardMapper      process.PeerShardMapper
+	hardforkTrigger                 heartbeat.HardforkTrigger
+	nodeOperationMode               common.NodeOperation
+	interceptedDataVerifierFactory  process.InterceptedDataVerifierFactory
+	enableEpochsHandler             common.EnableEpochsHandler
 }
 
 func checkBaseParams(
@@ -653,11 +655,13 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 	}
 
 	argChunkProcessor := processor.TrieNodesChunksProcessorArgs{
-		Hasher:          bicf.hasher,
-		ChunksCacher:    bicf.dataPool.TrieNodesChunks(),
-		RequestInterval: chunksProcessorRequestInterval,
-		RequestHandler:  bicf.requestHandler,
-		Topic:           topic,
+		Hasher:                 bicf.hasher,
+		ChunksCacher:           bicf.dataPool.TrieNodesChunks(),
+		RequestInterval:        chunksProcessorRequestInterval,
+		RequestHandler:         bicf.requestHandler,
+		Topic:                  topic,
+		MaxAllowedChunks:       bicf.maxAllowedTrieNodeChunks,
+		ChunkInactivityTimeout: bicf.trieNodeChunksInactivityTimeout,
 	}
 
 	chunkProcessor, err := processor.NewTrieNodeChunksProcessor(argChunkProcessor)
@@ -926,6 +930,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInte
 	args := interceptorFactory.ArgInterceptedEquivalentProofsFactory{
 		ArgInterceptedDataFactory: *bicf.argInterceptorFactory,
 		ProofsPool:                bicf.dataPool.Proofs(),
+		HeadersPool:               bicf.dataPool.Headers(),
 	}
 	equivalentProofsFactory := interceptorFactory.NewInterceptedEquivalentProofsFactory(args)
 

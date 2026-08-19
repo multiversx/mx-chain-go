@@ -181,6 +181,7 @@ func NewShardProcessorEmptyWith3shards(
 				},
 			},
 			BlockTracker:                 mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks),
+			MiniBlockTracker:             &testscommon.MiniBlockTrackerStub{},
 			BlockSizeThrottler:           &mock.BlockSizeThrottlerStub{},
 			Version:                      "softwareVersion",
 			HistoryRepository:            &dblookupext.HistoryRepositoryStub{},
@@ -333,7 +334,7 @@ func (mp *metaProcessor) CheckShardHeadersFinality(highestNonceHdrs map[uint32]d
 
 // CheckHeaderBodyCorrelation -
 func (mp *metaProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body)
+	return mp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID())
 }
 
 // IsHdrConstructionValid -
@@ -363,7 +364,7 @@ func (sp *shardProcessor) SaveLastNotarizedHeader(shardId uint32, processedHdrs 
 
 // CheckHeaderBodyCorrelation -
 func (sp *shardProcessor) CheckHeaderBodyCorrelation(hdr data.HeaderHandler, body *block.Body) error {
-	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body)
+	return sp.checkHeaderBodyCorrelation(hdr.GetMiniBlockHeaderHandlers(), body, hdr.GetShardID())
 }
 
 // CheckAndRequestIfMetaHeadersMissing -
@@ -388,8 +389,28 @@ func (sp *shardProcessor) RequestMissingFinalityAttestingHeaders() uint32 {
 }
 
 // CheckMetaHeadersValidityAndFinality -
-func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality() error {
-	return sp.checkMetaHeadersValidityAndFinality()
+func (sp *shardProcessor) CheckMetaHeadersValidityAndFinality(header data.ShardHeaderHandler) error {
+	return sp.checkMetaHeadersValidityAndFinality(header)
+}
+
+// CheckMetaBlockHashesOrder -
+func (sp *shardProcessor) CheckMetaBlockHashesOrder(header data.ShardHeaderHandler) error {
+	return sp.checkMetaBlockHashesOrder(header)
+}
+
+// CheckMetaBlockHashesBasicValidity -
+func CheckMetaBlockHashesBasicValidity(header data.ShardHeaderHandler) error {
+	return checkMetaBlockHashesBasicValidity(header)
+}
+
+// VerifyCrossShardMiniBlockDstMe -
+func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
+	return sp.verifyCrossShardMiniBlockDstMe(header)
+}
+
+// CheckReferencedMetaBlocksFullyConsumed -
+func (sp *shardProcessor) CheckReferencedMetaBlocksFullyConsumed(header data.ShardHeaderHandler) error {
+	return sp.checkReferencedMetaBlocksFullyConsumed(header)
 }
 
 // CreateAndProcessMiniBlocksDstMe -
@@ -547,6 +568,11 @@ func (bp *baseProcessor) UpdateState(
 	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts)
 }
 
+// CheckScheduledData -
+func (bp *baseProcessor) CheckScheduledData(headerHandler data.HeaderHandler) error {
+	return bp.checkScheduledData(headerHandler)
+}
+
 // GasAndFeesDelta -
 func GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
 	return gasAndFeesDelta(initialGasAndFees, finalGasAndFees)
@@ -576,7 +602,7 @@ func (mp *metaProcessor) CreateEpochStartBody(metaBlock *block.MetaBlock) (data.
 }
 
 // GetIndexOfFirstMiniBlockToBeExecuted -
-func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) int {
+func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.HeaderHandler) (int, error) {
 	return bp.getIndexOfFirstMiniBlockToBeExecuted(header)
 }
 
@@ -668,9 +694,9 @@ func (sp *shardProcessor) RollBackProcessedMiniBlocksInfo(headerHandler data.Hea
 	sp.rollBackProcessedMiniBlocksInfo(headerHandler, mapMiniBlockHashes)
 }
 
-// CheckConstructionStateAndIndexesCorrectness -
-func (bp *baseProcessor) CheckConstructionStateAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler) error {
-	return checkConstructionStateAndIndexesCorrectness(mbh)
+// CheckConstructionStateProcessingTypeAndIndexesCorrectness -
+func CheckConstructionStateProcessingTypeAndIndexesCorrectness(mbh data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock, blockShardID uint32) error {
+	return checkConstructionStateProcessingTypeAndIndexesCorrectness(mbh, miniBlock, blockShardID)
 }
 
 // GetAllMarshalledTxs -
@@ -830,4 +856,14 @@ func DisplayHeader(
 	headerProof data.HeaderProofHandler,
 ) []*display.LineData {
 	return displayHeader(headerHandler, headerProof)
+}
+
+// VerifyShardDataAgainstHeaders -
+func (mp *metaProcessor) VerifyShardDataAgainstHeaders(metaHdr *block.MetaBlock) error {
+	return mp.verifyShardDataAgainstHeaders(metaHdr)
+}
+
+// BuildShardDataFromHeader -
+func (mp *metaProcessor) BuildShardDataFromHeader(shardHdr data.ShardHeaderHandler, headerHash []byte) block.ShardData {
+	return mp.buildShardDataFromHeader(shardHdr, headerHash)
 }

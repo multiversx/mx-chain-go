@@ -663,12 +663,13 @@ func createHardForkExporter(
 				NumResolveFailureThreshold: 3,
 				DebugLineExpiration:        3,
 			},
-			MaxHardCapForMissingNodes:      500,
-			NumConcurrentTrieSyncers:       50,
-			TrieSyncerVersion:              2,
-			CheckNodesOnDisk:               false,
-			NodeOperationMode:              node.NodeOperationMode,
-			InterceptedDataVerifierFactory: interceptorFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierFactoryArgs),
+			MaxHardCapForMissingNodes:               500,
+			NumConcurrentTrieSyncers:                50,
+			TrieSyncerVersion:                       2,
+			CheckNodesOnDisk:                        false,
+			NodeOperationMode:                       node.NodeOperationMode,
+			InterceptedDataVerifierFactory:          interceptorFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierFactoryArgs),
+			PeerAuthenticationTimeBetweenSendsInSec: 60,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

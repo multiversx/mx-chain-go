@@ -2,6 +2,7 @@ package testscommon
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/counting"
+
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -18,7 +19,9 @@ type ShardedDataStub struct {
 	ClearCalled                            func()
 	ClearShardStoreCalled                  func(cacheID string)
 	RemoveSetOfDataFromPoolCalled          func(keys [][]byte, destCacheID string)
-	ImmunizeSetOfDataAgainstEvictionCalled func(keys [][]byte, cacheID string)
+	ImmunizeSetOfDataAgainstEvictionCalled func(keys [][]byte, cacheID string, nonce uint64)
+	SetOldestImmuneNonceCalled             func(cacheID string, nonce uint64)
+	SetOldestImmuneNonceForAllCachesCalled func(nonce uint64)
 	CreateShardStoreCalled                 func(destCacheID string)
 	GetCountsCalled                        func() counting.CountsWithSize
 	KeysCalled                             func() [][]byte
@@ -102,9 +105,23 @@ func (sd *ShardedDataStub) RemoveSetOfDataFromPool(keys [][]byte, cacheID string
 }
 
 // ImmunizeSetOfDataAgainstEviction -
-func (sd *ShardedDataStub) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
+func (sd *ShardedDataStub) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string, nonce uint64) {
 	if sd.ImmunizeSetOfDataAgainstEvictionCalled != nil {
-		sd.ImmunizeSetOfDataAgainstEvictionCalled(keys, cacheID)
+		sd.ImmunizeSetOfDataAgainstEvictionCalled(keys, cacheID, nonce)
+	}
+}
+
+// SetOldestImmuneNonce -
+func (sd *ShardedDataStub) SetOldestImmuneNonce(cacheID string, nonce uint64) {
+	if sd.SetOldestImmuneNonceCalled != nil {
+		sd.SetOldestImmuneNonceCalled(cacheID, nonce)
+	}
+}
+
+// SetOldestImmuneNonceForAllCaches -
+func (sd *ShardedDataStub) SetOldestImmuneNonceForAllCaches(nonce uint64) {
+	if sd.SetOldestImmuneNonceForAllCachesCalled != nil {
+		sd.SetOldestImmuneNonceForAllCachesCalled(nonce)
 	}
 }
 

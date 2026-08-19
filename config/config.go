@@ -35,6 +35,9 @@ type DBConfig struct {
 	UseTmpAsFilePath    bool
 	ShardIDProviderType string
 	NumShards           int32
+	// BloomFilterBitsPerKey == 0, the Bloom filter is disabled.
+	// Otherwise, it specifies the number of bits per key used by the Bloom filter.
+	BloomFilterBitsPerKey int
 }
 
 // StorageConfig will map the storage unit configuration
@@ -169,14 +172,14 @@ type Config struct {
 	MetaBlockStorage StorageConfig
 	ProofsStorage    StorageConfig
 
-	AccountsTrieStorage      StorageConfig
-	PeerAccountsTrieStorage  StorageConfig
-	EvictionWaitingList      EvictionWaitingListConfig
-	StateTriesConfig         StateTriesConfig
+	AccountsTrieStorage          StorageConfig
+	PeerAccountsTrieStorage      StorageConfig
+	EvictionWaitingList          EvictionWaitingListConfig
+	StateTriesConfig             StateTriesConfig
 	StateAccessesCollectorConfig StateAccessesCollectorConfig
-	TrieStorageManagerConfig TrieStorageManagerConfig
-	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
-	BadBlocksCache           CacheConfig
+	TrieStorageManagerConfig     TrieStorageManagerConfig
+	TrieLeavesRetrieverConfig    TrieLeavesRetrieverConfig
+	BadBlocksCache               CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -395,16 +398,18 @@ type TxAccumulatorConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Enabled                             bool
-	NumConcurrentResolverJobs           int32
-	NumConcurrentResolvingTrieNodesJobs int32
-	OutOfSpecs                          FloodPreventerConfig
-	FastReacting                        FloodPreventerConfig
-	SlowReacting                        FloodPreventerConfig
-	PeerMaxOutput                       AntifloodLimitsConfig
-	Cache                               CacheConfig
-	Topic                               TopicAntifloodConfig
-	TxAccumulator                       TxAccumulatorConfig
+	Enabled                              bool
+	NumConcurrentResolverJobs            int32
+	NumConcurrentResolvingTrieNodesJobs  int32
+	MaxAllowedTrieNodeChunks             uint32
+	TrieNodeChunksInactivityTimeoutInSec int64
+	OutOfSpecs                           FloodPreventerConfig
+	FastReacting                         FloodPreventerConfig
+	SlowReacting                         FloodPreventerConfig
+	PeerMaxOutput                        AntifloodLimitsConfig
+	Cache                                CacheConfig
+	Topic                                TopicAntifloodConfig
+	TxAccumulator                        TxAccumulatorConfig
 }
 
 // FloodPreventerConfig will hold all flood preventer parameters
@@ -667,9 +672,10 @@ type TrieSyncConfig struct {
 
 // RequesterConfig represents the config options to be used when setting up the requester instances
 type RequesterConfig struct {
-	NumCrossShardPeers  uint32
-	NumTotalPeers       uint32
-	NumFullHistoryPeers uint32
+	NumCrossShardPeers         uint32
+	NumTotalPeers              uint32
+	NumFullHistoryPeers        uint32
+	RequestProofByNonceDelayMs uint32
 }
 
 // PoolsCleanersConfig represents the config options to be used by the pools cleaners

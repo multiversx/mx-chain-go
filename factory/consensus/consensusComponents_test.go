@@ -146,6 +146,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			HeaderSigVerif:                       &consensusMocks.HeaderSigVerifierMock{},
 			HeaderIntegrVerif:                    &mock.HeaderIntegrityVerifierStub{},
 			FallbackHdrValidator:                 &testscommon.FallBackHeaderValidatorStub{},
+			WhiteListHandlerInternal:             &testscommon.WhiteListHandlerStub{},
 			SentSignaturesTrackerInternal:        &testscommon.SentSignatureTrackerStub{},
 			BlockchainHookField:                  &testscommon.BlockChainHookStub{},
 		},

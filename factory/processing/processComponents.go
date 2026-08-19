@@ -113,6 +113,7 @@ type processComponents struct {
 	fullArchivePeerShardMapper       process.NetworkShardingCollector
 	apiTransactionEvaluator          factory.TransactionEvaluator
 	miniBlocksPoolCleaner            process.PoolsCleaner
+	miniBlockTracker                 process.MiniBlockTracker
 	txsPoolCleaner                   process.PoolsCleaner
 	fallbackHeaderValidator          process.FallbackHeaderValidator
 	whiteListHandler                 process.WhiteListHandler
@@ -174,6 +175,7 @@ type ProcessComponentsFactoryArgs struct {
 }
 
 type processComponentsFactory struct {
+	miniBlockTracker       process.MiniBlockTracker
 	config                 config.Config
 	roundConfig            config.RoundConfig
 	epochConfig            config.EpochConfig
@@ -351,6 +353,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		common.MaxTxsToRequest,
 		pcf.bootstrapComponents.ShardCoordinator().SelfId(),
 		time.Second,
+		time.Duration(pcf.config.Requesters.RequestProofByNonceDelayMs)*time.Millisecond,
 	)
 	if err != nil {
 		return nil, err
@@ -517,14 +520,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	txsPoolsCleaner.StartCleaning()
 
-	_, err = track.NewMiniBlockTrack(
+	miniBlockTracker, err := track.NewMiniBlockTrack(
 		pcf.data.Datapool(),
+		blockTracker,
 		pcf.bootstrapComponents.ShardCoordinator(),
 		pcf.whiteListHandler,
 	)
 	if err != nil {
 		return nil, err
 	}
+	pcf.miniBlockTracker = miniBlockTracker
 
 	hardforkTrigger, err := pcf.createHardforkTrigger(epochStartTrigger)
 	if err != nil {
@@ -757,6 +762,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		fullArchivePeerShardMapper:       fullArchivePeerShardMapper,
 		apiTransactionEvaluator:          apiTransactionEvaluator,
 		miniBlocksPoolCleaner:            mbsPoolsCleaner,
+		miniBlockTracker:                 miniBlockTracker,
 		txsPoolCleaner:                   txsPoolsCleaner,
 		fallbackHeaderValidator:          fallbackHeaderValidator,
 		whiteListHandler:                 pcf.whiteListHandler,
@@ -1389,7 +1395,7 @@ func (pcf *processComponentsFactory) newResolverContainerFactory() (dataRetrieve
 		return disabledResolversContainer.NewDisabledResolversContainerFactory(), nil
 	}
 
-	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec)
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(pcf.config.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec)
 	if err != nil {
 		return nil, err
 	}
@@ -1692,37 +1698,40 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-		CoreComponents:                 pcf.coreData,
-		CryptoComponents:               pcf.crypto,
-		Accounts:                       pcf.state.AccountsAdapterAPI(),
-		ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
-		NodesCoordinator:               pcf.nodesCoordinator,
-		MainMessenger:                  pcf.network.NetworkMessenger(),
-		FullArchiveMessenger:           pcf.network.FullArchiveNetworkMessenger(),
-		Store:                          pcf.data.StorageService(),
-		DataPool:                       pcf.data.Datapool(),
-		MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:                   pcf.coreData.EconomicsData(),
-		BlockBlackList:                 headerBlackList,
-		HeaderSigVerifier:              headerSigVerifier,
-		HeaderIntegrityVerifier:        headerIntegrityVerifier,
-		ValidityAttester:               validityAttester,
-		EpochStartTrigger:              epochStartTrigger,
-		WhiteListHandler:               pcf.whiteListHandler,
-		WhiteListerVerifiedTxs:         pcf.whiteListerVerifiedTxs,
-		AntifloodHandler:               pcf.network.InputAntiFloodHandler(),
-		ArgumentsParser:                smartContract.NewArgumentParser(),
-		PreferredPeersHolder:           pcf.network.PreferredPeersHolderHandler(),
-		SizeCheckDelta:                 pcf.config.Marshalizer.SizeCheckDelta,
-		RequestHandler:                 requestHandler,
-		PeerSignatureHandler:           pcf.crypto.PeerSignatureHandler(),
-		SignaturesHandler:              pcf.network.NetworkMessenger(),
-		HeartbeatExpiryTimespanInSec:   pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
-		MainPeerShardMapper:            mainPeerShardMapper,
-		FullArchivePeerShardMapper:     fullArchivePeerShardMapper,
-		HardforkTrigger:                hardforkTrigger,
-		NodeOperationMode:              nodeOperationMode,
-		InterceptedDataVerifierFactory: pcf.interceptedDataVerifierFactory,
+		CoreComponents:                          pcf.coreData,
+		CryptoComponents:                        pcf.crypto,
+		Accounts:                                pcf.state.AccountsAdapterAPI(),
+		ShardCoordinator:                        pcf.bootstrapComponents.ShardCoordinator(),
+		NodesCoordinator:                        pcf.nodesCoordinator,
+		MainMessenger:                           pcf.network.NetworkMessenger(),
+		FullArchiveMessenger:                    pcf.network.FullArchiveNetworkMessenger(),
+		Store:                                   pcf.data.StorageService(),
+		DataPool:                                pcf.data.Datapool(),
+		MaxTxNonceDeltaAllowed:                  common.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:                            pcf.coreData.EconomicsData(),
+		BlockBlackList:                          headerBlackList,
+		HeaderSigVerifier:                       headerSigVerifier,
+		HeaderIntegrityVerifier:                 headerIntegrityVerifier,
+		ValidityAttester:                        validityAttester,
+		EpochStartTrigger:                       epochStartTrigger,
+		WhiteListHandler:                        pcf.whiteListHandler,
+		WhiteListerVerifiedTxs:                  pcf.whiteListerVerifiedTxs,
+		AntifloodHandler:                        pcf.network.InputAntiFloodHandler(),
+		ArgumentsParser:                         smartContract.NewArgumentParser(),
+		PreferredPeersHolder:                    pcf.network.PreferredPeersHolderHandler(),
+		SizeCheckDelta:                          pcf.config.Marshalizer.SizeCheckDelta,
+		RequestHandler:                          requestHandler,
+		PeerSignatureHandler:                    pcf.crypto.PeerSignatureHandler(),
+		SignaturesHandler:                       pcf.network.NetworkMessenger(),
+		HeartbeatExpiryTimespanInSec:            pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
+		PeerAuthenticationTimeBetweenSendsInSec: pcf.config.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec,
+		MaxAllowedTrieNodeChunks:                pcf.config.Antiflood.MaxAllowedTrieNodeChunks,
+		TrieNodeChunksInactivityTimeout:         time.Duration(pcf.config.Antiflood.TrieNodeChunksInactivityTimeoutInSec) * time.Second,
+		MainPeerShardMapper:                     mainPeerShardMapper,
+		FullArchivePeerShardMapper:              fullArchivePeerShardMapper,
+		HardforkTrigger:                         hardforkTrigger,
+		NodeOperationMode:                       nodeOperationMode,
+		InterceptedDataVerifierFactory:          pcf.interceptedDataVerifierFactory,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -1746,37 +1755,40 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-		CoreComponents:                 pcf.coreData,
-		CryptoComponents:               pcf.crypto,
-		ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
-		NodesCoordinator:               pcf.nodesCoordinator,
-		MainMessenger:                  pcf.network.NetworkMessenger(),
-		FullArchiveMessenger:           pcf.network.FullArchiveNetworkMessenger(),
-		Store:                          pcf.data.StorageService(),
-		DataPool:                       pcf.data.Datapool(),
-		Accounts:                       pcf.state.AccountsAdapterAPI(),
-		MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
-		TxFeeHandler:                   pcf.coreData.EconomicsData(),
-		BlockBlackList:                 headerBlackList,
-		HeaderSigVerifier:              headerSigVerifier,
-		HeaderIntegrityVerifier:        headerIntegrityVerifier,
-		ValidityAttester:               validityAttester,
-		EpochStartTrigger:              epochStartTrigger,
-		WhiteListHandler:               pcf.whiteListHandler,
-		WhiteListerVerifiedTxs:         pcf.whiteListerVerifiedTxs,
-		AntifloodHandler:               pcf.network.InputAntiFloodHandler(),
-		ArgumentsParser:                smartContract.NewArgumentParser(),
-		SizeCheckDelta:                 pcf.config.Marshalizer.SizeCheckDelta,
-		PreferredPeersHolder:           pcf.network.PreferredPeersHolderHandler(),
-		RequestHandler:                 requestHandler,
-		PeerSignatureHandler:           pcf.crypto.PeerSignatureHandler(),
-		SignaturesHandler:              pcf.network.NetworkMessenger(),
-		HeartbeatExpiryTimespanInSec:   pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
-		MainPeerShardMapper:            mainPeerShardMapper,
-		FullArchivePeerShardMapper:     fullArchivePeerShardMapper,
-		HardforkTrigger:                hardforkTrigger,
-		NodeOperationMode:              nodeOperationMode,
-		InterceptedDataVerifierFactory: pcf.interceptedDataVerifierFactory,
+		CoreComponents:                          pcf.coreData,
+		CryptoComponents:                        pcf.crypto,
+		ShardCoordinator:                        pcf.bootstrapComponents.ShardCoordinator(),
+		NodesCoordinator:                        pcf.nodesCoordinator,
+		MainMessenger:                           pcf.network.NetworkMessenger(),
+		FullArchiveMessenger:                    pcf.network.FullArchiveNetworkMessenger(),
+		Store:                                   pcf.data.StorageService(),
+		DataPool:                                pcf.data.Datapool(),
+		Accounts:                                pcf.state.AccountsAdapterAPI(),
+		MaxTxNonceDeltaAllowed:                  common.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:                            pcf.coreData.EconomicsData(),
+		BlockBlackList:                          headerBlackList,
+		HeaderSigVerifier:                       headerSigVerifier,
+		HeaderIntegrityVerifier:                 headerIntegrityVerifier,
+		ValidityAttester:                        validityAttester,
+		EpochStartTrigger:                       epochStartTrigger,
+		WhiteListHandler:                        pcf.whiteListHandler,
+		WhiteListerVerifiedTxs:                  pcf.whiteListerVerifiedTxs,
+		AntifloodHandler:                        pcf.network.InputAntiFloodHandler(),
+		ArgumentsParser:                         smartContract.NewArgumentParser(),
+		SizeCheckDelta:                          pcf.config.Marshalizer.SizeCheckDelta,
+		PreferredPeersHolder:                    pcf.network.PreferredPeersHolderHandler(),
+		RequestHandler:                          requestHandler,
+		PeerSignatureHandler:                    pcf.crypto.PeerSignatureHandler(),
+		SignaturesHandler:                       pcf.network.NetworkMessenger(),
+		HeartbeatExpiryTimespanInSec:            pcf.config.HeartbeatV2.HeartbeatExpiryTimespanInSec,
+		PeerAuthenticationTimeBetweenSendsInSec: pcf.config.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec,
+		MaxAllowedTrieNodeChunks:                pcf.config.Antiflood.MaxAllowedTrieNodeChunks,
+		TrieNodeChunksInactivityTimeout:         time.Duration(pcf.config.Antiflood.TrieNodeChunksInactivityTimeoutInSec) * time.Second,
+		MainPeerShardMapper:                     mainPeerShardMapper,
+		FullArchivePeerShardMapper:              fullArchivePeerShardMapper,
+		HardforkTrigger:                         hardforkTrigger,
+		NodeOperationMode:                       nodeOperationMode,
+		InterceptedDataVerifierFactory:          pcf.interceptedDataVerifierFactory,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
@@ -1857,38 +1869,39 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		nodeOperationMode = common.FullArchiveMode
 	}
 	argsExporter := updateFactory.ArgsExporter{
-		CoreComponents:                   pcf.coreData,
-		CryptoComponents:                 pcf.crypto,
-		StatusCoreComponents:             pcf.statusCoreComponents,
-		NetworkComponents:                pcf.network,
-		HeaderValidator:                  headerValidator,
-		DataPool:                         pcf.data.Datapool(),
-		StorageService:                   pcf.data.StorageService(),
-		RequestHandler:                   requestHandler,
-		ShardCoordinator:                 pcf.bootstrapComponents.ShardCoordinator(),
-		ActiveAccountsDBs:                accountsDBs,
-		ExistingResolvers:                resolversContainer,
-		ExistingRequesters:               requestersContainer,
-		ExportFolder:                     exportFolder,
-		ExportTriesStorageConfig:         hardforkConfig.ExportTriesStorageConfig,
-		ExportStateStorageConfig:         hardforkConfig.ExportStateStorageConfig,
-		ExportStateKeysConfig:            hardforkConfig.ExportKeysStorageConfig,
-		MaxTrieLevelInMemory:             pcf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
-		WhiteListHandler:                 pcf.whiteListHandler,
-		WhiteListerVerifiedTxs:           pcf.whiteListerVerifiedTxs,
-		MainInterceptorsContainer:        mainInterceptorsContainer,
-		FullArchiveInterceptorsContainer: fullArchiveInterceptorsContainer,
-		NodesCoordinator:                 pcf.nodesCoordinator,
-		HeaderSigVerifier:                headerSigVerifier,
-		HeaderIntegrityVerifier:          pcf.bootstrapComponents.HeaderIntegrityVerifier(),
-		ValidityAttester:                 blockTracker,
-		RoundHandler:                     pcf.coreData.RoundHandler(),
-		InterceptorDebugConfig:           pcf.config.Debug.InterceptorResolver,
-		MaxHardCapForMissingNodes:        pcf.config.TrieSync.MaxHardCapForMissingNodes,
-		NumConcurrentTrieSyncers:         pcf.config.TrieSync.NumConcurrentTrieSyncers,
-		TrieSyncerVersion:                pcf.config.TrieSync.TrieSyncerVersion,
-		NodeOperationMode:                nodeOperationMode,
-		InterceptedDataVerifierFactory:   pcf.interceptedDataVerifierFactory,
+		CoreComponents:                          pcf.coreData,
+		CryptoComponents:                        pcf.crypto,
+		StatusCoreComponents:                    pcf.statusCoreComponents,
+		NetworkComponents:                       pcf.network,
+		HeaderValidator:                         headerValidator,
+		DataPool:                                pcf.data.Datapool(),
+		StorageService:                          pcf.data.StorageService(),
+		RequestHandler:                          requestHandler,
+		ShardCoordinator:                        pcf.bootstrapComponents.ShardCoordinator(),
+		ActiveAccountsDBs:                       accountsDBs,
+		ExistingResolvers:                       resolversContainer,
+		ExistingRequesters:                      requestersContainer,
+		ExportFolder:                            exportFolder,
+		ExportTriesStorageConfig:                hardforkConfig.ExportTriesStorageConfig,
+		ExportStateStorageConfig:                hardforkConfig.ExportStateStorageConfig,
+		ExportStateKeysConfig:                   hardforkConfig.ExportKeysStorageConfig,
+		MaxTrieLevelInMemory:                    pcf.config.StateTriesConfig.MaxStateTrieLevelInMemory,
+		WhiteListHandler:                        pcf.whiteListHandler,
+		WhiteListerVerifiedTxs:                  pcf.whiteListerVerifiedTxs,
+		MainInterceptorsContainer:               mainInterceptorsContainer,
+		FullArchiveInterceptorsContainer:        fullArchiveInterceptorsContainer,
+		NodesCoordinator:                        pcf.nodesCoordinator,
+		HeaderSigVerifier:                       headerSigVerifier,
+		HeaderIntegrityVerifier:                 pcf.bootstrapComponents.HeaderIntegrityVerifier(),
+		ValidityAttester:                        blockTracker,
+		RoundHandler:                            pcf.coreData.RoundHandler(),
+		InterceptorDebugConfig:                  pcf.config.Debug.InterceptorResolver,
+		MaxHardCapForMissingNodes:               pcf.config.TrieSync.MaxHardCapForMissingNodes,
+		NumConcurrentTrieSyncers:                pcf.config.TrieSync.NumConcurrentTrieSyncers,
+		TrieSyncerVersion:                       pcf.config.TrieSync.TrieSyncerVersion,
+		NodeOperationMode:                       nodeOperationMode,
+		InterceptedDataVerifierFactory:          pcf.interceptedDataVerifierFactory,
+		PeerAuthenticationTimeBetweenSendsInSec: pcf.config.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec,
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }

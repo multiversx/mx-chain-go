@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
@@ -213,11 +214,13 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 	scheduledProcessor := &ScheduledProcessorStub{}
 	messageSigningHandler := &mock.MessageSigningHandlerStub{}
 	peerBlacklistHandler := &mock.PeerBlacklistHandlerStub{}
+	peerSignatureHandler := &cryptoMocks.PeerSignatureHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 	signingHandler := &SigningHandlerStub{}
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 	equivalentProofsPool := &dataRetriever.ProofsPoolMock{}
 	epochNotifier := &epochNotifierMock.EpochNotifierStub{}
+	consensusService, _ := bls.NewConsensusService()
 
 	container, _ := spos.NewConsensusCore(&spos.ConsensusCoreArgs{
 		BlockChain:                    blockChain,
@@ -241,11 +244,13 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 		ScheduledProcessor:            scheduledProcessor,
 		MessageSigningHandler:         messageSigningHandler,
 		PeerBlacklistHandler:          peerBlacklistHandler,
+		PeerSignatureHandler:          peerSignatureHandler,
 		SigningHandler:                signingHandler,
 		EnableEpochsHandler:           enableEpochsHandler,
 		EquivalentProofsPool:          equivalentProofsPool,
 		EpochNotifier:                 epochNotifier,
 		InvalidSignersCache:           &InvalidSignersCacheMock{},
+		MessagesHandler:               consensusService,
 	})
 
 	return container

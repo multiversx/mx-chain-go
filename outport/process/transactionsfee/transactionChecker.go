@@ -13,8 +13,8 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.TransactionHandler) bool {
-	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
+func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.TransactionHandler, epoch uint32) bool {
+	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards(), epoch)
 
 	isESDTTransferOperation := res.Operation == core.BuiltInFunctionESDTTransfer ||
 		res.Operation == core.BuiltInFunctionESDTNFTTransfer || res.Operation == core.BuiltInFunctionMultiESDTNFTTransfer

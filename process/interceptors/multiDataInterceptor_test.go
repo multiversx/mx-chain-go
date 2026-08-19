@@ -555,7 +555,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageWhitelistedShouldRetNil(t *t
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 		HashCalled: func() []byte {
 			return msgHash
@@ -618,7 +618,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 			return expectedErr
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 	}
 
@@ -707,7 +707,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteLis
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 		HashCalled: func() []byte {
 			return msgHash

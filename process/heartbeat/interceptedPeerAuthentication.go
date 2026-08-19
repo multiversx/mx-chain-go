@@ -8,31 +8,50 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
+)
+
+const (
+	minPeerAuthenticationTimeBetweenSendsInSec = 1
+	maxPercentAllowed                          = 0.8 // TODO: move this into config with supernova
 )
 
 // ArgInterceptedPeerAuthentication is the argument used in the intercepted peer authentication constructor
 type ArgInterceptedPeerAuthentication struct {
 	ArgBaseInterceptedHeartbeat
-	NodesCoordinator      NodesCoordinator
-	SignaturesHandler     SignaturesHandler
-	PeerSignatureHandler  crypto.PeerSignatureHandler
-	PayloadValidator      process.PeerAuthenticationPayloadValidator
-	HardforkTriggerPubKey []byte
+	NodesCoordinator                        NodesCoordinator
+	SignaturesHandler                       SignaturesHandler
+	PeerSignatureHandler                    crypto.PeerSignatureHandler
+	PayloadValidator                        process.PeerAuthenticationPayloadValidator
+	HardforkTriggerPubKey                   []byte
+	PeerShardMapper                         process.PeerShardMapper
+	PeerAuthCacher                          storage.Cacher
+	MessageOriginator                       core.PeerID
+	SelfPeerID                              core.PeerID
+	PeerAuthenticationTimeBetweenSendsInSec int64
+	ManagedPeersHolder                      common.ManagedPeersHolder
 }
 
 // interceptedPeerAuthentication is a wrapper over PeerAuthentication
 type interceptedPeerAuthentication struct {
-	peerAuthentication    heartbeat.PeerAuthentication
-	payload               heartbeat.Payload
-	peerId                core.PeerID
-	nodesCoordinator      NodesCoordinator
-	signaturesHandler     SignaturesHandler
-	peerSignatureHandler  crypto.PeerSignatureHandler
-	payloadValidator      process.PeerAuthenticationPayloadValidator
-	hardforkTriggerPubKey []byte
+	peerAuthentication     heartbeat.PeerAuthentication
+	payload                heartbeat.Payload
+	peerId                 core.PeerID
+	nodesCoordinator       NodesCoordinator
+	signaturesHandler      SignaturesHandler
+	peerSignatureHandler   crypto.PeerSignatureHandler
+	payloadValidator       process.PeerAuthenticationPayloadValidator
+	hardforkTriggerPubKey  []byte
+	peerShardMapper        process.PeerShardMapper
+	peerAuthCacher         storage.Cacher
+	messageOriginator      core.PeerID
+	selfPeerID             core.PeerID
+	managedPeersHolder     common.ManagedPeersHolder
+	peerAuthTimestampDelta int64
 }
 
 // NewInterceptedPeerAuthentication tries to create a new intercepted peer authentication instance
@@ -47,14 +66,22 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 		return nil, err
 	}
 
+	deltaSec := float64(arg.PeerAuthenticationTimeBetweenSendsInSec) * maxPercentAllowed
+
 	intercepted := &interceptedPeerAuthentication{
-		peerAuthentication:    *peerAuthentication,
-		payload:               *payload,
-		nodesCoordinator:      arg.NodesCoordinator,
-		signaturesHandler:     arg.SignaturesHandler,
-		peerSignatureHandler:  arg.PeerSignatureHandler,
-		payloadValidator:      arg.PayloadValidator,
-		hardforkTriggerPubKey: arg.HardforkTriggerPubKey,
+		peerAuthentication:     *peerAuthentication,
+		payload:                *payload,
+		nodesCoordinator:       arg.NodesCoordinator,
+		signaturesHandler:      arg.SignaturesHandler,
+		peerSignatureHandler:   arg.PeerSignatureHandler,
+		payloadValidator:       arg.PayloadValidator,
+		hardforkTriggerPubKey:  arg.HardforkTriggerPubKey,
+		peerShardMapper:        arg.PeerShardMapper,
+		peerAuthCacher:         arg.PeerAuthCacher,
+		messageOriginator:      arg.MessageOriginator,
+		selfPeerID:             arg.SelfPeerID,
+		peerAuthTimestampDelta: int64(deltaSec),
+		managedPeersHolder:     arg.ManagedPeersHolder,
 	}
 	intercepted.peerId = core.PeerID(intercepted.peerAuthentication.Pid)
 
@@ -80,6 +107,21 @@ func checkArg(arg ArgInterceptedPeerAuthentication) error {
 	}
 	if len(arg.HardforkTriggerPubKey) == 0 {
 		return fmt.Errorf("%w hardfork trigger public key bytes length is 0", process.ErrInvalidValue)
+	}
+	if check.IfNil(arg.PeerShardMapper) {
+		return process.ErrNilPeerShardMapper
+	}
+	if check.IfNil(arg.PeerAuthCacher) {
+		return process.ErrNilPeerAuthenticationCacher
+	}
+	if arg.PeerAuthenticationTimeBetweenSendsInSec < minPeerAuthenticationTimeBetweenSendsInSec {
+		return fmt.Errorf("%w for PeerAuthenticationTimeBetweenSendsInSec", process.ErrInvalidValue)
+	}
+	if len(arg.SelfPeerID) == 0 {
+		return fmt.Errorf("%w for self peer id", process.ErrInvalidValue)
+	}
+	if check.IfNil(arg.ManagedPeersHolder) {
+		return process.ErrNilManagedPeersHolder
 	}
 
 	return nil
@@ -133,12 +175,57 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 		if err != nil {
 			return err
 		}
+
+		shouldSkipSigChecks, errCheck := ipa.checkExistingInfo()
+		if errCheck != nil {
+			return errCheck
+		}
+		if shouldSkipSigChecks {
+			return nil
+		}
+	}
+
+	// Verify payload
+	err = ipa.payloadValidator.ValidateTimestamp(ipa.payload.Timestamp)
+	if err != nil {
+		return err
 	}
 
 	// Verify payload signature
 	log.Trace("interceptedPeerAuthentication received valid data")
 
 	return nil
+}
+
+func (ipa *interceptedPeerAuthentication) checkExistingInfo() (bool, error) {
+	existingInfo := ipa.peerShardMapper.GetPeerInfo(ipa.peerId)
+	pairExists := string(existingInfo.PkBytes) == string(ipa.Pubkey())
+	if !pairExists {
+		return false, nil // continue verification and eventually save in cache
+	}
+
+	if len(ipa.messageOriginator) == 0 {
+		return false, nil
+	}
+
+	isFromSelf := ipa.messageOriginator == ipa.selfPeerID
+	isManagedBySelf := ipa.managedPeersHolder.IsPidManagedByCurrentNode(ipa.messageOriginator)
+	if isFromSelf || isManagedBySelf {
+		return true, nil // skip sig checks
+	}
+
+	hasInCache := ipa.peerAuthCacher.Has(ipa.Pubkey())
+	if !hasInCache {
+		return false, nil // continue verification and eventually save in cache
+	}
+
+	minTimestampAccepted := existingInfo.AuthTimestamp + ipa.peerAuthTimestampDelta
+	if ipa.payload.Timestamp <= minTimestampAccepted {
+		return false, fmt.Errorf("%w, received timestamp %d while the last one saved is %d", process.ErrPeerAlreadyAuthenticated, ipa.payload.Timestamp, existingInfo.AuthTimestamp)
+	}
+
+	// mapping exists and delta condition is not satisfied, valid message
+	return false, nil
 }
 
 // IsForCurrentShard always returns true
@@ -158,7 +245,8 @@ func (ipa *interceptedPeerAuthentication) Type() string {
 
 // Identifiers returns the identifiers used in requests
 func (ipa *interceptedPeerAuthentication) Identifiers() [][]byte {
-	return [][]byte{ipa.peerAuthentication.Pubkey, ipa.peerAuthentication.Pid}
+	identifier := common.PeerAuthenticationPublicKeyIdentifier(ipa.peerAuthentication.Pubkey)
+	return [][]byte{ipa.peerAuthentication.Pubkey, ipa.peerAuthentication.Pid, identifier}
 }
 
 // PeerID returns the peer ID

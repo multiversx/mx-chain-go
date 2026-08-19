@@ -131,6 +131,9 @@ var ErrValidatorStatsRootHashDoesNotMatch = errors.New("root hash for validator 
 // ErrAccountStateDirty signals that the accounts were modified before starting the current modification
 var ErrAccountStateDirty = errors.New("accountState was dirty before starting to change")
 
+// ErrBlockProcessorBusy signals that the block processor is already busy processing another block
+var ErrBlockProcessorBusy = errors.New("block processor is busy")
+
 // ErrInvalidShardId signals that the shard id is invalid
 var ErrInvalidShardId = errors.New("invalid shard id")
 
@@ -328,6 +331,9 @@ var ErrNotarizedHeadersSliceForShardIsNil = errors.New("notarized headers slice 
 
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
+
+// ErrMetaBlockNotFullyConsumed signals that a referenced meta block was not fully consumed while a higher nonce one was also referenced
+var ErrMetaBlockNotFullyConsumed = errors.New("referenced meta block not fully consumed while referencing a higher nonce meta block")
 
 // ErrHeaderBodyMismatch signals that the header does not attest all data from the block
 var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")
@@ -594,6 +600,9 @@ var ErrNilPeerShardMapper = errors.New("nil peer shard mapper")
 // ErrNilBlockTracker signals that a nil block tracker was provided
 var ErrNilBlockTracker = errors.New("nil block tracker")
 
+// ErrNilMiniBlockTracker signals that a nil miniblock tracker was provided
+var ErrNilMiniBlockTracker = errors.New("nil miniblock tracker")
+
 // ErrHeaderIsBlackListed signals that the header provided is black listed
 var ErrHeaderIsBlackListed = errors.New("header is black listed")
 
@@ -735,10 +744,19 @@ var ErrAccumulatedFeesInEpochDoNotMatch = errors.New("accumulated fees in epoch 
 // ErrDevFeesInEpochDoNotMatch signals that developer fees in epoch do not match
 var ErrDevFeesInEpochDoNotMatch = errors.New("developer fees in epoch do not match")
 
+// ErrShardInfoOnEpochStartBlock signals that an epoch-start block contains shard info entries which should not be present
+var ErrShardInfoOnEpochStartBlock = errors.New("epoch-start block should not contain shard info entries")
+
+// ErrMiniBlockNotExecuted signals that a mini block was not executed locally
+var ErrMiniBlockNotExecuted = errors.New("mini block not executed")
+
+// ErrProcessedMiniBlockNotInLeadingPrefix signals that a processed mini block was found outside the leading scheduled-executed prefix
+var ErrProcessedMiniBlockNotInLeadingPrefix = errors.New("processed mini block found outside the leading scheduled-executed prefix")
+
 // ErrNilRewardsHandler signals that rewards handler is nil
 var ErrNilRewardsHandler = errors.New("rewards handler is nil")
 
-// ErrNilEpochEconomics signals that nil end of epoch econimics was provided
+// ErrNilEpochEconomics signals that nil end of epoch economics was provided
 var ErrNilEpochEconomics = errors.New("nil epoch economics")
 
 // ErrNilEpochStartDataCreator signals that nil epoch start data creator was provided
@@ -1080,6 +1098,9 @@ var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
 // ErrScheduledRootHashDoesNotMatch signals that scheduled root hash does not match
 var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not match")
 
+// ErrScheduledGasAndFeesDoesNotMatch signals that scheduled gas and fees do not match
+var ErrScheduledGasAndFeesDoesNotMatch = errors.New("scheduled gas and fees do not match")
+
 // ErrNilAdditionalData signals that additional data is nil
 var ErrNilAdditionalData = errors.New("nil additional data")
 
@@ -1140,6 +1161,24 @@ var ErrIndexDoesNotMatchWithPartialExecutedMiniBlock = errors.New("index does no
 // ErrIndexDoesNotMatchWithFullyExecutedMiniBlock signals that the given index does not match with a fully executed mini block
 var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not match with a fully executed mini block")
 
+// ErrIndexOfFirstTxProcessedMismatch signals that the index of first tx processed from the header does not match the local processed mini blocks tracker
+var ErrIndexOfFirstTxProcessedMismatch = errors.New("index of first tx processed does not match the local processed mini blocks tracker")
+
+// ErrInvalidMiniBlockProcessingType signals that an invalid miniblock processing type has been provided
+var ErrInvalidMiniBlockProcessingType = errors.New("invalid miniblock processing type")
+
+// ErrInvalidMiniBlockProcessingTypeForType signals an invalid miniblock processing type for the given miniblock type
+var ErrInvalidMiniBlockProcessingTypeForType = errors.New("invalid miniblock processing type for miniblock type")
+
+// ErrProcessingTypeBodyHeaderMismatch signals a processing type mismatch between the miniblock body and its header
+var ErrProcessingTypeBodyHeaderMismatch = errors.New("processing type mismatch between miniblock body and miniblock header")
+
+// ErrInvalidConstructionState signals an invalid construction state for the given processing type and shard role
+var ErrInvalidConstructionState = errors.New("invalid construction state for the given processing type and shard role")
+
+// ErrInvalidMiniBlockShardRole signals an invalid miniblock shard role for the given processing type
+var ErrInvalidMiniBlockShardRole = errors.New("invalid miniblock shard role for the given processing type")
+
 // ErrNilProcessedMiniBlocksTracker signals that a nil processed mini blocks tracker has been provided
 var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tracker")
 
@@ -1154,6 +1193,9 @@ var ErrNilESDTGlobalSettingsHandler = errors.New("nil esdt global settings handl
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilWatchdog signals that a nil watchdog has been provided
+var ErrNilWatchdog = errors.New("nil watchdog")
 
 // ErrNilEpochChangeGracePeriodHandler signals that a nil epoch change grace period handler has been provided
 var ErrNilEpochChangeGracePeriodHandler = errors.New("nil epoch change grace period handler")
@@ -1310,3 +1352,18 @@ var ErrZeroDurationForEpoch = errors.New("zero duration for epoch")
 
 // ErrInvalidChainParameters signals that invalid chain parameters has been provided
 var ErrInvalidChainParameters = errors.New("invalid chain parameters")
+
+// ErrDuplicatedHashInBlock signals that the same hash appears more than once where uniqueness is expected
+var ErrDuplicatedHashInBlock = errors.New("duplicated hash in block")
+
+// ErrMetaBlockHashesNotInCanonicalOrder signals that referenced metablocks are not strictly ordered by nonce
+var ErrMetaBlockHashesNotInCanonicalOrder = errors.New("metablock hashes are not in canonical order")
+
+// ErrTooManyMetaBlockHashes signals that a shard header references more metablocks than allowed
+var ErrTooManyMetaBlockHashes = errors.New("too many metablock hashes")
+
+// ErrDoubleTransactionsFound signals that double transactions found
+var ErrDoubleTransactionsFound = errors.New("double transactions found")
+
+// ErrPeerAlreadyAuthenticated signals that a peer authentication message was received for a peer that already has an existing mapping
+var ErrPeerAlreadyAuthenticated = errors.New("peer already authenticated")
