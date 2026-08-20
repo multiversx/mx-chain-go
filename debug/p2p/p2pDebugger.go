@@ -28,6 +28,12 @@ type metric struct {
 	outgoingRejectedSize uint64
 	outgoingNum          uint32
 	outgoingRejectedNum  uint32
+
+	duplicateSize uint64
+	duplicateNum  uint32
+
+	ignoredSize uint64
+	ignoredNum  uint32
 }
 
 func (m *metric) divideValues(divideValue float32) {
@@ -40,6 +46,12 @@ func (m *metric) divideValues(divideValue float32) {
 	m.outgoingNum = uint32(float32(m.outgoingNum) / divideValue)
 	m.outgoingRejectedSize = uint64(float32(m.outgoingRejectedSize) / divideValue)
 	m.outgoingRejectedNum = uint32(float32(m.outgoingRejectedNum) / divideValue)
+
+	m.duplicateSize = uint64(float32(m.duplicateSize) / divideValue)
+	m.duplicateNum = uint32(float32(m.duplicateNum) / divideValue)
+
+	m.ignoredSize = uint64(float32(m.ignoredSize) / divideValue)
+	m.ignoredNum = uint32(float32(m.ignoredNum) / divideValue)
 }
 
 func (m *metric) stringify() []string {
@@ -47,6 +59,8 @@ func (m *metric) stringify() []string {
 		m.topic,
 		fmt.Sprintf("%d / %s/s", m.incomingNum, core.ConvertBytes(m.incomingSize)),
 		fmt.Sprintf("%d / %s/s", m.incomingRejectedNum, core.ConvertBytes(m.incomingRejectedSize)),
+		fmt.Sprintf("%d / %s/s", m.duplicateNum, core.ConvertBytes(m.duplicateSize)),
+		fmt.Sprintf("%d / %s/s", m.ignoredNum, core.ConvertBytes(m.ignoredSize)),
 		fmt.Sprintf("%d / %s/s", m.outgoingNum, core.ConvertBytes(m.outgoingSize)),
 		fmt.Sprintf("%d / %s/s", m.outgoingRejectedNum, core.ConvertBytes(m.outgoingRejectedSize)),
 	}
@@ -122,6 +136,34 @@ func (pd *p2pDebugger) AddOutgoingMessage(topic string, size uint64, isRejected 
 	}
 }
 
+// AddDuplicateMessage adds a new duplicated (already seen) message stats in metrics structs
+func (pd *p2pDebugger) AddDuplicateMessage(topic string, size uint64) {
+	if !pd.shouldProcessDataFn() {
+		return
+	}
+
+	pd.mut.Lock()
+	defer pd.mut.Unlock()
+
+	m := pd.getMetric(topic)
+	m.duplicateNum++
+	m.duplicateSize += size
+}
+
+// AddIgnoredMessage adds a new message that was received but ignored by validation, so not propagated further
+func (pd *p2pDebugger) AddIgnoredMessage(topic string, size uint64) {
+	if !pd.shouldProcessDataFn() {
+		return
+	}
+
+	pd.mut.Lock()
+	defer pd.mut.Unlock()
+
+	m := pd.getMetric(topic)
+	m.ignoredNum++
+	m.ignoredSize += size
+}
+
 func (pd *p2pDebugger) getMetric(topic string) *metric {
 	m, ok := pd.data[topic]
 	if !ok {
@@ -158,6 +200,8 @@ func (pd *p2pDebugger) statsToString(divideSeconds float32) string {
 		"Topic",
 		"Incoming (num / size)",
 		"Incoming rejected (num / size)",
+		"Incoming duplicates (num / size)",
+		"Incoming ignored (num / size)",
 		"Outgoing (num / size)",
 		"Outgoing rejected (num / size)",
 	}
@@ -181,15 +225,20 @@ func (pd *p2pDebugger) statsToString(divideSeconds float32) string {
 		total.outgoingNum += m.outgoingNum
 		total.outgoingRejectedSize += m.outgoingRejectedSize
 		total.outgoingRejectedNum += m.outgoingRejectedNum
+		total.duplicateSize += m.duplicateSize
+		total.duplicateNum += m.duplicateNum
+		total.ignoredSize += m.ignoredSize
+		total.ignoredNum += m.ignoredNum
 	}
 
 	sort.Slice(metrics, func(i, j int) bool {
-		//sort descending by incomingSize + outgoingSize and alphabetically
+		// sort descending by the bytes that crossed the wire, then alphabetically. The duplicates are added as they
+		// never reach the topic validator, while the ignored ones are already counted in incoming.
 		mi := metrics[i]
 		mj := metrics[j]
 
-		miSize := mi.outgoingSize + mi.incomingSize
-		mjSize := mj.outgoingSize + mj.incomingSize
+		miSize := mi.outgoingSize + mi.incomingSize + mi.duplicateSize
+		mjSize := mj.outgoingSize + mj.incomingSize + mj.duplicateSize
 
 		if miSize == mjSize {
 			return mi.topic < mj.topic
