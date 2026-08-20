@@ -66,10 +66,47 @@ func (m *metric) stringify() []string {
 	}
 }
 
+type rpcMetric struct {
+	topic string
+
+	publishedInSize  uint64
+	publishedInNum   uint32
+	publishedOutSize uint64
+	publishedOutNum  uint32
+
+	controlInSize  uint64
+	controlInNum   uint32
+	controlOutSize uint64
+	controlOutNum  uint32
+}
+
+func (m *rpcMetric) divideValues(divideValue float32) {
+	m.publishedInSize = uint64(float32(m.publishedInSize) / divideValue)
+	m.publishedInNum = uint32(float32(m.publishedInNum) / divideValue)
+	m.publishedOutSize = uint64(float32(m.publishedOutSize) / divideValue)
+	m.publishedOutNum = uint32(float32(m.publishedOutNum) / divideValue)
+
+	m.controlInSize = uint64(float32(m.controlInSize) / divideValue)
+	m.controlInNum = uint32(float32(m.controlInNum) / divideValue)
+	m.controlOutSize = uint64(float32(m.controlOutSize) / divideValue)
+	m.controlOutNum = uint32(float32(m.controlOutNum) / divideValue)
+}
+
+func (m *rpcMetric) stringify() []string {
+	return []string{
+		m.topic,
+		fmt.Sprintf("%d / %s/s", m.publishedInNum, core.ConvertBytes(m.publishedInSize)),
+		fmt.Sprintf("%d / %s/s", m.publishedOutNum, core.ConvertBytes(m.publishedOutSize)),
+		fmt.Sprintf("%d / %s/s", m.controlInNum, core.ConvertBytes(m.controlInSize)),
+		fmt.Sprintf("%d / %s/s", m.controlOutNum, core.ConvertBytes(m.controlOutSize)),
+	}
+}
+
 type p2pDebugger struct {
 	selfPeerId          core.PeerID
 	mut                 sync.Mutex
 	data                map[string]*metric
+	rpcData             map[string]*rpcMetric
 	cancelFunc          func()
 	shouldProcessDataFn func() bool
 	printStringFn       func(data string)
@@ -80,6 +117,7 @@ func NewP2PDebugger(selfPeerId core.PeerID) *p2pDebugger {
 	pd := &p2pDebugger{
 		selfPeerId: selfPeerId,
 		data:       make(map[string]*metric),
+		rpcData:    make(map[string]*rpcMetric),
 	}
 	pd.shouldProcessDataFn = pd.isLogTrace
 	pd.printStringFn = pd.printLog
@@ -162,6 +200,63 @@ func (pd *p2pDebugger) AddIgnoredMessage(topic string, size uint64) {
 	m := pd.getMetric(topic)
 	m.ignoredNum++
 	m.ignoredSize += size
+}
+
+// IsRecording returns true if the statistics are gathered, it gates the accounting done on the RPC hot paths
+func (pd *p2pDebugger) IsRecording() bool {
+	return pd.shouldProcessDataFn()
+}
+
+// AddRPCPublishedMessage adds a message carried by an RPC, as it travels on the wire
+func (pd *p2pDebugger) AddRPCPublishedMessage(topic string, size uint64, isIncoming bool) {
+	if !pd.shouldProcessDataFn() {
+		return
+	}
+
+	pd.mut.Lock()
+	defer pd.mut.Unlock()
+
+	m := pd.getRPCMetric(topic)
+	if isIncoming {
+		m.publishedInNum++
+		m.publishedInSize += size
+		return
+	}
+
+	m.publishedOutNum++
+	m.publishedOutSize += size
+}
+
+// AddRPCControlMessage adds a gossip control message carried by an RPC
+func (pd *p2pDebugger) AddRPCControlMessage(topic string, size uint64, isIncoming bool) {
+	if !pd.shouldProcessDataFn() {
+		return
+	}
+
+	pd.mut.Lock()
+	defer pd.mut.Unlock()
+
+	m := pd.getRPCMetric(topic)
+	if isIncoming {
+		m.controlInNum++
+		m.controlInSize += size
+		return
+	}
+
+	m.controlOutNum++
+	m.controlOutSize += size
+}
+
+func (pd *p2pDebugger) getRPCMetric(topic string) *rpcMetric {
+	m, ok := pd.rpcData[topic]
+	if !ok {
+		m = &rpcMetric{
+			topic: topic,
+		}
+		pd.rpcData[topic] = m
+	}
+
+	return m
 }
 
 func (pd *p2pDebugger) getMetric(topic string) *metric {
@@ -261,7 +356,66 @@ func (pd *p2pDebugger) statsToString(divideSeconds float32) string {
 		return "error creating p2p stats table: " + err.Error()
 	}
 
-	return tab
+	return tab + pd.rpcStatsToString(divideSeconds)
+}
+
+// must be called under the mut lock, held by statsToString
+func (pd *p2pDebugger) rpcStatsToString(divideSeconds float32) string {
+	header := []string{
+		"Topic",
+		"RPC messages in (num / size)",
+		"RPC messages out (num / size)",
+		"RPC control in (num / size)",
+		"RPC control out (num / size)",
+	}
+
+	metrics := make([]*rpcMetric, 0, len(pd.rpcData))
+	total := &rpcMetric{
+		topic: "TOTAL",
+	}
+	for _, m := range pd.rpcData {
+		m.divideValues(divideSeconds)
+		metrics = append(metrics, m)
+
+		total.publishedInSize += m.publishedInSize
+		total.publishedInNum += m.publishedInNum
+		total.publishedOutSize += m.publishedOutSize
+		total.publishedOutNum += m.publishedOutNum
+		total.controlInSize += m.controlInSize
+		total.controlInNum += m.controlInNum
+		total.controlOutSize += m.controlOutSize
+		total.controlOutNum += m.controlOutNum
+	}
+
+	sort.Slice(metrics, func(i, j int) bool {
+		mi := metrics[i]
+		mj := metrics[j]
+
+		miSize := mi.publishedInSize + mi.publishedOutSize + mi.controlInSize + mi.controlOutSize
+		mjSize := mj.publishedInSize + mj.publishedOutSize + mj.controlInSize + mj.controlOutSize
+
+		if miSize == mjSize {
+			return mi.topic < mj.topic
+		}
+
+		return miSize > mjSize
+	})
+
+	lines := make([]*display.LineData, 0, len(metrics)+1)
+	for idx, m := range metrics {
+		horizontalLineAfter := idx == len(metrics)-1
+		lines = append(lines, display.NewLineData(horizontalLineAfter, m.stringify()))
+	}
+	lines = append(lines, display.NewLineData(false, total.stringify()))
+
+	pd.rpcData = make(map[string]*rpcMetric)
+
+	tab, err := display.CreateTableString(header, lines)
+	if err != nil {
+		return "error creating p2p RPC stats table: " + err.Error()
+	}
+
+	return "\n" + tab
 }
 
 // Close will stop any go routines launched by this instance

@@ -15,6 +15,7 @@ import (
 
 // the pubsub tracer only forwards discarded messages to a debugger implementing this interface
 var _ communicationP2P.DiscardedMessagesDebugger = (*p2pDebugger)(nil)
+var _ communicationP2P.RPCDebugger = (*p2pDebugger)(nil)
 var _ communicationP2P.Debugger = (*p2pDebugger)(nil)
 
 func mockPrintFn(string) {}
@@ -366,6 +367,82 @@ func TestP2pDebugger_continuouslyPrintStatisticsCloseShouldStop(t *testing.T) {
 
 	time.Sleep(printInterval*3 + time.Millisecond*100)
 	assert.Equal(t, int32(3), atomic.LoadInt32(&numPrintWasCalled))
+}
+
+// ------- RPC statistics
+
+func TestP2pDebugger_AddRPCMessagesShouldNotProcessWillNotAdd(t *testing.T) {
+	t.Parallel()
+
+	pd := newTestP2PDebugger(
+		"",
+		shouldNotCompute,
+		mockPrintFn,
+	)
+
+	assert.False(t, pd.IsRecording())
+
+	pd.AddRPCPublishedMessage("topic", 100, true)
+	pd.AddRPCControlMessage("topic", 100, true)
+
+	assert.Nil(t, pd.GetClonedRPCMetric("topic"))
+}
+
+func TestP2pDebugger_AddRPCMessages(t *testing.T) {
+	t.Parallel()
+
+	pd := newTestP2PDebugger(
+		"",
+		shouldCompute,
+		mockPrintFn,
+	)
+
+	assert.True(t, pd.IsRecording())
+
+	topic := "topic"
+	pd.AddRPCPublishedMessage(topic, 100, true)
+	pd.AddRPCPublishedMessage(topic, 200, false)
+	pd.AddRPCControlMessage(topic, 30, true)
+	pd.AddRPCControlMessage(topic, 40, false)
+	pd.AddRPCControlMessage(topic, 40, false)
+
+	m := pd.GetClonedRPCMetric(topic)
+	require.NotNil(t, m)
+
+	expectedMetric := &rpcMetric{
+		topic:            topic,
+		publishedInSize:  100,
+		publishedInNum:   1,
+		publishedOutSize: 200,
+		publishedOutNum:  1,
+		controlInSize:    30,
+		controlInNum:     1,
+		controlOutSize:   80,
+		controlOutNum:    2,
+	}
+	assert.Equal(t, expectedMetric, m)
+}
+
+func TestP2pDebugger_rpcStatsAreReportedAndReset(t *testing.T) {
+	t.Parallel()
+
+	pd := newTestP2PDebugger(
+		"",
+		shouldCompute,
+		mockPrintFn,
+	)
+
+	pd.AddRPCPublishedMessage("busyTopic", 5000, false)
+	pd.AddRPCControlMessage("[control without topic]", 700, true)
+
+	str := pd.statsToString(1)
+
+	assert.True(t, strings.Contains(str, "RPC messages out (num / size)"))
+	assert.True(t, strings.Contains(str, "RPC control in (num / size)"))
+	assert.True(t, strings.Contains(str, "busyTopic"))
+	assert.True(t, strings.Contains(str, "[control without topic]"))
+
+	assert.Nil(t, pd.GetClonedRPCMetric("busyTopic"))
 }
 
 func TestP2pDebugger_statsToStringSortsByBytesOnTheWire(t *testing.T) {

@@ -14,6 +14,7 @@ func newTestP2PDebugger(
 	pd := &p2pDebugger{
 		selfPeerId: selfPeerId,
 		data:       make(map[string]*metric),
+		rpcData:    make(map[string]*rpcMetric),
 	}
 	pd.shouldProcessDataFn = shouldProcessDataFn
 	pd.printStringFn = printStringFn
@@ -31,6 +32,20 @@ func (pd *p2pDebugger) GetClonedMetric(topic string) *metric {
 	defer pd.mut.Unlock()
 
 	m := pd.data[topic]
+	if m == nil {
+		return nil
+	}
+
+	clonedMetric := *m
+
+	return &clonedMetric
+}
+
+func (pd *p2pDebugger) GetClonedRPCMetric(topic string) *rpcMetric {
+	pd.mut.Lock()
+	defer pd.mut.Unlock()
+
+	m := pd.rpcData[topic]
 	if m == nil {
 		return nil
 	}
