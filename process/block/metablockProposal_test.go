@@ -2835,6 +2835,11 @@ func TestMetaProcessor_SelectContendedShardHeaders(t *testing.T) {
 				return supernovaEnabled && (flag == common.SupernovaFlag || flag == common.AndromedaFlag)
 			},
 		}
+		coreComponents.EnableRoundsHandlerField = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round >= 14
+			},
+		}
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
 			ph.HeadersCalled = func() dataRetriever.HeadersPool {
@@ -2930,6 +2935,17 @@ func TestMetaProcessor_SelectContendedShardHeaders(t *testing.T) {
 
 		referenced := make([][]byte, 0)
 		mp := buildProcessor(true, []uint64{11}, &referenced)
+
+		err := mp.SelectContendedShardHeaders(17, newLastShardHdrs(), map[uint32]uint32{}, haveTimeTrue)
+		require.Nil(t, err)
+		require.Empty(t, referenced)
+	})
+
+	t.Run("skips contended candidates before the Supernova round activation", func(t *testing.T) {
+		t.Parallel()
+
+		referenced := make([][]byte, 0)
+		mp := buildProcessor(true, []uint64{13}, &referenced)
 
 		err := mp.SelectContendedShardHeaders(17, newLastShardHdrs(), map[uint32]uint32{}, haveTimeTrue)
 		require.Nil(t, err)
@@ -3867,6 +3883,7 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return expectedErr
 				},
 			},
+			"enableRoundsHandler": testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag),
 			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			"blockTracker":        &integrationTestsMock.BlockTrackerStub{},
 		})
@@ -3890,6 +3907,7 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return nil
 				},
 			},
+			"enableRoundsHandler": testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag),
 			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 					return flag == common.SupernovaFlag
@@ -3939,6 +3957,7 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return nil
 				},
 			},
+			"enableRoundsHandler": testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag),
 			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 					return flag == common.SupernovaFlag
@@ -3994,6 +4013,7 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return nil
 				},
 			},
+			"enableRoundsHandler": testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag),
 			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 					return flag == common.SupernovaFlag
@@ -4030,6 +4050,7 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return nil
 				},
 			},
+			"enableRoundsHandler": testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag),
 			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 					return flag == common.SupernovaFlag
@@ -4072,6 +4093,7 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 					return nil
 				},
 			},
+			"enableRoundsHandler": testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag),
 			"enableEpochsHandler": &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			"blockTracker":        &integrationTestsMock.BlockTrackerStub{},
 		})
@@ -5838,6 +5860,7 @@ func TestMetaProcessor_ReferencedMetaAncestryGate(t *testing.T) {
 				return supernovaEnabled && (flag == common.SupernovaFlag || flag == common.AndromedaFlag)
 			},
 		}
+		coreComponents.EnableRoundsHandlerField = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return headMeta },
 			GetCurrentBlockHeaderHashCalled: func() []byte { return headHash },
@@ -6294,6 +6317,7 @@ func TestMetaProcessor_ShardHeaderContentionRegimes(t *testing.T) {
 
 	buildProcessor := func(t *testing.T, pooledSiblings bool) contentionRegimeProcessor {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.EnableRoundsHandlerField = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.SupernovaFlag

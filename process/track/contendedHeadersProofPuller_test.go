@@ -31,10 +31,11 @@ func createProofPullTrackerScaffold(supernovaEnabled bool) (track.ArgShardTracke
 		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 			return supernovaEnabled && flag == common.SupernovaFlag
 		},
-		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return false
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+			return supernovaEnabled && flag == common.SupernovaFlag
 		},
 	}
+	args.EnableRoundsHandler = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
 
 	roundHandler := &mock.RoundHandlerMock{RoundIndex: 10}
 	args.RoundHandler = roundHandler
@@ -172,6 +173,25 @@ func TestBaseBlockTrack_PullProofsForContendedNonces(t *testing.T) {
 		sbt, err := track.NewShardBlockTrack(args)
 		require.Nil(t, err)
 		_ = sbt.Close() // stop background loops; the test drives the pull explicitly
+
+		addTipWithParent(sbt, 5)
+
+		sbt.PullProofsForContendedNonces()
+		require.Empty(t, *requests)
+	})
+
+	t.Run("Supernova epoch active but round not active should not request", func(t *testing.T) {
+		t.Parallel()
+
+		args, _, requests := createProofPullTrackerScaffold(true)
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(_ common.EnableRoundFlag, _ uint64) bool {
+				return false
+			},
+		}
+		sbt, err := track.NewShardBlockTrack(args)
+		require.Nil(t, err)
+		_ = sbt.Close()
 
 		addTipWithParent(sbt, 5)
 

@@ -8836,7 +8836,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	buildProcessor := func(settled bool, preSupernovaEra bool) (interface {
+	buildProcessor := func(settled bool, preSupernovaEra bool, supernovaRoundActivated bool) (interface {
 		CheckMetaHeadersValidityAndFinality(header data.ShardHeaderHandler) error
 	}, dataRetriever.ProofsPool) {
 		tdp := dataRetrieverMock.NewPoolsHolderMock()
@@ -8871,6 +8871,9 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = hasher
 		coreComponents.IntMarsh = marshalizer
+		if supernovaRoundActivated {
+			coreComponents.EnableRoundsHandlerField = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
+		}
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.SupernovaFlag
@@ -8898,7 +8901,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	t.Run("contended unsettled referenced meta header should error", func(t *testing.T) {
 		t.Parallel()
 
-		sp, _ := buildProcessor(false, false)
+		sp, _ := buildProcessor(false, false, true)
 		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
 		assert.ErrorContains(t, err, "included contended header not yet settled")
 	})
@@ -8906,7 +8909,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	t.Run("contended settled referenced meta header should pass", func(t *testing.T) {
 		t.Parallel()
 
-		sp, _ := buildProcessor(true, false)
+		sp, _ := buildProcessor(true, false, true)
 		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
 		assert.Nil(t, err)
 	})
@@ -8914,7 +8917,15 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	t.Run("pre-Supernova contended referenced meta header is not gated", func(t *testing.T) {
 		t.Parallel()
 
-		sp, _ := buildProcessor(false, true)
+		sp, _ := buildProcessor(false, true, true)
+		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
+		assert.Nil(t, err)
+	})
+
+	t.Run("Supernova epoch active but round not active: contended referenced meta header is not gated", func(t *testing.T) {
+		t.Parallel()
+
+		sp, _ := buildProcessor(false, false, false)
 		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
 		assert.Nil(t, err)
 	})
@@ -8922,7 +8933,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	t.Run("own proof supersedes the contended gate on the execution path", func(t *testing.T) {
 		t.Parallel()
 
-		sp, proofs := buildProcessor(false, false)
+		sp, proofs := buildProcessor(false, false, true)
 		ownHeader := &block.Header{Nonce: 7}
 		headerBytes, _ := marshalizer.Marshal(ownHeader)
 		ownHash := hasher.Compute(string(headerBytes))

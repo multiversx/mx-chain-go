@@ -1214,7 +1214,11 @@ func TestBlockProcessorComputeLongestChain_ContendedUnsettledCrossHeader(t *test
 	h3Bytes, _ := marshallerMock.Marshal(header3)
 	headerHash3 := hasherMock.Compute(string(h3Bytes))
 
-	newBlockProcessor := func(settled func(header data.HeaderHandler, headerHash []byte) bool) interface {
+	newBlockProcessor := func(
+		supernovaEpochActive bool,
+		supernovaRoundActive bool,
+		settled func(header data.HeaderHandler, headerHash []byte) bool,
+	) interface {
 		ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	} {
 		blockProcessorArguments := CreateBlockProcessorMockArguments()
@@ -1223,8 +1227,11 @@ func TestBlockProcessorComputeLongestChain_ContendedUnsettledCrossHeader(t *test
 				return flag == common.SupernovaFlag
 			},
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
-				return flag == common.SupernovaFlag
+				return supernovaEpochActive && flag == common.SupernovaFlag
 			},
+		}
+		if supernovaRoundActive {
+			blockProcessorArguments.EnableRoundsHandler = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
 		}
 		blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
 			SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
@@ -1236,11 +1243,17 @@ func TestBlockProcessorComputeLongestChain_ContendedUnsettledCrossHeader(t *test
 		bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 		return bp
 	}
+	neverSettled := func(message string) func(header data.HeaderHandler, headerHash []byte) bool {
+		return func(header data.HeaderHandler, headerHash []byte) bool {
+			require.Fail(t, message)
+			return false
+		}
+	}
 
 	t.Run("contended unsettled cross header is excluded", func(t *testing.T) {
 		t.Parallel()
 
-		bp := newBlockProcessor(func(header data.HeaderHandler, headerHash []byte) bool {
+		bp := newBlockProcessor(true, true, func(header data.HeaderHandler, headerHash []byte) bool {
 			return false
 		})
 
@@ -1253,7 +1266,7 @@ func TestBlockProcessorComputeLongestChain_ContendedUnsettledCrossHeader(t *test
 	t.Run("contended settled cross header is included", func(t *testing.T) {
 		t.Parallel()
 
-		bp := newBlockProcessor(func(header data.HeaderHandler, headerHash []byte) bool {
+		bp := newBlockProcessor(true, true, func(header data.HeaderHandler, headerHash []byte) bool {
 			return bytes.Equal(headerHash, headerHash2)
 		})
 
@@ -1267,26 +1280,19 @@ func TestBlockProcessorComputeLongestChain_ContendedUnsettledCrossHeader(t *test
 	t.Run("pre-Supernova contended cross header is not subject to settlement", func(t *testing.T) {
 		t.Parallel()
 
-		blockProcessorArguments := CreateBlockProcessorMockArguments()
-		blockProcessorArguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.SupernovaFlag
-			},
-			IsFlagEnabledInEpochCalled: func(_ core.EnableEpochFlag, _ uint32) bool {
-				return false
-			},
-		}
-		blockProcessorArguments.BlockTracker = &mock.BlockTrackerHandlerMock{
-			SortHeadersFromNonceCalled: func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte) {
-				return []data.HeaderHandler{header2, header3}, [][]byte{headerHash2, headerHash3}
-			},
-			IsSettledCrossHeaderCalled: func(header data.HeaderHandler, headerHash []byte) bool {
-				require.Fail(t, "settlement must not be consulted for a pre-Supernova header")
-				return false
-			},
-		}
+		bp := newBlockProcessor(false, true, neverSettled("settlement must not be consulted for a pre-Supernova header"))
 
-		bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+		headers, hashes := bp.ComputeLongestChain(1, header1)
+
+		require.Equal(t, 1, len(headers))
+		assert.Equal(t, header2, headers[0])
+		assert.Equal(t, headerHash2, hashes[0])
+	})
+
+	t.Run("Supernova epoch active but round not active: contended cross header is not subject to settlement", func(t *testing.T) {
+		t.Parallel()
+
+		bp := newBlockProcessor(true, false, neverSettled("settlement must not be consulted before the Supernova round activation"))
 
 		headers, hashes := bp.ComputeLongestChain(1, header1)
 

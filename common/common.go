@@ -656,3 +656,16 @@ func IsContendedHeader(header data.HeaderHandler, parentHeader data.HeaderHandle
 func IsContendedRound(round uint64, parentRound uint64) bool {
 	return round > parentRound+1
 }
+
+// IsCrossHeaderSettlementEnabledForHeader returns true for headers produced after both Supernova activations.
+func IsCrossHeaderSettlementEnabledForHeader(
+	enableEpochsHandler EnableEpochsHandler,
+	enableRoundsHandler EnableRoundsHandler,
+	header data.HeaderHandler,
+) bool {
+	if check.IfNil(header) {
+		return false
+	}
+
+	return IsAsyncExecutionEnabledForEpochAndRound(enableEpochsHandler, enableRoundsHandler, header.GetEpoch(), header.GetRound())
+}
