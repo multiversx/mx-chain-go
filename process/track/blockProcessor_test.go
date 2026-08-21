@@ -202,6 +202,17 @@ func TestNewBlockProcessor_ShouldErrNilEnableEpochsHandler(t *testing.T) {
 	assert.Nil(t, bp)
 }
 
+func TestNewBlockProcessor_ShouldErrNilEnableRoundsHandler(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments.EnableRoundsHandler = nil
+	bp, err := track.NewBlockProcessor(blockProcessorArguments)
+
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+	assert.Nil(t, bp)
+}
+
 func TestNewBlockProcessor_ShouldErrNilProofsPool(t *testing.T) {
 	t.Parallel()
 

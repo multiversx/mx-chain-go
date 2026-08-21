@@ -402,6 +402,24 @@ func TestNewBlockTrack_ShouldErrNilWhitelistHandler(t *testing.T) {
 	assert.True(t, check.IfNil(mbt))
 }
 
+func TestNewBlockTrack_ShouldErrNilEnableRoundsHandler(t *testing.T) {
+	t.Parallel()
+
+	shardArguments := CreateShardTrackerMockArguments()
+	shardArguments.EnableRoundsHandler = nil
+	sbt, err := track.NewShardBlockTrack(shardArguments)
+
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+	assert.Nil(t, sbt)
+
+	metaArguments := CreateMetaTrackerMockArguments()
+	metaArguments.EnableRoundsHandler = nil
+	mbt, err := track.NewMetaBlockTrack(metaArguments)
+
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+	assert.True(t, check.IfNil(mbt))
+}
+
 func TestNewBlockTrack_ShouldWork(t *testing.T) {
 	t.Parallel()
 
