@@ -185,8 +185,12 @@ func TestBaseBlockTrack_PullProofsForContendedNonces(t *testing.T) {
 
 		args, _, requests := createProofPullTrackerScaffold(true)
 		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
-			IsFlagEnabledInRoundCalled: func(_ common.EnableRoundFlag, _ uint64) bool {
+			IsFlagEnabledCalled: func(_ common.EnableRoundFlag) bool {
 				return false
+			},
+			IsFlagEnabledInRoundCalled: func(_ common.EnableRoundFlag, _ uint64) bool {
+				require.Fail(t, "header round should not be checked while Supernova round is inactive")
+				return true
 			},
 		}
 		sbt, err := track.NewShardBlockTrack(args)

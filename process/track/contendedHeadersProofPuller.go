@@ -50,7 +50,7 @@ func (bbt *baseBlockTrack) pullProofsForContendedNoncesLoop(ctx context.Context)
 // pullProofsForContendedNonces requests all proofs at each unresolved contended nonce, once per
 // round with backoff; a child does not settle a contended header, so states outlive tip advances
 func (bbt *baseBlockTrack) pullProofsForContendedNonces() {
-	if !bbt.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	if !common.IsAsyncExecutionEnabled(bbt.enableEpochsHandler, bbt.enableRoundsHandler) {
 		return
 	}
 
