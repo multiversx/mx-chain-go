@@ -1073,6 +1073,8 @@ func (rrh *resolverRequestHandler) requestReservedEquivalentProofByNonce(key str
 		log.Error("RequestEquivalentProofByNonceForEpoch.getEquivalentProofsRequester",
 			"error", err.Error(),
 			"headerNonce", headerNonce,
+			"headerShard", headerShard,
+			"epoch", epoch,
 		)
 		return
 	}
