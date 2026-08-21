@@ -32,7 +32,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.5
 	github.com/shirou/gopsutil v3.21.11+incompatible
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.12.1
 	github.com/urfave/cli v1.22.16
 	golang.org/x/crypto v0.32.0
 	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c
@@ -159,7 +159,6 @@ require (
 	github.com/pion/transport/v3 v3.0.7 // indirect
 	github.com/pion/turn/v2 v2.1.6 // indirect
 	github.com/pion/webrtc/v3 v3.3.5 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/polydawn/refmt v0.89.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
@@ -193,6 +192,7 @@ require (
 	go.uber.org/mock v0.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
