@@ -8,9 +8,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
@@ -251,13 +253,41 @@ func TestSingleDataInterceptor_ProcessReceivedMessageIsNotValidShouldNotCallProc
 func TestSingleDataInterceptor_ProcessReceivedMessageIsNotForCurrentShardShouldNotCallProcess(t *testing.T) {
 	t.Parallel()
 
-	testProcessReceiveMessage(t, false, nil, 0)
+	testProcessReceiveMessage(t, false, process.ErrInterceptedDataNotForCurrentShard, 0)
 }
 
 func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	t.Parallel()
 
 	testProcessReceiveMessage(t, true, nil, 1)
+}
+
+func TestSingleDataInterceptor_ProcessReceivedMessageDuplicateShouldBeIgnored(t *testing.T) {
+	t.Parallel()
+
+	for _, duplicateErr := range []error{
+		common.ErrAlreadyExistingEquivalentProof,
+		process.ErrDuplicatedInterceptedDataNotAllowed,
+	} {
+		arg := createMockArgSingleDataInterceptor()
+		arg.DataFactory = &mock.InterceptedDataFactoryStub{
+			CreateCalled: func(_ []byte) (process.InterceptedData, error) {
+				return &testscommon.InterceptedDataStub{HashCalled: func() []byte { return []byte("hash") }}, nil
+			},
+		}
+		arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
+			VerifyCalled: func(_ process.InterceptedData, _ string, _ p2p.BroadcastMethod) error {
+				return duplicateErr
+			},
+		}
+		sdi, err := interceptors.NewSingleDataInterceptor(arg)
+		require.NoError(t, err)
+
+		messageID, err := sdi.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{DataField: []byte("data")}, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+
+		require.ErrorIs(t, err, p2p.ErrMessageShouldBeIgnored)
+		require.Equal(t, []byte("hash"), messageID)
+	}
 }
 
 func testProcessReceiveMessage(t *testing.T, isForCurrentShard bool, validityErr error, calledNum int) {
@@ -310,7 +340,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWhitelistedShouldWork(t *te
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 		HashCalled: func() []byte {
 			return msgHash
@@ -368,7 +398,7 @@ func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr er
 			return expectedErr
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 	}
 
@@ -424,7 +454,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
-			return false
+			return true
 		},
 		HashCalled: func() []byte {
 			return msgHash

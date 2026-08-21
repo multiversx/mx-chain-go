@@ -1526,16 +1526,17 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		ConfigPathsHolder:   *nr.configs.ConfigurationPathsHolder,
-		EpochConfig:         *nr.configs.EpochConfig,
-		RoundConfig:         *nr.configs.RoundConfig,
-		ImportDbConfig:      *nr.configs.ImportDbConfig,
-		RatingsConfig:       *nr.configs.RatingsConfig,
-		EconomicsConfig:     *nr.configs.EconomicsConfig,
-		NodesConfig:         *nr.configs.NodesConfig,
-		WorkingDirectory:    nr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess: chanStopNodeProcess,
+		Config:                *nr.configs.GeneralConfig,
+		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
+		EpochConfig:           *nr.configs.EpochConfig,
+		RoundConfig:           *nr.configs.RoundConfig,
+		ImportDbConfig:        *nr.configs.ImportDbConfig,
+		RatingsConfig:         *nr.configs.RatingsConfig,
+		EconomicsConfig:       *nr.configs.EconomicsConfig,
+		NodesConfig:           *nr.configs.NodesConfig,
+		WorkingDirectory:      nr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess:   chanStopNodeProcess,
+		PrintPrettifiedHeader: nr.configs.FlagsConfig.PrintPrettifiedHeader,
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)
@@ -1561,12 +1562,13 @@ func (nr *nodeRunner) CreateManagedStatusCoreComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 ) (mainFactory.StatusCoreComponentsHandler, error) {
 	args := statusCore.StatusCoreComponentsFactoryArgs{
-		Config:          *nr.configs.GeneralConfig,
-		EpochConfig:     *nr.configs.EpochConfig,
-		RoundConfig:     *nr.configs.RoundConfig,
-		RatingsConfig:   *nr.configs.RatingsConfig,
-		EconomicsConfig: *nr.configs.EconomicsConfig,
-		CoreComp:        coreComponents,
+		Config:                     *nr.configs.GeneralConfig,
+		EpochConfig:                *nr.configs.EpochConfig,
+		RoundConfig:                *nr.configs.RoundConfig,
+		RatingsConfig:              *nr.configs.RatingsConfig,
+		EconomicsConfig:            *nr.configs.EconomicsConfig,
+		SystemSmartContractsConfig: *nr.configs.SystemSCConfig,
+		CoreComp:                   coreComponents,
 	}
 
 	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)

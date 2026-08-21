@@ -9,10 +9,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	"github.com/multiversx/mx-chain-go/node/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/node/mock"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 func TestWithInitialNodesPubKeys(t *testing.T) {
@@ -232,6 +234,27 @@ func TestWithSignTxWithHashEpoch_EnableSignTxWithHashEpochShouldWork(t *testing.
 
 	assert.Equal(t, epochEnable, node.enableSignTxWithHashEpoch)
 	assert.Nil(t, err)
+}
+
+func TestWithMaxTxNonceDeltaAllowed(t *testing.T) {
+	t.Parallel()
+
+	n, _ := NewNode()
+
+	err := WithMaxTxNonceDeltaAllowed(1000)(n)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1000, n.maxTxNonceDeltaAllowed)
+}
+
+func TestWithMaxTxNonceDeltaAllowedInvalidValue(t *testing.T) {
+	t.Parallel()
+
+	n, _ := NewNode()
+
+	err := WithMaxTxNonceDeltaAllowed(0)(n)
+
+	assert.ErrorIs(t, err, process.ErrInvalidMaxNonceDifference)
 }
 
 func TestWithESDTNFTStorageHandler(t *testing.T) {

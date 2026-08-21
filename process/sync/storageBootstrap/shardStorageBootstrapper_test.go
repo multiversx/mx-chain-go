@@ -3,16 +3,19 @@ package storageBootstrap
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -498,5 +501,155 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldCleanupRoundsAboveBootstr
 		// all rounds info should be cleaned
 		assert.Equal(t, 100, cleanupCount)
 		assert.True(t, wasCalledBlockchainSetHeader)
+	})
+}
+
+func TestShardStorageBootstrapper_LoadFromStorageRestoresPersistedFinalUnderSupernova(t *testing.T) {
+	t.Parallel()
+
+	marshaller := &mock.MarshalizerMock{}
+	chainID := []byte("1")
+
+	newHeader := func(nonce uint64, round uint64, prevHash []byte) *block.HeaderV2 {
+		return &block.HeaderV2{Header: &block.Header{Nonce: nonce, Round: round, PrevHash: prevHash, ChainID: chainID}}
+	}
+
+	hash3997, hash3998, hash3999 := []byte("hash3997"), []byte("hash3998"), []byte("hash3999")
+	headers := map[string]*block.HeaderV2{
+		string(hash3997): newHeader(3997, 3997, []byte("hash3996")),
+		string(hash3998): newHeader(3998, 3998, hash3997),
+		// contended head: skipped rounds before it, persisted final stayed behind
+		string(hash3999): newHeader(3999, 4005, hash3998),
+	}
+
+	blockStorer := genericMocks.NewStorerMock()
+	for hash, header := range headers {
+		headerBytes, _ := marshaller.Marshal(header)
+		_ = blockStorer.Put([]byte(hash), headerBytes)
+	}
+
+	proofBytes, _ := marshaller.Marshal(&block.HeaderProof{})
+	proofsStorer := &storageMock.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			return proofBytes, nil
+		},
+	}
+
+	bootstrapDataByRound := map[int64]bootstrapStorage.BootstrapData{
+		4000: {
+			LastHeader:             bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Nonce: 3999, Hash: hash3999},
+			HighestFinalBlockNonce: 3998,
+			LastRound:              3999,
+		},
+		3999: {
+			LastHeader:             bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Nonce: 3998, Hash: hash3998},
+			HighestFinalBlockNonce: 3998,
+			LastRound:              3998,
+		},
+		3998: {
+			LastHeader:             bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Nonce: 3997, Hash: hash3997},
+			HighestFinalBlockNonce: 3997,
+			LastRound:              3997,
+		},
+	}
+
+	createArgs := func(events *[]string, restoredFinalNonce uint64, addHeaderErrNonce uint64) ArgsShardStorageBootstrapper {
+		args := ArgsShardStorageBootstrapper{createMockShardStorageBootstrapperArgs()}
+		args.Marshalizer = marshaller
+		args.ChainID = string(chainID)
+		args.BootstrapRoundIndex = 4000
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag || flag == common.SupernovaFlag
+			},
+		}
+		args.BlockTracker = &mock.BlockTrackerMock{
+			AddTrackedHeaderCalled:       func(header data.HeaderHandler, hash []byte) {},
+			AddSelfNotarizedHeaderCalled: func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte) {},
+		}
+		args.BootStorer = &mock.BoostrapStorerMock{
+			GetHighestRoundCalled: func() int64 {
+				return 4000
+			},
+			GetCalled: func(round int64) (bootstrapStorage.BootstrapData, error) {
+				bootstrapData, ok := bootstrapDataByRound[round]
+				if !ok {
+					return bootstrapStorage.BootstrapData{}, errors.New("not found")
+				}
+				return bootstrapData, nil
+			},
+			SaveLastRoundCalled: func(round int64) error {
+				return nil
+			},
+		}
+		args.Store = &storageMock.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == dataRetriever.ProofsUnit {
+					return proofsStorer, nil
+				}
+
+				return blockStorer, nil
+			},
+		}
+		args.ForkDetector = &mock.ForkDetectorMock{
+			AddCheckpointCalled: func(nonce uint64, round uint64, hash []byte) {
+				*events = append(*events, fmt.Sprintf("addCheckpoint-%d", nonce))
+			},
+			SetFinalToLastCheckpointCalled: func() {
+				*events = append(*events, "setFinal")
+			},
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, _ []data.HeaderHandler, _ [][]byte) error {
+				*events = append(*events, fmt.Sprintf("addHeader-%d", header.GetNonce()))
+				if header.GetNonce() == addHeaderErrNonce {
+					return errors.New("add header failed")
+				}
+				return nil
+			},
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return restoredFinalNonce
+			},
+		}
+
+		return args
+	}
+
+	t.Run("contended head restores as non-final, final checkpoint set at the persisted nonce", func(t *testing.T) {
+		t.Parallel()
+
+		events := make([]string, 0)
+		ssb, err := NewShardStorageBootstrapper(createArgs(&events, 3998, 0))
+		require.Nil(t, err)
+
+		err = ssb.LoadFromStorage()
+		require.Nil(t, err)
+
+		expectedEvents := []string{
+			"addCheckpoint-3999",
+			"addHeader-3997",
+			"addHeader-3998",
+			"setFinal",
+			"addHeader-3999",
+		}
+		require.Equal(t, expectedEvents, events)
+	})
+
+	t.Run("final checkpoint falls back to head when the persisted nonce cannot be restored", func(t *testing.T) {
+		t.Parallel()
+
+		events := make([]string, 0)
+		ssb, err := NewShardStorageBootstrapper(createArgs(&events, 0, 3998))
+		require.Nil(t, err)
+
+		err = ssb.LoadFromStorage()
+		require.Nil(t, err)
+
+		expectedEvents := []string{
+			"addCheckpoint-3999",
+			"addHeader-3997",
+			"addHeader-3998",
+			"addHeader-3999",
+			"setFinal",
+		}
+		require.Equal(t, expectedEvents, events)
 	})
 }

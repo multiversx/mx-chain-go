@@ -17,7 +17,8 @@ type txCache interface {
 	AddTx(tx *txcache.WrappedTransaction) (ok bool, added bool)
 	GetByTxHash(txHash []byte) (*txcache.WrappedTransaction, bool)
 	RemoveTxByHash(txHash []byte) bool
-	ImmunizeTxsAgainstEviction(keys [][]byte)
+	ImmunizeTxsAgainstEviction(keys [][]byte, nonce uint64)
+	SetOldestImmuneNonce(nonce uint64)
 	ForEachTransaction(function txcache.ForEachTransaction)
 	NumBytes() int
 	Diagnose(deep bool)
@@ -27,7 +28,7 @@ type txCache interface {
 	OnBackfilledBlock(blockHash []byte, blockBody data.BodyHandler, blockHeader data.HeaderHandler) error
 	OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error
 	ResetTracker()
-	Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64
+	Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) uint64
 }
 
 type txGasHandler interface {

@@ -191,7 +191,6 @@ func (txs *transactions) IsDataPrepared(requestedTxs int, haveTime func() time.D
 		log.Debug("requested missing txs", "num txs", requestedTxs)
 		err := txs.txsForCurrBlock.WaitForRequestedData(haveTime())
 		missingTxs := txs.txsForCurrBlock.GetMissingTxsCount()
-		// TODO: previously the number of missing txs was cleared in txsForCurrentBlock - check if this is still needed
 		log.Debug("received missing txs", "num txs", requestedTxs-missingTxs, "requested", requestedTxs, "missing", missingTxs)
 		if err != nil {
 			return err
@@ -914,8 +913,6 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	}
 	if isNotExecutable {
 		txs.txExecutionOrderHandler.Remove(txHash)
-		// TODO: remove log if no longer needed for validation
-		log.Debug("processAndRemoveBadTransaction - found not executable transaction", "txHash", txHash)
 		if !isAsyncExecEnabled {
 			strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 			txs.txPool.RemoveData(txHash, strCache)
@@ -1715,7 +1712,7 @@ func (txs *transactions) ProcessMiniBlock(
 		numTXsProcessed++
 	}
 
-	if err != nil && !partialMbExecutionMode {
+	if err != nil && (!partialMbExecutionMode || scheduledMode) {
 		return processedTxHashes, txIndex - 1, true, err
 	}
 

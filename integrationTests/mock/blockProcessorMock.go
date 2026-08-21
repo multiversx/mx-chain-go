@@ -15,7 +15,8 @@ type BlockProcessorMock struct {
 	Marshalizer                      marshal.Marshalizer
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	ProcessBlockProposalCalled       func(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
-	CommitBlockProposalStateCalled   func(headerHandler data.HeaderHandler) error
+	CommitBlockProposalStateCalled   func(headerHandler data.HeaderHandler, headerHash []byte) error
+	DiscardStateAccessesCalled       func(headerHash []byte)
 	RevertBlockProposalStateCalled   func()
 	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
@@ -65,12 +66,19 @@ func (bpm *BlockProcessorMock) ProcessBlockProposal(header data.HeaderHandler, h
 }
 
 // CommitBlockProposalState -
-func (bpm *BlockProcessorMock) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+func (bpm *BlockProcessorMock) CommitBlockProposalState(headerHandler data.HeaderHandler, headerHash []byte) error {
 	if bpm.CommitBlockProposalStateCalled != nil {
-		return bpm.CommitBlockProposalStateCalled(headerHandler)
+		return bpm.CommitBlockProposalStateCalled(headerHandler, headerHash)
 	}
 
 	return nil
+}
+
+// DiscardStateAccessesForHeader -
+func (bpm *BlockProcessorMock) DiscardStateAccessesForHeader(headerHash []byte) {
+	if bpm.DiscardStateAccessesCalled != nil {
+		bpm.DiscardStateAccessesCalled(headerHash)
+	}
 }
 
 // RevertBlockProposalState -

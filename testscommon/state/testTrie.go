@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	disabled2 "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
@@ -27,7 +28,7 @@ func GetDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 		Marshalizer: marshaller,
 		Hasher:      hasher,
 		GeneralConfig: config.TrieStorageManagerConfig{
-			SnapshotsGoroutineNum: 5,
+			SnapshotsGoroutinesPerCore: 5,
 		},
 		IdleProvider:   disabled2.NewProcessStatusHandler(),
 		Identifier:     "identifier",

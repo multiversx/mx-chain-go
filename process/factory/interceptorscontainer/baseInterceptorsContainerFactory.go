@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -34,31 +35,33 @@ const (
 )
 
 type baseInterceptorsContainerFactory struct {
-	mainContainer                  process.InterceptorsContainer
-	fullArchiveContainer           process.InterceptorsContainer
-	shardCoordinator               sharding.Coordinator
-	accounts                       state.AccountsAdapter
-	store                          dataRetriever.StorageService
-	dataPool                       dataRetriever.PoolsHolder
-	mainMessenger                  process.TopicHandler
-	fullArchiveMessenger           process.TopicHandler
-	nodesCoordinator               nodesCoordinator.NodesCoordinator
-	blockBlackList                 process.TimeCacher
-	argInterceptorFactory          *interceptorFactory.ArgInterceptedDataFactory
-	globalThrottler                process.InterceptorThrottler
-	maxTxNonceDeltaAllowed         int
-	antifloodHandler               process.P2PAntifloodHandler
-	whiteListHandler               process.WhiteListHandler
-	whiteListerVerifiedTxs         process.WhiteListHandler
-	preferredPeersHolder           process.PreferredPeersHolderHandler
-	hasher                         hashing.Hasher
-	requestHandler                 process.RequestHandler
-	mainPeerShardMapper            process.PeerShardMapper
-	fullArchivePeerShardMapper     process.PeerShardMapper
-	hardforkTrigger                heartbeat.HardforkTrigger
-	nodeOperationMode              common.NodeOperation
-	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
-	enableEpochsHandler            common.EnableEpochsHandler
+	mainContainer                   process.InterceptorsContainer
+	fullArchiveContainer            process.InterceptorsContainer
+	shardCoordinator                sharding.Coordinator
+	accounts                        state.AccountsAdapter
+	store                           dataRetriever.StorageService
+	dataPool                        dataRetriever.PoolsHolder
+	mainMessenger                   process.TopicHandler
+	fullArchiveMessenger            process.TopicHandler
+	nodesCoordinator                nodesCoordinator.NodesCoordinator
+	blockBlackList                  process.TimeCacher
+	argInterceptorFactory           *interceptorFactory.ArgInterceptedDataFactory
+	globalThrottler                 process.InterceptorThrottler
+	maxTxNonceDeltaAllowed          int
+	antifloodHandler                process.P2PAntifloodHandler
+	whiteListHandler                process.WhiteListHandler
+	whiteListerVerifiedTxs          process.WhiteListHandler
+	preferredPeersHolder            process.PreferredPeersHolderHandler
+	hasher                          hashing.Hasher
+	requestHandler                  process.RequestHandler
+	maxAllowedTrieNodeChunks        uint32
+	trieNodeChunksInactivityTimeout time.Duration
+	mainPeerShardMapper             process.PeerShardMapper
+	fullArchivePeerShardMapper      process.PeerShardMapper
+	hardforkTrigger                 heartbeat.HardforkTrigger
+	nodeOperationMode               common.NodeOperation
+	interceptedDataVerifierFactory  process.InterceptedDataVerifierFactory
+	enableEpochsHandler             common.EnableEpochsHandler
 	config                         config.Config
 }
 
@@ -219,7 +222,7 @@ func createTopicAndAssignHandlerOnMessenger(
 	return messenger.RegisterMessageProcessor(topic, common.DefaultInterceptorsIdentifier, interceptor)
 }
 
-// ------- tx interceptors
+// ------- Tx interceptors
 
 func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {
 	shardC := bicf.shardCoordinator
@@ -726,11 +729,13 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 	}
 
 	argChunkProcessor := processor.TrieNodesChunksProcessorArgs{
-		Hasher:          bicf.hasher,
-		ChunksCacher:    bicf.dataPool.TrieNodesChunks(),
-		RequestInterval: chunksProcessorRequestInterval,
-		RequestHandler:  bicf.requestHandler,
-		Topic:           topic,
+		Hasher:                 bicf.hasher,
+		ChunksCacher:           bicf.dataPool.TrieNodesChunks(),
+		RequestInterval:        chunksProcessorRequestInterval,
+		RequestHandler:         bicf.requestHandler,
+		Topic:                  topic,
+		MaxAllowedChunks:       bicf.maxAllowedTrieNodeChunks,
+		ChunkInactivityTimeout: bicf.trieNodeChunksInactivityTimeout,
 	}
 
 	chunkProcessor, err := processor.NewTrieNodeChunksProcessor(argChunkProcessor)

@@ -60,3 +60,6 @@ var ErrNilChainParametersNotifier = errors.New("nil chain parameters notifier")
 
 // ErrInvalidChainParametersForEpoch signals that an invalid chain parameters for epoch has been provided
 var ErrInvalidChainParametersForEpoch = errors.New("invalid chain parameters for epoch")
+
+// ErrDuplicateChainParametersEpoch signals duplicate chain parameters for the same epoch
+var ErrDuplicateChainParametersEpoch = errors.New("duplicate chain parameters epoch")

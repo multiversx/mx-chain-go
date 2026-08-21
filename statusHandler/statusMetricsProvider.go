@@ -226,7 +226,7 @@ func (sm *statusMetrics) addPrometheusMetricToStringBuilder(builder *strings.Bui
 		value = computeDelta(sm.uint64Metrics[common.MetricCurrentRound], sm.uint64Metrics[common.MetricRoundAtEpochStart])
 		sm.mutUint64Operations.RUnlock()
 	}
-	builder.WriteString(fmt.Sprintf("%s{%s=\"%d\"} %v\n", key, common.MetricShardId, shardID, value))
+	_, _ = fmt.Fprintf(builder, "%s{%s=\"%d\"} %v\n", key, common.MetricShardId, shardID, value)
 }
 
 // EconomicsMetrics returns the economics related metrics
@@ -268,6 +268,9 @@ func (sm *statusMetrics) ConfigMetrics() (map[string]interface{}, error) {
 	configMetrics[common.MetricMinTransactionVersion] = sm.uint64Metrics[common.MetricMinTransactionVersion]
 	configMetrics[common.MetricRoundsPerEpoch] = sm.uint64Metrics[common.MetricRoundsPerEpoch]
 	configMetrics[common.MetricGasPerDataByte] = sm.uint64Metrics[common.MetricGasPerDataByte]
+	configMetrics[common.MetricUnBondPeriod] = sm.uint64Metrics[common.MetricUnBondPeriod]
+	configMetrics[common.MetricUnBondPeriodSupernova] = sm.uint64Metrics[common.MetricUnBondPeriodSupernova]
+	configMetrics[common.MetricUnBondPeriodInEpochs] = sm.uint64Metrics[common.MetricUnBondPeriodInEpochs]
 	sm.mutUint64Operations.RUnlock()
 
 	sm.mutStringOperations.RLock()

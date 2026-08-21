@@ -297,6 +297,11 @@ func (bp *blockProcessor) getNextHeader(
 			break
 		}
 
+		if bp.isContendedUnsettledCrossHeader(currHeader, prevHeader, sortedHeadersHashes[i]) {
+			log.Trace("getNextHeader: skipping contended unsettled cross header", "hash", sortedHeadersHashes[i])
+			continue
+		}
+
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
 			continue
@@ -311,6 +316,24 @@ func (bp *blockProcessor) getNextHeader(
 		bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, sortedHeadersHashes, i+1)
 		headersIndexes = headersIndexes[:len(headersIndexes)-1]
 	}
+}
+
+// isContendedUnsettledCrossHeader applies the cross-shard referencing gate: a header that
+// skipped a round after its parent is not includable until it settles (see IsSettledCrossHeader)
+func (bp *blockProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandler, parentHeader data.HeaderHandler, headerHash []byte) bool {
+	if header.GetShardID() == bp.shardCoordinator.SelfId() {
+		return false
+	}
+	// keyed on the header's own epoch: a pre-Supernova header predates the settlement rules and
+	// could never satisfy them
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
+		return false
+	}
+	if !common.IsContendedHeader(header, parentHeader) {
+		return false
+	}
+
+	return !bp.blockTracker.IsSettledCrossHeader(header, headerHash)
 }
 
 func (bp *blockProcessor) checkHeaderFinality(
@@ -497,12 +520,31 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 
 		if shardID == core.MetachainShardId {
 			bp.requestHandler.RequestMetaHeaderByNonce(nonce)
-			bp.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
 		} else {
 			bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
-			bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
+		}
+		bp.requestProofByNonceIfPossible(shardID, nonce)
+	}
+}
+
+// requestProofByNonceIfPossible pairs a proof request with the header request, unless every pooled
+// candidate at the nonce predates the proofs flag, in which case no proof can exist
+func (bp *blockProcessor) requestProofByNonceIfPossible(shardID uint32, nonce uint64) {
+	headers, _, err := bp.headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
+	if err == nil && len(headers) > 0 {
+		allBeforeProofsFlag := true
+		for _, header := range headers {
+			if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
+				allBeforeProofsFlag = false
+				break
+			}
+		}
+		if allBeforeProofsFlag {
+			return
 		}
 	}
+
+	bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

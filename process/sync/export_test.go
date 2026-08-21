@@ -6,9 +6,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
+
+// GetNextHeaderRequestingIfMissing -
+func (boot *baseBootstrap) GetNextHeaderRequestingIfMissing() (data.HeaderHandler, []byte, error) {
+	return boot.getNextHeaderRequestingIfMissing()
+}
 
 // RequestHeaderWithNonce -
 func (boot *baseBootstrap) RequestHeaderWithNonce(nonce uint64) {
@@ -33,6 +39,16 @@ func (boot *MetaBootstrap) ReceivedHeaders(header data.HeaderHandler, key []byte
 // ReceivedProof -
 func (boot *MetaBootstrap) ReceivedProof(header data.HeaderProofHandler) {
 	boot.processReceivedProof(header)
+}
+
+// RequestEpochStartBlockIfStuck -
+func (boot *MetaBootstrap) RequestEpochStartBlockIfStuck() {
+	boot.requestEpochStartBlockIfStuck()
+}
+
+// SetWatchdogLastNonce -
+func (boot *MetaBootstrap) SetWatchdogLastNonce(nonce uint64) {
+	boot.watchdogLastNonce = nonce
 }
 
 // SetRcvHdrNonce -
@@ -115,6 +131,11 @@ func (bfd *baseForkDetector) FinalCheckpointNonce() uint64 {
 // FinalCheckpointRound -
 func (bfd *baseForkDetector) FinalCheckpointRound() uint64 {
 	return bfd.finalCheckpoint().round
+}
+
+// SettledCheckpointNonce -
+func (bfd *baseForkDetector) SettledCheckpointNonce() uint64 {
+	return bfd.settledCheckpoint().nonce
 }
 
 // CheckBlockValidity -
@@ -305,7 +326,7 @@ func (boot *baseBootstrap) SetNodeStateCalculated(state bool) {
 
 // ComputeNodeState -
 func (boot *baseBootstrap) ComputeNodeState() {
-	boot.computeNodeState()
+	boot.computeNodeState(boot.roundHandler.Index())
 }
 
 // DoJobOnSyncBlockFail -
@@ -327,6 +348,57 @@ func (boot *baseBootstrap) GetNumSyncedWithErrorsForNonce(nonce uint64) uint32 {
 	boot.mutNonceSyncedWithErrors.RUnlock()
 
 	return numSyncedWithErrors
+}
+
+// GetPreparedForSync -
+func (boot *baseBootstrap) GetPreparedForSync() bool {
+	return boot.preparedForSync
+}
+
+// GetPendingV3Realign -
+func (boot *baseBootstrap) GetPendingV3Realign() bool {
+	return boot.pendingV3Realign
+}
+
+// GetPendingV3RollBackHash -
+func (boot *baseBootstrap) GetPendingV3RollBackHash() []byte {
+	if boot.pendingV3RollBack == nil {
+		return nil
+	}
+	return boot.pendingV3RollBack.currHeaderHash
+}
+
+// IsPendingV3RollBackRestoreDone -
+func (boot *baseBootstrap) IsPendingV3RollBackRestoreDone() bool {
+	return boot.pendingV3RollBack != nil && boot.pendingV3RollBack.restoreDone
+}
+
+// SyncBlockBase -
+func (boot *baseBootstrap) SyncBlockBase() error {
+	return boot.syncBlock()
+}
+
+// SetPreparedForSync -
+func (boot *baseBootstrap) SetPreparedForSync(prepared bool) {
+	boot.preparedForSync = prepared
+}
+
+// SetExecutionResultsRecoveryCooldown -
+func (boot *baseBootstrap) SetExecutionResultsRecoveryCooldown(cooldown time.Duration) {
+	boot.executionResultsRecoveryCooldown = cooldown
+}
+
+// GetRecoveryAttemptsForNonce -
+func (boot *baseBootstrap) GetRecoveryAttemptsForNonce(nonce uint64) uint32 {
+	boot.mutNonceSyncedWithErrors.RLock()
+	defer boot.mutNonceSyncedWithErrors.RUnlock()
+
+	info, ok := boot.mapNonceRecoveryAttempts[nonce]
+	if !ok {
+		return 0
+	}
+
+	return info.numAttempts
 }
 
 // GetMapNonceSyncedWithErrorsLen -
@@ -364,4 +436,12 @@ func (boot *baseBootstrap) SaveProposedTxsToPool(
 	body data.BodyHandler,
 ) error {
 	return boot.saveProposedTxsToPool(header, body)
+}
+
+// ShardForkDetectorExported -
+type ShardForkDetectorExported = shardForkDetector
+
+// GetMaxSyncWithErrorsAllowed -
+func (boot *baseBootstrap) GetMaxSyncWithErrorsAllowed(header data.HeaderHandler) uint32 {
+	return boot.getMaxSyncWithErrorsAllowed(header)
 }

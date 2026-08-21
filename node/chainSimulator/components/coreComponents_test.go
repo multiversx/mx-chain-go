@@ -77,16 +77,29 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						MaxConsecutiveRoundsOfRatingDecrease:   600,
 						MaxBlockProcessingTimeMs:               1000,
 						NumHeadersToRequestInAdvance:           10,
+						RoundModulusTriggerWhenSyncIsStuck:     20,
 					},
 				},
 				EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
-					{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+					{EnableEpoch: 0, GracePeriodRounds: 25},
 				},
 				EpochStartConfigsByRound: []config.EpochStartConfigByRound{
 					{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
 				},
 				ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
 					{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+				},
+				ConsensusConfigsByRound: []config.ConsensusConfigByRound{
+					{
+						EnableRound: 0,
+						SubroundsTiming: []config.SubroundTiming{
+							{StartTime: 0.0, EndTime: 0.05},
+							{StartTime: 0.05, EndTime: 0.25},
+							{StartTime: 0.25, EndTime: 0.85},
+							{StartTime: 0.85, EndTime: 0.95},
+						},
+						ProcessingThresholdPercent: 85,
+					},
 				},
 			},
 			Hardfork: config.HardforkConfig{

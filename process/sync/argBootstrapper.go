@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -39,6 +40,7 @@ type ArgBaseBootstrapper struct {
 	BootStorer                   process.BootStorer
 	StorageBootstrapper          process.BootstrapperFromStorage
 	EpochHandler                 dataRetriever.EpochHandler
+	EpochStartTrigger            process.EpochStartTriggerHandler
 	MiniblocksProvider           process.MiniBlockProvider
 	Uint64Converter              typeConverters.Uint64ByteSliceConverter
 	AppStatusHandler             core.AppStatusHandler
@@ -59,6 +61,8 @@ type ArgBaseBootstrapper struct {
 // new instances of shard bootstrapper
 type ArgShardBootstrapper struct {
 	ArgBaseBootstrapper
+	MetaFinalityView process.MetaFinalityView
+	BlockTracker     process.BlockTracker
 }
 
 // ArgMetaBootstrapper holds all dependencies required by the bootstrap data factory in order to create
@@ -68,4 +72,5 @@ type ArgMetaBootstrapper struct {
 	EpochBootstrapper           process.EpochBootstrapper
 	ValidatorStatisticsDBSyncer process.AccountsDBSyncer
 	ValidatorAccountsDB         state.AccountsAdapter
+	Watchdog                    core.WatchdogTimer
 }

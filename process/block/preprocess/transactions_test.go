@@ -1936,6 +1936,83 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 	assert.Equal(t, -1, indexOfLastTxProcessed)
 }
 
+// Scheduled mode mid-MB break must always roll back the whole MB, even when
+// partial-execution mode is on, so the resulting header never combines
+// ProcessingType=Scheduled with ConstructionState=PartialExecuted.
+func TestTransactionsPreprocessor_ProcessMiniBlockScheduledRollsBackOnError(t *testing.T) {
+	t.Parallel()
+
+	tdp := &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
+					return &cache.CacherStub{
+						PeekCalled: func(key []byte) (value interface{}, ok bool) {
+							return &transaction.Transaction{}, true
+						},
+					}
+				},
+			}
+		},
+	}
+
+	txHashes := [][]byte{[]byte("tx_hash1"), []byte("tx_hash2")}
+	miniBlock := &block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+		Type:            block.TxBlock,
+	}
+	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
+		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
+	}
+
+	// haveTime returns true for the initial getAllTxsFromMiniBlock per-tx checks
+	// (one call per tx hash), then false so the per-tx processing loop breaks
+	// immediately with ErrTimeIsOut. haveAdditionalTime always returns false so
+	// both branches of the loop's time-out guard fail together.
+	makeHaveTimeAllowingFetch := func() func() bool {
+		remaining := len(txHashes)
+		return func() bool {
+			if remaining > 0 {
+				remaining--
+				return true
+			}
+			return false
+		}
+	}
+
+	cases := []struct {
+		name               string
+		scheduledMode      bool
+		partialMode        bool
+		expectShouldRevert bool
+	}{
+		{"non-scheduled non-partial revert", false, false, true},
+		{"non-scheduled partial do not revert", false, true, false},
+		{"scheduled non-partial revert", true, false, true},
+		{"scheduled partial revert (mutual exclusion fix)", true, true, true},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			args := createDefaultTransactionsProcessorArgs()
+			args.DataPool = tdp.Transactions()
+			txs, err := NewTransactionPreprocessor(args)
+			require.NoError(t, err)
+
+			_, _, shouldRevert, processErr := txs.ProcessMiniBlock(
+				miniBlock, makeHaveTimeAllowingFetch(), haveAdditionalTimeFalse,
+				tc.scheduledMode, tc.partialMode, -1,
+				preProcessorExecutionInfoHandlerMock,
+			)
+			require.ErrorIs(t, processErr, process.ErrTimeIsOut)
+			require.Equal(t, tc.expectShouldRevert, shouldRevert)
+		})
+	}
+}
+
 func TestTransactionsPreprocessor_ComputeGasProvidedShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -2883,4 +2960,23 @@ func Test_SelectOutgoingTransactions(t *testing.T) {
 		require.Equal(t, 2, len(txHashes))
 		require.Equal(t, 2, len(txInstances))
 	})
+}
+
+func TestTransactions_IsDataPrepared_TimeoutKeepsMissingBookkeeping(t *testing.T) {
+	t.Parallel()
+
+	dataPool := initDataPool()
+	txs := createGoodPreprocessor(dataPool)
+
+	haveTimeShorter := func() time.Duration {
+		return time.Millisecond
+	}
+
+	txs.SetMissingTxs(2)
+	err := txs.IsDataPrepared(2, haveTimeShorter)
+	assert.Equal(t, process.ErrTimeIsOut, err)
+
+	// a retried wait must time out again while the txs are still missing, not report ready
+	err = txs.IsDataPrepared(2, haveTimeShorter)
+	assert.Equal(t, process.ErrTimeIsOut, err)
 }

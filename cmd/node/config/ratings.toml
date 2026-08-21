@@ -43,6 +43,7 @@
         ProposerDecreaseFactor = -4.0
         ValidatorDecreaseFactor = -4.0
         ConsecutiveMissedBlocksPenalty = 1.50
+    # Supernova-paired entry: must stay keyed at SupernovaEnableEpoch and move together with the activation flags
     [[ShardChain.RatingStepsByEpoch]]
         EnableEpoch = 2
         HoursToMaxRatingFromStartRating = 55
@@ -59,6 +60,7 @@
         ProposerDecreaseFactor = -4.0
         ValidatorDecreaseFactor = -4.0
         ConsecutiveMissedBlocksPenalty = 1.50
+    # Supernova-paired entry: must stay keyed at SupernovaEnableEpoch and move together with the activation flags
     [[MetaChain.RatingStepsByEpoch]]
         EnableEpoch = 2
         HoursToMaxRatingFromStartRating = 55

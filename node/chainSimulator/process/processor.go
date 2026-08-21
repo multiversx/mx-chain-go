@@ -1,6 +1,7 @@
 package process
 
 import (
+	"context"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -48,6 +49,11 @@ func NewBlocksCreator(nodeHandler NodeHandler, monitor HeartbeatMonitorWithSet, 
 		createBlockMaxTimePercent:  createBlockHaveTimePercent,
 		bypassCreateBlockTimeCheck: bypassHaveTime,
 	}, nil
+}
+
+// ShardID returns the shard of the underlying node
+func (creator *blocksCreator) ShardID() uint32 {
+	return creator.nodeHandler.GetShardCoordinator().SelfId()
 }
 
 // IncrementRound will increment the current round
@@ -214,10 +220,7 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 			return nil, err
 		}
 
-		headerOutput, err := common.PrettifyStruct(header)
-		if err == nil {
-			log.Debug("Proposed header sent", "header", headerOutput)
-		}
+		common.LogPrettifiedHeader(header, "sent", "v3", creator.nodeHandler.GetCoreComponents().CommonConfigsHandler())
 
 		err = creator.nodeHandler.GetProcessComponents().BlockProcessor().VerifyBlockProposal(header, block, func() time.Duration {
 			return time.Second
@@ -278,6 +281,75 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 		Proof:             headerProof,
 		MiniBlocksBytes:   miniBlocks,
 		TransactionsBytes: transactions,
+	}, nil
+}
+
+// CreateCompetingBlock re-signs a clone of the given committed header at the current round,
+// producing a proofed competitor at the same nonce; the block is not committed nor executed locally
+func (creator *blocksCreator) CreateCompetingBlock(original data.HeaderHandler) (*dtos.BroadcastData, error) {
+	if check.IfNil(original) {
+		return nil, ErrNilOriginalHeader
+	}
+
+	coreComponents := creator.nodeHandler.GetCoreComponents()
+	processComponents := creator.nodeHandler.GetProcessComponents()
+	cryptoComponents := creator.nodeHandler.GetCryptoComponents()
+
+	header := original.ShallowClone()
+	round := uint64(coreComponents.RoundHandler().Index())
+	err := header.SetRound(round)
+	if err != nil {
+		return nil, err
+	}
+
+	creationTime := coreComponents.RoundHandler().TimeStamp()
+	creationTimeStamp := creationTime.Unix()
+	if coreComponents.EnableEpochsHandler().IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
+		creationTimeStamp = creationTime.UnixMilli()
+	}
+	err = header.SetTimeStamp(uint64(creationTimeStamp))
+	if err != nil {
+		return nil, err
+	}
+
+	shardID := creator.nodeHandler.GetShardCoordinator().SelfId()
+	leader, validators, err := processComponents.NodesCoordinator().ComputeConsensusGroup(header.GetPrevRandSeed(), round, shardID, header.GetEpoch())
+	if err != nil {
+		return nil, err
+	}
+	if !cryptoComponents.KeysHandler().IsKeyManagedByCurrentNode(leader.PubKey()) {
+		return nil, nil
+	}
+
+	pubKeyBitmap := GeneratePubKeyBitmap(len(validators))
+	for idx, validator := range validators {
+		if cryptoComponents.KeysHandler().IsKeyManagedByCurrentNode(validator.PubKey()) {
+			continue
+		}
+
+		err = UnsetBitInBitmap(idx, pubKeyBitmap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if header.IsHeaderV3() {
+		err = creator.setHeaderSignatures(header, leader.PubKey(), validators, pubKeyBitmap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// original is passed as prev header only for its nil check; the competitor is never at genesis
+	headerProof, err := creator.ApplySignaturesAndGetProof(header, original, coreComponents.EnableEpochsHandler(), validators, leader, pubKeyBitmap)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dtos.BroadcastData{
+		Header:    header,
+		LeaderKey: leader.PubKey(),
+		Proof:     headerProof,
 	}, nil
 }
 
@@ -391,6 +463,7 @@ func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prev
 	round = uint64(roundHandler.Index()) - 1
 	epoch = chainHandler.GetGenesisHeader().GetEpoch()
 	nonce = chainHandler.GetGenesisHeader().GetNonce()
+	currentHeader = chainHandler.GetGenesisHeader()
 
 	return
 }
@@ -476,7 +549,7 @@ func (creator *blocksCreator) generateAggregatedSignature(headerHash []byte, epo
 		}
 
 		totalKey++
-		if _, err = signingHandler.CreateSignatureShareForPublicKey(headerHash, uint16(idx), epoch, []byte(pubKey)); err != nil {
+		if _, err = signingHandler.CreateSignatureShareForPublicKey(context.TODO(), headerHash, uint16(idx), epoch, []byte(pubKey)); err != nil {
 			return nil, err
 		}
 	}

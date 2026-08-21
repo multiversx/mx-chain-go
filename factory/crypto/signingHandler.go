@@ -1,10 +1,12 @@
 package crypto
 
 import (
+	"context"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -135,9 +137,24 @@ func (sh *signingHandler) Reset(pubKeys []string) error {
 
 // CreateSignatureShareForPublicKey returns a signature over a message using the managed private key that was selected based on the provided
 // publicKeyBytes argument
-func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+func (sh *signingHandler) CreateSignatureShareForPublicKey(
+	ctx context.Context,
+	message []byte,
+	index uint16,
+	epoch uint32,
+	publicKeyBytes []byte,
+) ([]byte, error) {
 	if message == nil {
 		return nil, ErrNilMessage
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil, ErrTimeIsOut
+	default:
 	}
 
 	privateKey := sh.keysHandler.GetHandledPrivateKey(publicKeyBytes)
@@ -145,9 +162,6 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index
 	if err != nil {
 		return nil, err
 	}
-
-	sh.mutSigningData.Lock()
-	defer sh.mutSigningData.Unlock()
 
 	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
 	if err != nil {
@@ -159,7 +173,17 @@ func (sh *signingHandler) CreateSignatureShareForPublicKey(message []byte, index
 		return nil, err
 	}
 
-	sh.data.sigShares[index] = sigShareBytes
+	// check again before setting signatures shares data
+	select {
+	case <-ctx.Done():
+		return nil, ErrTimeIsOut
+	default:
+	}
+
+	err = sh.storeSignatureShare(index, sigShareBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	return sigShareBytes, nil
 }
@@ -212,6 +236,10 @@ func (sh *signingHandler) VerifySignatureShare(index uint16, sig []byte, message
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
 func (sh *signingHandler) StoreSignatureShare(index uint16, sig []byte) error {
+	return sh.storeSignatureShare(index, sig)
+}
+
+func (sh *signingHandler) storeSignatureShare(index uint16, sig []byte) error {
 	if len(sig) == 0 {
 		return ErrInvalidSignature
 	}
@@ -294,6 +322,122 @@ func (sh *signingHandler) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, er
 	}
 
 	return multiSigner.AggregateSigsV2(pubKeysSigners, signatures)
+}
+
+// AggregateSigsWithKeys aggregates the provided signature shares over the provided group,
+// without touching the per-round state; bitmap indices are aligned with pubKeys and sigShares
+func (sh *signingHandler) AggregateSigsWithKeys(pubKeys []string, bitmap []byte, sigShares [][]byte, epoch uint32) ([]byte, error) {
+	pubKeysSigners, err := sh.selectPubKeysByBitmap(pubKeys, bitmap)
+	if err != nil {
+		return nil, err
+	}
+
+	signatures, err := selectSigSharesByBitmap(pubKeys, bitmap, sigShares)
+	if err != nil {
+		return nil, err
+	}
+
+	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	return multiSigner.AggregateSigsV2(pubKeysSigners, signatures)
+}
+
+// VerifyAggregatedSigWithKeys verifies the aggregated signature over the provided group,
+// without touching the per-round state
+func (sh *signingHandler) VerifyAggregatedSigWithKeys(pubKeys []string, bitmap []byte, message []byte, aggSig []byte, epoch uint32) error {
+	pubKeysSigners, err := sh.selectPubKeysByBitmap(pubKeys, bitmap)
+	if err != nil {
+		return err
+	}
+
+	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
+	if err != nil {
+		return err
+	}
+
+	return multiSigner.VerifyAggregatedSigV2(pubKeysSigners, message, aggSig)
+}
+
+// VerifySigShareWithKey verifies a single signature share against the provided public key,
+// without touching the per-round state
+func (sh *signingHandler) VerifySigShareWithKey(pubKey []byte, sigShare []byte, message []byte, epoch uint32) error {
+	if len(sigShare) == 0 {
+		return ErrInvalidSignature
+	}
+
+	pk, err := sh.getPubKeyFromBytes(pubKey)
+	if err != nil {
+		return err
+	}
+
+	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
+	if err != nil {
+		return err
+	}
+
+	return multiSigner.VerifySignatureShareV2(pk, message, sigShare)
+}
+
+func validateBitmap(pubKeys []string, bitmap []byte) error {
+	if bitmap == nil {
+		return ErrNilBitmap
+	}
+	if len(bitmap)*8 < len(pubKeys) {
+		return ErrBitmapMismatch
+	}
+
+	return nil
+}
+
+// selectPubKeysByBitmap returns the public keys whose index is set in the bitmap
+func (sh *signingHandler) selectPubKeysByBitmap(pubKeys []string, bitmap []byte) ([]crypto.PublicKey, error) {
+	err := validateBitmap(pubKeys, bitmap)
+	if err != nil {
+		return nil, err
+	}
+
+	pubKeysSigners := make([]crypto.PublicKey, 0, len(pubKeys))
+	for i, pubKeyStr := range pubKeys {
+		if bitmap[i/8]&(1<<(uint16(i)%8)) == 0 {
+			continue
+		}
+
+		pubKey, err := sh.getPubKeyFromBytes([]byte(pubKeyStr))
+		if err != nil {
+			return nil, err
+		}
+		pubKeysSigners = append(pubKeysSigners, pubKey)
+	}
+
+	return pubKeysSigners, nil
+}
+
+// selectSigSharesByBitmap returns the signature shares whose index is set in the bitmap
+func selectSigSharesByBitmap(pubKeys []string, bitmap []byte, sigShares [][]byte) ([][]byte, error) {
+	err := validateBitmap(pubKeys, bitmap)
+	if err != nil {
+		return nil, err
+	}
+	if len(sigShares) != len(pubKeys) {
+		return nil, ErrIndexOutOfBounds
+	}
+
+	signatures := make([][]byte, 0, len(pubKeys))
+	for i := range sigShares {
+		if bitmap[i/8]&(1<<(uint16(i)%8)) == 0 {
+			continue
+		}
+
+		if len(sigShares[i]) == 0 {
+			return nil, ErrNilElement
+		}
+		signatures = append(signatures, sigShares[i])
+	}
+
+	return signatures, nil
 }
 
 func (sh *signingHandler) getPubKeyFromBytes(
