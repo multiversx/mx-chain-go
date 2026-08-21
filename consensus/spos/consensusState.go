@@ -2,6 +2,7 @@ package spos
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"time"
 
@@ -46,6 +47,9 @@ type ConsensusState struct {
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
 
+	signaturesDone             <-chan struct{}
+	signaturesTimeoutCtxCancel context.CancelFunc
+
 	*roundConsensus
 	*roundThreshold
 	*roundStatus
@@ -81,6 +85,15 @@ func (cns *ConsensusState) ResetConsensusRoundState() {
 	cns.roundCanceled = false
 	cns.extendedCalled = false
 	cns.waitingAllSignaturesTimeOut = false
+	// Start each round with an already-closed done channel, so a signature subround that runs without any
+	// optimistic-signatures trigger (e.g. no managed keys) waits on it and returns immediately.
+	cns.signaturesDone = newClosedChannel()
+
+	if cns.signaturesTimeoutCtxCancel != nil {
+		cns.signaturesTimeoutCtxCancel()
+		cns.signaturesTimeoutCtxCancel = nil
+	}
+
 	cns.mutState.Unlock()
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
@@ -113,6 +126,12 @@ func (cns *ConsensusState) initReceivedMessagesWithSig() {
 // SignatureMessageKey scopes a signature evidence message to the header hash it signs.
 func SignatureMessageKey(headerHash []byte, pubKey string) string {
 	return string(headerHash) + pubKey
+}
+
+func newClosedChannel() chan struct{} {
+	ch := make(chan struct{})
+	close(ch)
+	return ch
 }
 
 // AddReceivedHeader append the provided header to the inner received headers list
@@ -356,7 +375,6 @@ func (cns *ConsensusState) GetData() []byte {
 	cns.mutData.RLock()
 	data := cns.data
 	cns.mutData.RUnlock()
-
 	return data
 }
 
@@ -365,6 +383,19 @@ func (cns *ConsensusState) SetData(data []byte) {
 	cns.mutData.Lock()
 	cns.data = data
 	cns.mutData.Unlock()
+}
+
+// SetDataIfNotSet atomically sets the consensus data only if it is not already set for the current round.
+func (cns *ConsensusState) SetDataIfNotSet(data []byte) bool {
+	cns.mutData.Lock()
+	defer cns.mutData.Unlock()
+
+	if cns.data != nil {
+		return false
+	}
+
+	cns.data = data
+	return true
 }
 
 // IsMultiKeyLeaderInCurrentRound method checks if one of the nodes which are controlled by this instance
@@ -542,6 +573,48 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 	defer cns.mutState.Unlock()
 
 	cns.waitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
+}
+
+// SignaturesDone returns the channel that is closed once the optimistic-signatures creation for the current
+// round has finished. When no optimistic signatures were triggered for the round, the returned channel is
+// already closed.
+func (cns *ConsensusState) SignaturesDone() <-chan struct{} {
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
+
+	return cns.signaturesDone
+}
+
+// SetSignaturesDone sets the done channel for the optimistic-signatures creation
+func (cns *ConsensusState) SetSignaturesDone(done <-chan struct{}) {
+	cns.mutState.Lock()
+	defer cns.mutState.Unlock()
+
+	cns.signaturesDone = done
+}
+
+// SetSignaturesCtxCancelFunc will set signatures context cancel function
+func (cns *ConsensusState) SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc) {
+	var prevCancel context.CancelFunc
+
+	cns.mutState.Lock()
+	prevCancel = cns.signaturesTimeoutCtxCancel
+	cns.signaturesTimeoutCtxCancel = cancelFunc
+	cns.mutState.Unlock()
+
+	if prevCancel != nil {
+		prevCancel()
+	}
+}
+
+// SignaturesCtxCancel will cancel signatures context
+func (cns *ConsensusState) SignaturesCtxCancel() {
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
+
+	if cns.signaturesTimeoutCtxCancel != nil {
+		cns.signaturesTimeoutCtxCancel()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

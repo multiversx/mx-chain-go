@@ -65,6 +65,7 @@ type ProcessComponentsStub struct {
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
 	BlockchainHookField                  process.BlockChainHookWithAccountsAdapter
 	AOTSelectorField                     process.AOTTransactionSelector
+	TransactionProcessorField            process.TransactionProcessor
 }
 
 // Create -
@@ -319,6 +320,11 @@ func (pcs *ProcessComponentsStub) BlockchainHook() process.BlockChainHookWithAcc
 // AOTSelector -
 func (pcs *ProcessComponentsStub) AOTSelector() process.AOTTransactionSelector {
 	return pcs.AOTSelectorField
+}
+
+// TransactionProcessor -
+func (pcs *ProcessComponentsStub) TransactionProcessor() process.TransactionProcessor {
+	return pcs.TransactionProcessorField
 }
 
 // IsInterfaceNil -

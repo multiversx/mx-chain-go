@@ -269,6 +269,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSignerV2) *spos.Co
 		EpochNotifier:                 epochNotifier,
 		InvalidSignersCache:           &InvalidSignersCacheMock{},
 		MessagesHandler:               consensusService,
+		CommonConfigsHandler:          testscommon.GetDefaultCommonConfigsHandler(),
 	})
 
 	return container

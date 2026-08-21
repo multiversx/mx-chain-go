@@ -179,6 +179,7 @@ func TestTomlParser(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               100,
 			PropagationGracePeriodMs:       200,
+			MaxTxNonceDeltaAllowed:         100,
 		},
 		TxCacheSelection: TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
@@ -438,6 +439,7 @@ func TestTomlParser(t *testing.T) {
 	MaxNumBytesPerSenderUpperBound = 33_554_432
 	MaxTrackedBlocks = 100
 	PropagationGracePeriodMs = 200
+	MaxTxNonceDeltaAllowed = 100
 
 [TxCacheSelection]
 	SelectionMaxNumTxs = 30000
@@ -1310,8 +1312,11 @@ func TestEnableEpochConfig(t *testing.T) {
     # ConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas in accumulated economics is fixed
     ConsumedGasInEconomicsFixEnableEpoch = 114
 
+    # AttributeExtraGasUsageEnableEpoch represents the epoch when the extra gas usage for attributes is enabled
+    AttributeExtraGasUsageEnableEpoch = 115
+
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
-    SupernovaEnableEpoch = 115
+    SupernovaEnableEpoch = 116
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1446,7 +1451,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixGetBalanceEnableEpoch:                                 112,
 			RelayedTransactionsV1V2DisableEpoch:                      113,
 			ConsumedGasInEconomicsFixEnableEpoch:                     114,
-			SupernovaEnableEpoch:                                     115,
+			AttributeExtraGasUsageEnableEpoch:                        115,
+			SupernovaEnableEpoch:                                     116,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

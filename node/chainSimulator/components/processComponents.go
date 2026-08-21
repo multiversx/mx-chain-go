@@ -104,6 +104,7 @@ type processComponentsHolder struct {
 	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
 	blockchainHook                   process.BlockChainHookWithAccountsAdapter
 	aotSelector                      process.AOTTransactionSelector
+	transactionProcessor             process.TransactionProcessor
 	managedProcessComponentsCloser   io.Closer
 }
 
@@ -290,6 +291,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
 		blockchainHook:                   managedProcessComponents.BlockchainHook(),
 		aotSelector:                      managedProcessComponents.AOTSelector(),
+		transactionProcessor:             managedProcessComponents.TransactionProcessor(),
 		executionManager:                 managedProcessComponents.ExecutionManager(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
@@ -544,6 +546,11 @@ func (p *processComponentsHolder) BlockchainHook() process.BlockChainHookWithAcc
 // AOTSelector returns the AOT transaction selector
 func (p *processComponentsHolder) AOTSelector() process.AOTTransactionSelector {
 	return p.aotSelector
+}
+
+// TransactionProcessor returns the transaction processor
+func (p *processComponentsHolder) TransactionProcessor() process.TransactionProcessor {
+	return p.transactionProcessor
 }
 
 // Close will call the Close methods on all inner components

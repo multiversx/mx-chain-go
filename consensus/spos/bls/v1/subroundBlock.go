@@ -22,8 +22,6 @@ const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 95 / 100)
 // subroundBlock defines the data needed by the subround Block
 type subroundBlock struct {
 	*spos.Subround
-
-	processingThresholdPercentage int
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -37,9 +35,10 @@ func NewSubroundBlock(
 		return nil, err
 	}
 
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
+
 	srBlock := subroundBlock{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
+		Subround: baseSubround,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -230,6 +229,8 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 	sr.SetBody(bodyHandler)
 	sr.SetHeader(headerHandler)
 
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(headerHandler, "sent", "v1", sr.CommonConfigsHandler())
 	return true
 }
 
@@ -449,6 +450,9 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
 
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(sr.GetHeader(), "received", "v1", sr.CommonConfigsHandler())
+
 	return blockProcessedWithSuccess
 }
 
@@ -607,7 +611,7 @@ func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *conse
 	node := string(cnsDta.PubKey)
 
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	remainingTimeInCurrentRound := func() time.Duration {
 		return sr.RoundHandler().RemainingTime(startTime, maxTime)
 	}

@@ -49,6 +49,9 @@ func getDefaultBaseProcessor() *baseProcessor {
 			},
 		},
 		dataPool: &dataRetrieverMock.PoolsHolderStub{
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 			PostProcessTransactionsCalled: func() storage.Cacher {
 				return &cache.CacherStub{
 					GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -99,6 +102,9 @@ func TestBaseProcessor_cacheExecutedMiniBlocks(t *testing.T) {
 			enableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			processedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
 			dataPool: &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				ExecutedMiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
@@ -132,6 +138,9 @@ func TestBaseProcessor_cacheExecutedMiniBlocks(t *testing.T) {
 			enableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			processedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
 			dataPool: &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				ExecutedMiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
@@ -193,6 +202,9 @@ func TestBaseProcessor_cacheIntermediateTxsForHeader(t *testing.T) {
 			marshalizer:   &marshallerMock.MarshalizerStub{},
 			txCoordinator: &testscommon.TransactionCoordinatorMock{},
 			dataPool: &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				PostProcessTransactionsCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
@@ -218,6 +230,9 @@ func TestBaseProcessor_cacheIntermediateTxsForHeader(t *testing.T) {
 			marshalizer:   &marshal.GogoProtoMarshalizer{},
 			txCoordinator: &testscommon.TransactionCoordinatorMock{},
 			dataPool: &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				PostProcessTransactionsCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
@@ -334,6 +349,9 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			getCalls := 0
 			bp := getDefaultBaseProcessor()
 			bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				ExecutedMiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -396,6 +414,9 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 
 			numCalls := 0
 			bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				ExecutedMiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -479,6 +500,9 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				},
 			}
 			bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				PostProcessTransactionsCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -510,6 +534,9 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				},
 			}
 			bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				PostProcessTransactionsCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -546,6 +573,9 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				},
 			}
 			bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				PostProcessTransactionsCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -573,6 +603,9 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 
 			bp := getDefaultBaseProcessor()
 			bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				PostProcessTransactionsCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -602,6 +635,9 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 
 			bp := getDefaultBaseProcessor()
 			bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				PostProcessTransactionsCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -663,6 +699,9 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				},
 			},
 			dataPool: &dataRetrieverMock.PoolsHolderStub{
+				ProofsCalled: func() dataRetriever.ProofsPool {
+					return &dataRetrieverMock.ProofsPoolMock{}
+				},
 				PostProcessTransactionsCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
@@ -734,6 +773,9 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			},
 		}
 		bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 			PostProcessTransactionsCalled: func() storage.Cacher {
 				return cacher
 			},
@@ -751,6 +793,9 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			},
 		}
 		bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 			PostProcessTransactionsCalled: func() storage.Cacher {
 				return cacher
 			},
@@ -811,6 +856,9 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			},
 		}
 		bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 			PostProcessTransactionsCalled: func() storage.Cacher {
 				return cacher
 			},
@@ -846,6 +894,10 @@ func TestBaseProcessor_setCurrentBlockInfoV3CallsCleanOnConsensusReached(t *test
 			},
 			blockChain: &testscommon.ChainHandlerStub{
 				SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
+					require.Fail(t, "should have not been called on v3")
+					return nil
+				},
+				SetCurrentBlockHeaderAndHashCalled: func(headerHash []byte, header data.HeaderHandler) error {
 					setHeaderCalled = true
 					return nil
 				},

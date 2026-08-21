@@ -46,6 +46,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.epochStartNotifier = t.epochStartNotifier
 	rt.headersPool = t.headersPool
 	rt.proofsPool = t.proofsPool
+	rt.metaFinalityView = t.metaFinalityView
 	rt.epochStartShardHeader = t.epochStartShardHeader
 	rt.epochStartMeta = t.epochStartMeta
 	rt.shardHdrStorage = t.shardHdrStorage
@@ -59,9 +60,14 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.mapFinalizedEpochs = t.mapFinalizedEpochs
 	rt.roundHandler = t.roundHandler
 	rt.enableEpochsHandler = t.enableEpochsHandler
-	rt.epochStartConfigsHandler = t.epochStartConfigsHandler
+	rt.extraDelayForRequestBlockInfo = t.extraDelayForRequestBlockInfo
 	rt.chanMetaBlockReceived = t.chanMetaBlockReceived
 	rt.mapPreparedEpochStartHdrs = t.mapPreparedEpochStartHdrs
+	rt.pendingEpochStartProofs = t.pendingEpochStartProofs
+	rt.pendingEpochStartHeaders = t.pendingEpochStartHeaders
+	rt.chanPendingEpochStartData = t.chanPendingEpochStartData
+	rt.pendingProofRetryInterval = t.pendingProofRetryInterval
+	rt.nextProofRequestSequence = t.nextProofRequestSequence
 	return rt
 }
 

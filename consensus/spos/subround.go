@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -29,17 +30,20 @@ type Subround struct {
 	ConsensusCoreHandler
 	ConsensusStateHandler
 
-	previous         int
-	current          int
-	next             int
-	mutDuration      sync.RWMutex
-	startTimePercent float64
-	endTimePercent   float64
-	startTime        int64
-	endTime          int64
-	name             string
-	chainID          []byte
-	currentPid       core.PeerID
+	previous                        int
+	current                         int
+	next                            int
+	mutDuration                     sync.RWMutex
+	baseDuration                    time.Duration
+	startTimePercent                float64
+	endTimePercent                  float64
+	signatureSubroundEndTimePercent float64
+	processingThresholdPercent      int
+	startTime                       int64
+	endTime                         int64
+	name                            string
+	chainID                         []byte
+	currentPid                      core.PeerID
 
 	consensusStateChangedChannel chan bool
 	executeStoredMessages        func()
@@ -86,6 +90,7 @@ func NewSubround(
 		previous:                     previous,
 		current:                      current,
 		next:                         next,
+		baseDuration:                 baseDuration,
 		startTimePercent:             startTimePercent,
 		endTimePercent:               endTimePercent,
 		startTime:                    startTime,
@@ -162,6 +167,9 @@ func (sr *Subround) DoWork(ctx context.Context, roundHandler consensus.RoundHand
 
 	for {
 		select {
+		case <-ctx.Done():
+			sr.SetRoundCanceled(true)
+			return false
 		case <-sr.consensusStateChangedChannel:
 			if sr.Check() {
 				return true
@@ -208,12 +216,55 @@ func (sr *Subround) EndTime() int64 {
 	return sr.endTime
 }
 
+// SignatureSubroundEndTime returns the end time limit of the signature subround
+func (sr *Subround) SignatureSubroundEndTime() time.Duration {
+	sr.mutDuration.RLock()
+	defer sr.mutDuration.RUnlock()
+
+	return time.Duration(float64(sr.baseDuration) * sr.signatureSubroundEndTimePercent)
+}
+
+// SetSignatureSubroundEndTimePercentage sets the end time percent of the signature subround
+func (sr *Subround) SetSignatureSubroundEndTimePercentage(percent float64) {
+	sr.mutDuration.Lock()
+	defer sr.mutDuration.Unlock()
+
+	sr.signatureSubroundEndTimePercent = percent
+}
+
+// ProcessingThresholdPercent returns the processing threshold percent of the subround
+func (sr *Subround) ProcessingThresholdPercent() int {
+	sr.mutDuration.RLock()
+	defer sr.mutDuration.RUnlock()
+
+	return sr.processingThresholdPercent
+}
+
+// SetProcessingThresholdPercent sets the processing threshold percent of the subround
+func (sr *Subround) SetProcessingThresholdPercent(percent int) {
+	sr.mutDuration.Lock()
+	defer sr.mutDuration.Unlock()
+
+	sr.processingThresholdPercent = percent
+}
+
 // SetBaseDuration sets the base duration of the subround
 func (sr *Subround) SetBaseDuration(baseDuration time.Duration) {
 	sr.mutDuration.Lock()
 	defer sr.mutDuration.Unlock()
 
+	sr.baseDuration = baseDuration
 	sr.startTime, sr.endTime = computeStartAndEndTime(baseDuration, sr.startTimePercent, sr.endTimePercent)
+}
+
+// SetTimingPercentage sets the start time and end time percent of the subround and recomputes its start and end time
+func (sr *Subround) SetTimingPercentage(startTimePercent float64, endTimePercent float64) {
+	sr.mutDuration.Lock()
+	defer sr.mutDuration.Unlock()
+
+	sr.startTimePercent = startTimePercent
+	sr.endTimePercent = endTimePercent
+	sr.startTime, sr.endTime = computeStartAndEndTime(sr.baseDuration, sr.startTimePercent, sr.endTimePercent)
 }
 
 // Name method returns the name of the Subround
@@ -264,6 +315,22 @@ func (sr *Subround) HasProofForCompetingBlock() bool {
 	}
 
 	return true
+}
+
+// HasProofForCompetingParent returns true if the proofs pool holds a proof for a lower-round sibling
+// of the current block header; a proof for the current header has its own round, so it never triggers
+func (sr *Subround) HasProofForCompetingParent() bool {
+	currentBlock := sr.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(currentBlock) {
+		return false
+	}
+
+	lowestProof, err := sr.EquivalentProofsPool().GetProofByNonce(currentBlock.GetNonce(), sr.ShardCoordinator().SelfId())
+	if err != nil || check.IfNil(lowestProof) {
+		return false
+	}
+
+	return lowestProof.GetHeaderRound() < currentBlock.GetRound()
 }
 
 // GetAssociatedPid returns the associated PeerID to the provided public key bytes

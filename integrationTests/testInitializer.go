@@ -800,7 +800,7 @@ func CreateGenesisMetaBlock(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
-	chainParametersHandler common.ChainParametersHandler,
+	_ common.ChainParametersHandler,
 ) data.MetaHeaderHandler {
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -1266,11 +1266,26 @@ func ProposeBlockWithProof(
 
 	for _, n := range leaders {
 		body, header, _ := n.ProposeBlock(round, nonce)
+		if check.IfNil(header) {
+			log.Warn("ProposeBlockWithProof: leader could not propose", "round", round, "nonce", nonce)
+			continue
+		}
 		n.WhiteListBody(nodes, body)
 		pk := n.NodeKeys.MainKey.Pk
 		n.BroadcastBlock(body, header, pk)
 
 		proof := createProofIfNeeded(n, header)
+		if !check.IfNil(proof) {
+			// the leader aggregates the proof itself in real consensus
+			_ = n.DataPool.Proofs().AddProof(proof)
+		}
+
+		if header.IsHeaderV3() {
+			err := n.VerifyBlockProposalAndAddToExecutionQueue(body, header)
+			if err != nil {
+				continue
+			}
+		}
 		n.CommitBlock(body, header)
 
 		time.Sleep(SyncDelay)
@@ -1287,6 +1302,9 @@ func ProposeBlockWithProof(
 }
 
 func createProofIfNeeded(node *TestProcessorNode, header data.HeaderHandler) data.HeaderProofHandler {
+	if check.IfNil(header) {
+		return nil
+	}
 	coreComp := node.Node.GetCoreComponents()
 	if !common.IsProofsFlagEnabledForHeader(coreComp.EnableEpochsHandler(), header) {
 		return nil

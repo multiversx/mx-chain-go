@@ -114,6 +114,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
 		GenesisTime:                 args.GenesisTime,
+		PrintPrettifiedHeader:       args.Configs.FlagsConfig.PrintPrettifiedHeader,
 	})
 	if err != nil {
 		return nil, err
@@ -563,14 +564,14 @@ func (node *testOnlyProcessingNode) setBlockchainRootHashIfSupernovaIsActive(
 	metaResult, isMeta := lastExecutionResult.(*block.MetaExecutionResult)
 	if isMeta {
 		metaResult.ExecutionResult.BaseExecutionResult.RootHash = rootHash
-		node.ChainHandler.SetLastExecutionResult(metaResult)
+		node.ChainHandler.SetLastExecutionInfo(header, metaResult)
 		return
 	}
 
 	shardResult, isShard := lastExecutionResult.(*block.ExecutionResult)
 	if isShard {
 		shardResult.BaseExecutionResult.RootHash = rootHash
-		node.ChainHandler.SetLastExecutionResult(shardResult)
+		node.ChainHandler.SetLastExecutionInfo(header, shardResult)
 		return
 	}
 
@@ -582,7 +583,7 @@ func (node *testOnlyProcessingNode) setBlockchainRootHashIfSupernovaIsActive(
 		RootHash:    rootHash,
 		GasUsed:     lastExecutionResult.GetGasUsed(),
 	}
-	node.ChainHandler.SetLastExecutionResult(updatedLastExecutionResult)
+	node.ChainHandler.SetLastExecutionInfo(header, updatedLastExecutionResult)
 }
 
 // RemoveAccount will remove the account for the given address

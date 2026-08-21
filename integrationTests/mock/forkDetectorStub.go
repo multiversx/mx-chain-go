@@ -8,20 +8,24 @@ import (
 
 // ForkDetectorStub is a mock implementation for the ForkDetector interface
 type ForkDetectorStub struct {
-	AddHeaderCalled                 func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
-	RemoveHeaderCalled              func(nonce uint64, hash []byte)
-	CheckForkCalled                 func() *process.ForkInfo
-	GetHighestFinalBlockNonceCalled func() uint64
-	GetHighestFinalBlockHashCalled  func() []byte
-	ProbableHighestNonceCalled      func() uint64
-	ResetForkCalled                 func()
-	GetNotarizedHeaderHashCalled    func(nonce uint64) []byte
-	RestoreToGenesisCalled          func()
-	SetRollBackNonceCalled          func(nonce uint64)
-	ResetProbableHighestNonceCalled func()
-	SetFinalToLastCheckpointCalled  func()
-	ReceivedProofCalled             func(proof data.HeaderProofHandler)
-	AddCheckpointCalled             func(nonce uint64, round uint64, hash []byte)
+	AddHeaderCalled                     func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
+	RemoveHeaderCalled                  func(nonce uint64, hash []byte)
+	RemoveCommittedHeaderCalled         func(nonce uint64, hash []byte)
+	ReconcileFinalCheckpointCalled      func(nonce uint64)
+	ReconcileFinalCheckpointBelowCalled func(nonce uint64) bool
+	CheckForkCalled                     func() *process.ForkInfo
+	GetHighestFinalBlockNonceCalled     func() uint64
+	GetHighestFinalBlockHashCalled      func() []byte
+	GetHighestSettledBlockInfoCalled    func() (uint64, []byte)
+	ProbableHighestNonceCalled          func() uint64
+	ResetForkCalled                     func()
+	GetNotarizedHeaderHashCalled        func(nonce uint64) []byte
+	RestoreToGenesisCalled              func()
+	SetRollBackNonceCalled              func(nonce uint64)
+	ResetProbableHighestNonceCalled     func()
+	SetFinalToLastCheckpointCalled      func()
+	ReceivedProofCalled                 func(proof data.HeaderProofHandler)
+	AddCheckpointCalled                 func(nonce uint64, round uint64, hash []byte)
 }
 
 // RestoreToGenesis -
@@ -52,6 +56,29 @@ func (fdm *ForkDetectorStub) RemoveHeader(nonce uint64, hash []byte) {
 	}
 }
 
+// RemoveCommittedHeader -
+func (fdm *ForkDetectorStub) RemoveCommittedHeader(nonce uint64, hash []byte) {
+	if fdm.RemoveCommittedHeaderCalled != nil {
+		fdm.RemoveCommittedHeaderCalled(nonce, hash)
+	}
+}
+
+// ReconcileFinalCheckpoint -
+func (fdm *ForkDetectorStub) ReconcileFinalCheckpoint(nonce uint64) {
+	if fdm.ReconcileFinalCheckpointCalled != nil {
+		fdm.ReconcileFinalCheckpointCalled(nonce)
+	}
+}
+
+// ReconcileFinalCheckpointBelow -
+func (fdm *ForkDetectorStub) ReconcileFinalCheckpointBelow(nonce uint64) bool {
+	if fdm.ReconcileFinalCheckpointBelowCalled != nil {
+		return fdm.ReconcileFinalCheckpointBelowCalled(nonce)
+	}
+
+	return true
+}
+
 // CheckFork is a mock implementation for CheckFork
 func (fdm *ForkDetectorStub) CheckFork() *process.ForkInfo {
 	if fdm.CheckForkCalled != nil {
@@ -71,6 +98,23 @@ func (fdm *ForkDetectorStub) GetHighestFinalBlockNonce() uint64 {
 // GetHighestFinalBlockHash -
 func (fdm *ForkDetectorStub) GetHighestFinalBlockHash() []byte {
 	return fdm.GetHighestFinalBlockHashCalled()
+}
+
+// GetHighestSettledBlockInfo -
+func (fdm *ForkDetectorStub) GetHighestSettledBlockInfo() (uint64, []byte) {
+	if fdm.GetHighestSettledBlockInfoCalled != nil {
+		return fdm.GetHighestSettledBlockInfoCalled()
+	}
+
+	nonce := uint64(0)
+	if fdm.GetHighestFinalBlockNonceCalled != nil {
+		nonce = fdm.GetHighestFinalBlockNonceCalled()
+	}
+	var hash []byte
+	if fdm.GetHighestFinalBlockHashCalled != nil {
+		hash = fdm.GetHighestFinalBlockHashCalled()
+	}
+	return nonce, hash
 }
 
 // ProbableHighestNonce is a mock implementation for ProbableHighestNonce

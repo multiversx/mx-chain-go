@@ -50,7 +50,7 @@
 
     # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
     EpochChangeGracePeriodByEpoch = [
-        {EnableEpoch = 0, GracePeriodInRounds = 1 },
+        {EnableEpoch = 0, GracePeriodInRounds = 5 },
         {EnableEpoch = 1, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
         {EnableEpoch = 2, GracePeriodInRounds = 100 }, # Supernova epoch comes with an even longer grace period due to round duration reduction
     ]
@@ -96,8 +96,8 @@
     ]
 
     EpochStartConfigsByEpoch = [
-        { EnableEpoch = 0, GracePeriodRounds = 25, ExtraDelayForRequestBlockInfoInMilliseconds = 3000 },
-        { EnableEpoch = 2, GracePeriodRounds = 250, ExtraDelayForRequestBlockInfoInMilliseconds = 220 },
+        { EnableEpoch = 0, GracePeriodRounds = 25 },
+        { EnableEpoch = 2, GracePeriodRounds = 250 },
     ]
 
     EpochStartConfigsByRound = [
@@ -110,6 +110,29 @@
         { EnableEpoch = 2, NumRoundsToWaitBeforeSignalingChronologyStuck = 100 },
     ]
 
+    ConsensusConfigsByRound = [
+        {
+            EnableRound = 0,
+            SubroundsTiming = [
+                { StartTime = 0.0,  EndTime = 0.05 },  # start round
+                { StartTime = 0.05, EndTime = 0.25 },  # block
+                { StartTime = 0.25, EndTime = 0.85 },  # signature
+                { StartTime = 0.85, EndTime = 0.95 },  # end round
+            ],
+            ProcessingThresholdPercent = 85
+        },
+        {
+            EnableRound = 440,
+            SubroundsTiming = [
+                { StartTime = 0.0,  EndTime = 0.05 },  # start round
+                { StartTime = 0.05, EndTime = 0.35 },  # block
+                { StartTime = 0.35, EndTime = 0.65 },  # signature
+                { StartTime = 0.65, EndTime = 0.95 },  # end round
+            ],
+            ProcessingThresholdPercent = 85
+        }
+    ]
+
 [HardwareRequirements]
     CPUFlags = ["SSE4", "SSE42"]
 
@@ -120,7 +143,8 @@
         # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
         { StartEpoch = 1, StartRound = 0, Version = "2" },
 
-        # TODO The value of StartEpoch parameter for version 3 should be the same with the SupernovaEnableEpoch flag from enableEpoch.toml file and StartRound the same with the SupernovaEnableRound flag from enableRounds.toml
+        # StartEpoch and StartRound for version 3 must equal SupernovaEnableEpoch (enableEpochs.toml) and
+        # SupernovaEnableRound (enableRounds.toml); this is enforced at node startup
         { StartEpoch = 2, StartRound = 440, Version = "3" },
     ]
 
@@ -158,6 +182,12 @@
     # the node removes old epochs data or not. In case of a node which removes old epochs data, this value has to be
     # smaller or equal to the NumOfEpochsToKeep flag
     NumActivePersisters = 3
+
+    # AssumedPeersNumActivePersisters represents the NumActivePersisters value the other (pruning) nodes in the
+    # network are assumed to run with. Used only to decide up to which epoch data can still be requested from
+    # regular peers. Keep in sync with the NumActivePersisters default shipped to validators/observers.
+    # A missing or 0 value falls back to the default of 3, with a warning at startup
+    AssumedPeersNumActivePersisters = 3
 
     # FullArchiveNumActivePersisters represents the number of persisters to be kept in cache as to allow better response
     # to inquiring peers. This value will get multiplied by the number of persisters required by the node to function so
@@ -493,7 +523,10 @@
 [TrieStorageManagerConfig]
     PruningBufferLen = 100000
     SnapshotsBufferLen = 1000000
-    SnapshotsGoroutineNum = 200
+    # SnapshotsGoroutinesPerCore scales the snapshot fan-out with the host: effective goroutines =
+    # value * GOMAXPROCS, minimum 4. Keep it low: a deep snapshot run queue can delay waking
+    # consensus goroutines
+    SnapshotsGoroutinesPerCore = 10
 
 [HeadersPoolConfig]
     MaxHeadersPerShard = 1000
@@ -534,6 +567,7 @@
     MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
     MaxTrackedBlocks = 100
     PropagationGracePeriodMs = 200
+    MaxTxNonceDeltaAllowed = 100
 
 [TxCacheSelection]
     SelectionMaxNumTxs = 30000
@@ -878,7 +912,10 @@
 
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
-    ExtraDelayForRequestBlockInfoInMilliseconds = 220
+    # fallback prefetch patience, measured from the local (header + proof) observation.
+    # Must exceed the sender's broadcast chain (30ms miniblocks + 50ms transactions)
+    # plus the gossip delivery time of the broadcast data
+    ExtraDelayForRequestBlockInfoInMilliseconds = 400
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
@@ -1061,7 +1098,9 @@
         ExtraPrintsOnShuffleOut = true
         DoProfileOnShuffleOut = true
     [Debug.EpochStart]
-        GoRoutineAnalyserEnabled = true
+        # dumps every goroutine stack on each epoch start, which stops the world and floods the log
+        # exactly while the epoch start snapshot runs; enable only when investigating goroutine leaks
+        GoRoutineAnalyserEnabled = false
         ProcessDataTrieOnCommitEpoch = true
     [Debug.Process]
         Enabled = true

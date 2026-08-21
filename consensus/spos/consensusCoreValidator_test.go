@@ -86,6 +86,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 		EpochNotifier:                 epochNotifier,
 		InvalidSignersCache:           invalidSignersCache,
 		MessagesHandler:               messagesHandler,
+		CommonConfigsHandler:          testscommon.GetDefaultCommonConfigsHandler(),
 	})
 
 	return consensusCore

@@ -103,6 +103,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.MessagesHandler()) {
 		return ErrNilConsensusService
 	}
+	if check.IfNil(container.CommonConfigsHandler()) {
+		return ErrNilCommonConfigsHandler
+	}
 
 	return nil
 }

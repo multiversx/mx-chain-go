@@ -16,9 +16,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/round"
@@ -81,6 +82,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		BootStorer:                   &mock.BoostrapStorerMock{},
 		StorageBootstrapper:          &mock.StorageBootstrapperMock{},
 		EpochHandler:                 &mock.EpochStartTriggerStub{},
+		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 		Uint64Converter:              &mock.Uint64ByteSliceConverterMock{},
 		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerStub{},
@@ -127,7 +129,7 @@ func TestMetaBootstrap_RequestEpochStartBlockIfStuck(t *testing.T) {
 				recorder.startOfEpochCalls++
 				recorder.startOfEpochArg = epoch
 			},
-			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
 				recorder.proofByHashCalls++
 				recorder.proofByHashArg = headerHash
 			},
@@ -206,6 +208,58 @@ func TestMetaBootstrap_RequestEpochStartBlockIfStuck(t *testing.T) {
 		require.Zero(t, recorder.total())
 	})
 
+	t.Run("stuck, proven header present alongside a more recent fork, recognizes the proof and requests nothing", func(t *testing.T) {
+		t.Parallel()
+
+		hashX := []byte("proven-hash")
+		hashY := []byte("fork-hash")
+		headerX := &block.MetaBlock{Nonce: currentNonce + 1, Epoch: currentEpoch + 1}
+		headerY := &block.MetaBlock{Nonce: currentNonce + 1, Epoch: currentEpoch + 1}
+
+		args, recorder := newArgs()
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+					if hdrNonce != currentNonce+1 {
+						return nil, nil, errors.New("not found")
+					}
+					// Y is the last-seen (more recently received) header for the nonce
+					return []data.HeaderHandler{headerX, headerY}, [][]byte{hashX, hashY}, nil
+				},
+				GetHeaderByHashCalled: func(h []byte) (data.HeaderHandler, error) {
+					if bytes.Equal(h, hashX) {
+						return headerX, nil
+					}
+					return nil, errors.New("not found")
+				},
+			}
+		}
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+					if headerNonce == currentNonce+1 {
+						return &block.HeaderProof{HeaderHash: hashX, HeaderNonce: headerNonce}, nil
+					}
+					return nil, errors.New("missing proof")
+				},
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return bytes.Equal(headerHash, hashX)
+				},
+			}
+		}
+		args.PoolsHolder = pools
+
+		boot, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+
+		boot.SetWatchdogLastNonce(currentNonce)
+		boot.RequestEpochStartBlockIfStuck()
+
+		// without proof-preference the last-seen fork Y (no proof) would be picked and its proof requested
+		require.Zero(t, recorder.total())
+	})
+
 	t.Run("stuck but andromeda not enabled does not request anything", func(t *testing.T) {
 		t.Parallel()
 
@@ -239,6 +293,7 @@ func (r *headerRequestsRecorder) total() int {
 }
 
 func poolsWithMetaHeader(nonce uint64, epoch uint32, hash []byte, hasProof bool) *dataRetrieverMock.PoolsHolderStub {
+	metaHeader := &block.MetaBlock{Nonce: nonce, Epoch: epoch}
 	pools := createMockPools()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
@@ -246,7 +301,13 @@ func poolsWithMetaHeader(nonce uint64, epoch uint32, hash []byte, hasProof bool)
 				if hdrNonce != nonce {
 					return nil, nil, errors.New("not found")
 				}
-				return []data.HeaderHandler{&block.MetaBlock{Nonce: nonce, Epoch: epoch}}, [][]byte{hash}, nil
+				return []data.HeaderHandler{metaHeader}, [][]byte{hash}, nil
+			},
+			GetHeaderByHashCalled: func(h []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(h, hash) {
+					return metaHeader, nil
+				}
+				return nil, errors.New("not found")
 			},
 		}
 	}
@@ -254,6 +315,12 @@ func poolsWithMetaHeader(nonce uint64, epoch uint32, hash []byte, hasProof bool)
 		return &dataRetrieverMock.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
 				return hasProof
+			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				if hasProof && headerNonce == nonce {
+					return &block.HeaderProof{HeaderHash: hash, HeaderNonce: nonce}, nil
+				}
+				return nil, errors.New("missing proof")
 			},
 		}
 	}
@@ -2073,10 +2140,7 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		bs, _ := sync.NewMetaBootstrap(args)
 
 		go func() {
-			// wait for both header and proof requests
 			<-receive
-			<-receive
-
 			bs.SetRcvHdrNonce()
 		}()
 
@@ -2125,7 +2189,6 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 
 		pools := createMockPools()
 
-		numProofCalls := 0
 		pools.ProofsCalled = func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{
 				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
@@ -2135,12 +2198,7 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 					return nil, errors.New("missing proof")
 				},
 				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-					if numProofCalls == 0 {
-						numProofCalls++
-						return false
-					}
-
-					return true // second check after wait is done by hash
+					return true
 				},
 			}
 		}
@@ -2171,15 +2229,15 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
 				receive <- true
 			},
+			RequestEquivalentProofByHashForEpochCalled: func(headerShard uint32, headerHash []byte, epoch uint32) {
+				receive <- true
+			},
 		}
 
 		bs, _ := sync.NewMetaBootstrap(args)
 
 		go func() {
-			// wait for both header and proof requests
 			<-receive
-			<-receive
-
 			bs.SetRcvHdrHash()
 		}()
 

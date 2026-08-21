@@ -138,7 +138,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RelayedTransactionsV1V2DisableEpoch:                      118,
 		FullShardDataValidationEnableEpoch:                       119,
 		ConsumedGasInEconomicsFixEnableEpoch:                     120,
-		SupernovaEnableEpoch:                                     121,
+		AttributeExtraGasUsageEnableEpoch:                        121,
+		SupernovaEnableEpoch:                                     122,
 	}
 }
 
@@ -486,6 +487,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.RelayedTransactionsV1V2DisableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag))
 	require.Equal(t, cfg.FullShardDataValidationEnableEpoch, handler.GetActivationEpoch(common.FullShardDataValidationFlag))
 	require.Equal(t, cfg.ConsumedGasInEconomicsFixEnableEpoch, handler.GetActivationEpoch(common.ConsumedGasInEconomicsFlag))
+	require.Equal(t, cfg.AttributeExtraGasUsageEnableEpoch, handler.GetActivationEpoch(common.AttributeExtraGasUsageFlag))
 	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
 }
 

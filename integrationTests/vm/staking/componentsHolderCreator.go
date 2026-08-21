@@ -192,7 +192,7 @@ func getNewTrieStorageManagerArgs(coreComponents factory.CoreComponentsHolder) t
 		MainStorer:     testscommon.CreateMemUnit(),
 		Marshalizer:    coreComponents.InternalMarshalizer(),
 		Hasher:         coreComponents.Hasher(),
-		GeneralConfig:  config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
+		GeneralConfig:  config.TrieStorageManagerConfig{SnapshotsGoroutinesPerCore: 1},
 		IdleProvider:   &testscommon.ProcessStatusHandlerStub{},
 		Identifier:     "id",
 		StatsCollector: disabled.NewStateStatistics(),

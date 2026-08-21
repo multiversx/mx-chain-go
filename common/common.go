@@ -264,7 +264,8 @@ func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
 	return timeStamp * 1000
 }
 
-func convertTimeStampMsToSec(timeStamp uint64) uint64 {
+// ConvertTimeStampMsToSec will convert unix timestamp from milliseconds to seconds
+func ConvertTimeStampMsToSec(timeStamp uint64) uint64 {
 	return timeStamp / 1000
 }
 
@@ -296,9 +297,24 @@ func PrepareTimestampBasedOnHeaderData(headerTimestamp uint64, headerEpoch uint3
 
 	// reduce block timestamp (which now comes as milliseconds) to seconds to keep backwards compatibility
 	// from now on timestampMs will be used for milliseconds granularity
-	timestampSec = convertTimeStampMsToSec(headerTimestamp)
+	timestampSec = ConvertTimeStampMsToSec(headerTimestamp)
 
 	return timestampSec, timestampMs, nil
+}
+
+// LogPrettifiedHeader logs the prettified representation of the provided header or an error if prettification fails
+func LogPrettifiedHeader(header data.HeaderHandler, sentOrReceived string, version string, configsHandler CommonConfigsHandler) {
+	if !configsHandler.PrintPrettifiedHeader() {
+		return
+	}
+
+	headerOutput, err := PrettifyStruct(header)
+	message := fmt.Sprintf("Proposed header %s %s", sentOrReceived, version)
+	if err != nil {
+		log.Debug(message, "error", err)
+	} else {
+		log.Debug(message, "header", headerOutput)
+	}
 }
 
 // PrettifyStruct returns a JSON string representation of a struct, converting byte slices to hex
@@ -325,7 +341,7 @@ func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
 		return bigValue
 	}
 
-	if val.Kind() == reflect.Ptr {
+	if val.Kind() == reflect.Pointer {
 		if val.IsNil() {
 			return nil
 		}
@@ -623,4 +639,20 @@ func GetFeePayer(tx data.TransactionHandler) []byte {
 	}
 
 	return tx.GetSndAddr()
+}
+
+// IsContendedHeader returns true if rounds were skipped between the parent and the header, so a
+// competing proof could exist at the header's nonce in a skipped round
+func IsContendedHeader(header data.HeaderHandler, parentHeader data.HeaderHandler) bool {
+	if check.IfNil(header) || check.IfNil(parentHeader) {
+		return false
+	}
+
+	return IsContendedRound(header.GetRound(), parentHeader.GetRound())
+}
+
+// IsContendedRound returns true if rounds were skipped between a parent at parentRound and its
+// child at round
+func IsContendedRound(round uint64, parentRound uint64) bool {
+	return round > parentRound+1
 }

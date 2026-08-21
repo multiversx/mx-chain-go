@@ -39,7 +39,7 @@ func TestCostScDeploy(t *testing.T) {
 	}
 	supernovaRoundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
-		Value:    200,
+		Value:    20,
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
@@ -113,7 +113,7 @@ func TestSimulateIntraShardTxWithGuardian(t *testing.T) {
 	}
 	supernovaRoundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
-		Value:    200,
+		Value:    20,
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{

@@ -87,7 +87,8 @@ import (
 	"github.com/multiversx/mx-chain-go/update/trigger"
 )
 
-// timeSpanForBadHeaders is the expiry time for an added block header hash
+// timeSpanForBadHeaders is the expiry time for an added block header hash; it is a wall-clock
+// network-healing window (fetch retries, partition heal), intentionally NOT scaled with round duration
 var timeSpanForBadHeaders = time.Minute * 2
 
 // processComponents struct holds the process components
@@ -144,6 +145,7 @@ type processComponents struct {
 	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
 	epochStartTriggerHanlder         epochStart.TriggerHandler
 	aotSelector                      process.AOTTransactionSelector
+	transactionProcessor             process.TransactionProcessor
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -281,12 +283,18 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		genesisUnixTime,
 		pcf.prefConfigs.Preferences.FullArchive,
 		pcf.coreData.EnableEpochsHandler(),
+		pcf.config.StoragePruning.AssumedPeersNumActivePersisters,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	pcf.epochNotifier.RegisterNotifyHandler(currentEpochProvider)
+
+	appStatusHandler := pcf.statusCoreComponents.AppStatusHandler()
+	pcf.data.Datapool().Proofs().RegisterEquivocationHandler(func(_ data.HeaderProofHandler, _ []data.HeaderProofHandler) {
+		appStatusHandler.Increment(common.MetricNumEquivocationProofs)
+	})
 
 	fallbackHeaderValidator, err := fallback.NewFallbackHeaderValidator(
 		pcf.data.Datapool().Headers(),
@@ -637,7 +645,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	blocksCache := headersCache.NewHeaderBodyCache(pcf.config.HeaderBodyCacheConfig)
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, err := executionTrack.NewExecutionResultsTracker(pcf.state.StateAccessesCollector())
+	if err != nil {
+		return nil, err
+	}
 
 	argExecManager := executionManager.ArgsExecutionManager{
 		BlocksCache:             blocksCache,
@@ -728,16 +739,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
 	argVSP := peer.ArgValidatorsProvider{
-		NodesCoordinator:                  pcf.nodesCoordinator,
-		StartEpoch:                        startEpochNum,
-		EpochStartEventNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
-		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
-		ValidatorStatistics:               validatorStatisticsProcessor,
-		MaxRating:                         pcf.maxRating,
-		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
-		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
-		AuctionListSelector:               pcf.auctionListSelectorAPI,
-		StakingDataProvider:               pcf.stakingDataProviderAPI,
+		NodesCoordinator:             pcf.nodesCoordinator,
+		StartEpoch:                   startEpochNum,
+		EpochStartEventNotifier:      pcf.coreData.EpochStartNotifierWithConfirm(),
+		CacheRefreshIntervalDuration: cacheRefreshDuration,
+		ValidatorStatistics:          validatorStatisticsProcessor,
+		MaxRating:                    pcf.maxRating,
+		ValidatorPubKeyConverter:     pcf.coreData.ValidatorPubKeyConverter(),
+		AddressPubKeyConverter:       pcf.coreData.AddressPubKeyConverter(),
+		AuctionListSelector:          pcf.auctionListSelectorAPI,
+		StakingDataProvider:          pcf.stakingDataProviderAPI,
 	}
 
 	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
@@ -840,6 +851,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		interceptedDataVerifierFactory:   pcf.interceptedDataVerifierFactory,
 		epochStartTriggerHanlder:         epochStartTrigger,
 		aotSelector:                      blockProcessorComponents.aotSelector,
+		transactionProcessor:             blockProcessorComponents.transactionProcessor,
 	}, nil
 }
 
@@ -923,7 +935,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			RoundHandler:         pcf.coreData.RoundHandler(),
 			AppStatusHandler:     pcf.statusCoreComponents.AppStatusHandler(),
 			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
-			CommonConfigsHandler: pcf.coreData.CommonConfigsHandler(),
+			ExtraDelayForRequestBlockInfoInMilliseconds: pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds,
 		}
 		return shardchain.NewEpochStartTrigger(argEpochStart)
 	}
@@ -1773,7 +1785,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		FullArchiveMessenger:                    pcf.network.FullArchiveNetworkMessenger(),
 		Store:                                   pcf.data.StorageService(),
 		DataPool:                                pcf.data.Datapool(),
-		MaxTxNonceDeltaAllowed:                  common.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:                  pcf.config.TxCacheBounds.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:                            pcf.coreData.EconomicsData(),
 		BlockBlackList:                          headerBlackList,
 		HeaderSigVerifier:                       headerSigVerifier,
@@ -1831,7 +1843,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		Store:                                   pcf.data.StorageService(),
 		DataPool:                                pcf.data.Datapool(),
 		Accounts:                                pcf.state.AccountsAdapterAPI(),
-		MaxTxNonceDeltaAllowed:                  common.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:                  pcf.config.TxCacheBounds.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:                            pcf.coreData.EconomicsData(),
 		BlockBlackList:                          headerBlackList,
 		HeaderSigVerifier:                       headerSigVerifier,
@@ -2189,6 +2201,9 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.aotSelector) {
 		log.LogIfError(pc.aotSelector.Close())
+	}
+	if !check.IfNil(pc.blockTracker) {
+		log.LogIfError(pc.blockTracker.Close())
 	}
 
 	return nil

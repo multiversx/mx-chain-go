@@ -50,6 +50,7 @@ type ConsensusCoreHandler interface {
 	SigningHandler() consensus.SigningHandler
 	EnableEpochsHandler() common.EnableEpochsHandler
 	EnableRoundsHandler() common.EnableRoundsHandler
+	CommonConfigsHandler() common.CommonConfigsHandler
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache
@@ -179,8 +180,9 @@ type PeerBlackListCacher interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
-	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte)
-	GetSignedHash(pkBytes []byte, nonce uint64) ([]byte, bool)
+	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
+	GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
+	ReserveSignatureInRound(pkBytes []byte, roundIndex int64, headerHash []byte) bool
 	IsInterfaceNil() bool
 }
 
@@ -232,8 +234,13 @@ type ConsensusStateHandler interface {
 	SetBody(body data.BodyHandler)
 	GetHeader() data.HeaderHandler
 	SetHeader(header data.HeaderHandler)
+	SetDataIfNotSet(data []byte) bool
 	GetWaitingAllSignaturesTimeOut() bool
 	SetWaitingAllSignaturesTimeOut(bool)
+	SignaturesDone() <-chan struct{}
+	SetSignaturesDone(done <-chan struct{})
+	SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc)
+	SignaturesCtxCancel()
 	RoundConsensusHandler
 	RoundStatusHandler
 	RoundThresholdHandler

@@ -24,12 +24,13 @@ import (
 	dataTx "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/epochStart/notifier"
-	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-storage-go/types"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -2723,9 +2724,9 @@ func createDummyAccountsWith100EGLD(numAccounts uint32, adb *state.AccountsDB) (
 
 func createAccountsDBTestSetup() *state.AccountsDB {
 	generalCfg := config.TrieStorageManagerConfig{
-		PruningBufferLen:      1000,
-		SnapshotsBufferLen:    10,
-		SnapshotsGoroutineNum: 1,
+		PruningBufferLen:           1000,
+		SnapshotsBufferLen:         10,
+		SnapshotsGoroutinesPerCore: 1,
 	}
 	evictionWaitListSize := uint(100)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{

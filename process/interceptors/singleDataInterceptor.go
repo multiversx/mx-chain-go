@@ -117,6 +117,10 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		if err != nil {
 			sdi.throttler.EndProcessing()
 			sdi.processDebugInterceptedData(interceptedData, err)
+			if errors.Is(err, common.ErrAlreadyExistingEquivalentProof) ||
+				errors.Is(err, process.ErrDuplicatedInterceptedDataNotAllowed) {
+				return messageID, p2p.ErrMessageShouldBeIgnored
+			}
 
 			isWrongVersion := errors.Is(err, process.ErrInvalidTransactionVersion) || errors.Is(err, process.ErrInvalidChainID)
 			if isWrongVersion {

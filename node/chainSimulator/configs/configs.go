@@ -128,6 +128,13 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
 	configs.GeneralConfig.EpochStartConfig.GenesisEpoch = args.InitialEpoch
 
+	// the simulator always builds its own genesis locally (even for a non-zero InitialEpoch) and
+	// never joins a real p2p network, so there is never epoch-start data to fetch from peers;
+	// leaving this enabled makes epochStartBootstrap.Bootstrap try to sync from the network and
+	// hang forever once InitialRound/InitialEpoch is large enough that isStartInEpochZero's
+	// round-based check no longer short-circuits it
+	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+
 	configs.GeneralConfig.Requesters.RequestProofByNonceDelayMs = 0
 
 	if args.RoundsPerEpoch.HasValue {
@@ -207,7 +214,7 @@ func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConf
 
 	// update supernova round for the new rounds per epoch config
 	newRoundsPerEpoch := args.RoundsPerEpoch.Value
-	newSupernovaRound := uint64(supernovaEpoch)*newRoundsPerEpoch + numRoundsAfterSupernovaEnableEpoch
+	newSupernovaRound := uint64(args.InitialRound) + uint64(max(0, diff))*newRoundsPerEpoch + numRoundsAfterSupernovaEnableEpoch
 	if isSupernovaFromGenesis {
 		// if supernova is from genesis, the round should be 0 as well
 		newSupernovaRound = 0

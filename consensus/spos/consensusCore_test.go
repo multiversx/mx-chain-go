@@ -48,6 +48,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		EpochNotifier:                 consensusCoreMock.EpochNotifier(),
 		InvalidSignersCache:           &consensus.InvalidSignersCacheMock{},
 		MessagesHandler:               messagesHandler,
+		CommonConfigsHandler:          consensusCoreMock.CommonConfigsHandler(),
 	}
 	return args
 }

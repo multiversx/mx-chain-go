@@ -368,6 +368,11 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
+	if !header.IsHeaderV3() &&
+		shouldDisableOutgoingTxs(tc.enableEpochsHandler, tc.enableRoundsHandler, header) &&
+		hasForbiddenOutgoingTxMiniBlocks(tc.shardCoordinator.SelfId(), miniBlocksFromMe) {
+		return process.ErrOutgoingTxsDisabled
+	}
 	startTime = time.Now()
 	err = tc.processMiniBlocksFromMe(header, &block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
 	elapsedTime = time.Since(startTime)
@@ -379,6 +384,28 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	return nil
+}
+
+func shouldDisableOutgoingTxs(
+	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
+	header data.HeaderHandler,
+) bool {
+	isSupernovaEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch())
+	supernovaRoundEnabled := enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, header.GetRound())
+	return isSupernovaEnabled && !supernovaRoundEnabled
+}
+
+func hasForbiddenOutgoingTxMiniBlocks(selfShardID uint32, miniBlocks block.MiniBlockSlice) bool {
+	for _, mb := range miniBlocks {
+		if mb.SenderShardID != selfShardID {
+			continue
+		}
+		if mb.Type == block.TxBlock || mb.Type == block.InvalidBlock {
+			return true
+		}
+	}
+	return false
 }
 
 // GetCreatedMiniBlocksFromMe returns the created mini blocks from me
@@ -439,13 +466,14 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	body *block.Body,
 	haveTime func() bool,
 ) error {
+	selfId := tc.shardCoordinator.SelfId()
 	for _, mb := range body.MiniBlocks {
 		err := process.CheckMiniBlock(mb, tc.shardCoordinator)
 		if err != nil {
 			return err
 		}
 
-		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
+		if mb.SenderShardID != selfId {
 			return process.ErrMiniBlocksInWrongOrder
 		}
 	}
@@ -503,6 +531,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	// processing destination ME miniblocks first
 	mbIndex := 0
+	selfId := tc.shardCoordinator.SelfId()
 	for mbIndex = 0; mbIndex < len(body.MiniBlocks); mbIndex++ {
 		miniBlock := body.MiniBlocks[mbIndex]
 
@@ -511,7 +540,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 			return mbIndex, err
 		}
 
-		if miniBlock.SenderShardID == tc.shardCoordinator.SelfId() {
+		if miniBlock.SenderShardID == selfId {
 			return mbIndex, nil
 		}
 
@@ -598,7 +627,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			break
 		}
 
-		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
+		if !hdr.IsHeaderV3() && tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
 				"scheduled mode", scheduledMode,
 				"stop creating", "max block size has been reached")
@@ -984,7 +1013,8 @@ func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[strin
 
 	shouldNotSkipTransactionFunc := func(_ []byte) bool { return false }
 
-	for headerHash, miniBlocks := range miniBlocksMap {
+	for _, headerHash := range sortedMiniBlockMapKeys(miniBlocksMap) {
+		miniBlocks := miniBlocksMap[headerHash]
 		cachedIntermediateTxsMap, err := common.GetCachedIntermediateTxs(tc.dataPool.PostProcessTransactions(), []byte(headerHash))
 		if err != nil {
 			log.Warn("createMarshalledDataV3.GetCachedIntermediateTxs", "error", err.Error())
@@ -1001,6 +1031,16 @@ func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[strin
 	}
 
 	return mrsTxs
+}
+
+func sortedMiniBlockMapKeys(miniBlocksMap map[string]block.MiniBlockSlice) []string {
+	headerHashes := make([]string, 0, len(miniBlocksMap))
+	for headerHash := range miniBlocksMap {
+		headerHashes = append(headerHashes, headerHash)
+	}
+	sort.Strings(headerHashes)
+
+	return headerHashes
 }
 
 func (tc *transactionCoordinator) appendTransactionsForMiniBlock(

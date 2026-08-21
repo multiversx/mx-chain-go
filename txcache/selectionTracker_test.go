@@ -2376,3 +2376,101 @@ func createDummyTrackedBlocks() map[string]*trackedBlock {
 		},
 	}
 }
+
+func TestSelectionTracker_ResetTrackerRewindsSelectionOffsets(t *testing.T) {
+	t.Parallel()
+
+	accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	config := ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
+	}
+
+	cache, err := NewTxCache(config, mempool.NewMempoolHostMock(), 0)
+	require.Nil(t, err)
+
+	txs := []*WrappedTransaction{
+		createTx([]byte("txHash1"), "alice", 11).withValue(big.NewInt(0)),
+		createTx([]byte("txHash2"), "alice", 12).withValue(big.NewInt(0)),
+		createTx([]byte("txHash3"), "alice", 13).withValue(big.NewInt(0)),
+		createTx([]byte("txHash4"), "bob", 11).withValue(big.NewInt(0)),
+		createTx([]byte("txHash5"), "bob", 12).withValue(big.NewInt(0)),
+	}
+	for _, tx := range txs {
+		cache.AddTx(tx)
+	}
+
+	err = cache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+						[]byte("txHash3"),
+						[]byte("txHash4"),
+						[]byte("txHash5"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	aliceList, ok := cache.txListBySender.getListForSender("alice")
+	require.True(t, ok)
+	bobList, ok := cache.txListBySender.getListForSender("bob")
+	require.True(t, ok)
+	require.Equal(t, 3, aliceList.getSelectionOffset())
+	require.Equal(t, 2, bobList.getSelectionOffset())
+
+	// the proposed block is dropped through the rollback / sync path
+	cache.ResetTracker()
+
+	require.Equal(t, 0, aliceList.getSelectionOffset())
+	require.Equal(t, 0, bobList.getSelectionOffset())
+
+	// after the reset, the executed-block notification re-seeds the tracker state
+	err = cache.OnExecutedBlock(&block.Header{Nonce: 0}, []byte("rootHash0"))
+	require.Nil(t, err)
+
+	selectionSession := &mempool.SelectionSessionMock{
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash0"), nil
+		},
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	options, _ := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		10,
+		10,
+		haveTimeTrueForSelection,
+	)
+
+	selectedTxs, _, err := cache.SelectTransactions(selectionSession, options, 1)
+	require.Nil(t, err)
+	require.Len(t, selectedTxs, 5)
+}

@@ -254,6 +254,9 @@ var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 // ErrNilProofsPool signals that a nil proofs pool was used
 var ErrNilProofsPool = errors.New("nil proofs pool")
 
+// ErrNilMetaFinalityView signals that a nil meta finality view was used
+var ErrNilMetaFinalityView = errors.New("nil meta finality view")
+
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
 
@@ -340,6 +343,9 @@ var ErrNotarizedHeadersSliceForShardIsNil = errors.New("notarized headers slice 
 
 // ErrCrossShardMBWithoutConfirmationFromMeta signals that miniblock was not yet notarized by metachain
 var ErrCrossShardMBWithoutConfirmationFromMeta = errors.New("cross shard miniblock with destination current shard is not confirmed by metachain")
+
+// ErrMetaBlockNotFullyConsumed signals that a referenced meta block was not fully consumed while a higher nonce one was also referenced
+var ErrMetaBlockNotFullyConsumed = errors.New("referenced meta block not fully consumed while referencing a higher nonce meta block")
 
 // ErrHeaderBodyMismatch signals that the header does not attest all data from the block
 var ErrHeaderBodyMismatch = errors.New("body cannot be validated from header data")
@@ -1392,8 +1398,17 @@ var ErrInvalidChainParameters = errors.New("invalid chain parameters")
 // ErrDuplicatedHashInBlock signals that the same hash appears more than once where uniqueness is expected
 var ErrDuplicatedHashInBlock = errors.New("duplicated hash in block")
 
+// ErrMetaBlockHashesNotInCanonicalOrder signals that referenced metablocks are not strictly ordered by nonce
+var ErrMetaBlockHashesNotInCanonicalOrder = errors.New("metablock hashes are not in canonical order")
+
+// ErrTooManyMetaBlockHashes signals that a shard header references more metablocks than allowed
+var ErrTooManyMetaBlockHashes = errors.New("too many metablock hashes")
+
 // ErrDoubleTransactionsFound signals that double transactions found
 var ErrDoubleTransactionsFound = errors.New("double transactions found")
+
+// ErrDuplicatedTransactionInBlockBody signals that a transaction hash appears more than once in the block body
+var ErrDuplicatedTransactionInBlockBody = errors.New("duplicated transaction in block body")
 
 // ErrPeerAlreadyAuthenticated signals that a peer authentication message was received for a peer that already has an existing mapping
 var ErrPeerAlreadyAuthenticated = errors.New("peer already authenticated")
@@ -1467,6 +1482,24 @@ var ErrWrongMiniBlockConstructionState = errors.New("wrong mini block constructi
 // ErrWrongMiniBlockProcessingType signals that the mini block processing type is not as expected
 var ErrWrongMiniBlockProcessingType = errors.New("wrong mini block processing type")
 
+// ErrMultipleSelfSenderMiniBlocks signals that a proposal body holds more than one self-sender mini block
+var ErrMultipleSelfSenderMiniBlocks = errors.New("multiple self-sender mini blocks in proposal body")
+
+// ErrSelfSenderMiniBlockNotLast signals that a proposal body holds an incoming mini block after the self-sender one
+var ErrSelfSenderMiniBlockNotLast = errors.New("self-sender mini block is not the last in proposal body")
+
+// ErrSelfSenderMiniBlockOnMeta signals that a meta proposal body holds a self-sender mini block
+var ErrSelfSenderMiniBlockOnMeta = errors.New("self-sender mini block in meta proposal body")
+
+// ErrInvalidSelfSenderMiniBlock signals that a self-sender proposal mini block has an invalid shape
+var ErrInvalidSelfSenderMiniBlock = errors.New("invalid self-sender mini block in proposal body")
+
+// ErrInvalidSelfSenderIndexes signals that a self-sender proposal mini block does not cover all its transactions
+var ErrInvalidSelfSenderIndexes = errors.New("self-sender mini block indexes do not cover all transactions")
+
+// ErrLeftoverScheduledMiniBlocksOnTransition signals that the legacy predecessor of the first Supernova block carries non-final mini blocks
+var ErrLeftoverScheduledMiniBlocksOnTransition = errors.New("leftover scheduled mini blocks on supernova transition")
+
 // ErrInvalidNumberOfExecutionResultsInHeader signals that the number of execution results in header is invalid
 var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of execution results in header")
 
@@ -1496,6 +1529,9 @@ var ErrNilShardInfoCreator = errors.New("nil shard info creator")
 
 // ErrEpochStartProposeBlockHasMiniBlocks signals that epoch start propose block has mini blocks
 var ErrEpochStartProposeBlockHasMiniBlocks = errors.New("epoch start propose block has mini blocks")
+
+// ErrEpochChangeProposedOutsideTriggerWindow signals that an epoch change was proposed outside the trigger window
+var ErrEpochChangeProposedOutsideTriggerWindow = errors.New("epoch change proposed outside trigger window")
 
 // ErrNonCanonicalExecutionResultIncluded signals that a non-canonical execution result has been included
 var ErrNonCanonicalExecutionResultIncluded = errors.New("non-canonical execution result included")
@@ -1538,3 +1574,6 @@ var ErrInvalidShardInfo = errors.New("invalid shard info")
 
 // ErrNilClosingNodeStartedFlag signals that the closing node started flag is nil
 var ErrNilClosingNodeStartedFlag = errors.New("closing node started flag is nil")
+
+// ErrOutgoingTxsDisabled signals that the outgoing transactions are disabled
+var ErrOutgoingTxsDisabled = errors.New("outgoing transactions are disabled")

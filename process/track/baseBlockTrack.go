@@ -2,6 +2,7 @@ package track
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -61,6 +62,12 @@ type baseBlockTrack struct {
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
 	maxNumHeadersToKeepPerShard int
+
+	mutProofPull       sync.Mutex
+	proofPullStates    map[proofPullKey]*proofPullState
+	lastProofPullRound int64
+
+	cancelFunc context.CancelFunc
 }
 
 func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
@@ -136,7 +143,14 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		processConfigsHandler:                 arguments.ProcessConfigsHandler,
 		ownShardTracker:                       tracker,
 		requestHandler:                        arguments.RequestHandler,
+		proofPullStates:                       make(map[proofPullKey]*proofPullState),
+		lastProofPullRound:                    -1,
 	}
+
+	var ctx context.Context
+	ctx, bbt.cancelFunc = context.WithCancel(context.Background())
+
+	go bbt.pullProofsForContendedNoncesLoop(ctx)
 
 	return bbt, nil
 }
@@ -486,7 +500,9 @@ func (bbt *baseBlockTrack) CheckProofAgainstRoundHandler(proof data.HeaderProofH
 }
 
 func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
-	nextRound := bbt.roundHandler.Index() + 1
+	// bound against the round the current time falls into: gating on the stored index would make a
+	// node that is slow to advance its chronology reject, and stop relaying, the data it needs most
+	nextRound := bbt.roundHandler.IndexForCurrentTime() + 1
 	if int64(round) > nextRound {
 		return fmt.Errorf("%w header round: %d, next chronology round: %d",
 			process.ErrHigherRoundInBlock,
@@ -850,6 +866,15 @@ func (bbt *baseBlockTrack) restoreTrackedHeadersToGenesis() {
 	bbt.mutHeaders.Unlock()
 }
 
+// Close closes the internal loop
+func (bbt *baseBlockTrack) Close() error {
+	if bbt.cancelFunc != nil {
+		bbt.cancelFunc()
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bbt *baseBlockTrack) IsInterfaceNil() bool {
 	return bbt == nil
@@ -938,6 +963,14 @@ func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock data.MetaH
 	}
 
 	miniBlockHdrs := metablock.GetMiniBlockHeaderHandlers()
+	if metablock.IsHeaderV3() {
+		execMiniBlockHdrs, err := common.GetMiniBlockHeadersFromExecResult(metablock)
+		if err != nil {
+			log.Debug("doWhitelistWithMetaBlockIfNeeded: could not get miniblock headers from execution results", "error", err)
+		}
+		miniBlockHdrs = execMiniBlockHdrs
+	}
+
 	keys := make([][]byte, 0)
 
 	crossMbKeysMeta := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, core.MetachainShardId)
@@ -972,6 +1005,14 @@ func (bbt *baseBlockTrack) doWhitelistWithShardHeaderIfNeeded(shardHeader data.H
 	}
 
 	miniBlockHdrs := shardHeader.GetMiniBlockHeaderHandlers()
+	if shardHeader.IsHeaderV3() {
+		execMiniBlockHdrs, err := common.GetMiniBlockHeadersFromExecResult(shardHeader)
+		if err != nil {
+			log.Debug("doWhitelistWithShardHeaderIfNeeded: could not get miniblock headers from execution results", "error", err)
+		}
+		miniBlockHdrs = execMiniBlockHdrs
+	}
+
 	keys := make([][]byte, 0)
 
 	crossMbKeysShard := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, shardHeader.GetShardID())
