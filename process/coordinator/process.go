@@ -573,6 +573,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
 	allowStartingPartialExecution bool,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 
 	createMBDestMeExecutionInfo := initMiniBlockDestMeExecutionInfo()
@@ -712,7 +713,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		allowPartialExecution := tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag) &&
 			(allowStartingPartialExecution || isContinuation)
 
-		errProc := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, allowPartialExecution, processedMbInfo, headerHash)
+		errProc := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, allowPartialExecution, processedMbInfo, headerHash, gasProcessingPolicy)
 		tc.handleProcessMiniBlockExecution(oldIndexOfLastTxProcessed, miniBlock, processedMbInfo, createMBDestMeExecutionInfo)
 		if errProc != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
@@ -1258,6 +1259,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	allowPartialExecution bool,
 	processedMbInfo *processedMb.ProcessedMiniBlockInfo,
 	headerHash []byte,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) error {
 
 	snapshot := tc.handleProcessMiniBlockInit(miniBlockHash, headerHash)
@@ -1282,6 +1284,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		allowPartialExecution,
 		int(processedMbInfo.IndexOfLastTxProcessed),
 		tc,
+		gasProcessingPolicy,
 	)
 
 	log.Debug("transactionsCoordinator.processCompleteMiniBlock: after processing",

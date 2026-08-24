@@ -172,6 +172,7 @@ func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactions
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
 	allowStartingPartialExecution bool,
+	_ process.GasProcessingPolicy,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 	if tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled == nil {
 		return nil, 0, false, nil

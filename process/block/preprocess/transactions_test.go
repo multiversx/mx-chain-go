@@ -1678,6 +1678,135 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, 1, calledCount)
 }
 
+func TestTransactionPreprocessor_ProcessTxsToMeEnforcesHistoricalDrainLimit(t *testing.T) {
+	t.Parallel()
+
+	const (
+		supernovaEpoch = uint32(2)
+		supernovaRound = uint64(260)
+		legacyGasLimit = uint64(1_500_000_000)
+		v3GasLimit     = uint64(600_000_000)
+	)
+
+	tests := []struct {
+		name        string
+		gasProvided []uint64
+		expectedErr error
+	}{
+		{name: "exact limit", gasProvided: []uint64{500_000_000, 500_000_000, 500_000_000}},
+		{name: "above limit", gasProvided: []uint64{500_000_000, 500_000_000, 500_000_001}, expectedErr: process.ErrMaxGasLimitPerBlockInSelfShardIsReached},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.SupernovaFlag && epoch >= supernovaEpoch
+				},
+			}
+			enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+				IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+					return flag == common.SupernovaRoundFlag && round >= supernovaRound
+				},
+			}
+			economicsFee := feeHandlerMock()
+			economicsFee.MaxGasLimitPerBlockInEpochCalled = func(_ uint32, epoch uint32) uint64 {
+				if epoch < supernovaEpoch {
+					return legacyGasLimit
+				}
+
+				return v3GasLimit
+			}
+			economicsFee.MaxGasLimitPerTxInEpochCalled = func(_ uint32) uint64 { return v3GasLimit }
+			economicsFee.MaxGasLimitPerBlockForSafeCrossShardInEpochCalled = func(_ uint32) uint64 { return legacyGasLimit }
+			economicsFee.BlockCapacityOverestimationFactorCalled = func() uint64 { return 200 }
+
+			args := createDefaultTransactionsProcessorArgs()
+			shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+			shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+				if len(address) > 0 {
+					return 1
+				}
+
+				return shardCoordinator.SelfId()
+			}
+			args.ShardCoordinator = shardCoordinator
+			args.EnableEpochsHandler = enableEpochsHandler
+			args.EnableRoundsHandler = enableRoundsHandler
+			args.EconomicsFee = economicsFee
+			gasIndex := 0
+			totalGasProvided := uint64(0)
+			args.GasHandler = &mock.GasHandlerMock{
+				ComputeGasProvidedByTxCalled: func(_ uint32, _ uint32, _ data.TransactionHandler) (uint64, uint64, error) {
+					gasProvided := test.gasProvided[gasIndex]
+					gasIndex++
+					return 0, gasProvided, nil
+				},
+				SetGasProvidedCalled: func(gasProvided uint64, _ []byte) {
+					totalGasProvided += gasProvided
+				},
+				TotalGasProvidedCalled: func() uint64 {
+					return totalGasProvided
+				},
+			}
+			args.TxProcessor = &testscommon.TxProcessorMock{
+				ProcessTransactionCalled: func(_ *transaction.Transaction) (vmcommon.ReturnCode, error) {
+					return vmcommon.Ok, nil
+				},
+			}
+
+			preprocessor, err := NewTransactionPreprocessor(args)
+			require.NoError(t, err)
+			preprocessor.gasEpochState.EpochConfirmed(supernovaEpoch)
+			preprocessor.gasEpochState.RoundConfirmed(supernovaRound)
+
+			miniBlocks := []*block.MiniBlock{
+				{
+					TxHashes:        [][]byte{[]byte("txHash0"), []byte("txHash1")},
+					SenderShardID:   1,
+					ReceiverShardID: args.ShardCoordinator.SelfId(),
+					Type:            block.TxBlock,
+				},
+				{
+					TxHashes:        [][]byte{[]byte("txHash2")},
+					SenderShardID:   1,
+					ReceiverShardID: args.ShardCoordinator.SelfId(),
+					Type:            block.TxBlock,
+				},
+			}
+
+			header := &block.Header{
+				Epoch: supernovaEpoch,
+				Round: supernovaRound - 1,
+			}
+			for _, miniBlock := range miniBlocks {
+				miniBlockHash, errHash := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, miniBlock)
+				require.NoError(t, errHash)
+				header.MiniBlockHeaders = append(header.MiniBlockHeaders, block.MiniBlockHeader{
+					Hash:    miniBlockHash,
+					TxCount: uint32(len(miniBlock.TxHashes)),
+				})
+				for _, txHash := range miniBlock.TxHashes {
+					preprocessor.AddTxForCurrentBlock(txHash, &transaction.Transaction{SndAddr: []byte{1}}, 1, args.ShardCoordinator.SelfId())
+				}
+			}
+
+			for _, miniBlock := range miniBlocks {
+				err = preprocessor.ProcessTxsToMe(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTimeTrue)
+				if err != nil {
+					break
+				}
+			}
+			require.Equal(t, len(test.gasProvided), gasIndex)
+			if test.expectedErr == nil {
+				require.NoError(t, err)
+			} else {
+				require.ErrorIs(t, err, test.expectedErr)
+			}
+		})
+	}
+}
+
 func TestTransactionPreprocessor_ProcessTxsToMeMissingTrieNode(t *testing.T) {
 	t.Parallel()
 
@@ -1776,7 +1905,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
 			GetNumOfCrossInterMbsAndTxsCalled: f,
 		}
-		txsToBeReverted, indexOfLastTxProcessed, _, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+		txsToBeReverted, indexOfLastTxProcessed, _, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock, process.GasProcessingPolicy{})
 
 		assert.Equal(t, process.ErrMaxBlockSizeReached, err)
 		assert.Equal(t, 3, len(txsToBeReverted))
@@ -1791,7 +1920,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		preProcessorExecutionInfoHandlerMock = &testscommon.PreProcessorExecutionInfoHandlerMock{
 			GetNumOfCrossInterMbsAndTxsCalled: f,
 		}
-		txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+		txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock, process.GasProcessingPolicy{})
 
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(txsToBeReverted))
@@ -1849,7 +1978,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
 			GetNumOfCrossInterMbsAndTxsCalled: f,
 		}
-		txsToBeReverted, indexOfLastTxProcessed, _, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+		txsToBeReverted, indexOfLastTxProcessed, _, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock, process.GasProcessingPolicy{})
 
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(txsToBeReverted))
@@ -1864,7 +1993,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		preProcessorExecutionInfoHandlerMock = &testscommon.PreProcessorExecutionInfoHandlerMock{
 			GetNumOfCrossInterMbsAndTxsCalled: f,
 		}
-		txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+		txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock, process.GasProcessingPolicy{})
 
 		assert.Nil(t, err)
 		assert.Equal(t, 0, len(txsToBeReverted))
@@ -1922,14 +2051,14 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
 	}
 
-	txsToBeReverted, indexOfLastTxProcessed, _, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+	txsToBeReverted, indexOfLastTxProcessed, _, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock, process.GasProcessingPolicy{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(txsToBeReverted))
 	assert.Equal(t, 0, indexOfLastTxProcessed)
 
 	enableEpochsHandlerStub.AddActiveFlags(common.OptimizeGasUsedInCrossMiniBlocksFlag)
-	txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+	txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock, process.GasProcessingPolicy{})
 
 	assert.Equal(t, process.ErrMaxGasLimitUsedForDestMeTxsIsReached, err)
 	assert.Equal(t, 0, len(txsToBeReverted))
@@ -2006,6 +2135,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockScheduledRollsBackOnError(t *t
 				miniBlock, makeHaveTimeAllowingFetch(), haveAdditionalTimeFalse,
 				tc.scheduledMode, tc.partialMode, -1,
 				preProcessorExecutionInfoHandlerMock,
+				process.GasProcessingPolicy{},
 			)
 			require.ErrorIs(t, processErr, process.ErrTimeIsOut)
 			require.Equal(t, tc.expectShouldRevert, shouldRevert)

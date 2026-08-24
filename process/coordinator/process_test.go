@@ -982,7 +982,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 	haveAdditionalTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, haveTime, haveAdditionalTime, false, true)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
@@ -1027,7 +1027,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 	haveAdditionalTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, haveAdditionalTime, false, true)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
@@ -1050,7 +1050,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 	haveAdditionalTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, haveAdditionalTime, false, true)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -1149,7 +1149,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		}
 	}
 
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, haveAdditionalTime, false, true)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(mbs))
@@ -1199,7 +1199,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSki
 		}
 	}
 
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaBlock, nil, haveTime, haveAdditionalTime, false, true)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaBlock, nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 	assert.Nil(t, err)
 	require.Equal(t, 1, len(mbs))
 	assert.Equal(t, uint32(1), txs)
@@ -1266,11 +1266,31 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsPartial
 
 			tc, err := NewTransactionCoordinator(args)
 			require.NoError(t, err)
+			gasProcessingPolicy, err := process.ResolveGasProcessingPolicy(
+				&testscommon.HeaderHandlerStub{EpochField: 2, RoundField: 259},
+				&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+					IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+						return flag == common.SupernovaFlag && epoch >= 2
+					},
+				},
+				&testscommon.EnableRoundsHandlerStub{
+					IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+						return flag == common.SupernovaRoundFlag && round >= 260
+					},
+				},
+				&economicsmocks.EconomicsHandlerMock{
+					MaxGasLimitPerBlockInEpochCalled: func(_ uint32, _ uint32) uint64 {
+						return 1_500_000_000
+					},
+				},
+				args.ShardCoordinator.SelfId(),
+			)
+			require.NoError(t, err)
 			tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
 				GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
 					return nil, 0
 				},
-				ProcessMiniBlockCalled: func(
+				ProcessMiniBlockWithPolicyCalled: func(
 					miniBlock *block.MiniBlock,
 					haveTime func() bool,
 					haveAdditionalTime func() bool,
@@ -1278,8 +1298,11 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsPartial
 					partialMbExecutionMode bool,
 					indexOfLastTxProcessed int,
 					preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
+					receivedPolicy process.GasProcessingPolicy,
 				) ([][]byte, int, bool, error) {
 					require.Equal(t, testCase.expectedPartialMode, partialMbExecutionMode)
+					require.True(t, receivedPolicy.HasMaxGasLimitPerBlock())
+					require.Equal(t, uint64(1_500_000_000), receivedPolicy.MaxGasLimitPerBlock())
 					return nil, len(miniBlock.TxHashes) - 1, false, nil
 				},
 			}
@@ -1291,6 +1314,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsPartial
 				func() bool { return false },
 				false,
 				testCase.allowStartingPartialExecution,
+				gasProcessingPolicy,
 			)
 			require.NoError(t, err)
 		})
@@ -1411,6 +1435,7 @@ func TestTransactionCoordinator_AtomicFailureKeepsPerSenderSkip(t *testing.T) {
 		func() bool { return false },
 		false,
 		false,
+		process.GasProcessingPolicy{},
 	)
 
 	require.NoError(t, err)
@@ -1558,7 +1583,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		}
 	}
 
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, haveAdditionalTime, false, true)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 
 	assert.NotNil(t, err)
 	assert.True(t, errors.Is(err, process.ErrNilPreProcessor))
@@ -2723,7 +2748,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		IndexOfLastTxProcessed: -1,
 		FullyProcessed:         false,
 	}
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, true, processedMbInfo, headerHash)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, true, processedMbInfo, headerHash, process.GasProcessingPolicy{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
@@ -2879,7 +2904,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		IndexOfLastTxProcessed: -1,
 		FullyProcessed:         false,
 	}
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, true, processedMbInfo, headerHash)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, true, processedMbInfo, headerHash, process.GasProcessingPolicy{})
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 	assert.True(t, revertAccntStateCalled)

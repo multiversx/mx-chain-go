@@ -51,6 +51,7 @@ type createAndProcessMiniBlocksDestMeInfo struct {
 	scheduledMode                 bool
 	allowScheduledMode            bool
 	allowStartingPartialExecution bool
+	gasProcessingPolicy           process.GasProcessingPolicy
 }
 
 // shardProcessor implements shardProcessor interface, and actually it tries to execute block
@@ -2495,6 +2496,7 @@ func (sp *shardProcessor) addCrossShardMiniBlocksDstMeToMap(
 func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 	allowStartingPartialExecution bool,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) (*createAndProcessMiniBlocksDestMeInfo, error) {
 	log.Debug("createAndProcessMiniBlocksDstMe has been started")
 
@@ -2530,6 +2532,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 		scheduledMode:                 false,
 		allowScheduledMode:            allowStartingPartialExecution,
 		allowStartingPartialExecution: allowStartingPartialExecution,
+		gasProcessingPolicy:           gasProcessingPolicy,
 	}
 
 	// do processing in order
@@ -2616,7 +2619,8 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 		createAndProcessInfo.haveTime,
 		createAndProcessInfo.haveAdditionalTime,
 		createAndProcessInfo.scheduledMode,
-		createAndProcessInfo.allowStartingPartialExecution)
+		createAndProcessInfo.allowStartingPartialExecution,
+		createAndProcessInfo.gasProcessingPolicy)
 	if errCreated != nil {
 		return false, errCreated
 	}
@@ -2727,7 +2731,18 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		header.GetEpoch(),
 		header.GetRound(),
 	)
-	createAndProcessMBsDestMeInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, !isInDrainWindow)
+	gasProcessingPolicy, err := process.ResolveGasProcessingPolicy(
+		header,
+		sp.enableEpochsHandler,
+		sp.enableRoundsHandler,
+		sp.economicsData,
+		sp.shardCoordinator.SelfId(),
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	createAndProcessMBsDestMeInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, !isInDrainWindow, gasProcessingPolicy)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 	if err != nil {

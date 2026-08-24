@@ -550,7 +550,7 @@ func (sp *shardProcessor) CheckReferencedMetaBlocksFullyConsumed(header data.Sha
 func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, true)
+	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, true, process.GasProcessingPolicy{})
 	if err != nil {
 		return nil, 0, 0, err
 	}

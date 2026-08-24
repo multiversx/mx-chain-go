@@ -1225,7 +1225,8 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			haveTime,
 			haveAdditionalTimeFalse,
 			false,
-			true)
+			true,
+			process.GasProcessingPolicy{})
 
 		if createErr != nil {
 			return nil, 0, 0, createErr

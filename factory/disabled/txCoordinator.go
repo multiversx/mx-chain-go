@@ -103,6 +103,7 @@ func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDst
 	_ func() bool,
 	_ bool,
 	_ bool,
+	_ process.GasProcessingPolicy,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 	return make(block.MiniBlockSlice, 0), 0, false, nil
 }
