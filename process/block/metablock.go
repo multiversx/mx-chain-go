@@ -1224,7 +1224,8 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			nil,
 			haveTime,
 			haveAdditionalTimeFalse,
-			false)
+			false,
+			true)
 
 		if createErr != nil {
 			return nil, 0, 0, createErr

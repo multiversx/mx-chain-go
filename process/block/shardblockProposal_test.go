@@ -336,6 +336,32 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		_, _, err = sp.CreateBlockProposal(getSimpleHeaderV3Mock(), haveTimeTrue)
 		require.ErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
 	})
+	t.Run("legacy predecessor with unfinished tracker entry should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		legacyHeader := &block.Header{Nonce: 1}
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return legacyHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("prev hash")
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ProcessedMiniBlocksTracker = &testscommon.ProcessedMiniBlocksTrackerStub{
+			HasUnfinishedMiniBlocksCalled: func() bool {
+				return true
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		_, _, err = sp.CreateBlockProposal(getSimpleHeaderV3Mock(), haveTimeTrue)
+		require.ErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
+	})
 	t.Run("consistency check fails on scheduled-marked self-sender miniblock", func(t *testing.T) {
 		t.Parallel()
 
@@ -2284,6 +2310,35 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
+
+		header := &block.HeaderV3{
+			Nonce:    2,
+			Round:    2,
+			PrevHash: []byte("prevHash"),
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+		err = sp.VerifyBlockProposal(header, &block.Body{}, haveTime)
+		require.ErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
+	})
+
+	t.Run("legacy predecessor with unfinished tracker entry should fail verification", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		legacyHeader := &block.Header{Nonce: 1, Round: 1}
+		_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(legacyHeader, []byte("root"))
+		dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("prevHash"))
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ProcessedMiniBlocksTracker = &testscommon.ProcessedMiniBlocksTrackerStub{
+			HasUnfinishedMiniBlocksCalled: func() bool {
+				return true
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
 
 		header := &block.HeaderV3{
 			Nonce:    2,
@@ -4838,22 +4893,6 @@ func TestGetHaveTimeForProposal(t *testing.T) {
 	require.Greater(t, remaining, time.Duration(0))
 	require.LessOrEqual(t, remaining, maxDuration)
 
-}
-
-func TestShouldDisableOutgoingTxs(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should return true when conditions met", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents, _, _, _ := createComponentHolderMocks()
-		enableEpochsHandler := coreComponents.EnableEpochsHandler()
-		enableRoundsHandler := coreComponents.EnableRoundsHandler()
-
-		result := blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler)
-		// This tests that the function executes without error
-		require.NotNil(t, result) // result can be true or false depending on configuration
-	})
 }
 
 func TestShardProcessor_OnProposedBlock(t *testing.T) {

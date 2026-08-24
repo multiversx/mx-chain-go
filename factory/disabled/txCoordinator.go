@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -100,6 +101,7 @@ func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDst
 	_ map[string]*processedMb.ProcessedMiniBlockInfo,
 	_ func() bool,
 	_ func() bool,
+	_ bool,
 	_ bool,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 	return make(block.MiniBlockSlice, 0), 0, false, nil

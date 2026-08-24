@@ -92,6 +92,17 @@ func IsAsyncExecutionEnabledForEpochAndRound(
 		enableRoundsHandler.IsFlagEnabledInRound(SupernovaRoundFlag, round)
 }
 
+// IsInSupernovaDrainWindowForEpochAndRound returns true between the Supernova epoch and round activations.
+func IsInSupernovaDrainWindowForEpochAndRound(
+	enableEpochsHandler EnableEpochsHandler,
+	enableRoundsHandler EnableRoundsHandler,
+	epoch uint32,
+	round uint64,
+) bool {
+	return enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, epoch) &&
+		!enableRoundsHandler.IsFlagEnabledInRound(SupernovaRoundFlag, round)
+}
+
 // IsAsyncExecutionEnabled returns true if both Supernova epochs and Supernova rounds are enabled
 func IsAsyncExecutionEnabled(enableEpochsHandler EnableEpochsHandler, enableRoundsHandler EnableRoundsHandler) bool {
 	return enableEpochsHandler.IsFlagEnabled(SupernovaFlag) &&

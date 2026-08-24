@@ -38,17 +38,19 @@ const (
 )
 
 type createAndProcessMiniBlocksDestMeInfo struct {
-	currMetaHdr                 data.HeaderHandler
-	currMetaHdrHash             []byte
-	currProcessedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo
-	allProcessedMiniBlocksInfo  map[string]*processedMb.ProcessedMiniBlockInfo
-	haveTime                    func() bool
-	haveAdditionalTime          func() bool
-	miniBlocks                  block.MiniBlockSlice
-	hdrAdded                    bool
-	numTxsAdded                 uint32
-	numHdrsAdded                uint32
-	scheduledMode               bool
+	currMetaHdr                   data.HeaderHandler
+	currMetaHdrHash               []byte
+	currProcessedMiniBlocksInfo   map[string]*processedMb.ProcessedMiniBlockInfo
+	allProcessedMiniBlocksInfo    map[string]*processedMb.ProcessedMiniBlockInfo
+	haveTime                      func() bool
+	haveAdditionalTime            func() bool
+	miniBlocks                    block.MiniBlockSlice
+	hdrAdded                      bool
+	numTxsAdded                   uint32
+	numHdrsAdded                  uint32
+	scheduledMode                 bool
+	allowScheduledMode            bool
+	allowStartingPartialExecution bool
 }
 
 // shardProcessor implements shardProcessor interface, and actually it tries to execute block
@@ -163,6 +165,11 @@ func (sp *shardProcessor) ProcessBlock(
 	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
 
 	err = sp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body, header.GetShardID(), header.GetEpoch(), false)
+	if err != nil {
+		return err
+	}
+
+	err = sp.checkSupernovaDrainRules(header)
 	if err != nil {
 		return err
 	}
@@ -1119,7 +1126,7 @@ func (sp *shardProcessor) createBlockBody(shardHdr data.HeaderHandler, haveTime 
 	)
 
 	randomness := helpers.ComputeRandomnessForTxSorting(shardHdr, sp.enableEpochsHandler)
-	miniBlocks, processedMiniBlocksDestMeInfo, err := sp.createMiniBlocks(haveTime, randomness)
+	miniBlocks, processedMiniBlocksDestMeInfo, err := sp.createMiniBlocks(haveTime, randomness, shardHdr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2485,7 +2492,10 @@ func (sp *shardProcessor) addCrossShardMiniBlocksDstMeToMap(
 }
 
 // full verification through metachain header
-func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) (*createAndProcessMiniBlocksDestMeInfo, error) {
+func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
+	haveTime func() bool,
+	allowStartingPartialExecution bool,
+) (*createAndProcessMiniBlocksDestMeInfo, error) {
 	log.Debug("createAndProcessMiniBlocksDstMe has been started")
 
 	sw := core.NewStopWatch()
@@ -2511,13 +2521,15 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 	}
 
 	createAndProcessInfo := &createAndProcessMiniBlocksDestMeInfo{
-		haveTime:                   haveTime,
-		haveAdditionalTime:         haveAdditionalTimeFalse,
-		miniBlocks:                 make(block.MiniBlockSlice, 0),
-		allProcessedMiniBlocksInfo: make(map[string]*processedMb.ProcessedMiniBlockInfo),
-		numTxsAdded:                uint32(0),
-		numHdrsAdded:               uint32(0),
-		scheduledMode:              false,
+		haveTime:                      haveTime,
+		haveAdditionalTime:            haveAdditionalTimeFalse,
+		miniBlocks:                    make(block.MiniBlockSlice, 0),
+		allProcessedMiniBlocksInfo:    make(map[string]*processedMb.ProcessedMiniBlockInfo),
+		numTxsAdded:                   uint32(0),
+		numHdrsAdded:                  uint32(0),
+		scheduledMode:                 false,
+		allowScheduledMode:            allowStartingPartialExecution,
+		allowStartingPartialExecution: allowStartingPartialExecution,
 	}
 
 	// do processing in order
@@ -2603,7 +2615,8 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 		createAndProcessInfo.currProcessedMiniBlocksInfo,
 		createAndProcessInfo.haveTime,
 		createAndProcessInfo.haveAdditionalTime,
-		createAndProcessInfo.scheduledMode)
+		createAndProcessInfo.scheduledMode,
+		createAndProcessInfo.allowStartingPartialExecution)
 	if errCreated != nil {
 		return false, errCreated
 	}
@@ -2634,7 +2647,9 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 			"num mbs added", len(currMiniBlocksAdded),
 			"num txs added", currNumTxsAdded)
 
-		if sp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) && !createAndProcessInfo.scheduledMode {
+		if createAndProcessInfo.allowScheduledMode &&
+			sp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) &&
+			!createAndProcessInfo.scheduledMode {
 			createAndProcessInfo.scheduledMode = true
 			createAndProcessInfo.haveAdditionalTime = process.HaveAdditionalTime()
 			return sp.createMbsAndProcessCrossShardTransactionsDstMe(createAndProcessInfo)
@@ -2665,7 +2680,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 	}
 }
 
-func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
+func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []byte, header data.HeaderHandler) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
 	var miniBlocks block.MiniBlockSlice
 	processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
 
@@ -2706,7 +2721,13 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	}
 
 	startTime := time.Now()
-	createAndProcessMBsDestMeInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
+	isInDrainWindow := common.IsInSupernovaDrainWindowForEpochAndRound(
+		sp.enableEpochsHandler,
+		sp.enableRoundsHandler,
+		header.GetEpoch(),
+		header.GetRound(),
+	)
+	createAndProcessMBsDestMeInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, !isInDrainWindow)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 	if err != nil {
@@ -2738,7 +2759,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 	}
 
-	if shouldDisableOutgoingTxs(sp.enableEpochsHandler, sp.enableRoundsHandler) {
+	if isInDrainWindow {
 		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
 		miniBlocks = append(miniBlocks, interMBs...)
 
@@ -2774,12 +2795,6 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 
 	log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
 	return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
-}
-
-func shouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
-	isSupernovaEnabled := enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag)
-	supernovaRoundEnabled := enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag)
-	return isSupernovaEnabled && !supernovaRoundEnabled
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body
