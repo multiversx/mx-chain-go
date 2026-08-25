@@ -58,6 +58,8 @@
     # ProcessConfigsByEpoch represents the configuration of process configuration parameters by epoch
     ProcessConfigsByEpoch = [
         { EnableEpoch = 0, MaxMetaNoncesBehind = 15, MaxMetaNoncesBehindForGlobalStuck = 30, MaxShardNoncesBehind = 15 },
+        # Pre-Supernova epoch (immediately before Supernova) configuration
+        { EnableEpoch = 1, MaxMetaNoncesBehind = 5, MaxMetaNoncesBehindForGlobalStuck = 8, MaxShardNoncesBehind = 5 },
         { EnableEpoch = 2, MaxMetaNoncesBehind = 75, MaxMetaNoncesBehindForGlobalStuck = 120, MaxShardNoncesBehind = 75 },
     ]
 

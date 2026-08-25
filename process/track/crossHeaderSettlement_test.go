@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 )
@@ -173,6 +174,7 @@ func TestMetaBlockTrack_ComputeLongestChain_ContendedShardHeader(t *testing.T) {
 				return flag == common.AndromedaFlag || flag == common.SupernovaFlag
 			},
 		}
+		args.EnableRoundsHandler = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
 		// the tracker settles from PoolsHolder, the block processor attests finality from
 		// ProofsPool; production wires both to the same pool
 		args.ProofsPool = args.PoolsHolder.Proofs()

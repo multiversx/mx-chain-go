@@ -1290,8 +1290,7 @@ func checkProposalMiniBlocksConsistency(
 	return nil
 }
 
-// checkLegacyPredecessorReadyForV3 hard-stops the Supernova transition when the last
-// legacy block still carries non-final mini blocks, whose work V3 would discard
+// checkLegacyPredecessorReadyForV3 rejects the transition while legacy work remains in the predecessor or tracker.
 func (bp *baseProcessor) checkLegacyPredecessorReadyForV3(header data.HeaderHandler) error {
 	prevHeader := bp.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(prevHeader) || prevHeader.IsHeaderV3() {
@@ -1301,27 +1300,74 @@ func (bp *baseProcessor) checkLegacyPredecessorReadyForV3(header data.HeaderHand
 		return nil
 	}
 
-	nonFinalMbHashes := make([][]byte, 0)
+	numNonFinalMiniBlocks := 0
+	var firstNonFinalMiniBlockHash []byte
 	for _, mbHeader := range prevHeader.GetMiniBlockHeaderHandlers() {
 		if !mbHeader.IsFinal() {
-			nonFinalMbHashes = append(nonFinalMbHashes, mbHeader.GetHash())
+			numNonFinalMiniBlocks++
+			if firstNonFinalMiniBlockHash == nil {
+				firstNonFinalMiniBlockHash = mbHeader.GetHash()
+			}
 		}
 	}
-	if len(nonFinalMbHashes) == 0 {
+	if numNonFinalMiniBlocks > 0 {
+		log.Error("supernova transition blocked: the last legacy block still carries non-final mini blocks and their work would be discarded",
+			"legacy nonce", prevHeader.GetNonce(),
+			"num mini blocks", numNonFinalMiniBlocks,
+			"first hash", firstNonFinalMiniBlockHash,
+		)
+
+		return fmt.Errorf("%w: %d non-final mini blocks in legacy block with nonce %d",
+			process.ErrLeftoverScheduledMiniBlocksOnTransition,
+			numNonFinalMiniBlocks,
+			prevHeader.GetNonce(),
+		)
+	}
+
+	if bp.shardCoordinator.SelfId() == core.MetachainShardId || !bp.processedMiniBlocksTracker.HasUnfinishedMiniBlocks() {
 		return nil
 	}
 
-	log.Error("supernova transition blocked: the last legacy block still carries non-final mini blocks and their work would be discarded",
+	log.Error("supernova transition blocked: the processed mini blocks tracker contains unfinished work",
 		"legacy nonce", prevHeader.GetNonce(),
-		"num mini blocks", len(nonFinalMbHashes),
-		"hashes", nonFinalMbHashes,
 	)
 
-	return fmt.Errorf("%w: %d non-final mini blocks in legacy block with nonce %d",
+	return fmt.Errorf("%w: unfinished tracked mini blocks after legacy block with nonce %d",
 		process.ErrLeftoverScheduledMiniBlocksOnTransition,
-		len(nonFinalMbHashes),
 		prevHeader.GetNonce(),
 	)
+}
+
+func (bp *baseProcessor) checkSupernovaDrainRules(header data.HeaderHandler) error {
+	isInDrainWindow := common.IsInSupernovaDrainWindowForEpochAndRound(
+		bp.enableEpochsHandler,
+		bp.enableRoundsHandler,
+		header.GetEpoch(),
+		header.GetRound(),
+	)
+	if !isInDrainWindow {
+		return nil
+	}
+
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeader.GetProcessingType() == int32(block.Scheduled) {
+			return process.ErrScheduledMiniBlockInSupernovaDrain
+		}
+		if miniBlockHeader.GetConstructionState() != int32(block.PartialExecuted) {
+			continue
+		}
+
+		processedMbInfo, metaBlockHash := bp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHeader.GetHash())
+		isExistingContinuation := processedMbInfo != nil &&
+			len(metaBlockHash) > 0 &&
+			processedMbInfo.IndexOfLastTxProcessed >= 0 &&
+			!processedMbInfo.FullyProcessed
+		if !isExistingContinuation {
+			return process.ErrNewPartialMiniBlockInSupernovaDrain
+		}
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
@@ -4621,9 +4667,7 @@ func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 // isContendedUnsettledCrossHeader applies the cross-shard referencing gate: a header that
 // skipped a round after its parent is not includable until it settles (see IsSettledCrossHeader)
 func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandler, parentHeader data.HeaderHandler, headerHash []byte) bool {
-	// keyed on the header's own epoch: a pre-Supernova header predates the settlement rules and
-	// could never satisfy them
-	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
+	if !common.IsCrossHeaderSettlementEnabledForHeader(bp.enableEpochsHandler, bp.enableRoundsHandler, header) {
 		return false
 	}
 	if !common.IsContendedHeader(header, parentHeader) {
@@ -4636,7 +4680,7 @@ func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandl
 // checkNotContendedUnsettled errors when a referenced cross-shard header is contended and not yet
 // settled; the header hash is computed only on the contended path
 func (bp *baseProcessor) checkNotContendedUnsettled(header data.HeaderHandler, parentHeader data.HeaderHandler) error {
-	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
+	if !common.IsCrossHeaderSettlementEnabledForHeader(bp.enableEpochsHandler, bp.enableRoundsHandler, header) {
 		return nil
 	}
 	if !common.IsContendedHeader(header, parentHeader) {

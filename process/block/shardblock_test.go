@@ -336,6 +336,129 @@ func TestShardProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t 
 	assert.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 }
 
+func TestShardProcessor_ProcessBlockRejectsNewDrainWorkBeforeRequestingTransactions(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name              string
+		processingType    block.ProcessingType
+		constructionState block.MiniBlockState
+		expectedErr       error
+	}{
+		{
+			name:              "scheduled miniblock",
+			processingType:    block.Scheduled,
+			constructionState: block.Final,
+			expectedErr:       process.ErrScheduledMiniBlockInSupernovaDrain,
+		},
+		{
+			name:              "fresh partial miniblock",
+			processingType:    block.Normal,
+			constructionState: block.PartialExecuted,
+			expectedErr:       process.ErrNewPartialMiniBlockInSupernovaDrain,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+			coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.SupernovaFlag
+				},
+			}
+			coreComponents.EnableRoundsHandlerField = &testscommon.EnableRoundsHandlerStub{
+				IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+					return false
+				},
+			}
+			transactionsRequested := false
+			arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+			arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+				RequestBlockTransactionsCalled: func(body *block.Body) {
+					transactionsRequested = true
+				},
+			}
+			sp, err := blproc.NewShardProcessor(arguments)
+			require.NoError(t, err)
+
+			headerHandler, err := sp.CreateNewHeader(1, 1)
+			require.NoError(t, err)
+			header := headerHandler.(data.ShardHeaderHandler)
+			body := &block.Body{MiniBlocks: []*block.MiniBlock{{
+				SenderShardID:   1,
+				ReceiverShardID: header.GetShardID(),
+				Type:            block.TxBlock,
+				TxHashes:        [][]byte{[]byte("tx0"), []byte("tx1")},
+			}}}
+			body, err = sp.ApplyBodyToHeader(header, body, nil)
+			require.NoError(t, err)
+
+			miniBlockHeader := header.GetMiniBlockHeaderHandlers()[0]
+			require.NoError(t, miniBlockHeader.SetProcessingType(int32(testCase.processingType)))
+			require.NoError(t, miniBlockHeader.SetConstructionState(int32(testCase.constructionState)))
+			if testCase.constructionState == block.PartialExecuted {
+				require.NoError(t, miniBlockHeader.SetIndexOfLastTxProcessed(0))
+			}
+
+			err = sp.ProcessBlock(header, body, func() time.Duration { return time.Second })
+			require.ErrorIs(t, err, testCase.expectedErr)
+			require.False(t, transactionsRequested)
+		})
+	}
+}
+
+func TestShardProcessor_ProcessBlockAllowsProcessedMiniBlockDuringDrain(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag
+		},
+	}
+	coreComponents.EnableRoundsHandlerField = &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return false
+		},
+	}
+	transactionsRequested := false
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+		RequestBlockTransactionsCalled: func(body *block.Body) {
+			transactionsRequested = true
+		},
+	}
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.NoError(t, err)
+
+	headerHandler, err := sp.CreateNewHeader(1, 1)
+	require.NoError(t, err)
+	header := headerHandler.(data.ShardHeaderHandler)
+	miniBlock := &block.MiniBlock{
+		SenderShardID:   header.GetShardID(),
+		ReceiverShardID: 1,
+		Type:            block.TxBlock,
+		TxHashes:        [][]byte{[]byte("tx")},
+	}
+	scheduledReserved, err := (&block.MiniBlockReserved{ExecutionType: block.Scheduled}).Marshal()
+	require.NoError(t, err)
+	miniBlock.Reserved = scheduledReserved
+	body := &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}
+	body, err = sp.ApplyBodyToHeader(header, body, nil)
+	require.NoError(t, err)
+
+	miniBlockHeader := header.GetMiniBlockHeaderHandlers()[0]
+	require.NoError(t, miniBlockHeader.SetProcessingType(int32(block.Processed)))
+	require.NoError(t, miniBlockHeader.SetConstructionState(int32(block.Final)))
+
+	err = sp.ProcessBlock(header, body, func() time.Duration { return time.Second })
+	require.NoError(t, err)
+	require.True(t, transactionsRequested)
+}
+
 func TestShardProcessor_ProcessBlockShouldErrWhenProcessorBusy(t *testing.T) {
 	t.Parallel()
 
@@ -3557,6 +3680,62 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlo
 	assert.Equal(t, uint32(0), usedMetaHdrsHashes)
 	assert.Equal(t, uint32(0), nrTxAdded)
 	assert.Nil(t, err)
+}
+
+func TestShardProcessor_CreateMbsAndProcessCrossShardTransactionsDstMeDrainPolicy(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name                   string
+		allowLegacyWork        bool
+		expectedScheduledModes []bool
+	}{
+		{
+			name:                   "drain does not enter scheduled mode",
+			allowLegacyWork:        false,
+			expectedScheduledModes: []bool{false},
+		},
+		{
+			name:                   "outside drain keeps scheduled retry",
+			allowLegacyWork:        true,
+			expectedScheduledModes: []bool{false, true},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+			coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.ScheduledMiniBlocksFlag
+				},
+			}
+			scheduledModes := make([]bool, 0, len(testCase.expectedScheduledModes))
+			arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+			arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+				CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(
+					header data.HeaderHandler,
+					processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+					haveTime func() bool,
+					haveAdditionalTime func() bool,
+					scheduledMode bool,
+					allowStartingPartialExecution bool,
+				) (block.MiniBlockSlice, uint32, bool, error) {
+					scheduledModes = append(scheduledModes, scheduledMode)
+					require.Equal(t, testCase.allowLegacyWork, allowStartingPartialExecution)
+					return nil, 0, scheduledMode, nil
+				},
+			}
+			sp, err := blproc.NewShardProcessor(arguments)
+			require.NoError(t, err)
+
+			_, err = sp.CreateMbsAndProcessCrossShardTransactionsDstMe(&block.MetaBlock{}, testCase.allowLegacyWork)
+			require.NoError(t, err)
+			require.Equal(t, testCase.expectedScheduledModes, scheduledModes)
+		})
+	}
 }
 
 // ------- createMiniBlocks
@@ -7637,55 +7816,6 @@ func TestShardProcessor_checkEpochStartInfoAvailableIfNeeded(t *testing.T) {
 	})
 }
 
-func Test_ShouldDisableOutgoingTxs(t *testing.T) {
-	t.Parallel()
-
-	t.Run("both flag not set, should return false", func(t *testing.T) {
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
-		enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
-		require.False(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
-	})
-	t.Run("epoch flag enabled, round flag disabled, should return true", func(t *testing.T) {
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return true
-			},
-		}
-		enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
-			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
-				return false
-			},
-		}
-		require.True(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
-	})
-	t.Run("epoch flag disabled, round flag enabled, should return false", func(t *testing.T) {
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return false
-			},
-		}
-		enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
-			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
-				return true
-			},
-		}
-		require.False(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
-	})
-	t.Run("both flag enabled, should return false", func(t *testing.T) {
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return true
-			},
-		}
-		enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
-			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
-				return true
-			},
-		}
-		require.False(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
-	})
-}
-
 func TestShardProcessor_GetLastExecutionResultHeader(t *testing.T) {
 	t.Parallel()
 
@@ -8836,7 +8966,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	hasher := &hashingMocks.HasherMock{}
 	marshalizer := &mock.MarshalizerMock{}
 
-	buildProcessor := func(settled bool, preSupernovaEra bool) (interface {
+	buildProcessor := func(settled bool, preSupernovaEra bool, supernovaRoundActivated bool) (interface {
 		CheckMetaHeadersValidityAndFinality(header data.ShardHeaderHandler) error
 	}, dataRetriever.ProofsPool) {
 		tdp := dataRetrieverMock.NewPoolsHolderMock()
@@ -8871,6 +9001,9 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		coreComponents.Hash = hasher
 		coreComponents.IntMarsh = marshalizer
+		if supernovaRoundActivated {
+			coreComponents.EnableRoundsHandlerField = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
+		}
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.SupernovaFlag
@@ -8898,7 +9031,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	t.Run("contended unsettled referenced meta header should error", func(t *testing.T) {
 		t.Parallel()
 
-		sp, _ := buildProcessor(false, false)
+		sp, _ := buildProcessor(false, false, true)
 		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
 		assert.ErrorContains(t, err, "included contended header not yet settled")
 	})
@@ -8906,7 +9039,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	t.Run("contended settled referenced meta header should pass", func(t *testing.T) {
 		t.Parallel()
 
-		sp, _ := buildProcessor(true, false)
+		sp, _ := buildProcessor(true, false, true)
 		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
 		assert.Nil(t, err)
 	})
@@ -8914,7 +9047,15 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	t.Run("pre-Supernova contended referenced meta header is not gated", func(t *testing.T) {
 		t.Parallel()
 
-		sp, _ := buildProcessor(false, true)
+		sp, _ := buildProcessor(false, true, true)
+		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
+		assert.Nil(t, err)
+	})
+
+	t.Run("Supernova epoch active but round not active: contended referenced meta header is not gated", func(t *testing.T) {
+		t.Parallel()
+
+		sp, _ := buildProcessor(false, false, false)
 		err := sp.CheckMetaHeadersValidityAndFinality(&block.Header{Nonce: 7})
 		assert.Nil(t, err)
 	})
@@ -8922,7 +9063,7 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityContendedGate(t *test
 	t.Run("own proof supersedes the contended gate on the execution path", func(t *testing.T) {
 		t.Parallel()
 
-		sp, proofs := buildProcessor(false, false)
+		sp, proofs := buildProcessor(false, false, true)
 		ownHeader := &block.Header{Nonce: 7}
 		headerBytes, _ := marshalizer.Marshal(ownHeader)
 		ownHash := hasher.Compute(string(headerBytes))

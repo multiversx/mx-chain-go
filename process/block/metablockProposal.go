@@ -1083,6 +1083,9 @@ func (mp *metaProcessor) selectContendedShardHeaders(
 		if check.IfNil(candidate) {
 			continue
 		}
+		if !common.IsCrossHeaderSettlementEnabledForHeader(mp.enableEpochsHandler, mp.enableRoundsHandler, candidate) {
+			continue
+		}
 		if !common.IsContendedHeader(candidate, lastShardHeaderInfo.Header) {
 			continue
 		}
@@ -1159,7 +1162,7 @@ func (mp *metaProcessor) checkShardHeaderContention(header data.HeaderHandler, h
 
 // checkShardHeaderContentionComputingHash computes the hashes only on the contended path
 func (mp *metaProcessor) checkShardHeaderContentionComputingHash(header data.HeaderHandler, parentHeader data.HeaderHandler, ancestryView *metaAncestryView, contentionCtx contentionContext) error {
-	if !mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
+	if !common.IsCrossHeaderSettlementEnabledForHeader(mp.enableEpochsHandler, mp.enableRoundsHandler, header) {
 		return nil
 	}
 	if !common.IsContendedHeader(header, parentHeader) {

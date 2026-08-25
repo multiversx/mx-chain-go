@@ -1003,7 +1003,7 @@ func TestMetaProcessor_ProcessBlock_MiniBlockChecks(t *testing.T) {
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
 
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 	}
@@ -2419,6 +2419,7 @@ func TestMetaProcessor_CheckShardHeadersValidityContentionRegimes(t *testing.T) 
 		CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error)
 	} {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.EnableRoundsHandlerField = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.SupernovaFlag
@@ -3391,7 +3392,7 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	}
 
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{expectedMiniBlock1}, 0, true, nil
 		},
 		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
@@ -3563,7 +3564,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	}
 
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
@@ -3686,7 +3687,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	}
 
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 	}
@@ -3832,7 +3833,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	}
 
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 	}
@@ -6002,13 +6003,16 @@ func TestMetaProcessor_VerifyShardDataAgainstHeadersFlagGating(t *testing.T) {
 func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Parallel()
 
-	buildProcessorAndHeader := func(settled bool, withCompetitor bool, preSupernovaEra bool) (interface {
+	buildProcessorAndHeader := func(settled bool, withCompetitor bool, preSupernovaEra bool, supernovaRoundActivated bool) (interface {
 		CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error)
 	}, *block.MetaBlock) {
 		pool := dataRetrieverMock.NewPoolsHolderMock()
 		noOfShards := uint32(5)
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
+		if supernovaRoundActivated {
+			coreComponents.EnableRoundsHandlerField = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
+		}
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.SupernovaFlag
@@ -6102,7 +6106,7 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Run("contended unsettled referenced shard header without competitor should pass", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(false, false, false)
+		mp, metaHdr := buildProcessorAndHeader(false, false, false, true)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.Nil(t, err)
 	})
@@ -6110,7 +6114,7 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Run("contended unsettled referenced shard header with better proofed competitor should error", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(false, true, false)
+		mp, metaHdr := buildProcessorAndHeader(false, true, false, true)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.ErrorContains(t, err, "better proofed competitor")
 	})
@@ -6118,7 +6122,7 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Run("contended settled referenced shard header should pass", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(true, false, false)
+		mp, metaHdr := buildProcessorAndHeader(true, false, false, true)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.Nil(t, err)
 	})
@@ -6126,7 +6130,15 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Run("pre-Supernova contended referenced shard header skips the contention gate", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(false, true, true)
+		mp, metaHdr := buildProcessorAndHeader(false, true, true, true)
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		assert.Nil(t, err)
+	})
+
+	t.Run("Supernova epoch active but round not active: contended referenced shard header skips the contention gate", func(t *testing.T) {
+		t.Parallel()
+
+		mp, metaHdr := buildProcessorAndHeader(false, true, false, false)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.Nil(t, err)
 	})

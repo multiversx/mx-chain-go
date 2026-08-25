@@ -614,7 +614,9 @@ func (boot *baseBootstrap) shouldTryToRequestHeaders() (bool, uint64) {
 		return false, 0
 	}
 	if !boot.isNodeSynchronized {
-		return true, 0
+		// normal sync handles requests while the probable nonce is ahead
+		hasKnownBacklog := boot.forkDetector.ProbableHighestNonce() > boot.currentCommittedNonce()
+		return !hasKnownBacklog, 0
 	}
 
 	roundIndex := boot.roundHandler.Index()
