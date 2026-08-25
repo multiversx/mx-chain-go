@@ -2495,7 +2495,7 @@ func (sp *shardProcessor) addCrossShardMiniBlocksDstMeToMap(
 // full verification through metachain header
 func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
-	allowStartingPartialExecution bool,
+	allowLegacyWork bool,
 	gasProcessingPolicy process.GasProcessingPolicy,
 ) (*createAndProcessMiniBlocksDestMeInfo, error) {
 	log.Debug("createAndProcessMiniBlocksDstMe has been started")
@@ -2530,8 +2530,8 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 		numTxsAdded:                   uint32(0),
 		numHdrsAdded:                  uint32(0),
 		scheduledMode:                 false,
-		allowScheduledMode:            allowStartingPartialExecution,
-		allowStartingPartialExecution: allowStartingPartialExecution,
+		allowScheduledMode:            allowLegacyWork,
+		allowStartingPartialExecution: allowLegacyWork,
 		gasProcessingPolicy:           gasProcessingPolicy,
 	}
 
