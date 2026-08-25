@@ -40,6 +40,9 @@ func TestBasePreProcessGetMaxGasLimitUsedForDestMeTxs(t *testing.T) {
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return flag == common.SupernovaFlag && epoch >= supernovaEpoch
 		},
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			return supernovaEpoch
+		},
 	}
 	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
 		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {

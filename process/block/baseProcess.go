@@ -1290,6 +1290,35 @@ func checkProposalMiniBlocksConsistency(
 	return nil
 }
 
+type supernovaTransitionState struct {
+	firstNonFinalMiniBlockHash []byte
+	numNonFinalMiniBlocks      int
+	hasUnfinishedMiniBlocks    bool
+}
+
+func (state supernovaTransitionState) isReady() bool {
+	return state.numNonFinalMiniBlocks == 0 && !state.hasUnfinishedMiniBlocks
+}
+
+func (bp *baseProcessor) getSupernovaTransitionState(header data.HeaderHandler) supernovaTransitionState {
+	state := supernovaTransitionState{}
+	numNonFinalMiniBlocks := 0
+	for _, mbHeader := range header.GetMiniBlockHeaderHandlers() {
+		if !mbHeader.IsFinal() {
+			numNonFinalMiniBlocks++
+			if state.firstNonFinalMiniBlockHash == nil {
+				state.firstNonFinalMiniBlockHash = mbHeader.GetHash()
+			}
+		}
+	}
+	state.numNonFinalMiniBlocks = numNonFinalMiniBlocks
+	state.hasUnfinishedMiniBlocks = numNonFinalMiniBlocks == 0 &&
+		bp.shardCoordinator.SelfId() != core.MetachainShardId &&
+		bp.processedMiniBlocksTracker.HasUnfinishedMiniBlocks()
+
+	return state
+}
+
 // checkLegacyPredecessorReadyForV3 rejects the transition while legacy work remains in the predecessor or tracker.
 func (bp *baseProcessor) checkLegacyPredecessorReadyForV3(header data.HeaderHandler) error {
 	prevHeader := bp.blockChain.GetCurrentBlockHeader()
@@ -1300,31 +1329,22 @@ func (bp *baseProcessor) checkLegacyPredecessorReadyForV3(header data.HeaderHand
 		return nil
 	}
 
-	numNonFinalMiniBlocks := 0
-	var firstNonFinalMiniBlockHash []byte
-	for _, mbHeader := range prevHeader.GetMiniBlockHeaderHandlers() {
-		if !mbHeader.IsFinal() {
-			numNonFinalMiniBlocks++
-			if firstNonFinalMiniBlockHash == nil {
-				firstNonFinalMiniBlockHash = mbHeader.GetHash()
-			}
-		}
-	}
-	if numNonFinalMiniBlocks > 0 {
+	transitionState := bp.getSupernovaTransitionState(prevHeader)
+	if transitionState.numNonFinalMiniBlocks > 0 {
 		log.Error("supernova transition blocked: the last legacy block still carries non-final mini blocks and their work would be discarded",
 			"legacy nonce", prevHeader.GetNonce(),
-			"num mini blocks", numNonFinalMiniBlocks,
-			"first hash", firstNonFinalMiniBlockHash,
+			"num mini blocks", transitionState.numNonFinalMiniBlocks,
+			"first hash", transitionState.firstNonFinalMiniBlockHash,
 		)
 
 		return fmt.Errorf("%w: %d non-final mini blocks in legacy block with nonce %d",
 			process.ErrLeftoverScheduledMiniBlocksOnTransition,
-			numNonFinalMiniBlocks,
+			transitionState.numNonFinalMiniBlocks,
 			prevHeader.GetNonce(),
 		)
 	}
 
-	if bp.shardCoordinator.SelfId() == core.MetachainShardId || !bp.processedMiniBlocksTracker.HasUnfinishedMiniBlocks() {
+	if !transitionState.hasUnfinishedMiniBlocks {
 		return nil
 	}
 

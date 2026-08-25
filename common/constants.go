@@ -836,6 +836,9 @@ const (
 	// MetricSupernovaEnableEpoch represents the epoch when supernova is enabled
 	MetricSupernovaEnableEpoch = "erd_supernova_enable_epoch"
 
+	// MetricSupernovaTransitionReady represents whether the shard completed the Supernova transition
+	MetricSupernovaTransitionReady = "erd_supernova_transition_ready"
+
 	// MetricUnBondPeriod represents the unbond period in rounds from StakingSystemSCConfig
 	MetricUnBondPeriod = "erd_unbond_period"
 

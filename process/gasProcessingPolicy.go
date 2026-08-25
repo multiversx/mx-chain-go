@@ -45,12 +45,13 @@ func ResolveGasProcessingPolicy(
 		return GasProcessingPolicy{}, nil
 	}
 
-	if header.GetEpoch() == 0 {
+	supernovaEpoch := enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+	if supernovaEpoch == 0 {
 		return GasProcessingPolicy{}, fmt.Errorf("%w: Supernova drain cannot use the previous epoch for epoch zero", ErrInvalidValue)
 	}
 
 	return GasProcessingPolicy{
-		maxGasLimitPerBlock:         feeHandler.MaxGasLimitPerBlockInEpoch(shardID, header.GetEpoch()-1),
+		maxGasLimitPerBlock:         feeHandler.MaxGasLimitPerBlockInEpoch(shardID, supernovaEpoch-1),
 		hasMaxGasLimitPerBlockValue: true,
 	}, nil
 }

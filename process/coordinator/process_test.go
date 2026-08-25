@@ -1272,6 +1272,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsPartial
 					IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 						return flag == common.SupernovaFlag && epoch >= 2
 					},
+					GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+						return 2
+					},
 				},
 				&testscommon.EnableRoundsHandlerStub{
 					IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
