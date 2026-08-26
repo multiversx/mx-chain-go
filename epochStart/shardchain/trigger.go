@@ -1783,8 +1783,10 @@ func (t *trigger) isMetaBlockValid(hash string, metaHdr data.HeaderHandler) bool
 // call only if mutex is locked before
 func (t *trigger) metaBlockValidity(hash string, metaHdr data.HeaderHandler) metaBlockValidity {
 	currHdr := metaHdr
-	for i := metaHdr.GetNonce() - 1; i >= metaHdr.GetNonce()-t.validity; i-- {
-		neededHdr, err := t.getHeaderWithNonceAndHash(i, currHdr.GetPrevHash())
+	numSteps := min(metaHdr.GetNonce(), t.validity)
+	for step := uint64(0); step < numSteps; step++ {
+		nonce := metaHdr.GetNonce() - step - 1
+		neededHdr, err := t.getHeaderWithNonceAndHash(nonce, currHdr.GetPrevHash())
 		if err != nil {
 			log.Debug("isMetaBlockValid.getHeaderWithNonceAndHash", "hash", hash, "error", err.Error())
 			return metaBlockValidityIncomplete

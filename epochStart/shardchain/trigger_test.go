@@ -712,9 +712,9 @@ func TestTrigger_SupernovaEpochStartRecovery(t *testing.T) {
 		defer func() { _ = tr.Close() }()
 
 		tr.RequestEpochStartIfNeeded(&block.Header{Epoch: 7, EpochStartMetaHash: []byte("epoch-7-meta")})
-		time.Sleep(20 * time.Millisecond)
-		require.Zero(t, headerRequests.Load())
-		require.Zero(t, numRecoveryCandidates(tr))
+		require.Never(t, func() bool {
+			return headerRequests.Load() != 0 || numRecoveryCandidates(tr) != 0
+		}, 50*time.Millisecond, 5*time.Millisecond)
 
 		header := &block.Header{Epoch: 6, EpochStartMetaHash: []byte("epoch-6-meta")}
 		tr.RequestEpochStartIfNeeded(header)
@@ -904,9 +904,9 @@ func TestTrigger_SupernovaEpochStartRecovery(t *testing.T) {
 		}, time.Second, 5*time.Millisecond)
 
 		tr.RequestEpochStartIfNeeded(header)
-		time.Sleep(50 * time.Millisecond)
-		require.Equal(t, int32(1), syncCalls.Load())
-		require.Equal(t, 1, numRecoveryCandidates(tr))
+		require.Never(t, func() bool {
+			return syncCalls.Load() != 1 || numRecoveryCandidates(tr) != 1
+		}, 50*time.Millisecond, 5*time.Millisecond)
 	})
 
 	t.Run("missing validator info keeps candidate ownership after the goroutine exits", func(t *testing.T) {
@@ -949,10 +949,43 @@ func TestTrigger_SupernovaEpochStartRecovery(t *testing.T) {
 		}, time.Second, 5*time.Millisecond)
 
 		tr.RequestEpochStartIfNeeded(header)
-		time.Sleep(50 * time.Millisecond)
-		require.Equal(t, int32(1), syncCalls.Load())
-		require.Equal(t, 1, numRecoveryCandidates(tr))
+		require.Never(t, func() bool {
+			return syncCalls.Load() != 1 || numRecoveryCandidates(tr) != 1
+		}, 50*time.Millisecond, 5*time.Millisecond)
 	})
+}
+
+func TestTrigger_MetaBlockValidityClampsStepsToNonce(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.Validity = 2
+	var validationCalls atomic.Int32
+	args.HeaderValidator = &mock.HeaderValidatorStub{
+		IsHeaderConstructionValidCalled: func(_, _ data.HeaderHandler) error {
+			validationCalls.Add(1)
+			return nil
+		},
+	}
+
+	tr, err := NewEpochStartTrigger(args)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, tr.Close()) })
+
+	genesisHash := "genesis"
+	genesisHeader := &block.MetaBlock{Nonce: 0}
+	tr.mutTrigger.Lock()
+	tr.mapHashHdr[genesisHash] = genesisHeader
+	tr.mapNonceHashes[0] = []string{genesisHash}
+
+	result := tr.metaBlockValidity("candidate", &block.MetaBlock{Nonce: 1, PrevHash: []byte(genesisHash)})
+	genesisResult := tr.metaBlockValidity("genesis", genesisHeader)
+	tr.mutTrigger.Unlock()
+
+	require.Equal(t, metaBlockValidityValid, result)
+	require.Equal(t, int32(1), validationCalls.Load())
+	require.Equal(t, metaBlockValidityValid, genesisResult)
+	require.Equal(t, int32(1), validationCalls.Load())
 }
 
 func TestTrigger_PerHashRecoveryDoesNotClearEpochHeaderRecovery(t *testing.T) {
