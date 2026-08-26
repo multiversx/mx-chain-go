@@ -470,15 +470,7 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	incorrectStartOfEpochBlock := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
 		sp.epochStartTrigger.MetaEpoch() == currentBlockHeader.GetEpoch()
 	if incorrectStartOfEpochBlock {
-		if header.IsStartOfEpochBlock() {
-			epochStartMetaHash := header.GetEpochStartMetaHash()
-			// evicting is a remedy for holding the wrong meta block; a proofed one is not wrong, and
-			// dropping it only costs the trigger the very header it is waiting to settle
-			if !sp.dataPool.Proofs().HasProof(core.MetachainShardId, epochStartMetaHash) {
-				sp.dataPool.Headers().RemoveHeaderByHash(epochStartMetaHash)
-				go sp.requestHandler.RequestMetaHeader(epochStartMetaHash)
-			}
-		}
+		sp.epochStartTrigger.RequestEpochStartIfNeeded(header)
 		return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
 	}

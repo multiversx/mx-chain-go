@@ -63,12 +63,16 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.extraDelayForRequestBlockInfo = t.extraDelayForRequestBlockInfo
 	rt.chanMetaBlockReceived = t.chanMetaBlockReceived
 	rt.mapPreparedEpochStartHdrs = t.mapPreparedEpochStartHdrs
+	t.mutPendingEpochStartData.Lock()
 	rt.pendingEpochStartProofs = t.pendingEpochStartProofs
 	rt.pendingEpochStartHeaders = t.pendingEpochStartHeaders
 	rt.pendingFinalityEvidence = t.pendingFinalityEvidence
+	rt.epochStartRecoveryCandidates = t.epochStartRecoveryCandidates
 	rt.chanPendingEpochStartData = t.chanPendingEpochStartData
 	rt.pendingProofRetryInterval = t.pendingProofRetryInterval
 	rt.nextProofRequestSequence = t.nextProofRequestSequence
+	rt.recoveryClosed = t.recoveryClosed
+	t.mutPendingEpochStartData.Unlock()
 	return rt
 }
 
@@ -188,6 +192,7 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 
 		err = epochStartTrigger2.LoadState(key)
 		require.Nil(t, err)
+		epochStartTrigger1.recoveryGeneration = epochStartTrigger2.recoveryGeneration
 		require.Equal(t, epochStartTrigger1, epochStartTrigger2)
 	})
 
@@ -224,6 +229,7 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 		err = epochStartTrigger2.LoadState(key)
 		require.Nil(t, err)
 		triggerClone := cloneTrigger(epochStartTrigger1)
+		triggerClone.recoveryGeneration = epochStartTrigger2.recoveryGeneration
 		require.Equal(t, triggerClone, epochStartTrigger2)
 	})
 
@@ -265,6 +271,7 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 		err = epochStartTrigger2.LoadState(key)
 		require.Nil(t, err)
 		triggerClone := cloneTrigger(epochStartTrigger1)
+		triggerClone.recoveryGeneration = epochStartTrigger2.recoveryGeneration
 		require.Equal(t, triggerClone, epochStartTrigger2)
 	})
 
@@ -300,6 +307,7 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 		err = epochStartTrigger2.LoadState(key)
 		require.Nil(t, err)
 		triggerClone := cloneTrigger(epochStartTrigger1)
+		triggerClone.recoveryGeneration = epochStartTrigger2.recoveryGeneration
 		require.Equal(t, triggerClone, epochStartTrigger2)
 	})
 }

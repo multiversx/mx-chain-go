@@ -6659,11 +6659,9 @@ func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsStartOfEpochButSho
 	assert.Equal(t, "epoch does not match proposed header with same epoch 3 as blockchain and it is of epoch start", err.Error())
 }
 
-func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochMetaBlockWhenEpochDoesNotMatch(t *testing.T) {
+func TestShardProcessor_CheckEpochCorrectnessShouldNotifyEpochStartTriggerWhenEpochDoesNotMatch(t *testing.T) {
 	t.Parallel()
 
-	removeHeaderByHashWasCalled := false
-	requestMetaHeaderWasCalled := false
 	epochStartMetaHash := []byte("epoch start meta hash")
 
 	currentHeader := &block.Header{
@@ -6673,6 +6671,7 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 		Epoch:              uint32(2),
 		EpochStartMetaHash: epochStartMetaHash,
 	}
+	triggerNotified := false
 
 	blockChainMock := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
@@ -6693,16 +6692,14 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 		MetaEpochCalled: func() uint32 {
 			return currentHeader.Epoch
 		},
+		RequestEpochStartIfNeededCalled: func(header data.HeaderHandler) {
+			triggerNotified = true
+			require.Same(t, nextHeader, header)
+		},
 	}
 	poolsHolderStub := &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{
-				RemoveHeaderByHashCalled: func(headerHash []byte) {
-					if bytes.Equal(headerHash, epochStartMetaHash) {
-						removeHeaderByHashWasCalled = true
-					}
-				},
-			}
+			return &mock.HeadersCacherStub{}
 		},
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
@@ -6718,35 +6715,16 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 		},
 	}
 
-	ch := make(chan struct{})
-
-	requestHandlerStub := &testscommon.RequestHandlerStub{
-		RequestMetaHeaderCalled: func(headerHash []byte) {
-			if bytes.Equal(headerHash, epochStartMetaHash) {
-				requestMetaHeaderWasCalled = true
-				close(ch)
-			}
-		},
-	}
-
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	dataComponents.BlockChain = blockChainMock
 	dataComponents.DataPool = poolsHolderStub
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.EpochStartTrigger = epochStartTriggerStub
-	arguments.RequestHandler = requestHandlerStub
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	err := sp.CheckEpochCorrectness(nextHeader)
 
-	select {
-	case <-ch:
-	case <-time.After(time.Minute):
-		assert.Fail(t, "timeout while waiting the sending of the request for the meta header")
-	}
-
-	assert.True(t, removeHeaderByHashWasCalled)
-	assert.True(t, requestMetaHeaderWasCalled)
+	assert.True(t, triggerNotified)
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 }
 
