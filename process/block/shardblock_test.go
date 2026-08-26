@@ -2051,6 +2051,47 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldReturnNilWhenNo
 	assert.Nil(t, err)
 }
 
+func TestShardProcessor_CheckMetaHeadersValidityAndFinalityRejectsFutureEpochStartMeta(t *testing.T) {
+	t.Parallel()
+
+	metaHash := []byte("future-epoch-start")
+	metaHeader := &block.MetaBlock{
+		Nonce: 1,
+		Epoch: 8,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{}},
+		},
+	}
+	pools := dataRetrieverMock.NewPoolsHolderMock()
+	pools.Headers().AddHeader(metaHash, metaHeader)
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.DataPool = pools
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.BlockTracker = &mock.BlockTrackerMock{
+		GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+			return &block.MetaBlock{}, nil, nil
+		},
+	}
+	arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
+		IsHeaderConstructionValidCalled: func(_, _ data.HeaderHandler) error {
+			require.Fail(t, "future epoch-start meta header reached construction validation")
+			return nil
+		},
+	}
+	arguments.HeadersForBlock.AddHeaderUsedInBlock(string(metaHash), metaHeader)
+
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.NoError(t, err)
+
+	header := &block.Header{
+		Epoch:           7,
+		MetaBlockHashes: [][]byte{metaHash},
+	}
+	err = sp.CheckMetaHeadersValidityAndFinality(header)
+	require.ErrorContains(t, err, "future epoch start meta block")
+}
+
 func TestShardProcessor_CheckMetaBlockHashesOrder(t *testing.T) {
 	t.Parallel()
 
@@ -3601,6 +3642,42 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMe(t *testing.T) {
 	assert.Equal(t, len(miniBlockSlice) == 0, true)
 	assert.Equal(t, usedMetaHdrsHashes, uint32(0))
 	assert.Equal(t, noOfTxs, uint32(0))
+}
+
+func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeStopsAtFutureEpochStartMeta(t *testing.T) {
+	t.Parallel()
+
+	futureEpochStart := &block.MetaBlock{
+		Nonce: 1,
+		Epoch: 8,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{}},
+		},
+	}
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.HeadersForBlock = &testscommon.HeadersForBlockMock{
+		AddHeaderUsedInBlockCalled: func(_ string, _ data.HeaderHandler) {
+			require.Fail(t, "future epoch-start meta header was referenced")
+		},
+	}
+	arguments.BlockTracker = &mock.BlockTrackerMock{
+		ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
+			return []data.HeaderHandler{futureEpochStart}, [][]byte{[]byte("future-epoch-start")}, nil
+		},
+		GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+			return &block.MetaBlock{}, nil, nil
+		},
+	}
+
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.NoError(t, err)
+
+	miniBlocks, numHeaders, numTxs, err := sp.CreateAndProcessMiniBlocksDstMeForEpoch(haveTimeTrue, 7)
+	require.NoError(t, err)
+	require.Empty(t, miniBlocks)
+	require.Zero(t, numHeaders)
+	require.Zero(t, numTxs)
 }
 
 func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlocksInMetaBlock(t *testing.T) {

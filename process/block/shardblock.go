@@ -564,8 +564,27 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality(header data.ShardH
 
 	isOwnProofed := sp.ownProofResolver(header)
 
-	for _, metaHdr := range usedMetaHdrs[core.MetachainShardId] {
+	for index, metaHdr := range usedMetaHdrs[core.MetachainShardId] {
 		log.Trace("checkMetaHeadersValidityAndFinality", "metaHeader nonce", metaHdr.GetNonce())
+		metaHeader, ok := metaHdr.(data.MetaHeaderHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+		err = checkFutureEpochStartMeta(header.GetEpoch(), metaHeader)
+		if err != nil {
+			var metaHash []byte
+			if index < len(header.GetMetaBlockHashes()) {
+				metaHash = header.GetMetaBlockHashes()[index]
+			}
+			return fmt.Errorf(
+				"%w: shard %d, shard epoch %d, meta epoch %d, meta hash %s",
+				err,
+				sp.shardCoordinator.SelfId(),
+				header.GetEpoch(),
+				metaHdr.GetEpoch(),
+				logger.DisplayByteSlice(metaHash),
+			)
+		}
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHdr, lastCrossNotarizedHeader)
 		if err != nil {
 			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinality -> isHdrConstructionValid", err)
@@ -2494,6 +2513,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 	allowLegacyWork bool,
 	gasProcessingPolicy process.GasProcessingPolicy,
+	candidateShardEpoch uint32,
 ) (*createAndProcessMiniBlocksDestMeInfo, error) {
 	log.Debug("createAndProcessMiniBlocksDstMe has been started")
 
@@ -2551,6 +2571,13 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 		}
 
 		createAndProcessInfo.currMetaHdr = orderedMetaBlocks[i]
+		metaHeader, ok := createAndProcessInfo.currMetaHdr.(data.MetaHeaderHandler)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+		if checkFutureEpochStartMeta(candidateShardEpoch, metaHeader) != nil {
+			break
+		}
 		if createAndProcessInfo.currMetaHdr.GetNonce() > lastMetaHdr.GetNonce()+1 {
 			log.Debug("skip searching",
 				"scheduled mode", createAndProcessInfo.scheduledMode,
@@ -2739,7 +2766,12 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		return nil, nil, err
 	}
 
-	createAndProcessMBsDestMeInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, !isInDrainWindow, gasProcessingPolicy)
+	createAndProcessMBsDestMeInfo, err := sp.createAndProcessMiniBlocksDstMe(
+		haveTime,
+		!isInDrainWindow,
+		gasProcessingPolicy,
+		header.GetEpoch(),
+	)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 	if err != nil {

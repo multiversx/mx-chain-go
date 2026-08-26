@@ -35,6 +35,7 @@ var _ dataRetriever.EpochHandler = (*trigger)(nil)
 var _ epochStart.TriggerHandler = (*trigger)(nil)
 var _ process.EpochStartTriggerHandler = (*trigger)(nil)
 var _ process.EpochBootstrapper = (*trigger)(nil)
+var _ epochStart.BootstrapCompletedNotifier = (*trigger)(nil)
 var _ closing.Closer = (*trigger)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in requestMissingMiniBlocks method
@@ -62,6 +63,7 @@ type ArgsShardEpochStartTrigger struct {
 	AppStatusHandler                            core.AppStatusHandler
 	EnableEpochsHandler                         common.EnableEpochsHandler
 	ExtraDelayForRequestBlockInfoInMilliseconds int
+	WaitForBootstrapCompletion                  bool
 
 	Epoch    uint32
 	Validity uint64
@@ -137,6 +139,7 @@ type trigger struct {
 	nextProofRequestSequence     uint64
 	recoveryGeneration           uint64
 	recoveryClosed               bool
+	callbackAdmission            atomic.Flag
 }
 
 type pendingEpochStartProof struct {
@@ -334,6 +337,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		chanPendingEpochStartData:     make(chan struct{}, 1),
 		pendingProofRetryInterval:     defaultPendingProofRetryInterval,
 	}
+	t.callbackAdmission.SetValue(!args.WaitForBootstrapCompletion)
 
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
 	t.proofsPool.RegisterHandler(t.receivedProof)
@@ -757,6 +761,9 @@ func (t *trigger) receivedProof(headerProof data.HeaderProofHandler) {
 	if headerProof.GetHeaderShardId() != core.MetachainShardId {
 		return
 	}
+	if !t.callbackAdmission.IsSet() {
+		return
+	}
 
 	log.Debug("received proof in trigger", "proof for header hash", headerProof.GetHeaderHash())
 	header, err := t.headersPool.GetHeaderByHash(headerProof.GetHeaderHash())
@@ -884,10 +891,23 @@ func (t *trigger) moveCandidateToPendingHeader(metaBlockHash []byte, epoch uint3
 }
 
 func (t *trigger) addPendingProof(metaBlockHash []byte, epoch uint32) bool {
-	return t.addPendingProofForGeneration(metaBlockHash, epoch, nil)
+	return t.addPendingProofInternal(metaBlockHash, epoch, nil, false)
+}
+
+func (t *trigger) addPrioritizedPendingProof(metaBlockHash []byte, epoch uint32) bool {
+	return t.addPendingProofInternal(metaBlockHash, epoch, nil, true)
 }
 
 func (t *trigger) addPendingProofForGeneration(metaBlockHash []byte, epoch uint32, generation *uint64) bool {
+	return t.addPendingProofInternal(metaBlockHash, epoch, generation, false)
+}
+
+func (t *trigger) addPendingProofInternal(
+	metaBlockHash []byte,
+	epoch uint32,
+	generation *uint64,
+	prioritize bool,
+) bool {
 	key := string(metaBlockHash)
 
 	t.mutPendingEpochStartData.Lock()
@@ -898,10 +918,14 @@ func (t *trigger) addPendingProofForGeneration(metaBlockHash []byte, epoch uint3
 
 	_, exists := t.pendingEpochStartProofs[key]
 	if !exists {
-		t.nextProofRequestSequence++
+		requestSequence := uint64(0)
+		if !prioritize {
+			t.nextProofRequestSequence++
+			requestSequence = t.nextProofRequestSequence
+		}
 		t.pendingEpochStartProofs[key] = pendingEpochStartProof{
 			epoch:           epoch,
-			requestSequence: t.nextProofRequestSequence,
+			requestSequence: requestSequence,
 		}
 	}
 	delete(t.epochStartRecoveryCandidates, key)
@@ -1291,7 +1315,7 @@ func (t *trigger) requestPendingEpochStartProofs(ctx context.Context) {
 			log.Debug("requestPendingEpochStartProofs: trigger's go routine is stopping...")
 			return
 		case <-t.chanPendingEpochStartData:
-			// the callback already sent the immediate request; first retry is due one interval later
+			// Wait one interval before processing newly pending work.
 			if !timerActive {
 				timer.Reset(t.getPendingProofRetryInterval())
 				timerActive = true
@@ -1443,8 +1467,19 @@ func (t *trigger) retryPendingFinalityEvidence(currentEpoch uint32, generation u
 // receivedMetaBlock is a callback function when a new metablock was received
 // upon receiving checks if trigger can be updated
 func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
+	t.processReceivedMetaBlock(headerHandler, metaBlockHash, true)
+}
+
+func (t *trigger) processReceivedMetaBlock(
+	headerHandler data.HeaderHandler,
+	metaBlockHash []byte,
+	requestProofImmediately bool,
+) bool {
 	if headerHandler.GetShardID() != core.MetachainShardId {
-		return
+		return false
+	}
+	if !t.callbackAdmission.IsSet() {
+		return false
 	}
 
 	select {
@@ -1463,12 +1498,22 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 					"epoch", headerHandler.GetEpoch(),
 				)
 				// record before requesting, so a fast response cannot complete unpended
-				if t.addPendingProof(metaBlockHash, metaHdr.GetEpoch()) {
+				var added bool
+				if requestProofImmediately {
+					added = t.addPendingProof(metaBlockHash, metaHdr.GetEpoch())
+				} else {
+					added = t.addPrioritizedPendingProof(metaBlockHash, metaHdr.GetEpoch())
+				}
+				if added {
+					if !requestProofImmediately {
+						return false
+					}
 					// stamp the target epoch: the requester drops requests labeled before Andromeda activation
 					go t.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, metaBlockHash, metaHdr.GetEpoch())
+					return true
 				}
 			}
-			return
+			return false
 		}
 
 		isSupernova := t.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, headerHandler.GetEpoch())
@@ -1479,13 +1524,78 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		if isSupernova && headerHandler.IsStartOfEpochBlock() {
 			t.removePendingEpochStartHeader(headerHandler.GetEpoch())
 		}
-		return
+		return false
 	}
 
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
 	t.checkMetaHeaderForEpochTriggerLegacy(headerHandler, metaBlockHash)
+
+	return false
+}
+
+// OnBootstrapCompleted enables trigger callbacks and replays headers received during bootstrap.
+func (t *trigger) OnBootstrapCompleted() {
+	if t.callbackAdmission.SetReturningPrevious() {
+		return
+	}
+
+	numReplayed := t.replayMetaHeadersFromPool()
+	log.Debug("trigger callback admission opened",
+		"replayed meta headers", numReplayed,
+		"epoch", t.Epoch(),
+	)
+}
+
+type metaHeaderForReplay struct {
+	header data.HeaderHandler
+	hash   []byte
+}
+
+func (t *trigger) replayMetaHeadersFromPool() int {
+	nonces := t.headersPool.Nonces(core.MetachainShardId)
+	sort.Slice(nonces, func(i, j int) bool {
+		return nonces[i] < nonces[j]
+	})
+
+	numReplayed := 0
+	numImmediateProofRequests := 0
+	for _, nonce := range nonces {
+		headers, hashes, err := t.headersPool.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
+		if err != nil {
+			continue
+		}
+
+		competitors := make([]metaHeaderForReplay, 0, len(headers))
+		for index, header := range headers {
+			if index >= len(hashes) || check.IfNil(header) {
+				continue
+			}
+
+			competitors = append(competitors, metaHeaderForReplay{
+				header: header,
+				hash:   hashes[index],
+			})
+		}
+		sort.Slice(competitors, func(i, j int) bool {
+			if competitors[i].header.GetRound() == competitors[j].header.GetRound() {
+				return bytes.Compare(competitors[i].hash, competitors[j].hash) < 0
+			}
+
+			return competitors[i].header.GetRound() < competitors[j].header.GetRound()
+		})
+
+		for _, competitor := range competitors {
+			requestProofImmediately := numImmediateProofRequests < maxPendingProofRequestsPerPass
+			if t.processReceivedMetaBlock(competitor.header, competitor.hash, requestProofImmediately) {
+				numImmediateProofRequests++
+			}
+			numReplayed++
+		}
+	}
+
+	return numReplayed
 }
 
 func (t *trigger) checkMetaHeaderForEpochTriggerEquivalentProofs(headerHandler data.HeaderHandler, metaBlockHash []byte) {

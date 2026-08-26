@@ -550,12 +550,25 @@ func (sp *shardProcessor) CheckReferencedMetaBlocksFullyConsumed(header data.Sha
 func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, true, process.GasProcessingPolicy{})
+	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, true, process.GasProcessingPolicy{}, math.MaxUint32)
 	if err != nil {
 		return nil, 0, 0, err
 	}
 
 	return createAndProcessInfo.miniBlocks, createAndProcessInfo.numHdrsAdded, createAndProcessInfo.numTxsAdded, err
+}
+
+// CreateAndProcessMiniBlocksDstMeForEpoch runs destination-me processing for a candidate epoch.
+func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMeForEpoch(
+	haveTime func() bool,
+	candidateShardEpoch uint32,
+) (block.MiniBlockSlice, uint32, uint32, error) {
+	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, true, process.GasProcessingPolicy{}, candidateShardEpoch)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	return createAndProcessInfo.miniBlocks, createAndProcessInfo.numHdrsAdded, createAndProcessInfo.numTxsAdded, nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe -
@@ -908,7 +921,18 @@ func (sp *shardProcessor) SelectIncomingMiniBlocks(
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
 ) ([]*PendingMiniBlocksAfterSelection, error) {
-	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
+	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime, math.MaxUint32)
+}
+
+// SelectIncomingMiniBlocksForEpoch selects incoming miniblocks for a candidate epoch.
+func (sp *shardProcessor) SelectIncomingMiniBlocksForEpoch(
+	lastCrossNotarizedMetaHdr data.HeaderHandler,
+	orderedMetaBlocks []data.HeaderHandler,
+	orderedMetaBlocksHashes [][]byte,
+	haveTime func() bool,
+	candidateShardEpoch uint32,
+) ([]*PendingMiniBlocksAfterSelection, error) {
+	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime, candidateShardEpoch)
 }
 
 // DisplayHeader -

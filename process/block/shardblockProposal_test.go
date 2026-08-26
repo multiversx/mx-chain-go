@@ -1743,6 +1743,36 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		[]byte("hash2"),
 		[]byte("hash3"),
 	}
+	t.Run("future epoch start meta header stops selection", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			AddReferencedHeaderCalled: func(_ data.HeaderHandler, _ []byte) {
+				require.Fail(t, "future epoch-start meta header was referenced")
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		futureEpochStart := &block.MetaBlockV3{
+			Nonce: 2,
+			Epoch: 8,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{{}},
+			},
+		}
+		pendingBlocks, err := sp.SelectIncomingMiniBlocksForEpoch(
+			providedLastCrossNotarizedMetaHdr,
+			[]data.HeaderHandler{futureEpochStart},
+			[][]byte{[]byte("future-epoch-start")},
+			haveTimeTrue,
+			7,
+		)
+		require.NoError(t, err)
+		require.Empty(t, pendingBlocks)
+	})
 	t.Run("no time left should break and return nil", func(t *testing.T) {
 		t.Parallel()
 
@@ -3072,6 +3102,48 @@ func TestShardProcessor_CheckInclusionEstimationForExecutionResults(t *testing.T
 
 func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T) {
 	t.Parallel()
+
+	t.Run("future epoch start meta header should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{}, nil, nil
+			},
+		}
+		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
+			IsHeaderConstructionValidCalled: func(_, _ data.HeaderHandler) error {
+				require.Fail(t, "future epoch-start meta header reached construction validation")
+				return nil
+			},
+		}
+		dataPool, ok := dataComponents.Datapool().(*dataRetriever.PoolsHolderStub)
+		require.True(t, ok)
+		dataPool.HeadersCalled = func() retriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+					return &block.MetaBlockV3{
+						Epoch: 8,
+						EpochStart: block.EpochStart{
+							LastFinalizedHeaders: []block.EpochStartShardData{{}},
+						},
+					}, nil
+				},
+			}
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		header := &block.HeaderV3{
+			Epoch:           7,
+			MetaBlockHashes: [][]byte{[]byte("future-epoch-start")},
+		}
+		err = sp.CheckMetaHeadersValidityAndFinalityProposal(header)
+		require.ErrorContains(t, err, "future epoch start meta block")
+	})
 
 	t.Run("cannot get last notarized header should err", func(t *testing.T) {
 		t.Parallel()

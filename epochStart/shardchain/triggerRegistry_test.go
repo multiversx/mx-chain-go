@@ -72,6 +72,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.pendingProofRetryInterval = t.pendingProofRetryInterval
 	rt.nextProofRequestSequence = t.nextProofRequestSequence
 	rt.recoveryClosed = t.recoveryClosed
+	rt.callbackAdmission.SetValue(t.callbackAdmission.IsSet())
 	t.mutPendingEpochStartData.Unlock()
 	return rt
 }

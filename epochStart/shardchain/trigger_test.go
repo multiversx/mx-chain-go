@@ -306,6 +306,161 @@ func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestTrigger_BootstrapAdmissionReplaysMetaHeadersOnce(t *testing.T) {
+	t.Parallel()
+
+	const numHeaders = maxPendingProofRequestsPerPass + 4
+	var numProofRequests atomic.Int32
+	mutRequestedHashes := sync.Mutex{}
+	requestedHashes := make(map[string]int)
+	headersPool := &mock.HeadersCacherStub{
+		NoncesCalled: func(shardID uint32) []uint64 {
+			require.Equal(t, core.MetachainShardId, shardID)
+			nonces := make([]uint64, 0, numHeaders)
+			for nonce := uint64(numHeaders); nonce > 0; nonce-- {
+				nonces = append(nonces, nonce)
+			}
+
+			return nonces
+		},
+		GetHeaderByNonceAndShardIdCalled: func(nonce uint64, shardID uint32) ([]data.HeaderHandler, [][]byte, error) {
+			return []data.HeaderHandler{&block.MetaBlock{
+				Nonce:      nonce,
+				Round:      nonce,
+				Epoch:      uint32(nonce),
+				EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+			}}, [][]byte{[]byte(fmt.Sprintf("hash-%d", nonce))}, nil
+		},
+		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+			var nonce uint64
+			_, err := fmt.Sscanf(string(hash), "hash-%d", &nonce)
+			if err != nil {
+				return nil, err
+			}
+
+			return &block.MetaBlock{
+				Nonce:      nonce,
+				Round:      nonce,
+				Epoch:      uint32(nonce),
+				EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+			}, nil
+		},
+	}
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.WaitForBootstrapCompletion = true
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return headersPool
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &vic.ValidatorInfoCacherStub{}
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofCalled: func(_ uint32, _ []byte) (data.HeaderProofHandler, error) {
+					return nil, errors.New("missing proof")
+				},
+			}
+		},
+	}
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestEquivalentProofByHashForEpochCalled: func(_ uint32, hash []byte, _ uint32) {
+			numProofRequests.Add(1)
+			mutRequestedHashes.Lock()
+			requestedHashes[string(hash)]++
+			mutRequestedHashes.Unlock()
+		},
+	}
+
+	tr, err := NewEpochStartTrigger(args)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tr.Close() })
+	tr.mutPendingEpochStartData.Lock()
+	tr.pendingProofRetryInterval = time.Hour
+	tr.mutPendingEpochStartData.Unlock()
+
+	tr.receivedMetaBlock(&block.MetaBlock{
+		Nonce:      3,
+		Epoch:      3,
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{}}},
+	}, []byte("live-hash"))
+	require.Zero(t, numProofRequests.Load())
+
+	tr.OnBootstrapCompleted()
+	require.Eventually(t, func() bool {
+		return numProofRequests.Load() == maxPendingProofRequestsPerPass
+	}, time.Second, time.Millisecond)
+	tr.mutPendingEpochStartData.Lock()
+	numPendingProofs := len(tr.pendingEpochStartProofs)
+	tr.mutPendingEpochStartData.Unlock()
+	require.Equal(t, numHeaders, numPendingProofs)
+
+	require.True(t, tr.retryPendingEpochStartProofs())
+	require.Equal(t, int32(2*maxPendingProofRequestsPerPass), numProofRequests.Load())
+	mutRequestedHashes.Lock()
+	deferredRequestCounts := make([]int, 0, numHeaders-maxPendingProofRequestsPerPass)
+	for nonce := maxPendingProofRequestsPerPass + 1; nonce <= numHeaders; nonce++ {
+		deferredRequestCounts = append(deferredRequestCounts, requestedHashes[fmt.Sprintf("hash-%d", nonce)])
+	}
+	mutRequestedHashes.Unlock()
+	for _, requestCount := range deferredRequestCounts {
+		require.Equal(t, 1, requestCount)
+	}
+
+	tr.OnBootstrapCompleted()
+	time.Sleep(10 * time.Millisecond)
+	require.Equal(t, int32(2*maxPendingProofRequestsPerPass), numProofRequests.Load())
+}
+
+func TestTrigger_BootstrapAdmissionGatesProofCallback(t *testing.T) {
+	t.Parallel()
+
+	var numHeaderLookups atomic.Int32
+	headersPool := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+			numHeaderLookups.Add(1)
+			return &block.MetaBlock{}, nil
+		},
+	}
+	args := createMockShardEpochStartTriggerArguments()
+	args.WaitForBootstrapCompletion = true
+	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return headersPool
+		},
+		MiniBlocksCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return &vic.ValidatorInfoCacherStub{}
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
+	}
+
+	tr, err := NewEpochStartTrigger(args)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tr.Close() })
+
+	proof := &block.HeaderProof{HeaderShardId: core.MetachainShardId, HeaderHash: []byte("hash")}
+	tr.receivedProof(proof)
+	require.Zero(t, numHeaderLookups.Load())
+
+	tr.OnBootstrapCompleted()
+	tr.receivedProof(proof)
+	require.Equal(t, int32(1), numHeaderLookups.Load())
+}
+
 func TestTrigger_ReceivedHeaderNotEpochStart(t *testing.T) {
 	t.Parallel()
 

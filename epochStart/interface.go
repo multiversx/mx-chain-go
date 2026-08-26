@@ -40,6 +40,11 @@ type TriggerHandler interface {
 	IsInterfaceNil() bool
 }
 
+// BootstrapCompletedNotifier handles completion of storage bootstrap.
+type BootstrapCompletedNotifier interface {
+	OnBootstrapCompleted()
+}
+
 // RoundHandler defines the actions which should be handled by a round implementation
 type RoundHandler interface {
 	// Index returns the current round
