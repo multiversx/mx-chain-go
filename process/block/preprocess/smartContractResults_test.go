@@ -931,6 +931,9 @@ func TestScrsPreprocessor_ProcessBlockTransactionsEnforcesHistoricalDrainLimit(t
 				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 					return flag == common.SupernovaFlag && epoch >= supernovaEpoch
 				},
+				GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+					return supernovaEpoch
+				},
 			}
 			enableEpochsHandler.AddActiveFlags(common.OptimizeGasUsedInCrossMiniBlocksFlag, common.SupernovaFlag)
 			enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{

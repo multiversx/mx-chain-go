@@ -1932,6 +1932,18 @@ func TestBaseBootstrap_ReconcileDivergence(t *testing.T) {
 	})
 }
 
+type transitionReadinessBlockProcessorStub struct {
+	*testscommon.BlockProcessorStub
+	updateCalled func(header data.HeaderHandler, headerHash []byte)
+}
+
+func (stub *transitionReadinessBlockProcessorStub) UpdateSupernovaTransitionReadiness(
+	header data.HeaderHandler,
+	headerHash []byte,
+) {
+	stub.updateCalled(header, headerHash)
+}
+
 func TestBaseBootstrap_RollBackOneBlockV3RevertsEpochStartTrigger(t *testing.T) {
 	t.Parallel()
 
@@ -1982,10 +1994,20 @@ func TestBaseBootstrap_RollBackOneBlockV3RevertsEpochStartTrigger(t *testing.T) 
 
 		reverted := make([]data.HeaderHandler, 0)
 		boot := buildBootstrapper(&reverted, nil, nil)
+		metricUpdated := false
+		boot.blockProcessor = &transitionReadinessBlockProcessorStub{
+			BlockProcessorStub: &testscommon.BlockProcessorStub{},
+			updateCalled: func(header data.HeaderHandler, headerHash []byte) {
+				require.Same(t, prevHeader, header)
+				require.Equal(t, prevHash, headerHash)
+				metricUpdated = true
+			},
+		}
 
 		_, err := boot.rollBackOneBlockV3(currHash, currHeader, prevHash, prevHeader)
 		require.Nil(t, err)
 		require.Equal(t, []data.HeaderHandler{prevHeader}, reverted)
+		require.True(t, metricUpdated)
 	})
 
 	t.Run("a failing trigger revert keeps the lowered tip and the roll back pending", func(t *testing.T) {
@@ -1995,6 +2017,15 @@ func TestBaseBootstrap_RollBackOneBlockV3RevertsEpochStartTrigger(t *testing.T) 
 		reverted := make([]data.HeaderHandler, 0)
 		setHashes := make([][]byte, 0)
 		boot := buildBootstrapper(&reverted, expectedRevertErr, &setHashes)
+		metricUpdated := false
+		boot.blockProcessor = &transitionReadinessBlockProcessorStub{
+			BlockProcessorStub: &testscommon.BlockProcessorStub{},
+			updateCalled: func(header data.HeaderHandler, headerHash []byte) {
+				require.Same(t, prevHeader, header)
+				require.Equal(t, prevHash, headerHash)
+				metricUpdated = true
+			},
+		}
 
 		_, err := boot.rollBackOneBlockV3(currHash, currHeader, prevHash, prevHeader)
 		require.Equal(t, expectedRevertErr, err)
@@ -2002,5 +2033,6 @@ func TestBaseBootstrap_RollBackOneBlockV3RevertsEpochStartTrigger(t *testing.T) 
 		require.Equal(t, [][]byte{prevHash}, setHashes)
 		require.NotNil(t, boot.pendingV3RollBack)
 		require.True(t, boot.pendingV3RollBack.restoreDone)
+		require.True(t, metricUpdated)
 	})
 }

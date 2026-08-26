@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -57,8 +58,9 @@ type createAndProcessMiniBlocksDestMeInfo struct {
 // shardProcessor implements shardProcessor interface, and actually it tries to execute block
 type shardProcessor struct {
 	*baseProcessor
-	metaFinalityView  process.MetaFinalityView
-	metaBlockFinality uint32
+	metaFinalityView             process.MetaFinalityView
+	metaBlockFinality            uint32
+	supernovaTransitionReadiness atomic.Uint32
 }
 
 // NewShardProcessor creates a new shardProcessor object
@@ -798,6 +800,10 @@ func (sp *shardProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler
 	sp.restoreBlockBody(headerHandler, bodyHandler)
 
 	sp.blockTracker.RemoveLastNotarizedHeaders()
+	sp.UpdateSupernovaTransitionReadiness(
+		sp.blockChain.GetCurrentBlockHeader(),
+		sp.blockChain.GetCurrentBlockHeaderHash(),
+	)
 
 	return nil
 }
@@ -1414,8 +1420,65 @@ func (sp *shardProcessor) CommitBlock(
 	sp.cleanupPools(headerHandler)
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
+	sp.UpdateSupernovaTransitionReadiness(header, headerHash)
 
 	return nil
+}
+
+// UpdateSupernovaTransitionReadiness updates the transition metric from the canonical shard state.
+func (sp *shardProcessor) UpdateSupernovaTransitionReadiness(header data.HeaderHandler, headerHash []byte) {
+	var readiness uint32
+	isInDrainWindow := false
+	transitionState := supernovaTransitionState{}
+
+	if !check.IfNil(header) {
+		if header.IsHeaderV3() {
+			readiness = 1
+		} else {
+			isInDrainWindow = common.IsInSupernovaDrainWindowForEpochAndRound(
+				sp.enableEpochsHandler,
+				sp.enableRoundsHandler,
+				header.GetEpoch(),
+				header.GetRound(),
+			)
+			if isInDrainWindow {
+				transitionState = sp.getSupernovaTransitionState(header)
+				if transitionState.isReady() {
+					readiness = 1
+				}
+			}
+		}
+	}
+
+	previousReadiness := sp.supernovaTransitionReadiness.Swap(readiness)
+	sp.appStatusHandler.SetUInt64Value(common.MetricSupernovaTransitionReady, uint64(readiness))
+	if previousReadiness == readiness {
+		return
+	}
+
+	if readiness == 1 {
+		log.Info("supernova transition is ready",
+			"shard", sp.shardCoordinator.SelfId(),
+			"nonce", header.GetNonce(),
+			"hash", headerHash,
+			"epoch", header.GetEpoch(),
+			"round", header.GetRound(),
+		)
+		return
+	}
+
+	if isInDrainWindow {
+		log.Warn("supernova transition is no longer ready",
+			"shard", sp.shardCoordinator.SelfId(),
+			"nonce", header.GetNonce(),
+			"hash", headerHash,
+			"epoch", header.GetEpoch(),
+			"round", header.GetRound(),
+			"num non-final mini blocks", transitionState.numNonFinalMiniBlocks,
+			"first non-final mini block hash", transitionState.firstNonFinalMiniBlockHash,
+			"has unfinished mini blocks", transitionState.hasUnfinishedMiniBlocks,
+		)
+	}
 }
 
 func (sp *shardProcessor) notifyFinalMetaHdrs(processedMetaHeaders []data.HeaderHandler) {
