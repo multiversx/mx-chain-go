@@ -26,7 +26,7 @@ type TransactionCoordinatorMock struct {
 	GetCreatedMiniBlocksFromMeCalled                     func() block.MiniBlockSlice
 	CreateBlockStartedCalled                             func()
 	CreateMbsCrossShardDstMeCalled                       func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error)
-	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool, gasProcessingPolicy process.GasProcessingPolicy) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                          func(body *block.Body) map[string][][]byte
 	CreateMarshalledDataForHeaderCalled                  func(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte
@@ -206,13 +206,13 @@ func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactions
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
 	allowStartingPartialExecution bool,
-	_ process.GasProcessingPolicy,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 	if tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled == nil {
 		return nil, 0, false, nil
 	}
 
-	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksInfo, haveTime, haveAdditionalTime, scheduledMode, allowStartingPartialExecution)
+	return tcm.CreateMbsAndProcessCrossShardTransactionsDstMeCalled(header, processedMiniBlocksInfo, haveTime, haveAdditionalTime, scheduledMode, allowStartingPartialExecution, gasProcessingPolicy)
 }
 
 // SelectOutgoingTransactions -
