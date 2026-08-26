@@ -5378,6 +5378,64 @@ func TestCheckSupernovaDrainRules(t *testing.T) {
 	require.NoError(t, bp.CheckSupernovaDrainRules(headerOutsideDrain))
 }
 
+func TestShardProcessor_UpdateSupernovaTransitionReadiness(t *testing.T) {
+	t.Parallel()
+
+	const activationEpoch = uint32(10)
+	const activationRound = uint64(100)
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && epoch >= activationEpoch
+		},
+	}
+	coreComponents.EnableRoundsHandlerField = &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return flag == common.SupernovaRoundFlag && round >= activationRound
+		},
+	}
+
+	metricValue := uint64(0)
+	appStatusHandler := &statusHandlerMock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			if key == common.MetricSupernovaTransitionReady {
+				metricValue = value
+			}
+		},
+	}
+	trackerHasUnfinished := false
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: appStatusHandler,
+	}
+	arguments.ProcessedMiniBlocksTracker = &testscommon.ProcessedMiniBlocksTrackerStub{
+		HasUnfinishedMiniBlocksCalled: func() bool {
+			return trackerHasUnfinished
+		},
+	}
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.NoError(t, err)
+
+	sp.UpdateSupernovaTransitionReadiness(&block.Header{Epoch: activationEpoch - 1, Round: activationRound - 1}, []byte("pre-drain"))
+	require.Zero(t, metricValue)
+
+	trackerHasUnfinished = true
+	sp.UpdateSupernovaTransitionReadiness(&block.Header{Epoch: activationEpoch, Round: activationRound - 1}, []byte("dirty"))
+	require.Zero(t, metricValue)
+
+	trackerHasUnfinished = false
+	sp.UpdateSupernovaTransitionReadiness(&block.Header{Epoch: activationEpoch, Round: activationRound - 1}, []byte("clean"))
+	require.Equal(t, uint64(1), metricValue)
+
+	sp.UpdateSupernovaTransitionReadiness(&block.HeaderV3{Epoch: activationEpoch, Round: activationRound}, []byte("v3"))
+	require.Equal(t, uint64(1), metricValue)
+
+	trackerHasUnfinished = true
+	sp.UpdateSupernovaTransitionReadiness(&block.Header{Epoch: activationEpoch, Round: activationRound - 1}, []byte("rollback"))
+	require.Zero(t, metricValue)
+}
+
 func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 	t.Parallel()
 

@@ -26,6 +26,10 @@ func TestResolveGasProcessingPolicy(t *testing.T) {
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return flag == common.SupernovaFlag && epoch >= supernovaEpoch
 		},
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			require.Equal(t, common.SupernovaFlag, flag)
+			return supernovaEpoch
+		},
 	}
 	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
 		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
@@ -50,6 +54,7 @@ func TestResolveGasProcessingPolicy(t *testing.T) {
 		{name: "before drain", epoch: supernovaEpoch - 1, round: supernovaRound - 1},
 		{name: "drain first round", epoch: supernovaEpoch, round: 0, hasOverride: true},
 		{name: "drain last round", epoch: supernovaEpoch, round: supernovaRound - 1, hasOverride: true},
+		{name: "cross epoch drain", epoch: supernovaEpoch + 1, round: supernovaRound - 1, hasOverride: true},
 		{name: "activation round", epoch: supernovaEpoch, round: supernovaRound},
 		{name: "V3 with drain metadata", epoch: supernovaEpoch, round: supernovaRound - 1, isHeaderV3: true},
 	}

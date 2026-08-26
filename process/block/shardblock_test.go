@@ -3799,6 +3799,7 @@ func TestShardProcessor_CreateMbsAndProcessCrossShardTransactionsDstMeDrainPolic
 					haveAdditionalTime func() bool,
 					scheduledMode bool,
 					allowStartingPartialExecution bool,
+					_ process.GasProcessingPolicy,
 				) (block.MiniBlockSlice, uint32, bool, error) {
 					scheduledModes = append(scheduledModes, scheduledMode)
 					require.Equal(t, testCase.allowLegacyWork, allowStartingPartialExecution)

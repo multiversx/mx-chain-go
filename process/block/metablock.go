@@ -1032,7 +1032,18 @@ func (mp *metaProcessor) createRewardsMiniBlocks(
 
 // createBlockBody creates block body of metachain
 func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime func() bool) (data.BodyHandler, error) {
-	err := mp.createBlockStarted()
+	gasProcessingPolicy, err := process.ResolveGasProcessingPolicy(
+		metaBlock,
+		mp.enableEpochsHandler,
+		mp.enableRoundsHandler,
+		mp.economicsData,
+		mp.shardCoordinator.SelfId(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.createBlockStarted()
 	if err != nil {
 		return nil, err
 	}
@@ -1046,7 +1057,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 	)
 
 	randomness := helpers.ComputeRandomnessForTxSorting(metaBlock, mp.enableEpochsHandler)
-	miniBlocks, err := mp.createMiniBlocks(haveTime, randomness)
+	miniBlocks, err := mp.createMiniBlocks(haveTime, randomness, gasProcessingPolicy)
 	if err != nil {
 		return nil, err
 	}
@@ -1062,6 +1073,7 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 func (mp *metaProcessor) createMiniBlocks(
 	haveTime func() bool,
 	randomness []byte,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) (*block.Body, error) {
 	var miniBlocks block.MiniBlockSlice
 
@@ -1083,7 +1095,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		return &block.Body{MiniBlocks: miniBlocks}, nil
 	}
 
-	mbsToMe, numTxs, numShardHeaders, err := mp.createAndProcessCrossMiniBlocksDstMe(haveTime)
+	mbsToMe, numTxs, numShardHeaders, err := mp.createAndProcessCrossMiniBlocksDstMe(haveTime, gasProcessingPolicy)
 	if err != nil {
 		log.Debug("createAndProcessCrossMiniBlocksDstMe", "error", err.Error())
 	}
@@ -1132,6 +1144,7 @@ func (mp *metaProcessor) isGenesisShardBlockAndFirstMeta(shardHdrNonce uint64) b
 // full verification through metachain header
 func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 	haveTime func() bool,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
 
 	var miniBlocks block.MiniBlockSlice
@@ -1226,7 +1239,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			haveAdditionalTimeFalse,
 			false,
 			true,
-			process.GasProcessingPolicy{})
+			gasProcessingPolicy)
 
 		if createErr != nil {
 			return nil, 0, 0, createErr
