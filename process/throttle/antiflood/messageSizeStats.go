@@ -16,7 +16,7 @@ const statsHeader = "p2p incoming messages size statistics"
 
 // messageSizeStatsInterval represents the period of time after which the gathered message size statistics
 // are printed and reset
-var messageSizeStatsInterval = time.Minute
+var messageSizeStatsInterval = 5 * time.Minute
 
 type topicSizeStats struct {
 	numMessages uint64
