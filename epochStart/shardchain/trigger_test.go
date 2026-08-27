@@ -2078,6 +2078,22 @@ func TestTrigger_WatchdogRequestEpochStartMetaBlock(t *testing.T) {
 	})
 }
 
+// mutHeldFinalPools guards the plain maps backing the held-final pool stubs; the trigger reads them
+// from its own goroutines, so post-construction writes must go through putHeldFinalHeader/Proof
+var mutHeldFinalPools sync.RWMutex
+
+func putHeldFinalHeader(headersByHash map[string]data.HeaderHandler, hash []byte, header data.HeaderHandler) {
+	mutHeldFinalPools.Lock()
+	headersByHash[string(hash)] = header
+	mutHeldFinalPools.Unlock()
+}
+
+func putHeldFinalProof(proofed map[string]struct{}, hash []byte) {
+	mutHeldFinalPools.Lock()
+	proofed[string(hash)] = struct{}{}
+	mutHeldFinalPools.Unlock()
+}
+
 func createHeldFinalTriggerArgs(
 	headersByHash map[string]data.HeaderHandler,
 	proofed map[string]struct{},
@@ -2101,6 +2117,8 @@ func createHeldFinalTriggerArgs(
 
 	headersPool := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+			mutHeldFinalPools.RLock()
+			defer mutHeldFinalPools.RUnlock()
 			header, ok := headersByHash[string(hash)]
 			if !ok {
 				return nil, errors.New("header not found")
@@ -2108,6 +2126,8 @@ func createHeldFinalTriggerArgs(
 			return header, nil
 		},
 		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+			mutHeldFinalPools.RLock()
+			defer mutHeldFinalPools.RUnlock()
 			headers := make([]data.HeaderHandler, 0)
 			hashes := make([][]byte, 0)
 			for hash, header := range headersByHash {
@@ -2124,10 +2144,14 @@ func createHeldFinalTriggerArgs(
 	}
 	proofsPool := &dataRetrieverMock.ProofsPoolMock{
 		HasProofCalled: func(_ uint32, headerHash []byte) bool {
+			mutHeldFinalPools.RLock()
+			defer mutHeldFinalPools.RUnlock()
 			_, ok := proofed[string(headerHash)]
 			return ok
 		},
 		GetProofCalled: func(_ uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+			mutHeldFinalPools.RLock()
+			defer mutHeldFinalPools.RUnlock()
 			if _, ok := proofed[string(headerHash)]; !ok {
 				return nil, errors.New("proof not found")
 			}
@@ -2193,8 +2217,8 @@ func TestTrigger_SupernovaEpochStartActivation(t *testing.T) {
 		epochStartTrigger.receivedMetaBlock(epochStartMeta, esHash)
 		require.False(t, epochStartTrigger.IsEpochStart())
 
-		headersByHash[string(childHash)] = &block.MetaBlock{Epoch: 1, Nonce: 11, Round: 21, PrevHash: esHash}
-		proofed[string(childHash)] = struct{}{}
+		putHeldFinalHeader(headersByHash, childHash, &block.MetaBlock{Epoch: 1, Nonce: 11, Round: 21, PrevHash: esHash})
+		putHeldFinalProof(proofed, childHash)
 		epochStartTrigger.receivedProof(&block.HeaderProof{
 			HeaderShardId: core.MetachainShardId,
 			HeaderHash:    childHash,
@@ -2359,8 +2383,8 @@ func TestTrigger_DisarmDeadEpochStartActivation(t *testing.T) {
 
 		canonicalEpochStart := newEpochStartMetaForTest(1, 10, 16, parentHash)
 		canonicalEpochStart.TimeStamp = 1
-		headersByHash[string(canonicalHash)] = canonicalEpochStart
-		proofed[string(canonicalHash)] = struct{}{}
+		putHeldFinalHeader(headersByHash, canonicalHash, canonicalEpochStart)
+		putHeldFinalProof(proofed, canonicalHash)
 		epochStartTrigger.receivedMetaBlock(canonicalEpochStart, canonicalHash)
 
 		require.True(t, epochStartTrigger.IsEpochStart())
@@ -2418,5 +2442,363 @@ func TestTrigger_DisarmDeadEpochStartActivation(t *testing.T) {
 		require.Equal(t, uint32(2), epochStartTrigger.MetaEpoch())
 		require.Equal(t, uint64(55), epochStartTrigger.EpochStartRound())
 		require.Equal(t, uint64(55), epochStartTrigger.EpochFinalityAttestingRound())
+	})
+}
+
+// numPendingFinalityEvidence reports how many epoch start candidates are still waiting for the
+// neighbour data that would settle them
+func numPendingFinalityEvidence(t *trigger) int {
+	t.mutPendingEpochStartData.Lock()
+	defer t.mutPendingEpochStartData.Unlock()
+
+	return len(t.pendingFinalityEvidence)
+}
+
+func setPendingProofRetryInterval(t *trigger, interval time.Duration) {
+	t.mutPendingEpochStartData.Lock()
+	t.pendingProofRetryInterval = interval
+	t.mutPendingEpochStartData.Unlock()
+}
+
+// TestTrigger_EpochStartNotHeldFinalRequestsNeighbours covers the sync edge case in which a node
+// receives a proofed epoch start meta block long after its neighbourhood has left the pools. The
+// activation gate reads the pools alone, so without an explicit request the trigger would stay in
+// the old epoch forever and every epoch start shard block would fail verification.
+func TestTrigger_EpochStartNotHeldFinalRequestsNeighbours(t *testing.T) {
+	t.Parallel()
+
+	var (
+		parentHash      = []byte("meta-parent-hash")
+		esHash          = []byte("epoch-start-meta-hash")
+		childHash       = []byte("meta-child-hash")
+		epochStartNonce = uint64(10)
+		epochStartRound = uint64(16)
+		childNonce      = epochStartNonce + 1
+	)
+
+	t.Run("neighbourhood absent from pools requests parent and child, epoch does not advance", func(t *testing.T) {
+		t.Parallel()
+
+		epochStartMeta := newEpochStartMetaForTest(1, epochStartNonce, epochStartRound, parentHash)
+		headersByHash := map[string]data.HeaderHandler{string(esHash): epochStartMeta}
+		proofed := map[string]struct{}{string(esHash): {}}
+
+		args := createHeldFinalTriggerArgs(headersByHash, proofed, true)
+		// the construction check walks back over the trigger's own maps and is not the subject here
+		args.Validity = 0
+
+		// the trigger requests from its own goroutines, so the counters need guarding
+		var mutRequests sync.Mutex
+		parentHeaderRequests, childNonceRequests := 0, 0
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				mutRequests.Lock()
+				if bytes.Equal(hash, parentHash) {
+					parentHeaderRequests++
+				}
+				mutRequests.Unlock()
+			},
+			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+				mutRequests.Lock()
+				if nonce == childNonce {
+					childNonceRequests++
+				}
+				mutRequests.Unlock()
+			},
+		}
+
+		epochStartTrigger, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = epochStartTrigger.Close()
+		}()
+
+		epochStartTrigger.receivedMetaBlock(epochStartMeta, esHash)
+
+		require.Eventually(t, func() bool {
+			mutRequests.Lock()
+			defer mutRequests.Unlock()
+			return parentHeaderRequests >= 1 && childNonceRequests >= 1
+		}, time.Second, 5*time.Millisecond)
+
+		require.Equal(t, 1, numPendingFinalityEvidence(epochStartTrigger))
+		// the gate is not satisfied, so the trigger must stay put
+		require.False(t, epochStartTrigger.IsEpochStart())
+		require.Equal(t, uint32(0), epochStartTrigger.MetaEpoch())
+	})
+
+	t.Run("parent present without proof requests only the parent proof", func(t *testing.T) {
+		t.Parallel()
+
+		parent := &block.MetaBlock{Nonce: epochStartNonce - 1, Round: epochStartRound - 1}
+		epochStartMeta := newEpochStartMetaForTest(1, epochStartNonce, epochStartRound, parentHash)
+		headersByHash := map[string]data.HeaderHandler{
+			string(parentHash): parent,
+			string(esHash):     epochStartMeta,
+		}
+		// the parent is held but unproofed, so it cannot settle the epoch start yet
+		proofed := map[string]struct{}{string(esHash): {}}
+
+		args := createHeldFinalTriggerArgs(headersByHash, proofed, true)
+
+		var mutRequests sync.Mutex
+		parentHeaderRequests, parentProofRequests := 0, 0
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				mutRequests.Lock()
+				if bytes.Equal(hash, parentHash) {
+					parentHeaderRequests++
+				}
+				mutRequests.Unlock()
+			},
+			RequestEquivalentProofByHashForEpochCalled: func(_ uint32, headerHash []byte, _ uint32) {
+				mutRequests.Lock()
+				if bytes.Equal(headerHash, parentHash) {
+					parentProofRequests++
+				}
+				mutRequests.Unlock()
+			},
+		}
+
+		epochStartTrigger, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = epochStartTrigger.Close()
+		}()
+
+		epochStartTrigger.receivedMetaBlock(epochStartMeta, esHash)
+
+		require.Eventually(t, func() bool {
+			mutRequests.Lock()
+			defer mutRequests.Unlock()
+			return parentProofRequests >= 1
+		}, time.Second, 5*time.Millisecond)
+
+		// the header is already held, asking for it again would be wasted traffic
+		mutRequests.Lock()
+		require.Zero(t, parentHeaderRequests)
+		mutRequests.Unlock()
+
+		require.False(t, epochStartTrigger.IsEpochStart())
+	})
+
+	t.Run("contended parent is not worth a proof request, only the child is", func(t *testing.T) {
+		t.Parallel()
+
+		// a round gap across the boundary: the parent settles nothing however well proofed
+		parent := &block.MetaBlock{Nonce: epochStartNonce - 1, Round: epochStartRound - 5}
+		epochStartMeta := newEpochStartMetaForTest(1, epochStartNonce, epochStartRound, parentHash)
+		headersByHash := map[string]data.HeaderHandler{
+			string(parentHash): parent,
+			string(esHash):     epochStartMeta,
+		}
+		proofed := map[string]struct{}{string(esHash): {}}
+
+		args := createHeldFinalTriggerArgs(headersByHash, proofed, true)
+
+		var mutRequests sync.Mutex
+		parentHeaderRequests, parentProofRequests, childNonceRequests := 0, 0, 0
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				mutRequests.Lock()
+				if bytes.Equal(hash, parentHash) {
+					parentHeaderRequests++
+				}
+				mutRequests.Unlock()
+			},
+			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+				mutRequests.Lock()
+				if nonce == childNonce {
+					childNonceRequests++
+				}
+				mutRequests.Unlock()
+			},
+			RequestEquivalentProofByHashForEpochCalled: func(_ uint32, headerHash []byte, _ uint32) {
+				mutRequests.Lock()
+				if bytes.Equal(headerHash, parentHash) {
+					parentProofRequests++
+				}
+				mutRequests.Unlock()
+			},
+		}
+
+		epochStartTrigger, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = epochStartTrigger.Close()
+		}()
+
+		epochStartTrigger.receivedMetaBlock(epochStartMeta, esHash)
+
+		require.Eventually(t, func() bool {
+			mutRequests.Lock()
+			defer mutRequests.Unlock()
+			return childNonceRequests >= 1
+		}, time.Second, 5*time.Millisecond)
+
+		mutRequests.Lock()
+		require.Zero(t, parentProofRequests)
+		require.Zero(t, parentHeaderRequests)
+		mutRequests.Unlock()
+	})
+
+	t.Run("evidence arriving later lets the retry pass activate the trigger", func(t *testing.T) {
+		t.Parallel()
+
+		parent := &block.MetaBlock{Nonce: epochStartNonce - 1, Round: epochStartRound - 5}
+		epochStartMeta := newEpochStartMetaForTest(1, epochStartNonce, epochStartRound, parentHash)
+		headersByHash := map[string]data.HeaderHandler{
+			string(parentHash): parent,
+			string(esHash):     epochStartMeta,
+		}
+		proofed := map[string]struct{}{string(esHash): {}}
+
+		args := createHeldFinalTriggerArgs(headersByHash, proofed, true)
+
+		epochStartTrigger, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = epochStartTrigger.Close()
+		}()
+		setPendingProofRetryInterval(epochStartTrigger, 10*time.Millisecond)
+
+		epochStartTrigger.receivedMetaBlock(epochStartMeta, esHash)
+
+		require.Eventually(t, func() bool {
+			return numPendingFinalityEvidence(epochStartTrigger) == 1
+		}, time.Second, 5*time.Millisecond)
+		require.False(t, epochStartTrigger.IsEpochStart())
+
+		// the requested child finally reaches the pools, proofed
+		putHeldFinalHeader(headersByHash, childHash, &block.MetaBlock{
+			Epoch:    1,
+			Nonce:    childNonce,
+			Round:    epochStartRound + 1,
+			PrevHash: esHash,
+		})
+		putHeldFinalProof(proofed, childHash)
+
+		// no callback is fired for it, only the retry pass can pick it up
+		require.Eventually(t, func() bool {
+			return epochStartTrigger.MetaEpoch() == 1
+		}, 2*time.Second, 5*time.Millisecond)
+
+		require.True(t, epochStartTrigger.IsEpochStart())
+		require.Equal(t, epochStartRound, epochStartTrigger.EpochStartRound())
+		require.Equal(t, esHash, epochStartTrigger.EpochStartMetaHdrHash())
+
+		// activation clears the pending entry, so the retry loop goes back to sleep
+		require.Eventually(t, func() bool {
+			return numPendingFinalityEvidence(epochStartTrigger) == 0
+		}, time.Second, 5*time.Millisecond)
+	})
+
+	t.Run("a competing candidate settling the epoch clears the pending entry", func(t *testing.T) {
+		t.Parallel()
+
+		siblingHash := []byte("competing-epoch-start-hash")
+		siblingChildHash := []byte("competing-child-hash")
+		siblingParentHash := []byte("competing-parent-hash")
+
+		// the candidate the node cannot settle, its child never arrives
+		deadEpochStart := newEpochStartMetaForTest(1, epochStartNonce, epochStartRound, parentHash)
+		parent := &block.MetaBlock{Nonce: epochStartNonce - 1, Round: epochStartRound - 5}
+		// a sibling of the same epoch, fully settled by a proofed child
+		sibling := newEpochStartMetaForTest(1, epochStartNonce, epochStartRound+1, siblingParentHash)
+		siblingChild := &block.MetaBlock{
+			Epoch:    1,
+			Nonce:    childNonce,
+			Round:    epochStartRound + 2,
+			PrevHash: siblingHash,
+		}
+
+		headersByHash := map[string]data.HeaderHandler{
+			string(parentHash): parent,
+			string(esHash):     deadEpochStart,
+		}
+		proofed := map[string]struct{}{string(esHash): {}}
+
+		args := createHeldFinalTriggerArgs(headersByHash, proofed, true)
+		args.Validity = 0
+
+		epochStartTrigger, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = epochStartTrigger.Close()
+		}()
+
+		epochStartTrigger.receivedMetaBlock(deadEpochStart, esHash)
+		require.Eventually(t, func() bool {
+			return numPendingFinalityEvidence(epochStartTrigger) == 1
+		}, time.Second, 5*time.Millisecond)
+
+		putHeldFinalHeader(headersByHash, siblingHash, sibling)
+		putHeldFinalProof(proofed, siblingHash)
+		putHeldFinalHeader(headersByHash, siblingChildHash, siblingChild)
+		putHeldFinalProof(proofed, siblingChildHash)
+
+		epochStartTrigger.receivedMetaBlock(sibling, siblingHash)
+
+		require.Eventually(t, func() bool {
+			return epochStartTrigger.MetaEpoch() == 1
+		}, time.Second, 5*time.Millisecond)
+
+		// the settled epoch needs no neighbourhood for any of its candidates
+		require.Eventually(t, func() bool {
+			return numPendingFinalityEvidence(epochStartTrigger) == 0
+		}, time.Second, 5*time.Millisecond)
+	})
+
+	t.Run("held final on arrival activates without requesting anything", func(t *testing.T) {
+		t.Parallel()
+
+		parent := &block.MetaBlock{Nonce: epochStartNonce - 1, Round: epochStartRound - 1}
+		epochStartMeta := newEpochStartMetaForTest(1, epochStartNonce, epochStartRound, parentHash)
+		headersByHash := map[string]data.HeaderHandler{
+			string(parentHash): parent,
+			string(esHash):     epochStartMeta,
+		}
+		proofed := map[string]struct{}{
+			string(parentHash): {},
+			string(esHash):     {},
+		}
+
+		args := createHeldFinalTriggerArgs(headersByHash, proofed, true)
+
+		var mutRequests sync.Mutex
+		parentHeaderRequests, childNonceRequests := 0, 0
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				mutRequests.Lock()
+				if bytes.Equal(hash, parentHash) {
+					parentHeaderRequests++
+				}
+				mutRequests.Unlock()
+			},
+			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+				mutRequests.Lock()
+				if nonce == childNonce {
+					childNonceRequests++
+				}
+				mutRequests.Unlock()
+			},
+		}
+
+		epochStartTrigger, err := NewEpochStartTrigger(args)
+		require.Nil(t, err)
+		defer func() {
+			_ = epochStartTrigger.Close()
+		}()
+
+		epochStartTrigger.receivedMetaBlock(epochStartMeta, esHash)
+
+		require.True(t, epochStartTrigger.IsEpochStart())
+		require.Equal(t, uint32(1), epochStartTrigger.MetaEpoch())
+		require.Zero(t, numPendingFinalityEvidence(epochStartTrigger))
+
+		mutRequests.Lock()
+		require.Zero(t, parentHeaderRequests)
+		require.Zero(t, childNonceRequests)
+		mutRequests.Unlock()
 	})
 }

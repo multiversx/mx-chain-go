@@ -130,6 +130,7 @@ type trigger struct {
 	mutPendingEpochStartData  sync.Mutex
 	pendingEpochStartProofs   map[string]pendingEpochStartProof
 	pendingEpochStartHeaders  map[uint32]struct{}
+	pendingFinalityEvidence   map[string]finalityEvidenceRequest
 	chanPendingEpochStartData chan struct{}
 	pendingProofRetryInterval time.Duration
 	nextProofRequestSequence  uint64
@@ -138,6 +139,17 @@ type trigger struct {
 type pendingEpochStartProof struct {
 	epoch           uint32
 	requestSequence uint64
+}
+
+// finalityEvidenceRequest identifies the epoch start meta block whose neighbourhood the node still
+// needs before it can hold it final: the parent settles it when non contended, a proofed child
+// settles it in every case
+type finalityEvidenceRequest struct {
+	epoch    uint32
+	nonce    uint64
+	round    uint64
+	hash     []byte
+	prevHash []byte
 }
 
 type metaInfo struct {
@@ -306,6 +318,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		chanMetaBlockReceived:         make(chan struct{}, 1),
 		pendingEpochStartProofs:       make(map[string]pendingEpochStartProof),
 		pendingEpochStartHeaders:      make(map[uint32]struct{}),
+		pendingFinalityEvidence:       make(map[string]finalityEvidenceRequest),
 		chanPendingEpochStartData:     make(chan struct{}, 1),
 		pendingProofRetryInterval:     defaultPendingProofRetryInterval,
 	}
@@ -722,7 +735,135 @@ func (t *trigger) hasPendingEpochStartData() bool {
 	t.mutPendingEpochStartData.Lock()
 	defer t.mutPendingEpochStartData.Unlock()
 
-	return len(t.pendingEpochStartProofs) > 0 || len(t.pendingEpochStartHeaders) > 0
+	return len(t.pendingEpochStartProofs) > 0 ||
+		len(t.pendingEpochStartHeaders) > 0 ||
+		len(t.pendingFinalityEvidence) > 0
+}
+
+// trackMissingFinalityEvidence records an epoch start meta block the node holds proofed but not yet
+// final, and asks for the neighbour data that settles it. Arrival of that data re-enters the trigger
+// through the pool callbacks, so registering the request is all that is needed to close the loop.
+func (t *trigger) trackMissingFinalityEvidence(metaHdr data.HeaderHandler, hash string) {
+	info := finalityEvidenceRequest{
+		epoch:    metaHdr.GetEpoch(),
+		nonce:    metaHdr.GetNonce(),
+		round:    metaHdr.GetRound(),
+		hash:     []byte(hash),
+		prevHash: metaHdr.GetPrevHash(),
+	}
+
+	if !t.addPendingFinalityEvidence(info) {
+		return
+	}
+
+	log.Debug("trigger.trackMissingFinalityEvidence: epoch start meta block not held final, requesting neighbours",
+		"epoch", info.epoch,
+		"nonce", info.nonce,
+		"hash", info.hash,
+	)
+
+	// requested off the trigger's mutex, the request handler may block on the network
+	go t.requestFinalityEvidence(info)
+}
+
+// addPendingFinalityEvidence returns true if the entry was newly added
+func (t *trigger) addPendingFinalityEvidence(info finalityEvidenceRequest) bool {
+	key := string(info.hash)
+
+	t.mutPendingEpochStartData.Lock()
+	_, exists := t.pendingFinalityEvidence[key]
+	if !exists {
+		t.pendingFinalityEvidence[key] = info
+	}
+	t.mutPendingEpochStartData.Unlock()
+
+	if exists {
+		return false
+	}
+
+	select {
+	case t.chanPendingEpochStartData <- struct{}{}:
+	default:
+	}
+
+	return true
+}
+
+func (t *trigger) removePendingFinalityEvidence(hash string) {
+	t.mutPendingEpochStartData.Lock()
+	delete(t.pendingFinalityEvidence, hash)
+	t.mutPendingEpochStartData.Unlock()
+}
+
+func (t *trigger) removePendingFinalityEvidenceForEpoch(epoch uint32) {
+	t.mutPendingEpochStartData.Lock()
+	for key, info := range t.pendingFinalityEvidence {
+		if info.epoch == epoch {
+			delete(t.pendingFinalityEvidence, key)
+		}
+	}
+	t.mutPendingEpochStartData.Unlock()
+}
+
+func (t *trigger) pendingFinalityEvidenceSnapshot() map[string]finalityEvidenceRequest {
+	t.mutPendingEpochStartData.Lock()
+	defer t.mutPendingEpochStartData.Unlock()
+
+	pending := make(map[string]finalityEvidenceRequest, len(t.pendingFinalityEvidence))
+	for key, info := range t.pendingFinalityEvidence {
+		pending[key] = info
+	}
+
+	return pending
+}
+
+// requestFinalityEvidence asks only for what the pools are still missing, recomputed on every pass
+// so that a partially answered request is not repeated in full
+func (t *trigger) requestFinalityEvidence(info finalityEvidenceRequest) {
+	parent, err := t.headersPool.GetHeaderByHash(info.prevHash)
+	if err != nil || check.IfNil(parent) {
+		// whether the parent settles this header cannot be judged before holding it
+		t.requestHandler.RequestMetaHeader(info.prevHash)
+	} else if parentCanSettle(info, parent) && !t.proofsPool.HasProof(core.MetachainShardId, info.prevHash) {
+		// stamp the target epoch: the requester drops requests labeled before Andromeda activation
+		t.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, info.prevHash, parent.GetEpoch())
+	}
+
+	childNonce := info.nonce + 1
+	children, childrenHashes, err := t.headersPool.GetHeadersByNonceAndShardId(childNonce, core.MetachainShardId)
+	if err != nil {
+		t.requestHandler.RequestMetaHeaderByNonce(childNonce)
+		return
+	}
+
+	foundChildOnBranch := false
+	for i, child := range children {
+		if check.IfNil(child) || !bytes.Equal(child.GetPrevHash(), info.hash) {
+			continue
+		}
+
+		foundChildOnBranch = true
+		if t.proofsPool.HasProof(core.MetachainShardId, childrenHashes[i]) {
+			continue
+		}
+
+		t.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, childrenHashes[i], child.GetEpoch())
+	}
+
+	// headers at that nonce may all sit on a competing branch, the extension is still missing
+	if !foundChildOnBranch {
+		t.requestHandler.RequestMetaHeaderByNonce(childNonce)
+	}
+}
+
+// parentCanSettle mirrors the non contended clause of the finality view: over a round gap the parent
+// settles nothing however well proofed, so its proof is not worth asking for
+func parentCanSettle(info finalityEvidenceRequest, parent data.HeaderHandler) bool {
+	if parent.GetNonce()+1 != info.nonce {
+		return false
+	}
+
+	return !common.IsContendedRound(info.round, parent.GetRound())
 }
 
 func (t *trigger) getPendingProofRetryInterval() time.Duration {
@@ -843,7 +984,35 @@ func (t *trigger) retryPendingEpochStartProofs() bool {
 		t.requestHandler.RequestStartOfEpochMetaBlock(epoch)
 	}
 
+	t.retryPendingFinalityEvidence(currentEpoch)
+
 	return t.hasPendingEpochStartData()
+}
+
+// retryPendingFinalityEvidence re-asks for the neighbours of every epoch start meta block still held
+// non final and re-evaluates the trigger, so that evidence which reached the pools without waking a
+// callback is not left unread
+func (t *trigger) retryPendingFinalityEvidence(currentEpoch uint32) {
+	pendingEvidence := t.pendingFinalityEvidenceSnapshot()
+
+	reevaluate := false
+	for key, info := range pendingEvidence {
+		if info.epoch <= currentEpoch {
+			t.removePendingFinalityEvidence(key)
+			continue
+		}
+
+		t.requestFinalityEvidence(info)
+		reevaluate = true
+	}
+
+	if !reevaluate {
+		return
+	}
+
+	t.mutTrigger.Lock()
+	t.updateTriggerFromMeta()
+	t.mutTrigger.Unlock()
 }
 
 // receivedMetaBlock is a callback function when a new metablock was received
@@ -1034,6 +1203,8 @@ func (t *trigger) updateTriggerFromMeta() {
 		if canActivateEpochStart {
 			t.mapFinalizedEpochs[currMetaInfo.hdr.GetEpoch()] = currMetaInfo.hash
 			t.saveEpochStartMeta(currMetaInfo.hdr)
+			// the epoch is settled, so no candidate of it needs its neighbourhood any more
+			t.removePendingFinalityEvidenceForEpoch(currMetaInfo.hdr.GetEpoch())
 		}
 	}
 }
@@ -1093,6 +1264,9 @@ func (t *trigger) isMetaBlockFinal(hash string, metaHdr data.HeaderHandler) (boo
 	// activate the trigger until the node holds it final
 	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, metaHdr.GetEpoch()) {
 		if !t.metaFinalityView.IsMetaHeaderHeldFinal(metaHdr, []byte(hash)) {
+			// this verdict is decided by the pools alone, so a node whose sync fell behind the
+			// epoch start meta block's neighbourhood never recovers it unless it asks for it
+			t.trackMissingFinalityEvidence(metaHdr, hash)
 			return false, 0
 		}
 
@@ -1490,6 +1664,8 @@ func (t *trigger) DisarmDeadEpochStartActivation(epoch uint32, deadEpochStartHas
 	delete(t.mapFinalizedEpochs, epoch)
 	t.forgetEpochStartHeader(deadEpochStartHash)
 	t.removeStoredEpochStartMeta(epoch)
+	// the canonical sibling registers its own evidence request when it is evaluated
+	t.removePendingFinalityEvidence(string(deadEpochStartHash))
 
 	if bytes.Equal(t.epochMetaBlockHash, deadEpochStartHash) {
 		t.restorePreActivationState()
