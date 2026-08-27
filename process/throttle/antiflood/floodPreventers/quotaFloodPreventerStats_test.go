@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,6 +32,17 @@ func createArgumentWithLimits(maxMessages uint32, maxSize uint64) ArgQuotaFloodP
 	}
 
 	return arg
+}
+
+// setDebugLogLevel raises the log level of this package so the statistics are gathered, returning the
+// function that restores the previous level
+func setDebugLogLevel() func() {
+	oldLevel := log.GetLevel()
+	log.SetLevel(logger.LogDebug)
+
+	return func() {
+		log.SetLevel(oldLevel)
+	}
 }
 
 func TestQuotaFloodPreventer_QuotaReachedShouldBeCountedOncePerPeerPerInterval(t *testing.T) {
@@ -73,11 +85,12 @@ func TestQuotaFloodPreventer_QuotaReachedFlagShouldBeClearedOnReset(t *testing.T
 	assert.Equal(t, uint32(1), qfp.stats.numPeersReachingQuota)
 
 	qfp.Reset()
+	assert.Equal(t, uint32(0), qfp.stats.numPeersReachingQuota)
 
 	// after the reset the peer gets a fresh quota, so it will be counted again when reaching it
 	assert.Nil(t, qfp.IncreaseLoad(pid, 1))
 	assert.NotNil(t, qfp.IncreaseLoad(pid, 1))
-	assert.Equal(t, uint32(2), qfp.stats.numPeersReachingQuota)
+	assert.Equal(t, uint32(1), qfp.stats.numPeersReachingQuota)
 }
 
 func TestQuotaFloodPreventer_SizeQuotaReachedShouldBeRecorded(t *testing.T) {
@@ -116,10 +129,10 @@ func TestQuotaFloodPreventer_CreateStatisticsShouldReturnPeaks(t *testing.T) {
 	assert.Equal(t, core.PeerID("pid2"), peakSize.pid)
 }
 
-func TestQuotaFloodPreventer_ResetShouldPrintOnlyAfterThePrintInterval(t *testing.T) {
-	t.Parallel()
+func TestQuotaFloodPreventer_ResetShouldReportTheElapsedIntervalAndStartANewOne(t *testing.T) {
+	defer setDebugLogLevel()()
 
-	qfp, err := NewQuotaFloodPreventer(createArgumentWithLimits(1, math.MaxUint64))
+	qfp, err := NewQuotaFloodPreventer(createArgumentWithLimits(2, math.MaxUint64))
 	require.Nil(t, err)
 
 	currentTime := time.Now()
@@ -127,38 +140,58 @@ func TestQuotaFloodPreventer_ResetShouldPrintOnlyAfterThePrintInterval(t *testin
 		return currentTime
 	}
 	qfp.stats.windowStart = currentTime
-	qfp.stats.printInterval = time.Minute
 
 	assert.Nil(t, qfp.IncreaseLoad("pid1", 10))
+	assert.Nil(t, qfp.IncreaseLoad("pid1", 10))
 	assert.NotNil(t, qfp.IncreaseLoad("pid1", 10))
+	assert.Nil(t, qfp.IncreaseLoad("pid2", 7))
+
+	currentTime = currentTime.Add(time.Second)
+
+	shouldPrint, args := qfp.resetAndGatherStatistics()
+	require.True(t, shouldPrint)
+	assertLogArg(t, args, "window", time.Second)
+	assertLogArg(t, args, "num peers", 2)
+	assertLogArg(t, args, "peak num messages/peer", uint32(3))
+	assertLogArg(t, args, "max num messages/peer", uint64(2))
+	assertLogArg(t, args, "num messages usage", "150.00%")
+	assertLogArg(t, args, "num rejected messages", uint64(1))
+	assertLogArg(t, args, "num peers reaching quota", uint32(1))
+
+	// a new window starts, holding no data from the previous one
+	assert.Equal(t, currentTime, qfp.stats.windowStart)
+	assert.Equal(t, uint64(0), qfp.stats.numRejectedMessages)
+	assert.Equal(t, uint32(0), qfp.stats.numPeersReachingQuota)
+
+	shouldPrint, args = qfp.resetAndGatherStatistics()
+	assert.False(t, shouldPrint)
+	assert.Nil(t, args)
+}
+
+func TestQuotaFloodPreventer_ResetShouldNotPrintOnNoTraffic(t *testing.T) {
+	defer setDebugLogLevel()()
+
+	qfp, err := NewQuotaFloodPreventer(createArgumentWithLimits(2, math.MaxUint64))
+	require.Nil(t, err)
 
 	shouldPrint, args := qfp.resetAndGatherStatistics()
 	assert.False(t, shouldPrint)
 	assert.Nil(t, args)
-	// the gathered values are kept until the window elapses
-	assert.Equal(t, uint32(1), qfp.stats.numIntervals)
-	assert.Equal(t, uint32(2), qfp.stats.peakNumMessages.numMessages)
-	assert.Equal(t, uint64(20), qfp.stats.peakSize.size)
-	assert.Equal(t, uint64(1), qfp.stats.numRejectedMessages)
+}
 
-	currentTime = currentTime.Add(time.Minute)
-	assert.Nil(t, qfp.IncreaseLoad("pid2", 7))
+func TestQuotaFloodPreventer_ResetShouldNotPrintOnHigherLogLevel(t *testing.T) {
+	oldLevel := log.GetLevel()
+	log.SetLevel(logger.LogInfo)
+	defer log.SetLevel(oldLevel)
 
-	shouldPrint, args = qfp.resetAndGatherStatistics()
-	assert.True(t, shouldPrint)
-	require.NotNil(t, args)
-	assertLogArg(t, args, "num intervals", uint32(2))
-	assertLogArg(t, args, "peak num peers", 1)
-	assertLogArg(t, args, "peak num messages/peer", uint32(2))
-	assertLogArg(t, args, "num rejected messages", uint64(1))
-	assertLogArg(t, args, "num peers reaching quota", uint32(1))
-	assertLogArg(t, args, "num messages usage", "200.00%")
-	assertLogArg(t, args, "window", time.Minute)
+	qfp, err := NewQuotaFloodPreventer(createArgumentWithLimits(2, math.MaxUint64))
+	require.Nil(t, err)
 
-	// the statistics are reset for the new window
-	assert.Equal(t, uint32(0), qfp.stats.numIntervals)
-	assert.Equal(t, uint64(0), qfp.stats.numRejectedMessages)
-	assert.Equal(t, peerPeak{}, qfp.stats.peakNumMessages)
+	assert.Nil(t, qfp.IncreaseLoad("pid1", 10))
+
+	shouldPrint, args := qfp.resetAndGatherStatistics()
+	assert.False(t, shouldPrint)
+	assert.Nil(t, args)
 }
 
 func assertLogArg(tb testing.TB, args []interface{}, key string, expectedValue interface{}) {

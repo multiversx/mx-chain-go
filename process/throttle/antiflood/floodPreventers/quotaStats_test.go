@@ -4,13 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func createTestQuotaStats(printInterval time.Duration, currentTime *time.Time) *quotaStats {
-	qs := newQuotaStats(printInterval)
+func createTestQuotaStats(currentTime *time.Time) *quotaStats {
+	qs := newQuotaStats()
 	qs.getTimeHandler = func() time.Time {
 		return *currentTime
 	}
@@ -22,18 +21,18 @@ func createTestQuotaStats(printInterval time.Duration, currentTime *time.Time) *
 func TestNewQuotaStats(t *testing.T) {
 	t.Parallel()
 
-	qs := newQuotaStats(time.Minute)
+	qs := newQuotaStats()
 	require.NotNil(t, qs)
-	assert.Equal(t, time.Minute, qs.printInterval)
 	assert.False(t, qs.windowStart.IsZero())
-	assert.False(t, qs.shouldPrint())
+	assert.Equal(t, uint64(0), qs.numRejectedMessages)
+	assert.Equal(t, uint32(0), qs.numPeersReachingQuota)
 }
 
 func TestQuotaStats_AddRejectedMessage(t *testing.T) {
 	t.Parallel()
 
 	currentTime := time.Now()
-	qs := createTestQuotaStats(time.Minute, &currentTime)
+	qs := createTestQuotaStats(&currentTime)
 
 	qs.addRejectedMessage(true)
 	qs.addRejectedMessage(false)
@@ -44,60 +43,34 @@ func TestQuotaStats_AddRejectedMessage(t *testing.T) {
 	assert.Equal(t, uint32(2), qs.numPeersReachingQuota)
 }
 
-func TestQuotaStats_AddIntervalPeaksShouldKeepTheHighestValues(t *testing.T) {
+func TestQuotaStats_Window(t *testing.T) {
 	t.Parallel()
 
 	currentTime := time.Now()
-	qs := createTestQuotaStats(time.Minute, &currentTime)
+	qs := createTestQuotaStats(&currentTime)
+	assert.Equal(t, time.Duration(0), qs.window())
 
-	qs.addIntervalPeaks(3, peerPeak{numMessages: 10, pid: "pid1"}, peerPeak{size: 100, pid: "pid2"})
-	qs.addIntervalPeaks(7, peerPeak{numMessages: 4, pid: "pid3"}, peerPeak{size: 900, pid: "pid4"})
-	qs.addIntervalPeaks(1, peerPeak{numMessages: 40, pid: "pid5"}, peerPeak{size: 50, pid: "pid6"})
-
-	assert.Equal(t, uint32(3), qs.numIntervals)
-	assert.Equal(t, 7, qs.peakNumPeers)
-	assert.Equal(t, uint32(40), qs.peakNumMessages.numMessages)
-	assert.Equal(t, core.PeerID("pid5"), qs.peakNumMessages.pid)
-	assert.Equal(t, uint64(900), qs.peakSize.size)
-	assert.Equal(t, core.PeerID("pid4"), qs.peakSize.pid)
-}
-
-func TestQuotaStats_ShouldPrintAndWindow(t *testing.T) {
-	t.Parallel()
-
-	currentTime := time.Now()
-	qs := createTestQuotaStats(time.Minute, &currentTime)
-	assert.False(t, qs.shouldPrint())
-
-	currentTime = currentTime.Add(time.Minute - time.Nanosecond)
-	assert.False(t, qs.shouldPrint())
-
-	currentTime = currentTime.Add(time.Nanosecond)
-	assert.True(t, qs.shouldPrint())
-	assert.Equal(t, time.Minute, qs.window())
+	currentTime = currentTime.Add(time.Second + time.Millisecond)
+	assert.Equal(t, time.Second+time.Millisecond, qs.window())
 }
 
 func TestQuotaStats_ResetShouldClearValuesAndStartNewWindow(t *testing.T) {
 	t.Parallel()
 
 	currentTime := time.Now()
-	qs := createTestQuotaStats(time.Minute, &currentTime)
+	qs := createTestQuotaStats(&currentTime)
 	qs.addRejectedMessage(true)
-	qs.addIntervalPeaks(5, peerPeak{numMessages: 10, pid: "pid1"}, peerPeak{size: 100, pid: "pid1"})
+	qs.addRejectedMessage(false)
 
-	currentTime = currentTime.Add(time.Minute)
+	currentTime = currentTime.Add(time.Second)
 	qs.reset()
 
 	assert.Equal(t, uint64(0), qs.numRejectedMessages)
 	assert.Equal(t, uint32(0), qs.numPeersReachingQuota)
-	assert.Equal(t, uint32(0), qs.numIntervals)
-	assert.Equal(t, 0, qs.peakNumPeers)
-	assert.Equal(t, peerPeak{}, qs.peakNumMessages)
-	assert.Equal(t, peerPeak{}, qs.peakSize)
 	assert.Equal(t, currentTime, qs.windowStart)
-	// the print interval and the time handler must survive the reset
-	assert.Equal(t, time.Minute, qs.printInterval)
-	assert.False(t, qs.shouldPrint())
+	assert.Equal(t, time.Duration(0), qs.window())
+	// the time handler must survive the reset
+	require.NotNil(t, qs.getTimeHandler)
 }
 
 func TestComputeUsagePercent(t *testing.T) {
