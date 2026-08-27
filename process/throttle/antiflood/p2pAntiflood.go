@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const unidentifiedTopic = "unidentifier topic"
@@ -30,6 +30,7 @@ type p2pAntiflood struct {
 	mutTopicCheck       sync.RWMutex
 	shardID             uint32
 	mutShardID          sync.RWMutex
+	messageSizeStats    *messageSizeStatsCollector
 }
 
 // NewP2PAntiflood creates a new p2p anti flood protection mechanism built on top of a flood preventer implementation.
@@ -57,6 +58,7 @@ func NewP2PAntiflood(
 		debugger:            &disabled.AntifloodDebugger{},
 		mapTopicsFromAll:    make(map[string]struct{}),
 		peerValidatorMapper: &disabled.PeerValidatorMapper{},
+		messageSizeStats:    newMessageSizeStatsCollector(messageSizeStatsInterval),
 	}, nil
 }
 
@@ -90,6 +92,8 @@ func (af *p2pAntiflood) CanProcessMessage(message p2p.MessageP2P, fromConnectedP
 	if message == nil {
 		return p2p.ErrNilMessage
 	}
+
+	af.messageSizeStats.addMessage(message.Topic(), uint64(len(message.Data())), message.Peer())
 
 	var lastErrFound error
 	for _, fp := range af.floodPreventers {
