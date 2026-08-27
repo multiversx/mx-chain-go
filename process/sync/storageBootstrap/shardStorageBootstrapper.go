@@ -2,7 +2,10 @@ package storageBootstrap
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -62,7 +65,21 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 
 // LoadFromStorage will load all blocks from storage
 func (ssb *shardStorageBootstrapper) LoadFromStorage() error {
-	return ssb.loadBlocks()
+	err := ssb.loadBlocks()
+	if err != nil {
+		return err
+	}
+
+	ssb.setSupernovaTransitionReadyForV3()
+
+	return nil
+}
+
+func (ssb *shardStorageBootstrapper) setSupernovaTransitionReadyForV3() {
+	currentHeader := ssb.blkc.GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) && currentHeader.IsHeaderV3() {
+		ssb.appStatusHandler.SetUInt64Value(common.MetricSupernovaTransitionReady, 1)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

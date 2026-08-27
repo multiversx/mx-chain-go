@@ -6,10 +6,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 func TestLoadP2PConfig(t *testing.T) {
@@ -515,4 +516,38 @@ func TestGetNodeProcessingMode(t *testing.T) {
 
 	mode = common.GetNodeProcessingMode(&config.ImportDbConfig{})
 	assert.Equal(t, common.Normal, mode)
+}
+
+func TestReleasedSupernovaDrainConfiguration(t *testing.T) {
+	mainConfig, err := common.LoadMainConfig("../cmd/node/config/config.toml")
+	require.NoError(t, err)
+	require.Equal(t, []config.ProcessConfigByEpoch{
+		{
+			EnableEpoch:                       0,
+			MaxMetaNoncesBehind:               15,
+			MaxMetaNoncesBehindForGlobalStuck: 30,
+			MaxShardNoncesBehind:              15,
+		},
+		{
+			EnableEpoch:                       1,
+			MaxMetaNoncesBehind:               5,
+			MaxMetaNoncesBehindForGlobalStuck: 8,
+			MaxShardNoncesBehind:              5,
+		},
+		{
+			EnableEpoch:                       2,
+			MaxMetaNoncesBehind:               75,
+			MaxMetaNoncesBehindForGlobalStuck: 120,
+			MaxShardNoncesBehind:              75,
+		},
+	}, mainConfig.GeneralSettings.ProcessConfigsByEpoch)
+
+	economicsConfig, err := common.LoadEconomicsConfig("../cmd/node/config/economics.toml")
+	require.NoError(t, err)
+	require.Equal(t, uint64(200), economicsConfig.FeeSettings.BlockCapacityOverestimationFactor)
+	require.Len(t, economicsConfig.FeeSettings.GasLimitSettings, 3)
+	require.Equal(t, uint32(1), economicsConfig.FeeSettings.GasLimitSettings[1].EnableEpoch)
+	require.Equal(t, "1500000000", economicsConfig.FeeSettings.GasLimitSettings[1].MaxGasLimitPerBlock)
+	require.Equal(t, uint32(2), economicsConfig.FeeSettings.GasLimitSettings[2].EnableEpoch)
+	require.Equal(t, "600000000", economicsConfig.FeeSettings.GasLimitSettings[2].MaxGasLimitPerBlock)
 }

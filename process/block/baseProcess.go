@@ -1290,8 +1290,36 @@ func checkProposalMiniBlocksConsistency(
 	return nil
 }
 
-// checkLegacyPredecessorReadyForV3 hard-stops the Supernova transition when the last
-// legacy block still carries non-final mini blocks, whose work V3 would discard
+type supernovaTransitionState struct {
+	firstNonFinalMiniBlockHash []byte
+	numNonFinalMiniBlocks      int
+	hasUnfinishedMiniBlocks    bool
+}
+
+func (state supernovaTransitionState) isReady() bool {
+	return state.numNonFinalMiniBlocks == 0 && !state.hasUnfinishedMiniBlocks
+}
+
+func (bp *baseProcessor) getSupernovaTransitionState(header data.HeaderHandler) supernovaTransitionState {
+	state := supernovaTransitionState{}
+	numNonFinalMiniBlocks := 0
+	for _, mbHeader := range header.GetMiniBlockHeaderHandlers() {
+		if !mbHeader.IsFinal() {
+			numNonFinalMiniBlocks++
+			if state.firstNonFinalMiniBlockHash == nil {
+				state.firstNonFinalMiniBlockHash = mbHeader.GetHash()
+			}
+		}
+	}
+	state.numNonFinalMiniBlocks = numNonFinalMiniBlocks
+	state.hasUnfinishedMiniBlocks = numNonFinalMiniBlocks == 0 &&
+		bp.shardCoordinator.SelfId() != core.MetachainShardId &&
+		bp.processedMiniBlocksTracker.HasUnfinishedMiniBlocks()
+
+	return state
+}
+
+// checkLegacyPredecessorReadyForV3 rejects the transition while legacy work remains in the predecessor or tracker.
 func (bp *baseProcessor) checkLegacyPredecessorReadyForV3(header data.HeaderHandler) error {
 	prevHeader := bp.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(prevHeader) || prevHeader.IsHeaderV3() {
@@ -1301,27 +1329,65 @@ func (bp *baseProcessor) checkLegacyPredecessorReadyForV3(header data.HeaderHand
 		return nil
 	}
 
-	nonFinalMbHashes := make([][]byte, 0)
-	for _, mbHeader := range prevHeader.GetMiniBlockHeaderHandlers() {
-		if !mbHeader.IsFinal() {
-			nonFinalMbHashes = append(nonFinalMbHashes, mbHeader.GetHash())
-		}
+	transitionState := bp.getSupernovaTransitionState(prevHeader)
+	if transitionState.numNonFinalMiniBlocks > 0 {
+		log.Error("supernova transition blocked: the last legacy block still carries non-final mini blocks and their work would be discarded",
+			"legacy nonce", prevHeader.GetNonce(),
+			"num mini blocks", transitionState.numNonFinalMiniBlocks,
+			"first hash", transitionState.firstNonFinalMiniBlockHash,
+		)
+
+		return fmt.Errorf("%w: %d non-final mini blocks in legacy block with nonce %d",
+			process.ErrLeftoverScheduledMiniBlocksOnTransition,
+			transitionState.numNonFinalMiniBlocks,
+			prevHeader.GetNonce(),
+		)
 	}
-	if len(nonFinalMbHashes) == 0 {
+
+	if !transitionState.hasUnfinishedMiniBlocks {
 		return nil
 	}
 
-	log.Error("supernova transition blocked: the last legacy block still carries non-final mini blocks and their work would be discarded",
+	log.Error("supernova transition blocked: the processed mini blocks tracker contains unfinished work",
 		"legacy nonce", prevHeader.GetNonce(),
-		"num mini blocks", len(nonFinalMbHashes),
-		"hashes", nonFinalMbHashes,
 	)
 
-	return fmt.Errorf("%w: %d non-final mini blocks in legacy block with nonce %d",
+	return fmt.Errorf("%w: unfinished tracked mini blocks after legacy block with nonce %d",
 		process.ErrLeftoverScheduledMiniBlocksOnTransition,
-		len(nonFinalMbHashes),
 		prevHeader.GetNonce(),
 	)
+}
+
+func (bp *baseProcessor) checkSupernovaDrainRules(header data.HeaderHandler) error {
+	isInDrainWindow := common.IsInSupernovaDrainWindowForEpochAndRound(
+		bp.enableEpochsHandler,
+		bp.enableRoundsHandler,
+		header.GetEpoch(),
+		header.GetRound(),
+	)
+	if !isInDrainWindow {
+		return nil
+	}
+
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeader.GetProcessingType() == int32(block.Scheduled) {
+			return process.ErrScheduledMiniBlockInSupernovaDrain
+		}
+		if miniBlockHeader.GetConstructionState() != int32(block.PartialExecuted) {
+			continue
+		}
+
+		processedMbInfo, metaBlockHash := bp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHeader.GetHash())
+		isExistingContinuation := processedMbInfo != nil &&
+			len(metaBlockHash) > 0 &&
+			processedMbInfo.IndexOfLastTxProcessed >= 0 &&
+			!processedMbInfo.FullyProcessed
+		if !isExistingContinuation {
+			return process.ErrNewPartialMiniBlockInSupernovaDrain
+		}
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {

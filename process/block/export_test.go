@@ -131,7 +131,7 @@ func (bp *baseProcessor) CommitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 
 // CreateMiniBlocks -
 func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
-	return sp.createMiniBlocks(haveTime, []byte("random"))
+	return sp.createMiniBlocks(haveTime, []byte("random"), &block.Header{})
 }
 
 // GetOrderedProcessedMetaBlocksFromHeader -
@@ -550,12 +550,28 @@ func (sp *shardProcessor) CheckReferencedMetaBlocksFullyConsumed(header data.Sha
 func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
+	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, true, process.GasProcessingPolicy{})
 	if err != nil {
 		return nil, 0, 0, err
 	}
 
 	return createAndProcessInfo.miniBlocks, createAndProcessInfo.numHdrsAdded, createAndProcessInfo.numTxsAdded, err
+}
+
+// CreateMbsAndProcessCrossShardTransactionsDstMe -
+func (sp *shardProcessor) CreateMbsAndProcessCrossShardTransactionsDstMe(
+	header data.HeaderHandler,
+	allowLegacyWork bool,
+) (bool, error) {
+	return sp.createMbsAndProcessCrossShardTransactionsDstMe(&createAndProcessMiniBlocksDestMeInfo{
+		currMetaHdr:                   header,
+		currProcessedMiniBlocksInfo:   make(map[string]*processedMb.ProcessedMiniBlockInfo),
+		allProcessedMiniBlocksInfo:    make(map[string]*processedMb.ProcessedMiniBlockInfo),
+		haveTime:                      func() bool { return true },
+		haveAdditionalTime:            func() bool { return false },
+		allowScheduledMode:            allowLegacyWork,
+		allowStartingPartialExecution: allowLegacyWork,
+	})
 }
 
 // DisplayLogInfo -
@@ -955,6 +971,11 @@ func (bp *baseProcessor) CheckLegacyPredecessorReadyForV3(header data.HeaderHand
 	return bp.checkLegacyPredecessorReadyForV3(header)
 }
 
+// CheckSupernovaDrainRules -
+func (bp *baseProcessor) CheckSupernovaDrainRules(header data.HeaderHandler) error {
+	return bp.checkSupernovaDrainRules(header)
+}
+
 // GetFinalMiniBlocksFromExecutionResults -
 func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
 	header data.HeaderHandler,
@@ -1030,11 +1051,6 @@ func (sp *shardProcessor) ProofsPool() dataRetriever.ProofsPool {
 // DataPool -
 func (sp *shardProcessor) DataPool() dataRetriever.PoolsHolder {
 	return sp.dataPool
-}
-
-// ShouldDisableOutgoingTxs -
-func ShouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
-	return shouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler)
 }
 
 // ShouldEpochStartInfoBeAvailable -

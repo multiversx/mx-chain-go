@@ -164,6 +164,43 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	assert.True(t, wasCalledEpochNotifier)
 }
 
+func TestShardStorageBootstrapper_SetSupernovaTransitionReadyForV3(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		header   data.HeaderHandler
+		expected uint64
+	}{
+		{name: "nil header"},
+		{name: "legacy header", header: &block.Header{}},
+		{name: "V3 header", header: &block.HeaderV3{}, expected: 1},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			appStatusHandler := statusHandler.NewAppStatusHandlerMock()
+			appStatusHandler.SetUInt64Value(common.MetricSupernovaTransitionReady, 0)
+			ssb := &shardStorageBootstrapper{
+				storageBootstrapper: &storageBootstrapper{
+					blkc: &testscommon.ChainHandlerStub{
+						GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+							return test.header
+						},
+					},
+					appStatusHandler: appStatusHandler,
+				},
+			}
+
+			ssb.setSupernovaTransitionReadyForV3()
+
+			require.Equal(t, test.expected, appStatusHandler.GetUint64(common.MetricSupernovaTransitionReady))
+		})
+	}
+}
+
 func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(t *testing.T) {
 	baseArgs := createMockShardStorageBootstrapperArgs()
 
