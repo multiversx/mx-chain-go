@@ -68,6 +68,8 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.pendingEpochStartHeaders = t.pendingEpochStartHeaders
 	rt.pendingFinalityEvidence = t.pendingFinalityEvidence
 	rt.epochStartRecoveryCandidates = t.epochStartRecoveryCandidates
+	rt.recoveryRequestCursors = t.recoveryRequestCursors
+	rt.finalityCandidateCursor = t.finalityCandidateCursor
 	rt.chanPendingEpochStartData = t.chanPendingEpochStartData
 	rt.pendingProofRetryInterval = t.pendingProofRetryInterval
 	rt.nextProofRequestSequence = t.nextProofRequestSequence
