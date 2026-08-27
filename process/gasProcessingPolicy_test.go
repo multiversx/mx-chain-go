@@ -102,6 +102,7 @@ func TestResolveGasProcessingPolicyEpochZeroDrain(t *testing.T) {
 	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
 	feeHandler := &economicsmocks.EconomicsHandlerMock{}
 
-	_, err := process.ResolveGasProcessingPolicy(header, enableEpochsHandler, enableRoundsHandler, feeHandler, 0)
-	require.ErrorIs(t, err, process.ErrInvalidValue)
+	policy, err := process.ResolveGasProcessingPolicy(header, enableEpochsHandler, enableRoundsHandler, feeHandler, 0)
+	require.NoError(t, err)
+	require.False(t, policy.HasMaxGasLimitPerBlock())
 }
