@@ -50,7 +50,7 @@ func (bbt *baseBlockTrack) pullProofsForContendedNoncesLoop(ctx context.Context)
 // pullProofsForContendedNonces requests all proofs at each unresolved contended nonce, once per
 // round with backoff; a child does not settle a contended header, so states outlive tip advances
 func (bbt *baseBlockTrack) pullProofsForContendedNonces() {
-	if !bbt.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	if !common.IsAsyncExecutionEnabled(bbt.enableEpochsHandler, bbt.enableRoundsHandler) {
 		return
 	}
 
@@ -109,6 +109,10 @@ func (bbt *baseBlockTrack) getContendedUnsettledKeys() map[proofPullKey]struct{}
 	candidates, orphans := bbt.collectContendedCandidates()
 
 	for _, orphan := range orphans {
+		if !common.IsCrossHeaderSettlementEnabledForHeader(bbt.enableEpochsHandler, bbt.enableRoundsHandler, orphan.header) {
+			continue
+		}
+
 		parent, err := bbt.headersPool.GetHeaderByHash(orphan.header.GetPrevHash())
 		if err != nil || check.IfNil(parent) {
 			continue
@@ -120,6 +124,10 @@ func (bbt *baseBlockTrack) getContendedUnsettledKeys() map[proofPullKey]struct{}
 
 	keys := make(map[proofPullKey]struct{})
 	for _, candidate := range candidates {
+		if !common.IsCrossHeaderSettlementEnabledForHeader(bbt.enableEpochsHandler, bbt.enableRoundsHandler, candidate.header) {
+			continue
+		}
+
 		key := proofPullKey{shardID: candidate.shardID, nonce: candidate.header.GetNonce()}
 		if _, exists := keys[key]; exists {
 			continue

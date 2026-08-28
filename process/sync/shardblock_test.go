@@ -96,6 +96,17 @@ type headerAndHash struct {
 	hash   []byte
 }
 
+type bootstrapCompletedEpochStartTriggerStub struct {
+	*testscommon.EpochStartTriggerStub
+	onBootstrapCompletedCalled func()
+}
+
+func (stub *bootstrapCompletedEpochStartTriggerStub) OnBootstrapCompleted() {
+	if stub.onBootstrapCompletedCalled != nil {
+		stub.onBootstrapCompletedCalled()
+	}
+}
+
 func setupPools(headersAndHashes ...headerAndHash) dataRetriever.PoolsHolder {
 	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
@@ -901,6 +912,51 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	_ = bs.StartSyncingBlocks()
 	time.Sleep(200 * time.Millisecond)
 	_ = bs.Close()
+}
+
+func TestShardBootstrap_StartSyncingBlocksNotifiesBootstrapCompletion(t *testing.T) {
+	testCases := []struct {
+		name      string
+		loadError error
+	}{
+		{
+			name: "successful storage load",
+		},
+		{
+			name:      "non-critical storage load error",
+			loadError: errExpected,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			args := CreateShardBootstrapMockArguments()
+			events := make([]string, 0, 2)
+			args.StorageBootstrapper = &mock.StorageBootstrapperMock{
+				LoadFromStorageCalled: func() error {
+					events = append(events, "load")
+					return testCase.loadError
+				},
+			}
+			args.EpochStartTrigger = &bootstrapCompletedEpochStartTriggerStub{
+				EpochStartTriggerStub: &testscommon.EpochStartTriggerStub{},
+				onBootstrapCompletedCalled: func() {
+					events = append(events, "notify")
+				},
+			}
+
+			bs, err := sync.NewShardBootstrap(args)
+			require.NoError(t, err)
+
+			err = bs.StartSyncingBlocks()
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				require.NoError(t, bs.Close())
+			})
+
+			require.Equal(t, []string{"load", "notify"}, events)
+		})
+	}
 }
 
 func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {

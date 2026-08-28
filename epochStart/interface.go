@@ -40,6 +40,11 @@ type TriggerHandler interface {
 	IsInterfaceNil() bool
 }
 
+// BootstrapCompletedNotifier handles completion of storage bootstrap.
+type BootstrapCompletedNotifier interface {
+	OnBootstrapCompleted()
+}
+
 // RoundHandler defines the actions which should be handled by a round implementation
 type RoundHandler interface {
 	// Index returns the current round
@@ -59,7 +64,9 @@ type HeaderValidator interface {
 type RequestHandler interface {
 	RequestShardHeader(shardId uint32, hash []byte)
 	RequestMetaHeader(hash []byte)
+	RequestMetaHeaderForEpoch(hash []byte, epoch uint32)
 	RequestMetaHeaderByNonce(nonce uint64)
+	RequestMetaHeaderByNonceForEpoch(nonce uint64, epoch uint32)
 	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
 	RequestStartOfEpochMetaBlock(epoch uint32)
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)

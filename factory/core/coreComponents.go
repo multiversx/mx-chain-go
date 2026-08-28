@@ -539,6 +539,11 @@ func validateSupernovaActivationTuple(
 	supernovaEpoch uint32,
 	supernovaRound uint64,
 ) error {
+	if supernovaEpoch == 0 && supernovaRound > 0 {
+		return fmt.Errorf("%w: delayed Supernova activation in epoch zero has no previous epoch gas configuration",
+			errors.ErrSupernovaActivationConfigMismatch)
+	}
+
 	err := validateRoundDurationChanges(cfg.GeneralSettings.ChainParametersByEpoch, supernovaEpoch)
 	if err != nil {
 		return err

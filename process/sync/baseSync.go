@@ -614,7 +614,9 @@ func (boot *baseBootstrap) shouldTryToRequestHeaders() (bool, uint64) {
 		return false, 0
 	}
 	if !boot.isNodeSynchronized {
-		return true, 0
+		// normal sync handles requests while the probable nonce is ahead
+		hasKnownBacklog := boot.forkDetector.ProbableHighestNonce() > boot.currentCommittedNonce()
+		return !hasKnownBacklog, 0
 	}
 
 	roundIndex := boot.roundHandler.Index()
@@ -2271,6 +2273,7 @@ func (boot *baseBootstrap) finishRollBackOneBlockV3(pending *pendingV3RollBack) 
 	} else if !bytes.Equal(currentHash, pending.prevHeaderHash) {
 		return true, boot.finishRollBackV3AfterSiblingCommit(pending)
 	}
+	boot.updateSupernovaTransitionReadiness(pending.prevHeader, pending.prevHeaderHash)
 
 	if !pending.executionPruned {
 		err := boot.executionManager.RemoveAtNonceAndHigher(pending.currHeader.GetNonce())
@@ -2294,6 +2297,19 @@ func (boot *baseBootstrap) finishRollBackOneBlockV3(pending *pendingV3RollBack) 
 	boot.pendingV3RollBack = nil
 
 	return false, nil
+}
+
+type supernovaTransitionReadinessUpdater interface {
+	UpdateSupernovaTransitionReadiness(header data.HeaderHandler, headerHash []byte)
+}
+
+func (boot *baseBootstrap) updateSupernovaTransitionReadiness(header data.HeaderHandler, headerHash []byte) {
+	updater, ok := boot.blockProcessor.(supernovaTransitionReadinessUpdater)
+	if !ok {
+		return
+	}
+
+	updater.UpdateSupernovaTransitionReadiness(header, headerHash)
 }
 
 // restoreWriteBackRetrier retries the storage write back of meta blocks moved by a failed restore
