@@ -180,6 +180,31 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 
 		checkCreateBlockProposalResult(t, sp, header, haveTimeTrue, expectedErr)
 	})
+	t.Run("epoch update cannot make the proposer skip an epoch", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{Epoch: 1}
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			IsEpochStartCalled: func() bool { return true },
+			MetaEpochCalled:    func() uint32 { return 3 },
+			EpochStartMetaHdrHashCalled: func() []byte {
+				return []byte("epoch-three-meta")
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		header := &block.HeaderV3{Epoch: 1}
+		_, _, err = sp.CreateBlockProposal(header, haveTimeTrue)
+		require.ErrorIs(t, err, process.ErrEpochDoesNotMatch)
+		require.Equal(t, uint32(3), header.GetEpoch())
+	})
 	t.Run("selectIncomingMiniBlocksForProposal fails due to error on ComputeLongestMetaChainFromLastNotarized", func(t *testing.T) {
 		t.Parallel()
 

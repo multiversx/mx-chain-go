@@ -666,6 +666,11 @@ func (sp *shardProcessor) CheckEpochCorrectness(header *block.Header) error {
 	return sp.checkEpochCorrectness(header)
 }
 
+// CheckConsecutiveShardEpochForProposal exports the proposal guard for tests.
+func (sp *shardProcessor) CheckConsecutiveShardEpochForProposal(header data.ShardHeaderHandler) error {
+	return sp.checkConsecutiveShardEpochForProposal(header)
+}
+
 // GetBootstrapHeadersInfo -
 func (sp *shardProcessor) GetBootstrapHeadersInfo(
 	selfNotarizedHeaders []data.HeaderHandler,

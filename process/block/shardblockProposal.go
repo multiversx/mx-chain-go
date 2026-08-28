@@ -76,6 +76,11 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
+	err = sp.checkConsecutiveShardEpochForProposal(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	sp.gasComputation.Reset()
 	sp.miniBlocksSelectionSession.ResetSelectionSession()
 	err = sp.createBlockBodyProposal(shardHdr, haveTime)

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"sort"
 	"sync/atomic"
@@ -457,6 +458,11 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		return nil
 	}
 
+	err := checkConsecutiveShardEpoch(currentBlockHeader.GetEpoch(), header.GetEpoch())
+	if err != nil {
+		return err
+	}
+
 	headerEpochBehindCurrentHeader := header.GetEpoch() < currentBlockHeader.GetEpoch()
 	if headerEpochBehindCurrentHeader {
 		return fmt.Errorf("%w proposed header with older epoch %d than blockchain epoch %d",
@@ -536,6 +542,24 @@ func (sp *shardProcessor) checkEpochCorrectness(
 	}
 
 	return nil
+}
+
+func checkConsecutiveShardEpoch(currentEpoch uint32, candidateEpoch uint32) error {
+	if currentEpoch == math.MaxUint32 || candidateEpoch <= currentEpoch+1 {
+		return nil
+	}
+
+	return fmt.Errorf("%w proposed header skips from epoch %d to epoch %d",
+		process.ErrEpochDoesNotMatch, currentEpoch, candidateEpoch)
+}
+
+func (sp *shardProcessor) checkConsecutiveShardEpochForProposal(header data.ShardHeaderHandler) error {
+	currentHeader := sp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
+		return nil
+	}
+
+	return checkConsecutiveShardEpoch(currentHeader.GetEpoch(), header.GetEpoch())
 }
 
 // SetNumProcessedObj will set the num of processed transactions
@@ -1080,6 +1104,11 @@ func (sp *shardProcessor) CreateBlock(
 	// placeholder for shardProcessor.CreateBlock script 2
 
 	err = sp.updateEpochIfNeeded(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sp.checkConsecutiveShardEpochForProposal(shardHdr)
 	if err != nil {
 		return nil, nil, err
 	}
