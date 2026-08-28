@@ -261,10 +261,33 @@ func (boot *baseBootstrap) processReceivedProof(headerProof data.HeaderProofHand
 	}
 
 	boot.forkDetector.ReceivedProof(headerProof)
+	boot.enrichForkDetectorWithProofHeader(headerProof)
 	boot.clearRecoveryAfterProgress()
 
 	boot.checkProofCorrespondsToRequestedHash(headerProof)
 	boot.checkProofCorrespondsToRequestedNonce(headerProof)
+}
+
+func (boot *baseBootstrap) enrichForkDetectorWithProofHeader(headerProof data.HeaderProofHandler) {
+	if headerProof.GetHeaderShardId() == core.MetachainShardId ||
+		!common.IsAsyncExecutionEnabledForEpochAndRound(
+			boot.enableEpochsHandler,
+			boot.enableRoundsHandler,
+			headerProof.GetHeaderEpoch(),
+			headerProof.GetHeaderRound(),
+		) {
+		return
+	}
+
+	header, err := boot.getHeaderFromPool(headerProof.GetHeaderHash())
+	if err != nil {
+		return
+	}
+
+	err = boot.forkDetector.AddHeader(header, headerProof.GetHeaderHash(), process.BHReceived, nil, nil)
+	if err != nil {
+		log.Trace("failed to enrich fork detector with proof header", "error", err)
+	}
 }
 
 func (boot *baseBootstrap) checkProofCorrespondsToRequestedHash(headerProof data.HeaderProofHandler) {
@@ -876,6 +899,10 @@ func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
+	if errors.Is(err, errBranchAwareSyncRetry) {
+		return
+	}
+
 	if errors.Is(err, process.ErrBlockProcessorBusy) {
 		// block processor is busy with another call (e.g. consensus processing the same block);
 		// no processing started, nothing to track or roll back - just retry on next sync iteration
@@ -2420,20 +2447,134 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 		hash = boot.forkInfo.Hash
 	}
 
-	// if there is a proof for the current nonce, use the header hash from proof
-	proof, err := boot.dataPool.Proofs().GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
-	if err == nil {
-		hash = proof.GetHeaderHash()
+	isDirectedV3 := len(hash) > 0 && boot.isAsyncExecutionEnabledForHash(hash)
+	selectedFromProof := false
+	if !isDirectedV3 {
+		proof, err := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+		if err == nil {
+			hash = proof.GetHeaderHash()
+			selectedFromProof = true
+		}
 	}
 
 	hash = boot.selectNonBlackListedHash(hash, nonce)
 
 	if hash != nil {
+		if selectedFromProof && boot.shardCoordinator.SelfId() != core.MetachainShardId {
+			return boot.getGenericProofHeaderRequestingIfMissing(nonce, hash)
+		}
+
 		header, err := boot.getHeaderWithHashRequestingIfMissing(hash)
 		return header, hash, err
 	}
 
 	return boot.getHeaderWithNonceRequestingIfMissing(nonce)
+}
+
+func (boot *baseBootstrap) isAsyncExecutionEnabledForHash(hash []byte) bool {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		return false
+	}
+
+	header, err := boot.getHeaderFromPool(hash)
+	if err == nil && header.GetShardID() != core.MetachainShardId &&
+		common.IsAsyncExecutionEnabledForEpochAndRound(
+			boot.enableEpochsHandler,
+			boot.enableRoundsHandler,
+			header.GetEpoch(),
+			header.GetRound(),
+		) {
+		return true
+	}
+
+	proof, err := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), hash)
+	if err != nil {
+		return false
+	}
+
+	return proof.GetHeaderShardId() != core.MetachainShardId &&
+		common.IsAsyncExecutionEnabledForEpochAndRound(
+			boot.enableEpochsHandler,
+			boot.enableRoundsHandler,
+			proof.GetHeaderEpoch(),
+			proof.GetHeaderRound(),
+		)
+}
+
+func (boot *baseBootstrap) getGenericProofHeaderRequestingIfMissing(
+	nonce uint64,
+	selectedHash []byte,
+) (data.HeaderHandler, []byte, error) {
+	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+	if check.IfNil(currentHeader) || currentHeader.GetShardID() == core.MetachainShardId || len(currentHash) == 0 ||
+		!common.IsAsyncExecutionEnabledForEpochAndRound(
+			boot.enableEpochsHandler,
+			boot.enableRoundsHandler,
+			currentHeader.GetEpoch(),
+			currentHeader.GetRound(),
+		) {
+		header, err := boot.getHeaderWithHashRequestingIfMissing(selectedHash)
+		return header, selectedHash, err
+	}
+
+	selectedHeader, err := boot.getHeaderFromPool(selectedHash)
+	if err == nil && bytes.Equal(selectedHeader.GetPrevHash(), currentHash) {
+		header, getErr := boot.getHeaderWithHashRequestingIfMissing(selectedHash)
+		return header, selectedHash, getErr
+	}
+
+	proofs, err := boot.proofs.GetProofsByNonce(nonce, boot.shardCoordinator.SelfId())
+	if err != nil {
+		selectedProof, getErr := boot.proofs.GetProof(boot.shardCoordinator.SelfId(), selectedHash)
+		if getErr != nil {
+			boot.requestUnknownCanonicalHeader(nonce, currentHeader.GetNonce())
+			return nil, nil, errBranchAwareSyncRetry
+		}
+		proofs = []data.HeaderProofHandler{selectedProof}
+	}
+
+	missingProofs := make([]data.HeaderProofHandler, 0)
+	for _, proof := range proofs {
+		hash := proof.GetHeaderHash()
+		if boot.blackListHandler.Has(string(hash)) {
+			continue
+		}
+
+		header, getErr := boot.getHeaderFromPool(hash)
+		if getErr != nil {
+			missingProofs = append(missingProofs, proof)
+			continue
+		}
+		if bytes.Equal(header.GetPrevHash(), currentHash) {
+			readyHeader, readyErr := boot.getHeaderWithHashRequestingIfMissing(hash)
+			return readyHeader, hash, readyErr
+		}
+	}
+
+	if len(missingProofs) > 0 {
+		for _, proof := range missingProofs {
+			boot.requestHandler.RequestShardHeaderForEpoch(
+				boot.shardCoordinator.SelfId(),
+				proof.GetHeaderHash(),
+				proof.GetHeaderEpoch(),
+			)
+		}
+
+		return nil, nil, errBranchAwareSyncRetry
+	}
+
+	boot.requestUnknownCanonicalHeader(nonce, currentHeader.GetNonce())
+	return nil, nil, errBranchAwareSyncRetry
+}
+
+func (boot *baseBootstrap) requestUnknownCanonicalHeader(nonce uint64, currentNonce uint64) {
+	if boot.forkDetector.ProbableHighestNonce() <= currentNonce {
+		return
+	}
+
+	boot.blockBootstrapper.requestHeaderByNonce(nonce)
+	boot.blockBootstrapper.requestProofByNonce(nonce)
 }
 
 // selectNonBlackListedHash prevents re-adopting a hash blacklisted by a fork rollback or the
