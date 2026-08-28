@@ -54,6 +54,26 @@ func (gt *gasTracker) computeGasProvided(
 	gasInfo *gasConsumedInfo,
 	skipBlockLimitCheck bool,
 ) (uint64, error) {
+	return gt.computeGasProvidedWithPolicy(
+		senderShardId,
+		receiverShardId,
+		tx,
+		txHash,
+		gasInfo,
+		skipBlockLimitCheck,
+		process.GasProcessingPolicy{},
+	)
+}
+
+func (gt *gasTracker) computeGasProvidedWithPolicy(
+	senderShardId uint32,
+	receiverShardId uint32,
+	tx data.TransactionHandler,
+	txHash []byte,
+	gasInfo *gasConsumedInfo,
+	skipBlockLimitCheck bool,
+	gasProcessingPolicy process.GasProcessingPolicy,
+) (uint64, error) {
 	gasProvidedByTxInSenderShard, gasProvidedByTxInReceiverShard, err := gt.computeGasProvidedByTx(
 		senderShardId,
 		receiverShardId,
@@ -79,7 +99,16 @@ func (gt *gasTracker) computeGasProvided(
 		gasProvidedByTxInSelfShard = gasProvidedByTxInReceiverShard
 	}
 
-	if !skipBlockLimitCheck && gasInfo.totalGasConsumedInSelfShard+gasProvidedByTxInSelfShard > gt.getMaxGasLimitPerBlock(epoch, overEstimationFactor) {
+	var maxGasLimitPerBlock uint64
+	shouldCheckBlockGasLimit := true
+	if gasProcessingPolicy.HasMaxGasLimitPerBlock() {
+		maxGasLimitPerBlock = gasProcessingPolicy.MaxGasLimitPerBlock()
+	} else {
+		maxGasLimitPerBlock = gt.getMaxGasLimitPerBlock(epoch, overEstimationFactor)
+		shouldCheckBlockGasLimit = !skipBlockLimitCheck
+	}
+
+	if shouldCheckBlockGasLimit && gasInfo.totalGasConsumedInSelfShard+gasProvidedByTxInSelfShard > maxGasLimitPerBlock {
 		return 0, process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 

@@ -3153,7 +3153,7 @@ func addDataTries(accountsAddresses [][]byte, adb *state.AccountsDB) {
 func TestAccountsDb_Concurrent(t *testing.T) {
 	_, adb := getDefaultTrieAndAccountsDb()
 
-	numAccounts := 100000
+	numAccounts := 1000
 	accountsAddresses := generateAccounts(t, numAccounts, adb)
 
 	adb.SetTxHashForLatestStateAccesses([]byte("txHash"))

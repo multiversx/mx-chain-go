@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -509,4 +510,101 @@ func TestResyncRecovery_ClearInactiveStateHasNoDependencies(t *testing.T) {
 
 	boot := &baseBootstrap{}
 	require.NotPanics(t, boot.clearRecoveryAfterProgress)
+}
+
+func TestBaseBootstrap_ShouldTryToRequestHeadersGatesWatchdogOnKnownBacklog(t *testing.T) {
+	t.Parallel()
+
+	newUnsyncedBoot := func(committedNonce uint64, probableNonce *uint64) *baseBootstrap {
+		currentHeader := &block.Header{ShardID: 1, Nonce: committedNonce, Round: 1, Epoch: 6}
+		boot := newRecoveryBootstrap(&mock.RoundHandlerMock{RoundIndex: 150}, currentHeader, probableNonce, &recoveryRequestHandlerStub{})
+		boot.isNodeSynchronized = false
+		return boot
+	}
+
+	t.Run("probable ahead of committed does not start the watchdog", func(t *testing.T) {
+		t.Parallel()
+
+		probableNonce := uint64(30)
+		boot := newUnsyncedBoot(10, &probableNonce)
+
+		shouldRequest, generation := boot.shouldTryToRequestHeaders()
+		require.False(t, shouldRequest)
+		require.Zero(t, generation)
+	})
+	t.Run("probable equal to committed keeps watchdog discovery", func(t *testing.T) {
+		t.Parallel()
+
+		probableNonce := uint64(10)
+		boot := newUnsyncedBoot(10, &probableNonce)
+
+		shouldRequest, generation := boot.shouldTryToRequestHeaders()
+		require.True(t, shouldRequest)
+		require.Zero(t, generation)
+	})
+	t.Run("probable behind committed keeps watchdog discovery", func(t *testing.T) {
+		t.Parallel()
+
+		probableNonce := uint64(5)
+		boot := newUnsyncedBoot(10, &probableNonce)
+
+		shouldRequest, _ := boot.shouldTryToRequestHeaders()
+		require.True(t, shouldRequest)
+	})
+	t.Run("forced rollback is excluded before the backlog gate", func(t *testing.T) {
+		t.Parallel()
+
+		probableNonce := uint64(10)
+		boot := newUnsyncedBoot(10, &probableNonce)
+		boot.forkInfo.IsDetected = true
+		boot.forkInfo.Nonce = math.MaxUint64
+		boot.forkInfo.Hash = nil
+
+		shouldRequest, _ := boot.shouldTryToRequestHeaders()
+		require.False(t, shouldRequest)
+
+		boot.forkInfo = process.NewForkInfo()
+		boot.forkInfo.IsDetected = true
+		boot.forkInfo.Round = math.MaxUint64
+		boot.forkInfo.Hash = nil
+
+		shouldRequest, _ = boot.shouldTryToRequestHeaders()
+		require.False(t, shouldRequest)
+	})
+	t.Run("synchronized node is unaffected by the gate", func(t *testing.T) {
+		t.Parallel()
+
+		probableNonce := uint64(10)
+		boot := newUnsyncedBoot(10, &probableNonce)
+		boot.isNodeSynchronized = true
+		boot.roundHandler = &mock.RoundHandlerMock{RoundIndex: 200}
+
+		shouldRequest, _ := boot.shouldTryToRequestHeaders()
+		require.True(t, shouldRequest)
+
+		boot.roundHandler = &mock.RoundHandlerMock{RoundIndex: 201}
+		shouldRequest, _ = boot.shouldTryToRequestHeaders()
+		require.False(t, shouldRequest)
+	})
+}
+
+func TestBaseBootstrap_LookaheadRequestsWindowWhileProbableIsAhead(t *testing.T) {
+	t.Parallel()
+
+	probableNonce := uint64(13)
+	currentHeader := &block.Header{ShardID: 1, Nonce: 10, Round: 1, Epoch: 6}
+	boot := newRecoveryBootstrap(&mock.RoundHandlerMock{RoundIndex: 150}, currentHeader, &probableNonce, &recoveryRequestHandlerStub{})
+	boot.proofs = &testscommonDataRetriever.ProofsPoolMock{
+		GetProofByNonceCalled: func(_ uint64, _ uint32) (data.HeaderProofHandler, error) {
+			return nil, errors.New("missing proof")
+		},
+	}
+	requestedProofNonces := make([]uint64, 0)
+	boot.blockBootstrapper = &blockBootstrapperStub{
+		requestProofByNonceCalled: func(nonce uint64) { requestedProofNonces = append(requestedProofNonces, nonce) },
+	}
+
+	boot.requestHeadersFromNonceIfMissing(11)
+
+	require.Equal(t, []uint64{11, 12, 13}, requestedProofNonces)
 }

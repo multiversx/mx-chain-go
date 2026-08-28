@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
@@ -1023,6 +1024,8 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		instance, err := pcf.Create()
 		require.NoError(t, err)
 		require.NotNil(t, instance)
+		_, exposesBootstrapCompletion := instance.EpochStartTriggerForTests().(epochStart.BootstrapCompletedNotifier)
+		require.True(t, exposesBootstrapCompletion)
 
 		err = instance.Close()
 		require.NoError(t, err)

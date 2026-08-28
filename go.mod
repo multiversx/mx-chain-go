@@ -16,18 +16,18 @@ require (
 	github.com/libp2p/go-libp2p v0.48.0
 	github.com/libp2p/go-libp2p-pubsub v0.16.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.3.3-0.20260813144301-82eeb3f13e41
-	github.com/multiversx/mx-chain-core-go v1.5.1-0.20260721064337-e17a03faa70b
-	github.com/multiversx/mx-chain-crypto-go v1.3.2-0.20260713100639-c3cf05776cb6
-	github.com/multiversx/mx-chain-es-indexer-go v1.10.3-0.20260723124531-43479b3571e7
-	github.com/multiversx/mx-chain-logger-go v1.1.1-0.20260713100530-e85a16be3260
-	github.com/multiversx/mx-chain-scenario-go v1.7.1-0.20260713104347-ca02e230558e
-	github.com/multiversx/mx-chain-storage-go v1.1.2-0.20260713100751-bad800525dbe
-	github.com/multiversx/mx-chain-vm-common-go v1.6.8-0.20260713100832-23aa4c20accd
-	github.com/multiversx/mx-chain-vm-go v1.6.1-0.20260730132401-84511027e57a
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.70-0.20260713104734-692938905e51
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.71-0.20260713104815-e09ce0effc4a
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.100-0.20260713105015-b7543e66e0d5
+	github.com/multiversx/mx-chain-communication-go v1.4.1-0.20260825083420-ef47b7c90cb2
+	github.com/multiversx/mx-chain-core-go v1.5.1
+	github.com/multiversx/mx-chain-crypto-go v1.3.2
+	github.com/multiversx/mx-chain-es-indexer-go v1.10.3
+	github.com/multiversx/mx-chain-logger-go v1.2.0
+	github.com/multiversx/mx-chain-scenario-go v1.8.0
+	github.com/multiversx/mx-chain-storage-go v1.2.0
+	github.com/multiversx/mx-chain-vm-common-go v1.7.1
+	github.com/multiversx/mx-chain-vm-go v1.5.48
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.70
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.71
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.100
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
@@ -126,7 +126,7 @@ require (
 	github.com/multiformats/go-multistream v0.6.1 // indirect
 	github.com/multiformats/go-varint v0.1.0 // indirect
 	github.com/multiversx/concurrent-map v0.1.4 // indirect
-	github.com/multiversx/mx-components-big-int v1.1.1-0.20260507134206-ffc95520dc6d // indirect
+	github.com/multiversx/mx-components-big-int v1.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nsf/termbox-go v0.0.0-20190121233118-02980233997d // indirect
 	github.com/onsi/gomega v1.36.2 // indirect

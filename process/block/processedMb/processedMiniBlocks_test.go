@@ -3,9 +3,10 @@ package processedMb_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestProcessedMiniBlocks_SetProcessedMiniBlockInfoShouldWork(t *testing.T) {
@@ -103,4 +104,26 @@ func TestProcessedMiniBlocks_GetProcessedMiniBlockInfo(t *testing.T) {
 	assert.Equal(t, metaHash, processedMetaHash)
 	assert.Equal(t, processedMbInfo.FullyProcessed, processedMiniBlockInfo.FullyProcessed)
 	assert.Equal(t, processedMbInfo.IndexOfLastTxProcessed, processedMiniBlockInfo.IndexOfLastTxProcessed)
+}
+
+func TestProcessedMiniBlocks_HasUnfinishedMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	pmbt := processedMb.NewProcessedMiniBlocksTracker()
+	assert.False(t, pmbt.HasUnfinishedMiniBlocks())
+
+	pmbt.SetProcessedMiniBlockInfo([]byte("meta"), []byte("finished"), &processedMb.ProcessedMiniBlockInfo{
+		FullyProcessed:         true,
+		IndexOfLastTxProcessed: 1,
+	})
+	assert.False(t, pmbt.HasUnfinishedMiniBlocks())
+
+	pmbt.SetProcessedMiniBlockInfo([]byte("meta"), []byte("unfinished"), &processedMb.ProcessedMiniBlockInfo{
+		FullyProcessed:         false,
+		IndexOfLastTxProcessed: 0,
+	})
+	assert.True(t, pmbt.HasUnfinishedMiniBlocks())
+
+	pmbt.RemoveMiniBlockHash([]byte("unfinished"))
+	assert.False(t, pmbt.HasUnfinishedMiniBlocks())
 }

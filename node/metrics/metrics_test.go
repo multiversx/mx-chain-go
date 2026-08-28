@@ -704,6 +704,7 @@ func TestInitMetrics(t *testing.T) {
 		expectedValues := map[string]interface{}{
 			common.MetricPublicKeyBlockSign:           pubkeyString,
 			common.MetricShardId:                      uint64(shardCoordinator.SelfId()),
+			common.MetricSupernovaTransitionReady:     uint64(0),
 			common.MetricNumShardsWithoutMetachain:    uint64(shardCoordinator.NoShards),
 			common.MetricNodeType:                     string(nodeType),
 			common.MetricRoundTime:                    uint64(6000),
