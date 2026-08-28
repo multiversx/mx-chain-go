@@ -3,6 +3,7 @@ package floodPreventers
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -10,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // ArgQuotaFloodPreventer defines the arguments for a quota flood preventer
@@ -25,13 +27,16 @@ var _ process.FloodPreventer = (*quotaFloodPreventer)(nil)
 const minMessages = 1
 const minTotalSize = 1 // 1Byte
 const initNumMessages = 1
-const quotaStructSize = 24
+const quotaStructSize = 32
 
 type quota struct {
 	numReceivedMessages   uint32
 	numProcessedMessages  uint32
 	sizeReceivedMessages  uint64
 	sizeProcessedMessages uint64
+	// quotaReachedLogged is used to log the quota reached event only once per peer per interval, so a
+	// flooding peer can not spam the log with one line per rejected message
+	quotaReachedLogged bool
 }
 
 // Size returns the size of a quota object
@@ -47,6 +52,7 @@ type quotaFloodPreventer struct {
 	statusHandlers                []QuotaStatusHandler
 	computedMaxNumMessagesPerPeer uint32
 	antifloodConfigs              common.AntifloodConfigsHandler
+	stats                         *quotaStats
 }
 
 // NewQuotaFloodPreventer creates a new flood preventer based on quota / peer
@@ -69,6 +75,7 @@ func NewQuotaFloodPreventer(arg ArgQuotaFloodPreventer) (*quotaFloodPreventer, e
 		cacher:           arg.Cacher,
 		statusHandlers:   arg.StatusHandlers,
 		antifloodConfigs: arg.AntifloodConfigs,
+		stats:            newQuotaStats(),
 	}
 	qfp.computedMaxNumMessagesPerPeer = qfp.getBbaseMaxNumMessagesPerPeer()
 
@@ -105,10 +112,14 @@ func (qfp *quotaFloodPreventer) increaseLoad(pid core.PeerID, size uint64) error
 	q.numReceivedMessages++
 	q.sizeReceivedMessages += size
 
-	maxNumMessagesReached := qfp.isMaximumReached(uint64(qfp.computedMaxNumMessagesPerPeer), uint64(q.numReceivedMessages))
-	maxSizeMessagesReached := qfp.isMaximumReached(qfp.getMaxTotalSizePerInternal(), q.sizeReceivedMessages)
+	maxNumMessages := qfp.computeMaxAllowed(uint64(qfp.computedMaxNumMessagesPerPeer))
+	maxSize := qfp.computeMaxAllowed(qfp.getMaxTotalSizePerInternal())
+	maxNumMessagesReached := uint64(q.numReceivedMessages) > maxNumMessages
+	maxSizeMessagesReached := q.sizeReceivedMessages > maxSize
 	isPeerQuotaReached := maxNumMessagesReached || maxSizeMessagesReached
 	if isPeerQuotaReached {
+		qfp.logQuotaReached(pid, q, size, maxNumMessages, maxSize, maxNumMessagesReached, maxSizeMessagesReached)
+
 		return fmt.Errorf("%w for pid %s", process.ErrSystemBusy, pid.Pretty())
 	}
 
@@ -118,10 +129,45 @@ func (qfp *quotaFloodPreventer) increaseLoad(pid core.PeerID, size uint64) error
 	return nil
 }
 
-func (qfp *quotaFloodPreventer) isMaximumReached(absoluteMax uint64, counted uint64) bool {
-	max := uint64(100-qfp.getReservedPercent()) * absoluteMax / 100
+// computeMaxAllowed returns the effective maximum value that a peer can reach in an interval, that is the
+// configured absolute maximum diminished by the configured reserved percent
+func (qfp *quotaFloodPreventer) computeMaxAllowed(absoluteMax uint64) uint64 {
+	return uint64(100-qfp.getReservedPercent()) * absoluteMax / 100
+}
 
-	return counted > max
+// logQuotaReached must be called with the mutOperation locked. It prints the whole context that led to the
+// rejection, but only once per peer per interval as to not flood the log while the peer floods the node
+func (qfp *quotaFloodPreventer) logQuotaReached(
+	pid core.PeerID,
+	q *quota,
+	size uint64,
+	maxNumMessages uint64,
+	maxSize uint64,
+	maxNumMessagesReached bool,
+	maxSizeMessagesReached bool,
+) {
+	firstForPeerInInterval := !q.quotaReachedLogged
+	q.quotaReachedLogged = true
+	qfp.stats.addRejectedMessage(firstForPeerInInterval)
+
+	if !firstForPeerInInterval {
+		return
+	}
+
+	log.Debug("quotaFloodPreventer peer quota reached",
+		"name", qfp.name,
+		"pid", pid.Pretty(),
+		"num messages limit reached", maxNumMessagesReached,
+		"size limit reached", maxSizeMessagesReached,
+		"num messages", q.numReceivedMessages,
+		"max num messages", maxNumMessages,
+		"size", core.ConvertBytes(q.sizeReceivedMessages),
+		"max size", core.ConvertBytes(maxSize),
+		"rejected message size", core.ConvertBytes(size),
+		"num processed messages", q.numProcessedMessages,
+		"size processed messages", core.ConvertBytes(q.sizeProcessedMessages),
+		"reserved percent", qfp.getReservedPercent(),
+	)
 }
 
 func (qfp *quotaFloodPreventer) putDefaultQuota(pid core.PeerID, size uint64) {
@@ -136,14 +182,59 @@ func (qfp *quotaFloodPreventer) putDefaultQuota(pid core.PeerID, size uint64) {
 
 // Reset clears all map values
 func (qfp *quotaFloodPreventer) Reset() {
+	shouldPrint, statsArgs := qfp.resetAndGatherStatistics()
+	if shouldPrint {
+		log.Debug("quotaFloodPreventer statistics", statsArgs...)
+	}
+}
+
+func (qfp *quotaFloodPreventer) resetAndGatherStatistics() (bool, []interface{}) {
 	qfp.mutOperation.Lock()
 	defer qfp.mutOperation.Unlock()
 
 	qfp.resetStatusHandlers()
-	qfp.createStatistics()
+	numPeers, peakNumMessages, peakSize := qfp.createStatistics()
+
+	statsArgs, shouldPrint := qfp.createStatisticsLogArgs(numPeers, peakNumMessages, peakSize)
+	qfp.stats.reset()
 
 	// TODO change this if cacher.Clear() is time consuming
 	qfp.cacher.Clear()
+
+	return shouldPrint, statsArgs
+}
+
+// createStatisticsLogArgs must be called with the mutOperation locked. It reports the peak load generated by a
+// single peer over the interval that is about to be cleared, relative to the currently effective limits, so
+// the antiflood configuration can be tuned against the real traffic present on the network
+func (qfp *quotaFloodPreventer) createStatisticsLogArgs(
+	numPeers int,
+	peakNumMessages peerPeak,
+	peakSize peerPeak,
+) ([]interface{}, bool) {
+	noTrafficInInterval := numPeers == 0 && qfp.stats.numRejectedMessages == 0
+	if noTrafficInInterval || log.GetLevel() > logger.LogDebug {
+		return nil, false
+	}
+
+	maxNumMessages := qfp.computeMaxAllowed(uint64(qfp.computedMaxNumMessagesPerPeer))
+	maxSize := qfp.computeMaxAllowed(qfp.getMaxTotalSizePerInternal())
+
+	return []interface{}{
+		"name", qfp.name,
+		"window", qfp.stats.window().Truncate(time.Millisecond),
+		"num peers", numPeers,
+		"peak num messages/peer", peakNumMessages.numMessages,
+		"max num messages/peer", maxNumMessages,
+		"num messages usage", computeUsagePercent(uint64(peakNumMessages.numMessages), maxNumMessages),
+		"peak num messages pid", peakNumMessages.pid.Pretty(),
+		"peak size/peer", core.ConvertBytes(peakSize.size),
+		"max size/peer", core.ConvertBytes(maxSize),
+		"size usage", computeUsagePercent(peakSize.size, maxSize),
+		"peak size pid", peakSize.pid.Pretty(),
+		"num rejected messages", qfp.stats.numRejectedMessages,
+		"num peers reaching quota", qfp.stats.numPeersReachingQuota,
+	}, true
 }
 
 func (qfp *quotaFloodPreventer) resetStatusHandlers() {
@@ -152,8 +243,13 @@ func (qfp *quotaFloodPreventer) resetStatusHandlers() {
 	}
 }
 
-// createStatistics is useful to benchmark the system when running
-func (qfp *quotaFloodPreventer) createStatistics() {
+// createStatistics is useful to benchmark the system when running. It also returns the number of peers seen in
+// the elapsed interval and the peak values recorded for a single peer
+func (qfp *quotaFloodPreventer) createStatistics() (int, peerPeak, peerPeak) {
+	numPeers := 0
+	peakNumMessages := peerPeak{}
+	peakSize := peerPeak{}
+
 	keys := qfp.cacher.Keys()
 	for _, k := range keys {
 		val, ok := qfp.cacher.Get(k)
@@ -166,14 +262,25 @@ func (qfp *quotaFloodPreventer) createStatistics() {
 			continue
 		}
 
+		pid := core.PeerID(k)
+		numPeers++
+		if q.numReceivedMessages > peakNumMessages.numMessages {
+			peakNumMessages = peerPeak{numMessages: q.numReceivedMessages, size: q.sizeReceivedMessages, pid: pid}
+		}
+		if q.sizeReceivedMessages > peakSize.size {
+			peakSize = peerPeak{numMessages: q.numReceivedMessages, size: q.sizeReceivedMessages, pid: pid}
+		}
+
 		qfp.addQuota(
-			core.PeerID(k),
+			pid,
 			q.numReceivedMessages,
 			q.sizeReceivedMessages,
 			q.numProcessedMessages,
 			q.sizeProcessedMessages,
 		)
 	}
+
+	return numPeers, peakNumMessages, peakSize
 }
 
 func (qfp *quotaFloodPreventer) addQuota(
