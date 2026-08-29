@@ -14,12 +14,15 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testscommonDataRetriever "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
 type recoveryRequestHandlerStub struct {
@@ -368,6 +371,96 @@ func TestBaseBootstrap_RequestByHashRechecksHeaderAfterRegisteringExpectation(t 
 	require.Zero(t, headerRequests)
 	require.Equal(t, 1, proofRequests)
 	require.Equal(t, headerHash, boot.requestedHeaderHash())
+}
+
+func TestBaseBootstrap_GetHeaderByHashRehydratesStoredHeaderBeforeRequestingProof(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("header hash")
+	header := &block.Header{ShardID: 1, Nonce: 6, Round: 10, Epoch: 6}
+	marshaledHeader, err := (&marshal.GogoProtoMarshalizer{}).Marshal(header)
+	require.NoError(t, err)
+
+	proof := &block.HeaderProof{
+		HeaderHash:    headerHash,
+		HeaderShardId: header.GetShardID(),
+		HeaderNonce:   header.GetNonce(),
+		HeaderRound:   header.GetRound(),
+		HeaderEpoch:   header.GetEpoch(),
+	}
+	proofAvailable := false
+	headerRequests := 0
+	proofRequests := 0
+	var boot *baseBootstrap
+	requestHandler := &recoveryRequestHandlerStub{
+		RequestHandlerStub: testscommon.RequestHandlerStub{
+			RequestShardHeaderCalled: func(_ uint32, _ []byte) {
+				headerRequests++
+			},
+			RequestEquivalentProofByHashForEpochCalled: func(_ uint32, hash []byte, epoch uint32) {
+				require.Equal(t, headerHash, hash)
+				require.Equal(t, header.GetEpoch(), epoch)
+				proofRequests++
+				proofAvailable = true
+				boot.processReceivedProof(proof)
+			},
+		},
+	}
+
+	roundHandler := &mock.RoundHandlerMock{RoundIndex: 10, RoundTimeDuration: time.Second}
+	probableNonce := uint64(5)
+	boot = newRecoveryBootstrap(roundHandler, header, &probableNonce, requestHandler)
+	boot.chRcvHdrHash = make(chan bool, 1)
+	boot.requestMiniBlocks = func(_ data.HeaderHandler) {}
+	boot.proofs = &testscommonDataRetriever.ProofsPoolMock{
+		GetProofCalled: func(_ uint32, _ []byte) (data.HeaderProofHandler, error) {
+			if proofAvailable {
+				return proof, nil
+			}
+
+			return nil, errors.New("missing proof")
+		},
+		HasProofCalled: func(_ uint32, _ []byte) bool {
+			return proofAvailable
+		},
+	}
+
+	var pooledHeader data.HeaderHandler
+	boot.headers = &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+			require.Equal(t, headerHash, hash)
+			if pooledHeader == nil {
+				return nil, errors.New("missing header")
+			}
+
+			return pooledHeader, nil
+		},
+		AddCalled: func(hash []byte, storedHeader data.HeaderHandler) {
+			require.Equal(t, headerHash, hash)
+			require.Equal(t, headerHash, boot.requestedHeaderHash())
+			pooledHeader = storedHeader
+			boot.processReceivedHeader(storedHeader, hash)
+		},
+	}
+	boot.store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			require.Equal(t, dataRetriever.BlockHeaderUnit, unitType)
+			return &storageStubs.StorerStub{
+				GetCalled: func(hash []byte) ([]byte, error) {
+					require.Equal(t, headerHash, hash)
+					return marshaledHeader, nil
+				},
+			}, nil
+		},
+	}
+
+	result, err := boot.getHeaderWithHashRequestingIfMissing(headerHash)
+
+	require.NoError(t, err)
+	require.Equal(t, header.GetNonce(), result.GetNonce())
+	require.Equal(t, 0, headerRequests)
+	require.Equal(t, 1, proofRequests)
+	require.Nil(t, boot.requestedHeaderHash())
 }
 
 func TestBaseBootstrap_RequestByNonceRechecksHeaderAfterRegisteringExpectation(t *testing.T) {

@@ -2607,17 +2607,25 @@ func (boot *baseBootstrap) selectNonBlackListedHash(hash []byte, nonce uint64) [
 	return nil
 }
 
-// getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,
-// it will be requested from network
 func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (data.HeaderHandler, error) {
-	hdr, err := boot.getHeader(hash)
+	hdr, err := boot.getHeaderFromPool(hash)
+	headerInPool := err == nil
+	if !headerInPool {
+		hdr, err = process.GetHeaderFromStorage(
+			boot.shardCoordinator.SelfId(),
+			hash,
+			boot.marshalizer,
+			boot.store,
+		)
+	}
+
 	hasHeader := err == nil
 	needsProof := boot.checkNeedsProofByHash(hash, hdr)
 	if hasHeader && !needsProof {
 		return hdr, nil
 	}
 
-	readyHeader := boot.requestHeaderAndProofByHashIfMissing(hash, hdr, !hasHeader, needsProof)
+	readyHeader := boot.requestHeaderAndProofByHashIfMissing(hash, hdr, !headerInPool, needsProof)
 	if !check.IfNil(readyHeader) {
 		return readyHeader, nil
 	}
@@ -2738,11 +2746,11 @@ func (boot *baseBootstrap) checkNeedsProofByNonce(
 func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 	hash []byte,
 	header data.HeaderHandler,
-	needsHeader bool,
+	needsHeaderInPool bool,
 	needsProof bool,
 ) data.HeaderHandler {
 	_ = core.EmptyChannel(boot.chRcvHdrHash)
-	if needsHeader {
+	if needsHeaderInPool {
 		boot.mutRcvHdrHash.Lock()
 		boot.setRequestedHeaderHash(hash)
 		receivedHeader, err := boot.getHeaderFromPool(hash)
@@ -2758,7 +2766,18 @@ func (boot *baseBootstrap) requestHeaderAndProofByHashIfMissing(
 			return nil
 		}
 
+		if !check.IfNil(header) && boot.hasProof(hash, header) {
+			boot.setRequestedHeaderHash(nil)
+			boot.mutRcvHdrHash.Unlock()
+			return header
+		}
+
 		boot.mutRcvHdrHash.Unlock()
+		if !check.IfNil(header) {
+			boot.headers.AddHeader(hash, header)
+			return nil
+		}
+
 		boot.requestHeaderByHash(hash)
 		return nil
 	}
