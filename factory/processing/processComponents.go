@@ -927,6 +927,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			DataPool:                   pcf.data.Datapool(),
 			Storage:                    pcf.data.StorageService(),
 			RequestHandler:             requestHandler,
+			ShardID:                    shardCoordinator.SelfId(),
 			Epoch:                      pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
 			EpochStartNotifier:         pcf.coreData.EpochStartNotifierWithConfirm(),
 			Validity:                   process.MetaBlockValidity,

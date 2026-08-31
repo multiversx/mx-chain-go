@@ -59,6 +59,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.mapMissingMiniBlocks = t.mapMissingMiniBlocks
 	rt.mapFinalizedEpochs = t.mapFinalizedEpochs
 	rt.roundHandler = t.roundHandler
+	rt.shardID = t.shardID
 	rt.enableEpochsHandler = t.enableEpochsHandler
 	rt.extraDelayForRequestBlockInfo = t.extraDelayForRequestBlockInfo
 	rt.chanMetaBlockReceived = t.chanMetaBlockReceived
@@ -68,6 +69,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.pendingEpochStartHeaders = t.pendingEpochStartHeaders
 	rt.pendingFinalityEvidence = t.pendingFinalityEvidence
 	rt.epochStartRecoveryCandidates = t.epochStartRecoveryCandidates
+	rt.pendingLastFinalizedHeader = t.pendingLastFinalizedHeader
 	rt.recoveryRequestCursors = t.recoveryRequestCursors
 	rt.finalityCandidateCursor = t.finalityCandidateCursor
 	rt.chanPendingEpochStartData = t.chanPendingEpochStartData

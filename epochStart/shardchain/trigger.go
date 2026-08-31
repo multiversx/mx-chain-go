@@ -64,6 +64,7 @@ type ArgsShardEpochStartTrigger struct {
 	EnableEpochsHandler                         common.EnableEpochsHandler
 	ExtraDelayForRequestBlockInfoInMilliseconds int
 	WaitForBootstrapCompletion                  bool
+	ShardID                                     uint32
 
 	Epoch    uint32
 	Validity uint64
@@ -108,6 +109,7 @@ type trigger struct {
 	requestHandler     epochStart.RequestHandler
 	epochStartNotifier epochStart.Notifier
 	roundHandler       process.RoundHandler
+	shardID            uint32
 
 	epoch                           uint32
 	metaEpoch                       uint32
@@ -134,6 +136,7 @@ type trigger struct {
 	pendingEpochStartHeaders     map[uint32]struct{}
 	pendingFinalityEvidence      map[string]finalityEvidenceRequest
 	epochStartRecoveryCandidates map[string]uint32
+	pendingLastFinalizedHeader   *lastFinalizedHeaderRequest
 	chanPendingEpochStartData    chan struct{}
 	pendingProofRetryInterval    time.Duration
 	nextProofRequestSequence     uint64
@@ -147,6 +150,11 @@ type trigger struct {
 type pendingEpochStartProof struct {
 	epoch           uint32
 	requestSequence uint64
+}
+
+type lastFinalizedHeaderRequest struct {
+	epoch uint32
+	hash  []byte
 }
 
 // finalityEvidenceRequest identifies the epoch start meta block whose neighbourhood the node still
@@ -365,6 +373,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		peerMiniBlocksSyncer:          args.PeerMiniBlocksSyncer,
 		appStatusHandler:              args.AppStatusHandler,
 		roundHandler:                  args.RoundHandler,
+		shardID:                       args.ShardID,
 		enableEpochsHandler:           args.EnableEpochsHandler,
 		extraDelayForRequestBlockInfo: time.Duration(args.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 		chanMetaBlockReceived:         make(chan struct{}, 1),
@@ -1202,6 +1211,7 @@ func (t *trigger) resetPendingEpochStartData() {
 	t.pendingEpochStartHeaders = make(map[uint32]struct{})
 	t.pendingFinalityEvidence = make(map[string]finalityEvidenceRequest)
 	t.epochStartRecoveryCandidates = make(map[string]uint32)
+	t.pendingLastFinalizedHeader = nil
 	t.recoveryRequestCursors = [numRecoveryRequestClasses]string{}
 	t.finalityCandidateCursor = ""
 	t.mutPendingEpochStartData.Unlock()
@@ -1316,7 +1326,96 @@ func (t *trigger) hasPendingEpochStartData() bool {
 
 	return len(t.pendingEpochStartProofs) > 0 ||
 		len(t.pendingEpochStartHeaders) > 0 ||
-		len(t.pendingFinalityEvidence) > 0
+		len(t.pendingFinalityEvidence) > 0 ||
+		t.pendingLastFinalizedHeader != nil
+}
+
+func (t *trigger) addLastFinalizedHeaderRequest(metaHeader data.HeaderHandler) {
+	metaHeaderHandler, ok := metaHeader.(data.MetaHeaderHandler)
+	if !ok || !metaHeaderHandler.IsStartOfEpochBlock() {
+		return
+	}
+
+	for _, shardData := range metaHeaderHandler.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		if shardData.GetShardID() != t.shardID || shardData.GetNonce() == 0 ||
+			!t.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, shardData.GetEpoch()) {
+			continue
+		}
+
+		hash := shardData.GetHeaderHash()
+		if len(hash) == 0 {
+			return
+		}
+
+		t.mutPendingEpochStartData.Lock()
+		if t.recoveryClosed {
+			t.mutPendingEpochStartData.Unlock()
+			return
+		}
+		t.pendingLastFinalizedHeader = &lastFinalizedHeaderRequest{
+			epoch: shardData.GetEpoch(),
+			hash:  bytes.Clone(hash),
+		}
+		t.mutPendingEpochStartData.Unlock()
+
+		t.signalPendingEpochStartData()
+		return
+	}
+}
+
+func (t *trigger) pendingLastFinalizedHeaderSnapshot(generation uint64) *lastFinalizedHeaderRequest {
+	t.mutPendingEpochStartData.Lock()
+	defer t.mutPendingEpochStartData.Unlock()
+
+	if t.recoveryClosed || t.recoveryGeneration != generation || t.pendingLastFinalizedHeader == nil {
+		return nil
+	}
+
+	return &lastFinalizedHeaderRequest{
+		epoch: t.pendingLastFinalizedHeader.epoch,
+		hash:  bytes.Clone(t.pendingLastFinalizedHeader.hash),
+	}
+}
+
+func (t *trigger) removeLastFinalizedHeaderRequest(info *lastFinalizedHeaderRequest, generation uint64) {
+	t.mutPendingEpochStartData.Lock()
+	defer t.mutPendingEpochStartData.Unlock()
+
+	if t.recoveryGeneration != generation || t.pendingLastFinalizedHeader == nil {
+		return
+	}
+	if t.pendingLastFinalizedHeader.epoch != info.epoch ||
+		!bytes.Equal(t.pendingLastFinalizedHeader.hash, info.hash) {
+		return
+	}
+
+	t.pendingLastFinalizedHeader = nil
+}
+
+func (t *trigger) clearLastFinalizedHeaderRequest() {
+	t.mutPendingEpochStartData.Lock()
+	t.pendingLastFinalizedHeader = nil
+	t.mutPendingEpochStartData.Unlock()
+}
+
+func (t *trigger) retryLastFinalizedHeaderRequest(generation uint64) {
+	info := t.pendingLastFinalizedHeaderSnapshot(generation)
+	if info == nil {
+		return
+	}
+
+	header, err := t.headersPool.GetHeaderByHash(info.hash)
+	if err != nil || check.IfNil(header) {
+		t.requestHandler.RequestShardHeaderForEpoch(t.shardID, info.hash, info.epoch)
+		return
+	}
+
+	if !t.proofsPool.HasProof(t.shardID, info.hash) {
+		t.requestHandler.RequestEquivalentProofByHashForEpoch(t.shardID, info.hash, info.epoch)
+		return
+	}
+
+	t.removeLastFinalizedHeaderRequest(info, generation)
 }
 
 // trackMissingFinalityEvidence records an epoch start meta block the node holds proofed but not yet
@@ -1682,6 +1781,7 @@ func (t *trigger) retryPendingEpochStartProofs() bool {
 	if t.isRecoveryGenerationCurrent(generation) {
 		operations[finalityRecoveryRequest] = t.retryPendingFinalityEvidence(actionableEpoch, generation)
 		t.executePendingRecoveryRequests(operations, generation)
+		t.retryLastFinalizedHeaderRequest(generation)
 	}
 
 	return t.hasPendingEpochStartData()
@@ -2375,6 +2475,7 @@ func (t *trigger) updateTriggerFromMeta() {
 			t.saveEpochStartMeta(currMetaInfo.hdr)
 			// the epoch is settled, so no candidate of it needs its neighbourhood any more
 			t.removePendingEpochStartDataForEpochOrOlder(currMetaInfo.hdr.GetEpoch())
+			t.addLastFinalizedHeaderRequest(currMetaInfo.hdr)
 		}
 	}
 }
@@ -2901,6 +3002,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 
 	prevEpoch := header.GetEpoch()
 	if prevEpoch == 0 && !usesSupernovaRecovery {
+		t.clearLastFinalizedHeaderRequest()
 		t.epochStartShardHeader = &block.Header{}
 		t.isEpochStart = true
 		t.newEpochHdrReceived = true
@@ -2931,6 +3033,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	}
 
 	if !usesSupernovaRecovery {
+		t.clearLastFinalizedHeaderRequest()
 		t.removeRolledBackEpochStartHeaderFromStorageForEpoch(t.epochStartShardHeader.GetEpoch())
 		t.epochStartShardHeader = shardHdr
 		t.isEpochStart = true
@@ -3288,6 +3391,7 @@ func (t *trigger) Close() error {
 	t.pendingEpochStartHeaders = make(map[uint32]struct{})
 	t.pendingFinalityEvidence = make(map[string]finalityEvidenceRequest)
 	t.epochStartRecoveryCandidates = make(map[string]uint32)
+	t.pendingLastFinalizedHeader = nil
 	t.recoveryRequestCursors = [numRecoveryRequestClasses]string{}
 	t.finalityCandidateCursor = ""
 	t.mutPendingEpochStartData.Unlock()
