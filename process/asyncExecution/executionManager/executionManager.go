@@ -1,6 +1,7 @@
 package executionManager
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -134,30 +135,104 @@ func (em *executionManager) AddPairForExecution(pair cache.HeaderBodyPair) error
 	if em.closed {
 		return process.ErrProcessClosed
 	}
+	if check.IfNil(pair.Header) {
+		return common.ErrNilHeaderHandler
+	}
 
 	lastExecutedBlock := em.blockChain.GetLastExecutedBlockHeader()
 	if !check.IfNil(lastExecutedBlock) &&
 		lastExecutedBlock.GetNonce() >= pair.Header.GetNonce() {
-		em.headersExecutor.PauseExecution()
-		defer em.headersExecutor.ResumeExecution()
+		return em.addReplacementPair(pair)
+	}
 
-		err := process.UpdateContextForReplacedHeader(
-			pair.Header,
-			em,
-			em.blockChain,
-			em.headers,
-			em.postProcessTransactions,
-			em.executedMiniBlocks,
-			em.storageService,
-			em.marshaller,
-			em.shardCoordinator.SelfId(),
-		)
-		if err != nil {
-			return err
-		}
+	previousPair, hadPreviousPair := em.blocksCache.GetByNonce(pair.Header.GetNonce())
+	err := em.blocksCache.AddOrReplace(pair)
+	if err != nil {
+		return err
+	}
+
+	lastExecutedBlock = em.blockChain.GetLastExecutedBlockHeader()
+	if check.IfNil(lastExecutedBlock) || lastExecutedBlock.GetNonce() < pair.Header.GetNonce() {
+		return nil
+	}
+
+	em.headersExecutor.PauseExecution()
+	defer em.headersExecutor.ResumeExecution()
+
+	pairWasExecuted, err := em.wasPairExecuted(pair)
+	if err != nil {
+		em.restoreCachedPair(previousPair, hadPreviousPair, pair.Header.GetNonce())
+		return err
+	}
+	if pairWasExecuted {
+		return nil
+	}
+
+	err = em.updateContextForReplacedHeader(pair.Header)
+	if err != nil {
+		em.restoreCachedPair(previousPair, hadPreviousPair, pair.Header.GetNonce())
+		return err
+	}
+
+	return nil
+}
+
+func (em *executionManager) addReplacementPair(pair cache.HeaderBodyPair) error {
+	em.headersExecutor.PauseExecution()
+	defer em.headersExecutor.ResumeExecution()
+
+	err := em.updateContextForReplacedHeader(pair.Header)
+	if err != nil {
+		return err
 	}
 
 	return em.blocksCache.AddOrReplace(pair)
+}
+
+func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHandler) error {
+	return process.UpdateContextForReplacedHeader(
+		header,
+		em,
+		em.blockChain,
+		em.headers,
+		em.postProcessTransactions,
+		em.executedMiniBlocks,
+		em.storageService,
+		em.marshaller,
+		em.shardCoordinator.SelfId(),
+	)
+}
+
+func (em *executionManager) wasPairExecuted(pair cache.HeaderBodyPair) (bool, error) {
+	lastExecutionResult := em.blockChain.GetLastExecutionResult()
+	if !check.IfNil(lastExecutionResult) &&
+		lastExecutionResult.GetHeaderNonce() == pair.Header.GetNonce() {
+		return bytes.Equal(lastExecutionResult.GetHeaderHash(), pair.HeaderHash), nil
+	}
+
+	pendingResults, err := em.executionResultsTracker.GetPendingExecutionResults()
+	if err != nil {
+		return false, err
+	}
+	for _, result := range pendingResults {
+		if result.GetHeaderNonce() == pair.Header.GetNonce() {
+			return bytes.Equal(result.GetHeaderHash(), pair.HeaderHash), nil
+		}
+	}
+
+	return false, nil
+}
+
+func (em *executionManager) restoreCachedPair(previousPair cache.HeaderBodyPair, hadPreviousPair bool, nonce uint64) {
+	if hadPreviousPair {
+		err := em.blocksCache.AddOrReplace(previousPair)
+		if err != nil {
+			log.Warn("executionManager.restoreCachedPair - failed to restore previous pair", "error", err)
+		}
+		return
+	}
+
+	em.blocksCache.Remove(nonce)
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker
@@ -177,6 +252,9 @@ func (em *executionManager) SetLastNotarizedResult(executionResult data.BaseExec
 
 // CleanConfirmedExecutionResults calls the same method from executionResultsTracker
 func (em *executionManager) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
+	em.mut.Lock()
+	defer em.mut.Unlock()
+
 	for _, executionResult := range header.GetExecutionResultsHandlers() {
 		em.blocksCache.Remove(executionResult.GetHeaderNonce())
 	}
@@ -189,6 +267,9 @@ func (em *executionManager) CleanOnConsensusReached(headerHash []byte, header da
 	if check.IfNil(header) {
 		return
 	}
+
+	em.mut.Lock()
+	defer em.mut.Unlock()
 
 	em.executionResultsTracker.CleanOnConsensusReached(headerHash, header)
 	em.blocksCache.RemoveAtNonceAndHigher(header.GetNonce() + 1)
