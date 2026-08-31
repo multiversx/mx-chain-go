@@ -311,6 +311,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		DataPool:             e.dataPool,
 		Storage:              e.storageService,
 		RequestHandler:       e.requestHandler,
+		ShardID:              e.shardCoordinator.SelfId(),
 		EpochStartNotifier:   notifier.NewEpochStartSubscriptionHandler(),
 		Epoch:                0,
 		Validity:             process.MetaBlockValidity,

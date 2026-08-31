@@ -4536,7 +4536,6 @@ func (bp *baseProcessor) cleanupDismissedEWLEntries() {
 		)
 
 		bp.blockProcessor.cancelPruneForDismissedExecutionResults(dismissedBatches)
-		bp.resetLastPrunedHeader()
 	}
 
 	bp.checkEWLSizeAndReset()
@@ -4557,7 +4556,6 @@ func (bp *baseProcessor) checkEWLSizeAndReset() {
 				"threshold", bp.ewlResetThreshold,
 			)
 			accountsDb.ResetPruning()
-			bp.resetLastPrunedHeader()
 		}
 	}
 }
@@ -4582,13 +4580,6 @@ func cancelPruneForRootHashTransition(accountsDb state.AccountsAdapter, prevRoot
 	}
 	accountsDb.CancelPrune(currentRootHash, state.NewRoot)
 	accountsDb.CancelPrune(prevRootHash, state.OldRoot)
-}
-
-func (bp *baseProcessor) resetLastPrunedHeader() {
-	bp.mutLastPrunedHeader.Lock()
-	bp.lastPrunedHeaderHash = nil
-	bp.lastPrunedHeaderNonce = 0
-	bp.mutLastPrunedHeader.Unlock()
 }
 
 // PruneTrieAsyncHeader will trigger trie pruning for header from async execution flow

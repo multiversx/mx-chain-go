@@ -1447,6 +1447,15 @@ func (bp *baseProcessor) GetLastPrunedHash() []byte {
 	return lastPrunedHeaderHash
 }
 
+// GetLastPrunedNonce -
+func (bp *baseProcessor) GetLastPrunedNonce() uint64 {
+	bp.mutLastPrunedHeader.RLock()
+	lastPrunedHeaderNonce := bp.lastPrunedHeaderNonce
+	bp.mutLastPrunedHeader.RUnlock()
+
+	return lastPrunedHeaderNonce
+}
+
 // CleanupDismissedEWLEntries -
 func (bp *baseProcessor) CleanupDismissedEWLEntries() {
 	bp.cleanupDismissedEWLEntries()

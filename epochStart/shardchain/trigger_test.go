@@ -91,6 +91,107 @@ func TestNewEpochStartTrigger_NilArgumentsShouldErr(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilArgsNewShardEpochStartTrigger, err)
 }
 
+func TestTrigger_RetryLastFinalizedHeaderRequestsMissingDataInOrder(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("last-finalized-header")
+	headerPresent := false
+	proofPresent := false
+	headersPool := &mock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+			require.Equal(t, headerHash, hash)
+			if !headerPresent {
+				return nil, errors.New("missing header")
+			}
+
+			return &block.Header{ShardID: 1, Epoch: 7, Nonce: 42}, nil
+		},
+	}
+	proofsPool := &dataRetrieverMock.ProofsPoolMock{
+		HasProofCalled: func(shardID uint32, hash []byte) bool {
+			require.Equal(t, uint32(1), shardID)
+			require.Equal(t, headerHash, hash)
+			return proofPresent
+		},
+	}
+
+	var headerRequests atomic.Int32
+	var proofRequests atomic.Int32
+	args := createMockShardEpochStartTriggerArguments()
+	args.ShardID = 1
+	args.DataPool.(*dataRetrieverMock.PoolsHolderStub).HeadersCalled = func() dataRetriever.HeadersPool {
+		return headersPool
+	}
+	args.DataPool.(*dataRetrieverMock.PoolsHolderStub).ProofsCalled = func() dataRetriever.ProofsPool {
+		return proofsPool
+	}
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestShardHeaderForEpochCalled: func(shardID uint32, hash []byte, epoch uint32) {
+			require.Equal(t, uint32(1), shardID)
+			require.Equal(t, headerHash, hash)
+			require.Equal(t, uint32(7), epoch)
+			headerRequests.Add(1)
+		},
+		RequestEquivalentProofByHashForEpochCalled: func(shardID uint32, hash []byte, epoch uint32) {
+			require.Equal(t, uint32(1), shardID)
+			require.Equal(t, headerHash, hash)
+			require.Equal(t, uint32(7), epoch)
+			proofRequests.Add(1)
+		},
+	}
+
+	tr, err := NewEpochStartTrigger(args)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tr.Close() })
+	tr.mutPendingEpochStartData.Lock()
+	tr.pendingProofRetryInterval = time.Hour
+	tr.mutPendingEpochStartData.Unlock()
+	tr.addLastFinalizedHeaderRequest(&block.MetaBlock{
+		Epoch: 8,
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{
+			{ShardID: 0, Epoch: 7, Nonce: 43, HeaderHash: []byte("other-shard")},
+			{ShardID: 1, Epoch: 7, Nonce: 42, HeaderHash: headerHash},
+		}},
+	})
+
+	tr.retryLastFinalizedHeaderRequest(0)
+	require.Equal(t, int32(1), headerRequests.Load())
+	require.Zero(t, proofRequests.Load())
+
+	headerPresent = true
+	tr.retryLastFinalizedHeaderRequest(0)
+	require.Equal(t, int32(1), headerRequests.Load())
+	require.Equal(t, int32(1), proofRequests.Load())
+
+	proofPresent = true
+	tr.retryLastFinalizedHeaderRequest(0)
+	require.False(t, tr.hasPendingEpochStartData())
+}
+
+func TestTrigger_LastFinalizedHeaderRequestIsDisabledBeforeAndromeda(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	args.ShardID = 1
+	tr, err := NewEpochStartTrigger(args)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tr.Close() })
+
+	tr.addLastFinalizedHeaderRequest(&block.MetaBlock{
+		Epoch: 1,
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{
+			{ShardID: 1, Nonce: 1, HeaderHash: []byte("legacy-header")},
+		}},
+	})
+
+	require.False(t, tr.hasPendingEpochStartData())
+}
+
 func TestNewEpochStartTrigger_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 

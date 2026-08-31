@@ -86,7 +86,7 @@
             EnableRound = 99999999999,
             MaxRoundsWithoutNewBlockReceived = 100,
             MaxRoundsWithoutCommittedBlock = 100,
-            RoundModulusTriggerWhenSyncIsStuck = 200,
+            RoundModulusTriggerWhenSyncIsStuck = 20,
             MaxSyncWithErrorsAllowed = 100,
             MaxRoundsToKeepUnprocessedMiniBlocks = 3000,
             MaxRoundsToKeepUnprocessedTransactions = 3000,
