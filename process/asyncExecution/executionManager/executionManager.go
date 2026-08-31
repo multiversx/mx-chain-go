@@ -35,6 +35,7 @@ type ArgsExecutionManager struct {
 
 type executionManager struct {
 	mut                     sync.RWMutex
+	closed                  bool
 	headersExecutor         process.HeadersExecutor
 	blocksCache             process.BlocksCache
 	executionResultsTracker process.ExecutionResultsTracker
@@ -98,6 +99,10 @@ func (em *executionManager) StartExecution() {
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	if em.closed {
+		return
+	}
+
 	log.Debug("starting headers execution...")
 	em.headersExecutor.StartExecution()
 }
@@ -111,6 +116,10 @@ func (em *executionManager) SetHeadersExecutor(executor process.HeadersExecutor)
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	if em.closed {
+		return process.ErrProcessClosed
+	}
+
 	em.headersExecutor = executor
 
 	return nil
@@ -122,9 +131,16 @@ func (em *executionManager) AddPairForExecution(pair cache.HeaderBodyPair) error
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	if em.closed {
+		return process.ErrProcessClosed
+	}
+
 	lastExecutedBlock := em.blockChain.GetLastExecutedBlockHeader()
 	if !check.IfNil(lastExecutedBlock) &&
 		lastExecutedBlock.GetNonce() >= pair.Header.GetNonce() {
+		em.headersExecutor.PauseExecution()
+		defer em.headersExecutor.ResumeExecution()
+
 		err := process.UpdateContextForReplacedHeader(
 			pair.Header,
 			em,
@@ -186,6 +202,10 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	if em.closed {
+		return process.ErrProcessClosed
+	}
+
 	lastNotarizedResult, err := em.executionResultsTracker.GetLastNotarizedExecutionResult()
 	if err != nil {
 		return err
@@ -237,6 +257,13 @@ func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler)
 		return process.ErrNilHeaderHandler
 	}
 
+	em.mut.RLock()
+	closed := em.closed
+	em.mut.RUnlock()
+	if closed {
+		return process.ErrProcessClosed
+	}
+
 	newLastNotarized, err := common.GetLastBaseExecutionResultHandler(newTip)
 	if err != nil {
 		return err
@@ -256,6 +283,10 @@ func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler)
 
 	em.mut.Lock()
 	defer em.mut.Unlock()
+
+	if em.closed {
+		return process.ErrProcessClosed
+	}
 
 	em.headersExecutor.PauseExecution()
 	defer em.headersExecutor.ResumeExecution()
@@ -323,6 +354,14 @@ func (em *executionManager) GetSignalProcessCompletionChan() chan uint64 {
 // Close closes the execution manager and all its components
 func (em *executionManager) Close() error {
 	log.Debug("closing execution manager")
+
+	em.mut.Lock()
+	defer em.mut.Unlock()
+
+	if em.closed {
+		return nil
+	}
+	em.closed = true
 
 	err := em.headersExecutor.Close()
 	if err != nil {

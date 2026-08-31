@@ -162,6 +162,13 @@ func TestExecutionManager_StartExecution(t *testing.T) {
 
 	em.StartExecution()
 	require.True(t, startCalled)
+
+	err := em.Close()
+	require.NoError(t, err)
+
+	startCalled = false
+	em.StartExecution()
+	require.False(t, startCalled)
 }
 
 func TestExecutionManager_SetHeadersExecutor(t *testing.T) {
@@ -186,6 +193,17 @@ func TestExecutionManager_SetHeadersExecutor(t *testing.T) {
 		mockExecutor := &processMocks.HeadersExecutorMock{}
 		err := em.SetHeadersExecutor(mockExecutor)
 		require.NoError(t, err)
+	})
+
+	t.Run("closed manager should reject the executor", func(t *testing.T) {
+		t.Parallel()
+
+		em, _ := executionManager.NewExecutionManager(createMockArgs())
+		err := em.Close()
+		require.NoError(t, err)
+
+		err = em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{})
+		require.ErrorIs(t, err, process.ErrProcessClosed)
 	})
 }
 
@@ -213,6 +231,175 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 		err := em.AddPairForExecution(pair)
 		require.NoError(t, err)
 		require.True(t, addOrReplaceCalled)
+	})
+
+	t.Run("forward execution should not pause the executor", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		em, _ := executionManager.NewExecutionManager(args)
+
+		pauseCalled := false
+		mockExecutor := &processMocks.HeadersExecutorMock{
+			PauseExecutionCalled: func() {
+				pauseCalled = true
+			},
+		}
+		err := em.SetHeadersExecutor(mockExecutor)
+		require.NoError(t, err)
+
+		err = em.AddPairForExecution(cache.HeaderBodyPair{
+			Header: &block.HeaderV3{Nonce: 1},
+			Body:   &block.Body{},
+		})
+		require.NoError(t, err)
+		require.False(t, pauseCalled)
+	})
+
+	t.Run("rewind should pause until context and cache are updated", func(t *testing.T) {
+		t.Parallel()
+
+		const incomingNonce = uint64(9)
+		previousHash := []byte("previous hash")
+		events := make([]string, 0, 5)
+
+		args := createMockArgs()
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{Nonce: incomingNonce}
+			},
+			SetLastExecutionInfoCalled: func(_ data.HeaderHandler, _ data.BaseExecutionResultHandler) {
+				events = append(events, "context")
+			},
+		}
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return nil, nil
+			},
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderNonce: incomingNonce - 1,
+					HeaderHash:  previousHash,
+				}, nil
+			},
+			RemoveFromNonceCalled: func(nonce uint64) error {
+				require.Equal(t, incomingNonce, nonce)
+				events = append(events, "tracker")
+				return nil
+			},
+		}
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, previousHash, hash)
+				return &block.HeaderV3{Nonce: incomingNonce - 1}, nil
+			},
+		}
+		args.BlocksCache = &processMocks.BlocksCacheMock{
+			AddOrReplaceCalled: func(_ cache.HeaderBodyPair) error {
+				events = append(events, "cache")
+				return nil
+			},
+		}
+
+		em, _ := executionManager.NewExecutionManager(args)
+		mockExecutor := &processMocks.HeadersExecutorMock{
+			PauseExecutionCalled: func() {
+				events = append(events, "pause")
+			},
+			ResumeExecutionCalled: func() {
+				events = append(events, "resume")
+			},
+		}
+		err := em.SetHeadersExecutor(mockExecutor)
+		require.NoError(t, err)
+
+		err = em.AddPairForExecution(cache.HeaderBodyPair{
+			Header: &block.HeaderV3{
+				Nonce:    incomingNonce,
+				PrevHash: previousHash,
+			},
+			Body:       &block.Body{},
+			HeaderHash: []byte("incoming hash"),
+		})
+		require.NoError(t, err)
+		require.Equal(t, []string{"pause", "context", "tracker", "cache", "resume"}, events)
+	})
+
+	t.Run("rewind error should resume the executor", func(t *testing.T) {
+		t.Parallel()
+
+		events := make([]string, 0, 2)
+		args := createMockArgs()
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{Nonce: 10}
+			},
+		}
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return nil, errExpected
+			},
+		}
+		args.BlocksCache = &processMocks.BlocksCacheMock{
+			AddOrReplaceCalled: func(_ cache.HeaderBodyPair) error {
+				require.Fail(t, "cache should not be updated")
+				return nil
+			},
+		}
+
+		em, _ := executionManager.NewExecutionManager(args)
+		mockExecutor := &processMocks.HeadersExecutorMock{
+			PauseExecutionCalled: func() {
+				events = append(events, "pause")
+			},
+			ResumeExecutionCalled: func() {
+				events = append(events, "resume")
+			},
+		}
+		err := em.SetHeadersExecutor(mockExecutor)
+		require.NoError(t, err)
+
+		err = em.AddPairForExecution(cache.HeaderBodyPair{
+			Header: &block.HeaderV3{Nonce: 9},
+			Body:   &block.Body{},
+		})
+		require.ErrorIs(t, err, errExpected)
+		require.Equal(t, []string{"pause", "resume"}, events)
+	})
+
+	t.Run("closed manager should not pause or update the cache", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				require.Fail(t, "blockchain should not be queried")
+				return nil
+			},
+		}
+		args.BlocksCache = &processMocks.BlocksCacheMock{
+			AddOrReplaceCalled: func(_ cache.HeaderBodyPair) error {
+				require.Fail(t, "cache should not be updated")
+				return nil
+			},
+		}
+
+		em, _ := executionManager.NewExecutionManager(args)
+		executor := &processMocks.HeadersExecutorMock{
+			PauseExecutionCalled: func() {
+				require.Fail(t, "executor should not be paused")
+			},
+		}
+		err := em.SetHeadersExecutor(executor)
+		require.NoError(t, err)
+		err = em.Close()
+		require.NoError(t, err)
+
+		err = em.AddPairForExecution(cache.HeaderBodyPair{
+			Header: &block.HeaderV3{Nonce: 9},
+			Body:   &block.Body{},
+		})
+		require.ErrorIs(t, err, process.ErrProcessClosed)
 	})
 
 	t.Run("if getting the pending execution results fails, the error should be propagated", func(t *testing.T) {
@@ -620,6 +807,24 @@ func TestExecutionManager_CleanConfirmedExecutionResults(t *testing.T) {
 
 func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 	t.Parallel()
+
+	t.Run("closed manager should not access the tracker", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				require.Fail(t, "tracker should not be queried")
+				return nil, nil
+			},
+		}
+		em, _ := executionManager.NewExecutionManager(args)
+		err := em.Close()
+		require.NoError(t, err)
+
+		err = em.RemoveAtNonceAndHigher(5)
+		require.ErrorIs(t, err, process.ErrProcessClosed)
+	})
 
 	t.Run("error getting last notarized result should error", func(t *testing.T) {
 		t.Parallel()
@@ -1168,6 +1373,24 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	t.Run("closed manager should not resolve or rewind state", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+				require.Fail(t, "header should not be resolved")
+				return nil, nil
+			},
+		}
+		em, _ := executionManager.NewExecutionManager(args)
+		err := em.Close()
+		require.NoError(t, err)
+
+		err = em.RewindExecutionStateToTip(newTip)
+		require.ErrorIs(t, err, process.ErrProcessClosed)
+	})
+
 	t.Run("should rewind watermark below the tip and realign blockchain", func(t *testing.T) {
 		t.Parallel()
 
@@ -1281,11 +1504,11 @@ func TestExecutionManager_Close(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		executorCloseCalled := false
+		executorCloseCalls := 0
 
 		mockExecutor := &processMocks.HeadersExecutorMock{
 			CloseCalled: func() error {
-				executorCloseCalled = true
+				executorCloseCalls++
 				return nil
 			},
 		}
@@ -1294,7 +1517,9 @@ func TestExecutionManager_Close(t *testing.T) {
 
 		err := em.Close()
 		require.NoError(t, err)
-		require.True(t, executorCloseCalled)
+		err = em.Close()
+		require.NoError(t, err)
+		require.Equal(t, 1, executorCloseCalls)
 	})
 
 	t.Run("error closing headers executor", func(t *testing.T) {
