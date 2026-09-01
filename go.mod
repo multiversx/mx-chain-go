@@ -199,3 +199,7 @@ require (
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
 
 replace github.com/ipfs/go-log/v2 => github.com/sstanculeanu/go-log/v2 v2.0.0-20260714113044-ce58d5968237
+
+replace github.com/multiversx/mx-chain-crypto-go => github.com/multiversx/mx-chain-crypto-go-ghsa-759r-w5hm-pg7g v1.3.2-0.20260828074127-611ff87b7265
+
+replace github.com/multiversx/mx-chain-communication-go => github.com/multiversx/mx-chain-communication-go-ghsa-c9c2-487r-pqgq v1.3.2-0.20260901070557-a6b83d821739
