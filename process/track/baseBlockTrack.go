@@ -46,7 +46,7 @@ type baseBlockTrack struct {
 	crossNotarizer                        blockNotarizerHandler
 	selfNotarizer                         blockNotarizerHandler
 	crossNotarizedHeadersNotifier         blockNotifierHandler
-	selfNotarizedFromCrossHeadersNotifier blockNotifierHandler
+	selfNotarizedFromCrossHeadersNotifier *blockNotifier
 	selfNotarizedHeadersNotifier          blockNotifierHandler
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	blockBalancer                         blockBalancerHandler

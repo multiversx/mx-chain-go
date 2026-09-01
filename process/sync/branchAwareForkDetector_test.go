@@ -2,7 +2,9 @@ package sync
 
 import (
 	"math"
+	stdsync "sync"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -133,6 +135,47 @@ func TestShardForkDetector_SettlementConflictChecksAreV3Only(t *testing.T) {
 	require.Equal(t, uint64(20), drainDetector.ProbableHighestNonce())
 }
 
+func TestBaseForkDetector_CompetingSiblingProofDefersV3Finality(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("P")
+	headerHash := []byte("A")
+	header := &block.HeaderV3{Epoch: 1, Nonce: 11, Round: 11, PrevHash: parentHash}
+	bfd := newBranchAwareForkDetector(0, 10, parentHash)
+	addProvenHeaderInfo(bfd, 11, []byte("B"), parentHash, process.BHReceived)
+
+	require.False(t, bfd.canInstantlyFinalize(header, headerHash))
+
+	bfd.headers[11][0].prevHash = []byte("other-parent")
+	require.True(t, bfd.canInstantlyFinalize(header, headerHash))
+
+	bfd.headers[11][0].prevHash = parentHash
+	bfd.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{}
+	require.True(t, bfd.canInstantlyFinalize(header, headerHash))
+}
+
+func TestShardForkDetector_CompetingSiblingProofStopsFinalityCascade(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("P")
+	processedHash := []byte("A")
+	bfd := newBranchAwareForkDetector(0, 10, parentHash)
+	processedChild := &headerInfo{
+		epoch: 1, nonce: 11, round: 11, hash: processedHash, prevHash: parentHash,
+		state: process.BHProcessed, hasProof: true,
+	}
+	bfd.headers[11] = []*headerInfo{
+		processedChild,
+		{
+			epoch: 1, nonce: 11, round: 12, hash: []byte("B"), prevHash: parentHash,
+			state: process.BHReceived, hasProof: true,
+		},
+	}
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+
+	require.Nil(t, sfd.getCleanProcessedChild(bfd.finalCheckpoint()))
+}
+
 func addProvenHeaderInfo(
 	bfd *baseForkDetector,
 	nonce uint64,
@@ -149,6 +192,69 @@ func addProvenHeaderInfo(
 		state:    state,
 		hasProof: true,
 	})
+}
+
+func TestBaseForkDetector_RecomputeProbableHighestNonceSerializesComputeAndPublish(t *testing.T) {
+	t.Parallel()
+
+	computeEntered := make(chan struct{})
+	resumeCompute := make(chan struct{})
+	var resumeComputeOnce stdsync.Once
+	resumeBlockedCompute := func() {
+		resumeComputeOnce.Do(func() {
+			close(resumeCompute)
+		})
+	}
+	t.Cleanup(resumeBlockedCompute)
+	var blockComputeOnce stdsync.Once
+
+	bfd := newBranchAwareForkDetector(0, 10, []byte("P"))
+	bfd.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			if flag != common.SupernovaFlag {
+				return false
+			}
+			if epoch == 2 {
+				blockComputeOnce.Do(func() {
+					close(computeEntered)
+					<-resumeCompute
+				})
+			}
+
+			return true
+		},
+	}
+	bfd.headers[11] = []*headerInfo{{
+		epoch: 2, nonce: 11, round: 11, hash: []byte("A"), prevHash: []byte("P"),
+		state: process.BHReceived, hasProof: true,
+	}}
+
+	result := make(chan uint64, 1)
+	go func() {
+		result <- bfd.recomputeProbableHighestNonce()
+	}()
+
+	select {
+	case <-computeEntered:
+	case <-time.After(time.Second):
+		require.FailNow(t, "probable-highest computation did not start")
+	}
+	lockAcquiredDuringCompute := bfd.mutProbableHighestNonceUpdate.TryLock()
+	if lockAcquiredDuringCompute {
+		bfd.mutProbableHighestNonceUpdate.Unlock()
+	}
+	resumeBlockedCompute()
+	select {
+	case probableHighestNonce := <-result:
+		require.Equal(t, uint64(11), probableHighestNonce)
+	case <-time.After(time.Second):
+		require.FailNow(t, "probable-highest computation did not finish")
+	}
+	require.False(t, lockAcquiredDuringCompute)
+	require.Equal(t, uint64(11), bfd.probableHighestNonce())
+
+	require.True(t, bfd.mutProbableHighestNonceUpdate.TryLock())
+	bfd.mutProbableHighestNonceUpdate.Unlock()
 }
 
 func TestBaseForkDetector_CheckForkUsesAncestryForSupernovaHeaders(t *testing.T) {
@@ -489,6 +595,15 @@ func TestBaseForkDetector_ComputeProbableHighestNoncePreservesOtherModes(t *test
 
 		bfd := newBranchAwareForkDetector(core.MetachainShardId, 10, finalHash)
 		addProvenHeaderInfo(bfd, 10, []byte("B"), []byte("P"), process.BHReceived)
+		addProvenHeaderInfo(bfd, 11, []byte("C"), []byte("B"), process.BHReceived)
+
+		require.Equal(t, uint64(10), bfd.computeProbableHighestNonce())
+	})
+
+	t.Run("V3 ignores a proven losing child without its parent proof", func(t *testing.T) {
+		t.Parallel()
+
+		bfd := newBranchAwareForkDetector(0, 10, finalHash)
 		addProvenHeaderInfo(bfd, 11, []byte("C"), []byte("B"), process.BHReceived)
 
 		require.Equal(t, uint64(10), bfd.computeProbableHighestNonce())

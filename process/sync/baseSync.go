@@ -50,6 +50,11 @@ type txSizeHandler interface {
 	Size() int
 }
 
+type notarizedHeaderSelector interface {
+	getNotarizedHeaderSelection(nonce uint64) ([]byte, bool, bool)
+	getHeaderVersion(nonce uint64, hash []byte) (bool, bool)
+}
+
 var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
@@ -2441,12 +2446,33 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedHeaderNonce(nil)
 
-	hash := boot.forkDetector.GetNotarizedHeaderHash(nonce)
+	var hash []byte
+	isDirectedV3 := false
+	isAmbiguous := false
+	selector, ok := boot.forkDetector.(notarizedHeaderSelector)
+	if ok {
+		hash, isDirectedV3, isAmbiguous = selector.getNotarizedHeaderSelection(nonce)
+	} else {
+		hash = boot.forkDetector.GetNotarizedHeaderHash(nonce)
+		isDirectedV3 = len(hash) > 0 && boot.isAsyncExecutionEnabledForHash(hash)
+	}
+	if isAmbiguous {
+		return nil, nil, errBranchAwareSyncRetry
+	}
 	if boot.forkInfo.IsDetected {
-		hash = boot.forkInfo.Hash
+		// A unique V3 notarization takes precedence over the recovery hint.
+		if !isDirectedV3 {
+			hash = boot.forkInfo.Hash
+			versionFound := false
+			if ok && len(hash) > 0 {
+				isDirectedV3, versionFound = selector.getHeaderVersion(nonce, hash)
+			}
+			if !versionFound {
+				isDirectedV3 = len(hash) > 0 && boot.isAsyncExecutionEnabledForHash(hash)
+			}
+		}
 	}
 
-	isDirectedV3 := len(hash) > 0 && boot.isAsyncExecutionEnabledForHash(hash)
 	selectedFromProof := false
 	if !isDirectedV3 {
 		proof, err := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())

@@ -1679,6 +1679,14 @@ func TestBaseForkDetector_GetNotarizedHeaderHash(t *testing.T) {
 
 	hash = bfd.GetNotarizedHeaderHash(9)
 	assert.Equal(t, []byte("hash1"), hash)
+
+	_ = bfd.AddHeader(
+		&block.MetaBlock{PubKeysBitmap: []byte("X"), Nonce: 9, Round: 12},
+		[]byte("hash2"),
+		process.BHNotarized,
+		nil,
+		nil)
+	assert.Equal(t, []byte("hash1"), bfd.GetNotarizedHeaderHash(9))
 }
 
 func TestBaseForkDetector_ReceivedProof(t *testing.T) {

@@ -16,11 +16,14 @@ import (
 type shardBlockTrack struct {
 	*baseBlockTrack
 
-	mutPendingSelfHeaders  sync.Mutex
-	pendingSelfHeaders     map[string]*pendingSelfHeader
-	resolvedSelfHeaders    map[string]uint64
-	numPendingSelfHeaders  atomic.Int64
-	numResolvedSelfHeaders atomic.Int64
+	mutPendingSelfHeaders   sync.Mutex
+	mutPendingNotifications sync.Mutex
+	pendingNotifications    sync.WaitGroup
+	pendingSelfHeadersView  atomic.Uint64
+	pendingSelfHeaders      map[string]*pendingSelfHeader
+	resolvedSelfHeaders     map[string]uint64
+	numPendingSelfHeaders   atomic.Int64
+	numResolvedSelfHeaders  atomic.Int64
 }
 
 type pendingSelfHeader struct {
@@ -29,6 +32,7 @@ type pendingSelfHeader struct {
 	nonce       uint64
 	epoch       uint32
 	lastRequest time.Time
+	view        uint64
 }
 
 // NewShardBlockTrack creates an object for tracking the received shard blocks
@@ -104,13 +108,14 @@ func (sbt *shardBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*
 		log.Debug("GetSelfHeaders", "error", process.ErrWrongTypeAssertion)
 		return selfHeadersInfo
 	}
+	pendingView := sbt.pendingSelfHeadersView.Load()
 
 	for _, shardInfo := range process.GetShardHeadersReferencedByMeta(metaBlock) {
 		if shardInfo.GetShardID() != sbt.shardCoordinator.SelfId() {
 			continue
 		}
 		if metaBlock.IsHeaderV3() {
-			headerInfo, handled := sbt.getHeaderFromPendingState(shardInfo)
+			headerInfo, handled := sbt.getHeaderFromPendingState(shardInfo, pendingView)
 			if handled {
 				if headerInfo != nil {
 					selfHeadersInfo = append(selfHeadersInfo, headerInfo)
@@ -130,7 +135,7 @@ func (sbt *shardBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*
 					continue
 				}
 
-				sbt.addOrRefreshPendingSelfHeader(shardInfo)
+				sbt.addOrRefreshPendingSelfHeader(shardInfo, pendingView)
 				header, err = sbt.getPendingSelfHeader(shardInfo)
 				if err != nil {
 					continue
@@ -138,26 +143,47 @@ func (sbt *shardBlockTrack) GetSelfHeaders(headerHandler data.HeaderHandler) []*
 			}
 		}
 
-		if !sbt.claimPendingSelfHeaderForReturn(shardInfo.GetHeaderHash(), shardInfo.GetNonce()) {
+		if !sbt.prepareSelfHeaderForReturn(
+			header,
+			shardInfo.GetHeaderHash(),
+			shardInfo.GetNonce(),
+			pendingView,
+			metaBlock.IsHeaderV3(),
+		) {
 			continue
 		}
 
 		selfHeadersInfo = append(selfHeadersInfo, &HeaderInfo{Hash: shardInfo.GetHeaderHash(), Header: header})
 	}
+	if metaBlock.IsHeaderV3() && !sbt.isPendingSelfHeadersViewCurrent(pendingView) {
+		clear(selfHeadersInfo)
+		return selfHeadersInfo[:0]
+	}
 
 	return selfHeadersInfo
 }
 
-func (sbt *shardBlockTrack) getHeaderFromPendingState(shardInfo process.ShardInfoHandler) (*HeaderInfo, bool) {
+func (sbt *shardBlockTrack) getHeaderFromPendingState(
+	shardInfo process.ShardInfoHandler,
+	pendingView uint64,
+) (*HeaderInfo, bool) {
+	if !sbt.isPendingSelfHeadersViewCurrent(pendingView) {
+		return nil, true
+	}
 	if sbt.numPendingSelfHeaders.Load() == 0 && sbt.numResolvedSelfHeaders.Load() == 0 {
 		return nil, false
 	}
 
 	key := string(shardInfo.GetHeaderHash())
 	sbt.mutPendingSelfHeaders.Lock()
+	if !sbt.isPendingSelfHeadersViewCurrent(pendingView) {
+		sbt.mutPendingSelfHeaders.Unlock()
+		return nil, true
+	}
 	sbt.pruneResolvedSelfHeadersBefore(shardInfo.GetNonce())
 	_, resolved := sbt.resolvedSelfHeaders[key]
-	_, pending := sbt.pendingSelfHeaders[key]
+	pendingHeader, pending := sbt.pendingSelfHeaders[key]
+	pending = pending && pendingHeader.view == pendingView
 	sbt.mutPendingSelfHeaders.Unlock()
 	if resolved {
 		return nil, true
@@ -165,13 +191,13 @@ func (sbt *shardBlockTrack) getHeaderFromPendingState(shardInfo process.ShardInf
 	if !pending {
 		return nil, false
 	}
+	sbt.addOrRefreshPendingSelfHeader(shardInfo, pendingView)
 
 	header, err := sbt.getPendingSelfHeader(shardInfo)
 	if err != nil {
-		sbt.addOrRefreshPendingSelfHeader(shardInfo)
 		return nil, true
 	}
-	if !sbt.claimPendingSelfHeaderForReturn(shardInfo.GetHeaderHash(), shardInfo.GetNonce()) {
+	if !sbt.prepareSelfHeaderForReturn(header, shardInfo.GetHeaderHash(), shardInfo.GetNonce(), pendingView, true) {
 		return nil, true
 	}
 
@@ -196,13 +222,20 @@ func (sbt *shardBlockTrack) getPendingSelfHeader(shardInfo process.ShardInfoHand
 	)
 }
 
-func (sbt *shardBlockTrack) addOrRefreshPendingSelfHeader(shardInfo process.ShardInfoHandler) {
+func (sbt *shardBlockTrack) addOrRefreshPendingSelfHeader(
+	shardInfo process.ShardInfoHandler,
+	pendingView uint64,
+) {
 	now := time.Now()
 	requestInterval := sbt.requestHandler.RequestInterval()
 	key := string(shardInfo.GetHeaderHash())
 	request := false
 
 	sbt.mutPendingSelfHeaders.Lock()
+	if !sbt.isPendingSelfHeadersViewCurrent(pendingView) {
+		sbt.mutPendingSelfHeaders.Unlock()
+		return
+	}
 	sbt.pruneResolvedSelfHeadersBefore(shardInfo.GetNonce())
 	if _, resolved := sbt.resolvedSelfHeaders[key]; resolved {
 		sbt.mutPendingSelfHeaders.Unlock()
@@ -211,6 +244,10 @@ func (sbt *shardBlockTrack) addOrRefreshPendingSelfHeader(shardInfo process.Shar
 
 	pending, exists := sbt.pendingSelfHeaders[key]
 	if exists {
+		if pending.view != pendingView {
+			sbt.mutPendingSelfHeaders.Unlock()
+			return
+		}
 		if now.Sub(pending.lastRequest) >= requestInterval {
 			pending.lastRequest = now
 			request = true
@@ -228,6 +265,7 @@ func (sbt *shardBlockTrack) addOrRefreshPendingSelfHeader(shardInfo process.Shar
 		nonce:       shardInfo.GetNonce(),
 		epoch:       shardInfo.GetEpoch(),
 		lastRequest: now,
+		view:        pendingView,
 	}
 	hasRoom, evicted := sbt.makeRoomForPendingSelfHeader(pending.nonce)
 	if !hasRoom {
@@ -235,8 +273,8 @@ func (sbt *shardBlockTrack) addOrRefreshPendingSelfHeader(shardInfo process.Shar
 		return
 	}
 
+	sbt.numPendingSelfHeaders.Store(int64(len(sbt.pendingSelfHeaders) + 1))
 	sbt.pendingSelfHeaders[key] = pending
-	sbt.numPendingSelfHeaders.Store(int64(len(sbt.pendingSelfHeaders)))
 	sbt.mutPendingSelfHeaders.Unlock()
 
 	if evicted != nil {
@@ -277,29 +315,52 @@ func (sbt *shardBlockTrack) requestPendingSelfHeader(pending *pendingSelfHeader)
 	sbt.requestHandler.RequestEquivalentProofByHashForEpoch(pending.shardID, pending.hash, pending.epoch)
 }
 
-func (sbt *shardBlockTrack) claimPendingSelfHeaderForReturn(hash []byte, nonce uint64) bool {
+func (sbt *shardBlockTrack) prepareSelfHeaderForReturn(
+	header data.HeaderHandler,
+	hash []byte,
+	nonce uint64,
+	pendingView uint64,
+	checkPendingView bool,
+) bool {
+	if checkPendingView && !sbt.isPendingSelfHeadersViewCurrent(pendingView) {
+		return false
+	}
 	if sbt.numPendingSelfHeaders.Load() == 0 && sbt.numResolvedSelfHeaders.Load() == 0 {
 		return true
 	}
 
 	key := string(hash)
 
+	sbt.mutPendingNotifications.Lock()
+	defer sbt.mutPendingNotifications.Unlock()
+	if checkPendingView && !sbt.isPendingSelfHeadersViewCurrent(pendingView) {
+		return false
+	}
+
 	sbt.mutPendingSelfHeaders.Lock()
-	defer sbt.mutPendingSelfHeaders.Unlock()
 	sbt.pruneResolvedSelfHeadersBefore(nonce)
 
 	if _, resolved := sbt.resolvedSelfHeaders[key]; resolved {
+		sbt.mutPendingSelfHeaders.Unlock()
 		return false
 	}
-	if _, pending := sbt.pendingSelfHeaders[key]; !pending {
+	pending, exists := sbt.pendingSelfHeaders[key]
+	if !exists {
+		sbt.mutPendingSelfHeaders.Unlock()
 		return true
+	}
+	if !sbt.pendingSelfHeaderMatches(pending, header) {
+		sbt.mutPendingSelfHeaders.Unlock()
+		return false
 	}
 
 	delete(sbt.pendingSelfHeaders, key)
 	sbt.rememberResolvedSelfHeader(key, nonce)
 	sbt.numPendingSelfHeaders.Store(int64(len(sbt.pendingSelfHeaders)))
+	sbt.mutPendingSelfHeaders.Unlock()
+	sbt.notifyPendingSelfHeader(header, pending)
 
-	return true
+	return false
 }
 
 func (sbt *shardBlockTrack) receivedPendingSelfHeader(header data.HeaderHandler, hash []byte) {
@@ -308,24 +369,61 @@ func (sbt *shardBlockTrack) receivedPendingSelfHeader(header data.HeaderHandler,
 	}
 
 	key := string(hash)
+	sbt.mutPendingNotifications.Lock()
+	defer sbt.mutPendingNotifications.Unlock()
+
 	sbt.mutPendingSelfHeaders.Lock()
 	pending, exists := sbt.pendingSelfHeaders[key]
-	if !exists || header.GetShardID() != pending.shardID || header.GetNonce() != pending.nonce || header.GetEpoch() != pending.epoch {
+	if !exists || !sbt.isPendingSelfHeadersViewCurrent(pending.view) || !sbt.pendingSelfHeaderMatches(pending, header) {
 		sbt.mutPendingSelfHeaders.Unlock()
 		return
 	}
-
 	delete(sbt.pendingSelfHeaders, key)
 	sbt.rememberResolvedSelfHeader(key, pending.nonce)
 	sbt.numPendingSelfHeaders.Store(int64(len(sbt.pendingSelfHeaders)))
 	sbt.mutPendingSelfHeaders.Unlock()
+	sbt.notifyPendingSelfHeader(header, pending)
+}
 
+func (sbt *shardBlockTrack) pendingSelfHeaderMatches(pending *pendingSelfHeader, header data.HeaderHandler) bool {
+	return header.GetShardID() == pending.shardID && header.GetNonce() == pending.nonce && header.GetEpoch() == pending.epoch
+}
+
+func (sbt *shardBlockTrack) isPendingSelfHeadersViewCurrent(view uint64) bool {
+	// Odd views mark a reset in progress.
+	return view%2 == 0 && view == sbt.pendingSelfHeadersView.Load()
+}
+
+func (sbt *shardBlockTrack) notifyPendingSelfHeader(header data.HeaderHandler, pending *pendingSelfHeader) {
 	log.Debug("resolved held-final shard header", "nonce", pending.nonce, "hash", pending.hash)
-	sbt.selfNotarizedFromCrossHeadersNotifier.CallHandlers(
-		core.MetachainShardId,
-		[]data.HeaderHandler{header},
-		[][]byte{pending.hash},
-	)
+	sbt.pendingNotifications.Add(1)
+	go func() {
+		defer sbt.pendingNotifications.Done()
+
+		sbt.selfNotarizedFromCrossHeadersNotifier.callHandlersAndWait(
+			core.MetachainShardId,
+			[]data.HeaderHandler{header},
+			[][]byte{pending.hash},
+		)
+	}()
+}
+
+// RemoveLastNotarizedHeaders removes the reverted tracker checkpoints and invalidates pending V3 claims.
+func (sbt *shardBlockTrack) RemoveLastNotarizedHeaders() {
+	sbt.mutPendingNotifications.Lock()
+	defer sbt.mutPendingNotifications.Unlock()
+	sbt.pendingSelfHeadersView.Add(1)
+	sbt.pendingNotifications.Wait()
+
+	sbt.mutPendingSelfHeaders.Lock()
+	defer sbt.mutPendingSelfHeaders.Unlock()
+
+	sbt.baseBlockTrack.RemoveLastNotarizedHeaders()
+	sbt.pendingSelfHeaders = make(map[string]*pendingSelfHeader)
+	sbt.resolvedSelfHeaders = make(map[string]uint64)
+	sbt.numPendingSelfHeaders.Store(0)
+	sbt.numResolvedSelfHeaders.Store(0)
+	sbt.pendingSelfHeadersView.Add(1)
 }
 
 func (sbt *shardBlockTrack) rememberResolvedSelfHeader(key string, nonce uint64) {
@@ -351,6 +449,11 @@ func (sbt *shardBlockTrack) pruneResolvedSelfHeadersBefore(nonce uint64) {
 
 // RestoreToGenesis resets all tracked shard state.
 func (sbt *shardBlockTrack) RestoreToGenesis() {
+	sbt.mutPendingNotifications.Lock()
+	defer sbt.mutPendingNotifications.Unlock()
+	sbt.pendingSelfHeadersView.Add(1)
+	sbt.pendingNotifications.Wait()
+
 	sbt.baseBlockTrack.RestoreToGenesis()
 
 	sbt.mutPendingSelfHeaders.Lock()
@@ -358,6 +461,7 @@ func (sbt *shardBlockTrack) RestoreToGenesis() {
 	sbt.resolvedSelfHeaders = make(map[string]uint64)
 	sbt.numPendingSelfHeaders.Store(0)
 	sbt.numResolvedSelfHeaders.Store(0)
+	sbt.pendingSelfHeadersView.Add(1)
 	sbt.mutPendingSelfHeaders.Unlock()
 }
 

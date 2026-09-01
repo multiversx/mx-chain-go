@@ -136,7 +136,7 @@ func (sfd *shardForkDetector) doJobOnBHProcessed(
 	// first shard block with proof does not have increased consensus
 	// so instant finality will only be set after the first block with increased consensus
 	if common.IsFlagEnabledAfterEpochsStartBlock(header, sfd.enableEpochsHandler, common.AndromedaFlag) &&
-		sfd.canInstantlyFinalize(header) {
+		sfd.canInstantlyFinalize(header, headerHash) {
 		sfd.setFinalCheckpoint(newCheckpoint)
 		// under Supernova the settled checkpoint advances only on meta notarization
 		if !sfd.isSupernovaForHeader(header) {
@@ -164,7 +164,7 @@ func (sfd *shardForkDetector) ReceivedSelfNotarizedFromCrossHeaders(
 		for _, header := range selfNotarizedHeaders {
 			if header.IsHeaderV3() &&
 				common.IsCrossHeaderSettlementEnabledForHeader(sfd.enableEpochsHandler, sfd.enableRoundsHandler, header) {
-				sfd.setProbableHighestNonce(sfd.computeProbableHighestNonce())
+				sfd.recomputeProbableHighestNonce()
 				break
 			}
 		}
@@ -299,10 +299,12 @@ func (sfd *shardForkDetector) getCleanProcessedChild(parent *checkpointInfo) *he
 		return processedChild
 	}
 
-	for _, hdrInfo := range sfd.headers[parent.nonce+1] {
-		if hdrInfo.state == process.BHNotarized && !bytes.Equal(hdrInfo.hash, processedChild.hash) {
-			return nil
-		}
+	if sfd.hasCompetingSiblingEvidenceLocked(
+		processedChild.nonce,
+		processedChild.hash,
+		processedChild.prevHash,
+	) {
+		return nil
 	}
 
 	return processedChild

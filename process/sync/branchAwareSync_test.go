@@ -178,6 +178,107 @@ func TestBaseBootstrap_GetNextHeaderPreservesDirectedV3Hash(t *testing.T) {
 	require.Equal(t, directedHash, hash)
 }
 
+func TestBaseBootstrap_GetNextHeaderPreservesDirectedV3AuthorityWithoutHotEvidence(t *testing.T) {
+	t.Parallel()
+
+	currentHash := []byte("A")
+	currentHeader, _ := createBranchAwareHeader(10, currentHash, []byte("parent"))
+	fixture := newBranchAwareSyncFixture(currentHeader, currentHash)
+
+	directedHash := []byte("D")
+	competitorHash := []byte("C")
+	competitorHeader, competitorProof := createBranchAwareHeader(11, competitorHash, currentHash)
+	fixture.headers[string(competitorHash)] = competitorHeader
+	fixture.proofs = []data.HeaderProofHandler{competitorProof}
+
+	bfd := newBranchAwareForkDetector(0, 10, currentHash)
+	bfd.headers[11] = []*headerInfo{{
+		epoch: 1, nonce: 11, round: 11, hash: directedHash, prevHash: currentHash,
+		state: process.BHNotarized,
+	}}
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+	fixture.boot.forkDetector = sfd
+	fixture.boot.forkInfo = &process.ForkInfo{IsDetected: true, Nonce: 11, Hash: competitorHash}
+	fixture.boot.store = &storageStubs.ChainStorerStub{}
+	fixture.boot.roundHandler = &testscommon.RoundHandlerMock{
+		TimeDurationCalled: func() time.Duration {
+			return 0
+		},
+	}
+	var requestedHash []byte
+	fixture.boot.requestHandler = &testscommon.RequestHandlerStub{
+		RequestShardHeaderCalled: func(_ uint32, hash []byte) {
+			requestedHash = hash
+		},
+	}
+
+	header, hash, err := fixture.boot.getNextHeaderRequestingIfMissing()
+	require.ErrorIs(t, err, process.ErrTimeIsOut)
+	require.Nil(t, header)
+	require.Equal(t, directedHash, hash)
+	require.Equal(t, directedHash, requestedHash)
+}
+
+func TestBaseBootstrap_GetNextHeaderPreservesLegacyProofFallback(t *testing.T) {
+	t.Parallel()
+
+	currentHash := []byte("A")
+	currentHeader := &block.Header{Nonce: 10, Round: 10, Epoch: 1, ShardID: 0}
+	fixture := newBranchAwareSyncFixture(currentHeader, currentHash)
+	fixture.boot.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{}
+
+	directedHash := []byte("D")
+	proofHash := []byte("C")
+	proofHeader, proof := createBranchAwareHeader(11, proofHash, currentHash)
+	fixture.headers[string(proofHash)] = proofHeader
+	fixture.proofs = []data.HeaderProofHandler{proof}
+
+	bfd := newBranchAwareForkDetector(0, 10, currentHash)
+	bfd.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{}
+	bfd.headers[11] = []*headerInfo{{
+		epoch: 1, nonce: 11, round: 11, hash: directedHash, prevHash: currentHash,
+		state: process.BHNotarized,
+	}}
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+	fixture.boot.forkDetector = sfd
+
+	header, hash, err := fixture.boot.getNextHeaderRequestingIfMissing()
+	require.NoError(t, err)
+	require.Same(t, proofHeader, header)
+	require.Equal(t, proofHash, hash)
+}
+
+func TestBaseBootstrap_GetNextHeaderWaitsForUniqueV3Notarization(t *testing.T) {
+	t.Parallel()
+
+	currentHash := []byte("A")
+	currentHeader, _ := createBranchAwareHeader(10, currentHash, []byte("parent"))
+	fixture := newBranchAwareSyncFixture(currentHeader, currentHash)
+
+	bfd := newBranchAwareForkDetector(0, 10, currentHash)
+	bfd.headers[11] = []*headerInfo{
+		{
+			epoch: 1, nonce: 11, round: 11, hash: []byte("B"), prevHash: currentHash,
+			state: process.BHNotarized,
+		},
+		{
+			epoch: 1, nonce: 11, round: 12, hash: []byte("C"), prevHash: currentHash,
+			state: process.BHNotarized,
+		},
+	}
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+	fixture.boot.forkDetector = sfd
+	fixture.boot.forkInfo = &process.ForkInfo{IsDetected: true, Nonce: 11, Hash: []byte("B")}
+
+	header, hash, err := fixture.boot.getNextHeaderRequestingIfMissing()
+	require.ErrorIs(t, err, errBranchAwareSyncRetry)
+	require.Nil(t, header)
+	require.Nil(t, hash)
+}
+
 func TestBaseBootstrap_GetNextMetaHeaderPreservesMissingDirectedV3Hash(t *testing.T) {
 	t.Parallel()
 
@@ -535,7 +636,10 @@ func TestBranchAwareRecoveryConvergesAcrossEvidenceOrders(t *testing.T) {
 			}
 
 			require.Equal(t, preferredHeader.Nonce, sfd.ProbableHighestNonce())
-			require.Equal(t, preferredHash, sfd.GetNotarizedHeaderHash(preferredHeader.Nonce))
+			notarizedHash, isV3, isAmbiguous := sfd.getNotarizedHeaderSelection(preferredHeader.Nonce)
+			require.Equal(t, preferredHash, notarizedHash)
+			require.True(t, isV3)
+			require.False(t, isAmbiguous)
 			forkInfo := sfd.CheckFork()
 			require.False(t, forkInfo.IsDetected, "fork info: %+v; final nonce: %d", forkInfo, bfd.finalCheckpoint().nonce)
 
