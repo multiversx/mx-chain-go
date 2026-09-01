@@ -141,6 +141,118 @@ func (checker *shardSettlementChecker) isSettled(nonce uint64, headerHash []byte
 	return checker.metaFinalityView.IsIncludedInHeldFinalMetaBlock(checker.selfShardID, headerHash, nonce, scanFrom, scanTo)
 }
 
+func (checker *shardSettlementChecker) resolveNotarizedHeader(
+	nonce uint64,
+	candidates []notarizedHeaderCandidate,
+) []byte {
+	if len(candidates) < 2 {
+		return nil
+	}
+
+	var selectedHash []byte
+	lastSelfNotarized, lastSelfHash, err := checker.blockTracker.GetLastSelfNotarizedHeader(core.MetachainShardId)
+	if err == nil && !check.IfNil(lastSelfNotarized) {
+		selectedHash = checker.findCandidateInSelfNotarizedAncestry(
+			lastSelfNotarized,
+			lastSelfHash,
+			nonce,
+			candidates,
+		)
+	}
+
+	metaAnchor, _, err := checker.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	if err != nil || check.IfNil(metaAnchor) {
+		return selectedHash
+	}
+	metaAnchorHandler, ok := metaAnchor.(data.MetaHeaderHandler)
+	if !ok {
+		return selectedHash
+	}
+
+	selectedHash, unique := selectReferencedCandidate(metaAnchorHandler, checker.selfShardID, nonce, candidates, selectedHash)
+	if !unique {
+		return nil
+	}
+
+	continuation, continuationHashes := checker.blockTracker.ComputeLongestChain(core.MetachainShardId, metaAnchor)
+	for index, header := range continuation {
+		metaHeader, ok := header.(data.MetaHeaderHandler)
+		if !ok || check.IfNil(metaHeader) || index >= len(continuationHashes) ||
+			!checker.metaFinalityView.IsMetaHeaderHeldFinal(metaHeader, continuationHashes[index]) {
+			continue
+		}
+
+		selectedHash, unique = selectReferencedCandidate(metaHeader, checker.selfShardID, nonce, candidates, selectedHash)
+		if !unique {
+			return nil
+		}
+	}
+
+	return selectedHash
+}
+
+func (checker *shardSettlementChecker) findCandidateInSelfNotarizedAncestry(
+	header data.HeaderHandler,
+	headerHash []byte,
+	targetNonce uint64,
+	candidates []notarizedHeaderCandidate,
+) []byte {
+	if header.GetNonce() < targetNonce || header.GetNonce()-targetNonce > inclusionScanSpan {
+		return nil
+	}
+
+	currentHeader := header
+	currentHash := headerHash
+	for currentHeader.GetNonce() > targetNonce {
+		parentHash := currentHeader.GetPrevHash()
+		parent, err := checker.headers.GetHeaderByHash(parentHash)
+		if err != nil || check.IfNil(parent) || parent.GetShardID() != checker.selfShardID ||
+			parent.GetNonce()+1 != currentHeader.GetNonce() {
+			return nil
+		}
+
+		currentHeader = parent
+		currentHash = parentHash
+	}
+	if containsNotarizedCandidate(candidates, targetNonce, currentHash) {
+		return append([]byte(nil), currentHash...)
+	}
+
+	return nil
+}
+
+func selectReferencedCandidate(
+	metaHeader data.MetaHeaderHandler,
+	shardID uint32,
+	nonce uint64,
+	candidates []notarizedHeaderCandidate,
+	selectedHash []byte,
+) ([]byte, bool) {
+	for _, shardInfo := range process.GetShardHeadersReferencedByMeta(metaHeader) {
+		if shardInfo.GetShardID() != shardID || shardInfo.GetNonce() != nonce ||
+			!containsNotarizedCandidate(candidates, nonce, shardInfo.GetHeaderHash()) {
+			continue
+		}
+
+		if len(selectedHash) > 0 && !bytes.Equal(selectedHash, shardInfo.GetHeaderHash()) {
+			return nil, false
+		}
+		selectedHash = append(selectedHash[:0], shardInfo.GetHeaderHash()...)
+	}
+
+	return selectedHash, true
+}
+
+func containsNotarizedCandidate(candidates []notarizedHeaderCandidate, nonce uint64, hash []byte) bool {
+	for _, candidate := range candidates {
+		if candidate.nonce == nonce && bytes.Equal(candidate.hash, hash) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // deadCrossNotarizedMeta returns the last cross-notarized meta block when the authority provably
 // built past it, per the shared dead-branch evidence of the meta finality view
 func (checker *shardSettlementChecker) deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool) {
@@ -170,6 +282,10 @@ func (checker *metaSettlementChecker) prepareInclusionScan(_ uint64) (uint64, ui
 
 func (checker *metaSettlementChecker) isSettled(nonce uint64, headerHash []byte, _ uint64, _ uint64) bool {
 	return track.HasMetaReconciliationEvidence(checker.headers, checker.proofs, nonce, headerHash)
+}
+
+func (checker *metaSettlementChecker) resolveNotarizedHeader(_ uint64, _ []notarizedHeaderCandidate) []byte {
+	return nil
 }
 
 // deadCrossNotarizedMeta never reports on meta nodes; meta reconciles through the equivocation path

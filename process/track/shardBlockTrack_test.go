@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -95,6 +96,7 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 		RegisterSelfNotarizedFromCrossHeadersHandler(handler func(uint32, []data.HeaderHandler, [][]byte))
 		RemoveLastNotarizedHeaders()
 		NumPendingSelfHeaders() int64
+		SetMetaFinalityView(view process.MetaFinalityView)
 		Close() error
 	}
 
@@ -296,13 +298,73 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 		require.Equal(t, int64(1), sbt.NumPendingSelfHeaders())
 
 		hasSibling.Store(false)
-		require.Empty(t, sbt.GetSelfHeadersWithSource(source, sourceHash))
+		headerHandler(source, sourceHash)
 		select {
 		case <-notified:
 		case <-time.After(time.Second):
 			require.FailNow(t, "retained notification was not delivered after its source became final")
 		}
 	})
+
+	t.Run("dead source discards a delivered pending header", func(t *testing.T) {
+		t.Parallel()
+
+		sbt, source, sourceHash, _, shardHeaderAvailable, headerHandler := createTracker(t)
+		sbt.SetMetaFinalityView(&testscommon.MetaFinalityViewStub{
+			IsDeadMetaBlockCalled: func(hash []byte, nonce uint64) bool {
+				return bytes.Equal(hash, sourceHash) && nonce == source.GetNonce()
+			},
+		})
+		shardHeaderAvailable.Store(false)
+		var notifications atomic.Int32
+		sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
+			notifications.Add(1)
+		})
+
+		require.Empty(t, sbt.GetSelfHeadersWithSource(source, sourceHash))
+		shardHeaderAvailable.Store(true)
+		headerHandler(&block.HeaderV3{ShardID: 0, Nonce: 5, Epoch: 2}, []byte("referenced-shard"))
+
+		require.Zero(t, sbt.NumPendingSelfHeaders())
+		require.Zero(t, notifications.Load())
+	})
+}
+
+func TestShardBlockTrack_ResolvedMarkersRetainNewestBoundedSet(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateShardTrackerMockArguments()
+	sbt, err := track.NewShardBlockTrack(arguments)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, sbt.Close())
+	})
+
+	limit := sbt.GetMaxNumHeadersToKeepPerShard()
+	require.Positive(t, limit)
+	for index := 0; index < limit; index++ {
+		sbt.RememberResolvedSelfHeader([]byte{byte(index >> 8), byte(index)}, uint64(index+10))
+	}
+	require.Equal(t, int64(limit), sbt.NumResolvedSelfHeaders())
+
+	newestHash := []byte("newest")
+	sbt.RememberResolvedSelfHeader(newestHash, uint64(limit+10))
+	markers := sbt.ResolvedSelfHeaders()
+	require.Len(t, markers, limit)
+	require.NotContains(t, markers, string([]byte{0, 0}))
+	require.Equal(t, uint64(limit+10), markers[string(newestHash)])
+
+	sbt.RememberResolvedSelfHeader([]byte("older"), 1)
+	require.Equal(t, markers, sbt.ResolvedSelfHeaders())
+
+	sbt.RememberResolvedSelfHeader(newestHash, uint64(limit+11))
+	markers = sbt.ResolvedSelfHeaders()
+	require.Len(t, markers, limit)
+	require.Equal(t, uint64(limit+11), markers[string(newestHash)])
+
+	sbt.RestoreToGenesis()
+	require.Zero(t, sbt.NumResolvedSelfHeaders())
+	require.Empty(t, sbt.ResolvedSelfHeaders())
 }
 
 func TestShardBlockTrack_V3HeldFinalReferenceResolvedAfterHeaderArrival(t *testing.T) {
