@@ -1304,7 +1304,7 @@ func (bfd *baseForkDetector) getNotarizedHeaderSelection(nonce uint64) notarized
 func (bfd *baseForkDetector) getNotarizedHeaderSelectionLocked(nonce uint64) notarizedHeaderSelection {
 	hdrInfos := bfd.headers[nonce]
 	var selectedHeader *headerInfo
-	candidates := make([]notarizedHeaderCandidate, 0, len(hdrInfos))
+	var candidates []notarizedHeaderCandidate
 	hasV3Header := false
 	for index, hdrInfo := range hdrInfos {
 		if hdrInfo.state != process.BHNotarized || bfd.hasEarlierSameHashWithState(hdrInfos, index) {
@@ -1313,6 +1313,16 @@ func (bfd *baseForkDetector) getNotarizedHeaderSelectionLocked(nonce uint64) not
 
 		if selectedHeader == nil {
 			selectedHeader = hdrInfo
+			hasV3Header = bfd.isAsyncExecutionEnabled(hdrInfo)
+			continue
+		}
+		if candidates == nil {
+			candidates = make([]notarizedHeaderCandidate, 0, len(hdrInfos))
+			candidates = append(candidates, notarizedHeaderCandidate{
+				hash:  append([]byte(nil), selectedHeader.hash...),
+				epoch: selectedHeader.epoch,
+				nonce: selectedHeader.nonce,
+			})
 		}
 		candidates = append(candidates, notarizedHeaderCandidate{
 			hash:  append([]byte(nil), hdrInfo.hash...),
@@ -1327,7 +1337,7 @@ func (bfd *baseForkDetector) getNotarizedHeaderSelectionLocked(nonce uint64) not
 	}
 	if selectedHeader != nil {
 		return notarizedHeaderSelection{
-			hash: append([]byte(nil), selectedHeader.hash...),
+			hash: selectedHeader.hash,
 			isV3: bfd.isAsyncExecutionEnabled(selectedHeader),
 		}
 	}

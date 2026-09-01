@@ -3,6 +3,7 @@ package track_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -107,6 +108,7 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 		*atomic.Bool,
 		*atomic.Bool,
 		func(data.HeaderHandler, []byte),
+		*requestHandlerWithIntervalHook,
 	) {
 		t.Helper()
 
@@ -187,6 +189,8 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 			},
 		}
 		arguments.ProofsPool = proofsPool
+		requestHandler := &requestHandlerWithIntervalHook{}
+		arguments.RequestHandler = requestHandler
 
 		sbt, err := track.NewShardBlockTrack(arguments)
 		require.NoError(t, err)
@@ -194,13 +198,13 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 			require.NoError(t, sbt.Close())
 		})
 
-		return sbt, source, sourceHash, hasSibling, shardHeaderAvailable, headerHandler
+		return sbt, source, sourceHash, hasSibling, shardHeaderAvailable, headerHandler, requestHandler
 	}
 
 	t.Run("held final source is published", func(t *testing.T) {
 		t.Parallel()
 
-		sbt, source, sourceHash, _, _, _ := createTracker(t)
+		sbt, source, sourceHash, _, _, _, _ := createTracker(t)
 		notified := make(chan struct{}, 1)
 		sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
 			notified <- struct{}{}
@@ -220,7 +224,7 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 	t.Run("rollback before publication rejects the old view", func(t *testing.T) {
 		t.Parallel()
 
-		sbt, source, sourceHash, _, _, _ := createTracker(t)
+		sbt, source, sourceHash, _, _, _, _ := createTracker(t)
 		var notifications atomic.Int32
 		sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
 			notifications.Add(1)
@@ -238,7 +242,7 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 	t.Run("new unresolved sibling evidence rejects publication", func(t *testing.T) {
 		t.Parallel()
 
-		sbt, source, sourceHash, hasSibling, _, _ := createTracker(t)
+		sbt, source, sourceHash, hasSibling, _, _, _ := createTracker(t)
 		var notifications atomic.Int32
 		sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
 			notifications.Add(1)
@@ -256,7 +260,7 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 	t.Run("legacy publication does not use the V3 source gate", func(t *testing.T) {
 		t.Parallel()
 
-		sbt, _, _, _, _, _ := createTracker(t)
+		sbt, _, _, _, _, _, _ := createTracker(t)
 		notified := make(chan struct{}, 1)
 		sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
 			notified <- struct{}{}
@@ -284,7 +288,7 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 	t.Run("late header remains pending while its V3 source is unresolved", func(t *testing.T) {
 		t.Parallel()
 
-		sbt, source, sourceHash, hasSibling, shardHeaderAvailable, headerHandler := createTracker(t)
+		sbt, source, sourceHash, hasSibling, shardHeaderAvailable, headerHandler, _ := createTracker(t)
 		shardHeaderAvailable.Store(false)
 		notified := make(chan struct{}, 1)
 		sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
@@ -309,7 +313,7 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 	t.Run("dead source discards a delivered pending header", func(t *testing.T) {
 		t.Parallel()
 
-		sbt, source, sourceHash, _, shardHeaderAvailable, headerHandler := createTracker(t)
+		sbt, source, sourceHash, _, shardHeaderAvailable, headerHandler, _ := createTracker(t)
 		sbt.SetMetaFinalityView(&testscommon.MetaFinalityViewStub{
 			IsDeadMetaBlockCalled: func(hash []byte, nonce uint64) bool {
 				return bytes.Equal(hash, sourceHash) && nonce == source.GetNonce()
@@ -327,6 +331,104 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 
 		require.Zero(t, sbt.NumPendingSelfHeaders())
 		require.Zero(t, notifications.Load())
+	})
+
+	for _, heldSourceFirst := range []bool{true, false} {
+		t.Run(fmt.Sprintf("held source survives same-nonce dead source, held first %v", heldSourceFirst), func(t *testing.T) {
+			t.Parallel()
+
+			sbt, heldSource, heldSourceHash, _, shardHeaderAvailable, headerHandler, _ := createTracker(t)
+			deadSourceHash := []byte("dead-source-meta")
+			deadSource := &block.MetaBlockV3{
+				Nonce:             heldSource.Nonce,
+				Round:             heldSource.Round + 1,
+				PrevHash:          []byte("other-parent"),
+				ShardInfoProposal: heldSource.ShardInfoProposal,
+			}
+			sbt.SetMetaFinalityView(&testscommon.MetaFinalityViewStub{
+				IsMetaHeaderHeldFinalCalled: func(_ data.HeaderHandler, hash []byte) bool {
+					return bytes.Equal(hash, heldSourceHash)
+				},
+				IsDeadMetaBlockCalled: func(hash []byte, nonce uint64) bool {
+					return bytes.Equal(hash, deadSourceHash) && nonce == deadSource.Nonce
+				},
+			})
+			shardHeaderAvailable.Store(false)
+			notified := make(chan struct{}, 1)
+			sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
+				notified <- struct{}{}
+			})
+
+			if heldSourceFirst {
+				require.Empty(t, sbt.GetSelfHeadersWithSource(heldSource, heldSourceHash))
+				require.Empty(t, sbt.GetSelfHeadersWithSource(deadSource, deadSourceHash))
+			} else {
+				require.Empty(t, sbt.GetSelfHeadersWithSource(deadSource, deadSourceHash))
+				require.Empty(t, sbt.GetSelfHeadersWithSource(heldSource, heldSourceHash))
+			}
+
+			shardHeaderAvailable.Store(true)
+			headerHandler(&block.HeaderV3{ShardID: 0, Nonce: 5, Epoch: 2}, []byte("referenced-shard"))
+			select {
+			case <-notified:
+			case <-time.After(time.Second):
+				require.FailNow(t, "held-final source was lost after a same-nonce dead source update")
+			}
+			require.Zero(t, sbt.NumPendingSelfHeaders())
+		})
+	}
+
+	t.Run("source requests do not retain the notification reset barrier", func(t *testing.T) {
+		t.Parallel()
+
+		sbt, source, sourceHash, _, shardHeaderAvailable, headerHandler, requestHandler := createTracker(t)
+		sbt.SetMetaFinalityView(&testscommon.MetaFinalityViewStub{})
+		shardHeaderAvailable.Store(false)
+		require.Empty(t, sbt.GetSelfHeadersWithSource(source, sourceHash))
+
+		requestStarted := make(chan struct{})
+		releaseRequest := make(chan struct{})
+		var releaseOnce sync.Once
+		release := func() {
+			releaseOnce.Do(func() {
+				close(releaseRequest)
+			})
+		}
+		t.Cleanup(release)
+		requestHandler.RequestMetaHeaderForEpochCalled = func(_ []byte, _ uint32) {
+			close(requestStarted)
+			<-releaseRequest
+		}
+
+		shardHeaderAvailable.Store(true)
+		deliveryDone := make(chan struct{})
+		go func() {
+			headerHandler(&block.HeaderV3{ShardID: 0, Nonce: 5, Epoch: 2}, []byte("referenced-shard"))
+			close(deliveryDone)
+		}()
+		select {
+		case <-requestStarted:
+		case <-time.After(time.Second):
+			require.FailNow(t, "pending source request did not start")
+		}
+
+		resetDone := make(chan struct{})
+		go func() {
+			sbt.RemoveLastNotarizedHeaders()
+			close(resetDone)
+		}()
+		select {
+		case <-resetDone:
+		case <-time.After(time.Second):
+			require.FailNow(t, "source request retained the notification reset barrier")
+		}
+
+		release()
+		select {
+		case <-deliveryDone:
+		case <-time.After(time.Second):
+			require.FailNow(t, "pending source request did not finish")
+		}
 	})
 }
 

@@ -28,17 +28,27 @@ type shardBlockTrack struct {
 }
 
 type pendingSelfHeader struct {
-	hash              []byte
-	shardID           uint32
-	nonce             uint64
-	epoch             uint32
-	lastRequest       time.Time
-	lastSourceRequest time.Time
-	view              uint64
-	sourceMetaHeader  data.MetaHeaderHandler
-	sourceMetaHash    []byte
-	sourceMetaNonce   uint64
-	deliveredHeader   data.HeaderHandler
+	hash            []byte
+	shardID         uint32
+	nonce           uint64
+	epoch           uint32
+	lastRequest     time.Time
+	view            uint64
+	sourcesVersion  uint64
+	sources         []pendingMetaSource
+	deliveredHeader data.HeaderHandler
+}
+
+type pendingMetaSource struct {
+	header      data.MetaHeaderHandler
+	hash        []byte
+	nonce       uint64
+	lastRequest time.Time
+}
+
+type pendingSourceRequest struct {
+	hash  []byte
+	epoch uint32
 }
 
 type sourceMetaVerdict uint8
@@ -301,16 +311,45 @@ func (sbt *shardBlockTrack) updatePendingSource(
 	if check.IfNil(sourceMetaHeader) || len(sourceMetaHash) == 0 {
 		return
 	}
-	if !check.IfNil(pending.sourceMetaHeader) && sourceMetaHeader.GetNonce() < pending.sourceMetaHeader.GetNonce() {
+
+	sourceNonce := sourceMetaHeader.GetNonce()
+	if len(pending.sources) > 0 && sourceNonce < pending.sources[0].nonce {
 		return
 	}
-	if !bytes.Equal(pending.sourceMetaHash, sourceMetaHash) {
-		pending.lastSourceRequest = time.Time{}
+	if len(pending.sources) > 0 && sourceNonce > pending.sources[0].nonce {
+		clear(pending.sources)
+		pending.sources = pending.sources[:0]
+	}
+	for index := range pending.sources {
+		if bytes.Equal(pending.sources[index].hash, sourceMetaHash) {
+			pending.sources[index].header = sourceMetaHeader
+			return
+		}
 	}
 
-	pending.sourceMetaHeader = sourceMetaHeader
-	pending.sourceMetaHash = append(pending.sourceMetaHash[:0], sourceMetaHash...)
-	pending.sourceMetaNonce = sourceMetaHeader.GetNonce()
+	pending.sources = append(pending.sources, pendingMetaSource{
+		header: sourceMetaHeader,
+		hash:   append([]byte(nil), sourceMetaHash...),
+		nonce:  sourceNonce,
+	})
+	pending.sourcesVersion++
+}
+
+func (sbt *shardBlockTrack) setInitialPendingSource(
+	pending *pendingSelfHeader,
+	sourceMetaHeader data.MetaHeaderHandler,
+	sourceMetaHash []byte,
+) {
+	if check.IfNil(sourceMetaHeader) {
+		return
+	}
+
+	pending.sources = []pendingMetaSource{{
+		header: sourceMetaHeader,
+		hash:   append([]byte(nil), sourceMetaHash...),
+		nonce:  sourceMetaHeader.GetNonce(),
+	}}
+	pending.sourcesVersion = 1
 }
 
 func (sbt *shardBlockTrack) getPendingSelfHeader(shardInfo process.ShardInfoHandler) (data.ShardHeaderHandler, error) {
@@ -371,18 +410,14 @@ func (sbt *shardBlockTrack) addOrRefreshPendingSelfHeader(
 	}
 
 	pending = &pendingSelfHeader{
-		hash:             append([]byte(nil), shardInfo.GetHeaderHash()...),
-		shardID:          shardInfo.GetShardID(),
-		nonce:            shardInfo.GetNonce(),
-		epoch:            shardInfo.GetEpoch(),
-		lastRequest:      now,
-		view:             pendingView,
-		sourceMetaHeader: sourceMetaHeader,
-		sourceMetaHash:   append([]byte(nil), sourceMetaHash...),
+		hash:        append([]byte(nil), shardInfo.GetHeaderHash()...),
+		shardID:     shardInfo.GetShardID(),
+		nonce:       shardInfo.GetNonce(),
+		epoch:       shardInfo.GetEpoch(),
+		lastRequest: now,
+		view:        pendingView,
 	}
-	if !check.IfNil(sourceMetaHeader) {
-		pending.sourceMetaNonce = sourceMetaHeader.GetNonce()
-	}
+	sbt.setInitialPendingSource(pending, sourceMetaHeader, sourceMetaHash)
 	hasRoom, evicted := sbt.makeRoomForPendingSelfHeader(pending.nonce)
 	if !hasRoom {
 		sbt.mutPendingSelfHeaders.Unlock()
@@ -474,17 +509,18 @@ func (sbt *shardBlockTrack) receivedPendingSelfHeader(header data.HeaderHandler,
 
 func (sbt *shardBlockTrack) resolvePendingSelfHeader(key string, deliveredHeader data.HeaderHandler) {
 	sbt.mutPendingNotifications.Lock()
-	defer sbt.mutPendingNotifications.Unlock()
 
 	sbt.mutPendingSelfHeaders.Lock()
 	pending, exists := sbt.pendingSelfHeaders[key]
 	if !exists || !sbt.isPendingSelfHeadersViewCurrent(pending.view) {
 		sbt.mutPendingSelfHeaders.Unlock()
+		sbt.mutPendingNotifications.Unlock()
 		return
 	}
 	if !check.IfNil(deliveredHeader) {
 		if !sbt.pendingSelfHeaderMatches(pending, deliveredHeader) {
 			sbt.mutPendingSelfHeaders.Unlock()
+			sbt.mutPendingNotifications.Unlock()
 			return
 		}
 		pending.deliveredHeader = deliveredHeader
@@ -492,39 +528,64 @@ func (sbt *shardBlockTrack) resolvePendingSelfHeader(key string, deliveredHeader
 	header := pending.deliveredHeader
 	if check.IfNil(header) {
 		sbt.mutPendingSelfHeaders.Unlock()
+		sbt.mutPendingNotifications.Unlock()
 		return
 	}
-	sourceMetaHeader := pending.sourceMetaHeader
-	sourceMetaHash := append([]byte(nil), pending.sourceMetaHash...)
-	sourceMetaNonce := pending.sourceMetaNonce
+	sources := clonePendingMetaSources(pending.sources)
+	sourcesVersion := pending.sourcesVersion
 	view := pending.view
 	sbt.mutPendingSelfHeaders.Unlock()
 
-	verdict := sbt.sourceMetaVerdict(sourceMetaHeader, sourceMetaHash, sourceMetaNonce)
-	if verdict == sourceMetaUnknown {
-		sbt.requestPendingSourceIfNeeded(key, pending, sourceMetaHeader, sourceMetaHash)
+	hasHeldFinalSource := false
+	var unknownSources []pendingMetaSource
+	for _, source := range sources {
+		verdict := sbt.sourceMetaVerdict(source.header, source.hash, source.nonce)
+		if verdict == sourceMetaHeldFinal {
+			hasHeldFinalSource = true
+			break
+		}
+		if verdict == sourceMetaUnknown {
+			unknownSources = append(unknownSources, source)
+		}
+	}
+	if !hasHeldFinalSource && (len(sources) == 0 || len(unknownSources) > 0) {
+		sbt.mutPendingNotifications.Unlock()
+		requests := sbt.preparePendingSourceRequests(key, pending, sourcesVersion, unknownSources)
+		sbt.requestPendingSources(requests)
 		return
 	}
 
 	sbt.mutPendingSelfHeaders.Lock()
 	currentPending, exists := sbt.pendingSelfHeaders[key]
-	if !exists || currentPending != pending || !bytes.Equal(currentPending.sourceMetaHash, sourceMetaHash) ||
-		currentPending.sourceMetaNonce != sourceMetaNonce || currentPending.view != view ||
+	if !exists || currentPending != pending || currentPending.sourcesVersion != sourcesVersion || currentPending.view != view ||
 		!sbt.isPendingSelfHeadersViewCurrent(view) {
 		sbt.mutPendingSelfHeaders.Unlock()
+		sbt.mutPendingNotifications.Unlock()
 		return
 	}
 	delete(sbt.pendingSelfHeaders, key)
 	sbt.numPendingSelfHeaders.Store(int64(len(sbt.pendingSelfHeaders)))
-	if verdict == sourceMetaHeldFinal {
+	if hasHeldFinalSource {
 		sbt.rememberResolvedSelfHeader(key, pending.nonce)
 	}
 	sbt.mutPendingSelfHeaders.Unlock()
-	if verdict == sourceMetaDead {
+	if !hasHeldFinalSource {
 		log.Debug("discarded shard header from dead meta authority", "nonce", pending.nonce, "hash", pending.hash)
+		sbt.mutPendingNotifications.Unlock()
 		return
 	}
 	sbt.notifyPendingSelfHeader(header, pending)
+	sbt.mutPendingNotifications.Unlock()
+}
+
+func clonePendingMetaSources(sources []pendingMetaSource) []pendingMetaSource {
+	cloned := make([]pendingMetaSource, len(sources))
+	for index, source := range sources {
+		cloned[index] = source
+		cloned[index].hash = append([]byte(nil), source.hash...)
+	}
+
+	return cloned
 }
 
 func (sbt *shardBlockTrack) pendingSelfHeaderMatches(pending *pendingSelfHeader, header data.HeaderHandler) bool {
@@ -552,30 +613,53 @@ func (sbt *shardBlockTrack) sourceMetaVerdict(
 	return sourceMetaUnknown
 }
 
-func (sbt *shardBlockTrack) requestPendingSourceIfNeeded(
+func (sbt *shardBlockTrack) preparePendingSourceRequests(
 	key string,
 	pending *pendingSelfHeader,
-	sourceMetaHeader data.MetaHeaderHandler,
-	sourceMetaHash []byte,
-) {
-	if check.IfNil(sourceMetaHeader) || len(sourceMetaHash) == 0 {
-		return
+	sourcesVersion uint64,
+	unknownSources []pendingMetaSource,
+) []pendingSourceRequest {
+	if len(unknownSources) == 0 {
+		return nil
 	}
 
 	now := time.Now()
 	requestInterval := sbt.requestHandler.RequestInterval()
 	sbt.mutPendingSelfHeaders.Lock()
-	current, exists := sbt.pendingSelfHeaders[key]
-	if !exists || current != pending || !bytes.Equal(current.sourceMetaHash, sourceMetaHash) ||
-		now.Sub(current.lastSourceRequest) < requestInterval {
-		sbt.mutPendingSelfHeaders.Unlock()
-		return
-	}
-	current.lastSourceRequest = now
-	sbt.mutPendingSelfHeaders.Unlock()
+	defer sbt.mutPendingSelfHeaders.Unlock()
 
-	sbt.requestHandler.RequestMetaHeaderForEpoch(sourceMetaHash, sourceMetaHeader.GetEpoch())
-	sbt.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, sourceMetaHash, sourceMetaHeader.GetEpoch())
+	current, exists := sbt.pendingSelfHeaders[key]
+	if !exists || current != pending || current.sourcesVersion != sourcesVersion ||
+		!sbt.isPendingSelfHeadersViewCurrent(current.view) {
+		return nil
+	}
+
+	requests := make([]pendingSourceRequest, 0, len(unknownSources))
+	for _, unknownSource := range unknownSources {
+		for index := range current.sources {
+			source := &current.sources[index]
+			if source.nonce != unknownSource.nonce || !bytes.Equal(source.hash, unknownSource.hash) ||
+				check.IfNil(source.header) || len(source.hash) == 0 || now.Sub(source.lastRequest) < requestInterval {
+				continue
+			}
+
+			source.lastRequest = now
+			requests = append(requests, pendingSourceRequest{
+				hash:  append([]byte(nil), source.hash...),
+				epoch: source.header.GetEpoch(),
+			})
+			break
+		}
+	}
+
+	return requests
+}
+
+func (sbt *shardBlockTrack) requestPendingSources(requests []pendingSourceRequest) {
+	for _, request := range requests {
+		sbt.requestHandler.RequestMetaHeaderForEpoch(request.hash, request.epoch)
+		sbt.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, request.hash, request.epoch)
+	}
 }
 
 func (sbt *shardBlockTrack) retryPendingSelfHeaders() {
@@ -677,16 +761,14 @@ func (sbt *shardBlockTrack) retainDeliveredSelfHeader(headerInfo *selfHeaderInfo
 	}
 
 	pending := &pendingSelfHeader{
-		hash:             append([]byte(nil), headerInfo.Hash...),
-		shardID:          headerInfo.Header.GetShardID(),
-		nonce:            headerInfo.Header.GetNonce(),
-		epoch:            headerInfo.Header.GetEpoch(),
-		view:             headerInfo.sourceView,
-		sourceMetaHeader: headerInfo.sourceMetaHeader,
-		sourceMetaHash:   append([]byte(nil), headerInfo.sourceMetaHash...),
-		sourceMetaNonce:  headerInfo.sourceMetaHeader.GetNonce(),
-		deliveredHeader:  headerInfo.Header,
+		hash:            append([]byte(nil), headerInfo.Hash...),
+		shardID:         headerInfo.Header.GetShardID(),
+		nonce:           headerInfo.Header.GetNonce(),
+		epoch:           headerInfo.Header.GetEpoch(),
+		view:            headerInfo.sourceView,
+		deliveredHeader: headerInfo.Header,
 	}
+	sbt.setInitialPendingSource(pending, headerInfo.sourceMetaHeader, headerInfo.sourceMetaHash)
 	hasRoom, evicted := sbt.makeRoomForPendingSelfHeader(pending.nonce)
 	if !hasRoom {
 		return ""

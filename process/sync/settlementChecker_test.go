@@ -84,7 +84,7 @@ func TestShardSettlementChecker_ResolveNotarizedHeaderFromSelectedMetaChain(t *t
 		},
 		blockTracker: &mock.BlockTrackerMock{
 			GetLastSelfNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
-				return nil, nil, errors.New("missing self anchor")
+				return &block.HeaderV3{Nonce: nonce}, hashA, nil
 			},
 			GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 				return anchor, []byte("anchor"), nil
@@ -102,9 +102,22 @@ func TestShardSettlementChecker_ResolveNotarizedHeaderFromSelectedMetaChain(t *t
 	require.Equal(t, hashB, checker.resolveNotarizedHeader(nonce, candidates))
 
 	anchor.ShardInfoProposal = []block.ShardDataProposal{{ShardID: 0, Nonce: nonce, HeaderHash: hashA}}
+	require.Equal(t, hashB, checker.resolveNotarizedHeader(nonce, candidates))
+
+	checker.metaFinalityView = &testscommon.MetaFinalityViewStub{
+		IsMetaHeaderHeldFinalCalled: func(_ data.HeaderHandler, hash []byte) bool {
+			return bytes.Equal(hash, []byte("anchor")) || bytes.Equal(hash, []byte("selectedMeta"))
+		},
+	}
 	require.Nil(t, checker.resolveNotarizedHeader(nonce, candidates))
 
-	anchor.ShardInfoProposal = nil
+	checker.blockTracker = &mock.BlockTrackerMock{
+		GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+			return anchor, []byte("anchor"), nil
+		},
+	}
+	require.Equal(t, hashA, checker.resolveNotarizedHeader(nonce, candidates))
+
 	checker.metaFinalityView = &testscommon.MetaFinalityViewStub{}
 	require.Nil(t, checker.resolveNotarizedHeader(nonce, candidates))
 }
