@@ -127,10 +127,10 @@ func hasProofedMetaSibling(
 
 		sibling, errGet := headersPool.GetHeaderByHash(siblingHash)
 		if errGet != nil || check.IfNil(sibling) {
-			continue
+			return true
 		}
 		if sibling.GetNonce() != header.GetNonce() || sibling.GetShardID() != core.MetachainShardId {
-			continue
+			return true
 		}
 		if bytes.Equal(sibling.GetPrevHash(), header.GetPrevHash()) {
 			return true

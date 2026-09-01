@@ -48,6 +48,19 @@ func (sbt *shardBlockTrack) NumPendingSelfHeaders() int64 {
 	return sbt.numPendingSelfHeaders.Load()
 }
 
+// SelfHeaderInfo -
+type SelfHeaderInfo = selfHeaderInfo
+
+// GetSelfHeadersWithSource -
+func (sbt *shardBlockTrack) GetSelfHeadersWithSource(header data.HeaderHandler, hash []byte) []*SelfHeaderInfo {
+	return sbt.getSelfHeadersWithSource(header, hash)
+}
+
+// PublishSelfNotarizedFromCrossHeaders -
+func (sbt *shardBlockTrack) PublishSelfNotarizedFromCrossHeaders(shardID uint32, headersInfo []*SelfHeaderInfo) {
+	sbt.publishSelfNotarizedFromCrossHeaders(shardID, headersInfo)
+}
+
 // metaBlockTrack
 
 // GetTrackedMetaBlockWithHash -

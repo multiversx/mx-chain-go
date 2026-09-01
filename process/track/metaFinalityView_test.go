@@ -295,6 +295,43 @@ func TestMetaFinalityView_IsV3MetaHeaderHeldFinal(t *testing.T) {
 		require.True(t, view.IsMetaHeaderHeldFinal(header, headerHash))
 	})
 
+	t.Run("proofed sibling with missing header disables the fast path", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addProofedV3MetaParent(t, pools)
+
+		header := &block.MetaBlockV3{Nonce: metaParentNonce + 1, Round: metaParentRound + 1, PrevHash: metaParentHash}
+		addMetaProof(t, pools, headerHash, header.Nonce, header.Round)
+		addMetaProof(t, pools, []byte("missingSiblingHash"), header.Nonce, header.Round+1)
+
+		require.False(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+	})
+
+	t.Run("missing sibling ancestry requires two proofed descendants", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addProofedV3MetaParent(t, pools)
+
+		header := &block.MetaBlockV3{Nonce: metaParentNonce + 1, Round: metaParentRound + 4, PrevHash: metaParentHash}
+		addMetaProof(t, pools, headerHash, header.Nonce, header.Round)
+		addMetaProof(t, pools, []byte("missingSiblingHash"), header.Nonce, header.Round+1)
+
+		childHash := []byte("childHash")
+		child := &block.MetaBlockV3{Nonce: header.Nonce + 1, Round: header.Round + 1, PrevHash: headerHash}
+		pools.Headers().AddHeader(childHash, child)
+		addMetaProof(t, pools, childHash, child.Nonce, child.Round)
+		require.False(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+
+		grandChildHash := []byte("grandChildHash")
+		grandChild := &block.MetaBlockV3{Nonce: child.Nonce + 1, Round: child.Round + 1, PrevHash: childHash}
+		pools.Headers().AddHeader(grandChildHash, grandChild)
+		addMetaProof(t, pools, grandChildHash, grandChild.Nonce, grandChild.Round)
+
+		require.True(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+	})
+
 	t.Run("proofed header with a different parent does not disable the fast path", func(t *testing.T) {
 		t.Parallel()
 

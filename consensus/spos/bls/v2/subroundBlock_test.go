@@ -1827,6 +1827,9 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 			GetCurrentBlockHeaderHashCalled: func() []byte {
 				return headHash
 			},
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return currentHeader, headHash
+			},
 		})
 		container.SetRoundHandler(&round.RoundHandlerMock{RoundIndex: int64(headRound) + 1})
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
