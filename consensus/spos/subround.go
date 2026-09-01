@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 
 	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
@@ -294,27 +295,68 @@ func (sr *Subround) ConsensusChannel() chan bool {
 
 // HasProofForCompetingBlock checks if there is a proof for a competing block in the equivalent proofs pool
 func (sr *Subround) HasProofForCompetingBlock() bool {
-	prevBlock := sr.Blockchain().GetCurrentBlockHeader()
-	if check.IfNil(prevBlock) {
+	currentBlock := sr.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(currentBlock) {
 		return false
 	}
-	competingBlockNonce := prevBlock.GetNonce() + 1
+	competingBlockNonce := currentBlock.GetNonce() + 1
 	proof, err := sr.EquivalentProofsPool().GetProofByNonce(competingBlockNonce, sr.ShardCoordinator().SelfId())
 	if err != nil || check.IfNil(proof) {
 		return false
 	}
 
 	consensusBlockHash := sr.GetData()
-	if len(consensusBlockHash) == 0 {
-		return true
+	if sr.ShardCoordinator().SelfId() == core.MetachainShardId || !currentBlock.IsHeaderV3() {
+		return len(consensusBlockHash) == 0 || !bytes.Equal(proof.GetHeaderHash(), consensusBlockHash)
 	}
 
 	// proof for current consensus block does not count as competing
-	if bytes.Equal(proof.GetHeaderHash(), consensusBlockHash) {
+	if len(consensusBlockHash) > 0 && bytes.Equal(proof.GetHeaderHash(), consensusBlockHash) {
 		return false
 	}
 
-	return true
+	currentBlockHash := sr.Blockchain().GetCurrentBlockHeaderHash()
+	proofExtendsCurrentBlock, ancestryKnown := sr.proofExtendsBlock(proof, currentBlockHash)
+	if !ancestryKnown || proofExtendsCurrentBlock {
+		return true
+	}
+
+	proofs, err := sr.EquivalentProofsPool().GetProofsByNonce(competingBlockNonce, sr.ShardCoordinator().SelfId())
+	if err != nil {
+		return true
+	}
+
+	for _, candidateProof := range proofs {
+		if check.IfNil(candidateProof) {
+			return true
+		}
+		if bytes.Equal(candidateProof.GetHeaderHash(), proof.GetHeaderHash()) {
+			continue
+		}
+		if bytes.Equal(candidateProof.GetHeaderHash(), consensusBlockHash) {
+			continue
+		}
+
+		proofExtendsCurrentBlock, ancestryKnown = sr.proofExtendsBlock(candidateProof, currentBlockHash)
+		if !ancestryKnown || proofExtendsCurrentBlock {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (sr *Subround) proofExtendsBlock(proof data.HeaderProofHandler, parentHash []byte) (bool, bool) {
+	if len(parentHash) == 0 {
+		return false, false
+	}
+
+	header, err := sr.HeadersPool().GetHeaderByHash(proof.GetHeaderHash())
+	if err != nil || check.IfNil(header) {
+		return false, false
+	}
+
+	return bytes.Equal(header.GetPrevHash(), parentHash), true
 }
 
 // HasProofForCompetingParent returns true if the proofs pool holds a proof for a lower-round sibling

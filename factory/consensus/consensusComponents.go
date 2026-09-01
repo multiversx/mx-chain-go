@@ -275,6 +275,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:           ccf.coreComponents.EnableRoundsHandler(),
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
+		HeadersPool:                   ccf.dataComponents.Datapool().Headers(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
 		InvalidSignersCache:           invalidSignersCache,
 		MessagesHandler:               consensusService,

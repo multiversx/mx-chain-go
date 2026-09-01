@@ -3,8 +3,9 @@ package spos_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -18,6 +19,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	epochstartmock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
@@ -83,6 +85,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 		EnableEpochsHandler:           enableEpochsHandler,
 		EnableRoundsHandler:           enableRoundsHandler,
 		EquivalentProofsPool:          proofsPool,
+		HeadersPool:                   &pool.HeadersPoolStub{},
 		EpochNotifier:                 epochNotifier,
 		InvalidSignersCache:           invalidSignersCache,
 		MessagesHandler:               messagesHandler,
@@ -109,6 +112,17 @@ func TestConsensusContainerValidator_ValidateNilBlockchainShouldFail(t *testing.
 	err := spos.ValidateConsensusCore(container)
 
 	assert.Equal(t, spos.ErrNilBlockChain, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilHeadersPoolShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetHeadersPool(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilHeadersPool, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilProcessorShouldFail(t *testing.T) {

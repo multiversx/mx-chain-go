@@ -218,80 +218,198 @@ func (bfd *baseForkDetector) removeCheckpointsBehindNonce(nonce uint64) {
 // computeProbableHighestNonce computes the probable highest nonce from the valid received/processed headers
 func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 	finalCheckpoint := bfd.finalCheckpoint()
+	settledCheckpoint := bfd.settledCheckpoint()
+	lastCheckpoint := bfd.lastCheckpoint()
 	probableHighestNonce := finalCheckpoint.nonce
+	settledNonce := uint64(0)
+	if settledCheckpoint != nil {
+		settledNonce = settledCheckpoint.nonce
+	}
+	requiresBranchSelection := false
 
 	bfd.mutHeaders.RLock()
 	for nonce, headers := range bfd.headers {
-		if nonce <= probableHighestNonce {
-			continue
+		hasBranchSelectionEvidence, hasActionableHeader := bfd.classifyProbableHeaders(
+			nonce,
+			headers,
+			finalCheckpoint,
+			settledNonce,
+		)
+		if nonce >= finalCheckpoint.nonce && hasBranchSelectionEvidence {
+			requiresBranchSelection = true
 		}
 
-		for _, hInfo := range headers {
-			if hInfo.hasProof {
-				probableHighestNonce = nonce
-				break
-			}
+		if nonce > probableHighestNonce && hasActionableHeader {
+			probableHighestNonce = nonce
 		}
 	}
 
-	if bfd.shouldUseBranchAwareProbable(finalCheckpoint) && probableHighestNonce > finalCheckpoint.nonce {
-		probableHighestNonce = bfd.computeBranchAwareProbable(finalCheckpoint, probableHighestNonce)
+	if requiresBranchSelection && probableHighestNonce > finalCheckpoint.nonce {
+		probableHighestNonce = bfd.computeBranchAwareProbable(finalCheckpoint, lastCheckpoint, probableHighestNonce)
 	}
 	bfd.mutHeaders.RUnlock()
 
 	return probableHighestNonce
 }
 
-func (bfd *baseForkDetector) shouldUseBranchAwareProbable(finalCheckpoint *checkpointInfo) bool {
-	if bfd.shardID == core.MetachainShardId || len(finalCheckpoint.hash) == 0 {
-		return false
-	}
+func (bfd *baseForkDetector) classifyProbableHeaders(
+	nonce uint64,
+	hdrInfos []*headerInfo,
+	finalCheckpoint *checkpointInfo,
+	settledNonce uint64,
+) (bool, bool) {
+	canSelectBranch := bfd.shardID != core.MetachainShardId && len(finalCheckpoint.hash) > 0
+	hasBranchSelectionEvidence := false
+	hasActionableHeader := false
 
-	for _, hdrInfo := range bfd.headers[finalCheckpoint.nonce] {
-		if bytes.Equal(hdrInfo.hash, finalCheckpoint.hash) && bfd.isAsyncExecutionEnabled(hdrInfo) {
-			return true
+	uniqueProofs := 0
+	for index, hdrInfo := range hdrInfos {
+		isV3 := false
+		if canSelectBranch || hdrInfo.state == process.BHNotarized {
+			isV3 = bfd.isAsyncExecutionEnabled(hdrInfo)
+		}
+		if hdrInfo.hasProof || hdrInfo.state == process.BHNotarized && isV3 {
+			hasActionableHeader = true
+		}
+		if !canSelectBranch || !isV3 {
+			continue
+		}
+		if hdrInfo.state == process.BHNotarized && nonce > settledNonce {
+			hasBranchSelectionEvidence = true
+		}
+		if !hdrInfo.hasProof || bfd.hasEarlierSameHash(hdrInfos, index) {
+			continue
+		}
+		if nonce == finalCheckpoint.nonce && !bytes.Equal(hdrInfo.hash, finalCheckpoint.hash) {
+			hasBranchSelectionEvidence = true
+		}
+		if nonce > finalCheckpoint.nonce && nonce-finalCheckpoint.nonce == 1 &&
+			len(hdrInfo.prevHash) > 0 && !bytes.Equal(hdrInfo.prevHash, finalCheckpoint.hash) {
+			hasBranchSelectionEvidence = true
+		}
+
+		uniqueProofs++
+		if uniqueProofs > 1 {
+			hasBranchSelectionEvidence = true
 		}
 	}
 
-	return false
+	return hasBranchSelectionEvidence, hasActionableHeader
 }
 
-func (bfd *baseForkDetector) computeBranchAwareProbable(finalCheckpoint *checkpointInfo, rawProbable uint64) uint64 {
+func (bfd *baseForkDetector) computeBranchAwareProbable(
+	finalCheckpoint *checkpointInfo,
+	lastCheckpoint *checkpointInfo,
+	rawProbable uint64,
+) uint64 {
 	selectedHash := finalCheckpoint.hash
 	actionableNonce := finalCheckpoint.nonce
 
 	for nonce := finalCheckpoint.nonce + 1; ; nonce++ {
 		hdrInfos := bfd.headers[nonce]
-		if !bfd.hasProvenHeader(hdrInfos) || !bfd.allProvenHeadersHaveKnownV3Ancestry(hdrInfos) {
+		notarizedHeader, numNotarizedHashes := bfd.getUniqueNotarizedHeader(hdrInfos)
+		if numNotarizedHashes > 1 {
 			return rawProbable
 		}
 
-		matchingHash, numMatchingHashes, numMatchingNotarizedHashes := bfd.getMatchingProvenHash(hdrInfos, selectedHash)
-		switch {
-		case numMatchingHashes == 1:
-			selectedHash = matchingHash
-			actionableNonce = nonce
-		case numMatchingHashes > 1 && numMatchingNotarizedHashes == 1:
-			selectedHash = bfd.getMatchingNotarizedHash(hdrInfos, selectedHash)
-			actionableNonce = nonce
-		case numMatchingHashes > 0:
-			return rawProbable
-		default:
-			if bfd.isCompleteLosingSuffix(nonce, rawProbable) {
-				return actionableNonce
+		var selectedHeader *headerInfo
+		if numNotarizedHashes == 1 {
+			if !bfd.isAsyncExecutionEnabled(notarizedHeader) || len(notarizedHeader.prevHash) == 0 ||
+				!bytes.Equal(notarizedHeader.prevHash, selectedHash) {
+				return rawProbable
 			}
 
+			selectedHeader = notarizedHeader
+		} else {
+			if !bfd.hasProvenHeader(hdrInfos) || !bfd.allProvenHeadersHaveKnownV3Ancestry(hdrInfos) {
+				return rawProbable
+			}
+
+			var differentEpochs bool
+			selectedHeader, differentEpochs = bfd.getPreferredProvenChild(hdrInfos, selectedHash)
+			if differentEpochs {
+				return rawProbable
+			}
+			if selectedHeader == nil {
+				if nonce <= lastCheckpoint.nonce {
+					return rawProbable
+				}
+				if bfd.isCompleteLosingSuffix(nonce, rawProbable) {
+					return actionableNonce
+				}
+
+				return rawProbable
+			}
+		}
+
+		if nonce <= lastCheckpoint.nonce && !bfd.processedHeaderMatches(hdrInfos, selectedHeader.hash) {
 			return rawProbable
 		}
 
+		selectedHash = selectedHeader.hash
+		actionableNonce = nonce
 		if nonce == rawProbable {
 			return actionableNonce
 		}
 	}
 }
 
+func (bfd *baseForkDetector) getUniqueNotarizedHeader(hdrInfos []*headerInfo) (*headerInfo, int) {
+	var notarizedHeader *headerInfo
+	numNotarizedHashes := 0
+
+	for index, hdrInfo := range hdrInfos {
+		if hdrInfo.state != process.BHNotarized || bfd.hasEarlierSameHashWithState(hdrInfos, index) {
+			continue
+		}
+
+		notarizedHeader = hdrInfo
+		numNotarizedHashes++
+	}
+
+	return notarizedHeader, numNotarizedHashes
+}
+
+func (bfd *baseForkDetector) getPreferredProvenChild(hdrInfos []*headerInfo, parentHash []byte) (*headerInfo, bool) {
+	var preferred *headerInfo
+
+	for index, hdrInfo := range hdrInfos {
+		if !hdrInfo.hasProof || bfd.hasEarlierSameHash(hdrInfos, index) || !bytes.Equal(hdrInfo.prevHash, parentHash) {
+			continue
+		}
+		if preferred != nil && preferred.epoch != hdrInfo.epoch {
+			return nil, true
+		}
+		if preferred == nil || isLowerRoundOrHash(hdrInfo.round, hdrInfo.hash, preferred.round, preferred.hash) {
+			preferred = hdrInfo
+		}
+	}
+
+	return preferred, false
+}
+
+func (bfd *baseForkDetector) processedHeaderMatches(hdrInfos []*headerInfo, selectedHash []byte) bool {
+	var processedHash []byte
+
+	for index, hdrInfo := range hdrInfos {
+		if hdrInfo.state != process.BHProcessed || bfd.hasEarlierSameHashWithState(hdrInfos, index) {
+			continue
+		}
+		if processedHash != nil {
+			return false
+		}
+
+		processedHash = hdrInfo.hash
+	}
+
+	return bytes.Equal(processedHash, selectedHash)
+}
+
 func (bfd *baseForkDetector) isCompleteLosingSuffix(firstNonce uint64, rawProbable uint64) bool {
 	previousHdrInfos := bfd.headers[firstNonce]
+	if firstNonce == 0 || !bfd.allProvenHeadersExtendFrontier(previousHdrInfos, bfd.headers[firstNonce-1]) {
+		return false
+	}
 	if firstNonce == rawProbable {
 		return true
 	}
@@ -336,39 +454,6 @@ func (bfd *baseForkDetector) allProvenHeadersHaveKnownV3Ancestry(hdrInfos []*hea
 	return true
 }
 
-func (bfd *baseForkDetector) getMatchingProvenHash(hdrInfos []*headerInfo, parentHash []byte) ([]byte, int, int) {
-	var matchingHash []byte
-	numMatchingHashes := 0
-	numMatchingNotarizedHashes := 0
-
-	for index, hdrInfo := range hdrInfos {
-		if !hdrInfo.hasProof || bfd.hasEarlierSameHash(hdrInfos, index) || !bytes.Equal(hdrInfo.prevHash, parentHash) {
-			continue
-		}
-
-		matchingHash = hdrInfo.hash
-		numMatchingHashes++
-		if bfd.hasStateForHash(hdrInfos, hdrInfo.hash, process.BHNotarized) {
-			numMatchingNotarizedHashes++
-		}
-	}
-
-	return matchingHash, numMatchingHashes, numMatchingNotarizedHashes
-}
-
-func (bfd *baseForkDetector) getMatchingNotarizedHash(hdrInfos []*headerInfo, parentHash []byte) []byte {
-	for index, hdrInfo := range hdrInfos {
-		if !hdrInfo.hasProof || bfd.hasEarlierSameHash(hdrInfos, index) || !bytes.Equal(hdrInfo.prevHash, parentHash) {
-			continue
-		}
-		if bfd.hasStateForHash(hdrInfos, hdrInfo.hash, process.BHNotarized) {
-			return hdrInfo.hash
-		}
-	}
-
-	return nil
-}
-
 func (bfd *baseForkDetector) allProvenHeadersExtendFrontier(hdrInfos []*headerInfo, previousHdrInfos []*headerInfo) bool {
 	for index, hdrInfo := range hdrInfos {
 		if !hdrInfo.hasProof || bfd.hasEarlierSameHash(hdrInfos, index) {
@@ -392,9 +477,10 @@ func (bfd *baseForkDetector) hasEarlierSameHash(hdrInfos []*headerInfo, index in
 	return false
 }
 
-func (bfd *baseForkDetector) hasProvenHash(hdrInfos []*headerInfo, hash []byte) bool {
-	for _, hdrInfo := range hdrInfos {
-		if hdrInfo.hasProof && bytes.Equal(hdrInfo.hash, hash) {
+func (bfd *baseForkDetector) hasEarlierSameHashWithState(hdrInfos []*headerInfo, index int) bool {
+	for previousIndex := 0; previousIndex < index; previousIndex++ {
+		if hdrInfos[previousIndex].state == hdrInfos[index].state &&
+			bytes.Equal(hdrInfos[previousIndex].hash, hdrInfos[index].hash) {
 			return true
 		}
 	}
@@ -402,9 +488,9 @@ func (bfd *baseForkDetector) hasProvenHash(hdrInfos []*headerInfo, hash []byte) 
 	return false
 }
 
-func (bfd *baseForkDetector) hasStateForHash(hdrInfos []*headerInfo, hash []byte, state process.BlockHeaderState) bool {
+func (bfd *baseForkDetector) hasProvenHash(hdrInfos []*headerInfo, hash []byte) bool {
 	for _, hdrInfo := range hdrInfos {
-		if hdrInfo.state == state && bytes.Equal(hdrInfo.hash, hash) {
+		if hdrInfo.hasProof && bytes.Equal(hdrInfo.hash, hash) {
 			return true
 		}
 	}
@@ -1010,17 +1096,15 @@ func (bfd *baseForkDetector) computeForkInfo(
 		}
 	}
 
-	if currentForkRound < lastForkRound {
-		return hdrInfo.hash, currentForkRound, hdrInfo.epoch
-	}
-
-	lowerHashForSameRound := currentForkRound == lastForkRound &&
-		bytes.Compare(hdrInfo.hash, lastForkHash) < 0
-	if lowerHashForSameRound {
+	if isLowerRoundOrHash(currentForkRound, hdrInfo.hash, lastForkRound, lastForkHash) {
 		return hdrInfo.hash, currentForkRound, hdrInfo.epoch
 	}
 
 	return lastForkHash, lastForkRound, lastForkEpoch
+}
+
+func isLowerRoundOrHash(round uint64, hash []byte, otherRound uint64, otherHash []byte) bool {
+	return round < otherRound || round == otherRound && bytes.Compare(hash, otherHash) < 0
 }
 
 func (bfd *baseForkDetector) shouldSignalFork(

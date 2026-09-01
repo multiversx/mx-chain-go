@@ -1743,6 +1743,8 @@ func checkForNils(
 type ShardInfoHandler interface {
 	GetHeaderHash() []byte
 	GetShardID() uint32
+	GetNonce() uint64
+	GetEpoch() uint32
 }
 
 // GetShardHeadersReferencedByMeta returns the shard headers the meta block references, reading the
