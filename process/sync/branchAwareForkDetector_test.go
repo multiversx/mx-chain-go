@@ -151,6 +151,152 @@ func addProvenHeaderInfo(
 	})
 }
 
+func TestBaseForkDetector_CheckForkUsesAncestryForSupernovaHeaders(t *testing.T) {
+	t.Parallel()
+
+	finalHash := []byte("A")
+	processedHash := []byte("D")
+	competitorHash := []byte("C")
+	offBranchParentHash := []byte("B")
+
+	checkFork := func(
+		shardID uint32,
+		supernovaRoundEnabled bool,
+		competitorState process.BlockHeaderState,
+		competitorParentHash []byte,
+	) *process.ForkInfo {
+		bfd := newBranchAwareForkDetector(shardID, 10, finalHash)
+		bfd.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, _ uint64) bool {
+				return flag == common.SupernovaRoundFlag && supernovaRoundEnabled
+			},
+		}
+		bfd.roundHandler = &testscommon.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 14
+			},
+		}
+		bfd.processConfigsHandler = testscommon.GetDefaultProcessConfigsHandler()
+		bfd.proofsPool = &dataRetrieverMock.ProofsPoolMock{
+			HasProofCalled: func(_ uint32, _ []byte) bool {
+				return true
+			},
+		}
+		bfd.fork.rollBackNonce = math.MaxUint64
+		bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: finalHash}
+		bfd.fork.checkpoint = []*checkpointInfo{
+			{nonce: 10, round: 10, hash: finalHash},
+			{nonce: 11, round: 14, hash: processedHash},
+		}
+		bfd.headers[11] = []*headerInfo{
+			{
+				epoch: 1, nonce: 11, round: 14, hash: processedHash, prevHash: finalHash,
+				state: process.BHProcessed, hasProof: true,
+			},
+			{
+				epoch: 1, nonce: 11, round: 13, hash: competitorHash, prevHash: competitorParentHash,
+				state: competitorState, hasProof: true,
+			},
+		}
+		bfd.setProbableHighestNonce(11)
+
+		return bfd.CheckFork()
+	}
+
+	t.Run("off-branch V3 proof does not roll back the processed branch", func(t *testing.T) {
+		t.Parallel()
+
+		forkInfo := checkFork(0, true, process.BHReceived, offBranchParentHash)
+		require.False(t, forkInfo.IsDetected)
+	})
+
+	t.Run("unknown V3 ancestry waits for the header", func(t *testing.T) {
+		t.Parallel()
+
+		forkInfo := checkFork(0, true, process.BHReceived, nil)
+		require.False(t, forkInfo.IsDetected)
+	})
+
+	t.Run("same-parent V3 competitor retains the round rule", func(t *testing.T) {
+		t.Parallel()
+
+		forkInfo := checkFork(0, true, process.BHReceived, finalHash)
+		require.True(t, forkInfo.IsDetected)
+		require.Equal(t, uint64(11), forkInfo.Nonce)
+		require.Equal(t, competitorHash, forkInfo.Hash)
+	})
+
+	t.Run("metachain-notarized V3 competitor remains authoritative", func(t *testing.T) {
+		t.Parallel()
+
+		forkInfo := checkFork(0, true, process.BHNotarized, offBranchParentHash)
+		require.True(t, forkInfo.IsDetected)
+		require.Equal(t, uint64(11), forkInfo.Nonce)
+		require.Equal(t, competitorHash, forkInfo.Hash)
+	})
+
+	t.Run("pre-Supernova shard behavior is unchanged", func(t *testing.T) {
+		t.Parallel()
+
+		forkInfo := checkFork(0, false, process.BHReceived, offBranchParentHash)
+		require.True(t, forkInfo.IsDetected)
+		require.Equal(t, uint64(11), forkInfo.Nonce)
+		require.Equal(t, competitorHash, forkInfo.Hash)
+	})
+
+	t.Run("off-branch V3 metachain proof does not roll back the processed branch", func(t *testing.T) {
+		t.Parallel()
+
+		forkInfo := checkFork(core.MetachainShardId, true, process.BHReceived, offBranchParentHash)
+		require.False(t, forkInfo.IsDetected)
+	})
+
+	t.Run("same-parent V3 metachain competitor rolls back only the child", func(t *testing.T) {
+		t.Parallel()
+
+		forkInfo := checkFork(core.MetachainShardId, true, process.BHReceived, finalHash)
+		require.True(t, forkInfo.IsDetected)
+		require.Equal(t, uint64(11), forkInfo.Nonce)
+		require.Equal(t, competitorHash, forkInfo.Hash)
+	})
+
+	t.Run("pre-Supernova metachain behavior is unchanged", func(t *testing.T) {
+		t.Parallel()
+
+		forkInfo := checkFork(core.MetachainShardId, false, process.BHReceived, offBranchParentHash)
+		require.True(t, forkInfo.IsDetected)
+		require.Equal(t, uint64(11), forkInfo.Nonce)
+		require.Equal(t, competitorHash, forkInfo.Hash)
+	})
+}
+
+func TestBaseForkDetector_CheckForkIgnoresOffBranchEpochWhenSelectingV3Sibling(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("P")
+	processedHash := []byte("B")
+	siblingHash := []byte("A")
+	bfd := newBranchAwareForkDetector(core.MetachainShardId, 10, parentHash)
+	bfd.roundHandler = &testscommon.RoundHandlerMock{IndexCalled: func() int64 { return 20 }}
+	bfd.processConfigsHandler = testscommon.GetDefaultProcessConfigsHandler()
+	bfd.proofsPool = &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(_ uint32, _ []byte) bool { return true }}
+	bfd.fork.rollBackNonce = math.MaxUint64
+	bfd.fork.checkpoint = []*checkpointInfo{
+		{nonce: 10, round: 10, hash: parentHash},
+		{nonce: 11, round: 14, hash: processedHash},
+	}
+	bfd.headers[11] = []*headerInfo{
+		{epoch: 1, nonce: 11, round: 14, hash: processedHash, prevHash: parentHash, state: process.BHProcessed, hasProof: true},
+		{epoch: 1, nonce: 11, round: 13, hash: siblingHash, prevHash: parentHash, state: process.BHReceived, hasProof: true},
+		{epoch: 2, nonce: 11, round: 12, hash: []byte("off_branch"), prevHash: []byte("Q"), state: process.BHReceived, hasProof: true},
+	}
+
+	forkInfo := bfd.CheckFork()
+	require.True(t, forkInfo.IsDetected)
+	require.Equal(t, uint64(11), forkInfo.Nonce)
+	require.Equal(t, siblingHash, forkInfo.Hash)
+}
+
 func TestBaseForkDetector_ComputeProbableHighestNonceUsesFinalV3Branch(t *testing.T) {
 	t.Parallel()
 
@@ -338,10 +484,34 @@ func TestBaseForkDetector_ComputeProbableHighestNoncePreservesOtherModes(t *test
 
 	finalHash := []byte("A")
 
-	t.Run("metachain remains raw", func(t *testing.T) {
+	t.Run("V3 metachain ignores a known losing child", func(t *testing.T) {
 		t.Parallel()
 
 		bfd := newBranchAwareForkDetector(core.MetachainShardId, 10, finalHash)
+		addProvenHeaderInfo(bfd, 10, []byte("B"), []byte("P"), process.BHReceived)
+		addProvenHeaderInfo(bfd, 11, []byte("C"), []byte("B"), process.BHReceived)
+
+		require.Equal(t, uint64(10), bfd.computeProbableHighestNonce())
+	})
+
+	t.Run("V3 metachain advances on canonical descendants while ignoring a losing suffix", func(t *testing.T) {
+		t.Parallel()
+
+		bfd := newBranchAwareForkDetector(core.MetachainShardId, 10, finalHash)
+		addProvenHeaderInfo(bfd, 10, []byte("B"), []byte("P"), process.BHReceived)
+		addProvenHeaderInfo(bfd, 11, []byte("C"), []byte("B"), process.BHReceived)
+		addProvenHeaderInfo(bfd, 11, []byte("D"), finalHash, process.BHReceived)
+		addProvenHeaderInfo(bfd, 12, []byte("F"), []byte("C"), process.BHReceived)
+		addProvenHeaderInfo(bfd, 12, []byte("E"), []byte("D"), process.BHReceived)
+
+		require.Equal(t, uint64(12), bfd.computeProbableHighestNonce())
+	})
+
+	t.Run("legacy metachain remains raw", func(t *testing.T) {
+		t.Parallel()
+
+		bfd := newBranchAwareForkDetector(core.MetachainShardId, 10, finalHash)
+		bfd.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 		addProvenHeaderInfo(bfd, 11, []byte("C"), []byte("B"), process.BHReceived)
 
 		require.Equal(t, uint64(11), bfd.computeProbableHighestNonce())

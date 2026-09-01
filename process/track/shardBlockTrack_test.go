@@ -20,6 +20,19 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
+type requestHandlerWithIntervalHook struct {
+	testscommon.RequestHandlerStub
+	intervalHook func()
+}
+
+func (handler *requestHandlerWithIntervalHook) RequestInterval() time.Duration {
+	if handler.intervalHook != nil {
+		handler.intervalHook()
+	}
+
+	return time.Second
+}
+
 func TestShardBlockTrack_ComputeCrossInfo(t *testing.T) {
 	t.Parallel()
 
@@ -227,4 +240,94 @@ func TestShardBlockTrack_V3HeldFinalReferenceResolvedAfterHeaderArrival(t *testi
 
 	sbt.RestoreToGenesis()
 	require.Zero(t, sbt.NumPendingSelfHeaders())
+}
+
+func TestShardBlockTrack_HeaderArrivesBeforePendingReferenceInsertion(t *testing.T) {
+	t.Parallel()
+
+	var headerHandler func(data.HeaderHandler, []byte)
+	var availableHeaders sync.Map
+	headersPool := &pool.HeadersPoolStub{
+		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+			if header, ok := availableHeaders.Load(string(hash)); ok {
+				return header.(data.HeaderHandler), nil
+			}
+
+			return nil, errors.New("missing header")
+		},
+		RegisterHandlerCalled: func(handler func(data.HeaderHandler, []byte)) {
+			headerHandler = handler
+		},
+	}
+	arguments := CreateShardTrackerMockArguments()
+	arguments.PoolsHolder = &dataRetrieverMock.PoolsHolderStub{
+		HeadersCalled: func() dataRetriever.HeadersPool {
+			return headersPool
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
+	}
+
+	var headerRequests atomic.Int32
+	var proofRequests atomic.Int32
+	requestHandler := &requestHandlerWithIntervalHook{}
+	requestHandler.RequestShardHeaderForEpochCalled = func(_ uint32, _ []byte, _ uint32) {
+		headerRequests.Add(1)
+	}
+	requestHandler.RequestEquivalentProofByHashForEpochCalled = func(_ uint32, _ []byte, _ uint32) {
+		proofRequests.Add(1)
+	}
+	arguments.RequestHandler = requestHandler
+
+	sbt, err := track.NewShardBlockTrack(arguments)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, sbt.Close())
+	})
+	require.NotNil(t, headerHandler)
+
+	headerHash := []byte("header-arriving-before-pending-insertion")
+	header := &block.HeaderV3{ShardID: 0, Nonce: 7, Epoch: 2}
+	metaBlock := &block.MetaBlockV3{
+		ShardInfoProposal: []block.ShardDataProposal{{
+			HeaderHash: headerHash,
+			ShardID:    0,
+			Nonce:      header.Nonce,
+			Epoch:      header.Epoch,
+		}},
+	}
+
+	var delivered atomic.Bool
+	requestHandler.intervalHook = func() {
+		if !delivered.CompareAndSwap(false, true) {
+			return
+		}
+
+		availableHeaders.Store(string(headerHash), header)
+		headerHandler(header, headerHash)
+	}
+
+	var notifications atomic.Int32
+	sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(
+		_ uint32,
+		_ []data.HeaderHandler,
+		_ [][]byte,
+	) {
+		notifications.Add(1)
+	})
+
+	selfHeaders := sbt.GetSelfHeaders(metaBlock)
+	require.Len(t, selfHeaders, 1)
+	require.Equal(t, headerHash, selfHeaders[0].Hash)
+	require.Same(t, header, selfHeaders[0].Header)
+	require.Zero(t, sbt.NumPendingSelfHeaders())
+	require.Zero(t, notifications.Load())
+	require.Equal(t, int32(1), headerRequests.Load())
+	require.Equal(t, int32(1), proofRequests.Load())
+
+	require.Empty(t, sbt.GetSelfHeaders(metaBlock))
+	require.Zero(t, sbt.NumPendingSelfHeaders())
+	require.Equal(t, int32(1), headerRequests.Load())
+	require.Equal(t, int32(1), proofRequests.Load())
 }
