@@ -295,7 +295,7 @@ func (sr *Subround) ConsensusChannel() chan bool {
 
 // HasProofForCompetingBlock checks if there is a proof for a competing block in the equivalent proofs pool
 func (sr *Subround) HasProofForCompetingBlock() bool {
-	currentBlock := sr.Blockchain().GetCurrentBlockHeader()
+	currentBlock, currentBlockHash := sr.Blockchain().GetCurrentBlockHeaderAndHash()
 	if check.IfNil(currentBlock) {
 		return false
 	}
@@ -315,7 +315,6 @@ func (sr *Subround) HasProofForCompetingBlock() bool {
 		return false
 	}
 
-	currentBlockHash := sr.Blockchain().GetCurrentBlockHeaderHash()
 	proofExtendsCurrentBlock, ancestryKnown := sr.proofExtendsBlock(proof, currentBlockHash)
 	if !ancestryKnown || proofExtendsCurrentBlock {
 		return true
@@ -361,7 +360,7 @@ func (sr *Subround) proofExtendsBlock(proof data.HeaderProofHandler, parentHash 
 
 // HasProofForCompetingParent returns true if an actionable proof outranks the current header
 func (sr *Subround) HasProofForCompetingParent() bool {
-	currentBlock := sr.Blockchain().GetCurrentBlockHeader()
+	currentBlock, currentHash := sr.Blockchain().GetCurrentBlockHeaderAndHash()
 	if check.IfNil(currentBlock) {
 		return false
 	}
@@ -374,7 +373,6 @@ func (sr *Subround) HasProofForCompetingParent() bool {
 		return preferredProof.GetHeaderRound() < currentBlock.GetRound()
 	}
 
-	currentHash := sr.Blockchain().GetCurrentBlockHeaderHash()
 	if !proofRanksBeforeHeader(preferredProof, currentBlock, currentHash) {
 		return false
 	}
@@ -409,9 +407,6 @@ func (sr *Subround) HasProofForCompetingParent() bool {
 func proofRanksBeforeHeader(proof data.HeaderProofHandler, header data.HeaderHandler, headerHash []byte) bool {
 	if proof.GetHeaderRound() != header.GetRound() {
 		return proof.GetHeaderRound() < header.GetRound()
-	}
-	if len(headerHash) == 0 {
-		return !bytes.Equal(proof.GetHeaderHash(), headerHash)
 	}
 
 	return bytes.Compare(proof.GetHeaderHash(), headerHash) < 0

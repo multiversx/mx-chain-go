@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math"
 	"testing"
 	"time"
@@ -18,6 +19,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testscommonDataRetriever "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
@@ -26,6 +29,21 @@ type branchAwareSyncFixture struct {
 	headers       map[string]data.HeaderHandler
 	proofs        []data.HeaderProofHandler
 	notarizedHash []byte
+}
+
+type ambiguityDuringCheckForkDetector struct {
+	*shardForkDetector
+	inject   func()
+	injected bool
+}
+
+func (detector *ambiguityDuringCheckForkDetector) CheckFork() *process.ForkInfo {
+	if !detector.injected {
+		detector.injected = true
+		detector.inject()
+	}
+
+	return detector.shardForkDetector.CheckFork()
 }
 
 func newBranchAwareSyncFixture(currentHeader data.HeaderHandler, currentHash []byte) *branchAwareSyncFixture {
@@ -277,6 +295,212 @@ func TestBaseBootstrap_GetNextHeaderWaitsForUniqueV3Notarization(t *testing.T) {
 	require.ErrorIs(t, err, errBranchAwareSyncRetry)
 	require.Nil(t, header)
 	require.Nil(t, hash)
+}
+
+func TestBaseBootstrap_ResolvesAmbiguousNotarizationFromTrackerAuthority(t *testing.T) {
+	t.Parallel()
+
+	for _, reverseOrder := range []bool{false, true} {
+		reverseOrder := reverseOrder
+		t.Run(fmt.Sprintf("reverse=%v", reverseOrder), func(t *testing.T) {
+			t.Parallel()
+
+			currentHash := []byte("P")
+			currentHeader, _ := createBranchAwareHeader(10, currentHash, []byte("parent"))
+			fixture := newBranchAwareSyncFixture(currentHeader, currentHash)
+			selectedHash := []byte("B")
+			staleHash := []byte("A")
+
+			bfd := newBranchAwareForkDetector(0, 10, currentHash)
+			bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: currentHash}
+			bfd.fork.checkpoint = []*checkpointInfo{{nonce: 10, round: 10, hash: currentHash}}
+			infos := []*headerInfo{
+				{epoch: 1, nonce: 11, round: 11, hash: staleHash, prevHash: currentHash, state: process.BHNotarized},
+				{epoch: 1, nonce: 11, round: 12, hash: selectedHash, prevHash: currentHash, state: process.BHNotarized},
+			}
+			if reverseOrder {
+				infos[0], infos[1] = infos[1], infos[0]
+			}
+			bfd.headers[11] = infos
+			bfd.hasAmbiguousNotarization.Store(true)
+			sfd := &shardForkDetector{baseForkDetector: bfd}
+			bfd.forkDetector = sfd
+			fixture.boot.forkDetector = sfd
+			fixture.boot.settlementChecker = &settlementCheckerStub{
+				resolveNotarizedHeaderCalled: func(nonce uint64, candidates []notarizedHeaderCandidate) []byte {
+					require.Equal(t, uint64(11), nonce)
+					require.Len(t, candidates, 2)
+					return selectedHash
+				},
+			}
+
+			require.False(t, fixture.boot.tryResolveNotarizedAmbiguity(20))
+			selection := sfd.getNotarizedHeaderSelection(11)
+			require.Equal(t, selectedHash, selection.hash)
+			require.Empty(t, selection.candidates)
+		})
+	}
+}
+
+func TestBaseBootstrap_UnresolvedAmbiguityRequestsMissingCandidateEvidenceOncePerRound(t *testing.T) {
+	t.Parallel()
+
+	currentHash := []byte("P")
+	currentHeader, _ := createBranchAwareHeader(10, currentHash, []byte("parent"))
+	fixture := newBranchAwareSyncFixture(currentHeader, currentHash)
+	bfd := newBranchAwareForkDetector(0, 10, currentHash)
+	bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: currentHash}
+	bfd.headers[11] = []*headerInfo{
+		{epoch: 1, nonce: 11, round: 11, hash: []byte("A"), prevHash: currentHash, state: process.BHNotarized},
+		{epoch: 1, nonce: 11, round: 12, hash: []byte("B"), prevHash: currentHash, state: process.BHNotarized},
+	}
+	bfd.hasAmbiguousNotarization.Store(true)
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+	fixture.boot.forkDetector = sfd
+	fixture.boot.settlementChecker = &settlementCheckerStub{}
+
+	requestedHeaders := 0
+	requestedProofs := 0
+	fixture.boot.requestHandler = &testscommon.RequestHandlerStub{
+		RequestShardHeaderForEpochCalled: func(_ uint32, _ []byte, _ uint32) {
+			requestedHeaders++
+		},
+		RequestEquivalentProofByHashForEpochCalled: func(_ uint32, _ []byte, _ uint32) {
+			requestedProofs++
+		},
+	}
+
+	require.True(t, fixture.boot.tryResolveNotarizedAmbiguity(20))
+	require.True(t, fixture.boot.tryResolveNotarizedAmbiguity(20))
+	require.Equal(t, 2, requestedHeaders)
+	require.Equal(t, 2, requestedProofs)
+	require.True(t, fixture.boot.tryResolveNotarizedAmbiguity(21))
+	require.Equal(t, 4, requestedHeaders)
+	require.Equal(t, 4, requestedProofs)
+}
+
+func TestBaseBootstrap_ExactFinalAuthorityUsesRoundGatedReconciliation(t *testing.T) {
+	t.Parallel()
+
+	localHash := []byte("A")
+	selectedHash := []byte("B")
+	parentHash := []byte("P")
+	currentHeader, _ := createBranchAwareHeader(11, localHash, parentHash)
+	fixture := newBranchAwareSyncFixture(currentHeader, localHash)
+	_, selectedProof := createBranchAwareHeader(11, selectedHash, parentHash)
+	fixture.proofs = []data.HeaderProofHandler{selectedProof}
+
+	bfd := newBranchAwareForkDetector(0, 11, localHash)
+	bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: parentHash}
+	bfd.fork.checkpoint = []*checkpointInfo{
+		{nonce: 10, round: 10, hash: parentHash},
+		{nonce: 11, round: 21, hash: localHash},
+	}
+	bfd.fork.rollBackNonce = math.MaxUint64
+	bfd.headers[11] = []*headerInfo{
+		{epoch: 1, nonce: 11, round: 21, hash: localHash, prevHash: parentHash, state: process.BHProcessed, hasProof: true},
+		{epoch: 1, nonce: 11, round: 21, hash: localHash, prevHash: parentHash, state: process.BHNotarized},
+		{epoch: 1, nonce: 11, round: 22, hash: selectedHash, prevHash: parentHash, state: process.BHNotarized},
+	}
+	bfd.hasAmbiguousNotarization.Store(true)
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+	fixture.boot.forkDetector = sfd
+	fixture.boot.statusHandler = &statusHandlerMock.AppStatusHandlerStub{}
+	fixture.boot.settlementChecker = &settlementCheckerStub{
+		resolveNotarizedHeaderCalled: func(_ uint64, _ []notarizedHeaderCandidate) []byte {
+			return selectedHash
+		},
+	}
+
+	require.True(t, fixture.boot.tryResolveNotarizedAmbiguity(20))
+	require.False(t, fixture.boot.tryReconcileEquivocation(20))
+	require.Equal(t, uint64(11), sfd.GetHighestFinalBlockNonce())
+	require.Equal(t, uint64(10), sfd.settledCheckpoint().nonce)
+
+	require.True(t, fixture.boot.tryReconcileEquivocation(21))
+	require.Equal(t, uint64(10), sfd.GetHighestFinalBlockNonce())
+	require.Equal(t, uint64(10), sfd.settledCheckpoint().nonce)
+	require.Equal(t, uint64(11), sfd.getRollBackNonce())
+}
+
+func TestBaseBootstrap_AmbiguityAppearingDuringForkCheckKeepsNodeUnsynchronized(t *testing.T) {
+	t.Parallel()
+
+	currentHash := []byte("P")
+	currentHeader, _ := createBranchAwareHeader(10, currentHash, []byte("parent"))
+	fixture := newBranchAwareSyncFixture(currentHeader, currentHash)
+	bfd := newBranchAwareForkDetector(0, 10, currentHash)
+	bfd.fork.checkpoint = []*checkpointInfo{{nonce: 10, round: 10, hash: currentHash}}
+	bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: currentHash}
+	bfd.fork.rollBackNonce = math.MaxUint64
+	bfd.setProbableHighestNonce(10)
+	bfd.roundHandler = &testscommon.RoundHandlerMock{
+		IndexCalled: func() int64 {
+			return 20
+		},
+	}
+	bfd.processConfigsHandler = testscommon.GetDefaultProcessConfigsHandler()
+	bfd.proofsPool = &testscommonDataRetriever.ProofsPoolMock{}
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+	detector := &ambiguityDuringCheckForkDetector{
+		shardForkDetector: sfd,
+		inject: func() {
+			bfd.headers[11] = []*headerInfo{
+				{epoch: 1, nonce: 11, round: 21, hash: []byte("A"), prevHash: currentHash, state: process.BHNotarized},
+				{epoch: 1, nonce: 11, round: 22, hash: []byte("B"), prevHash: currentHash, state: process.BHNotarized},
+			}
+			bfd.hasAmbiguousNotarization.Store(true)
+			bfd.setProbableHighestNonce(11)
+		},
+	}
+	fixture.boot.forkDetector = detector
+	fixture.boot.roundHandler = bfd.roundHandler
+	fixture.boot.networkWatcher = &p2pmocks.MessengerStub{}
+	fixture.boot.statusHandler = &statusHandlerMock.AppStatusHandlerStub{}
+
+	fixture.boot.computeNodeState(20)
+
+	require.True(t, detector.hasUnresolvedNotarizedAmbiguity())
+	require.False(t, fixture.boot.isNodeSynchronized)
+	require.True(t, fixture.boot.nodeStateHasAmbiguity)
+
+	bfd.mutHeaders.Lock()
+	delete(bfd.headers, 11)
+	bfd.hasAmbiguousNotarization.Store(false)
+	bfd.mutHeaders.Unlock()
+	fixture.boot.computeNodeState(20)
+	require.False(t, fixture.boot.nodeStateHasAmbiguity)
+}
+
+func TestBaseBootstrap_MetaDoesNotRunShardAuthorityResolution(t *testing.T) {
+	t.Parallel()
+
+	currentHash := []byte("P")
+	currentHeader, _ := createBranchAwareMetaHeader(10, currentHash, []byte("parent"))
+	fixture := newBranchAwareSyncFixture(currentHeader, currentHash)
+	bfd := newBranchAwareForkDetector(core.MetachainShardId, 10, currentHash)
+	bfd.headers[11] = []*headerInfo{
+		{epoch: 1, nonce: 11, round: 21, hash: []byte("A"), prevHash: currentHash, state: process.BHNotarized},
+		{epoch: 1, nonce: 11, round: 22, hash: []byte("B"), prevHash: currentHash, state: process.BHNotarized},
+	}
+	bfd.hasAmbiguousNotarization.Store(true)
+	mfd := &metaForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = mfd
+	fixture.boot.forkDetector = mfd
+	resolverCalls := 0
+	fixture.boot.settlementChecker = &settlementCheckerStub{
+		resolveNotarizedHeaderCalled: func(_ uint64, _ []notarizedHeaderCandidate) []byte {
+			resolverCalls++
+			return nil
+		},
+	}
+
+	require.False(t, fixture.boot.tryResolveNotarizedAmbiguity(20))
+	require.False(t, fixture.boot.hasUnresolvedNotarizedAmbiguity())
+	require.Zero(t, resolverCalls)
 }
 
 func TestBaseBootstrap_GetNextMetaHeaderPreservesMissingDirectedV3Hash(t *testing.T) {
@@ -636,10 +860,10 @@ func TestBranchAwareRecoveryConvergesAcrossEvidenceOrders(t *testing.T) {
 			}
 
 			require.Equal(t, preferredHeader.Nonce, sfd.ProbableHighestNonce())
-			notarizedHash, isV3, isAmbiguous := sfd.getNotarizedHeaderSelection(preferredHeader.Nonce)
-			require.Equal(t, preferredHash, notarizedHash)
-			require.True(t, isV3)
-			require.False(t, isAmbiguous)
+			selection := sfd.getNotarizedHeaderSelection(preferredHeader.Nonce)
+			require.Equal(t, preferredHash, selection.hash)
+			require.True(t, selection.isV3)
+			require.Empty(t, selection.candidates)
 			forkInfo := sfd.CheckFork()
 			require.False(t, forkInfo.IsDetected, "fork info: %+v; final nonce: %d", forkInfo, bfd.finalCheckpoint().nonce)
 

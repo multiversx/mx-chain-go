@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -56,6 +57,56 @@ func TestShardSettlementChecker_IsSettled(t *testing.T) {
 
 		require.False(t, checker.isSettled(nonce, headerHash, 0, 0))
 	})
+}
+
+func TestShardSettlementChecker_ResolveNotarizedHeaderFromSelectedMetaChain(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(7)
+	hashA := []byte("A")
+	hashB := []byte("B")
+	anchor := &block.MetaBlockV3{Nonce: 20}
+	selectedMeta := &block.MetaBlockV3{
+		Nonce:    21,
+		PrevHash: []byte("anchor"),
+		ShardInfoProposal: []block.ShardDataProposal{{
+			ShardID:    0,
+			Nonce:      nonce,
+			HeaderHash: hashB,
+		}},
+	}
+	checker := &shardSettlementChecker{
+		selfShardID: 0,
+		metaFinalityView: &testscommon.MetaFinalityViewStub{
+			IsMetaHeaderHeldFinalCalled: func(_ data.HeaderHandler, hash []byte) bool {
+				return bytes.Equal(hash, []byte("selectedMeta"))
+			},
+		},
+		blockTracker: &mock.BlockTrackerMock{
+			GetLastSelfNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+				return nil, nil, errors.New("missing self anchor")
+			},
+			GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+				return anchor, []byte("anchor"), nil
+			},
+			ComputeLongestChainCalled: func(_ uint32, _ data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+				return []data.HeaderHandler{selectedMeta}, [][]byte{[]byte("selectedMeta")}
+			},
+		},
+	}
+	candidates := []notarizedHeaderCandidate{
+		{hash: hashA, nonce: nonce},
+		{hash: hashB, nonce: nonce},
+	}
+
+	require.Equal(t, hashB, checker.resolveNotarizedHeader(nonce, candidates))
+
+	anchor.ShardInfoProposal = []block.ShardDataProposal{{ShardID: 0, Nonce: nonce, HeaderHash: hashA}}
+	require.Nil(t, checker.resolveNotarizedHeader(nonce, candidates))
+
+	anchor.ShardInfoProposal = nil
+	checker.metaFinalityView = &testscommon.MetaFinalityViewStub{}
+	require.Nil(t, checker.resolveNotarizedHeader(nonce, candidates))
 }
 
 type scanRequests struct {

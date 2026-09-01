@@ -10,9 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
-// IsSettledCrossHeader returns true if a proofed child extending the header is known locally, from
-// the tracked headers or from the headers pool; only META headers settle this way, since a proofed
-// shard child does not exclude a lower-round sibling that gathers one too
+// IsSettledCrossHeader uses the held-final rule for V3 meta headers and the proofed-child rule for
+// legacy meta headers.
 func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool {
 	if check.IfNil(header) || len(headerHash) == 0 {
 		return false
@@ -21,6 +20,9 @@ func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, heade
 	shardID := header.GetShardID()
 	if shardID != core.MetachainShardId {
 		return false
+	}
+	if header.IsHeaderV3() {
+		return isMetaHeaderHeldFinal(bbt.headersPool, bbt.proofsPool, header, headerHash)
 	}
 
 	childNonce := header.GetNonce() + 1

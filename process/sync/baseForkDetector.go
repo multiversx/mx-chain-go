@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"math"
 	"sync"
+	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -28,6 +29,26 @@ type appendHeaderInfoResult struct {
 	inserted bool
 	enriched bool
 }
+
+type notarizedHeaderCandidate struct {
+	hash  []byte
+	epoch uint32
+	nonce uint64
+}
+
+type notarizedHeaderSelection struct {
+	hash       []byte
+	isV3       bool
+	candidates []notarizedHeaderCandidate
+}
+
+type notarizedHeaderResolution uint8
+
+const (
+	notarizedHeaderUnresolved notarizedHeaderResolution = iota
+	notarizedHeaderApplied
+	notarizedHeaderNeedsReconciliation
+)
 
 type checkpointInfo struct {
 	nonce uint64
@@ -54,6 +75,7 @@ type baseForkDetector struct {
 	fork                          forkInfo
 	mutFork                       sync.RWMutex
 	mutProbableHighestNonceUpdate sync.Mutex
+	hasAmbiguousNotarization      atomic.Bool
 
 	shardID                uint32
 	blackListHandler       process.TimeCacher
@@ -164,6 +186,9 @@ func (bfd *baseForkDetector) removePastHeaders() {
 		if nonce < settledCheckpointNonce {
 			delete(bfd.headers, nonce)
 		}
+	}
+	if bfd.hasAmbiguousNotarization.Load() {
+		bfd.refreshAmbiguousNotarizationLocked()
 	}
 	bfd.mutHeaders.Unlock()
 }
@@ -656,6 +681,7 @@ func (bfd *baseForkDetector) ReconcileFinalCheckpointBelow(nonce uint64) bool {
 			delete(bfd.headers, hdrNonce)
 		}
 	}
+	bfd.refreshAmbiguousNotarizationLocked()
 	bfd.mutHeaders.Unlock()
 
 	bfd.mutFork.Lock()
@@ -734,6 +760,9 @@ func (bfd *baseForkDetector) appendHeaderInfo(hdrInfo *headerInfo) appendHeaderI
 	}
 
 	bfd.headers[hdrInfo.nonce] = append(bfd.headers[hdrInfo.nonce], hdrInfo)
+	if hdrInfo.state == process.BHNotarized && bfd.isAmbiguousNotarizationLocked(hdrInfo.nonce) {
+		bfd.hasAmbiguousNotarization.Store(true)
+	}
 	return appendHeaderInfoResult{inserted: true, enriched: enriched}
 }
 
@@ -911,10 +940,13 @@ func (bfd *baseForkDetector) hasCompetingSiblingEvidence(nonce uint64, hash []by
 
 func (bfd *baseForkDetector) hasCompetingSiblingEvidenceLocked(nonce uint64, hash []byte, parentHash []byte) bool {
 	for _, hdrInfo := range bfd.headers[nonce] {
-		if (hdrInfo.hasProof || hdrInfo.state == process.BHNotarized) &&
-			!bytes.Equal(hdrInfo.hash, hash) &&
-			bytes.Equal(hdrInfo.prevHash, parentHash) &&
-			bfd.isAsyncExecutionEnabled(hdrInfo) {
+		if bytes.Equal(hdrInfo.hash, hash) || !bfd.isAsyncExecutionEnabled(hdrInfo) {
+			continue
+		}
+		if hdrInfo.state == process.BHNotarized {
+			return true
+		}
+		if hdrInfo.hasProof && (len(hdrInfo.prevHash) == 0 || bytes.Equal(hdrInfo.prevHash, parentHash)) {
 			return true
 		}
 	}
@@ -929,6 +961,7 @@ func (bfd *baseForkDetector) RestoreToGenesis() {
 
 	bfd.mutHeaders.Lock()
 	bfd.headers = make(map[uint64][]*headerInfo)
+	bfd.hasAmbiguousNotarization.Store(false)
 	bfd.mutHeaders.Unlock()
 
 	bfd.mutFork.Lock()
@@ -1057,6 +1090,9 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 			continue
 		}
 		if nonce <= finalCheckpointNonce {
+			continue
+		}
+		if bfd.hasAmbiguousNotarization.Load() && bfd.isAmbiguousNotarizationLocked(nonce) {
 			continue
 		}
 
@@ -1248,18 +1284,27 @@ func (bfd *baseForkDetector) isSyncing() bool {
 
 // GetNotarizedHeaderHash returns the notarized header hash at nonce.
 func (bfd *baseForkDetector) GetNotarizedHeaderHash(nonce uint64) []byte {
-	hash, _, _ := bfd.getNotarizedHeaderSelection(nonce)
+	selection := bfd.getNotarizedHeaderSelection(nonce)
 
-	return hash
+	return selection.hash
 }
 
-func (bfd *baseForkDetector) getNotarizedHeaderSelection(nonce uint64) ([]byte, bool, bool) {
+func (bfd *baseForkDetector) getNotarizedHeaderSelection(nonce uint64) notarizedHeaderSelection {
 	bfd.mutHeaders.RLock()
 	defer bfd.mutHeaders.RUnlock()
 
+	selection := bfd.getNotarizedHeaderSelectionLocked(nonce)
+	if len(selection.candidates) > 1 {
+		bfd.hasAmbiguousNotarization.Store(true)
+	}
+
+	return selection
+}
+
+func (bfd *baseForkDetector) getNotarizedHeaderSelectionLocked(nonce uint64) notarizedHeaderSelection {
 	hdrInfos := bfd.headers[nonce]
 	var selectedHeader *headerInfo
-	numHashes := 0
+	candidates := make([]notarizedHeaderCandidate, 0, len(hdrInfos))
 	hasV3Header := false
 	for index, hdrInfo := range hdrInfos {
 		if hdrInfo.state != process.BHNotarized || bfd.hasEarlierSameHashWithState(hdrInfos, index) {
@@ -1269,18 +1314,149 @@ func (bfd *baseForkDetector) getNotarizedHeaderSelection(nonce uint64) ([]byte, 
 		if selectedHeader == nil {
 			selectedHeader = hdrInfo
 		}
-		numHashes++
+		candidates = append(candidates, notarizedHeaderCandidate{
+			hash:  append([]byte(nil), hdrInfo.hash...),
+			epoch: hdrInfo.epoch,
+			nonce: hdrInfo.nonce,
+		})
 		hasV3Header = hasV3Header || bfd.isAsyncExecutionEnabled(hdrInfo)
 	}
 
-	if numHashes > 1 && hasV3Header {
-		return nil, false, true
+	if len(candidates) > 1 && hasV3Header {
+		return notarizedHeaderSelection{isV3: true, candidates: candidates}
 	}
 	if selectedHeader != nil {
-		return selectedHeader.hash, bfd.isAsyncExecutionEnabled(selectedHeader), false
+		return notarizedHeaderSelection{
+			hash: append([]byte(nil), selectedHeader.hash...),
+			isV3: bfd.isAsyncExecutionEnabled(selectedHeader),
+		}
 	}
 
-	return nil, false, false
+	return notarizedHeaderSelection{}
+}
+
+func (bfd *baseForkDetector) hasUnresolvedNotarizedAmbiguity() bool {
+	return bfd.hasAmbiguousNotarization.Load()
+}
+
+func (bfd *baseForkDetector) getLowestAmbiguousNotarizedHeaderSelection() (notarizedHeaderSelection, bool) {
+	if !bfd.hasAmbiguousNotarization.Load() {
+		return notarizedHeaderSelection{}, false
+	}
+
+	bfd.mutHeaders.RLock()
+	defer bfd.mutHeaders.RUnlock()
+
+	lowestNonce := uint64(math.MaxUint64)
+	selection := notarizedHeaderSelection{}
+	for nonce := range bfd.headers {
+		if nonce >= lowestNonce || !bfd.isAmbiguousNotarizationLocked(nonce) {
+			continue
+		}
+
+		lowestNonce = nonce
+		selection = bfd.getNotarizedHeaderSelectionLocked(nonce)
+	}
+
+	if lowestNonce == math.MaxUint64 {
+		bfd.hasAmbiguousNotarization.Store(false)
+		return notarizedHeaderSelection{}, false
+	}
+
+	return selection, true
+}
+
+func (bfd *baseForkDetector) isAmbiguousNotarizationLocked(nonce uint64) bool {
+	hdrInfos := bfd.headers[nonce]
+	numHashes := 0
+	hasV3 := false
+	for index, hdrInfo := range hdrInfos {
+		if hdrInfo.state != process.BHNotarized || bfd.hasEarlierSameHashWithState(hdrInfos, index) {
+			continue
+		}
+
+		numHashes++
+		hasV3 = hasV3 || bfd.isAsyncExecutionEnabled(hdrInfo)
+	}
+
+	return numHashes > 1 && hasV3
+}
+
+func (bfd *baseForkDetector) refreshAmbiguousNotarizationLocked() {
+	for nonce := range bfd.headers {
+		if bfd.isAmbiguousNotarizationLocked(nonce) {
+			bfd.hasAmbiguousNotarization.Store(true)
+			return
+		}
+	}
+
+	bfd.hasAmbiguousNotarization.Store(false)
+}
+
+func (bfd *baseForkDetector) applyNotarizedHeaderSelection(nonce uint64, selectedHash []byte) notarizedHeaderResolution {
+	if len(selectedHash) == 0 {
+		return notarizedHeaderUnresolved
+	}
+
+	bfd.mutProbableHighestNonceUpdate.Lock()
+	defer bfd.mutProbableHighestNonceUpdate.Unlock()
+
+	bfd.mutFork.RLock()
+	settledNonce := bfd.fork.settledCheckpoint.nonce
+	finalNonce := bfd.fork.finalCheckpoint.nonce
+	finalHash := bfd.fork.finalCheckpoint.hash
+	if nonce <= settledNonce || nonce < finalNonce {
+		bfd.mutFork.RUnlock()
+		return notarizedHeaderUnresolved
+	}
+	if nonce == finalNonce && !bytes.Equal(finalHash, selectedHash) {
+		bfd.mutFork.RUnlock()
+		return notarizedHeaderNeedsReconciliation
+	}
+
+	removed := false
+	selectedV3 := false
+	bfd.mutHeaders.Lock()
+	hdrInfos := bfd.headers[nonce]
+	for _, hdrInfo := range hdrInfos {
+		if hdrInfo.state == process.BHNotarized && bytes.Equal(hdrInfo.hash, selectedHash) &&
+			bfd.isAsyncExecutionEnabled(hdrInfo) {
+			selectedV3 = true
+			break
+		}
+	}
+	if selectedV3 {
+		preserved := make([]*headerInfo, 0, len(hdrInfos))
+		for _, hdrInfo := range hdrInfos {
+			isConflictingAuthority := hdrInfo.state == process.BHNotarized && !bytes.Equal(hdrInfo.hash, selectedHash)
+			if isConflictingAuthority {
+				removed = true
+				continue
+			}
+			preserved = append(preserved, hdrInfo)
+		}
+		bfd.headers[nonce] = preserved
+		bfd.refreshAmbiguousNotarizationLocked()
+	}
+	bfd.mutHeaders.Unlock()
+	bfd.mutFork.RUnlock()
+
+	if !selectedV3 || !removed {
+		return notarizedHeaderUnresolved
+	}
+
+	if bfd.forkDetector != nil {
+		bfd.forkDetector.computeFinalCheckpoint()
+	}
+	probableHighestNonce := bfd.computeProbableHighestNonce()
+	bfd.setProbableHighestNonce(probableHighestNonce)
+
+	log.Warn("forkDetector selected unique metachain authority",
+		"nonce", nonce,
+		"hash", selectedHash,
+		"probable highest nonce", probableHighestNonce)
+
+	return notarizedHeaderApplied
 }
 
 func (bfd *baseForkDetector) getHeaderVersion(nonce uint64, hash []byte) (bool, bool) {

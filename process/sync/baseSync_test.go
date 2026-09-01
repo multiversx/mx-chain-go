@@ -1531,8 +1531,20 @@ type settlementCheckerStub struct {
 	isSettledWindowCalled        func(scanFrom uint64, scanTo uint64)
 	prepareInclusionScanCalled   func(scanCursor uint64) (uint64, uint64, uint64)
 	deadCrossNotarizedMetaCalled func() (data.HeaderHandler, []byte, bool)
+	resolveNotarizedHeaderCalled func(nonce uint64, candidates []notarizedHeaderCandidate) []byte
 	numCalls                     int
 	numPrepareCalls              int
+}
+
+func (stub *settlementCheckerStub) resolveNotarizedHeader(
+	nonce uint64,
+	candidates []notarizedHeaderCandidate,
+) []byte {
+	if stub.resolveNotarizedHeaderCalled != nil {
+		return stub.resolveNotarizedHeaderCalled(nonce, candidates)
+	}
+
+	return nil
 }
 
 func (stub *settlementCheckerStub) deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool) {

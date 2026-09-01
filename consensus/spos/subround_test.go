@@ -1460,8 +1460,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		t.Parallel()
 
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return nil
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return nil, nil
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{}
@@ -1475,8 +1475,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		t.Parallel()
 
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{Nonce: prevBlockNonce}
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, []byte("current_block_hash")
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1496,8 +1496,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		competingBlockHash := []byte("competing_block_hash")
 
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{Nonce: prevBlockNonce}
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, []byte("current_block_hash")
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1518,8 +1518,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		currentBlockHash := []byte("current_block_hash")
 
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{Nonce: prevBlockNonce}
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, currentBlockHash
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1541,8 +1541,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		competingBlockHash := []byte("competing_block_hash")
 
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{Nonce: prevBlockNonce}
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, currentBlockHash
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1564,11 +1564,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		proofHash := []byte("proof_hash")
 		currentBlockHash := []byte("current_block_hash")
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{Nonce: prevBlockNonce}
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return currentBlockHash
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.MetaBlockV3{Nonce: prevBlockNonce}, currentBlockHash
 			},
 		}
 		proof := &block.HeaderProof{HeaderHash: proofHash}
@@ -1598,11 +1595,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		currentBlockHash := []byte("current_block_hash")
 		proofHash := []byte("proof_hash")
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{Nonce: prevBlockNonce}
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return currentBlockHash
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.MetaBlockV3{Nonce: prevBlockNonce}, currentBlockHash
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1627,11 +1621,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		currentBlockHash := []byte("current_block_hash")
 		competingBlockHash := []byte("competing_block_hash")
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV3{Nonce: prevBlockNonce}
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return currentBlockHash
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.HeaderV3{Nonce: prevBlockNonce}, currentBlockHash
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1665,11 +1656,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		staleBlockHash := []byte("stale_block_hash")
 		staleProof := &block.HeaderProof{HeaderHash: staleBlockHash}
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV3{Nonce: prevBlockNonce}
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return currentBlockHash
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.HeaderV3{Nonce: prevBlockNonce}, currentBlockHash
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1698,11 +1686,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		currentBlockHash := []byte("current_block_hash")
 		competingBlockHash := []byte("competing_block_hash")
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV3{Nonce: prevBlockNonce}
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return currentBlockHash
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.HeaderV3{Nonce: prevBlockNonce}, currentBlockHash
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1730,11 +1715,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		staleProof := &block.HeaderProof{HeaderHash: staleBlockHash}
 		competingProof := &block.HeaderProof{HeaderHash: competingBlockHash}
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV3{Nonce: prevBlockNonce}
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return currentBlockHash
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.HeaderV3{Nonce: prevBlockNonce}, currentBlockHash
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1777,11 +1759,8 @@ func TestSubround_HasProofForCompetingParent(t *testing.T) {
 		ch := make(chan bool, 1)
 		container := consensus.InitConsensusCore()
 		container.SetBlockchain(&testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return currentHeader
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return headHash
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return currentHeader, headHash
 			},
 		})
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
@@ -1879,11 +1858,8 @@ func TestSubround_HasProofForCompetingParentUsesV3MetaAncestry(t *testing.T) {
 	) *spos.Subround {
 		container := consensus.InitConsensusCore()
 		container.SetBlockchain(&testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return head
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return headHash
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return head, headHash
 			},
 		})
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
