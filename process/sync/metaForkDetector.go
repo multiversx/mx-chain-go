@@ -134,7 +134,7 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 	}
 	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
 	mfd.addCheckpoint(newCheckpoint)
-	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) && mfd.canInstantlyFinalize(header) {
+	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) && mfd.canInstantlyFinalize(header, headerHash) {
 		mfd.setFinalCheckpoint(newCheckpoint)
 		// under Supernova the settled checkpoint advances only on settle-on-child
 		if !mfd.isSupernovaForHeader(header) {
