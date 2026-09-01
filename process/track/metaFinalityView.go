@@ -57,6 +57,26 @@ func isMetaHeaderHeldFinal(
 	header data.HeaderHandler,
 	headerHash []byte,
 ) bool {
+	return isMetaHeaderHeldFinalWithEvidence(
+		proofsPool,
+		header,
+		headerHash,
+		func(hash []byte, nonce uint64) data.HeaderHandler {
+			return getMetaHeaderFromPool(headersPool, hash, nonce)
+		},
+		func(nonce uint64, parentHash []byte, depth int) bool {
+			return hasProofedMetaDescendants(headersPool, proofsPool, nonce, parentHash, depth)
+		},
+	)
+}
+
+func isMetaHeaderHeldFinalWithEvidence(
+	proofsPool dataRetriever.ProofsPool,
+	header data.HeaderHandler,
+	headerHash []byte,
+	getHeader func(hash []byte, nonce uint64) data.HeaderHandler,
+	hasDescendants func(nonce uint64, parentHash []byte, depth int) bool,
+) bool {
 	if check.IfNil(header) || len(headerHash) == 0 {
 		return false
 	}
@@ -67,29 +87,33 @@ func isMetaHeaderHeldFinal(
 		return false
 	}
 
-	requiresReconciliation := header.IsHeaderV3() && hasProofedMetaSibling(headersPool, proofsPool, header, headerHash)
-	if isMetaHeaderInstantlyFinal(headersPool, proofsPool, header, requiresReconciliation) {
+	requiresReconciliation := header.IsHeaderV3() && hasProofedMetaSibling(proofsPool, header, headerHash, getHeader)
+	if isMetaHeaderInstantlyFinal(proofsPool, header, requiresReconciliation, getHeader) {
 		return true
 	}
 
 	if requiresReconciliation {
-		return HasMetaReconciliationEvidence(headersPool, proofsPool, header.GetNonce(), headerHash)
+		return hasDescendants(header.GetNonce()+1, headerHash, metaReconciliationEvidenceDepth)
 	}
 
-	return hasProofedChildInPool(headersPool, proofsPool, core.MetachainShardId, headerHash, header.GetNonce()+1)
+	return hasDescendants(header.GetNonce()+1, headerHash, 1)
 }
 
 // isInstantlyFinal covers the non contended case; the parent needs no recursion of its own, since a
 // proofed header is itself the proofed child that settles its parent
 func isMetaHeaderInstantlyFinal(
-	headersPool dataRetriever.HeadersPool,
 	proofsPool dataRetriever.ProofsPool,
 	header data.HeaderHandler,
 	requiresReconciliation bool,
+	getHeader func(hash []byte, nonce uint64) data.HeaderHandler,
 ) bool {
+	if header.GetNonce() == 0 {
+		return false
+	}
+
 	parentHash := header.GetPrevHash()
-	parent, err := headersPool.GetHeaderByHash(parentHash)
-	if err != nil || check.IfNil(parent) || parent.GetNonce()+1 != header.GetNonce() {
+	parent := getHeader(parentHash, header.GetNonce()-1)
+	if check.IfNil(parent) {
 		return false
 	}
 
@@ -105,10 +129,10 @@ func isMetaHeaderInstantlyFinal(
 }
 
 func hasProofedMetaSibling(
-	headersPool dataRetriever.HeadersPool,
 	proofsPool dataRetriever.ProofsPool,
 	header data.HeaderHandler,
 	headerHash []byte,
+	getHeader func(hash []byte, nonce uint64) data.HeaderHandler,
 ) bool {
 	proofs, err := proofsPool.GetProofsByNonce(header.GetNonce(), core.MetachainShardId)
 	if err != nil || len(proofs) <= 1 {
@@ -125,11 +149,8 @@ func hasProofedMetaSibling(
 			continue
 		}
 
-		sibling, errGet := headersPool.GetHeaderByHash(siblingHash)
-		if errGet != nil || check.IfNil(sibling) {
-			return true
-		}
-		if sibling.GetNonce() != header.GetNonce() || sibling.GetShardID() != core.MetachainShardId {
+		sibling := getHeader(siblingHash, header.GetNonce())
+		if check.IfNil(sibling) {
 			return true
 		}
 		if bytes.Equal(sibling.GetPrevHash(), header.GetPrevHash()) {
@@ -138,6 +159,19 @@ func hasProofedMetaSibling(
 	}
 
 	return false
+}
+
+func getMetaHeaderFromPool(
+	headersPool dataRetriever.HeadersPool,
+	headerHash []byte,
+	nonce uint64,
+) data.HeaderHandler {
+	header, err := headersPool.GetHeaderByHash(headerHash)
+	if err != nil || check.IfNil(header) || header.GetShardID() != core.MetachainShardId || header.GetNonce() != nonce {
+		return nil
+	}
+
+	return header
 }
 
 // IsIncludedInHeldFinalMetaBlock returns true if a meta block the node holds final references the

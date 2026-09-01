@@ -23,6 +23,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type blockTrackerWithInvalidationMock struct {
+	*mock.BlockTrackerMock
+	registerInvalidation func(handler func(uint32, []data.HeaderHandler, [][]byte))
+}
+
+func (tracker *blockTrackerWithInvalidationMock) RegisterInvalidatedSelfNotarizedFromCrossHeadersHandler(
+	handler func(uint32, []data.HeaderHandler, [][]byte),
+) {
+	tracker.registerInvalidation(handler)
+}
+
 func TestNewShardForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -146,10 +157,17 @@ func TestNewShardForkDetector_NilProofsPoolShouldErr(t *testing.T) {
 func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 	t.Parallel()
 
+	var invalidationHandler func(uint32, []data.HeaderHandler, [][]byte)
+	blockTracker := &blockTrackerWithInvalidationMock{
+		BlockTrackerMock: &mock.BlockTrackerMock{},
+		registerInvalidation: func(handler func(uint32, []data.HeaderHandler, [][]byte)) {
+			invalidationHandler = handler
+		},
+	}
 	sfd, err := sync.NewShardForkDetector(
 		&mock.RoundHandlerMock{},
 		&testscommon.TimeCacheStub{},
-		&mock.BlockTrackerMock{},
+		blockTracker,
 		0,
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -166,6 +184,7 @@ func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(0), sfd.LastCheckpointRound())
 	assert.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
 	assert.Equal(t, uint64(0), sfd.FinalCheckpointRound())
+	assert.NotNil(t, invalidationHandler)
 }
 
 func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
@@ -566,6 +585,7 @@ func createShardForkDetectorForFinality(enableEpochsHandler common.EnableEpochsH
 	FinalCheckpointNonce() uint64
 	SettledCheckpointNonce() uint64
 	ReceivedSelfNotarizedFromCrossHeaders(shardID uint32, headers []data.HeaderHandler, hashes [][]byte)
+	InvalidatedSelfNotarizedFromCrossHeaders(shardID uint32, headers []data.HeaderHandler, hashes [][]byte)
 } {
 	sfd, _ := sync.NewShardForkDetector(
 		&mock.RoundHandlerMock{RoundIndex: 5},
@@ -575,6 +595,34 @@ func createShardForkDetectorForFinality(enableEpochsHandler common.EnableEpochsH
 		0,
 		enableEpochsHandler,
 		&testscommon.EnableRoundsHandlerStub{},
+		&dataRetrieverMock.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
+	)
+
+	return sfd
+}
+
+func createShardForkDetectorForV3Settlement(enableEpochsHandler common.EnableEpochsHandler) interface {
+	process.ForkDetector
+	FinalCheckpointNonce() uint64
+	SettledCheckpointNonce() uint64
+	ReceivedSelfNotarizedFromCrossHeaders(shardID uint32, headers []data.HeaderHandler, hashes [][]byte)
+	InvalidatedSelfNotarizedFromCrossHeaders(shardID uint32, headers []data.HeaderHandler, hashes [][]byte)
+} {
+	sfd, _ := sync.NewShardForkDetector(
+		&mock.RoundHandlerMock{RoundIndex: 5},
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		0,
+		enableEpochsHandler,
+		testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag),
 		&dataRetrieverMock.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
 				return true
@@ -732,5 +780,111 @@ func TestShardForkDetector_SettledWatermarkUnderSupernova(t *testing.T) {
 		_ = sfd.AddHeader(cleanHdr2, hash2, process.BHProcessed, nil, nil)
 		require.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
 		require.Equal(t, uint64(2), sfd.SettledCheckpointNonce())
+	})
+
+	t.Run("dead meta authority is removed and no longer protects the settled watermark", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createShardForkDetectorForV3Settlement(supernovaHandler)
+		headerHash := []byte("v3Hash")
+		header := &block.HeaderV3{ShardID: 0, Epoch: 2, Nonce: 1, Round: 1}
+		require.NoError(t, sfd.AddHeader(header, headerHash, process.BHProcessed, nil, nil))
+
+		sfd.ReceivedSelfNotarizedFromCrossHeaders(
+			core.MetachainShardId,
+			[]data.HeaderHandler{header},
+			[][]byte{headerHash},
+		)
+		require.Equal(t, uint64(1), sfd.SettledCheckpointNonce())
+		require.Equal(t, headerHash, sfd.GetNotarizedHeaderHash(1))
+
+		sfd.InvalidatedSelfNotarizedFromCrossHeaders(
+			core.MetachainShardId,
+			[]data.HeaderHandler{header},
+			[][]byte{headerHash},
+		)
+
+		require.Equal(t, uint64(0), sfd.SettledCheckpointNonce())
+		require.Nil(t, sfd.GetNotarizedHeaderHash(1))
+		require.True(t, sfd.ReconcileFinalCheckpointBelow(1))
+	})
+
+	t.Run("invalidating consecutive authorities restores the last live settlement", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createShardForkDetectorForV3Settlement(supernovaHandler)
+		headers := []data.HeaderHandler{
+			&block.HeaderV3{ShardID: 0, Epoch: 2, Nonce: 1, Round: 1},
+			&block.HeaderV3{ShardID: 0, Epoch: 2, Nonce: 2, Round: 2, PrevHash: []byte("hash1")},
+			&block.HeaderV3{ShardID: 0, Epoch: 2, Nonce: 3, Round: 3, PrevHash: []byte("hash2")},
+		}
+		hashes := [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")}
+		for index, header := range headers {
+			require.NoError(t, sfd.AddHeader(header, hashes[index], process.BHProcessed, nil, nil))
+			sfd.ReceivedSelfNotarizedFromCrossHeaders(
+				core.MetachainShardId,
+				[]data.HeaderHandler{header},
+				[][]byte{hashes[index]},
+			)
+		}
+		require.Equal(t, uint64(3), sfd.SettledCheckpointNonce())
+
+		sfd.InvalidatedSelfNotarizedFromCrossHeaders(
+			core.MetachainShardId,
+			headers[1:],
+			hashes[1:],
+		)
+
+		require.Equal(t, uint64(1), sfd.SettledCheckpointNonce())
+		require.Equal(t, uint64(3), sfd.FinalCheckpointNonce())
+		_, settledHash := sfd.GetHighestSettledBlockInfo()
+		require.Equal(t, hashes[0], settledHash)
+		require.Nil(t, sfd.GetNotarizedHeaderHash(2))
+		require.Nil(t, sfd.GetNotarizedHeaderHash(3))
+	})
+
+	t.Run("legacy notarization cannot be invalidated through the V3 path", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createShardForkDetectorForV3Settlement(supernovaHandler)
+		headerHash := []byte("legacyHash")
+		header := &block.Header{ShardID: 0, Epoch: 2, Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
+		require.NoError(t, sfd.AddHeader(header, headerHash, process.BHProcessed, nil, nil))
+		sfd.ReceivedSelfNotarizedFromCrossHeaders(
+			core.MetachainShardId,
+			[]data.HeaderHandler{header},
+			[][]byte{headerHash},
+		)
+
+		sfd.InvalidatedSelfNotarizedFromCrossHeaders(
+			core.MetachainShardId,
+			[]data.HeaderHandler{header},
+			[][]byte{headerHash},
+		)
+
+		require.Equal(t, uint64(1), sfd.SettledCheckpointNonce())
+		require.Equal(t, headerHash, sfd.GetNotarizedHeaderHash(1))
+	})
+
+	t.Run("pre-activation V3 notarization cannot be invalidated", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createShardForkDetectorForFinality(supernovaHandler)
+		headerHash := []byte("preActivationHash")
+		header := &block.HeaderV3{ShardID: 0, Epoch: 2, Nonce: 1, Round: 1}
+		require.NoError(t, sfd.AddHeader(header, headerHash, process.BHProcessed, nil, nil))
+		sfd.ReceivedSelfNotarizedFromCrossHeaders(
+			core.MetachainShardId,
+			[]data.HeaderHandler{header},
+			[][]byte{headerHash},
+		)
+
+		sfd.InvalidatedSelfNotarizedFromCrossHeaders(
+			core.MetachainShardId,
+			[]data.HeaderHandler{header},
+			[][]byte{headerHash},
+		)
+
+		require.Equal(t, headerHash, sfd.GetNotarizedHeaderHash(1))
 	})
 }

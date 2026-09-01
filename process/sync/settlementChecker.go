@@ -149,29 +149,22 @@ func (checker *shardSettlementChecker) resolveNotarizedHeader(
 		return nil
 	}
 
-	var selectedHash []byte
-	lastSelfNotarized, lastSelfHash, err := checker.blockTracker.GetLastSelfNotarizedHeader(core.MetachainShardId)
-	if err == nil && !check.IfNil(lastSelfNotarized) {
-		selectedHash = checker.findCandidateInSelfNotarizedAncestry(
-			lastSelfNotarized,
-			lastSelfHash,
-			nonce,
-			candidates,
-		)
-	}
-
-	metaAnchor, _, err := checker.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	metaAnchor, metaAnchorHash, err := checker.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil || check.IfNil(metaAnchor) {
-		return selectedHash
+		return nil
 	}
 	metaAnchorHandler, ok := metaAnchor.(data.MetaHeaderHandler)
 	if !ok {
-		return selectedHash
+		return nil
 	}
 
-	selectedHash, unique := selectReferencedCandidate(metaAnchorHandler, checker.selfShardID, nonce, candidates, selectedHash)
-	if !unique {
-		return nil
+	var selectedHash []byte
+	var unique bool
+	if checker.metaFinalityView.IsMetaHeaderHeldFinal(metaAnchorHandler, metaAnchorHash) {
+		selectedHash, unique = selectReferencedCandidate(metaAnchorHandler, checker.selfShardID, nonce, candidates, nil)
+		if !unique {
+			return nil
+		}
 	}
 
 	continuation, continuationHashes := checker.blockTracker.ComputeLongestChain(core.MetachainShardId, metaAnchor)
@@ -189,36 +182,6 @@ func (checker *shardSettlementChecker) resolveNotarizedHeader(
 	}
 
 	return selectedHash
-}
-
-func (checker *shardSettlementChecker) findCandidateInSelfNotarizedAncestry(
-	header data.HeaderHandler,
-	headerHash []byte,
-	targetNonce uint64,
-	candidates []notarizedHeaderCandidate,
-) []byte {
-	if header.GetNonce() < targetNonce || header.GetNonce()-targetNonce > inclusionScanSpan {
-		return nil
-	}
-
-	currentHeader := header
-	currentHash := headerHash
-	for currentHeader.GetNonce() > targetNonce {
-		parentHash := currentHeader.GetPrevHash()
-		parent, err := checker.headers.GetHeaderByHash(parentHash)
-		if err != nil || check.IfNil(parent) || parent.GetShardID() != checker.selfShardID ||
-			parent.GetNonce()+1 != currentHeader.GetNonce() {
-			return nil
-		}
-
-		currentHeader = parent
-		currentHash = parentHash
-	}
-	if containsNotarizedCandidate(candidates, targetNonce, currentHash) {
-		return append([]byte(nil), currentHash...)
-	}
-
-	return nil
 }
 
 func selectReferencedCandidate(
