@@ -64,7 +64,7 @@ const DisabledShardIDAsObserver = uint32(0xFFFFFFFF) - 7
 
 // MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
 // in order to mark the transaction as valid.
-const MaxTxNonceDeltaAllowed = 100
+const MaxTxNonceDeltaAllowed = 100000
 
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 // TODO convert this const into a var and read it from config when this code moves to another binary
@@ -835,6 +835,9 @@ const (
 
 	// MetricSupernovaEnableEpoch represents the epoch when supernova is enabled
 	MetricSupernovaEnableEpoch = "erd_supernova_enable_epoch"
+
+	// MetricSupernovaTransitionReady represents whether the shard is ready for or has completed the Supernova transition
+	MetricSupernovaTransitionReady = "erd_supernova_transition_ready"
 
 	// MetricUnBondPeriod represents the unbond period in rounds from StakingSystemSCConfig
 	MetricUnBondPeriod = "erd_unbond_period"

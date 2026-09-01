@@ -452,6 +452,14 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	common.SetEnableEpochsHandler(enableEpochsHandler)
+	common.SetEnableRoundsHandler(enableRoundsHandler)
+	common.SetVersionsConfigHandler(&ccf.config.Versions)
+	common.SetProcessConfigsHandler(processConfigs)
+	common.SetCommonConfigsHandler(commonConfigsHandler)
+	common.SetAntifloodConfigsHandler(antifloodConfigsHandler)
+	common.SetConfigPaths(ccf.configPathsHolder.MainConfig, ccf.configPathsHolder.RoundActivation)
+
 	return &coreComponents{
 		hasher:                        hasher,
 		txSignHasher:                  txSignHasher,
@@ -531,6 +539,11 @@ func validateSupernovaActivationTuple(
 	supernovaEpoch uint32,
 	supernovaRound uint64,
 ) error {
+	if supernovaEpoch == 0 && supernovaRound > 0 {
+		return fmt.Errorf("%w: delayed Supernova activation in epoch zero has no previous epoch gas configuration",
+			errors.ErrSupernovaActivationConfigMismatch)
+	}
+
 	err := validateRoundDurationChanges(cfg.GeneralSettings.ChainParametersByEpoch, supernovaEpoch)
 	if err != nil {
 		return err

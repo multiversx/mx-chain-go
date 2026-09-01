@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -18,6 +19,7 @@ import (
 // ShardBootstrap implements the bootstrap mechanism
 type ShardBootstrap struct {
 	*baseBootstrap
+	bootstrapCompletedNotifier epochStart.BootstrapCompletedNotifier
 }
 
 // NewShardBootstrap creates a new Bootstrap object
@@ -93,6 +95,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	boot := ShardBootstrap{
 		baseBootstrap: base,
 	}
+	boot.bootstrapCompletedNotifier, _ = arguments.EpochStartTrigger.(epochStart.BootstrapCompletedNotifier)
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
@@ -151,6 +154,9 @@ func (boot *ShardBootstrap) StartSyncingBlocks() error {
 		log.Debug("boot.syncFromStorer",
 			"error", errNotCritical.Error(),
 		)
+	}
+	if boot.bootstrapCompletedNotifier != nil {
+		boot.bootstrapCompletedNotifier.OnBootstrapCompleted()
 	}
 
 	var ctx context.Context

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // GetDefaultProcessConfigsHandler -
@@ -167,4 +168,9 @@ func (p *ProcessConfigsHandlerStub) GetNumHeadersToRequestInAdvance(round uint64
 // IsInterfaceNil -
 func (p *ProcessConfigsHandlerStub) IsInterfaceNil() bool {
 	return p == nil
+}
+
+// SetActivationRound -
+func (p *ProcessConfigsHandlerStub) SetActivationRound(round uint64, log logger.Logger) {
+
 }

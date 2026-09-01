@@ -1411,7 +1411,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	if tpn.EnableEpochsHandler == nil {
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
-	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
+	coreComponents := getDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EnableRoundsHandler, tpn.EpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
 	coreComponents.HasherField = TestHasher
@@ -1524,6 +1524,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			DataPool:             tpn.DataPool,
 			Storage:              tpn.Storage,
 			RequestHandler:       tpn.RequestHandler,
+			ShardID:              tpn.ShardCoordinator.SelfId(),
 			Epoch:                0,
 			Validity:             1,
 			Finality:             1,
@@ -2476,7 +2477,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	if tpn.EnableEpochsHandler == nil {
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
-	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
+	coreComponents := getDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EnableRoundsHandler, tpn.EpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
@@ -2885,6 +2886,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 				DataPool:             tpn.DataPool,
 				Storage:              tpn.Storage,
 				RequestHandler:       tpn.RequestHandler,
+				ShardID:              tpn.ShardCoordinator.SelfId(),
 				Epoch:                0,
 				Validity:             1,
 				Finality:             1,
@@ -2953,7 +2955,7 @@ func (tpn *TestProcessorNode) initNode() {
 	if tpn.EnableEpochsHandler == nil {
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
-	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
+	coreComponents := getDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EnableRoundsHandler, tpn.EpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.VmMarshalizerField = TestVmMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
@@ -3874,6 +3876,14 @@ func GetDefaultCoreComponents(
 	enableEpochsHandler common.EnableEpochsHandler,
 	epochNotifier process.EpochNotifier,
 ) *mock.CoreComponentsStub {
+	return getDefaultCoreComponents(enableEpochsHandler, &testscommon.EnableRoundsHandlerStub{}, epochNotifier)
+}
+
+func getDefaultCoreComponents(
+	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
+	epochNotifier process.EpochNotifier,
+) *mock.CoreComponentsStub {
 	return &mock.CoreComponentsStub{
 		InternalMarshalizerField:      TestMarshalizer,
 		TxMarshalizerField:            TestTxSignMarshalizer,
@@ -3902,7 +3912,7 @@ func GetDefaultCoreComponents(
 		GenesisTimeField:                   time.Time{},
 		SupernovaGenesisTimeField:          time.Time{},
 		EpochNotifierField:                 epochNotifier,
-		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
+		EnableRoundsHandlerField:           enableRoundsHandler,
 		TxVersionCheckField:                versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal:       &testscommon.ProcessStatusHandlerStub{},
 		EnableEpochsHandlerField:           enableEpochsHandler,

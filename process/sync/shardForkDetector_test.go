@@ -517,8 +517,8 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 		roundHandlerMock := &mock.RoundHandlerMock{}
 
 		genesisTime := int64(900)
-		supernovaGenesisTime := int64(90000)
-		hdrTimeStamp := uint64(100000) // as milliseconds
+		supernovaGenesisTime := int64(910000)
+		hdrTimeStamp := uint64(920000) // as milliseconds
 
 		hdrRound := uint64(20)
 		supernovaActivationRound := uint64(10)
@@ -638,6 +638,19 @@ func TestShardForkDetector_DeferredFinalityUnderSupernova(t *testing.T) {
 		cleanHdr2 := &block.Header{Nonce: 2, Round: 2, PrevHash: hash1, PubKeysBitmap: []byte("X")}
 		_ = sfd.AddHeader(cleanHdr2, hash2, process.BHProcessed, nil, nil)
 		require.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
+	})
+
+	t.Run("notarization before processing advances the same final and settled checkpoint", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createShardForkDetectorForFinality(supernovaHandler)
+		sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, []data.HeaderHandler{hdr1}, [][]byte{hash1})
+		require.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
+		require.Equal(t, uint64(0), sfd.SettledCheckpointNonce())
+
+		_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(1), sfd.FinalCheckpointNonce())
+		require.Equal(t, uint64(1), sfd.SettledCheckpointNonce())
 	})
 
 	t.Run("fork is signaled at the deferred nonce", func(t *testing.T) {

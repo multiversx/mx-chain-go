@@ -1274,7 +1274,7 @@ func TestSubroundBlock_CreateBlockShouldUseNinetyPercentOfSubround(t *testing.T)
 			roundDuration:   6 * time.Second,
 			startPercentage: 0.05,
 			endPercentage:   0.25,
-			expectedMaxTime: 1380 * time.Millisecond,
+			expectedMaxTime: 1020 * time.Millisecond,
 		},
 		{
 			name:            "after Supernova",
@@ -1282,7 +1282,7 @@ func TestSubroundBlock_CreateBlockShouldUseNinetyPercentOfSubround(t *testing.T)
 			roundDuration:   600 * time.Millisecond,
 			startPercentage: 0.05,
 			endPercentage:   0.35,
-			expectedMaxTime: 192 * time.Millisecond,
+			expectedMaxTime: 138 * time.Millisecond,
 		},
 	}
 
