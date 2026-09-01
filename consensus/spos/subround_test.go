@@ -1557,18 +1557,52 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		assert.True(t, sr.HasProofForCompetingBlock())
 	})
 
-	t.Run("V3 metachain preserves legacy guard without ancestry lookup", func(t *testing.T) {
+	t.Run("V3 metachain ignores a known proof from another branch", func(t *testing.T) {
 		t.Parallel()
 
 		consensusBlockHash := []byte("consensus_block_hash")
+		proofHash := []byte("proof_hash")
+		currentBlockHash := []byte("current_block_hash")
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{Nonce: prevBlockNonce}
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return currentBlockHash
+			},
+		}
+		proof := &block.HeaderProof{HeaderHash: proofHash}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return proof, nil
+			},
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+				return []data.HeaderProofHandler{proof}, nil
+			},
+		}
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{PrevHash: []byte("other_parent")}, nil
+			},
+		}
+
+		sr := createSubround(blockchain, proofsPool, headersPool, core.MetachainShardId)
+		sr.SetData(consensusBlockHash)
+
+		assert.False(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("V3 metachain proofed child protects its parent", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("current_block_hash")
 		proofHash := []byte("proof_hash")
 		blockchain := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.MetaBlockV3{Nonce: prevBlockNonce}
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
-				require.Fail(t, "legacy metachain guard must not read ancestry")
-				return nil
+				return currentBlockHash
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1576,9 +1610,13 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 				return &block.HeaderProof{HeaderHash: proofHash}, nil
 			},
 		}
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{PrevHash: currentBlockHash}, nil
+			},
+		}
 
-		sr := createSubround(blockchain, proofsPool, nil, core.MetachainShardId)
-		sr.SetData(consensusBlockHash)
+		sr := createSubround(blockchain, proofsPool, headersPool, core.MetachainShardId)
 
 		assert.True(t, sr.HasProofForCompetingBlock())
 	})
@@ -1806,6 +1844,14 @@ func TestSubround_HasProofForCompetingParent(t *testing.T) {
 		assert.False(t, sr.HasProofForCompetingParent())
 	})
 
+	t.Run("legacy same-round competing proof keeps the round-only rule", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("anotherHash"), HeaderNonce: headNonce, HeaderRound: headRound}
+		sr := createSubround(head, proof)
+		assert.False(t, sr.HasProofForCompetingParent())
+	})
+
 	t.Run("higher-round sibling proof", func(t *testing.T) {
 		t.Parallel()
 
@@ -1813,6 +1859,172 @@ func TestSubround_HasProofForCompetingParent(t *testing.T) {
 		proof := &block.HeaderProof{HeaderHash: []byte("siblingHash"), HeaderNonce: headNonce, HeaderRound: headRound + 3}
 		sr := createSubround(head, proof)
 		assert.False(t, sr.HasProofForCompetingParent())
+	})
+}
+
+func TestSubround_HasProofForCompetingParentUsesV3MetaAncestry(t *testing.T) {
+	t.Parallel()
+
+	const headNonce = uint64(10)
+	const headRound = uint64(14)
+	headHash := []byte("head")
+	parentHash := []byte("parent")
+	head := &block.MetaBlockV3{Nonce: headNonce, Round: headRound, PrevHash: parentHash}
+
+	createSubround := func(
+		test *testing.T,
+		preferredProof data.HeaderProofHandler,
+		proofs []data.HeaderProofHandler,
+		headers map[string]data.HeaderHandler,
+	) *spos.Subround {
+		container := consensus.InitConsensusCore()
+		container.SetBlockchain(&testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return head
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return headHash
+			},
+		})
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				require.Equal(test, headNonce, headerNonce)
+				require.Equal(test, uint32(core.MetachainShardId), shardID)
+				return preferredProof, nil
+			},
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+				require.Equal(test, headNonce, headerNonce)
+				require.Equal(test, uint32(core.MetachainShardId), shardID)
+				return proofs, nil
+			},
+		})
+		container.SetHeadersPool(&pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				header, ok := headers[string(hash)]
+				if !ok {
+					return nil, errors.New("header not found")
+				}
+
+				return header, nil
+			},
+		})
+		container.SetShardCoordinator(&mock.ShardCoordinatorMock{ShardID: core.MetachainShardId})
+
+		sr, err := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			roundTimeDuration,
+			0.05,
+			0.25,
+			"(BLOCK)",
+			internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{}),
+			make(chan bool, 1),
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+		require.NoError(test, err)
+
+		return sr
+	}
+
+	t.Run("known off-branch proof does not roll back the head", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("off_branch"), HeaderNonce: headNonce, HeaderRound: headRound - 2}
+		sr := createSubround(
+			t,
+			proof,
+			[]data.HeaderProofHandler{proof},
+			map[string]data.HeaderHandler{string(proof.GetHeaderHash()): &block.MetaBlockV3{PrevHash: []byte("other_parent")}},
+		)
+
+		require.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("lower-ranked sibling proof is actionable", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("sibling"), HeaderNonce: headNonce, HeaderRound: headRound - 1}
+		sr := createSubround(
+			t,
+			proof,
+			[]data.HeaderProofHandler{proof},
+			map[string]data.HeaderHandler{string(proof.GetHeaderHash()): &block.MetaBlockV3{PrevHash: parentHash}},
+		)
+
+		require.True(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("same-round sibling uses the hash tie-break", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("aaa"), HeaderNonce: headNonce, HeaderRound: headRound}
+		sr := createSubround(
+			t,
+			proof,
+			[]data.HeaderProofHandler{proof},
+			map[string]data.HeaderHandler{string(proof.GetHeaderHash()): &block.MetaBlockV3{PrevHash: parentHash}},
+		)
+
+		require.True(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("own proof does not outcompete the head", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: headHash, HeaderNonce: headNonce, HeaderRound: headRound}
+		sr := createSubround(t, proof, []data.HeaderProofHandler{proof}, nil)
+
+		require.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("higher-round sibling does not outcompete the head", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("sibling"), HeaderNonce: headNonce, HeaderRound: headRound + 1}
+		sr := createSubround(t, proof, []data.HeaderProofHandler{proof}, nil)
+
+		require.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("same-round higher hash does not outcompete the head", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("zzz"), HeaderNonce: headNonce, HeaderRound: headRound}
+		sr := createSubround(t, proof, []data.HeaderProofHandler{proof}, nil)
+
+		require.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("another lower-ranked sibling remains actionable", func(t *testing.T) {
+		t.Parallel()
+
+		offBranchProof := &block.HeaderProof{HeaderHash: []byte("off_branch"), HeaderNonce: headNonce, HeaderRound: headRound - 2}
+		siblingProof := &block.HeaderProof{HeaderHash: []byte("sibling"), HeaderNonce: headNonce, HeaderRound: headRound - 1}
+		sr := createSubround(
+			t,
+			offBranchProof,
+			[]data.HeaderProofHandler{offBranchProof, siblingProof},
+			map[string]data.HeaderHandler{
+				string(offBranchProof.GetHeaderHash()): &block.MetaBlockV3{PrevHash: []byte("other_parent")},
+				string(siblingProof.GetHeaderHash()):   &block.MetaBlockV3{PrevHash: parentHash},
+			},
+		)
+
+		require.True(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("missing ancestry remains conservative", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("unknown"), HeaderNonce: headNonce, HeaderRound: headRound - 1}
+		sr := createSubround(t, proof, []data.HeaderProofHandler{proof}, nil)
+
+		require.True(t, sr.HasProofForCompetingParent())
 	})
 }
 

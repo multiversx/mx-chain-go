@@ -258,7 +258,7 @@ func (bfd *baseForkDetector) classifyProbableHeaders(
 	finalCheckpoint *checkpointInfo,
 	settledNonce uint64,
 ) (bool, bool) {
-	canSelectBranch := bfd.shardID != core.MetachainShardId && len(finalCheckpoint.hash) > 0
+	canSelectBranch := len(finalCheckpoint.hash) > 0
 	hasBranchSelectionEvidence := false
 	hasActionableHeader := false
 
@@ -1027,15 +1027,30 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 			continue
 		}
 
-		selfHdrInfo = nil
+		selfHdrInfo = getProcessedHeaderInfo(hdrsInfo)
+		if selfHdrInfo == nil {
+			continue
+		}
+
 		forkHeaderRound = math.MaxUint64
 		forkHeaderHash = nil
 		forkHeaderEpoch = 0
-		bfd.maxForkHeaderEpoch = getMaxEpochFromHdrsInfo(hdrsInfo)
+		bfd.maxForkHeaderEpoch = selfHdrInfo.epoch
+		for _, hdrInfo := range hdrsInfo {
+			if hdrInfo.state == process.BHProcessed ||
+				!bfd.isForkCandidateForProcessedHeader(selfHdrInfo, hdrInfo) {
+				continue
+			}
+			if hdrInfo.epoch > bfd.maxForkHeaderEpoch {
+				bfd.maxForkHeaderEpoch = hdrInfo.epoch
+			}
+		}
 
 		for i := 0; i < len(hdrsInfo); i++ {
 			if hdrsInfo[i].state == process.BHProcessed {
-				selfHdrInfo = hdrsInfo[i]
+				continue
+			}
+			if !bfd.isForkCandidateForProcessedHeader(selfHdrInfo, hdrsInfo[i]) {
 				continue
 			}
 
@@ -1045,11 +1060,6 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 				forkHeaderRound,
 				forkHeaderEpoch,
 			)
-		}
-
-		if selfHdrInfo == nil {
-			// if current nonce has not been processed yet, then skip and check the next one.
-			continue
 		}
 
 		if bfd.shouldSignalFork(selfHdrInfo, forkHeaderHash, forkHeaderRound, forkHeaderEpoch) {
@@ -1066,14 +1076,26 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 	return forkInfoObject
 }
 
-func getMaxEpochFromHdrsInfo(hdrInfos []*headerInfo) uint32 {
-	maxEpoch := uint32(0)
+func getProcessedHeaderInfo(hdrInfos []*headerInfo) *headerInfo {
+	var processedHeader *headerInfo
 	for _, hdrInfo := range hdrInfos {
-		if hdrInfo.epoch > maxEpoch {
-			maxEpoch = hdrInfo.epoch
+		if hdrInfo.state == process.BHProcessed {
+			processedHeader = hdrInfo
 		}
 	}
-	return maxEpoch
+
+	return processedHeader
+}
+
+func (bfd *baseForkDetector) isForkCandidateForProcessedHeader(processedHeader *headerInfo, candidate *headerInfo) bool {
+	if !bfd.isAsyncExecutionEnabled(processedHeader) ||
+		!bfd.isAsyncExecutionEnabled(candidate) ||
+		candidate.state == process.BHNotarized ||
+		len(processedHeader.prevHash) == 0 {
+		return true
+	}
+
+	return len(candidate.prevHash) > 0 && bytes.Equal(candidate.prevHash, processedHeader.prevHash)
 }
 
 func (bfd *baseForkDetector) computeForkInfo(

@@ -306,7 +306,7 @@ func (sr *Subround) HasProofForCompetingBlock() bool {
 	}
 
 	consensusBlockHash := sr.GetData()
-	if sr.ShardCoordinator().SelfId() == core.MetachainShardId || !currentBlock.IsHeaderV3() {
+	if !currentBlock.IsHeaderV3() {
 		return len(consensusBlockHash) == 0 || !bytes.Equal(proof.GetHeaderHash(), consensusBlockHash)
 	}
 
@@ -359,20 +359,62 @@ func (sr *Subround) proofExtendsBlock(proof data.HeaderProofHandler, parentHash 
 	return bytes.Equal(header.GetPrevHash(), parentHash), true
 }
 
-// HasProofForCompetingParent returns true if the proofs pool holds a proof for a lower-round sibling
-// of the current block header; a proof for the current header has its own round, so it never triggers
+// HasProofForCompetingParent returns true if an actionable proof outranks the current header
 func (sr *Subround) HasProofForCompetingParent() bool {
 	currentBlock := sr.Blockchain().GetCurrentBlockHeader()
 	if check.IfNil(currentBlock) {
 		return false
 	}
 
-	lowestProof, err := sr.EquivalentProofsPool().GetProofByNonce(currentBlock.GetNonce(), sr.ShardCoordinator().SelfId())
-	if err != nil || check.IfNil(lowestProof) {
+	preferredProof, err := sr.EquivalentProofsPool().GetProofByNonce(currentBlock.GetNonce(), sr.ShardCoordinator().SelfId())
+	if err != nil || check.IfNil(preferredProof) {
+		return false
+	}
+	if !currentBlock.IsHeaderV3() {
+		return preferredProof.GetHeaderRound() < currentBlock.GetRound()
+	}
+
+	currentHash := sr.Blockchain().GetCurrentBlockHeaderHash()
+	if !proofRanksBeforeHeader(preferredProof, currentBlock, currentHash) {
 		return false
 	}
 
-	return lowestProof.GetHeaderRound() < currentBlock.GetRound()
+	extendsCurrentParent, ancestryKnown := sr.proofExtendsBlock(preferredProof, currentBlock.GetPrevHash())
+	if !ancestryKnown || extendsCurrentParent {
+		return true
+	}
+
+	proofs, err := sr.EquivalentProofsPool().GetProofsByNonce(currentBlock.GetNonce(), sr.ShardCoordinator().SelfId())
+	if err != nil {
+		return true
+	}
+
+	for _, proof := range proofs {
+		if check.IfNil(proof) {
+			return true
+		}
+		if !proofRanksBeforeHeader(proof, currentBlock, currentHash) {
+			continue
+		}
+
+		extendsCurrentParent, ancestryKnown = sr.proofExtendsBlock(proof, currentBlock.GetPrevHash())
+		if !ancestryKnown || extendsCurrentParent {
+			return true
+		}
+	}
+
+	return false
+}
+
+func proofRanksBeforeHeader(proof data.HeaderProofHandler, header data.HeaderHandler, headerHash []byte) bool {
+	if proof.GetHeaderRound() != header.GetRound() {
+		return proof.GetHeaderRound() < header.GetRound()
+	}
+	if len(headerHash) == 0 {
+		return !bytes.Equal(proof.GetHeaderHash(), headerHash)
+	}
+
+	return bytes.Compare(proof.GetHeaderHash(), headerHash) < 0
 }
 
 // GetAssociatedPid returns the associated PeerID to the provided public key bytes

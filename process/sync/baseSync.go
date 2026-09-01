@@ -269,13 +269,12 @@ func (boot *baseBootstrap) processReceivedProof(headerProof data.HeaderProofHand
 }
 
 func (boot *baseBootstrap) enrichForkDetectorWithProofHeader(headerProof data.HeaderProofHandler) {
-	if headerProof.GetHeaderShardId() == core.MetachainShardId ||
-		!common.IsAsyncExecutionEnabledForEpochAndRound(
-			boot.enableEpochsHandler,
-			boot.enableRoundsHandler,
-			headerProof.GetHeaderEpoch(),
-			headerProof.GetHeaderRound(),
-		) {
+	if !common.IsAsyncExecutionEnabledForEpochAndRound(
+		boot.enableEpochsHandler,
+		boot.enableRoundsHandler,
+		headerProof.GetHeaderEpoch(),
+		headerProof.GetHeaderRound(),
+	) {
 		return
 	}
 
@@ -2460,7 +2459,7 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	hash = boot.selectNonBlackListedHash(hash, nonce)
 
 	if hash != nil {
-		if selectedFromProof && boot.shardCoordinator.SelfId() != core.MetachainShardId {
+		if selectedFromProof {
 			return boot.getGenericProofHeaderRequestingIfMissing(nonce, hash)
 		}
 
@@ -2472,18 +2471,13 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 }
 
 func (boot *baseBootstrap) isAsyncExecutionEnabledForHash(hash []byte) bool {
-	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
-		return false
-	}
-
 	header, err := boot.getHeaderFromPool(hash)
-	if err == nil && header.GetShardID() != core.MetachainShardId &&
-		common.IsAsyncExecutionEnabledForEpochAndRound(
-			boot.enableEpochsHandler,
-			boot.enableRoundsHandler,
-			header.GetEpoch(),
-			header.GetRound(),
-		) {
+	if err == nil && common.IsAsyncExecutionEnabledForEpochAndRound(
+		boot.enableEpochsHandler,
+		boot.enableRoundsHandler,
+		header.GetEpoch(),
+		header.GetRound(),
+	) {
 		return true
 	}
 
@@ -2492,13 +2486,12 @@ func (boot *baseBootstrap) isAsyncExecutionEnabledForHash(hash []byte) bool {
 		return false
 	}
 
-	return proof.GetHeaderShardId() != core.MetachainShardId &&
-		common.IsAsyncExecutionEnabledForEpochAndRound(
-			boot.enableEpochsHandler,
-			boot.enableRoundsHandler,
-			proof.GetHeaderEpoch(),
-			proof.GetHeaderRound(),
-		)
+	return common.IsAsyncExecutionEnabledForEpochAndRound(
+		boot.enableEpochsHandler,
+		boot.enableRoundsHandler,
+		proof.GetHeaderEpoch(),
+		proof.GetHeaderRound(),
+	)
 }
 
 func (boot *baseBootstrap) getGenericProofHeaderRequestingIfMissing(
@@ -2507,7 +2500,7 @@ func (boot *baseBootstrap) getGenericProofHeaderRequestingIfMissing(
 ) (data.HeaderHandler, []byte, error) {
 	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
 	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
-	if check.IfNil(currentHeader) || currentHeader.GetShardID() == core.MetachainShardId || len(currentHash) == 0 ||
+	if check.IfNil(currentHeader) || len(currentHash) == 0 ||
 		!common.IsAsyncExecutionEnabledForEpochAndRound(
 			boot.enableEpochsHandler,
 			boot.enableRoundsHandler,
@@ -2554,11 +2547,7 @@ func (boot *baseBootstrap) getGenericProofHeaderRequestingIfMissing(
 
 	if len(missingProofs) > 0 {
 		for _, proof := range missingProofs {
-			boot.requestHandler.RequestShardHeaderForEpoch(
-				boot.shardCoordinator.SelfId(),
-				proof.GetHeaderHash(),
-				proof.GetHeaderEpoch(),
-			)
+			boot.requestProofHeader(proof)
 		}
 
 		return nil, nil, errBranchAwareSyncRetry
@@ -2566,6 +2555,20 @@ func (boot *baseBootstrap) getGenericProofHeaderRequestingIfMissing(
 
 	boot.requestUnknownCanonicalHeader(nonce, currentHeader.GetNonce())
 	return nil, nil, errBranchAwareSyncRetry
+}
+
+func (boot *baseBootstrap) requestProofHeader(proof data.HeaderProofHandler) {
+	shardID := boot.shardCoordinator.SelfId()
+	if shardID == core.MetachainShardId {
+		boot.requestHandler.RequestMetaHeaderForEpoch(proof.GetHeaderHash(), proof.GetHeaderEpoch())
+		return
+	}
+
+	boot.requestHandler.RequestShardHeaderForEpoch(
+		shardID,
+		proof.GetHeaderHash(),
+		proof.GetHeaderEpoch(),
+	)
 }
 
 func (boot *baseBootstrap) requestUnknownCanonicalHeader(nonce uint64, currentNonce uint64) {
