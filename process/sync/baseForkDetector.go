@@ -57,14 +57,18 @@ type checkpointInfo struct {
 }
 
 type forkInfo struct {
-	checkpoint              []*checkpointInfo
-	finalCheckpoint         *checkpointInfo
-	settledCheckpoint       *checkpointInfo
-	probableHighestNonce    uint64
-	highestNonceReceived    uint64
-	rollBackNonce           uint64
-	lastRoundWithForcedFork int64
+	checkpoint               []*checkpointInfo
+	finalCheckpoint          *checkpointInfo
+	settledCheckpoint        *checkpointInfo
+	settledCheckpointHistory []*checkpointInfo
+	probableHighestNonce     uint64
+	highestNonceReceived     uint64
+	rollBackNonce            uint64
+	lastRoundWithForcedFork  int64
 }
+
+// A dead-source verdict needs at most two newer meta nonces.
+const settledCheckpointHistorySize = 3
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
 type baseForkDetector struct {
@@ -873,13 +877,21 @@ func (bfd *baseForkDetector) advanceFinalCheckpoint(finalCheckpoint *checkpointI
 func (bfd *baseForkDetector) setSettledCheckpoint(settledCheckpoint *checkpointInfo) {
 	bfd.mutFork.Lock()
 	bfd.fork.settledCheckpoint = settledCheckpoint
+	bfd.fork.settledCheckpointHistory = nil
 	bfd.mutFork.Unlock()
 }
 
-// advanceSettledCheckpoint sets the settled checkpoint only forward; settlement is never undone
+// advanceSettledCheckpoint advances settlement and retains the rollback window for invalid authority.
 func (bfd *baseForkDetector) advanceSettledCheckpoint(settledCheckpoint *checkpointInfo) {
 	bfd.mutFork.Lock()
 	if settledCheckpoint.nonce > bfd.fork.settledCheckpoint.nonce {
+		bfd.fork.settledCheckpointHistory = append(
+			bfd.fork.settledCheckpointHistory,
+			bfd.fork.settledCheckpoint,
+		)
+		if len(bfd.fork.settledCheckpointHistory) > settledCheckpointHistorySize {
+			bfd.fork.settledCheckpointHistory = bfd.fork.settledCheckpointHistory[1:]
+		}
 		bfd.fork.settledCheckpoint = settledCheckpoint
 	}
 	bfd.mutFork.Unlock()
@@ -893,8 +905,7 @@ func (bfd *baseForkDetector) settledCheckpoint() *checkpointInfo {
 	return settledCheckpoint
 }
 
-// GetHighestSettledBlockInfo gets the nonce and hash of the settled block as a consistent pair;
-// unlike the final checkpoint, the settled one is settlement-anchored and never reconciled
+// GetHighestSettledBlockInfo gets the nonce and hash of the settled block as a consistent pair.
 func (bfd *baseForkDetector) GetHighestSettledBlockInfo() (uint64, []byte) {
 	settledCheckpoint := bfd.settledCheckpoint()
 
@@ -973,6 +984,7 @@ func (bfd *baseForkDetector) RestoreToGenesis() {
 	bfd.fork.checkpoint = []*checkpointInfo{checkpoint}
 	bfd.fork.finalCheckpoint = checkpoint
 	bfd.fork.settledCheckpoint = checkpoint
+	bfd.fork.settledCheckpointHistory = nil
 	bfd.fork.probableHighestNonce = bfd.genesisNonce
 	bfd.fork.highestNonceReceived = bfd.genesisNonce
 	bfd.mutFork.Unlock()

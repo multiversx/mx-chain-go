@@ -22,7 +22,13 @@ func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, heade
 		return false
 	}
 	if header.IsHeaderV3() {
-		return isMetaHeaderHeldFinal(bbt.headersPool, bbt.proofsPool, header, headerHash)
+		return isMetaHeaderHeldFinalWithEvidence(
+			bbt.proofsPool,
+			header,
+			headerHash,
+			bbt.getTrackedOrPooledMetaHeader,
+			bbt.hasTrackedOrPooledMetaDescendants,
+		)
 	}
 
 	childNonce := header.GetNonce() + 1
@@ -33,6 +39,60 @@ func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, heade
 	}
 
 	return hasProofedChildInPool(bbt.headersPool, bbt.proofsPool, shardID, headerHash, childNonce)
+}
+
+func (bbt *baseBlockTrack) getTrackedOrPooledMetaHeader(headerHash []byte, nonce uint64) data.HeaderHandler {
+	header := getMetaHeaderFromPool(bbt.headersPool, headerHash, nonce)
+	if !check.IfNil(header) {
+		return header
+	}
+
+	trackedHeaders, trackedHashes := bbt.GetTrackedHeadersWithNonce(core.MetachainShardId, nonce)
+	for index, trackedHeader := range trackedHeaders {
+		if index >= len(trackedHashes) || !bytes.Equal(trackedHashes[index], headerHash) || check.IfNil(trackedHeader) ||
+			trackedHeader.GetShardID() != core.MetachainShardId || trackedHeader.GetNonce() != nonce {
+			continue
+		}
+
+		return trackedHeader
+	}
+
+	return nil
+}
+
+func (bbt *baseBlockTrack) hasTrackedOrPooledMetaDescendants(
+	nonce uint64,
+	parentHash []byte,
+	depth int,
+) bool {
+	pooledHeaders, pooledHashes, err := bbt.headersPool.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
+	if err == nil && bbt.hasProofedMetaDescendant(pooledHeaders, pooledHashes, nonce, parentHash, depth) {
+		return true
+	}
+
+	trackedHeaders, trackedHashes := bbt.GetTrackedHeadersWithNonce(core.MetachainShardId, nonce)
+	return bbt.hasProofedMetaDescendant(trackedHeaders, trackedHashes, nonce, parentHash, depth)
+}
+
+func (bbt *baseBlockTrack) hasProofedMetaDescendant(
+	headers []data.HeaderHandler,
+	hashes [][]byte,
+	nonce uint64,
+	parentHash []byte,
+	depth int,
+) bool {
+	for index, header := range headers {
+		if index >= len(hashes) || check.IfNil(header) || header.GetShardID() != core.MetachainShardId ||
+			header.GetNonce() != nonce || !bytes.Equal(header.GetPrevHash(), parentHash) ||
+			!bbt.proofsPool.HasProof(core.MetachainShardId, hashes[index]) {
+			continue
+		}
+		if depth <= 1 || bbt.hasTrackedOrPooledMetaDescendants(nonce+1, hashes[index], depth-1) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func hasProofedChildInPool(

@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"math"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -18,6 +19,13 @@ var _ process.ForkDetector = (*shardForkDetector)(nil)
 // shardForkDetector implements the shard fork detector mechanism
 type shardForkDetector struct {
 	*baseForkDetector
+	mutFinalityUpdate sync.Mutex
+}
+
+type invalidatedSelfNotarizedFromCrossHeadersRegistrar interface {
+	RegisterInvalidatedSelfNotarizedFromCrossHeadersHandler(
+		handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte),
+	)
 }
 
 // NewShardForkDetector method creates a new shardForkDetector object
@@ -99,6 +107,11 @@ func NewShardForkDetector(
 	}
 
 	sfd.blockTracker.RegisterSelfNotarizedFromCrossHeadersHandler(sfd.ReceivedSelfNotarizedFromCrossHeaders)
+	if registrar, ok := blockTracker.(invalidatedSelfNotarizedFromCrossHeadersRegistrar); ok {
+		registrar.RegisterInvalidatedSelfNotarizedFromCrossHeadersHandler(
+			sfd.InvalidatedSelfNotarizedFromCrossHeaders,
+		)
+	}
 
 	bfd.forkDetector = &sfd
 
@@ -171,6 +184,137 @@ func (sfd *shardForkDetector) ReceivedSelfNotarizedFromCrossHeaders(
 	}
 }
 
+// InvalidatedSelfNotarizedFromCrossHeaders removes V3 shard authority derived from a dead meta branch.
+func (sfd *shardForkDetector) InvalidatedSelfNotarizedFromCrossHeaders(
+	shardID uint32,
+	selfNotarizedHeaders []data.HeaderHandler,
+	selfNotarizedHeadersHashes [][]byte,
+) {
+	if shardID != core.MetachainShardId {
+		return
+	}
+
+	invalidated := make(map[uint64][][]byte)
+	for index, header := range selfNotarizedHeaders {
+		if index >= len(selfNotarizedHeadersHashes) || check.IfNil(header) || !header.IsHeaderV3() ||
+			!common.IsCrossHeaderSettlementEnabledForHeader(sfd.enableEpochsHandler, sfd.enableRoundsHandler, header) {
+			continue
+		}
+
+		invalidated[header.GetNonce()] = append(
+			invalidated[header.GetNonce()],
+			selfNotarizedHeadersHashes[index],
+		)
+	}
+	if len(invalidated) == 0 {
+		return
+	}
+
+	sfd.mutFinalityUpdate.Lock()
+
+	removed := false
+	sfd.mutHeaders.Lock()
+	for nonce, hashes := range invalidated {
+		headerInfos := sfd.headers[nonce]
+		retained := make([]*headerInfo, 0, len(headerInfos))
+		for _, headerInfo := range headerInfos {
+			if headerInfo.state == process.BHNotarized && containsHash(hashes, headerInfo.hash) {
+				removed = true
+				continue
+			}
+			retained = append(retained, headerInfo)
+		}
+		if len(retained) == 0 {
+			delete(sfd.headers, nonce)
+			continue
+		}
+		sfd.headers[nonce] = retained
+	}
+	if removed {
+		sfd.refreshAmbiguousNotarizationLocked()
+	}
+	sfd.mutHeaders.Unlock()
+	if !removed {
+		sfd.mutFinalityUpdate.Unlock()
+		return
+	}
+
+	sfd.lowerInvalidatedCheckpoints(invalidated)
+	sfd.computeFinalCheckpointLocked()
+	sfd.mutFinalityUpdate.Unlock()
+	sfd.recomputeProbableHighestNonce()
+}
+
+func containsHash(hashes [][]byte, hash []byte) bool {
+	for _, candidate := range hashes {
+		if bytes.Equal(candidate, hash) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (sfd *shardForkDetector) lowerInvalidatedCheckpoints(invalidated map[uint64][][]byte) {
+	sfd.mutFork.Lock()
+	defer sfd.mutFork.Unlock()
+
+	retainedHistory := sfd.fork.settledCheckpointHistory[:0]
+	for _, checkpoint := range sfd.fork.settledCheckpointHistory {
+		if !checkpointWasInvalidated(checkpoint, invalidated) {
+			retainedHistory = append(retainedHistory, checkpoint)
+		}
+	}
+	sfd.fork.settledCheckpointHistory = retainedHistory
+
+	if checkpointWasInvalidated(sfd.fork.settledCheckpoint, invalidated) {
+		sfd.fork.settledCheckpoint = sfd.lastSettledCheckpointLocked()
+	}
+	if checkpointWasInvalidated(sfd.fork.finalCheckpoint, invalidated) {
+		sfd.fork.finalCheckpoint = sfd.highestProcessedCheckpointBelowLocked(sfd.fork.finalCheckpoint.nonce)
+	}
+}
+
+func checkpointWasInvalidated(checkpoint *checkpointInfo, invalidated map[uint64][][]byte) bool {
+	if checkpoint == nil {
+		return false
+	}
+
+	return containsHash(invalidated[checkpoint.nonce], checkpoint.hash)
+}
+
+func (sfd *shardForkDetector) lastSettledCheckpointLocked() *checkpointInfo {
+	lastIndex := len(sfd.fork.settledCheckpointHistory) - 1
+	if lastIndex < 0 {
+		return &checkpointInfo{
+			nonce: sfd.genesisNonce,
+			round: sfd.genesisRound,
+		}
+	}
+
+	checkpoint := sfd.fork.settledCheckpointHistory[lastIndex]
+	sfd.fork.settledCheckpointHistory = sfd.fork.settledCheckpointHistory[:lastIndex]
+
+	return checkpoint
+}
+
+func (sfd *shardForkDetector) highestProcessedCheckpointBelowLocked(nonce uint64) *checkpointInfo {
+	checkpoint := sfd.fork.settledCheckpoint
+	if checkpoint == nil {
+		checkpoint = &checkpointInfo{
+			nonce: sfd.genesisNonce,
+			round: sfd.genesisRound,
+		}
+	}
+	for _, candidate := range sfd.fork.checkpoint {
+		if candidate.nonce < nonce && candidate.nonce >= checkpoint.nonce {
+			checkpoint = candidate
+		}
+	}
+
+	return checkpoint
+}
+
 func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
@@ -210,6 +354,12 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 }
 
 func (sfd *shardForkDetector) computeFinalCheckpoint() {
+	sfd.mutFinalityUpdate.Lock()
+	sfd.computeFinalCheckpointLocked()
+	sfd.mutFinalityUpdate.Unlock()
+}
+
+func (sfd *shardForkDetector) computeFinalCheckpointLocked() {
 	finalCheckpoint := &checkpointInfo{}
 	finalCheckpointWasSet := false
 

@@ -95,6 +95,7 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 		GetSelfHeadersWithSource(header data.HeaderHandler, hash []byte) []*track.SelfHeaderInfo
 		PublishSelfNotarizedFromCrossHeaders(shardID uint32, headersInfo []*track.SelfHeaderInfo)
 		RegisterSelfNotarizedFromCrossHeadersHandler(handler func(uint32, []data.HeaderHandler, [][]byte))
+		RegisterInvalidatedSelfNotarizedFromCrossHeadersHandler(handler func(uint32, []data.HeaderHandler, [][]byte))
 		RemoveLastNotarizedHeaders()
 		NumPendingSelfHeaders() int64
 		SetMetaFinalityView(view process.MetaFinalityView)
@@ -218,6 +219,149 @@ func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 		case <-notified:
 		case <-time.After(time.Second):
 			require.FailNow(t, "source-aware notification was not delivered")
+		}
+
+		headersInfo = sbt.GetSelfHeadersWithSource(source, sourceHash)
+		require.Len(t, headersInfo, 1)
+		sbt.PublishSelfNotarizedFromCrossHeaders(core.MetachainShardId, headersInfo)
+		sbt.RemoveLastNotarizedHeaders()
+		select {
+		case <-notified:
+			require.FailNow(t, "published authority was notified twice")
+		default:
+		}
+	})
+
+	t.Run("dead source is not published even when it also reports held final", func(t *testing.T) {
+		t.Parallel()
+
+		sbt, source, sourceHash, _, _, _, _ := createTracker(t)
+		sbt.SetMetaFinalityView(&testscommon.MetaFinalityViewStub{
+			IsMetaHeaderHeldFinalCalled: func(_ data.HeaderHandler, _ []byte) bool {
+				return true
+			},
+			IsDeadMetaBlockCalled: func(_ []byte, _ uint64) bool {
+				return true
+			},
+		})
+		var notifications atomic.Int32
+		sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
+			notifications.Add(1)
+		})
+
+		headersInfo := sbt.GetSelfHeadersWithSource(source, sourceHash)
+		require.Len(t, headersInfo, 1)
+		sbt.PublishSelfNotarizedFromCrossHeaders(core.MetachainShardId, headersInfo)
+		sbt.RemoveLastNotarizedHeaders()
+
+		require.Zero(t, notifications.Load())
+	})
+
+	t.Run("published source is invalidated after positive dead branch evidence", func(t *testing.T) {
+		t.Parallel()
+
+		sbt, source, sourceHash, _, shardHeaderAvailable, headerHandler, _ := createTracker(t)
+		isDead := &atomic.Bool{}
+		sbt.SetMetaFinalityView(&testscommon.MetaFinalityViewStub{
+			IsMetaHeaderHeldFinalCalled: func(_ data.HeaderHandler, _ []byte) bool {
+				return true
+			},
+			IsDeadMetaBlockCalled: func(_ []byte, _ uint64) bool {
+				return isDead.Load()
+			},
+		})
+		published := make(chan struct{}, 1)
+		invalidated := make(chan [][]byte, 1)
+		sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
+			published <- struct{}{}
+		})
+		sbt.RegisterInvalidatedSelfNotarizedFromCrossHeadersHandler(
+			func(_ uint32, _ []data.HeaderHandler, hashes [][]byte) {
+				invalidated <- hashes
+			},
+		)
+
+		shardHeaderAvailable.Store(false)
+		headersInfo := sbt.GetSelfHeadersWithSource(source, sourceHash)
+		require.Empty(t, headersInfo)
+		shardHeaderAvailable.Store(true)
+		headerHandler(
+			&block.HeaderV3{ShardID: 0, Nonce: 5, Epoch: 2},
+			[]byte("referenced-shard"),
+		)
+		select {
+		case <-published:
+		case <-time.After(time.Second):
+			require.FailNow(t, "source-aware notification was not delivered")
+		}
+
+		isDead.Store(true)
+		headerHandler(&block.MetaBlockV3{Nonce: source.Nonce + 2}, []byte("dead-branch-evidence"))
+		select {
+		case hashes := <-invalidated:
+			require.Len(t, hashes, 1)
+			require.Equal(t, []byte("referenced-shard"), hashes[0])
+		case <-time.After(time.Second):
+			require.FailNow(t, "published dead authority was not invalidated")
+		}
+	})
+
+	t.Run("invalidated shard authority can be published by a later live source", func(t *testing.T) {
+		t.Parallel()
+
+		sbt, source, sourceHash, _, shardHeaderAvailable, headerHandler, _ := createTracker(t)
+		deadSource := &atomic.Bool{}
+		sbt.SetMetaFinalityView(&testscommon.MetaFinalityViewStub{
+			IsMetaHeaderHeldFinalCalled: func(_ data.HeaderHandler, _ []byte) bool {
+				return true
+			},
+			IsDeadMetaBlockCalled: func(hash []byte, _ uint64) bool {
+				return deadSource.Load() && bytes.Equal(hash, sourceHash)
+			},
+		})
+		published := make(chan struct{}, 2)
+		invalidated := make(chan struct{}, 1)
+		sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
+			published <- struct{}{}
+		})
+		sbt.RegisterInvalidatedSelfNotarizedFromCrossHeadersHandler(
+			func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
+				invalidated <- struct{}{}
+			},
+		)
+
+		shardHeaderAvailable.Store(false)
+		headersInfo := sbt.GetSelfHeadersWithSource(source, sourceHash)
+		require.Empty(t, headersInfo)
+		shardHeaderAvailable.Store(true)
+		headerHandler(
+			&block.HeaderV3{ShardID: 0, Nonce: 5, Epoch: 2},
+			[]byte("referenced-shard"),
+		)
+		select {
+		case <-published:
+		case <-time.After(time.Second):
+			require.FailNow(t, "initial authority was not published")
+		}
+
+		deadSource.Store(true)
+		headerHandler(&block.MetaBlockV3{Nonce: source.Nonce + 2}, []byte("dead-branch-evidence"))
+		select {
+		case <-invalidated:
+		case <-time.After(time.Second):
+			require.FailNow(t, "dead authority was not invalidated")
+		}
+
+		liveSource := *source
+		liveSource.Nonce += 3
+		liveSourceHash := []byte("live-source-meta")
+		headersInfo = sbt.GetSelfHeadersWithSource(&liveSource, liveSourceHash)
+		require.Len(t, headersInfo, 1)
+		sbt.PublishSelfNotarizedFromCrossHeaders(core.MetachainShardId, headersInfo)
+		select {
+		case <-published:
+		case <-time.After(time.Second):
+			require.FailNow(t, "replacement authority was not published")
 		}
 	})
 

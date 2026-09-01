@@ -600,6 +600,26 @@ func TestMetaFinalityView_IsDeadMetaBlock(t *testing.T) {
 		require.True(t, view.IsDeadMetaBlock(deadHash, deadNonce))
 	})
 
+	t.Run("instant held finality and dead branch evidence can coexist", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		parentHash := []byte("deadSourceParent")
+		parent := &block.MetaBlockV3{Nonce: deadNonce - 1, Round: deadNonce - 1}
+		pools.Headers().AddHeader(parentHash, parent)
+		addMetaProof(t, pools, parentHash, parent.Nonce, parent.Round)
+
+		source := &block.MetaBlockV3{Nonce: deadNonce, Round: deadNonce, PrevHash: parentHash}
+		addMetaProof(t, pools, deadHash, source.Nonce, source.Round)
+		addHeader(pools, foreignChildHash, deadNonce+1, []byte("foreignParentHash"))
+		addMetaProof(t, pools, foreignChildHash, deadNonce+1, deadNonce+2)
+		addHeader(pools, foreignGrandChildHash, deadNonce+2, foreignChildHash)
+		addMetaProof(t, pools, foreignGrandChildHash, deadNonce+2, deadNonce+3)
+
+		require.True(t, view.IsMetaHeaderHeldFinal(source, deadHash))
+		require.True(t, view.IsDeadMetaBlock(deadHash, deadNonce))
+	})
+
 	t.Run("a doubly proofed own extension keeps the verdict subjective", func(t *testing.T) {
 		t.Parallel()
 
