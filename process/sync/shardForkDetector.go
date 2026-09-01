@@ -180,6 +180,7 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 
 		hasProof := sfd.proofsPool.HasProof(selfNotarizedHeaders[i].GetShardID(), selfNotarizedHeadersHashes[i])
 		appended := sfd.append(&headerInfo{
+			epoch:    selfNotarizedHeaders[i].GetEpoch(),
 			nonce:    selfNotarizedHeaders[i].GetNonce(),
 			round:    selfNotarizedHeaders[i].GetRound(),
 			hash:     selfNotarizedHeadersHashes[i],

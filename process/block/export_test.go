@@ -666,6 +666,11 @@ func (sp *shardProcessor) CheckEpochCorrectness(header *block.Header) error {
 	return sp.checkEpochCorrectness(header)
 }
 
+// CheckConsecutiveShardEpochForProposal exports the proposal guard for tests.
+func (sp *shardProcessor) CheckConsecutiveShardEpochForProposal(header data.ShardHeaderHandler) error {
+	return sp.checkConsecutiveShardEpochForProposal(header)
+}
+
 // GetBootstrapHeadersInfo -
 func (sp *shardProcessor) GetBootstrapHeadersInfo(
 	selfNotarizedHeaders []data.HeaderHandler,
@@ -1440,6 +1445,15 @@ func (bp *baseProcessor) GetLastPrunedHash() []byte {
 	bp.mutLastPrunedHeader.RUnlock()
 
 	return lastPrunedHeaderHash
+}
+
+// GetLastPrunedNonce -
+func (bp *baseProcessor) GetLastPrunedNonce() uint64 {
+	bp.mutLastPrunedHeader.RLock()
+	lastPrunedHeaderNonce := bp.lastPrunedHeaderNonce
+	bp.mutLastPrunedHeader.RUnlock()
+
+	return lastPrunedHeaderNonce
 }
 
 // CleanupDismissedEWLEntries -

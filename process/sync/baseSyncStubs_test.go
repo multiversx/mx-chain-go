@@ -3,6 +3,7 @@ package sync
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 )
@@ -22,11 +23,12 @@ func (rhs *requestHandlerWithSetEpochStub) SetEpoch(epoch uint32) {
 }
 
 type blockBootstrapperStub struct {
-	getCurrHeaderCalled       func() (data.HeaderHandler, error)
-	getPrevHeaderCalled       func(data.HeaderHandler, storage.Storer) (data.HeaderHandler, error)
-	getBlockBodyCalled        func(data.HeaderHandler) (data.BodyHandler, error)
-	isForkTriggeredByMetaFunc func() bool
-	requestProofByNonceCalled func(nonce uint64)
+	getCurrHeaderCalled        func() (data.HeaderHandler, error)
+	getPrevHeaderCalled        func(data.HeaderHandler, storage.Storer) (data.HeaderHandler, error)
+	getBlockBodyCalled         func(data.HeaderHandler) (data.BodyHandler, error)
+	isForkTriggeredByMetaFunc  func() bool
+	requestHeaderByNonceCalled func(nonce uint64)
+	requestProofByNonceCalled  func(nonce uint64)
 }
 
 func (bbs *blockBootstrapperStub) getCurrHeader() (data.HeaderHandler, error) {
@@ -69,7 +71,10 @@ func (bbs *blockBootstrapperStub) isForkTriggeredByMeta() bool {
 	return false
 }
 
-func (bbs *blockBootstrapperStub) requestHeaderByNonce(uint64) {
+func (bbs *blockBootstrapperStub) requestHeaderByNonce(nonce uint64) {
+	if bbs.requestHeaderByNonceCalled != nil {
+		bbs.requestHeaderByNonceCalled(nonce)
+	}
 }
 
 func (bbs *blockBootstrapperStub) requestProofByNonce(nonce uint64) {

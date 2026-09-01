@@ -1,6 +1,7 @@
 package executionManager
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -35,6 +36,7 @@ type ArgsExecutionManager struct {
 
 type executionManager struct {
 	mut                     sync.RWMutex
+	closed                  bool
 	headersExecutor         process.HeadersExecutor
 	blocksCache             process.BlocksCache
 	executionResultsTracker process.ExecutionResultsTracker
@@ -98,6 +100,10 @@ func (em *executionManager) StartExecution() {
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	if em.closed {
+		return
+	}
+
 	log.Debug("starting headers execution...")
 	em.headersExecutor.StartExecution()
 }
@@ -111,6 +117,10 @@ func (em *executionManager) SetHeadersExecutor(executor process.HeadersExecutor)
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	if em.closed {
+		return process.ErrProcessClosed
+	}
+
 	em.headersExecutor = executor
 
 	return nil
@@ -122,26 +132,107 @@ func (em *executionManager) AddPairForExecution(pair cache.HeaderBodyPair) error
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	if em.closed {
+		return process.ErrProcessClosed
+	}
+	if check.IfNil(pair.Header) {
+		return common.ErrNilHeaderHandler
+	}
+
 	lastExecutedBlock := em.blockChain.GetLastExecutedBlockHeader()
 	if !check.IfNil(lastExecutedBlock) &&
 		lastExecutedBlock.GetNonce() >= pair.Header.GetNonce() {
-		err := process.UpdateContextForReplacedHeader(
-			pair.Header,
-			em,
-			em.blockChain,
-			em.headers,
-			em.postProcessTransactions,
-			em.executedMiniBlocks,
-			em.storageService,
-			em.marshaller,
-			em.shardCoordinator.SelfId(),
-		)
-		if err != nil {
-			return err
-		}
+		return em.addReplacementPair(pair)
+	}
+
+	previousPair, hadPreviousPair := em.blocksCache.GetByNonce(pair.Header.GetNonce())
+	err := em.blocksCache.AddOrReplace(pair)
+	if err != nil {
+		return err
+	}
+
+	lastExecutedBlock = em.blockChain.GetLastExecutedBlockHeader()
+	if check.IfNil(lastExecutedBlock) || lastExecutedBlock.GetNonce() < pair.Header.GetNonce() {
+		return nil
+	}
+
+	em.headersExecutor.PauseExecution()
+	defer em.headersExecutor.ResumeExecution()
+
+	pairWasExecuted, err := em.wasPairExecuted(pair)
+	if err != nil {
+		em.restoreCachedPair(previousPair, hadPreviousPair, pair.Header.GetNonce())
+		return err
+	}
+	if pairWasExecuted {
+		return nil
+	}
+
+	err = em.updateContextForReplacedHeader(pair.Header)
+	if err != nil {
+		em.restoreCachedPair(previousPair, hadPreviousPair, pair.Header.GetNonce())
+		return err
+	}
+
+	return nil
+}
+
+func (em *executionManager) addReplacementPair(pair cache.HeaderBodyPair) error {
+	em.headersExecutor.PauseExecution()
+	defer em.headersExecutor.ResumeExecution()
+
+	err := em.updateContextForReplacedHeader(pair.Header)
+	if err != nil {
+		return err
 	}
 
 	return em.blocksCache.AddOrReplace(pair)
+}
+
+func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHandler) error {
+	return process.UpdateContextForReplacedHeader(
+		header,
+		em,
+		em.blockChain,
+		em.headers,
+		em.postProcessTransactions,
+		em.executedMiniBlocks,
+		em.storageService,
+		em.marshaller,
+		em.shardCoordinator.SelfId(),
+	)
+}
+
+func (em *executionManager) wasPairExecuted(pair cache.HeaderBodyPair) (bool, error) {
+	lastExecutionResult := em.blockChain.GetLastExecutionResult()
+	if !check.IfNil(lastExecutionResult) &&
+		lastExecutionResult.GetHeaderNonce() == pair.Header.GetNonce() {
+		return bytes.Equal(lastExecutionResult.GetHeaderHash(), pair.HeaderHash), nil
+	}
+
+	pendingResults, err := em.executionResultsTracker.GetPendingExecutionResults()
+	if err != nil {
+		return false, err
+	}
+	for _, result := range pendingResults {
+		if result.GetHeaderNonce() == pair.Header.GetNonce() {
+			return bytes.Equal(result.GetHeaderHash(), pair.HeaderHash), nil
+		}
+	}
+
+	return false, nil
+}
+
+func (em *executionManager) restoreCachedPair(previousPair cache.HeaderBodyPair, hadPreviousPair bool, nonce uint64) {
+	if hadPreviousPair {
+		err := em.blocksCache.AddOrReplace(previousPair)
+		if err != nil {
+			log.Warn("executionManager.restoreCachedPair - failed to restore previous pair", "error", err)
+		}
+		return
+	}
+
+	em.blocksCache.Remove(nonce)
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker
@@ -161,6 +252,9 @@ func (em *executionManager) SetLastNotarizedResult(executionResult data.BaseExec
 
 // CleanConfirmedExecutionResults calls the same method from executionResultsTracker
 func (em *executionManager) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
+	em.mut.Lock()
+	defer em.mut.Unlock()
+
 	for _, executionResult := range header.GetExecutionResultsHandlers() {
 		em.blocksCache.Remove(executionResult.GetHeaderNonce())
 	}
@@ -174,6 +268,9 @@ func (em *executionManager) CleanOnConsensusReached(headerHash []byte, header da
 		return
 	}
 
+	em.mut.Lock()
+	defer em.mut.Unlock()
+
 	em.executionResultsTracker.CleanOnConsensusReached(headerHash, header)
 	em.blocksCache.RemoveAtNonceAndHigher(header.GetNonce() + 1)
 }
@@ -185,6 +282,10 @@ func (em *executionManager) CleanOnConsensusReached(headerHash []byte, header da
 func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	em.mut.Lock()
 	defer em.mut.Unlock()
+
+	if em.closed {
+		return process.ErrProcessClosed
+	}
 
 	lastNotarizedResult, err := em.executionResultsTracker.GetLastNotarizedExecutionResult()
 	if err != nil {
@@ -237,6 +338,13 @@ func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler)
 		return process.ErrNilHeaderHandler
 	}
 
+	em.mut.RLock()
+	closed := em.closed
+	em.mut.RUnlock()
+	if closed {
+		return process.ErrProcessClosed
+	}
+
 	newLastNotarized, err := common.GetLastBaseExecutionResultHandler(newTip)
 	if err != nil {
 		return err
@@ -256,6 +364,10 @@ func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler)
 
 	em.mut.Lock()
 	defer em.mut.Unlock()
+
+	if em.closed {
+		return process.ErrProcessClosed
+	}
 
 	em.headersExecutor.PauseExecution()
 	defer em.headersExecutor.ResumeExecution()
@@ -323,6 +435,14 @@ func (em *executionManager) GetSignalProcessCompletionChan() chan uint64 {
 // Close closes the execution manager and all its components
 func (em *executionManager) Close() error {
 	log.Debug("closing execution manager")
+
+	em.mut.Lock()
+	defer em.mut.Unlock()
+
+	if em.closed {
+		return nil
+	}
+	em.closed = true
 
 	err := em.headersExecutor.Close()
 	if err != nil {

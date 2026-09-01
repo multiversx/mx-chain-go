@@ -6711,6 +6711,45 @@ func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenHeaderEpochBehindCur
 	assert.Equal(t, "epoch does not match proposed header with older epoch 1 than blockchain epoch 3", err.Error())
 }
 
+func TestShardProcessor_CheckEpochCorrectnessShouldRejectSkippedEpoch(t *testing.T) {
+	t.Parallel()
+
+	currentHeader := &block.Header{Epoch: 3}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain": blockChain,
+	})
+	require.NoError(t, err)
+
+	header := &block.Header{Epoch: 5, EpochStartMetaHash: []byte("epoch-start")}
+	err = sp.CheckEpochCorrectness(header)
+	require.ErrorIs(t, err, process.ErrEpochDoesNotMatch)
+	require.Contains(t, err.Error(), "skips from epoch 3 to epoch 5")
+}
+
+func TestShardProcessor_ProposalEpochGuardShouldRejectSkippedEpoch(t *testing.T) {
+	t.Parallel()
+
+	currentHeader := &block.Header{Epoch: 3}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain": blockChain,
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, sp.CheckConsecutiveShardEpochForProposal(&block.Header{Epoch: 4}))
+	err = sp.CheckConsecutiveShardEpochForProposal(&block.Header{Epoch: 5})
+	require.ErrorIs(t, err, process.ErrEpochDoesNotMatch)
+}
+
 func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsStartOfEpochButShouldNotBe(t *testing.T) {
 	t.Parallel()
 
@@ -7403,6 +7442,32 @@ func TestShardProcessor_CreateBlock(t *testing.T) {
 		assert.Equal(t, expectedHeader, header)
 		assert.Nil(t, err)
 	})
+}
+
+func TestShardProcessor_CreateBlockEpochUpdateCannotSkipEpoch(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{Epoch: 1}
+		},
+	}
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+		IsEpochStartCalled: func() bool { return true },
+		MetaEpochCalled:    func() uint32 { return 3 },
+		EpochStartMetaHdrHashCalled: func() []byte {
+			return []byte("epoch-three-meta")
+		},
+	}
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.NoError(t, err)
+
+	header := &block.Header{Epoch: 1}
+	_, _, err = sp.CreateBlock(header, func() bool { return true })
+	require.ErrorIs(t, err, process.ErrEpochDoesNotMatch)
+	require.Equal(t, uint32(3), header.GetEpoch())
 }
 
 func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {

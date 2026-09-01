@@ -640,6 +640,19 @@ func TestShardForkDetector_DeferredFinalityUnderSupernova(t *testing.T) {
 		require.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
 	})
 
+	t.Run("notarization before processing advances the same final and settled checkpoint", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createShardForkDetectorForFinality(supernovaHandler)
+		sfd.ReceivedSelfNotarizedFromCrossHeaders(core.MetachainShardId, []data.HeaderHandler{hdr1}, [][]byte{hash1})
+		require.Equal(t, uint64(0), sfd.FinalCheckpointNonce())
+		require.Equal(t, uint64(0), sfd.SettledCheckpointNonce())
+
+		_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+		require.Equal(t, uint64(1), sfd.FinalCheckpointNonce())
+		require.Equal(t, uint64(1), sfd.SettledCheckpointNonce())
+	})
+
 	t.Run("fork is signaled at the deferred nonce", func(t *testing.T) {
 		t.Parallel()
 

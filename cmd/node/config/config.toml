@@ -86,7 +86,7 @@
             EnableRound = 440,
             MaxRoundsWithoutNewBlockReceived = 100,
             MaxRoundsWithoutCommittedBlock = 100,
-            RoundModulusTriggerWhenSyncIsStuck = 200,
+            RoundModulusTriggerWhenSyncIsStuck = 20,
             MaxSyncWithErrorsAllowed = 100,
             MaxRoundsToKeepUnprocessedMiniBlocks = 3000,
             MaxRoundsToKeepUnprocessedTransactions = 3000,
@@ -582,7 +582,7 @@
     # Ahead-of-Time transaction selection - pre-selects transactions before consensus round
     Enabled = true
     CacheSize = 10                                          # Number of pre-selection results to cache
-    SelectionTimeoutMs = 150                                # Max time for AOT selection in milliseconds
+    SelectionTimeoutMs = 100                                # Max time for AOT selection in milliseconds
 
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
