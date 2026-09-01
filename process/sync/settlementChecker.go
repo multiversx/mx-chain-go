@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/track"
 )
 
 // inclusionScanSpan is the per-round budget of the resumable authority scan, matching the view's
@@ -155,10 +156,6 @@ func (checker *shardSettlementChecker) deadCrossNotarizedMeta() (data.HeaderHand
 	return lastCrossNotarizedMeta, lastCrossNotarizedHash, true
 }
 
-// metaSettledDescendantsDepth requires a proofed child that is itself extended by a proofed child;
-// depth 2 closes the depth-1 double-extension corner, the depth-2 residual is accepted
-const metaSettledDescendantsDepth = 2
-
 // metaSettlementChecker settles a meta block on a fully proofed descendant chain; meta has no
 // external authority to defer to
 type metaSettlementChecker struct {
@@ -172,33 +169,10 @@ func (checker *metaSettlementChecker) prepareInclusionScan(_ uint64) (uint64, ui
 }
 
 func (checker *metaSettlementChecker) isSettled(nonce uint64, headerHash []byte, _ uint64, _ uint64) bool {
-	return checker.hasProofedDescendants(nonce+1, headerHash, metaSettledDescendantsDepth)
+	return track.HasMetaReconciliationEvidence(checker.headers, checker.proofs, nonce, headerHash)
 }
 
 // deadCrossNotarizedMeta never reports on meta nodes; meta reconciles through the equivocation path
 func (checker *metaSettlementChecker) deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool) {
 	return nil, nil, false
-}
-
-// hasProofedDescendants reports whether a chain of the given depth, proofed at every level,
-// extends parentHash
-func (checker *metaSettlementChecker) hasProofedDescendants(nonce uint64, parentHash []byte, depth int) bool {
-	headers, hashes, err := checker.headers.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
-	if err != nil {
-		return false
-	}
-
-	for i, header := range headers {
-		if check.IfNil(header) || !bytes.Equal(header.GetPrevHash(), parentHash) {
-			continue
-		}
-		if !checker.proofs.HasProof(core.MetachainShardId, hashes[i]) {
-			continue
-		}
-		if depth <= 1 || checker.hasProofedDescendants(nonce+1, hashes[i], depth-1) {
-			return true
-		}
-	}
-
-	return false
 }

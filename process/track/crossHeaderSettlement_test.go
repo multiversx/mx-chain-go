@@ -141,6 +141,72 @@ func TestBaseBlockTrack_IsSettledCrossHeader(t *testing.T) {
 
 		require.False(t, sbt.IsSettledCrossHeader(shardHeader, headerHash))
 	})
+
+	t.Run("V3 non contended meta header uses the fast path", func(t *testing.T) {
+		t.Parallel()
+
+		args, sbt := newTracker(t)
+		parentHash := []byte("parentHash")
+		parent := &block.MetaBlockV3{Nonce: 5, Round: 10}
+		args.PoolsHolder.Headers().AddHeader(parentHash, parent)
+		addMetaProof(t, args.PoolsHolder, parentHash, parent.Nonce, parent.Round)
+
+		v3Header := &block.MetaBlockV3{Nonce: 6, Round: 11, PrevHash: parentHash}
+		addMetaProof(t, args.PoolsHolder, headerHash, v3Header.Nonce, v3Header.Round)
+
+		require.True(t, sbt.IsSettledCrossHeader(v3Header, headerHash))
+	})
+
+	t.Run("V3 contended meta header without a sibling settles on a proofed child", func(t *testing.T) {
+		t.Parallel()
+
+		args, sbt := newTracker(t)
+		parentHash := []byte("parentHash")
+		parent := &block.MetaBlockV3{Nonce: 5, Round: 10}
+		args.PoolsHolder.Headers().AddHeader(parentHash, parent)
+		addMetaProof(t, args.PoolsHolder, parentHash, parent.Nonce, parent.Round)
+
+		v3Header := &block.MetaBlockV3{Nonce: 6, Round: 14, PrevHash: parentHash}
+		addMetaProof(t, args.PoolsHolder, headerHash, v3Header.Nonce, v3Header.Round)
+
+		childHash := []byte("childHash")
+		child := &block.MetaBlockV3{Nonce: 7, Round: 15, PrevHash: headerHash}
+		args.PoolsHolder.Headers().AddHeader(childHash, child)
+		addMetaProof(t, args.PoolsHolder, childHash, child.Nonce, child.Round)
+
+		require.True(t, sbt.IsSettledCrossHeader(v3Header, headerHash))
+	})
+
+	t.Run("V3 proofed sibling requires a proofed child and grandchild", func(t *testing.T) {
+		t.Parallel()
+
+		args, sbt := newTracker(t)
+		parentHash := []byte("parentHash")
+		parent := &block.MetaBlockV3{Nonce: 5, Round: 10}
+		args.PoolsHolder.Headers().AddHeader(parentHash, parent)
+		addMetaProof(t, args.PoolsHolder, parentHash, parent.Nonce, parent.Round)
+
+		v3Header := &block.MetaBlockV3{Nonce: 6, Round: 11, PrevHash: parentHash}
+		addMetaProof(t, args.PoolsHolder, headerHash, v3Header.Nonce, v3Header.Round)
+		siblingHash := []byte("siblingHash")
+		sibling := &block.MetaBlockV3{Nonce: 6, Round: 12, PrevHash: parentHash}
+		args.PoolsHolder.Headers().AddHeader(siblingHash, sibling)
+		addMetaProof(t, args.PoolsHolder, siblingHash, sibling.Nonce, sibling.Round)
+
+		childHash := []byte("childHash")
+		child := &block.MetaBlockV3{Nonce: 7, Round: 13, PrevHash: headerHash}
+		args.PoolsHolder.Headers().AddHeader(childHash, child)
+		addMetaProof(t, args.PoolsHolder, childHash, child.Nonce, child.Round)
+
+		require.False(t, sbt.IsSettledCrossHeader(v3Header, headerHash))
+
+		grandChildHash := []byte("grandChildHash")
+		grandChild := &block.MetaBlockV3{Nonce: 8, Round: 14, PrevHash: childHash}
+		args.PoolsHolder.Headers().AddHeader(grandChildHash, grandChild)
+		addMetaProof(t, args.PoolsHolder, grandChildHash, grandChild.Nonce, grandChild.Round)
+
+		require.True(t, sbt.IsSettledCrossHeader(v3Header, headerHash))
+	})
 }
 
 // a contended shard header holding a proofed child must not enter the ordinary longest chain, so
