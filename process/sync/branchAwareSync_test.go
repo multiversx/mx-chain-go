@@ -290,6 +290,7 @@ func TestBranchAwareProbableAndSyncSelectionFollowFinalBranch(t *testing.T) {
 	offBranchHeader, offBranchProof := createBranchAwareHeader(11, offBranchHash, []byte("B"))
 	fixture.headers[string(offBranchHash)] = offBranchHeader
 	fixture.proofs = []data.HeaderProofHandler{offBranchProof}
+	addProvenHeaderInfo(bfd, 10, []byte("B"), []byte("parent"), process.BHReceived)
 	addProvenHeaderInfo(bfd, 11, offBranchHash, offBranchHeader.GetPrevHash(), process.BHReceived)
 	bfd.setProbableHighestNonce(bfd.computeProbableHighestNonce())
 	require.Equal(t, currentHeader.GetNonce(), sfd.ProbableHighestNonce())

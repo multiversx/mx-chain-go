@@ -254,17 +254,16 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 
 	require.True(t, island1OnC(), "backstop did not converge the finalized minority onto the settled branch")
 
-	// the sanctioned finality regression: final dropped below the fork nonce and B
-	// (contended) plus C (descendant of unsettled B) stay non-final pending settlement
+	// The held-final meta decision settles B, then finality advances through clean child C.
 	for _, n := range []*integrationTests.TestProcessorNode{pA, obsA} {
-		assert.Equal(t, uint64(4), n.ForkDetector.GetHighestFinalBlockNonce())
+		assert.Equal(t, uint64(6), n.ForkDetector.GetHighestFinalBlockNonce())
 	}
 
 	// island 2 was never on the losing block and is untouched (the meta node runs its own chain,
 	// so only the shard nodes are compared here)
 	for _, n := range []*integrationTests.TestProcessorNode{pB, obsB} {
 		assert.Equal(t, string(hashC), string(n.BlockChain.GetCurrentBlockHeaderHash()))
-		assert.Equal(t, uint64(4), n.ForkDetector.GetHighestFinalBlockNonce())
+		assert.Equal(t, uint64(6), n.ForkDetector.GetHighestFinalBlockNonce())
 	}
 }
 
@@ -477,7 +476,7 @@ func TestSupernovaSync_ReconcileBackstop_LongPartitionConverges(t *testing.T) {
 	require.True(t, island1OnC(), "backstop did not converge across the long partition")
 
 	for _, n := range island1 {
-		assert.Equal(t, uint64(4), n.ForkDetector.GetHighestFinalBlockNonce())
+		assert.Equal(t, uint64(6), n.ForkDetector.GetHighestFinalBlockNonce())
 	}
 }
 

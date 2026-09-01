@@ -6,8 +6,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	chainCommon "github.com/multiversx/mx-chain-go/common"
 	mock2 "github.com/multiversx/mx-chain-go/consensus/mock"
@@ -23,6 +24,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	mock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	outportStub "github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -88,6 +90,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 	consensusCore.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{})
 	consensusCore.SetExecutionManager(&processMocks.ExecutionManagerMock{})
 	consensusCore.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{})
+	consensusCore.SetHeadersPool(&pool.HeadersPoolStub{})
 	consensusCore.SetEpochNotifier(epochNotifier)
 	consensusCore.SetInvalidSignersCache(&consensus.InvalidSignersCacheMock{})
 

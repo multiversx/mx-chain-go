@@ -43,6 +43,11 @@ func (sbt *shardBlockTrack) GetTrackedShardHeaderWithNonceAndHash(shardID uint32
 	return sbt.getTrackedShardHeaderWithNonceAndHash(shardID, nonce, hash)
 }
 
+// NumPendingSelfHeaders -
+func (sbt *shardBlockTrack) NumPendingSelfHeaders() int64 {
+	return sbt.numPendingSelfHeaders.Load()
+}
+
 // metaBlockTrack
 
 // GetTrackedMetaBlockWithHash -

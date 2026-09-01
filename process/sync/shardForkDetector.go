@@ -161,6 +161,13 @@ func (sfd *shardForkDetector) ReceivedSelfNotarizedFromCrossHeaders(
 	appended := sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes, shardID)
 	if appended {
 		sfd.computeFinalCheckpoint()
+		for _, header := range selfNotarizedHeaders {
+			if header.IsHeaderV3() &&
+				common.IsCrossHeaderSettlementEnabledForHeader(sfd.enableEpochsHandler, sfd.enableRoundsHandler, header) {
+				sfd.setProbableHighestNonce(sfd.computeProbableHighestNonce())
+				break
+			}
+		}
 	}
 }
 
@@ -273,6 +280,7 @@ func (sfd *shardForkDetector) finalizeCleanProcessedDescendants() {
 }
 
 func (sfd *shardForkDetector) getCleanProcessedChild(parent *checkpointInfo) *headerInfo {
+	var processedChild *headerInfo
 	for _, hdrInfo := range sfd.headers[parent.nonce+1] {
 		isCleanProcessedChild := hdrInfo.state == process.BHProcessed &&
 			hdrInfo.hasProof &&
@@ -280,11 +288,24 @@ func (sfd *shardForkDetector) getCleanProcessedChild(parent *checkpointInfo) *he
 			!common.IsContendedRound(hdrInfo.round, parent.round) &&
 			sfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, hdrInfo.epoch)
 		if isCleanProcessedChild {
-			return hdrInfo
+			processedChild = hdrInfo
+			break
+		}
+	}
+	if processedChild == nil {
+		return nil
+	}
+	if !sfd.isAsyncExecutionEnabled(processedChild) {
+		return processedChild
+	}
+
+	for _, hdrInfo := range sfd.headers[parent.nonce+1] {
+		if hdrInfo.state == process.BHNotarized && !bytes.Equal(hdrInfo.hash, processedChild.hash) {
+			return nil
 		}
 	}
 
-	return nil
+	return processedChild
 }
 
 func (sfd *shardForkDetector) getProcessedAndNotarizedIndexes(headersInfo []*headerInfo) (int, int) {
@@ -294,8 +315,16 @@ func (sfd *shardForkDetector) getProcessedAndNotarizedIndexes(headersInfo []*hea
 	for index, hdrInfo := range headersInfo {
 		switch hdrInfo.state {
 		case process.BHProcessed:
+			if indexBHProcessed != -1 && !bytes.Equal(headersInfo[indexBHProcessed].hash, hdrInfo.hash) &&
+				(sfd.isAsyncExecutionEnabled(headersInfo[indexBHProcessed]) || sfd.isAsyncExecutionEnabled(hdrInfo)) {
+				return -1, -1
+			}
 			indexBHProcessed = index
 		case process.BHNotarized:
+			if indexBHNotarized != -1 && !bytes.Equal(headersInfo[indexBHNotarized].hash, hdrInfo.hash) &&
+				(sfd.isAsyncExecutionEnabled(headersInfo[indexBHNotarized]) || sfd.isAsyncExecutionEnabled(hdrInfo)) {
+				return -1, -1
+			}
 			indexBHNotarized = index
 		case process.BHReceived, process.BHReceivedTooLate:
 			// legitimate coexisting entries, not relevant for the final checkpoint
