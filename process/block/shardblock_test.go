@@ -3680,6 +3680,61 @@ func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeStopsAtFutureEpochSt
 	require.Zero(t, numTxs)
 }
 
+func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeStopsAtDeadV3Meta(t *testing.T) {
+	t.Parallel()
+
+	candidateHash := []byte("candidate")
+	foreignChildHash := []byte("foreign child")
+	foreignGrandchildHash := []byte("foreign grandchild")
+	candidate := &block.MetaBlockV3{Nonce: 2, Round: 2}
+	foreignChild := &block.MetaBlockV3{Nonce: 3, Round: 3, PrevHash: []byte("foreign parent")}
+	foreignGrandchild := &block.MetaBlockV3{Nonce: 4, Round: 4, PrevHash: foreignChildHash}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataPool, ok := dataComponents.Datapool().(*dataRetrieverMock.PoolsHolderStub)
+	require.True(t, ok)
+	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &pool.HeadersPoolStub{
+			GetHeaderByNonceAndShardIdCalled: func(nonce uint64, _ uint32) ([]data.HeaderHandler, [][]byte, error) {
+				switch nonce {
+				case 3:
+					return []data.HeaderHandler{foreignChild}, [][]byte{foreignChildHash}, nil
+				case 4:
+					return []data.HeaderHandler{foreignGrandchild}, [][]byte{foreignGrandchildHash}, nil
+				default:
+					return nil, nil, expectedError
+				}
+			},
+		}
+	}
+	dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{
+			HasProofCalled: func(_ uint32, hash []byte) bool {
+				return bytes.Equal(hash, foreignChildHash) || bytes.Equal(hash, foreignGrandchildHash)
+			},
+		}
+	}
+
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.BlockTracker = &mock.BlockTrackerMock{
+		ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
+			return []data.HeaderHandler{candidate}, [][]byte{candidateHash}, nil
+		},
+		GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+			return &block.MetaBlock{Nonce: 1, Round: 1}, []byte("anchor"), nil
+		},
+	}
+
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.NoError(t, err)
+
+	miniBlocks, numHeaders, numTxs, err := sp.CreateAndProcessMiniBlocksDstMe(haveTimeTrue)
+	require.NoError(t, err)
+	require.Empty(t, miniBlocks)
+	require.Zero(t, numHeaders)
+	require.Zero(t, numTxs)
+}
+
 func TestShardProcessor_CreateAndProcessCrossMiniBlocksDstMeProcessPartOfMiniBlocksInMetaBlock(t *testing.T) {
 	t.Parallel()
 

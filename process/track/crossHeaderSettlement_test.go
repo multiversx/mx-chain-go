@@ -153,8 +153,27 @@ func TestBaseBlockTrack_IsSettledCrossHeader(t *testing.T) {
 
 		v3Header := &block.MetaBlockV3{Nonce: 6, Round: 11, PrevHash: parentHash}
 		addMetaProof(t, args.PoolsHolder, headerHash, v3Header.Nonce, v3Header.Round)
+		childHash := []byte("childHash")
+		child := &block.MetaBlockV3{Nonce: 7, Round: 12, PrevHash: headerHash}
+		args.PoolsHolder.Headers().AddHeader(childHash, child)
+		addMetaProof(t, args.PoolsHolder, childHash, child.Nonce, child.Round)
 
 		require.True(t, sbt.IsSettledCrossHeader(v3Header, headerHash))
+	})
+
+	t.Run("V3 instantly final meta header without a child is not settled", func(t *testing.T) {
+		t.Parallel()
+
+		args, sbt := newTracker(t)
+		parentHash := []byte("parentHash")
+		parent := &block.MetaBlockV3{Nonce: 5, Round: 10}
+		args.PoolsHolder.Headers().AddHeader(parentHash, parent)
+		addMetaProof(t, args.PoolsHolder, parentHash, parent.Nonce, parent.Round)
+
+		v3Header := &block.MetaBlockV3{Nonce: 6, Round: 11, PrevHash: parentHash}
+		addMetaProof(t, args.PoolsHolder, headerHash, v3Header.Nonce, v3Header.Round)
+
+		require.False(t, sbt.IsSettledCrossHeader(v3Header, headerHash))
 	})
 
 	t.Run("V3 contended meta header without a sibling settles on a proofed child", func(t *testing.T) {
@@ -208,6 +227,10 @@ func TestBaseBlockTrack_IsSettledCrossHeader(t *testing.T) {
 
 		v3Header := &block.MetaBlockV3{Nonce: 6, Round: 11, PrevHash: parentHash}
 		addMetaProof(t, args.PoolsHolder, headerHash, v3Header.Nonce, v3Header.Round)
+		childHash := []byte("childHash")
+		child := &block.MetaBlockV3{Nonce: 7, Round: 12, PrevHash: headerHash}
+		sbt.AddTrackedHeader(child, childHash)
+		addMetaProof(t, args.PoolsHolder, childHash, child.Nonce, child.Round)
 
 		require.True(t, sbt.IsSettledCrossHeader(v3Header, headerHash))
 	})

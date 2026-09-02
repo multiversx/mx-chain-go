@@ -306,7 +306,7 @@ func (sr *Subround) HasProofForCompetingBlock() bool {
 	}
 
 	consensusBlockHash := sr.GetData()
-	if !currentBlock.IsHeaderV3() {
+	if !sr.usesV3CompetingBlockRules() {
 		return len(consensusBlockHash) == 0 || !bytes.Equal(proof.GetHeaderHash(), consensusBlockHash)
 	}
 
@@ -343,6 +343,56 @@ func (sr *Subround) HasProofForCompetingBlock() bool {
 	}
 
 	return false
+}
+
+func (sr *Subround) usesV3CompetingBlockRules() bool {
+	header := sr.GetHeader()
+	if !check.IfNil(header) {
+		return common.IsAsyncExecutionEnabledForEpochAndRound(
+			sr.EnableEpochsHandler(),
+			sr.EnableRoundsHandler(),
+			header.GetEpoch(),
+			header.GetRound(),
+		)
+	}
+
+	round := sr.RoundHandler().Index()
+	if round < 0 {
+		return false
+	}
+
+	return sr.EnableEpochsHandler().IsFlagEnabled(common.SupernovaFlag) &&
+		sr.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, uint64(round))
+}
+
+// ShouldRefuseCompetingParent reports whether an unproven meta candidate extends a superseded parent.
+func (sr *Subround) ShouldRefuseCompetingParent(epoch uint32, round uint64) bool {
+	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
+		return false
+	}
+	if !common.IsAsyncExecutionEnabledForEpochAndRound(
+		sr.EnableEpochsHandler(),
+		sr.EnableRoundsHandler(),
+		epoch,
+		round,
+	) {
+		return false
+	}
+
+	return sr.HasProofForCompetingParent()
+}
+
+// ShouldRefuseCompetingParentInCurrentEpoch applies the parent gate before a proposal header exists.
+func (sr *Subround) ShouldRefuseCompetingParentInCurrentEpoch(round uint64) bool {
+	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
+		return false
+	}
+	if !sr.EnableEpochsHandler().IsFlagEnabled(common.SupernovaFlag) ||
+		!sr.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return false
+	}
+
+	return sr.HasProofForCompetingParent()
 }
 
 func (sr *Subround) proofExtendsBlock(proof data.HeaderProofHandler, parentHash []byte) (bool, bool) {

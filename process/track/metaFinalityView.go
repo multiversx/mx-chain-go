@@ -51,6 +51,51 @@ func (mfv *metaFinalityView) IsMetaHeaderHeldFinal(header data.HeaderHandler, he
 	return isMetaHeaderHeldFinal(mfv.headersPool, mfv.proofsPool, header, headerHash)
 }
 
+// IsMetaHeaderSettlementReady reports whether a meta header has irreversible settlement evidence.
+func (mfv *metaFinalityView) IsMetaHeaderSettlementReady(header data.HeaderHandler, headerHash []byte) bool {
+	if check.IfNil(header) || len(headerHash) == 0 {
+		return false
+	}
+	if !header.IsHeaderV3() {
+		return mfv.IsMetaHeaderHeldFinal(header, headerHash)
+	}
+	if mfv.IsDeadMetaBlock(headerHash, header.GetNonce()) {
+		return false
+	}
+
+	return isMetaHeaderSettlementReadyWithEvidence(
+		mfv.proofsPool,
+		header,
+		headerHash,
+		func(hash []byte, nonce uint64) data.HeaderHandler {
+			return getMetaHeaderFromPool(mfv.headersPool, hash, nonce)
+		},
+		func(nonce uint64, parentHash []byte, depth int) bool {
+			return hasProofedMetaDescendants(mfv.headersPool, mfv.proofsPool, nonce, parentHash, depth)
+		},
+	)
+}
+
+func isMetaHeaderSettlementReadyWithEvidence(
+	proofsPool dataRetriever.ProofsPool,
+	header data.HeaderHandler,
+	headerHash []byte,
+	getHeader func(hash []byte, nonce uint64) data.HeaderHandler,
+	hasDescendants func(nonce uint64, parentHash []byte, depth int) bool,
+) bool {
+	if check.IfNil(header) || len(headerHash) == 0 || header.GetShardID() != core.MetachainShardId ||
+		!proofsPool.HasProof(core.MetachainShardId, headerHash) {
+		return false
+	}
+
+	depth := 1
+	if header.IsHeaderV3() && hasProofedMetaSibling(proofsPool, header, headerHash, getHeader) {
+		depth = metaReconciliationEvidenceDepth
+	}
+
+	return hasDescendants(header.GetNonce()+1, headerHash, depth)
+}
+
 func isMetaHeaderHeldFinal(
 	headersPool dataRetriever.HeadersPool,
 	proofsPool dataRetriever.ProofsPool,
@@ -237,12 +282,26 @@ func (mfv *metaFinalityView) holdsFinalMetaBlockReferencing(metaNonce uint64, sh
 			continue
 		}
 
-		if mfv.IsMetaHeaderHeldFinal(header, hashes[i]) {
+		if mfv.IsMetaHeaderSettlementReady(header, hashes[i]) {
 			return true
 		}
 	}
 
 	return false
+}
+
+// IsShardHeaderIncluded reports whether a meta header references the shard header or its known descendant.
+func (mfv *metaFinalityView) IsShardHeaderIncluded(
+	metaHeader data.MetaHeaderHandler,
+	shardID uint32,
+	headerHash []byte,
+	nonce uint64,
+) bool {
+	if check.IfNil(metaHeader) || len(headerHash) == 0 {
+		return false
+	}
+
+	return referencesAnyOf(metaHeader, shardID, mfv.ownBranchHashes(shardID, headerHash, nonce))
 }
 
 // ownBranchHashes collects the header and its descendants on the same branch; a held final meta

@@ -85,8 +85,7 @@ func NewMetaForkDetector(
 		nonce: bfd.genesisNonce,
 		round: bfd.genesisRound,
 	}
-	bfd.setFinalCheckpoint(checkpoint)
-	bfd.setSettledCheckpoint(checkpoint)
+	bfd.setFinalAndSettledCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
 	bfd.fork.rollBackNonce = math.MaxUint64
 	bfd.fork.probableHighestNonce = bfd.genesisNonce
@@ -129,16 +128,16 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 	// under Supernova the committed header settles only the block it extends (settle-on-child)
 	canSettleLastCheckpoint := !mfd.isSupernovaForHeader(header) || isParentCheckpoint(lastCheckpoint, header)
 	if canSettleLastCheckpoint {
-		mfd.advanceFinalCheckpoint(lastCheckpoint)
-		mfd.advanceSettledCheckpoint(lastCheckpoint)
+		mfd.advanceFinalAndSettledCheckpoint(lastCheckpoint)
 	}
 	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
 	mfd.addCheckpoint(newCheckpoint)
 	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) && mfd.canInstantlyFinalize(header, headerHash) {
-		mfd.setFinalCheckpoint(newCheckpoint)
 		// under Supernova the settled checkpoint advances only on settle-on-child
-		if !mfd.isSupernovaForHeader(header) {
-			mfd.setSettledCheckpoint(newCheckpoint)
+		if mfd.isSupernovaForHeader(header) {
+			mfd.setFinalCheckpoint(newCheckpoint)
+		} else {
+			mfd.setFinalAndSettledCheckpoint(newCheckpoint)
 		}
 	}
 	mfd.removePastOrInvalidRecords()

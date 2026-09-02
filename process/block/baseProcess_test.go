@@ -4340,6 +4340,64 @@ func TestBaseProcessor_updateGasConsumptionLimitsIfNeeded(t *testing.T) {
 	require.True(t, wasZeroOutgoingLimitCalled)
 }
 
+func TestBaseProcessor_UpdateGasConsumptionLimitsForProposalUsesCurrentParent(t *testing.T) {
+	t.Parallel()
+
+	currentHeader := data.HeaderHandler(&block.Header{})
+	isOwnShardStuck := false
+	computeCalls := 0
+	resetStuckCalls := 0
+	bp := blproc.CreateBaseProcessorWithMockedTracker(&mock.BlockTrackerMock{
+		ComputeOwnShardStuckCalled: func(_ data.BaseExecutionResultHandler, _ uint64) {
+			computeCalls++
+		},
+		ResetOwnShardStuckCalled: func() {
+			resetStuckCalls++
+			isOwnShardStuck = false
+		},
+		IsOwnShardStuckCalled: func() bool {
+			return isOwnShardStuck
+		},
+	})
+	bp.SetBlockChain(&testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	})
+	var resetIncoming, resetOutgoing, zeroIncoming, zeroOutgoing int
+	bp.SetGasComputation(&testscommon.GasComputationMock{
+		ResetIncomingLimitCalled: func() { resetIncoming++ },
+		ResetOutgoingLimitCalled: func() { resetOutgoing++ },
+		ZeroIncomingLimitCalled:  func() { zeroIncoming++ },
+		ZeroOutgoingLimitCalled:  func() { zeroOutgoing++ },
+	})
+
+	require.NoError(t, bp.UpdateGasConsumptionLimitsForProposal())
+	require.Zero(t, computeCalls)
+	require.Equal(t, 1, resetStuckCalls)
+	require.False(t, isOwnShardStuck)
+	require.Equal(t, 1, resetIncoming)
+	require.Equal(t, 1, resetOutgoing)
+
+	currentHeader = &block.HeaderV3{
+		Nonce: 7,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{HeaderNonce: 3},
+		},
+	}
+	isOwnShardStuck = true
+	require.NoError(t, bp.UpdateGasConsumptionLimitsForProposal())
+	require.Equal(t, 1, computeCalls)
+	require.Equal(t, 1, zeroIncoming)
+	require.Equal(t, 1, zeroOutgoing)
+
+	isOwnShardStuck = false
+	require.NoError(t, bp.UpdateGasConsumptionLimitsForProposal())
+	require.Equal(t, 2, computeCalls)
+	require.Equal(t, 2, resetIncoming)
+	require.Equal(t, 2, resetOutgoing)
+}
+
 func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 	t.Parallel()
 

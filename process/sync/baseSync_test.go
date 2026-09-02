@@ -1007,8 +1007,9 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 				GetHighestFinalBlockNonceCalled: func() uint64 {
 					return finalNonce
 				},
-				ReconcileFinalCheckpointCalled: func(nonce uint64) {
+				ReconcileFinalCheckpointCalled: func(nonce uint64) bool {
 					calls.reconciledNonce = nonce
+					return true
 				},
 				SetRollBackNonceCalled: func(nonce uint64) {
 					calls.rollBackNonce = nonce
@@ -1298,10 +1299,13 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		}
 		boot.forkDetector = &mock.ForkDetectorMock{
 			GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
-			ReconcileFinalCheckpointCalled:  func(nonce uint64) { calls.reconciledNonce = nonce },
-			SetRollBackNonceCalled:          func(nonce uint64) { calls.rollBackNonce = nonce },
-			CheckForkCalled:                 func() *process.ForkInfo { return process.NewForkInfo() },
-			ProbableHighestNonceCalled:      func() uint64 { return finalNonce },
+			ReconcileFinalCheckpointCalled: func(nonce uint64) bool {
+				calls.reconciledNonce = nonce
+				return true
+			},
+			SetRollBackNonceCalled:     func(nonce uint64) { calls.rollBackNonce = nonce },
+			CheckForkCalled:            func() *process.ForkInfo { return process.NewForkInfo() },
+			ProbableHighestNonceCalled: func() uint64 { return finalNonce },
 		}
 		boot.networkWatcher = &mock.NetworkConnectionWatcherStub{
 			IsConnectedToTheNetworkCalled: func() bool { return true },
@@ -1344,10 +1348,13 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		}
 		boot.forkDetector = &mock.ForkDetectorMock{
 			GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
-			ReconcileFinalCheckpointCalled:  func(nonce uint64) { calls.reconciledNonce = nonce },
-			SetRollBackNonceCalled:          func(nonce uint64) { calls.rollBackNonce = nonce },
-			CheckForkCalled:                 func() *process.ForkInfo { return process.NewForkInfo() },
-			ProbableHighestNonceCalled:      func() uint64 { return finalNonce },
+			ReconcileFinalCheckpointCalled: func(nonce uint64) bool {
+				calls.reconciledNonce = nonce
+				return true
+			},
+			SetRollBackNonceCalled:     func(nonce uint64) { calls.rollBackNonce = nonce },
+			CheckForkCalled:            func() *process.ForkInfo { return process.NewForkInfo() },
+			ProbableHighestNonceCalled: func() uint64 { return finalNonce },
 		}
 		boot.networkWatcher = &mock.NetworkConnectionWatcherStub{
 			IsConnectedToTheNetworkCalled: func() bool { return true },
@@ -1444,6 +1451,33 @@ func TestBaseBootstrap_ReconcileResumableScan(t *testing.T) {
 			ProofsPool:  proofsPool,
 		})
 		require.Nil(t, err)
+		computeCanonicalMetaContinuation := func(_ uint32, _ data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+			continuation := make([]data.HeaderHandler, 0)
+			hashes := make([][]byte, 0)
+			parentHash := metaHash(anchor)
+			for nonce := anchor + 1; nonce <= tipNonce; nonce++ {
+				headers, candidateHashes, getErr := headersPool.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
+				if getErr != nil {
+					break
+				}
+
+				found := false
+				for index, header := range headers {
+					if bytes.Equal(header.GetPrevHash(), parentHash) {
+						continuation = append(continuation, header)
+						hashes = append(hashes, candidateHashes[index])
+						parentHash = candidateHashes[index]
+						found = true
+						break
+					}
+				}
+				if !found {
+					break
+				}
+			}
+
+			return continuation, hashes
+		}
 
 		reconciledNonce := new(uint64)
 		roundHandler := &mock.RoundHandlerMock{RoundIndex: 1}
@@ -1454,6 +1488,7 @@ func TestBaseBootstrap_ReconcileResumableScan(t *testing.T) {
 					GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 						return &block.MetaBlock{Nonce: anchor}, metaHash(anchor), nil
 					},
+					ComputeLongestChainCalled: computeCanonicalMetaContinuation,
 				},
 				headers:        headersPool,
 				proofs:         proofsPool,
@@ -1467,8 +1502,11 @@ func TestBaseBootstrap_ReconcileResumableScan(t *testing.T) {
 			},
 			forkDetector: &mock.ForkDetectorMock{
 				GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
-				ReconcileFinalCheckpointCalled:  func(nonce uint64) { *reconciledNonce = nonce },
-				SetRollBackNonceCalled:          func(nonce uint64) {},
+				ReconcileFinalCheckpointCalled: func(nonce uint64) bool {
+					*reconciledNonce = nonce
+					return true
+				},
+				SetRollBackNonceCalled: func(nonce uint64) {},
 			},
 			headers:          headersPool,
 			proofs:           proofsPool,
@@ -1562,6 +1600,19 @@ func (stub *settlementCheckerStub) prepareInclusionScan(scanCursor uint64) (uint
 	}
 
 	return 0, 0, 0
+}
+
+func (stub *settlementCheckerStub) settlementVerdict(
+	nonce uint64,
+	localHash []byte,
+	competitorHash []byte,
+	scanFrom uint64,
+	scanTo uint64,
+) (bool, bool) {
+	localSettled := stub.isSettled(nonce, localHash, scanFrom, scanTo)
+	competitorSettled := len(competitorHash) > 0 && stub.isSettled(nonce, competitorHash, scanFrom, scanTo)
+
+	return localSettled, competitorSettled
 }
 
 func (stub *settlementCheckerStub) isSettled(nonce uint64, headerHash []byte, scanFrom uint64, scanTo uint64) bool {

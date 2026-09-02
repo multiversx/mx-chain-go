@@ -48,6 +48,19 @@ func (sbt *shardBlockTrack) NumPendingSelfHeaders() int64 {
 	return sbt.numPendingSelfHeaders.Load()
 }
 
+// NumPendingSources -
+func (sbt *shardBlockTrack) NumPendingSources(hash []byte) int {
+	sbt.mutPendingSelfHeaders.Lock()
+	defer sbt.mutPendingSelfHeaders.Unlock()
+
+	pending := sbt.pendingSelfHeaders[string(hash)]
+	if pending == nil {
+		return 0
+	}
+
+	return len(pending.sources)
+}
+
 func (sbt *shardBlockTrack) SetMetaFinalityView(view process.MetaFinalityView) {
 	sbt.metaFinalityView = view
 }

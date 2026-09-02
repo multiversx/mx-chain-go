@@ -1064,6 +1064,11 @@ func (bbt *baseBlockTrack) ComputeOwnShardStuck(lastExecutionResultsInfo data.Ba
 	bbt.ownShardTracker.ComputeOwnShardStuck(lastExecutionResultsInfo, currentNonce)
 }
 
+// ResetOwnShardStuck restores the unstuck state.
+func (bbt *baseBlockTrack) ResetOwnShardStuck() {
+	bbt.ownShardTracker.ResetOwnShardStuck()
+}
+
 // IsOwnShardStuck returns true if the own shard is stuck, false otherwise
 func (bbt *baseBlockTrack) IsOwnShardStuck() bool {
 	return bbt.ownShardTracker.IsOwnShardStuck()

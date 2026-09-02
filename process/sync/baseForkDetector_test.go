@@ -1874,7 +1874,7 @@ func TestBaseForkDetector_RemoveCommittedHeader(t *testing.T) {
 				return flag == common.AndromedaFlag || flag == common.SupernovaFlag
 			},
 		},
-		&testscommon.EnableRoundsHandlerStub{},
+		testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag),
 		&dataRetriever.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
 				return true
@@ -1886,8 +1886,8 @@ func TestBaseForkDetector_RemoveCommittedHeader(t *testing.T) {
 	)
 
 	hash1, hash2, competitorHash := []byte("hash1"), []byte("hash2"), []byte("competitorHash")
-	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
-	contendedHdr2 := &block.Header{Nonce: 2, Round: 4, PrevHash: hash1, PubKeysBitmap: []byte("X")}
+	hdr1 := &block.HeaderV3{Epoch: 1, Nonce: 1, Round: 1}
+	contendedHdr2 := &block.HeaderV3{Epoch: 1, Nonce: 2, Round: 4, PrevHash: hash1}
 
 	_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	_ = sfd.AddHeader(contendedHdr2, hash2, process.BHProcessed, nil, nil)
@@ -1932,7 +1932,7 @@ func TestBaseForkDetector_ReconcileFinalCheckpoint(t *testing.T) {
 				return flag == common.AndromedaFlag || flag == common.SupernovaFlag
 			},
 		},
-		&testscommon.EnableRoundsHandlerStub{},
+		testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag),
 		&dataRetriever.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
 				return true
@@ -1943,8 +1943,8 @@ func TestBaseForkDetector_ReconcileFinalCheckpoint(t *testing.T) {
 		0,
 	)
 
-	hdr1 := &block.Header{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
-	cleanHdr2 := &block.Header{Nonce: 2, Round: 2, PrevHash: []byte("hash1"), PubKeysBitmap: []byte("X")}
+	hdr1 := &block.HeaderV3{Epoch: 1, Nonce: 1, Round: 1}
+	cleanHdr2 := &block.HeaderV3{Epoch: 1, Nonce: 2, Round: 2, PrevHash: []byte("hash1")}
 	_ = sfd.AddHeader(hdr1, []byte("hash1"), process.BHProcessed, nil, nil)
 	_ = sfd.AddHeader(cleanHdr2, []byte("hash2"), process.BHProcessed, nil, nil)
 	assert.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
