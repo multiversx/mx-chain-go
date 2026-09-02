@@ -105,6 +105,37 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 	require.Equal(t, proof4, proof)
 }
 
+func TestProofsPool_HasProofForDifferentHash(t *testing.T) {
+	const nonce = uint64(7)
+	pp := proofscache.NewProofsPool(cleanupDelta, bucketSize)
+	currentHash := []byte("current")
+	competingHash := []byte("competing")
+	require.True(t, pp.AddProof(&block.HeaderProof{
+		HeaderHash:    currentHash,
+		HeaderNonce:   nonce,
+		HeaderShardId: shardID,
+	}))
+
+	require.False(t, pp.HasProofForDifferentHash(shardID, nonce, currentHash))
+	require.False(t, pp.HasProofForDifferentHash(shardID, nonce+1, currentHash))
+	require.False(t, pp.HasProofForDifferentHash(shardID+1, nonce, currentHash))
+
+	require.True(t, pp.AddProof(&block.HeaderProof{
+		HeaderHash:    competingHash,
+		HeaderNonce:   nonce,
+		HeaderShardId: shardID,
+	}))
+	require.True(t, pp.HasProofForDifferentHash(shardID, nonce, currentHash))
+	require.True(t, pp.HasProofForDifferentHash(shardID, nonce, competingHash))
+
+	result := false
+	allocations := testing.AllocsPerRun(100, func() {
+		result = pp.HasProofForDifferentHash(shardID, nonce, currentHash)
+	})
+	require.True(t, result)
+	require.Zero(t, allocations)
+}
+
 func TestProofsPool_Upsert(t *testing.T) {
 	t.Parallel()
 

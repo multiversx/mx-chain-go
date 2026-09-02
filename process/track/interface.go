@@ -77,5 +77,6 @@ type KeysHandler interface {
 // OwnShardTrackerHandler defines the operations implemented by a component that will track the own shard
 type OwnShardTrackerHandler interface {
 	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	ResetOwnShardStuck()
 	IsOwnShardStuck() bool
 }

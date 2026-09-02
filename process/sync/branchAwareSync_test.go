@@ -425,6 +425,51 @@ func TestBaseBootstrap_ExactFinalAuthorityUsesRoundGatedReconciliation(t *testin
 	require.Equal(t, uint64(11), sfd.getRollBackNonce())
 }
 
+func TestBaseBootstrap_UniqueAuthorityConflictAboveFinalUsesRoundGatedReconciliation(t *testing.T) {
+	t.Parallel()
+
+	localHash := []byte("A")
+	selectedHash := []byte("B")
+	parentHash := []byte("P")
+	currentHash := []byte("tip")
+	currentHeader, _ := createBranchAwareHeader(13, currentHash, []byte("D"))
+	fixture := newBranchAwareSyncFixture(currentHeader, currentHash)
+	_, selectedProof := createBranchAwareHeader(11, selectedHash, parentHash)
+	fixture.proofs = []data.HeaderProofHandler{selectedProof}
+
+	bfd := newBranchAwareForkDetector(0, 10, parentHash)
+	bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: parentHash}
+	bfd.fork.checkpoint = []*checkpointInfo{{nonce: 10, round: 10, hash: parentHash}}
+	bfd.fork.rollBackNonce = math.MaxUint64
+	bfd.headers[11] = []*headerInfo{{
+		epoch: 1, nonce: 11, round: 21, hash: localHash, prevHash: parentHash,
+		state: process.BHProcessed, hasProof: true,
+	}}
+	require.True(t, bfd.append(&headerInfo{
+		epoch: 1, nonce: 11, round: 22, hash: selectedHash, prevHash: parentHash,
+		state: process.BHNotarized,
+	}))
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+	fixture.boot.forkDetector = sfd
+	fixture.boot.statusHandler = &statusHandlerMock.AppStatusHandlerStub{}
+	fixture.boot.settlementChecker = &settlementCheckerStub{
+		resolveNotarizedHeaderCalled: func(_ uint64, _ []notarizedHeaderCandidate) []byte {
+			return selectedHash
+		},
+	}
+
+	require.True(t, fixture.boot.tryResolveNotarizedAmbiguity(20))
+	require.False(t, fixture.boot.tryReconcileEquivocation(20))
+	require.Equal(t, uint64(10), sfd.GetHighestFinalBlockNonce())
+	require.NotNil(t, fixture.boot.pendingReconcile)
+
+	require.True(t, fixture.boot.tryReconcileEquivocation(21))
+	require.Equal(t, uint64(10), sfd.GetHighestFinalBlockNonce())
+	require.Equal(t, uint64(11), sfd.getRollBackNonce())
+	require.Nil(t, fixture.boot.pendingReconcile)
+}
+
 func TestBaseBootstrap_AmbiguityAppearingDuringForkCheckKeepsNodeUnsynchronized(t *testing.T) {
 	t.Parallel()
 

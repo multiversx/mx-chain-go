@@ -10,8 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
-// IsSettledCrossHeader uses the held-final rule for V3 meta headers and the proofed-child rule for
-// legacy meta headers.
+// IsSettledCrossHeader applies branch-aware settlement to V3 meta headers and proofed-child settlement to legacy headers.
 func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool {
 	if check.IfNil(header) || len(headerHash) == 0 {
 		return false
@@ -22,7 +21,12 @@ func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, heade
 		return false
 	}
 	if header.IsHeaderV3() {
-		return isMetaHeaderHeldFinalWithEvidence(
+		view := &metaFinalityView{headersPool: bbt.headersPool, proofsPool: bbt.proofsPool}
+		if view.IsDeadMetaBlock(headerHash, header.GetNonce()) {
+			return false
+		}
+
+		return isMetaHeaderSettlementReadyWithEvidence(
 			bbt.proofsPool,
 			header,
 			headerHash,

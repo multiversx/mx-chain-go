@@ -970,6 +970,16 @@ func (bp *baseProcessor) SetGasComputation(instance process.GasComputation) {
 	bp.gasComputation = instance
 }
 
+// SetBlockChain -
+func (bp *baseProcessor) SetBlockChain(chain data.ChainHandler) {
+	bp.blockChain = chain
+}
+
+// UpdateGasConsumptionLimitsForProposal -
+func (bp *baseProcessor) UpdateGasConsumptionLimitsForProposal() error {
+	return bp.updateGasConsumptionLimitsForProposal()
+}
+
 // UpdateGasConsumptionLimitsIfNeeded -
 func (bp *baseProcessor) UpdateGasConsumptionLimitsIfNeeded() {
 	bp.updateGasConsumptionLimitsIfNeeded()
@@ -1050,6 +1060,11 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header dat
 // VerifyGasLimit -
 func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler, miniBlocks block.MiniBlockSlice, isProposer bool) error {
 	return sp.verifyGasLimit(header, miniBlocks, isProposer)
+}
+
+// VerifyGasLimit -
+func (mp *metaProcessor) VerifyGasLimit(header data.MetaHeaderHandler, miniBlocks block.MiniBlockSlice, isProposer bool) error {
+	return mp.verifyGasLimit(header, miniBlocks, isProposer)
 }
 
 // SelectOutgoingTransactions -

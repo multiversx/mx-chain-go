@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -1424,6 +1425,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		proofsPool *dataRetriever.ProofsPoolMock,
 		headersPool *pool.HeadersPoolStub,
 		currentShardID uint32,
+		useV3Rules bool,
 	) *spos.Subround {
 		consensusState := internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
 		ch := make(chan bool, 1)
@@ -1436,6 +1438,13 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		container.SetShardCoordinator(&mock.ShardCoordinatorMock{
 			ShardID: currentShardID,
 		})
+		if useV3Rules {
+			container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledCalled:        func(_ core.EnableEpochFlag) bool { return true },
+				IsFlagEnabledInEpochCalled: func(_ core.EnableEpochFlag, _ uint32) bool { return true },
+			})
+			container.SetEnableRoundsHandler(testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag))
+		}
 
 		sr, _ := spos.NewSubround(
 			bls.SrStartRound,
@@ -1466,7 +1475,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{}
 
-		sr := createSubround(blockchain, proofsPool, nil, shardID)
+		sr := createSubround(blockchain, proofsPool, nil, shardID, false)
 
 		assert.False(t, sr.HasProofForCompetingBlock())
 	})
@@ -1485,7 +1494,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool, nil, shardID)
+		sr := createSubround(blockchain, proofsPool, nil, shardID, false)
 
 		assert.False(t, sr.HasProofForCompetingBlock())
 	})
@@ -1506,7 +1515,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool, nil, shardID)
+		sr := createSubround(blockchain, proofsPool, nil, shardID, false)
 		sr.SetData(nil)
 
 		assert.True(t, sr.HasProofForCompetingBlock())
@@ -1528,7 +1537,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool, nil, shardID)
+		sr := createSubround(blockchain, proofsPool, nil, shardID, false)
 		sr.SetData(currentBlockHash)
 
 		assert.False(t, sr.HasProofForCompetingBlock())
@@ -1551,7 +1560,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool, nil, shardID)
+		sr := createSubround(blockchain, proofsPool, nil, shardID, false)
 		sr.SetData(currentBlockHash)
 
 		assert.True(t, sr.HasProofForCompetingBlock())
@@ -1583,7 +1592,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool, headersPool, core.MetachainShardId)
+		sr := createSubround(blockchain, proofsPool, headersPool, core.MetachainShardId, true)
 		sr.SetData(consensusBlockHash)
 
 		assert.False(t, sr.HasProofForCompetingBlock())
@@ -1610,7 +1619,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool, headersPool, core.MetachainShardId)
+		sr := createSubround(blockchain, proofsPool, headersPool, core.MetachainShardId, true)
 
 		assert.True(t, sr.HasProofForCompetingBlock())
 	})
@@ -1640,7 +1649,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool, headersPool, shardID)
+		sr := createSubround(blockchain, proofsPool, headersPool, shardID, true)
 
 		sr.SetData(competingBlockHash)
 		assert.False(t, sr.HasProofForCompetingBlock())
@@ -1674,7 +1683,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool, headersPool, shardID)
+		sr := createSubround(blockchain, proofsPool, headersPool, shardID, true)
 		sr.SetData(nil)
 
 		assert.False(t, sr.HasProofForCompetingBlock())
@@ -1701,9 +1710,127 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool, headersPool, shardID)
+		sr := createSubround(blockchain, proofsPool, headersPool, shardID, true)
 
 		assert.True(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("first V3 child over a legacy parent uses candidate ancestry rules", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("legacy_parent_hash")
+		candidateHash := []byte("first_v3_candidate_hash")
+		proofHash := []byte("proof_hash")
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, currentBlockHash
+			},
+		}
+
+		for _, testCase := range []struct {
+			name        string
+			proofHeader data.HeaderHandler
+			expected    bool
+		}{
+			{
+				name:        "legacy same-parent proof is competing",
+				proofHeader: &block.Header{PrevHash: currentBlockHash},
+				expected:    true,
+			},
+			{
+				name:        "V3 same-parent proof is competing",
+				proofHeader: &block.HeaderV3{PrevHash: currentBlockHash},
+				expected:    true,
+			},
+			{
+				name:        "known off-parent proof is not competing",
+				proofHeader: &block.Header{PrevHash: []byte("other_parent")},
+				expected:    false,
+			},
+			{
+				name:     "unknown proof ancestry is competing",
+				expected: true,
+			},
+		} {
+			t.Run(testCase.name, func(t *testing.T) {
+				proof := &block.HeaderProof{HeaderHash: proofHash}
+				proofsPool := &dataRetriever.ProofsPoolMock{
+					GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+						return proof, nil
+					},
+					GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+						return []data.HeaderProofHandler{proof}, nil
+					},
+				}
+				headersPool := &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						if testCase.proofHeader == nil {
+							return nil, errors.New("header not found")
+						}
+
+						return testCase.proofHeader, nil
+					},
+				}
+				sr := createSubround(blockchain, proofsPool, headersPool, shardID, true)
+				sr.SetData(candidateHash)
+
+				beforeHeaderCreation := sr.HasProofForCompetingBlock()
+				sr.SetHeader(&block.HeaderV3{Epoch: 1, Round: 1})
+				afterHeaderReception := sr.HasProofForCompetingBlock()
+
+				assert.Equal(t, testCase.expected, beforeHeaderCreation)
+				assert.Equal(t, testCase.expected, afterHeaderReception)
+			})
+		}
+	})
+
+	t.Run("first V3 child before round activation keeps legacy behavior", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("legacy_parent_hash")
+		candidateHash := []byte("first_v3_candidate_hash")
+		proofHash := []byte("off_parent_proof_hash")
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, currentBlockHash
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{HeaderHash: proofHash}, nil
+			},
+		}
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.Header{PrevHash: []byte("other_parent")}, nil
+			},
+		}
+		sr := createSubround(blockchain, proofsPool, headersPool, shardID, false)
+		sr.SetData(candidateHash)
+		sr.SetHeader(&block.HeaderV3{Epoch: 1, Round: 1})
+
+		assert.True(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("first V3 child without proof is allowed", func(t *testing.T) {
+		t.Parallel()
+
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, []byte("legacy_parent_hash")
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return nil, errors.New("proof not found")
+			},
+		}
+		sr := createSubround(blockchain, proofsPool, nil, shardID, true)
+		sr.SetData([]byte("first_v3_candidate_hash"))
+
+		assert.False(t, sr.HasProofForCompetingBlock())
+		sr.SetHeader(&block.HeaderV3{Epoch: 1, Round: 1})
+		assert.False(t, sr.HasProofForCompetingBlock())
 	})
 
 	t.Run("non-preferred proposal proof is allowed but another live proof blocks", func(t *testing.T) {
@@ -1737,7 +1864,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool, headersPool, shardID)
+		sr := createSubround(blockchain, proofsPool, headersPool, shardID, true)
 
 		sr.SetData(competingBlockHash)
 		assert.False(t, sr.HasProofForCompetingBlock())

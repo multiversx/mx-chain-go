@@ -522,6 +522,13 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 		}
 		pools.Headers().AddHeader(metaHash, metaBlock)
 		addMetaProof(t, pools, metaHash, metaParentNonce+1, metaParentRound+1)
+		childHash := []byte("metaChildHash")
+		pools.Headers().AddHeader(childHash, &block.MetaBlockV3{
+			Nonce:    metaParentNonce + 2,
+			Round:    metaParentRound + 2,
+			PrevHash: metaHash,
+		})
+		addMetaProof(t, pools, childHash, metaParentNonce+2, metaParentRound+2)
 
 		require.True(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce, metaParentNonce, metaParentNonce+track.MaxMetaBlocksScannedForInclusion-1))
 	})

@@ -16,34 +16,53 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
-func TestShardSettlementChecker_IsSettled(t *testing.T) {
+func TestShardSettlementChecker_SettlementVerdict(t *testing.T) {
 	t.Parallel()
 
 	nonce := uint64(10)
 	headerHash := []byte("headerHash")
 
-	t.Run("defers to the meta finality view with the self shard id and the scan window", func(t *testing.T) {
+	t.Run("canonical settlement-ready meta authority settles its referenced shard header", func(t *testing.T) {
 		t.Parallel()
 
-		var gotShardID uint32
-		var gotHash []byte
-		var gotNonce, gotFrom, gotTo uint64
+		anchorHash := []byte("anchorHash")
+		anchor := &block.MetaBlockV3{
+			Nonce: 20,
+			ShardInfoProposal: []block.ShardDataProposal{{
+				ShardID:    3,
+				Nonce:      nonce,
+				HeaderHash: headerHash,
+			}},
+		}
 		checker := &shardSettlementChecker{
 			selfShardID: 3,
 			metaFinalityView: &testscommon.MetaFinalityViewStub{
-				IsIncludedInHeldFinalMetaBlockCalled: func(shardID uint32, hash []byte, hdrNonce uint64, from uint64, to uint64) bool {
-					gotShardID, gotHash, gotNonce, gotFrom, gotTo = shardID, hash, hdrNonce, from, to
+				IsMetaHeaderSettlementReadyCalled: func(header data.HeaderHandler, hash []byte) bool {
+					require.Same(t, anchor, header)
+					require.Equal(t, anchorHash, hash)
 					return true
+				},
+				IsShardHeaderIncludedCalled: func(metaHeader data.MetaHeaderHandler, shardID uint32, hash []byte, hdrNonce uint64) bool {
+					require.Same(t, anchor, metaHeader)
+					require.Equal(t, uint32(3), shardID)
+					require.Equal(t, headerHash, hash)
+					require.Equal(t, nonce, hdrNonce)
+					return true
+				},
+			},
+			blockTracker: &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return anchor, anchorHash, nil
+				},
+				ComputeLongestChainCalled: func(_ uint32, _ data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+					return nil, nil
 				},
 			},
 		}
 
-		require.True(t, checker.isSettled(nonce, headerHash, 42, 57))
-		require.Equal(t, uint32(3), gotShardID)
-		require.Equal(t, headerHash, gotHash)
-		require.Equal(t, nonce, gotNonce)
-		require.Equal(t, uint64(42), gotFrom)
-		require.Equal(t, uint64(57), gotTo)
+		localSettled, competitorSettled := checker.settlementVerdict(nonce, headerHash, nil, 42, 57)
+		require.True(t, localSettled)
+		require.False(t, competitorSettled)
 	})
 
 	t.Run("a proofed shard child alone does not settle", func(t *testing.T) {
@@ -55,7 +74,43 @@ func TestShardSettlementChecker_IsSettled(t *testing.T) {
 			metaFinalityView: &testscommon.MetaFinalityViewStub{},
 		}
 
-		require.False(t, checker.isSettled(nonce, headerHash, 0, 0))
+		localSettled, competitorSettled := checker.settlementVerdict(nonce, headerHash, nil, 0, 0)
+		require.False(t, localSettled)
+		require.False(t, competitorSettled)
+	})
+
+	t.Run("local and competitor verdicts share one canonical meta snapshot", func(t *testing.T) {
+		t.Parallel()
+
+		localHash := []byte("localHash")
+		competitorHash := []byte("competitorHash")
+		anchor := &block.MetaBlockV3{Nonce: 20}
+		var numCanonicalComputations int
+		checker := &shardSettlementChecker{
+			selfShardID: 3,
+			metaFinalityView: &testscommon.MetaFinalityViewStub{
+				IsMetaHeaderSettlementReadyCalled: func(_ data.HeaderHandler, _ []byte) bool {
+					return true
+				},
+				IsShardHeaderIncludedCalled: func(_ data.MetaHeaderHandler, _ uint32, hash []byte, _ uint64) bool {
+					return bytes.Equal(hash, competitorHash)
+				},
+			},
+			blockTracker: &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return anchor, []byte("anchorHash"), nil
+				},
+				ComputeLongestChainCalled: func(_ uint32, _ data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+					numCanonicalComputations++
+					return nil, nil
+				},
+			},
+		}
+
+		localSettled, competitorSettled := checker.settlementVerdict(nonce, localHash, competitorHash, 0, 0)
+		require.False(t, localSettled)
+		require.True(t, competitorSettled)
+		require.Equal(t, 1, numCanonicalComputations)
 	})
 }
 
@@ -78,7 +133,7 @@ func TestShardSettlementChecker_ResolveNotarizedHeaderFromSelectedMetaChain(t *t
 	checker := &shardSettlementChecker{
 		selfShardID: 0,
 		metaFinalityView: &testscommon.MetaFinalityViewStub{
-			IsMetaHeaderHeldFinalCalled: func(_ data.HeaderHandler, hash []byte) bool {
+			IsMetaHeaderSettlementReadyCalled: func(_ data.HeaderHandler, hash []byte) bool {
 				return bytes.Equal(hash, []byte("selectedMeta"))
 			},
 		},
@@ -101,11 +156,25 @@ func TestShardSettlementChecker_ResolveNotarizedHeaderFromSelectedMetaChain(t *t
 
 	require.Equal(t, hashB, checker.resolveNotarizedHeader(nonce, candidates))
 
+	selectedMeta.ShardInfoProposal[0].Nonce = nonce + 1
+	selectedMeta.ShardInfoProposal[0].HeaderHash = []byte("B-child")
+	checker.metaFinalityView = &testscommon.MetaFinalityViewStub{
+		IsMetaHeaderSettlementReadyCalled: func(_ data.HeaderHandler, hash []byte) bool {
+			return bytes.Equal(hash, []byte("selectedMeta"))
+		},
+		IsShardHeaderIncludedCalled: func(_ data.MetaHeaderHandler, _ uint32, hash []byte, candidateNonce uint64) bool {
+			return candidateNonce == nonce && bytes.Equal(hash, hashB)
+		},
+	}
+	require.Equal(t, hashB, checker.resolveNotarizedHeader(nonce, candidates))
+	selectedMeta.ShardInfoProposal[0].Nonce = nonce
+	selectedMeta.ShardInfoProposal[0].HeaderHash = hashB
+
 	anchor.ShardInfoProposal = []block.ShardDataProposal{{ShardID: 0, Nonce: nonce, HeaderHash: hashA}}
 	require.Equal(t, hashB, checker.resolveNotarizedHeader(nonce, candidates))
 
 	checker.metaFinalityView = &testscommon.MetaFinalityViewStub{
-		IsMetaHeaderHeldFinalCalled: func(_ data.HeaderHandler, hash []byte) bool {
+		IsMetaHeaderSettlementReadyCalled: func(_ data.HeaderHandler, hash []byte) bool {
 			return bytes.Equal(hash, []byte("anchor")) || bytes.Equal(hash, []byte("selectedMeta"))
 		},
 	}

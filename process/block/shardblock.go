@@ -1312,13 +1312,6 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
-	err = sp.computeOwnShardStuckIfNeeded(headerHandler)
-	if err != nil {
-		return err
-	}
-
-	sp.updateGasConsumptionLimitsIfNeeded()
-
 	errNotCritical := sp.checkSentSignaturesAtCommitTime(headerHandler)
 	if errNotCritical != nil {
 		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())
@@ -2622,9 +2615,13 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 		"num metablocks", len(orderedMetaBlocks),
 	)
 
-	lastMetaHdr, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	lastMetaHdr, lastMetaHash, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, err
+	}
+	if !check.IfNil(lastMetaHdr) && lastMetaHdr.IsHeaderV3() && sp.metaFinalityView.IsDeadMetaBlock(lastMetaHash, lastMetaHdr.GetNonce()) {
+		orderedMetaBlocks = nil
+		orderedMetaBlocksHashes = nil
 	}
 
 	haveAdditionalTimeFalse := func() bool {
@@ -2646,6 +2643,12 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 
 	// do processing in order
 	for i := 0; i < len(orderedMetaBlocks); i++ {
+		if orderedMetaBlocks[i].IsHeaderV3() && sp.metaFinalityView.IsDeadMetaBlock(
+			orderedMetaBlocksHashes[i],
+			orderedMetaBlocks[i].GetNonce(),
+		) {
+			break
+		}
 		if !createAndProcessInfo.haveTime() && !createAndProcessInfo.haveAdditionalTime() {
 			log.Debug("time is up after putting cross txs with destination to current shard",
 				"scheduled mode", createAndProcessInfo.scheduledMode,

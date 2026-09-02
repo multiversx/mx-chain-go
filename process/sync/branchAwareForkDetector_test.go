@@ -37,6 +37,7 @@ func newBranchAwareForkDetector(shardID uint32, finalNonce uint64, finalHash []b
 				return flag == common.SupernovaRoundFlag
 			},
 		},
+		proofsPool: &dataRetrieverMock.ProofsPoolMock{},
 	}
 	bfd.headers[finalNonce] = []*headerInfo{{
 		epoch:    1,
@@ -163,12 +164,31 @@ func TestBaseForkDetector_CompetingSiblingProofDefersV3Finality(t *testing.T) {
 	require.True(t, bfd.canInstantlyFinalize(header, headerHash))
 }
 
+func TestBaseForkDetector_SupernovaFinalityModeIsV3Only(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("P")
+	bfd := newBranchAwareForkDetector(0, 10, parentHash)
+	legacyHeader := &block.Header{Epoch: 1, Nonce: 11, Round: 12, PrevHash: parentHash}
+	v3Header := &block.HeaderV3{Epoch: 1, Nonce: 11, Round: 12, PrevHash: parentHash}
+
+	require.False(t, bfd.isSupernovaForHeader(legacyHeader))
+	require.True(t, bfd.canInstantlyFinalize(legacyHeader, []byte("legacy")))
+	require.True(t, bfd.isSupernovaForHeader(v3Header))
+	require.False(t, bfd.canInstantlyFinalize(v3Header, []byte("V3")))
+
+	bfd.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{}
+	require.False(t, bfd.isSupernovaForHeader(v3Header))
+	require.True(t, bfd.canInstantlyFinalize(v3Header, []byte("V3")))
+}
+
 func TestShardForkDetector_CompetingSiblingProofStopsFinalityCascade(t *testing.T) {
 	t.Parallel()
 
 	parentHash := []byte("P")
 	processedHash := []byte("A")
 	bfd := newBranchAwareForkDetector(0, 10, parentHash)
+	bfd.fork.settledCheckpoint = bfd.fork.finalCheckpoint
 	processedChild := &headerInfo{
 		epoch: 1, nonce: 11, round: 11, hash: processedHash, prevHash: parentHash,
 		state: process.BHProcessed, hasProof: true,
@@ -194,6 +214,20 @@ func TestShardForkDetector_CompetingSiblingProofStopsFinalityCascade(t *testing.
 
 	bfd.headers[11][1].state = process.BHReceived
 	require.Same(t, processedChild, sfd.getCleanProcessedChild(bfd.finalCheckpoint()))
+
+	bfd.proofsPool = &dataRetrieverMock.ProofsPoolMock{
+		HasProofForDifferentHashCalled: func(_ uint32, _ uint64, _ []byte) bool {
+			return true
+		},
+	}
+	require.Same(t, processedChild, sfd.getCleanProcessedChild(bfd.finalCheckpoint()))
+	sfd.finalizeCleanProcessedDescendants()
+	require.Equal(t, uint64(10), bfd.finalCheckpoint().nonce)
+
+	bfd.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{}
+	sfd.finalizeCleanProcessedDescendants()
+	require.Equal(t, uint64(11), bfd.finalCheckpoint().nonce)
+	require.Equal(t, uint64(11), bfd.settledCheckpoint().nonce)
 }
 
 func addProvenHeaderInfo(
@@ -258,6 +292,74 @@ func TestShardForkDetector_ApplyNotarizedHeaderSelectionPreservesEvidence(t *tes
 	require.Equal(t, uint64(10), settledNonce)
 }
 
+func TestShardForkDetector_ApplyNotarizedHeaderSelectionAcceptsProcessedCandidateBeforeNotarizedCallback(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("P")
+	processedHash := []byte("A")
+	conflictingHash := []byte("B")
+	bfd := newBranchAwareForkDetector(0, 10, parentHash)
+	bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: parentHash}
+	bfd.headers[11] = []*headerInfo{
+		{
+			epoch: 1, nonce: 11, round: 11, hash: processedHash, prevHash: parentHash,
+			state: process.BHProcessed, hasProof: true,
+		},
+		{
+			epoch: 1, nonce: 11, round: 12, hash: conflictingHash, prevHash: parentHash,
+			state: process.BHReceived, hasProof: true,
+		},
+		{
+			epoch: 1, nonce: 11, round: 12, hash: conflictingHash, prevHash: parentHash,
+			state: process.BHNotarized, hasProof: true,
+		},
+	}
+	bfd.hasAmbiguousNotarization.Store(true)
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+
+	require.Equal(t, notarizedHeaderApplied, sfd.applyNotarizedHeaderSelection(11, processedHash))
+	require.False(t, sfd.hasUnresolvedNotarizedAmbiguity())
+	require.True(t, containsHeaderInfo(sfd.headers[11], process.BHProcessed, processedHash))
+	require.True(t, containsHeaderInfo(sfd.headers[11], process.BHNotarized, processedHash))
+	require.True(t, containsHeaderInfo(sfd.headers[11], process.BHReceived, conflictingHash))
+	require.False(t, containsHeaderInfo(sfd.headers[11], process.BHNotarized, conflictingHash))
+	require.Equal(t, uint64(11), sfd.GetHighestFinalBlockNonce())
+	settledNonce, settledHash := sfd.GetHighestSettledBlockInfo()
+	require.Equal(t, uint64(11), settledNonce)
+	require.Equal(t, processedHash, settledHash)
+}
+
+func TestShardForkDetector_ApplyNotarizedHeaderSelectionDoesNotSettleUnprovenProcessedCandidate(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("P")
+	processedHash := []byte("A")
+	conflictingHash := []byte("B")
+	bfd := newBranchAwareForkDetector(0, 10, parentHash)
+	bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: parentHash}
+	bfd.headers[11] = []*headerInfo{
+		{
+			epoch: 1, nonce: 11, round: 11, hash: processedHash, prevHash: parentHash,
+			state: process.BHProcessed,
+		},
+		{
+			epoch: 1, nonce: 11, round: 12, hash: conflictingHash, prevHash: parentHash,
+			state: process.BHNotarized, hasProof: true,
+		},
+	}
+	bfd.hasAmbiguousNotarization.Store(true)
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+
+	require.Equal(t, notarizedHeaderApplied, sfd.applyNotarizedHeaderSelection(11, processedHash))
+	require.True(t, containsHeaderInfo(sfd.headers[11], process.BHNotarized, processedHash))
+	require.Equal(t, uint64(10), sfd.GetHighestFinalBlockNonce())
+	settledNonce, settledHash := sfd.GetHighestSettledBlockInfo()
+	require.Equal(t, uint64(10), settledNonce)
+	require.Equal(t, parentHash, settledHash)
+}
+
 func TestShardForkDetector_DoesNotReplaceAuthorityAtSettledNonce(t *testing.T) {
 	t.Parallel()
 
@@ -277,6 +379,142 @@ func TestShardForkDetector_DoesNotReplaceAuthorityAtSettledNonce(t *testing.T) {
 	settledNonce, settledHash := sfd.GetHighestSettledBlockInfo()
 	require.Equal(t, uint64(10), settledNonce)
 	require.Equal(t, []byte("A"), settledHash)
+}
+
+func TestShardForkDetector_HigherSettlementResolvesLowerAuthorityOnProcessedAncestry(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("P")
+	localHash := []byte("A")
+	conflictingHash := []byte("B")
+	descendantHash := []byte("C")
+	bfd := newBranchAwareForkDetector(0, 10, parentHash)
+	bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: parentHash}
+	bfd.headers[11] = []*headerInfo{
+		{epoch: 1, nonce: 11, round: 11, hash: localHash, prevHash: parentHash, state: process.BHProcessed, hasProof: true},
+		{epoch: 1, nonce: 11, round: 12, hash: conflictingHash, prevHash: parentHash, state: process.BHNotarized, hasProof: true},
+	}
+	bfd.headers[12] = []*headerInfo{
+		{epoch: 1, nonce: 12, round: 13, hash: descendantHash, prevHash: localHash, state: process.BHProcessed, hasProof: true},
+		{epoch: 1, nonce: 12, round: 13, hash: descendantHash, prevHash: localHash, state: process.BHNotarized, hasProof: true},
+	}
+	bfd.hasAmbiguousNotarization.Store(true)
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+
+	sfd.computeFinalCheckpoint()
+
+	settledNonce, settledHash := sfd.GetHighestSettledBlockInfo()
+	require.Equal(t, uint64(12), settledNonce)
+	require.Equal(t, descendantHash, settledHash)
+	require.False(t, sfd.hasUnresolvedNotarizedAmbiguity())
+	for _, info := range sfd.headers[11] {
+		require.False(t, info.state == process.BHNotarized && bytes.Equal(info.hash, conflictingHash))
+	}
+}
+
+func TestShardForkDetector_HigherSettlementDoesNotResolveOffBranchAuthority(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("P")
+	localHash := []byte("A")
+	conflictingHash := []byte("B")
+	descendantHash := []byte("C")
+	bfd := newBranchAwareForkDetector(0, 10, parentHash)
+	bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: parentHash}
+	bfd.headers[11] = []*headerInfo{
+		{epoch: 1, nonce: 11, round: 11, hash: localHash, prevHash: parentHash, state: process.BHProcessed, hasProof: true},
+		{epoch: 1, nonce: 11, round: 12, hash: conflictingHash, prevHash: parentHash, state: process.BHNotarized, hasProof: true},
+	}
+	bfd.headers[12] = []*headerInfo{
+		{epoch: 1, nonce: 12, round: 13, hash: descendantHash, prevHash: conflictingHash, state: process.BHProcessed, hasProof: true},
+		{epoch: 1, nonce: 12, round: 13, hash: descendantHash, prevHash: conflictingHash, state: process.BHNotarized, hasProof: true},
+	}
+	bfd.hasAmbiguousNotarization.Store(true)
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+
+	sfd.computeFinalCheckpoint()
+
+	settledNonce, settledHash := sfd.GetHighestSettledBlockInfo()
+	require.Equal(t, uint64(10), settledNonce)
+	require.Equal(t, parentHash, settledHash)
+	require.True(t, sfd.hasUnresolvedNotarizedAmbiguity())
+	require.True(t, containsHeaderInfo(sfd.headers[11], process.BHNotarized, conflictingHash))
+}
+
+func containsHeaderInfo(infos []*headerInfo, state process.BlockHeaderState, hash []byte) bool {
+	for _, info := range infos {
+		if info.state == state && bytes.Equal(info.hash, hash) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func TestShardForkDetector_ApplyNotarizedHeaderSelectionDoesNotChangePureLegacyRecords(t *testing.T) {
+	t.Parallel()
+
+	bfd := newBranchAwareForkDetector(0, 10, []byte("P"))
+	bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: []byte("P")}
+	bfd.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+	bfd.headers[11] = []*headerInfo{
+		{epoch: 1, nonce: 11, round: 11, hash: []byte("A"), state: process.BHNotarized},
+		{epoch: 1, nonce: 11, round: 12, hash: []byte("B"), state: process.BHNotarized},
+	}
+	bfd.hasAmbiguousNotarization.Store(true)
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+
+	require.Equal(t, notarizedHeaderUnresolved, sfd.applyNotarizedHeaderSelection(11, []byte("B")))
+	require.Len(t, sfd.headers[11], 2)
+}
+
+func TestShardForkDetector_ApplyNotarizedHeaderSelectionResolvesMixedLegacyV3Records(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name         string
+		selectedHash []byte
+		reverseOrder bool
+	}{
+		{name: "legacy selected", selectedHash: []byte("legacy")},
+		{name: "V3 selected", selectedHash: []byte("V3")},
+		{name: "legacy selected reverse order", selectedHash: []byte("legacy"), reverseOrder: true},
+		{name: "V3 selected reverse order", selectedHash: []byte("V3"), reverseOrder: true},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			parentHash := []byte("P")
+			bfd := newBranchAwareForkDetector(0, 10, parentHash)
+			bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: parentHash}
+			bfd.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.AndromedaFlag || flag == common.SupernovaFlag && epoch >= 2
+				},
+			}
+			records := []*headerInfo{
+				{epoch: 1, nonce: 11, round: 11, hash: []byte("legacy"), prevHash: parentHash, state: process.BHNotarized},
+				{epoch: 2, nonce: 11, round: 12, hash: []byte("V3"), prevHash: parentHash, state: process.BHNotarized},
+			}
+			if testCase.reverseOrder {
+				records[0], records[1] = records[1], records[0]
+			}
+			bfd.headers[11] = records
+			bfd.hasAmbiguousNotarization.Store(true)
+			sfd := &shardForkDetector{baseForkDetector: bfd}
+			bfd.forkDetector = sfd
+
+			require.Equal(t, notarizedHeaderApplied, sfd.applyNotarizedHeaderSelection(11, testCase.selectedHash))
+			require.Len(t, sfd.headers[11], 1)
+			require.Equal(t, testCase.selectedHash, sfd.headers[11][0].hash)
+			require.False(t, sfd.hasUnresolvedNotarizedAmbiguity())
+		})
+	}
 }
 
 func TestShardForkDetector_AmbiguousNotarizationDoesNotChooseForkByOrder(t *testing.T) {
@@ -307,6 +545,150 @@ func TestShardForkDetector_AmbiguousNotarizationDoesNotChooseForkByOrder(t *test
 	selection, found := bfd.getLowestAmbiguousNotarizedHeaderSelection()
 	require.True(t, found)
 	require.Len(t, selection.candidates, 2)
+}
+
+func TestShardForkDetector_UniqueV3AuthorityConflictNeedsReconciliation(t *testing.T) {
+	t.Parallel()
+
+	for _, testCase := range []struct {
+		name       string
+		finalNonce uint64
+	}{
+		{name: "conflict above final", finalNonce: 10},
+		{name: "conflict below final", finalNonce: 13},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			parentHash := []byte("P")
+			localHash := []byte("A")
+			selectedHash := []byte("B")
+			selectedChildHash := []byte("E")
+			finalHash := []byte("tip")
+			if testCase.finalNonce == 10 {
+				finalHash = parentHash
+			}
+			bfd := newBranchAwareForkDetector(0, testCase.finalNonce, finalHash)
+			bfd.headers = map[uint64][]*headerInfo{
+				10: {{epoch: 1, nonce: 10, round: 10, hash: parentHash, state: process.BHProcessed, hasProof: true}},
+				11: {{epoch: 1, nonce: 11, round: 11, hash: localHash, prevHash: parentHash, state: process.BHProcessed, hasProof: true}},
+				12: {{epoch: 1, nonce: 12, round: 12, hash: []byte("D"), prevHash: localHash, state: process.BHProcessed, hasProof: true}},
+				13: {{epoch: 1, nonce: 13, round: 13, hash: []byte("tip"), prevHash: []byte("D"), state: process.BHProcessed, hasProof: true}},
+			}
+			bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: parentHash}
+			bfd.fork.finalCheckpoint = &checkpointInfo{nonce: testCase.finalNonce, round: testCase.finalNonce, hash: finalHash}
+			bfd.fork.checkpoint = []*checkpointInfo{
+				{nonce: 10, round: 10, hash: parentHash},
+				{nonce: 11, round: 11, hash: localHash},
+				{nonce: 12, round: 12, hash: []byte("D")},
+				{nonce: 13, round: 13, hash: []byte("tip")},
+			}
+			sfd := &shardForkDetector{baseForkDetector: bfd}
+			bfd.forkDetector = sfd
+
+			require.True(t, bfd.append(&headerInfo{
+				epoch: 1, nonce: 11, round: 12, hash: selectedHash, prevHash: parentHash,
+				state: process.BHNotarized,
+			}))
+			require.True(t, bfd.append(&headerInfo{
+				epoch: 1, nonce: 12, round: 13, hash: selectedChildHash, prevHash: selectedHash,
+				state: process.BHReceived, hasProof: true,
+			}))
+			require.True(t, sfd.hasUnresolvedNotarizedAmbiguity())
+
+			selection, found := sfd.getLowestAmbiguousNotarizedHeaderSelection()
+			require.True(t, found)
+			require.Len(t, selection.candidates, 2)
+			require.Equal(t, localHash, selection.candidates[0].hash)
+			require.Equal(t, selectedHash, selection.candidates[1].hash)
+			require.Equal(t, notarizedHeaderNeedsReconciliation, sfd.applyNotarizedHeaderSelection(11, selectedHash))
+
+			require.True(t, sfd.ReconcileFinalCheckpointFromAuthority(11, selectedHash))
+			require.Equal(t, uint64(10), sfd.GetHighestFinalBlockNonce())
+			require.Equal(t, parentHash, sfd.finalCheckpoint().hash)
+			settledNonce, settledHash := sfd.GetHighestSettledBlockInfo()
+			require.Equal(t, uint64(10), settledNonce)
+			require.Equal(t, parentHash, settledHash)
+			require.False(t, sfd.hasUnresolvedNotarizedAmbiguity())
+			require.Len(t, sfd.headers[11], 1)
+			require.Equal(t, selectedHash, sfd.headers[11][0].hash)
+			require.Equal(t, process.BHNotarized, sfd.headers[11][0].state)
+			for _, info := range sfd.headers[12] {
+				require.True(t, info.hasProof)
+				require.Equal(t, process.BHReceived, info.state)
+			}
+			require.True(t, containsHeaderInfo(sfd.headers[12], process.BHReceived, selectedChildHash))
+			require.Len(t, sfd.headers[13], 1)
+			require.True(t, sfd.headers[13][0].hasProof)
+			require.Equal(t, process.BHReceived, sfd.headers[13][0].state)
+			require.Equal(t, uint64(12), sfd.ProbableHighestNonce())
+		})
+	}
+}
+
+func TestShardForkDetector_UniqueLegacyAuthorityConflictKeepsPriorSelection(t *testing.T) {
+	t.Parallel()
+
+	bfd := newBranchAwareForkDetector(0, 10, []byte("P"))
+	bfd.enableRoundsHandler = &testscommon.EnableRoundsHandlerStub{}
+	bfd.headers[11] = []*headerInfo{
+		{epoch: 1, nonce: 11, round: 11, hash: []byte("A"), state: process.BHProcessed},
+		{epoch: 1, nonce: 11, round: 12, hash: []byte("B"), state: process.BHNotarized},
+	}
+
+	selection := bfd.getNotarizedHeaderSelection(11)
+	require.Equal(t, []byte("B"), selection.hash)
+	require.Empty(t, selection.candidates)
+	require.False(t, bfd.hasUnresolvedNotarizedAmbiguity())
+}
+
+func TestShardForkDetector_UniqueLegacyAuthorityConflictingWithV3ProcessedNeedsReconciliation(t *testing.T) {
+	t.Parallel()
+
+	for _, testCase := range []struct {
+		name           string
+		processedFirst bool
+	}{
+		{name: "processed first", processedFirst: true},
+		{name: "authority first"},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			parentHash := []byte("P")
+			localHash := []byte("V3")
+			selectedHash := []byte("legacy")
+			bfd := newBranchAwareForkDetector(0, 10, parentHash)
+			bfd.enableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.AndromedaFlag || flag == common.SupernovaFlag && epoch >= 2
+				},
+			}
+			bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: parentHash}
+
+			processed := &headerInfo{
+				epoch: 2, nonce: 11, round: 12, hash: localHash, prevHash: parentHash,
+				state: process.BHProcessed,
+			}
+			authority := &headerInfo{
+				epoch: 1, nonce: 11, round: 11, hash: selectedHash, prevHash: parentHash,
+				state: process.BHNotarized,
+			}
+			if testCase.processedFirst {
+				require.True(t, bfd.append(processed))
+				require.True(t, bfd.append(authority))
+			} else {
+				require.True(t, bfd.append(authority))
+				require.True(t, bfd.append(processed))
+			}
+
+			selection, found := bfd.getLowestAmbiguousNotarizedHeaderSelection()
+			require.True(t, found)
+			require.Len(t, selection.candidates, 2)
+			require.Equal(t, notarizedHeaderNeedsReconciliation,
+				bfd.applyNotarizedHeaderSelection(11, selectedHash))
+		})
+	}
 }
 
 func TestBaseForkDetector_LegacyNotarizationsKeepPriorSelection(t *testing.T) {
