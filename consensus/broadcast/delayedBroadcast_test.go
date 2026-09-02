@@ -31,6 +31,22 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
+const (
+	testExtraDelayForBroadcastBlockInfo     = 30 * time.Millisecond
+	testExtraDelayBetweenBroadcastMbsAndTxs = 50 * time.Millisecond
+)
+
+func createTestProcessConfigsHandler() common.ProcessConfigsHandler {
+	return &testscommon.ProcessConfigsHandlerStub{
+		GetExtraDelayForBroadcastBlockInfoCalled: func(_ uint64) time.Duration {
+			return testExtraDelayForBroadcastBlockInfo
+		},
+		GetExtraDelayBetweenBroadcastMbsAndTxsCalled: func(_ uint64) time.Duration {
+			return testExtraDelayBetweenBroadcastMbsAndTxs
+		},
+	}
+}
+
 type validatorDelayArgs struct {
 	headerHash       []byte
 	header           data.HeaderHandler
