@@ -125,8 +125,16 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	// enable db lookup extension
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
-	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
 	configs.GeneralConfig.EpochStartConfig.GenesisEpoch = args.InitialEpoch
+
+	// the simulator drives the rounds itself and every node shares the same process, so there is no
+	// gossip to wait for: collapse the block data propagation delays on every round config
+	for i := range configs.GeneralConfig.GeneralSettings.ProcessConfigsByRound {
+		cfg := &configs.GeneralConfig.GeneralSettings.ProcessConfigsByRound[i]
+		cfg.ExtraDelayForBroadcastBlockInfoMs = 0
+		cfg.ExtraDelayBetweenBroadcastMbsAndTxsMs = 0
+		cfg.ExtraDelayForRequestBlockInfoMs = 1
+	}
 
 	// the simulator always builds its own genesis locally (even for a non-zero InitialEpoch) and
 	// never joins a real p2p network, so there is never epoch-start data to fetch from peers;

@@ -189,6 +189,7 @@ func GetGeneralConfig() config.Config {
 					MaxBlockProcessingTimeMs:               1000,
 					NumHeadersToRequestInAdvance:           10,
 					RoundModulusTriggerWhenSyncIsStuck:     20,
+					ExtraDelayForRequestBlockInfoMs:        1,
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{

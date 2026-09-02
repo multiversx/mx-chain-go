@@ -80,7 +80,14 @@
             # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
             MaxRoundsOfInactivityAccepted = 3,
             MaxBlockProcessingTimeMs = 6000, # this is only used after Supernova
-            NumHeadersToRequestInAdvance = 10
+            NumHeadersToRequestInAdvance = 10,
+            # block data propagation delays, sized for the 6s round
+            ExtraDelayForBroadcastBlockInfoMs = 1000,
+            ExtraDelayBetweenBroadcastMbsAndTxsMs = 1000,
+            # fallback prefetch patience, measured from the local (header + proof) observation. Must be
+            # non-zero and must cover the sender's broadcast chain (ExtraDelayForBroadcastBlockInfoMs +
+            # ExtraDelayBetweenBroadcastMbsAndTxsMs) plus the gossip delivery time of the broadcast data
+            ExtraDelayForRequestBlockInfoMs = 3000
         },
         {
             EnableRound = 440,
@@ -93,7 +100,14 @@
             MaxConsecutiveRoundsOfRatingDecrease = 6000,
             MaxRoundsOfInactivityAccepted = 30,
             MaxBlockProcessingTimeMs = 6000,
-            NumHeadersToRequestInAdvance = 10
+            NumHeadersToRequestInAdvance = 10,
+            # block data propagation delays, sized for the 600ms Supernova round
+            ExtraDelayForBroadcastBlockInfoMs = 30,
+            ExtraDelayBetweenBroadcastMbsAndTxsMs = 50,
+            # fallback prefetch patience, measured from the local (header + proof) observation. Must be
+            # non-zero and must cover the sender's broadcast chain (ExtraDelayForBroadcastBlockInfoMs +
+            # ExtraDelayBetweenBroadcastMbsAndTxsMs) plus the gossip delivery time of the broadcast data
+            ExtraDelayForRequestBlockInfoMs = 400
         }
     ]
 
@@ -914,10 +928,6 @@
 
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
-    # fallback prefetch patience, measured from the local (header + proof) observation.
-    # Must exceed the sender's broadcast chain (30ms miniblocks + 50ms transactions)
-    # plus the gossip delivery time of the broadcast data
-    ExtraDelayForRequestBlockInfoInMilliseconds = 400
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.

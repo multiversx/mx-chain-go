@@ -54,17 +54,17 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool                                    dataRetriever.PoolsHolder
-	Storage                                     dataRetriever.StorageService
-	RequestHandler                              epochStart.RequestHandler
-	EpochStartNotifier                          epochStart.Notifier
-	PeerMiniBlocksSyncer                        process.ValidatorInfoSyncer
-	RoundHandler                                process.RoundHandler
-	AppStatusHandler                            core.AppStatusHandler
-	EnableEpochsHandler                         common.EnableEpochsHandler
-	ExtraDelayForRequestBlockInfoInMilliseconds int
-	WaitForBootstrapCompletion                  bool
-	ShardID                                     uint32
+	DataPool                   dataRetriever.PoolsHolder
+	Storage                    dataRetriever.StorageService
+	RequestHandler             epochStart.RequestHandler
+	EpochStartNotifier         epochStart.Notifier
+	PeerMiniBlocksSyncer       process.ValidatorInfoSyncer
+	RoundHandler               process.RoundHandler
+	AppStatusHandler           core.AppStatusHandler
+	EnableEpochsHandler        common.EnableEpochsHandler
+	ProcessConfigsHandler      common.ProcessConfigsHandler
+	WaitForBootstrapCompletion bool
+	ShardID                    uint32
 
 	Epoch    uint32
 	Validity uint64
@@ -119,9 +119,9 @@ type trigger struct {
 
 	peerMiniBlocksSyncer process.ValidatorInfoSyncer
 
-	appStatusHandler              core.AppStatusHandler
-	enableEpochsHandler           common.EnableEpochsHandler
-	extraDelayForRequestBlockInfo time.Duration
+	appStatusHandler      core.AppStatusHandler
+	enableEpochsHandler   common.EnableEpochsHandler
+	processConfigsHandler common.ProcessConfigsHandler
 
 	mapMissingMiniBlocks     map[string]uint32
 	mapMissingValidatorsInfo map[string]uint32
@@ -295,8 +295,8 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, epochStart.ErrNilEnableEpochsHandler
 	}
-	if args.ExtraDelayForRequestBlockInfoInMilliseconds < 0 {
-		return nil, process.ErrNegativeValue
+	if check.IfNil(args.ProcessConfigsHandler) {
+		return nil, process.ErrNilProcessConfigsHandler
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.RefactorPeersMiniBlocksFlag,
@@ -375,7 +375,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		roundHandler:                  args.RoundHandler,
 		shardID:                       args.ShardID,
 		enableEpochsHandler:           args.EnableEpochsHandler,
-		extraDelayForRequestBlockInfo: time.Duration(args.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
+		processConfigsHandler:         args.ProcessConfigsHandler,
 		chanMetaBlockReceived:         make(chan struct{}, 1),
 		pendingEpochStartProofs:       make(map[string]pendingEpochStartProof),
 		pendingEpochStartHeaders:      make(map[uint32]struct{}),
@@ -408,8 +408,8 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 	return t, nil
 }
 
-func (t *trigger) getExtraDelayForRequestsBlockInfo() time.Duration {
-	return t.extraDelayForRequestBlockInfo
+func (t *trigger) getExtraDelayForRequestsBlockInfo(round uint64) time.Duration {
+	return t.processConfigsHandler.GetExtraDelayForRequestBlockInfo(round)
 }
 
 func (t *trigger) clearMissingMiniBlocksMap(epoch uint32) {
@@ -2381,7 +2381,7 @@ func (t *trigger) updateTriggerHeaderData(metaHdr data.MetaHeaderHandler, metaBl
 		t.newEpochHdrReceived = true
 		t.mapEpochStartHdrs[string(metaBlockHash)] = metaHdr
 		// waiting for late broadcast of mini blocks and transactions to be done and received
-		wait := t.getExtraDelayForRequestsBlockInfo()
+		wait := t.getExtraDelayForRequestsBlockInfo(metaHdr.GetRound())
 		roundDifferences := t.roundHandler.Index() - int64(metaHdr.GetRound())
 		if roundDifferences > 1 {
 			wait = 0

@@ -72,13 +72,13 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				}, nil
 			},
 		},
-		RequestHandler:       &testscommon.RequestHandlerStub{},
-		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
-		PeerMiniBlocksSyncer: &mock.ValidatorInfoSyncerStub{},
-		RoundHandler:         &mock.RoundHandlerStub{},
-		AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		ExtraDelayForRequestBlockInfoInMilliseconds: 0,
+		RequestHandler:        &testscommon.RequestHandlerStub{},
+		EpochStartNotifier:    &mock.EpochStartNotifierStub{},
+		PeerMiniBlocksSyncer:  &mock.ValidatorInfoSyncerStub{},
+		RoundHandler:          &mock.RoundHandlerStub{},
+		AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 	}
 }
 
@@ -376,25 +376,31 @@ func TestNewEpochStartTrigger_InvalidEnableEpochsHandlerShouldErr(t *testing.T) 
 func TestNewEpochStartTrigger_ExtraDelayForRequestBlockInfo(t *testing.T) {
 	t.Parallel()
 
-	t.Run("negative delay should error", func(t *testing.T) {
+	t.Run("nil process configs handler should error", func(t *testing.T) {
 		args := createMockShardEpochStartTriggerArguments()
-		args.ExtraDelayForRequestBlockInfoInMilliseconds = -1
+		args.ProcessConfigsHandler = nil
 
 		trigger, err := NewEpochStartTrigger(args)
 
 		require.Nil(t, trigger)
-		require.ErrorIs(t, err, process.ErrNegativeValue)
+		require.ErrorIs(t, err, process.ErrNilProcessConfigsHandler)
 	})
 
-	t.Run("configured delay should be stored", func(t *testing.T) {
+	t.Run("configured delay should be taken per round", func(t *testing.T) {
 		args := createMockShardEpochStartTriggerArguments()
-		args.ExtraDelayForRequestBlockInfoInMilliseconds = 400
+		providedRound := uint64(37)
+		args.ProcessConfigsHandler = &testscommon.ProcessConfigsHandlerStub{
+			GetExtraDelayForRequestBlockInfoCalled: func(round uint64) time.Duration {
+				require.Equal(t, providedRound, round)
+				return 400 * time.Millisecond
+			},
+		}
 
 		trigger, err := NewEpochStartTrigger(args)
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, trigger.Close()) })
 
-		require.Equal(t, 400*time.Millisecond, trigger.getExtraDelayForRequestsBlockInfo())
+		require.Equal(t, 400*time.Millisecond, trigger.getExtraDelayForRequestsBlockInfo(providedRound))
 	})
 }
 
