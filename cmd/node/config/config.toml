@@ -81,12 +81,8 @@
             MaxRoundsOfInactivityAccepted = 3,
             MaxBlockProcessingTimeMs = 6000, # this is only used after Supernova
             NumHeadersToRequestInAdvance = 10,
-            # block data propagation delays, sized for the 6s round
             ExtraDelayForBroadcastBlockInfoMs = 1000,
             ExtraDelayBetweenBroadcastMbsAndTxsMs = 1000,
-            # fallback prefetch patience, measured from the local (header + proof) observation. Must be
-            # non-zero and must cover the sender's broadcast chain (ExtraDelayForBroadcastBlockInfoMs +
-            # ExtraDelayBetweenBroadcastMbsAndTxsMs) plus the gossip delivery time of the broadcast data
             ExtraDelayForRequestBlockInfoMs = 3000
         },
         {
@@ -101,12 +97,8 @@
             MaxRoundsOfInactivityAccepted = 30,
             MaxBlockProcessingTimeMs = 6000,
             NumHeadersToRequestInAdvance = 10,
-            # block data propagation delays, sized for the 600ms Supernova round
             ExtraDelayForBroadcastBlockInfoMs = 30,
             ExtraDelayBetweenBroadcastMbsAndTxsMs = 50,
-            # fallback prefetch patience, measured from the local (header + proof) observation. Must be
-            # non-zero and must cover the sender's broadcast chain (ExtraDelayForBroadcastBlockInfoMs +
-            # ExtraDelayBetweenBroadcastMbsAndTxsMs) plus the gossip delivery time of the broadcast data
             ExtraDelayForRequestBlockInfoMs = 400
         }
     ]

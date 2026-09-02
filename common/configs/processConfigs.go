@@ -144,15 +144,10 @@ func checkRoundConfigValues(cfg config.ProcessConfigByRound) error {
 		)
 	}
 
-	// a zero patience makes every observed header fire a request before the sender could possibly have
-	// delivered, so it is never a valid value - it also catches a config that predates these fields,
-	// where the whole propagation chain would silently collapse to no delay at all
 	if cfg.ExtraDelayForRequestBlockInfoMs < minExtraDelayForRequestBlockInfoMs {
 		return fmt.Errorf("%w for ExtraDelayForRequestBlockInfoMs, received %d, min expected %d",
 			process.ErrInvalidValue, cfg.ExtraDelayForRequestBlockInfoMs, minExtraDelayForRequestBlockInfoMs)
 	}
-	// requesting before the sender has even finished broadcasting turns the fallback prefetch into the
-	// primary transport, so the patience must also cover the sender's own broadcast chain
 	broadcastChainMs := cfg.ExtraDelayForBroadcastBlockInfoMs + cfg.ExtraDelayBetweenBroadcastMbsAndTxsMs
 	if cfg.ExtraDelayForRequestBlockInfoMs < broadcastChainMs {
 		return fmt.Errorf("%w for ExtraDelayForRequestBlockInfoMs, received %d, must cover the broadcast chain of %d",
