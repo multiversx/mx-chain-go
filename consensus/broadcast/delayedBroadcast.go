@@ -430,14 +430,30 @@ func (dbb *delayedBlockBroadcaster) evictPendingMetaHeadersUpToNonce(nonce uint6
 	}
 }
 
+func (dbb *delayedBlockBroadcaster) getRoundForHeadersUnprotected(headerHashes [][]byte) uint64 {
+	for i := len(dbb.delayedBroadcastData) - 1; i >= 0; i-- {
+		for _, headerHash := range headerHashes {
+			if bytes.Equal(dbb.delayedBroadcastData[i].HeaderHash, headerHash) {
+				return roundFromHeader(dbb.delayedBroadcastData[i].Header)
+			}
+		}
+	}
+
+	return 0
+}
+
 func (dbb *delayedBlockBroadcaster) broadcastDataForHeaders(headerHashes [][]byte) {
 	dbb.mutDataForBroadcast.RLock()
 	if len(dbb.delayedBroadcastData) == 0 {
 		dbb.mutDataForBroadcast.RUnlock()
 		return
 	}
-	// the delays are round dependent, so take them from the most recent registered entry
-	round := roundFromHeader(dbb.delayedBroadcastData[len(dbb.delayedBroadcastData)-1].Header)
+
+	round := dbb.getRoundForHeadersUnprotected(headerHashes)
+	if round == 0 {
+		// take the round from the most recent registered entry
+		round = roundFromHeader(dbb.delayedBroadcastData[len(dbb.delayedBroadcastData)-1].Header)
+	}
 	dbb.mutDataForBroadcast.RUnlock()
 
 	time.Sleep(dbb.processConfigsHandler.GetExtraDelayForBroadcastBlockInfo(round))
