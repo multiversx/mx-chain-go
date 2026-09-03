@@ -27,11 +27,28 @@ import (
 type requestHandlerWithIntervalHook struct {
 	testscommon.RequestHandlerStub
 	intervalHook func()
+	interval     time.Duration
+}
+
+type pendingTestTracker interface {
+	AddCrossNotarizedHeader(shardID uint32, header data.HeaderHandler, hash []byte)
+	GetLastCrossNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error)
+	GetSelfHeadersWithSource(header data.HeaderHandler, hash []byte) []*track.SelfHeaderInfo
+	PublishSelfNotarizedFromCrossHeaders(shardID uint32, headersInfo []*track.SelfHeaderInfo)
+	RegisterSelfNotarizedFromCrossHeadersHandler(handler func(uint32, []data.HeaderHandler, [][]byte))
+	RemoveLastNotarizedHeaders()
+	NumPendingSelfHeaders() int64
+	NumPendingSources(hash []byte) int
+	SetMetaFinalityView(view process.MetaFinalityView)
+	Close() error
 }
 
 func (handler *requestHandlerWithIntervalHook) RequestInterval() time.Duration {
 	if handler.intervalHook != nil {
 		handler.intervalHook()
+	}
+	if handler.interval > 0 {
+		return handler.interval
 	}
 
 	return time.Second
@@ -92,23 +109,8 @@ func TestShardBlockTrack_ComputeCrossInfo(t *testing.T) {
 func TestShardBlockTrack_SourceAwareImmediatePublication(t *testing.T) {
 	t.Parallel()
 
-	type sourceAwareTracker interface {
-		GetSelfHeadersWithSource(header data.HeaderHandler, hash []byte) []*track.SelfHeaderInfo
-		PublishSelfNotarizedFromCrossHeaders(shardID uint32, headersInfo []*track.SelfHeaderInfo)
-		RegisterSelfNotarizedFromCrossHeadersHandler(handler func(uint32, []data.HeaderHandler, [][]byte))
-		AddCrossNotarizedHeader(shardID uint32, header data.HeaderHandler, hash []byte)
-		AddTrackedHeader(header data.HeaderHandler, hash []byte)
-		IsSettledCrossHeader(header data.HeaderHandler, hash []byte) bool
-		ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
-		RemoveLastNotarizedHeaders()
-		NumPendingSelfHeaders() int64
-		NumPendingSources(hash []byte) int
-		SetMetaFinalityView(view process.MetaFinalityView)
-		Close() error
-	}
-
 	createTracker := func(t *testing.T) (
-		sourceAwareTracker,
+		pendingTestTracker,
 		*block.MetaBlockV3,
 		[]byte,
 		*atomic.Bool,
@@ -934,6 +936,175 @@ func TestShardBlockTrack_PendingSourceRemainsCanonicalAfterAnchorAdvances(t *tes
 	require.Zero(t, sbt.NumPendingSelfHeaders())
 }
 
+func TestShardBlockTrack_RetryUndeliveredSelfHeaderOnMetaProgress(t *testing.T) {
+	t.Parallel()
+
+	newTracker := func(t *testing.T, dead *atomic.Bool) (
+		pendingTestTracker,
+		func(data.HeaderHandler, []byte),
+		*requestHandlerWithIntervalHook,
+		*atomic.Int32,
+		*atomic.Int32,
+	) {
+		t.Helper()
+
+		var headerHandler func(data.HeaderHandler, []byte)
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+				return nil, errors.New("missing header")
+			},
+			RegisterHandlerCalled: func(handler func(data.HeaderHandler, []byte)) {
+				headerHandler = handler
+			},
+		}
+		arguments := CreateShardTrackerMockArguments()
+		arguments.PoolsHolder = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return headersPool
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
+		}
+		headerRequests := &atomic.Int32{}
+		proofRequests := &atomic.Int32{}
+		requestHandler := &requestHandlerWithIntervalHook{interval: time.Hour}
+		requestHandler.RequestShardHeaderForEpochCalled = func(_ uint32, _ []byte, _ uint32) {
+			headerRequests.Add(1)
+		}
+		requestHandler.RequestEquivalentProofByHashForEpochCalled = func(_ uint32, _ []byte, _ uint32) {
+			proofRequests.Add(1)
+		}
+		arguments.RequestHandler = requestHandler
+
+		sbt, err := track.NewShardBlockTrack(arguments)
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			require.NoError(t, sbt.Close())
+		})
+		sbt.SetMetaFinalityView(&testscommon.MetaFinalityViewStub{
+			IsMetaHeaderSettlementReadyCalled: func(_ data.HeaderHandler, _ []byte) bool {
+				return false
+			},
+			IsDeadMetaBlockCalled: func(_ []byte, _ uint64) bool {
+				return dead.Load()
+			},
+		})
+
+		return sbt, headerHandler, requestHandler, headerRequests, proofRequests
+	}
+
+	createPending := func(t *testing.T, sbt pendingTestTracker) {
+		t.Helper()
+
+		anchor, anchorHash, err := sbt.GetLastCrossNotarizedHeader(core.MetachainShardId)
+		require.NoError(t, err)
+		source := &block.MetaBlockV3{
+			Nonce:    anchor.GetNonce() + 1,
+			Round:    anchor.GetRound() + 1,
+			Epoch:    2,
+			PrevHash: anchorHash,
+			ShardInfoProposal: []block.ShardDataProposal{{
+				HeaderHash: []byte("missing-shard-header"),
+				ShardID:    0,
+				Nonce:      7,
+				Epoch:      2,
+			}},
+		}
+		sbt.AddCrossNotarizedHeader(core.MetachainShardId, source, []byte("source-meta"))
+		require.Equal(t, int64(1), sbt.NumPendingSelfHeaders())
+	}
+
+	t.Run("retry is rate limited", func(t *testing.T) {
+		t.Parallel()
+
+		dead := &atomic.Bool{}
+		sbt, headerHandler, requestHandler, headerRequests, proofRequests := newTracker(t, dead)
+		createPending(t, sbt)
+		require.Equal(t, int32(1), headerRequests.Load())
+		require.Equal(t, int32(1), proofRequests.Load())
+
+		headerHandler(&block.MetaBlock{Nonce: 2}, []byte("meta-progress-1"))
+		require.Equal(t, int32(1), headerRequests.Load())
+		require.Equal(t, int32(1), proofRequests.Load())
+
+		requestHandler.interval = time.Nanosecond
+		headerHandler(&block.MetaBlock{Nonce: 3}, []byte("meta-progress-2"))
+		require.Equal(t, int32(2), headerRequests.Load())
+		require.Equal(t, int32(2), proofRequests.Load())
+	})
+
+	t.Run("known dead source is discarded instead of retried", func(t *testing.T) {
+		t.Parallel()
+
+		dead := &atomic.Bool{}
+		sbt, headerHandler, requestHandler, headerRequests, proofRequests := newTracker(t, dead)
+		createPending(t, sbt)
+		dead.Store(true)
+		requestHandler.interval = time.Nanosecond
+
+		headerHandler(&block.MetaBlock{Nonce: 2}, []byte("meta-progress"))
+
+		require.Equal(t, int32(1), headerRequests.Load())
+		require.Equal(t, int32(1), proofRequests.Load())
+		require.Zero(t, sbt.NumPendingSelfHeaders())
+	})
+}
+
+func TestShardBlockTrack_ConnectedAnchorKeepsBuiltPublicationValid(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateShardTrackerMockArguments()
+	sbt, err := track.NewShardBlockTrack(arguments)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(t, sbt.Close())
+	})
+
+	var settlementReady atomic.Bool
+	sbt.SetMetaFinalityView(&testscommon.MetaFinalityViewStub{
+		IsMetaHeaderSettlementReadyCalled: func(_ data.HeaderHandler, _ []byte) bool {
+			return settlementReady.Load()
+		},
+	})
+	anchor, anchorHash, err := sbt.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	require.NoError(t, err)
+	shardHash := []byte("referenced-shard")
+	shardHeader := &block.HeaderV3{ShardID: 0, Nonce: 7, Epoch: 2}
+	arguments.PoolsHolder.Headers().AddHeader(shardHash, shardHeader)
+	source := &block.MetaBlockV3{
+		Nonce:    anchor.GetNonce() + 1,
+		Round:    anchor.GetRound() + 1,
+		Epoch:    2,
+		PrevHash: anchorHash,
+		ShardInfoProposal: []block.ShardDataProposal{{
+			HeaderHash: shardHash,
+			ShardID:    0,
+			Nonce:      shardHeader.Nonce,
+			Epoch:      shardHeader.Epoch,
+		}},
+	}
+	sourceHash := []byte("source-meta")
+	headersInfo := sbt.GetSelfHeadersWithSource(source, sourceHash)
+	require.Len(t, headersInfo, 1)
+
+	notified := make(chan struct{}, 1)
+	sbt.RegisterSelfNotarizedFromCrossHeadersHandler(func(_ uint32, _ []data.HeaderHandler, _ [][]byte) {
+		notified <- struct{}{}
+	})
+	sbt.AddCrossNotarizedHeader(core.MetachainShardId, source, sourceHash)
+	require.Equal(t, int64(1), sbt.NumPendingSelfHeaders())
+	settlementReady.Store(true)
+	sbt.PublishSelfNotarizedFromCrossHeaders(core.MetachainShardId, headersInfo)
+
+	select {
+	case <-notified:
+	case <-time.After(time.Second):
+		require.FailNow(t, "connected anchor invalidated a canonical publication")
+	}
+	require.Zero(t, sbt.NumPendingSelfHeaders())
+}
+
 func TestShardBlockTrack_V3HeldFinalReferenceResolvedAfterHeaderArrival(t *testing.T) {
 	t.Parallel()
 
@@ -1040,10 +1211,13 @@ func TestShardBlockTrack_V3HeldFinalReferenceResolvedAfterHeaderArrival(t *testi
 	require.Zero(t, sbt.NumPendingSelfHeaders())
 	availableHeaders.Store(string(headerHash), header)
 	sbt.AddCrossNotarizedHeader(core.MetachainShardId, metaBlock, metaHash)
-	restoredHeaders := sbt.GetSelfHeadersWithSource(metaBlock, metaHash)
-	require.Len(t, restoredHeaders, 1)
-	require.Equal(t, headerHash, restoredHeaders[0].Hash)
-	require.Same(t, header, restoredHeaders[0].Header)
+	select {
+	case received := <-notified:
+		require.Equal(t, headerHash, received.hash)
+	case <-time.After(time.Second):
+		require.FailNow(t, "restored anchor was not replayed")
+	}
+	require.Empty(t, sbt.GetSelfHeadersWithSource(metaBlock, metaHash))
 
 	secondHash := []byte("second-held-final-shard-header")
 	secondMetaBlock := &block.MetaBlockV3{
@@ -1061,6 +1235,7 @@ func TestShardBlockTrack_V3HeldFinalReferenceResolvedAfterHeaderArrival(t *testi
 	require.Empty(t, sbt.GetSelfHeadersWithSource(secondMetaBlock, secondMetaHash))
 	secondHeader := &block.HeaderV3{ShardID: 0, Nonce: 8, Epoch: 2}
 	availableHeaders.Store(string(secondHash), secondHeader)
+	notificationsBeforeSecond := notifications.Load()
 
 	var returned []*track.SelfHeaderInfo
 	var waitGroup sync.WaitGroup
@@ -1084,7 +1259,7 @@ func TestShardBlockTrack_V3HeldFinalReferenceResolvedAfterHeaderArrival(t *testi
 			require.FailNow(t, "concurrent late held-final notification was not delivered")
 		}
 	}
-	require.Equal(t, 1, len(returned)+int(notifications.Load()-1))
+	require.Equal(t, 1, len(returned)+int(notifications.Load()-notificationsBeforeSecond))
 
 	serializedHash := []byte("serialized-held-final-shard-header")
 	serializedMetaBlock := &block.MetaBlockV3{

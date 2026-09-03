@@ -588,33 +588,6 @@ func createShardForkDetectorForFinality(enableEpochsHandler common.EnableEpochsH
 	return sfd
 }
 
-func createShardForkDetectorForV3Settlement(enableEpochsHandler common.EnableEpochsHandler) interface {
-	process.ForkDetector
-	FinalCheckpointNonce() uint64
-	SettledCheckpointNonce() uint64
-	ReceivedSelfNotarizedFromCrossHeaders(shardID uint32, headers []data.HeaderHandler, hashes [][]byte)
-} {
-	sfd, _ := sync.NewShardForkDetector(
-		&mock.RoundHandlerMock{RoundIndex: 5},
-		&testscommon.TimeCacheStub{},
-		&mock.BlockTrackerMock{},
-		0,
-		0,
-		enableEpochsHandler,
-		testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag),
-		&dataRetrieverMock.ProofsPoolMock{
-			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-				return true
-			},
-		},
-		&chainParameters.ChainParametersHandlerStub{},
-		testscommon.GetDefaultProcessConfigsHandler(),
-		0,
-	)
-
-	return sfd
-}
-
 func TestShardForkDetector_DeferredFinalityUnderSupernova(t *testing.T) {
 	t.Parallel()
 
@@ -762,6 +735,40 @@ func TestShardForkDetector_SettledWatermarkUnderSupernova(t *testing.T) {
 		_ = sfd.AddHeader(cleanHdr2, hash2, process.BHProcessed, nil, nil)
 		require.Equal(t, uint64(2), sfd.FinalCheckpointNonce())
 		require.Equal(t, uint64(2), sfd.SettledCheckpointNonce())
+	})
+
+	t.Run("settled authority accepts duplicates and rejects a different hash", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := createShardForkDetectorForFinality(supernovaHandler)
+		authority := sfd.(interface {
+			GetNotarizedHeaderHash(nonce uint64) []byte
+		})
+
+		_ = sfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
+		sfd.ReceivedSelfNotarizedFromCrossHeaders(
+			core.MetachainShardId,
+			[]data.HeaderHandler{hdr1},
+			[][]byte{hash1},
+		)
+		require.Equal(t, uint64(1), sfd.FinalCheckpointNonce())
+		require.Equal(t, uint64(1), sfd.SettledCheckpointNonce())
+
+		sfd.ReceivedSelfNotarizedFromCrossHeaders(
+			core.MetachainShardId,
+			[]data.HeaderHandler{hdr1},
+			[][]byte{hash1},
+		)
+		conflictingHeader := &block.HeaderV3{Epoch: 1, Nonce: 1, Round: 2}
+		sfd.ReceivedSelfNotarizedFromCrossHeaders(
+			core.MetachainShardId,
+			[]data.HeaderHandler{conflictingHeader},
+			[][]byte{[]byte("conflicting hash")},
+		)
+
+		require.Equal(t, hash1, authority.GetNotarizedHeaderHash(1))
+		require.Equal(t, uint64(1), sfd.FinalCheckpointNonce())
+		require.Equal(t, uint64(1), sfd.SettledCheckpointNonce())
 	})
 
 }

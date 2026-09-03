@@ -124,6 +124,9 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 	_ []data.HeaderHandler,
 	_ [][]byte,
 ) {
+	mfd.mutFinalityUpdate.Lock()
+	defer mfd.mutFinalityUpdate.Unlock()
+
 	lastCheckpoint := mfd.lastCheckpoint()
 	// under Supernova the committed header settles only the block it extends (settle-on-child)
 	canSettleLastCheckpoint := !mfd.isSupernovaForHeader(header) || isParentCheckpoint(lastCheckpoint, header)
@@ -132,19 +135,50 @@ func (mfd *metaForkDetector) doJobOnBHProcessed(
 	}
 	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
 	mfd.addCheckpoint(newCheckpoint)
-	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) && mfd.canInstantlyFinalize(header, headerHash) {
-		// under Supernova the settled checkpoint advances only on settle-on-child
-		if mfd.isSupernovaForHeader(header) {
-			mfd.setFinalCheckpoint(newCheckpoint)
-		} else {
-			mfd.setFinalAndSettledCheckpoint(newCheckpoint)
-		}
+	if common.IsProofsFlagEnabledForHeader(mfd.enableEpochsHandler, header) {
+		mfd.setInstantFinalCheckpoint(header, headerHash, newCheckpoint)
 	}
 	mfd.removePastOrInvalidRecords()
 	mfd.logFinalityLag()
 }
 
 func (mfd *metaForkDetector) computeFinalCheckpoint() {
+}
+
+// ReconcileFinalCheckpoint serializes reconciliation with metachain finality updates.
+func (mfd *metaForkDetector) ReconcileFinalCheckpoint(nonce uint64) bool {
+	mfd.mutFinalityUpdate.Lock()
+	defer mfd.mutFinalityUpdate.Unlock()
+
+	return mfd.baseForkDetector.ReconcileFinalCheckpoint(nonce)
+}
+
+// ReconcileFinalCheckpointBelow serializes suffix reconciliation with metachain finality updates.
+func (mfd *metaForkDetector) ReconcileFinalCheckpointBelow(nonce uint64) bool {
+	mfd.mutFinalityUpdate.Lock()
+	reconciled, loweredFinal := mfd.reconcileFinalCheckpointRecordsBelow(nonce)
+	mfd.mutFinalityUpdate.Unlock()
+	if reconciled {
+		mfd.finishFinalCheckpointReconciliation(nonce, loweredFinal)
+	}
+
+	return reconciled
+}
+
+// ReconcileFinalCheckpointFromAuthority serializes authority reconciliation with metachain finality updates.
+func (mfd *metaForkDetector) ReconcileFinalCheckpointFromAuthority(nonce uint64, selectedHash []byte) bool {
+	if len(selectedHash) == 0 {
+		return false
+	}
+
+	mfd.mutFinalityUpdate.Lock()
+	reconciled, loweredFinal := mfd.reconcileFinalCheckpointFromAuthorityRecords(nonce, selectedHash)
+	mfd.mutFinalityUpdate.Unlock()
+	if reconciled {
+		mfd.finishFinalCheckpointReconciliation(nonce, loweredFinal)
+	}
+
+	return reconciled
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -57,6 +57,12 @@ type pendingSourceRequest struct {
 	epoch uint32
 }
 
+type pendingSelfHeaderRequest struct {
+	shardID uint32
+	hash    []byte
+	epoch   uint32
+}
+
 type sourceMetaVerdict uint8
 
 const (
@@ -449,7 +455,7 @@ func (sbt *shardBlockTrack) addOrRefreshPendingSelfHeader(
 		}
 		sbt.mutPendingSelfHeaders.Unlock()
 		if request {
-			sbt.requestPendingSelfHeader(pending)
+			sbt.requestPendingSelfHeader(newPendingSelfHeaderRequest(pending))
 		}
 		return
 	}
@@ -477,7 +483,7 @@ func (sbt *shardBlockTrack) addOrRefreshPendingSelfHeader(
 		log.Warn("evicted unresolved held-final shard header", "nonce", evicted.nonce, "hash", evicted.hash)
 	}
 	log.Debug("retained unresolved held-final shard header", "nonce", pending.nonce, "hash", pending.hash)
-	sbt.requestPendingSelfHeader(pending)
+	sbt.requestPendingSelfHeader(newPendingSelfHeaderRequest(pending))
 }
 
 func (sbt *shardBlockTrack) makeRoomForPendingSelfHeader(newNonce uint64) (bool, *pendingSelfHeader) {
@@ -506,9 +512,17 @@ func (sbt *shardBlockTrack) makeRoomForPendingSelfHeader(newNonce uint64) (bool,
 	return true, evicted
 }
 
-func (sbt *shardBlockTrack) requestPendingSelfHeader(pending *pendingSelfHeader) {
-	sbt.requestHandler.RequestShardHeaderForEpoch(pending.shardID, pending.hash, pending.epoch)
-	sbt.requestHandler.RequestEquivalentProofByHashForEpoch(pending.shardID, pending.hash, pending.epoch)
+func newPendingSelfHeaderRequest(pending *pendingSelfHeader) pendingSelfHeaderRequest {
+	return pendingSelfHeaderRequest{
+		shardID: pending.shardID,
+		hash:    append([]byte(nil), pending.hash...),
+		epoch:   pending.epoch,
+	}
+}
+
+func (sbt *shardBlockTrack) requestPendingSelfHeader(request pendingSelfHeaderRequest) {
+	sbt.requestHandler.RequestShardHeaderForEpoch(request.shardID, request.hash, request.epoch)
+	sbt.requestHandler.RequestEquivalentProofByHashForEpoch(request.shardID, request.hash, request.epoch)
 }
 
 func (sbt *shardBlockTrack) prepareSelfHeaderForReturn(
@@ -593,7 +607,7 @@ func (sbt *shardBlockTrack) resolvePendingSelfHeaderWithSnapshot(
 	view := pending.view
 	sbt.mutPendingSelfHeaders.Unlock()
 
-	snapshot := metaAuthoritySnapshot{}
+	var snapshot metaAuthoritySnapshot
 	if providedSnapshot != nil && snapshotView == view && sbt.isPendingSelfHeadersViewCurrent(snapshotView) {
 		snapshot = *providedSnapshot
 	} else {
@@ -729,10 +743,10 @@ func (sbt *shardBlockTrack) sourceMetaVerdict(
 	if check.IfNil(sourceMetaHeader) || sourceMetaHeader.GetNonce() != sourceMetaNonce {
 		return sourceMetaUnknown
 	}
-	if sbt.metaFinalityView.IsDeadMetaBlock(sourceMetaHash, sourceMetaNonce) {
+	if sbt.isDeadSourceMetaBlock(sourceMetaHeader, sourceMetaHash, sourceMetaNonce) {
 		return sourceMetaDead
 	}
-	if snapshot.valid && sbt.metaFinalityView.IsMetaHeaderSettlementReady(sourceMetaHeader, sourceMetaHash) {
+	if snapshot.valid && sbt.isSourceMetaBlockSettlementReady(sourceMetaHeader, sourceMetaHash) {
 		_, inCurrentSnapshot := snapshot.hashes[string(sourceMetaHash)]
 		if crossedByCanonicalAnchor || inCurrentSnapshot {
 			return sourceMetaHeldFinal
@@ -746,7 +760,7 @@ func (sbt *shardBlockTrack) currentMetaAuthoritySnapshot() metaAuthoritySnapshot
 	snapshot := metaAuthoritySnapshot{hashes: make(map[string]struct{})}
 	anchor, anchorHash, err := sbt.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil || check.IfNil(anchor) || len(anchorHash) == 0 ||
-		sbt.metaFinalityView.IsDeadMetaBlock(anchorHash, anchor.GetNonce()) {
+		sbt.isDeadSourceMetaBlock(anchor, anchorHash, anchor.GetNonce()) {
 		return snapshot
 	}
 	snapshot.valid = true
@@ -758,7 +772,7 @@ func (sbt *shardBlockTrack) currentMetaAuthoritySnapshot() metaAuthoritySnapshot
 	continuation, hashes := sbt.ComputeLongestChain(core.MetachainShardId, anchor)
 	for index, header := range continuation {
 		if index >= len(hashes) || check.IfNil(header) ||
-			sbt.metaFinalityView.IsDeadMetaBlock(hashes[index], header.GetNonce()) {
+			sbt.isDeadSourceMetaBlock(header, hashes[index], header.GetNonce()) {
 			break
 		}
 		snapshot.hashes[string(hashes[index])] = struct{}{}
@@ -787,7 +801,7 @@ func (sbt *shardBlockTrack) currentMetaAuthoritySnapshot() metaAuthoritySnapshot
 
 func (sbt *shardBlockTrack) snapshotAuthorizesPending(snapshot metaAuthoritySnapshot, pending *pendingSelfHeader) bool {
 	for _, source := range snapshot.sources {
-		if sbt.metaFinalityView.IsMetaHeaderSettlementReady(source.header, source.hash) &&
+		if sbt.isSourceMetaBlockSettlementReady(source.header, source.hash) &&
 			sbt.metaFinalityView.IsShardHeaderIncluded(source.header, pending.shardID, pending.hash, pending.nonce) {
 			return true
 		}
@@ -796,13 +810,13 @@ func (sbt *shardBlockTrack) snapshotAuthorizesPending(snapshot metaAuthoritySnap
 	return false
 }
 
-// AddCrossNotarizedHeader invalidates pending snapshots when the meta anchor identity changes.
+// AddCrossNotarizedHeader updates pending authority when the meta anchor identity changes.
 func (sbt *shardBlockTrack) AddCrossNotarizedHeader(
 	shardID uint32,
 	crossNotarizedHeader data.HeaderHandler,
 	crossNotarizedHeaderHash []byte,
 ) {
-	if shardID != core.MetachainShardId || sbt.numPendingSelfHeaders.Load() == 0 || check.IfNil(crossNotarizedHeader) {
+	if shardID != core.MetachainShardId || check.IfNil(crossNotarizedHeader) || !crossNotarizedHeader.IsHeaderV3() {
 		sbt.baseBlockTrack.AddCrossNotarizedHeader(shardID, crossNotarizedHeader, crossNotarizedHeaderHash)
 		return
 	}
@@ -817,19 +831,18 @@ func (sbt *shardBlockTrack) AddCrossNotarizedHeader(
 		return
 	}
 
-	sbt.pendingSelfHeadersView.Add(1)
-	sbt.pendingNotifications.Wait()
-	sourceHashes := sbt.pendingSourceHashes()
 	crossedSources, connected := sbt.crossedPendingSources(
 		current,
 		currentHash,
 		crossNotarizedHeader,
 		crossNotarizedHeaderHash,
-		sourceHashes,
 	)
+	if !connected {
+		sbt.pendingSelfHeadersView.Add(1)
+		sbt.pendingNotifications.Wait()
+	}
 	sbt.baseBlockTrack.AddCrossNotarizedHeader(shardID, crossNotarizedHeader, crossNotarizedHeaderHash)
 	sbt.mutPendingSelfHeaders.Lock()
-	newView := sbt.pendingSelfHeadersView.Load() + 1
 	for _, pending := range sbt.pendingSelfHeaders {
 		for index := range pending.sources {
 			if !connected {
@@ -839,28 +852,22 @@ func (sbt *shardBlockTrack) AddCrossNotarizedHeader(
 				pending.sources[index].crossedByCanonicalAnchor = true
 			}
 		}
-		pending.view = newView
 		pending.sourcesVersion++
-	}
-	sbt.pendingSelfHeadersView.Add(1)
-	sbt.mutPendingSelfHeaders.Unlock()
-	sbt.mutPendingNotifications.Unlock()
-}
-
-func (sbt *shardBlockTrack) pendingSourceHashes() map[string]struct{} {
-	sbt.mutPendingSelfHeaders.Lock()
-	defer sbt.mutPendingSelfHeaders.Unlock()
-
-	hashes := make(map[string]struct{})
-	for _, pending := range sbt.pendingSelfHeaders {
-		for _, source := range pending.sources {
-			if len(source.hash) > 0 {
-				hashes[string(source.hash)] = struct{}{}
-			}
+		if !connected {
+			pending.view = sbt.pendingSelfHeadersView.Load() + 1
 		}
 	}
+	if !connected {
+		sbt.pendingSelfHeadersView.Add(1)
+	}
+	sbt.mutPendingSelfHeaders.Unlock()
+	sbt.mutPendingNotifications.Unlock()
 
-	return hashes
+	headersInfo := sbt.getSelfHeadersWithSource(crossNotarizedHeader, crossNotarizedHeaderHash)
+	if len(headersInfo) > 0 {
+		sbt.publishSelfNotarizedFromCrossHeaders(core.MetachainShardId, headersInfo)
+	}
+	sbt.retryPendingSelfHeaders()
 }
 
 func (sbt *shardBlockTrack) crossedPendingSources(
@@ -868,7 +875,6 @@ func (sbt *shardBlockTrack) crossedPendingSources(
 	currentHash []byte,
 	next data.HeaderHandler,
 	nextHash []byte,
-	pendingHashes map[string]struct{},
 ) (map[string]struct{}, bool) {
 	crossed := make(map[string]struct{})
 	if check.IfNil(current) || check.IfNil(next) || len(currentHash) == 0 || len(nextHash) == 0 ||
@@ -879,9 +885,7 @@ func (sbt *shardBlockTrack) crossedPendingSources(
 	header := next
 	hash := nextHash
 	for scanned := 0; scanned <= sbt.maxNumHeadersToKeepPerShard; scanned++ {
-		if _, tracked := pendingHashes[string(hash)]; tracked {
-			crossed[string(hash)] = struct{}{}
-		}
+		crossed[string(hash)] = struct{}{}
 		if header.GetNonce() == current.GetNonce() {
 			if !bytes.Equal(hash, currentHash) {
 				return nil, false
@@ -894,7 +898,16 @@ func (sbt *shardBlockTrack) crossedPendingSources(
 		}
 
 		hash = header.GetPrevHash()
-		header = sbt.getTrackedOrPooledMetaHeader(hash, header.GetNonce()-1)
+		parentNonce := header.GetNonce() - 1
+		if parentNonce == current.GetNonce() {
+			crossed[string(hash)] = struct{}{}
+			if bytes.Equal(hash, currentHash) {
+				return crossed, true
+			}
+
+			return nil, false
+		}
+		header = sbt.getTrackedOrPooledMetaHeader(hash, parentNonce)
 		if check.IfNil(header) || header.GetShardID() != core.MetachainShardId {
 			break
 		}
@@ -973,27 +986,127 @@ func (sbt *shardBlockTrack) retryPendingSelfHeaders() {
 		return
 	}
 
+	type undeliveredPending struct {
+		key            string
+		pending        *pendingSelfHeader
+		sources        []pendingMetaSource
+		sourcesVersion uint64
+		view           uint64
+		sourceOverflow bool
+	}
+
+	now := time.Now()
+	requestInterval := sbt.requestHandler.RequestInterval()
 	sbt.mutPendingSelfHeaders.Lock()
 	keys := make([]string, 0, len(sbt.pendingSelfHeaders))
+	undelivered := make([]undeliveredPending, 0)
 	for key, pending := range sbt.pendingSelfHeaders {
 		if !check.IfNil(pending.deliveredHeader) {
 			keys = append(keys, key)
+			continue
 		}
+		if now.Sub(pending.lastRequest) < requestInterval {
+			continue
+		}
+		undelivered = append(undelivered, undeliveredPending{
+			key:            key,
+			pending:        pending,
+			sources:        clonePendingMetaSources(pending.sources),
+			sourcesVersion: pending.sourcesVersion,
+			view:           pending.view,
+			sourceOverflow: pending.sourceOverflow,
+		})
 	}
 	sbt.mutPendingSelfHeaders.Unlock()
-	if len(keys) == 0 {
-		return
+
+	requests := make([]pendingSelfHeaderRequest, 0, len(undelivered))
+	for _, candidate := range undelivered {
+		if sbt.allPendingSourcesDead(candidate.sources, candidate.sourceOverflow) {
+			sbt.removeDeadUndeliveredPending(candidate.key, candidate.pending, candidate.sourcesVersion, candidate.view)
+			continue
+		}
+
+		sbt.mutPendingSelfHeaders.Lock()
+		current, exists := sbt.pendingSelfHeaders[candidate.key]
+		if exists && current == candidate.pending && current.sourcesVersion == candidate.sourcesVersion &&
+			current.view == candidate.view && sbt.isPendingSelfHeadersViewCurrent(current.view) &&
+			now.Sub(current.lastRequest) >= requestInterval {
+			current.lastRequest = now
+			requests = append(requests, newPendingSelfHeaderRequest(current))
+		}
+		sbt.mutPendingSelfHeaders.Unlock()
+	}
+	for _, request := range requests {
+		sbt.requestPendingSelfHeader(request)
 	}
 
-	snapshotView := sbt.pendingSelfHeadersView.Load()
-	snapshot := sbt.currentMetaAuthoritySnapshot()
-	if !sbt.isPendingSelfHeadersViewCurrent(snapshotView) {
-		return
+	if len(keys) > 0 {
+		snapshotView := sbt.pendingSelfHeadersView.Load()
+		snapshot := sbt.currentMetaAuthoritySnapshot()
+		if !sbt.isPendingSelfHeadersViewCurrent(snapshotView) {
+			return
+		}
+
+		for _, key := range keys {
+			sbt.resolvePendingSelfHeaderWithSnapshot(key, nil, &snapshot, snapshotView, nil)
+		}
+	}
+}
+
+func (sbt *shardBlockTrack) allPendingSourcesDead(sources []pendingMetaSource, sourceOverflow bool) bool {
+	if sourceOverflow || len(sources) == 0 {
+		return false
 	}
 
-	for _, key := range keys {
-		sbt.resolvePendingSelfHeaderWithSnapshot(key, nil, &snapshot, snapshotView, nil)
+	for _, source := range sources {
+		if check.IfNil(source.header) || len(source.hash) == 0 ||
+			!sbt.isDeadSourceMetaBlock(source.header, source.hash, source.nonce) {
+			return false
+		}
 	}
+
+	return true
+}
+
+func (sbt *shardBlockTrack) isDeadSourceMetaBlock(
+	header data.HeaderHandler,
+	headerHash []byte,
+	nonce uint64,
+) bool {
+	_, usesPoolOnlyView := sbt.metaFinalityView.(*metaFinalityView)
+	if !check.IfNil(header) && header.IsHeaderV3() && usesPoolOnlyView {
+		return sbt.isDeadTrackedOrPooledMetaBlock(headerHash, nonce)
+	}
+
+	return sbt.metaFinalityView.IsDeadMetaBlock(headerHash, nonce)
+}
+
+func (sbt *shardBlockTrack) isSourceMetaBlockSettlementReady(
+	header data.HeaderHandler,
+	headerHash []byte,
+) bool {
+	_, usesPoolOnlyView := sbt.metaFinalityView.(*metaFinalityView)
+	if !check.IfNil(header) && header.IsHeaderV3() && usesPoolOnlyView {
+		return sbt.IsSettledCrossHeader(header, headerHash)
+	}
+
+	return sbt.metaFinalityView.IsMetaHeaderSettlementReady(header, headerHash)
+}
+
+func (sbt *shardBlockTrack) removeDeadUndeliveredPending(
+	key string,
+	pending *pendingSelfHeader,
+	sourcesVersion uint64,
+	view uint64,
+) {
+	sbt.mutPendingSelfHeaders.Lock()
+	current, exists := sbt.pendingSelfHeaders[key]
+	if exists && current == pending && current.sourcesVersion == sourcesVersion && current.view == view &&
+		check.IfNil(current.deliveredHeader) {
+		delete(sbt.pendingSelfHeaders, key)
+		sbt.numPendingSelfHeaders.Store(int64(len(sbt.pendingSelfHeaders)))
+	}
+	sbt.mutPendingSelfHeaders.Unlock()
 }
 
 func (sbt *shardBlockTrack) publishSelfNotarizedFromCrossHeaders(shardID uint32, headersInfo []*selfHeaderInfo) {
@@ -1039,6 +1152,8 @@ func (sbt *shardBlockTrack) publishSelfNotarizedFromCrossHeaders(shardID uint32,
 			key := string(headerInfo.Hash)
 			_, wasResolved := sbt.resolvedSelfHeaders[key]
 			if !wasResolved {
+				delete(sbt.pendingSelfHeaders, key)
+				sbt.numPendingSelfHeaders.Store(int64(len(sbt.pendingSelfHeaders)))
 				sbt.rememberResolvedSelfHeader(key, headerInfo.Header.GetNonce())
 			}
 			sbt.mutPendingSelfHeaders.Unlock()

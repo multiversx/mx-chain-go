@@ -2139,6 +2139,16 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
+		if hdr.IsHeaderV3() &&
+			common.IsCrossHeaderSettlementEnabledForHeader(sp.enableEpochsHandler, sp.enableRoundsHandler, hdr) {
+			hdrHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, hdr)
+			if err != nil {
+				return nil, nil, err
+			}
+			if !sp.blockTracker.IsSettledCrossHeader(hdr, hdrHash) {
+				continue
+			}
+		}
 
 		// since we are getting shard info data for own shard, it is safe to fetch it based on
 		// shard info proposed
@@ -3115,8 +3125,9 @@ func (sp *shardProcessor) getBootstrapHeadersInfo(
 		highestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[numSelfNotarizedHeaders-1].GetNonce()
 	}
 
-	isFinalNonceHigherThanSelfNotarized := sp.forkDetector.GetHighestFinalBlockNonce() > highestNonceInSelfNotarizedHeaders
-	if isFinalNonceHigherThanSelfNotarized {
+	settledNonce, settledHash := sp.forkDetector.GetHighestSettledBlockInfo()
+	isSettledNonceHigherThanSelfNotarized := settledNonce > highestNonceInSelfNotarizedHeaders
+	if isSettledNonceHigherThanSelfNotarized {
 		numSelfNotarizedHeaders++
 	}
 
@@ -3136,11 +3147,11 @@ func (sp *shardProcessor) getBootstrapHeadersInfo(
 		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
 	}
 
-	if isFinalNonceHigherThanSelfNotarized {
+	if isSettledNonceHigherThanSelfNotarized {
 		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
 			ShardId: sp.shardCoordinator.SelfId(),
-			Nonce:   sp.forkDetector.GetHighestFinalBlockNonce(),
-			Hash:    sp.forkDetector.GetHighestFinalBlockHash(),
+			Nonce:   settledNonce,
+			Hash:    settledHash,
 		}
 
 		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
