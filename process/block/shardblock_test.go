@@ -6117,6 +6117,61 @@ func TestShardProcessor_GetHighestHdrForOwnShardFromMetachaiMetaHdrsWithOwnHdrSt
 	assert.Equal(t, ownHdr.GetNonce(), hdrs[0].GetNonce())
 }
 
+func TestShardProcessor_GetHighestHdrForOwnShardFromMetachainV3RequiresSettledSource(t *testing.T) {
+	runTest := func(t *testing.T, settled bool, expectedHeaders int) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+			common.AndromedaFlag,
+			common.SupernovaFlag,
+		)
+		enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, _ uint32) bool {
+			return flag == common.AndromedaFlag || flag == common.SupernovaFlag
+		}
+		coreComponents.EnableEpochsHandlerField = enableEpochsHandler
+		coreComponents.EnableRoundsHandlerField = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
+		dataComponents.DataPool = dataRetrieverMock.CreatePoolsHolder(1, 0)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		var settlementChecks atomic.Int32
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			IsSettledCrossHeaderCalled: func(_ data.HeaderHandler, _ []byte) bool {
+				settlementChecks.Add(1)
+				return settled
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+		ownHash := []byte("own-v3-hash")
+		ownHeader := &block.HeaderV3{ShardID: 0, Nonce: 7, Epoch: 2}
+		dataComponents.DataPool.Headers().AddHeader(ownHash, ownHeader)
+		metaHeader := &block.MetaBlockV3{
+			Epoch: 2,
+			Round: 10,
+			Nonce: 5,
+			ShardInfoProposal: []block.ShardDataProposal{{
+				ShardID:    0,
+				Nonce:      ownHeader.Nonce,
+				Epoch:      ownHeader.Epoch,
+				HeaderHash: ownHash,
+			}},
+		}
+
+		headers, hashes, err := sp.GetHighestHdrForOwnShardFromMetachain([]data.HeaderHandler{metaHeader})
+
+		require.NoError(t, err)
+		require.Len(t, headers, expectedHeaders)
+		require.Len(t, hashes, expectedHeaders)
+		require.Equal(t, int32(1), settlementChecks.Load())
+	}
+
+	t.Run("unsettled source", func(t *testing.T) {
+		runTest(t, false, 0)
+	})
+	t.Run("settled source", func(t *testing.T) {
+		runTest(t, true, 1)
+	})
+}
+
 func TestShardProcessor_RestoreMetaBlockIntoPoolVerifyMiniblocks(t *testing.T) {
 	t.Parallel()
 
@@ -6624,7 +6679,7 @@ func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnNilWhenNoSelfNotarize
 	assert.Nil(t, bootstrapHeaderInfos)
 }
 
-func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenFinalNonceIsHigherThanGenesis(t *testing.T) {
+func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenSettledNonceIsHigherThanGenesis(t *testing.T) {
 	t.Parallel()
 
 	finalNonce := uint64(1)
@@ -6633,11 +6688,8 @@ func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenFinalNonce
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.ForkDetector = &mock.ForkDetectorMock{
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return finalNonce
-		},
-		GetHighestFinalBlockHashCalled: func() []byte {
-			return finalHash
+		GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+			return finalNonce, finalHash
 		},
 	}
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -6648,14 +6700,37 @@ func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenFinalNonce
 	assert.Equal(t, finalHash, bootstrapHeaderInfos[0].Hash)
 }
 
-func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenFinalNonceIsNotHigherThanSelfNotarizedNonce(t *testing.T) {
+func TestShardProcessor_GetBootstrapHeadersInfoShouldNotPersistProvisionalFinality(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.ForkDetector = &mock.ForkDetectorMock{
 		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return 0
+			return 2
+		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return []byte("provisional final hash")
+		},
+		GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+			return 0, nil
+		},
+	}
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	bootstrapHeaderInfos := sp.GetBootstrapHeadersInfo(nil, nil)
+
+	require.Nil(t, bootstrapHeaderInfos)
+}
+
+func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenSettledNonceIsNotHigherThanSelfNotarizedNonce(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+			return 0, nil
 		},
 	}
 	sp, _ := blproc.NewShardProcessor(arguments)
@@ -6675,7 +6750,7 @@ func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnOneItemWhenFinalNonce
 	assert.Equal(t, hash, bootstrapHeaderInfos[0].Hash)
 }
 
-func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnTwoItemsWhenFinalNonceIsHigherThanSelfNotarizedNonce(t *testing.T) {
+func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnTwoItemsWhenSettledNonceIsHigherThanSelfNotarizedNonce(t *testing.T) {
 	t.Parallel()
 
 	finalNonce := uint64(2)
@@ -6684,11 +6759,8 @@ func TestShardProcessor_GetBootstrapHeadersInfoShouldReturnTwoItemsWhenFinalNonc
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.ForkDetector = &mock.ForkDetectorMock{
-		GetHighestFinalBlockNonceCalled: func() uint64 {
-			return finalNonce
-		},
-		GetHighestFinalBlockHashCalled: func() []byte {
-			return finalHash
+		GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+			return finalNonce, finalHash
 		},
 	}
 	sp, _ := blproc.NewShardProcessor(arguments)

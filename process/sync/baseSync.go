@@ -3230,6 +3230,8 @@ func (boot *baseBootstrap) tryReconcileEquivocation(round int64) bool {
 	if !shouldEvaluate {
 		return false
 	}
+	boot.requestMissingPreferredReconcileHeader(evidence)
+
 	if evidence.selectedByAuthority {
 		candidates := []notarizedHeaderCandidate{
 			{hash: evidence.localHash, nonce: evidence.nonce},
@@ -3270,6 +3272,55 @@ func (boot *baseBootstrap) tryReconcileEquivocation(round int64) bool {
 	}
 
 	return boot.applyReconcileSwitch(evidence)
+}
+
+func (boot *baseBootstrap) requestMissingPreferredReconcileHeader(evidence *reconcileEvidence) {
+	if boot.shardCoordinator.SelfId() != core.MetachainShardId {
+		return
+	}
+	currentHeader, currentHash := boot.chainHandler.GetCurrentBlockHeaderAndHash()
+	if check.IfNil(currentHeader) || !currentHeader.IsHeaderV3() || currentHeader.GetNonce() != evidence.nonce ||
+		!bytes.Equal(currentHash, evidence.localHash) {
+		return
+	}
+
+	proof, err := boot.proofs.GetProofByNonce(evidence.nonce, core.MetachainShardId)
+	if err != nil || check.IfNil(proof) || bytes.Equal(proof.GetHeaderHash(), evidence.localHash) {
+		return
+	}
+	if !isLowerRoundOrHash(proof.GetHeaderRound(), proof.GetHeaderHash(), currentHeader.GetRound(), currentHash) {
+		return
+	}
+
+	header, err := boot.headers.GetHeaderByHash(proof.GetHeaderHash())
+	if err != nil || check.IfNil(header) {
+		boot.requestProofHeader(proof)
+		return
+	}
+	if bytes.Equal(header.GetPrevHash(), currentHeader.GetPrevHash()) {
+		return
+	}
+
+	proofs, err := boot.proofs.GetProofsByNonce(evidence.nonce, core.MetachainShardId)
+	if err != nil {
+		return
+	}
+	for _, candidateProof := range proofs {
+		if check.IfNil(candidateProof) || bytes.Equal(candidateProof.GetHeaderHash(), evidence.localHash) ||
+			bytes.Equal(candidateProof.GetHeaderHash(), proof.GetHeaderHash()) ||
+			!isLowerRoundOrHash(candidateProof.GetHeaderRound(), candidateProof.GetHeaderHash(), currentHeader.GetRound(), currentHash) {
+			continue
+		}
+
+		candidateHeader, getErr := boot.headers.GetHeaderByHash(candidateProof.GetHeaderHash())
+		if getErr != nil || check.IfNil(candidateHeader) {
+			boot.requestProofHeader(candidateProof)
+			return
+		}
+		if bytes.Equal(candidateHeader.GetPrevHash(), currentHeader.GetPrevHash()) {
+			return
+		}
+	}
 }
 
 func (boot *baseBootstrap) applyReconcileSwitch(evidence *reconcileEvidence) bool {

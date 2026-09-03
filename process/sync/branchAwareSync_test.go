@@ -696,6 +696,58 @@ func TestBaseBootstrap_GetNextHeaderRequestsMissingProofHeadersByExactEpoch(t *t
 	require.Zero(t, numSetEpochCalls)
 }
 
+func TestBaseBootstrap_PostRollbackProofEvidenceRequestsMissingHeader(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("parent")
+	parent, _ := createBranchAwareHeader(10, parentHash, []byte("grandparent"))
+	rolledBackHash := []byte("rolled-back")
+	rolledBack, proof := createBranchAwareHeader(11, rolledBackHash, parentHash)
+
+	bfd := newBranchAwareForkDetector(0, parent.GetNonce(), parentHash)
+	bfd.fork.settledCheckpoint = bfd.fork.finalCheckpoint
+	bfd.fork.checkpoint = []*checkpointInfo{
+		bfd.fork.finalCheckpoint,
+		{nonce: rolledBack.GetNonce(), round: rolledBack.GetRound(), hash: rolledBackHash},
+	}
+	bfd.headers[rolledBack.GetNonce()] = []*headerInfo{{
+		epoch:    rolledBack.GetEpoch(),
+		nonce:    rolledBack.GetNonce(),
+		round:    rolledBack.GetRound(),
+		hash:     rolledBackHash,
+		prevHash: parentHash,
+		state:    process.BHProcessed,
+		hasProof: true,
+	}}
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+	sfd.RemoveCommittedHeader(rolledBack.GetNonce(), rolledBackHash)
+
+	records := sfd.GetHeaders(rolledBack.GetNonce())
+	require.Len(t, records, 1)
+	require.Equal(t, process.BHReceived, records[0].GetBlockHeaderState())
+	require.Equal(t, rolledBack.GetNonce(), sfd.ProbableHighestNonce())
+
+	fixture := newBranchAwareSyncFixture(parent, parentHash)
+	fixture.boot.forkDetector = sfd
+	fixture.proofs = []data.HeaderProofHandler{proof}
+	requested := 0
+	fixture.boot.requestHandler = &testscommon.RequestHandlerStub{
+		RequestShardHeaderForEpochCalled: func(shardID uint32, hash []byte, epoch uint32) {
+			require.Equal(t, uint32(0), shardID)
+			require.Equal(t, rolledBackHash, hash)
+			require.Equal(t, rolledBack.GetEpoch(), epoch)
+			requested++
+		},
+	}
+
+	header, hash, err := fixture.boot.getNextHeaderRequestingIfMissing()
+	require.ErrorIs(t, err, errBranchAwareSyncRetry)
+	require.Nil(t, header)
+	require.Nil(t, hash)
+	require.Equal(t, 1, requested)
+}
+
 func TestBaseBootstrap_GetNextHeaderRequestsUnknownCanonicalCandidateByNonce(t *testing.T) {
 	t.Parallel()
 
