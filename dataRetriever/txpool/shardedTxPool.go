@@ -173,6 +173,42 @@ func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cac
 	shard.Cache.ImmunizeTxsAgainstEviction(keys, nonce)
 }
 
+// ProtectSetOfDataAgainstEvictionForCurrentBlock protects self-shard transactions
+// needed while a block's missing data is being received and processed.
+func (txPool *shardedTxPool) ProtectSetOfDataAgainstEvictionForCurrentBlock(keys [][]byte, cacheID string) {
+	sourceShardID, _, err := process.ParseShardCacherIdentifier(cacheID)
+	if err != nil || sourceShardID != txPool.selfShardID {
+		return
+	}
+
+	shard := txPool.getOrCreateShard(cacheID)
+	protector, ok := shard.Cache.(currentBlockTxProtector)
+	if !ok {
+		return
+	}
+
+	protector.ProtectTxHashesAgainstEviction(keys)
+}
+
+// ClearCurrentBlockTxProtection releases protection retained by a block that
+// did not reach successful selection tracking.
+func (txPool *shardedTxPool) ClearCurrentBlockTxProtection() {
+	cacheID := strconv.Itoa(int(txPool.selfShardID))
+	txPool.mutexBackingMap.RLock()
+	shard, ok := txPool.backingMap[cacheID]
+	txPool.mutexBackingMap.RUnlock()
+	if !ok {
+		return
+	}
+
+	protector, ok := shard.Cache.(currentBlockTxProtector)
+	if !ok {
+		return
+	}
+
+	protector.ClearTxHashesProtection()
+}
+
 // SetOldestImmuneNonce deactivates immunity below the provided nonce
 func (txPool *shardedTxPool) SetOldestImmuneNonce(cacheID string, nonce uint64) {
 	shard := txPool.getOrCreateShard(cacheID)

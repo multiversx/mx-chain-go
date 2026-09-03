@@ -35,3 +35,8 @@ type txGasHandler interface {
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
 	IsInterfaceNil() bool
 }
+
+type currentBlockTxProtector interface {
+	ProtectTxHashesAgainstEviction(txHashes [][]byte)
+	ClearTxHashesProtection()
+}

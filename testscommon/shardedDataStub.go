@@ -13,28 +13,30 @@ import (
 
 // ShardedDataStub -
 type ShardedDataStub struct {
-	RegisterOnAddedCalled                  func(func(key []byte, value interface{}))
-	ShardDataStoreCalled                   func(cacheID string) storage.Cacher
-	AddDataCalled                          func(key []byte, data interface{}, sizeInBytes int, cacheID string)
-	SearchFirstDataCalled                  func(key []byte) (value interface{}, ok bool)
-	RemoveDataCalled                       func(key []byte, cacheID string)
-	RemoveDataFromAllShardsCalled          func(key []byte)
-	MergeShardStoresCalled                 func(sourceCacheID, destCacheID string)
-	MoveDataCalled                         func(sourceCacheID, destCacheID string, key [][]byte)
-	ClearCalled                            func()
-	ClearShardStoreCalled                  func(cacheID string)
-	RemoveSetOfDataFromPoolCalled          func(keys [][]byte, destCacheID string)
-	ImmunizeSetOfDataAgainstEvictionCalled func(keys [][]byte, cacheID string, nonce uint64)
-	SetOldestImmuneNonceCalled             func(cacheID string, nonce uint64)
-	SetOldestImmuneNonceForAllCachesCalled func(nonce uint64)
-	CreateShardStoreCalled                 func(destCacheID string)
-	GetCountsCalled                        func() counting.CountsWithSize
-	KeysCalled                             func() [][]byte
-	CleanupSelfShardTxCacheCalled          func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
-	GetNumTrackedBlocksCalled              func() uint64
-	GetNumTrackedAccountsCalled            func() uint64
-	OnExecutedBlockCalled                  func(blockHeader data.HeaderHandler, rootHash []byte) error
-	OnProposedBlockCalled                  func(
+	RegisterOnAddedCalled                                func(func(key []byte, value interface{}))
+	ShardDataStoreCalled                                 func(cacheID string) storage.Cacher
+	AddDataCalled                                        func(key []byte, data interface{}, sizeInBytes int, cacheID string)
+	SearchFirstDataCalled                                func(key []byte) (value interface{}, ok bool)
+	RemoveDataCalled                                     func(key []byte, cacheID string)
+	RemoveDataFromAllShardsCalled                        func(key []byte)
+	MergeShardStoresCalled                               func(sourceCacheID, destCacheID string)
+	MoveDataCalled                                       func(sourceCacheID, destCacheID string, key [][]byte)
+	ClearCalled                                          func()
+	ClearShardStoreCalled                                func(cacheID string)
+	RemoveSetOfDataFromPoolCalled                        func(keys [][]byte, destCacheID string)
+	ImmunizeSetOfDataAgainstEvictionCalled               func(keys [][]byte, cacheID string, nonce uint64)
+	ProtectSetOfDataAgainstEvictionForCurrentBlockCalled func(keys [][]byte, cacheID string)
+	ClearCurrentBlockTxProtectionCalled                  func()
+	SetOldestImmuneNonceCalled                           func(cacheID string, nonce uint64)
+	SetOldestImmuneNonceForAllCachesCalled               func(nonce uint64)
+	CreateShardStoreCalled                               func(destCacheID string)
+	GetCountsCalled                                      func() counting.CountsWithSize
+	KeysCalled                                           func() [][]byte
+	CleanupSelfShardTxCacheCalled                        func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
+	GetNumTrackedBlocksCalled                            func() uint64
+	GetNumTrackedAccountsCalled                          func() uint64
+	OnExecutedBlockCalled                                func(blockHeader data.HeaderHandler, rootHash []byte) error
+	OnProposedBlockCalled                                func(
 		blockHash []byte,
 		blockBody *block.Body,
 		blockHeader data.HeaderHandler,
@@ -125,6 +127,20 @@ func (sd *ShardedDataStub) RemoveSetOfDataFromPool(keys [][]byte, cacheID string
 func (sd *ShardedDataStub) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string, nonce uint64) {
 	if sd.ImmunizeSetOfDataAgainstEvictionCalled != nil {
 		sd.ImmunizeSetOfDataAgainstEvictionCalled(keys, cacheID, nonce)
+	}
+}
+
+// ProtectSetOfDataAgainstEvictionForCurrentBlock -
+func (sd *ShardedDataStub) ProtectSetOfDataAgainstEvictionForCurrentBlock(keys [][]byte, cacheID string) {
+	if sd.ProtectSetOfDataAgainstEvictionForCurrentBlockCalled != nil {
+		sd.ProtectSetOfDataAgainstEvictionForCurrentBlockCalled(keys, cacheID)
+	}
+}
+
+// ClearCurrentBlockTxProtection -
+func (sd *ShardedDataStub) ClearCurrentBlockTxProtection() {
+	if sd.ClearCurrentBlockTxProtectionCalled != nil {
+		sd.ClearCurrentBlockTxProtectionCalled()
 	}
 }
 

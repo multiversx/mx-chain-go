@@ -157,6 +157,13 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
 		require.True(t, cache.areInternalMapsConsistent())
 
+		cache.ProtectTxHashesAgainstEviction([][]byte{
+			[]byte("tx-alice-1"),
+			[]byte("tx-alice-2"),
+			[]byte("tx-alice-4"),
+			[]byte("tx-losing-candidate"),
+		})
+
 		err := cache.OnProposedBlock(
 			[]byte("blockHash1"),
 			&block.Body{
@@ -178,6 +185,10 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 			[]byte("blockHash0"),
 		)
 		require.Nil(t, err)
+		require.False(t, cache.isTxHashProtected([]byte("tx-alice-1")))
+		require.False(t, cache.isTxHashProtected([]byte("tx-alice-2")))
+		require.False(t, cache.isTxHashProtected([]byte("tx-alice-4")))
+		require.False(t, cache.isTxHashProtected([]byte("tx-losing-candidate")))
 
 		cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3).withGasLimit(1500000))
 		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3", "tx-alice-4"}, cache.getHashesForSender("alice"))
@@ -196,6 +207,38 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
 		require.True(t, cache.areInternalMapsConsistent())
 	})
+}
+
+func TestAddTx_ProtectedCurrentBlockTxIsRetainedPastPerSenderLimit(t *testing.T) {
+	cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+
+	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2))
+	cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3))
+	cache.ProtectTxHashesAgainstEviction([][]byte{[]byte("tx-alice-4")})
+
+	ok, added := cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 4))
+
+	require.True(t, ok)
+	require.True(t, added)
+	require.True(t, cache.Has([]byte("tx-alice-4")))
+	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
+	require.True(t, cache.areInternalMapsConsistent())
+}
+
+func TestAddTx_ImmediatelyEvictedTxDoesNotReportAdded(t *testing.T) {
+	cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+
+	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2))
+	cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3))
+
+	ok, added := cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 4))
+
+	require.True(t, ok)
+	require.False(t, added)
+	require.False(t, cache.Has([]byte("tx-alice-4")))
+	require.True(t, cache.areInternalMapsConsistent())
 }
 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {

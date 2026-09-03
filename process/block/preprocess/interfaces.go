@@ -92,3 +92,8 @@ type GasEpochStateHandler interface {
 	GetEpochForLimitsAndOverEstimationFactor() (uint32, uint64)
 	IsInterfaceNil() bool
 }
+
+type currentBlockTxProtector interface {
+	ProtectSetOfDataAgainstEvictionForCurrentBlock(keys [][]byte, cacheID string)
+	ClearCurrentBlockTxProtection()
+}
