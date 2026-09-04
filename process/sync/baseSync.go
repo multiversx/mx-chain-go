@@ -2474,11 +2474,13 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 
 	var hash []byte
 	isDirectedV3 := false
+	selectedByAuthority := false
 	selector, ok := boot.forkDetector.(notarizedHeaderSelector)
 	if ok {
 		selection := selector.getNotarizedHeaderSelection(nonce)
 		hash = selection.hash
 		isDirectedV3 = selection.isV3
+		selectedByAuthority = selection.selectedByAuthority
 		if len(selection.candidates) > 1 {
 			round := int64(-1)
 			if !check.IfNil(boot.roundHandler) {
@@ -2488,6 +2490,7 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 			selection = selector.getNotarizedHeaderSelection(nonce)
 			hash = selection.hash
 			isDirectedV3 = selection.isV3
+			selectedByAuthority = selection.selectedByAuthority
 			if len(selection.candidates) > 1 {
 				return nil, nil, errBranchAwareSyncRetry
 			}
@@ -2497,8 +2500,8 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 		isDirectedV3 = len(hash) > 0 && boot.isAsyncExecutionEnabledForHash(hash)
 	}
 	if boot.forkInfo.IsDetected {
-		// A unique V3 notarization takes precedence over the recovery hint.
-		if !isDirectedV3 {
+		// A V3 or authority-selected notarization takes precedence over the recovery hint.
+		if !isDirectedV3 && !selectedByAuthority {
 			hash = boot.forkInfo.Hash
 			versionFound := false
 			if ok && len(hash) > 0 {
@@ -2511,7 +2514,7 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	}
 
 	selectedFromProof := false
-	if !isDirectedV3 {
+	if !isDirectedV3 && !selectedByAuthority {
 		proof, err := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
 		if err == nil {
 			hash = proof.GetHeaderHash()

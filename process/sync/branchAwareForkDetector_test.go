@@ -377,6 +377,7 @@ func TestShardForkDetector_ApplyNotarizedHeaderSelectionAcceptsProcessedCandidat
 	require.True(t, containsHeaderInfo(sfd.headers[11], process.BHNotarized, processedHash))
 	require.True(t, containsHeaderInfo(sfd.headers[11], process.BHReceived, conflictingHash))
 	require.False(t, containsHeaderInfo(sfd.headers[11], process.BHNotarized, conflictingHash))
+	require.True(t, sfd.getNotarizedHeaderSelection(11).selectedByAuthority)
 	require.Equal(t, uint64(11), sfd.GetHighestFinalBlockNonce())
 	settledNonce, settledHash := sfd.GetHighestSettledBlockInfo()
 	require.Equal(t, uint64(11), settledNonce)
@@ -565,6 +566,7 @@ func TestShardForkDetector_ApplyNotarizedHeaderSelectionResolvesMixedLegacyV3Rec
 			require.Equal(t, notarizedHeaderApplied, sfd.applyNotarizedHeaderSelection(11, testCase.selectedHash))
 			require.Len(t, sfd.headers[11], 1)
 			require.Equal(t, testCase.selectedHash, sfd.headers[11][0].hash)
+			require.True(t, sfd.headers[11][0].selectedByAuthority)
 			require.False(t, sfd.hasUnresolvedNotarizedAmbiguity())
 		})
 	}
@@ -745,6 +747,14 @@ func TestShardForkDetector_UniqueLegacyAuthorityConflictingWithV3ProcessedNeedsR
 			require.Len(t, selection.candidates, 2)
 			require.Equal(t, notarizedHeaderNeedsReconciliation,
 				bfd.applyNotarizedHeaderSelection(11, selectedHash))
+
+			sfd := &shardForkDetector{baseForkDetector: bfd}
+			bfd.forkDetector = sfd
+			require.True(t, sfd.ReconcileFinalCheckpointFromAuthority(11, selectedHash))
+			sfd.RemoveCommittedHeader(11, localHash)
+			selection = sfd.getNotarizedHeaderSelection(11)
+			require.Equal(t, selectedHash, selection.hash)
+			require.True(t, selection.selectedByAuthority)
 		})
 	}
 }
@@ -762,6 +772,7 @@ func TestBaseForkDetector_LegacyNotarizationsKeepPriorSelection(t *testing.T) {
 	selection := bfd.getNotarizedHeaderSelection(11)
 	require.Equal(t, []byte("A"), selection.hash)
 	require.False(t, selection.isV3)
+	require.False(t, selection.selectedByAuthority)
 	require.Empty(t, selection.candidates)
 	require.False(t, bfd.hasUnresolvedNotarizedAmbiguity())
 }
