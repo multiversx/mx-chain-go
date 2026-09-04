@@ -180,7 +180,7 @@ type TransactionCoordinator interface {
 	GetCreatedMiniBlocksFromMe() block.MiniBlockSlice
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool, gasProcessingPolicy GasProcessingPolicy) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, randomness []byte) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
@@ -271,7 +271,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	GetTransactionsAndRequestMissingForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int)
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler PreProcessorExecutionInfoHandler, gasProcessingPolicy GasProcessingPolicy) ([][]byte, int, bool, error)
 	SelectOutgoingTransactions(bandwidth uint64, nonce uint64, haveTimeForSelection func() bool) ([][]byte, []data.TransactionHandler, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
@@ -471,8 +471,9 @@ type ForkDetector interface {
 	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
 	RemoveHeader(nonce uint64, hash []byte)
 	RemoveCommittedHeader(nonce uint64, hash []byte)
-	ReconcileFinalCheckpoint(nonce uint64)
+	ReconcileFinalCheckpoint(nonce uint64) bool
 	ReconcileFinalCheckpointBelow(nonce uint64) bool
+	ReconcileFinalCheckpointFromAuthority(nonce uint64, selectedHash []byte) bool
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
 	GetHighestFinalBlockHash() []byte
@@ -1025,6 +1026,8 @@ type HeaderIntegrityVerifier interface {
 // answer false on missing evidence, so a caller never acts on what the node does not hold.
 type MetaFinalityView interface {
 	IsMetaHeaderHeldFinal(header data.HeaderHandler, headerHash []byte) bool
+	IsMetaHeaderSettlementReady(header data.HeaderHandler, headerHash []byte) bool
+	IsShardHeaderIncluded(metaHeader data.MetaHeaderHandler, shardID uint32, headerHash []byte, nonce uint64) bool
 	IsIncludedInHeldFinalMetaBlock(shardID uint32, headerHash []byte, nonce uint64, ascendingFrom uint64, ascendingTo uint64) bool
 	IsDeadMetaBlock(headerHash []byte, nonce uint64) bool
 	IsInterfaceNil() bool
@@ -1064,6 +1067,7 @@ type BlockTracker interface {
 	RestoreToGenesis()
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	ResetOwnShardStuck()
 	IsOwnShardStuck() bool
 	IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool
 	Close() error
@@ -1588,6 +1592,7 @@ type ProcessedMiniBlocksTracker interface {
 	GetProcessedMiniBlocksInfo(metaBlockHash []byte) map[string]*processedMb.ProcessedMiniBlockInfo
 	GetProcessedMiniBlockInfo(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte)
 	IsMiniBlockFullyProcessed(metaBlockHash []byte, miniBlockHash []byte) bool
+	HasUnfinishedMiniBlocks() bool
 	ConvertProcessedMiniBlocksMapToSlice() []bootstrapStorage.MiniBlocksInMeta
 	ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta)
 	DisplayProcessedMiniBlocks()
@@ -1639,6 +1644,7 @@ type ProofsPool interface {
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
+	HasProofForDifferentHash(shardID uint32, headerNonce uint64, headerHash []byte) bool
 	IsInterfaceNil() bool
 }
 

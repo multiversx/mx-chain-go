@@ -131,15 +131,15 @@ func createArgBaseProcessor(
 	var headersForBlock blproc.HeadersForBlock = &testscommon.HeadersForBlockMock{}
 	if !check.IfNil(coreComponents) && !check.IfNil(bootstrapComponents) && !check.IfNil(dataComponents) {
 		headersForBlock, _ = headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
-			DataPool:            dataComponents.DataPool,
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-			ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
-			BlockTracker:        blockTracker,
-			TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
-			RoundHandler:        coreComponents.RoundHandler(),
-			ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-			GenesisNonce: 0,
+			DataPool:              dataComponents.DataPool,
+			RequestHandler:        &testscommon.RequestHandlerStub{},
+			EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+			ShardCoordinator:      bootstrapComponents.ShardCoordinator(),
+			BlockTracker:          blockTracker,
+			TxCoordinator:         &testscommon.TransactionCoordinatorMock{},
+			RoundHandler:          coreComponents.RoundHandler(),
+			ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+			GenesisNonce:          0,
 		})
 	}
 
@@ -4340,6 +4340,64 @@ func TestBaseProcessor_updateGasConsumptionLimitsIfNeeded(t *testing.T) {
 	require.True(t, wasZeroOutgoingLimitCalled)
 }
 
+func TestBaseProcessor_UpdateGasConsumptionLimitsForProposalUsesCurrentParent(t *testing.T) {
+	t.Parallel()
+
+	currentHeader := data.HeaderHandler(&block.Header{})
+	isOwnShardStuck := false
+	computeCalls := 0
+	resetStuckCalls := 0
+	bp := blproc.CreateBaseProcessorWithMockedTracker(&mock.BlockTrackerMock{
+		ComputeOwnShardStuckCalled: func(_ data.BaseExecutionResultHandler, _ uint64) {
+			computeCalls++
+		},
+		ResetOwnShardStuckCalled: func() {
+			resetStuckCalls++
+			isOwnShardStuck = false
+		},
+		IsOwnShardStuckCalled: func() bool {
+			return isOwnShardStuck
+		},
+	})
+	bp.SetBlockChain(&testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	})
+	var resetIncoming, resetOutgoing, zeroIncoming, zeroOutgoing int
+	bp.SetGasComputation(&testscommon.GasComputationMock{
+		ResetIncomingLimitCalled: func() { resetIncoming++ },
+		ResetOutgoingLimitCalled: func() { resetOutgoing++ },
+		ZeroIncomingLimitCalled:  func() { zeroIncoming++ },
+		ZeroOutgoingLimitCalled:  func() { zeroOutgoing++ },
+	})
+
+	require.NoError(t, bp.UpdateGasConsumptionLimitsForProposal())
+	require.Zero(t, computeCalls)
+	require.Equal(t, 1, resetStuckCalls)
+	require.False(t, isOwnShardStuck)
+	require.Equal(t, 1, resetIncoming)
+	require.Equal(t, 1, resetOutgoing)
+
+	currentHeader = &block.HeaderV3{
+		Nonce: 7,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{HeaderNonce: 3},
+		},
+	}
+	isOwnShardStuck = true
+	require.NoError(t, bp.UpdateGasConsumptionLimitsForProposal())
+	require.Equal(t, 1, computeCalls)
+	require.Equal(t, 1, zeroIncoming)
+	require.Equal(t, 1, zeroOutgoing)
+
+	isOwnShardStuck = false
+	require.NoError(t, bp.UpdateGasConsumptionLimitsForProposal())
+	require.Equal(t, 2, computeCalls)
+	require.Equal(t, 2, resetIncoming)
+	require.Equal(t, 2, resetOutgoing)
+}
+
 func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 	t.Parallel()
 
@@ -5210,7 +5268,7 @@ func TestCheckLegacyPredecessorReadyForV3(t *testing.T) {
 
 	prevHash := []byte("prev hash")
 
-	buildProcessor := func(t *testing.T, currentHeader data.HeaderHandler, currentHash []byte) interface {
+	buildProcessor := func(t *testing.T, currentHeader data.HeaderHandler, currentHash []byte, hasUnfinished ...bool) interface {
 		CheckLegacyPredecessorReadyForV3(header data.HeaderHandler) error
 	} {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
@@ -5223,6 +5281,13 @@ func TestCheckLegacyPredecessorReadyForV3(t *testing.T) {
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		if len(hasUnfinished) > 0 {
+			arguments.ProcessedMiniBlocksTracker = &testscommon.ProcessedMiniBlocksTrackerStub{
+				HasUnfinishedMiniBlocksCalled: func() bool {
+					return hasUnfinished[0]
+				},
+			}
+		}
 		bp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 		return bp
@@ -5284,6 +5349,149 @@ func TestCheckLegacyPredecessorReadyForV3(t *testing.T) {
 		err := bp.CheckLegacyPredecessorReadyForV3(candidate)
 		require.ErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
 	})
+
+	t.Run("unfinished tracker entry should error with clean predecessor", func(t *testing.T) {
+		t.Parallel()
+
+		bp := buildProcessor(t, newLegacyHeader(block.MiniBlockHeader{Hash: []byte("final")}), prevHash, true)
+		err := bp.CheckLegacyPredecessorReadyForV3(candidate)
+		require.ErrorIs(t, err, process.ErrLeftoverScheduledMiniBlocksOnTransition)
+	})
+}
+
+func TestCheckSupernovaDrainRules(t *testing.T) {
+	t.Parallel()
+
+	const activationEpoch = uint32(10)
+	const activationRound = uint64(100)
+	newProcessor := func(tracker process.ProcessedMiniBlocksTracker) interface {
+		CheckSupernovaDrainRules(header data.HeaderHandler) error
+	} {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag && epoch >= activationEpoch
+			},
+		}
+		coreComponents.EnableRoundsHandlerField = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag && round >= activationRound
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ProcessedMiniBlocksTracker = tracker
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+		return bp
+	}
+	newHeader := func(processingType block.ProcessingType, constructionState block.MiniBlockState) *block.Header {
+		mbHeader := block.MiniBlockHeader{Hash: []byte("mb")}
+		require.NoError(t, mbHeader.SetProcessingType(int32(processingType)))
+		require.NoError(t, mbHeader.SetConstructionState(int32(constructionState)))
+		return &block.Header{
+			Epoch:            activationEpoch,
+			Round:            activationRound - 1,
+			MiniBlockHeaders: []block.MiniBlockHeader{mbHeader},
+		}
+	}
+
+	defaultTracker := &testscommon.ProcessedMiniBlocksTrackerStub{}
+	bp := newProcessor(defaultTracker)
+	require.ErrorIs(t, bp.CheckSupernovaDrainRules(newHeader(block.Scheduled, block.Proposed)), process.ErrScheduledMiniBlockInSupernovaDrain)
+	require.NoError(t, bp.CheckSupernovaDrainRules(newHeader(block.Processed, block.Final)))
+	require.ErrorIs(t, bp.CheckSupernovaDrainRules(newHeader(block.Normal, block.PartialExecuted)), process.ErrNewPartialMiniBlockInSupernovaDrain)
+
+	nilTracker := &testscommon.ProcessedMiniBlocksTrackerStub{
+		GetProcessedMiniBlockInfoCalled: func(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte) {
+			return nil, nil
+		},
+	}
+	bp = newProcessor(nilTracker)
+	require.ErrorIs(t, bp.CheckSupernovaDrainRules(newHeader(block.Normal, block.PartialExecuted)), process.ErrNewPartialMiniBlockInSupernovaDrain)
+
+	fullyProcessedTracker := &testscommon.ProcessedMiniBlocksTrackerStub{
+		GetProcessedMiniBlockInfoCalled: func(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte) {
+			return &processedMb.ProcessedMiniBlockInfo{
+				FullyProcessed:         true,
+				IndexOfLastTxProcessed: 1,
+			}, []byte("meta")
+		},
+	}
+	bp = newProcessor(fullyProcessedTracker)
+	require.ErrorIs(t, bp.CheckSupernovaDrainRules(newHeader(block.Normal, block.PartialExecuted)), process.ErrNewPartialMiniBlockInSupernovaDrain)
+
+	continuationTracker := &testscommon.ProcessedMiniBlocksTrackerStub{
+		GetProcessedMiniBlockInfoCalled: func(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte) {
+			return &processedMb.ProcessedMiniBlockInfo{
+				FullyProcessed:         false,
+				IndexOfLastTxProcessed: 0,
+			}, []byte("meta")
+		},
+	}
+	bp = newProcessor(continuationTracker)
+	require.NoError(t, bp.CheckSupernovaDrainRules(newHeader(block.Normal, block.PartialExecuted)))
+
+	headerOutsideDrain := newHeader(block.Scheduled, block.Proposed)
+	headerOutsideDrain.Round = activationRound
+	require.NoError(t, bp.CheckSupernovaDrainRules(headerOutsideDrain))
+}
+
+func TestShardProcessor_UpdateSupernovaTransitionReadiness(t *testing.T) {
+	t.Parallel()
+
+	const activationEpoch = uint32(10)
+	const activationRound = uint64(100)
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && epoch >= activationEpoch
+		},
+	}
+	coreComponents.EnableRoundsHandlerField = &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return flag == common.SupernovaRoundFlag && round >= activationRound
+		},
+	}
+
+	metricValue := uint64(0)
+	appStatusHandler := &statusHandlerMock.AppStatusHandlerStub{
+		SetUInt64ValueHandler: func(key string, value uint64) {
+			if key == common.MetricSupernovaTransitionReady {
+				metricValue = value
+			}
+		},
+	}
+	trackerHasUnfinished := false
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+		AppStatusHandlerField: appStatusHandler,
+	}
+	arguments.ProcessedMiniBlocksTracker = &testscommon.ProcessedMiniBlocksTrackerStub{
+		HasUnfinishedMiniBlocksCalled: func() bool {
+			return trackerHasUnfinished
+		},
+	}
+	sp, err := blproc.NewShardProcessor(arguments)
+	require.NoError(t, err)
+
+	sp.UpdateSupernovaTransitionReadiness(&block.Header{Epoch: activationEpoch - 1, Round: activationRound - 1}, []byte("pre-drain"))
+	require.Zero(t, metricValue)
+
+	trackerHasUnfinished = true
+	sp.UpdateSupernovaTransitionReadiness(&block.Header{Epoch: activationEpoch, Round: activationRound - 1}, []byte("dirty"))
+	require.Zero(t, metricValue)
+
+	trackerHasUnfinished = false
+	sp.UpdateSupernovaTransitionReadiness(&block.Header{Epoch: activationEpoch, Round: activationRound - 1}, []byte("clean"))
+	require.Equal(t, uint64(1), metricValue)
+
+	sp.UpdateSupernovaTransitionReadiness(&block.HeaderV3{Epoch: activationEpoch, Round: activationRound}, []byte("v3"))
+	require.Equal(t, uint64(1), metricValue)
+
+	trackerHasUnfinished = true
+	sp.UpdateSupernovaTransitionReadiness(&block.Header{Epoch: activationEpoch, Round: activationRound - 1}, []byte("rollback"))
+	require.Zero(t, metricValue)
 }
 
 func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
@@ -7853,10 +8061,12 @@ func TestCleanupDismissedEWLEntries(t *testing.T) {
 		// should not panic, should not call CancelPrune
 		sp.CleanupDismissedEWLEntries()
 	})
-	t.Run("dismissed batches should trigger CancelPrune and reset last pruned header", func(t *testing.T) {
+	t.Run("dismissed batches should trigger CancelPrune and preserve last pruned header", func(t *testing.T) {
 		t.Parallel()
 
 		cancelPruneCalls := 0
+		lastPrunedHash := []byte("someHash")
+		lastPrunedNonce := uint64(100)
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -7864,6 +8074,9 @@ func TestCleanupDismissedEWLEntries(t *testing.T) {
 			IsPruningEnabledCalled: func() bool { return true },
 			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
 				cancelPruneCalls++
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				require.Fail(t, "same settled checkpoint should not be pruned again")
 			},
 			GetEvictionWaitingListSizeCalled: func() int { return 0 },
 		}
@@ -7891,19 +8104,28 @@ func TestCleanupDismissedEWLEntries(t *testing.T) {
 				}
 			},
 		}
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+				return lastPrunedNonce, lastPrunedHash
+			},
+		}
 
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
-		sp.SetLastPrunedHash([]byte("someHash"))
-		sp.SetLastPrunedNonce(100)
+		sp.SetLastPrunedHash(lastPrunedHash)
+		sp.SetLastPrunedNonce(lastPrunedNonce)
 
 		sp.CleanupDismissedEWLEntries()
 
 		// Two transitions: R0->R1 and R1->R2, each producing 2 CancelPrune calls = 4 total
 		require.Equal(t, 4, cancelPruneCalls)
-		// Last pruned header should be reset
-		require.Nil(t, sp.GetLastPrunedHash())
+		require.Equal(t, lastPrunedHash, sp.GetLastPrunedHash())
+		require.Equal(t, lastPrunedNonce, sp.GetLastPrunedNonce())
+
+		sp.PruneTrieAsyncHeader()
+		require.Equal(t, lastPrunedHash, sp.GetLastPrunedHash())
+		require.Equal(t, lastPrunedNonce, sp.GetLastPrunedNonce())
 	})
 }
 
@@ -7935,10 +8157,12 @@ func TestCheckEWLSizeAndReset(t *testing.T) {
 		sp.CheckEWLSizeAndReset()
 		require.False(t, resetCalled)
 	})
-	t.Run("ewl size above threshold should trigger reset and clear last pruned header", func(t *testing.T) {
+	t.Run("ewl size above threshold should trigger reset and preserve last pruned header", func(t *testing.T) {
 		t.Parallel()
 
 		resetCalled := false
+		lastPrunedHash := []byte("someHash")
+		lastPrunedNonce := uint64(50)
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -7948,21 +8172,34 @@ func TestCheckEWLSizeAndReset(t *testing.T) {
 			ResetPruningCalled: func() {
 				resetCalled = true
 			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				require.Fail(t, "same settled checkpoint should not be pruned again")
+			},
 		}
 		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			PopDismissedResultsCalled: func() []executionTrack.DismissedBatch { return nil },
+		}
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestSettledBlockInfoCalled: func() (uint64, []byte) {
+				return lastPrunedNonce, lastPrunedHash
+			},
 		}
 
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
-		sp.SetLastPrunedHash([]byte("someHash"))
-		sp.SetLastPrunedNonce(50)
+		sp.SetLastPrunedHash(lastPrunedHash)
+		sp.SetLastPrunedNonce(lastPrunedNonce)
 
 		// default gap=10 -> threshold=36, ewlSize=1000 > 36
 		sp.CheckEWLSizeAndReset()
 		require.True(t, resetCalled)
-		require.Nil(t, sp.GetLastPrunedHash())
+		require.Equal(t, lastPrunedHash, sp.GetLastPrunedHash())
+		require.Equal(t, lastPrunedNonce, sp.GetLastPrunedNonce())
+
+		sp.PruneTrieAsyncHeader()
+		require.Equal(t, lastPrunedHash, sp.GetLastPrunedHash())
+		require.Equal(t, lastPrunedNonce, sp.GetLastPrunedNonce())
 	})
 	t.Run("pruning disabled should skip reset even if size would exceed", func(t *testing.T) {
 		t.Parallel()

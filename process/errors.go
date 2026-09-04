@@ -1500,6 +1500,12 @@ var ErrInvalidSelfSenderIndexes = errors.New("self-sender mini block indexes do 
 // ErrLeftoverScheduledMiniBlocksOnTransition signals that the legacy predecessor of the first Supernova block carries non-final mini blocks
 var ErrLeftoverScheduledMiniBlocksOnTransition = errors.New("leftover scheduled mini blocks on supernova transition")
 
+// ErrScheduledMiniBlockInSupernovaDrain signals that a block starts scheduled work during the Supernova drain window
+var ErrScheduledMiniBlockInSupernovaDrain = errors.New("scheduled mini block in supernova drain window")
+
+// ErrNewPartialMiniBlockInSupernovaDrain signals that a block starts partial execution during the Supernova drain window
+var ErrNewPartialMiniBlockInSupernovaDrain = errors.New("new partial mini block in supernova drain window")
+
 // ErrInvalidNumberOfExecutionResultsInHeader signals that the number of execution results in header is invalid
 var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of execution results in header")
 

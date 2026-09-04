@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2765,5 +2766,330 @@ func TestResolverRequestHandler_RequestEquivalentProofByNonce(t *testing.T) {
 		rrh.RequestEquivalentProofByNonce(shardID, requestNonce)
 		time.Sleep(time.Millisecond * 20)
 		require.True(t, wasCalled.Load())
+	})
+}
+
+func (rrh *resolverRequestHandler) numInFlightProofsByNonce() int {
+	rrh.mutInFlightProofsByNonce.Lock()
+	defer rrh.mutInFlightProofsByNonce.Unlock()
+
+	return len(rrh.inFlightProofsByNonce)
+}
+
+func waitUntil(tb testing.TB, condition func() bool, failMessage string) {
+	deadline := time.Now().Add(timeoutSendRequests)
+	for time.Now().Before(deadline) {
+		if condition() {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	require.Fail(tb, failMessage)
+}
+
+func waitForNoInFlightProofsByNonce(tb testing.TB, rrh *resolverRequestHandler) {
+	waitUntil(tb, func() bool { return rrh.numInFlightProofsByNonce() == 0 }, "in-flight proof-by-nonce reservation leaked")
+}
+
+func waitForCounter(tb testing.TB, counter *atomic.Int32, expected int32) {
+	waitUntil(tb, func() bool { return counter.Load() == expected }, fmt.Sprintf("counter did not reach %d", expected))
+}
+
+type proofByNonceCoalescingTestArgs struct {
+	requestedItems     dataRetriever.RequestedItemsHandler
+	whiteList          dataRetriever.WhiteListHandler
+	requestDelay       time.Duration
+	requestInterval    time.Duration
+	requester          dataRetriever.Requester
+	requesterErr       error
+	shardID            uint32
+	numWhiteListedKeys *atomic.Int32
+}
+
+func newProofByNonceCoalescingHandler(args proofByNonceCoalescingTestArgs) *resolverRequestHandler {
+	if args.requestedItems == nil {
+		args.requestedItems = cache.NewTimeCache(time.Second)
+	}
+	if args.whiteList == nil {
+		args.whiteList = &mock.WhiteListHandlerStub{
+			AddCalled: func(keys [][]byte) {
+				if args.numWhiteListedKeys != nil {
+					args.numWhiteListedKeys.Add(int32(len(keys)))
+				}
+			},
+		}
+	}
+	if args.requestInterval == 0 {
+		args.requestInterval = time.Second
+	}
+	rrh, _ := NewResolverRequestHandler(
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+				return args.requester, args.requesterErr
+			},
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+				return args.requester, args.requesterErr
+			},
+		},
+		args.requestedItems,
+		args.whiteList,
+		100,
+		args.shardID,
+		args.requestInterval,
+		args.requestDelay,
+	)
+
+	return rrh
+}
+
+func TestResolverRequestHandler_RequestEquivalentProofByNonceCoalescing(t *testing.T) {
+	t.Parallel()
+
+	t.Run("many simultaneous callers produce exactly one network call and one whitelist add", func(t *testing.T) {
+		t.Parallel()
+
+		numSends := atomic.Int32{}
+		numWhiteListed := atomic.Int32{}
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestDelay:       50 * time.Millisecond,
+			numWhiteListedKeys: &numWhiteListed,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					numSends.Add(1)
+					return nil
+				},
+			},
+		})
+
+		wg := sync.WaitGroup{}
+		for i := 0; i < 64; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				rrh.RequestEquivalentProofByNonce(0, 10)
+			}()
+		}
+		wg.Wait()
+		waitForCounter(t, &numSends, 1)
+		waitForNoInFlightProofsByNonce(t, rrh)
+
+		require.Equal(t, int32(1), numSends.Load())
+		require.Equal(t, int32(1), numWhiteListed.Load())
+	})
+	t.Run("winner and duplicate callers return promptly while the request is in progress", func(t *testing.T) {
+		t.Parallel()
+
+		releaseSend := make(chan struct{})
+		numSends := atomic.Int32{}
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestDelay: 500 * time.Millisecond,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					numSends.Add(1)
+					<-releaseSend
+					return nil
+				},
+			},
+		})
+
+		start := time.Now()
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		require.Less(t, time.Since(start), 250*time.Millisecond)
+		require.Zero(t, numSends.Load())
+		waitForCounter(t, &numSends, 1)
+		require.Equal(t, 1, rrh.numInFlightProofsByNonce())
+
+		close(releaseSend)
+		waitForNoInFlightProofsByNonce(t, rrh)
+		require.Equal(t, int32(1), numSends.Load())
+	})
+	t.Run("different nonces and shards are independent", func(t *testing.T) {
+		t.Parallel()
+
+		numSends := atomic.Int32{}
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestDelay: 20 * time.Millisecond,
+			shardID:      core.MetachainShardId,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					numSends.Add(1)
+					return nil
+				},
+			},
+		})
+
+		for i := 0; i < 5; i++ {
+			rrh.RequestEquivalentProofByNonce(0, 10)
+			rrh.RequestEquivalentProofByNonce(0, 11)
+			rrh.RequestEquivalentProofByNonce(1, 10)
+			rrh.RequestEquivalentProofByNonce(core.MetachainShardId, 10)
+		}
+		waitForCounter(t, &numSends, 4)
+		waitForNoInFlightProofsByNonce(t, rrh)
+	})
+	t.Run("cached key sends nothing and releases its reservation", func(t *testing.T) {
+		t.Parallel()
+
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestedItems: &mock.RequestedItemsHandlerStub{
+				HasCalled: func(key string) bool { return true },
+			},
+			whiteList: &mock.WhiteListHandlerStub{
+				AddCalled: func(keys [][]byte) { require.Fail(t, "should not whitelist") },
+			},
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					require.Fail(t, "should not send")
+					return nil
+				},
+			},
+		})
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForNoInFlightProofsByNonce(t, rrh)
+	})
+	for _, failure := range []struct {
+		name         string
+		requester    dataRetriever.Requester
+		requesterErr error
+	}{
+		{name: "requester lookup failure", requester: &dataRetrieverMocks.EquivalentProofRequesterStub{}, requesterErr: errExpected},
+		{name: "wrong requester type", requester: &dataRetrieverMocks.RequesterStub{}},
+	} {
+		t.Run(failure.name+" releases the reservation and a later call retries", func(t *testing.T) {
+			t.Parallel()
+
+			numSends := atomic.Int32{}
+			rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+				requester:    failure.requester,
+				requesterErr: failure.requesterErr,
+			})
+
+			rrh.RequestEquivalentProofByNonce(0, 10)
+			waitForNoInFlightProofsByNonce(t, rrh)
+			require.Zero(t, numSends.Load())
+
+			rrh.requestersFinder = &dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+					return &dataRetrieverMocks.EquivalentProofRequesterStub{
+						RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+							numSends.Add(1)
+							return nil
+						},
+					}, nil
+				},
+			}
+			rrh.RequestEquivalentProofByNonce(0, 10)
+			waitForCounter(t, &numSends, 1)
+			waitForNoInFlightProofsByNonce(t, rrh)
+		})
+	}
+	t.Run("send failure does not cache the key and a later call sends successfully", func(t *testing.T) {
+		t.Parallel()
+
+		numSends := atomic.Int32{}
+		requestedItems := cache.NewTimeCache(time.Second)
+		key := common.GetEquivalentProofNonceShardKey(10, 0)
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestedItems: requestedItems,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					if numSends.Add(1) == 1 {
+						return errExpected
+					}
+					return nil
+				},
+			},
+		})
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForCounter(t, &numSends, 1)
+		waitForNoInFlightProofsByNonce(t, rrh)
+		require.False(t, requestedItems.Has(key+uniqueEquivalentProofSuffix))
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForCounter(t, &numSends, 2)
+		waitForNoInFlightProofsByNonce(t, rrh)
+		require.True(t, requestedItems.Has(key+uniqueEquivalentProofSuffix))
+	})
+	t.Run("successful request caches the key while the reservation is still held", func(t *testing.T) {
+		t.Parallel()
+
+		var rrh *resolverRequestHandler
+		addedWhileReserved := atomic.Bool{}
+		added := make(chan struct{})
+		rrh = newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestedItems: &mock.RequestedItemsHandlerStub{
+				AddCalled: func(key string) error {
+					addedWhileReserved.Store(rrh.numInFlightProofsByNonce() == 1)
+					close(added)
+					return nil
+				},
+			},
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{},
+		})
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		select {
+		case <-added:
+		case <-time.After(timeoutSendRequests):
+			require.Fail(t, "key was not added")
+		}
+		require.True(t, addedWhileReserved.Load())
+		waitForNoInFlightProofsByNonce(t, rrh)
+	})
+	t.Run("successful request stays suppressed for the cache span and is eligible after expiry and sweep", func(t *testing.T) {
+		t.Parallel()
+
+		numSends := atomic.Int32{}
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestedItems:  cache.NewTimeCache(500 * time.Millisecond),
+			requestInterval: time.Millisecond,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					numSends.Add(1)
+					return nil
+				},
+			},
+		})
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForCounter(t, &numSends, 1)
+		waitForNoInFlightProofsByNonce(t, rrh)
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForNoInFlightProofsByNonce(t, rrh)
+		require.Equal(t, int32(1), numSends.Load())
+
+		time.Sleep(700 * time.Millisecond)
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		waitForCounter(t, &numSends, 2)
+		waitForNoInFlightProofsByNonce(t, rrh)
+	})
+	t.Run("calls arriving during the delay do not reach the requester", func(t *testing.T) {
+		t.Parallel()
+
+		numSends := atomic.Int32{}
+		rrh := newProofByNonceCoalescingHandler(proofByNonceCoalescingTestArgs{
+			requestDelay: 100 * time.Millisecond,
+			requester: &dataRetrieverMocks.EquivalentProofRequesterStub{
+				RequestDataFromNonceCalled: func(_ []byte, _ uint32) error {
+					numSends.Add(1)
+					return nil
+				},
+			},
+		})
+
+		rrh.RequestEquivalentProofByNonce(0, 10)
+		for i := 0; i < 10; i++ {
+			time.Sleep(5 * time.Millisecond)
+			rrh.RequestEquivalentProofByNonce(0, 10)
+		}
+		waitForCounter(t, &numSends, 1)
+		waitForNoInFlightProofsByNonce(t, rrh)
+		time.Sleep(20 * time.Millisecond)
+		require.Equal(t, int32(1), numSends.Load())
 	})
 }

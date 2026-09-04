@@ -333,6 +333,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 					MaxConsecutiveRoundsOfRatingDecrease:   600,
 					MaxBlockProcessingTimeMs:               1000,
 					NumHeadersToRequestInAdvance:           10,
+					ExtraDelayForRequestBlockInfoMs:        1,
 				},
 			},
 		},

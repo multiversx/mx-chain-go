@@ -143,15 +143,15 @@ func createMockMetaArguments(
 	var headersForBlock processBlock.HeadersForBlock = &testscommon.HeadersForBlockMock{}
 	if !check.IfNil(coreComponents) && !check.IfNil(bootstrapComponents) && !check.IfNil(dataComponents) {
 		headersForBlock, _ = headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
-			DataPool:            dataComponents.DataPool,
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-			ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
-			BlockTracker:        blockTracker,
-			TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
-			RoundHandler:        coreComponents.RoundHandler(),
-			ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-			GenesisNonce: 0,
+			DataPool:              dataComponents.DataPool,
+			RequestHandler:        &testscommon.RequestHandlerStub{},
+			EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+			ShardCoordinator:      bootstrapComponents.ShardCoordinator(),
+			BlockTracker:          blockTracker,
+			TxCoordinator:         &testscommon.TransactionCoordinatorMock{},
+			RoundHandler:          coreComponents.RoundHandler(),
+			ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+			GenesisNonce:          0,
 		})
 	}
 
@@ -1003,7 +1003,7 @@ func TestMetaProcessor_ProcessBlock_MiniBlockChecks(t *testing.T) {
 	miniBlock1 := &block.MiniBlock{TxHashes: [][]byte{hash}}
 
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool, _ process.GasProcessingPolicy) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 	}
@@ -2419,6 +2419,7 @@ func TestMetaProcessor_CheckShardHeadersValidityContentionRegimes(t *testing.T) 
 		CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error)
 	} {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.EnableRoundsHandlerField = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.SupernovaFlag
@@ -3346,15 +3347,51 @@ func TestMetaProcessor_CreateMiniBlocksNoTimeShouldReturnEmptyBody(t *testing.T)
 	assert.Equal(t, &block.Body{}, bodyHandler)
 }
 
+func TestMetaProcessor_CreateBlockBodyEpochZeroDrainUsesDefaultGasPolicy(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+			return flag == common.SupernovaFlag
+		},
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			require.Equal(t, common.SupernovaFlag, flag)
+			return 0
+		},
+	}
+	coreComponents.EnableRoundsHandlerField = &testscommon.EnableRoundsHandlerStub{}
+
+	blockStarted := false
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+		CreateBlockStartedCalled: func() {
+			blockStarted = true
+		},
+	}
+	mp, err := processBlock.NewMetaProcessor(arguments)
+	require.NoError(t, err)
+
+	_, err = mp.CreateBlockBody(&block.MetaBlock{Epoch: 0, Round: 1}, func() bool { return true })
+	require.NoError(t, err)
+	require.True(t, blockStarted)
+}
+
 func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	t.Parallel()
+
+	const (
+		supernovaEpoch = uint32(2)
+		supernovaRound = uint64(100)
+		legacyGasLimit = uint64(15_000_000_000)
+	)
 
 	hash1 := []byte("hash1")
 	hdr1 := &block.Header{
 		Nonce:            1,
 		Round:            1,
 		PrevRandSeed:     []byte("roothash"),
-		MiniBlockHeaders: []block.MiniBlockHeader{{Hash: hash1, SenderShardID: 1}},
+		MiniBlockHeaders: []block.MiniBlockHeader{{Hash: hash1, SenderShardID: 1, ReceiverShardID: core.MetachainShardId}},
 	}
 	hdrHash1Bytes := []byte("hdr_hash1")
 	hdr2 := &block.Header{Nonce: 2, Round: 2}
@@ -3391,7 +3428,9 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	}
 
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool, gasProcessingPolicy process.GasProcessingPolicy) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+			require.True(t, gasProcessingPolicy.HasMaxGasLimitPerBlock())
+			require.Equal(t, legacyGasLimit, gasProcessingPolicy.MaxGasLimitPerBlock())
 			return block.MiniBlockSlice{expectedMiniBlock1}, 0, true, nil
 		},
 		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
@@ -3400,15 +3439,38 @@ func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
 	}
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	bootstrapComponents.Coordinator = &mock.ShardCoordinatorStub{
+		NumberOfShardsCalled: func() uint32 { return 1 },
+		SelfIdCalled:         func() uint32 { return core.MetachainShardId },
+	}
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && epoch >= supernovaEpoch
+		},
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			require.Equal(t, common.SupernovaFlag, flag)
+			return supernovaEpoch
+		},
+	}
+	coreComponents.EnableRoundsHandlerField = &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return flag == common.SupernovaRoundFlag && round >= supernovaRound
+		},
+	}
+	coreComponents.EconomicsDataField = &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerBlockInEpochCalled: func(shardID uint32, epoch uint32) uint64 {
+			require.Equal(t, core.MetachainShardId, shardID)
+			require.Equal(t, supernovaEpoch-1, epoch)
+			return legacyGasLimit
+		},
+	}
 	dataComponents.DataPool = dPool
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.TxCoordinator = txCoordinator
 	arguments.BlockTracker.AddTrackedHeader(hdr1, hdrHash1Bytes)
 
 	mp, _ := processBlock.NewMetaProcessor(arguments)
-	round := uint64(10)
-
-	metaHdr := &block.MetaBlock{Round: round}
+	metaHdr := &block.MetaBlock{Epoch: supernovaEpoch, Round: supernovaRound - 1}
 	bodyHandler, err := mp.CreateBlockBody(metaHdr, func() bool { return true })
 	b, _ := bodyHandler.(*block.Body)
 
@@ -3563,7 +3625,7 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	}
 
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool, _ process.GasProcessingPolicy) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 		CreateMbsAndProcessTransactionsFromMeCalled: func(haveTime func() bool) block.MiniBlockSlice {
@@ -3686,7 +3748,7 @@ func TestMetaProcessor_CreateBlockCreateHeaderProcessBlock(t *testing.T) {
 	}
 
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool, _ process.GasProcessingPolicy) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 	}
@@ -3832,7 +3894,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	}
 
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
-		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
+		CreateMbsAndProcessCrossShardTransactionsDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool, _ process.GasProcessingPolicy) (slices block.MiniBlockSlice, u uint32, b bool, err error) {
 			return block.MiniBlockSlice{miniBlock1}, 0, true, nil
 		},
 	}
@@ -6002,13 +6064,16 @@ func TestMetaProcessor_VerifyShardDataAgainstHeadersFlagGating(t *testing.T) {
 func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Parallel()
 
-	buildProcessorAndHeader := func(settled bool, withCompetitor bool, preSupernovaEra bool) (interface {
+	buildProcessorAndHeader := func(settled bool, withCompetitor bool, preSupernovaEra bool, supernovaRoundActivated bool) (interface {
 		CheckShardHeadersValidity(header *block.MetaBlock) (map[uint32]data.HeaderHandler, error)
 	}, *block.MetaBlock) {
 		pool := dataRetrieverMock.NewPoolsHolderMock()
 		noOfShards := uint32(5)
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		coreComponents.Hash = &hashingMocks.HasherMock{}
+		if supernovaRoundActivated {
+			coreComponents.EnableRoundsHandlerField = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
+		}
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.SupernovaFlag
@@ -6102,7 +6167,7 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Run("contended unsettled referenced shard header without competitor should pass", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(false, false, false)
+		mp, metaHdr := buildProcessorAndHeader(false, false, false, true)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.Nil(t, err)
 	})
@@ -6110,7 +6175,7 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Run("contended unsettled referenced shard header with better proofed competitor should error", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(false, true, false)
+		mp, metaHdr := buildProcessorAndHeader(false, true, false, true)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.ErrorContains(t, err, "better proofed competitor")
 	})
@@ -6118,7 +6183,7 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Run("contended settled referenced shard header should pass", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(true, false, false)
+		mp, metaHdr := buildProcessorAndHeader(true, false, false, true)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.Nil(t, err)
 	})
@@ -6126,7 +6191,15 @@ func TestMetaProcessor_CheckShardHeadersValidityContendedGate(t *testing.T) {
 	t.Run("pre-Supernova contended referenced shard header skips the contention gate", func(t *testing.T) {
 		t.Parallel()
 
-		mp, metaHdr := buildProcessorAndHeader(false, true, true)
+		mp, metaHdr := buildProcessorAndHeader(false, true, true, true)
+		_, err := mp.CheckShardHeadersValidity(metaHdr)
+		assert.Nil(t, err)
+	})
+
+	t.Run("Supernova epoch active but round not active: contended referenced shard header skips the contention gate", func(t *testing.T) {
+		t.Parallel()
+
+		mp, metaHdr := buildProcessorAndHeader(false, true, false, false)
 		_, err := mp.CheckShardHeadersValidity(metaHdr)
 		assert.Nil(t, err)
 	})
@@ -6217,7 +6290,7 @@ func TestMetaProcessor_UpdateStateSignalsNewlyFinalBlocksUnderSupernova(t *testi
 	require.Equal(t, [][]byte{hash5, hash6}, outportCapture.finalizedHashes)
 	require.Equal(t, []uint64{5, 6}, setFinalBlockInfos)
 
-	// settlement jumps over nonce 7: the skipped block is back filled before the settled one
+	// settlement jumps over nonce 7: the skipped block is backfilled before the settled one
 	settledNonce = 8
 	mp.UpdateState(cleanHdr8, hash8)
 	require.Equal(t, [][]byte{hash5, hash6, hash7, hash8}, outportCapture.finalizedHashes)

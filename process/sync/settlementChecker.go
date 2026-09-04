@@ -9,14 +9,14 @@ import (
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/track"
 )
 
 // inclusionScanSpan is the per-round budget of the resumable authority scan, matching the view's
 // own window bound
 const inclusionScanSpan = 16
 
-// shardSettlementChecker settles a shard block on the verdict of the settlement authority: a meta
-// block the node holds final notarized it, or one of its descendants
+// shardSettlementChecker settles shard blocks from the canonical settlement-ready meta view.
 type shardSettlementChecker struct {
 	metaFinalityView process.MetaFinalityView
 	blockTracker     process.BlockTracker
@@ -136,8 +136,187 @@ func highestPooledMetaNonce(headers dataRetriever.HeadersPool) uint64 {
 	return highest
 }
 
-func (checker *shardSettlementChecker) isSettled(nonce uint64, headerHash []byte, scanFrom uint64, scanTo uint64) bool {
-	return checker.metaFinalityView.IsIncludedInHeldFinalMetaBlock(checker.selfShardID, headerHash, nonce, scanFrom, scanTo)
+func (checker *shardSettlementChecker) settlementVerdict(
+	nonce uint64,
+	localHash []byte,
+	competitorHash []byte,
+	scanFrom uint64,
+	scanTo uint64,
+) (bool, bool) {
+	anchor, continuation, continuationHashes, ok := checker.canonicalMetaView()
+	if !ok {
+		return false, false
+	}
+
+	competitorSettled := checker.isSettledInMetaView(
+		anchor, continuation, continuationHashes, nonce, competitorHash, scanFrom, scanTo)
+	localSettled := checker.isSettledInMetaView(
+		anchor, continuation, continuationHashes, nonce, localHash, scanFrom, scanTo)
+
+	return localSettled, competitorSettled
+}
+
+func (checker *shardSettlementChecker) isSettledInMetaView(
+	anchor metaHeaderWithHash,
+	continuation []data.HeaderHandler,
+	continuationHashes [][]byte,
+	nonce uint64,
+	headerHash []byte,
+	scanFrom uint64,
+	scanTo uint64,
+) bool {
+	if len(headerHash) == 0 {
+		return false
+	}
+
+	if checker.isSettlementAuthorityForShardHeader(anchor.header, anchor.hash, nonce, headerHash) {
+		return true
+	}
+	for index, metaHeader := range continuation {
+		if index >= len(continuationHashes) || metaHeader.GetNonce() < scanFrom || metaHeader.GetNonce() > scanTo {
+			continue
+		}
+		meta, isMeta := metaHeader.(data.MetaHeaderHandler)
+		if isMeta && checker.isSettlementAuthorityForShardHeader(meta, continuationHashes[index], nonce, headerHash) {
+			return true
+		}
+	}
+
+	return false
+}
+
+type metaHeaderWithHash struct {
+	header data.MetaHeaderHandler
+	hash   []byte
+}
+
+func (checker *shardSettlementChecker) canonicalMetaView() (
+	metaHeaderWithHash,
+	[]data.HeaderHandler,
+	[][]byte,
+	bool,
+) {
+	metaAnchor, metaAnchorHash, err := checker.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	if err != nil || check.IfNil(metaAnchor) || len(metaAnchorHash) == 0 ||
+		checker.metaFinalityView.IsDeadMetaBlock(metaAnchorHash, metaAnchor.GetNonce()) {
+		return metaHeaderWithHash{}, nil, nil, false
+	}
+	anchorHandler, ok := metaAnchor.(data.MetaHeaderHandler)
+	if !ok {
+		return metaHeaderWithHash{}, nil, nil, false
+	}
+
+	continuation, hashes := checker.blockTracker.ComputeLongestChain(core.MetachainShardId, metaAnchor)
+	for index, header := range continuation {
+		if index >= len(hashes) || check.IfNil(header) ||
+			checker.metaFinalityView.IsDeadMetaBlock(hashes[index], header.GetNonce()) {
+			continuation = continuation[:index]
+			hashes = hashes[:index]
+			break
+		}
+	}
+
+	return metaHeaderWithHash{header: anchorHandler, hash: metaAnchorHash}, continuation, hashes, true
+}
+
+func (checker *shardSettlementChecker) isSettlementAuthorityForShardHeader(
+	metaHeader data.MetaHeaderHandler,
+	metaHash []byte,
+	shardNonce uint64,
+	shardHash []byte,
+) bool {
+	return checker.metaFinalityView.IsMetaHeaderSettlementReady(metaHeader, metaHash) &&
+		checker.metaFinalityView.IsShardHeaderIncluded(metaHeader, checker.selfShardID, shardHash, shardNonce)
+}
+
+func (checker *shardSettlementChecker) resolveNotarizedHeader(
+	nonce uint64,
+	candidates []notarizedHeaderCandidate,
+) []byte {
+	if len(candidates) < 2 {
+		return nil
+	}
+
+	anchor, continuation, continuationHashes, ok := checker.canonicalMetaView()
+	if !ok {
+		return nil
+	}
+
+	var selectedHash []byte
+	var unique bool
+	if checker.metaFinalityView.IsMetaHeaderSettlementReady(anchor.header, anchor.hash) {
+		selectedHash, unique = checker.selectIncludedCandidate(anchor.header, nonce, candidates, nil)
+		if !unique {
+			return nil
+		}
+	}
+
+	for index, header := range continuation {
+		metaHeader, ok := header.(data.MetaHeaderHandler)
+		if !ok || check.IfNil(metaHeader) || index >= len(continuationHashes) ||
+			!checker.metaFinalityView.IsMetaHeaderSettlementReady(metaHeader, continuationHashes[index]) {
+			continue
+		}
+
+		selectedHash, unique = checker.selectIncludedCandidate(metaHeader, nonce, candidates, selectedHash)
+		if !unique {
+			return nil
+		}
+	}
+
+	return selectedHash
+}
+
+func (checker *shardSettlementChecker) selectIncludedCandidate(
+	metaHeader data.MetaHeaderHandler,
+	nonce uint64,
+	candidates []notarizedHeaderCandidate,
+	selectedHash []byte,
+) ([]byte, bool) {
+	foundDirectReference := false
+	for _, shardInfo := range process.GetShardHeadersReferencedByMeta(metaHeader) {
+		if shardInfo.GetShardID() != checker.selfShardID || shardInfo.GetNonce() != nonce ||
+			!containsNotarizedCandidate(candidates, nonce, shardInfo.GetHeaderHash()) {
+			continue
+		}
+
+		foundDirectReference = true
+		if len(selectedHash) > 0 && !bytes.Equal(selectedHash, shardInfo.GetHeaderHash()) {
+			return nil, false
+		}
+		selectedHash = append(selectedHash[:0], shardInfo.GetHeaderHash()...)
+	}
+	if foundDirectReference {
+		return selectedHash, true
+	}
+
+	for _, candidate := range candidates {
+		if candidate.nonce != nonce || !checker.metaFinalityView.IsShardHeaderIncluded(
+			metaHeader,
+			checker.selfShardID,
+			candidate.hash,
+			candidate.nonce,
+		) {
+			continue
+		}
+
+		if len(selectedHash) > 0 && !bytes.Equal(selectedHash, candidate.hash) {
+			return nil, false
+		}
+		selectedHash = append(selectedHash[:0], candidate.hash...)
+	}
+
+	return selectedHash, true
+}
+
+func containsNotarizedCandidate(candidates []notarizedHeaderCandidate, nonce uint64, hash []byte) bool {
+	for _, candidate := range candidates {
+		if candidate.nonce == nonce && bytes.Equal(candidate.hash, hash) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // deadCrossNotarizedMeta returns the last cross-notarized meta block when the authority provably
@@ -155,10 +334,6 @@ func (checker *shardSettlementChecker) deadCrossNotarizedMeta() (data.HeaderHand
 	return lastCrossNotarizedMeta, lastCrossNotarizedHash, true
 }
 
-// metaSettledDescendantsDepth requires a proofed child that is itself extended by a proofed child;
-// depth 2 closes the depth-1 double-extension corner, the depth-2 residual is accepted
-const metaSettledDescendantsDepth = 2
-
 // metaSettlementChecker settles a meta block on a fully proofed descendant chain; meta has no
 // external authority to defer to
 type metaSettlementChecker struct {
@@ -172,33 +347,27 @@ func (checker *metaSettlementChecker) prepareInclusionScan(_ uint64) (uint64, ui
 }
 
 func (checker *metaSettlementChecker) isSettled(nonce uint64, headerHash []byte, _ uint64, _ uint64) bool {
-	return checker.hasProofedDescendants(nonce+1, headerHash, metaSettledDescendantsDepth)
+	return track.HasMetaReconciliationEvidence(checker.headers, checker.proofs, nonce, headerHash)
+}
+
+func (checker *metaSettlementChecker) settlementVerdict(
+	nonce uint64,
+	localHash []byte,
+	competitorHash []byte,
+	_ uint64,
+	_ uint64,
+) (bool, bool) {
+	competitorSettled := len(competitorHash) > 0 && checker.isSettled(nonce, competitorHash, 0, 0)
+	localSettled := checker.isSettled(nonce, localHash, 0, 0)
+
+	return localSettled, competitorSettled
+}
+
+func (checker *metaSettlementChecker) resolveNotarizedHeader(_ uint64, _ []notarizedHeaderCandidate) []byte {
+	return nil
 }
 
 // deadCrossNotarizedMeta never reports on meta nodes; meta reconciles through the equivocation path
 func (checker *metaSettlementChecker) deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool) {
 	return nil, nil, false
-}
-
-// hasProofedDescendants reports whether a chain of the given depth, proofed at every level,
-// extends parentHash
-func (checker *metaSettlementChecker) hasProofedDescendants(nonce uint64, parentHash []byte, depth int) bool {
-	headers, hashes, err := checker.headers.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
-	if err != nil {
-		return false
-	}
-
-	for i, header := range headers {
-		if check.IfNil(header) || !bytes.Equal(header.GetPrevHash(), parentHash) {
-			continue
-		}
-		if !checker.proofs.HasProof(core.MetachainShardId, hashes[i]) {
-			continue
-		}
-		if depth <= 1 || checker.hasProofedDescendants(nonce+1, hashes[i], depth-1) {
-			return true
-		}
-	}
-
-	return false
 }

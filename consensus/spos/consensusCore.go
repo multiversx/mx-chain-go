@@ -51,6 +51,7 @@ type ConsensusCore struct {
 	messagesHandler               ConsensusService
 	aotSelector                   process.AOTTransactionSelector
 	commonConfigsHandler          common.CommonConfigsHandler
+	headersPool                   consensus.HeadersPoolGetter
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -87,6 +88,7 @@ type ConsensusCoreArgs struct {
 	MessagesHandler               ConsensusService
 	AOTSelector                   process.AOTTransactionSelector
 	CommonConfigsHandler          common.CommonConfigsHandler
+	HeadersPool                   consensus.HeadersPoolGetter
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -126,6 +128,7 @@ func NewConsensusCore(
 		messagesHandler:               args.MessagesHandler,
 		aotSelector:                   args.AOTSelector,
 		commonConfigsHandler:          args.CommonConfigsHandler,
+		headersPool:                   args.HeadersPool,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -276,6 +279,11 @@ func (cc *ConsensusCore) EquivalentProofsPool() consensus.EquivalentProofsPool {
 	return cc.equivalentProofsPool
 }
 
+// HeadersPool returns the headers pool
+func (cc *ConsensusCore) HeadersPool() consensus.HeadersPoolGetter {
+	return cc.headersPool
+}
+
 // InvalidSignersCache returns the invalid signers cache component
 func (cc *ConsensusCore) InvalidSignersCache() InvalidSignersCache {
 	return cc.invalidSignersCache
@@ -419,6 +427,11 @@ func (cc *ConsensusCore) SetEnableRoundsHandler(enableRoundsHandler common.Enabl
 // SetEquivalentProofsPool sets equivalent proofs pool
 func (cc *ConsensusCore) SetEquivalentProofsPool(proofPool consensus.EquivalentProofsPool) {
 	cc.equivalentProofsPool = proofPool
+}
+
+// SetHeadersPool sets the headers pool
+func (cc *ConsensusCore) SetHeadersPool(headersPool consensus.HeadersPoolGetter) {
+	cc.headersPool = headersPool
 }
 
 // SetEpochNotifier sets epoch notifier

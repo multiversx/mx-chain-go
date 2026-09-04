@@ -131,7 +131,7 @@ func (bp *baseProcessor) CommitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 
 // CreateMiniBlocks -
 func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, map[string]*processedMb.ProcessedMiniBlockInfo, error) {
-	return sp.createMiniBlocks(haveTime, []byte("random"))
+	return sp.createMiniBlocks(haveTime, []byte("random"), &block.Header{})
 }
 
 // GetOrderedProcessedMetaBlocksFromHeader -
@@ -195,6 +195,7 @@ func NewShardProcessorEmptyWith3shards(
 				NumFloodingRoundsOutOfSpecs:            40,
 				MaxConsecutiveRoundsOfRatingDecrease:   600,
 				MaxBlockProcessingTimeMs:               1000,
+				ExtraDelayForRequestBlockInfoMs:        1,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
@@ -282,15 +283,15 @@ func NewShardProcessorEmptyWith3shards(
 
 	blockTracker := mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks)
 	headersForBlockComponent, _ := headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
-		DataPool:            dataComponents.DataPool,
-		RequestHandler:      &testscommon.RequestHandlerStub{},
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-		ShardCoordinator:    boostrapComponents.ShardCoordinator(),
-		BlockTracker:        blockTracker,
-		TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
-		RoundHandler:        coreComponents.RoundHandler(),
-		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-		GenesisNonce: 0,
+		DataPool:              dataComponents.DataPool,
+		RequestHandler:        &testscommon.RequestHandlerStub{},
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:      boostrapComponents.ShardCoordinator(),
+		BlockTracker:          blockTracker,
+		TxCoordinator:         &testscommon.TransactionCoordinatorMock{},
+		RoundHandler:          coreComponents.RoundHandler(),
+		ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+		GenesisNonce:          0,
 	})
 
 	argsGasConsumption := ArgsGasConsumption{
@@ -550,12 +551,41 @@ func (sp *shardProcessor) CheckReferencedMetaBlocksFullyConsumed(header data.Sha
 func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMe(
 	haveTime func() bool,
 ) (block.MiniBlockSlice, uint32, uint32, error) {
-	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime)
+	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, true, process.GasProcessingPolicy{}, math.MaxUint32)
 	if err != nil {
 		return nil, 0, 0, err
 	}
 
 	return createAndProcessInfo.miniBlocks, createAndProcessInfo.numHdrsAdded, createAndProcessInfo.numTxsAdded, err
+}
+
+// CreateAndProcessMiniBlocksDstMeForEpoch runs destination-me processing for a candidate epoch.
+func (sp *shardProcessor) CreateAndProcessMiniBlocksDstMeForEpoch(
+	haveTime func() bool,
+	candidateShardEpoch uint32,
+) (block.MiniBlockSlice, uint32, uint32, error) {
+	createAndProcessInfo, err := sp.createAndProcessMiniBlocksDstMe(haveTime, true, process.GasProcessingPolicy{}, candidateShardEpoch)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	return createAndProcessInfo.miniBlocks, createAndProcessInfo.numHdrsAdded, createAndProcessInfo.numTxsAdded, nil
+}
+
+// CreateMbsAndProcessCrossShardTransactionsDstMe -
+func (sp *shardProcessor) CreateMbsAndProcessCrossShardTransactionsDstMe(
+	header data.HeaderHandler,
+	allowLegacyWork bool,
+) (bool, error) {
+	return sp.createMbsAndProcessCrossShardTransactionsDstMe(&createAndProcessMiniBlocksDestMeInfo{
+		currMetaHdr:                   header,
+		currProcessedMiniBlocksInfo:   make(map[string]*processedMb.ProcessedMiniBlockInfo),
+		allProcessedMiniBlocksInfo:    make(map[string]*processedMb.ProcessedMiniBlockInfo),
+		haveTime:                      func() bool { return true },
+		haveAdditionalTime:            func() bool { return false },
+		allowScheduledMode:            allowLegacyWork,
+		allowStartingPartialExecution: allowLegacyWork,
+	})
 }
 
 // DisplayLogInfo -
@@ -635,6 +665,11 @@ func (sp *shardProcessor) CheckEpochCorrectnessCrossChain() error {
 // CheckEpochCorrectness -
 func (sp *shardProcessor) CheckEpochCorrectness(header *block.Header) error {
 	return sp.checkEpochCorrectness(header)
+}
+
+// CheckConsecutiveShardEpochForProposal exports the proposal guard for tests.
+func (sp *shardProcessor) CheckConsecutiveShardEpochForProposal(header data.ShardHeaderHandler) error {
+	return sp.checkConsecutiveShardEpochForProposal(header)
 }
 
 // GetBootstrapHeadersInfo -
@@ -892,7 +927,18 @@ func (sp *shardProcessor) SelectIncomingMiniBlocks(
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
 ) ([]*PendingMiniBlocksAfterSelection, error) {
-	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
+	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime, math.MaxUint32)
+}
+
+// SelectIncomingMiniBlocksForEpoch selects incoming miniblocks for a candidate epoch.
+func (sp *shardProcessor) SelectIncomingMiniBlocksForEpoch(
+	lastCrossNotarizedMetaHdr data.HeaderHandler,
+	orderedMetaBlocks []data.HeaderHandler,
+	orderedMetaBlocksHashes [][]byte,
+	haveTime func() bool,
+	candidateShardEpoch uint32,
+) ([]*PendingMiniBlocksAfterSelection, error) {
+	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime, candidateShardEpoch)
 }
 
 // DisplayHeader -
@@ -925,6 +971,16 @@ func (bp *baseProcessor) SetGasComputation(instance process.GasComputation) {
 	bp.gasComputation = instance
 }
 
+// SetBlockChain -
+func (bp *baseProcessor) SetBlockChain(chain data.ChainHandler) {
+	bp.blockChain = chain
+}
+
+// UpdateGasConsumptionLimitsForProposal -
+func (bp *baseProcessor) UpdateGasConsumptionLimitsForProposal() error {
+	return bp.updateGasConsumptionLimitsForProposal()
+}
+
 // UpdateGasConsumptionLimitsIfNeeded -
 func (bp *baseProcessor) UpdateGasConsumptionLimitsIfNeeded() {
 	bp.updateGasConsumptionLimitsIfNeeded()
@@ -953,6 +1009,11 @@ func CheckProposalMiniBlocksConsistency(miniBlockHeaders []data.MiniBlockHeaderH
 // CheckLegacyPredecessorReadyForV3 -
 func (bp *baseProcessor) CheckLegacyPredecessorReadyForV3(header data.HeaderHandler) error {
 	return bp.checkLegacyPredecessorReadyForV3(header)
+}
+
+// CheckSupernovaDrainRules -
+func (bp *baseProcessor) CheckSupernovaDrainRules(header data.HeaderHandler) error {
+	return bp.checkSupernovaDrainRules(header)
 }
 
 // GetFinalMiniBlocksFromExecutionResults -
@@ -1002,6 +1063,11 @@ func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler, miniBlo
 	return sp.verifyGasLimit(header, miniBlocks, isProposer)
 }
 
+// VerifyGasLimit -
+func (mp *metaProcessor) VerifyGasLimit(header data.MetaHeaderHandler, miniBlocks block.MiniBlockSlice, isProposer bool) error {
+	return mp.verifyGasLimit(header, miniBlocks, isProposer)
+}
+
 // SelectOutgoingTransactions -
 func (sp *shardProcessor) SelectOutgoingTransactions(nonce uint64, haveTimeForSelection func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
 	return sp.selectOutgoingTransactions(nonce, haveTimeForSelection)
@@ -1030,11 +1096,6 @@ func (sp *shardProcessor) ProofsPool() dataRetriever.ProofsPool {
 // DataPool -
 func (sp *shardProcessor) DataPool() dataRetriever.PoolsHolder {
 	return sp.dataPool
-}
-
-// ShouldDisableOutgoingTxs -
-func ShouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
-	return shouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler)
 }
 
 // ShouldEpochStartInfoBeAvailable -
@@ -1400,6 +1461,15 @@ func (bp *baseProcessor) GetLastPrunedHash() []byte {
 	bp.mutLastPrunedHeader.RUnlock()
 
 	return lastPrunedHeaderHash
+}
+
+// GetLastPrunedNonce -
+func (bp *baseProcessor) GetLastPrunedNonce() uint64 {
+	bp.mutLastPrunedHeader.RLock()
+	lastPrunedHeaderNonce := bp.lastPrunedHeaderNonce
+	bp.mutLastPrunedHeader.RUnlock()
+
+	return lastPrunedHeaderNonce
 }
 
 // CleanupDismissedEWLEntries -

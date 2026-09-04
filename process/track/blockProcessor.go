@@ -146,6 +146,18 @@ func (bp *blockProcessor) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
 		return
 	}
 
+	provider, canProvideSource := bp.blockTracker.(sourceAwareSelfHeadersProvider)
+	publisher, ok := bp.blockTracker.(sourceAwareSelfHeadersPublisher)
+	if canProvideSource && ok {
+		selfNotarizedHeadersInfo := bp.computeSelfNotarizedHeadersInfo(
+			provider,
+			crossNotarizedHeaders,
+			crossNotarizedHeadersHashes,
+		)
+		publisher.publishSelfNotarizedFromCrossHeaders(shardID, selfNotarizedHeadersInfo)
+		return
+	}
+
 	selfNotarizedHeaders, selfNotarizedHeadersHashes := bp.computeSelfNotarizedHeaders(crossNotarizedHeaders)
 	if len(selfNotarizedHeaders) > 0 {
 		bp.selfNotarizedFromCrossHeadersNotifier.CallHandlers(shardID, selfNotarizedHeaders, selfNotarizedHeadersHashes)
@@ -228,10 +240,47 @@ func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandl
 		})
 	}
 
-	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
-	selfNotarizedHeadersHashes := make([][]byte, 0)
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0, len(selfNotarizedHeadersInfo))
+	selfNotarizedHeadersHashes := make([][]byte, 0, len(selfNotarizedHeadersInfo))
+	for _, headerInfo := range selfNotarizedHeadersInfo {
+		selfNotarizedHeaders = append(selfNotarizedHeaders, headerInfo.Header)
+		selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, headerInfo.Hash)
+	}
 
-	for _, selfNotarizedHeaderInfo := range selfNotarizedHeadersInfo {
+	return selfNotarizedHeaders, selfNotarizedHeadersHashes
+}
+
+func (bp *blockProcessor) computeSelfNotarizedHeadersInfo(
+	provider sourceAwareSelfHeadersProvider,
+	headers []data.HeaderHandler,
+	hashes [][]byte,
+) []*selfHeaderInfo {
+	selfNotarizedHeadersInfo := make([]*selfHeaderInfo, 0)
+
+	for index, header := range headers {
+		if index >= len(hashes) {
+			break
+		}
+		selfHeadersInfo := provider.getSelfHeadersWithSource(header, hashes[index])
+		if len(selfHeadersInfo) > 0 {
+			selfNotarizedHeadersInfo = append(selfNotarizedHeadersInfo, selfHeadersInfo...)
+		}
+	}
+
+	if len(selfNotarizedHeadersInfo) > 1 {
+		sort.Slice(selfNotarizedHeadersInfo, func(i, j int) bool {
+			return selfNotarizedHeadersInfo[i].Header.GetNonce() < selfNotarizedHeadersInfo[j].Header.GetNonce()
+		})
+	}
+
+	return selfNotarizedHeadersInfo
+}
+
+func selfHeaderInfoToSlices(headersInfo []*selfHeaderInfo) ([]data.HeaderHandler, [][]byte) {
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0, len(headersInfo))
+	selfNotarizedHeadersHashes := make([][]byte, 0, len(headersInfo))
+
+	for _, selfNotarizedHeaderInfo := range headersInfo {
 		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeaderInfo.Header)
 		selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, selfNotarizedHeaderInfo.Hash)
 	}
@@ -324,9 +373,7 @@ func (bp *blockProcessor) isContendedUnsettledCrossHeader(header data.HeaderHand
 	if header.GetShardID() == bp.shardCoordinator.SelfId() {
 		return false
 	}
-	// keyed on the header's own epoch: a pre-Supernova header predates the settlement rules and
-	// could never satisfy them
-	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
+	if !common.IsCrossHeaderSettlementEnabledForHeader(bp.enableEpochsHandler, bp.enableRoundsHandler, header) {
 		return false
 	}
 	if !common.IsContendedHeader(header, parentHeader) {
@@ -588,6 +635,9 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
 	}
 	if check.IfNil(arguments.ProofsPool) {
 		return ErrNilProofsPool

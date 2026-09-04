@@ -1396,3 +1396,55 @@ func TestIsContendedRound(t *testing.T) {
 	require.True(t, common.IsContendedRound(3, 1))
 	require.True(t, common.IsContendedRound(10, 1))
 }
+
+func TestIsCrossHeaderSettlementEnabledForHeader(t *testing.T) {
+	t.Parallel()
+
+	supernovaEpoch := uint32(10)
+	supernovaRound := uint64(100)
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && epoch >= supernovaEpoch
+		},
+	}
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return flag == common.SupernovaRoundFlag && round >= supernovaRound
+		},
+	}
+
+	require.False(t, common.IsCrossHeaderSettlementEnabledForHeader(enableEpochsHandler, enableRoundsHandler, nil))
+
+	require.False(t, common.IsCrossHeaderSettlementEnabledForHeader(enableEpochsHandler, enableRoundsHandler,
+		&testscommon.HeaderHandlerStub{EpochField: supernovaEpoch - 1, RoundField: supernovaRound}))
+
+	// epoch activated but round not yet activated: the legacy proposal path cannot arbitrate
+	require.False(t, common.IsCrossHeaderSettlementEnabledForHeader(enableEpochsHandler, enableRoundsHandler,
+		&testscommon.HeaderHandlerStub{EpochField: supernovaEpoch, RoundField: supernovaRound - 1}))
+
+	require.True(t, common.IsCrossHeaderSettlementEnabledForHeader(enableEpochsHandler, enableRoundsHandler,
+		&testscommon.HeaderHandlerStub{EpochField: supernovaEpoch, RoundField: supernovaRound}))
+}
+
+func TestIsInSupernovaDrainWindowForEpochAndRound(t *testing.T) {
+	t.Parallel()
+
+	const supernovaEpoch = uint32(10)
+	const supernovaRound = uint64(100)
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && epoch >= supernovaEpoch
+		},
+	}
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return flag == common.SupernovaRoundFlag && round >= supernovaRound
+		},
+	}
+
+	require.False(t, common.IsInSupernovaDrainWindowForEpochAndRound(enableEpochsHandler, enableRoundsHandler, supernovaEpoch-1, supernovaRound-1))
+	require.True(t, common.IsInSupernovaDrainWindowForEpochAndRound(enableEpochsHandler, enableRoundsHandler, supernovaEpoch, supernovaRound-1))
+	require.True(t, common.IsInSupernovaDrainWindowForEpochAndRound(enableEpochsHandler, enableRoundsHandler, supernovaEpoch+1, supernovaRound-1))
+	require.False(t, common.IsInSupernovaDrainWindowForEpochAndRound(enableEpochsHandler, enableRoundsHandler, supernovaEpoch, supernovaRound))
+	require.False(t, common.IsInSupernovaDrainWindowForEpochAndRound(enableEpochsHandler, enableRoundsHandler, supernovaEpoch, supernovaRound+1))
+}

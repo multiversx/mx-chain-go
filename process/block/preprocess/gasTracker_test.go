@@ -648,3 +648,96 @@ func Test_getEpochAndOverestimationFactorForGasLimits(t *testing.T) {
 	require.Equal(t, providedCurrentEpoch, epoch)
 	require.Equal(t, providedOverestimationFactor, overestimationFactor)
 }
+
+func TestComputeGasProvidedWithPolicyUsesFinalRawLimitAfterFactorIsLatched(t *testing.T) {
+	t.Parallel()
+
+	const (
+		selfShardID    = uint32(0)
+		senderShardID  = uint32(1)
+		supernovaEpoch = uint32(2)
+		supernovaRound = uint64(260)
+		legacyGasLimit = uint64(1_500_000_000)
+		v3GasLimit     = uint64(600_000_000)
+	)
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && epoch >= supernovaEpoch
+		},
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			return supernovaEpoch
+		},
+	}
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return flag == common.SupernovaRoundFlag && round >= supernovaRound
+		},
+	}
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerBlockInEpochCalled: func(_ uint32, epoch uint32) uint64 {
+			if epoch < supernovaEpoch {
+				return legacyGasLimit
+			}
+
+			return v3GasLimit
+		},
+		BlockCapacityOverestimationFactorCalled: func() uint64 {
+			return 200
+		},
+	}
+	gasHandler := &testscommon.GasHandlerStub{
+		ComputeGasProvidedByTxCalled: func(_ uint32, _ uint32, _ data.TransactionHandler) (uint64, uint64, error) {
+			return 0, 1, nil
+		},
+	}
+	gasEpochState, err := newGasEpochState(economicsFee, enableEpochsHandler, enableRoundsHandler)
+	require.NoError(t, err)
+	gasEpochState.EpochConfirmed(supernovaEpoch)
+	gasEpochState.RoundConfirmed(supernovaRound)
+
+	tracker := newGasTracker(
+		&testscommon.ShardsCoordinatorMock{CurrentShard: selfShardID},
+		gasHandler,
+		economicsFee,
+		gasEpochState,
+	)
+	header := &testscommon.HeaderHandlerStub{
+		EpochField: supernovaEpoch,
+		RoundField: supernovaRound - 1,
+	}
+	policy, err := process.ResolveGasProcessingPolicy(
+		header,
+		enableEpochsHandler,
+		enableRoundsHandler,
+		economicsFee,
+		selfShardID,
+	)
+	require.NoError(t, err)
+	require.Equal(t, legacyGasLimit, policy.MaxGasLimitPerBlock())
+
+	gasInfo := &gasConsumedInfo{totalGasConsumedInSelfShard: legacyGasLimit - 1}
+	_, err = tracker.computeGasProvidedWithPolicy(
+		senderShardID,
+		selfShardID,
+		&transaction.Transaction{},
+		[]byte("hash"),
+		gasInfo,
+		false,
+		policy,
+	)
+	require.NoError(t, err)
+	require.Equal(t, legacyGasLimit, gasInfo.totalGasConsumedInSelfShard)
+
+	gasInfo = &gasConsumedInfo{totalGasConsumedInSelfShard: legacyGasLimit}
+	_, err = tracker.computeGasProvidedWithPolicy(
+		senderShardID,
+		selfShardID,
+		&transaction.Transaction{},
+		[]byte("hash"),
+		gasInfo,
+		true,
+		policy,
+	)
+	require.ErrorIs(t, err, process.ErrMaxGasLimitPerBlockInSelfShardIsReached)
+}
