@@ -18,6 +18,10 @@ type blockProcessor interface {
 	cancelPruneForDismissedExecutionResults(batches []executionTrack.DismissedBatch)
 }
 
+type currentBlockTxProtector interface {
+	ProtectSetOfDataAgainstEvictionForCurrentBlock(keys [][]byte, cacheID string) func()
+}
+
 type gasConsumedProvider interface {
 	TotalGasProvided() uint64
 	TotalGasProvidedWithScheduled() uint64

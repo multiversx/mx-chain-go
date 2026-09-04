@@ -46,6 +46,10 @@ import (
 
 var log = logger.GetOrCreate("process/sync")
 
+type currentBlockTxProtector interface {
+	ProtectSetOfDataAgainstEvictionForCurrentBlock(keys [][]byte, cacheID string) func()
+}
+
 type txSizeHandler interface {
 	Size() int
 }
@@ -1477,7 +1481,7 @@ func (boot *baseBootstrap) getMiniBlocksToSync(
 
 func (boot *baseBootstrap) syncMiniBlocksAndTxsForHeader(
 	header data.HeaderHandler,
-) error {
+) (func(), error) {
 	miniBlocksToSync := boot.getMiniBlocksToSync(header.GetMiniBlockHeaderHandlers())
 
 	boot.miniBlocksSyncer.ClearFields()
@@ -1485,12 +1489,41 @@ func (boot *baseBootstrap) syncMiniBlocksAndTxsForHeader(
 	err := boot.miniBlocksSyncer.SyncPendingMiniBlocks(miniBlocksToSync, ctx)
 	cancel()
 	if err != nil {
-		return err
+		return func() {}, err
 	}
 
 	miniBlocks, err := boot.miniBlocksSyncer.GetMiniBlocks()
 	if err != nil {
-		return err
+		return func() {}, err
+	}
+
+	bodyHandler, err := boot.blockBootstrapper.getBlockBody(header)
+	if err != nil {
+		return func() {}, err
+	}
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return func() {}, process.ErrWrongTypeAssertion
+	}
+
+	releaseTxProtection := func() {}
+	if header.GetShardID() != core.MetachainShardId {
+		if protector, ok := boot.dataPool.Transactions().(currentBlockTxProtector); ok {
+			releases := make([]func(), 0, len(body.MiniBlocks))
+			for _, miniBlock := range body.MiniBlocks {
+				if miniBlock.Type != block.TxBlock && miniBlock.Type != block.InvalidBlock {
+					continue
+				}
+
+				cacheID := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+				releases = append(releases, protector.ProtectSetOfDataAgainstEvictionForCurrentBlock(miniBlock.TxHashes, cacheID))
+			}
+			releaseTxProtection = func() {
+				for idx := len(releases) - 1; idx >= 0; idx-- {
+					releases[idx]()
+				}
+			}
+		}
 	}
 
 	// sync all txs into pools
@@ -1500,10 +1533,11 @@ func (boot *baseBootstrap) syncMiniBlocksAndTxsForHeader(
 	err = boot.txSyncer.SyncTransactionsFor(miniBlocks, header.GetEpoch(), ctx)
 	cancel()
 	if err != nil {
-		return err
+		releaseTxProtection()
+		return func() {}, err
 	}
 
-	return nil
+	return releaseTxProtection, nil
 }
 
 func (boot *baseBootstrap) prepareForSyncIfNeeded(
@@ -1577,37 +1611,41 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 	for i := len(headersToAdd) - 1; i >= 0; i-- {
 		info := headersToAdd[i]
 
-		err = boot.syncMiniBlocksAndTxsForHeader(info.header)
+		releaseTxProtection, errSync := boot.syncMiniBlocksAndTxsForHeader(info.header)
+		if errSync != nil {
+			return errSync
+		}
+
+		err = func() error {
+			defer releaseTxProtection()
+
+			body, errGetBody := boot.blockBootstrapper.getBlockBody(info.header)
+			if errGetBody != nil {
+				return errGetBody
+			}
+
+			errSave := boot.saveProposedTxsToPool(info.header, body)
+			if errSave != nil {
+				return errSave
+			}
+
+			errBackfill := boot.blockProcessor.OnBackfilledBlock(
+				body,
+				info.header,
+				info.headerHash,
+			)
+			if errBackfill != nil {
+				return errBackfill
+			}
+
+			return boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
+				Header:     info.header,
+				Body:       body,
+				HeaderHash: info.headerHash,
+			})
+		}()
 		if err != nil {
 			return err
-		}
-
-		body, errGetBody := boot.blockBootstrapper.getBlockBody(info.header)
-		if errGetBody != nil {
-			return errGetBody
-		}
-
-		err = boot.saveProposedTxsToPool(info.header, body)
-		if err != nil {
-			return err
-		}
-
-		errOnBackfilledBlock := boot.blockProcessor.OnBackfilledBlock(
-			body,
-			info.header,
-			info.headerHash,
-		)
-		if errOnBackfilledBlock != nil {
-			return errOnBackfilledBlock
-		}
-
-		errAdd := boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
-			Header:     info.header,
-			Body:       body,
-			HeaderHash: info.headerHash,
-		})
-		if errAdd != nil {
-			return errAdd
 		}
 	}
 

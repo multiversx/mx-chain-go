@@ -37,6 +37,5 @@ type txGasHandler interface {
 }
 
 type currentBlockTxProtector interface {
-	ProtectTxHashesAgainstEviction(txHashes [][]byte)
-	ClearTxHashesProtection()
+	ProtectTxHashesAgainstEviction(txHashes [][]byte) func()
 }

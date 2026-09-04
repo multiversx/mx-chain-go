@@ -157,7 +157,7 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
 		require.True(t, cache.areInternalMapsConsistent())
 
-		cache.ProtectTxHashesAgainstEviction([][]byte{
+		releaseProtection := cache.ProtectTxHashesAgainstEviction([][]byte{
 			[]byte("tx-alice-1"),
 			[]byte("tx-alice-2"),
 			[]byte("tx-alice-4"),
@@ -185,6 +185,8 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 			[]byte("blockHash0"),
 		)
 		require.Nil(t, err)
+		require.True(t, cache.isTxHashProtected([]byte("tx-alice-1")))
+		releaseProtection()
 		require.False(t, cache.isTxHashProtected([]byte("tx-alice-1")))
 		require.False(t, cache.isTxHashProtected([]byte("tx-alice-2")))
 		require.False(t, cache.isTxHashProtected([]byte("tx-alice-4")))
@@ -215,7 +217,7 @@ func TestAddTx_ProtectedCurrentBlockTxIsRetainedPastPerSenderLimit(t *testing.T)
 	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2))
 	cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3))
-	cache.ProtectTxHashesAgainstEviction([][]byte{[]byte("tx-alice-4")})
+	releaseProtection := cache.ProtectTxHashesAgainstEviction([][]byte{[]byte("tx-alice-4")})
 
 	ok, added := cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 4))
 
@@ -224,6 +226,8 @@ func TestAddTx_ProtectedCurrentBlockTxIsRetainedPastPerSenderLimit(t *testing.T)
 	require.True(t, cache.Has([]byte("tx-alice-4")))
 	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
 	require.True(t, cache.areInternalMapsConsistent())
+	releaseProtection()
+	require.False(t, cache.isTxHashProtected([]byte("tx-alice-4")))
 }
 
 func TestAddTx_ImmediatelyEvictedTxDoesNotReportAdded(t *testing.T) {
@@ -974,4 +978,49 @@ func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold u
 	}
 
 	return cache
+}
+
+func TestProtectTxHashesAgainstEviction_OverlappingLeases(t *testing.T) {
+	cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+
+	releaseA := cache.ProtectTxHashesAgainstEviction([][]byte{[]byte("shared"), []byte("only-a")})
+	releaseB := cache.ProtectTxHashesAgainstEviction([][]byte{[]byte("shared"), []byte("only-b")})
+
+	releaseA()
+	releaseA()
+
+	require.True(t, cache.isTxHashProtected([]byte("shared")))
+	require.False(t, cache.isTxHashProtected([]byte("only-a")))
+	require.True(t, cache.isTxHashProtected([]byte("only-b")))
+
+	releaseB()
+
+	require.False(t, cache.isTxHashProtected([]byte("shared")))
+	require.False(t, cache.isTxHashProtected([]byte("only-b")))
+}
+
+func TestProtectTxHashesAgainstEviction_ReleaseFromBeforeClearDoesNotAffectNewLease(t *testing.T) {
+	cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+
+	releaseOld := cache.ProtectTxHashesAgainstEviction([][]byte{[]byte("hash")})
+	cache.Clear()
+	releaseNew := cache.ProtectTxHashesAgainstEviction([][]byte{[]byte("hash")})
+
+	releaseOld()
+	require.True(t, cache.isTxHashProtected([]byte("hash")))
+
+	releaseNew()
+	require.False(t, cache.isTxHashProtected([]byte("hash")))
+}
+
+func TestProtectTxHashesAgainstEviction_LeaseUsesImmutableHashKeys(t *testing.T) {
+	cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	hash := []byte("original")
+
+	release := cache.ProtectTxHashesAgainstEviction([][]byte{hash})
+	copy(hash, []byte("modified"))
+
+	require.True(t, cache.isTxHashProtected([]byte("original")))
+	release()
+	require.False(t, cache.isTxHashProtected([]byte("original")))
 }

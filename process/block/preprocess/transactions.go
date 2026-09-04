@@ -815,10 +815,6 @@ func (txs *transactions) receivedTransaction(key []byte, value interface{}) {
 
 // CreateBlockStarted cleans the local cache map for processed/created transactions at this round
 func (txs *transactions) CreateBlockStarted() {
-	if protector, ok := txs.txPool.(currentBlockTxProtector); ok {
-		protector.ClearCurrentBlockTxProtection()
-	}
-
 	txs.txsForCurrBlock.Reset()
 	txs.mutOrderedTxs.Lock()
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)
@@ -892,18 +888,6 @@ func (txs *transactions) AddTransactions(txHandlers []data.TransactionHandler) {
 func (txs *transactions) RequestBlockTransactions(body *block.Body) int {
 	if check.IfNil(body) {
 		return 0
-	}
-
-	protector, ok := txs.txPool.(currentBlockTxProtector)
-	if ok {
-		for _, miniBlock := range body.MiniBlocks {
-			if !txs.isMiniBlockCorrect(miniBlock.Type) {
-				continue
-			}
-
-			cacheID := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-			protector.ProtectSetOfDataAgainstEvictionForCurrentBlock(miniBlock.TxHashes, cacheID)
-		}
 	}
 
 	return txs.computeExistingAndRequestMissingTxsForShards(body)

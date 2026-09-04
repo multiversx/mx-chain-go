@@ -26,7 +26,7 @@ type ShardedDataStub struct {
 	RemoveSetOfDataFromPoolCalled                        func(keys [][]byte, destCacheID string)
 	ImmunizeSetOfDataAgainstEvictionCalled               func(keys [][]byte, cacheID string, nonce uint64)
 	ProtectSetOfDataAgainstEvictionForCurrentBlockCalled func(keys [][]byte, cacheID string)
-	ClearCurrentBlockTxProtectionCalled                  func()
+	ReleaseCurrentBlockTxProtectionCalled                func()
 	SetOldestImmuneNonceCalled                           func(cacheID string, nonce uint64)
 	SetOldestImmuneNonceForAllCachesCalled               func(nonce uint64)
 	CreateShardStoreCalled                               func(destCacheID string)
@@ -131,16 +131,15 @@ func (sd *ShardedDataStub) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cache
 }
 
 // ProtectSetOfDataAgainstEvictionForCurrentBlock -
-func (sd *ShardedDataStub) ProtectSetOfDataAgainstEvictionForCurrentBlock(keys [][]byte, cacheID string) {
+func (sd *ShardedDataStub) ProtectSetOfDataAgainstEvictionForCurrentBlock(keys [][]byte, cacheID string) func() {
 	if sd.ProtectSetOfDataAgainstEvictionForCurrentBlockCalled != nil {
 		sd.ProtectSetOfDataAgainstEvictionForCurrentBlockCalled(keys, cacheID)
 	}
-}
 
-// ClearCurrentBlockTxProtection -
-func (sd *ShardedDataStub) ClearCurrentBlockTxProtection() {
-	if sd.ClearCurrentBlockTxProtectionCalled != nil {
-		sd.ClearCurrentBlockTxProtectionCalled()
+	return func() {
+		if sd.ReleaseCurrentBlockTxProtectionCalled != nil {
+			sd.ReleaseCurrentBlockTxProtectionCalled()
+		}
 	}
 }
 

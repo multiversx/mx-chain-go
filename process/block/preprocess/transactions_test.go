@@ -620,55 +620,6 @@ func TestTransactionPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 	assert.Equal(t, 2, txsRequested)
 }
 
-func TestTransactionPreprocessor_RequestBlockTransactionsProtectsHashesBeforeRequest(t *testing.T) {
-	t.Parallel()
-
-	var protectedHashes [][]byte
-	var protectedCacheID string
-	pool := shardedDataCacherNotifier().(*testscommon.ShardedDataStub)
-	pool.ProtectSetOfDataAgainstEvictionForCurrentBlockCalled = func(keys [][]byte, cacheID string) {
-		protectedHashes = keys
-		protectedCacheID = cacheID
-	}
-
-	args := createDefaultTransactionsProcessorArgs()
-	args.DataPool = pool
-	txs, err := NewTransactionPreprocessor(args)
-	require.NoError(t, err)
-
-	txHashes := [][]byte{[]byte("tx_hash1"), []byte("tx_hash2")}
-	body := &block.Body{MiniBlocks: []*block.MiniBlock{{
-		SenderShardID:   0,
-		ReceiverShardID: 1,
-		Type:            block.TxBlock,
-		TxHashes:        txHashes,
-	}}}
-
-	txs.RequestBlockTransactions(body)
-
-	require.Equal(t, txHashes, protectedHashes)
-	require.Equal(t, "0_1", protectedCacheID)
-}
-
-func TestTransactionPreprocessor_CreateBlockStartedClearsCurrentBlockProtection(t *testing.T) {
-	t.Parallel()
-
-	cleared := false
-	pool := shardedDataCacherNotifier().(*testscommon.ShardedDataStub)
-	pool.ClearCurrentBlockTxProtectionCalled = func() {
-		cleared = true
-	}
-
-	args := createDefaultTransactionsProcessorArgs()
-	args.DataPool = pool
-	txs, err := NewTransactionPreprocessor(args)
-	require.NoError(t, err)
-
-	txs.CreateBlockStarted()
-
-	require.True(t, cleared)
-}
-
 func TestTransactionPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *testing.T) {
 	t.Parallel()
 	dataPool := initDataPool()

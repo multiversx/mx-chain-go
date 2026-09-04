@@ -195,6 +195,9 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
+	releaseTxProtection := sp.protectBlockTransactionsAgainstEviction(body)
+	defer releaseTxProtection()
+
 	sp.txCoordinator.RequestBlockTransactions(body)
 	sp.hdrsForCurrBlock.RequestMetaHeaders(header)
 

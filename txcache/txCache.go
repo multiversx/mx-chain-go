@@ -27,7 +27,8 @@ type TxCache struct {
 	isEvictionInProgress   atomic.Flag
 	mutTxOperation         sync.Mutex
 	mutProtectedTxHashes   sync.RWMutex
-	protectedTxHashes      map[string]struct{}
+	protectedTxHashes      map[string]uint32
+	protectionGeneration   uint64
 	tracker                *selectionTracker
 	propagationGracePeriod time.Duration
 }
@@ -55,7 +56,7 @@ func NewTxCache(config ConfigSourceMe, host MempoolHost, selfShardId uint32) (*T
 		name:                   config.Name,
 		txListBySender:         newTxListBySenderMap(numChunks, senderConstraintsObj),
 		txByHash:               newTxByHashMap(numChunks),
-		protectedTxHashes:      make(map[string]struct{}),
+		protectedTxHashes:      make(map[string]uint32),
 		config:                 config,
 		host:                   host,
 		propagationGracePeriod: propagationGracePeriod,
@@ -121,33 +122,45 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 // ProtectTxHashesAgainstEviction protects transactions required by a block
 // which is currently being processed. Protection also applies to hashes which
 // have not arrived yet.
-func (cache *TxCache) ProtectTxHashesAgainstEviction(txHashes [][]byte) {
-	// Serialize with global eviction and with the per-sender remove path. This
-	// guarantees that processing either observes an already-evicted transaction
-	// and requests it again, or observes a protected transaction which eviction
-	// must retain.
-	cache.evictionMutex.Lock()
-	defer cache.evictionMutex.Unlock()
-
+func (cache *TxCache) ProtectTxHashesAgainstEviction(txHashes [][]byte) func() {
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 
 	cache.mutProtectedTxHashes.Lock()
-	for _, txHash := range txHashes {
-		cache.protectedTxHashes[string(txHash)] = struct{}{}
+	hashes := make([]string, len(txHashes))
+	for idx, txHash := range txHashes {
+		hash := string(txHash)
+		hashes[idx] = hash
+		cache.protectedTxHashes[hash]++
 	}
+	generation := cache.protectionGeneration
 	cache.mutProtectedTxHashes.Unlock()
+
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			cache.releaseTxHashesProtection(hashes, generation)
+		})
+	}
 }
 
-// ClearTxHashesProtection releases any protection left by an abandoned block
-// before a new block-processing context starts.
-func (cache *TxCache) ClearTxHashesProtection() {
-	cache.mutTxOperation.Lock()
-	defer cache.mutTxOperation.Unlock()
-
+func (cache *TxCache) releaseTxHashesProtection(hashes []string, generation uint64) {
 	cache.mutProtectedTxHashes.Lock()
-	clear(cache.protectedTxHashes)
-	cache.mutProtectedTxHashes.Unlock()
+	defer cache.mutProtectedTxHashes.Unlock()
+
+	if generation != cache.protectionGeneration {
+		return
+	}
+
+	for _, hash := range hashes {
+		count := cache.protectedTxHashes[hash]
+		if count <= 1 {
+			delete(cache.protectedTxHashes, hash)
+			continue
+		}
+
+		cache.protectedTxHashes[hash] = count - 1
+	}
 }
 
 func (cache *TxCache) isTxHashProtected(txHash []byte) bool {
@@ -248,16 +261,7 @@ func (cache *TxCache) OnProposedBlock(
 	blockHeader data.HeaderHandler,
 	accountsProvider common.AccountNonceAndBalanceProvider,
 	latestExecutedHash []byte) error {
-	err := cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
-	if err != nil {
-		return err
-	}
-
-	// Selection tracking now protects the accepted block. Any remaining current
-	// block protection belongs to a losing or abandoned candidate and can be released.
-	cache.ClearTxHashesProtection()
-
-	return nil
+	return cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 }
 
 // OnBackfilledBlock calls the OnBackfilledBlock method from SelectionTracker
@@ -393,9 +397,11 @@ func (cache *TxCache) Clear() {
 	cache.mutTxOperation.Lock()
 	cache.txListBySender.clear()
 	cache.txByHash.clear()
+	cache.mutProtectedTxHashes.Lock()
+	cache.protectionGeneration++
+	clear(cache.protectedTxHashes)
+	cache.mutProtectedTxHashes.Unlock()
 	cache.mutTxOperation.Unlock()
-
-	cache.ClearTxHashesProtection()
 }
 
 // Put is not implemented

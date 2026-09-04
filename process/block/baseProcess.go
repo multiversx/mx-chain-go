@@ -918,6 +918,29 @@ func (bp *baseProcessor) createBlockStarted() error {
 	return nil
 }
 
+func (bp *baseProcessor) protectBlockTransactionsAgainstEviction(body *block.Body) func() {
+	protector, ok := bp.dataPool.Transactions().(currentBlockTxProtector)
+	if !ok || body == nil {
+		return func() {}
+	}
+
+	releases := make([]func(), 0, len(body.MiniBlocks))
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.Type != block.TxBlock && miniBlock.Type != block.InvalidBlock {
+			continue
+		}
+
+		cacheID := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+		releases = append(releases, protector.ProtectSetOfDataAgainstEvictionForCurrentBlock(miniBlock.TxHashes, cacheID))
+	}
+
+	return func() {
+		for idx := len(releases) - 1; idx >= 0; idx-- {
+			releases[idx]()
+		}
+	}
+}
+
 func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 	if header.GetAccumulatedFees().Cmp(bp.feeHandler.GetAccumulatedFees()) != 0 {
 		return process.ErrAccumulatedFeesDoNotMatch
