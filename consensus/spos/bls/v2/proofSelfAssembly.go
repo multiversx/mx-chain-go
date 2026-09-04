@@ -31,6 +31,9 @@ func trySelfAssembleProof(sr *spos.Subround, store signatureEvidenceHandler, ev 
 	if !shouldNodeSendProofForGroup(sr, ev.consensusGroup) {
 		return
 	}
+	if sr.ShouldRefuseCompetingParent(ev.epoch, ev.headerRound) {
+		return
+	}
 
 	bitmap, agg, err := aggregateAndVerifyEvidence(sr, ev)
 	if err != nil {
@@ -60,6 +63,9 @@ func trySelfAssembleProof(sr *spos.Subround, store signatureEvidenceHandler, ev 
 		HeaderShardId:       ev.shardID,
 		HeaderRound:         ev.headerRound,
 		IsStartOfEpoch:      ev.isStartOfEpoch,
+	}
+	if sr.ShouldRefuseCompetingParent(ev.epoch, ev.headerRound) {
+		return
 	}
 
 	// atomic add: never overwrites a proof that arrived at the nonce during aggregation

@@ -425,6 +425,51 @@ func TestBaseBootstrap_ExactFinalAuthorityUsesRoundGatedReconciliation(t *testin
 	require.Equal(t, uint64(11), sfd.getRollBackNonce())
 }
 
+func TestBaseBootstrap_UniqueAuthorityConflictAboveFinalUsesRoundGatedReconciliation(t *testing.T) {
+	t.Parallel()
+
+	localHash := []byte("A")
+	selectedHash := []byte("B")
+	parentHash := []byte("P")
+	currentHash := []byte("tip")
+	currentHeader, _ := createBranchAwareHeader(13, currentHash, []byte("D"))
+	fixture := newBranchAwareSyncFixture(currentHeader, currentHash)
+	_, selectedProof := createBranchAwareHeader(11, selectedHash, parentHash)
+	fixture.proofs = []data.HeaderProofHandler{selectedProof}
+
+	bfd := newBranchAwareForkDetector(0, 10, parentHash)
+	bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: parentHash}
+	bfd.fork.checkpoint = []*checkpointInfo{{nonce: 10, round: 10, hash: parentHash}}
+	bfd.fork.rollBackNonce = math.MaxUint64
+	bfd.headers[11] = []*headerInfo{{
+		epoch: 1, nonce: 11, round: 21, hash: localHash, prevHash: parentHash,
+		state: process.BHProcessed, hasProof: true,
+	}}
+	require.True(t, bfd.append(&headerInfo{
+		epoch: 1, nonce: 11, round: 22, hash: selectedHash, prevHash: parentHash,
+		state: process.BHNotarized,
+	}))
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+	fixture.boot.forkDetector = sfd
+	fixture.boot.statusHandler = &statusHandlerMock.AppStatusHandlerStub{}
+	fixture.boot.settlementChecker = &settlementCheckerStub{
+		resolveNotarizedHeaderCalled: func(_ uint64, _ []notarizedHeaderCandidate) []byte {
+			return selectedHash
+		},
+	}
+
+	require.True(t, fixture.boot.tryResolveNotarizedAmbiguity(20))
+	require.False(t, fixture.boot.tryReconcileEquivocation(20))
+	require.Equal(t, uint64(10), sfd.GetHighestFinalBlockNonce())
+	require.NotNil(t, fixture.boot.pendingReconcile)
+
+	require.True(t, fixture.boot.tryReconcileEquivocation(21))
+	require.Equal(t, uint64(10), sfd.GetHighestFinalBlockNonce())
+	require.Equal(t, uint64(11), sfd.getRollBackNonce())
+	require.Nil(t, fixture.boot.pendingReconcile)
+}
+
 func TestBaseBootstrap_AmbiguityAppearingDuringForkCheckKeepsNodeUnsynchronized(t *testing.T) {
 	t.Parallel()
 
@@ -649,6 +694,58 @@ func TestBaseBootstrap_GetNextHeaderRequestsMissingProofHeadersByExactEpoch(t *t
 	require.Equal(t, []request{{hash: firstHash, epoch: 7}, {hash: secondHash, epoch: 8}}, requests)
 	require.Nil(t, fixture.boot.requestedHeaderHash())
 	require.Zero(t, numSetEpochCalls)
+}
+
+func TestBaseBootstrap_PostRollbackProofEvidenceRequestsMissingHeader(t *testing.T) {
+	t.Parallel()
+
+	parentHash := []byte("parent")
+	parent, _ := createBranchAwareHeader(10, parentHash, []byte("grandparent"))
+	rolledBackHash := []byte("rolled-back")
+	rolledBack, proof := createBranchAwareHeader(11, rolledBackHash, parentHash)
+
+	bfd := newBranchAwareForkDetector(0, parent.GetNonce(), parentHash)
+	bfd.fork.settledCheckpoint = bfd.fork.finalCheckpoint
+	bfd.fork.checkpoint = []*checkpointInfo{
+		bfd.fork.finalCheckpoint,
+		{nonce: rolledBack.GetNonce(), round: rolledBack.GetRound(), hash: rolledBackHash},
+	}
+	bfd.headers[rolledBack.GetNonce()] = []*headerInfo{{
+		epoch:    rolledBack.GetEpoch(),
+		nonce:    rolledBack.GetNonce(),
+		round:    rolledBack.GetRound(),
+		hash:     rolledBackHash,
+		prevHash: parentHash,
+		state:    process.BHProcessed,
+		hasProof: true,
+	}}
+	sfd := &shardForkDetector{baseForkDetector: bfd}
+	bfd.forkDetector = sfd
+	sfd.RemoveCommittedHeader(rolledBack.GetNonce(), rolledBackHash)
+
+	records := sfd.GetHeaders(rolledBack.GetNonce())
+	require.Len(t, records, 1)
+	require.Equal(t, process.BHReceived, records[0].GetBlockHeaderState())
+	require.Equal(t, rolledBack.GetNonce(), sfd.ProbableHighestNonce())
+
+	fixture := newBranchAwareSyncFixture(parent, parentHash)
+	fixture.boot.forkDetector = sfd
+	fixture.proofs = []data.HeaderProofHandler{proof}
+	requested := 0
+	fixture.boot.requestHandler = &testscommon.RequestHandlerStub{
+		RequestShardHeaderForEpochCalled: func(shardID uint32, hash []byte, epoch uint32) {
+			require.Equal(t, uint32(0), shardID)
+			require.Equal(t, rolledBackHash, hash)
+			require.Equal(t, rolledBack.GetEpoch(), epoch)
+			requested++
+		},
+	}
+
+	header, hash, err := fixture.boot.getNextHeaderRequestingIfMissing()
+	require.ErrorIs(t, err, errBranchAwareSyncRetry)
+	require.Nil(t, header)
+	require.Nil(t, hash)
+	require.Equal(t, 1, requested)
 }
 
 func TestBaseBootstrap_GetNextHeaderRequestsUnknownCanonicalCandidateByNonce(t *testing.T) {

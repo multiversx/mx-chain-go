@@ -60,6 +60,7 @@ type notarizedHeaderAuthority interface {
 	hasUnresolvedNotarizedAmbiguity() bool
 	getLowestAmbiguousNotarizedHeaderSelection() (notarizedHeaderSelection, bool)
 	applyNotarizedHeaderSelection(nonce uint64, selectedHash []byte) notarizedHeaderResolution
+	getProcessedHeaderHash(nonce uint64) []byte
 }
 
 var _ closing.Closer = (*baseBootstrap)(nil)
@@ -2637,9 +2638,13 @@ func (boot *baseBootstrap) requestAmbiguousNotarizedCandidates(candidates []nota
 }
 
 func (boot *baseBootstrap) armAuthorityReconciliation(nonce uint64, selectedHash []byte, round int64) {
+	authority, ok := boot.forkDetector.(notarizedHeaderAuthority)
+	if !ok {
+		return
+	}
+	localHash := authority.getProcessedHeaderHash(nonce)
 	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
-	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
-	if check.IfNil(currentHeader) || currentHeader.GetNonce() != nonce || bytes.Equal(currentHash, selectedHash) {
+	if check.IfNil(currentHeader) || currentHeader.GetNonce() < nonce || len(localHash) == 0 || bytes.Equal(localHash, selectedHash) {
 		return
 	}
 
@@ -2647,7 +2652,7 @@ func (boot *baseBootstrap) armAuthorityReconciliation(nonce uint64, selectedHash
 	defer boot.mutReconcile.Unlock()
 
 	if boot.pendingReconcile != nil && boot.pendingReconcile.nonce == nonce &&
-		bytes.Equal(boot.pendingReconcile.localHash, currentHash) &&
+		bytes.Equal(boot.pendingReconcile.localHash, localHash) &&
 		bytes.Equal(boot.pendingReconcile.competitorHash, selectedHash) &&
 		boot.pendingReconcile.selectedByAuthority {
 		return
@@ -2655,7 +2660,7 @@ func (boot *baseBootstrap) armAuthorityReconciliation(nonce uint64, selectedHash
 
 	boot.pendingReconcile = &reconcileEvidence{
 		nonce:               nonce,
-		localHash:           append([]byte(nil), currentHash...),
+		localHash:           append([]byte(nil), localHash...),
 		competitorHash:      append([]byte(nil), selectedHash...),
 		lastEvaluatedRound:  round,
 		selectedByAuthority: true,
@@ -3225,6 +3230,8 @@ func (boot *baseBootstrap) tryReconcileEquivocation(round int64) bool {
 	if !shouldEvaluate {
 		return false
 	}
+	boot.requestMissingPreferredReconcileHeader(evidence)
+
 	if evidence.selectedByAuthority {
 		candidates := []notarizedHeaderCandidate{
 			{hash: evidence.localHash, nonce: evidence.nonce},
@@ -3248,15 +3255,18 @@ func (boot *baseBootstrap) tryReconcileEquivocation(round int64) bool {
 	scanFrom, scanTo, nextCursor := boot.settlementChecker.prepareInclusionScan(evidence.scanCursor)
 	boot.storeReconcileScanCursor(evidence, nextCursor)
 
-	if boot.settlementChecker.isSettled(evidence.nonce, evidence.localHash, scanFrom, scanTo) {
+	competitorHash := evidence.competitorHash
+	if !boot.proofs.HasProof(boot.shardCoordinator.SelfId(), competitorHash) {
+		competitorHash = nil
+	}
+	localSettled, competitorSettled := boot.settlementChecker.settlementVerdict(
+		evidence.nonce, evidence.localHash, competitorHash, scanFrom, scanTo)
+	if localSettled {
 		boot.clearReconcileEvidence(evidence)
 		return false
 	}
 
-	selfID := boot.shardCoordinator.SelfId()
-	isCompetitorSettled := boot.proofs.HasProof(selfID, evidence.competitorHash) &&
-		boot.settlementChecker.isSettled(evidence.nonce, evidence.competitorHash, scanFrom, scanTo)
-	if !isCompetitorSettled {
+	if !competitorSettled {
 		// the authority's verdict may still arrive; keep the evidence armed for the next round
 		return false
 	}
@@ -3264,8 +3274,66 @@ func (boot *baseBootstrap) tryReconcileEquivocation(round int64) bool {
 	return boot.applyReconcileSwitch(evidence)
 }
 
+func (boot *baseBootstrap) requestMissingPreferredReconcileHeader(evidence *reconcileEvidence) {
+	if boot.shardCoordinator.SelfId() != core.MetachainShardId {
+		return
+	}
+	currentHeader, currentHash := boot.chainHandler.GetCurrentBlockHeaderAndHash()
+	if check.IfNil(currentHeader) || !currentHeader.IsHeaderV3() || currentHeader.GetNonce() != evidence.nonce ||
+		!bytes.Equal(currentHash, evidence.localHash) {
+		return
+	}
+
+	proof, err := boot.proofs.GetProofByNonce(evidence.nonce, core.MetachainShardId)
+	if err != nil || check.IfNil(proof) || bytes.Equal(proof.GetHeaderHash(), evidence.localHash) {
+		return
+	}
+	if !isLowerRoundOrHash(proof.GetHeaderRound(), proof.GetHeaderHash(), currentHeader.GetRound(), currentHash) {
+		return
+	}
+
+	header, err := boot.headers.GetHeaderByHash(proof.GetHeaderHash())
+	if err != nil || check.IfNil(header) {
+		boot.requestProofHeader(proof)
+		return
+	}
+	if bytes.Equal(header.GetPrevHash(), currentHeader.GetPrevHash()) {
+		return
+	}
+
+	proofs, err := boot.proofs.GetProofsByNonce(evidence.nonce, core.MetachainShardId)
+	if err != nil {
+		return
+	}
+	for _, candidateProof := range proofs {
+		if check.IfNil(candidateProof) || bytes.Equal(candidateProof.GetHeaderHash(), evidence.localHash) ||
+			bytes.Equal(candidateProof.GetHeaderHash(), proof.GetHeaderHash()) ||
+			!isLowerRoundOrHash(candidateProof.GetHeaderRound(), candidateProof.GetHeaderHash(), currentHeader.GetRound(), currentHash) {
+			continue
+		}
+
+		candidateHeader, getErr := boot.headers.GetHeaderByHash(candidateProof.GetHeaderHash())
+		if getErr != nil || check.IfNil(candidateHeader) {
+			boot.requestProofHeader(candidateProof)
+			return
+		}
+		if bytes.Equal(candidateHeader.GetPrevHash(), currentHeader.GetPrevHash()) {
+			return
+		}
+	}
+}
+
 func (boot *baseBootstrap) applyReconcileSwitch(evidence *reconcileEvidence) bool {
 	boot.clearReconcileEvidence(evidence)
+	var reconciled bool
+	if evidence.selectedByAuthority {
+		reconciled = boot.forkDetector.ReconcileFinalCheckpointFromAuthority(evidence.nonce, evidence.competitorHash)
+	} else {
+		reconciled = boot.forkDetector.ReconcileFinalCheckpoint(evidence.nonce)
+	}
+	if !reconciled {
+		return false
+	}
 
 	log.Error("reconcile backstop: switching away from a finalized block on equivocation evidence",
 		"nonce", evidence.nonce,
@@ -3273,7 +3341,6 @@ func (boot *baseBootstrap) applyReconcileSwitch(evidence *reconcileEvidence) boo
 		"competitor hash", evidence.competitorHash)
 	boot.statusHandler.Increment(common.MetricNumReconcileSwitches)
 
-	boot.forkDetector.ReconcileFinalCheckpoint(evidence.nonce)
 	process.AddHeaderToBlackList(boot.blackListHandler, evidence.localHash)
 	boot.forkDetector.SetRollBackNonce(evidence.nonce)
 
@@ -3307,6 +3374,15 @@ func (boot *baseBootstrap) invalidateNodeState() {
 }
 
 func (boot *baseBootstrap) reconcileEvidenceStillApplies(evidence *reconcileEvidence) bool {
+	if evidence.selectedByAuthority {
+		authority, ok := boot.forkDetector.(notarizedHeaderAuthority)
+		if !ok || !bytes.Equal(authority.getProcessedHeaderHash(evidence.nonce), evidence.localHash) {
+			return false
+		}
+		currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+		return !check.IfNil(currentHeader) && currentHeader.GetNonce() >= evidence.nonce
+	}
+
 	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
 	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
 

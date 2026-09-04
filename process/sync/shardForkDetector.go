@@ -3,7 +3,6 @@ package sync
 import (
 	"bytes"
 	"math"
-	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -19,13 +18,6 @@ var _ process.ForkDetector = (*shardForkDetector)(nil)
 // shardForkDetector implements the shard fork detector mechanism
 type shardForkDetector struct {
 	*baseForkDetector
-	mutFinalityUpdate sync.Mutex
-}
-
-type invalidatedSelfNotarizedFromCrossHeadersRegistrar interface {
-	RegisterInvalidatedSelfNotarizedFromCrossHeadersHandler(
-		handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte),
-	)
 }
 
 // NewShardForkDetector method creates a new shardForkDetector object
@@ -95,8 +87,7 @@ func NewShardForkDetector(
 		nonce: bfd.genesisNonce,
 		round: bfd.genesisRound,
 	}
-	bfd.setFinalCheckpoint(checkpoint)
-	bfd.setSettledCheckpoint(checkpoint)
+	bfd.setFinalAndSettledCheckpoint(checkpoint)
 	bfd.addCheckpoint(checkpoint)
 	bfd.fork.rollBackNonce = math.MaxUint64
 	bfd.fork.probableHighestNonce = bfd.genesisNonce
@@ -107,11 +98,6 @@ func NewShardForkDetector(
 	}
 
 	sfd.blockTracker.RegisterSelfNotarizedFromCrossHeadersHandler(sfd.ReceivedSelfNotarizedFromCrossHeaders)
-	if registrar, ok := blockTracker.(invalidatedSelfNotarizedFromCrossHeadersRegistrar); ok {
-		registrar.RegisterInvalidatedSelfNotarizedFromCrossHeadersHandler(
-			sfd.InvalidatedSelfNotarizedFromCrossHeaders,
-		)
-	}
 
 	bfd.forkDetector = &sfd
 
@@ -142,19 +128,17 @@ func (sfd *shardForkDetector) doJobOnBHProcessed(
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
 ) {
+	sfd.mutFinalityUpdate.Lock()
+	defer sfd.mutFinalityUpdate.Unlock()
+
 	_ = sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes, core.MetachainShardId)
-	sfd.computeFinalCheckpoint()
+	sfd.computeFinalCheckpointLocked()
 	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
 	sfd.addCheckpoint(newCheckpoint)
 	// first shard block with proof does not have increased consensus
 	// so instant finality will only be set after the first block with increased consensus
-	if common.IsFlagEnabledAfterEpochsStartBlock(header, sfd.enableEpochsHandler, common.AndromedaFlag) &&
-		sfd.canInstantlyFinalize(header, headerHash) {
-		sfd.setFinalCheckpoint(newCheckpoint)
-		// under Supernova the settled checkpoint advances only on meta notarization
-		if !sfd.isSupernovaForHeader(header) {
-			sfd.setSettledCheckpoint(newCheckpoint)
-		}
+	if common.IsFlagEnabledAfterEpochsStartBlock(header, sfd.enableEpochsHandler, common.AndromedaFlag) {
+		sfd.setInstantFinalCheckpoint(header, headerHash, newCheckpoint)
 	}
 	sfd.removePastOrInvalidRecords()
 }
@@ -171,9 +155,14 @@ func (sfd *shardForkDetector) ReceivedSelfNotarizedFromCrossHeaders(
 		return
 	}
 
+	sfd.mutFinalityUpdate.Lock()
 	appended := sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes, shardID)
 	if appended {
-		sfd.computeFinalCheckpoint()
+		sfd.computeFinalCheckpointLocked()
+	}
+	sfd.mutFinalityUpdate.Unlock()
+
+	if appended {
 		for _, header := range selfNotarizedHeaders {
 			if header.IsHeaderV3() &&
 				common.IsCrossHeaderSettlementEnabledForHeader(sfd.enableEpochsHandler, sfd.enableRoundsHandler, header) {
@@ -184,137 +173,6 @@ func (sfd *shardForkDetector) ReceivedSelfNotarizedFromCrossHeaders(
 	}
 }
 
-// InvalidatedSelfNotarizedFromCrossHeaders removes V3 shard authority derived from a dead meta branch.
-func (sfd *shardForkDetector) InvalidatedSelfNotarizedFromCrossHeaders(
-	shardID uint32,
-	selfNotarizedHeaders []data.HeaderHandler,
-	selfNotarizedHeadersHashes [][]byte,
-) {
-	if shardID != core.MetachainShardId {
-		return
-	}
-
-	invalidated := make(map[uint64][][]byte)
-	for index, header := range selfNotarizedHeaders {
-		if index >= len(selfNotarizedHeadersHashes) || check.IfNil(header) || !header.IsHeaderV3() ||
-			!common.IsCrossHeaderSettlementEnabledForHeader(sfd.enableEpochsHandler, sfd.enableRoundsHandler, header) {
-			continue
-		}
-
-		invalidated[header.GetNonce()] = append(
-			invalidated[header.GetNonce()],
-			selfNotarizedHeadersHashes[index],
-		)
-	}
-	if len(invalidated) == 0 {
-		return
-	}
-
-	sfd.mutFinalityUpdate.Lock()
-
-	removed := false
-	sfd.mutHeaders.Lock()
-	for nonce, hashes := range invalidated {
-		headerInfos := sfd.headers[nonce]
-		retained := make([]*headerInfo, 0, len(headerInfos))
-		for _, headerInfo := range headerInfos {
-			if headerInfo.state == process.BHNotarized && containsHash(hashes, headerInfo.hash) {
-				removed = true
-				continue
-			}
-			retained = append(retained, headerInfo)
-		}
-		if len(retained) == 0 {
-			delete(sfd.headers, nonce)
-			continue
-		}
-		sfd.headers[nonce] = retained
-	}
-	if removed {
-		sfd.refreshAmbiguousNotarizationLocked()
-	}
-	sfd.mutHeaders.Unlock()
-	if !removed {
-		sfd.mutFinalityUpdate.Unlock()
-		return
-	}
-
-	sfd.lowerInvalidatedCheckpoints(invalidated)
-	sfd.computeFinalCheckpointLocked()
-	sfd.mutFinalityUpdate.Unlock()
-	sfd.recomputeProbableHighestNonce()
-}
-
-func containsHash(hashes [][]byte, hash []byte) bool {
-	for _, candidate := range hashes {
-		if bytes.Equal(candidate, hash) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (sfd *shardForkDetector) lowerInvalidatedCheckpoints(invalidated map[uint64][][]byte) {
-	sfd.mutFork.Lock()
-	defer sfd.mutFork.Unlock()
-
-	retainedHistory := sfd.fork.settledCheckpointHistory[:0]
-	for _, checkpoint := range sfd.fork.settledCheckpointHistory {
-		if !checkpointWasInvalidated(checkpoint, invalidated) {
-			retainedHistory = append(retainedHistory, checkpoint)
-		}
-	}
-	sfd.fork.settledCheckpointHistory = retainedHistory
-
-	if checkpointWasInvalidated(sfd.fork.settledCheckpoint, invalidated) {
-		sfd.fork.settledCheckpoint = sfd.lastSettledCheckpointLocked()
-	}
-	if checkpointWasInvalidated(sfd.fork.finalCheckpoint, invalidated) {
-		sfd.fork.finalCheckpoint = sfd.highestProcessedCheckpointBelowLocked(sfd.fork.finalCheckpoint.nonce)
-	}
-}
-
-func checkpointWasInvalidated(checkpoint *checkpointInfo, invalidated map[uint64][][]byte) bool {
-	if checkpoint == nil {
-		return false
-	}
-
-	return containsHash(invalidated[checkpoint.nonce], checkpoint.hash)
-}
-
-func (sfd *shardForkDetector) lastSettledCheckpointLocked() *checkpointInfo {
-	lastIndex := len(sfd.fork.settledCheckpointHistory) - 1
-	if lastIndex < 0 {
-		return &checkpointInfo{
-			nonce: sfd.genesisNonce,
-			round: sfd.genesisRound,
-		}
-	}
-
-	checkpoint := sfd.fork.settledCheckpointHistory[lastIndex]
-	sfd.fork.settledCheckpointHistory = sfd.fork.settledCheckpointHistory[:lastIndex]
-
-	return checkpoint
-}
-
-func (sfd *shardForkDetector) highestProcessedCheckpointBelowLocked(nonce uint64) *checkpointInfo {
-	checkpoint := sfd.fork.settledCheckpoint
-	if checkpoint == nil {
-		checkpoint = &checkpointInfo{
-			nonce: sfd.genesisNonce,
-			round: sfd.genesisRound,
-		}
-	}
-	for _, candidate := range sfd.fork.checkpoint {
-		if candidate.nonce < nonce && candidate.nonce >= checkpoint.nonce {
-			checkpoint = candidate
-		}
-	}
-
-	return checkpoint
-}
-
 func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
@@ -322,29 +180,40 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 ) bool {
 
 	selfNotarizedHeaderAdded := false
-	settledNonce := sfd.settledCheckpoint().nonce
+	settled := sfd.settledCheckpoint()
 
 	for i := 0; i < len(selfNotarizedHeaders); i++ {
-		if selfNotarizedHeaders[i].GetNonce() <= settledNonce {
+		header := selfNotarizedHeaders[i]
+		headerHash := selfNotarizedHeadersHashes[i]
+		if header.GetNonce() < settled.nonce {
+			continue
+		}
+		if header.GetNonce() == settled.nonce {
+			if sfd.isSupernovaForHeader(header) && !bytes.Equal(headerHash, settled.hash) {
+				log.Error("refused conflicting authority at settled checkpoint",
+					"nonce", header.GetNonce(),
+					"incoming hash", headerHash,
+					"settled hash", settled.hash)
+			}
 			continue
 		}
 
-		hasProof := sfd.proofsPool.HasProof(selfNotarizedHeaders[i].GetShardID(), selfNotarizedHeadersHashes[i])
+		hasProof := sfd.proofsPool.HasProof(header.GetShardID(), headerHash)
 		appended := sfd.append(&headerInfo{
-			epoch:    selfNotarizedHeaders[i].GetEpoch(),
-			nonce:    selfNotarizedHeaders[i].GetNonce(),
-			round:    selfNotarizedHeaders[i].GetRound(),
-			hash:     selfNotarizedHeadersHashes[i],
-			prevHash: selfNotarizedHeaders[i].GetPrevHash(),
+			epoch:    header.GetEpoch(),
+			nonce:    header.GetNonce(),
+			round:    header.GetRound(),
+			hash:     headerHash,
+			prevHash: header.GetPrevHash(),
 			state:    process.BHNotarized,
 			hasProof: hasProof,
 		})
 		if appended {
 			log.Debug("added self notarized header in fork detector",
 				"notarized by shard", shardID,
-				"round", selfNotarizedHeaders[i].GetRound(),
-				"nonce", selfNotarizedHeaders[i].GetNonce(),
-				"hash", selfNotarizedHeadersHashes[i])
+				"round", header.GetRound(),
+				"nonce", header.GetNonce(),
+				"hash", headerHash)
 
 			selfNotarizedHeaderAdded = true
 		}
@@ -359,11 +228,48 @@ func (sfd *shardForkDetector) computeFinalCheckpoint() {
 	sfd.mutFinalityUpdate.Unlock()
 }
 
+// ReconcileFinalCheckpoint serializes exact reconciliation with shard finality updates.
+func (sfd *shardForkDetector) ReconcileFinalCheckpoint(nonce uint64) bool {
+	sfd.mutFinalityUpdate.Lock()
+	defer sfd.mutFinalityUpdate.Unlock()
+
+	return sfd.baseForkDetector.ReconcileFinalCheckpoint(nonce)
+}
+
+// ReconcileFinalCheckpointBelow serializes suffix removal with shard finality updates.
+func (sfd *shardForkDetector) ReconcileFinalCheckpointBelow(nonce uint64) bool {
+	sfd.mutFinalityUpdate.Lock()
+	reconciled, loweredFinal := sfd.reconcileFinalCheckpointRecordsBelow(nonce)
+	sfd.mutFinalityUpdate.Unlock()
+	if reconciled {
+		sfd.finishFinalCheckpointReconciliation(nonce, loweredFinal)
+	}
+
+	return reconciled
+}
+
+// ReconcileFinalCheckpointFromAuthority serializes authority reconciliation with shard finality updates.
+func (sfd *shardForkDetector) ReconcileFinalCheckpointFromAuthority(nonce uint64, selectedHash []byte) bool {
+	if len(selectedHash) == 0 {
+		return false
+	}
+
+	sfd.mutFinalityUpdate.Lock()
+	reconciled, loweredFinal := sfd.reconcileFinalCheckpointFromAuthorityRecords(nonce, selectedHash)
+	sfd.mutFinalityUpdate.Unlock()
+	if reconciled {
+		sfd.finishFinalCheckpointReconciliation(nonce, loweredFinal)
+	}
+
+	return reconciled
+}
+
 func (sfd *shardForkDetector) computeFinalCheckpointLocked() {
 	finalCheckpoint := &checkpointInfo{}
 	finalCheckpointWasSet := false
+	finalCheckpointIsV3 := false
 
-	sfd.mutHeaders.RLock()
+	sfd.mutHeaders.Lock()
 	for nonce, headersInfo := range sfd.headers {
 		if finalCheckpoint.nonce >= nonce {
 			continue
@@ -390,17 +296,82 @@ func (sfd *shardForkDetector) computeFinalCheckpointLocked() {
 		}
 
 		finalCheckpointWasSet = true
+		finalCheckpointIsV3 = sfd.isAsyncExecutionEnabled(headersInfo[indexBHProcessed])
 	}
-	sfd.mutHeaders.RUnlock()
 
 	if finalCheckpointWasSet {
-		sfd.advanceFinalCheckpoint(finalCheckpoint)
-		// a processed block matching its meta notarization is the settlement anchor
-		sfd.advanceSettledCheckpoint(finalCheckpoint)
+		canAdvance := !finalCheckpointIsV3 || sfd.reconcileAuthorityAlongProcessedAncestryLocked(finalCheckpoint)
+		if canAdvance {
+			// a processed block matching its meta notarization is the settlement anchor
+			sfd.advanceFinalAndSettledCheckpoint(finalCheckpoint)
+		}
 	}
+	sfd.mutHeaders.Unlock()
 
 	sfd.finalizeCleanProcessedDescendants()
 	sfd.logFinalityLag()
+}
+
+func (sfd *shardForkDetector) reconcileAuthorityAlongProcessedAncestryLocked(candidate *checkpointInfo) bool {
+	settled := sfd.settledCheckpoint()
+	if candidate.nonce <= settled.nonce {
+		return true
+	}
+
+	parentHash := settled.hash
+	for nonce := settled.nonce + 1; ; nonce++ {
+		processed := sfd.processedChildOnBranchLocked(nonce, parentHash)
+		if processed == nil || (nonce == candidate.nonce && !bytes.Equal(processed.hash, candidate.hash)) {
+			return false
+		}
+		if nonce == candidate.nonce {
+			break
+		}
+		parentHash = processed.hash
+	}
+
+	parentHash = settled.hash
+	removed := false
+	for nonce := settled.nonce + 1; ; nonce++ {
+		processed := sfd.processedChildOnBranchLocked(nonce, parentHash)
+		selection := sfd.getNotarizedHeaderSelectionLocked(nonce)
+		if selection.isV3 && len(selection.candidates) > 1 {
+			retained := sfd.headers[nonce][:0]
+			for _, info := range sfd.headers[nonce] {
+				if info.state == process.BHNotarized && !bytes.Equal(info.hash, processed.hash) {
+					removed = true
+					continue
+				}
+				retained = append(retained, info)
+			}
+			sfd.headers[nonce] = retained
+		}
+
+		if nonce == candidate.nonce {
+			break
+		}
+		parentHash = processed.hash
+	}
+	if removed {
+		sfd.refreshAmbiguousNotarizationLocked()
+	}
+
+	return true
+}
+
+func (sfd *shardForkDetector) processedChildOnBranchLocked(nonce uint64, parentHash []byte) *headerInfo {
+	var selected *headerInfo
+	for _, info := range sfd.headers[nonce] {
+		if info.state != process.BHProcessed || !bytes.Equal(info.prevHash, parentHash) {
+			continue
+		}
+		if selected != nil && !bytes.Equal(selected.hash, info.hash) {
+			return nil
+		}
+		selected = info
+	}
+
+	return selected
 }
 
 // finalizeCleanProcessedDescendants extends the final checkpoint over processed descendants that
@@ -411,21 +382,42 @@ func (sfd *shardForkDetector) finalizeCleanProcessedDescendants() {
 		return
 	}
 
-	advanced := false
-	sfd.mutHeaders.RLock()
 	for {
+		sfd.mutHeaders.RLock()
 		child := sfd.getCleanProcessedChild(finalCheckpoint)
+		sfd.mutHeaders.RUnlock()
 		if child == nil {
 			break
 		}
+		if sfd.isAsyncExecutionEnabled(child) &&
+			sfd.proofsPool.HasProofForDifferentHash(sfd.shardID, child.nonce, child.hash) {
+			break
+		}
 
-		finalCheckpoint = &checkpointInfo{nonce: child.nonce, round: child.round, hash: child.hash}
-		advanced = true
-	}
-	sfd.mutHeaders.RUnlock()
+		sfd.mutHeaders.RLock()
+		confirmedChild := sfd.getCleanProcessedChild(finalCheckpoint)
+		if confirmedChild == nil || !bytes.Equal(confirmedChild.hash, child.hash) {
+			sfd.mutHeaders.RUnlock()
+			break
+		}
 
-	if advanced {
-		sfd.advanceFinalCheckpoint(finalCheckpoint)
+		supportingCheckpoint := finalCheckpoint
+		finalCheckpoint = &checkpointInfo{
+			nonce: confirmedChild.nonce,
+			round: confirmedChild.round,
+			hash:  confirmedChild.hash,
+		}
+		if sfd.isAsyncExecutionEnabled(confirmedChild) {
+			sfd.advanceFinalCheckpoint(finalCheckpoint)
+		} else {
+			sfd.advanceFinalAndSettledCheckpoint(finalCheckpoint)
+		}
+		sfd.mutHeaders.RUnlock()
+		if sfd.isAsyncExecutionEnabled(confirmedChild) &&
+			sfd.proofsPool.HasProofForDifferentHash(sfd.shardID, confirmedChild.nonce, confirmedChild.hash) {
+			sfd.setFinalCheckpoint(supportingCheckpoint)
+			break
+		}
 	}
 }
 

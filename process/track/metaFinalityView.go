@@ -51,6 +51,51 @@ func (mfv *metaFinalityView) IsMetaHeaderHeldFinal(header data.HeaderHandler, he
 	return isMetaHeaderHeldFinal(mfv.headersPool, mfv.proofsPool, header, headerHash)
 }
 
+// IsMetaHeaderSettlementReady reports whether a meta header has irreversible settlement evidence.
+func (mfv *metaFinalityView) IsMetaHeaderSettlementReady(header data.HeaderHandler, headerHash []byte) bool {
+	if check.IfNil(header) || len(headerHash) == 0 {
+		return false
+	}
+	if !header.IsHeaderV3() {
+		return mfv.IsMetaHeaderHeldFinal(header, headerHash)
+	}
+	if mfv.IsDeadMetaBlock(headerHash, header.GetNonce()) {
+		return false
+	}
+
+	return isMetaHeaderSettlementReadyWithEvidence(
+		mfv.proofsPool,
+		header,
+		headerHash,
+		func(hash []byte, nonce uint64) data.HeaderHandler {
+			return getMetaHeaderFromPool(mfv.headersPool, hash, nonce)
+		},
+		func(nonce uint64, parentHash []byte, depth int) bool {
+			return hasProofedMetaDescendants(mfv.headersPool, mfv.proofsPool, nonce, parentHash, depth)
+		},
+	)
+}
+
+func isMetaHeaderSettlementReadyWithEvidence(
+	proofsPool dataRetriever.ProofsPool,
+	header data.HeaderHandler,
+	headerHash []byte,
+	getHeader func(hash []byte, nonce uint64) data.HeaderHandler,
+	hasDescendants func(nonce uint64, parentHash []byte, depth int) bool,
+) bool {
+	if check.IfNil(header) || len(headerHash) == 0 || header.GetShardID() != core.MetachainShardId ||
+		!proofsPool.HasProof(core.MetachainShardId, headerHash) {
+		return false
+	}
+
+	depth := 1
+	if header.IsHeaderV3() && hasProofedMetaSibling(proofsPool, header, headerHash, getHeader) {
+		depth = metaReconciliationEvidenceDepth
+	}
+
+	return hasDescendants(header.GetNonce()+1, headerHash, depth)
+}
+
 func isMetaHeaderHeldFinal(
 	headersPool dataRetriever.HeadersPool,
 	proofsPool dataRetriever.ProofsPool,
@@ -237,12 +282,26 @@ func (mfv *metaFinalityView) holdsFinalMetaBlockReferencing(metaNonce uint64, sh
 			continue
 		}
 
-		if mfv.IsMetaHeaderHeldFinal(header, hashes[i]) {
+		if mfv.IsMetaHeaderSettlementReady(header, hashes[i]) {
 			return true
 		}
 	}
 
 	return false
+}
+
+// IsShardHeaderIncluded reports whether a meta header references the shard header or its known descendant.
+func (mfv *metaFinalityView) IsShardHeaderIncluded(
+	metaHeader data.MetaHeaderHandler,
+	shardID uint32,
+	headerHash []byte,
+	nonce uint64,
+) bool {
+	if check.IfNil(metaHeader) || len(headerHash) == 0 {
+		return false
+	}
+
+	return referencesAnyOf(metaHeader, shardID, mfv.ownBranchHashes(shardID, headerHash, nonce))
 }
 
 // ownBranchHashes collects the header and its descendants on the same branch; a held final meta
@@ -280,35 +339,81 @@ func (mfv *metaFinalityView) ownBranchHashes(shardID uint32, headerHash []byte, 
 // IsDeadMetaBlock returns true if the authority provably built past the meta block on another
 // branch: a doubly proofed foreign-parent extension at the next nonce, none of its own
 func (mfv *metaFinalityView) IsDeadMetaBlock(headerHash []byte, nonce uint64) bool {
+	return isDeadMetaBlockWithEvidence(
+		headerHash,
+		nonce,
+		func(childNonce uint64, rejectedParentHash []byte) bool {
+			children, childrenHashes, err := mfv.headersPool.GetHeadersByNonceAndShardId(
+				childNonce,
+				core.MetachainShardId,
+			)
+			if err != nil {
+				return false
+			}
+
+			return hasProofedForeignMetaContinuation(
+				mfv.proofsPool,
+				children,
+				childrenHashes,
+				childNonce,
+				rejectedParentHash,
+				func(nonce uint64, parentHash []byte) bool {
+					return hasProofedMetaDescendants(mfv.headersPool, mfv.proofsPool, nonce, parentHash, 1)
+				},
+			)
+		},
+		func(childNonce uint64, parentHash []byte) bool {
+			return hasProofedMetaDescendants(
+				mfv.headersPool,
+				mfv.proofsPool,
+				childNonce,
+				parentHash,
+				metaReconciliationEvidenceDepth,
+			)
+		},
+	)
+}
+
+func isDeadMetaBlockWithEvidence(
+	headerHash []byte,
+	nonce uint64,
+	hasForeignSettlement func(childNonce uint64, rejectedParentHash []byte) bool,
+	hasOwnReconciliation func(childNonce uint64, parentHash []byte) bool,
+) bool {
 	if len(headerHash) == 0 || nonce == 0 {
 		return false
 	}
 
 	childNonce := nonce + 1
-	children, childrenHashes, err := mfv.headersPool.GetHeadersByNonceAndShardId(childNonce, core.MetachainShardId)
-	if err != nil {
+	if !hasForeignSettlement(childNonce, headerHash) {
 		return false
 	}
 
-	foreignSettled := false
-	for i, child := range children {
-		if check.IfNil(child) || bytes.Equal(child.GetPrevHash(), headerHash) {
+	return !hasOwnReconciliation(childNonce, headerHash)
+}
+
+func hasProofedForeignMetaContinuation(
+	proofsPool dataRetriever.ProofsPool,
+	children []data.HeaderHandler,
+	childrenHashes [][]byte,
+	childNonce uint64,
+	rejectedParentHash []byte,
+	hasProofedDescendant func(nonce uint64, parentHash []byte) bool,
+) bool {
+	for index, child := range children {
+		if index >= len(childrenHashes) || check.IfNil(child) || child.GetNonce() != childNonce ||
+			child.GetShardID() != core.MetachainShardId || bytes.Equal(child.GetPrevHash(), rejectedParentHash) {
 			continue
 		}
-		if !mfv.proofsPool.HasProof(core.MetachainShardId, childrenHashes[i]) {
+		if !proofsPool.HasProof(core.MetachainShardId, childrenHashes[index]) {
 			continue
 		}
-		if hasProofedMetaDescendants(mfv.headersPool, mfv.proofsPool, childNonce+1, childrenHashes[i], 1) {
-			foreignSettled = true
-			break
+		if hasProofedDescendant(childNonce+1, childrenHashes[index]) {
+			return true
 		}
-	}
-	if !foreignSettled {
-		return false
 	}
 
-	// a doubly proofed own extension keeps the verdict subjective, the accepted depth-2 residual
-	return !HasMetaReconciliationEvidence(mfv.headersPool, mfv.proofsPool, nonce, headerHash)
+	return false
 }
 
 // HasMetaReconciliationEvidence reports whether two proofed descendants extend the header.

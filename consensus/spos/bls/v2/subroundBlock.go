@@ -202,18 +202,17 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 
 // shouldRefuseCompetingParent prevents extending a meta head with a proofed sibling that ranks first
 func (sr *subroundBlock) shouldRefuseCompetingParent() bool {
-	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
+	header := sr.GetHeader()
+	if !check.IfNil(header) {
+		return sr.ShouldRefuseCompetingParent(header.GetEpoch(), header.GetRound())
+	}
+
+	round := sr.RoundHandler().Index()
+	if round < 0 {
 		return false
 	}
 
-	round := uint64(sr.RoundHandler().Index())
-	isSupernovaActiveInRound := sr.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round)
-	isSupernovaActiveInEpoch := sr.EnableEpochsHandler().IsFlagEnabled(common.SupernovaFlag)
-	if !isSupernovaActiveInRound || !isSupernovaActiveInEpoch {
-		return false
-	}
-
-	return sr.HasProofForCompetingParent()
+	return sr.ShouldRefuseCompetingParentInCurrentEpoch(uint64(round))
 }
 
 // hasQuorumEvidenceForCompetingBlock refuses to propose a block doomed by quorum-level signature

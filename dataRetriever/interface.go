@@ -399,6 +399,7 @@ type ProofsPool interface {
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	GetProofsByNonce(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
+	HasProofForDifferentHash(shardID uint32, headerNonce uint64, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool
 }

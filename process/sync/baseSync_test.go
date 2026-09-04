@@ -996,6 +996,9 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 			settlementChecker: checker,
 			roundHandler:      roundHandler,
 			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+					return localHead, localHash
+				},
 				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 					return localHead
 				},
@@ -1007,8 +1010,9 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 				GetHighestFinalBlockNonceCalled: func() uint64 {
 					return finalNonce
 				},
-				ReconcileFinalCheckpointCalled: func(nonce uint64) {
+				ReconcileFinalCheckpointCalled: func(nonce uint64) bool {
 					calls.reconciledNonce = nonce
+					return true
 				},
 				SetRollBackNonceCalled: func(nonce uint64) {
 					calls.rollBackNonce = nonce
@@ -1228,6 +1232,174 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		require.Greater(t, checker.numCalls, callsInFirstRound)
 	})
 
+	t.Run("meta requests a missing preferred competitor header at most once per round", func(t *testing.T) {
+		t.Parallel()
+
+		metaCompetitorProof := &block.HeaderProof{
+			HeaderHash:    competitorHash,
+			HeaderNonce:   finalNonce,
+			HeaderRound:   11,
+			HeaderShardId: core.MetachainShardId,
+			HeaderEpoch:   7,
+		}
+		calls := &reconcileCalls{}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 7}
+		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(), roundHandler)
+		boot.shardCoordinator = &mock.CoordinatorStub{
+			SelfIdCalled: func() uint32 { return core.MetachainShardId },
+		}
+		boot.headers = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, competitorHash, hash)
+				return nil, errors.New("missing header")
+			},
+		}
+		boot.proofs = &testscommonDataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(nonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				require.Equal(t, finalNonce, nonce)
+				require.Equal(t, core.MetachainShardId, shardID)
+				return metaCompetitorProof, nil
+			},
+			GetProofsByNonceCalled: func(_ uint64, _ uint32) ([]data.HeaderProofHandler, error) {
+				require.Fail(t, "the multi-proof fallback is not needed when the preferred header is missing")
+				return nil, nil
+			},
+			HasProofCalled: func(shardID uint32, hash []byte) bool {
+				return shardID == core.MetachainShardId && bytes.Equal(hash, competitorHash)
+			},
+		}
+
+		numRequests := 0
+		boot.requestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderForEpochCalled: func(hash []byte, epoch uint32) {
+				require.Equal(t, competitorHash, hash)
+				require.Equal(t, uint32(7), epoch)
+				numRequests++
+			},
+		}
+
+		boot.onEquivocationEvidence(metaCompetitorProof, nil)
+		roundHandler.RoundIndex = 8
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
+		require.Equal(t, 1, numRequests)
+
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
+		require.Equal(t, 1, numRequests)
+
+		roundHandler.RoundIndex = 9
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
+		require.Equal(t, 2, numRequests)
+	})
+
+	t.Run("meta does not request a preferred competitor header already in the pool", func(t *testing.T) {
+		t.Parallel()
+
+		metaCompetitorProof := &block.HeaderProof{
+			HeaderHash:    competitorHash,
+			HeaderNonce:   finalNonce,
+			HeaderRound:   11,
+			HeaderShardId: core.MetachainShardId,
+			HeaderEpoch:   7,
+		}
+		calls := &reconcileCalls{}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 7}
+		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(), roundHandler)
+		boot.shardCoordinator = &mock.CoordinatorStub{
+			SelfIdCalled: func() uint32 { return core.MetachainShardId },
+		}
+		boot.headers = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, competitorHash, hash)
+				return &block.MetaBlock{Nonce: finalNonce}, nil
+			},
+		}
+		boot.proofs = &testscommonDataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(_ uint64, _ uint32) (data.HeaderProofHandler, error) {
+				return metaCompetitorProof, nil
+			},
+			GetProofsByNonceCalled: func(_ uint64, _ uint32) ([]data.HeaderProofHandler, error) {
+				require.Fail(t, "the multi-proof fallback is not needed for an actionable preferred header")
+				return nil, nil
+			},
+			HasProofCalled: func(shardID uint32, hash []byte) bool {
+				return shardID == core.MetachainShardId && bytes.Equal(hash, competitorHash)
+			},
+		}
+		boot.requestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderForEpochCalled: func(_ []byte, _ uint32) {
+				require.Fail(t, "should not request a header already in the pool")
+			},
+		}
+
+		boot.onEquivocationEvidence(metaCompetitorProof, nil)
+		roundHandler.RoundIndex = 8
+		require.False(t, boot.tryReconcileEquivocation(boot.roundHandler.Index()))
+	})
+
+	t.Run("meta requests a missing secondary actionable competitor", func(t *testing.T) {
+		t.Parallel()
+
+		preferredHash := []byte("preferredOffParent")
+		actionableHash := []byte("actionableMissing")
+		preferredProof := &block.HeaderProof{
+			HeaderHash:    preferredHash,
+			HeaderNonce:   finalNonce,
+			HeaderRound:   10,
+			HeaderShardId: core.MetachainShardId,
+			HeaderEpoch:   7,
+		}
+		actionableProof := &block.HeaderProof{
+			HeaderHash:    actionableHash,
+			HeaderNonce:   finalNonce,
+			HeaderRound:   11,
+			HeaderShardId: core.MetachainShardId,
+			HeaderEpoch:   7,
+		}
+		calls := &reconcileCalls{}
+		boot := buildBootstrapperWithChecker(nil, calls, settlesOnly(), &mock.RoundHandlerMock{})
+		boot.shardCoordinator = &mock.CoordinatorStub{
+			SelfIdCalled: func() uint32 { return core.MetachainShardId },
+		}
+		currentParentHash := []byte("currentParent")
+		boot.chainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.MetaBlockV3{Nonce: finalNonce, Round: 12, PrevHash: currentParentHash}, localHash
+			},
+		}
+		boot.headers = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, preferredHash) {
+					return &block.MetaBlockV3{Nonce: finalNonce, Round: 10, PrevHash: []byte("offParent")}, nil
+				}
+
+				return nil, errors.New("missing header")
+			},
+		}
+		boot.proofs = &testscommonDataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(_ uint64, _ uint32) (data.HeaderProofHandler, error) {
+				return preferredProof, nil
+			},
+			GetProofsByNonceCalled: func(_ uint64, _ uint32) ([]data.HeaderProofHandler, error) {
+				return []data.HeaderProofHandler{preferredProof, actionableProof}, nil
+			},
+		}
+
+		var requestedHash []byte
+		boot.requestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderForEpochCalled: func(hash []byte, epoch uint32) {
+				require.Equal(t, uint32(7), epoch)
+				requestedHash = append([]byte(nil), hash...)
+			},
+		}
+
+		boot.requestMissingPreferredReconcileHeader(&reconcileEvidence{
+			nonce:     finalNonce,
+			localHash: localHash,
+		})
+
+		require.Equal(t, actionableHash, requestedHash)
+	})
+
 	t.Run("the scan cursor persists across rounds and the window reaches the settled calls", func(t *testing.T) {
 		t.Parallel()
 
@@ -1298,10 +1470,13 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		}
 		boot.forkDetector = &mock.ForkDetectorMock{
 			GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
-			ReconcileFinalCheckpointCalled:  func(nonce uint64) { calls.reconciledNonce = nonce },
-			SetRollBackNonceCalled:          func(nonce uint64) { calls.rollBackNonce = nonce },
-			CheckForkCalled:                 func() *process.ForkInfo { return process.NewForkInfo() },
-			ProbableHighestNonceCalled:      func() uint64 { return finalNonce },
+			ReconcileFinalCheckpointCalled: func(nonce uint64) bool {
+				calls.reconciledNonce = nonce
+				return true
+			},
+			SetRollBackNonceCalled:     func(nonce uint64) { calls.rollBackNonce = nonce },
+			CheckForkCalled:            func() *process.ForkInfo { return process.NewForkInfo() },
+			ProbableHighestNonceCalled: func() uint64 { return finalNonce },
 		}
 		boot.networkWatcher = &mock.NetworkConnectionWatcherStub{
 			IsConnectedToTheNetworkCalled: func() bool { return true },
@@ -1319,6 +1494,75 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		// notifications; neither may happen on the firing tick
 		require.False(t, boot.isNodeSynchronized)
 		require.Equal(t, int64(0), boot.roundIndex)
+	})
+
+	t.Run("a synchronized metachain node requests a missing preferred competitor", func(t *testing.T) {
+		t.Parallel()
+
+		metaLocalHead := &block.MetaBlockV3{Nonce: finalNonce, Round: 12, Epoch: 1}
+		metaCompetitorProof := &block.HeaderProof{
+			HeaderHash:    competitorHash,
+			HeaderNonce:   finalNonce,
+			HeaderRound:   11,
+			HeaderEpoch:   1,
+			HeaderShardId: core.MetachainShardId,
+		}
+		roundHandler := &mock.RoundHandlerMock{RoundIndex: 5}
+		requested := 0
+		shardCoordinator := mock.NewOneShardCoordinatorMock()
+		require.NoError(t, shardCoordinator.SetSelfId(core.MetachainShardId))
+		boot := &baseBootstrap{
+			settlementChecker: &settlementCheckerStub{},
+			roundHandler:      roundHandler,
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+					return metaLocalHead, localHash
+				},
+				GetCurrentBlockHeaderCalled:     func() data.HeaderHandler { return metaLocalHead },
+				GetCurrentBlockHeaderHashCalled: func() []byte { return localHash },
+				GetGenesisHeaderCalled:          func() data.HeaderHandler { return &block.MetaBlock{} },
+			},
+			forkDetector: &mock.ForkDetectorMock{
+				GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
+				CheckForkCalled:                 func() *process.ForkInfo { return process.NewForkInfo() },
+				ProbableHighestNonceCalled:      func() uint64 { return finalNonce },
+			},
+			headers: &mock.HeadersCacherStub{
+				GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+					return nil, errors.New("missing header")
+				},
+			},
+			proofs: &testscommonDataRetriever.ProofsPoolMock{
+				GetProofByNonceCalled: func(_ uint64, _ uint32) (data.HeaderProofHandler, error) {
+					return metaCompetitorProof, nil
+				},
+				HasProofCalled: func(_ uint32, _ []byte) bool { return true },
+			},
+			requestHandler: &testscommon.RequestHandlerStub{
+				RequestMetaHeaderForEpochCalled: func(hash []byte, epoch uint32) {
+					require.Equal(t, competitorHash, hash)
+					require.Equal(t, uint32(1), epoch)
+					requested++
+				},
+			},
+			shardCoordinator: shardCoordinator,
+			blackListHandler: &testscommon.TimeCacheStub{},
+			statusHandler:    &statusHandlerMock.AppStatusHandlerStub{},
+			networkWatcher: &mock.NetworkConnectionWatcherStub{
+				IsConnectedToTheNetworkCalled: func() bool { return true },
+			},
+			currentEpochProvider:       &testscommon.CurrentEpochProviderStub{},
+			processConfigsHandler:      testscommon.GetDefaultProcessConfigsHandler(),
+			preparedForSyncAtBootstrap: true,
+		}
+
+		boot.onEquivocationEvidence(metaCompetitorProof, nil)
+		roundHandler.RoundIndex = 6
+		require.NoError(t, boot.syncBlock())
+
+		require.Equal(t, 1, requested)
+		require.Equal(t, common.NsSynchronized, boot.GetNodeState())
+		require.NotNil(t, boot.pendingReconcile)
 	})
 
 	// the round may turn between the backstop checks and the state computation of one tick;
@@ -1344,10 +1588,13 @@ func TestBaseBootstrap_ReconcileEquivocation(t *testing.T) {
 		}
 		boot.forkDetector = &mock.ForkDetectorMock{
 			GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
-			ReconcileFinalCheckpointCalled:  func(nonce uint64) { calls.reconciledNonce = nonce },
-			SetRollBackNonceCalled:          func(nonce uint64) { calls.rollBackNonce = nonce },
-			CheckForkCalled:                 func() *process.ForkInfo { return process.NewForkInfo() },
-			ProbableHighestNonceCalled:      func() uint64 { return finalNonce },
+			ReconcileFinalCheckpointCalled: func(nonce uint64) bool {
+				calls.reconciledNonce = nonce
+				return true
+			},
+			SetRollBackNonceCalled:     func(nonce uint64) { calls.rollBackNonce = nonce },
+			CheckForkCalled:            func() *process.ForkInfo { return process.NewForkInfo() },
+			ProbableHighestNonceCalled: func() uint64 { return finalNonce },
 		}
 		boot.networkWatcher = &mock.NetworkConnectionWatcherStub{
 			IsConnectedToTheNetworkCalled: func() bool { return true },
@@ -1444,6 +1691,33 @@ func TestBaseBootstrap_ReconcileResumableScan(t *testing.T) {
 			ProofsPool:  proofsPool,
 		})
 		require.Nil(t, err)
+		computeCanonicalMetaContinuation := func(_ uint32, _ data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+			continuation := make([]data.HeaderHandler, 0)
+			hashes := make([][]byte, 0)
+			parentHash := metaHash(anchor)
+			for nonce := anchor + 1; nonce <= tipNonce; nonce++ {
+				headers, candidateHashes, getErr := headersPool.GetHeadersByNonceAndShardId(nonce, core.MetachainShardId)
+				if getErr != nil {
+					break
+				}
+
+				found := false
+				for index, header := range headers {
+					if bytes.Equal(header.GetPrevHash(), parentHash) {
+						continuation = append(continuation, header)
+						hashes = append(hashes, candidateHashes[index])
+						parentHash = candidateHashes[index]
+						found = true
+						break
+					}
+				}
+				if !found {
+					break
+				}
+			}
+
+			return continuation, hashes
+		}
 
 		reconciledNonce := new(uint64)
 		roundHandler := &mock.RoundHandlerMock{RoundIndex: 1}
@@ -1454,6 +1728,7 @@ func TestBaseBootstrap_ReconcileResumableScan(t *testing.T) {
 					GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 						return &block.MetaBlock{Nonce: anchor}, metaHash(anchor), nil
 					},
+					ComputeLongestChainCalled: computeCanonicalMetaContinuation,
 				},
 				headers:        headersPool,
 				proofs:         proofsPool,
@@ -1467,8 +1742,11 @@ func TestBaseBootstrap_ReconcileResumableScan(t *testing.T) {
 			},
 			forkDetector: &mock.ForkDetectorMock{
 				GetHighestFinalBlockNonceCalled: func() uint64 { return finalNonce },
-				ReconcileFinalCheckpointCalled:  func(nonce uint64) { *reconciledNonce = nonce },
-				SetRollBackNonceCalled:          func(nonce uint64) {},
+				ReconcileFinalCheckpointCalled: func(nonce uint64) bool {
+					*reconciledNonce = nonce
+					return true
+				},
+				SetRollBackNonceCalled: func(nonce uint64) {},
 			},
 			headers:          headersPool,
 			proofs:           proofsPool,
@@ -1562,6 +1840,19 @@ func (stub *settlementCheckerStub) prepareInclusionScan(scanCursor uint64) (uint
 	}
 
 	return 0, 0, 0
+}
+
+func (stub *settlementCheckerStub) settlementVerdict(
+	nonce uint64,
+	localHash []byte,
+	competitorHash []byte,
+	scanFrom uint64,
+	scanTo uint64,
+) (bool, bool) {
+	localSettled := stub.isSettled(nonce, localHash, scanFrom, scanTo)
+	competitorSettled := len(competitorHash) > 0 && stub.isSettled(nonce, competitorHash, scanFrom, scanTo)
+
+	return localSettled, competitorSettled
 }
 
 func (stub *settlementCheckerStub) isSettled(nonce uint64, headerHash []byte, scanFrom uint64, scanTo uint64) bool {

@@ -153,8 +153,27 @@ func TestBaseBlockTrack_IsSettledCrossHeader(t *testing.T) {
 
 		v3Header := &block.MetaBlockV3{Nonce: 6, Round: 11, PrevHash: parentHash}
 		addMetaProof(t, args.PoolsHolder, headerHash, v3Header.Nonce, v3Header.Round)
+		childHash := []byte("childHash")
+		child := &block.MetaBlockV3{Nonce: 7, Round: 12, PrevHash: headerHash}
+		args.PoolsHolder.Headers().AddHeader(childHash, child)
+		addMetaProof(t, args.PoolsHolder, childHash, child.Nonce, child.Round)
 
 		require.True(t, sbt.IsSettledCrossHeader(v3Header, headerHash))
+	})
+
+	t.Run("V3 instantly final meta header without a child is not settled", func(t *testing.T) {
+		t.Parallel()
+
+		args, sbt := newTracker(t)
+		parentHash := []byte("parentHash")
+		parent := &block.MetaBlockV3{Nonce: 5, Round: 10}
+		args.PoolsHolder.Headers().AddHeader(parentHash, parent)
+		addMetaProof(t, args.PoolsHolder, parentHash, parent.Nonce, parent.Round)
+
+		v3Header := &block.MetaBlockV3{Nonce: 6, Round: 11, PrevHash: parentHash}
+		addMetaProof(t, args.PoolsHolder, headerHash, v3Header.Nonce, v3Header.Round)
+
+		require.False(t, sbt.IsSettledCrossHeader(v3Header, headerHash))
 	})
 
 	t.Run("V3 contended meta header without a sibling settles on a proofed child", func(t *testing.T) {
@@ -208,6 +227,10 @@ func TestBaseBlockTrack_IsSettledCrossHeader(t *testing.T) {
 
 		v3Header := &block.MetaBlockV3{Nonce: 6, Round: 11, PrevHash: parentHash}
 		addMetaProof(t, args.PoolsHolder, headerHash, v3Header.Nonce, v3Header.Round)
+		childHash := []byte("childHash")
+		child := &block.MetaBlockV3{Nonce: 7, Round: 12, PrevHash: headerHash}
+		sbt.AddTrackedHeader(child, childHash)
+		addMetaProof(t, args.PoolsHolder, childHash, child.Nonce, child.Round)
 
 		require.True(t, sbt.IsSettledCrossHeader(v3Header, headerHash))
 	})
@@ -271,6 +294,82 @@ func TestBaseBlockTrack_IsSettledCrossHeader(t *testing.T) {
 		addMetaProof(t, args.PoolsHolder, grandChildHash, grandChild.Nonce, grandChild.Round)
 
 		require.True(t, sbt.IsSettledCrossHeader(v3Header, headerHash))
+	})
+
+	t.Run("tracker foreign child and pooled grandchild reject settlement", func(t *testing.T) {
+		t.Parallel()
+
+		args, sbt := newTracker(t)
+		candidate := &block.MetaBlockV3{Nonce: 6, Round: 11, PrevHash: []byte("candidate-parent")}
+		addMetaProof(t, args.PoolsHolder, headerHash, candidate.Nonce, candidate.Round)
+
+		ownChildHash := []byte("own-child")
+		ownChild := &block.MetaBlockV3{Nonce: 7, Round: 12, PrevHash: headerHash}
+		args.PoolsHolder.Headers().AddHeader(ownChildHash, ownChild)
+		addMetaProof(t, args.PoolsHolder, ownChildHash, ownChild.Nonce, ownChild.Round)
+
+		foreignChildHash := []byte("foreign-child")
+		foreignChild := &block.MetaBlockV3{Nonce: 7, Round: 13, PrevHash: []byte("foreign-parent")}
+		addMetaProof(t, args.PoolsHolder, foreignChildHash, foreignChild.Nonce, foreignChild.Round)
+		sbt.AddTrackedHeader(foreignChild, foreignChildHash)
+		foreignGrandChildHash := []byte("foreign-grandchild")
+		foreignGrandChild := &block.MetaBlockV3{Nonce: 8, Round: 14, PrevHash: foreignChildHash}
+		args.PoolsHolder.Headers().AddHeader(foreignGrandChildHash, foreignGrandChild)
+		addMetaProof(t, args.PoolsHolder, foreignGrandChildHash, foreignGrandChild.Nonce, foreignGrandChild.Round)
+
+		require.False(t, sbt.IsSettledCrossHeader(candidate, headerHash))
+	})
+
+	t.Run("pooled foreign child and tracker grandchild reject settlement", func(t *testing.T) {
+		t.Parallel()
+
+		args, sbt := newTracker(t)
+		candidate := &block.MetaBlockV3{Nonce: 6, Round: 11, PrevHash: []byte("candidate-parent")}
+		addMetaProof(t, args.PoolsHolder, headerHash, candidate.Nonce, candidate.Round)
+
+		ownChildHash := []byte("own-child")
+		ownChild := &block.MetaBlockV3{Nonce: 7, Round: 12, PrevHash: headerHash}
+		args.PoolsHolder.Headers().AddHeader(ownChildHash, ownChild)
+		addMetaProof(t, args.PoolsHolder, ownChildHash, ownChild.Nonce, ownChild.Round)
+
+		foreignChildHash := []byte("foreign-child")
+		foreignChild := &block.MetaBlockV3{Nonce: 7, Round: 13, PrevHash: []byte("foreign-parent")}
+		args.PoolsHolder.Headers().AddHeader(foreignChildHash, foreignChild)
+		addMetaProof(t, args.PoolsHolder, foreignChildHash, foreignChild.Nonce, foreignChild.Round)
+		foreignGrandChildHash := []byte("foreign-grandchild")
+		foreignGrandChild := &block.MetaBlockV3{Nonce: 8, Round: 14, PrevHash: foreignChildHash}
+		addMetaProof(t, args.PoolsHolder, foreignGrandChildHash, foreignGrandChild.Nonce, foreignGrandChild.Round)
+		sbt.AddTrackedHeader(foreignGrandChild, foreignGrandChildHash)
+
+		require.False(t, sbt.IsSettledCrossHeader(candidate, headerHash))
+	})
+
+	t.Run("own mixed depth-two evidence prevents foreign branch from rejecting settlement", func(t *testing.T) {
+		t.Parallel()
+
+		args, sbt := newTracker(t)
+		candidate := &block.MetaBlockV3{Nonce: 6, Round: 11, PrevHash: []byte("candidate-parent")}
+		addMetaProof(t, args.PoolsHolder, headerHash, candidate.Nonce, candidate.Round)
+
+		ownChildHash := []byte("own-child")
+		ownChild := &block.MetaBlockV3{Nonce: 7, Round: 12, PrevHash: headerHash}
+		addMetaProof(t, args.PoolsHolder, ownChildHash, ownChild.Nonce, ownChild.Round)
+		sbt.AddTrackedHeader(ownChild, ownChildHash)
+		ownGrandChildHash := []byte("own-grandchild")
+		ownGrandChild := &block.MetaBlockV3{Nonce: 8, Round: 13, PrevHash: ownChildHash}
+		args.PoolsHolder.Headers().AddHeader(ownGrandChildHash, ownGrandChild)
+		addMetaProof(t, args.PoolsHolder, ownGrandChildHash, ownGrandChild.Nonce, ownGrandChild.Round)
+
+		foreignChildHash := []byte("foreign-child")
+		foreignChild := &block.MetaBlockV3{Nonce: 7, Round: 14, PrevHash: []byte("foreign-parent")}
+		args.PoolsHolder.Headers().AddHeader(foreignChildHash, foreignChild)
+		addMetaProof(t, args.PoolsHolder, foreignChildHash, foreignChild.Nonce, foreignChild.Round)
+		foreignGrandChildHash := []byte("foreign-grandchild")
+		foreignGrandChild := &block.MetaBlockV3{Nonce: 8, Round: 15, PrevHash: foreignChildHash}
+		addMetaProof(t, args.PoolsHolder, foreignGrandChildHash, foreignGrandChild.Nonce, foreignGrandChild.Round)
+		sbt.AddTrackedHeader(foreignGrandChild, foreignGrandChildHash)
+
+		require.True(t, sbt.IsSettledCrossHeader(candidate, headerHash))
 	})
 }
 

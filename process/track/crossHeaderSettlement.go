@@ -10,8 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
-// IsSettledCrossHeader uses the held-final rule for V3 meta headers and the proofed-child rule for
-// legacy meta headers.
+// IsSettledCrossHeader applies branch-aware settlement to V3 meta headers and proofed-child settlement to legacy headers.
 func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool {
 	if check.IfNil(header) || len(headerHash) == 0 {
 		return false
@@ -22,7 +21,11 @@ func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, heade
 		return false
 	}
 	if header.IsHeaderV3() {
-		return isMetaHeaderHeldFinalWithEvidence(
+		if bbt.isDeadTrackedOrPooledMetaBlock(headerHash, header.GetNonce()) {
+			return false
+		}
+
+		return isMetaHeaderSettlementReadyWithEvidence(
 			bbt.proofsPool,
 			header,
 			headerHash,
@@ -39,6 +42,50 @@ func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, heade
 	}
 
 	return hasProofedChildInPool(bbt.headersPool, bbt.proofsPool, shardID, headerHash, childNonce)
+}
+
+func (bbt *baseBlockTrack) isDeadTrackedOrPooledMetaBlock(headerHash []byte, nonce uint64) bool {
+	return isDeadMetaBlockWithEvidence(
+		headerHash,
+		nonce,
+		func(childNonce uint64, rejectedParentHash []byte) bool {
+			pooledHeaders, pooledHashes, err := bbt.headersPool.GetHeadersByNonceAndShardId(
+				childNonce,
+				core.MetachainShardId,
+			)
+			if err == nil && hasProofedForeignMetaContinuation(
+				bbt.proofsPool,
+				pooledHeaders,
+				pooledHashes,
+				childNonce,
+				rejectedParentHash,
+				func(nonce uint64, parentHash []byte) bool {
+					return bbt.hasTrackedOrPooledMetaDescendants(nonce, parentHash, 1)
+				},
+			) {
+				return true
+			}
+
+			trackedHeaders, trackedHashes := bbt.GetTrackedHeadersWithNonce(core.MetachainShardId, childNonce)
+			return hasProofedForeignMetaContinuation(
+				bbt.proofsPool,
+				trackedHeaders,
+				trackedHashes,
+				childNonce,
+				rejectedParentHash,
+				func(nonce uint64, parentHash []byte) bool {
+					return bbt.hasTrackedOrPooledMetaDescendants(nonce, parentHash, 1)
+				},
+			)
+		},
+		func(childNonce uint64, parentHash []byte) bool {
+			return bbt.hasTrackedOrPooledMetaDescendants(
+				childNonce,
+				parentHash,
+				metaReconciliationEvidenceDepth,
+			)
+		},
+	)
 }
 
 func (bbt *baseBlockTrack) getTrackedOrPooledMetaHeader(headerHash []byte, nonce uint64) data.HeaderHandler {

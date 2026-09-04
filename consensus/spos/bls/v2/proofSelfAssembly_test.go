@@ -1,12 +1,15 @@
 package v2
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -17,9 +20,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	factoryCrypto "github.com/multiversx/mx-chain-go/factory/crypto"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -27,12 +33,14 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
 const selfAssemblyGroupSize = 9
 
 type selfAssemblyTestSetup struct {
+	container      *spos.ConsensusCore
 	subround       *spos.Subround
 	store          *signatureEvidenceStore
 	signingHandler consensus.SigningHandler
@@ -144,6 +152,7 @@ func createSelfAssemblySetup(t *testing.T) *selfAssemblyTestSetup {
 	require.Nil(t, err)
 
 	return &selfAssemblyTestSetup{
+		container:      container,
 		subround:       sr,
 		store:          store,
 		signingHandler: signingHandler,
@@ -152,6 +161,77 @@ func createSelfAssemblySetup(t *testing.T) *selfAssemblyTestSetup {
 		broadcast:      &broadcast,
 		numAdded:       &numAdded,
 	}
+}
+
+func configureSelfAssemblyCompetingParent(setup *selfAssemblyTestSetup, evidenceAtQuery int) *atomic.Int32 {
+	currentHash := []byte("current-meta-parent")
+	currentParentHash := []byte("current-meta-grandparent")
+	currentParent := &block.MetaBlockV3{
+		Epoch:    1,
+		Nonce:    7,
+		Round:    10,
+		PrevHash: currentParentHash,
+	}
+	siblingHash := []byte("preferred-meta-parent")
+	siblingProof := &block.HeaderProof{
+		HeaderHash:    siblingHash,
+		HeaderEpoch:   1,
+		HeaderNonce:   currentParent.Nonce,
+		HeaderShardId: core.MetachainShardId,
+		HeaderRound:   currentParent.Round - 1,
+	}
+
+	setup.container.SetShardCoordinator(mock.ShardCoordinatorMock{ShardID: core.MetachainShardId})
+	setup.container.SetBlockchain(&testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+			return currentParent, currentHash
+		},
+	})
+	setup.container.SetHeadersPool(&dataRetrieverMock.HeadersCacherStub{
+		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+			if !bytes.Equal(hash, siblingHash) {
+				return nil, errors.New("header not found")
+			}
+
+			return &block.MetaBlockV3{
+				Nonce:    currentParent.Nonce,
+				Round:    siblingProof.HeaderRound,
+				PrevHash: currentParentHash,
+			}, nil
+		},
+	})
+	setup.container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.SupernovaFlag
+		},
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+			return flag == common.SupernovaFlag
+		},
+	})
+	setup.container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return flag == common.SupernovaRoundFlag
+		},
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, _ uint64) bool {
+			return flag == common.SupernovaRoundFlag
+		},
+	})
+
+	var parentQueries atomic.Int32
+	setup.proofsPool.GetProofByNonceCalled = func(nonce uint64, _ uint32) (data.HeaderProofHandler, error) {
+		if nonce != currentParent.Nonce {
+			return nil, errors.New("proof not found")
+		}
+
+		query := parentQueries.Add(1)
+		if query < int32(evidenceAtQuery) {
+			return nil, errors.New("proof not found")
+		}
+
+		return siblingProof, nil
+	}
+
+	return &parentQueries
 }
 
 // createRealEvidence builds evidence with real BLS shares over headerHash; corruptIndices
@@ -210,6 +290,30 @@ func TestTrySelfAssembleProof_HappyPath(t *testing.T) {
 
 	err := setup.signingHandler.VerifyAggregatedSigWithKeys(setup.keys, proof.PubKeysBitmap, headerHash, proof.AggregatedSignature, 0)
 	assert.Nil(t, err, "the self-assembled aggregated signature must verify")
+}
+
+func TestTrySelfAssembleProof_CompetingParentGuardIsRechecked(t *testing.T) {
+	t.Parallel()
+
+	for _, evidenceAtQuery := range []int{1, 2} {
+		t.Run(fmt.Sprintf("evidence at query %d", evidenceAtQuery), func(t *testing.T) {
+			t.Parallel()
+
+			setup := createSelfAssemblySetup(t)
+			parentQueries := configureSelfAssemblyCompetingParent(setup, evidenceAtQuery)
+			ev := setup.createRealEvidence(t, []byte("candidate-meta-child"), 7)
+			ev.epoch = 1
+			ev.headerRound = 11
+			ev.nonce = 8
+			ev.shardID = core.MetachainShardId
+
+			trySelfAssembleProof(setup.subround, setup.store, ev)
+
+			require.Nil(t, setup.broadcast.Load())
+			require.Zero(t, setup.numAdded.Load())
+			require.Equal(t, int32(evidenceAtQuery), parentQueries.Load())
+		})
+	}
 }
 
 func TestTrySelfAssembleProof_SingleAttemptPerRound(t *testing.T) {
