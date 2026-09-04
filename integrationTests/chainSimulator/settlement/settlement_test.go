@@ -1,9 +1,11 @@
 package settlement
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -20,12 +22,16 @@ const (
 )
 
 func startSupernovaSimulator(t *testing.T) testsChainSimulator.ChainSimulator {
+	return startSupernovaSimulatorWithNumShards(t, 1)
+}
+
+func startSupernovaSimulatorWithNumShards(t *testing.T, numOfShards uint32) testsChainSimulator.ChainSimulator {
 	simulator, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            "../../../cmd/node/config/",
-		NumOfShards:                    1,
+		NumOfShards:                    numOfShards,
 		RoundDurationInMillis:          uint64(4000),
 		SupernovaRoundDurationInMillis: uint64(400),
 		RoundsPerEpoch: core.OptionalUint64{
@@ -72,20 +78,6 @@ func getLastCrossNotarizedNonce(t *testing.T, node process.NodeHandler, ofShard 
 	require.NoError(t, err)
 
 	return header.GetNonce()
-}
-
-func generateBlocksUntil(t *testing.T, simulator testsChainSimulator.ChainSimulator, maxBlocks int, condition func() bool) {
-	for i := 0; i < maxBlocks && !condition(); i++ {
-		require.NoError(t, simulator.GenerateBlocks(1))
-	}
-	require.True(t, condition())
-}
-
-func generateBlocksUntilSkipping(t *testing.T, simulator testsChainSimulator.ChainSimulator, maxBlocks int, skippedShardIDs []uint32, condition func() bool) {
-	for i := 0; i < maxBlocks && !condition(); i++ {
-		require.NoError(t, simulator.GenerateBlocksSkippingShards(1, skippedShardIDs))
-	}
-	require.True(t, condition())
 }
 
 // a contended shard block (skipped rounds before it) commits without instant finality and without
@@ -221,6 +213,165 @@ func TestChainSimulator_ContendedMetaBlockNotReferencedUntilSettled(t *testing.T
 	require.NoError(t, simulator.GenerateBlocks(1))
 	currentHeader := metaNode.GetChainHandler().GetCurrentBlockHeader()
 	require.Equal(t, currentHeader.GetNonce(), getFinalNonce(metaNode))
+}
+
+// TestChainSimulator_ProofedMetaSiblingDelaysShardSettlementUntilReconciliation verifies the
+// metachain-to-shard settlement source gate. Shard block S executes transfer Tref locally and is
+// referenced by withheld metablock M_A. A later-round proofed sibling M_B references the same S and
+// is delivered first. Because M_A now has a known sibling, its usual one-descendant fast path must
+// not publish S as settled authority: child M_C is insufficient, while grandchild M_D establishes
+// the required depth-two evidence. The test then replays both sibling artifacts to prove idempotence
+// and executes Tpost to prove liveness. It uses direct block creators only, without consensus.
+func TestChainSimulator_ProofedMetaSiblingDelaysShardSettlementUntilReconciliation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	// Step 1: Start in Supernova, establish a clean chain, and fund two accounts in the same shard so
+	// Tref and Tpost can be checked through exact sender nonce and account balance changes.
+	simulator := startSupernovaSimulator(t)
+	defer simulator.Close()
+
+	shardNode := simulator.GetNodeHandler(shardID)
+	metaNode := simulator.GetNodeHandler(core.MetachainShardId)
+	require.NoError(t, simulator.GenerateBlocks(3))
+
+	initialBalance := new(big.Int).Mul(big.NewInt(10), testsChainSimulator.OneEGLD)
+	sender, err := simulator.GenerateAndMintWalletAddress(shardID, initialBalance)
+	require.NoError(t, err)
+	receiver, err := simulator.GenerateAndMintWalletAddress(shardID, big.NewInt(0))
+	require.NoError(t, err)
+	require.NoError(t, simulator.GenerateBlocks(2))
+
+	// Step 2: Snapshot both accounts and submit Tref without producing a block. The snapshot is the
+	// baseline used later to prove that settlement and evidence replay never apply Tref twice.
+	beforeReference := txAndAccountsSnapshot{
+		sender:   getAccountSnapshot(t, simulator, sender),
+		receiver: getAccountSnapshot(t, simulator, receiver),
+	}
+	referenceValue := new(big.Int).Set(testsChainSimulator.OneEGLD)
+	referenceTx := testsChainSimulator.GenerateTransaction(
+		sender.Bytes,
+		beforeReference.sender.nonce,
+		receiver.Bytes,
+		referenceValue,
+		"",
+		50_000,
+	)
+	referenceTxHash := sendTxWithoutGeneratingBlocks(t, simulator, referenceTx)
+
+	// Step 3: Commit S locally while withholding its network artifact. The meta block created in the
+	// same simulator round cannot reference S; nevertheless, local account state executes Tref once.
+	shardArtifact, err := simulator.GenerateBlockWithoutBroadcast(shardID)
+	require.NoError(t, err)
+	require.NotNil(t, shardArtifact)
+	shardHeaderHash := calculateHeaderHash(t, shardNode, shardArtifact.Header)
+	require.Equal(t, shardHeaderHash, shardNode.GetChainHandler().GetCurrentBlockHeaderHash())
+	require.Less(t, getLastCrossNotarizedNonce(t, metaNode, shardID), shardArtifact.Header.GetNonce())
+	shardAuthorityPublished := observeSelfNotarizedFromMeta(shardNode, shardHeaderHash)
+
+	afterReference := getTxAndAccounts(t, simulator, referenceTxHash, sender, receiver)
+	require.Equal(t, transaction.TxStatusPending, afterReference.txResult.Status)
+	requireTransferAppliedExactlyOnce(t, beforeReference, afterReference, referenceValue)
+
+	// Step 4: Publish S, then directly create M_A without producing another shard block. M_A references
+	// the exact S hash but is withheld so its later sibling can reach the shard first.
+	broadcastAll(t, shardNode, shardArtifact)
+	metaArtifactA := generateMetaBlockWithoutShardBlock(t, simulator)
+	metaHashA := calculateHeaderHash(t, metaNode, metaArtifactA.Header)
+	requireMetaReferencesShardHeader(t, metaArtifactA.Header, shardID, shardHeaderHash)
+
+	// Step 5: Create and broadcast later-round sibling M_B, then publish M_A. Verify their shared
+	// parent/nonce and common reference to S. With both proofs present, neither source may publish S:
+	// M_B is contended and M_A loses its otherwise immediate one-descendant fast path.
+	metaArtifactB := broadcastMetaCompetitorWithoutShardBlock(t, simulator)
+	metaHashB := calculateHeaderHash(t, metaNode, metaArtifactB.Header)
+	require.Equal(t, metaArtifactA.Header.GetNonce(), metaArtifactB.Header.GetNonce())
+	require.Equal(t, metaArtifactA.Header.GetPrevHash(), metaArtifactB.Header.GetPrevHash())
+	require.Greater(t, metaArtifactB.Header.GetRound(), metaArtifactA.Header.GetRound())
+	require.NotEqual(t, metaHashA, metaHashB)
+	requireMetaReferencesShardHeader(t, metaArtifactB.Header, shardID, shardHeaderHash)
+	broadcastAll(t, metaNode, metaArtifactA)
+
+	metaProofsPool := shardNode.GetDataComponents().Datapool().Proofs()
+	require.True(t, metaProofsPool.HasProof(core.MetachainShardId, metaHashA))
+	require.True(t, metaProofsPool.HasProof(core.MetachainShardId, metaHashB))
+	require.False(t, shardAuthorityPublished.Load())
+	require.Less(t, getLastCrossNotarizedNonce(t, shardNode, core.MetachainShardId), metaArtifactA.Header.GetNonce())
+	require.Less(t, getSettledNonce(shardNode), shardArtifact.Header.GetNonce())
+
+	// Step 6: Extend the local M_A branch with one proofed child M_C. Because M_A has sibling M_B,
+	// one descendant is insufficient: S must remain unpublished and below the settled checkpoint.
+	metaChildArtifact := generateMetaBlockWithoutShardBlock(t, simulator)
+	broadcastAll(t, metaNode, metaChildArtifact)
+	metaChild, metaChildHash := metaChildArtifact.Header, calculateHeaderHash(t, metaNode, metaChildArtifact.Header)
+	require.Equal(t, metaArtifactA.Header.GetNonce()+1, metaChild.GetNonce())
+	require.Equal(t, metaHashA, metaChild.GetPrevHash())
+	require.True(t, metaProofsPool.HasProof(core.MetachainShardId, metaChildHash))
+	lastCrossMeta, lastCrossMetaHash, err := shardNode.GetProcessComponents().BlockTracker().GetLastCrossNotarizedHeader(core.MetachainShardId)
+	require.NoError(t, err)
+	require.LessOrEqual(t, lastCrossMeta.GetNonce(), metaArtifactA.Header.GetNonce())
+	if lastCrossMeta.GetNonce() == metaArtifactA.Header.GetNonce() {
+		require.Equal(t, metaHashA, lastCrossMetaHash)
+	}
+	require.False(t, shardAuthorityPublished.Load())
+	require.Less(t, getSettledNonce(shardNode), shardArtifact.Header.GetNonce())
+
+	// Step 7: Add M_D as M_C's proofed child, completing depth-two evidence for M_A. The bounded wait
+	// allows delivery of the resulting authority callback and requires shard settlement to cover S.
+	metaGrandchildArtifact := generateMetaBlockWithoutShardBlock(t, simulator)
+	broadcastAll(t, metaNode, metaGrandchildArtifact)
+	metaGrandchild, metaGrandchildHash := metaGrandchildArtifact.Header, calculateHeaderHash(t, metaNode, metaGrandchildArtifact.Header)
+	require.Equal(t, metaChild.GetNonce()+1, metaGrandchild.GetNonce())
+	require.Equal(t, metaChildHash, metaGrandchild.GetPrevHash())
+	require.True(t, metaProofsPool.HasProof(core.MetachainShardId, metaGrandchildHash))
+	generateBlocksUntil(t, simulator, 4, func() bool {
+		return shardAuthorityPublished.Load() && getSettledNonce(shardNode) >= shardArtifact.Header.GetNonce()
+	})
+
+	settledNonce, settledHash := shardNode.GetProcessComponents().ForkDetector().GetHighestSettledBlockInfo()
+	require.GreaterOrEqual(t, settledNonce, shardArtifact.Header.GetNonce())
+	if settledNonce == shardArtifact.Header.GetNonce() {
+		require.Equal(t, shardHeaderHash, settledHash)
+	}
+	requireSettledNotAheadOfFinal(t, shardNode)
+	afterSettlement := getTxAndAccounts(t, simulator, referenceTxHash, sender, receiver)
+	require.Equal(t, transaction.TxStatusSuccess, afterSettlement.txResult.Status)
+	requireTransferAppliedExactlyOnce(t, beforeReference, afterSettlement, referenceValue)
+
+	// Step 8: Replay the exact M_A and M_B artifacts. Duplicate evidence must neither move the already
+	// established settlement checkpoint nor reapply Tref to either account.
+	settledBeforeReplayNonce, settledBeforeReplayHash := shardNode.GetProcessComponents().ForkDetector().GetHighestSettledBlockInfo()
+	broadcastAll(t, metaNode, metaArtifactA)
+	broadcastAll(t, metaNode, metaArtifactB)
+	settledAfterReplayNonce, settledAfterReplayHash := shardNode.GetProcessComponents().ForkDetector().GetHighestSettledBlockInfo()
+	require.Equal(t, settledBeforeReplayNonce, settledAfterReplayNonce)
+	require.Equal(t, settledBeforeReplayHash, settledAfterReplayHash)
+	afterReplay := getTxAndAccounts(t, simulator, referenceTxHash, sender, receiver)
+	require.Equal(t, transaction.TxStatusSuccess, afterReplay.txResult.Status)
+	require.Equal(t, afterSettlement.sender, afterReplay.sender)
+	require.Equal(t, afterSettlement.receiver, afterReplay.receiver)
+
+	// Step 9: Submit Tpost with the next sender nonce. Its successful exactly-once execution proves
+	// that normal transaction processing remains live after metachain reconciliation.
+	postValue := new(big.Int).Div(new(big.Int).Set(testsChainSimulator.OneEGLD), big.NewInt(2))
+	postTx := testsChainSimulator.GenerateTransaction(
+		sender.Bytes,
+		afterReplay.sender.nonce,
+		receiver.Bytes,
+		postValue,
+		"",
+		50_000,
+	)
+	postTxHash := sendTxWithoutGeneratingBlocks(t, simulator, postTx)
+	generateBlocksUntil(t, simulator, 5, func() bool {
+		return isTransactionSuccessful(simulator, postTxHash, receiver)
+	})
+	afterPost := getTxAndAccounts(t, simulator, postTxHash, sender, receiver)
+	require.Equal(t, transaction.TxStatusSuccess, afterPost.txResult.Status)
+	beforePost := txAndAccountsSnapshot{sender: afterReplay.sender, receiver: afterReplay.receiver}
+	requireTransferAppliedExactlyOnce(t, beforePost, afterPost, postValue)
+	requireSettledNotAheadOfFinal(t, shardNode)
 }
 
 // on the clean path shard finality is instant at commit while the settled watermark follows meta
@@ -384,14 +535,20 @@ func TestChainSimulator_DescendantsNotFinalUntilContendedAncestorSettles(t *test
 	require.Equal(t, currentHeader.GetNonce(), getFinalNonce(shardNode))
 }
 
-// an equivocating shard leader commits a withheld block and broadcasts a competitor at the same
-// nonce; meta arbitrates the competitor while the shard holds its own block instantly final; the
-// settled watermark never covers the equivocated nonce, so exports stay behind the divergence
+// TestChainSimulator_EquivocatingLeaderMetaArbitratesCompetitor verifies safe containment when the
+// direct simulator's shard and metachain choose different same-nonce blocks. The shard locally
+// commits and withholds clean block A, making A its current and final tip. It then broadcasts only a
+// later-round sibling B, so metachain eventually cross-notarizes B. Because direct mode has no sync
+// loop, the shard is not expected to switch to B. Instead, the invariant is that settlement remains
+// strictly below the divergent nonce, never labels A or B as settled, and retains both headers and
+// proofs for later diagnosis or reconciliation. No consensus behavior is exercised.
 func TestChainSimulator_EquivocatingLeaderMetaArbitratesCompetitor(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
+	// Step 1: Start in Supernova and build a clean prefix whose next shard block can be withheld while
+	// metachain continues independently.
 	simulator := startSupernovaSimulator(t)
 	defer simulator.Close()
 
@@ -400,38 +557,59 @@ func TestChainSimulator_EquivocatingLeaderMetaArbitratesCompetitor(t *testing.T)
 
 	require.NoError(t, simulator.GenerateBlocks(3))
 
-	// the shard commits the withheld block and holds it instantly final; meta never sees it
+	// Step 2: Commit clean block A locally without broadcasting it. A becomes the shard's exact final
+	// tip, while metachain remains at A's parent because it has received no A artifact.
 	withheld, err := simulator.GenerateBlockWithoutBroadcast(shardID)
 	require.NoError(t, err)
 	require.NotNil(t, withheld)
 	withheldNonce := withheld.Header.GetNonce()
+	withheldHash := calculateHeaderHash(t, shardNode, withheld.Header)
 	require.Equal(t, withheldNonce, getFinalNonce(shardNode))
+	require.Equal(t, withheldHash, shardNode.GetProcessComponents().ForkDetector().GetHighestFinalBlockHash())
 	require.Equal(t, withheldNonce-1, getLastCrossNotarizedNonce(t, metaNode, shardID))
 	settledBefore := getSettledNonce(shardNode)
 	require.LessOrEqual(t, settledBefore, withheldNonce-1)
 
-	// the competitor lands on meta at the same nonce, one round later, without a local commit
+	// Step 3: Create and broadcast higher-round sibling B without committing it locally. Verify that
+	// A and B share the fork nonce but have distinct hashes and rounds.
 	competitor, err := simulator.BroadcastCompetingBlock(shardID)
 	require.NoError(t, err)
 	require.NotNil(t, competitor)
 	require.Equal(t, withheldNonce, competitor.Header.GetNonce())
 	require.Greater(t, competitor.Header.GetRound(), withheld.Header.GetRound())
+	competitorHash := calculateHeaderHash(t, shardNode, competitor.Header)
+	require.NotEqual(t, withheldHash, competitorHash)
 
-	// the competitor is contended and childless, so meta notarizes it through arbitration
+	// Step 4: Freeze shard production and let metachain wait out the discovery window. Since A stays
+	// withheld, B is the only network-visible candidate and must be cross-notarized by its exact hash.
 	generateBlocksUntilSkipping(t, simulator, metaArbitrationWindowRounds+3, []uint32{shardID}, func() bool {
 		return getLastCrossNotarizedNonce(t, metaNode, shardID) >= withheldNonce
-	})
+	}, diagnosticNode{name: "shard", node: shardNode}, diagnosticNode{name: "meta", node: metaNode})
 
-	_, notarizedHash, err := metaNode.GetProcessComponents().BlockTracker().GetLastCrossNotarizedHeader(shardID)
+	notarizedHeader, notarizedHash, err := metaNode.GetProcessComponents().BlockTracker().GetLastCrossNotarizedHeader(shardID)
 	require.NoError(t, err)
-	coreComponents := shardNode.GetCoreComponents()
-	competitorHash, err := core.CalculateHash(coreComponents.InternalMarshalizer(), coreComponents.Hasher(), competitor.Header)
-	require.NoError(t, err)
+	require.Equal(t, withheldNonce, notarizedHeader.GetNonce())
 	require.Equal(t, competitorHash, notarizedHash)
 
-	// the shard keeps its own final block, but settlement never covers the equivocated nonce
+	// Step 5: Check containment rather than convergence. Direct mode has no sync loop, so the shard
+	// keeps A while metachain selects B. Settlement may advance on the common prefix, but it must stay
+	// below the fork nonce and its hash must match neither divergent sibling.
+	require.Equal(t, withheldHash, shardNode.GetChainHandler().GetCurrentBlockHeaderHash())
 	require.Equal(t, withheldNonce, getFinalNonce(shardNode))
-	settledAfter := getSettledNonce(shardNode)
-	require.GreaterOrEqual(t, settledAfter, settledBefore)
-	require.Less(t, settledAfter, withheldNonce)
+	require.Equal(t, withheldHash, shardNode.GetProcessComponents().ForkDetector().GetHighestFinalBlockHash())
+	settledNonce, settledHash := shardNode.GetProcessComponents().ForkDetector().GetHighestSettledBlockInfo()
+	require.GreaterOrEqual(t, settledNonce, settledBefore)
+	require.Less(t, settledNonce, withheldNonce)
+	require.NotEqual(t, withheldHash, settledHash)
+	require.NotEqual(t, competitorHash, settledHash)
+	requireSettledNotAheadOfFinal(t, shardNode)
+
+	// Step 6: Confirm that both proofs remain available as equivocation evidence and B's exact header
+	// remains in the hot pool, while A remains the shard's current local tip.
+	proofsPool := shardNode.GetDataComponents().Datapool().Proofs()
+	require.True(t, proofsPool.HasProof(shardID, withheldHash))
+	require.True(t, proofsPool.HasProof(shardID, competitorHash))
+	pooledCompetitor, err := shardNode.GetDataComponents().Datapool().Headers().GetHeaderByHash(competitorHash)
+	require.NoError(t, err)
+	require.Equal(t, competitorHash, calculateHeaderHash(t, shardNode, pooledCompetitor))
 }
