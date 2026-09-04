@@ -131,15 +131,15 @@ func createArgBaseProcessor(
 	var headersForBlock blproc.HeadersForBlock = &testscommon.HeadersForBlockMock{}
 	if !check.IfNil(coreComponents) && !check.IfNil(bootstrapComponents) && !check.IfNil(dataComponents) {
 		headersForBlock, _ = headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
-			DataPool:            dataComponents.DataPool,
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-			ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
-			BlockTracker:        blockTracker,
-			TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
-			RoundHandler:        coreComponents.RoundHandler(),
-			ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-			GenesisNonce: 0,
+			DataPool:              dataComponents.DataPool,
+			RequestHandler:        &testscommon.RequestHandlerStub{},
+			EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+			ShardCoordinator:      bootstrapComponents.ShardCoordinator(),
+			BlockTracker:          blockTracker,
+			TxCoordinator:         &testscommon.TransactionCoordinatorMock{},
+			RoundHandler:          coreComponents.RoundHandler(),
+			ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+			GenesisNonce:          0,
 		})
 	}
 

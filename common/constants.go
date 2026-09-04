@@ -1049,14 +1049,6 @@ const TimeToWaitForP2PBootstrap = 20 * time.Second
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
 
-// ExtraDelayForBroadcastBlockInfo is the wait between the (metablock + proof) trigger and the
-// miniblocks broadcast; jitter allowance only - all mean terms cancel against the receivers
-const ExtraDelayForBroadcastBlockInfo = 30 * time.Millisecond
-
-// ExtraDelayBetweenBroadcastMbsAndTxs is the wait between the miniblocks broadcast and the
-// transactions broadcast; covers only the tx-before-its-mb arrival tail at receivers
-const ExtraDelayBetweenBroadcastMbsAndTxs = 50 * time.Millisecond
-
 // CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
 const CommitMaxTime = 3 * time.Second
 

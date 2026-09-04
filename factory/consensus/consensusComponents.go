@@ -164,6 +164,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.dataComponents.Datapool().Headers(),
 		ccf.dataComponents.Datapool().Proofs(),
 		ccf.coreComponents.EnableEpochsHandler(),
+		ccf.coreComponents.ProcessConfigsHandler(),
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
 		ccf.cryptoComponents.KeysHandler(),
