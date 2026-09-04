@@ -3400,10 +3400,14 @@ func (t *trigger) Close() error {
 		t.cancelFunc()
 	}
 
-	t.mutTrigger.Lock()
-	t.mutTrigger.Unlock()
+	t.waitForTriggerCallbacks()
 
 	return nil
+}
+
+func (t *trigger) waitForTriggerCallbacks() {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
 }
 
 // IsInterfaceNil returns true if underlying object is nil
