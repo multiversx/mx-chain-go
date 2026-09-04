@@ -504,6 +504,9 @@ type ProcessConfigsHandler interface {
 	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
 	GetMaxBlockProcessingTime(round uint64) time.Duration
 	GetNumHeadersToRequestInAdvance(round uint64) uint64
+	GetExtraDelayForBroadcastBlockInfo(round uint64) time.Duration
+	GetExtraDelayBetweenBroadcastMbsAndTxs(round uint64) time.Duration
+	GetExtraDelayForRequestBlockInfo(round uint64) time.Duration
 
 	GetValue(variable dto.ConfigVariable) uint64
 

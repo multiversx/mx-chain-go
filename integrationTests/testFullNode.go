@@ -396,6 +396,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		tpn.DataPool.Headers(),
 		tpn.DataPool.Proofs(),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		tpn.ProcessConfigsHandler,
 		tpn.MainInterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
 		testscommon.NewKeysHandlerSingleSignerMock(
@@ -745,23 +746,23 @@ func (tfn *TestFullNode) createEpochStartTrigger() TestEpochStartTrigger {
 		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:          TestMarshalizer,
-			Hasher:               TestHasher,
-			HeaderValidator:      &mock.HeaderValidatorStub{},
-			Uint64Converter:      TestUint64Converter,
-			DataPool:             tfn.DataPool,
-			Storage:              tfn.Storage,
-			RequestHandler:       &testscommon.RequestHandlerStub{},
-			ShardID:              tfn.ShardCoordinator.SelfId(),
-			Epoch:                0,
-			Validity:             1,
-			Finality:             1,
-			EpochStartNotifier:   tfn.EpochStartNotifier,
-			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			RoundHandler:         tfn.RoundHandler,
-			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-			EnableEpochsHandler:  tfn.EnableEpochsHandler,
-			ExtraDelayForRequestBlockInfoInMilliseconds: 0,
+			Marshalizer:           TestMarshalizer,
+			Hasher:                TestHasher,
+			HeaderValidator:       &mock.HeaderValidatorStub{},
+			Uint64Converter:       TestUint64Converter,
+			DataPool:              tfn.DataPool,
+			Storage:               tfn.Storage,
+			RequestHandler:        &testscommon.RequestHandlerStub{},
+			ShardID:               tfn.ShardCoordinator.SelfId(),
+			Epoch:                 0,
+			Validity:              1,
+			Finality:              1,
+			EpochStartNotifier:    tfn.EpochStartNotifier,
+			PeerMiniBlocksSyncer:  peerMiniBlockSyncer,
+			RoundHandler:          tfn.RoundHandler,
+			AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
+			EnableEpochsHandler:   tfn.EnableEpochsHandler,
+			ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		if err != nil {
@@ -862,23 +863,23 @@ func (tfn *TestFullNode) initInterceptors(
 		}
 		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:          TestMarshalizer,
-			Hasher:               TestHasher,
-			HeaderValidator:      &mock.HeaderValidatorStub{},
-			Uint64Converter:      TestUint64Converter,
-			DataPool:             tfn.DataPool,
-			Storage:              storage,
-			RequestHandler:       &testscommon.RequestHandlerStub{},
-			ShardID:              tfn.ShardCoordinator.SelfId(),
-			Epoch:                0,
-			Validity:             1,
-			Finality:             1,
-			EpochStartNotifier:   tfn.EpochStartNotifier,
-			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			RoundHandler:         roundHandler,
-			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-			EnableEpochsHandler:  enableEpochsHandler,
-			ExtraDelayForRequestBlockInfoInMilliseconds: 0,
+			Marshalizer:           TestMarshalizer,
+			Hasher:                TestHasher,
+			HeaderValidator:       &mock.HeaderValidatorStub{},
+			Uint64Converter:       TestUint64Converter,
+			DataPool:              tfn.DataPool,
+			Storage:               storage,
+			RequestHandler:        &testscommon.RequestHandlerStub{},
+			ShardID:               tfn.ShardCoordinator.SelfId(),
+			Epoch:                 0,
+			Validity:              1,
+			Finality:              1,
+			EpochStartNotifier:    tfn.EpochStartNotifier,
+			PeerMiniBlocksSyncer:  peerMiniBlockSyncer,
+			RoundHandler:          roundHandler,
+			AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
+			EnableEpochsHandler:   enableEpochsHandler,
+			ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
 
@@ -924,15 +925,15 @@ func (tpn *TestFullNode) initBlockProcessor(
 	}
 
 	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
-		DataPool:            tpn.DataPool,
-		RequestHandler:      tpn.RequestHandler,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		BlockTracker:        tpn.BlockTracker,
-		TxCoordinator:       tpn.TxCoordinator,
-		RoundHandler:        tpn.RoundHandler,
-		ExtraDelayForRequestBlockInfoInMilliseconds: 0,
-		GenesisNonce: tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
+		DataPool:              tpn.DataPool,
+		RequestHandler:        tpn.RequestHandler,
+		EnableEpochsHandler:   tpn.EnableEpochsHandler,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		BlockTracker:          tpn.BlockTracker,
+		TxCoordinator:         tpn.TxCoordinator,
+		RoundHandler:          tpn.RoundHandler,
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
+		GenesisNonce:          tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
 	}
 	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
 	if err != nil {
@@ -1312,15 +1313,15 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 	}
 
 	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
-		DataPool:            tpn.DataPool,
-		RequestHandler:      tpn.RequestHandler,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		BlockTracker:        tpn.BlockTracker,
-		TxCoordinator:       tpn.TxCoordinator,
-		RoundHandler:        tpn.RoundHandler,
-		ExtraDelayForRequestBlockInfoInMilliseconds: 0,
-		GenesisNonce: tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
+		DataPool:              tpn.DataPool,
+		RequestHandler:        tpn.RequestHandler,
+		EnableEpochsHandler:   tpn.EnableEpochsHandler,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		BlockTracker:          tpn.BlockTracker,
+		TxCoordinator:         tpn.TxCoordinator,
+		RoundHandler:          tpn.RoundHandler,
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
+		GenesisNonce:          tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
 	}
 	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
 	if err != nil {
