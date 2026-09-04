@@ -55,3 +55,10 @@
 [TestArray]
     Strings = ["a", "b", "c"]
     Ints = [0, 1, 2]
+
+[TestPtr]
+   String = "string"
+   Array = [
+      {Int = 1, Float  = 0.10845130},
+      {Int = 2, Float  = 0.0},
+   ]
