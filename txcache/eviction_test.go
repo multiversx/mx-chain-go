@@ -300,3 +300,28 @@ func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 	// 0.546757s (TestBenchmarkTxCache_DoEviction/numSenders_=_10000,_numTransactions_=_100)
 	// 0.542678s (TestBenchmarkTxCache_DoEviction/numSenders_=_400000,_numTransactions_=_1)
 }
+
+func TestTxCache_DoEviction_ProtectedHigherNonceIsSuffixBarrier(t *testing.T) {
+	cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
+	cache.config.EvictionEnabled = false
+	cache.config.CountThreshold = 2
+	cache.config.NumItemsToPreemptivelyEvict = 1
+
+	cache.AddTx(createTx([]byte("hash10"), "alice", 10))
+	cache.AddTx(createTx([]byte("hash11"), "alice", 11))
+	cache.AddTx(createTx([]byte("hash12"), "alice", 12))
+	releaseProtection := cache.ProtectTxHashesAgainstEviction([][]byte{[]byte("hash12")})
+	cache.config.EvictionEnabled = true
+
+	journal := cache.doEviction()
+
+	require.Zero(t, journal.numEvicted)
+	require.Equal(t, []string{"hash10", "hash11", "hash12"}, cache.getHashesForSender("alice"))
+	require.True(t, cache.areInternalMapsConsistent())
+
+	releaseProtection()
+	journal = cache.doEviction()
+
+	require.Equal(t, 1, journal.numEvicted)
+	require.True(t, cache.areInternalMapsConsistent())
+}

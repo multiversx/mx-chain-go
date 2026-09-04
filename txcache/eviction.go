@@ -27,6 +27,9 @@ func (cache *TxCache) doEviction() *evictionJournal {
 	cache.evictionMutex.Lock()
 	defer cache.evictionMutex.Unlock()
 
+	cache.mutTxOperation.Lock()
+	defer cache.mutTxOperation.Unlock()
+
 	_ = cache.isEvictionInProgress.SetReturningPrevious()
 	defer cache.isEvictionInProgress.Reset()
 
@@ -126,10 +129,14 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 				break
 			}
 
-			if !cache.tracker.IsTransactionTracked(item.currentTransaction) {
-				transactionsToEvict = append(transactionsToEvict, item.currentTransaction)
-				transactionsToEvictHashes = append(transactionsToEvictHashes, item.currentTransaction.TxHash)
+			if cache.tracker.IsTransactionTracked(item.currentTransaction) {
+				// Suffix removal cannot cross a tracked transaction. Stop considering
+				// lower nonces from this sender during this eviction run.
+				continue
 			}
+
+			transactionsToEvict = append(transactionsToEvict, item.currentTransaction)
+			transactionsToEvictHashes = append(transactionsToEvictHashes, item.currentTransaction.TxHash)
 
 			// If there are more transactions in the same bunch (same sender as the popped item),
 			// add the next one to the heap (to compete with the others in being "the worst").

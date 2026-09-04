@@ -156,6 +156,40 @@ func (sp *shardProcessor) CreateBlockProposal(
 	return shardHdr, body, nil
 }
 
+// OnProposedBlock protects shard transactions while transferring them to selection tracking.
+func (sp *shardProcessor) OnProposedBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+) error {
+	body, ok := proposedBody.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	releaseTxProtection := sp.protectBlockTransactionsAgainstEviction(body)
+	defer releaseTxProtection()
+
+	return sp.baseProcessor.OnProposedBlock(proposedBody, proposedHeader, proposedHash)
+}
+
+// OnBackfilledBlock protects shard transactions while transferring them to selection tracking.
+func (sp *shardProcessor) OnBackfilledBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+) error {
+	body, ok := proposedBody.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	releaseTxProtection := sp.protectBlockTransactionsAgainstEviction(body)
+	defer releaseTxProtection()
+
+	return sp.baseProcessor.OnBackfilledBlock(proposedBody, proposedHeader, proposedHash)
+}
+
 // VerifyBlockProposal verifies the proposed block. It returns nil if all ok or the specific error
 func (sp *shardProcessor) VerifyBlockProposal(
 	headerHandler data.HeaderHandler,
@@ -228,6 +262,9 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	}
 
 	sp.updateMetrics(header, body)
+
+	releaseTxProtection := sp.protectBlockTransactionsAgainstEviction(body)
+	defer releaseTxProtection()
 
 	sp.missingDataResolver.Reset()
 	sp.missingDataResolver.RequestBlockTransactions(body)
@@ -355,6 +392,9 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	if err != nil {
 		return nil, err
 	}
+
+	releaseTxProtection := sp.protectBlockTransactionsAgainstEviction(body)
+	defer releaseTxProtection()
 
 	// should already be available in the pools since it passed the block proposal verification,
 	// but kept here to update the internal caches (txsForBlock, hdrsForCurrBlock)

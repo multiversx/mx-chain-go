@@ -745,11 +745,15 @@ func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 	return breadcrumb.lastNonce.Value + 1, st.latestRootHash, nil
 }
 
-// IsTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker.
+// IsTransactionTracked checks if a transaction is protected for current block processing
+// or is still in the tracked blocks of the SelectionTracker.
 // However, in the case of forks, IsTransactionTracked might return inaccurate results.
 func (st *selectionTracker) IsTransactionTracked(transaction *WrappedTransaction) bool {
 	if transaction == nil || transaction.Tx == nil {
 		return false
+	}
+	if st.txCache.isTxHashProtected(transaction.TxHash) {
+		return true
 	}
 
 	sender := transaction.Tx.GetSndAddr()
