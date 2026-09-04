@@ -1905,15 +1905,15 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 		},
 	}
 	arguments.HeadersForBlock, _ = headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
-		DataPool:            dataComponents.DataPool,
-		RequestHandler:      arguments.RequestHandler,
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-		ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
-		BlockTracker:        arguments.BlockTracker,
-		TxCoordinator:       arguments.TxCoordinator,
-		RoundHandler:        coreComponents.RoundHandler(),
-		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-		GenesisNonce: 0,
+		DataPool:              dataComponents.DataPool,
+		RequestHandler:        arguments.RequestHandler,
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:      bootstrapComponents.ShardCoordinator(),
+		BlockTracker:          arguments.BlockTracker,
+		TxCoordinator:         arguments.TxCoordinator,
+		RoundHandler:          coreComponents.RoundHandler(),
+		ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+		GenesisNonce:          0,
 	})
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		JournalLenCalled:       journalLen,

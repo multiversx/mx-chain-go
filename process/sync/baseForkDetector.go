@@ -16,13 +16,14 @@ import (
 )
 
 type headerInfo struct {
-	epoch    uint32
-	nonce    uint64
-	round    uint64
-	hash     []byte
-	prevHash []byte
-	state    process.BlockHeaderState
-	hasProof bool
+	epoch               uint32
+	nonce               uint64
+	round               uint64
+	hash                []byte
+	prevHash            []byte
+	state               process.BlockHeaderState
+	hasProof            bool
+	selectedByAuthority bool
 }
 
 type appendHeaderInfoResult struct {
@@ -37,9 +38,10 @@ type notarizedHeaderCandidate struct {
 }
 
 type notarizedHeaderSelection struct {
-	hash       []byte
-	isV3       bool
-	candidates []notarizedHeaderCandidate
+	hash                []byte
+	isV3                bool
+	selectedByAuthority bool
+	candidates          []notarizedHeaderCandidate
 }
 
 type notarizedHeaderResolution uint8
@@ -788,6 +790,9 @@ func (bfd *baseForkDetector) reconcileFinalCheckpointFromAuthorityRecords(
 	preserved := infos[:0]
 	for _, info := range infos {
 		if bytes.Equal(info.hash, selectedHash) {
+			if info.state == process.BHNotarized {
+				info.selectedByAuthority = true
+			}
 			preserved = append(preserved, info)
 			continue
 		}
@@ -1555,8 +1560,9 @@ func (bfd *baseForkDetector) getNotarizedHeaderSelectionLocked(nonce uint64) not
 	}
 	if selectedHeader != nil {
 		return notarizedHeaderSelection{
-			hash: selectedHeader.hash,
-			isV3: bfd.isAsyncExecutionEnabled(selectedHeader),
+			hash:                selectedHeader.hash,
+			isV3:                bfd.isAsyncExecutionEnabled(selectedHeader),
+			selectedByAuthority: selectedHeader.selectedByAuthority,
 		}
 	}
 
@@ -1619,7 +1625,7 @@ func (bfd *baseForkDetector) applyNotarizedHeaderSelection(nonce uint64, selecte
 	bfd.mutProbableHighestNonceUpdate.Lock()
 	defer bfd.mutProbableHighestNonceUpdate.Unlock()
 
-	removed := false
+	hasConflictingNotarization := false
 	selectedCandidateFound := false
 	selectedNotarizedFound := false
 	hasV3Context := false
@@ -1639,6 +1645,7 @@ func (bfd *baseForkDetector) applyNotarizedHeaderSelection(nonce uint64, selecte
 			isSelected := bytes.Equal(hdrInfo.hash, selectedHash)
 			selectedCandidateFound = selectedCandidateFound || isSelected
 			selectedNotarizedFound = selectedNotarizedFound || isSelected
+			hasConflictingNotarization = hasConflictingNotarization || !isSelected
 			hasV3Context = hasV3Context || bfd.isAsyncExecutionEnabled(hdrInfo)
 		}
 		if hdrInfo.state == process.BHProcessed && processedHeader == nil {
@@ -1648,20 +1655,23 @@ func (bfd *baseForkDetector) applyNotarizedHeaderSelection(nonce uint64, selecte
 		}
 	}
 	processedHashConflicts := processedHeader != nil && !bytes.Equal(processedHeader.hash, selectedHash)
-	if hasV3Context && selectedCandidateFound &&
+	if hasV3Context && selectedCandidateFound && hasConflictingNotarization &&
 		!processedHashConflicts {
 		preserved := make([]*headerInfo, 0, len(hdrInfos))
 		for _, hdrInfo := range hdrInfos {
 			isConflictingAuthority := hdrInfo.state == process.BHNotarized && !bytes.Equal(hdrInfo.hash, selectedHash)
 			if isConflictingAuthority {
-				removed = true
 				continue
+			}
+			if hdrInfo.state == process.BHNotarized {
+				hdrInfo.selectedByAuthority = true
 			}
 			preserved = append(preserved, hdrInfo)
 		}
-		if removed && !selectedNotarizedFound && processedHeader != nil {
+		if !selectedNotarizedFound && processedHeader != nil {
 			selectedAuthority := *processedHeader
 			selectedAuthority.state = process.BHNotarized
+			selectedAuthority.selectedByAuthority = true
 			preserved = append(preserved, &selectedAuthority)
 		}
 		bfd.headers[nonce] = preserved
@@ -1676,7 +1686,7 @@ func (bfd *baseForkDetector) applyNotarizedHeaderSelection(nonce uint64, selecte
 	if processedHashConflicts {
 		return notarizedHeaderNeedsReconciliation
 	}
-	if !removed {
+	if !hasConflictingNotarization {
 		return notarizedHeaderUnresolved
 	}
 

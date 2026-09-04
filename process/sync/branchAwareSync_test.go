@@ -268,6 +268,78 @@ func TestBaseBootstrap_GetNextHeaderPreservesLegacyProofFallback(t *testing.T) {
 	require.Equal(t, proofHash, hash)
 }
 
+func TestBaseBootstrap_GetNextHeaderPreservesSettlementSelectedLegacyAuthority(t *testing.T) {
+	t.Parallel()
+
+	for _, reverseCandidates := range []bool{false, true} {
+		for _, reverseProofs := range []bool{false, true} {
+			name := fmt.Sprintf("reverse candidates=%v/reverse proofs=%v", reverseCandidates, reverseProofs)
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+
+				currentHash := []byte("P")
+				currentHeader := &block.Header{Nonce: 10, Round: 10, Epoch: 1, ShardID: 0}
+				fixture := newBranchAwareSyncFixture(currentHeader, currentHash)
+				legacyHash := []byte("legacy")
+				legacyHeader := &block.Header{
+					Nonce: 11, Round: 11, Epoch: 1, ShardID: 0, PrevHash: currentHash,
+				}
+				legacyProof := &block.HeaderProof{
+					HeaderHash: legacyHash, HeaderNonce: 11, HeaderRound: 11, HeaderEpoch: 1, HeaderShardId: 0,
+				}
+				v3Hash := []byte("V3")
+				v3Header, v3Proof := createBranchAwareHeader(11, v3Hash, currentHash)
+				v3Header.Epoch = 2
+				v3Proof.HeaderEpoch = 2
+				fixture.headers[string(legacyHash)] = legacyHeader
+				fixture.headers[string(v3Hash)] = v3Header
+
+				proofs := []data.HeaderProofHandler{legacyProof, v3Proof}
+				if reverseProofs {
+					proofs[0], proofs[1] = proofs[1], proofs[0]
+				}
+				fixture.proofs = proofs
+
+				enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+					IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+						return flag == common.AndromedaFlag || flag == common.SupernovaFlag && epoch >= 2
+					},
+				}
+				fixture.boot.enableEpochsHandler = enableEpochsHandler
+				bfd := newBranchAwareForkDetector(0, 10, currentHash)
+				bfd.enableEpochsHandler = enableEpochsHandler
+				bfd.fork.settledCheckpoint = &checkpointInfo{nonce: 10, round: 10, hash: currentHash}
+				records := []*headerInfo{
+					{epoch: 1, nonce: 11, round: 11, hash: legacyHash, prevHash: currentHash, state: process.BHNotarized},
+					{epoch: 2, nonce: 11, round: 21, hash: v3Hash, prevHash: currentHash, state: process.BHNotarized},
+				}
+				if reverseCandidates {
+					records[0], records[1] = records[1], records[0]
+				}
+				bfd.headers[11] = records
+				bfd.hasAmbiguousNotarization.Store(true)
+				sfd := &shardForkDetector{baseForkDetector: bfd}
+				bfd.forkDetector = sfd
+				fixture.boot.forkDetector = sfd
+				fixture.boot.forkInfo = &process.ForkInfo{IsDetected: true, Nonce: 11, Hash: v3Hash}
+
+				require.Equal(t, notarizedHeaderApplied, sfd.applyNotarizedHeaderSelection(11, legacyHash))
+				selection := sfd.getNotarizedHeaderSelection(11)
+				require.Equal(t, legacyHash, selection.hash)
+				require.False(t, selection.isV3)
+				require.True(t, selection.selectedByAuthority)
+
+				for iteration := 0; iteration < 2; iteration++ {
+					header, hash, err := fixture.boot.getNextHeaderRequestingIfMissing()
+					require.NoError(t, err)
+					require.Same(t, legacyHeader, header)
+					require.Equal(t, legacyHash, hash)
+				}
+			})
+		}
+	}
+}
+
 func TestBaseBootstrap_GetNextHeaderWaitsForUniqueV3Notarization(t *testing.T) {
 	t.Parallel()
 

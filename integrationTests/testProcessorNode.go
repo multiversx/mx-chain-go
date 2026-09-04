@@ -185,6 +185,7 @@ var TestProcessConfigsHandler, _ = configs.NewProcessConfigsHandler([]config.Pro
 			NumFloodingRoundsOutOfSpecs:            40,
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
 			MaxBlockProcessingTimeMs:               1000,
+			ExtraDelayForRequestBlockInfoMs:        1,
 		},
 	},
 	forking.NewGenericRoundNotifier(),
@@ -964,6 +965,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		tpn.DataPool.Headers(),
 		tpn.DataPool.Proofs(),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		tpn.ProcessConfigsHandler,
 		tpn.MainInterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
 		testscommon.NewKeysHandlerSingleSignerMock(
@@ -1196,6 +1198,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		tpn.DataPool.Headers(),
 		tpn.DataPool.Proofs(),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		tpn.ProcessConfigsHandler,
 		tpn.MainInterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
 		testscommon.NewKeysHandlerSingleSignerMock(
@@ -1517,23 +1520,23 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		}
 		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:          TestMarshalizer,
-			Hasher:               TestHasher,
-			HeaderValidator:      tpn.HeaderValidator,
-			Uint64Converter:      TestUint64Converter,
-			DataPool:             tpn.DataPool,
-			Storage:              tpn.Storage,
-			RequestHandler:       tpn.RequestHandler,
-			ShardID:              tpn.ShardCoordinator.SelfId(),
-			Epoch:                0,
-			Validity:             1,
-			Finality:             1,
-			EpochStartNotifier:   tpn.EpochStartNotifier,
-			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			RoundHandler:         tpn.RoundHandler,
-			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-			EnableEpochsHandler:  tpn.EnableEpochsHandler,
-			ExtraDelayForRequestBlockInfoInMilliseconds: 0,
+			Marshalizer:           TestMarshalizer,
+			Hasher:                TestHasher,
+			HeaderValidator:       tpn.HeaderValidator,
+			Uint64Converter:       TestUint64Converter,
+			DataPool:              tpn.DataPool,
+			Storage:               tpn.Storage,
+			RequestHandler:        tpn.RequestHandler,
+			ShardID:               tpn.ShardCoordinator.SelfId(),
+			Epoch:                 0,
+			Validity:              1,
+			Finality:              1,
+			EpochStartNotifier:    tpn.EpochStartNotifier,
+			PeerMiniBlocksSyncer:  peerMiniBlockSyncer,
+			RoundHandler:          tpn.RoundHandler,
+			AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
+			EnableEpochsHandler:   tpn.EnableEpochsHandler,
+			ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -2530,15 +2533,15 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
-		DataPool:            tpn.DataPool,
-		RequestHandler:      tpn.RequestHandler,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		BlockTracker:        tpn.BlockTracker,
-		TxCoordinator:       tpn.TxCoordinator,
-		RoundHandler:        tpn.RoundHandler,
-		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-		GenesisNonce: tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
+		DataPool:              tpn.DataPool,
+		RequestHandler:        tpn.RequestHandler,
+		EnableEpochsHandler:   tpn.EnableEpochsHandler,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		BlockTracker:          tpn.BlockTracker,
+		TxCoordinator:         tpn.TxCoordinator,
+		RoundHandler:          tpn.RoundHandler,
+		ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+		GenesisNonce:          tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
 	}
 	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
 	if err != nil {
@@ -2879,23 +2882,23 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			}
 			peerMiniBlocksSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 			argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-				Marshalizer:          TestMarshalizer,
-				Hasher:               TestHasher,
-				HeaderValidator:      tpn.HeaderValidator,
-				Uint64Converter:      TestUint64Converter,
-				DataPool:             tpn.DataPool,
-				Storage:              tpn.Storage,
-				RequestHandler:       tpn.RequestHandler,
-				ShardID:              tpn.ShardCoordinator.SelfId(),
-				Epoch:                0,
-				Validity:             1,
-				Finality:             1,
-				EpochStartNotifier:   tpn.EpochStartNotifier,
-				PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
-				RoundHandler:         tpn.RoundHandler,
-				AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-				EnableEpochsHandler:  tpn.EnableEpochsHandler,
-				ExtraDelayForRequestBlockInfoInMilliseconds: 0,
+				Marshalizer:           TestMarshalizer,
+				Hasher:                TestHasher,
+				HeaderValidator:       tpn.HeaderValidator,
+				Uint64Converter:       TestUint64Converter,
+				DataPool:              tpn.DataPool,
+				Storage:               tpn.Storage,
+				RequestHandler:        tpn.RequestHandler,
+				ShardID:               tpn.ShardCoordinator.SelfId(),
+				Epoch:                 0,
+				Validity:              1,
+				Finality:              1,
+				EpochStartNotifier:    tpn.EpochStartNotifier,
+				PeerMiniBlocksSyncer:  peerMiniBlocksSyncer,
+				RoundHandler:          tpn.RoundHandler,
+				AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
+				EnableEpochsHandler:   tpn.EnableEpochsHandler,
+				ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}

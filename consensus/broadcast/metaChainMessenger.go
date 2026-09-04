@@ -42,6 +42,7 @@ func NewMetaChainMessenger(
 		peerSignatureHandler:    args.PeerSignatureHandler,
 		delayedBlockBroadcaster: args.DelayedBroadcaster,
 		keysHandler:             args.KeysHandler,
+		processConfigsHandler:   args.ProcessConfigsHandler,
 	}
 
 	mcm := &metaChainMessenger{
@@ -126,12 +127,12 @@ func (mcm *metaChainMessenger) BroadcastEquivalentProof(proof data.HeaderProofHa
 
 // BroadcastBlockDataLeader broadcasts the block data as consensus group leader
 func (mcm *metaChainMessenger) BroadcastBlockDataLeader(
-	_ data.HeaderHandler,
+	header data.HeaderHandler,
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 	pkBytes []byte,
 ) error {
-	go mcm.BroadcastBlockData(miniBlocks, transactions, pkBytes, common.ExtraDelayForBroadcastBlockInfo)
+	go mcm.BroadcastBlockData(miniBlocks, transactions, pkBytes, roundFromHeader(header))
 	return nil
 }
 
@@ -182,12 +183,12 @@ func (mcm *metaChainMessenger) PrepareBroadcastBlockDataValidator(
 
 // PrepareBroadcastBlockDataWithEquivalentProofs prepares the broadcast of block data with equivalent proofs
 func (mcm *metaChainMessenger) PrepareBroadcastBlockDataWithEquivalentProofs(
-	_ data.HeaderHandler,
+	header data.HeaderHandler,
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
 	pkBytes []byte,
 ) {
-	go mcm.BroadcastBlockData(miniBlocks, transactions, pkBytes, common.ExtraDelayForBroadcastBlockInfo)
+	go mcm.BroadcastBlockData(miniBlocks, transactions, pkBytes, roundFromHeader(header))
 }
 
 // Close closes all the started infinite looping goroutines and subcomponents
