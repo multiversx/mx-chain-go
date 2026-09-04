@@ -1,8 +1,6 @@
 package process
 
 import (
-	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 
@@ -47,7 +45,7 @@ func ResolveGasProcessingPolicy(
 
 	supernovaEpoch := enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
 	if supernovaEpoch == 0 {
-		return GasProcessingPolicy{}, fmt.Errorf("%w: Supernova drain cannot use the previous epoch for epoch zero", ErrInvalidValue)
+		return GasProcessingPolicy{}, nil
 	}
 
 	return GasProcessingPolicy{

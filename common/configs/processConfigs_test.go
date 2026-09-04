@@ -25,6 +25,7 @@ func getConfigsByRound() []config.ProcessConfigByRound {
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
 			MaxBlockProcessingTimeMs:               1000,
 			RoundModulusTriggerWhenSyncIsStuck:     10,
+			ExtraDelayForRequestBlockInfoMs:        1,
 		},
 		{
 			EnableRound:                            1,
@@ -37,6 +38,7 @@ func getConfigsByRound() []config.ProcessConfigByRound {
 			MaxConsecutiveRoundsOfRatingDecrease:   6000,
 			MaxBlockProcessingTimeMs:               1000,
 			RoundModulusTriggerWhenSyncIsStuck:     10,
+			ExtraDelayForRequestBlockInfoMs:        1,
 		},
 	}
 }
@@ -193,6 +195,9 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
 			MaxBlockProcessingTimeMs:               1000,
 			RoundModulusTriggerWhenSyncIsStuck:     10,
+			ExtraDelayForBroadcastBlockInfoMs:      1000,
+			ExtraDelayBetweenBroadcastMbsAndTxsMs:  1000,
+			ExtraDelayForRequestBlockInfoMs:        3000,
 		},
 		{EnableRound: 1,
 			MaxRoundsWithoutNewBlockReceived:       11,
@@ -206,6 +211,9 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			MaxConsecutiveRoundsOfRatingDecrease:   6000,
 			MaxBlockProcessingTimeMs:               2000,
 			RoundModulusTriggerWhenSyncIsStuck:     10,
+			ExtraDelayForBroadcastBlockInfoMs:      30,
+			ExtraDelayBetweenBroadcastMbsAndTxsMs:  50,
+			ExtraDelayForRequestBlockInfoMs:        400,
 		},
 	}
 
@@ -315,5 +323,87 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 
 		res = pce.GetMaxRoundsToKeepUnprocessedMiniBlocks(1)
 		require.Equal(t, uint64(600), res)
+	})
+
+	t.Run("get block data propagation delays", func(t *testing.T) {
+		t.Parallel()
+
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
+
+		require.Equal(t, 1000*time.Millisecond, pce.GetExtraDelayForBroadcastBlockInfo(0))
+		require.Equal(t, 1000*time.Millisecond, pce.GetExtraDelayBetweenBroadcastMbsAndTxs(0))
+		require.Equal(t, 3000*time.Millisecond, pce.GetExtraDelayForRequestBlockInfo(0))
+
+		require.Equal(t, 30*time.Millisecond, pce.GetExtraDelayForBroadcastBlockInfo(1))
+		require.Equal(t, 50*time.Millisecond, pce.GetExtraDelayBetweenBroadcastMbsAndTxs(1))
+		require.Equal(t, 400*time.Millisecond, pce.GetExtraDelayForRequestBlockInfo(1))
+
+		// a round past the last configured boundary keeps the last entry
+		require.Equal(t, 400*time.Millisecond, pce.GetExtraDelayForRequestBlockInfo(1_000_000))
+	})
+}
+
+func TestProcessConfigsByRound_ExtraDelayForRequestBlockInfoMustCoverTheBroadcastChain(t *testing.T) {
+	t.Parallel()
+
+	conf := []config.ProcessConfigByEpoch{
+		{
+			EnableEpoch:                       0,
+			MaxMetaNoncesBehind:               15,
+			MaxMetaNoncesBehindForGlobalStuck: 30,
+			MaxShardNoncesBehind:              15,
+		},
+	}
+
+	createConfig := func(requestDelayMs uint32) []config.ProcessConfigByRound {
+		return []config.ProcessConfigByRound{
+			{
+				EnableRound:                            0,
+				MaxRoundsWithoutNewBlockReceived:       10,
+				MaxRoundsWithoutCommittedBlock:         10,
+				RoundModulusTriggerWhenSyncIsStuck:     10,
+				MaxSyncWithErrorsAllowed:               10,
+				MaxRoundsToKeepUnprocessedMiniBlocks:   10,
+				MaxRoundsToKeepUnprocessedTransactions: 10,
+				MaxConsecutiveRoundsOfRatingDecrease:   600,
+				MaxBlockProcessingTimeMs:               1000,
+				ExtraDelayForBroadcastBlockInfoMs:      30,
+				ExtraDelayBetweenBroadcastMbsAndTxsMs:  50,
+				ExtraDelayForRequestBlockInfoMs:        requestDelayMs,
+			},
+		}
+	}
+
+	t.Run("zero patience should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := createConfig(0)
+		cfg[0].ExtraDelayForBroadcastBlockInfoMs = 0
+		cfg[0].ExtraDelayBetweenBroadcastMbsAndTxsMs = 0
+
+		pce, err := configs.NewProcessConfigsHandler(conf, cfg, &epochNotifier.RoundNotifierStub{})
+
+		require.Nil(t, pce)
+		require.ErrorIs(t, err, process.ErrInvalidValue)
+		require.Contains(t, err.Error(), "ExtraDelayForRequestBlockInfoMs")
+	})
+
+	t.Run("shorter than the broadcast chain should error", func(t *testing.T) {
+		t.Parallel()
+
+		pce, err := configs.NewProcessConfigsHandler(conf, createConfig(79), &epochNotifier.RoundNotifierStub{})
+
+		require.Nil(t, pce)
+		require.ErrorIs(t, err, process.ErrInvalidValue)
+		require.Contains(t, err.Error(), "ExtraDelayForRequestBlockInfoMs")
+	})
+
+	t.Run("equal to the broadcast chain should work", func(t *testing.T) {
+		t.Parallel()
+
+		pce, err := configs.NewProcessConfigsHandler(conf, createConfig(80), &epochNotifier.RoundNotifierStub{})
+
+		require.NoError(t, err)
+		require.Equal(t, 80*time.Millisecond, pce.GetExtraDelayForRequestBlockInfo(0))
 	})
 }

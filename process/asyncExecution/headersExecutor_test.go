@@ -114,6 +114,26 @@ func TestHeadersExecutor_HandleProcessErrorContextCancelDuringBackoff(t *testing
 	require.GreaterOrEqual(t, elapsed, 2400*time.Millisecond)
 }
 
+func TestHeadersExecutor_PauseInterruptsRetryBackoff(t *testing.T) {
+	args := createMockArgs()
+	executor, err := NewHeadersExecutor(args)
+	require.NoError(t, err)
+
+	retryTimer := make(chan time.Time)
+	waitDone := make(chan bool, 1)
+	go func() {
+		waitDone <- executor.waitForRetry(context.Background(), retryTimer)
+	}()
+	executor.pauseRequested <- struct{}{}
+
+	select {
+	case shouldRetry := <-waitDone:
+		require.False(t, shouldRetry)
+	case <-time.After(time.Second):
+		require.FailNow(t, "pause request did not interrupt the retry wait")
+	}
+}
+
 func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	t.Parallel()
 

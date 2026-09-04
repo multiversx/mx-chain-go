@@ -46,7 +46,7 @@ type baseBlockTrack struct {
 	crossNotarizer                        blockNotarizerHandler
 	selfNotarizer                         blockNotarizerHandler
 	crossNotarizedHeadersNotifier         blockNotifierHandler
-	selfNotarizedFromCrossHeadersNotifier blockNotifierHandler
+	selfNotarizedFromCrossHeadersNotifier *blockNotifier
 	selfNotarizedHeadersNotifier          blockNotifierHandler
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	blockBalancer                         blockBalancerHandler
@@ -1062,6 +1062,11 @@ func (bbt *baseBlockTrack) isHeaderOutOfRange(headerHandler data.HeaderHandler) 
 // ComputeOwnShardStuck checks if the own shard is stuck and updates the own shard tracker accordingly
 func (bbt *baseBlockTrack) ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64) {
 	bbt.ownShardTracker.ComputeOwnShardStuck(lastExecutionResultsInfo, currentNonce)
+}
+
+// ResetOwnShardStuck restores the unstuck state.
+func (bbt *baseBlockTrack) ResetOwnShardStuck() {
+	bbt.ownShardTracker.ResetOwnShardStuck()
 }
 
 // IsOwnShardStuck returns true if the own shard is stuck, false otherwise

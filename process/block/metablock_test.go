@@ -143,15 +143,15 @@ func createMockMetaArguments(
 	var headersForBlock processBlock.HeadersForBlock = &testscommon.HeadersForBlockMock{}
 	if !check.IfNil(coreComponents) && !check.IfNil(bootstrapComponents) && !check.IfNil(dataComponents) {
 		headersForBlock, _ = headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
-			DataPool:            dataComponents.DataPool,
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-			ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
-			BlockTracker:        blockTracker,
-			TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
-			RoundHandler:        coreComponents.RoundHandler(),
-			ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-			GenesisNonce: 0,
+			DataPool:              dataComponents.DataPool,
+			RequestHandler:        &testscommon.RequestHandlerStub{},
+			EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+			ShardCoordinator:      bootstrapComponents.ShardCoordinator(),
+			BlockTracker:          blockTracker,
+			TxCoordinator:         &testscommon.TransactionCoordinatorMock{},
+			RoundHandler:          coreComponents.RoundHandler(),
+			ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+			GenesisNonce:          0,
 		})
 	}
 
@@ -3347,7 +3347,7 @@ func TestMetaProcessor_CreateMiniBlocksNoTimeShouldReturnEmptyBody(t *testing.T)
 	assert.Equal(t, &block.Body{}, bodyHandler)
 }
 
-func TestMetaProcessor_CreateBlockBodyGasPolicyErrorShouldNotStartBlock(t *testing.T) {
+func TestMetaProcessor_CreateBlockBodyEpochZeroDrainUsesDefaultGasPolicy(t *testing.T) {
 	t.Parallel()
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
@@ -3373,8 +3373,8 @@ func TestMetaProcessor_CreateBlockBodyGasPolicyErrorShouldNotStartBlock(t *testi
 	require.NoError(t, err)
 
 	_, err = mp.CreateBlockBody(&block.MetaBlock{Epoch: 0, Round: 1}, func() bool { return true })
-	require.ErrorIs(t, err, process.ErrInvalidValue)
-	require.False(t, blockStarted)
+	require.NoError(t, err)
+	require.True(t, blockStarted)
 }
 
 func TestMetaProcessor_CreateMiniBlocksDestMe(t *testing.T) {
@@ -6290,7 +6290,7 @@ func TestMetaProcessor_UpdateStateSignalsNewlyFinalBlocksUnderSupernova(t *testi
 	require.Equal(t, [][]byte{hash5, hash6}, outportCapture.finalizedHashes)
 	require.Equal(t, []uint64{5, 6}, setFinalBlockInfos)
 
-	// settlement jumps over nonce 7: the skipped block is back filled before the settled one
+	// settlement jumps over nonce 7: the skipped block is backfilled before the settled one
 	settledNonce = 8
 	mp.UpdateState(cleanHdr8, hash8)
 	require.Equal(t, [][]byte{hash5, hash6, hash7, hash8}, outportCapture.finalizedHashes)

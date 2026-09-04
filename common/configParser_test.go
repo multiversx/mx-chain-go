@@ -536,9 +536,9 @@ func TestReleasedSupernovaDrainConfiguration(t *testing.T) {
 		},
 		{
 			EnableEpoch:                       2,
-			MaxMetaNoncesBehind:               75,
-			MaxMetaNoncesBehindForGlobalStuck: 120,
-			MaxShardNoncesBehind:              75,
+			MaxMetaNoncesBehind:               15,
+			MaxMetaNoncesBehindForGlobalStuck: 30,
+			MaxShardNoncesBehind:              15,
 		},
 	}, mainConfig.GeneralSettings.ProcessConfigsByEpoch)
 
