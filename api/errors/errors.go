@@ -94,6 +94,9 @@ var ErrGetTransaction = errors.New("getting transaction failed")
 // ErrGetSmartContractResults signals an error happening when trying to fetch smart contract results
 var ErrGetSmartContractResults = errors.New("getting smart contract results failed")
 
+// ErrGetVirtualNonce signals an error happening when trying to get the virtual nonce of an account
+var ErrGetVirtualNonce = errors.New("getting virtual nonce of account failed")
+
 // ErrGetBlock signals an error happening when trying to fetch a block
 var ErrGetBlock = errors.New("getting block failed")
 

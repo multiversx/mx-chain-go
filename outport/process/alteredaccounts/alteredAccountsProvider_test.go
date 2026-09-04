@@ -530,7 +530,7 @@ func testExtractAlteredAccountsFromPoolShouldReturnErrorWhenCastingToVmCommonUse
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash",
 				Log: &transaction.Log{
@@ -582,7 +582,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash",
 				Log: &transaction.Log{
@@ -648,7 +648,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash",
 				Log: &transaction.Log{
@@ -716,7 +716,7 @@ func testExtractAlteredAccountsFromPoolShouldNotIncludeReceiverAddressIfNftCreat
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hh",
 				Log: &transaction.Log{
@@ -784,7 +784,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	aap, _ := NewAlteredAccountsProvider(args)
 
 	res, err := aap.ExtractAlteredAccountsFromPool(&outportcore.TransactionPool{
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
@@ -864,7 +864,7 @@ func testExtractAlteredAccountsFromPoolAddressHasBalanceChangeEsdtAndfNft(t *tes
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
@@ -944,7 +944,7 @@ func testExtractAlteredAccountsFromPoolMultiTransferEventV2(t *testing.T) {
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
@@ -1085,7 +1085,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "hash0",
 				Log: &transaction.Log{
@@ -1192,7 +1192,7 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "txHash",
 				Log: &transaction.Log{
@@ -1405,7 +1405,7 @@ func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				TxHash: "txHash",
 				Log: &transaction.Log{
@@ -1497,6 +1497,219 @@ func textExtractAlteredAccountsFromPoolTransactionValueNil(t *testing.T) {
 			},
 		},
 	}, res)
+}
+
+func TestAlteredAccountsProvider_ExtractAddressesFromLogs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil logs should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs(0, nil, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
+
+	t.Run("no sc deploy events should not add addresses", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.BuiltInFunctionESDTTransfer),
+							Topics: [][]byte{
+								[]byte("token0"),
+							},
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
+
+	t.Run("sc deploy event with no topics should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("addr"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("addr"),
+							Identifier: []byte(core.SCDeployIdentifier),
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
+
+	t.Run("sc deploy events should add addresses", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		args.AddressConverter = testscommon.NewPubkeyConverterMock(3)
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("sc0"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("sc0"),
+							Identifier: []byte(core.SCDeployIdentifier),
+							Topics: [][]byte{
+								[]byte("sc0"),
+							},
+						},
+					},
+				},
+			},
+			{
+				TxHash: "hash1",
+				Log: &transaction.Log{
+					Address: []byte("sc1"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("sc1"),
+							Identifier: []byte(core.SCDeployIdentifier),
+							Topics: [][]byte{
+								[]byte("sc1"),
+							},
+						},
+						{
+							Address:    []byte("sc2"),
+							Identifier: []byte("notASCDeploy"),
+							Topics: [][]byte{
+								[]byte("sc2"),
+							},
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+
+		require.Len(t, markedAccounts, 2)
+		require.Contains(t, markedAccounts, "sc0")
+		require.Contains(t, markedAccounts, "sc1")
+		require.True(t, markedAccounts["sc0"].balanceChanged)
+		require.True(t, markedAccounts["sc1"].balanceChanged)
+		require.False(t, markedAccounts["sc0"].isSender)
+		require.False(t, markedAccounts["sc1"].isSender)
+	})
+
+	t.Run("sc deploy event with an invalid address should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		args.AddressConverter = testscommon.NewPubkeyConverterMock(32)
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("invalidLenAddress"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("invalidLenAddress"),
+							Identifier: []byte(core.SCDeployIdentifier),
+							Topics: [][]byte{
+								[]byte("invalidLenAddress"),
+							},
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
+
+	t.Run("sc deploy event with event address different than the first topic should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		args.AddressConverter = testscommon.NewPubkeyConverterMock(3)
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("sc0"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("sc0"),
+							Identifier: []byte(core.SCDeployIdentifier),
+							Topics: [][]byte{
+								[]byte("sc1"),
+							},
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
+
+	t.Run("sc deploy event with address from another shard should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		args := getMockArgs()
+		args.AddressConverter = testscommon.NewPubkeyConverterMock(3)
+		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
+			CurrentShard: 0,
+			ComputeIdCalled: func(address []byte) uint32 {
+				return 1
+			},
+		}
+		aap, _ := NewAlteredAccountsProvider(args)
+
+		markedAccounts := make(map[string]*markedAlteredAccount)
+		aap.extractAddressesFromLogs(0, []*transaction.LogData{
+			{
+				TxHash: "hash0",
+				Log: &transaction.Log{
+					Address: []byte("sc0"),
+					Events: []*transaction.Event{
+						{
+							Address:    []byte("sc0"),
+							Identifier: []byte(core.SCDeployIdentifier),
+							Topics: [][]byte{
+								[]byte("sc0"),
+							},
+						},
+					},
+				},
+			},
+		}, markedAccounts)
+		require.Empty(t, markedAccounts)
+	})
 }
 
 func getMockArgs() ArgsAlteredAccountsProvider {

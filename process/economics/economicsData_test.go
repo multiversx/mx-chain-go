@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -105,12 +106,11 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 	feeSettings := feeSettingsDummy(gasModifier)
 	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
+
 	args := economics.ArgsNewEconomicsData{
-		GeneralConfig: cfg,
-		Economics:     createDummyEconomicsConfig(feeSettings),
-		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
+		Economics:          createDummyEconomicsConfig(feeSettings),
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.GasPriceModifierFlag
@@ -127,12 +127,10 @@ func createArgsForEconomicsDataRealFees() economics.ArgsNewEconomicsData {
 	feeSettings := feeSettingsReal()
 	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 	args := economics.ArgsNewEconomicsData{
-		GeneralConfig: cfg,
-		Economics:     createDummyEconomicsConfig(feeSettings),
-		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
+		Economics:          createDummyEconomicsConfig(feeSettings),
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.GasPriceModifierFlag
@@ -1056,15 +1054,24 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerMiniBlockForSafeCross
 	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	t.Run("maximum gas limit as defined should work", func(t *testing.T) {
+	t.Run("maximum gas limit as defined should return error", func(t *testing.T) {
 		// do not change this behavior: backwards compatibility reasons
+		tx := &transaction.Transaction{
+			GasPrice: minGasPrice + 1,
+			GasLimit: maxGasLimitPerBlock + 1,
+			Value:    big.NewInt(0),
+		}
+		err := economicsData.CheckValidityTxValues(tx)
+		require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
+	})
+	t.Run("maximum gas limit as defined should work", func(t *testing.T) {
 		tx := &transaction.Transaction{
 			GasPrice: minGasPrice + 1,
 			GasLimit: maxGasLimitPerBlock,
 			Value:    big.NewInt(0),
 		}
 		err := economicsData.CheckValidityTxValues(tx)
-		require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
+		require.NoError(t, err)
 	})
 	t.Run("maximum gas limit + 1 as defined should error", func(t *testing.T) {
 		tx := &transaction.Transaction{
@@ -1456,6 +1463,16 @@ func TestEconomicsData_MaxGasPriceSetGuardian(t *testing.T) {
 	economicData, _ := economics.NewEconomicsData(args)
 
 	require.Equal(t, expectedMaxGasPriceSetGuardian, economicData.MaxGasPriceSetGuardian())
+}
+
+func TestEconomicsData_BlockCapacityOverestimationFactor(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees()
+	args.Economics.FeeSettings.BlockCapacityOverestimationFactor = 100
+	economicData, _ := economics.NewEconomicsData(args)
+
+	require.Equal(t, uint64(100), economicData.BlockCapacityOverestimationFactor())
 }
 
 func TestEconomicsData_SetStatusHandler(t *testing.T) {

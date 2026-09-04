@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // ArgOutportDataProviderFactory holds the arguments needed for creating a new instance of outport.DataProviderOutport
@@ -29,18 +28,19 @@ type ArgOutportDataProviderFactory struct {
 	AccountsDB             state.AccountsAdapter
 	Marshaller             marshal.Marshalizer
 	EsdtDataStorageHandler vmcommon.ESDTNFTStorageHandler
-	TransactionsStorer     storage.Storer
 	ShardCoordinator       sharding.Coordinator
 	TxCoordinator          processTxs.TransactionCoordinator
 	NodesCoordinator       nodesCoordinator.NodesCoordinator
 	GasConsumedProvider    process.GasConsumedProvider
 	EconomicsData          process.EconomicsDataHandler
 	Hasher                 hashing.Hasher
-	MbsStorer              storage.Storer
 	EnableEpochsHandler    common.EnableEpochsHandler
 	ExecutionOrderGetter   common.ExecutionOrderGetter
-	ProofsPool             dataRetriever.ProofsPool
+	DataPool               dataRetriever.PoolsHolder
 	StateAccessesCollector state.StateAccessesCollector
+	RoundHandler           process.RoundHandler
+	RewardsGetter          process.EpochRewardsGetter
+	StorageService         dataRetriever.StorageService
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
@@ -64,9 +64,14 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		return nil, err
 	}
 
+	transactionsStorer, err := arg.StorageService.GetStorer(dataRetriever.TransactionUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	transactionsFeeProc, err := transactionsfee.NewTransactionsFeeProcessor(transactionsfee.ArgTransactionsFeeProcessor{
 		Marshaller:          arg.Marshaller,
-		TransactionsStorer:  arg.TransactionsStorer,
+		TransactionsStorer:  transactionsStorer,
 		ShardCoordinator:    arg.ShardCoordinator,
 		TxFeeCalculator:     arg.EconomicsData,
 		PubKeyConverter:     arg.AddressConverter,
@@ -89,8 +94,11 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		ExecutionOrderHandler:    arg.ExecutionOrderGetter,
 		Hasher:                   arg.Hasher,
 		Marshaller:               arg.Marshaller,
-		ProofsPool:               arg.ProofsPool,
+		DataPool:                 arg.DataPool,
 		EnableEpochsHandler:      arg.EnableEpochsHandler,
 		StateAccessesCollector:   arg.StateAccessesCollector,
+		RoundHandler:             arg.RoundHandler,
+		RewardsGetter:            arg.RewardsGetter,
+		StorageService:           arg.StorageService,
 	})
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 )
 
 type txHandlerWithFeeInfo interface {
@@ -15,7 +16,7 @@ type txHandlerWithFeeInfo interface {
 type transactionWithResults struct {
 	txHandlerWithFeeInfo
 	scrs []txHandlerWithFeeInfo
-	log  *data.LogData
+	log  data.LogDataHandler
 }
 
 type transactionsAndScrsHolder struct {
@@ -50,9 +51,9 @@ func prepareTransactionsAndScrs(txPool *outportcore.TransactionPool) *transactio
 			continue
 		}
 
-		txWithResults.log = &data.LogData{
-			LogHandler: txLog.Log,
-			TxHash:     txHash,
+		txWithResults.log = &transaction.LogData{
+			Log:    txLog.Log,
+			TxHash: txHash,
 		}
 	}
 

@@ -466,4 +466,5 @@ func TestInterceptedPeerAuthentication_Getters(t *testing.T) {
 	assert.Equal(t, expectedPeerAuthentication.Pubkey[:common.MaxPeerAuthenticationPublicKeyIdentifierLen], identifiers[2])
 	providedPASize := getSizeOfPA(providedPA)
 	assert.Equal(t, providedPASize, ipa.SizeInBytes())
+	assert.True(t, ipa.ShouldAllowDuplicates())
 }

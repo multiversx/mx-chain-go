@@ -13,6 +13,7 @@ type ProcessedMiniBlocksTrackerStub struct {
 	GetProcessedMiniBlocksInfoCalled           func(metaBlockHash []byte) map[string]*processedMb.ProcessedMiniBlockInfo
 	GetProcessedMiniBlockInfoCalled            func(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte)
 	IsMiniBlockFullyProcessedCalled            func(metaBlockHash []byte, miniBlockHash []byte) bool
+	HasUnfinishedMiniBlocksCalled              func() bool
 	ConvertProcessedMiniBlocksMapToSliceCalled func() []bootstrapStorage.MiniBlocksInMeta
 	ConvertSliceToProcessedMiniBlocksMapCalled func(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta)
 	DisplayProcessedMiniBlocksCalled           func()
@@ -28,7 +29,7 @@ func (pmbts *ProcessedMiniBlocksTrackerStub) SetProcessedMiniBlockInfo(metaBlock
 // RemoveMetaBlockHash -
 func (pmbts *ProcessedMiniBlocksTrackerStub) RemoveMetaBlockHash(metaBlockHash []byte) {
 	if pmbts.RemoveMetaBlockHashCalled != nil {
-		pmbts.RemoveMiniBlockHashCalled(metaBlockHash)
+		pmbts.RemoveMetaBlockHashCalled(metaBlockHash)
 	}
 }
 
@@ -63,6 +64,15 @@ func (pmbts *ProcessedMiniBlocksTrackerStub) IsMiniBlockFullyProcessed(metaBlock
 	if pmbts.IsMiniBlockFullyProcessedCalled != nil {
 		return pmbts.IsMiniBlockFullyProcessedCalled(metaBlockHash, miniBlockHash)
 	}
+	return false
+}
+
+// HasUnfinishedMiniBlocks -
+func (pmbts *ProcessedMiniBlocksTrackerStub) HasUnfinishedMiniBlocks() bool {
+	if pmbts.HasUnfinishedMiniBlocksCalled != nil {
+		return pmbts.HasUnfinishedMiniBlocksCalled()
+	}
+
 	return false
 }
 

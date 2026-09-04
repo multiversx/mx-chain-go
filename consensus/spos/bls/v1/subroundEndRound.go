@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/display"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -22,11 +23,10 @@ import (
 
 type subroundEndRound struct {
 	*spos.Subround
-	processingThresholdPercentage int
-	displayStatistics             func()
-	appStatusHandler              core.AppStatusHandler
-	mutProcessingEndRound         sync.Mutex
-	sentSignatureTracker          spos.SentSignaturesTracker
+	displayStatistics     func()
+	appStatusHandler      core.AppStatusHandler
+	mutProcessingEndRound sync.Mutex
+	sentSignatureTracker  spos.SentSignaturesTracker
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -54,13 +54,14 @@ func NewSubroundEndRound(
 		return nil, ErrNilSentSignatureTracker
 	}
 
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
+
 	srEndRound := subroundEndRound{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
-		displayStatistics:             displayStatistics,
-		appStatusHandler:              appStatusHandler,
-		mutProcessingEndRound:         sync.Mutex{},
-		sentSignatureTracker:          sentSignatureTracker,
+		Subround:              baseSubround,
+		displayStatistics:     displayStatistics,
+		appStatusHandler:      appStatusHandler,
+		mutProcessingEndRound: sync.Mutex{},
+		sentSignatureTracker:  sentSignatureTracker,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -391,6 +392,9 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
 
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(sr.GetHeader(), "committed", "v1", sr.CommonConfigsHandler())
+
 	err = sr.broadcastBlockDataLeader()
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.broadcastBlockDataLeader", "error", err.Error())
@@ -595,7 +599,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if !(isSelfLeader || sr.IsMultiKeyLeaderInCurrentRound()) {
 		return
 	}
@@ -708,6 +712,9 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	log.Debug("step 3: Body and Header have been committed")
 
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(header, "committed", "v1", sr.CommonConfigsHandler())
+
 	headerTypeMsg := "received"
 	if cnsDta != nil {
 		headerTypeMsg = "assembled"
@@ -816,12 +823,15 @@ func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
 
 func (sr *subroundEndRound) updateMetricsForLeader() {
 	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
+
+	roundTimeStamp := sr.RoundHandler().TimeStamp()
+	timeSinceRound := time.Since(roundTimeStamp)
 	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
-		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
+		fmt.Sprintf("valid block produced in %s", timeSinceRound.String()))
 }
 
 func (sr *subroundEndRound) broadcastBlockDataLeader() error {
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetData(), sr.GetHeader(), sr.GetBody())
 	if err != nil {
 		return err
 	}
@@ -889,7 +899,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 
 func (sr *subroundEndRound) isOutOfTime() bool {
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),
@@ -916,7 +926,7 @@ func (sr *subroundEndRound) getIndexPkAndDataToBroadcast() (int, []byte, map[uin
 		return -1, nil, nil, nil, err
 	}
 
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetData(), sr.GetHeader(), sr.GetBody())
 	if err != nil {
 		return -1, nil, nil, nil, err
 	}

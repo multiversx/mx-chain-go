@@ -28,7 +28,7 @@ type ArgBaseBootstrapper struct {
 	ChainHandler                 data.ChainHandler
 	RoundHandler                 consensus.RoundHandler
 	BlockProcessor               process.BlockProcessor
-	WaitTime                     time.Duration
+	ExecutionManager             process.ExecutionManager
 	Hasher                       hashing.Hasher
 	Marshalizer                  marshal.Marshalizer
 	ForkDetector                 process.ForkDetector
@@ -40,6 +40,7 @@ type ArgBaseBootstrapper struct {
 	BootStorer                   process.BootStorer
 	StorageBootstrapper          process.BootstrapperFromStorage
 	EpochHandler                 dataRetriever.EpochHandler
+	EpochStartTrigger            process.EpochStartTriggerHandler
 	MiniblocksProvider           process.MiniBlockProvider
 	Uint64Converter              typeConverters.Uint64ByteSliceConverter
 	AppStatusHandler             core.AppStatusHandler
@@ -49,14 +50,19 @@ type ArgBaseBootstrapper struct {
 	IsInImportMode               bool
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessWaitTime              time.Duration
+	ProcessWaitTimeSupernova     time.Duration
 	RepopulateTokensSupplies     bool
 	EnableEpochsHandler          common.EnableEpochsHandler
+	EnableRoundsHandler          common.EnableRoundsHandler
+	ProcessConfigsHandler        common.ProcessConfigsHandler
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create
 // new instances of shard bootstrapper
 type ArgShardBootstrapper struct {
 	ArgBaseBootstrapper
+	MetaFinalityView process.MetaFinalityView
+	BlockTracker     process.BlockTracker
 }
 
 // ArgMetaBootstrapper holds all dependencies required by the bootstrap data factory in order to create

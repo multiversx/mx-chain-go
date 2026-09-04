@@ -90,6 +90,10 @@ func (ses *startInEpochWithScheduledDataSyncer) IsInterfaceNil() bool {
 func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	notarizedShardHeader data.ShardHeaderHandler,
 ) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
+	if notarizedShardHeader.IsHeaderV3() {
+		return notarizedShardHeader, nil, nil
+	}
+
 	shardIDs, hashesToRequest := getShardIDAndHashesForIncludedMetaBlocks(notarizedShardHeader)
 
 	shardIDs = append(shardIDs, notarizedShardHeader.GetShardID())

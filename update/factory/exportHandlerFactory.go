@@ -72,6 +72,7 @@ type ArgsExporter struct {
 	NodeOperationMode                       common.NodeOperation
 	InterceptedDataVerifierFactory          process.InterceptedDataVerifierFactory
 	PeerAuthenticationTimeBetweenSendsInSec int64
+	Config                                  config.Config
 }
 
 type exportHandlerFactory struct {
@@ -113,6 +114,7 @@ type exportHandlerFactory struct {
 	nodeOperationMode                       common.NodeOperation
 	interceptedDataVerifierFactory          process.InterceptedDataVerifierFactory
 	peerAuthenticationTimeBetweenSendsInSec int64
+	config                                  config.Config
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -273,6 +275,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		nodeOperationMode:                       args.NodeOperationMode,
 		interceptedDataVerifierFactory:          args.InterceptedDataVerifierFactory,
 		peerAuthenticationTimeBetweenSendsInSec: args.PeerAuthenticationTimeBetweenSendsInSec,
+		config:                                  args.Config,
 	}
 
 	return e, nil
@@ -286,7 +289,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	// TODO reuse the debugger when the one used for regular resolvers & interceptors will be moved inside the status components
-	debugger, errNotCritical := factory.NewInterceptorDebuggerFactory(e.interceptorDebugConfig)
+	debugger, errNotCritical := factory.NewInterceptorDebuggerFactory(e.config.Debug.InterceptorResolver, e.coreComponents.SyncTimer())
 	if errNotCritical != nil {
 		log.Warn("error creating hardfork debugger", "error", errNotCritical)
 	}
@@ -301,21 +304,23 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 	argsEpochTrigger := shardchain.ArgsShardEpochStartTrigger{
-		Marshalizer:          e.coreComponents.InternalMarshalizer(),
-		Hasher:               e.coreComponents.Hasher(),
-		HeaderValidator:      e.headerValidator,
-		Uint64Converter:      e.coreComponents.Uint64ByteSliceConverter(),
-		DataPool:             e.dataPool,
-		Storage:              e.storageService,
-		RequestHandler:       e.requestHandler,
-		EpochStartNotifier:   notifier.NewEpochStartSubscriptionHandler(),
-		Epoch:                0,
-		Validity:             process.MetaBlockValidity,
-		Finality:             process.BlockFinality,
-		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
-		RoundHandler:         e.roundHandler,
-		AppStatusHandler:     e.statusCoreComponents.AppStatusHandler(),
-		EnableEpochsHandler:  e.coreComponents.EnableEpochsHandler(),
+		Marshalizer:           e.coreComponents.InternalMarshalizer(),
+		Hasher:                e.coreComponents.Hasher(),
+		HeaderValidator:       e.headerValidator,
+		Uint64Converter:       e.coreComponents.Uint64ByteSliceConverter(),
+		DataPool:              e.dataPool,
+		Storage:               e.storageService,
+		RequestHandler:        e.requestHandler,
+		ShardID:               e.shardCoordinator.SelfId(),
+		EpochStartNotifier:    notifier.NewEpochStartSubscriptionHandler(),
+		Epoch:                 0,
+		Validity:              process.MetaBlockValidity,
+		Finality:              process.BlockFinality,
+		PeerMiniBlocksSyncer:  peerMiniBlocksSyncer,
+		RoundHandler:          e.roundHandler,
+		AppStatusHandler:      e.statusCoreComponents.AppStatusHandler(),
+		EnableEpochsHandler:   e.coreComponents.EnableEpochsHandler(),
+		ProcessConfigsHandler: e.coreComponents.ProcessConfigsHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {
@@ -597,6 +602,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		NodeOperationMode:                       e.nodeOperationMode,
 		InterceptedDataVerifierFactory:          e.interceptedDataVerifierFactory,
 		PeerAuthenticationTimeBetweenSendsInSec: e.peerAuthenticationTimeBetweenSendsInSec,
+		Config:                                  e.config,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

@@ -11,6 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 
+	"github.com/multiversx/mx-chain-go/p2p"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor/chunk"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -140,6 +142,7 @@ func TestTrieNodeChunksProcessor_CheckBatchInvalidBatch(t *testing.T) {
 			MaxChunks:  1,
 		},
 		createMockWhiteLister(true),
+		p2p.Broadcast,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, emptyCheckedChunkResult, chunkResult)
@@ -152,6 +155,7 @@ func TestTrieNodeChunksProcessor_CheckBatchInvalidBatch(t *testing.T) {
 			MaxChunks:  2,
 		},
 		createMockWhiteLister(true),
+		p2p.Broadcast,
 	)
 	assert.Equal(t, err, process.ErrIncompatibleReference)
 	assert.Equal(t, emptyCheckedChunkResult, chunkResult)
@@ -164,6 +168,7 @@ func TestTrieNodeChunksProcessor_CheckBatchInvalidBatch(t *testing.T) {
 			MaxChunks:  4,
 		},
 		createMockWhiteLister(true),
+		p2p.Broadcast,
 	)
 	assert.True(t, errors.Is(err, process.ErrInvalidValue))
 	assert.Equal(t, emptyCheckedChunkResult, chunkResult)
@@ -176,6 +181,7 @@ func TestTrieNodeChunksProcessor_CheckBatchInvalidBatch(t *testing.T) {
 			MaxChunks:  2,
 		},
 		createMockWhiteLister(true),
+		p2p.Broadcast,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, emptyCheckedChunkResult, chunkResult)
@@ -197,6 +203,7 @@ func TestTrieNodeChunksProcessor_NilWhitelistHandler(t *testing.T) {
 			MaxChunks:  2,
 		},
 		nil,
+		p2p.Broadcast,
 	)
 	assert.Equal(t, process.ErrNilWhiteListHandler, err)
 	assert.Equal(t, emptyCheckedChunkResult, chunkResult)
@@ -219,6 +226,7 @@ func TestTrieNodeChunksProcessor_NotWhiteListed(t *testing.T) {
 			MaxChunks:  2,
 		},
 		createMockWhiteLister(false),
+		p2p.Broadcast,
 	)
 	assert.Equal(t, process.ErrTrieNodeIsNotWhitelisted, err)
 	assert.Equal(t, emptyCheckedChunkResult, chunkResult)
@@ -245,6 +253,7 @@ func TestTrieNodeChunksProcessor_CheckBatchShouldWork(t *testing.T) {
 			MaxChunks:  2,
 		},
 		createMockWhiteLister(true),
+		p2p.Broadcast,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCheckedChunkResult, chunkResult)
@@ -258,6 +267,7 @@ func TestTrieNodeChunksProcessor_CheckBatchShouldWork(t *testing.T) {
 			MaxChunks:  2,
 		},
 		createMockWhiteLister(true),
+		p2p.Broadcast,
 	)
 	assert.Nil(t, err)
 
@@ -268,6 +278,8 @@ func TestTrieNodeChunksProcessor_CheckBatchShouldWork(t *testing.T) {
 	}
 	assert.Equal(t, expectedCheckedChunkResult, chunkResult)
 	assert.Equal(t, 0, args.ChunksCacher.Len())
+
+	tncp.MarkVerified(nil, p2p.Broadcast) // for coverage only
 
 	_ = tncp.Close()
 }
@@ -291,6 +303,7 @@ func TestTrieNodeChunksProcessor_CheckBatchNotTheFirstBatch(t *testing.T) {
 			MaxChunks:  2,
 		},
 		createMockWhiteLister(true),
+		p2p.Broadcast,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCheckedChunkResult, chunkResult)
@@ -306,6 +319,7 @@ func TestTrieNodeChunksProcessor_CheckBatchNotTheFirstBatch(t *testing.T) {
 			MaxChunks:  2,
 		},
 		createMockWhiteLister(true),
+		p2p.Broadcast,
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCheckedChunkResult, chunkResult)
@@ -382,6 +396,7 @@ func TestTrieNodeChunksProcessor_CheckBatchComponentClosed(t *testing.T) {
 			MaxChunks:  2,
 		},
 		createMockWhiteLister(true),
+		p2p.Broadcast,
 	)
 	assert.Equal(t, process.ErrProcessClosed, err)
 	assert.Equal(t, expectedCheckedChunkResult, chunkResult)
@@ -409,6 +424,7 @@ func TestTrieNodeChunksProcessor_RequestShouldWork(t *testing.T) {
 			MaxChunks:  3,
 		},
 		createMockWhiteLister(true),
+		p2p.Broadcast,
 	)
 	assert.Nil(t, err)
 

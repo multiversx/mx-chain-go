@@ -132,6 +132,11 @@ func (sp *scheduledProcessorWrapper) IsProcessedOKWithTimeout() bool {
 
 // StartScheduledProcessing starts the scheduled processing
 func (sp *scheduledProcessorWrapper) StartScheduledProcessing(header data.HeaderHandler, body data.BodyHandler, startTime time.Time) {
+	if check.IfNil(header) {
+		log.Debug("scheduledProcessorWrapper.StartScheduledProcessing: nil header provided")
+		return
+	}
+
 	if !header.HasScheduledSupport() {
 		log.Debug("scheduled processing not supported")
 		sp.setStatus(processingOK)

@@ -6,17 +6,40 @@ import (
 
 // ChainHandlerStub -
 type ChainHandlerStub struct {
-	GetGenesisHeaderCalled                 func() data.HeaderHandler
-	SetGenesisHeaderCalled                 func(handler data.HeaderHandler) error
-	GetGenesisHeaderHashCalled             func() []byte
-	SetGenesisHeaderHashCalled             func([]byte)
-	GetCurrentBlockHeaderCalled            func() data.HeaderHandler
-	SetCurrentBlockHeaderAndRootHashCalled func(header data.HeaderHandler, rootHash []byte) error
-	GetCurrentBlockHeaderHashCalled        func() []byte
-	SetCurrentBlockHeaderHashCalled        func([]byte)
-	GetCurrentBlockRootHashCalled          func() []byte
-	SetFinalBlockInfoCalled                func(nonce uint64, headerHash []byte, rootHash []byte)
-	GetFinalBlockInfoCalled                func() (nonce uint64, blockHash []byte, rootHash []byte)
+	GetGenesisHeaderCalled                      func() data.HeaderHandler
+	SetGenesisHeaderCalled                      func(handler data.HeaderHandler) error
+	GetGenesisHeaderHashCalled                  func() []byte
+	SetGenesisHeaderHashCalled                  func([]byte)
+	GetCurrentBlockHeaderCalled                 func() data.HeaderHandler
+	SetCurrentBlockHeaderAndRootHashCalled      func(header data.HeaderHandler, rootHash []byte) error
+	GetCurrentBlockHeaderHashCalled             func() []byte
+	SetCurrentBlockHeaderHashCalled             func([]byte)
+	GetCurrentBlockHeaderAndHashCalled          func() (data.HeaderHandler, []byte)
+	GetCurrentBlockRootHashCalled               func() []byte
+	SetFinalBlockInfoCalled                     func(nonce uint64, headerHash []byte, rootHash []byte)
+	GetFinalBlockInfoCalled                     func() (nonce uint64, blockHash []byte, rootHash []byte)
+	GetLastExecutedBlockInfoCalled              func() (uint64, []byte, []byte)
+	SetCurrentBlockHeaderCalled                 func(header data.HeaderHandler) error
+	SetCurrentBlockHeaderAndHashCalled          func(headerHash []byte, header data.HeaderHandler) error
+	GetLastExecutedBlockHeaderCalled            func() data.HeaderHandler
+	SetLastExecutedBlockHeaderAndRootHashCalled func(header data.HeaderHandler, blockHash []byte, rootHash []byte)
+	GetLastExecutionResultCalled                func() data.BaseExecutionResultHandler
+	SetLastExecutionInfoCalled                  func(header data.HeaderHandler, result data.BaseExecutionResultHandler)
+}
+
+// GetLastExecutionResult -
+func (stub *ChainHandlerStub) GetLastExecutionResult() data.BaseExecutionResultHandler {
+	if stub.GetLastExecutionResultCalled != nil {
+		return stub.GetLastExecutionResultCalled()
+	}
+	return nil
+}
+
+// SetLastExecutionInfo -
+func (stub *ChainHandlerStub) SetLastExecutionInfo(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
+	if stub.SetLastExecutionInfoCalled != nil {
+		stub.SetLastExecutionInfoCalled(header, result)
+	}
 }
 
 // GetGenesisHeader -
@@ -57,6 +80,14 @@ func (stub *ChainHandlerStub) GetCurrentBlockHeader() data.HeaderHandler {
 		return stub.GetCurrentBlockHeaderCalled()
 	}
 	return nil
+}
+
+// GetCurrentBlockHeaderAndHash -
+func (stub *ChainHandlerStub) GetCurrentBlockHeaderAndHash() (data.HeaderHandler, []byte) {
+	if stub.GetCurrentBlockHeaderAndHashCalled != nil {
+		return stub.GetCurrentBlockHeaderAndHashCalled()
+	}
+	return nil, nil
 }
 
 // SetCurrentBlockHeaderAndRootHash -
@@ -105,6 +136,49 @@ func (stub *ChainHandlerStub) GetFinalBlockInfo() (nonce uint64, blockHash []byt
 	}
 
 	return 0, nil, nil
+}
+
+// GetLastExecutedBlockInfo -
+func (stub *ChainHandlerStub) GetLastExecutedBlockInfo() (nonce uint64, blockHash []byte, rootHash []byte) {
+	if stub.GetLastExecutedBlockInfoCalled != nil {
+		return stub.GetLastExecutedBlockInfoCalled()
+	}
+
+	return 0, nil, nil
+}
+
+// SetCurrentBlockHeader -
+func (stub *ChainHandlerStub) SetCurrentBlockHeader(header data.HeaderHandler) error {
+	if stub.SetCurrentBlockHeaderCalled != nil {
+		return stub.SetCurrentBlockHeaderCalled(header)
+	}
+
+	return nil
+}
+
+// SetCurrentBlockHeaderAndHash -
+func (stub *ChainHandlerStub) SetCurrentBlockHeaderAndHash(headerHash []byte, header data.HeaderHandler) error {
+	if stub.SetCurrentBlockHeaderAndHashCalled != nil {
+		return stub.SetCurrentBlockHeaderAndHashCalled(headerHash, header)
+	}
+
+	return nil
+}
+
+// GetLastExecutedBlockHeader -
+func (stub *ChainHandlerStub) GetLastExecutedBlockHeader() data.HeaderHandler {
+	if stub.GetLastExecutedBlockHeaderCalled != nil {
+		return stub.GetLastExecutedBlockHeaderCalled()
+	}
+
+	return nil
+}
+
+// SetLastExecutedBlockHeaderAndRootHash -
+func (stub *ChainHandlerStub) SetLastExecutedBlockHeaderAndRootHash(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+	if stub.SetLastExecutedBlockHeaderAndRootHashCalled != nil {
+		stub.SetLastExecutedBlockHeaderAndRootHashCalled(header, blockHash, rootHash)
+	}
 }
 
 // IsInterfaceNil -

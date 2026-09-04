@@ -166,9 +166,6 @@
     # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Wasm VM
     StorageAPICostOptimizationEnableEpoch = 1
 
-    # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
-    TransformToMultiShardCreateEnableEpoch = 1
-
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
     ESDTRegisterAndSetAllRolesEnableEpoch = 1
 
@@ -347,6 +344,9 @@
 
     # AndromedaEnableEpoch represents the epoch when the equivalent messages and fix order for consensus features are enabled
     AndromedaEnableEpoch = 1
+
+    # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
+    SupernovaEnableEpoch = 2
 
     # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
     CheckBuiltInCallOnTransferValueAndFailEnableRound = 1

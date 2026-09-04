@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -27,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/directoryhandler"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -118,15 +116,9 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	versionsCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(bcf.config.Versions.Cache))
-	if err != nil {
-		return nil, err
-	}
-
 	headerVersionHandler, err := block.NewHeaderVersionHandler(
 		bcf.config.Versions.VersionsByEpochs,
 		bcf.config.Versions.DefaultVersion,
-		versionsCache,
 	)
 	if err != nil {
 		return nil, err
@@ -204,8 +196,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	// create a new instance of interceptedDataVerifier which will be used for bootstrap only
 	interceptedDataVerifierFactory := interceptorFactory.NewInterceptedDataVerifierFactory(interceptorFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Duration(bcf.config.InterceptedDataVerifier.CacheSpanInSec) * time.Second,
-		CacheExpiry: time.Duration(bcf.config.InterceptedDataVerifier.CacheExpiryInSec) * time.Second,
+		InterceptedDataVerifierConfig: bcf.config.InterceptedDataVerifier,
 	})
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{

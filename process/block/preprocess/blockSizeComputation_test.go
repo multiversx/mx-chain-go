@@ -2,6 +2,7 @@ package preprocess_test
 
 import (
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -10,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const maxSizeInBytes = uint32(core.MegabyteSize * 90 / 100)
@@ -189,4 +191,69 @@ func TestBlockSizeComputation_MaxTransactionsInOneMiniblock(t *testing.T) {
 	maxTxs := bsc.MaxTransactionsInOneMiniblock()
 
 	assert.Equal(t, 27756, maxTxs)
+}
+
+func TestBlockSizeComputation_DecrementValues(t *testing.T) {
+	t.Parallel()
+
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{}, &mock.BlockSizeThrottlerStub{}, maxSizeInBytes)
+
+	bsc.Init()
+
+	bsc.AddNumMiniBlocks(10)
+	require.Equal(t, uint32(10), bsc.NumMiniBlocks())
+
+	bsc.DecNumMiniBlocks(5)
+	require.Equal(t, uint32(5), bsc.NumMiniBlocks())
+
+	bsc.AddNumTxs(20)
+	require.Equal(t, uint32(20), bsc.NumTxs())
+
+	bsc.DecNumTxs(10)
+	require.Equal(t, uint32(10), bsc.NumTxs())
+
+	// should decrement down to zero
+	bsc.DecNumTxs(30)
+	require.Equal(t, uint32(0), bsc.NumTxs())
+}
+
+func TestBlockSizeComputation_Concurrency(t *testing.T) {
+	require.NotPanics(t, func() {
+		t.Parallel()
+
+		bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{}, &mock.BlockSizeThrottlerStub{}, maxSizeInBytes)
+
+		bsc.Init()
+
+		const numCalls = 1000
+		wg := sync.WaitGroup{}
+		wg.Add(numCalls)
+
+		for i := 0; i < numCalls; i++ {
+			go func(idx int) {
+				defer wg.Done()
+
+				switch idx % 8 {
+				case 0:
+					bsc.AddNumMiniBlocks(1)
+				case 1:
+					bsc.DecNumMiniBlocks(1)
+				case 2:
+					bsc.AddNumTxs(10)
+				case 3:
+					bsc.DecNumTxs(10)
+				case 4:
+					bsc.Init()
+				case 5:
+					bsc.IsMaxBlockSizeReached(1, 10)
+				case 6:
+					bsc.IsMaxBlockSizeWithoutThrottleReached(1, 10)
+				case 7:
+					_ = bsc.MaxTransactionsInOneMiniblock()
+				}
+			}(i)
+		}
+
+		wg.Wait()
+	})
 }

@@ -21,6 +21,10 @@ type TriggerHandler interface {
 	Epoch() uint32
 	MetaEpoch() uint32
 	Update(round uint64, nonce uint64)
+	SetEpochChange(round uint64)
+	ShouldProposeEpochChange(round uint64, nonce uint64) bool
+	SetEpochChangeProposed(value bool)
+	GetEpochChangeProposed() bool
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
 	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
@@ -34,6 +38,11 @@ type TriggerHandler interface {
 	SetCurrentEpochStartRound(round uint64)
 	RequestEpochStartIfNeeded(interceptedHeader data.HeaderHandler)
 	IsInterfaceNil() bool
+}
+
+// BootstrapCompletedNotifier handles completion of storage bootstrap.
+type BootstrapCompletedNotifier interface {
+	OnBootstrapCompleted()
 }
 
 // RoundHandler defines the actions which should be handled by a round implementation
@@ -54,8 +63,11 @@ type HeaderValidator interface {
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
 	RequestShardHeader(shardId uint32, hash []byte)
+	RequestShardHeaderForEpoch(shardId uint32, hash []byte, epoch uint32)
 	RequestMetaHeader(hash []byte)
+	RequestMetaHeaderForEpoch(hash []byte, epoch uint32)
 	RequestMetaHeaderByNonce(nonce uint64)
+	RequestMetaHeaderByNonceForEpoch(nonce uint64, epoch uint32)
 	RequestShardHeaderByNonce(shardId uint32, nonce uint64)
 	RequestStartOfEpochMetaBlock(epoch uint32)
 	RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte)
@@ -64,7 +76,7 @@ type RequestHandler interface {
 	GetNumPeersToQuery(key string) (int, int, error)
 	RequestValidatorInfo(hash []byte)
 	RequestValidatorsInfo(hashes [][]byte)
-	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte)
+	RequestEquivalentProofByHashForEpoch(headerShard uint32, headerHash []byte, epoch uint32)
 	IsInterfaceNil() bool
 }
 
@@ -208,6 +220,12 @@ type RewardsCreator interface {
 	VerifyRewardsMiniBlocks(
 		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
+	CreateRewardsMiniBlocksV3(
+		metaBlock data.MetaHeaderHandler,
+		validatorsInfo state.ShardValidatorsInfoMapHandler,
+		computedEconomics *block.Economics,
+		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	) (block.MiniBlockSlice, error)
 	GetAcceleratorRewards() *big.Int
 	GetLocalTxCache() TransactionCacher
 	CreateMarshalledData(body *block.Body) map[string][][]byte

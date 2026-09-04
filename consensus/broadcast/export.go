@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -14,8 +15,8 @@ import (
 
 // HeaderDataForValidator -
 type HeaderDataForValidator struct {
-	Round        uint64
-	PrevRandSeed []byte
+	Round      uint64
+	HeaderHash []byte
 }
 
 // ExtractMetaMiniBlocksAndTransactions -
@@ -133,8 +134,8 @@ func (dbb *delayedBlockBroadcaster) ScheduleValidatorBroadcast(dataForValidators
 	dfv := make([]*headerDataForValidator, len(dataForValidators))
 	for i, d := range dataForValidators {
 		convDfv := &headerDataForValidator{
-			round:        d.Round,
-			prevRandSeed: d.PrevRandSeed,
+			round:      d.Round,
+			headerHash: d.HeaderHash,
 		}
 		dfv[i] = convDfv
 	}
@@ -161,8 +162,8 @@ func GetShardDataFromMetaChainBlock(
 	dfv := make([]*HeaderDataForValidator, len(dataForValidators))
 	for i, d := range dataForValidators {
 		convDfv := &HeaderDataForValidator{
-			Round:        d.round,
-			PrevRandSeed: d.prevRandSeed,
+			Round:      d.round,
+			HeaderHash: d.headerHash,
 		}
 		dfv[i] = convDfv
 	}
@@ -191,8 +192,9 @@ func (dbb *delayedBlockBroadcaster) BroadcastBlockData(
 	transactions map[string][][]byte,
 	pkBytes []byte,
 	delay time.Duration,
+	round uint64,
 ) {
-	dbb.broadcastBlockData(miniBlocks, transactions, pkBytes, delay)
+	dbb.broadcastBlockData(miniBlocks, transactions, pkBytes, delay, round)
 }
 
 // NewCommonMessenger will return a new instance of a commonMessenger
@@ -202,14 +204,16 @@ func NewCommonMessenger(
 	shardCoordinator sharding.Coordinator,
 	peerSigHandler crypto.PeerSignatureHandler,
 	keysHandler consensus.KeysHandler,
+	processConfigsHandler common.ProcessConfigsHandler,
 ) (*commonMessenger, error) {
 
 	return &commonMessenger{
-		marshalizer:          marshalizer,
-		messenger:            messenger,
-		shardCoordinator:     shardCoordinator,
-		peerSignatureHandler: peerSigHandler,
-		keysHandler:          keysHandler,
+		marshalizer:           marshalizer,
+		messenger:             messenger,
+		shardCoordinator:      shardCoordinator,
+		peerSignatureHandler:  peerSigHandler,
+		keysHandler:           keysHandler,
+		processConfigsHandler: processConfigsHandler,
 	}, nil
 }
 

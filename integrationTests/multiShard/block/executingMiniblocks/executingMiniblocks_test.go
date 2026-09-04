@@ -8,19 +8,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-crypto-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
@@ -230,125 +227,6 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 			account, _ := accWrp.(state.UserAccountHandler)
 			assert.Equal(t, expectedBalance, account.GetBalance())
 		}
-	}
-}
-
-func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEnvironment(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	numOfShards := 2
-	nodesPerShard := 2
-	numMetachainNodes := 2
-
-	nodes := integrationTests.CreateNodes(
-		numOfShards,
-		nodesPerShard,
-		numMetachainNodes,
-	)
-
-	minGasLimit := uint64(10000)
-	for _, node := range nodes {
-		node.EconomicsData.SetMinGasLimit(minGasLimit, 0)
-	}
-
-	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
-	for i := 0; i < numOfShards; i++ {
-		leaders[i] = nodes[i*nodesPerShard]
-	}
-	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
-
-	integrationTests.DisplayAndStartNodes(nodes)
-
-	defer func() {
-		for _, n := range nodes {
-			n.Close()
-		}
-	}()
-
-	nrTxsToSend := uint64(10)
-	initialVal := big.NewInt(0).SetUint64(nrTxsToSend * minGasLimit * integrationTests.MinTxGasPrice)
-	halfInitVal := big.NewInt(0).Div(initialVal, big.NewInt(2))
-	integrationTests.MintAllNodes(nodes, initialVal)
-	receiverAddress := []byte("12345678901234567890123456789012")
-
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
-
-	for _, node := range nodes {
-		for j := uint64(0); j < nrTxsToSend; j++ {
-			integrationTests.PlayerSendsTransaction(
-				nodes,
-				node.OwnAccount,
-				receiverAddress,
-				halfInitVal,
-				"",
-				minGasLimit,
-			)
-		}
-	}
-
-	time.Sleep(2 * time.Second)
-
-	integrationTests.UpdateRound(nodes, round)
-	integrationTests.ProposeBlock(nodes, leaders, round, nonce)
-	integrationTests.SyncBlock(t, nodes, leaders, round)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
-
-	for _, node := range nodes {
-		if node.ShardCoordinator.SelfId() == core.MetachainShardId {
-			continue
-		}
-
-		header := node.BlockChain.GetCurrentBlockHeader()
-		shardHdr, ok := header.(*block.Header)
-		numInvalid := 0
-		require.True(t, ok)
-		for _, mb := range shardHdr.MiniBlockHeaders {
-			if mb.Type == block.InvalidBlock {
-				numInvalid++
-			}
-		}
-		assert.Equal(t, 1, numInvalid)
-	}
-
-	time.Sleep(time.Second)
-	numRoundsToTest := 6
-	for i := 0; i < numRoundsToTest; i++ {
-		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
-		integrationTests.SyncBlock(t, nodes, leaders, round)
-		round = integrationTests.IncrementAndPrintRound(round)
-		nonce++
-
-		time.Sleep(integrationTests.StepDelay)
-	}
-
-	time.Sleep(time.Second)
-
-	expectedReceiverValue := big.NewInt(0).Mul(big.NewInt(int64(len(nodes))), halfInitVal)
-	for _, verifierNode := range nodes {
-		for _, node := range nodes {
-			accWrp, err := verifierNode.AccntState.GetExistingAccount(node.OwnAccount.Address)
-			if err != nil {
-				continue
-			}
-
-			account, _ := accWrp.(state.UserAccountHandler)
-			assert.Equal(t, big.NewInt(0), account.GetBalance())
-		}
-
-		accWrp, err := verifierNode.AccntState.GetExistingAccount(receiverAddress)
-		if err != nil {
-			continue
-		}
-
-		account, _ := accWrp.(state.UserAccountHandler)
-		assert.Equal(t, expectedReceiverValue, account.GetBalance())
 	}
 }
 

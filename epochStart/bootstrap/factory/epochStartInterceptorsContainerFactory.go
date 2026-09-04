@@ -89,7 +89,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		FullArchiveMessenger:                    args.FullArchiveMessenger,
 		Store:                                   storer,
 		DataPool:                                args.DataPool,
-		MaxTxNonceDeltaAllowed:                  common.MaxTxNonceDeltaAllowed,
+		MaxTxNonceDeltaAllowed:                  args.Config.TxCacheBounds.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:                            feeHandler,
 		BlockBlackList:                          blackListHandler,
 		HeaderSigVerifier:                       headerSigVerifier,
@@ -114,6 +114,7 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		HardforkTrigger:                         hardforkTrigger,
 		NodeOperationMode:                       args.NodeOperationMode,
 		InterceptedDataVerifierFactory:          args.InterceptedDataVerifierFactory,
+		Config:                                  args.Config,
 	}
 
 	var interceptorsContainerFactory process.InterceptorsContainerFactory

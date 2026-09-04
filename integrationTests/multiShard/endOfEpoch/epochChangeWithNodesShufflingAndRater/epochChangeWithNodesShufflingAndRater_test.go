@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/integrationTests"
@@ -25,7 +26,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 	consensusGroupSize := 1
 	maxGasLimitPerBlock := uint64(100000)
 
-	rater, _ := rating.NewBlockSigningRater(integrationTests.CreateRatingsData())
+	rater, _ := rating.NewBlockSigningRater(integrationTests.CreateRatingsData(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	coordinatorFactory := &integrationTests.IndexHashedNodesCoordinatorWithRaterFactory{
 		PeerAccountListAndRatingHandler: rater,
 	}

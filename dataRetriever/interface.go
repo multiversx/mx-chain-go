@@ -6,7 +6,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -186,6 +188,23 @@ type ShardedDataCacherNotifier interface {
 	GetCounts() counting.CountsWithSize
 	Keys() [][]byte
 	IsInterfaceNil() bool
+	CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
+	GetNumTrackedBlocks() uint64
+	GetNumTrackedAccounts() uint64
+	OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error
+	OnProposedBlock(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+		accountsProvider common.AccountNonceAndBalanceProvider,
+		latestExecutedHash []byte,
+	) error
+	OnBackfilledBlock(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+	) error
+	ResetTracker()
 }
 
 // ShardIdHashMap represents a map for shardId and hash
@@ -246,6 +265,9 @@ type PoolsHolder interface {
 	Heartbeats() storage.Cacher
 	ValidatorsInfo() ShardedDataCacherNotifier
 	Proofs() ProofsPool
+	ExecutedMiniBlocks() storage.Cacher
+	PostProcessTransactions() storage.Cacher
+	DirectSentTransactions() storage.Cacher
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -326,6 +348,7 @@ type DebugHandler interface {
 // CurrentNetworkEpochProviderHandler is an interface able to compute if the provided epoch is active on the network or not
 type CurrentNetworkEpochProviderHandler interface {
 	EpochIsActiveInNetwork(epoch uint32) bool
+	EpochIsAvailableOnMainPeers(epoch uint32) bool
 	EpochConfirmed(newEpoch uint32, newTimestamp uint64)
 	IsInterfaceNil() bool
 }
@@ -367,12 +390,16 @@ type PeerAuthenticationPayloadValidator interface {
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
+	AddProofIfNoneAtNonce(headerProof data.HeaderProofHandler) (bool, data.HeaderProofHandler)
 	UpsertProof(headerProof data.HeaderProofHandler) bool
 	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
+	RegisterEquivocationHandler(handler func(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler))
 	CleanupProofsBehindNonce(shardID uint32, nonce uint64) error
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
+	GetProofsByNonce(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
+	HasProofForDifferentHash(shardID uint32, headerNonce uint64, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool
 }

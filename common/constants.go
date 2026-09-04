@@ -103,6 +103,12 @@ const MetricCurrentRound = "erd_current_round"
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
 
+// MetricLastExecutedNonce is the metric for monitoring the last executed nonce of a node
+const MetricLastExecutedNonce = "erd_last_executed_nonce"
+
+// MetricProposedNonce is the metric for monitoring the proposed nonce of a node
+const MetricProposedNonce = "erd_proposed_nonce"
+
 // MetricBlockTimestamp is the metric for monitoring the timestamp of the last synchronized block
 const MetricBlockTimestamp = "erd_block_timestamp"
 
@@ -253,6 +259,18 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 // MetricNumTimesInForkChoice is the metric that counts how many times a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
 
+// MetricNumRollBacksRefusedMissingState is the metric that counts the roll backs refused because
+// the post-rollback execution base state was not recreatable
+const MetricNumRollBacksRefusedMissingState = "erd_rollbacks_refused_missing_state_count"
+
+// MetricNumEquivocationProofs is the metric that counts the equivocation events observed by the
+// proofs pool (different-hash proofs received for the same header nonce)
+const MetricNumEquivocationProofs = "erd_num_equivocation_proofs"
+
+// MetricNumReconcileSwitches is the metric that counts the reconcile backstop activations, each a
+// switch away from a finalized block on equivocation evidence
+const MetricNumReconcileSwitches = "erd_num_reconcile_switches"
+
 // MetricHighestFinalBlock is the metric for the nonce of the highest final block
 const MetricHighestFinalBlock = "erd_highest_final_nonce"
 
@@ -314,6 +332,36 @@ const MetricNoncesPassedInCurrentEpoch = "erd_nonces_passed_in_current_epoch"
 // current node. The value is provided in percent (0 meaning it has been received just after the round started and
 // 100 meaning that the block has been received in the last moment of the round)
 const MetricReceivedProposedBlock = "erd_consensus_received_proposed_block"
+
+// MetricReceivedOrSentProposedBlock is the metric that specifies the delay in nanoseconds from the start of the current round until
+// the time the proposed block body has been sent or has reached the current node.
+const MetricReceivedOrSentProposedBlock = "erd_consensus_received_or_sent_proposed_block"
+
+// MetricReceivedProof is the metric that specifies the delay in nanoseconds between the time the proposed block has been sent
+// or has reached the current node until the proof was received.
+const MetricReceivedProof = "erd_consensus_received_proof"
+
+// MetricAvgReceivedOrSentProposedBlock is the metric that specifies the average delay in nanoseconds from the start of the round until
+// the time the proposed block has been sent or has reached the current node.
+const MetricAvgReceivedOrSentProposedBlock = "erd_consensus_average_received_or_sent_proposed_block"
+
+// MetricAvgReceivedProof is the metric that specifies the average delay in nanoseconds between the time the proposed block
+// has been sent or has reached the current node until proof was received.
+const MetricAvgReceivedProof = "erd_consensus_average_received_sent_proof"
+
+// MetricNumTrackedBlocks is the metric that specifies how many blocks are tracked by the txPool
+const MetricNumTrackedBlocks = "erd_num_tracked_blocks"
+
+// MetricNumTrackedAccounts is the metric that specifies how many accounts are tracked by the txPool
+const MetricNumTrackedAccounts = "erd_num_tracked_accounts"
+
+// MetricNumInclusionEstimationRejected is the metric that specifies how many execution results were rejected by the
+// inclusion estimation process
+const MetricNumInclusionEstimationRejected = "erd_num_inclusion_estimation_rejected"
+
+// MetricDeltaHeaderNonceLastExecutionResultNonce is the metric that specifies the delta between the header nonce and
+// the last execution result nonce
+const MetricDeltaHeaderNonceLastExecutionResultNonce = "erd_delta_header_nonce_last_execution_result_nonce"
 
 // MetricCreatedProposedBlock is the metric that specifies the percent of the block subround used for header and body
 // creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
@@ -593,9 +641,6 @@ const (
 	// MetricStorageAPICostOptimizationEnableEpoch represents the epoch when storage api cost optimization feature is enabled
 	MetricStorageAPICostOptimizationEnableEpoch = "erd_storage_api_cost_optimization_enable_epoch"
 
-	// MetricTransformToMultiShardCreateEnableEpoch represents the epoch when transform to multi shard create functionality is enabled
-	MetricTransformToMultiShardCreateEnableEpoch = "erd_transform_to_multi_shard_create_enable_epoch"
-
 	// MetricESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when esdt register and set all roles functionality is enabled
 	MetricESDTRegisterAndSetAllRolesEnableEpoch = "erd_esdt_register_and_set_all_roles_enable_epoch"
 
@@ -785,6 +830,24 @@ const (
 	// MetricAttributeExtraGasUsageEnableEpoch represents the epoch when attributes are using extra gas usage fees
 	MetricAttributeExtraGasUsageEnableEpoch = "erd_attribute_extra_gasusage_enable_epoch"
 
+	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
+	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
+
+	// MetricSupernovaEnableEpoch represents the epoch when supernova is enabled
+	MetricSupernovaEnableEpoch = "erd_supernova_enable_epoch"
+
+	// MetricSupernovaTransitionReady represents whether the shard is ready for or has completed the Supernova transition
+	MetricSupernovaTransitionReady = "erd_supernova_transition_ready"
+
+	// MetricUnBondPeriod represents the unbond period in rounds from StakingSystemSCConfig
+	MetricUnBondPeriod = "erd_unbond_period"
+
+	// MetricUnBondPeriodSupernova represents the unbond period in rounds for supernova from StakingSystemSCConfig
+	MetricUnBondPeriodSupernova = "erd_unbond_period_supernova"
+
+	// MetricUnBondPeriodInEpochs represents the unbond period in epochs from StakingSystemSCConfig
+	MetricUnBondPeriodInEpochs = "erd_unbond_period_in_epochs"
+
 	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
 	MetricEpochEnable = "erd_epoch_enable"
 
@@ -906,6 +969,8 @@ const (
 	NetStatisticsOrder
 	// OldDatabaseCleanOrder defines the order in which oldDatabaseCleaner component is notified of a start of epoch event
 	OldDatabaseCleanOrder
+	// EpochTxBroadcastDebug defines the order in which epochTxBroadcastDebug is notifier of a start of epoch event
+	EpochTxBroadcastDebug = 9
 )
 
 // NodeState specifies what type of state a node could have
@@ -984,23 +1049,14 @@ const TimeToWaitForP2PBootstrap = 20 * time.Second
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
 
-// ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
-// moment when its components, like mini blocks and transactions, would be broadcast too
-const ExtraDelayForBroadcastBlockInfo = 1 * time.Second
-
-// ExtraDelayBetweenBroadcastMbsAndTxs represents the number of seconds to wait since miniblocks have been broadcast
-// and the moment when theirs transactions would be broadcast too
-const ExtraDelayBetweenBroadcastMbsAndTxs = 1 * time.Second
-
-// ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
-// moment when its components, like mini blocks and transactions, would be requested too if they are still missing
-const ExtraDelayForRequestBlockInfo = ExtraDelayForBroadcastBlockInfo + ExtraDelayBetweenBroadcastMbsAndTxs + time.Second
-
 // CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
 const CommitMaxTime = 3 * time.Second
 
 // PutInStorerMaxTime represents max time accepted for a put action, after which a warn message is displayed
 const PutInStorerMaxTime = time.Second
+
+// PutInStorerMaxTimeSupernova represents max time accepted for a put action with supernova activated, after which a warn message is displayed
+const PutInStorerMaxTimeSupernova = 600 * time.Millisecond
 
 // DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
 const DefaultUnstakedEpoch = math.MaxUint32
@@ -1031,10 +1087,6 @@ const NotSetDestinationShardID = "disabled"
 // Ex.: normal txs -> aprox. 27000, sc calls or special txs -> aprox. 6250 = 27000 / (AdditionalScrForEachScCallOrSpecialTx + 1),
 // considering that constant below is set to 3
 const AdditionalScrForEachScCallOrSpecialTx = 3
-
-// MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
-// before a special action to be applied
-const MaxRoundsWithoutCommittedStartInEpochBlock = 50
 
 // DefaultResolversIdentifier represents the identifier that is used in conjunction with regular resolvers
 // (that makes the node run properly)
@@ -1288,6 +1340,7 @@ const (
 	RelayedTransactionsV3Flag                           core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	RelayedTransactionsV3FixESDTTransferFlag            core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
 	AndromedaFlag                                       core.EnableEpochFlag = "AndromedaFlag"
+	SupernovaFlag                                       core.EnableEpochFlag = "SupernovaFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
 	MaskInternalDependenciesErrorsFlag                  core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
 	FixBackTransferOPCODEFlag                           core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
@@ -1300,4 +1353,30 @@ const (
 	ConsumedGasInEconomicsFlag                          core.EnableEpochFlag = "ConsumedGasInEconomicsFlag"
 	AttributeExtraGasUsageFlag                          core.EnableEpochFlag = "AttributeExtraGasUsageFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
+)
+
+// EnableRoundFlag defines a flag specific to the enableRounds config
+type EnableRoundFlag string
+
+// EnableRound flag definitions
+const (
+	DisableAsyncCallV1Flag EnableRoundFlag = "DisableAsyncCallV1"
+	SupernovaRoundFlag     EnableRoundFlag = "SupernovaEnableRound"
+)
+
+// HashSize defines  const for the hash length
+const HashSize = 32
+
+// FloodPreventerType defines the type of flood preventer
+type FloodPreventerType string
+
+const (
+	// FastReacting defines fast reacting flood preventer type
+	FastReacting FloodPreventerType = "fast_reacting"
+	// SlowReacting defines slow reacting flood preventer type
+	SlowReacting FloodPreventerType = "slow_reacting"
+	// OutOfSpecs defines out of specs flood preventer type
+	OutOfSpecs FloodPreventerType = "out_of_specs"
+	// Output defines output flood preventer type
+	Output FloodPreventerType = "output"
 )

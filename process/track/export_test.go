@@ -10,6 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
+// MaxMetaBlocksScannedForInclusion -
+const MaxMetaBlocksScannedForInclusion = maxMetaBlocksScannedForInclusion
+
+// MaxOwnDescendantsScannedForInclusion -
+const MaxOwnDescendantsScannedForInclusion = maxOwnDescendantsScannedForInclusion
+
 // shardBlockTrack
 
 // SetNumPendingMiniBlocks -
@@ -37,10 +43,67 @@ func (sbt *shardBlockTrack) GetTrackedShardHeaderWithNonceAndHash(shardID uint32
 	return sbt.getTrackedShardHeaderWithNonceAndHash(shardID, nonce, hash)
 }
 
+// NumPendingSelfHeaders -
+func (sbt *shardBlockTrack) NumPendingSelfHeaders() int64 {
+	return sbt.numPendingSelfHeaders.Load()
+}
+
+// NumPendingSources -
+func (sbt *shardBlockTrack) NumPendingSources(hash []byte) int {
+	sbt.mutPendingSelfHeaders.Lock()
+	defer sbt.mutPendingSelfHeaders.Unlock()
+
+	pending := sbt.pendingSelfHeaders[string(hash)]
+	if pending == nil {
+		return 0
+	}
+
+	return len(pending.sources)
+}
+
+func (sbt *shardBlockTrack) SetMetaFinalityView(view process.MetaFinalityView) {
+	sbt.metaFinalityView = view
+}
+
+func (sbt *shardBlockTrack) RememberResolvedSelfHeader(hash []byte, nonce uint64) {
+	sbt.mutPendingSelfHeaders.Lock()
+	sbt.rememberResolvedSelfHeader(string(hash), nonce)
+	sbt.mutPendingSelfHeaders.Unlock()
+}
+
+func (sbt *shardBlockTrack) ResolvedSelfHeaders() map[string]uint64 {
+	sbt.mutPendingSelfHeaders.Lock()
+	defer sbt.mutPendingSelfHeaders.Unlock()
+
+	result := make(map[string]uint64, len(sbt.resolvedSelfHeaders))
+	for hash, nonce := range sbt.resolvedSelfHeaders {
+		result[hash] = nonce
+	}
+
+	return result
+}
+
+func (sbt *shardBlockTrack) NumResolvedSelfHeaders() int64 {
+	return sbt.numResolvedSelfHeaders.Load()
+}
+
+// SelfHeaderInfo -
+type SelfHeaderInfo = selfHeaderInfo
+
+// GetSelfHeadersWithSource -
+func (sbt *shardBlockTrack) GetSelfHeadersWithSource(header data.HeaderHandler, hash []byte) []*SelfHeaderInfo {
+	return sbt.getSelfHeadersWithSource(header, hash)
+}
+
+// PublishSelfNotarizedFromCrossHeaders -
+func (sbt *shardBlockTrack) PublishSelfNotarizedFromCrossHeaders(shardID uint32, headersInfo []*SelfHeaderInfo) {
+	sbt.publishSelfNotarizedFromCrossHeaders(shardID, headersInfo)
+}
+
 // metaBlockTrack
 
 // GetTrackedMetaBlockWithHash -
-func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.MetaBlock, error) {
+func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (data.MetaHeaderHandler, error) {
 	return mbt.getTrackedMetaBlockWithHash(hash)
 }
 
@@ -49,6 +112,11 @@ func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.Meta
 // ReceivedHeader -
 func (bbt *baseBlockTrack) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	bbt.receivedHeader(headerHandler, headerHash)
+}
+
+// ReceivedProof -
+func (bbt *baseBlockTrack) ReceivedProof(proof data.HeaderProofHandler) {
+	bbt.receivedProof(proof)
 }
 
 // CheckTrackerNilParameters -
@@ -119,6 +187,11 @@ func (bbt *baseBlockTrack) SetRoundHandler(roundHandler process.RoundHandler) {
 	bbt.roundHandler = roundHandler
 }
 
+// SetProofsPool -
+func (bbt *baseBlockTrack) SetProofsPool(proofsPool dataRetriever.ProofsPool) {
+	bbt.proofsPool = proofsPool
+}
+
 // SetCrossNotarizer -
 func (bbt *baseBlockTrack) SetCrossNotarizer(notarizer blockNotarizerHandler) {
 	bbt.crossNotarizer = notarizer
@@ -144,8 +217,13 @@ func (bbt *baseBlockTrack) DoWhitelistWithMetaBlockIfNeeded(metaBlock *block.Met
 	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
 }
 
+// DoWhitelistWithMetaHeaderIfNeeded -
+func (bbt *baseBlockTrack) DoWhitelistWithMetaHeaderIfNeeded(metaBlock data.MetaHeaderHandler) {
+	bbt.doWhitelistWithMetaBlockIfNeeded(metaBlock)
+}
+
 // DoWhitelistWithShardHeaderIfNeeded -
-func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader *block.Header) {
+func (bbt *baseBlockTrack) DoWhitelistWithShardHeaderIfNeeded(shardHeader data.HeaderHandler) {
 	bbt.doWhitelistWithShardHeaderIfNeeded(shardHeader)
 }
 
@@ -295,4 +373,14 @@ func (mbt *miniBlockTrack) GetConfirmedMiniBlockInfo(miniBlockHash []byte) (cach
 		return "", 0, false
 	}
 	return info.cacheID, info.nonce, true
+}
+
+// PullProofsForContendedNonces -
+func (bbt *baseBlockTrack) PullProofsForContendedNonces() {
+	bbt.pullProofsForContendedNonces()
+}
+
+// RequestHeadersWithProofPairing -
+func (bp *blockProcessor) RequestHeadersWithProofPairing(shardID uint32, fromNonce uint64) {
+	bp.requestHeaders(shardID, fromNonce)
 }

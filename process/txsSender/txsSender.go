@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -27,11 +26,11 @@ const SendTransactionsPipe = "send transactions pipe"
 
 // ArgsTxsSenderWithAccumulator is a holder struct for all necessary arguments to create a NewTxsSenderWithAccumulator
 type ArgsTxsSenderWithAccumulator struct {
-	Marshaller        marshal.Marshalizer
-	ShardCoordinator  storage.ShardCoordinator
-	NetworkMessenger  NetworkMessenger
-	AccumulatorConfig config.TxAccumulatorConfig
-	DataPacker        process.DataPacker
+	Marshaller             marshal.Marshalizer
+	ShardCoordinator       storage.ShardCoordinator
+	NetworkMessenger       NetworkMessenger
+	DataPacker             process.DataPacker
+	AntifloodConfigHandler common.AntifloodConfigsHandler
 }
 
 type txsSender struct {
@@ -60,10 +59,16 @@ func NewTxsSenderWithAccumulator(args ArgsTxsSenderWithAccumulator) (*txsSender,
 	if check.IfNil(args.DataPacker) {
 		return nil, dataRetriever.ErrNilDataPacker
 	}
+	if check.IfNil(args.AntifloodConfigHandler) {
+		return nil, process.ErrNilAntifloodConfigsHandler
+	}
 
+	currentConf := args.AntifloodConfigHandler.GetCurrentConfig()
+
+	// TODO: time accumulator component has to be changes to have dinamic values
 	txAccumulator, err := accumulator.NewTimeAccumulator(
-		time.Duration(args.AccumulatorConfig.MaxAllowedTimeInMilliseconds)*time.Millisecond,
-		time.Duration(args.AccumulatorConfig.MaxDeviationTimeInMilliseconds)*time.Millisecond,
+		time.Duration(currentConf.TxAccumulator.MaxAllowedTimeInMilliseconds)*time.Millisecond,
+		time.Duration(currentConf.TxAccumulator.MaxDeviationTimeInMilliseconds)*time.Millisecond,
 		log,
 	)
 	if err != nil {

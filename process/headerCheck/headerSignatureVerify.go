@@ -1,6 +1,8 @@
 package headerCheck
 
 import (
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
@@ -20,6 +22,7 @@ import (
 )
 
 const headerWaitDelayAtTransition = 50 * time.Millisecond
+const maxHeaderWaitRetriesAtTransition = 100
 
 var _ process.InterceptedHeaderSigVerifier = (*HeaderSigVerifier)(nil)
 
@@ -38,6 +41,7 @@ type ArgsHeaderSigVerifier struct {
 	HeadersPool             dataRetriever.HeadersPool
 	ProofsPool              dataRetriever.ProofsPool
 	StorageService          dataRetriever.StorageService
+	PubKeysHandler          pubKeysHandler
 }
 
 // HeaderSigVerifier is component used to check if a header is valid
@@ -53,6 +57,7 @@ type HeaderSigVerifier struct {
 	headersPool             dataRetriever.HeadersPool
 	proofsPool              dataRetriever.ProofsPool
 	storageService          dataRetriever.StorageService
+	pubKeysHandler          pubKeysHandler
 }
 
 // NewHeaderSigVerifier will create a new instance of HeaderSigVerifier
@@ -74,6 +79,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		headersPool:             arguments.HeadersPool,
 		proofsPool:              arguments.ProofsPool,
 		storageService:          arguments.StorageService,
+		pubKeysHandler:          arguments.PubKeysHandler,
 	}, nil
 }
 
@@ -121,6 +127,9 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	if check.IfNil(arguments.StorageService) {
 		return process.ErrNilStorageService
 	}
+	if check.IfNil(arguments.PubKeysHandler) {
+		return process.ErrNilPubKeysHandler
+	}
 
 	return nil
 }
@@ -158,12 +167,25 @@ func (hsv *HeaderSigVerifier) getConsensusSignersForEquivalentProofs(proof data.
 		return nil, err
 	}
 
-	shouldApplyFallbackValidation := hsv.fallbackHeaderValidator.ShouldApplyFallbackValidationForHeaderWith(
-		proof.GetHeaderShardId(),
-		proof.GetIsStartOfEpoch(),
-		proof.GetHeaderRound(),
-		proof.GetHeaderHash(),
-	)
+	shouldApplyFallbackValidation := false
+	// fallback validation only applies to start-of-epoch metachain headers (re-checked inside
+	// ShouldApplyFallbackValidation); short-circuit here to avoid the header lookup below in every other case.
+	if proof.GetIsStartOfEpoch() && proof.GetHeaderShardId() == core.MetachainShardId {
+		log.Debug("getConsensusSignersForEquivalentProofs: header is start of epoch, evaluating fallback validation")
+		// fetch with storage fallback (consistent with getHeaderForProofAtTransition): the start-of-epoch
+		// metablock may have been evicted from the in-memory pool but still be available in storage.
+		header, err := process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, hsv.storageService, hsv.marshalizer, proof.GetHeaderShardId())
+		if err != nil {
+			// the header is not available locally: keep strict validation (the stricter bitmap threshold)
+			// instead of rejecting the proof, since fallback validation can only relax that threshold.
+			log.Debug("getConsensusSignersForEquivalentProofs: could not get header, applying strict validation",
+				"headerHash", proof.GetHeaderHash(),
+				"error", err.Error(),
+			)
+		} else {
+			shouldApplyFallbackValidation = hsv.fallbackHeaderValidator.ShouldApplyFallbackValidation(header)
+		}
+	}
 
 	err = common.IsConsensusBitmapValid(
 		log,
@@ -291,28 +313,40 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, signature)
+	pubKeys, err := hsv.pubKeysHandler.GetPubKeysFromBytes(pubKeysSigners)
+	if err != nil {
+		return err
+	}
+
+	return multiSigVerifier.VerifyAggregatedSigV2(pubKeys, hash, signature)
 }
 
 func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
 	var header data.HeaderHandler
 	var err error
 
-	for {
+	for i := 0; i < maxHeaderWaitRetriesAtTransition; i++ {
 		header, err = process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, hsv.storageService, hsv.marshalizer, proof.GetHeaderShardId())
 		if err == nil {
-			break
+			return header, nil
 		}
 
 		log.Debug("getHeaderForProofAtTransition: failed to get header, will wait and try again",
 			"headerHash", proof.GetHeaderHash(),
+			"attempt", i+1,
+			"maxAttempts", maxHeaderWaitRetriesAtTransition,
 			"error", err.Error(),
 		)
+
+		if !errors.Is(err, process.ErrMissingHeader) {
+			return nil, err
+		}
 
 		time.Sleep(headerWaitDelayAtTransition)
 	}
 
-	return header, nil
+	return nil, fmt.Errorf("%w: failed to get header after %d attempts for hash %s",
+		err, maxHeaderWaitRetriesAtTransition, hex.EncodeToString(proof.GetHeaderHash()))
 }
 
 func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderProofHandler) error {
@@ -341,7 +375,12 @@ func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderPro
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
+	pubKeys, err := hsv.pubKeysHandler.GetPubKeysFromBytes(consensusPubKeys)
+	if err != nil {
+		return err
+	}
+
+	return multiSigVerifier.VerifyAggregatedSigV2(pubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
 }
 
 // VerifyHeaderProof checks if the proof is correct for the header
@@ -367,7 +406,12 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
+	pubKeys, err := hsv.pubKeysHandler.GetPubKeysFromBytes(consensusPubKeys)
+	if err != nil {
+		return err
+	}
+
+	return multiSigVerifier.VerifyAggregatedSigV2(pubKeys, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
 }
 
 // VerifyRandSeed will check if rand seed is correct

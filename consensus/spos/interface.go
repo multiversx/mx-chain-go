@@ -26,6 +26,7 @@ import (
 type ConsensusCoreHandler interface {
 	Blockchain() data.ChainHandler
 	BlockProcessor() process.BlockProcessor
+	ExecutionManager() process.ExecutionManager
 	BootStrapper() process.Bootstrapper
 	BroadcastMessenger() consensus.BroadcastMessenger
 	Chronology() consensus.ChronologyHandler
@@ -48,10 +49,14 @@ type ConsensusCoreHandler interface {
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	SigningHandler() consensus.SigningHandler
 	EnableEpochsHandler() common.EnableEpochsHandler
+	EnableRoundsHandler() common.EnableRoundsHandler
+	CommonConfigsHandler() common.CommonConfigsHandler
 	EquivalentProofsPool() consensus.EquivalentProofsPool
+	HeadersPool() consensus.HeadersPoolGetter
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache
 	MessagesHandler() ConsensusService
+	AOTSelector() process.AOTTransactionSelector
 	IsInterfaceNil() bool
 }
 
@@ -130,6 +135,16 @@ type WorkerHandler interface {
 	ResetInvalidSignersCache()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
+	ConsensusMetrics() ConsensusMetricsHandler
+}
+
+// ConsensusMetricsHandler handles the consensus metrics
+type ConsensusMetricsHandler interface {
+	IsInterfaceNil() bool
+	ResetAverages()
+	ResetInstanceValues()
+	SetBlockReceivedOrSent(delayFromRoundStart uint64)
+	SetProofReceived(delayProofFromRoundStart uint64)
 }
 
 // PoolAdder adds data in a key-value pool
@@ -166,6 +181,9 @@ type PeerBlackListCacher interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
+	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
+	GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
+	ReserveSignatureInRound(pkBytes []byte, roundIndex int64, headerHash []byte) bool
 	IsInterfaceNil() bool
 }
 
@@ -217,8 +235,13 @@ type ConsensusStateHandler interface {
 	SetBody(body data.BodyHandler)
 	GetHeader() data.HeaderHandler
 	SetHeader(header data.HeaderHandler)
+	SetDataIfNotSet(data []byte) bool
 	GetWaitingAllSignaturesTimeOut() bool
 	SetWaitingAllSignaturesTimeOut(bool)
+	SignaturesDone() <-chan struct{}
+	SetSignaturesDone(done <-chan struct{})
+	SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc)
+	SignaturesCtxCancel()
 	RoundConsensusHandler
 	RoundStatusHandler
 	RoundThresholdHandler
@@ -271,5 +294,15 @@ type InvalidSignersCache interface {
 	AddInvalidSigners(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string)
 	CheckKnownInvalidSigners(headerHash []byte, invalidSigners []byte) bool
 	Reset()
+	IsInterfaceNil() bool
+}
+
+// NtpSyncControllerHandler detects round desynchronization and triggers a forced NTP resync.
+// If the local clock drifts and the node repeatedly receives valid block proofs for rounds
+// that fall outside the expected range, the handler identifies this pattern as a de-sync
+// condition and initiates time resynchronization.
+type NtpSyncControllerHandler interface {
+	AddOutOfRangeNonce(nonce uint64, hash string)
+	AddLeaderNonceAsOutOfRange(nonce uint64, hash string)
 	IsInterfaceNil() bool
 }

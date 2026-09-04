@@ -70,7 +70,6 @@ type EnableEpochs struct {
 	IsPayableBySCEnableEpoch                                 uint32
 	CleanUpInformativeSCRsEnableEpoch                        uint32
 	StorageAPICostOptimizationEnableEpoch                    uint32
-	TransformToMultiShardCreateEnableEpoch                   uint32
 	ESDTRegisterAndSetAllRolesEnableEpoch                    uint32
 	DoNotReturnOldBlockInBlockchainHookEnableEpoch           uint32
 	AddFailedRelayedTxToInvalidMBsDisableEpoch               uint32
@@ -127,6 +126,7 @@ type EnableEpochs struct {
 	RelayedTransactionsV3EnableEpoch                         uint32
 	RelayedTransactionsV3FixESDTTransferEnableEpoch          uint32
 	AndromedaEnableEpoch                                     uint32
+	SupernovaEnableEpoch                                     uint32
 	CheckBuiltInCallOnTransferValueAndFailEnableRound        uint32
 	MaskVMInternalDependenciesErrorsEnableEpoch              uint32
 	FixBackTransferOPCODEEnableEpoch                         uint32

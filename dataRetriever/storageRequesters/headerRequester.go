@@ -96,6 +96,10 @@ func (hdrReq *headerRequester) RequestDataFromHash(hash []byte, _ uint32) error 
 
 // RequestDataFromNonce requests a header by its nonce
 func (hdrReq *headerRequester) RequestDataFromNonce(nonce uint64, epoch uint32) error {
+	if nonce == 0 {
+		return nil
+	}
+
 	nonceKey := hdrReq.nonceConverter.ToByteSlice(nonce)
 	hash, err := hdrReq.hdrNoncesStorage.SearchFirst(nonceKey)
 	if err != nil {

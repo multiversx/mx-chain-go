@@ -6,6 +6,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-crypto-go"
+	cmn "github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/redundancy/common"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -23,14 +26,16 @@ type nodeRedundancy struct {
 	mutNodeRedundancy     sync.RWMutex
 	lastRoundIndexCheck   int64
 	handler               redundancyHandler
-	maxRoundsOfInactivity int
 	messenger             P2PMessenger
 	observerPrivateKey    crypto.PrivateKey
+	processConfigsHandler cmn.ProcessConfigsHandler
+	redundancyLevel       int
 }
 
 // ArgNodeRedundancy represents the DTO structure used by the nodeRedundancy's constructor
 type ArgNodeRedundancy struct {
-	MaxRoundsOfInactivity int
+	RedundancyLevel       int
+	ProcessConfigsHandler cmn.ProcessConfigsHandler
 	Messenger             P2PMessenger
 	ObserverPrivateKey    crypto.PrivateKey
 }
@@ -43,24 +48,33 @@ func NewNodeRedundancy(arg ArgNodeRedundancy) (*nodeRedundancy, error) {
 	if check.IfNil(arg.ObserverPrivateKey) {
 		return nil, ErrNilObserverPrivateKey
 	}
-	err := common.CheckMaxRoundsOfInactivity(arg.MaxRoundsOfInactivity)
-	if err != nil {
-		return nil, err
+	if check.IfNil(arg.ProcessConfigsHandler) {
+		return nil, process.ErrNilProcessConfigsHandler
 	}
 
 	nr := &nodeRedundancy{
 		handler:               common.NewRedundancyHandler(),
-		maxRoundsOfInactivity: arg.MaxRoundsOfInactivity,
 		messenger:             arg.Messenger,
 		observerPrivateKey:    arg.ObserverPrivateKey,
+		redundancyLevel:       arg.RedundancyLevel,
+		processConfigsHandler: arg.ProcessConfigsHandler,
+	}
+
+	err := common.CheckMaxRoundsOfInactivity(nr.calcMaxRoundsOfInactivity())
+	if err != nil {
+		return nil, err
 	}
 
 	return nr, nil
 }
 
+func (nr *nodeRedundancy) calcMaxRoundsOfInactivity() int {
+	return nr.redundancyLevel * int(nr.processConfigsHandler.GetValue(dto.MaxRoundsOfInactivityAccepted))
+}
+
 // IsRedundancyNode returns true if the current instance is used as a redundancy node
 func (nr *nodeRedundancy) IsRedundancyNode() bool {
-	return !common.IsMainNode(nr.maxRoundsOfInactivity)
+	return !common.IsMainNode(nr.calcMaxRoundsOfInactivity())
 }
 
 // IsMainMachineActive returns true if the main or lower level redundancy machines are active
@@ -68,7 +82,7 @@ func (nr *nodeRedundancy) IsMainMachineActive() bool {
 	nr.mutNodeRedundancy.RLock()
 	defer nr.mutNodeRedundancy.RUnlock()
 
-	return nr.handler.IsMainMachineActive(nr.maxRoundsOfInactivity)
+	return nr.handler.IsMainMachineActive(nr.calcMaxRoundsOfInactivity())
 }
 
 // AdjustInactivityIfNeeded increments rounds of inactivity for main or lower level redundancy machines if needed
@@ -80,13 +94,14 @@ func (nr *nodeRedundancy) AdjustInactivityIfNeeded(selfPubKey string, consensusP
 		return
 	}
 
-	if nr.handler.IsMainMachineActive(nr.maxRoundsOfInactivity) {
+	maxRoundsOfInactivity := nr.calcMaxRoundsOfInactivity()
+	if nr.handler.IsMainMachineActive(maxRoundsOfInactivity) {
 		log.Debug("main or lower level redundancy machines are active for single-key operation",
-			"max rounds of inactivity", nr.maxRoundsOfInactivity,
+			"max rounds of inactivity", maxRoundsOfInactivity,
 			"current rounds of inactivity", nr.handler.RoundsOfInactivity())
 	} else {
 		log.Warn("main or lower level redundancy machines are inactive for single-key operation",
-			"max rounds of inactivity", nr.maxRoundsOfInactivity,
+			"max rounds of inactivity", maxRoundsOfInactivity,
 			"current rounds of inactivity", nr.handler.RoundsOfInactivity())
 	}
 

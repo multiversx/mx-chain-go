@@ -133,8 +133,10 @@ func TestManagedDataComponents_Clone(t *testing.T) {
 	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
-	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
-	managedDataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
+	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(args)
+	require.NoError(t, err)
+	managedDataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
+	require.NoError(t, err)
 
 	clonedBeforeCreate := managedDataComponents.Clone()
 	require.Equal(t, managedDataComponents, clonedBeforeCreate)

@@ -2,12 +2,13 @@ package testscommon
 
 // InterceptedDataStub -
 type InterceptedDataStub struct {
-	CheckValidityCalled     func() error
-	IsForCurrentShardCalled func() bool
-	HashCalled              func() []byte
-	TypeCalled              func() string
-	IdentifiersCalled       func() [][]byte
-	StringCalled            func() string
+	CheckValidityCalled         func() error
+	IsForCurrentShardCalled     func() bool
+	HashCalled                  func() []byte
+	TypeCalled                  func() string
+	IdentifiersCalled           func() [][]byte
+	StringCalled                func() string
+	ShouldAllowDuplicatesCalled func() bool
 }
 
 // CheckValidity -
@@ -17,6 +18,15 @@ func (ids *InterceptedDataStub) CheckValidity() error {
 	}
 
 	return nil
+}
+
+// ShouldAllowDuplicates -
+func (ids *InterceptedDataStub) ShouldAllowDuplicates() bool {
+	if ids.ShouldAllowDuplicatesCalled != nil {
+		return ids.ShouldAllowDuplicatesCalled()
+	}
+
+	return true
 }
 
 // IsForCurrentShard -

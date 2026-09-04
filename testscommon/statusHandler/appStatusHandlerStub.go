@@ -9,10 +9,14 @@ type AppStatusHandlerStub struct {
 	SetInt64ValueHandler  func(key string, value int64)
 	SetStringValueHandler func(key string, value string)
 	CloseHandler          func()
+	IsInterfaceNilCalled  func() bool
 }
 
 // IsInterfaceNil -
 func (ashs *AppStatusHandlerStub) IsInterfaceNil() bool {
+	if ashs.IsInterfaceNilCalled != nil {
+		return ashs.IsInterfaceNilCalled()
+	}
 	return ashs == nil
 }
 

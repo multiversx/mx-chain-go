@@ -2,6 +2,7 @@ package track
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -9,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -23,6 +23,8 @@ import (
 var _ process.ValidityAttester = (*baseBlockTrack)(nil)
 
 var log = logger.GetOrCreate("process/track")
+
+const maxNonceDifference = 3 // TODO move this to a config file
 
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {
@@ -44,18 +46,28 @@ type baseBlockTrack struct {
 	crossNotarizer                        blockNotarizerHandler
 	selfNotarizer                         blockNotarizerHandler
 	crossNotarizedHeadersNotifier         blockNotifierHandler
-	selfNotarizedFromCrossHeadersNotifier blockNotifierHandler
+	selfNotarizedFromCrossHeadersNotifier *blockNotifier
 	selfNotarizedHeadersNotifier          blockNotifierHandler
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	blockBalancer                         blockBalancerHandler
 	whitelistHandler                      process.WhiteListHandler
 	feeHandler                            process.FeeHandler
 	enableEpochsHandler                   common.EnableEpochsHandler
+	enableRoundsHandler                   common.EnableRoundsHandler
 	epochChangeGracePeriodHandler         common.EpochChangeGracePeriodHandler
+	processConfigsHandler                 common.ProcessConfigsHandler
+	ownShardTracker                       OwnShardTrackerHandler
+	requestHandler                        process.RequestHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
 	maxNumHeadersToKeepPerShard int
+
+	mutProofPull       sync.Mutex
+	proofPullStates    map[proofPullKey]*proofPullState
+	lastProofPullRound int64
+
+	cancelFunc context.CancelFunc
 }
 
 func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
@@ -101,6 +113,11 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		return nil, err
 	}
 
+	tracker, err := NewOwnShardTracker(arguments.EnableEpochsHandler, maxNonceDifference)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create own shard tracker: %w", err)
+	}
+
 	bbt := &baseBlockTrack{
 		hasher:                                arguments.Hasher,
 		headerValidator:                       arguments.HeaderValidator,
@@ -121,8 +138,19 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		whitelistHandler:                      arguments.WhitelistHandler,
 		feeHandler:                            arguments.FeeHandler,
 		enableEpochsHandler:                   arguments.EnableEpochsHandler,
+		enableRoundsHandler:                   arguments.EnableRoundsHandler,
 		epochChangeGracePeriodHandler:         arguments.EpochChangeGracePeriodHandler,
+		processConfigsHandler:                 arguments.ProcessConfigsHandler,
+		ownShardTracker:                       tracker,
+		requestHandler:                        arguments.RequestHandler,
+		proofPullStates:                       make(map[proofPullKey]*proofPullState),
+		lastProofPullRound:                    -1,
 	}
+
+	var ctx context.Context
+	ctx, bbt.cancelFunc = context.WithCancel(context.Background())
+
+	go bbt.pullProofsForContendedNoncesLoop(ctx)
 
 	return bbt, nil
 }
@@ -135,7 +163,8 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 	headerHash := proof.GetHeaderHash()
 	header, err := bbt.getHeaderForProof(proof)
 	if err != nil {
-		log.Debug("baseBlockTrack.receivedProof with missing header", "headerHash", headerHash)
+		log.Debug("baseBlockTrack.receivedProof with missing header, requesting it", "headerHash", headerHash)
+		bbt.requestHeaderForProof(proof)
 		return
 	}
 	log.Debug("received proof from network in block tracker",
@@ -147,6 +176,15 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 	)
 
 	bbt.receivedHeader(header, headerHash)
+}
+
+func (bbt *baseBlockTrack) requestHeaderForProof(proof data.HeaderProofHandler) {
+	if proof.GetHeaderShardId() == common.MetachainShardId {
+		bbt.requestHandler.RequestMetaHeader(proof.GetHeaderHash())
+		return
+	}
+
+	bbt.requestHandler.RequestShardHeader(proof.GetHeaderShardId(), proof.GetHeaderHash())
 }
 
 func (bbt *baseBlockTrack) getHeaderForProof(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
@@ -198,9 +236,9 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 }
 
 func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
-	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	metaBlock, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
-		log.Warn("cannot convert data.HeaderHandler in *block.Metablock")
+		log.Warn("cannot convert data.HeaderHandler in data.MetaHeaderHandler")
 		return
 	}
 
@@ -449,11 +487,26 @@ func (bbt *baseBlockTrack) CheckBlockAgainstRoundHandler(headerHandler data.Head
 		return process.ErrNilHeaderHandler
 	}
 
-	nextRound := bbt.roundHandler.Index() + 1
-	if int64(headerHandler.GetRound()) > nextRound {
+	return bbt.checkAgainstRoundHandler(headerHandler.GetRound())
+}
+
+// CheckProofAgainstRoundHandler verifies the provided proof against the roundHandler's current round
+func (bbt *baseBlockTrack) CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error {
+	if check.IfNil(proof) {
+		return process.ErrNilHeaderProof
+	}
+
+	return bbt.checkAgainstRoundHandler(proof.GetHeaderRound())
+}
+
+func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
+	// bound against the round the current time falls into: gating on the stored index would make a
+	// node that is slow to advance its chronology reject, and stop relaying, the data it needs most
+	nextRound := bbt.roundHandler.IndexForCurrentTime() + 1
+	if int64(round) > nextRound {
 		return fmt.Errorf("%w header round: %d, next chronology round: %d",
 			process.ErrHigherRoundInBlock,
-			headerHandler.GetRound(),
+			round,
 			nextRound)
 	}
 
@@ -466,39 +519,52 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 		return process.ErrNilHeaderHandler
 	}
 
-	finalHeader, _, err := bbt.getFinalHeader(headerHandler.GetShardID())
-	if err != nil {
-		return fmt.Errorf("%w: header shard: %d, header round: %d, header nonce: %d",
-			err,
-			headerHandler.GetShardID(),
-			headerHandler.GetRound(),
-			headerHandler.GetNonce())
+	return bbt.checkAgainstFinal(headerHandler.GetShardID(), headerHandler.GetRound(), headerHandler.GetNonce())
+}
+
+// CheckProofAgainstFinal checks if the given proof is valid related to the final header
+func (bbt *baseBlockTrack) CheckProofAgainstFinal(proof data.HeaderProofHandler) error {
+	if check.IfNil(proof) {
+		return process.ErrNilHeaderProof
 	}
 
-	roundDif := int64(headerHandler.GetRound()) - int64(finalHeader.GetRound())
-	nonceDif := int64(headerHandler.GetNonce()) - int64(finalHeader.GetNonce())
+	return bbt.checkAgainstFinal(proof.GetHeaderShardId(), proof.GetHeaderRound(), proof.GetHeaderNonce())
+}
+
+func (bbt *baseBlockTrack) checkAgainstFinal(shardID uint32, round uint64, nonce uint64) error {
+	finalHeader, _, err := bbt.getFinalHeader(shardID)
+	if err != nil {
+		return fmt.Errorf("%w: shard: %d, round: %d, nonce: %d",
+			err,
+			shardID,
+			round,
+			nonce)
+	}
+
+	roundDif := int64(round) - int64(finalHeader.GetRound())
+	nonceDif := int64(nonce) - int64(finalHeader.GetNonce())
 
 	if roundDif < 0 {
-		return fmt.Errorf("%w for header round: %d, final header round: %d",
+		return fmt.Errorf("%w for round: %d, final header round: %d",
 			process.ErrLowerRoundInBlock,
-			headerHandler.GetRound(),
+			round,
 			finalHeader.GetRound())
 	}
 	if nonceDif < 0 {
-		return fmt.Errorf("%w for header nonce: %d, final header nonce: %d",
+		return fmt.Errorf("%w for nonce: %d, final header nonce: %d",
 			process.ErrLowerNonceInBlock,
-			headerHandler.GetNonce(),
+			nonce,
 			finalHeader.GetNonce())
 	}
 	if roundDif < nonceDif {
 		return fmt.Errorf("%w for "+
-			"header round: %d, final header round: %d, round dif: %d"+
-			"header nonce: %d, final header nonce: %d, nonce dif: %d",
+			"round: %d, final header round: %d, round dif: %d, "+
+			"nonce: %d, final header nonce: %d, nonce dif: %d",
 			process.ErrHigherNonceInBlock,
-			headerHandler.GetRound(),
+			round,
 			finalHeader.GetRound(),
 			roundDif,
-			headerHandler.GetNonce(),
+			nonce,
 			finalHeader.GetNonce(),
 			nonceDif)
 	}
@@ -514,8 +580,8 @@ func (bbt *baseBlockTrack) getFinalHeader(shardID uint32) (data.HeaderHandler, [
 	return bbt.selfNotarizer.GetFirstNotarizedHeader(shardID)
 }
 
-// CheckBlockAgainstWhitelist returns if the provided intercepted data (blocks) is whitelisted or not
-func (bbt *baseBlockTrack) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
+// CheckAgainstWhitelist returns if the provided intercepted data is whitelisted or not
+func (bbt *baseBlockTrack) CheckAgainstWhitelist(interceptedData process.InterceptedData) bool {
 	return bbt.whitelistHandler.IsWhiteListed(interceptedData)
 }
 
@@ -654,9 +720,12 @@ func (bbt *baseBlockTrack) ShouldSkipMiniBlocksCreationFromSelf() bool {
 		return false
 	}
 
+	currentEpoch := bbt.enableEpochsHandler.GetCurrentEpoch()
+	maxMetaNoncesBehind := bbt.processConfigsHandler.GetMaxMetaNoncesBehindForGlobalStuckByEpoch(currentEpoch)
+
 	shards := bbt.shardCoordinator.NumberOfShards()
 	for shardID := uint32(0); shardID < shards; shardID++ {
-		if bbt.isShardBehind(shardID, process.MaxMetaNoncesBehindForGlobalStuck) {
+		if bbt.isShardBehind(shardID, uint64(maxMetaNoncesBehind)) {
 			return true
 		}
 	}
@@ -674,7 +743,9 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 		return bbt.isMetaStuck()
 	}
 
-	return bbt.isShardBehind(shardID, process.MaxMetaNoncesBehind)
+	currentEpoch := bbt.enableEpochsHandler.GetCurrentEpoch()
+	maxMetaNoncesBehind := bbt.processConfigsHandler.GetMaxMetaNoncesBehindByEpoch(currentEpoch)
+	return bbt.isShardBehind(shardID, uint64(maxMetaNoncesBehind))
 }
 
 func (bbt *baseBlockTrack) isShardBehind(shardID uint32, maxMetaNoncesBehind uint64) bool {
@@ -739,7 +810,11 @@ func (bbt *baseBlockTrack) computeMetaBlocksBehind() int64 {
 
 func (bbt *baseBlockTrack) isMetaStuck() bool {
 	noncesBehind := bbt.computeMetaBlocksBehind()
-	isMetaStuck := noncesBehind > process.MaxShardNoncesBehind
+
+	currentEpoch := bbt.enableEpochsHandler.GetCurrentEpoch()
+	maxShardNoncesBehind := bbt.processConfigsHandler.GetMaxShardNoncesBehindByEpoch(currentEpoch)
+
+	isMetaStuck := noncesBehind > int64(maxShardNoncesBehind)
 	return isMetaStuck
 }
 
@@ -791,6 +866,15 @@ func (bbt *baseBlockTrack) restoreTrackedHeadersToGenesis() {
 	bbt.mutHeaders.Unlock()
 }
 
+// Close closes the internal loop
+func (bbt *baseBlockTrack) Close() error {
+	if bbt.cancelFunc != nil {
+		bbt.cancelFunc()
+	}
+
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bbt *baseBlockTrack) IsInterfaceNil() bool {
 	return bbt == nil
@@ -836,8 +920,14 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(arguments.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(arguments.EpochChangeGracePeriodHandler) {
 		return process.ErrNilEpochChangeGracePeriodHandler
+	}
+	if check.IfNil(arguments.ProcessConfigsHandler) {
+		return process.ErrNilProcessConfigsHandler
 	}
 
 	return nil
@@ -876,6 +966,14 @@ func (bbt *baseBlockTrack) doWhitelistWithMetaBlockIfNeeded(metablock data.MetaH
 	}
 
 	miniBlockHdrs := metablock.GetMiniBlockHeaderHandlers()
+	if metablock.IsHeaderV3() {
+		execMiniBlockHdrs, err := common.GetMiniBlockHeadersFromExecResult(metablock)
+		if err != nil {
+			log.Debug("doWhitelistWithMetaBlockIfNeeded: could not get miniblock headers from execution results", "error", err)
+		}
+		miniBlockHdrs = execMiniBlockHdrs
+	}
+
 	keys := make([][]byte, 0)
 
 	crossMbKeysMeta := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, core.MetachainShardId)
@@ -910,6 +1008,14 @@ func (bbt *baseBlockTrack) doWhitelistWithShardHeaderIfNeeded(shardHeader data.H
 	}
 
 	miniBlockHdrs := shardHeader.GetMiniBlockHeaderHandlers()
+	if shardHeader.IsHeaderV3() {
+		execMiniBlockHdrs, err := common.GetMiniBlockHeadersFromExecResult(shardHeader)
+		if err != nil {
+			log.Debug("doWhitelistWithShardHeaderIfNeeded: could not get miniblock headers from execution results", "error", err)
+		}
+		miniBlockHdrs = execMiniBlockHdrs
+	}
+
 	keys := make([][]byte, 0)
 
 	crossMbKeysShard := getCrossShardMiniblockKeys(miniBlockHdrs, selfShardID, shardHeader.GetShardID())
@@ -951,4 +1057,19 @@ func (bbt *baseBlockTrack) isHeaderOutOfRange(headerHandler data.HeaderHandler) 
 
 	isHeaderOutOfRange := headerHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToWhitelistInAdvance
 	return isHeaderOutOfRange
+}
+
+// ComputeOwnShardStuck checks if the own shard is stuck and updates the own shard tracker accordingly
+func (bbt *baseBlockTrack) ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64) {
+	bbt.ownShardTracker.ComputeOwnShardStuck(lastExecutionResultsInfo, currentNonce)
+}
+
+// ResetOwnShardStuck restores the unstuck state.
+func (bbt *baseBlockTrack) ResetOwnShardStuck() {
+	bbt.ownShardTracker.ResetOwnShardStuck()
+}
+
+// IsOwnShardStuck returns true if the own shard is stuck, false otherwise
+func (bbt *baseBlockTrack) IsOwnShardStuck() bool {
+	return bbt.ownShardTracker.IsOwnShardStuck()
 }

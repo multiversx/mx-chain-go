@@ -416,3 +416,158 @@ func TestSyncPendingMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, mb, res[string(mbHash)])
 }
+
+func TestPendingMiniBlocks_SyncPendingMiniBlocksShouldRequestWithoutHoldingMutex(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("not found")
+	ctx, cancel := context.WithCancel(context.Background())
+	var pendingMiniBlocksSyncer *pendingMiniBlocks
+	args := ArgsNewPendingMiniBlocksSyncer{
+		Storage: &storageStubs.StorerStub{
+			GetCalled: func(_ []byte) ([]byte, error) {
+				return nil, localErr
+			},
+		},
+		Cache: &cache.CacherStub{
+			RegisterHandlerCalled: func(_ func(_ []byte, _ interface{})) {},
+			PeekCalled: func(_ []byte) (interface{}, bool) {
+				return nil, false
+			},
+		},
+		Marshalizer: &mock.MarshalizerFake{},
+		RequestHandler: &testscommon.RequestHandlerStub{
+			RequestMiniBlockHandlerCalled: func(_ uint32, _ []byte) {
+				require.True(t, pendingMiniBlocksSyncer.mutPendingMb.TryLock())
+				pendingMiniBlocksSyncer.mutPendingMb.Unlock()
+				cancel()
+			},
+		},
+	}
+
+	var err error
+	pendingMiniBlocksSyncer, err = NewPendingMiniBlocksSyncer(args)
+	require.NoError(t, err)
+
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocks(
+		[]data.MiniBlockHeaderHandler{&block.MiniBlockHeader{Hash: []byte("mbHash")}},
+		ctx,
+	)
+	require.ErrorIs(t, err, update.ErrTimeIsOut)
+}
+
+func TestPendingMiniBlocks_SyncPendingMiniBlocksShouldStopRequestPassWhenContextIsDone(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("not found")
+	ctx, cancel := context.WithCancel(context.Background())
+	numRequests := 0
+	args := ArgsNewPendingMiniBlocksSyncer{
+		Storage: &storageStubs.StorerStub{
+			GetCalled: func(_ []byte) ([]byte, error) {
+				return nil, localErr
+			},
+		},
+		Cache: &cache.CacherStub{
+			RegisterHandlerCalled: func(_ func(_ []byte, _ interface{})) {},
+			PeekCalled: func(_ []byte) (interface{}, bool) {
+				return nil, false
+			},
+		},
+		Marshalizer: &mock.MarshalizerFake{},
+		RequestHandler: &testscommon.RequestHandlerStub{
+			RequestMiniBlockHandlerCalled: func(_ uint32, _ []byte) {
+				numRequests++
+				cancel()
+			},
+		},
+	}
+
+	pendingMiniBlocksSyncer, err := NewPendingMiniBlocksSyncer(args)
+	require.NoError(t, err)
+
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocks(
+		[]data.MiniBlockHeaderHandler{
+			&block.MiniBlockHeader{Hash: []byte("mbHash0")},
+			&block.MiniBlockHeader{Hash: []byte("mbHash1")},
+			&block.MiniBlockHeader{Hash: []byte("mbHash2")},
+		},
+		ctx,
+	)
+	require.ErrorIs(t, err, update.ErrTimeIsOut)
+	require.Equal(t, 1, numRequests)
+}
+
+func TestPendingMiniBlocks_ReceivedMiniBlockShouldNotBlockWhenCompletionIsAlreadySignaled(t *testing.T) {
+	t.Parallel()
+
+	pendingMiniBlocksSyncer := &pendingMiniBlocks{
+		mapHashes: map[string]struct{}{
+			"mbHash0": {},
+			"mbHash1": {},
+		},
+		mapMiniBlocks: map[string]*block.MiniBlock{
+			"mbHash0": {},
+		},
+		chReceivedAll: make(chan bool, 1),
+	}
+	pendingMiniBlocksSyncer.chReceivedAll <- true
+
+	callbackDone := make(chan struct{})
+	go func() {
+		pendingMiniBlocksSyncer.receivedMiniBlock([]byte("mbHash1"), &block.MiniBlock{})
+		close(callbackDone)
+	}()
+
+	select {
+	case <-callbackDone:
+	case <-time.After(time.Second):
+		require.Fail(t, "received miniblock callback blocked on completion notification")
+	}
+}
+
+func TestPendingMiniBlocks_SyncPendingMiniBlocksShouldIgnoreStaleCompletion(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("not found")
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	completionSent := false
+	var pendingMiniBlocksSyncer *pendingMiniBlocks
+
+	args := ArgsNewPendingMiniBlocksSyncer{
+		Storage: &storageStubs.StorerStub{
+			GetCalled: func(_ []byte) ([]byte, error) {
+				return nil, localErr
+			},
+		},
+		Cache: &cache.CacherStub{
+			RegisterHandlerCalled: func(_ func(_ []byte, _ interface{})) {},
+			PeekCalled: func(_ []byte) (interface{}, bool) {
+				return nil, false
+			},
+		},
+		Marshalizer: &mock.MarshalizerFake{},
+		RequestHandler: &testscommon.RequestHandlerStub{
+			RequestMiniBlockHandlerCalled: func(_ uint32, _ []byte) {
+				if completionSent {
+					return
+				}
+
+				completionSent = true
+				pendingMiniBlocksSyncer.chReceivedAll <- true
+			},
+		},
+	}
+
+	var err error
+	pendingMiniBlocksSyncer, err = NewPendingMiniBlocksSyncer(args)
+	require.NoError(t, err)
+
+	err = pendingMiniBlocksSyncer.SyncPendingMiniBlocks(
+		[]data.MiniBlockHeaderHandler{&block.MiniBlockHeader{Hash: []byte("mbHash")}},
+		ctx,
+	)
+	require.ErrorIs(t, err, update.ErrTimeIsOut)
+	require.False(t, pendingMiniBlocksSyncer.syncedAll)
+}

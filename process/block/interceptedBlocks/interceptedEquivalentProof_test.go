@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -71,10 +72,24 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		ShardCoordinator:  &mock.ShardCoordinatorMock{},
 		HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 		Proofs:            &dataRetriever.ProofsPoolMock{},
-		HeadersPool:       &pool.HeadersPoolStub{},
+		HeadersPool: &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return providedNonce
+					},
+					GetShardIDCalled: func() uint32 {
+						return providedShard
+					},
+					EpochField: providedEpoch,
+					RoundField: providedRound,
+				}, nil
+			},
+		},
 		Hasher:            &hashingMocks.HasherMock{},
 		ProofSizeChecker:  &testscommon.FieldsSizeCheckerMock{},
 		KeyRWMutexHandler: coreSync.NewKeyRWMutex(),
+		ValidityAttester:  &processMock.ValidityAttesterStub{},
 	}
 }
 
@@ -185,6 +200,15 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		require.Equal(t, process.ErrNilKeyRWMutexHandler, err)
 		require.Nil(t, iep)
 	})
+	t.Run("nil ValidityAttester should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ValidityAttester = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilValidityAttester, err)
+		require.Nil(t, iep)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -234,6 +258,76 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 
 		err = iep.CheckValidity()
 		require.Equal(t, ErrInvalidProof, err)
+	})
+	t.Run("CheckProofAgainstFinal error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ValidityAttester = &processMock.ValidityAttesterStub{
+			CheckProofAgainstFinalCalled: func(proof data.HeaderProofHandler) error {
+				return expectedErr
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("CheckProofAgainstRoundHandler error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ValidityAttester = &processMock.ValidityAttesterStub{
+			CheckProofAgainstRoundHandlerCalled: func(proof data.HeaderProofHandler) error {
+				return expectedErr
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("whitelisted proof should bypass CheckProofAgainstFinal", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ValidityAttester = &processMock.ValidityAttesterStub{
+			CheckAgainstWhitelistCalled: func(interceptedData process.InterceptedData) bool {
+				return true
+			},
+			CheckProofAgainstFinalCalled: func(proof data.HeaderProofHandler) error {
+				return expectedErr
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.NoError(t, err)
+	})
+	t.Run("whitelisted proof should still enforce round handler check", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ValidityAttester = &processMock.ValidityAttesterStub{
+			CheckAgainstWhitelistCalled: func(interceptedData process.InterceptedData) bool {
+				return true
+			},
+			CheckProofAgainstRoundHandlerCalled: func(proof data.HeaderProofHandler) error {
+				return expectedErr
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.Equal(t, expectedErr, err)
 	})
 	t.Run("already exiting proof should error", func(t *testing.T) {
 		t.Parallel()
@@ -429,4 +523,5 @@ func TestInterceptedEquivalentProof_Getters(t *testing.T) {
 		logger.DisplayByteSlice(proof.AggregatedSignature),
 		logger.DisplayByteSlice(proof.HeaderHash))
 	require.Equal(t, expectedStr, iep.String())
+	require.True(t, iep.ShouldAllowDuplicates())
 }

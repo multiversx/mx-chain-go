@@ -3,11 +3,14 @@ package notifier_test
 import (
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 )
 
 func TestNewEpochStartSubscriptionHandler(t *testing.T) {
@@ -107,34 +110,90 @@ func TestEpochStartSubscriptionHandler_UnregisterHandlerOkHandlerShouldRemove(t 
 func TestEpochStartSubscriptionHandler_NotifyAll(t *testing.T) {
 	t.Parallel()
 
-	calledHandlers := make(map[int]struct{})
-	calledHandlersIndices := make([]int, 0)
-	essh := notifier.NewEpochStartSubscriptionHandler()
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	handler1 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
-		calledHandlers[1] = struct{}{}
-		calledHandlersIndices = append(calledHandlersIndices, 1)
-	}, nil, 1)
-	handler2 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
-		calledHandlers[2] = struct{}{}
-		calledHandlersIndices = append(calledHandlersIndices, 2)
-	}, nil, 2)
-	handler3 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
-		calledHandlers[3] = struct{}{}
-		calledHandlersIndices = append(calledHandlersIndices, 3)
-	}, nil, 3)
+		calledHandlersLock := &sync.RWMutex{}
+		calledHandlers := make(map[int]struct{})
+		essh := notifier.NewEpochStartSubscriptionHandler()
 
-	essh.RegisterHandler(handler2)
-	essh.RegisterHandler(handler1)
-	essh.RegisterHandler(handler3)
+		handler1 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+			calledHandlersLock.Lock()
+			calledHandlers[1] = struct{}{}
+			calledHandlersLock.Unlock()
+		}, nil, 1)
+		handler2 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+			calledHandlersLock.Lock()
+			calledHandlers[2] = struct{}{}
+			calledHandlersLock.Unlock()
+		}, nil, 2)
+		handler3 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+			calledHandlersLock.Lock()
+			calledHandlers[3] = struct{}{}
+			calledHandlersLock.Unlock()
+		}, nil, 3)
 
-	// make sure that the handler were not called yet
-	assert.Empty(t, calledHandlers)
+		essh.RegisterHandler(handler2)
+		essh.RegisterHandler(handler1)
+		essh.RegisterHandler(handler3)
 
-	// now we call the NotifyAll method and all handlers should be called
-	essh.NotifyAll(&block.Header{})
-	assert.Len(t, calledHandlers, 3)
-	assert.Equal(t, []int{1, 2, 3}, calledHandlersIndices)
+		// make sure that the handler were not called yet
+		assert.Empty(t, calledHandlers)
+
+		// now we call the NotifyAll method and all handlers should be called
+		essh.NotifyAll(&block.Header{})
+
+		time.Sleep(10 * time.Millisecond)
+		calledHandlersLock.RLock()
+		assert.Len(t, calledHandlers, 3)
+		calledHandlersLock.RUnlock()
+	})
+
+	t.Run("should work with async action handler", func(t *testing.T) {
+		t.Parallel()
+
+		calledHandlersLock := &sync.RWMutex{}
+		calledHandlers := make(map[int]struct{})
+		essh := notifier.NewEpochStartSubscriptionHandler()
+
+		handler1 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+			calledHandlersLock.Lock()
+			calledHandlers[1] = struct{}{}
+			calledHandlersLock.Unlock()
+		}, nil, 1)
+		handler2 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+			calledHandlersLock.Lock()
+			calledHandlers[2] = struct{}{}
+			calledHandlersLock.Unlock()
+		}, nil, common.EpochTxBroadcastDebug)
+		handler3 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+			calledHandlersLock.Lock()
+			calledHandlers[3] = struct{}{}
+			calledHandlersLock.Unlock()
+		}, nil, common.OldDatabaseCleanOrder)
+		handler4 := notifier.NewHandlerForEpochStart(func(hdr data.HeaderHandler) {
+			calledHandlersLock.Lock()
+			calledHandlers[4] = struct{}{}
+			calledHandlersLock.Unlock()
+		}, nil, common.NetStatisticsOrder)
+
+		essh.RegisterHandler(handler2)
+		essh.RegisterHandler(handler1)
+		essh.RegisterHandler(handler3)
+		essh.RegisterHandler(handler4)
+
+		// make sure that the handler were not called yet
+		assert.Empty(t, calledHandlers)
+
+		// now we call the NotifyAll method and all handlers should be called
+		essh.NotifyAll(&block.Header{})
+
+		time.Sleep(10 * time.Millisecond)
+
+		calledHandlersLock.RLock()
+		defer calledHandlersLock.RUnlock()
+		assert.Len(t, calledHandlers, 4)
+	})
 }
 
 func TestEpochStartSubscriptionHandler_ConcurrentOperations(t *testing.T) {

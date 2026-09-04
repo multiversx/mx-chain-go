@@ -26,9 +26,9 @@ func (provider *initialStatusMetricsProvider) BootstrapMetrics() (map[string]int
 	return provider.realStatusMetricsProvider.BootstrapMetrics()
 }
 
-// StatusMetricsMapWithoutP2P returns an empty map and the error which specifies that the node is starting
+// StatusMetricsMapWithoutP2P returns the status metrics (excluding P2P-related ones)
 func (provider *initialStatusMetricsProvider) StatusMetricsMapWithoutP2P() (map[string]interface{}, error) {
-	return getEmptyReturnValues()
+	return provider.realStatusMetricsProvider.StatusMetricsMapWithoutP2P()
 }
 
 // StatusP2pMetricsMap returns an empty map and the error which specifies that the node is starting
@@ -54,6 +54,16 @@ func (provider *initialStatusMetricsProvider) ConfigMetrics() (map[string]interf
 // EnableEpochsMetrics returns an empty map and the error which specifies that the node is starting
 func (provider *initialStatusMetricsProvider) EnableEpochsMetrics() (map[string]interface{}, error) {
 	return getEmptyReturnValues()
+}
+
+// EnableEpochsMetricsV2 returns an empty map since the node is starting
+func (provider *initialStatusMetricsProvider) EnableEpochsMetricsV2() map[string]uint32 {
+	return make(map[string]uint32)
+}
+
+// EnableRoundsMetrics returns an empty map since the node is starting
+func (provider *initialStatusMetricsProvider) EnableRoundsMetrics() map[string]uint64 {
+	return make(map[string]uint64)
 }
 
 // NetworkMetrics returns an empty map and the error which specifies that the node is starting

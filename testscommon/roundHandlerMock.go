@@ -10,13 +10,15 @@ type RoundHandlerMock struct {
 	indexMut sync.RWMutex
 	index    int64
 
-	IndexCalled          func() int64
-	TimeDurationCalled   func() time.Duration
-	TimeStampCalled      func() time.Time
-	UpdateRoundCalled    func(time.Time, time.Time)
-	RemainingTimeCalled  func(startTime time.Time, maxTime time.Duration) time.Duration
-	BeforeGenesisCalled  func() bool
-	IncrementIndexCalled func()
+	IndexCalled                func() int64
+	IndexForCurrentTimeCalled  func() int64
+	TimeDurationCalled         func() time.Duration
+	TimeStampCalled            func() time.Time
+	UpdateRoundCalled          func(time.Time, time.Time)
+	RemainingTimeCalled        func(startTime time.Time, maxTime time.Duration) time.Duration
+	BeforeGenesisCalled        func() bool
+	IncrementIndexCalled       func()
+	GetTimeStampForRoundCalled func(round uint64) uint64
 }
 
 // BeforeGenesis -
@@ -40,6 +42,15 @@ func (rndm *RoundHandlerMock) Index() int64 {
 	defer rndm.indexMut.RUnlock()
 
 	return rndm.index
+}
+
+// IndexForCurrentTime -
+func (rndm *RoundHandlerMock) IndexForCurrentTime() int64 {
+	if rndm.IndexForCurrentTimeCalled != nil {
+		return rndm.IndexForCurrentTimeCalled()
+	}
+
+	return rndm.Index()
 }
 
 // TimeDuration -
@@ -86,6 +97,15 @@ func (rndm *RoundHandlerMock) IncrementIndex() {
 	if rndm.IncrementIndexCalled != nil {
 		rndm.IncrementIndexCalled()
 	}
+}
+
+// GetTimeStampForRound -
+func (rndm *RoundHandlerMock) GetTimeStampForRound(round uint64) uint64 {
+	if rndm.GetTimeStampForRoundCalled != nil {
+		return rndm.GetTimeStampForRoundCalled(round)
+	}
+
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -28,8 +28,10 @@ type blockProcessor struct {
 	selfNotarizedHeadersNotifier          blockNotifierHandler
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	roundHandler                          process.RoundHandler
+	processConfigsHandler                 common.ProcessConfigsHandler
 
 	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 	proofsPool          process.ProofsPool
 	marshaller          marshal.Marshalizer
 	hasher              hashing.Hasher
@@ -58,7 +60,9 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		selfNotarizedHeadersNotifier:          arguments.SelfNotarizedHeadersNotifier,
 		finalMetachainHeadersNotifier:         arguments.FinalMetachainHeadersNotifier,
 		roundHandler:                          arguments.RoundHandler,
+		processConfigsHandler:                 arguments.ProcessConfigsHandler,
 		enableEpochsHandler:                   arguments.EnableEpochsHandler,
+		enableRoundsHandler:                   arguments.EnableRoundsHandler,
 		proofsPool:                            arguments.ProofsPool,
 		headersPool:                           arguments.HeadersPool,
 		marshaller:                            arguments.Marshaller,
@@ -139,6 +143,18 @@ func (bp *blockProcessor) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
 	}
 
 	if bp.selfNotarizedFromCrossHeadersNotifier.GetNumRegisteredHandlers() == 0 {
+		return
+	}
+
+	provider, canProvideSource := bp.blockTracker.(sourceAwareSelfHeadersProvider)
+	publisher, ok := bp.blockTracker.(sourceAwareSelfHeadersPublisher)
+	if canProvideSource && ok {
+		selfNotarizedHeadersInfo := bp.computeSelfNotarizedHeadersInfo(
+			provider,
+			crossNotarizedHeaders,
+			crossNotarizedHeadersHashes,
+		)
+		publisher.publishSelfNotarizedFromCrossHeaders(shardID, selfNotarizedHeadersInfo)
 		return
 	}
 
@@ -224,10 +240,47 @@ func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandl
 		})
 	}
 
-	selfNotarizedHeaders := make([]data.HeaderHandler, 0)
-	selfNotarizedHeadersHashes := make([][]byte, 0)
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0, len(selfNotarizedHeadersInfo))
+	selfNotarizedHeadersHashes := make([][]byte, 0, len(selfNotarizedHeadersInfo))
+	for _, headerInfo := range selfNotarizedHeadersInfo {
+		selfNotarizedHeaders = append(selfNotarizedHeaders, headerInfo.Header)
+		selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, headerInfo.Hash)
+	}
 
-	for _, selfNotarizedHeaderInfo := range selfNotarizedHeadersInfo {
+	return selfNotarizedHeaders, selfNotarizedHeadersHashes
+}
+
+func (bp *blockProcessor) computeSelfNotarizedHeadersInfo(
+	provider sourceAwareSelfHeadersProvider,
+	headers []data.HeaderHandler,
+	hashes [][]byte,
+) []*selfHeaderInfo {
+	selfNotarizedHeadersInfo := make([]*selfHeaderInfo, 0)
+
+	for index, header := range headers {
+		if index >= len(hashes) {
+			break
+		}
+		selfHeadersInfo := provider.getSelfHeadersWithSource(header, hashes[index])
+		if len(selfHeadersInfo) > 0 {
+			selfNotarizedHeadersInfo = append(selfNotarizedHeadersInfo, selfHeadersInfo...)
+		}
+	}
+
+	if len(selfNotarizedHeadersInfo) > 1 {
+		sort.Slice(selfNotarizedHeadersInfo, func(i, j int) bool {
+			return selfNotarizedHeadersInfo[i].Header.GetNonce() < selfNotarizedHeadersInfo[j].Header.GetNonce()
+		})
+	}
+
+	return selfNotarizedHeadersInfo
+}
+
+func selfHeaderInfoToSlices(headersInfo []*selfHeaderInfo) ([]data.HeaderHandler, [][]byte) {
+	selfNotarizedHeaders := make([]data.HeaderHandler, 0, len(headersInfo))
+	selfNotarizedHeadersHashes := make([][]byte, 0, len(headersInfo))
+
+	for _, selfNotarizedHeaderInfo := range headersInfo {
 		selfNotarizedHeaders = append(selfNotarizedHeaders, selfNotarizedHeaderInfo.Header)
 		selfNotarizedHeadersHashes = append(selfNotarizedHeadersHashes, selfNotarizedHeaderInfo.Hash)
 	}
@@ -293,6 +346,11 @@ func (bp *blockProcessor) getNextHeader(
 			break
 		}
 
+		if bp.isContendedUnsettledCrossHeader(currHeader, prevHeader, sortedHeadersHashes[i]) {
+			log.Trace("getNextHeader: skipping contended unsettled cross header", "hash", sortedHeadersHashes[i])
+			continue
+		}
+
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
 			continue
@@ -307,6 +365,22 @@ func (bp *blockProcessor) getNextHeader(
 		bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, sortedHeadersHashes, i+1)
 		headersIndexes = headersIndexes[:len(headersIndexes)-1]
 	}
+}
+
+// isContendedUnsettledCrossHeader applies the cross-shard referencing gate: a header that
+// skipped a round after its parent is not includable until it settles (see IsSettledCrossHeader)
+func (bp *blockProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandler, parentHeader data.HeaderHandler, headerHash []byte) bool {
+	if header.GetShardID() == bp.shardCoordinator.SelfId() {
+		return false
+	}
+	if !common.IsCrossHeaderSettlementEnabledForHeader(bp.enableEpochsHandler, bp.enableRoundsHandler, header) {
+		return false
+	}
+	if !common.IsContendedHeader(header, parentHeader) {
+		return false
+	}
+
+	return !bp.blockTracker.IsSettledCrossHeader(header, headerHash)
 }
 
 func (bp *blockProcessor) checkHeaderFinality(
@@ -454,7 +528,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		return
 	}
 
-	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
+	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > bp.getMaxRoundsWithoutBlockReceived(highestRoundInReceivedHeaders) &&
 		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance
 	if !shouldRequestHeaders {
 		return
@@ -478,6 +552,10 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 	bp.requestHeaders(shardID, fromNonce)
 }
 
+func (bp *blockProcessor) getMaxRoundsWithoutBlockReceived(round uint64) int64 {
+	return int64(bp.processConfigsHandler.GetMaxRoundsWithoutNewBlockReceivedByRound(round))
+}
+
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 	toNonce := fromNonce + bp.blockFinality
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
@@ -489,12 +567,31 @@ func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 
 		if shardID == core.MetachainShardId {
 			bp.requestHandler.RequestMetaHeaderByNonce(nonce)
-			bp.requestHandler.RequestEquivalentProofByNonce(core.MetachainShardId, nonce)
 		} else {
 			bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
-			bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
+		}
+		bp.requestProofByNonceIfPossible(shardID, nonce)
+	}
+}
+
+// requestProofByNonceIfPossible pairs a proof request with the header request, unless every pooled
+// candidate at the nonce predates the proofs flag, in which case no proof can exist
+func (bp *blockProcessor) requestProofByNonceIfPossible(shardID uint32, nonce uint64) {
+	headers, _, err := bp.headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
+	if err == nil && len(headers) > 0 {
+		allBeforeProofsFlag := true
+		for _, header := range headers {
+			if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
+				allBeforeProofsFlag = false
+				break
+			}
+		}
+		if allBeforeProofsFlag {
+			return
 		}
 	}
+
+	bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -539,6 +636,9 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(arguments.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(arguments.ProofsPool) {
 		return ErrNilProofsPool
 	}
@@ -550,6 +650,9 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 	}
 	if check.IfNil(arguments.HeadersPool) {
 		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.ProcessConfigsHandler) {
+		return process.ErrNilProcessConfigsHandler
 	}
 
 	return nil

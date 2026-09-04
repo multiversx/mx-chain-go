@@ -250,6 +250,9 @@ var ErrProposalNotFound = errors.New("proposal was not found in storage")
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
+// ErrNilEnableRoundsHandler signals that a nil enable rounds handler has been provided
+var ErrNilEnableRoundsHandler = errors.New("nil enable rounds handler")
+
 // ErrNotEnoughStakeToVote signals that the stake/delegation is not enough to vote
 var ErrNotEnoughStakeToVote = errors.New("not enough stake/delegate to vote")
 
@@ -282,3 +285,6 @@ var ErrCannotChangeToDynamic = errors.New("cannot change to dynamic because of d
 
 // ErrDivisionByZero signals that tokenID division by zero will happen
 var ErrDivisionByZero = errors.New("division by zero")
+
+// ErrInvalidValue signals that an invalid value was provided
+var ErrInvalidValue = errors.New("invalid value")

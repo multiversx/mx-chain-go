@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	cacheStubs "github.com/multiversx/mx-chain-go/testscommon/cache"
@@ -389,4 +390,23 @@ func TestShardedData_Diagnose(t *testing.T) {
 	sd.AddData([]byte("aaa"), "a1", 2, "0")
 	sd.AddData([]byte("bbb"), "b1", 2, "0")
 	sd.Diagnose(true)
+}
+
+func TestShardedData_NotImplemented(t *testing.T) {
+	t.Parallel()
+
+	sd, err := NewShardedData("", defaultTestConfig)
+	require.Nil(t, err)
+
+	require.NotPanics(t, func() {
+		sd.CleanupSelfShardTxCache(nil, 0, 0, 0)
+	})
+
+	err = sd.OnExecutedBlock(nil, nil)
+	require.Nil(t, err)
+
+	err = sd.OnProposedBlock(nil, nil, nil, nil, nil)
+	require.Nil(t, err)
+
+	sd.ResetTracker()
 }

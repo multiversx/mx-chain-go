@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -83,6 +84,9 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 		},
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
+		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
 		},
 	}
 
@@ -740,5 +744,11 @@ func getArgumentsMeta(
 		HardforkTrigger:                         &testscommon.HardforkTriggerStub{},
 		NodeOperationMode:                       common.NormalOperation,
 		InterceptedDataVerifierFactory:          &mock.InterceptedDataVerifierFactoryMock{},
+		Config: config.Config{
+			InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+				CacheSpanInSec:   1,
+				CacheExpiryInSec: 1,
+			},
+		},
 	}
 }

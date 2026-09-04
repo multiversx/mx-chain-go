@@ -69,11 +69,12 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	base := &baseBootstrap{
 		chainHandler:                 arguments.ChainHandler,
 		blockProcessor:               arguments.BlockProcessor,
+		executionManager:             arguments.ExecutionManager,
 		store:                        arguments.Store,
 		headers:                      arguments.PoolsHolder.Headers(),
 		proofs:                       arguments.PoolsHolder.Proofs(),
+		dataPool:                     arguments.PoolsHolder,
 		roundHandler:                 arguments.RoundHandler,
-		waitTime:                     arguments.WaitTime,
 		hasher:                       arguments.Hasher,
 		marshalizer:                  arguments.Marshalizer,
 		forkDetector:                 arguments.ForkDetector,
@@ -85,6 +86,8 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		bootStorer:                   arguments.BootStorer,
 		storageBootstrapper:          arguments.StorageBootstrapper,
 		epochHandler:                 arguments.EpochHandler,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		divergenceEvaluatedRound:     -1,
 		miniBlocksProvider:           arguments.MiniblocksProvider,
 		uint64Converter:              arguments.Uint64Converter,
 		poolsHolder:                  arguments.PoolsHolder,
@@ -96,7 +99,10 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
+		processWaitTimeSupernova:     arguments.ProcessWaitTimeSupernova,
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
+		enableRoundsHandler:          arguments.EnableRoundsHandler,
+		processConfigsHandler:        arguments.ProcessConfigsHandler,
 	}
 
 	if base.isInImportMode {
@@ -113,6 +119,10 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
+	base.settlementChecker = &metaSettlementChecker{
+		headers: arguments.PoolsHolder.Headers(),
+		proofs:  arguments.PoolsHolder.Proofs(),
+	}
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
@@ -126,30 +136,25 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		return nil, err
 	}
 
+	err = base.createTxSyncer()
+	if err != nil {
+		return nil, err
+	}
+
 	base.init()
 
 	return &boot, nil
 }
 
 func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	header, ok := headerHandler.(*block.MetaBlock)
+	header, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
-	}
-
-	miniBlocksAndHashes, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
-	if len(missingMiniBlocksHashes) > 0 {
-		return nil, process.ErrMissingBody
-	}
-
-	miniBlocks := make([]*block.MiniBlock, len(miniBlocksAndHashes))
-	for index, miniBlockAndHash := range miniBlocksAndHashes {
-		miniBlocks[index] = miniBlockAndHash.Miniblock
+	miniBlocks, err := boot.getHeaderMiniBlocks(header)
+	if err != nil {
+		return nil, err
 	}
 
 	return &block.Body{MiniBlocks: miniBlocks}, nil
@@ -227,7 +232,7 @@ func (boot *MetaBootstrap) requestEpochStartBlockIfStuck() {
 
 	targetNonce := currentNonce + 1
 
-	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(targetNonce, boot.headers)
+	header, headerHash, err := boot.getHeaderFromPoolPreferProven(targetNonce, boot.getProvenHashForNonce(targetNonce))
 	if err == nil && !check.IfNil(header) {
 		if boot.proofs.HasProof(core.MetachainShardId, headerHash) {
 			return
@@ -239,7 +244,7 @@ func (boot *MetaBootstrap) requestEpochStartBlockIfStuck() {
 			"hash", headerHash,
 		)
 		boot.requestHandler.SetEpoch(header.GetEpoch())
-		boot.requestHandler.RequestEquivalentProofByHash(core.MetachainShardId, headerHash)
+		boot.requestHandler.RequestEquivalentProofByHashForEpoch(core.MetachainShardId, headerHash, header.GetEpoch())
 		return
 	}
 
@@ -264,8 +269,7 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 		return
 	}
 
-	epochStartMetaBlock := &block.MetaBlock{}
-	err = boot.marshalizer.Unmarshal(epochStartMetaBlock, epochStartHdr)
+	epochStartMetaBlock, err := process.UnmarshalMetaHeader(boot.marshalizer, epochStartHdr)
 	if err != nil {
 		return
 	}
@@ -335,13 +339,7 @@ func (boot *MetaBootstrap) getPrevHeader(
 		return nil, err
 	}
 
-	prevHeader := &block.MetaBlock{}
-	err = boot.marshalizer.Unmarshal(prevHeader, buffHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	return prevHeader, nil
+	return process.UnmarshalMetaHeader(boot.marshalizer, buffHeader)
 }
 
 func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
@@ -350,7 +348,7 @@ func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 		return nil, process.ErrNilBlockHeader
 	}
 
-	header, ok := blockHeader.(*block.MetaBlock)
+	header, ok := blockHeader.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -359,19 +357,12 @@ func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 }
 
 func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	header, ok := headerHandler.(*block.MetaBlock)
+	header, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
-	}
-
-	boot.setRequestedMiniBlocks(nil)
-
-	miniBlockSlice, err := boot.getMiniBlocksRequestingIfMissing(hashes)
+	miniBlockSlice, err := boot.getHeaderMiniBlocksRequestingIfMissing(header)
 	if err != nil {
 		return nil, err
 	}
@@ -388,22 +379,23 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerH
 		return
 	}
 
-	header, ok := headerHandler.(*block.MetaBlock)
+	header, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		log.Warn("cannot convert headerHandler in block.MetaBlock")
 		return
 	}
 
-	hashes := make([][]byte, 0)
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
+	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
+	hashes := make([][]byte, len(miniBlockHeaders))
+	for i, miniBlockHeader := range miniBlockHeaders {
+		hashes[i] = miniBlockHeader.GetHash()
 	}
 
 	_, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		log.Trace("requesting in advance mini blocks",
 			"num miniblocks", len(missingMiniBlocksHashes),
-			"header nonce", header.Nonce,
+			"header nonce", header.GetNonce(),
 		)
 		boot.requestHandler.RequestMiniBlocks(boot.shardCoordinator.SelfId(), missingMiniBlocksHashes)
 	}

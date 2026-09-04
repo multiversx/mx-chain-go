@@ -10,10 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 )
 
 const (
@@ -24,6 +25,9 @@ const (
 	pointerSizeInBytes   = 8
 	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
 	pollingIdleNode      = time.Millisecond
+	// maxUnreportedParkedTime bounds how long a snapshot goroutine may sit parked behind node
+	// operations before reporting it: sustained parking starves the snapshot and defers pruning
+	maxUnreportedParkedTime = time.Minute
 )
 
 type baseNode struct {
@@ -279,6 +283,8 @@ func prefixLen(a, b []byte) int {
 }
 
 func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider IdleNodeProvider) bool {
+	var parkedSince time.Time
+	hasReportedParking := false
 	for {
 		select {
 		case <-ctx.Done():
@@ -288,6 +294,13 @@ func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider Idl
 
 		if idleProvider.IsIdle() {
 			return false
+		}
+
+		if parkedSince.IsZero() {
+			parkedSince = time.Now()
+		} else if !hasReportedParking && time.Since(parkedSince) >= maxUnreportedParkedTime {
+			hasReportedParking = true
+			log.Warn("snapshot goroutine parked behind node operations", "parked time", time.Since(parkedSince))
 		}
 
 		select {
@@ -330,4 +343,43 @@ func shouldMigrateCurrentNode(
 	}
 
 	return true, nil
+}
+
+func commitSnapshot(
+	db snapshotDb,
+	maxEpochToSearchFrom uint32,
+	marshaller marshal.Marshalizer,
+	hasher hashing.Hasher,
+	leavesChan chan core.KeyValueHolder,
+	missingNodesChan chan []byte,
+	ctx context.Context,
+	stats common.TrieStatisticsHandler,
+	idleProvider IdleNodeProvider,
+	depthLevel int,
+	hash []byte,
+) error {
+	encChild, foundInEpoch, err := db.GetWithoutAddingToCache(hash, maxEpochToSearchFrom)
+	if err != nil {
+		treatLogError(log, err, hash)
+
+		if core.IsClosingError(err) {
+			return err
+		}
+
+		log.Error("error during trie snapshot", "err", err.Error(), "hash", hash, "maxEpochToSearchFrom", maxEpochToSearchFrom)
+		missingNodesChan <- hash
+		return nil
+	}
+
+	child, err := decodeNode(encChild, marshaller, hasher)
+	if err != nil {
+		return err
+	}
+
+	err = child.commitSnapshot(db, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
+	if err != nil {
+		return err
+	}
+
+	return db.PutInEpochWithoutCache(hash, encChild)
 }

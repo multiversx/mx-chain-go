@@ -13,6 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -21,8 +24,6 @@ import (
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewShardStorageHandler_ShouldWork(t *testing.T) {
@@ -701,10 +702,11 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledWrongT
 	lastFinishedMetaBlock := "last finished meta block"
 
 	headers := map[string]data.HeaderHandler{
-		shard0HeaderHash: &block.Header{Nonce: 100}, lastFinishedMetaBlock: &block.Header{Nonce: 99}, // wrong header type
+		shard0HeaderHash:      &block.Header{Nonce: 100},
+		lastFinishedMetaBlock: &block.Header{Nonce: 99}, // wrong header type
 	}
 	shardInfo := []block.ShardData{{HeaderHash: []byte(shard0HeaderHash), ShardMiniBlockHeaders: nil, ShardID: 0}}
-	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(""))
+	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(shard0HeaderHash))
 
 	meta := &block.MetaBlock{
 		Nonce: 100,
@@ -739,7 +741,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledErrorW
 		shard0HeaderHash: &block.Header{Nonce: 100}, lastFinishedMetaBlock: &block.MetaBlock{Nonce: 99},
 	}
 	shardInfo := []block.ShardData{{HeaderHash: []byte(shard0HeaderHash), ShardMiniBlockHeaders: nil, ShardID: 0}}
-	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(""))
+	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(shard0HeaderHash))
 
 	meta := &block.MetaBlock{
 		Nonce: 100,
@@ -770,7 +772,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduled(t *te
 		shard0HeaderHash: &block.Header{Nonce: 100}, lastFinishedMetaBlock: &block.MetaBlock{Nonce: 99},
 	}
 	shardInfo := []block.ShardData{{HeaderHash: []byte(shard0HeaderHash), ShardMiniBlockHeaders: nil, ShardID: 0}}
-	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(""))
+	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(shard0HeaderHash))
 
 	meta := &block.MetaBlock{
 		Nonce: 100,
@@ -1706,5 +1708,365 @@ func Test_setMiniBlocksInfoWithPendingMiniBlocks(t *testing.T) {
 		assert.Equal(t, mbHash, mbsInfo.miniBlockHashes[0])
 		assert.False(t, mbsInfo.fullyProcessed[0])
 		assert.Equal(t, indexOfLastTxProcessed, mbsInfo.indexOfLastTxProcessed[0])
+	})
+}
+
+func TestGetMetaHeadersMiniBlockHandlerFromExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil header should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		retMiniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(nil)
+		require.Nil(t, retMiniBlockHandlers)
+	})
+
+	t.Run("if not header v3, should return miniblock headers from header directly", func(t *testing.T) {
+		t.Parallel()
+
+		mbHeader1 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash1"),
+			SenderShardID:   1,
+			ReceiverShardID: 1,
+		}
+		mbHeader2 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash2"),
+			SenderShardID:   2,
+			ReceiverShardID: 2,
+		}
+		miniBlockHeaderHandlers := []block.MiniBlockHeader{
+			*mbHeader1,
+			*mbHeader2,
+		}
+
+		metaBlock := &block.MetaBlock{
+			MiniBlockHeaders: miniBlockHeaderHandlers,
+		}
+
+		expMiniBlockHeaderHandlers := []data.MiniBlockHeaderHandler{
+			mbHeader1,
+			mbHeader2,
+		}
+
+		retMiniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(metaBlock)
+
+		require.Equal(t, expMiniBlockHeaderHandlers, retMiniBlockHandlers)
+	})
+
+	t.Run("if header v3, should return nil if no execution results on header", func(t *testing.T) {
+		t.Parallel()
+
+		mbHeader1 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash1"),
+			SenderShardID:   1,
+			ReceiverShardID: 1,
+		}
+		mbHeader2 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash2"),
+			SenderShardID:   2,
+			ReceiverShardID: 2,
+		}
+		miniBlockHeaderHandlers := []block.MiniBlockHeader{
+			*mbHeader1,
+			*mbHeader2,
+		}
+
+		metaBlock := &block.MetaBlockV3{
+			MiniBlockHeaders: miniBlockHeaderHandlers,
+			ExecutionResults: make([]*block.MetaExecutionResult, 0),
+		}
+
+		retMiniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(metaBlock)
+
+		require.Nil(t, retMiniBlockHandlers)
+	})
+
+	t.Run("if header v3, should return nil if not able to get mini blocks handlers from execution result", func(t *testing.T) {
+		t.Parallel()
+
+		mbHeader1 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash1"),
+			SenderShardID:   1,
+			ReceiverShardID: 1,
+		}
+		mbHeader2 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash2"),
+			SenderShardID:   2,
+			ReceiverShardID: 2,
+		}
+
+		miniBlockHeaderHandlers := []block.MiniBlockHeader{
+			*mbHeader1,
+			*mbHeader2,
+		}
+
+		metaBlock := &block.MetaBlockV3{
+			MiniBlockHeaders: miniBlockHeaderHandlers,
+			ExecutionResults: []*block.MetaExecutionResult{
+				nil,
+			},
+		}
+
+		retMiniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(metaBlock)
+
+		require.Nil(t, retMiniBlockHandlers)
+	})
+
+	t.Run("if header v3, should get mini block handlers from execution results", func(t *testing.T) {
+		t.Parallel()
+
+		mbHeader1 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash1"),
+			SenderShardID:   1,
+			ReceiverShardID: 1,
+		}
+		mbHeader2 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash2"),
+			SenderShardID:   2,
+			ReceiverShardID: 2,
+		}
+		mbHeader3 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash3"),
+			SenderShardID:   3,
+			ReceiverShardID: 3,
+		}
+
+		miniBlockHeaderHandlers := []block.MiniBlockHeader{
+			*mbHeader1,
+			*mbHeader2,
+		}
+
+		metaBlock := &block.MetaBlockV3{
+			MiniBlockHeaders: miniBlockHeaderHandlers,
+			LastExecutionResult: &block.MetaExecutionResultInfo{ // this should not be considered
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("headerHash1"),
+						HeaderNonce: 1,
+						HeaderRound: 1,
+					},
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  []byte("headerHash2"),
+							HeaderNonce: 2,
+							HeaderRound: 2,
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						*mbHeader1,
+						*mbHeader2,
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  []byte("headerHash2"),
+							HeaderNonce: 3,
+							HeaderRound: 3,
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						*mbHeader3,
+					},
+				},
+			},
+		}
+
+		retMiniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(metaBlock)
+
+		expMiniBlockHeaderHandlers := []data.MiniBlockHeaderHandler{
+			mbHeader1,
+			mbHeader2,
+			mbHeader3,
+		}
+
+		require.Equal(t, expMiniBlockHeaderHandlers, retMiniBlockHandlers)
+	})
+}
+
+func createPendingMbsFromHashes(hashes ...[]byte) []data.MiniBlockHeaderHandler {
+	pendingMbs := make([]data.MiniBlockHeaderHandler, len(hashes))
+	for i, hash := range hashes {
+		pendingMbs[i] = &block.MiniBlockHeader{Hash: hash}
+	}
+	return pendingMbs
+}
+
+func createMbHeadersFromHashes(hashes ...[]byte) []block.MiniBlockHeader {
+	mbHeaders := make([]block.MiniBlockHeader, len(hashes))
+	for i, hash := range hashes {
+		mbHeaders[i] = block.MiniBlockHeader{Hash: hash}
+	}
+	return mbHeaders
+}
+
+func Test_allPendingMbsAreProposed(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty pending mbs - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		result := allPendingMbsAreProposed([]data.MiniBlockHeaderHandler{}, &block.Header{}, nil)
+		assert.True(t, result)
+	})
+
+	t.Run("all pending mbs are proposed in current header - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1, mbHash2 := []byte("mbHash1"), []byte("mbHash2")
+		pendingMbs := createPendingMbsFromHashes(mbHash1, mbHash2)
+		header := &block.Header{MiniBlockHeaders: createMbHeadersFromHashes(mbHash1, mbHash2, []byte("extra"))}
+
+		result := allPendingMbsAreProposed(pendingMbs, header, nil)
+		assert.True(t, result)
+	})
+
+	t.Run("some pending mbs are not proposed - should return false", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1, mbHash2, mbHash3 := []byte("mbHash1"), []byte("mbHash2"), []byte("mbHash3")
+		pendingMbs := createPendingMbsFromHashes(mbHash1, mbHash2, mbHash3)
+		header := &block.Header{MiniBlockHeaders: createMbHeadersFromHashes(mbHash1, mbHash2)} // mbHash3 missing
+
+		result := allPendingMbsAreProposed(pendingMbs, header, nil)
+		assert.False(t, result)
+	})
+
+	t.Run("current header has no mbs but prev header has all - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1, mbHash2 := []byte("mbHash1"), []byte("mbHash2")
+		prevHeaderHash := []byte("prevHeaderHash")
+
+		pendingMbs := createPendingMbsFromHashes(mbHash1, mbHash2)
+		currentHeader := &block.Header{PrevHash: prevHeaderHash}
+		headers := map[string]data.HeaderHandler{
+			string(prevHeaderHash): &block.Header{MiniBlockHeaders: createMbHeadersFromHashes(mbHash1, mbHash2)},
+		}
+
+		result := allPendingMbsAreProposed(pendingMbs, currentHeader, headers)
+		assert.True(t, result)
+	})
+
+	t.Run("traverse multiple headers to find mbs - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1 := []byte("mbHash1")
+		prevHash1, prevHash2 := []byte("prevHash1"), []byte("prevHash2")
+
+		pendingMbs := createPendingMbsFromHashes(mbHash1)
+		currentHeader := &block.Header{PrevHash: prevHash1}
+		headers := map[string]data.HeaderHandler{
+			string(prevHash1): &block.Header{PrevHash: prevHash2},
+			string(prevHash2): &block.Header{MiniBlockHeaders: createMbHeadersFromHashes(mbHash1)},
+		}
+
+		result := allPendingMbsAreProposed(pendingMbs, currentHeader, headers)
+		assert.True(t, result)
+	})
+
+	t.Run("prev header not found in map - should return false", func(t *testing.T) {
+		t.Parallel()
+
+		pendingMbs := createPendingMbsFromHashes([]byte("mbHash1"))
+		currentHeader := &block.Header{PrevHash: []byte("missingHash")}
+
+		result := allPendingMbsAreProposed(pendingMbs, currentHeader, map[string]data.HeaderHandler{})
+		assert.False(t, result)
+	})
+
+	t.Run("header v3 traversal - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1 := []byte("mbHash1")
+		prevHeaderHash := []byte("prevHeaderHash")
+
+		pendingMbs := createPendingMbsFromHashes(mbHash1)
+		currentHeader := &block.HeaderV3{PrevHash: prevHeaderHash}
+		headers := map[string]data.HeaderHandler{
+			string(prevHeaderHash): &block.HeaderV3{
+				MiniBlockHeaders: createMbHeadersFromHashes(mbHash1),
+			},
+		}
+
+		result := allPendingMbsAreProposed(pendingMbs, currentHeader, headers)
+		assert.True(t, result)
+	})
+}
+
+func Test_shouldUpdateLastCrossMetaToPending(t *testing.T) {
+	t.Parallel()
+
+	createShardDataStub := func(pendingMbs []data.MiniBlockHeaderHandler, headerHash []byte) *epochStartMocks.EpochStartShardDataStub {
+		return &epochStartMocks.EpochStartShardDataStub{
+			GetPendingMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler { return pendingMbs },
+			GetHeaderHashCalled:                     func() []byte { return headerHash },
+		}
+	}
+
+	t.Run("no pending mbs - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		shardData := createShardDataStub([]data.MiniBlockHeaderHandler{}, nil)
+		result, err := shouldUpdateLastCrossMetaToPending(shardData, nil)
+		assert.Nil(t, err)
+		assert.True(t, result)
+	})
+
+	t.Run("header not found - should return error", func(t *testing.T) {
+		t.Parallel()
+
+		shardData := createShardDataStub(createPendingMbsFromHashes([]byte("mb1")), []byte("missing"))
+		result, err := shouldUpdateLastCrossMetaToPending(shardData, map[string]data.HeaderHandler{})
+		assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
+		assert.False(t, result)
+	})
+
+	t.Run("non-v3 header - should return false", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash := []byte("headerHash")
+		shardData := createShardDataStub(createPendingMbsFromHashes([]byte("mb1")), headerHash)
+		headers := map[string]data.HeaderHandler{string(headerHash): &block.Header{}}
+
+		result, err := shouldUpdateLastCrossMetaToPending(shardData, headers)
+		assert.Nil(t, err)
+		assert.False(t, result)
+	})
+
+	t.Run("v3 header with all mbs proposed - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1, headerHash := []byte("mbHash1"), []byte("headerHash")
+		shardData := createShardDataStub(createPendingMbsFromHashes(mbHash1), headerHash)
+		headers := map[string]data.HeaderHandler{
+			string(headerHash): &block.HeaderV3{
+				MiniBlockHeaders: createMbHeadersFromHashes(mbHash1),
+			},
+		}
+
+		result, err := shouldUpdateLastCrossMetaToPending(shardData, headers)
+		assert.Nil(t, err)
+		assert.True(t, result)
+	})
+
+	t.Run("v3 header with missing mbs - should return false", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1, mbHash2, headerHash := []byte("mbHash1"), []byte("mbHash2"), []byte("headerHash")
+		shardData := createShardDataStub(createPendingMbsFromHashes(mbHash1, mbHash2), headerHash)
+		headers := map[string]data.HeaderHandler{
+			string(headerHash): &block.HeaderV3{
+				MiniBlockHeaders: createMbHeadersFromHashes(mbHash1), // mbHash2 missing
+			},
+		}
+
+		result, err := shouldUpdateLastCrossMetaToPending(shardData, headers)
+		assert.Nil(t, err)
+		assert.False(t, result)
 	})
 }

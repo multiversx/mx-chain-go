@@ -2,12 +2,15 @@ package spos
 
 import (
 	"bytes"
+	"context"
 	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -35,20 +38,25 @@ type ConsensusState struct {
 	receivedMessagesWithSignature    map[string]p2p.MessageP2P
 	mutReceivedMessagesWithSignature sync.RWMutex
 
-	RoundIndex                  int64
-	RoundTimeStamp              time.Time
-	RoundCanceled               bool
-	ExtendedCalled              bool
-	WaitingAllSignaturesTimeOut bool
+	roundIndex                  int64
+	roundTimeStamp              time.Time
+	roundCanceled               bool
+	extendedCalled              bool
+	waitingAllSignaturesTimeOut bool
 
 	processingBlock    bool
 	mutProcessingBlock sync.RWMutex
+
+	signaturesDone             <-chan struct{}
+	signaturesTimeoutCtxCancel context.CancelFunc
 
 	*roundConsensus
 	*roundThreshold
 	*roundStatus
 
 	mutState sync.RWMutex
+
+	redundancyHandler consensus.NodeRedundancyHandler
 }
 
 // NewConsensusState creates a new ConsensusState object
@@ -56,12 +64,14 @@ func NewConsensusState(
 	roundConsensus *roundConsensus,
 	roundThreshold *roundThreshold,
 	roundStatus *roundStatus,
+	redundancyHandler consensus.NodeRedundancyHandler,
 ) *ConsensusState {
 
 	cns := ConsensusState{
-		roundConsensus: roundConsensus,
-		roundThreshold: roundThreshold,
-		roundStatus:    roundStatus,
+		roundConsensus:    roundConsensus,
+		roundThreshold:    roundThreshold,
+		roundStatus:       roundStatus,
+		redundancyHandler: redundancyHandler,
 	}
 
 	cns.ResetConsensusState()
@@ -72,11 +82,19 @@ func NewConsensusState(
 // ResetConsensusRoundState method resets all the consensus round data (except messages received)
 func (cns *ConsensusState) ResetConsensusRoundState() {
 	cns.mutState.Lock()
-	cns.RoundCanceled = false
-	cns.ExtendedCalled = false
-	cns.WaitingAllSignaturesTimeOut = false
-	cns.mutState.Unlock()
+	cns.roundCanceled = false
+	cns.extendedCalled = false
+	cns.waitingAllSignaturesTimeOut = false
+	// Start each round with an already-closed done channel, so a signature subround that runs without any
+	// optimistic-signatures trigger (e.g. no managed keys) waits on it and returns immediately.
+	cns.signaturesDone = newClosedChannel()
 
+	if cns.signaturesTimeoutCtxCancel != nil {
+		cns.signaturesTimeoutCtxCancel()
+		cns.signaturesTimeoutCtxCancel = nil
+	}
+
+	cns.mutState.Unlock()
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()
 }
@@ -108,6 +126,12 @@ func (cns *ConsensusState) initReceivedMessagesWithSig() {
 // SignatureMessageKey scopes a signature evidence message to the header hash it signs.
 func SignatureMessageKey(headerHash []byte, pubKey string) string {
 	return string(headerHash) + pubKey
+}
+
+func newClosedChannel() chan struct{} {
+	ch := make(chan struct{})
+	close(ch)
+	return ch
 }
 
 // AddReceivedHeader append the provided header to the inner received headers list
@@ -167,11 +191,11 @@ func (cns *ConsensusState) IsNodeLeaderInCurrentRound(node string) bool {
 
 // GetLeader method gets the leader of the current round
 func (cns *ConsensusState) GetLeader() (string, error) {
-	if cns.consensusGroup == nil {
+	if cns.ConsensusGroup() == nil {
 		return "", ErrNilConsensusGroup
 	}
 
-	if len(cns.consensusGroup) == 0 {
+	if len(cns.ConsensusGroup()) == 0 {
 		return "", ErrEmptyConsensusGroup
 	}
 
@@ -284,7 +308,7 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 // CanProcessReceivedMessage method returns true if the message received can be processed and false otherwise
 func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *consensus.Message, currentRoundIndex int64,
 	currentSubroundId int) bool {
-	if cns.IsNodeSelf(string(cnsDta.PubKey)) {
+	if cns.IsNodeSelf(string(cnsDta.PubKey)) && commonConsensus.ShouldConsiderSelfKeyInConsensus(cns.redundancyHandler) {
 		return false
 	}
 
@@ -351,7 +375,6 @@ func (cns *ConsensusState) GetData() []byte {
 	cns.mutData.RLock()
 	data := cns.data
 	cns.mutData.RUnlock()
-
 	return data
 }
 
@@ -360,6 +383,19 @@ func (cns *ConsensusState) SetData(data []byte) {
 	cns.mutData.Lock()
 	cns.data = data
 	cns.mutData.Unlock()
+}
+
+// SetDataIfNotSet atomically sets the consensus data only if it is not already set for the current round.
+func (cns *ConsensusState) SetDataIfNotSet(data []byte) bool {
+	cns.mutData.Lock()
+	defer cns.mutData.Unlock()
+
+	if cns.data != nil {
+		return false
+	}
+
+	cns.data = data
+	return true
 }
 
 // IsMultiKeyLeaderInCurrentRound method checks if one of the nodes which are controlled by this instance
@@ -388,7 +424,7 @@ func (cns *ConsensusState) IsLeaderJobDone(currentSubroundId int) bool {
 // IsMultiKeyJobDone method returns true if all the nodes controlled by this instance finished the current job for
 // the current subround and false otherwise
 func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
-	for _, validator := range cns.consensusGroup {
+	for _, validator := range cns.ConsensusGroup() {
 		if !cns.keysHandler.IsKeyManagedByCurrentNode([]byte(validator)) {
 			continue
 		}
@@ -432,7 +468,7 @@ func (cns *ConsensusState) GetRoundCanceled() bool {
 	cns.mutState.RLock()
 	defer cns.mutState.RUnlock()
 
-	return cns.RoundCanceled
+	return cns.roundCanceled
 }
 
 // SetRoundCanceled sets the state of the current round
@@ -440,7 +476,7 @@ func (cns *ConsensusState) SetRoundCanceled(roundCanceled bool) {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
-	cns.RoundCanceled = roundCanceled
+	cns.roundCanceled = roundCanceled
 }
 
 // GetRoundIndex returns the index of the current round
@@ -448,7 +484,7 @@ func (cns *ConsensusState) GetRoundIndex() int64 {
 	cns.mutState.RLock()
 	defer cns.mutState.RUnlock()
 
-	return cns.RoundIndex
+	return cns.roundIndex
 }
 
 // SetRoundIndex sets the index of the current round
@@ -456,17 +492,23 @@ func (cns *ConsensusState) SetRoundIndex(roundIndex int64) {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
-	cns.RoundIndex = roundIndex
+	cns.roundIndex = roundIndex
 }
 
 // GetRoundTimeStamp returns the time stamp of the current round
 func (cns *ConsensusState) GetRoundTimeStamp() time.Time {
-	return cns.RoundTimeStamp
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
+
+	return cns.roundTimeStamp
 }
 
 // SetRoundTimeStamp sets the time stamp of the current round
 func (cns *ConsensusState) SetRoundTimeStamp(roundTimeStamp time.Time) {
-	cns.RoundTimeStamp = roundTimeStamp
+	cns.mutState.Lock()
+	defer cns.mutState.Unlock()
+
+	cns.roundTimeStamp = roundTimeStamp
 }
 
 // GetExtendedCalled returns the state of the extended called
@@ -474,7 +516,7 @@ func (cns *ConsensusState) GetExtendedCalled() bool {
 	cns.mutState.RLock()
 	defer cns.mutState.RUnlock()
 
-	return cns.ExtendedCalled
+	return cns.extendedCalled
 }
 
 // SetExtendedCalled sets the state of the extended called
@@ -482,7 +524,7 @@ func (cns *ConsensusState) SetExtendedCalled(extendedCalled bool) {
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
-	cns.ExtendedCalled = extendedCalled
+	cns.extendedCalled = extendedCalled
 }
 
 // GetBody returns the body of the current round
@@ -522,7 +564,7 @@ func (cns *ConsensusState) GetWaitingAllSignaturesTimeOut() bool {
 	cns.mutState.RLock()
 	defer cns.mutState.RUnlock()
 
-	return cns.WaitingAllSignaturesTimeOut
+	return cns.waitingAllSignaturesTimeOut
 }
 
 // SetWaitingAllSignaturesTimeOut sets the state of the waiting all signatures time out
@@ -530,7 +572,49 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 	cns.mutState.Lock()
 	defer cns.mutState.Unlock()
 
-	cns.WaitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
+	cns.waitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
+}
+
+// SignaturesDone returns the channel that is closed once the optimistic-signatures creation for the current
+// round has finished. When no optimistic signatures were triggered for the round, the returned channel is
+// already closed.
+func (cns *ConsensusState) SignaturesDone() <-chan struct{} {
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
+
+	return cns.signaturesDone
+}
+
+// SetSignaturesDone sets the done channel for the optimistic-signatures creation
+func (cns *ConsensusState) SetSignaturesDone(done <-chan struct{}) {
+	cns.mutState.Lock()
+	defer cns.mutState.Unlock()
+
+	cns.signaturesDone = done
+}
+
+// SetSignaturesCtxCancelFunc will set signatures context cancel function
+func (cns *ConsensusState) SetSignaturesCtxCancelFunc(cancelFunc context.CancelFunc) {
+	var prevCancel context.CancelFunc
+
+	cns.mutState.Lock()
+	prevCancel = cns.signaturesTimeoutCtxCancel
+	cns.signaturesTimeoutCtxCancel = cancelFunc
+	cns.mutState.Unlock()
+
+	if prevCancel != nil {
+		prevCancel()
+	}
+}
+
+// SignaturesCtxCancel will cancel signatures context
+func (cns *ConsensusState) SignaturesCtxCancel() {
+	cns.mutState.RLock()
+	defer cns.mutState.RUnlock()
+
+	if cns.signaturesTimeoutCtxCancel != nil {
+		cns.signaturesTimeoutCtxCancel()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

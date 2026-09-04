@@ -6,7 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
@@ -30,7 +30,7 @@ type epochStartMetaBlockInterceptor struct {
 	consensusPercentage       float32
 
 	mutReceivedMetaBlocks  sync.RWMutex
-	mapReceivedMetaBlocks  map[string]*block.MetaBlock
+	mapReceivedMetaBlocks  map[string]data.MetaHeaderHandler
 	mapMetaBlocksFromPeers map[string][]core.PeerID
 
 	registeredHandlers []func(topic string, hash []byte, data interface{})
@@ -50,7 +50,7 @@ func NewEpochStartMetaBlockInterceptor(args ArgsEpochStartMetaBlockInterceptor) 
 		hasher:                    args.Hasher,
 		numConnectedPeersProvider: args.NumConnectedPeersProvider,
 		consensusPercentage:       consensusPercentageFloat,
-		mapReceivedMetaBlocks:     make(map[string]*block.MetaBlock),
+		mapReceivedMetaBlocks:     make(map[string]data.MetaHeaderHandler),
 		mapMetaBlocksFromPeers:    make(map[string][]core.PeerID),
 		registeredHandlers:        make([]func(topic string, hash []byte, data interface{}), 0),
 	}, nil
@@ -58,8 +58,7 @@ func NewEpochStartMetaBlockInterceptor(args ArgsEpochStartMetaBlockInterceptor) 
 
 // ProcessReceivedMessage will handle received messages containing epoch start meta blocks
 func (e *epochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
-	var epochStartMb block.MetaBlock
-	err := e.marshalizer.Unmarshal(&epochStartMb, message.Data())
+	epochStartMb, err := process.UnmarshalMetaHeader(e.marshalizer, message.Data())
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +76,7 @@ func (e *epochStartMetaBlockInterceptor) ProcessReceivedMessage(message p2p.Mess
 
 	log.Trace("received epoch start meta", "epoch", epochStartMb.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
 	e.mutReceivedMetaBlocks.Lock()
-	e.mapReceivedMetaBlocks[string(mbHash)] = &epochStartMb
+	e.mapReceivedMetaBlocks[string(mbHash)] = epochStartMb
 	e.addToPeerList(string(mbHash), fromConnectedPeer)
 	e.mutReceivedMetaBlocks.Unlock()
 
@@ -101,7 +100,7 @@ func (e *epochStartMetaBlockInterceptor) addToPeerList(hash string, peer core.Pe
 	e.mapMetaBlocksFromPeers[hash] = append(e.mapMetaBlocksFromPeers[hash], peer)
 }
 
-func (e *epochStartMetaBlockInterceptor) checkMaps() (*block.MetaBlock, bool) {
+func (e *epochStartMetaBlockInterceptor) checkMaps() (data.MetaHeaderHandler, bool) {
 	e.mutReceivedMetaBlocks.RLock()
 	defer e.mutReceivedMetaBlocks.RUnlock()
 
@@ -122,7 +121,7 @@ func (e *epochStartMetaBlockInterceptor) processEntry(
 	peersList []core.PeerID,
 	hash string,
 	numPeersTarget int,
-) (*block.MetaBlock, bool) {
+) (data.MetaHeaderHandler, bool) {
 	if len(peersList) >= numPeersTarget {
 		log.Debug("got consensus for epoch start metablock", "len", len(peersList))
 		return e.mapReceivedMetaBlocks[hash], true
@@ -147,7 +146,7 @@ func (e *epochStartMetaBlockInterceptor) RegisterHandler(handler func(topic stri
 	e.mutHandlers.Unlock()
 }
 
-func (e *epochStartMetaBlockInterceptor) handleFoundEpochStartMetaBlock(metaBlock *block.MetaBlock) {
+func (e *epochStartMetaBlockInterceptor) handleFoundEpochStartMetaBlock(metaBlock data.MetaHeaderHandler) {
 	e.mutHandlers.RLock()
 	for _, handler := range e.registeredHandlers {
 		handler(factory.MetachainBlocksTopic, []byte(""), metaBlock)
@@ -160,7 +159,7 @@ func (e *epochStartMetaBlockInterceptor) handleFoundEpochStartMetaBlock(metaBloc
 func (e *epochStartMetaBlockInterceptor) resetMaps() {
 	e.mutReceivedMetaBlocks.Lock()
 	e.mapMetaBlocksFromPeers = make(map[string][]core.PeerID)
-	e.mapReceivedMetaBlocks = make(map[string]*block.MetaBlock)
+	e.mapReceivedMetaBlocks = make(map[string]data.MetaHeaderHandler)
 	e.mutReceivedMetaBlocks.Unlock()
 }
 

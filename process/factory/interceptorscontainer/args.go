@@ -6,6 +6,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
@@ -50,4 +51,5 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	HardforkTrigger                         heartbeat.HardforkTrigger
 	NodeOperationMode                       common.NodeOperation
 	InterceptedDataVerifierFactory          process.InterceptedDataVerifierFactory
+	Config                                  config.Config
 }

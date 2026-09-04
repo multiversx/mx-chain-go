@@ -65,7 +65,7 @@ type ArgsNewTxProcessor struct {
 	BadTxForwarder      process.IntermediateTransactionHandler
 	ArgsParser          process.ArgumentsParser
 	ScrForwarder        process.IntermediateTransactionHandler
-	EnableRoundsHandler process.EnableRoundsHandler
+	EnableRoundsHandler common.EnableRoundsHandler
 	EnableEpochsHandler common.EnableEpochsHandler
 	TxVersionChecker    process.TxVersionCheckerHandler
 	GuardianChecker     process.GuardianChecker
@@ -879,7 +879,6 @@ func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHas
 	}
 
 	return txProc.txLogsProcessor.SaveLog(originalTxHash, originalTx, []*vmcommon.LogEntry{logEntry})
-
 }
 
 func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(

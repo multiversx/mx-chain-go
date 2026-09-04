@@ -24,7 +24,7 @@ const (
 
 type epochMultiSigner struct {
 	epoch       uint32
-	multiSigner crypto.MultiSigner
+	multiSigner crypto.MultiSignerV2
 }
 
 type container struct {
@@ -71,7 +71,7 @@ func NewMultiSignerContainer(args MultiSigArgs, multiSignerConfig []config.Multi
 }
 
 // GetMultiSigner returns the multiSigner configured for the given epoch
-func (c *container) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+func (c *container) GetMultiSigner(epoch uint32) (crypto.MultiSignerV2, error) {
 	c.mutSigners.RLock()
 	defer c.mutSigners.RUnlock()
 
@@ -88,7 +88,7 @@ func (c *container) IsInterfaceNil() bool {
 	return c == nil
 }
 
-func createMultiSigner(multiSigType string, args MultiSigArgs) (crypto.MultiSigner, error) {
+func createMultiSigner(multiSigType string, args MultiSigArgs) (crypto.MultiSignerV2, error) {
 	if args.ImportModeNoSigCheck {
 		log.Warn("using disabled multi signer because the node is running in import-db 'turbo mode'")
 		return &disabledMultiSig.DisabledMultiSig{}, nil

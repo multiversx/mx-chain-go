@@ -223,8 +223,8 @@ func decodeAddressAndVerifyShard(
 		return nil, err
 	}
 
-	protocolSustainabilityShardID := shardCoordinator.ComputeId(decodedAddress)
-	if protocolSustainabilityShardID == core.MetachainShardId {
+	addressShardID := shardCoordinator.ComputeId(decodedAddress)
+	if addressShardID == core.MetachainShardId {
 		return nil, process.ErrProtocolSustainabilityAddressInMetachain
 	}
 

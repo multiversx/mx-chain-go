@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -65,6 +66,7 @@ type TestMetaProcessor struct {
 	NodesConfig         nodesConfig
 	AccountsAdapter     state.AccountsAdapter
 	Marshaller          marshal.Marshalizer
+	DataPool            dataRetriever.PoolsHolder
 	TxCacher            dataRetriever.TransactionCacher
 	TxCoordinator       process.TransactionCoordinator
 	SystemVM            vmcommon.VMExecutionHandler
@@ -147,7 +149,7 @@ func newTestMetaProcessor(
 	waiting, _ := nc.GetAllWaitingValidatorsPublicKeys(0)
 	shuffledOut, _ := nc.GetAllShuffledOutValidatorsPublicKeys(0)
 
-	return &TestMetaProcessor{
+	tmp := &TestMetaProcessor{
 		AccountsAdapter: stateComponents.AccountsAdapter(),
 		Marshaller:      coreComponents.InternalMarshalizer(),
 		NodesConfig: nodesConfig{
@@ -177,12 +179,23 @@ func newTestMetaProcessor(
 		ValidatorStatistics: validatorStatisticsProcessor,
 		EpochStartTrigger:   epochStartTrigger,
 		BlockChainHandler:   dataComponents.Blockchain(),
+		DataPool:            dataComponents.Datapool(),
 		TxCacher:            dataComponents.Datapool().CurrentBlockTxs(),
 		TxCoordinator:       txCoordinator,
 		SystemVM:            systemVM,
 		BlockChainHook:      blockChainHook,
 		StakingDataProvider: stakingDataProvider,
 	}
+
+	updateRootHash(tmp.BlockChainHandler, tmp.AccountsAdapter)
+	return tmp
+}
+
+func updateRootHash(blockChainHandler data.ChainHandler, accountsAdapter state.AccountsAdapter) {
+	rootHash, _ := accountsAdapter.RootHash()
+	genesisBlock := blockChainHandler.GetGenesisHeader()
+	_ = genesisBlock.SetRootHash(rootHash)
+	_ = blockChainHandler.SetGenesisHeader(genesisBlock)
 }
 
 func saveNodesConfig(
@@ -220,10 +233,7 @@ func createEpochStartTrigger(
 	storageService dataRetriever.StorageService,
 ) integrationTests.TestEpochStartTrigger {
 	argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-		Settings: &config.EpochStartConfig{
-			MinRoundsBetweenEpochs: 10,
-			RoundsPerEpoch:         10,
-		},
+		Settings:           &config.EpochStartConfig{},
 		Epoch:              0,
 		EpochStartNotifier: coreComponents.EpochStartNotifierWithConfirm(),
 		Storage:            storageService,
@@ -231,6 +241,14 @@ func createEpochStartTrigger(
 		Hasher:             coreComponents.Hasher(),
 		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 		DataPool:           dataRetrieverMock.NewPoolsHolderMock(),
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundsPerEpoch:         10,
+					MinRoundsBetweenEpochs: 10,
+				}, nil
+			},
+		},
 	}
 
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)

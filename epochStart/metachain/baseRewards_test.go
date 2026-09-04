@@ -883,7 +883,7 @@ func TestBaseRewardsCreator_createProtocolSustainabilityRewardTransaction(t *tes
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
-	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, metaBlk.EpochStart.Economics.RewardsForProtocolSustainability)
+	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk.GetEpoch(), metaBlk.GetRound(), metaBlk.EpochStart.Economics.GetRewardsForProtocolSustainability())
 	require.Nil(t, err)
 	require.NotNil(t, rwTx)
 	require.Equal(t, metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, rwTx.Value)
@@ -908,7 +908,7 @@ func TestBaseRewardsCreator_createRewardFromRwdInfo(t *testing.T) {
 		rewardsFromProtocol: big.NewInt(1000),
 	}
 
-	rwTx, rwTxHash, err := rwd.createRewardFromRwdInfo(rwInfo, metaBlk)
+	rwTx, rwTxHash, err := rwd.createRewardFromRwdInfo(rwInfo, metaBlk.GetEpoch(), metaBlk.GetRound())
 	require.Nil(t, err)
 	require.NotNil(t, rwTx)
 	require.NotNil(t, rwTxHash)

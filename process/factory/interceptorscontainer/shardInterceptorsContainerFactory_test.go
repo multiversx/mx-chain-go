@@ -97,6 +97,9 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 	pools.ProofsCalled = func() dataRetriever.ProofsPool {
 		return &dataRetrieverMock.ProofsPoolMock{}
 	}
+	pools.DirectSentTransactionsCalled = func() storage.Cacher {
+		return cache.NewCacherStub()
+	}
 
 	return pools
 }
@@ -720,6 +723,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		HardforkTriggerPubKeyField:         providedHardforkPubKey,
 		EnableEpochsHandlerField:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
+		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 	}
 	multiSigner := cryptoMocks.NewMultiSigner()
 	cryptoComponents := &mock.CryptoComponentsMock{
@@ -728,6 +732,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(multiSigner),
 		BlKeyGen:          &mock.SingleSignKeyGenMock{},
 		TxKeyGen:          &mock.SingleSignKeyGenMock{},
+		ManagedPeers:      &testscommon.ManagedPeersHolderStub{},
 	}
 
 	return coreComponents, cryptoComponents
@@ -771,5 +776,11 @@ func getArgumentsShard(
 		FullArchivePeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:                         &testscommon.HardforkTriggerStub{},
 		InterceptedDataVerifierFactory:          &mock.InterceptedDataVerifierFactoryMock{},
+		Config: config.Config{
+			InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+				CacheSpanInSec:   1,
+				CacheExpiryInSec: 1,
+			},
+		},
 	}
 }

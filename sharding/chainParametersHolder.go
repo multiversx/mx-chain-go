@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 
+	"github.com/multiversx/mx-chain-go/epochStart"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -34,8 +36,9 @@ func NewChainParametersHolder(args ArgsChainParametersHolder) (*chainParametersH
 		return nil, err
 	}
 
-	chainParameters := args.ChainParameters
-	// sort the config values in descending order
+	// sort a copy in descending order, the caller's slice must keep its original order
+	chainParameters := make([]config.ChainParametersByEpochConfig, len(args.ChainParameters))
+	copy(chainParameters, args.ChainParameters)
 	sort.SliceStable(chainParameters, func(i, j int) bool {
 		return chainParameters[i].EnableEpoch > chainParameters[j].EnableEpoch
 	})
@@ -47,13 +50,13 @@ func NewChainParametersHolder(args ArgsChainParametersHolder) (*chainParametersH
 
 	paramsHolder := &chainParametersHolder{
 		currentChainParameters:  earliestChainParams, // will be updated on the epoch notifier handlers
-		chainParameters:         args.ChainParameters,
+		chainParameters:         chainParameters,
 		chainParametersNotifier: args.ChainParametersNotifier,
 	}
 	args.ChainParametersNotifier.UpdateCurrentChainParameters(earliestChainParams)
 	args.EpochStartEventNotifier.RegisterHandler(paramsHolder)
 
-	logInitialConfiguration(args.ChainParameters)
+	logInitialConfiguration(chainParameters)
 
 	return paramsHolder, nil
 }
@@ -84,7 +87,13 @@ func validateArgs(args ArgsChainParametersHolder) error {
 }
 
 func validateChainParameters(chainParametersConfig []config.ChainParametersByEpochConfig) error {
+	epochs := make(map[uint32]struct{}, len(chainParametersConfig))
 	for idx, chainParameters := range chainParametersConfig {
+		if _, found := epochs[chainParameters.EnableEpoch]; found {
+			return fmt.Errorf("%w: %d", ErrDuplicateChainParametersEpoch, chainParameters.EnableEpoch)
+		}
+		epochs[chainParameters.EnableEpoch] = struct{}{}
+
 		if chainParameters.ShardConsensusGroupSize < 1 {
 			return fmt.Errorf("%w for chain parameters with index %d", ErrNegativeOrZeroConsensusGroupSize, idx)
 		}
@@ -96,6 +105,15 @@ func validateChainParameters(chainParametersConfig []config.ChainParametersByEpo
 		}
 		if chainParameters.MetachainMinNumNodes < chainParameters.MetachainConsensusGroupSize {
 			return fmt.Errorf("%w for chain parameters with index %d", ErrMinNodesPerShardSmallerThanConsensusSize, idx)
+		}
+		if chainParameters.RoundsPerEpoch < 1 {
+			return fmt.Errorf("%w, RoundsPerEpoch < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
+		}
+		if chainParameters.MinRoundsBetweenEpochs < 1 {
+			return fmt.Errorf("%w, MinRoundsBetweenEpochs < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
+		}
+		if chainParameters.MinRoundsBetweenEpochs > chainParameters.RoundsPerEpoch {
+			return fmt.Errorf("%w, MinRoundsBetweenEpochs > RoundsPerEpoch", epochStart.ErrInvalidSettingsForEpochStartTrigger)
 		}
 	}
 

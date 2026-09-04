@@ -5,7 +5,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // deltaEpochActive represents how many epochs behind the current computed epoch are to be considered "active" and
@@ -19,45 +24,54 @@ var log = logger.GetOrCreate("resolvers/epochproviders")
 
 // ArgArithmeticEpochProvider is the argument structure for the arithmetic epoch provider
 type ArgArithmeticEpochProvider struct {
-	RoundsPerEpoch          uint32
-	RoundTimeInMilliseconds uint64
-	StartTime               int64
+	ChainParametersHandler          process.ChainParametersHandler
+	StartTime                       int64
+	EnableEpochsHandler             common.EnableEpochsHandler
+	AssumedPeersNumActivePersisters uint32
 }
 
 type arithmeticEpochProvider struct {
 	sync.RWMutex
-	currentComputedEpoch       uint32
-	headerEpoch                uint32
-	headerTimestampForNewEpoch uint64
-	roundsPerEpoch             uint32
-	roundTimeInMilliseconds    uint64
-	startTime                  int64
-	getUnixHandler             func() int64
+	currentComputedEpoch            uint32
+	headerEpoch                     uint32
+	headerTimestampForNewEpoch      uint64
+	getUnixHandler                  func() int64
+	enableEpochsHandler             common.EnableEpochsHandler
+	chainParamsHandler              process.ChainParametersHandler
+	assumedPeersNumActivePersisters uint32
 }
 
 // NewArithmeticEpochProvider returns a new arithmetic epoch provider able to mathematically compute the current network epoch
 // based on the last block saved, considering the block's timestamp and epoch in respect with the current time
 func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpochProvider, error) {
-	if arg.RoundsPerEpoch == 0 {
-		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidRoundsPerEpoch)
-	}
-	if arg.RoundTimeInMilliseconds == 0 {
-		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidRoundTimeInMilliseconds)
-	}
 	if arg.StartTime < 0 {
 		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidStartTime)
 	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arg.ChainParametersHandler) {
+		return nil, process.ErrNilChainParametersHandler
+	}
+	if arg.AssumedPeersNumActivePersisters == 0 {
+		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidAssumedPeersNumActivePersisters)
+	}
+
 	aep := &arithmeticEpochProvider{
-		headerEpoch:                0,
-		headerTimestampForNewEpoch: uint64(arg.StartTime),
-		roundsPerEpoch:             arg.RoundsPerEpoch,
-		roundTimeInMilliseconds:    arg.RoundTimeInMilliseconds,
-		startTime:                  arg.StartTime,
+		headerEpoch:                     0,
+		headerTimestampForNewEpoch:      uint64(arg.StartTime),
+		enableEpochsHandler:             arg.EnableEpochsHandler,
+		chainParamsHandler:              arg.ChainParametersHandler,
+		assumedPeersNumActivePersisters: arg.AssumedPeersNumActivePersisters,
 	}
 	aep.getUnixHandler = func() int64 {
+		if aep.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, aep.headerEpoch) {
+			return time.Now().UnixMilli()
+		}
+
 		return time.Now().Unix()
 	}
-	aep.computeCurrentEpoch() //based on the genesis provided data
+	aep.computeCurrentEpoch() // based on the genesis provided data
 
 	return aep, nil
 }
@@ -73,6 +87,21 @@ func (aep *arithmeticEpochProvider) EpochIsActiveInNetwork(epoch uint32) bool {
 	}
 
 	return aep.currentComputedEpoch-epoch <= deltaEpochActive
+}
+
+// EpochIsAvailableOnMainPeers returns true if regular network peers are assumed
+// to still hold the persister for the given epoch
+func (aep *arithmeticEpochProvider) EpochIsAvailableOnMainPeers(epoch uint32) bool {
+	aep.RLock()
+	defer aep.RUnlock()
+
+	subtractWillOverflow := aep.currentComputedEpoch < epoch
+	if subtractWillOverflow {
+		return true
+	}
+
+	// N active persisters cover the current epoch and its N-1 predecessors
+	return aep.currentComputedEpoch-epoch <= aep.assumedPeersNumActivePersisters-1
 }
 
 // EpochConfirmed is called whenever the epoch was changed and will cause the re-computation of the network's current epoch
@@ -98,15 +127,28 @@ func (aep *arithmeticEpochProvider) computeCurrentEpoch() {
 		return
 	}
 
-	diffTimeStampInSeconds := currentTimeStamp - aep.headerTimestampForNewEpoch
-	diffTimeStampInMilliseconds := diffTimeStampInSeconds * millisecondsInOneSecond
-	diffRounds := diffTimeStampInMilliseconds / aep.roundTimeInMilliseconds
-	diffEpochs := diffRounds / uint64(aep.roundsPerEpoch+1)
+	currentChainParameters := aep.chainParamsHandler.CurrentChainParameters()
+
+	diffTimeStampInMilliseconds := aep.getDiffTimeStampInMilliseconds(currentTimeStamp)
+	diffRounds := diffTimeStampInMilliseconds / currentChainParameters.RoundDuration
+	diffEpochs := diffRounds / uint64(currentChainParameters.RoundsPerEpoch+1)
 
 	aep.currentComputedEpoch = aep.headerEpoch + uint32(diffEpochs)
 
 	log.Debug("arithmeticEpochProvider.computeCurrentEpoch",
-		"computed network epoch", aep.currentComputedEpoch)
+		"computed network epoch", aep.currentComputedEpoch,
+	)
+}
+
+func (aep *arithmeticEpochProvider) getDiffTimeStampInMilliseconds(currentTimeStamp uint64) uint64 {
+	if aep.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, aep.headerEpoch) {
+		return currentTimeStamp - aep.headerTimestampForNewEpoch
+	}
+
+	diffTimeStampInSeconds := currentTimeStamp - aep.headerTimestampForNewEpoch
+	diffTimeStampInMilliseconds := diffTimeStampInSeconds * millisecondsInOneSecond
+
+	return diffTimeStampInMilliseconds
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
