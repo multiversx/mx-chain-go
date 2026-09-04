@@ -3450,6 +3450,26 @@ func (bp *baseProcessor) computeOwnShardStuckIfNeeded(header data.HeaderHandler)
 	return nil
 }
 
+func (bp *baseProcessor) updateGasConsumptionLimitsForProposal() error {
+	currentHeader := bp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) || !currentHeader.IsHeaderV3() {
+		bp.blockTracker.ResetOwnShardStuck()
+		bp.gasComputation.ResetIncomingLimit()
+		bp.gasComputation.ResetOutgoingLimit()
+
+		return nil
+	}
+
+	err := bp.computeOwnShardStuckIfNeeded(currentHeader)
+	if err != nil {
+		return err
+	}
+
+	bp.updateGasConsumptionLimitsIfNeeded()
+
+	return nil
+}
+
 func (bp *baseProcessor) updateGasConsumptionLimitsIfNeeded() {
 	if !bp.blockTracker.IsOwnShardStuck() {
 		bp.gasComputation.ResetIncomingLimit()
@@ -4082,6 +4102,10 @@ func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks bl
 	err = bp.checkMetaOutgoingResults(header, splitRes)
 	if err != nil {
 		return err
+	}
+	if bp.blockTracker.IsOwnShardStuck() &&
+		(len(splitRes.incomingMiniBlocks) > 0 || len(splitRes.outgoingTransactionHashes) > 0) {
+		return fmt.Errorf("%w, transactions are disabled while own shard is stuck", process.ErrInvalidMaxGasLimitPerMiniBlock)
 	}
 
 	bp.gasComputation.Reset()

@@ -1312,13 +1312,6 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
-	err = sp.computeOwnShardStuckIfNeeded(headerHandler)
-	if err != nil {
-		return err
-	}
-
-	sp.updateGasConsumptionLimitsIfNeeded()
-
 	errNotCritical := sp.checkSentSignaturesAtCommitTime(headerHandler)
 	if errNotCritical != nil {
 		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())
@@ -2146,6 +2139,16 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
+		if hdr.IsHeaderV3() &&
+			common.IsCrossHeaderSettlementEnabledForHeader(sp.enableEpochsHandler, sp.enableRoundsHandler, hdr) {
+			hdrHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, hdr)
+			if err != nil {
+				return nil, nil, err
+			}
+			if !sp.blockTracker.IsSettledCrossHeader(hdr, hdrHash) {
+				continue
+			}
+		}
 
 		// since we are getting shard info data for own shard, it is safe to fetch it based on
 		// shard info proposed
@@ -2622,9 +2625,13 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 		"num metablocks", len(orderedMetaBlocks),
 	)
 
-	lastMetaHdr, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	lastMetaHdr, lastMetaHash, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, err
+	}
+	if !check.IfNil(lastMetaHdr) && lastMetaHdr.IsHeaderV3() && sp.metaFinalityView.IsDeadMetaBlock(lastMetaHash, lastMetaHdr.GetNonce()) {
+		orderedMetaBlocks = nil
+		orderedMetaBlocksHashes = nil
 	}
 
 	haveAdditionalTimeFalse := func() bool {
@@ -2646,6 +2653,12 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(
 
 	// do processing in order
 	for i := 0; i < len(orderedMetaBlocks); i++ {
+		if orderedMetaBlocks[i].IsHeaderV3() && sp.metaFinalityView.IsDeadMetaBlock(
+			orderedMetaBlocksHashes[i],
+			orderedMetaBlocks[i].GetNonce(),
+		) {
+			break
+		}
 		if !createAndProcessInfo.haveTime() && !createAndProcessInfo.haveAdditionalTime() {
 			log.Debug("time is up after putting cross txs with destination to current shard",
 				"scheduled mode", createAndProcessInfo.scheduledMode,
@@ -3112,8 +3125,9 @@ func (sp *shardProcessor) getBootstrapHeadersInfo(
 		highestNonceInSelfNotarizedHeaders = selfNotarizedHeaders[numSelfNotarizedHeaders-1].GetNonce()
 	}
 
-	isFinalNonceHigherThanSelfNotarized := sp.forkDetector.GetHighestFinalBlockNonce() > highestNonceInSelfNotarizedHeaders
-	if isFinalNonceHigherThanSelfNotarized {
+	settledNonce, settledHash := sp.forkDetector.GetHighestSettledBlockInfo()
+	isSettledNonceHigherThanSelfNotarized := settledNonce > highestNonceInSelfNotarizedHeaders
+	if isSettledNonceHigherThanSelfNotarized {
 		numSelfNotarizedHeaders++
 	}
 
@@ -3133,11 +3147,11 @@ func (sp *shardProcessor) getBootstrapHeadersInfo(
 		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)
 	}
 
-	if isFinalNonceHigherThanSelfNotarized {
+	if isSettledNonceHigherThanSelfNotarized {
 		headerInfo := bootstrapStorage.BootstrapHeaderInfo{
 			ShardId: sp.shardCoordinator.SelfId(),
-			Nonce:   sp.forkDetector.GetHighestFinalBlockNonce(),
-			Hash:    sp.forkDetector.GetHighestFinalBlockHash(),
+			Nonce:   settledNonce,
+			Hash:    settledHash,
 		}
 
 		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, headerInfo)

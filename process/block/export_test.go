@@ -195,6 +195,7 @@ func NewShardProcessorEmptyWith3shards(
 				NumFloodingRoundsOutOfSpecs:            40,
 				MaxConsecutiveRoundsOfRatingDecrease:   600,
 				MaxBlockProcessingTimeMs:               1000,
+				ExtraDelayForRequestBlockInfoMs:        1,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
@@ -282,15 +283,15 @@ func NewShardProcessorEmptyWith3shards(
 
 	blockTracker := mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks)
 	headersForBlockComponent, _ := headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
-		DataPool:            dataComponents.DataPool,
-		RequestHandler:      &testscommon.RequestHandlerStub{},
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-		ShardCoordinator:    boostrapComponents.ShardCoordinator(),
-		BlockTracker:        blockTracker,
-		TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
-		RoundHandler:        coreComponents.RoundHandler(),
-		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-		GenesisNonce: 0,
+		DataPool:              dataComponents.DataPool,
+		RequestHandler:        &testscommon.RequestHandlerStub{},
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:      boostrapComponents.ShardCoordinator(),
+		BlockTracker:          blockTracker,
+		TxCoordinator:         &testscommon.TransactionCoordinatorMock{},
+		RoundHandler:          coreComponents.RoundHandler(),
+		ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+		GenesisNonce:          0,
 	})
 
 	argsGasConsumption := ArgsGasConsumption{
@@ -970,6 +971,16 @@ func (bp *baseProcessor) SetGasComputation(instance process.GasComputation) {
 	bp.gasComputation = instance
 }
 
+// SetBlockChain -
+func (bp *baseProcessor) SetBlockChain(chain data.ChainHandler) {
+	bp.blockChain = chain
+}
+
+// UpdateGasConsumptionLimitsForProposal -
+func (bp *baseProcessor) UpdateGasConsumptionLimitsForProposal() error {
+	return bp.updateGasConsumptionLimitsForProposal()
+}
+
 // UpdateGasConsumptionLimitsIfNeeded -
 func (bp *baseProcessor) UpdateGasConsumptionLimitsIfNeeded() {
 	bp.updateGasConsumptionLimitsIfNeeded()
@@ -1050,6 +1061,11 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header dat
 // VerifyGasLimit -
 func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler, miniBlocks block.MiniBlockSlice, isProposer bool) error {
 	return sp.verifyGasLimit(header, miniBlocks, isProposer)
+}
+
+// VerifyGasLimit -
+func (mp *metaProcessor) VerifyGasLimit(header data.MetaHeaderHandler, miniBlocks block.MiniBlockSlice, isProposer bool) error {
+	return mp.verifyGasLimit(header, miniBlocks, isProposer)
 }
 
 // SelectOutgoingTransactions -

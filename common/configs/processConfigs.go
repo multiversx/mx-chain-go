@@ -144,6 +144,16 @@ func checkRoundConfigValues(cfg config.ProcessConfigByRound) error {
 		)
 	}
 
+	if cfg.ExtraDelayForRequestBlockInfoMs < minExtraDelayForRequestBlockInfoMs {
+		return fmt.Errorf("%w for ExtraDelayForRequestBlockInfoMs, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.ExtraDelayForRequestBlockInfoMs, minExtraDelayForRequestBlockInfoMs)
+	}
+	broadcastChainMs := cfg.ExtraDelayForBroadcastBlockInfoMs + cfg.ExtraDelayBetweenBroadcastMbsAndTxsMs
+	if cfg.ExtraDelayForRequestBlockInfoMs < broadcastChainMs {
+		return fmt.Errorf("%w for ExtraDelayForRequestBlockInfoMs, received %d, must cover the broadcast chain of %d",
+			process.ErrInvalidValue, cfg.ExtraDelayForRequestBlockInfoMs, broadcastChainMs)
+	}
+
 	return nil
 }
 
@@ -278,6 +288,45 @@ func (pce *processConfigsByEpoch) GetMaxBlockProcessingTime(round uint64) time.D
 			return time.Duration(cfg.MaxBlockProcessingTimeMs) * time.Millisecond
 		},
 		defaultMaxBlockProcessingTimeMs,
+	)
+}
+
+// GetExtraDelayForBroadcastBlockInfo returns the wait between the block broadcast and the broadcast of its
+// mini blocks, based on round
+func (pce *processConfigsByEpoch) GetExtraDelayForBroadcastBlockInfo(round uint64) time.Duration {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) time.Duration {
+			return time.Duration(cfg.ExtraDelayForBroadcastBlockInfoMs) * time.Millisecond
+		},
+		defaultExtraDelayForBroadcastBlockInfo,
+	)
+}
+
+// GetExtraDelayBetweenBroadcastMbsAndTxs returns the wait between the mini blocks broadcast and the broadcast of
+// their transactions, based on round
+func (pce *processConfigsByEpoch) GetExtraDelayBetweenBroadcastMbsAndTxs(round uint64) time.Duration {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) time.Duration {
+			return time.Duration(cfg.ExtraDelayBetweenBroadcastMbsAndTxsMs) * time.Millisecond
+		},
+		defaultExtraDelayBetweenBroadcastMbsAndTxs,
+	)
+}
+
+// GetExtraDelayForRequestBlockInfo returns the wait, since a block has been observed, before its still missing
+// components are requested, based on round
+func (pce *processConfigsByEpoch) GetExtraDelayForRequestBlockInfo(round uint64) time.Duration {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) time.Duration {
+			return time.Duration(cfg.ExtraDelayForRequestBlockInfoMs) * time.Millisecond
+		},
+		defaultExtraDelayForRequestBlockInfo,
 	)
 }
 

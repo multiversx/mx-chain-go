@@ -31,26 +31,26 @@ type pendingMbRequest struct {
 
 // ArgHeadersForBlock is the DTO that holds data needed to create a new instance of headersForBlock
 type ArgHeadersForBlock struct {
-	DataPool                                    dataRetriever.PoolsHolder
-	RequestHandler                              process.RequestHandler
-	EnableEpochsHandler                         common.EnableEpochsHandler
-	ShardCoordinator                            sharding.Coordinator
-	BlockTracker                                process.BlockTracker
-	TxCoordinator                               process.TransactionCoordinator
-	RoundHandler                                consensus.RoundHandler
-	ExtraDelayForRequestBlockInfoInMilliseconds int
-	GenesisNonce                                uint64
+	DataPool              dataRetriever.PoolsHolder
+	RequestHandler        process.RequestHandler
+	EnableEpochsHandler   common.EnableEpochsHandler
+	ProcessConfigsHandler common.ProcessConfigsHandler
+	ShardCoordinator      sharding.Coordinator
+	BlockTracker          process.BlockTracker
+	TxCoordinator         process.TransactionCoordinator
+	RoundHandler          consensus.RoundHandler
+	GenesisNonce          uint64
 }
 
 type headersForBlock struct {
 	dataPool                     dataRetriever.PoolsHolder
 	requestHandler               process.RequestHandler
 	enableEpochsHandler          common.EnableEpochsHandler
+	processConfigsHandler        common.ProcessConfigsHandler
 	shardCoordinator             sharding.Coordinator
 	blockTracker                 process.BlockTracker
 	txCoordinator                process.TransactionCoordinator
 	roundHandler                 process.RoundHandler
-	extraDelayRequestBlockInfo   time.Duration
 	chRcvAllHdrs                 chan bool
 	genesisNonce                 uint64
 	blockFinality                uint32
@@ -82,20 +82,20 @@ func NewHeadersForBlock(args ArgHeadersForBlock) (*headersForBlock, error) {
 	}
 
 	instance := &headersForBlock{
-		dataPool:                   args.DataPool,
-		requestHandler:             args.RequestHandler,
-		enableEpochsHandler:        args.EnableEpochsHandler,
-		shardCoordinator:           args.ShardCoordinator,
-		blockTracker:               args.BlockTracker,
-		txCoordinator:              args.TxCoordinator,
-		roundHandler:               args.RoundHandler,
-		extraDelayRequestBlockInfo: time.Duration(args.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
-		genesisNonce:               args.GenesisNonce,
-		blockFinality:              process.BlockFinality,
-		chRcvAllHdrs:               make(chan bool, 1),
-		hdrHashAndInfo:             make(map[string]HeaderInfo),
-		highestHdrNonce:            make(map[uint32]uint64),
-		lastNotarizedShardHeaders:  make(map[uint32]LastNotarizedHeaderInfoHandler),
+		dataPool:                  args.DataPool,
+		requestHandler:            args.RequestHandler,
+		enableEpochsHandler:       args.EnableEpochsHandler,
+		processConfigsHandler:     args.ProcessConfigsHandler,
+		shardCoordinator:          args.ShardCoordinator,
+		blockTracker:              args.BlockTracker,
+		txCoordinator:             args.TxCoordinator,
+		roundHandler:              args.RoundHandler,
+		genesisNonce:              args.GenesisNonce,
+		blockFinality:             process.BlockFinality,
+		chRcvAllHdrs:              make(chan bool, 1),
+		hdrHashAndInfo:            make(map[string]HeaderInfo),
+		highestHdrNonce:           make(map[uint32]uint64),
+		lastNotarizedShardHeaders: make(map[uint32]LastNotarizedHeaderInfoHandler),
 
 		pendingMbRequests:      make(map[string]*pendingMbRequest),
 		maxPendingMbRequests:   maxPendingMiniBlockRequests,
@@ -124,6 +124,9 @@ func checkArgs(args ArgHeadersForBlock) error {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(args.ProcessConfigsHandler) {
+		return process.ErrNilProcessConfigsHandler
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
@@ -975,7 +978,7 @@ func (hfb *headersForBlock) requestMiniBlocksIfNeeded(headerHandler data.HeaderH
 		return
 	}
 
-	waitTime := hfb.extraDelayRequestBlockInfo
+	waitTime := hfb.processConfigsHandler.GetExtraDelayForRequestBlockInfo(headerHandler.GetRound())
 	// the arithmetic index: the stored one lags on a node stalled in commit, which would
 	// disable the request-immediately bypass on exactly the node that needs it
 	roundDifferences := hfb.roundHandler.IndexForCurrentTime() - int64(headerHandler.GetRound())

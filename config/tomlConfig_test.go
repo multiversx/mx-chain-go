@@ -75,6 +75,9 @@ func TestTomlParser(t *testing.T) {
 					MaxRoundsOfInactivityAccepted:          12,
 					MaxBlockProcessingTimeMs:               13,
 					NumHeadersToRequestInAdvance:           14,
+					ExtraDelayForBroadcastBlockInfoMs:      15,
+					ExtraDelayBetweenBroadcastMbsAndTxsMs:  16,
+					ExtraDelayForRequestBlockInfoMs:        17,
 				},
 			},
 		},
@@ -385,7 +388,10 @@ func TestTomlParser(t *testing.T) {
         MaxConsecutiveRoundsOfRatingDecrease = 11,
         MaxRoundsOfInactivityAccepted = 12,
 		MaxBlockProcessingTimeMs = 13,
-        NumHeadersToRequestInAdvance = 14
+        NumHeadersToRequestInAdvance = 14,
+        ExtraDelayForBroadcastBlockInfoMs = 15,
+        ExtraDelayBetweenBroadcastMbsAndTxsMs = 16,
+        ExtraDelayForRequestBlockInfoMs = 17
         }
     ]
 
