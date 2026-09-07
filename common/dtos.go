@@ -42,6 +42,24 @@ type TransactionsPoolNonceGapsForSenderApiResponse struct {
 	Gaps   []NonceGapApiResponse `json:"gaps"`
 }
 
+// TransactionsSelectionSimulationResult represents a struct that holds the data to be returned when simulating a selection
+type TransactionsSelectionSimulationResult struct {
+	Transactions []Transaction `json:"transactions"`
+}
+
+// VirtualNonceOfAccountResponse represents a struct that holds the data to be returned when requesting the virtual nonce of an account
+type VirtualNonceOfAccountResponse struct {
+	VirtualNonce         uint64                       `json:"virtualNonce"`
+	LatestCommittedBlock LatestCommittedBlockResponse `json:"latestCommittedBlock"`
+}
+
+// LatestCommittedBlockResponse represents a struct that holds the data to be returned when requesting the latest committed block
+type LatestCommittedBlockResponse struct {
+	Nonce    uint64 `json:"nonce"`
+	Hash     string `json:"hash"`
+	RootHash string `json:"rootHash"`
+}
+
 // DelegationDataAPI will be used when requesting the genesis balances from API
 type DelegationDataAPI struct {
 	Address string `json:"address"`
@@ -91,4 +109,10 @@ type AuctionListValidatorAPIResponse struct {
 	TopUpPerNode   string         `json:"topUpPerNode"`
 	QualifiedTopUp string         `json:"qualifiedTopUp"`
 	Nodes          []*AuctionNode `json:"nodes"`
+}
+
+// LastExecutionResultForInclusion is a lightweight summary of the last notarized execution result EIE requires.
+type LastExecutionResultForInclusion struct {
+	NotarizedInRound uint64
+	ProposedInRound  uint64
 }

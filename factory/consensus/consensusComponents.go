@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
@@ -161,11 +162,12 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.ShardCoordinator(),
 		ccf.cryptoComponents.PeerSignatureHandler(),
 		ccf.dataComponents.Datapool().Headers(),
+		ccf.dataComponents.Datapool().Proofs(),
+		ccf.coreComponents.EnableEpochsHandler(),
+		ccf.coreComponents.ProcessConfigsHandler(),
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
 		ccf.cryptoComponents.KeysHandler(),
-		ccf.dataComponents.Datapool().Proofs(),
-		ccf.coreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, err
@@ -225,6 +227,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 		PeerBlacklistHandler:     cc.peerBlacklistHandler,
 		EnableEpochsHandler:      ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:      ccf.coreComponents.EnableRoundsHandler(),
 		InvalidSignersCache:      invalidSignersCache,
 	}
 
@@ -248,6 +251,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	consensusArgs := &spos.ConsensusCoreArgs{
 		BlockChain:                    ccf.dataComponents.Blockchain(),
 		BlockProcessor:                ccf.processComponents.BlockProcessor(),
+		ExecutionManager:              ccf.processComponents.ExecutionManager(),
 		Bootstrapper:                  cc.bootstrapper,
 		BroadcastMessenger:            cc.broadcastMessenger,
 		ChronologyHandler:             cc.chronology,
@@ -270,10 +274,14 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PeerSignatureHandler:          ccf.cryptoComponents.PeerSignatureHandler(),
 		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:           ccf.coreComponents.EnableRoundsHandler(),
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
+		HeadersPool:                   ccf.dataComponents.Datapool().Headers(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
 		InvalidSignersCache:           invalidSignersCache,
 		MessagesHandler:               consensusService,
+		AOTSelector:                   ccf.processComponents.AOTSelector(),
+		CommonConfigsHandler:          ccf.coreComponents.CommonConfigsHandler(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -360,11 +368,14 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 	}
 
 	chronologyArg := chronology.ArgChronology{
-		GenesisTime:      ccf.coreComponents.GenesisTime(),
-		RoundHandler:     ccf.processComponents.RoundHandler(),
-		SyncTimer:        ccf.coreComponents.SyncTimer(),
-		Watchdog:         wd,
-		AppStatusHandler: ccf.statusCoreComponents.AppStatusHandler(),
+		GenesisTime:         ccf.coreComponents.GenesisTime(),
+		RoundHandler:        ccf.processComponents.RoundHandler(),
+		SyncTimer:           ccf.coreComponents.SyncTimer(),
+		Watchdog:            wd,
+		AppStatusHandler:    ccf.statusCoreComponents.AppStatusHandler(),
+		EnableEpochsHandler: ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler: ccf.coreComponents.EnableRoundsHandler(),
+		ConfigsHandler:      ccf.coreComponents.CommonConfigsHandler(),
 	}
 	return chronology.NewChronology(chronologyArg)
 }
@@ -420,7 +431,9 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consen
 	consensusState := spos.NewConsensusState(
 		roundConsensus,
 		roundThreshold,
-		roundStatus)
+		roundStatus,
+		ccf.processComponents.NodeRedundancyHandler(),
+	)
 
 	return consensusState, nil
 }
@@ -464,6 +477,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 		ProofsPool:                   ccf.dataComponents.Datapool().Proofs(),
+		ExecutionManager:             ccf.processComponents.ExecutionManager(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -495,7 +509,6 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ChainHandler:                 ccf.dataComponents.Blockchain(),
 		RoundHandler:                 ccf.processComponents.RoundHandler(),
 		BlockProcessor:               ccf.processComponents.BlockProcessor(),
-		WaitTime:                     ccf.processComponents.RoundHandler().TimeDuration(),
 		Hasher:                       ccf.coreComponents.Hasher(),
 		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
 		ForkDetector:                 ccf.processComponents.ForkDetector(),
@@ -507,6 +520,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		BootStorer:                   ccf.processComponents.BootStorer(),
 		StorageBootstrapper:          shardStorageBootstrapper,
 		EpochHandler:                 ccf.processComponents.EpochStartTrigger(),
+		EpochStartTrigger:            ccf.processComponents.EpochStartTrigger(),
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
@@ -517,12 +531,27 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
+		ProcessWaitTimeSupernova:     time.Duration(ccf.config.GeneralSettings.SyncProcessTimeSupernovaInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
+		ExecutionManager:             ccf.processComponents.ExecutionManager(),
+		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
+		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
+	}
+
+	dataPool := ccf.dataComponents.Datapool()
+	metaFinalityView, err := track.NewMetaFinalityView(track.ArgsMetaFinalityView{
+		HeadersPool: dataPool.Headers(),
+		ProofsPool:  dataPool.Proofs(),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
+		MetaFinalityView:    metaFinalityView,
+		BlockTracker:        ccf.processComponents.BlockTracker(),
 	}
 
 	return sync.NewShardBootstrap(argsShardBootstrapper)
@@ -600,6 +629,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 		ProofsPool:                   ccf.dataComponents.Datapool().Proofs(),
+		ExecutionManager:             ccf.processComponents.ExecutionManager(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
@@ -628,7 +658,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ChainHandler:                 ccf.dataComponents.Blockchain(),
 		RoundHandler:                 ccf.processComponents.RoundHandler(),
 		BlockProcessor:               ccf.processComponents.BlockProcessor(),
-		WaitTime:                     ccf.processComponents.RoundHandler().TimeDuration(),
+		ExecutionManager:             ccf.processComponents.ExecutionManager(),
 		Hasher:                       ccf.coreComponents.Hasher(),
 		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
 		ForkDetector:                 ccf.processComponents.ForkDetector(),
@@ -640,6 +670,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		BootStorer:                   ccf.processComponents.BootStorer(),
 		StorageBootstrapper:          metaStorageBootstrapper,
 		EpochHandler:                 ccf.processComponents.EpochStartTrigger(),
+		EpochStartTrigger:            ccf.processComponents.EpochStartTrigger(),
 		MiniblocksProvider:           ccf.dataComponents.MiniBlocksProvider(),
 		Uint64Converter:              ccf.coreComponents.Uint64ByteSliceConverter(),
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
@@ -650,8 +681,11 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		HistoryRepo:                  ccf.processComponents.HistoryRepository(),
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
+		ProcessWaitTimeSupernova:     time.Duration(ccf.config.GeneralSettings.SyncProcessTimeSupernovaInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
+		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
@@ -767,6 +801,9 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.ProcessComponents.HardforkTrigger()) {
 		return errors.ErrNilHardforkTrigger
+	}
+	if check.IfNil(args.ProcessComponents.NodeRedundancyHandler()) {
+		return errors.ErrNilNodeRedundancyHandler
 	}
 	if check.IfNil(args.StateComponents) {
 		return errors.ErrNilStateComponentsHolder

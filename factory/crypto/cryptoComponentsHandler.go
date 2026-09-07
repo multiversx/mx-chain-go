@@ -260,7 +260,7 @@ func (mcc *managedCryptoComponents) SetMultiSignerContainer(ms cryptoCommon.Mult
 }
 
 // GetMultiSigner returns the multiSigner configured in the multiSigner container for the given epoch
-func (mcc *managedCryptoComponents) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+func (mcc *managedCryptoComponents) GetMultiSigner(epoch uint32) (crypto.MultiSignerV2, error) {
 	mcc.mutCryptoComponents.RLock()
 	defer mcc.mutCryptoComponents.RUnlock()
 

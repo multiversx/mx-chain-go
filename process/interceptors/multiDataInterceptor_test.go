@@ -13,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/p2p"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -39,6 +41,7 @@ func createMockArgMultiDataInterceptor() interceptors.ArgMultiDataInterceptor {
 		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		CurrentPeerId:           "pid",
 		InterceptedDataVerifier: &mock.InterceptedDataVerifierMock{},
+		ManagedPeersHolder:      &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
@@ -150,6 +153,17 @@ func TestNewMultiDataInterceptor_EmptyPeerIDShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrEmptyPeerID, err)
+}
+
+func TestNewMultiDataInterceptor_NilManagedPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMultiDataInterceptor()
+	arg.ManagedPeersHolder = nil
+	mdi, err := interceptors.NewMultiDataInterceptor(arg)
+
+	assert.True(t, check.IfNil(mdi))
+	assert.Equal(t, process.ErrNilManagedPeersHolder, err)
 }
 
 func TestNewMultiDataInterceptor(t *testing.T) {
@@ -355,6 +369,94 @@ func TestMultiDataInterceptor_ProcessReceivedMessageOkMessageShouldRetNil(t *tes
 	testProcessReceiveMessageMultiData(t, true, nil, 2)
 }
 
+func TestMultiDataInterceptor_ProcessReceivedMessageMixedDuplicatesShouldProcessOnlyNewData(t *testing.T) {
+	t.Parallel()
+
+	buffData := [][]byte{[]byte("duplicate"), []byte("new")}
+	marshalizer := &mock.MarshalizerMock{}
+	var processed int32
+	arg := createMockArgMultiDataInterceptor()
+	arg.DataFactory = &mock.InterceptedDataFactoryStub{
+		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
+			hash := bytes.Clone(buff)
+			return &testscommon.InterceptedDataStub{
+				HashCalled:              func() []byte { return hash },
+				IsForCurrentShardCalled: func() bool { return true },
+			}, nil
+		},
+	}
+	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
+		VerifyCalled: func(data process.InterceptedData, _ string, _ p2p.BroadcastMethod) error {
+			if bytes.Equal(data.Hash(), []byte("duplicate")) {
+				return process.ErrDuplicatedInterceptedDataNotAllowed
+			}
+			return nil
+		},
+	}
+	arg.Processor = createMockInterceptorStub(nil, &processed)
+	mdi, err := interceptors.NewMultiDataInterceptor(arg)
+	require.NoError(t, err)
+	dataField, err := marshalizer.Marshal(&batch.Batch{Data: buffData})
+	require.NoError(t, err)
+
+	messageID, err := mdi.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{DataField: dataField}, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	require.NoError(t, err)
+	require.Eventually(t, func() bool { return atomic.LoadInt32(&processed) == 1 }, time.Second, time.Millisecond)
+	require.NotEmpty(t, messageID)
+}
+
+func TestMultiDataInterceptor_ProcessReceivedMessageAllDuplicatesShouldBeIgnored(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	arg := createMockArgMultiDataInterceptor()
+	arg.DataFactory = &mock.InterceptedDataFactoryStub{
+		CreateCalled: func(buff []byte) (process.InterceptedData, error) {
+			hash := bytes.Clone(buff)
+			return &testscommon.InterceptedDataStub{
+				HashCalled:              func() []byte { return hash },
+				IsForCurrentShardCalled: func() bool { return true },
+			}, nil
+		},
+	}
+	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
+		VerifyCalled: func(_ process.InterceptedData, _ string, _ p2p.BroadcastMethod) error {
+			return process.ErrDuplicatedInterceptedDataNotAllowed
+		},
+	}
+	var processed int32
+	arg.Processor = createMockInterceptorStub(nil, &processed)
+	mdi, err := interceptors.NewMultiDataInterceptor(arg)
+	require.NoError(t, err)
+	dataField, err := marshalizer.Marshal(&batch.Batch{Data: [][]byte{[]byte("first"), []byte("second")}})
+	require.NoError(t, err)
+
+	messageID, err := mdi.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{DataField: dataField}, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	require.ErrorIs(t, err, p2p.ErrMessageShouldBeIgnored)
+	require.NotEmpty(t, messageID)
+	require.Zero(t, atomic.LoadInt32(&processed))
+}
+
+func TestMultiDataInterceptor_ProcessReceivedMessageDuplicateBatchShouldBeIgnored(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMultiDataInterceptor()
+	mdi, err := interceptors.NewMultiDataInterceptor(arg)
+	require.NoError(t, err)
+	require.NoError(t, mdi.SetChunkProcessor(&mock.ChunkProcessorStub{
+		CheckBatchCalled: func(_ *batch.Batch, _ process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
+			return process.CheckedChunkResult{}, process.ErrDuplicatedInterceptedDataNotAllowed
+		},
+	}))
+	dataField, err := arg.Marshalizer.Marshal(&batch.Batch{Data: [][]byte{[]byte("duplicate")}})
+	require.NoError(t, err)
+
+	messageID, err := mdi.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{DataField: dataField}, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+
+	require.ErrorIs(t, err, p2p.ErrMessageShouldBeIgnored)
+	require.Nil(t, messageID)
+}
+
 func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, expectedErr error, calledNum int) {
 	buffData := [][]byte{[]byte("buff1"), []byte("buff2")}
 
@@ -379,7 +481,7 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
 	arg.Throttler = throttler
 	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
-		VerifyCalled: func(interceptedData process.InterceptedData) error {
+		VerifyCalled: func(interceptedData process.InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error {
 			return interceptedData.CheckValidity()
 		},
 	}
@@ -421,7 +523,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchErrors(t *testing.
 	expectedErr := errors.New("expected error")
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{}, expectedErr
 			},
 		},
@@ -460,7 +562,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsIncomplete(t *te
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{
 					IsChunk:        true,
 					HaveAllChunks:  false,
@@ -516,7 +618,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsComplete(t *test
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{
 					IsChunk:        true,
 					HaveAllChunks:  true,
@@ -648,7 +750,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 		},
 	}
 	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
-		VerifyCalled: func(interceptedData process.InterceptedData) error {
+		VerifyCalled: func(interceptedData process.InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error {
 			return interceptedData.CheckValidity()
 		},
 	}

@@ -10,9 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const printReportHeaderNotCritical = "double transactions found (this is not critical, thus)\nshowing the whole block body:\n"
@@ -87,12 +88,12 @@ func (detector *doubleTransactionsDetector) ProcessBlockBody(body *block.Body) e
 			"type", miniBlock.Type,
 			"num txs", len(miniBlock.TxHashes),
 			"hash", mbHash)
-		printReport.WriteString(fmt.Sprintf(" miniblock hash %s, type %s, %d -> %d\n",
-			hex.EncodeToString(mbHash), miniBlock.Type.String(), miniBlock.SenderShardID, miniBlock.ReceiverShardID))
+		_, _ = fmt.Fprintf(&printReport, " miniblock hash %s, type %s, %d -> %d\n",
+			hex.EncodeToString(mbHash), miniBlock.Type.String(), miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 
 		for _, txHash := range miniBlock.TxHashes {
 			transactions[string(txHash)]++
-			printReport.WriteString(fmt.Sprintf("  tx hash %s\n", hex.EncodeToString(txHash)))
+			_, _ = fmt.Fprintf(&printReport, "  tx hash %s\n", hex.EncodeToString(txHash))
 
 			doubleTransactionsExist = doubleTransactionsExist || transactions[string(txHash)] > 1
 		}

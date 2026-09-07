@@ -18,6 +18,11 @@ func (rnds *RoundStub) Index() int64 {
 	return rnds.IndexCalled()
 }
 
+// IndexForCurrentTime -
+func (rnds *RoundStub) IndexForCurrentTime() int64 {
+	return rnds.Index()
+}
+
 // TimeDuration -
 func (rnds *RoundStub) TimeDuration() time.Duration {
 	return rnds.TimeDurationCalled()

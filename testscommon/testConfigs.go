@@ -9,6 +9,9 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 			"DisableAsyncCallV1": {
 				Round: "18446744073709551615",
 			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
 		},
 	}
 }
@@ -26,11 +29,6 @@ func GetDefaultHeaderVersionConfig() config.VersionsConfig {
 				StartEpoch: 1,
 				Version:    "2",
 			},
-		},
-		Cache: config.CacheConfig{
-			Name:     "VersionsCache",
-			Type:     "LRU",
-			Capacity: 100,
 		},
 	}
 }

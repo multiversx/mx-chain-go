@@ -245,7 +245,7 @@ func (stub *BlockChainHookStub) EpochStartBlockRound() uint64 {
 	return 0
 }
 
-// EpochStartBlockTimeStamp -
+// EpochStartBlockTimeStampMs -
 func (stub *BlockChainHookStub) EpochStartBlockTimeStampMs() uint64 {
 	if stub.EpochStartBlockTimeStampMsCalled != nil {
 		return stub.EpochStartBlockTimeStampMsCalled()

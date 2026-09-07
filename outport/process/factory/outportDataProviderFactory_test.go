@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,6 +37,7 @@ func TestCreateOutportDataProvider(t *testing.T) {
 	t.Parallel()
 
 	arg := createArgOutportDataProviderFactory()
+	arg.StorageService = genericMocks.NewChainStorerMock(0)
 	arg.HasDrivers = true
 
 	provider, err := CreateOutportDataProvider(arg)

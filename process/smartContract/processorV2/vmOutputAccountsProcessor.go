@@ -158,7 +158,7 @@ func (oap *VMOutputAccountsProcessor) processStorageUpdatesStep(
 	return nil
 }
 
-// updateSmartContractCode upgrades code for "direct" deployments & upgrades and for "indirect" deployments & upgrades
+// updateSmartContractCodeStep upgrades code for "direct" deployments & upgrades and for "indirect" deployments & upgrades
 // It receives:
 //
 //	(1) the account as found in the State

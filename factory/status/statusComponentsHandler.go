@@ -350,6 +350,9 @@ func registerPollProbableHighestNonce(
 ) error {
 
 	probableHighestNonceHandlerFunc := func(appStatusHandler core.AppStatusHandler) {
+		if check.IfNil(forkDetector) {
+			return
+		}
 		probableHigherNonce := forkDetector.ProbableHighestNonce()
 		appStatusHandler.SetUInt64Value(common.MetricProbableHighestNonce, probableHigherNonce)
 	}

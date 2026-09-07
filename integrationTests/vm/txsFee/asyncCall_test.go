@@ -139,7 +139,7 @@ func TestMinterContractWithAsyncCalls(t *testing.T) {
 	require.Nil(t, err)
 
 	logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
-	event := logs[4].GetLogEvents()[1]
+	event := logs[4].GetLogHandler().GetLogEvents()[1]
 	require.Equal(t, "internalVMErrors", string(event.GetIdentifier()))
 	require.Contains(t, string(event.GetData()), process.ErrMaxCallsReached.Error())
 }

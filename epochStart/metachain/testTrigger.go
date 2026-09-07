@@ -1,6 +1,10 @@
 package metachain
 
-import "github.com/multiversx/mx-chain-go/epochStart"
+import (
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+)
 
 // TestTrigger extends start of epoch trigger and is used in integration tests as it exposes some functions
 // that are not supposed to be used in production code
@@ -21,23 +25,41 @@ func (t *TestTrigger) SetTrigger(triggerHandler epochStart.TriggerHandler) {
 
 // SetRoundsPerEpoch sets the number of round between epochs
 func (t *TestTrigger) SetRoundsPerEpoch(roundsPerEpoch uint64) {
-	t.roundsPerEpoch = roundsPerEpoch
-	if t.minRoundsBetweenEpochs > t.roundsPerEpoch {
-		t.minRoundsBetweenEpochs = t.roundsPerEpoch - 1
+	minRoundsBetweenEpochs := t.getMinRoundsBetweenEpochs(0)
+	if minRoundsBetweenEpochs > roundsPerEpoch {
+		minRoundsBetweenEpochs = roundsPerEpoch - 1
+	}
+
+	t.chainParametersHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(uint33 uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				RoundsPerEpoch:         int64(roundsPerEpoch),
+				MinRoundsBetweenEpochs: int64(minRoundsBetweenEpochs),
+			}, nil
+		},
 	}
 }
 
 // SetMinRoundsBetweenEpochs sets the minimum number of round between epochs
 func (t *TestTrigger) SetMinRoundsBetweenEpochs(minRoundsPerEpoch uint64) {
-	t.minRoundsBetweenEpochs = minRoundsPerEpoch
-	if t.minRoundsBetweenEpochs > t.roundsPerEpoch {
-		t.minRoundsBetweenEpochs = t.roundsPerEpoch - 1
+	roundsPerEpoch := t.getRoundsPerEpoch(0)
+	if minRoundsPerEpoch > roundsPerEpoch {
+		minRoundsPerEpoch = roundsPerEpoch - 1
+	}
+
+	t.chainParametersHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(uint33 uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				RoundsPerEpoch:         int64(roundsPerEpoch),
+				MinRoundsBetweenEpochs: int64(minRoundsPerEpoch),
+			}, nil
+		},
 	}
 }
 
 // GetRoundsPerEpoch gets the number of rounds per epoch
 func (t *TestTrigger) GetRoundsPerEpoch() uint64 {
-	return t.roundsPerEpoch
+	return t.getRoundsPerEpoch(0)
 }
 
 // SetEpoch sets the current epoch for the testTrigger

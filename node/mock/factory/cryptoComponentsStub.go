@@ -112,7 +112,7 @@ func (ccm *CryptoComponentsMock) SetMultiSignerContainer(ms cryptoCommon.MultiSi
 }
 
 // GetMultiSigner -
-func (ccm *CryptoComponentsMock) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+func (ccm *CryptoComponentsMock) GetMultiSigner(epoch uint32) (crypto.MultiSignerV2, error) {
 	ccm.mutMultiSig.RLock()
 	defer ccm.mutMultiSig.RUnlock()
 

@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -35,11 +34,12 @@ func GetBroadcastMessenger(
 	shardCoordinator sharding.Coordinator,
 	peerSignatureHandler crypto.PeerSignatureHandler,
 	headersSubscriber consensus.HeadersPoolSubscriber,
+	proofsPool consensus.EquivalentProofsPool,
+	enableEpochsHandler common.EnableEpochsHandler,
+	processConfigsHandler common.ProcessConfigsHandler,
 	interceptorsContainer process.InterceptorsContainer,
 	alarmScheduler core.TimersScheduler,
 	keysHandler consensus.KeysHandler,
-	proofsPool dataRetriever.ProofsPool,
-	enableEpochsHandler common.EnableEpochsHandler,
 ) (consensus.BroadcastMessenger, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -51,6 +51,7 @@ func GetBroadcastMessenger(
 		HeadersSubscriber:     headersSubscriber,
 		ProofsPool:            proofsPool,
 		EnableEpochsHandler:   enableEpochsHandler,
+		ProcessConfigsHandler: processConfigsHandler,
 		ShardCoordinator:      shardCoordinator,
 		LeaderCacheSize:       maxDelayCacheSize,
 		ValidatorCacheSize:    maxDelayCacheSize,
@@ -75,6 +76,7 @@ func GetBroadcastMessenger(
 		AlarmScheduler:             alarmScheduler,
 		KeysHandler:                keysHandler,
 		DelayedBroadcaster:         delayedBroadcaster,
+		ProcessConfigsHandler:      processConfigsHandler,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

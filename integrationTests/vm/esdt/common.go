@@ -172,6 +172,7 @@ func CreateNodesAndPrepareBalances(numOfShards int) ([]*integrationTests.TestPro
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 		AndromedaEnableEpoch:                        integrationTests.UnreachableEpoch,
+		SupernovaEnableEpoch:                        integrationTests.UnreachableEpoch,
 	}
 	roundsConfig := testscommon.GetDefaultRoundsConfig()
 	return CreateNodesAndPrepareBalancesWithEpochsAndRoundsConfig(

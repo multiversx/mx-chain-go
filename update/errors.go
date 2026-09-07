@@ -301,3 +301,6 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrNilNetworkComponents signals that a nil network components instance was provided
 var ErrNilNetworkComponents = errors.New("nil network components")
+
+// ErrEpochStartShardHeaderNotFound signals that the walk reached the target epoch without finding its epoch start block
+var ErrEpochStartShardHeaderNotFound = errors.New("epoch start shard header not found, walked past the target epoch boundary")

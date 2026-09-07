@@ -8,6 +8,10 @@ import (
 type SyncTimerStub struct {
 }
 
+// ForceSync -
+func (sts *SyncTimerStub) ForceSync() {
+}
+
 // StartSyncingTime -
 func (sts *SyncTimerStub) StartSyncingTime() {
 }

@@ -9,9 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,14 +28,14 @@ func TestNewMempoolHost(t *testing.T) {
 	require.ErrorIs(t, err, dataRetriever.ErrNilTxGasHandler)
 
 	host, err = newMempoolHost(argsMempoolHost{
-		txGasHandler: txcachemocks.NewTxGasHandlerMock(),
+		txGasHandler: mempool.NewTxGasHandlerMock(),
 		marshalizer:  nil,
 	})
 	require.Nil(t, host)
 	require.ErrorIs(t, err, dataRetriever.ErrNilMarshalizer)
 
 	host, err = newMempoolHost(argsMempoolHost{
-		txGasHandler: txcachemocks.NewTxGasHandlerMock(),
+		txGasHandler: mempool.NewTxGasHandlerMock(),
 		marshalizer:  &marshal.GogoProtoMarshalizer{},
 	})
 	require.NoError(t, err)
@@ -44,7 +46,7 @@ func TestMempoolHost_GetTransferredValue(t *testing.T) {
 	t.Parallel()
 
 	host, err := newMempoolHost(argsMempoolHost{
-		txGasHandler: txcachemocks.NewTxGasHandlerMock(),
+		txGasHandler: mempool.NewTxGasHandlerMock(),
 		marshalizer:  &marshal.GogoProtoMarshalizer{},
 	})
 	require.NoError(t, err)
@@ -86,7 +88,7 @@ func TestMempoolHost_GetTransferredValue(t *testing.T) {
 
 func TestBenchmarkMempoolHost_GetTransferredValue(t *testing.T) {
 	host, err := newMempoolHost(argsMempoolHost{
-		txGasHandler: txcachemocks.NewTxGasHandlerMock(),
+		txGasHandler: mempool.NewTxGasHandlerMock(),
 		marshalizer:  &marshal.GogoProtoMarshalizer{},
 	})
 	require.NoError(t, err)

@@ -1,9 +1,11 @@
 package v2_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -19,12 +21,16 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -37,8 +43,9 @@ func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
+		roundTimeDuration,
+		0.05,
+		0.25,
 		"(BLOCK)",
 		consensusState,
 		ch,
@@ -69,17 +76,34 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, erro
 	srBlock, err := v2.NewSubroundBlock(
 		sr,
 		v2.ProcessingThresholdPercent,
-		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				return consensusMetrics
+			},
+		},
+		&consensusMocks.NtpSyncControllerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	return srBlock, err
 }
 
 func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.SubroundBlock {
+
 	srBlock, _ := v2.NewSubroundBlock(
 		sr,
 		v2.ProcessingThresholdPercent,
-		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				return consensusMetrics
+			},
+		},
+		&consensusMocks.NtpSyncControllerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	return srBlock
@@ -161,6 +185,9 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 		nil,
 		v2.ProcessingThresholdPercent,
 		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -315,9 +342,52 @@ func TestSubroundBlock_NewSubroundBlockNilWorkerShouldFail(t *testing.T) {
 		sr,
 		v2.ProcessingThresholdPercent,
 		nil,
+		&consensusMocks.NtpSyncControllerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilWorker, err)
+}
+
+func TestSubroundBlock_NewSubroundBlockNilSignatureEvidenceShouldFail(t *testing.T) {
+	t.Parallel()
+	container := consensusMocks.InitConsensusCore()
+
+	consensusState := initializers.InitConsensusState()
+
+	ch := make(chan bool, 1)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
+
+	srBlock, err := v2.NewSubroundBlock(
+		sr,
+		v2.ProcessingThresholdPercent,
+		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+		nil,
+	)
+	assert.Nil(t, srBlock)
+	assert.Equal(t, v2.ErrNilSignatureEvidence, err)
+}
+
+func TestSubroundBlock_NewSubroundBlockNilRoundSyncController(t *testing.T) {
+	t.Parallel()
+
+	container := consensusMocks.InitConsensusCore()
+	consensusState := initializers.InitConsensusState()
+	sr, _ := defaultSubroundForSRBlock(consensusState, make(chan bool, 1), container, &statusHandler.AppStatusHandlerStub{})
+
+	srBlock, err := v2.NewSubroundBlock(
+		sr,
+		v2.ProcessingThresholdPercent,
+		&consensusMocks.SposWorkerMock{},
+		nil,
+		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
+	)
+	require.Nil(t, srBlock)
+	require.Equal(t, v2.ErrNilRoundSyncController, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
@@ -536,6 +606,96 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		r := sr.DoBlockJob()
 		assert.False(t, r)
 	})
+
+	t.Run("no remaining time left should send legacy block", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		container.SetRoundHandler(&testscommon.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 1
+			},
+			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+				return 0
+			},
+		})
+
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{
+					HeaderHash: headerHash,
+				}, nil
+			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, fmt.Errorf("no proof for nonce")
+			},
+		})
+
+		leader, err := sr.GetLeader()
+		assert.Nil(t, err)
+		sr.SetSelfPubKey(leader)
+		bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
+		container.SetBlockProcessor(bpm)
+
+		r := sr.DoBlockJob()
+		assert.True(t, r)
+	})
+
+	t.Run("no remaining time left should not send header V3 block", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		container.SetRoundHandler(&testscommon.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 1
+			},
+			RemainingTimeCalled: func(_ time.Time, _ time.Duration) time.Duration {
+				return 0
+			},
+		})
+		container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, _ uint64) bool {
+				return flag == common.SupernovaRoundFlag
+			},
+		})
+		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		})
+
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			GetProofCalled: func(_ uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{
+					HeaderHash: headerHash,
+				}, nil
+			},
+			GetProofByNonceCalled: func(_ uint64, _ uint32) (data.HeaderProofHandler, error) {
+				return nil, fmt.Errorf("no proof for nonce")
+			},
+		})
+
+		leader, err := sr.GetLeader()
+		assert.Nil(t, err)
+		sr.SetSelfPubKey(leader)
+		bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
+		bpm.CreateNewHeaderProposalCalled = func(_ uint64, _ uint64) (data.HeaderHandler, error) {
+			return &block.HeaderV3{}, nil
+		}
+		bpm.CreateBlockProposalCalled = func(header data.HeaderHandler, _ func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+			return header, &block.Body{}, nil
+		}
+		container.SetBlockProcessor(bpm)
+
+		r := sr.DoBlockJob()
+
+		assert.False(t, r)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -567,7 +727,15 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		sr, _ := v2.NewSubroundBlock(
 			baseSr,
 			v2.ProcessingThresholdPercent,
-			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{
+				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+					consensusMetrics, _ := spos.NewConsensusMetrics(baseSr.AppStatusHandler())
+					return consensusMetrics
+				},
+			},
+			&consensusMocks.NtpSyncControllerMock{},
+			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -612,7 +780,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 		}
 		container.SetBroadcastMessenger(bm)
-		container.SetRoundHandler(&consensusMocks.RoundHandlerMock{
+		container.SetRoundHandler(&round.RoundHandlerMock{
 			RoundIndex: 1,
 		})
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
@@ -623,16 +791,156 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 					PubKeysBitmap:       providedBitmap,
 				}, nil
 			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, fmt.Errorf("no proof for nonce")
+			},
 		})
 
 		r := sr.DoBlockJob()
 		assert.True(t, r)
 		assert.Equal(t, uint64(1), sr.GetHeader().GetNonce())
 	})
+	t.Run("should work after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		providedSignature := []byte("provided signature")
+		providedBitmap := []byte("provided bitmap")
+		providedHash := []byte("provided hash")
+		providedMarshalledTx := []byte("provided marshalled tx")
+		providedHeader := &block.HeaderV2{
+			Header: &block.Header{
+				Signature:     []byte("signature"),
+				PubKeysBitmap: []byte("bitmap"),
+			},
+		}
+
+		container := consensusMocks.InitConsensusCore()
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return providedHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return providedHash
+			},
+		}
+		container.SetBlockchain(chainHandler)
+
+		consensusState := initializers.InitConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+		ch := make(chan bool, 1)
+
+		baseSr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
+		sr, _ := v2.NewSubroundBlock(
+			baseSr,
+			v2.ProcessingThresholdPercent,
+			&consensusMocks.SposWorkerMock{
+				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+					consensusMetrics, _ := spos.NewConsensusMetrics(baseSr.AppStatusHandler())
+					return consensusMetrics
+				},
+			},
+			&consensusMocks.NtpSyncControllerMock{},
+			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
+		)
+
+		providedLeaderSignature := []byte("leader signature")
+		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+			CreateSignatureForPublicKeyCalled: func(message []byte, publicKeyBytes []byte) ([]byte, error) {
+				return providedLeaderSignature, nil
+			},
+			VerifySignatureShareCalled: func(index uint16, sig []byte, msg []byte, epoch uint32) error {
+				assert.Fail(t, "should have not been called for leader")
+				return nil
+			},
+		})
+		container.SetRoundHandler(&testscommon.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 1
+			},
+		})
+		enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag
+			},
+		}
+		container.SetEnableRoundsHandler(enableRoundsHandler)
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
+
+		leader, err := sr.GetLeader()
+		require.Nil(t, err)
+
+		sr.SetSelfPubKey(leader)
+
+		wasBroadcastTransactionsCalled := false
+		bm := &consensusMocks.BroadcastMessengerMock{
+			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+				return nil
+			},
+			BroadcastTransactionsCalled: func(m map[string][][]byte, bytes []byte) error {
+				wasBroadcastTransactionsCalled = true
+				return nil
+			},
+		}
+		container.SetBroadcastMessenger(bm)
+		container.SetRoundHandler(&round.RoundHandlerMock{
+			RoundIndex: 1,
+		})
+
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{
+					HeaderHash:          headerHash,
+					AggregatedSignature: providedSignature,
+					PubKeysBitmap:       providedBitmap,
+				}, nil
+			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, fmt.Errorf("no proof for nonce")
+			},
+		})
+		wasCreateNewHeaderProposalCalled := false
+		wasCreateBlockProposalCalled := false
+		blockProcessor := &testscommon.BlockProcessorStub{
+			CreateNewHeaderProposalCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
+				wasCreateNewHeaderProposalCalled = true
+				return &block.HeaderV3{}, nil
+			},
+			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
+				require.Fail(t, "should have not been called")
+				return nil, nil
+			},
+			CreateBlockProposalCalled: func(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+				wasCreateBlockProposalCalled = true
+				return &block.HeaderV3{}, &block.Body{}, nil
+			},
+			CreateBlockCalled: func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+				require.Fail(t, "should have not been called")
+				return nil, nil, nil
+			},
+			ProposedDirectSentTransactionsToBroadcastCalled: func(proposedBody data.BodyHandler) map[string][][]byte {
+				return map[string][][]byte{
+					"topic": {providedMarshalledTx},
+				}
+			},
+		}
+		container.SetBlockProcessor(blockProcessor)
+
+		r := sr.DoBlockJob()
+		require.True(t, r)
+		require.True(t, wasCreateNewHeaderProposalCalled)
+		assert.True(t, wasCreateBlockProposalCalled)
+		assert.True(t, wasBroadcastTransactionsCalled)
+	})
 }
 
 func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	t.Parallel()
+
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	blkBody := &block.Body{}
@@ -655,7 +963,6 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		currentPid,
 		nil,
 	)
-	sr.SetBody(&block.Body{})
 	r := sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
@@ -764,7 +1071,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		return expectedErr
 	}
 	container.SetBlockProcessor(blockProcessorMock)
-	container.SetRoundHandler(&consensusMocks.RoundHandlerMock{RoundIndex: 1})
+	container.SetRoundHandler(&round.RoundHandlerMock{RoundIndex: 1})
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
@@ -902,7 +1209,7 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 
 		return time.Duration(remainingTime) > 0
 	}
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
@@ -932,7 +1239,7 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 
 		return time.Duration(remainingTime) > 0
 	}
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
@@ -948,6 +1255,78 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 	container.SetSyncTimer(syncTimerMock)
 
 	assert.False(t, haveTimeInCurrentSubound())
+}
+
+func TestSubroundBlock_CreateBlockShouldUseNinetyPercentOfSubround(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name            string
+		header          data.HeaderHandler
+		roundDuration   time.Duration
+		startPercentage float64
+		endPercentage   float64
+		expectedMaxTime time.Duration
+	}{
+		{
+			name:            "before Supernova",
+			header:          &block.Header{},
+			roundDuration:   6 * time.Second,
+			startPercentage: 0.05,
+			endPercentage:   0.25,
+			expectedMaxTime: 1020 * time.Millisecond,
+		},
+		{
+			name:            "after Supernova",
+			header:          &block.HeaderV3{},
+			roundDuration:   600 * time.Millisecond,
+			startPercentage: 0.05,
+			endPercentage:   0.35,
+			expectedMaxTime: 138 * time.Millisecond,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			container := consensusMocks.InitConsensusCore()
+			var elapsedTime time.Duration
+			var providedMaxTime time.Duration
+			container.SetRoundHandler(&round.RoundHandlerMock{
+				RemainingTimeCalled: func(_ time.Time, maxTime time.Duration) time.Duration {
+					providedMaxTime = maxTime
+					return maxTime - elapsedTime
+				},
+			})
+
+			assertCreationTime := func(haveTime func() bool) {
+				elapsedTime = testCase.expectedMaxTime - time.Nanosecond
+				require.True(t, haveTime())
+				elapsedTime = testCase.expectedMaxTime
+				require.False(t, haveTime())
+			}
+
+			blockProcessor := &testscommon.BlockProcessorStub{
+				CreateBlockCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+					assertCreationTime(haveTime)
+					return header, &block.Body{}, nil
+				},
+				CreateBlockProposalCalled: func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+					assertCreationTime(haveTime)
+					return header, &block.Body{}, nil
+				},
+			}
+
+			sr := initSubroundBlockWithBlockProcessor(blockProcessor, container)
+			sr.SetBaseDuration(testCase.roundDuration)
+			sr.SetTimingPercentage(testCase.startPercentage, testCase.endPercentage)
+
+			_, _, err := sr.CreateBlock(testCase.header)
+			require.NoError(t, err)
+			require.Equal(t, testCase.expectedMaxTime, providedMaxTime)
+		})
+	}
 }
 
 func TestSubroundBlock_CreateHeaderNilCurrentHeader(t *testing.T) {
@@ -1223,11 +1602,54 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	}
 	container.SetBlockchain(blockchain)
 
+	sr.SetData(nil)
+
 	// nil header
 	sr.ReceivedBlockHeader(nil)
+	require.Nil(t, sr.GetData())
+
+	// start round is not finished
+	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
+	require.Nil(t, sr.GetData())
+	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
+
+	// old header after supernova
+	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return true
+		},
+	})
+	container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return true
+		},
+	})
+	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{
+		IsHeaderV3Called: func() bool {
+			return false
+		},
+	})
+	require.Nil(t, sr.GetData())
+
+	// header v3 before supernova
+	container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return false
+		},
+	})
+	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{
+		IsHeaderV3Called: func() bool {
+			return true
+		},
+	})
+	require.Nil(t, sr.GetData())
+
+	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{})
 
 	// header not for current consensus
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
+	require.Nil(t, sr.GetData())
 
 	// nil fields on header
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{
@@ -1235,9 +1657,11 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 			return expectedErr
 		},
 	})
+	require.Nil(t, sr.GetData())
 
 	// header not for current consensus
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
+	require.Nil(t, sr.GetData())
 
 	headerForCurrentConsensus := &testscommon.HeaderHandlerStub{
 		GetShardIDCalled: func() uint32 {
@@ -1259,6 +1683,7 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	defaultLeader := sr.Leader()
 	sr.SetLeader(sr.SelfPubKey())
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	sr.SetLeader(defaultLeader)
 
 	// consensus data already set
@@ -1269,21 +1694,25 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	// header leader is not the current one
 	sr.SetLeader("X")
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	sr.SetLeader(defaultLeader)
 
 	// header already received
 	sr.SetHeader(&testscommon.HeaderHandlerStub{})
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	sr.SetHeader(nil)
 
 	// self job already done
 	_ = sr.SetJobDone(sr.SelfPubKey(), sr.Current(), true)
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	_ = sr.SetJobDone(sr.SelfPubKey(), sr.Current(), false)
 
 	// subround already finished
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	sr.SetStatus(sr.Current(), spos.SsNotFinished)
 
 	// marshal error
@@ -1293,10 +1722,429 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 		},
 	})
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	container.SetMarshalizer(&testscommon.MarshallerStub{})
 
 	// should work
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	_ = sr.SetJobDone(sr.SelfPubKey(), sr.Current(), false)
+	sr.SetStatus(sr.Current(), spos.SsNotFinished)
+	sr.SetHeader(nil)
+	sr.SetData(nil)
+
+	// should work after supernova
+	wasVerifyBlockProposalCalled := false
+	container.SetBlockProcessor(&testscommon.BlockProcessorStub{
+		VerifyBlockProposalCalled: func(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
+			wasVerifyBlockProposalCalled = true
+			return nil
+		},
+	})
+	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	})
+	container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return true
+		},
+	})
+	headerForCurrentConsensus.IsHeaderV3Called = func() bool {
+		return true
+	}
+	sr.SetBody(&block.Body{})
+	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+
+	require.True(t, wasVerifyBlockProposalCalled)
+}
+
+type competingParentTestSubround interface {
+	DoBlockJob() bool
+	ReceivedBlockHeader(header data.HeaderHandler)
+	GetLeader() (string, error)
+	SetSelfPubKey(key string)
+	SetStatus(subroundId int, subroundStatus spos.SubroundStatus)
+	SetData(data []byte)
+	GetData() []byte
+	SetBody(body data.BodyHandler)
+	SetRoundIndex(roundIndex int64)
+}
+
+func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
+	t.Parallel()
+
+	headNonce := uint64(7)
+	headRound := uint64(5)
+	headHash := []byte("headHash")
+	headParentHash := []byte("headParentHash")
+	lowerRoundSiblingProof := &block.HeaderProof{
+		HeaderHash:  []byte("siblingHash"),
+		HeaderNonce: headNonce,
+		HeaderRound: headRound - 3,
+	}
+	higherRoundSiblingProof := &block.HeaderProof{
+		HeaderHash:  []byte("siblingHash"),
+		HeaderNonce: headNonce,
+		HeaderRound: headRound + 3,
+	}
+	offBranchSiblingProof := &block.HeaderProof{
+		HeaderHash:  []byte("offBranchSiblingHash"),
+		HeaderNonce: headNonce,
+		HeaderRound: headRound - 3,
+	}
+
+	head := createDefaultHeader()
+	head.Nonce = headNonce
+	head.Round = headRound
+
+	buildScaffold := func(
+		shardID uint32,
+		supernovaEpochOn bool,
+		supernovaRoundOn bool,
+		siblingProof data.HeaderProofHandler,
+	) (competingParentTestSubround, *spos.ConsensusCore, *bool, *bool) {
+		container := consensusMocks.InitConsensusCore()
+		container.SetShardCoordinator(mock.ShardCoordinatorMock{ShardID: shardID})
+		currentHeader := data.HeaderHandler(&block.HeaderV2{Header: head})
+		if shardID == core.MetachainShardId && supernovaEpochOn && supernovaRoundOn {
+			currentHeader = &block.MetaBlockV3{
+				Nonce:        headNonce,
+				Round:        headRound,
+				PrevHash:     headParentHash,
+				RandSeed:     head.RandSeed,
+				ChainID:      head.ChainID,
+				TxCount:      head.TxCount,
+				Epoch:        head.Epoch,
+				Reserved:     head.Reserved,
+				PrevRandSeed: head.PrevRandSeed,
+			}
+		}
+		container.SetBlockchain(&testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return currentHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return headHash
+			},
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return currentHeader, headHash
+			},
+		})
+		container.SetRoundHandler(&round.RoundHandlerMock{RoundIndex: int64(headRound) + 1})
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, _ uint32) (data.HeaderProofHandler, error) {
+				if headerNonce == headNonce && siblingProof != nil {
+					return siblingProof, nil
+				}
+				return nil, fmt.Errorf("no proof for nonce")
+			},
+			GetProofsByNonceCalled: func(headerNonce uint64, _ uint32) ([]data.HeaderProofHandler, error) {
+				if headerNonce == headNonce && siblingProof != nil {
+					return []data.HeaderProofHandler{siblingProof}, nil
+				}
+				return nil, fmt.Errorf("no proofs for nonce")
+			},
+		})
+		container.SetHeadersPool(&dataRetrieverMock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if siblingProof == nil || string(hash) != string(siblingProof.GetHeaderHash()) {
+					return nil, fmt.Errorf("header not found")
+				}
+
+				parentHash := headParentHash
+				if string(hash) == string(offBranchSiblingProof.GetHeaderHash()) {
+					parentHash = []byte("otherParentHash")
+				}
+
+				return &block.MetaBlockV3{PrevHash: parentHash}, nil
+			},
+		})
+		supernovaRoundFlag := func(flag common.EnableRoundFlag) bool {
+			return supernovaRoundOn && flag == common.SupernovaRoundFlag
+		}
+		container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: supernovaRoundFlag,
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, _ uint64) bool {
+				return supernovaRoundFlag(flag)
+			},
+		})
+		supernovaEpochFlag := func(flag core.EnableEpochFlag) bool {
+			return supernovaEpochOn && flag == common.SupernovaFlag
+		}
+		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: supernovaEpochFlag,
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+				return supernovaEpochFlag(flag)
+			},
+		})
+
+		reachedHeaderCreation := false
+		acceptedProposal := false
+		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
+			CreateNewHeaderProposalCalled: func(_ uint64, _ uint64) (data.HeaderHandler, error) {
+				reachedHeaderCreation = true
+				return nil, expectedErr
+			},
+			CreateNewHeaderCalled: func(_ uint64, _ uint64) (data.HeaderHandler, error) {
+				reachedHeaderCreation = true
+				return nil, expectedErr
+			},
+			VerifyBlockProposalCalled: func(_ data.HeaderHandler, _ data.BodyHandler, _ func() time.Duration) error {
+				acceptedProposal = true
+				return nil
+			},
+		})
+
+		consensusState := initializers.InitConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+		ch := make(chan bool, 1)
+		baseSr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
+		sr, _ := v2.NewSubroundBlock(
+			baseSr,
+			v2.ProcessingThresholdPercent,
+			&consensusMocks.SposWorkerMock{
+				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+					consensusMetrics, _ := spos.NewConsensusMetrics(baseSr.AppStatusHandler())
+					return consensusMetrics
+				},
+			},
+			&consensusMocks.NtpSyncControllerMock{},
+			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
+		)
+
+		return sr, container, &reachedHeaderCreation, &acceptedProposal
+	}
+
+	// header creation is stubbed to fail, so DoBlockJob returns false in every variant; whether the
+	// guard fired is read from the header-creation marker
+	proposeAsLeader := func(t *testing.T, sr competingParentTestSubround) {
+		leader, err := sr.GetLeader()
+		require.Nil(t, err)
+		sr.SetSelfPubKey(leader)
+		require.False(t, sr.DoBlockJob())
+	}
+
+	newProposalOverHead := func(shardID uint32, headerV3 bool) *testscommon.HeaderHandlerStub {
+		return &testscommon.HeaderHandlerStub{
+			GetShardIDCalled: func() uint32 {
+				return shardID
+			},
+			RoundField: headRound + 1,
+			GetPrevHashCalled: func() []byte {
+				return headHash
+			},
+			GetNonceCalled: func() uint64 {
+				return headNonce + 1
+			},
+			GetPrevRandSeedCalled: func() []byte {
+				return head.RandSeed
+			},
+			IsHeaderV3Called: func() bool {
+				return headerV3
+			},
+		}
+	}
+
+	// the default coordinator cannot derive the proposal's leader for the metachain shard id, so it
+	// is pinned to the round leader after the consensus state is built
+	receiveAsValidator := func(t *testing.T, sr competingParentTestSubround, container *spos.ConsensusCore, headerV3 bool) {
+		leader, err := sr.GetLeader()
+		require.Nil(t, err)
+		container.SetNodesCoordinator(&shardingMocks.NodesCoordinatorMock{
+			ComputeValidatorsGroupCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
+				return shardingMocks.NewValidatorMock([]byte(leader), 1, 1), nil, nil
+			},
+		})
+
+		// the default json marshalizer cannot serialize the header stub for the hash computation
+		container.SetMarshalizer(&testscommon.MarshallerStub{})
+
+		sr.SetRoundIndex(int64(headRound) + 1)
+		sr.SetStatus(bls.SrStartRound, spos.SsFinished)
+		sr.SetData(nil)
+		sr.SetBody(&block.Body{})
+		sr.ReceivedBlockHeader(newProposalOverHead(core.MetachainShardId, headerV3))
+	}
+
+	t.Run("leader skips proposing over an outcompeted head", func(t *testing.T) {
+		t.Parallel()
+
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, true, lowerRoundSiblingProof)
+		proposeAsLeader(t, sr)
+		require.False(t, *reachedHeaderCreation)
+	})
+
+	t.Run("leader proposes when no sibling proof is known", func(t *testing.T) {
+		t.Parallel()
+
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, true, nil)
+		proposeAsLeader(t, sr)
+		require.True(t, *reachedHeaderCreation)
+	})
+
+	t.Run("a higher-round sibling proof does not block the lower-round head", func(t *testing.T) {
+		t.Parallel()
+
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, true, higherRoundSiblingProof)
+		proposeAsLeader(t, sr)
+		require.True(t, *reachedHeaderCreation)
+	})
+
+	t.Run("an off-branch lower-round proof does not block the current head", func(t *testing.T) {
+		t.Parallel()
+
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, true, offBranchSiblingProof)
+		proposeAsLeader(t, sr)
+		require.True(t, *reachedHeaderCreation)
+	})
+
+	t.Run("shard nodes are not gated", func(t *testing.T) {
+		t.Parallel()
+
+		sr, _, reachedHeaderCreation, _ := buildScaffold(0, true, true, lowerRoundSiblingProof)
+		proposeAsLeader(t, sr)
+		require.True(t, *reachedHeaderCreation)
+	})
+
+	t.Run("inactive supernova leaves the flow untouched", func(t *testing.T) {
+		t.Parallel()
+
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, false, false, lowerRoundSiblingProof)
+		proposeAsLeader(t, sr)
+		require.True(t, *reachedHeaderCreation)
+	})
+
+	t.Run("drain period leaves the leader flow untouched", func(t *testing.T) {
+		t.Parallel()
+
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, false, lowerRoundSiblingProof)
+		proposeAsLeader(t, sr)
+		require.True(t, *reachedHeaderCreation)
+	})
+
+	t.Run("round activation alone leaves the leader flow untouched", func(t *testing.T) {
+		t.Parallel()
+
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, false, true, lowerRoundSiblingProof)
+		proposeAsLeader(t, sr)
+		require.True(t, *reachedHeaderCreation)
+	})
+
+	t.Run("validator refuses a proposal over an outcompeted head", func(t *testing.T) {
+		t.Parallel()
+
+		sr, container, _, acceptedProposal := buildScaffold(core.MetachainShardId, true, true, lowerRoundSiblingProof)
+		receiveAsValidator(t, sr, container, true)
+
+		require.Nil(t, sr.GetData())
+		require.False(t, *acceptedProposal)
+	})
+
+	t.Run("validator accepts the proposal without the sibling proof", func(t *testing.T) {
+		t.Parallel()
+
+		sr, container, _, acceptedProposal := buildScaffold(core.MetachainShardId, true, true, nil)
+		receiveAsValidator(t, sr, container, true)
+
+		require.NotNil(t, sr.GetData())
+		require.True(t, *acceptedProposal)
+	})
+
+	t.Run("validator accepts the proposal when the preferred proof is off-branch", func(t *testing.T) {
+		t.Parallel()
+
+		sr, container, _, acceptedProposal := buildScaffold(core.MetachainShardId, true, true, offBranchSiblingProof)
+		receiveAsValidator(t, sr, container, true)
+
+		require.NotNil(t, sr.GetData())
+		require.True(t, *acceptedProposal)
+	})
+
+	t.Run("drain period does not apply the validator guard", func(t *testing.T) {
+		t.Parallel()
+
+		sr, container, _, _ := buildScaffold(core.MetachainShardId, true, false, lowerRoundSiblingProof)
+		receiveAsValidator(t, sr, container, false)
+
+		require.NotNil(t, sr.GetData())
+	})
+}
+
+func TestSubroundBlock_UpdateConsensusMetrics(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	container := consensusMocks.InitConsensusCore()
+	syncTimerMock := &consensusMocks.SyncTimerMock{
+		CurrentTimeCalled: func() time.Time {
+			return now
+		},
+	}
+	count := 0
+	roundHandlerMock := testscommon.RoundHandlerMock{
+		TimeStampCalled: func() time.Time {
+			defer func() { count++ }()
+			if count == 0 {
+				return now.Add(-500 * time.Nanosecond)
+			}
+			return now.Add(-200 * time.Nanosecond)
+		},
+	}
+	container.SetSyncTimer(syncTimerMock)
+	container.SetRoundHandler(&roundHandlerMock)
+
+	appStatusHandler := statusHandler.NewAppStatusHandlerMock()
+
+	providedHeadr := &block.HeaderV2{
+		Header: &block.Header{
+			Signature:     []byte("signature"),
+			PubKeysBitmap: []byte("bitmap"),
+		},
+	}
+	providedHash := []byte("provided hash")
+	chainHandler := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return providedHeadr
+		},
+		GetCurrentBlockHeaderHashCalled: func() []byte {
+			return providedHash
+		},
+	}
+	container.SetBlockchain(chainHandler)
+
+	consensusState := initializers.InitConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+	ch := make(chan bool, 1)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, appStatusHandler)
+
+	consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+	srBlock, _ := v2.NewSubroundBlock(
+		sr,
+		v2.ProcessingThresholdPercent,
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				return consensusMetrics
+			},
+		},
+		&consensusMocks.NtpSyncControllerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
+	)
+
+	consensusMetrics.ResetInstanceValues()
+	consensusMetrics.ResetAverages()
+
+	srBlock.UpdateConsensusMetricsProposedBlockReceivedOrSent()
+	// instance value = 500; avg = 500
+	assert.Equal(t, uint64(500), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(500), appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock), "MetricAvgProofsReceived should be set")
+
+	consensusMetrics.ResetInstanceValues()
+
+	srBlock.UpdateConsensusMetricsProposedBlockReceivedOrSent()
+	// instance value = 200; avg = 500 + 200 / 2 = 350
+	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(350), appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock), "MetricAvgProofsReceived should be set")
 }
 
 func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {
@@ -1347,13 +2195,458 @@ func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {
 	})
 }
 
+func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
+	t.Parallel()
+
+	t.Run("non-HeaderV3 should return nil without calling any methods", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		onProposedBlockCalled := false
+		addPairCalled := false
+
+		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
+			OnProposedBlockCalled: func(_ data.BodyHandler, _ data.HeaderHandler, _ []byte) error {
+				onProposedBlockCalled = true
+				return nil
+			},
+		})
+		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
+				addPairCalled = true
+				return nil
+			},
+		})
+
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		err := sr.PrepareBlockForExecution(&testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool { return false },
+		}, &block.Body{})
+
+		require.Nil(t, err)
+		require.False(t, onProposedBlockCalled)
+		require.False(t, addPairCalled)
+	})
+
+	t.Run("HeaderV3 on shard should call OnProposedBlock before AddPairForExecution", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		callOrder := make([]string, 0, 2)
+
+		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
+			OnProposedBlockCalled: func(_ data.BodyHandler, _ data.HeaderHandler, _ []byte) error {
+				callOrder = append(callOrder, "OnProposedBlock")
+				return nil
+			},
+		})
+		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
+				callOrder = append(callOrder, "AddPairForExecution")
+				return nil
+			},
+		})
+
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		err := sr.PrepareBlockForExecution(&testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool { return true },
+			GetShardIDCalled: func() uint32 { return 0 },
+		}, &block.Body{})
+
+		require.Nil(t, err)
+		require.Equal(t, []string{"OnProposedBlock", "AddPairForExecution"}, callOrder)
+	})
+
+	t.Run("HeaderV3 on metachain should only call AddPairForExecution", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		onProposedBlockCalled := false
+		addPairCalled := false
+
+		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
+			OnProposedBlockCalled: func(_ data.BodyHandler, _ data.HeaderHandler, _ []byte) error {
+				onProposedBlockCalled = true
+				return nil
+			},
+		})
+		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
+				addPairCalled = true
+				return nil
+			},
+		})
+
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		err := sr.PrepareBlockForExecution(&testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool { return true },
+			GetShardIDCalled: func() uint32 { return core.MetachainShardId },
+		}, &block.Body{})
+
+		require.Nil(t, err)
+		require.False(t, onProposedBlockCalled)
+		require.True(t, addPairCalled)
+	})
+
+	t.Run("OnProposedBlock error should return error and not call AddPairForExecution", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		addPairCalled := false
+
+		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
+			OnProposedBlockCalled: func(_ data.BodyHandler, _ data.HeaderHandler, _ []byte) error {
+				return expectedErr
+			},
+		})
+		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
+				addPairCalled = true
+				return nil
+			},
+		})
+
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		err := sr.PrepareBlockForExecution(&testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool { return true },
+			GetShardIDCalled: func() uint32 { return 0 },
+		}, &block.Body{})
+
+		require.Equal(t, expectedErr, err)
+		require.False(t, addPairCalled)
+	})
+
+	t.Run("AddPairForExecution error should return error", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
+				return expectedErr
+			},
+		})
+
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		err := sr.PrepareBlockForExecution(&testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool { return true },
+			GetShardIDCalled: func() uint32 { return core.MetachainShardId },
+		}, &block.Body{})
+
+		require.Equal(t, expectedErr, err)
+	})
+}
+
+func TestSubroundBlock_TriggerCreateSignaturesForManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		currEpoch := uint32(2)
+
+		container := consensusMocks.InitConsensusCore()
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
+
+		numMultiKeysSignaturesCreated := int32(0)
+
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+				atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
+				require.Equal(t, currEpoch, epoch)
+
+				return []byte("SIG"), nil
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
+			&testscommon.KeysHandlerStub{
+				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+					return true
+				},
+			},
+		)
+		ch := make(chan bool, 1)
+
+		sr, _ := spos.NewSubround(
+			bls.SrBlock,
+			bls.SrSignature,
+			bls.SrEndRound,
+			roundTimeDuration,
+			0.7,
+			0.85,
+			"(SIGNATURE)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		srBlock, _ := v2.NewSubroundBlock(
+			sr,
+			v2.ProcessingThresholdPercent,
+			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.NtpSyncControllerMock{},
+			&dataRetrieverMock.ThrottlerStub{},
+			v2.NewSignatureEvidenceStore(nil),
+		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
+
+		sr.SetHeader(&block.Header{Epoch: currEpoch})
+		sr.SetSelfPubKey("OTHER")
+
+		srBlock.TriggerCreateSignaturesForManagedKeys(context.TODO(), []byte("headerHash"), &block.Header{Epoch: currEpoch})
+
+		<-srBlock.SignaturesDone()
+
+		assert.Equal(t, int32(9), atomic.LoadInt32(&numMultiKeysSignaturesCreated)) // there are 9 keys in default consensus group config
+	})
+
+	t.Run("should fail", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
+
+		numMultiKeysSignaturesCreated := int32(0)
+
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+				atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
+				return []byte("SIG"), nil
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
+			&testscommon.KeysHandlerStub{
+				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+					return true
+				},
+			},
+		)
+		ch := make(chan bool, 1)
+
+		sr, _ := spos.NewSubround(
+			bls.SrBlock,
+			bls.SrSignature,
+			bls.SrEndRound,
+			roundTimeDuration,
+			0.7,
+			0.85,
+			"(SIGNATURE)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		cancel()
+
+		numCalls := 0
+		srBlock, _ := v2.NewSubroundBlock(
+			sr,
+			v2.ProcessingThresholdPercent,
+			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.NtpSyncControllerMock{},
+			&dataRetrieverMock.ThrottlerStub{
+				CanProcessCalled: func() bool {
+					if numCalls == 0 {
+						numCalls++
+						return false
+					}
+
+					cancel()
+
+					return false
+				},
+			},
+			v2.NewSignatureEvidenceStore(nil),
+		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
+
+		sr.SetSelfPubKey("OTHER")
+
+		srBlock.TriggerCreateSignaturesForManagedKeys(ctx, []byte("headerHash"), &block.Header{})
+
+		assert.Equal(t, int32(0), atomic.LoadInt32(&numMultiKeysSignaturesCreated))
+	})
+
+	t.Run("should return early if header not set", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
+
+		numMultiKeysSignaturesCreated := int32(0)
+
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+				atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
+				return []byte("SIG"), nil
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
+			&testscommon.KeysHandlerStub{
+				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+					return true
+				},
+			},
+		)
+		ch := make(chan bool, 1)
+
+		sr, _ := spos.NewSubround(
+			bls.SrBlock,
+			bls.SrSignature,
+			bls.SrEndRound,
+			roundTimeDuration,
+			0.7,
+			0.85,
+			"(SIGNATURE)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		srBlock, _ := v2.NewSubroundBlock(
+			sr,
+			v2.ProcessingThresholdPercent,
+			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.NtpSyncControllerMock{},
+			&dataRetrieverMock.ThrottlerStub{
+				CanProcessCalled: func() bool {
+					return false
+				},
+			},
+			v2.NewSignatureEvidenceStore(nil),
+		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
+
+		sr.SetHeader(nil)
+		sr.SetSelfPubKey("OTHER")
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		cancel()
+		srBlock.TriggerCreateSignaturesForManagedKeys(ctx, []byte("headerHash"), nil)
+
+		<-srBlock.SignaturesDone()
+
+		assert.Equal(t, int32(0), atomic.LoadInt32(&numMultiKeysSignaturesCreated))
+	})
+
+	t.Run("should wait fully if throttler blocked", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
+
+		numMultiKeysSignaturesCreated := int32(0)
+
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+				atomic.AddInt32(&numMultiKeysSignaturesCreated, 1)
+				return []byte("SIG"), nil
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
+			&testscommon.KeysHandlerStub{
+				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+					return true
+				},
+			},
+		)
+		ch := make(chan bool, 1)
+
+		sr, _ := spos.NewSubround(
+			bls.SrBlock,
+			bls.SrSignature,
+			bls.SrEndRound,
+			roundTimeDuration,
+			0.7,
+			0.85,
+			"(SIGNATURE)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		numCalls := uint32(0)
+		srBlock, _ := v2.NewSubroundBlock(
+			sr,
+			v2.ProcessingThresholdPercent,
+			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.NtpSyncControllerMock{},
+			&dataRetrieverMock.ThrottlerStub{
+				CanProcessCalled: func() bool {
+					if atomic.LoadUint32(&numCalls) <= 10 {
+						atomic.AddUint32(&numCalls, 1)
+
+						return false
+					}
+
+					return true
+				},
+			},
+			v2.NewSignatureEvidenceStore(nil),
+		)
+		srBlock.SetSignatureSubroundEndTimePercentage(0.85)
+
+		sr.SetSelfPubKey("OTHER")
+
+		srBlock.TriggerCreateSignaturesForManagedKeys(context.TODO(), []byte("headerHash"), &block.Header{})
+
+		<-srBlock.SignaturesDone()
+
+		assert.Equal(t, int32(9), atomic.LoadInt32(&numMultiKeysSignaturesCreated)) // there are 9 keys in default consensus group config
+	})
+}
+
 func TestSubroundBlock_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundBlock(nil, container, nil)
 	require.True(t, sr.IsInterfaceNil())
-
 	sr = initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	require.False(t, sr.IsInterfaceNil())
 }

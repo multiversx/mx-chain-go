@@ -55,6 +55,11 @@ func (holder *managedPeersHolder) GetPeerInfo(pkBytes []byte) *peerInfo {
 	return holder.getPeerInfo(pkBytes)
 }
 
+// CalcMaxRoundsOfInactivity -
+func (holder *managedPeersHolder) CalcMaxRoundsOfInactivity() int {
+	return holder.calcMaxRoundsOfInactivity()
+}
+
 // ManagedPeersHolder -
 func (handler *keysHandler) ManagedPeersHolder() common.ManagedPeersHolder {
 	return handler.managedPeersHolder

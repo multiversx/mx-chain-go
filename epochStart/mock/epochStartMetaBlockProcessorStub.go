@@ -5,13 +5,19 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
 // EpochStartMetaBlockProcessorStub -
 type EpochStartMetaBlockProcessorStub struct {
-	ValidateCalled               func(data process.InterceptedData, fromConnectedPeer core.PeerID) error
-	SaveCalled                   func(data process.InterceptedData, fromConnectedPeer core.PeerID, topic string) error
+	ValidateCalled func(data process.InterceptedData, fromConnectedPeer core.PeerID) error
+	SaveCalled     func(
+		data process.InterceptedData,
+		fromConnectedPeer core.PeerID,
+		topic string,
+		broadcastMethod p2p.BroadcastMethod,
+	) (bool, error)
 	RegisterHandlerCalled        func(handler func(topic string, hash []byte, data interface{}))
 	GetEpochStartMetaBlockCalled func(ctx context.Context) (data.MetaHeaderHandler, error)
 }
@@ -26,12 +32,12 @@ func (esmbps *EpochStartMetaBlockProcessorStub) Validate(data process.Intercepte
 }
 
 // Save -
-func (esmbps *EpochStartMetaBlockProcessorStub) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, topic string) error {
+func (esmbps *EpochStartMetaBlockProcessorStub) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, topic string, broadcastMethod p2p.BroadcastMethod) (bool, error) {
 	if esmbps.SaveCalled != nil {
-		return esmbps.SaveCalled(data, fromConnectedPeer, topic)
+		return esmbps.SaveCalled(data, fromConnectedPeer, topic, broadcastMethod)
 	}
 
-	return nil
+	return true, nil
 }
 
 // RegisterHandler -

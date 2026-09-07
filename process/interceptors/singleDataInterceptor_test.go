@@ -11,6 +11,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/p2p"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -29,6 +32,7 @@ func createMockArgSingleDataInterceptor() interceptors.ArgSingleDataInterceptor 
 		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		CurrentPeerId:           "pid",
 		InterceptedDataVerifier: createMockInterceptedDataVerifier(),
+		ManagedPeersHolder:      &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
@@ -41,12 +45,12 @@ func createMockInterceptorStub(checkCalledNum *int32, processCalledNum *int32) p
 
 			return nil
 		},
-		SaveCalled: func(data process.InterceptedData) error {
+		SaveCalled: func(data process.InterceptedData) (bool, error) {
 			if processCalledNum != nil {
 				atomic.AddInt32(processCalledNum, 1)
 			}
 
-			return nil
+			return true, nil
 		},
 	}
 }
@@ -61,7 +65,7 @@ func createMockThrottler() *mock.InterceptorThrottlerStub {
 
 func createMockInterceptedDataVerifier() *mock.InterceptedDataVerifierMock {
 	return &mock.InterceptedDataVerifierMock{
-		VerifyCalled: func(interceptedData process.InterceptedData) error {
+		VerifyCalled: func(interceptedData process.InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error {
 			return interceptedData.CheckValidity()
 		},
 	}
@@ -155,6 +159,17 @@ func TestNewSingleDataInterceptor_EmptyPeerIDShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrEmptyPeerID, err)
 }
 
+func TestNewSingleDataInterceptor_NilManagedPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgSingleDataInterceptor()
+	arg.ManagedPeersHolder = nil
+	sdi, err := interceptors.NewSingleDataInterceptor(arg)
+
+	assert.Nil(t, sdi)
+	assert.Equal(t, process.ErrNilManagedPeersHolder, err)
+}
+
 func TestNewSingleDataInterceptor_NilInterceptedDataVerifierShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -245,6 +260,34 @@ func TestSingleDataInterceptor_ProcessReceivedMessageShouldWork(t *testing.T) {
 	t.Parallel()
 
 	testProcessReceiveMessage(t, true, nil, 1)
+}
+
+func TestSingleDataInterceptor_ProcessReceivedMessageDuplicateShouldBeIgnored(t *testing.T) {
+	t.Parallel()
+
+	for _, duplicateErr := range []error{
+		common.ErrAlreadyExistingEquivalentProof,
+		process.ErrDuplicatedInterceptedDataNotAllowed,
+	} {
+		arg := createMockArgSingleDataInterceptor()
+		arg.DataFactory = &mock.InterceptedDataFactoryStub{
+			CreateCalled: func(_ []byte) (process.InterceptedData, error) {
+				return &testscommon.InterceptedDataStub{HashCalled: func() []byte { return []byte("hash") }}, nil
+			},
+		}
+		arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
+			VerifyCalled: func(_ process.InterceptedData, _ string, _ p2p.BroadcastMethod) error {
+				return duplicateErr
+			},
+		}
+		sdi, err := interceptors.NewSingleDataInterceptor(arg)
+		require.NoError(t, err)
+
+		messageID, err := sdi.ProcessReceivedMessage(&p2pmocks.P2PMessageMock{DataField: []byte("data")}, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+
+		require.ErrorIs(t, err, p2p.ErrMessageShouldBeIgnored)
+		require.Equal(t, []byte("hash"), messageID)
+	}
 }
 
 func testProcessReceiveMessage(t *testing.T, isForCurrentShard bool, validityErr error, calledNum int) {

@@ -131,6 +131,7 @@ type FacadeHandler interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetSelectedTransactions(fields string) (*common.TransactionsSelectionSimulationResult, error)
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	GetManagedKeysCount() int
 	GetManagedKeys() []string
@@ -139,6 +140,7 @@ type FacadeHandler interface {
 	GetWaitingManagedKeys() ([]string, error)
 	GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error)
 	GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
+	GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error)
 	P2PPrometheusMetricsEnabled() bool
 	IsInterfaceNil() bool
 }

@@ -147,3 +147,138 @@ func TestNewProcessStatusHandler_TrySetBusyConcurrency(t *testing.T) {
 	assert.Equal(t, int32(1), atomic.LoadInt32(&successCount))
 	assert.False(t, psh.IsIdle())
 }
+
+func TestProcessStatusHandler_BlockBackgroundJobs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("blocks and releases background jobs", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		assert.True(t, psh.IsIdle())
+
+		psh.BlockBackgroundJobs("commit")
+		assert.False(t, psh.IsIdle())
+
+		psh.UnblockBackgroundJobs()
+		assert.True(t, psh.IsIdle())
+	})
+	t.Run("overlapping spans are reference counted", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.BlockBackgroundJobs("commit on consensus")
+		psh.BlockBackgroundJobs("commit on sync")
+
+		psh.UnblockBackgroundJobs()
+		assert.False(t, psh.IsIdle(), "the still running span must keep background jobs blocked")
+
+		psh.UnblockBackgroundJobs()
+		assert.True(t, psh.IsIdle())
+	})
+	t.Run("does not claim the block processing exclusion", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.BlockBackgroundJobs("commit")
+
+		assert.True(t, psh.TrySetBusy("processing"), "a commit span must never reject block processing")
+	})
+	t.Run("an unmatched unblock does not turn the state idle-negative", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.UnblockBackgroundJobs()
+		assert.True(t, psh.IsIdle())
+
+		psh.BlockBackgroundJobs("commit")
+		assert.False(t, psh.IsIdle())
+	})
+	t.Run("busy processing keeps background jobs blocked too", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.SetBusy("processing")
+		assert.False(t, psh.IsIdle())
+
+		psh.SetIdle()
+		assert.True(t, psh.IsIdle())
+	})
+}
+
+func TestProcessStatusHandler_SuspendBackgroundJobBlocking(t *testing.T) {
+	t.Parallel()
+
+	t.Run("suspension lets background jobs run past active blockers", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.BlockBackgroundJobs("commit")
+		assert.False(t, psh.IsIdle())
+
+		psh.SuspendBackgroundJobBlocking("waiting for the snapshot")
+		assert.True(t, psh.IsIdle())
+
+		psh.ResumeBackgroundJobBlocking()
+		assert.False(t, psh.IsIdle(), "the still held blocker must be effective again")
+	})
+	t.Run("suspension does not override the busy state", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.SetBusy("processing")
+		psh.SuspendBackgroundJobBlocking("waiting for the snapshot")
+		assert.False(t, psh.IsIdle())
+	})
+	t.Run("overlapping suspensions are reference counted", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.BlockBackgroundJobs("commit")
+		psh.SuspendBackgroundJobBlocking("user accounts snapshot")
+		psh.SuspendBackgroundJobBlocking("peer accounts snapshot")
+
+		psh.ResumeBackgroundJobBlocking()
+		assert.True(t, psh.IsIdle(), "the still running suspension must keep blockers ineffective")
+
+		psh.ResumeBackgroundJobBlocking()
+		assert.False(t, psh.IsIdle())
+	})
+	t.Run("an unmatched resume does not wrap the suspension count", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.ResumeBackgroundJobBlocking()
+
+		psh.BlockBackgroundJobs("commit")
+		psh.SuspendBackgroundJobBlocking("waiting for the snapshot")
+		assert.True(t, psh.IsIdle())
+	})
+	t.Run("a single suspension must not neutralize an unrelated second blocker", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.BlockBackgroundJobs("commit waiting for the snapshot")
+		psh.SuspendBackgroundJobBlocking("waiting for the snapshot")
+		assert.True(t, psh.IsIdle())
+
+		psh.BlockBackgroundJobs("execution commit")
+		assert.False(t, psh.IsIdle(), "the unsuspended execution commit must keep background jobs blocked")
+
+		psh.UnblockBackgroundJobs()
+		assert.True(t, psh.IsIdle())
+	})
+	t.Run("paired blocker and suspension chains compose", func(t *testing.T) {
+		t.Parallel()
+
+		psh := NewProcessStatusHandler()
+		psh.BlockBackgroundJobs("commit A")
+		psh.SuspendBackgroundJobBlocking("commit A waits for the snapshot")
+		psh.BlockBackgroundJobs("commit B")
+		psh.SuspendBackgroundJobBlocking("commit B waits for the snapshot")
+		assert.True(t, psh.IsIdle())
+
+		psh.ResumeBackgroundJobBlocking()
+		assert.False(t, psh.IsIdle())
+	})
+}

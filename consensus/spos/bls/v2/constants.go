@@ -1,6 +1,8 @@
 package v2
 
 import (
+	"time"
+
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -9,29 +11,20 @@ var log = logger.GetOrCreate("consensus/spos/bls/v2")
 // waitingAllSigsMaxTimeThreshold specifies the max allocated time for waiting all signatures from the total time of the subround signature
 const waitingAllSigsMaxTimeThreshold = 0.5
 
-// processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
-const processingThresholdPercent = 85
+// blockCreationMaxTimePercentage specifies the percentage of the block subround allocated to block creation
+const blockCreationMaxTimePercentage = 60
 
-// srStartStartTime specifies the start time, from the total time of the round, of Subround Start
-const srStartStartTime = 0.0
+// competingBlockSignDelay is the fraction of the full round time to wait before signing
+// a competing block for the same nonce, giving the previous block's proof time to arrive.
+const competingBlockSignDelay = 0.5
 
-// srEndStartTime specifies the end time, from the total time of the round, of Subround Start
-const srStartEndTime = 0.05
+// competingProofSendDelay is the fraction of the full round time to wait before sending
+// a proof, giving the previous block's proof time to arrive.
+const competingProofSendDelay = 0.25
 
-// srBlockStartTime specifies the start time, from the total time of the round, of Subround Block
-const srBlockStartTime = 0.05
+// acceptedClockSkew is the clock-skew tolerance applied on both ends of the invalid signers timestamp window
+const acceptedClockSkew = time.Second
 
-// srBlockEndTime specifies the end time, from the total time of the round, of Subround Block
-const srBlockEndTime = 0.25
-
-// srSignatureStartTime specifies the start time, from the total time of the round, of Subround Signature
-const srSignatureStartTime = 0.25
-
-// srSignatureEndTime specifies the end time, from the total time of the round, of Subround Signature
-const srSignatureEndTime = 0.85
-
-// srEndStartTime specifies the start time, from the total time of the round, of Subround End
-const srEndStartTime = 0.85
-
-// srEndEndTime specifies the end time, from the total time of the round, of Subround End
-const srEndEndTime = 0.95
+// significantEvidenceFraction is the fraction of the signature threshold above which observed
+// shares for the previous round's block trigger the wait tier before signing a competing block
+const significantEvidenceFraction = 0.5

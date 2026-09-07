@@ -66,7 +66,7 @@ func TestP2PQuotaProcessor_ResetStatisticsShouldEmptyStatsAndCallSetOnAllMetrics
 
 	status := statusHandlerMock.NewAppStatusHandlerMock()
 	quotaIdentifier := "identifier"
-	pqp, _ := p2pQuota.NewP2PQuotaProcessor(status, quotaIdentifier)
+	pqp, _ := p2pQuota.NewP2PQuotaProcessor(status, common.FloodPreventerType(quotaIdentifier))
 	pqp.AddQuota(identifier, uint32(numReceived), sizeReceived, uint32(numProcessed), sizeProcessed)
 
 	pqp.ResetStatistics()
@@ -96,7 +96,7 @@ func TestP2PQuotaProcessor_ResetStatisticsShouldSetPeerStatisticsTops(t *testing
 
 	status := statusHandlerMock.NewAppStatusHandlerMock()
 	quotaIdentifier := "identifier"
-	pqp, _ := p2pQuota.NewP2PQuotaProcessor(status, quotaIdentifier)
+	pqp, _ := p2pQuota.NewP2PQuotaProcessor(status, common.FloodPreventerType(quotaIdentifier))
 	pqp.AddQuota(identifier1, uint32(numReceived1), sizeReceived1, uint32(numProcessed1), sizeProcessed1)
 	pqp.ResetStatistics()
 	pqp.AddQuota(identifier2, uint32(numReceived2), sizeReceived2, uint32(numProcessed2), sizeProcessed2)

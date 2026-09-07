@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -42,10 +43,11 @@ type CoreComponentsHolderStub struct {
 	GenesisNodesSetupCalled             func() sharding.GenesisNodesSetupHandler
 	NodesShufflerCalled                 func() nodesCoordinator.NodesShuffler
 	EpochNotifierCalled                 func() process.EpochNotifier
-	EnableRoundsHandlerCalled           func() process.EnableRoundsHandler
+	EnableRoundsHandlerCalled           func() common.EnableRoundsHandler
 	EpochStartNotifierWithConfirmCalled func() factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessCalled           func() chan endProcess.ArgEndProcess
 	GenesisTimeCalled                   func() time.Time
+	SupernovaGenesisTimeCalled          func() time.Time
 	ChainIDCalled                       func() string
 	MinTransactionVersionCalled         func() uint32
 	TxVersionCheckerCalled              func() process.TxVersionCheckerHandler
@@ -60,6 +62,10 @@ type CoreComponentsHolderStub struct {
 	ChainParametersHandlerCalled        func() process.ChainParametersHandler
 	FieldsSizeCheckerCalled             func() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerCalled func() common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandlerCalled         func() common.ProcessConfigsHandler
+	CommonConfigsHandlerCalled          func() common.CommonConfigsHandler
+	AntifloodConfigsHandlerCalled       func() common.AntifloodConfigsHandler
+	ClosingNodeStartedCalled            func() *atomic.Bool
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
@@ -104,6 +110,9 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 		ChainParametersSubscriberCalled:     coreComponents.ChainParametersSubscriber,
 		FieldsSizeCheckerCalled:             coreComponents.FieldsSizeChecker,
 		EpochChangeGracePeriodHandlerCalled: coreComponents.EpochChangeGracePeriodHandler,
+		ProcessConfigsHandlerCalled:         coreComponents.ProcessConfigsHandler,
+		CommonConfigsHandlerCalled:          coreComponents.CommonConfigsHandler,
+		AntifloodConfigsHandlerCalled:       coreComponents.AntifloodConfigsHandler,
 	}
 }
 
@@ -276,7 +285,7 @@ func (stub *CoreComponentsHolderStub) EpochNotifier() process.EpochNotifier {
 }
 
 // EnableRoundsHandler -
-func (stub *CoreComponentsHolderStub) EnableRoundsHandler() process.EnableRoundsHandler {
+func (stub *CoreComponentsHolderStub) EnableRoundsHandler() common.EnableRoundsHandler {
 	if stub.EnableRoundsHandlerCalled != nil {
 		return stub.EnableRoundsHandlerCalled()
 	}
@@ -305,6 +314,14 @@ func (stub *CoreComponentsHolderStub) GenesisTime() time.Time {
 		return stub.GenesisTimeCalled()
 	}
 	return time.Unix(0, 0)
+}
+
+// SupernovaGenesisTime -
+func (stub *CoreComponentsHolderStub) SupernovaGenesisTime() time.Time {
+	if stub.SupernovaGenesisTimeCalled != nil {
+		return stub.SupernovaGenesisTimeCalled()
+	}
+	return time.UnixMilli(0)
 }
 
 // ChainID -
@@ -417,6 +434,40 @@ func (stub *CoreComponentsHolderStub) EpochChangeGracePeriodHandler() common.Epo
 		return stub.EpochChangeGracePeriodHandlerCalled()
 	}
 	return nil
+}
+
+// ProcessConfigsHandler -
+func (stub *CoreComponentsHolderStub) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	if stub.ProcessConfigsHandlerCalled != nil {
+		return stub.ProcessConfigsHandlerCalled()
+	}
+	return nil
+}
+
+// CommonConfigsHandler -
+func (stub *CoreComponentsHolderStub) CommonConfigsHandler() common.CommonConfigsHandler {
+	if stub.CommonConfigsHandlerCalled != nil {
+		return stub.CommonConfigsHandlerCalled()
+	}
+	return nil
+}
+
+// AntifloodConfigsHandler -
+func (stub *CoreComponentsHolderStub) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	if stub.AntifloodConfigsHandlerCalled != nil {
+		return stub.AntifloodConfigsHandlerCalled()
+	}
+
+	return nil
+}
+
+// ClosingNodeStarted -
+func (stub *CoreComponentsHolderStub) ClosingNodeStarted() *atomic.Bool {
+	if stub.ClosingNodeStartedCalled != nil {
+		return stub.ClosingNodeStartedCalled()
+	}
+
+	return &atomic.Bool{}
 }
 
 // IsInterfaceNil -

@@ -15,6 +15,7 @@ type EnableEpochsHandlerStub struct {
 	IsFlagEnabledCalled        func(flag core.EnableEpochFlag) bool
 	IsFlagEnabledInEpochCalled func(flag core.EnableEpochFlag, epoch uint32) bool
 	GetActivationEpochCalled   func(flag core.EnableEpochFlag) uint32
+	GetAllEnableEpochsCalled   func() map[string]uint32
 }
 
 // NewEnableEpochsHandlerStubWithNoFlagsDefined -
@@ -105,6 +106,14 @@ func (stub *EnableEpochsHandlerStub) GetCurrentEpoch() uint32 {
 		return stub.GetCurrentEpochCalled()
 	}
 	return 0
+}
+
+// GetAllEnableEpochs -
+func (stub *EnableEpochsHandlerStub) GetAllEnableEpochs() map[string]uint32 {
+	if stub.GetAllEnableEpochsCalled != nil {
+		return stub.GetAllEnableEpochsCalled()
+	}
+	return make(map[string]uint32)
 }
 
 // IsInterfaceNil -

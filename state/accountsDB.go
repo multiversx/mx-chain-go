@@ -89,6 +89,7 @@ type AccountsDB struct {
 	mutOp                  sync.RWMutex
 	loadCodeMeasurements   *loadingMeasurements
 	addressConverter       core.PubkeyConverter
+	pruningEnabled         bool
 
 	stackDebug []byte
 }
@@ -105,6 +106,7 @@ type ArgsAccountsDB struct {
 	AddressConverter       core.PubkeyConverter
 	SnapshotsManager       SnapshotsManager
 	StateAccessesCollector StateAccessesCollector
+	PruningEnabled         bool
 }
 
 // NewAccountsDB creates a new account manager
@@ -134,6 +136,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		addressConverter:       args.AddressConverter,
 		snapshotsManger:        args.SnapshotsManager,
 		stateAccessesCollector: args.StateAccessesCollector,
+		pruningEnabled:         args.PruningEnabled,
 	}
 }
 
@@ -343,54 +346,68 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return nil
 	}
 
-	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
+	oldCodeEntry, err := adb.getCodeEntry(oldCodeHash)
 	if err != nil {
 		return err
 	}
 
-	err = adb.updateNewCodeEntry(newCodeHash, newCode)
+	newCodeEntry, err := adb.getCodeEntry(newCodeHash)
 	if err != nil {
 		return err
 	}
 
-	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller)
+	entry, err := NewJournalEntryCode(oldCodeEntry, oldCodeHash, newCodeEntry, newCodeHash, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
 	}
 	adb.journalize(entry)
 
+	err = adb.updateOldCodeEntry(oldCodeHash, oldCodeEntry)
+	if err != nil {
+		return err
+	}
+
+	err = adb.updateNewCodeEntry(newCodeHash, newCodeEntry, newCode)
+	if err != nil {
+		return err
+	}
+
 	newAcc.SetCodeHash(newCodeHash)
 	return nil
 }
 
-func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error) {
-	oldCodeEntry, err := getCodeEntry(oldCodeHash, adb.mainTrie, adb.marshaller)
+func (adb *AccountsDB) getCodeEntry(hash []byte) (*CodeEntry, error) {
+	codeEntry, err := getCodeEntry(hash, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return nil, err
 	}
 
-	if oldCodeEntry == nil {
-		return nil, nil
-	}
-
 	sc := &stateChange.StateAccess{
 		Type:            stateChange.Read,
-		MainTrieKey:     oldCodeHash,
+		MainTrieKey:     hash,
 		MainTrieVal:     nil,
 		Operation:       stateChange.GetCode,
 		DataTrieChanges: nil,
 	}
 	adb.stateAccessesCollector.AddStateAccess(sc)
 
-	unmodifiedOldCodeEntry := &CodeEntry{
+	return codeEntry, nil
+}
+
+func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte, oldCodeEntry *CodeEntry) error {
+	if oldCodeEntry == nil {
+		return nil
+	}
+
+	codeEntryClone := &CodeEntry{
 		Code:          oldCodeEntry.Code,
 		NumReferences: oldCodeEntry.NumReferences,
 	}
 
-	if oldCodeEntry.NumReferences <= 1 {
-		err = adb.mainTrie.Delete(oldCodeHash)
+	if codeEntryClone.NumReferences <= 1 {
+		err := adb.mainTrie.Delete(oldCodeHash)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		sc1 := &stateChange.StateAccess{
@@ -402,16 +419,16 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		}
 		adb.stateAccessesCollector.AddStateAccess(sc1)
 
-		return unmodifiedOldCodeEntry, nil
+		return nil
 	}
 
-	oldCodeEntry.NumReferences--
-	codeEntryBytes, err := saveCodeEntry(oldCodeHash, oldCodeEntry, adb.mainTrie, adb.marshaller)
+	codeEntryClone.NumReferences--
+	codeEntryBytes, err := saveCodeEntry(oldCodeHash, codeEntryClone, adb.mainTrie, adb.marshaller)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	sc = &stateChange.StateAccess{
+	sc := &stateChange.StateAccess{
 		Type:            stateChange.Write,
 		MainTrieKey:     oldCodeHash,
 		MainTrieVal:     codeEntryBytes,
@@ -420,41 +437,27 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	}
 	adb.stateAccessesCollector.AddStateAccess(sc)
 
-	return unmodifiedOldCodeEntry, nil
+	return nil
 }
 
-func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) error {
+func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCodeEntry *CodeEntry, newCode []byte) error {
 	if len(newCode) == 0 {
 		return nil
 	}
 
-	newCodeEntry, err := getCodeEntry(newCodeHash, adb.mainTrie, adb.marshaller)
+	codeEntry := &CodeEntry{}
+	codeEntry.Code = newCode
+	if newCodeEntry != nil {
+		codeEntry.NumReferences = newCodeEntry.NumReferences
+	}
+	codeEntry.NumReferences++
+
+	codeEntryBytes, err := saveCodeEntry(newCodeHash, codeEntry, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
 	}
 
 	sc := &stateChange.StateAccess{
-		Type:            stateChange.Read,
-		MainTrieKey:     newCodeHash,
-		MainTrieVal:     nil,
-		Operation:       stateChange.GetCode,
-		DataTrieChanges: nil,
-	}
-	adb.stateAccessesCollector.AddStateAccess(sc)
-
-	if newCodeEntry == nil {
-		newCodeEntry = &CodeEntry{
-			Code: newCode,
-		}
-	}
-	newCodeEntry.NumReferences++
-
-	codeEntryBytes, err := saveCodeEntry(newCodeHash, newCodeEntry, adb.mainTrie, adb.marshaller)
-	if err != nil {
-		return err
-	}
-
-	sc = &stateChange.StateAccess{
 		Type:            stateChange.Write,
 		MainTrieKey:     newCodeHash,
 		MainTrieVal:     codeEntryBytes,
@@ -526,7 +529,7 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 	return nil
 }
 
-// SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
+// saveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*stateChange.DataTrieChange, error) {
 	newValues, oldValues, err := accountHandler.SaveDirtyData(adb.mainTrie)
@@ -673,18 +676,19 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 
 func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 	oldCodeHash := baseAcc.GetCodeHash()
-	unmodifiedOldCodeEntry, err := adb.updateOldCodeEntry(oldCodeHash)
+
+	oldCodeEntry, err := adb.getCodeEntry(oldCodeHash)
 	if err != nil {
 		return err
 	}
 
-	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller)
+	entry, err := NewJournalEntryCode(oldCodeEntry, oldCodeHash, nil, nil, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
 	}
-	adb.journalize(codeChangeEntry)
+	adb.journalize(entry)
 
-	return nil
+	return adb.updateOldCodeEntry(oldCodeHash, oldCodeEntry)
 }
 
 // LoadAccount fetches the account based on the address. Creates an empty account if the account is missing.
@@ -850,12 +854,14 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
 		account, err := adb.entries[i].Revert()
 		if err != nil {
+			adb.entries = adb.entries[:i+1]
 			return err
 		}
 
 		if !check.IfNil(account) {
 			_, err = adb.saveAccountToTrie(account, adb.mainTrie)
 			if err != nil {
+				adb.entries = adb.entries[:i+1]
 				return err
 			}
 		}
@@ -919,11 +925,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	err := adb.stateAccessesCollector.Store()
-	if err != nil {
-		return nil, err
-	}
-
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
 	// Step 1. commit all data tries
@@ -939,7 +940,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	oldRoot := adb.mainTrie.GetOldRoot()
 
 	// Step 2. commit main trie
-	err = adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
+	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
 	if err != nil {
 		return nil, err
 	}
@@ -947,6 +948,11 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	newRoot, err := adb.mainTrie.RootHash()
 	if err != nil {
 		log.Trace("accountsDB.Commit ended", "error", err.Error())
+		return nil, err
+	}
+
+	err = adb.stateAccessesCollector.CommitCollectedAccesses(newRoot)
+	if err != nil {
 		return nil, err
 	}
 
@@ -971,7 +977,7 @@ func (adb *AccountsDB) markForEviction(
 	oldHashes common.ModifiedHashes,
 	newHashes common.ModifiedHashes,
 ) error {
-	if !adb.mainTrie.GetStorageManager().IsPruningEnabled() {
+	if !adb.pruningEnabled {
 		return nil
 	}
 
@@ -985,7 +991,7 @@ func (adb *AccountsDB) markForEviction(
 }
 
 func (adb *AccountsDB) commitTrie(tr common.Trie, oldHashes common.ModifiedHashes, newHashes common.ModifiedHashes) error {
-	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
+	if adb.pruningEnabled {
 		oldTrieHashes := tr.GetObsoleteHashes()
 		newTrieHashes, err := tr.GetDirtyHashes()
 		if err != nil {
@@ -1029,6 +1035,20 @@ func (adb *AccountsDB) RecreateTrie(options common.RootHashHolder) error {
 	return nil
 }
 
+// RecreateTrieIfNeeded is used to reload the trie based on the provided options if the root hash is different than the current one
+func (adb *AccountsDB) RecreateTrieIfNeeded(options common.RootHashHolder) error {
+	err := adb.recreateTrieIfNeeded(options)
+	if err != nil {
+		return err
+	}
+
+	adb.mutOp.Lock()
+	adb.lastRootHash = options.GetRootHash()
+	adb.mutOp.Unlock()
+
+	return nil
+}
+
 func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 	log.Trace("accountsDB.RecreateTrie", "root hash holder", options.String())
 	defer func() {
@@ -1050,6 +1070,23 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 
 	adb.mainTrie = newTrie
 	return nil
+}
+
+func (adb *AccountsDB) recreateTrieIfNeeded(options common.RootHashHolder) error {
+	currentRootHash, err := adb.getMainTrie().RootHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(currentRootHash, options.GetRootHash()) {
+		log.Trace("accountsDB.RecreateTrieIfNeeded - no need to recreate", "root hash", currentRootHash)
+		return nil
+	}
+
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	return adb.recreateTrie(options)
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB
@@ -1143,7 +1180,7 @@ func (adb *AccountsDB) GetTrie(rootHash []byte) (common.Trie, error) {
 	return adb.getMainTrie().Recreate(rootHashHolder)
 }
 
-// Journalize adds a new object to entries list.
+// journalize adds a new object to entries list.
 func (adb *AccountsDB) journalize(entry JournalEntry) {
 	if check.IfNil(entry) {
 		return
@@ -1180,14 +1217,35 @@ func (adb *AccountsDB) GetStackDebugFirstEntry() []byte {
 func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler) {
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.getMainTrie().GetStorageManager(), handler)
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.mainTrie.GetStorageManager(), handler)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
 func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdentifier) {
 	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
-	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.getMainTrie().GetStorageManager())
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.mainTrie.GetStorageManager())
+}
+
+// GetEvictionWaitingListSize returns the number of entries in the eviction waiting list cache
+func (adb *AccountsDB) GetEvictionWaitingListSize() int {
+	adb.mutOp.RLock()
+	defer adb.mutOp.RUnlock()
+	return adb.storagePruningManager.EvictionWaitingListCacheLen()
+}
+
+// ResetPruning will reset all collected data needed for pruning
+func (adb *AccountsDB) ResetPruning() {
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	adb.storagePruningManager.Reset()
 }
 
 // SnapshotState triggers the snapshotting process of the state trie
@@ -1219,7 +1277,7 @@ func emptyErrChanReturningHadContained(errChan chan error) bool {
 
 // IsPruningEnabled returns true if state pruning is enabled
 func (adb *AccountsDB) IsPruningEnabled() bool {
-	return adb.getMainTrie().GetStorageManager().IsPruningEnabled()
+	return adb.pruningEnabled
 }
 
 // GetAllLeaves returns all the leaves from a given rootHash

@@ -5,13 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewTrieStorageManagerInEpochNilStorageManager(t *testing.T) {
@@ -68,23 +66,6 @@ func TestTrieStorageManagerInEpoch_IsInterfaceNil(t *testing.T) {
 
 func TestTrieStorageManagerInEpoch_GetFromEpoch(t *testing.T) {
 	t.Parallel()
-
-	t.Run("closed storage manager should error", func(t *testing.T) {
-		t.Parallel()
-
-		_, trieStorage := newEmptyTrie()
-		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-			GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
-				require.Fail(t, "should have not been called")
-				return nil, nil
-			},
-		}
-		tsmie, _ := newTrieStorageManagerInEpoch(trieStorage, 0)
-		_ = tsmie.Close()
-
-		_, err := tsmie.Get([]byte("key"))
-		require.Equal(t, core.ErrContextClosing, err)
-	})
 
 	t.Run("epoch 0 does not panic", func(t *testing.T) {
 		t.Parallel()

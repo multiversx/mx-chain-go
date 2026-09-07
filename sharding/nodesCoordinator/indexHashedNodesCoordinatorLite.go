@@ -67,10 +67,15 @@ func (ihnc *indexHashedNodesCoordinator) IsEpochInConfig(epoch uint32) bool {
 }
 
 func (ihnc *indexHashedNodesCoordinator) removeOlderEpochs(epoch uint32, maxDelta uint32) {
+	if epoch < maxDelta {
+		return
+	}
+	epochToRemove := epoch - maxDelta
+
 	ihnc.mutNodesConfig.Lock()
 	if len(ihnc.nodesConfig) >= int(maxDelta) {
 		for currEpoch := range ihnc.nodesConfig {
-			if currEpoch <= epoch-maxDelta {
+			if currEpoch <= epochToRemove {
 				delete(ihnc.nodesConfig, currEpoch)
 			}
 		}

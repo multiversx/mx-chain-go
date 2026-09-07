@@ -6,9 +6,10 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("state/evictionWaitingList")
@@ -203,6 +204,26 @@ func (mewl *memoryEvictionWaitingList) ShouldKeepHash(hash string, identifier st
 	}
 
 	return false, nil
+}
+
+// Reset will reinitialize the eviction waiting list, by emptying the cache and reversed cache. It will not change the sizes of the caches.
+func (mewl *memoryEvictionWaitingList) Reset() {
+	mewl.opMutex.Lock()
+
+	for key := range mewl.cache {
+		log.Debug("trie nodes eviction waiting list reset", "rootHash", []byte(key))
+	}
+
+	mewl.cache = make(map[string]*rootHashData)
+	mewl.reversedCache = make(map[string]*hashInfo)
+	mewl.opMutex.Unlock()
+}
+
+// CacheLen returns the number of entries in the cache
+func (mewl *memoryEvictionWaitingList) CacheLen() int {
+	mewl.opMutex.RLock()
+	defer mewl.opMutex.RUnlock()
+	return len(mewl.cache)
 }
 
 // Close returns nil

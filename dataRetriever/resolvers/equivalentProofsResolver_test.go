@@ -12,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
@@ -21,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -599,11 +600,11 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 
 		args := createMockArgEquivalentProofsResolver()
 		args.EquivalentProofsPool = &dataRetrieverMocks.ProofsPoolMock{
-			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
 				require.Equal(t, uint64(1), headerNonce)
 				require.Equal(t, uint32(1), shardID)
 
-				return &block.HeaderProof{}, nil
+				return []data.HeaderProofHandler{&block.HeaderProof{}}, nil
 			},
 		}
 		mockMarshaller := &marshallerMock.MarshalizerMock{}
@@ -663,10 +664,10 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 
 		providedMetaNonceKey := fmt.Sprintf("%d-%d", 1, core.MetachainShardId) // meta for coverage
 		args := createMockArgEquivalentProofsResolver()
-		wasGetProofByNonceCalled := false
+		wasGetProofsByNonceCalled := false
 		args.EquivalentProofsPool = &dataRetrieverMocks.ProofsPoolMock{
-			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
-				wasGetProofByNonceCalled = true
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+				wasGetProofsByNonceCalled = true
 				require.Equal(t, uint64(1), headerNonce)
 				require.Equal(t, core.MetachainShardId, shardID)
 
@@ -695,16 +696,16 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, []byte(providedMetaNonceKey)), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		require.True(t, errors.Is(err, expectedErr))
 		require.Nil(t, msgID)
-		require.True(t, wasGetProofByNonceCalled)
+		require.True(t, wasGetProofsByNonceCalled)
 	})
 	t.Run("resolveNonceRequest: nonce not found anywhere should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgEquivalentProofsResolver()
-		wasGetProofByNonceCalled := false
+		wasGetProofsByNonceCalled := false
 		args.EquivalentProofsPool = &dataRetrieverMocks.ProofsPoolMock{
-			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
-				wasGetProofByNonceCalled = true
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+				wasGetProofsByNonceCalled = true
 				require.Equal(t, uint64(1), headerNonce)
 				require.Equal(t, uint32(1), shardID)
 
@@ -736,25 +737,28 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, providedNonceKey), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		require.True(t, errors.Is(err, expectedErr))
 		require.Nil(t, msgID)
-		require.True(t, wasGetProofByNonceCalled)
+		require.True(t, wasGetProofsByNonceCalled)
 		require.True(t, wasSearchFirstCalled)
 	})
-	t.Run("resolveNonceRequest: should work and return from pool", func(t *testing.T) {
+	t.Run("resolveNonceRequest: should work and return all proofs from pool", func(t *testing.T) {
 		t.Parallel()
+
+		proofLowRound := &block.HeaderProof{HeaderHash: []byte("hashA"), HeaderNonce: 1, HeaderRound: 5, HeaderShardId: 1}
+		proofHighRound := &block.HeaderProof{HeaderHash: []byte("hashB"), HeaderNonce: 1, HeaderRound: 6, HeaderShardId: 1}
 
 		args := createMockArgEquivalentProofsResolver()
 		args.EquivalentProofsPool = &dataRetrieverMocks.ProofsPoolMock{
-			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
 				require.Equal(t, uint64(1), headerNonce)
 				require.Equal(t, uint32(1), shardID)
 
-				return &block.HeaderProof{}, nil
+				return []data.HeaderProofHandler{proofLowRound, proofHighRound}, nil
 			},
 		}
-		wasSendCalled := false
+		sentBuffs := make([][]byte, 0)
 		args.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID, source p2p.MessageHandler) error {
-				wasSendCalled = true
+				sentBuffs = append(sentBuffs, buff)
 
 				return nil
 			},
@@ -765,14 +769,42 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, providedNonceKey), fromConnectedPeer, &p2pmocks.MessengerStub{})
 		require.NoError(t, err)
 		require.Nil(t, msgID)
-		require.True(t, wasSendCalled)
+		require.Equal(t, 2, len(sentBuffs))
+
+		// each message carries exactly one proof, in the order returned by the pool
+		for i, expectedProof := range []*block.HeaderProof{proofLowRound, proofHighRound} {
+			sentProof := &block.HeaderProof{}
+			require.Nil(t, args.Marshaller.Unmarshal(sentProof, sentBuffs[i]))
+			require.Equal(t, expectedProof, sentProof)
+		}
+	})
+	t.Run("resolveNonceRequest: send failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgEquivalentProofsResolver()
+		args.EquivalentProofsPool = &dataRetrieverMocks.ProofsPoolMock{
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+				return []data.HeaderProofHandler{&block.HeaderProof{}}, nil
+			},
+		}
+		args.SenderResolver = &mock.TopicResolverSenderStub{
+			SendCalled: func(buff []byte, peer core.PeerID, source p2p.MessageHandler) error {
+				return expectedErr
+			},
+		}
+		res, err := resolvers.NewEquivalentProofsResolver(args)
+		require.Nil(t, err)
+
+		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, providedNonceKey), fromConnectedPeer, &p2pmocks.MessengerStub{})
+		require.True(t, errors.Is(err, expectedErr))
+		require.Nil(t, msgID)
 	})
 	t.Run("resolveNonceRequest: should work and return from storage", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgEquivalentProofsResolver()
 		args.EquivalentProofsPool = &dataRetrieverMocks.ProofsPoolMock{
-			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
 				require.Equal(t, uint64(1), headerNonce)
 				require.Equal(t, uint32(1), shardID)
 

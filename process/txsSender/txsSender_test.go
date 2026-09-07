@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
@@ -59,17 +58,6 @@ func TestNewTxsSenderWithAccumulator(t *testing.T) {
 				return args
 			},
 			expectedError: process.ErrNilMessenger,
-		},
-		{
-			args: func() ArgsTxsSenderWithAccumulator {
-				args := generateMockArgsTxsSender()
-				args.AccumulatorConfig = config.TxAccumulatorConfig{
-					MaxAllowedTimeInMilliseconds:   0,
-					MaxDeviationTimeInMilliseconds: 0,
-				}
-				return args
-			},
-			expectedError: core.ErrInvalidValue,
 		},
 		{
 			args: func() ArgsTxsSenderWithAccumulator {
@@ -185,9 +173,15 @@ func TestTxsSender_SendBulkTransactions(t *testing.T) {
 		ShardCoordinator: shardCoordinator,
 		NetworkMessenger: mes,
 		DataPacker:       dataPacker,
-		AccumulatorConfig: config.TxAccumulatorConfig{
-			MaxAllowedTimeInMilliseconds:   250,
-			MaxDeviationTimeInMilliseconds: 25,
+		AntifloodConfigHandler: &testscommon.AntifloodConfigsHandlerStub{
+			GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+				return config.AntifloodConfigByRound{
+					TxAccumulator: config.TxAccumulatorConfig{
+						MaxAllowedTimeInMilliseconds:   250,
+						MaxDeviationTimeInMilliseconds: 25,
+					},
+				}
+			},
 		},
 	}
 	sender, _ := NewTxsSenderWithAccumulator(args)
@@ -431,10 +425,16 @@ func generateMockArgsTxsSender() ArgsTxsSenderWithAccumulator {
 		MaxDeviationTimeInMilliseconds: 1,
 	}
 	return ArgsTxsSenderWithAccumulator{
-		Marshaller:        marshaller,
-		ShardCoordinator:  &testscommon.ShardsCoordinatorMock{},
-		NetworkMessenger:  &p2pmocks.MessengerStub{},
-		DataPacker:        dataPacker,
-		AccumulatorConfig: accumulatorConfig,
+		Marshaller:       marshaller,
+		ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
+		NetworkMessenger: &p2pmocks.MessengerStub{},
+		DataPacker:       dataPacker,
+		AntifloodConfigHandler: &testscommon.AntifloodConfigsHandlerStub{
+			GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+				return config.AntifloodConfigByRound{
+					TxAccumulator: accumulatorConfig,
+				}
+			},
+		},
 	}
 }

@@ -4,6 +4,9 @@ package testscommon
 type SentSignatureTrackerStub struct {
 	StartRoundCalled                         func()
 	SignatureSentCalled                      func(pkBytes []byte)
+	RecordSignedNonceCalled                  func(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
+	GetSignedNonceInfoCalled                 func(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
+	ReserveSignatureInRoundCalled            func(pkBytes []byte, roundIndex int64, headerHash []byte) bool
 	ResetCountersForManagedBlockSignerCalled func(signerPk []byte)
 }
 
@@ -19,6 +22,29 @@ func (stub *SentSignatureTrackerStub) SignatureSent(pkBytes []byte) {
 	if stub.SignatureSentCalled != nil {
 		stub.SignatureSentCalled(pkBytes)
 	}
+}
+
+// RecordSignedNonce -
+func (stub *SentSignatureTrackerStub) RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64) {
+	if stub.RecordSignedNonceCalled != nil {
+		stub.RecordSignedNonceCalled(pkBytes, nonce, headerHash, roundIndex)
+	}
+}
+
+// GetSignedNonceInfo -
+func (stub *SentSignatureTrackerStub) GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool) {
+	if stub.GetSignedNonceInfoCalled != nil {
+		return stub.GetSignedNonceInfoCalled(pkBytes, nonce)
+	}
+	return nil, 0, false
+}
+
+// ReserveSignatureInRound -
+func (stub *SentSignatureTrackerStub) ReserveSignatureInRound(pkBytes []byte, roundIndex int64, headerHash []byte) bool {
+	if stub.ReserveSignatureInRoundCalled != nil {
+		return stub.ReserveSignatureInRoundCalled(pkBytes, roundIndex, headerHash)
+	}
+	return true
 }
 
 // ResetCountersForManagedBlockSigner -

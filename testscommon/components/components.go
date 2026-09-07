@@ -35,7 +35,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
-	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -109,11 +108,17 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 					},
 				},
 			},
+			EnableEpochs: config.EnableEpochs{
+				SupernovaEnableEpoch: 9999999,
+			},
 		},
 		RoundConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
 					Round: "18446744073709551615",
+				},
+				"SupernovaEnableRound": {
+					Round: "99999999999",
 				},
 			},
 		},
@@ -141,9 +146,10 @@ func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.S
 				},
 			},
 		},
-		RatingsConfig:   CreateDummyRatingsConfig(),
-		EconomicsConfig: CreateDummyEconomicsConfig(),
-		CoreComp:        coreComponents,
+		RatingsConfig:              CreateDummyRatingsConfig(),
+		EconomicsConfig:            CreateDummyEconomicsConfig(),
+		SystemSmartContractsConfig: config.SystemSmartContractsConfig{},
+		CoreComp:                   coreComponents,
 	}
 }
 
@@ -316,10 +322,22 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
 		},
-		PoolsCleanersConfig: config.PoolsCleanersConfig{
-			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
-			MaxRoundsToKeepUnprocessedTransactions: 50,
+		GeneralSettings: config.GeneralSettingsConfig{
+			ProcessConfigsByRound: []config.ProcessConfigByRound{
+				{
+					MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+					MaxRoundsToKeepUnprocessedTransactions: 50,
+					NumFloodingRoundsSlowReacting:          20,
+					NumFloodingRoundsFastReacting:          30,
+					NumFloodingRoundsOutOfSpecs:            40,
+					MaxConsecutiveRoundsOfRatingDecrease:   600,
+					MaxBlockProcessingTimeMs:               1000,
+					NumHeadersToRequestInAdvance:           10,
+					ExtraDelayForRequestBlockInfoMs:        1,
+				},
+			},
 		},
+		Antiflood: testscommon.GetDefaultAntifloodConfig(),
 	}
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
@@ -331,7 +349,6 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 		NodeOperationMode: common.NormalOperation,
 		MainConfig:        mainConfig,
 		StatusHandler:     appStatusHandler,
-		Marshalizer:       &mock.MarshalizerMock{},
 		RatingsConfig: config.RatingsConfig{
 			General:    config.General{},
 			ShardChain: config.ShardChain{},
@@ -345,8 +362,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:           &p2pFactory.LocalSyncTimer{},
 		CryptoComponents: cryptoCompMock,
+		CoreComponents:   GetCoreComponents(),
 	}
 }
 
@@ -583,7 +600,8 @@ func GetProcessArgs(
 				MinStakeValue:                        "1",
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
-				UnBondPeriod:                         0,
+				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                0,
 				MaximumPercentageToBleed:             0,
 				BleedPercentagePerRound:              0,
@@ -624,6 +642,12 @@ func GetProcessArgs(
 						NodesToShufflePerShard: 2,
 					},
 				},
+			},
+		},
+		EconomicsConfig: config.EconomicsConfig{
+			FeeSettings: config.FeeSettings{
+				BlockCapacityOverestimationFactor: 200,
+				PercentDecreaseLimitsStep:         10,
 			},
 		},
 	}

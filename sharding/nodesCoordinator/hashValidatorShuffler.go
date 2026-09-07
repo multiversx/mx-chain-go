@@ -734,7 +734,7 @@ func computeNeededNodes(destination []Validator, source []Validator, maxNumNodes
 	return numNeededNodes
 }
 
-// distributeNewNodes distributes a list of validators to the given validators map
+// distributeValidators distributes a list of validators to the given validators map
 func distributeValidators(destLists map[uint32][]Validator, validators []Validator, randomness []byte, balanced bool) error {
 	if len(destLists) == 0 {
 		return ErrNilOrEmptyDestinationForDistribute

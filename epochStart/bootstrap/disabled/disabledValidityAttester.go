@@ -2,6 +2,7 @@ package disabled
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -25,9 +26,19 @@ func (v *validityAttester) CheckBlockAgainstRoundHandler(_ data.HeaderHandler) e
 	return nil
 }
 
-// CheckBlockAgainstWhitelist -
-func (v *validityAttester) CheckBlockAgainstWhitelist(_ process.InterceptedData) bool {
+// CheckAgainstWhitelist -
+func (v *validityAttester) CheckAgainstWhitelist(_ process.InterceptedData) bool {
 	return false
+}
+
+// CheckProofAgainstFinal -
+func (v *validityAttester) CheckProofAgainstFinal(_ data.HeaderProofHandler) error {
+	return nil
+}
+
+// CheckProofAgainstRoundHandler -
+func (v *validityAttester) CheckProofAgainstRoundHandler(_ data.HeaderProofHandler) error {
+	return nil
 }
 
 // IsInterfaceNil -

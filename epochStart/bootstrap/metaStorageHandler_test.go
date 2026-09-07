@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -36,7 +37,7 @@ func createStorageHandlerArgs() StorageHandlerArgs {
 		PreferencesConfig:               config.PreferencesConfig{},
 		ShardCoordinator:                &mock.ShardCoordinatorStub{},
 		PathManagerHandler:              &testscommon.PathManagerStub{},
-		Marshaller:                      &mock.MarshalizerMock{},
+		Marshaller:                      &marshal.GogoProtoMarshalizer{},
 		Hasher:                          &hashingMocks.HasherMock{},
 		CurrentEpoch:                    0,
 		Uint64Converter:                 &mock.Uint64ByteSliceConverterMock{},

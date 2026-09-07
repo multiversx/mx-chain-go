@@ -11,16 +11,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/epochStart/metachain"
-	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("storage/latestData")
@@ -234,19 +233,19 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 		return 0, err
 	}
 
-	var state *block.MetaTriggerRegistry
+	var state data.MetaTriggerRegistryHandler
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	if shardID == core.MetachainShardId {
-		state, err = metachain.UnmarshalTrigger(marshaller, trigData)
+		state, err = epochStart.UnmarshalMetaTrigger(marshaller, trigData)
 		if err != nil {
 			return 0, err
 		}
 
-		return state.CurrEpochStartRound, nil
+		return state.GetCurrEpochStartRound(), nil
 	}
 
 	var trigHandler data.TriggerRegistryHandler
-	trigHandler, err = shardchain.UnmarshalTrigger(marshaller, trigData)
+	trigHandler, err = epochStart.UnmarshalShardTrigger(marshaller, trigData)
 	if err != nil {
 		return 0, err
 	}
@@ -265,7 +264,7 @@ func (ldp *latestDataProvider) GetLastEpochFromDirNames(epochDirs []string, inde
 
 	for _, dirname := range epochDirs {
 		epochStr := re.FindString(dirname)
-		epoch, err := strconv.ParseInt(epochStr, 10, 64)
+		epoch, err := strconv.ParseUint(epochStr, 10, 32)
 		if err != nil {
 			return 0, err
 		}

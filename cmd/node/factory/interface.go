@@ -23,20 +23,20 @@ type HeaderSigVerifierHandler interface {
 // HeaderIntegrityVerifierHandler is the interface needed to check that a header's integrity is correct
 type HeaderIntegrityVerifierHandler interface {
 	Verify(header data.HeaderHandler) error
-	GetVersion(epoch uint32) string
+	GetVersion(epoch uint32, round uint64) string
 	IsInterfaceNil() bool
 }
 
 // HeaderVersionHandler handles the header version
 type HeaderVersionHandler interface {
-	GetVersion(epoch uint32) string
+	GetVersion(epoch uint32, round uint64) string
 	Verify(hdr data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 
 // VersionedHeaderFactory creates versioned headers
 type VersionedHeaderFactory interface {
-	Create(epoch uint32) data.HeaderHandler
+	Create(epoch uint32, round uint64) data.HeaderHandler
 	IsInterfaceNil() bool
 }
 

@@ -1,14 +1,17 @@
 package mock
 
 import (
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"math/big"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
 // EpochStartDataCreatorStub -
 type EpochStartDataCreatorStub struct {
-	CreateEpochStartDataCalled             func() (*block.EpochStart, error)
-	VerifyEpochStartDataForMetablockCalled func(metaBlock *block.MetaBlock) error
+	CreateEpochStartDataCalled                 func() (*block.EpochStart, error)
+	CreateEpochStartShardDataMetablockV3Called func(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error)
+	VerifyEpochStartDataForMetablockCalled     func(metaBlock data.MetaHeaderHandler) error
 }
 
 // CreateEpochStartData -
@@ -23,8 +26,16 @@ func (e *EpochStartDataCreatorStub) CreateEpochStartData() (*block.EpochStart, e
 	}, nil
 }
 
+// CreateEpochStartShardDataMetablockV3 -
+func (e *EpochStartDataCreatorStub) CreateEpochStartShardDataMetablockV3(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
+	if e.CreateEpochStartShardDataMetablockV3Called != nil {
+		return e.CreateEpochStartShardDataMetablockV3Called(metablock)
+	}
+	return []block.EpochStartShardData{{}}, nil
+}
+
 // VerifyEpochStartDataForMetablock -
-func (e *EpochStartDataCreatorStub) VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error {
+func (e *EpochStartDataCreatorStub) VerifyEpochStartDataForMetablock(metaBlock data.MetaHeaderHandler) error {
 	if e.VerifyEpochStartDataForMetablockCalled != nil {
 		return e.VerifyEpochStartDataForMetablockCalled(metaBlock)
 	}

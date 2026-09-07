@@ -40,7 +40,7 @@ type economicsData struct {
 type ArgsNewEconomicsData struct {
 	TxVersionChecker    process.TxVersionCheckerHandler
 	Economics           *config.EconomicsConfig
-	GeneralConfig       *config.Config
+	ChainParamsHandler  process.ChainParametersHandler
 	EpochNotifier       process.EpochNotifier
 	EnableEpochsHandler common.EnableEpochsHandler
 	PubkeyConverter     core.PubkeyConverter
@@ -94,7 +94,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		return nil, err
 	}
 
-	ed.globalSettingsHandler, err = newGlobalSettingsHandler(args.Economics, args.GeneralConfig)
+	ed.globalSettingsHandler, err = newGlobalSettingsHandler(args.Economics, args.ChainParamsHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -218,6 +218,11 @@ func (ed *economicsData) ExtraGasLimitGuardedTxInEpoch(epoch uint32) uint64 {
 // MaxGasPriceSetGuardian returns the maximum gas price for set guardian transactions
 func (ed *economicsData) MaxGasPriceSetGuardian() uint64 {
 	return ed.maxGasPriceSetGuardian
+}
+
+// BlockCapacityOverestimationFactor returns the block capacity overestimation factor
+func (ed *economicsData) BlockCapacityOverestimationFactor() uint64 {
+	return ed.blockCapacityOverestimationFactor
 }
 
 // GasPerDataByte returns the gas required for a economicsData byte
@@ -346,7 +351,7 @@ func (ed *economicsData) CheckValidityTxValuesInEpoch(tx data.TransactionWithFee
 	}
 
 	// The following check should be kept as it is in order to avoid backwards compatibility issues
-	if tx.GetGasLimit() >= ed.getMaxGasLimitPerBlock(epoch) {
+	if tx.GetGasLimit() > ed.getMaxGasLimitPerBlock(epoch) {
 		return process.ErrMoreGasThanGasLimitPerBlock
 	}
 

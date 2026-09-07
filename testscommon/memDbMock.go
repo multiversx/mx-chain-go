@@ -19,6 +19,7 @@ type MemDbMock struct {
 	GetCalled                  func(key []byte) ([]byte, error)
 	GetIdentifierCalled        func() string
 	GetStateStatsHandlerCalled func() common.StateStatisticsHandler
+	GetCalledNoReturn          func(key []byte)
 }
 
 // NewMemDbMock creates a new memorydb object
@@ -52,6 +53,9 @@ func (s *MemDbMock) Get(key []byte) ([]byte, error) {
 
 	if s.GetCalled != nil {
 		return s.GetCalled(key)
+	}
+	if s.GetCalledNoReturn != nil {
+		s.GetCalledNoReturn(key)
 	}
 
 	if !ok {

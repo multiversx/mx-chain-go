@@ -14,3 +14,8 @@ func (hdrRes *HeaderResolver) EpochHandler() dataRetriever.EpochHandler {
 func (tnRes *TrieNodeResolver) ResolveMultipleHashes(hashesBuff []byte, message p2p.MessageP2P, source p2p.MessageHandler) error {
 	return tnRes.resolveMultipleHashes(hashesBuff, message, source)
 }
+
+// DeduplicateHashes -
+func DeduplicateHashes(hashes [][]byte) [][]byte {
+	return deduplicateHashes(hashes)
+}

@@ -6,11 +6,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/p2p/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("dataretriever/topicsender")
@@ -18,6 +19,9 @@ var log = logger.GetOrCreate("dataretriever/topicsender")
 const (
 	minPeersToQuery    = 2
 	preferredPeerIndex = -1
+	// numFullArchivePeersInDualBand is the insurance-only full-archive peer count used when the
+	// same request is also sent to the main network
+	numFullArchivePeersInDualBand = 1
 )
 
 // ArgBaseTopicSender is the base DTO used to create a new topic sender instance

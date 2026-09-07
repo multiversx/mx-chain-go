@@ -129,6 +129,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 			CurrentPeerId:           args.Messenger.ID(),
 			PreferredPeersHolder:    disabled.NewPreferredPeersHolder(),
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      args.CryptoComponentsHolder.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -157,6 +158,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 			CurrentPeerId:           args.Messenger.ID(),
 			PreferredPeersHolder:    disabled.NewPreferredPeersHolder(),
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      args.CryptoComponentsHolder.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {

@@ -4,15 +4,15 @@ import "github.com/multiversx/mx-chain-core-go/data"
 
 // HeaderVersionHandlerStub -
 type HeaderVersionHandlerStub struct {
-	GetVersionCalled     func(epoch uint32) string
+	GetVersionCalled     func(epoch uint32, round uint64) string
 	VerifyCalled         func(hdr data.HeaderHandler) error
 	IsInterfaceNilCalled func() bool
 }
 
 // GetVersion -
-func (hvm *HeaderVersionHandlerStub) GetVersion(epoch uint32) string {
+func (hvm *HeaderVersionHandlerStub) GetVersion(epoch uint32, round uint64) string {
 	if hvm.GetVersionCalled != nil {
-		return hvm.GetVersionCalled(epoch)
+		return hvm.GetVersionCalled(epoch, round)
 	}
 	return "*"
 }

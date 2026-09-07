@@ -3,15 +3,18 @@ package components
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	mockTests "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/commonmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
-	"github.com/stretchr/testify/require"
 )
 
 func createArgs() (config.Configs, factory.CoreComponentsHolder) {
@@ -39,14 +42,18 @@ func createArgs() (config.Configs, factory.CoreComponentsHolder) {
 		},
 		RatingsConfig:   &ratingsCfg,
 		EconomicsConfig: &economicsCfg,
+		SystemSCConfig:  &config.SystemSmartContractsConfig{},
 	}
 
 	return cfg, &mock.CoreComponentsMock{
-		EconomicsHandler:    &economicsmocks.EconomicsHandlerMock{},
-		IntMarsh:            &testscommon.MarshallerStub{},
-		UInt64ByteSliceConv: &mockTests.Uint64ByteSliceConverterMock{},
-		NodesConfig:         &genesisMocks.NodesSetupStub{},
-		RatingsConfig:       &testscommon.RatingsInfoMock{},
+		EconomicsHandler:               &economicsmocks.EconomicsHandlerMock{},
+		IntMarsh:                       &testscommon.MarshallerStub{},
+		UInt64ByteSliceConv:            &mockTests.Uint64ByteSliceConverterMock{},
+		NodesConfig:                    &genesisMocks.NodesSetupStub{},
+		RatingsConfig:                  &testscommon.RatingsInfoMock{},
+		ChainParametersSubscriberField: &commonmocks.ChainParametersNotifierStub{},
+		EnableEpochsHandlerField:       &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandlerField:       &testscommon.EnableRoundsHandlerStub{},
 	}
 }
 

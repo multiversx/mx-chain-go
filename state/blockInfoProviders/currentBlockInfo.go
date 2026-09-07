@@ -2,7 +2,7 @@ package blockInfoProviders
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -11,11 +11,11 @@ import (
 var log = logger.GetOrCreate("state/blockinfoproviders")
 
 type currentBlockInfo struct {
-	chainHandler chainData.ChainHandler
+	chainHandler data.ChainHandler
 }
 
 // NewCurrentBlockInfo creates a new instance of type currentBlockInfo
-func NewCurrentBlockInfo(chainHandler chainData.ChainHandler) (*currentBlockInfo, error) {
+func NewCurrentBlockInfo(chainHandler data.ChainHandler) (*currentBlockInfo, error) {
 	if check.IfNil(chainHandler) {
 		return nil, ErrNilChainHandler
 	}
@@ -27,16 +27,23 @@ func NewCurrentBlockInfo(chainHandler chainData.ChainHandler) (*currentBlockInfo
 
 // GetBlockInfo returns the current block info
 func (provider *currentBlockInfo) GetBlockInfo() common.BlockInfo {
-	block := provider.chainHandler.GetCurrentBlockHeader()
+	block := provider.chainHandler.GetLastExecutedBlockHeader()
 	if check.IfNil(block) {
 		log.Debug("currentBlockInfo.GetBlockInfo: returning empty block info", "reason", "block is nil")
 		return holders.NewBlockInfo(nil, 0, nil)
 	}
 
-	hash := provider.chainHandler.GetCurrentBlockHeaderHash()
-	rootHash := provider.chainHandler.GetCurrentBlockRootHash()
+	headerHash, nonce, rootHash := provider.getCurrentBlockInfo(block)
+	return holders.NewBlockInfo(headerHash, nonce, rootHash)
+}
 
-	return holders.NewBlockInfo(hash, block.GetNonce(), rootHash)
+func (provider *currentBlockInfo) getCurrentBlockInfo(header data.HeaderHandler) ([]byte, uint64, []byte) {
+	if !header.IsHeaderV3() {
+		return provider.chainHandler.GetCurrentBlockHeaderHash(), header.GetNonce(), provider.chainHandler.GetCurrentBlockRootHash()
+	}
+
+	nonce, headerHash, rootHash := provider.chainHandler.GetLastExecutedBlockInfo()
+	return headerHash, nonce, rootHash
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

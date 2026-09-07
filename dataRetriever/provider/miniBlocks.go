@@ -142,7 +142,7 @@ func (mbp *miniBlockProvider) GetMiniBlocksFromStorer(hashes [][]byte) ([]*block
 	return miniBlocksAndHashes, missingMiniBlocksHashes
 }
 
-// getMiniBlocksFromStorer returns a list of mini blocks from storage and a list of missing hashes
+// getMiniBlockFromStorer returns a list of mini blocks from storage and a list of missing hashes
 func (mbp *miniBlockProvider) getMiniBlockFromStorer(hash []byte) *block.MiniBlock {
 	buff, err := mbp.miniBlockStorage.Get(hash)
 	if err != nil {

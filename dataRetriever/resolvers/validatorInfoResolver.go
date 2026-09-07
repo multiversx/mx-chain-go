@@ -144,7 +144,7 @@ func (res *validatorInfoResolver) resolveMultipleHashesRequest(hashesBuff []byte
 	if err != nil {
 		return err
 	}
-	hashes := b.Data
+	hashes := deduplicateHashes(b.Data)
 
 	validatorInfoForHashes, err := res.fetchValidatorInfoForHashes(hashes, epoch)
 	if err != nil {

@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process/track"
 )
 
@@ -12,6 +13,7 @@ type BlockTrackerHandlerMock struct {
 	ComputeLongestSelfChainCalled func() (data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte)
 	SortHeadersFromNonceCalled    func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	AddHeaderFromPoolCalled       func(shardID uint32, nonce uint64)
+	IsSettledCrossHeaderCalled    func(header data.HeaderHandler, headerHash []byte) bool
 }
 
 // GetSelfHeaders -
@@ -58,4 +60,12 @@ func (bthm *BlockTrackerHandlerMock) AddHeaderFromPool(shardID uint32, nonce uin
 // IsInterfaceNil -
 func (bthm *BlockTrackerHandlerMock) IsInterfaceNil() bool {
 	return bthm == nil
+}
+
+// IsSettledCrossHeader -
+func (bthm *BlockTrackerHandlerMock) IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool {
+	if bthm.IsSettledCrossHeaderCalled != nil {
+		return bthm.IsSettledCrossHeaderCalled(header, headerHash)
+	}
+	return false
 }

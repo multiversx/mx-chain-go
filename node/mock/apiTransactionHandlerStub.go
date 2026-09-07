@@ -1,8 +1,10 @@
 package mock
 
 import (
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // TransactionAPIHandlerStub -
@@ -13,6 +15,8 @@ type TransactionAPIHandlerStub struct {
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
 	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType, epoch uint32) (*transaction.ApiTransactionResult, error)
+	GetSelectedTransactionsCalled               func(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error)
+	GetVirtualNonceCalled                       func(address string) (*common.VirtualNonceOfAccountResponse, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	PopulateComputedFieldsCalled                func(tx *transaction.ApiTransactionResult)
 	GetSCRsByTxHashCalled                       func(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
@@ -22,6 +26,15 @@ type TransactionAPIHandlerStub struct {
 func (tas *TransactionAPIHandlerStub) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
 	if tas.GetSCRsByTxHashCalled != nil {
 		return tas.GetSCRsByTxHashCalled(txHash, scrHash)
+	}
+
+	return nil, nil
+}
+
+// GetVirtualNonce -
+func (tas *TransactionAPIHandlerStub) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
+	if tas.GetVirtualNonceCalled != nil {
+		return tas.GetVirtualNonceCalled(address)
 	}
 
 	return nil, nil
@@ -67,6 +80,15 @@ func (tas *TransactionAPIHandlerStub) GetLastPoolNonceForSender(sender string) (
 func (tas *TransactionAPIHandlerStub) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	if tas.GetTransactionsPoolNonceGapsForSenderCalled != nil {
 		return tas.GetTransactionsPoolNonceGapsForSenderCalled(sender, senderAccountNonce)
+	}
+
+	return nil, nil
+}
+
+// GetSelectedTransactions -
+func (tas *TransactionAPIHandlerStub) GetSelectedTransactions(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+	if tas.GetSelectedTransactionsCalled != nil {
+		return tas.GetSelectedTransactionsCalled(selectionOptions, blockchain, accountsAdapter)
 	}
 
 	return nil, nil

@@ -111,6 +111,11 @@ func (ihb *interceptedHeartbeat) CheckValidity() error {
 	return nil
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (ihb *interceptedHeartbeat) ShouldAllowDuplicates() bool {
+	return true
+}
+
 // IsForCurrentShard always returns true
 func (ihb *interceptedHeartbeat) IsForCurrentShard() bool {
 	return true

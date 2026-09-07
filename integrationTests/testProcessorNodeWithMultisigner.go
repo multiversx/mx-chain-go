@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -73,7 +74,7 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 ) map[uint32][]*TestProcessorNode {
-	rater, _ := rating.NewBlockSigningRater(CreateRatingsData())
+	rater, _ := rating.NewBlockSigningRater(CreateRatingsData(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	coordinatorFactory := &IndexHashedNodesCoordinatorWithRaterFactory{
 		PeerAccountListAndRatingHandler: rater,
 	}
@@ -185,6 +186,7 @@ func CreateNodeWithBLSAndTxKeys(
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
 		AndromedaEnableEpoch:                 UnreachableEpoch,
+		SupernovaEnableEpoch:                 UnreachableEpoch,
 	}
 
 	return CreateNode(
@@ -247,6 +249,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 		AndromedaEnableEpoch:                            UnreachableEpoch,
+		SupernovaEnableEpoch:                            UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -476,6 +479,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			HeadersPool:             &mock.HeadersCacherStub{},
 			ProofsPool:              &dataRetriever.ProofsPoolMock{},
 			StorageService:          &genericMocks.ChainStorerMock{},
+			PubKeysHandler:          &consensusMocks.SigningHandlerStub{},
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
@@ -500,6 +504,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 					AndromedaEnableEpoch:                 UnreachableEpoch,
+					SupernovaEnableEpoch:                 UnreachableEpoch,
 				},
 				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,
@@ -622,6 +627,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				HeadersPool:             &mock.HeadersCacherStub{},
 				ProofsPool:              &dataRetriever.ProofsPoolMock{},
 				StorageService:          &genericMocks.ChainStorerMock{},
+				PubKeysHandler:          &consensusMocks.SigningHandlerStub{},
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
@@ -641,6 +647,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 					AndromedaEnableEpoch:                 UnreachableEpoch,
+					SupernovaEnableEpoch:                 UnreachableEpoch,
 				},
 				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,
@@ -764,17 +771,20 @@ func DoConsensusSigningOnBlock(
 
 	blockHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, blockHeader)
 
-	pubKeysBytes := make([][]byte, len(consensusNodes))
+	pubKeysBytes := make([]crypto.PublicKey, len(consensusNodes))
 	sigShares := make([][]byte, len(consensusNodes))
 	msig := leaderNode.MultiSigner
 
 	for i := 0; i < len(consensusNodes); i++ {
-		pubKeysBytes[i] = []byte(pubKeys[i])
+		pubKeysBytes[i], err = TestBlsKeyGen.PublicKeyFromByteArray([]byte(pubKeys[i]))
+		if err != nil {
+			log.Error("blockHeader.PublicKeyFromByteArray", "error", err)
+		}
 		sk, _ := consensusNodes[i].NodeKeys.MainKey.Sk.ToByteArray()
 		sigShares[i], _ = msig.CreateSignatureShare(sk, blockHeaderHash)
 	}
 
-	sig, _ := msig.AggregateSigs(pubKeysBytes, sigShares)
+	sig, _ := msig.AggregateSigsV2(pubKeysBytes, sigShares)
 	err = blockHeader.SetSignature(sig)
 	if err != nil {
 		log.Error("blockHeader.SetSignature", "error", err)
@@ -852,7 +862,7 @@ func SyncAllShardsWithRoundBlock(
 	time.Sleep(4 * StepDelay)
 }
 
-func createMultiSigner(cp CryptoParams) (crypto.MultiSigner, error) {
+func createMultiSigner(cp CryptoParams) (crypto.MultiSignerV2, error) {
 	blsHasher, _ := blake2b.NewBlake2bWithSize(hashing.BlsHashSize)
 	llsig := &mclmultisig.BlsMultiSigner{Hasher: blsHasher}
 	return multisig.NewBLSMultisig(

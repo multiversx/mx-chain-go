@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -372,6 +373,18 @@ func (mcc *managedCoreComponents) GenesisTime() time.Time {
 	return mcc.coreComponents.genesisTime
 }
 
+// SupernovaGenesisTime returns the time for supernova round activation
+func (mcc *managedCoreComponents) SupernovaGenesisTime() time.Time {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return time.Time{}
+	}
+
+	return mcc.coreComponents.supernovaGenesisTime
+}
+
 // Watchdog returns the minimum watchdog
 func (mcc *managedCoreComponents) Watchdog() core.WatchdogTimer {
 	mcc.mutCoreComponents.RLock()
@@ -505,7 +518,7 @@ func (mcc *managedCoreComponents) ChainParametersSubscriber() process.ChainParam
 }
 
 // EnableRoundsHandler returns the rounds activation handler
-func (mcc *managedCoreComponents) EnableRoundsHandler() process.EnableRoundsHandler {
+func (mcc *managedCoreComponents) EnableRoundsHandler() common.EnableRoundsHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
 
@@ -634,6 +647,54 @@ func (mcc *managedCoreComponents) EpochChangeGracePeriodHandler() common.EpochCh
 	}
 
 	return mcc.coreComponents.epochChangeGracePeriodHandler
+}
+
+// ProcessConfigsHandler returns the process configs handler component
+func (mcc *managedCoreComponents) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.processConfigsHandler
+}
+
+// CommonConfigsHandler returns the epoch start configs handler component
+func (mcc *managedCoreComponents) CommonConfigsHandler() common.CommonConfigsHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.epochStartConfigsHandler
+}
+
+// AntifloodConfigsHandler returns the antiflood configs handler component
+func (mcc *managedCoreComponents) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.antifloodConfigsHandler
+}
+
+// ClosingNodeStarted returns the flag that indicates if the node is in the process of closing
+func (mcc *managedCoreComponents) ClosingNodeStarted() *atomic.Bool {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.closingNodeStarted
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

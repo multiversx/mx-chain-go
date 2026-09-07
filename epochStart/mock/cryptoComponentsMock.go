@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/multiversx/mx-chain-crypto-go"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 )
@@ -44,7 +44,7 @@ func (ccm *CryptoComponentsMock) TxSingleSigner() crypto.SingleSigner {
 }
 
 // GetMultiSigner -
-func (ccm *CryptoComponentsMock) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+func (ccm *CryptoComponentsMock) GetMultiSigner(epoch uint32) (crypto.MultiSignerV2, error) {
 	ccm.mutCrypto.RLock()
 	defer ccm.mutCrypto.RUnlock()
 
@@ -103,6 +103,7 @@ func (ccm *CryptoComponentsMock) Clone() interface{} {
 		BlKeyGen:          ccm.BlKeyGen,
 		TxKeyGen:          ccm.TxKeyGen,
 		mutCrypto:         sync.RWMutex{},
+		ManagedPeers:      ccm.ManagedPeers,
 	}
 }
 

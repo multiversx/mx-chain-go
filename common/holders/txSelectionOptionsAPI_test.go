@@ -1,0 +1,20 @@
+package holders
+
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
+
+func TestNewTxSelectionOptionsAPI(t *testing.T) {
+	t.Parallel()
+
+	options, _ := NewTxSelectionOptions(10_000_000_000, 30_000, 10, haveTimeTrue)
+	optionsAPI := NewTxSelectionOptionsAPI(options, "hash,nonce")
+
+	require.Equal(t, uint64(10_000_000_000), optionsAPI.GetGasRequested())
+	require.Equal(t, 30_000, optionsAPI.GetMaxNumTxs())
+	require.Equal(t, 10, optionsAPI.GetLoopDurationCheckInterval())
+	require.Equal(t, "hash,nonce", optionsAPI.GetRequestedFields())
+	require.True(t, optionsAPI.HaveTimeForSelection())
+}

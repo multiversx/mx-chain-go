@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-crypto-go"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -715,6 +716,51 @@ func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 }
 
 // ------- CheckValidity
+func TestNewInterceptedTransaction_NonCanonicalEncodingShouldErr(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:     1,
+		Value:     big.NewInt(2),
+		Data:      []byte("data"),
+		GasLimit:  3,
+		GasPrice:  4,
+		RcvAddr:   recvAddress,
+		SndAddr:   senderAddress,
+		Signature: sigOk,
+		ChainID:   chainID,
+		Version:   minTxVersion,
+	}
+
+	protoMarshalizer := &marshal.GogoProtoMarshalizer{}
+	canonicalTxBuff, err := protoMarshalizer.Marshal(tx)
+	require.NoError(t, err)
+	aliasTxBuff := append(append([]byte{}, canonicalTxBuff...), 0xC0, 0x0C, 0x01)
+
+	txi, err := transaction.NewInterceptedTransaction(
+		aliasTxBuff,
+		protoMarshalizer,
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		createKeyGenMock(),
+		createDummySigner(),
+		createMockPubKeyConverter(),
+		mock.NewOneShardCoordinatorMock(),
+		createFreeTxFeeHandler(),
+		&testscommon.WhiteListHandlerStub{},
+		&testscommon.ArgumentParserMock{},
+		chainID,
+		false,
+		&hashingMocks.HasherMock{},
+		versioning.NewTxVersionChecker(minTxVersion),
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
+
+	require.Nil(t, txi)
+	require.ErrorIs(t, err, process.ErrNonCanonicalTransactionEncoding)
+}
 
 func TestInterceptedTransaction_CheckValidityNilSignatureShouldErr(t *testing.T) {
 	t.Parallel()
@@ -1245,6 +1291,7 @@ func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, recvShard, txi.ReceiverShardId())
 	assert.False(t, txi.IsForCurrentShard())
 	assert.Equal(t, tx, txi.Transaction())
+	assert.False(t, txi.ShouldAllowDuplicates())
 }
 
 func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *testing.T) {
@@ -1968,7 +2015,7 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		errMaxGasPrice = inTx2.CheckMaxGasPrice()
 		require.Nil(t, errMaxGasPrice)
 	})
-	t.Run("not guarded Tx, not setGuardian always OK", func(t *testing.T) {
+	t.Run("not guarded tx, not setGuardian always OK", func(t *testing.T) {
 		tx1 := *testTx1
 		tx1.Data = []byte("dummy")
 		tx2 := *testTx2
@@ -1991,7 +2038,7 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		errMaxGasPrice = inTx2.CheckMaxGasPrice()
 		require.Nil(t, errMaxGasPrice)
 	})
-	t.Run("not guarded Tx with setGuardian call and price lower than max or equal OK", func(t *testing.T) {
+	t.Run("not guarded tx with setGuardian call and price lower than max or equal OK", func(t *testing.T) {
 		tx1 := *testTx1
 		tx1.GasPrice = maxAllowedGasPriceSetGuardian
 		tx2 := *testTx2
@@ -2014,7 +2061,7 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		errMaxGasPrice = inTx2.CheckMaxGasPrice()
 		require.Nil(t, errMaxGasPrice)
 	})
-	t.Run("not guarded Tx with setGuardian call and price higher than max err", func(t *testing.T) {
+	t.Run("not guarded tx with setGuardian call and price higher than max err", func(t *testing.T) {
 		tx1 := *testTx1
 		tx1.GasPrice = maxAllowedGasPriceSetGuardian * 2
 		txVersionChecker := &testscommon.TxVersionCheckerStub{

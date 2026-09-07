@@ -135,7 +135,7 @@ func TestSaveBlock(t *testing.T) {
 				SmartContractResults: map[string]*outport.SCRInfo{
 					scrHash1: nil,
 				},
-				Logs: []*outport.LogData{
+				Logs: []*transaction.LogData{
 					{
 						TxHash: txHash1,
 						Log:    &transaction.Log{},

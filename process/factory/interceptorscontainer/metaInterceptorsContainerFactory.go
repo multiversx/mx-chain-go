@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -135,6 +136,7 @@ func NewMetaInterceptorsContainerFactory(
 		nodeOperationMode:               args.NodeOperationMode,
 		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 		enableEpochsHandler:             args.CoreComponents.EnableEpochsHandler(),
+		config:                          args.Config,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -295,6 +297,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 			CurrentPeerId:           micf.mainMessenger.ID(),
 			PreferredPeersHolder:    micf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      micf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -341,7 +344,7 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
 		identifierScr := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(idx)
-		interceptor, err := micf.createOneRewardTxInterceptor(identifierScr)
+		interceptor, err := micf.createOneRewardTxInterceptor(identifierScr, true)
 		if err != nil {
 			return err
 		}

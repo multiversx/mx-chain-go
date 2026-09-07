@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -1243,29 +1244,81 @@ func TestSCQueryService_ShouldWorkIfNodeIsSynced(t *testing.T) {
 func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgumentsForSCQuery()
-	rootHashCalledCounter := 0
-	args.APIBlockChain = &testscommon.ChainHandlerStub{
-		GetCurrentBlockRootHashCalled: func() []byte {
-			rootHashCalledCounter++
-			println(rootHashCalledCounter)
-			if rootHashCalledCounter < 2 { // first call is during root hash extraction for recreate trie
-				return []byte("first root hash")
-			}
+	t.Run("header v2", func(t *testing.T) {
+		t.Parallel()
 
-			return []byte("second root hash")
-		},
-	}
+		args := createMockArgumentsForSCQuery()
+		rootHashCalledCounter := 0
+		args.MainBlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV2{}
+			},
+		}
+		args.APIBlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				rootHashCalledCounter++
+				println(rootHashCalledCounter)
+				if rootHashCalledCounter < 2 { // first call is during root hash extraction for recreate trie
+					return []byte("first root hash")
+				}
 
-	qs, _ := NewSCQueryService(args)
+				return []byte("second root hash")
+			},
+		}
 
-	res, _, err := qs.ExecuteQuery(&process.SCQuery{
-		SameScState: true,
-		ScAddress:   []byte(DummyScAddress),
-		FuncName:    "function",
+		qs, _ := NewSCQueryService(args)
+
+		res, _, err := qs.ExecuteQuery(&process.SCQuery{
+			SameScState: true,
+			ScAddress:   []byte(DummyScAddress),
+			FuncName:    "function",
+		})
+		require.Nil(t, res)
+		require.ErrorIs(t, err, process.ErrStateChangedWhileExecutingVmQuery)
 	})
-	require.Nil(t, res)
-	require.ErrorIs(t, err, process.ErrStateChangedWhileExecutingVmQuery)
+
+	t.Run("header v3", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgumentsForSCQuery()
+		rootHashCalledCounter := 0
+		args.MainBlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{}
+			},
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{
+					LastExecutionResult: &block.ExecutionResultInfo{
+						ExecutionResult: &block.BaseExecutionResult{
+							RootHash: []byte("references block root hash"),
+						},
+					},
+				}
+			},
+		}
+		args.APIBlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				rootHashCalledCounter++
+				println(rootHashCalledCounter)
+				if rootHashCalledCounter < 2 { // first call is during root hash extraction for recreate trie
+					return 0, []byte{}, []byte("first root hash")
+				}
+
+				return 0, []byte{}, []byte("second root hash")
+			},
+		}
+
+		qs, _ := NewSCQueryService(args)
+
+		res, _, err := qs.ExecuteQuery(&process.SCQuery{
+			SameScState: true,
+			ScAddress:   []byte(DummyScAddress),
+			FuncName:    "function",
+		})
+		require.Nil(t, res)
+
+		require.ErrorIs(t, err, process.ErrStateChangedWhileExecutingVmQuery)
+	})
 }
 
 func TestSCQueryService_ShouldWorkIfStateDidntChange(t *testing.T) {
@@ -1395,4 +1448,228 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 	err := target.Close()
 	assert.Nil(t, err)
 	assert.True(t, closeCalled)
+}
+
+func TestSCQueryService_ExtractBlockHeaderAndRootHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("if not query hash and nonce and not header v3, get current blockchain info", func(t *testing.T) {
+		t.Parallel()
+
+		argsNewSCQuery := createMockArgumentsForSCQuery()
+		argsNewSCQuery.Marshaller = &marshallerMock.MarshalizerMock{}
+		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{}
+
+		currHeader := &block.HeaderV2{}
+		currRootHash := []byte("rootHash1")
+		currHeaderHash := []byte("headerHash1")
+
+		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return currHeader
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return currRootHash
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return currHeaderHash
+			},
+		}
+
+		argsNewSCQuery.HistoryRepository = &dblookupext.HistoryRepositoryStub{
+			GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+				return 2, nil
+			},
+		}
+
+		argsNewSCQuery.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		qs, err := NewSCQueryService(argsNewSCQuery)
+		require.NoError(t, err)
+
+		query := process.SCQuery{
+			ScAddress: []byte(DummyScAddress),
+			FuncName:  "function",
+			Arguments: [][]byte{},
+		}
+
+		retHeader, retRootHash, retHeaderHash, err := qs.ExtractBlockHeaderAndRootHash(&query)
+		require.NoError(t, err)
+
+		require.Equal(t, currHeader, retHeader)
+		require.Equal(t, currRootHash, retRootHash)
+		require.Equal(t, currHeaderHash, retHeaderHash)
+	})
+
+	t.Run("if not query hash and nonce and header v3, get current blockchain info", func(t *testing.T) {
+		t.Parallel()
+
+		argsNewSCQuery := createMockArgumentsForSCQuery()
+		argsNewSCQuery.Marshaller = &marshallerMock.MarshalizerMock{}
+		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{}
+
+		header := &block.HeaderV3{}
+		rootHash := []byte("rootHash1")
+		headerHash := []byte("headerHash1")
+
+		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, headerHash, rootHash
+			},
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+		}
+
+		argsNewSCQuery.HistoryRepository = &dblookupext.HistoryRepositoryStub{
+			GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+				return 2, nil
+			},
+		}
+
+		argsNewSCQuery.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{}, nil
+			},
+		}
+
+		qs, err := NewSCQueryService(argsNewSCQuery)
+		require.NoError(t, err)
+
+		query := process.SCQuery{
+			ScAddress: []byte(DummyScAddress),
+			FuncName:  "function",
+			Arguments: [][]byte{},
+		}
+
+		retHeader, retRootHash, retHeaderHash, err := qs.ExtractBlockHeaderAndRootHash(&query)
+		require.NoError(t, err)
+
+		require.Equal(t, header, retHeader)
+		require.Equal(t, rootHash, retRootHash)
+		require.Equal(t, headerHash, retHeaderHash)
+	})
+
+	t.Run("if query hash and header v3, get current blockchain info", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller := &marshal.GogoProtoMarshalizer{}
+
+		argsNewSCQuery := createMockArgumentsForSCQuery()
+		argsNewSCQuery.Marshaller = marshaller
+		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{}
+
+		header := &block.HeaderV3{
+			Nonce:               10,
+			LastExecutionResult: &block.ExecutionResultInfo{},
+		}
+		headerBytes, _ := marshaller.Marshal(header)
+
+		rootHash := []byte("rootHash1")
+		headerHash := []byte("headerHash1")
+		queryHash := []byte("headerHash2")
+
+		execRes := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash: headerHash,
+				RootHash:   rootHash,
+			},
+		}
+		execResBytes, _ := marshaller.Marshal(execRes)
+
+		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, headerHash, rootHash
+			},
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+		}
+
+		argsNewSCQuery.HistoryRepository = &dblookupext.HistoryRepositoryStub{
+			IsEnabledCalled: func() bool {
+				return false
+			},
+			GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+				return 2, nil
+			},
+		}
+
+		argsNewSCQuery.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				if unitType == dataRetriever.BlockHeaderUnit {
+					return &storageStubs.StorerStub{
+						GetCalled: func(key []byte) ([]byte, error) {
+							if bytes.Equal(key, queryHash) {
+								return headerBytes, nil
+							}
+
+							return nil, errors.New("not found")
+						},
+					}, nil
+				}
+
+				if unitType == dataRetriever.ExecutionResultsUnit {
+					return &storageStubs.StorerStub{
+						GetCalled: func(key []byte) ([]byte, error) {
+							if bytes.Equal(key, queryHash) {
+								return execResBytes, nil
+							}
+
+							return nil, errors.New("not found")
+						},
+					}, nil
+				}
+
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, errors.New("not found")
+					},
+				}, nil
+			},
+		}
+
+		qs, err := NewSCQueryService(argsNewSCQuery)
+		require.NoError(t, err)
+
+		query := process.SCQuery{
+			ScAddress: []byte(DummyScAddress),
+			FuncName:  "function",
+			Arguments: [][]byte{},
+			BlockHash: queryHash,
+		}
+
+		retHeader, retRootHash, retHeaderHash, err := qs.ExtractBlockHeaderAndRootHash(&query)
+		require.NoError(t, err)
+
+		require.Equal(t, header, retHeader)
+		require.Equal(t, rootHash, retRootHash)
+		require.Equal(t, queryHash, retHeaderHash)
+	})
 }

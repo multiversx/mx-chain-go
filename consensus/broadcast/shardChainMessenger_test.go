@@ -94,6 +94,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			AlarmScheduler:             alarmScheduler,
 			KeysHandler:                &testscommon.KeysHandlerStub{},
 			DelayedBroadcaster:         delayedBroadcaster,
+			ProcessConfigsHandler:      createTestProcessConfigsHandler(),
 		},
 	}
 }
@@ -297,7 +298,6 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 			case <-channelBroadcastCalled:
 				called++
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 
@@ -313,7 +313,6 @@ func TestShardChainMessenger_BroadcastMiniBlocksShouldBeDone(t *testing.T) {
 			case <-channelBroadcastUsingPrivateKeyCalled:
 				called++
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 
@@ -396,7 +395,6 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 			case <-channelBroadcastCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 
@@ -412,7 +410,6 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 			case <-channelBroadcastUsingPrivateKeyCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 
@@ -473,7 +470,6 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 			case <-channelBroadcastCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 
@@ -489,7 +485,6 @@ func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 			case <-channelBroadcastUsingPrivateKeyCalled:
 				wasCalled = true
 			case <-time.After(time.Millisecond * 100):
-				break
 			}
 		}
 
@@ -516,6 +511,38 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderNilMiniblocksShouldReturnNi
 
 	err := scm.BroadcastBlockDataLeader(header, nil, transactions, []byte("pk bytes"))
 	assert.Nil(t, err)
+}
+
+func TestShardChainMessenger_BroadcastBlockDataLeaderUsesTheHeaderRoundForDelays(t *testing.T) {
+	providedRound := uint64(9876)
+	chRound := make(chan uint64, 1)
+
+	args := createDefaultShardChainArgs()
+	args.ProcessConfigsHandler = &testscommon.ProcessConfigsHandlerStub{
+		GetExtraDelayForBroadcastBlockInfoCalled: func(round uint64) time.Duration {
+			select {
+			case chRound <- round:
+			default:
+			}
+			return 0
+		},
+	}
+	scm, _ := broadcast.NewShardChainMessenger(args)
+
+	_, header, miniblocks, transactions := createDelayData("1")
+	header.Round = providedRound
+	// the metachain destined miniblocks are the ones broadcast right away
+	miniblocks[core.MetachainShardId] = []byte("meta miniblock data")
+
+	err := scm.BroadcastBlockDataLeader(header, miniblocks, transactions, []byte("pk bytes"))
+	require.Nil(t, err)
+
+	select {
+	case round := <-chRound:
+		require.Equal(t, providedRound, round)
+	case <-time.After(time.Second):
+		require.Fail(t, "the broadcast delay was not looked up for the header round")
+	}
 }
 
 func TestShardChainMessenger_BroadcastBlockDataLeaderShouldErr(t *testing.T) {
@@ -576,6 +603,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 		HeadersSubscriber:     args.HeadersSubscriber,
 		ProofsPool:            &dataRetrieverMock.ProofsPoolMock{},
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ProcessConfigsHandler: createTestProcessConfigsHandler(),
 		ShardCoordinator:      args.ShardCoordinator,
 		LeaderCacheSize:       args.MaxDelayCacheSize,
 		ValidatorCacheSize:    args.MaxDelayCacheSize,

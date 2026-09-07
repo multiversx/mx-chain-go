@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
-const maxLenMiniBlockReservedField = 10
 const maxLenMiniBlockHeaderReservedField = 32
 
 func checkForDuplicateHashes(hashes [][]byte) error {
@@ -89,7 +88,7 @@ func checkHeaderHandler(
 ) error {
 	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
 
-	if len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
+	if !hdr.IsHeaderV3() && len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilPubKeysBitmap
 	}
 	if len(hdr.GetPrevHash()) == 0 {
@@ -98,7 +97,7 @@ func checkHeaderHandler(
 	if len(hdr.GetSignature()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilSignature
 	}
-	if len(hdr.GetRootHash()) == 0 {
+	if !hdr.IsHeaderV3() && len(hdr.GetRootHash()) == 0 {
 		return process.ErrNilRootHash
 	}
 	if len(hdr.GetRandSeed()) == 0 {
@@ -108,7 +107,11 @@ func checkHeaderHandler(
 		return process.ErrNilPrevRandSeed
 	}
 
-	return hdr.CheckFieldsForNil()
+	err := hdr.CheckFieldsForNil()
+	if err != nil {
+		return err
+	}
+	return hdr.CheckFieldsIntegrity()
 }
 
 func checkMetaShardInfo(
@@ -119,7 +122,8 @@ func checkMetaShardInfo(
 		return nil
 	}
 
-	for _, sd := range shardInfo {
+	shardDataHashes := make([][]byte, len(shardInfo))
+	for i, sd := range shardInfo {
 		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
 			return process.ErrInvalidShardId
 		}
@@ -128,10 +132,27 @@ func checkMetaShardInfo(
 		if err != nil {
 			return err
 		}
+
+		shardDataHashes[i] = sd.GetHeaderHash()
 	}
 
-	shardDataHashes := make([][]byte, len(shardInfo))
-	for i, sd := range shardInfo {
+	return checkForDuplicateHashes(shardDataHashes)
+}
+
+func checkMetaShardDataProposal(
+	shardDataProposed []data.ShardDataProposalHandler,
+	coordinator sharding.Coordinator,
+) error {
+	if coordinator.SelfId() != core.MetachainShardId {
+		return nil
+	}
+
+	shardDataHashes := make([][]byte, len(shardDataProposed))
+	for i, sd := range shardDataProposed {
+		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
+			return process.ErrInvalidShardId
+		}
+
 		shardDataHashes[i] = sd.GetHeaderHash()
 	}
 

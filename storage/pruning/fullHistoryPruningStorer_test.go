@@ -204,6 +204,36 @@ func TestNewFullHistoryPruningStorer_GetBulkFromEpoch(t *testing.T) {
 	assert.Equal(t, expected, res)
 }
 
+func TestNewFullHistoryPruningStorer_GetBulkFromMultipleEpochs(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	fhArgs := pruning.FullHistoryStorerArgs{
+		StorerArgs:               args,
+		NumOfOldActivePersisters: 5,
+	}
+	fhps, _ := pruning.NewFullHistoryPruningStorer(fhArgs)
+	testVal0, testVal1 := []byte("value0"), []byte("value1")
+	testKey0, testKey1 := []byte("key0"), []byte("key1")
+	testEpoch := uint32(7)
+
+	_ = fhps.PutInEpoch(testKey0, testVal0, testEpoch+1)
+	_ = fhps.PutInEpoch(testKey1, testVal1, testEpoch+1)
+
+	// clean cache
+	fhps.ClearCache()
+
+	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1}, testEpoch)
+	assert.Nil(t, err)
+
+	expected := []data.KeyValuePair{
+		{Key: testKey0, Value: testVal0},
+		{Key: testKey1, Value: testVal1},
+	}
+	assert.Equal(t, expected, res)
+
+}
+
 func TestNewFullHistoryPruningStorer_GetBulkFromEpochShouldNotLoadFromCache(t *testing.T) {
 	t.Parallel()
 

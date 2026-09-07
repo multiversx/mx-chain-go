@@ -22,6 +22,15 @@ type EpochStartShardDataStub struct {
 	SetFirstPendingMetaBlockCalled          func([]byte) error
 	SetLastFinishedMetaBlockCalled          func([]byte) error
 	SetPendingMiniBlockHeadersCalled        func([]data.MiniBlockHeaderHandler) error
+	GetScheduledRootHashCalled              func() []byte
+}
+
+// GetScheduledRootHash -
+func (essds *EpochStartShardDataStub) GetScheduledRootHash() []byte {
+	if essds.GetScheduledRootHashCalled != nil {
+		return essds.GetScheduledRootHashCalled()
+	}
+	return []byte("root hash")
 }
 
 // GetShardID -

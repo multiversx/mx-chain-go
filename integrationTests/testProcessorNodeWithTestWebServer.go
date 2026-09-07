@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
@@ -95,11 +96,10 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 			TrieOperationsDeadlineMilliseconds: 1,
 			EndpointsThrottlers:                []config.EndpointsThrottlersConfig{},
 		},
-		FacadeConfig:    config.FacadeConfig{},
-		ApiRoutesConfig: createTestApiConfig(),
-		AccountsState:   tpn.AccntState,
-		PeerState:       tpn.PeerState,
-		Blockchain:      tpn.BlockChain,
+		FacadeConfig:     config.FacadeConfig{},
+		ApiRoutesConfig:  createTestApiConfig(),
+		AccountsStateAPI: tpn.AccntState,
+		Blockchain:       tpn.BlockChain,
 	}
 }
 
@@ -230,6 +230,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
 
 	argsApiTransactionProc := &transactionAPI.ArgAPITransactionProcessor{
+		RoundHandler:             tpn.RoundHandler,
 		Marshalizer:              TestMarshalizer,
 		AddressPubKeyConverter:   TestAddressPubkeyConverter,
 		ShardCoordinator:         tpn.ShardCoordinator,
@@ -243,6 +244,10 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler:      tpn.EnableEpochsHandler,
+		EnableRoundsHandler:      tpn.EnableRoundsHandler,
+		TxVersionChecker:         versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
+		ChainHandler:             tpn.BlockChain,
+		TxProcessor:              tpn.TxProcessor,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)
@@ -268,6 +273,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ProofsPool:                   tpn.ProofsPool,
 		BlockChain:                   tpn.BlockChain,
+		EnableRoundsHandler:          tpn.EnableRoundsHandler,
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)

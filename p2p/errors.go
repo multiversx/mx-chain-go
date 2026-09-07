@@ -9,6 +9,9 @@ import (
 // ErrNilMessage signals that a nil message has been received
 var ErrNilMessage = p2p.ErrNilMessage
 
+// ErrMessageShouldBeIgnored signals that a valid message should not be processed or propagated
+var ErrMessageShouldBeIgnored = p2p.ErrMessageShouldBeIgnored
+
 // ErrNilPreferredPeersHolder signals that a nil preferred peers holder was provided
 var ErrNilPreferredPeersHolder = p2p.ErrNilPreferredPeersHolder
 

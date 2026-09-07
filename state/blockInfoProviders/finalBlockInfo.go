@@ -7,6 +7,9 @@ import (
 	"github.com/multiversx/mx-chain-go/common/holders"
 )
 
+// TODO: refactor to remove (or reuse for Supernova) current and final block info implementations
+//	 - after Andromeda: current (meaning last commited block) is also final
+//   - after Supernova: current info (meaning last executed results info) will be used in the same way as final info (as last executed results info)
 type finalBlockInfo struct {
 	chainHandler chainData.ChainHandler
 }

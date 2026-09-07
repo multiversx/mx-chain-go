@@ -44,6 +44,7 @@ type vmContainerFactory struct {
 	scFactory              vm.SystemSCContainerFactory
 	shardCoordinator       sharding.Coordinator
 	enableEpochsHandler    common.EnableEpochsHandler
+	enableRoundsHandler    common.EnableRoundsHandler
 	nodesCoordinator       vm.NodesCoordinator
 }
 
@@ -64,6 +65,7 @@ type ArgsNewVMContainerFactory struct {
 	PubkeyConv          core.PubkeyConverter
 	BlockChainHook      process.BlockChainHookWithAccountsAdapter
 	EnableEpochsHandler common.EnableEpochsHandler
+	EnableRoundsHandler common.EnableRoundsHandler
 	NodesCoordinator    vm.NodesCoordinator
 }
 
@@ -111,6 +113,9 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.EnableRoundsHandler) {
+		return nil, vm.ErrNilEnableRoundsHandler
+	}
 	if check.IfNil(args.NodesCoordinator) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilNodesCoordinator)
 	}
@@ -133,6 +138,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		addressPubKeyConverter: args.PubkeyConv,
 		shardCoordinator:       args.ShardCoordinator,
 		enableEpochsHandler:    args.EnableEpochsHandler,
+		enableRoundsHandler:    args.EnableRoundsHandler,
 		nodesCoordinator:       args.NodesCoordinator,
 	}, nil
 }
@@ -207,6 +213,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		AddressPubKeyConverter: vmf.addressPubKeyConverter,
 		ShardCoordinator:       vmf.shardCoordinator,
 		EnableEpochsHandler:    vmf.enableEpochsHandler,
+		EnableRoundsHandler:    vmf.enableRoundsHandler,
 		NodesCoordinator:       vmf.nodesCoordinator,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)

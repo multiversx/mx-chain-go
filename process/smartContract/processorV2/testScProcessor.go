@@ -28,7 +28,7 @@ func (tsp *TestScProcessor) GetCompositeTestError() error {
 
 	allLogs := tsp.GetTxLogsProcessor().GetAllCurrentLogs()
 	for _, logs := range allLogs {
-		for _, event := range logs.GetLogEvents() {
+		for _, event := range logs.GetLogHandler().GetLogEvents() {
 			if string(event.GetIdentifier()) == signalError {
 				returnError = wrapErrorIfNotContains(returnError, string(event.GetTopics()[1]))
 			}

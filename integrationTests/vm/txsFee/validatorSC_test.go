@@ -101,7 +101,7 @@ func checkReturnLog(t *testing.T, testContextMeta *vm.VMTestContext, subStr stri
 
 	found := false
 	for _, eventLog := range allLogs {
-		for _, event := range eventLog.GetLogEvents() {
+		for _, event := range eventLog.GetLogHandler().GetLogEvents() {
 			if string(event.GetIdentifier()) == identifierStr {
 				require.True(t, strings.Contains(string(event.GetTopics()[1]), subStr))
 				found = true

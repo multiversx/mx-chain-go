@@ -2,7 +2,8 @@
     GenesisNodePrice = "2500000000000000000000" #2.5K eGLD
     MinStakeValue = "100000000000000000000" #100 eGLD
     MinUnstakeTokensValue = "10000000000000000000" #10eGLD
-    UnBondPeriod = 250
+    UnBondPeriod = 250           # period as number of rounds
+    UnBondPeriodSupernova = 2500 # period as number of rounds
     UnBondPeriodInEpochs = 3
     MinStepValue = "100000000000000000000"
     NumRoundsWithoutBleed = 100

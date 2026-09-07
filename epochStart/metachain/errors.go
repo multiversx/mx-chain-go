@@ -13,3 +13,7 @@ var errNilTableDisplayHandler = errors.New("nil table display handler provided")
 var errNegativeAcceleratorReward = errors.New("negative accelerator reward")
 
 var errAcceleratorRewardsMoreThanTotalRewards = errors.New("accelerator rewards more than total rewards")
+
+var errHashMismatch = errors.New("hash mismatch")
+
+var errMethodNotSupported = errors.New("method not supported")

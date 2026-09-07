@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -52,8 +53,7 @@ type RequestHandler interface {
 	RequestMetaHeaderByNonce(nonce uint64)
 	SetNumPeersToQuery(topic string, intra int, cross int) error
 	GetNumPeersToQuery(topic string) (int, int, error)
-	RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64)
-	RequestEquivalentProofByHash(headerShard uint32, headerHash []byte)
+	RequestEquivalentProofByHashForEpoch(headerShard uint32, headerHash []byte, epoch uint32)
 	SetEpoch(epoch uint32)
 	IsInterfaceNil() bool
 }

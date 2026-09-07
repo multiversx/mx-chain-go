@@ -65,6 +65,6 @@ func testDeployContractAndTransferValue(t *testing.T, scProcessorV2EnabledEpoch 
 	logs := testContextDst.TxsLogsProcessor.GetAllCurrentLogs()
 	require.Len(t, logs, 1)
 
-	generatedLogIdentifier := string(logs[0].LogHandler.GetLogEvents()[0].GetIdentifier())
+	generatedLogIdentifier := string(logs[0].GetLogHandler().GetLogEvents()[0].GetIdentifier())
 	require.Equal(t, generatedLogIdentifier, core.CompletedTxEventIdentifier)
 }

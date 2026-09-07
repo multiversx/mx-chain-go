@@ -15,6 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -61,81 +64,36 @@ func getTotalGasConsumedZero() uint64 {
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPool(t *testing.T) {
 	t.Parallel()
 
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		nil,
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	tdp := initDataPool()
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.DataPool = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
 
 	assert.Nil(t, txs)
-	assert.Equal(t, process.ErrNilUTxDataPool, err)
+	assert.Equal(t, process.ErrNilTransactionPool, err)
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilStore(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		nil,
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.Store = nil
+	txs, err := NewSmartContractResultPreprocessor(args)
 
 	assert.Nil(t, txs)
-	assert.Equal(t, process.ErrNilUTxStorage, err)
+	assert.Equal(t, process.ErrNilStorage, err)
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilHasher(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		nil,
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.Hasher = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilHasher, err)
@@ -145,54 +103,23 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilMarsalizer(t *tes
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		nil,
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.Marshalizer = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 }
 
-func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilTxProce(t *testing.T) {
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilScrProcessor(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		nil,
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.ScrProcessor = nil
 
+	txs, err := NewSmartContractResultPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilTxProcessor, err)
 }
@@ -201,25 +128,10 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilShardCoord(t *tes
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		nil,
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.ShardCoordinator = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
@@ -229,52 +141,34 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilAccounts(t *testi
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		nil,
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.Accounts = nil
 
+	txs, err := NewSmartContractResultPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
+}
+
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilAccountsProposal(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.AccountsProposal = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
+	assert.Nil(t, txs)
+	require.ErrorIs(t, err, process.ErrNilAccountsAdapter)
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilRequestFunc(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		nil,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.OnRequestTransaction = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilRequestHandler, err)
@@ -284,54 +178,35 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *tes
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		nil,
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.GasHandler = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilGasHandler, err)
+}
+
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilEnableRoundsHandler(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.EnableRoundsHandler = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
+
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
 }
 
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
 
+	txs, err := NewSmartContractResultPreprocessor(args)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(txs))
 }
@@ -340,26 +215,10 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilPubkeyConverter(t
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		nil,
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.PubkeyConverter = nil
 
+	txs, err := NewSmartContractResultPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 }
@@ -368,26 +227,10 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBlockSizeComputat
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		nil,
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.BlockSizeComputation = nil
 
+	txs, err := NewSmartContractResultPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
 }
@@ -396,25 +239,10 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilBalanceComputatio
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		nil,
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.BalanceComputation = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
@@ -424,26 +252,10 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilEnableEpochsHandl
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&mock.GasHandlerMock{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		nil,
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.EnableEpochsHandler = nil
 
+	txs, err := NewSmartContractResultPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
@@ -452,25 +264,10 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorInvalidEnableEpochsH
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&mock.GasHandlerMock{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	txs, err := NewSmartContractResultPreprocessor(args)
 
 	assert.Nil(t, txs)
 	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
@@ -480,25 +277,10 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilProcessedMiniBloc
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&mock.GasHandlerMock{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		nil,
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.ProcessedMiniBlocksTracker = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
 
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
@@ -508,26 +290,10 @@ func TestNewSmartContractResult_NilTxExecutionOrderHandlerShouldErr(t *testing.T
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, err := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&mock.GasHandlerMock{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		nil,
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.TxExecutionOrderHandler = nil
 
+	txs, err := NewSmartContractResultPreprocessor(args)
 	assert.Nil(t, txs)
 	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
 }
@@ -536,25 +302,8 @@ func TestScrsPreProcessor_GetTransactionFromPool(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	txHash := []byte("tx1_hash")
 	tx, _ := process.GetTransactionHandlerFromPool(
@@ -573,26 +322,8 @@ func TestScrsPreprocessor_RequestTransactionNothingToRequestAsGeneratedAtProcess
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
-	txs, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		shardCoord,
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
@@ -601,7 +332,7 @@ func TestScrsPreprocessor_RequestTransactionNothingToRequestAsGeneratedAtProcess
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
-	mBlk := block.MiniBlock{SenderShardID: shardCoord.SelfId(), ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
+	mBlk := block.MiniBlock{SenderShardID: args.ShardCoordinator.SelfId(), ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
 	body.MiniBlocks = append(body.MiniBlocks, &mBlk)
 
 	txsRequested := txs.RequestBlockTransactions(body)
@@ -613,26 +344,8 @@ func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	shardCoord := mock.NewMultiShardsCoordinatorMock(3)
-	txs, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		shardCoord,
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
@@ -641,7 +354,7 @@ func TestScrsPreprocessor_RequestTransactionFromNetwork(t *testing.T) {
 	txHashes := make([][]byte, 0)
 	txHashes = append(txHashes, txHash1)
 	txHashes = append(txHashes, txHash2)
-	mBlk := block.MiniBlock{SenderShardID: shardCoord.SelfId() + 1, ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
+	mBlk := block.MiniBlock{SenderShardID: args.ShardCoordinator.SelfId() + 1, ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
 	body.MiniBlocks = append(body.MiniBlocks, &mBlk)
 
 	txsRequested := txs.RequestBlockTransactions(body)
@@ -653,25 +366,8 @@ func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *tes
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	shardId := uint32(1)
 	txHash1 := []byte("tx_hash1")
@@ -681,9 +377,9 @@ func TestScrsPreprocessor_RequestBlockTransactionFromMiniBlockFromNetwork(t *tes
 	txHashes = append(txHashes, txHash2)
 	mb := &block.MiniBlock{ReceiverShardID: shardId, TxHashes: txHashes, Type: block.SmartContractResultBlock}
 
-	txsRequested := txs.RequestTransactionsForMiniBlock(mb)
-
+	txsInstances, txsRequested := txs.GetTransactionsAndRequestMissingForMiniBlock(mb)
 	assert.Equal(t, 2, txsRequested)
+	assert.Len(t, txsInstances, 0)
 }
 
 func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) {
@@ -703,25 +399,8 @@ func TestScrsPreprocessor_ReceivedTransactionShouldEraseRequested(t *testing.T) 
 
 	dataPool.SetUnsignedTransactions(shardedDataStub)
 
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewSmartContractResultPreprocessor(
-		dataPool.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(dataPool)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	// add 3 tx hashes on requested list
 	txHash1 := []byte("tx hash 1")
@@ -779,25 +458,8 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) {
 		process.ShardCacherIdentifier(3, 4),
 	)
 
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewSmartContractResultPreprocessor(
-		dataPool.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(dataPool)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	mb := &block.MiniBlock{
 		SenderShardID:   senderShardId,
@@ -868,25 +530,8 @@ func TestScrsPreprocessor_GetAllTxsFromMiniBlockShouldWorkEvenIfScrIsMisplaced(t
 		process.ShardCacherIdentifier(3, 4),
 	)
 
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewSmartContractResultPreprocessor(
-		dataPool.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(dataPool)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	mb := &block.MiniBlock{
 		SenderShardID:   senderShardId,
@@ -913,25 +558,8 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsNilBlockShouldErr(t *testing.T
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	err := txs.RemoveBlockDataFromPools(nil, tdp.MiniBlocks())
 
@@ -943,25 +571,8 @@ func TestScrsPreprocessor_RemoveBlockDataFromPoolsOK(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	body := &block.Body{}
 	txHash := []byte("txHash")
@@ -985,28 +596,12 @@ func TestScrsPreprocessor_IsDataPreparedErr(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
-	txs, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
-
-	err := txs.IsDataPrepared(1, haveTime)
+	scrHashesMissing := [][]byte{[]byte("missing_scr_hash")}
+	txs.SetMissingScr(len(scrHashesMissing))
+	err := txs.IsDataPrepared(len(scrHashesMissing), haveTime)
 
 	assert.Equal(t, process.ErrTimeIsOut, err)
 }
@@ -1015,30 +610,13 @@ func TestScrsPreprocessor_IsDataPrepared(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-
-	txs, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	go func() {
 		time.Sleep(50 * time.Millisecond)
-		txs.chRcvAllScrs <- true
+		tfb := txs.scrForBlock.(*txsForBlock)
+		tfb.chRcvAllTxs <- true
 	}()
 
 	err := txs.IsDataPrepared(1, haveTime)
@@ -1050,26 +628,8 @@ func TestScrsPreprocessor_SaveTxsToStorage(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-
-	txs, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	body := &block.Body{}
 
@@ -1093,7 +653,6 @@ func TestScrsPreprocessor_SaveTxsToStorageShouldSaveCorrectly(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	txHashes := [][]byte{[]byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4"), []byte("txHash5")}
 	storedTxs := make(map[string]*smartContractResult.SmartContractResult)
 
@@ -1110,35 +669,23 @@ func TestScrsPreprocessor_SaveTxsToStorageShouldSaveCorrectly(t *testing.T) {
 		},
 	}
 
-	txs, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		chainStorer,
-		&hashingMocks.HasherMock{},
-		marshaller,
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.Store = chainStorer
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	body := &block.Body{}
-	txs.scrForBlock.mutTxsForBlock.Lock()
+
+	scrForBlock := txs.scrForBlock.(*txsForBlock)
+
+	scrForBlock.mutTxsForBlock.Lock()
 	for _, hash := range txHashes {
-		txs.scrForBlock.txHashAndInfo[string(hash)] = &txInfo{
-			tx: &smartContractResult.SmartContractResult{
+		scrForBlock.txHashAndInfo[string(hash)] = &process.TxInfo{
+			Tx: &smartContractResult.SmartContractResult{
 				Data: hash,
 			},
 		}
 	}
-	txs.scrForBlock.mutTxsForBlock.Unlock()
+	scrForBlock.mutTxsForBlock.Unlock()
 
 	mb1 := &block.MiniBlock{
 		ReceiverShardID: 0,
@@ -1189,25 +736,8 @@ func TestScrsPreprocessor_SaveTxsToStorageMissingTransactionsShouldNotErr(t *tes
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	txs, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	txs, _ := NewSmartContractResultPreprocessor(args)
 
 	body := &block.Body{}
 
@@ -1233,30 +763,14 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	scrPreproc, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{
-			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
-				return 0, nil
-			},
-		},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
 
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.ScrProcessor = &testscommon.TxProcessorMock{
+		ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+			return 0, nil
+		},
+	}
+	scrPreproc, _ := NewSmartContractResultPreprocessor(args)
 	body := &block.Body{}
 
 	txHash := []byte("txHash")
@@ -1270,18 +784,16 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldWork(t *testing.T) {
 		Type:            block.SmartContractResultBlock,
 	}
 
-	miniblockHash, _ := core.CalculateHash(scrPreproc.marshalizer, scrPreproc.hasher, &miniblock)
+	miniblockHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, &miniblock)
 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	scrPreproc.AddScrHashToRequestedList([]byte("txHash"))
-	txshardInfo := txShardInfo{0, 0}
 	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
-
-	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
+	scrPreproc.scrForBlock.AddTransaction([]byte("txHash"), &scr, 0, 0)
 
 	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1, Hash: miniblockHash}}}, body, haveTimeTrue)
 
@@ -1293,34 +805,20 @@ func TestScrsPreprocessor_ProcessBlockTransactionsMissingTrieNode(t *testing.T) 
 
 	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	scrPreproc, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{
-			ProcessSmartContractResultCalled: func(_ *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
-				return 0, nil
-			},
-		},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{
-			GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-				return nil, missingNodeErr
-			},
-		},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
 
+	args.ScrProcessor = &testscommon.TxProcessorMock{
+		ProcessSmartContractResultCalled: func(_ *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+			return 0, nil
+		},
+	}
+
+	args.Accounts = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return nil, missingNodeErr
+		},
+	}
+	scrPreproc, _ := NewSmartContractResultPreprocessor(args)
 	body := &block.Body{}
 
 	txHash := []byte("txHash")
@@ -1339,13 +837,11 @@ func TestScrsPreprocessor_ProcessBlockTransactionsMissingTrieNode(t *testing.T) 
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	scrPreproc.AddScrHashToRequestedList([]byte("txHash"))
-	txshardInfo := txShardInfo{0, 0}
 	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
-
-	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
+	scrPreproc.scrForBlock.AddTransaction([]byte("txHash"), &scr, 0, 0)
 
 	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{TxCount: 1, Hash: miniblockHash}}}, body, haveTimeTrue)
 	assert.Equal(t, missingNodeErr, err)
@@ -1356,39 +852,26 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 
 	calledCount := 0
 	enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
-	enableEpochsHandler := enableEpochsHandlerStub
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-	scrPreproc, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{
-			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
-				return 0, nil
-			},
+
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.ScrProcessor = &testscommon.TxProcessorMock{
+		ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+			return 0, nil
 		},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&mock.GasHandlerMock{
-			ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
-				return 0, MaxGasLimitPerBlock + 1, nil
-			},
+	}
+	args.GasHandler = &mock.GasHandlerMock{
+		ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
+			return 0, MaxGasLimitPerBlock + 1, nil
 		},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandler,
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{
-			AddCalled: func(txHash []byte) {
-				calledCount++
-			},
+	}
+	args.TxExecutionOrderHandler = &commonTests.TxExecutionOrderHandlerStub{
+		AddCalled: func(txHash []byte) {
+			calledCount++
 		},
-	)
+	}
+	args.EnableEpochsHandler = enableEpochsHandlerStub
+	scrPreproc, _ := NewSmartContractResultPreprocessor(args)
 
 	body := &block.Body{}
 
@@ -1407,13 +890,12 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
 
 	scrPreproc.AddScrHashToRequestedList([]byte("txHash"))
-	txshardInfo := txShardInfo{0, 0}
 	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
 
-	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
+	scrPreproc.scrForBlock.AddTransaction([]byte("txHash"), &scr, 0, 0)
 
 	err := scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash, TxCount: 1}}}, body, haveTimeTrue)
 	assert.Nil(t, err)
@@ -1422,6 +904,109 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 	enableEpochsHandlerStub.AddActiveFlags(common.OptimizeGasUsedInCrossMiniBlocksFlag)
 	err = scrPreproc.ProcessBlockTransactions(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniblockHash, TxCount: 1}}}, body, haveTimeTrue)
 	assert.Equal(t, process.ErrMaxGasLimitPerBlockInSelfShardIsReached, err)
+}
+
+func TestScrsPreprocessor_ProcessBlockTransactionsEnforcesHistoricalDrainLimit(t *testing.T) {
+	t.Parallel()
+
+	const (
+		supernovaEpoch = uint32(2)
+		supernovaRound = uint64(260)
+		legacyGasLimit = uint64(1_500_000_000)
+		v3GasLimit     = uint64(600_000_000)
+	)
+
+	tests := []struct {
+		name        string
+		gasProvided []uint64
+		expectedErr error
+	}{
+		{name: "exact limit", gasProvided: []uint64{500_000_000, 500_000_000, 500_000_000}},
+		{name: "above limit", gasProvided: []uint64{500_000_000, 500_000_000, 500_000_001}, expectedErr: process.ErrMaxGasLimitPerBlockInSelfShardIsReached},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.SupernovaFlag && epoch >= supernovaEpoch
+				},
+				GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+					return supernovaEpoch
+				},
+			}
+			enableEpochsHandler.AddActiveFlags(common.OptimizeGasUsedInCrossMiniBlocksFlag, common.SupernovaFlag)
+			enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+				IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+					return flag == common.SupernovaRoundFlag && round >= supernovaRound
+				},
+				IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+					return flag == common.SupernovaRoundFlag
+				},
+			}
+			economicsFee := feeHandlerMock()
+			economicsFee.MaxGasLimitPerBlockInEpochCalled = func(_ uint32, epoch uint32) uint64 {
+				if epoch < supernovaEpoch {
+					return legacyGasLimit
+				}
+
+				return v3GasLimit
+			}
+			economicsFee.BlockCapacityOverestimationFactorCalled = func() uint64 { return 200 }
+
+			gasIndex := 0
+			args := createDefaultSmartContractProcessorArgs(initDataPool())
+			args.EnableEpochsHandler = enableEpochsHandler
+			args.EnableRoundsHandler = enableRoundsHandler
+			args.EconomicsFee = economicsFee
+			args.GasHandler = &mock.GasHandlerMock{
+				ComputeGasProvidedByTxCalled: func(_ uint32, _ uint32, _ data.TransactionHandler) (uint64, uint64, error) {
+					gasProvided := test.gasProvided[gasIndex]
+					gasIndex++
+					return 0, gasProvided, nil
+				},
+			}
+			args.ScrProcessor = &testscommon.TxProcessorMock{
+				ProcessSmartContractResultCalled: func(_ *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+					return vmcommon.Ok, nil
+				},
+			}
+
+			preprocessor, err := NewSmartContractResultPreprocessor(args)
+			require.NoError(t, err)
+			preprocessor.gasEpochState.EpochConfirmed(supernovaEpoch)
+			preprocessor.gasEpochState.RoundConfirmed(supernovaRound)
+
+			txHashes := [][]byte{[]byte("scrHash0"), []byte("scrHash1"), []byte("scrHash2")}
+			miniBlock := &block.MiniBlock{
+				TxHashes:        txHashes,
+				SenderShardID:   1,
+				ReceiverShardID: args.ShardCoordinator.SelfId(),
+				Type:            block.SmartContractResultBlock,
+			}
+			miniBlockHash, err := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, miniBlock)
+			require.NoError(t, err)
+			for _, txHash := range txHashes {
+				preprocessor.scrForBlock.AddTransaction(txHash, &smartContractResult.SmartContractResult{}, 1, args.ShardCoordinator.SelfId())
+			}
+
+			header := &block.Header{
+				Epoch: supernovaEpoch,
+				Round: supernovaRound - 1,
+				MiniBlockHeaders: []block.MiniBlockHeader{{
+					Hash:    miniBlockHash,
+					TxCount: uint32(len(txHashes)),
+				}},
+			}
+			err = preprocessor.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTimeTrue)
+			require.Equal(t, len(test.gasProvided), gasIndex)
+			if test.expectedErr == nil {
+				require.NoError(t, err)
+			} else {
+				require.ErrorIs(t, err, test.expectedErr)
+			}
+		})
+	}
 }
 
 func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
@@ -1444,30 +1029,13 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		}
 	}
 
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-
-	scr, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{
-			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
-				return 0, nil
-			},
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.ScrProcessor = &testscommon.TxProcessorMock{
+		ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+			return 0, nil
 		},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	}
+	scr, _ := NewSmartContractResultPreprocessor(args)
 
 	txHash := []byte("tx1_hash")
 	txHashes := make([][]byte, 0)
@@ -1484,7 +1052,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
 	}
 
-	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock, process.GasProcessingPolicy{})
 
 	assert.Nil(t, err)
 }
@@ -1493,26 +1061,8 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-
-	scr, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	scr, _ := NewSmartContractResultPreprocessor(args)
 
 	miniblock := block.MiniBlock{
 		ReceiverShardID: 0,
@@ -1523,7 +1073,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
 	}
 
-	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock, process.GasProcessingPolicy{})
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrWrongTypeInMiniBlock)
@@ -1557,26 +1107,10 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPools(t *testing.T) {
 	shardedDataStub := &testscommon.ShardedDataStub{}
 
 	dataPool.SetUnsignedTransactions(shardedDataStub)
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 
-	scr, _ := NewSmartContractResultPreprocessor(
-		dataPool.UnsignedTransactions(),
-		&scrstorage,
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(dataPool)
+	args.Store = &scrstorage
+	scr, _ := NewSmartContractResultPreprocessor(args)
 
 	body := &block.Body{}
 
@@ -1602,26 +1136,8 @@ func TestScrsPreprocessor_RestoreBlockDataIntoPoolsNilMiniblockPoolShouldErr(t *
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-
-	scr, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	scr, _ := NewSmartContractResultPreprocessor(args)
 
 	body := &block.Body{}
 
@@ -1637,63 +1153,79 @@ func TestSmartContractResults_CreateBlockStartedShouldEmptyTxHashAndInfo(t *test
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
-
-	scr, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	scr, _ := NewSmartContractResultPreprocessor(args)
 
 	scr.CreateBlockStarted()
-	assert.Equal(t, 0, len(scr.scrForBlock.txHashAndInfo))
+	scrForBlock := scr.scrForBlock.(*txsForBlock)
+	assert.Equal(t, 0, len(scrForBlock.txHashAndInfo))
 }
 
 func TestSmartContractResults_GetAllCurrentUsedTxs(t *testing.T) {
 	t.Parallel()
 
 	tdp := initDataPool()
-	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	scrPreproc, _ := NewSmartContractResultPreprocessor(args)
 
-	scrPreproc, _ := NewSmartContractResultPreprocessor(
-		tdp.UnsignedTransactions(),
-		&storageStubs.ChainStorerStub{},
-		&hashingMocks.HasherMock{},
-		&mock.MarshalizerMock{},
-		&testscommon.TxProcessorMock{},
-		mock.NewMultiShardsCoordinatorMock(3),
-		&stateMock.AccountsStub{},
-		requestTransaction,
-		&testscommon.GasHandlerStub{},
-		feeHandlerMock(),
-		createMockPubkeyConverter(),
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonTests.TxExecutionOrderHandlerStub{},
-	)
-
-	txshardInfo := txShardInfo{0, 3}
 	scr := smartContractResult.SmartContractResult{
 		Nonce: 1,
 		Data:  []byte("tx"),
 	}
-	scrPreproc.scrForBlock.txHashAndInfo["txHash"] = &txInfo{&scr, &txshardInfo}
+	scrPreproc.scrForBlock.AddTransaction([]byte("txHash"), &scr, 0, 3)
 
 	retMap := scrPreproc.GetAllCurrentUsedTxs()
 	assert.NotNil(t, retMap)
+}
+
+func createDefaultSmartContractProcessorArgs(tdp dataRetriever.PoolsHolder) SmartContractResultsArgs {
+	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
+	return SmartContractResultsArgs{
+		BasePreProcessorArgs: BasePreProcessorArgs{
+			DataPool:                   tdp.UnsignedTransactions(),
+			Store:                      &storageStubs.ChainStorerStub{},
+			Hasher:                     &hashingMocks.HasherMock{},
+			Marshalizer:                &mock.MarshalizerMock{},
+			ShardCoordinator:           mock.NewMultiShardsCoordinatorMock(3),
+			Accounts:                   &stateMock.AccountsStub{},
+			AccountsProposal:           &stateMock.AccountsStub{},
+			OnRequestTransaction:       requestTransaction,
+			GasHandler:                 &testscommon.GasHandlerStub{},
+			PubkeyConverter:            createMockPubkeyConverter(),
+			BlockSizeComputation:       &testscommon.BlockSizeComputationStub{},
+			BalanceComputation:         &testscommon.BalanceComputationStub{},
+			ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
+			TxExecutionOrderHandler:    &commonTests.TxExecutionOrderHandlerStub{},
+			EconomicsFee:               feeHandlerMock(),
+			EnableEpochsHandler:        enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+			EnableRoundsHandler:        &testscommon.EnableRoundsHandlerStub{},
+			EpochNotifier:              &epochNotifier.EpochNotifierStub{},
+			RoundNotifier:              &epochNotifier.RoundNotifierStub{},
+		},
+		ScrProcessor: &testscommon.TxProcessorMock{},
+	}
+}
+
+func TestSmartContractResults_GetCreatedMiniBlocksFromMe(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	scrPreproc, _ := NewSmartContractResultPreprocessor(args)
+
+	// always returns empty
+	createdMbs := scrPreproc.GetCreatedMiniBlocksFromMe()
+	assert.Len(t, createdMbs, 0)
+}
+
+func TestSmartContractResult_GetUnExecutableTransactions(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	scrPreproc, _ := NewSmartContractResultPreprocessor(args)
+
+	// always returns empty
+	unexecTxs := scrPreproc.GetUnExecutableTransactions()
+	assert.Len(t, unexecTxs, 0)
 }

@@ -246,3 +246,29 @@ func CheckGenerateTransactions(t *testing.T, chainSimulator ChainSimulator) {
 		assert.Equal(t, expectedBalance.String(), account.Balance)
 	})
 }
+
+// GenerateMoveBalanceTxsInShardsWithMoreGasLimit -
+func GenerateMoveBalanceTxsInShardsWithMoreGasLimit(t *testing.T, chainSimulator ChainSimulator) {
+	transferValue := big.NewInt(0).Mul(OneEGLD, big.NewInt(5))
+
+	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(0, InitialAmount)
+	require.Nil(t, err)
+
+	wallet1, err := chainSimulator.GenerateAndMintWalletAddress(0, InitialAmount)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	gasLimit := uint64(150_000)
+	tx0 := GenerateTransaction(wallet0.Bytes, 0, wallet1.Bytes, transferValue, "", gasLimit)
+
+	_, err = chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(tx0, 3)
+	require.Nil(t, err)
+
+	account, err := chainSimulator.GetAccount(wallet1)
+	require.Nil(t, err)
+	expectedBalance := big.NewInt(0).Add(InitialAmount, transferValue)
+	require.Equal(t, expectedBalance.String(), account.Balance)
+
+}

@@ -38,8 +38,8 @@ func NewHeaderIntegrityVerifier(
 }
 
 // GetVersion returns the version by providing the epoch
-func (hdrIntVer *headerIntegrityVerifier) GetVersion(epoch uint32) string {
-	return hdrIntVer.headerVersionHandler.GetVersion(epoch)
+func (hdrIntVer *headerIntegrityVerifier) GetVersion(epoch uint32, round uint64) string {
+	return hdrIntVer.headerVersionHandler.GetVersion(epoch, round)
 }
 
 // Verify will check the header's fields such as the chain ID or the software version

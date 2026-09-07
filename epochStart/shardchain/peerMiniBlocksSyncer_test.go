@@ -2,12 +2,14 @@ package shardchain
 
 import (
 	"bytes"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -20,6 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type setMBHeaders func(mbHeaders []block.MiniBlockHeader)
 
 func createDefaultArguments() ArgPeerMiniBlockSyncer {
 	defaultArgs := ArgPeerMiniBlockSyncer{
@@ -203,7 +207,21 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithPeerMiniblocksInPoolShould
 	require.Nil(t, processError)
 }
 
-func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShouldProcess(t *testing.T) {
+func TestValidatorInfoProcessor_ProcessStartOfEpochWithMissingPeerMiniBlocksShouldProcess(t *testing.T) {
+	metaHdrV1 := &block.MetaBlock{}
+	setMBHeadersInMetaHdrV1 := func(mbHeaders []block.MiniBlockHeader) {
+		metaHdrV1.MiniBlockHeaders = mbHeaders
+	}
+	testProcessStartOfEpochWithMissingPeerMiniBlocksShouldProcess(t, metaHdrV1, setMBHeadersInMetaHdrV1)
+
+	metaHdrV3 := &block.MetaBlockV3{}
+	setMBHeadersInMetaHdrV3 := func(mbHeaders []block.MiniBlockHeader) {
+		metaHdrV3.ExecutionResults = []*block.MetaExecutionResult{{MiniBlockHeaders: mbHeaders}}
+	}
+	testProcessStartOfEpochWithMissingPeerMiniBlocksShouldProcess(t, metaHdrV3, setMBHeadersInMetaHdrV3)
+}
+
+func testProcessStartOfEpochWithMissingPeerMiniBlocksShouldProcess(t *testing.T, epochStartHeader data.MetaHeaderHandler, setMBHeadersFunc setMBHeaders) {
 	args := createDefaultArguments()
 
 	hash := []byte("hash")
@@ -243,9 +261,11 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 	miniBlockHeader := block.MiniBlockHeader{
 		Hash: peerMiniBlockHash, Type: block.PeerBlock, SenderShardID: core.MetachainShardId, ReceiverShardID: core.AllShardId, TxCount: 1}
 
-	epochStartHeader := &block.MetaBlock{Nonce: 100, Epoch: 1, PrevHash: previousHash}
-	epochStartHeader.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}
-	epochStartHeader.MiniBlockHeaders = []block.MiniBlockHeader{miniBlockHeader}
+	_ = epochStartHeader.SetNonce(100)
+	_ = epochStartHeader.SetEpoch(1)
+	_ = epochStartHeader.SetPrevHash(previousHash)
+	_ = epochStartHeader.SetEpochStartHandler(&block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}})
+	setMBHeadersFunc([]block.MiniBlockHeader{miniBlockHeader})
 
 	var receivedMiniblock func(key []byte, value interface{})
 	args.MiniBlocksPool = &cache.CacherStub{
@@ -270,11 +290,14 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 		},
 	}
 
+	wg := sync.WaitGroup{}
+	wg.Add(1)
 	args.RequestHandler = &testscommon.RequestHandlerStub{
 		RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblockHashes [][]byte) {
 			if destShardID == core.MetachainShardId &&
 				bytes.Equal(miniblockHashes[0], peerMiniBlockHash) {
 				args.MiniBlocksPool.Put(peerMiniBlockHash, peerMiniblock, peerMiniblock.Size())
+				wg.Done()
 			}
 		},
 	}
@@ -282,6 +305,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 	syncer, _ := NewPeerMiniBlockSyncer(args)
 	_, _, processError := syncer.SyncMiniBlocks(epochStartHeader)
 
+	wg.Wait()
 	require.Nil(t, processError)
 }
 

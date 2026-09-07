@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
@@ -22,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -64,11 +65,12 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	mainConfig := args.Config
 
 	txPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
-		Config:         factory.GetCacherFromConfig(mainConfig.TxDataPool),
-		TxGasHandler:   args.EconomicsData,
-		Marshalizer:    args.Marshalizer,
-		NumberOfShards: args.ShardCoordinator.NumberOfShards(),
-		SelfShardID:    args.ShardCoordinator.SelfId(),
+		Config:              factory.GetCacherFromConfig(mainConfig.TxDataPool),
+		TxGasHandler:        args.EconomicsData,
+		Marshalizer:         args.Marshalizer,
+		NumberOfShards:      args.ShardCoordinator.NumberOfShards(),
+		SelfShardID:         args.ShardCoordinator.SelfId(),
+		TxCacheBoundsConfig: mainConfig.TxCacheBounds,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the transactions", err)
@@ -155,6 +157,26 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	currBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.ExecutedMiniBlocksCache)
+	executedMiniBlocksCache, err := storageunit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the executed mini blocks", err)
+	}
+
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.PostProcessTransactionsCache)
+	postProcessTransactionsCache, err := storageunit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the post process transactions", err)
+	}
+
+	directSentTransactionsCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: time.Duration(mainConfig.DirectSentTransactions.CacheSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(mainConfig.DirectSentTransactions.CacheExpiryInSec) * time.Second,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the direct sent transactions", err)
+	}
+
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:              txPool,
 		UnsignedTransactions:      uTxPool,
@@ -171,6 +193,9 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
 		Proofs:                    proofsPool,
+		ExecutedMiniBlocks:        executedMiniBlocksCache,
+		PostProcessTransactions:   postProcessTransactionsCache,
+		DirectSentTransactions:    directSentTransactionsCache,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }

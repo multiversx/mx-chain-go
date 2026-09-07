@@ -85,3 +85,11 @@ func (pm *persisterMap) GetPersister(path string) storage.Persister {
 
 	return persister
 }
+
+// AddPersister adds a persister for the given path
+func (pm *persisterMap) AddPersister(path string, persister storage.Persister) {
+	pm.mutex.Lock()
+	defer pm.mutex.Unlock()
+
+	pm.persisters[path] = persister
+}

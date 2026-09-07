@@ -90,7 +90,11 @@ func (bc *ChainStorer) Put(unitType UnitType, key []byte, value []byte) error {
 
 // SetEpochForPutOperation will set the epoch to be used in all persisters for the put operation
 func (bc *ChainStorer) SetEpochForPutOperation(epoch uint32) {
-	bc.lock.Lock()
+	// read lock: the chain map is only iterated here, each storer guards its own epoch. A write lock
+	// would park every concurrent reader behind this call, which runs on each committed block
+	bc.lock.RLock()
+	defer bc.lock.RUnlock()
+
 	for _, storer := range bc.chain {
 		storerWithPutInEpoch, ok := storer.(storage.StorerWithPutInEpoch)
 		if !ok {
@@ -99,7 +103,6 @@ func (bc *ChainStorer) SetEpochForPutOperation(epoch uint32) {
 
 		storerWithPutInEpoch.SetEpochForPutOperation(epoch)
 	}
-	bc.lock.Unlock()
 }
 
 // GetAll gets all the elements with keys in the keys array, from the selected storage unit

@@ -63,5 +63,8 @@ var ErrNilExecutedTxHashes = errors.New("nil executed tx hashes map")
 // ErrIndexOutOfBounds signals that an index is out of bounds
 var ErrIndexOutOfBounds = errors.New("index out of bounds")
 
-// ErrNilProofsPool signals that a nil proofs pool was used
-var ErrNilProofsPool = errors.New("nil proofs pool")
+// ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
+var ErrNilRoundHandler = errors.New("nil RoundHandler")
+
+// ErrNilRewardsGetter signals that a nil rewards getter has been provided
+var ErrNilRewardsGetter = errors.New("nil RewardsGetter")

@@ -9,6 +9,11 @@ func (b *BlockTracker) IsShardStuck(_ uint32) bool {
 	return false
 }
 
+// IsOwnShardStuck returns false as this is a disabled implementation
+func (b *BlockTracker) IsOwnShardStuck() bool {
+	return false
+}
+
 // ShouldSkipMiniBlocksCreationFromSelf returns false as this is a disabled implementation
 func (b *BlockTracker) ShouldSkipMiniBlocksCreationFromSelf() bool {
 	return false

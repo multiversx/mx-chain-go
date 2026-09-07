@@ -30,6 +30,11 @@ func (mock *RoundHandlerMock) Index() int64 {
 	return mock.IndexField
 }
 
+// IndexForCurrentTime -
+func (mock *RoundHandlerMock) IndexForCurrentTime() int64 {
+	return mock.Index()
+}
+
 // UpdateRound -
 func (mock *RoundHandlerMock) UpdateRound(time.Time, time.Time) {
 }
@@ -51,6 +56,11 @@ func (mock *RoundHandlerMock) TimeDuration() time.Duration {
 // RemainingTime -
 func (mock *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
 	return mock.RemainingTimeField
+}
+
+// GetTimeStampForRound -
+func (mock *RoundHandlerMock) GetTimeStampForRound(round uint64) uint64 {
+	return round * uint64(mock.TimeDuration().Milliseconds())
 }
 
 // IsInterfaceNil -

@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory/api"
@@ -34,7 +36,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/require"
 )
 
 const unreachableStep = 10000
@@ -303,7 +304,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 				HashesSize:     10000,
 			},
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				SnapshotsGoroutineNum: 1,
+				SnapshotsGoroutinesPerCore: 1,
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				MaxStateTrieLevelInMemory: 5,

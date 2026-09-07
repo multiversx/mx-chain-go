@@ -196,13 +196,13 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		return nil, nil, process.ErrNodeIsNotSynced
 	}
 
-	blockHeader, blockRootHash, err := service.extractBlockHeaderAndRootHash(query)
+	blockHeader, blockRootHash, headerHash, err := service.extractBlockHeaderAndRootHash(query)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if len(blockRootHash) > 0 {
-		err = service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(blockHeader, blockRootHash)
+		err = service.setCurrentBlockInfo(blockHeader, blockRootHash, headerHash)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -232,7 +232,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	rootHashBeforeExecution := make([]byte, 0)
 
 	if shouldCheckRootHashChanges {
-		rootHashBeforeExecution = service.apiBlockChain.GetCurrentBlockRootHash()
+		rootHashBeforeExecution = service.getCurrentBlockRootHash(blockHeader)
 	}
 
 	service.wasmVMChangeLocker.RLock()
@@ -251,7 +251,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	}
 
 	if query.SameScState {
-		err = service.checkForRootHashChanges(rootHashBeforeExecution)
+		err = service.checkForRootHashChanges(rootHashBeforeExecution, blockHeader)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -268,6 +268,44 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	}
 	blockInfo := holders.NewBlockInfo(blockHash, blockNonce, blockRootHash)
 	return vmOutput, blockInfo, nil
+}
+
+func (service *SCQueryService) setCurrentBlockInfo(
+	header data.HeaderHandler,
+	rootHash []byte,
+	blockHash []byte,
+) error {
+	if header.IsHeaderV3() {
+		return service.setCurrentBlockInfoV3(header, rootHash, blockHash)
+	}
+
+	service.apiBlockChain.SetLastExecutedBlockHeaderAndRootHash(header, blockHash, rootHash)
+
+	return service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
+}
+
+func (service *SCQueryService) getCurrentBlockRootHash(
+	header data.HeaderHandler,
+) []byte {
+	if header.IsHeaderV3() {
+		_, _, rootHash := service.apiBlockChain.GetLastExecutedBlockInfo()
+		return rootHash
+	}
+
+	return service.apiBlockChain.GetCurrentBlockRootHash()
+}
+
+func (service *SCQueryService) setCurrentBlockInfoV3(
+	header data.HeaderHandler,
+	rootHash []byte,
+	blockHash []byte,
+) error {
+	// for header v3, the context here will be created based on last executed block
+	// so here current block header (in apiBlockChain) is not set anymore)
+
+	service.apiBlockChain.SetLastExecutedBlockHeaderAndRootHash(header, blockHash, rootHash)
+
+	return nil
 }
 
 func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader data.HeaderHandler) error {
@@ -287,40 +325,108 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 }
 
 // TODO: extract duplicated code with nodeBlocks.go
-func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
+func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, []byte, error) {
 	if len(query.BlockHash) > 0 {
 		currentHeader, err := service.getBlockHeaderByHash(query.BlockHash)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
-		return service.getRootHashForBlock(currentHeader)
+		return service.getHeaderAndRootHashForBlock(currentHeader, query.BlockHash)
 	}
 
 	if query.BlockNonce.HasValue {
-		currentHeader, _, err := service.getBlockHeaderByNonce(query.BlockNonce.Value)
+		currentHeader, currentHeaderHash, err := service.getBlockHeaderByNonce(query.BlockNonce.Value)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
-		return service.getRootHashForBlock(currentHeader)
+		return service.getHeaderAndRootHashForBlock(currentHeader, currentHeaderHash)
 	}
 
-	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
+	return service.getCurrentBlockHeaderAndRootHash()
 }
 
-func (service *SCQueryService) getRootHashForBlock(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, error) {
-	blockHeader, _, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
+func (service *SCQueryService) getCurrentBlockHeaderAndRootHash() (data.HeaderHandler, []byte, []byte, error) {
+	currentHeader := service.mainBlockChain.GetCurrentBlockHeader()
+	if currentHeader != nil && currentHeader.IsHeaderV3() {
+		return service.getCurrentBlockHeaderAndRootHashV3()
+	}
+
+	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), service.mainBlockChain.GetCurrentBlockHeaderHash(), nil
+}
+
+func (service *SCQueryService) getCurrentBlockHeaderAndRootHashV3() (data.HeaderHandler, []byte, []byte, error) {
+	_, headerHash, rootHash := service.mainBlockChain.GetLastExecutedBlockInfo()
+
+	// current header will now be last executed header
+	lastExecutedHeader := service.mainBlockChain.GetLastExecutedBlockHeader()
+
+	return lastExecutedHeader, rootHash, headerHash, nil
+}
+
+func (service *SCQueryService) getHeaderAndRootHashForBlock(currentHeader data.HeaderHandler, currentHeaderHash []byte) (data.HeaderHandler, []byte, []byte, error) {
+	if currentHeader.IsHeaderV3() {
+		return service.getHeaderAndRootHashForBlockV3(currentHeader, currentHeaderHash)
+	}
+
+	blockHeader, headerHash, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	additionalData := blockHeader.GetAdditionalData()
 	if check.IfNil(additionalData) {
-		return currentHeader, currentHeader.GetRootHash(), nil
+		return currentHeader, currentHeader.GetRootHash(), currentHeaderHash, nil
 	}
 
-	return blockHeader, additionalData.GetScheduledRootHash(), nil
+	return blockHeader, additionalData.GetScheduledRootHash(), headerHash, nil
+}
+
+func (service *SCQueryService) getRootHashByExecutionResult(
+	currentHeaderHash []byte,
+) ([]byte, error) {
+	execResStorer, err := service.storageService.GetStorer(dataRetriever.ExecutionResultsUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	execResBytes, err := execResStorer.Get(currentHeaderHash)
+	if err != nil {
+		return nil, err
+	}
+
+	execRes, err := process.UnmarshalExecutionResult(service.marshaller, execResBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return execRes.GetRootHash(), nil
+}
+
+func (service *SCQueryService) getHeaderAndRootHashForBlockV3(
+	currentHeader data.HeaderHandler,
+	currentHeaderHash []byte,
+) (data.HeaderHandler, []byte, []byte, error) {
+	// try to get root hash from execution result and return provided header
+	// if block already executed, execution result info should be available
+	rootHash, err := service.getRootHashByExecutionResult(currentHeaderHash)
+	if err == nil {
+		return currentHeader, rootHash, currentHeaderHash, nil
+	}
+
+	// otherwise, provide header and root hash based on last execution result from the provided header
+	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(currentHeader.GetLastExecutionResultHandler())
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	blockHeader, err := service.getBlockHeaderByHash(lastExecutionResult.GetHeaderHash())
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return blockHeader, lastExecutionResult.GetRootHash(), lastExecutionResult.GetHeaderHash(), nil
 }
 
 func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {
@@ -446,8 +552,11 @@ func (service *SCQueryService) getBlockHashByNonce(nonce uint64) ([]byte, error)
 	)
 }
 
-func (service *SCQueryService) checkForRootHashChanges(rootHashBefore []byte) error {
-	rootHashAfter := service.apiBlockChain.GetCurrentBlockRootHash()
+func (service *SCQueryService) checkForRootHashChanges(
+	rootHashBefore []byte,
+	header data.HeaderHandler,
+) error {
+	rootHashAfter := service.getCurrentBlockRootHash(header)
 
 	if bytes.Equal(rootHashBefore, rootHashAfter) {
 		return nil

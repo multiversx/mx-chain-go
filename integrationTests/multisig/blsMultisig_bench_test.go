@@ -19,7 +19,8 @@ const shardConsensusSize = uint16(63)
 
 type multiSignerSetup struct {
 	privKeys          [][]byte
-	pubKeys           [][]byte
+	pubKeysBytes      [][]byte
+	pubKeys           []crypto.PublicKey
 	partialSignatures [][][]byte
 	messages          []string
 	aggSignatures     [][]byte
@@ -48,46 +49,46 @@ func benchmarkMultiSigners(b *testing.B, numSigners uint16, numMessages int) {
 
 	b.Run("AggregateSigs KOSK", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, _ = multiSignerKOSK.AggregateSigs(setupKOSK.pubKeys, setupKOSK.partialSignatures[i%numMessages])
+			_, _ = multiSignerKOSK.AggregateSigsV2(setupKOSK.pubKeys, setupKOSK.partialSignatures[i%numMessages])
 		}
 	})
 	b.Run("VerifyAggregatedSig KOSK", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			err := multiSignerKOSK.VerifyAggregatedSig(setupKOSK.pubKeys, []byte(setupKOSK.messages[i%numMessages]), setupKOSK.aggSignatures[i%numMessages])
+			err := multiSignerKOSK.VerifyAggregatedSigV2(setupKOSK.pubKeys, []byte(setupKOSK.messages[i%numMessages]), setupKOSK.aggSignatures[i%numMessages])
 			require.Nil(b, err)
 		}
 	})
 	b.Run("Verify signature shares KOSK", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for j := 0; j < int(numSigners); j++ {
-				err := multiSignerKOSK.VerifySignatureShare(setupKOSK.pubKeys[j], []byte(setupKOSK.messages[i%numMessages]), setupKOSK.partialSignatures[i%numMessages][j])
+				err := multiSignerKOSK.VerifySignatureShare(setupKOSK.pubKeysBytes[j], []byte(setupKOSK.messages[i%numMessages]), setupKOSK.partialSignatures[i%numMessages][j])
 				require.Nil(b, err)
 			}
 		}
 	})
 	b.Run("AggregateSigs NoKOSK", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, _ = multiSignerNoKOSK.AggregateSigs(setupNoKOSK.pubKeys, setupNoKOSK.partialSignatures[i%numMessages])
+			_, _ = multiSignerNoKOSK.AggregateSigsV2(setupNoKOSK.pubKeys, setupNoKOSK.partialSignatures[i%numMessages])
 		}
 	})
 	b.Run("VerifyAggregatedSig NoKOSK", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			err := multiSignerNoKOSK.VerifyAggregatedSig(setupNoKOSK.pubKeys, []byte(setupNoKOSK.messages[i%numMessages]), setupNoKOSK.aggSignatures[i%numMessages])
+			err := multiSignerNoKOSK.VerifyAggregatedSigV2(setupNoKOSK.pubKeys, []byte(setupNoKOSK.messages[i%numMessages]), setupNoKOSK.aggSignatures[i%numMessages])
 			require.Nil(b, err)
 		}
 	})
 	b.Run("Verify signature shares NoKOSK", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for j := 0; j < int(numSigners); j++ {
-				err := multiSignerNoKOSK.VerifySignatureShare(setupNoKOSK.pubKeys[j], []byte(setupNoKOSK.messages[i%numMessages]), setupNoKOSK.partialSignatures[i%numMessages][j])
+				err := multiSignerNoKOSK.VerifySignatureShare(setupNoKOSK.pubKeysBytes[j], []byte(setupNoKOSK.messages[i%numMessages]), setupNoKOSK.partialSignatures[i%numMessages][j])
 				require.Nil(b, err)
 			}
 		}
 	})
 }
 
-func createMultiSigSetupKOSK(numSigners uint16, numMessages int) (*multiSignerSetup, crypto.MultiSigner) {
-	var multiSigner crypto.MultiSigner
+func createMultiSigSetupKOSK(numSigners uint16, numMessages int) (*multiSignerSetup, crypto.MultiSignerV2) {
+	var multiSigner crypto.MultiSignerV2
 	setup := &multiSignerSetup{}
 	suite := mcl.NewSuiteBLS12()
 	setup.privKeys, setup.pubKeys, multiSigner = createKeysAndMultiSignerBlsKOSK(numSigners, suite)
@@ -111,17 +112,17 @@ func createMessagesAndPartialSignatures(numMessages int, privKeys [][]byte, mult
 
 func aggregateSignatures(
 	setup *multiSignerSetup,
-	multiSigner crypto.MultiSigner,
+	multiSigner crypto.MultiSignerV2,
 ) [][]byte {
 	aggSignatures := make([][]byte, len(setup.messages))
 	for i := 0; i < len(setup.messages); i++ {
-		aggSignatures[i], _ = multiSigner.AggregateSigs(setup.pubKeys, setup.partialSignatures[i])
+		aggSignatures[i], _ = multiSigner.AggregateSigsV2(setup.pubKeys, setup.partialSignatures[i])
 	}
 
 	return aggSignatures
 }
 
-func createMultiSignerNoKOSK() crypto.MultiSigner {
+func createMultiSignerNoKOSK() crypto.MultiSignerV2 {
 	suite := mcl.NewSuiteBLS12()
 	kg := signing.NewKeyGenerator(suite)
 	hashSize := hashing.BlsHashSize
