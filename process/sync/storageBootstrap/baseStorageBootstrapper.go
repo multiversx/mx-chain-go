@@ -345,6 +345,10 @@ func (st *storageBootstrapper) getRootHashForBlock(
 	}
 
 	rootHash := header.GetRootHash()
+	if !header.HasScheduledSupport() {
+		return rootHash, nil
+	}
+
 	scheduledRootHash, err := st.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
 	if err == nil {
 		rootHash = scheduledRootHash

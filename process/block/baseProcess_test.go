@@ -2087,6 +2087,12 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 	arguments := CreateMockArguments(createComponentHolderMocks())
 	arguments.AccountsDB[state.PeerAccountsState] = peerAccDb
 	arguments.AccountsDB[state.UserAccountsState] = accDb
+	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+		GetScheduledRootHashForHeaderCalled: func([]byte) ([]byte, error) {
+			t.Fatal("scheduled storage should not be queried for meta headers")
+			return nil, nil
+		},
+	}
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	prevHeader := &block.MetaBlock{
@@ -2100,6 +2106,97 @@ func TestBlockProcessor_PruneStateOnRollbackPrunesPeerTrieIfSameRootHashButDiffe
 
 	bp.PruneStateOnRollback(currHeader, []byte("currHeaderHash"), prevHeader, []byte("prevHeaderHash"))
 	assert.Equal(t, 2, pruningCalled)
+}
+
+func TestBlockProcessor_PruneStateOnRollbackUsesScheduledRootsForV2(t *testing.T) {
+	t.Parallel()
+
+	currHeaderHash := []byte("curr header hash")
+	prevHeaderHash := []byte("prev header hash")
+	currScheduledRootHash := []byte("curr scheduled root hash")
+	prevScheduledRootHash := []byte("prev scheduled root hash")
+
+	var prunedRootHash []byte
+	var restoredRootHash []byte
+	accDb := &stateMock.AccountsStub{
+		PruneTrieCalled: func(rootHash []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
+			prunedRootHash = rootHash
+		},
+		CancelPruneCalled: func(rootHash []byte, _ state.TriePruningIdentifier) {
+			restoredRootHash = rootHash
+		},
+		IsPruningEnabledCalled: func() bool {
+			return true
+		},
+	}
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	arguments.AccountsDB[state.UserAccountsState] = accDb
+	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+		GetScheduledRootHashForHeaderCalled: func(headerHash []byte) ([]byte, error) {
+			switch {
+			case bytes.Equal(headerHash, currHeaderHash):
+				return currScheduledRootHash, nil
+			case bytes.Equal(headerHash, prevHeaderHash):
+				return prevScheduledRootHash, nil
+			default:
+				t.Fatalf("unexpected header hash: %s", headerHash)
+				return nil, nil
+			}
+		},
+	}
+	bp, err := blproc.NewShardProcessor(arguments)
+	require.NoError(t, err)
+
+	currHeader := &block.HeaderV2{Header: &block.Header{RootHash: []byte("curr root hash")}}
+	prevHeader := &block.HeaderV2{Header: &block.Header{RootHash: []byte("prev root hash")}}
+
+	bp.PruneStateOnRollback(currHeader, currHeaderHash, prevHeader, prevHeaderHash)
+
+	require.Equal(t, currScheduledRootHash, prunedRootHash)
+	require.Equal(t, prevScheduledRootHash, restoredRootHash)
+}
+
+func TestBlockProcessor_PruneStateOnRollbackChecksHeaderCapabilitiesIndependently(t *testing.T) {
+	t.Parallel()
+
+	currHeaderHash := []byte("v2 header hash")
+	prevHeaderHash := []byte("v1 header hash")
+	currScheduledRootHash := []byte("v2 scheduled root hash")
+	prevRootHash := []byte("v1 root hash")
+
+	var prunedRootHash []byte
+	var restoredRootHash []byte
+	accDb := &stateMock.AccountsStub{
+		PruneTrieCalled: func(rootHash []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
+			prunedRootHash = rootHash
+		},
+		CancelPruneCalled: func(rootHash []byte, _ state.TriePruningIdentifier) {
+			restoredRootHash = rootHash
+		},
+		IsPruningEnabledCalled: func() bool {
+			return true
+		},
+	}
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	arguments.AccountsDB[state.UserAccountsState] = accDb
+	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+		GetScheduledRootHashForHeaderCalled: func(headerHash []byte) ([]byte, error) {
+			require.Equal(t, currHeaderHash, headerHash)
+			return currScheduledRootHash, nil
+		},
+	}
+	bp, err := blproc.NewShardProcessor(arguments)
+	require.NoError(t, err)
+
+	currHeader := &block.HeaderV2{Header: &block.Header{RootHash: []byte("v2 root hash")}}
+	prevHeader := &block.Header{RootHash: prevRootHash}
+
+	bp.PruneStateOnRollback(currHeader, currHeaderHash, prevHeader, prevHeaderHash)
+
+	require.Equal(t, currScheduledRootHash, prunedRootHash)
+	require.Equal(t, prevRootHash, restoredRootHash)
 }
 
 func TestBlockProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIsEmpty(t *testing.T) {
@@ -2791,6 +2888,42 @@ func TestBaseProcessor_ProcessScheduledBlockShouldErrWhenProcessorBusy(t *testin
 	require.False(t, setIdleCalled, "SetIdle should not be called when TrySetBusy fails")
 }
 
+func TestBaseProcessor_SaveBodyPersistsScheduledStateOnlyForSupportedHeaders(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		header        data.HeaderHandler
+		expectedCalls int
+	}{
+		{name: "meta", header: &block.MetaBlock{}},
+		{name: "meta v3", header: &block.MetaBlockV3{}},
+		{name: "shard v1", header: &block.Header{}},
+		{name: "shard v2", header: &block.HeaderV2{Header: &block.Header{}}, expectedCalls: 1},
+		{name: "shard v3", header: &block.HeaderV3{}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			numCalls := 0
+			arguments := CreateMockArguments(createComponentHolderMocks())
+			arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+				SaveStateIfNeededCalled: func([]byte) {
+					numCalls++
+				},
+			}
+			bp, err := blproc.NewShardProcessor(arguments)
+			require.NoError(t, err)
+
+			bp.SaveBody(&block.Body{}, tc.header, []byte("header hash"))
+
+			require.Equal(t, tc.expectedCalls, numCalls)
+		})
+	}
+}
+
 func TestBaseProcessor_ProcessScheduledBlockSkipsUnsupportedHeaders(t *testing.T) {
 	for _, header := range []data.HeaderHandler{&block.MetaBlock{}, &block.MetaBlockV3{}, &block.HeaderV3{}} {
 		arguments := CreateMockArguments(createComponentHolderMocks())
@@ -2807,22 +2940,29 @@ func TestBaseProcessor_ProcessScheduledBlockSkipsUnsupportedHeaders(t *testing.T
 	}
 }
 
+func TestBaseProcessor_ProcessScheduledBlockNilHeaderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+	bp, err := blproc.NewShardProcessor(arguments)
+	require.NoError(t, err)
+
+	err = bp.ProcessScheduledBlock(nil, &block.Body{}, haveTime)
+
+	require.ErrorIs(t, err, process.ErrNilBlockHeader)
+}
+
 func TestBaseProcessor_RevertSkipsScheduledStateForMetaAndV3(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		header data.HeaderHandler
-		active bool
 	}{
-		{"meta", &block.MetaBlock{}, false},
-		{"meta v3", &block.MetaBlockV3{}, false},
-		{"shard v3", &block.HeaderV3{}, false},
+		{"meta", &block.MetaBlock{}},
+		{"meta v3", &block.MetaBlockV3{}},
+		{"shard v3", &block.HeaderV3{}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-			if tc.active {
-				coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SupernovaFlag)
-				coreComponents.EnableRoundsHandlerField = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
-			}
 			dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 				GetCurrentBlockHeaderCalled: func() data.HeaderHandler { return tc.header },
 			}
