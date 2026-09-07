@@ -700,6 +700,16 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 	if check.IfNil(prevHeader) {
 		return false
 	}
+	epochForConsensus := header.GetEpoch()
+	if header.IsStartOfEpochBlock() {
+		if epochForConsensus == 0 {
+			return false
+		}
+		epochForConsensus--
+	}
+	if epochForConsensus != prevHeader.GetEpoch() {
+		return false
+	}
 	if !bytes.Equal(header.GetPrevHash(), prevHash) {
 		return false
 	}

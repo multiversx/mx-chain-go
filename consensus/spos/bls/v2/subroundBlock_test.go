@@ -1678,6 +1678,60 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 			return prevHeader.RandSeed
 		},
 	}
+	prevHeader.Epoch = 7
+	newHeaderForCurrentConsensus := func(epoch uint32, isStartOfEpoch bool) data.HeaderHandler {
+		header := createDefaultHeader()
+		header.ShardID = container.ShardCoordinator().SelfId()
+		header.Round = uint64(container.RoundHandler().Index())
+		header.PrevHash = prevHash
+		header.Nonce = prevHeader.GetNonce() + 1
+		header.PrevRandSeed = prevHeader.RandSeed
+		header.Epoch = epoch
+		if isStartOfEpoch {
+			header.EpochStartMetaHash = []byte("epoch start meta hash")
+		}
+
+		return &block.HeaderV2{
+			Header:                   header,
+			ScheduledAccumulatedFees: big.NewInt(0),
+			ScheduledDeveloperFees:   big.NewInt(0),
+		}
+	}
+
+	invalidEpochHeaders := []struct {
+		name           string
+		epoch          uint32
+		isStartOfEpoch bool
+	}{
+		{name: "older epoch", epoch: 6},
+		{name: "next epoch without start", epoch: 8},
+		{name: "current epoch with start", epoch: 7, isStartOfEpoch: true},
+		{name: "epoch zero with start", epoch: 0, isStartOfEpoch: true},
+		{name: "two epochs ahead with start", epoch: 9, isStartOfEpoch: true},
+	}
+	for _, testCase := range invalidEpochHeaders {
+		t.Run(testCase.name, func(t *testing.T) {
+			sr.ReceivedBlockHeader(newHeaderForCurrentConsensus(testCase.epoch, testCase.isStartOfEpoch))
+			require.Nil(t, sr.GetData())
+			require.Nil(t, sr.GetHeader())
+		})
+	}
+
+	// start header from the next epoch
+	sr.ReceivedBlockHeader(newHeaderForCurrentConsensus(8, true))
+	require.NotNil(t, sr.GetData())
+	require.NotNil(t, sr.GetHeader())
+	sr.SetHeader(nil)
+	sr.SetData(nil)
+
+	// non-start header from the current epoch
+	sr.ReceivedBlockHeader(newHeaderForCurrentConsensus(7, false))
+	require.NotNil(t, sr.GetData())
+	require.NotNil(t, sr.GetHeader())
+	sr.SetHeader(nil)
+	sr.SetData(nil)
+
+	headerForCurrentConsensus.EpochField = 7
 
 	// leader
 	defaultLeader := sr.Leader()
