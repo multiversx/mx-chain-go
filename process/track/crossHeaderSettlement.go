@@ -21,8 +21,7 @@ func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, heade
 		return false
 	}
 	if header.IsHeaderV3() {
-		view := &metaFinalityView{headersPool: bbt.headersPool, proofsPool: bbt.proofsPool}
-		if view.IsDeadMetaBlock(headerHash, header.GetNonce()) {
+		if bbt.isDeadTrackedOrPooledMetaBlock(headerHash, header.GetNonce()) {
 			return false
 		}
 
@@ -43,6 +42,50 @@ func (bbt *baseBlockTrack) IsSettledCrossHeader(header data.HeaderHandler, heade
 	}
 
 	return hasProofedChildInPool(bbt.headersPool, bbt.proofsPool, shardID, headerHash, childNonce)
+}
+
+func (bbt *baseBlockTrack) isDeadTrackedOrPooledMetaBlock(headerHash []byte, nonce uint64) bool {
+	return isDeadMetaBlockWithEvidence(
+		headerHash,
+		nonce,
+		func(childNonce uint64, rejectedParentHash []byte) bool {
+			pooledHeaders, pooledHashes, err := bbt.headersPool.GetHeadersByNonceAndShardId(
+				childNonce,
+				core.MetachainShardId,
+			)
+			if err == nil && hasProofedForeignMetaContinuation(
+				bbt.proofsPool,
+				pooledHeaders,
+				pooledHashes,
+				childNonce,
+				rejectedParentHash,
+				func(nonce uint64, parentHash []byte) bool {
+					return bbt.hasTrackedOrPooledMetaDescendants(nonce, parentHash, 1)
+				},
+			) {
+				return true
+			}
+
+			trackedHeaders, trackedHashes := bbt.GetTrackedHeadersWithNonce(core.MetachainShardId, childNonce)
+			return hasProofedForeignMetaContinuation(
+				bbt.proofsPool,
+				trackedHeaders,
+				trackedHashes,
+				childNonce,
+				rejectedParentHash,
+				func(nonce uint64, parentHash []byte) bool {
+					return bbt.hasTrackedOrPooledMetaDescendants(nonce, parentHash, 1)
+				},
+			)
+		},
+		func(childNonce uint64, parentHash []byte) bool {
+			return bbt.hasTrackedOrPooledMetaDescendants(
+				childNonce,
+				parentHash,
+				metaReconciliationEvidenceDepth,
+			)
+		},
+	)
 }
 
 func (bbt *baseBlockTrack) getTrackedOrPooledMetaHeader(headerHash []byte, nonce uint64) data.HeaderHandler {

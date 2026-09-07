@@ -1558,6 +1558,9 @@ func checkForDuplicatedTxHashes(body *block.Body) error {
 //	Processed, yes -> Final
 //	Processed, no  -> impossible
 //
+// As a stricter exception, an incoming miniblock at the metachain must be
+// Normal and Final.
+//
 // It also checks body PT validity, type-vs-scheduling, and IndexOfLastTxProcessed vs
 // ConstructionState. Body-vs-header PT consistency is enforced only when sender is
 // blockShardID; for incoming MBs the body PT belongs to the source shard.
@@ -1585,6 +1588,13 @@ func checkConstructionStateProcessingTypeAndIndexesCorrectness(
 	}
 
 	constructionState := mbh.GetConstructionState()
+	if blockShardID == core.MetachainShardId {
+		err := process.CheckIncomingMiniBlockHeaderAtMetachain(mbh)
+		if err != nil {
+			return err
+		}
+	}
+
 	switch hdrPT {
 	case int32(block.Normal):
 		if senderIsBlockShard {

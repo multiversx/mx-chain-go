@@ -2512,11 +2512,13 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 
 	var hash []byte
 	isDirectedV3 := false
+	selectedByAuthority := false
 	selector, ok := boot.forkDetector.(notarizedHeaderSelector)
 	if ok {
 		selection := selector.getNotarizedHeaderSelection(nonce)
 		hash = selection.hash
 		isDirectedV3 = selection.isV3
+		selectedByAuthority = selection.selectedByAuthority
 		if len(selection.candidates) > 1 {
 			round := int64(-1)
 			if !check.IfNil(boot.roundHandler) {
@@ -2526,6 +2528,7 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 			selection = selector.getNotarizedHeaderSelection(nonce)
 			hash = selection.hash
 			isDirectedV3 = selection.isV3
+			selectedByAuthority = selection.selectedByAuthority
 			if len(selection.candidates) > 1 {
 				return nil, nil, errBranchAwareSyncRetry
 			}
@@ -2535,8 +2538,8 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 		isDirectedV3 = len(hash) > 0 && boot.isAsyncExecutionEnabledForHash(hash)
 	}
 	if boot.forkInfo.IsDetected {
-		// A unique V3 notarization takes precedence over the recovery hint.
-		if !isDirectedV3 {
+		// A V3 or authority-selected notarization takes precedence over the recovery hint.
+		if !isDirectedV3 && !selectedByAuthority {
 			hash = boot.forkInfo.Hash
 			versionFound := false
 			if ok && len(hash) > 0 {
@@ -2549,7 +2552,7 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	}
 
 	selectedFromProof := false
-	if !isDirectedV3 {
+	if !isDirectedV3 && !selectedByAuthority {
 		proof, err := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
 		if err == nil {
 			hash = proof.GetHeaderHash()
@@ -3268,6 +3271,8 @@ func (boot *baseBootstrap) tryReconcileEquivocation(round int64) bool {
 	if !shouldEvaluate {
 		return false
 	}
+	boot.requestMissingPreferredReconcileHeader(evidence)
+
 	if evidence.selectedByAuthority {
 		candidates := []notarizedHeaderCandidate{
 			{hash: evidence.localHash, nonce: evidence.nonce},
@@ -3308,6 +3313,55 @@ func (boot *baseBootstrap) tryReconcileEquivocation(round int64) bool {
 	}
 
 	return boot.applyReconcileSwitch(evidence)
+}
+
+func (boot *baseBootstrap) requestMissingPreferredReconcileHeader(evidence *reconcileEvidence) {
+	if boot.shardCoordinator.SelfId() != core.MetachainShardId {
+		return
+	}
+	currentHeader, currentHash := boot.chainHandler.GetCurrentBlockHeaderAndHash()
+	if check.IfNil(currentHeader) || !currentHeader.IsHeaderV3() || currentHeader.GetNonce() != evidence.nonce ||
+		!bytes.Equal(currentHash, evidence.localHash) {
+		return
+	}
+
+	proof, err := boot.proofs.GetProofByNonce(evidence.nonce, core.MetachainShardId)
+	if err != nil || check.IfNil(proof) || bytes.Equal(proof.GetHeaderHash(), evidence.localHash) {
+		return
+	}
+	if !isLowerRoundOrHash(proof.GetHeaderRound(), proof.GetHeaderHash(), currentHeader.GetRound(), currentHash) {
+		return
+	}
+
+	header, err := boot.headers.GetHeaderByHash(proof.GetHeaderHash())
+	if err != nil || check.IfNil(header) {
+		boot.requestProofHeader(proof)
+		return
+	}
+	if bytes.Equal(header.GetPrevHash(), currentHeader.GetPrevHash()) {
+		return
+	}
+
+	proofs, err := boot.proofs.GetProofsByNonce(evidence.nonce, core.MetachainShardId)
+	if err != nil {
+		return
+	}
+	for _, candidateProof := range proofs {
+		if check.IfNil(candidateProof) || bytes.Equal(candidateProof.GetHeaderHash(), evidence.localHash) ||
+			bytes.Equal(candidateProof.GetHeaderHash(), proof.GetHeaderHash()) ||
+			!isLowerRoundOrHash(candidateProof.GetHeaderRound(), candidateProof.GetHeaderHash(), currentHeader.GetRound(), currentHash) {
+			continue
+		}
+
+		candidateHeader, getErr := boot.headers.GetHeaderByHash(candidateProof.GetHeaderHash())
+		if getErr != nil || check.IfNil(candidateHeader) {
+			boot.requestProofHeader(candidateProof)
+			return
+		}
+		if bytes.Equal(candidateHeader.GetPrevHash(), currentHeader.GetPrevHash()) {
+			return
+		}
+	}
 }
 
 func (boot *baseBootstrap) applyReconcileSwitch(evidence *reconcileEvidence) bool {

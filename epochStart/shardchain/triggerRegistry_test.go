@@ -61,7 +61,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.roundHandler = t.roundHandler
 	rt.shardID = t.shardID
 	rt.enableEpochsHandler = t.enableEpochsHandler
-	rt.extraDelayForRequestBlockInfo = t.extraDelayForRequestBlockInfo
+	rt.processConfigsHandler = t.processConfigsHandler
 	rt.chanMetaBlockReceived = t.chanMetaBlockReceived
 	rt.mapPreparedEpochStartHdrs = t.mapPreparedEpochStartHdrs
 	t.mutPendingEpochStartData.Lock()

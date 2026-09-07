@@ -383,6 +383,7 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.DataComponentsHolder.Datapool().Headers(),
 		node.DataComponentsHolder.Datapool().Proofs(),
 		node.CoreComponentsHolder.EnableEpochsHandler(),
+		node.CoreComponentsHolder.ProcessConfigsHandler(),
 		node.ProcessComponentsHolder.InterceptorsContainer(),
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),

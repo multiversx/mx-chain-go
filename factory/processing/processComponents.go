@@ -936,8 +936,8 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 			RoundHandler:               pcf.coreData.RoundHandler(),
 			AppStatusHandler:           pcf.statusCoreComponents.AppStatusHandler(),
 			EnableEpochsHandler:        pcf.coreData.EnableEpochsHandler(),
+			ProcessConfigsHandler:      pcf.coreData.ProcessConfigsHandler(),
 			WaitForBootstrapCompletion: true,
-			ExtraDelayForRequestBlockInfoInMilliseconds: pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds,
 		}
 		return shardchain.NewEpochStartTrigger(argEpochStart)
 	}

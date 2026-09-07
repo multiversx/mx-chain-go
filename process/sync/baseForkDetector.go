@@ -16,13 +16,14 @@ import (
 )
 
 type headerInfo struct {
-	epoch    uint32
-	nonce    uint64
-	round    uint64
-	hash     []byte
-	prevHash []byte
-	state    process.BlockHeaderState
-	hasProof bool
+	epoch               uint32
+	nonce               uint64
+	round               uint64
+	hash                []byte
+	prevHash            []byte
+	state               process.BlockHeaderState
+	hasProof            bool
+	selectedByAuthority bool
 }
 
 type appendHeaderInfoResult struct {
@@ -37,9 +38,10 @@ type notarizedHeaderCandidate struct {
 }
 
 type notarizedHeaderSelection struct {
-	hash       []byte
-	isV3       bool
-	candidates []notarizedHeaderCandidate
+	hash                []byte
+	isV3                bool
+	selectedByAuthority bool
+	candidates          []notarizedHeaderCandidate
 }
 
 type notarizedHeaderResolution uint8
@@ -74,6 +76,7 @@ type baseForkDetector struct {
 	mutHeaders                    sync.RWMutex
 	fork                          forkInfo
 	mutFork                       sync.RWMutex
+	mutFinalityUpdate             sync.Mutex
 	mutProbableHighestNonceUpdate sync.Mutex
 	hasAmbiguousNotarization      atomic.Bool
 
@@ -585,11 +588,12 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 		"final checkpoint nonce", bfd.finalCheckpoint().nonce)
 }
 
-// RemoveCommittedHeader removes a reverted committed header together with its checkpoint, proof
-// included, so a same-nonce sibling can be adopted; it never removes at or below the final checkpoint
+// RemoveCommittedHeader removes a reverted committed state and retains V3 proof evidence.
 func (bfd *baseForkDetector) RemoveCommittedHeader(nonce uint64, hash []byte) {
+	bfd.mutFinalityUpdate.Lock()
 	finalCheckpointNonce := bfd.finalCheckpoint().nonce
 	if nonce <= finalCheckpointNonce {
+		bfd.mutFinalityUpdate.Unlock()
 		log.Warn("baseForkDetector.RemoveCommittedHeader: refusing removal at or below the final checkpoint",
 			"nonce", nonce,
 			"hash", hash,
@@ -600,16 +604,31 @@ func (bfd *baseForkDetector) RemoveCommittedHeader(nonce uint64, hash []byte) {
 	bfd.removeCheckpointWithNonce(nonce)
 
 	preservedHdrsInfo := make([]*headerInfo, 0)
+	var proofEvidence *headerInfo
 
 	bfd.mutHeaders.Lock()
 
 	hdrsInfo := bfd.headers[nonce]
 	for _, hdrInfo := range hdrsInfo {
-		if hdrInfo.state != process.BHNotarized && bytes.Equal(hash, hdrInfo.hash) {
+		if !bytes.Equal(hash, hdrInfo.hash) || hdrInfo.state == process.BHNotarized {
+			preservedHdrsInfo = append(preservedHdrsInfo, hdrInfo)
 			continue
 		}
 
-		preservedHdrsInfo = append(preservedHdrsInfo, hdrInfo)
+		if hdrInfo.hasProof && bfd.isAsyncExecutionEnabled(hdrInfo) && proofEvidence == nil {
+			proofEvidence = &headerInfo{
+				epoch:    hdrInfo.epoch,
+				nonce:    hdrInfo.nonce,
+				round:    hdrInfo.round,
+				hash:     hdrInfo.hash,
+				prevHash: hdrInfo.prevHash,
+				state:    process.BHReceived,
+				hasProof: true,
+			}
+		}
+	}
+	if proofEvidence != nil {
+		preservedHdrsInfo = append(preservedHdrsInfo, proofEvidence)
 	}
 
 	if len(preservedHdrsInfo) == 0 {
@@ -618,7 +637,9 @@ func (bfd *baseForkDetector) RemoveCommittedHeader(nonce uint64, hash []byte) {
 		bfd.headers[nonce] = preservedHdrsInfo
 	}
 
+	bfd.refreshAmbiguousNotarizationLocked()
 	bfd.mutHeaders.Unlock()
+	bfd.mutFinalityUpdate.Unlock()
 
 	bfd.forkDetector.computeFinalCheckpoint()
 
@@ -663,20 +684,7 @@ func (bfd *baseForkDetector) ReconcileFinalCheckpoint(nonce uint64) bool {
 // first so no concurrent recomputation re-advances from a purged entry, then lowers the final
 // checkpoint below it; refused at or under the forward-only settled checkpoint
 func (bfd *baseForkDetector) ReconcileFinalCheckpointBelow(nonce uint64) bool {
-	return bfd.reconcileFinalCheckpointBelow(nonce, nil)
-}
-
-// ReconcileFinalCheckpointFromAuthority removes a losing suffix while retaining its selected authority.
-func (bfd *baseForkDetector) ReconcileFinalCheckpointFromAuthority(nonce uint64, selectedHash []byte) bool {
-	if len(selectedHash) == 0 {
-		return false
-	}
-
-	return bfd.reconcileFinalCheckpointBelow(nonce, selectedHash)
-}
-
-func (bfd *baseForkDetector) reconcileFinalCheckpointBelow(nonce uint64, selectedHash []byte) bool {
-	reconciled, loweredFinal := bfd.reconcileFinalCheckpointRecordsBelow(nonce, selectedHash)
+	reconciled, loweredFinal := bfd.reconcileFinalCheckpointRecordsBelow(nonce)
 	if !reconciled {
 		return false
 	}
@@ -685,7 +693,18 @@ func (bfd *baseForkDetector) reconcileFinalCheckpointBelow(nonce uint64, selecte
 	return true
 }
 
-func (bfd *baseForkDetector) reconcileFinalCheckpointRecordsBelow(nonce uint64, selectedHash []byte) (bool, bool) {
+// ReconcileFinalCheckpointFromAuthority lowers provisional finality while retaining applied state.
+func (bfd *baseForkDetector) ReconcileFinalCheckpointFromAuthority(nonce uint64, selectedHash []byte) bool {
+	reconciled, loweredFinal := bfd.reconcileFinalCheckpointFromAuthorityRecords(nonce, selectedHash)
+	if !reconciled {
+		return false
+	}
+
+	bfd.finishFinalCheckpointReconciliation(nonce, loweredFinal)
+	return true
+}
+
+func (bfd *baseForkDetector) reconcileFinalCheckpointRecordsBelow(nonce uint64) (bool, bool) {
 	if nonce == 0 {
 		return false, false
 	}
@@ -701,45 +720,11 @@ func (bfd *baseForkDetector) reconcileFinalCheckpointRecordsBelow(nonce uint64, 
 			"settled checkpoint nonce", settledNonce)
 		return false, false
 	}
-	if len(selectedHash) > 0 {
-		selectedAuthorityFound := false
-		for _, info := range bfd.headers[nonce] {
-			if info.state == process.BHNotarized && bytes.Equal(info.hash, selectedHash) {
-				selectedAuthorityFound = true
-				break
-			}
-		}
-		if !selectedAuthorityFound {
-			bfd.mutFork.Unlock()
-			bfd.mutHeaders.Unlock()
-			return false, false
-		}
-	}
 
-	for hdrNonce, infos := range bfd.headers {
-		if hdrNonce > nonce {
-			if len(selectedHash) == 0 {
-				delete(bfd.headers, hdrNonce)
-			} else {
-				bfd.retainProofEvidenceLocked(hdrNonce, infos)
-			}
-			continue
-		}
-		if hdrNonce == nonce && len(selectedHash) == 0 {
+	for hdrNonce := range bfd.headers {
+		if hdrNonce >= nonce {
 			delete(bfd.headers, hdrNonce)
-			continue
 		}
-		if hdrNonce != nonce {
-			continue
-		}
-
-		preserved := infos[:0]
-		for _, info := range infos {
-			if bytes.Equal(info.hash, selectedHash) {
-				preserved = append(preserved, info)
-			}
-		}
-		bfd.headers[hdrNonce] = preserved
 	}
 	bfd.refreshAmbiguousNotarizationLocked()
 
@@ -763,29 +748,102 @@ func (bfd *baseForkDetector) reconcileFinalCheckpointRecordsBelow(nonce uint64, 
 	return true, loweredFinal
 }
 
-func (bfd *baseForkDetector) retainProofEvidenceLocked(nonce uint64, infos []*headerInfo) {
-	retained := infos[:0]
+func (bfd *baseForkDetector) reconcileFinalCheckpointFromAuthorityRecords(
+	nonce uint64,
+	selectedHash []byte,
+) (bool, bool) {
+	if nonce == 0 || len(selectedHash) == 0 {
+		return false, false
+	}
+
+	bfd.mutHeaders.Lock()
+	bfd.mutFork.Lock()
+	if nonce <= bfd.fork.settledCheckpoint.nonce {
+		settledNonce := bfd.fork.settledCheckpoint.nonce
+		bfd.mutFork.Unlock()
+		bfd.mutHeaders.Unlock()
+		log.Error("forkDetector.ReconcileFinalCheckpointBelow: refused, would cross the settled checkpoint",
+			"nonce", nonce,
+			"settled checkpoint nonce", settledNonce)
+		return false, false
+	}
+	selectedAuthorityFound := false
+	processedConflictFound := false
+	infos := bfd.headers[nonce]
 	for _, info := range infos {
-		if !info.hasProof || !bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, info.epoch) {
+		if bytes.Equal(info.hash, selectedHash) {
+			selectedAuthorityFound = selectedAuthorityFound || info.state == process.BHNotarized
 			continue
 		}
 
-		if info.state == process.BHProcessed || info.state == process.BHNotarized {
-			proofEvidence := *info
-			proofEvidence.state = process.BHReceived
-			retained = append(retained, &proofEvidence)
+		if info.state == process.BHProcessed {
+			processedConflictFound = true
+		}
+	}
+	if !selectedAuthorityFound || !processedConflictFound {
+		bfd.mutFork.Unlock()
+		bfd.mutHeaders.Unlock()
+		return false, false
+	}
+
+	rejectedHashes := make(map[string]struct{})
+	preserved := infos[:0]
+	for _, info := range infos {
+		if bytes.Equal(info.hash, selectedHash) {
+			if info.state == process.BHNotarized {
+				info.selectedByAuthority = true
+			}
+			preserved = append(preserved, info)
 			continue
 		}
 
-		retained = append(retained, info)
+		rejectedHashes[string(info.hash)] = struct{}{}
+		if info.state != process.BHNotarized {
+			preserved = append(preserved, info)
+		}
 	}
+	bfd.headers[nonce] = preserved
+	bfd.removeRejectedNotarizedDescendantsLocked(nonce+1, rejectedHashes)
+	bfd.refreshAmbiguousNotarizationLocked()
 
-	if len(retained) == 0 {
-		delete(bfd.headers, nonce)
-		return
+	newFinal := bfd.highestProcessedCheckpointBelowLocked(nonce)
+	loweredFinal := bfd.fork.finalCheckpoint.nonce >= nonce
+	if loweredFinal {
+		bfd.fork.finalCheckpoint = newFinal
 	}
+	bfd.mutFork.Unlock()
+	bfd.mutHeaders.Unlock()
 
-	bfd.headers[nonce] = retained
+	return true, loweredFinal
+}
+
+func (bfd *baseForkDetector) removeRejectedNotarizedDescendantsLocked(
+	nonce uint64,
+	rejectedParentHashes map[string]struct{},
+) {
+	for len(rejectedParentHashes) > 0 {
+		infos, ok := bfd.headers[nonce]
+		if !ok {
+			return
+		}
+
+		rejectedHashes := make(map[string]struct{})
+		preserved := infos[:0]
+		for _, info := range infos {
+			if _, rejected := rejectedParentHashes[string(info.prevHash)]; !rejected {
+				preserved = append(preserved, info)
+				continue
+			}
+
+			rejectedHashes[string(info.hash)] = struct{}{}
+			if info.state != process.BHNotarized {
+				preserved = append(preserved, info)
+			}
+		}
+		bfd.headers[nonce] = preserved
+		rejectedParentHashes = rejectedHashes
+		nonce++
+	}
 }
 
 // highestProcessedCheckpointBelowLocked uses the retained processed records when old checkpoints were pruned.
@@ -1026,11 +1084,18 @@ func isParentCheckpoint(checkpoint *checkpointInfo, header data.HeaderHandler) b
 
 // canInstantlyFinalize returns false when settlement evidence is still required.
 func (bfd *baseForkDetector) canInstantlyFinalize(header data.HeaderHandler, headerHash []byte) bool {
+	return bfd.canInstantlyFinalizeFromCheckpoint(header, headerHash, bfd.finalCheckpoint())
+}
+
+func (bfd *baseForkDetector) canInstantlyFinalizeFromCheckpoint(
+	header data.HeaderHandler,
+	headerHash []byte,
+	finalCheckpoint *checkpointInfo,
+) bool {
 	if !bfd.isSupernovaForHeader(header) {
 		return true
 	}
 
-	finalCheckpoint := bfd.finalCheckpoint()
 	if !isParentCheckpoint(finalCheckpoint, header) {
 		return false
 	}
@@ -1043,6 +1108,27 @@ func (bfd *baseForkDetector) canInstantlyFinalize(header data.HeaderHandler, hea
 	}
 
 	return !common.IsContendedRound(header.GetRound(), finalCheckpoint.round)
+}
+
+func (bfd *baseForkDetector) setInstantFinalCheckpoint(
+	header data.HeaderHandler,
+	headerHash []byte,
+	newCheckpoint *checkpointInfo,
+) {
+	supportingCheckpoint := bfd.finalCheckpoint()
+	if !bfd.canInstantlyFinalizeFromCheckpoint(header, headerHash, supportingCheckpoint) {
+		return
+	}
+
+	if !bfd.isSupernovaForHeader(header) {
+		bfd.setFinalAndSettledCheckpoint(newCheckpoint)
+		return
+	}
+
+	bfd.setFinalCheckpoint(newCheckpoint)
+	if !bfd.canInstantlyFinalizeFromCheckpoint(header, headerHash, supportingCheckpoint) {
+		bfd.setFinalCheckpoint(supportingCheckpoint)
+	}
 }
 
 func (bfd *baseForkDetector) hasCompetingSiblingEvidence(nonce uint64, hash []byte, parentHash []byte) bool {
@@ -1474,8 +1560,9 @@ func (bfd *baseForkDetector) getNotarizedHeaderSelectionLocked(nonce uint64) not
 	}
 	if selectedHeader != nil {
 		return notarizedHeaderSelection{
-			hash: selectedHeader.hash,
-			isV3: bfd.isAsyncExecutionEnabled(selectedHeader),
+			hash:                selectedHeader.hash,
+			isV3:                bfd.isAsyncExecutionEnabled(selectedHeader),
+			selectedByAuthority: selectedHeader.selectedByAuthority,
 		}
 	}
 
@@ -1538,7 +1625,7 @@ func (bfd *baseForkDetector) applyNotarizedHeaderSelection(nonce uint64, selecte
 	bfd.mutProbableHighestNonceUpdate.Lock()
 	defer bfd.mutProbableHighestNonceUpdate.Unlock()
 
-	removed := false
+	hasConflictingNotarization := false
 	selectedCandidateFound := false
 	selectedNotarizedFound := false
 	hasV3Context := false
@@ -1558,6 +1645,7 @@ func (bfd *baseForkDetector) applyNotarizedHeaderSelection(nonce uint64, selecte
 			isSelected := bytes.Equal(hdrInfo.hash, selectedHash)
 			selectedCandidateFound = selectedCandidateFound || isSelected
 			selectedNotarizedFound = selectedNotarizedFound || isSelected
+			hasConflictingNotarization = hasConflictingNotarization || !isSelected
 			hasV3Context = hasV3Context || bfd.isAsyncExecutionEnabled(hdrInfo)
 		}
 		if hdrInfo.state == process.BHProcessed && processedHeader == nil {
@@ -1567,20 +1655,23 @@ func (bfd *baseForkDetector) applyNotarizedHeaderSelection(nonce uint64, selecte
 		}
 	}
 	processedHashConflicts := processedHeader != nil && !bytes.Equal(processedHeader.hash, selectedHash)
-	if hasV3Context && selectedCandidateFound &&
+	if hasV3Context && selectedCandidateFound && hasConflictingNotarization &&
 		!processedHashConflicts {
 		preserved := make([]*headerInfo, 0, len(hdrInfos))
 		for _, hdrInfo := range hdrInfos {
 			isConflictingAuthority := hdrInfo.state == process.BHNotarized && !bytes.Equal(hdrInfo.hash, selectedHash)
 			if isConflictingAuthority {
-				removed = true
 				continue
+			}
+			if hdrInfo.state == process.BHNotarized {
+				hdrInfo.selectedByAuthority = true
 			}
 			preserved = append(preserved, hdrInfo)
 		}
-		if removed && !selectedNotarizedFound && processedHeader != nil {
+		if !selectedNotarizedFound && processedHeader != nil {
 			selectedAuthority := *processedHeader
 			selectedAuthority.state = process.BHNotarized
+			selectedAuthority.selectedByAuthority = true
 			preserved = append(preserved, &selectedAuthority)
 		}
 		bfd.headers[nonce] = preserved
@@ -1595,7 +1686,7 @@ func (bfd *baseForkDetector) applyNotarizedHeaderSelection(nonce uint64, selecte
 	if processedHashConflicts {
 		return notarizedHeaderNeedsReconciliation
 	}
-	if !removed {
+	if !hasConflictingNotarization {
 		return notarizedHeaderUnresolved
 	}
 

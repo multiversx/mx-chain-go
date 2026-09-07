@@ -1903,11 +1903,17 @@ func TestBaseForkDetector_RemoveCommittedHeader(t *testing.T) {
 	assert.Len(t, sfd.GetHeaders(2), 2)
 	assert.Equal(t, uint64(2), sfd.LastCheckpointNonce())
 
-	// the deliberate switch removal drops the committed header and its checkpoint despite the proof
+	// the deliberate switch removal drops the committed state and retains the V3 proof evidence
 	sfd.RemoveCommittedHeader(2, hash2)
 	hdrInfos := sfd.GetHeaders(2)
-	assert.Len(t, hdrInfos, 1)
-	assert.Equal(t, competitorHash, hdrInfos[0].Hash())
+	assert.Len(t, hdrInfos, 2)
+	retainedHashes := make(map[string]struct{}, len(hdrInfos))
+	for _, hdrInfo := range hdrInfos {
+		assert.Equal(t, process.BHReceived, hdrInfo.GetBlockHeaderState())
+		retainedHashes[string(hdrInfo.Hash())] = struct{}{}
+	}
+	assert.Contains(t, retainedHashes, string(hash2))
+	assert.Contains(t, retainedHashes, string(competitorHash))
 	assert.Equal(t, uint64(1), sfd.LastCheckpointNonce())
 	assert.Equal(t, uint64(1), sfd.FinalCheckpointNonce())
 

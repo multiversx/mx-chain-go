@@ -36,6 +36,34 @@ const maxSelfNotarizedLookback = 50
 const VMStoragePrefix = "VM@"
 const maxLenMiniBlockReservedField = 10
 
+// CheckIncomingMiniBlockHeaderAtMetachain verifies the execution contract for
+// an incoming miniblock in a legacy metachain block.
+func CheckIncomingMiniBlockHeaderAtMetachain(mbh data.MiniBlockHeaderHandler) error {
+	if mbh == nil {
+		return ErrNilMiniBlockHeader
+	}
+
+	isIncomingAtMetachain := mbh.GetReceiverShardID() == core.MetachainShardId &&
+		mbh.GetSenderShardID() != core.MetachainShardId
+	if !isIncomingAtMetachain {
+		return nil
+	}
+
+	processingType := mbh.GetProcessingType()
+	if processingType != int32(block.Normal) {
+		return fmt.Errorf("%w: incoming miniblock at metachain must have Normal processing type, got %d",
+			ErrInvalidMiniBlockProcessingType, processingType)
+	}
+
+	constructionState := mbh.GetConstructionState()
+	if constructionState != int32(block.Final) {
+		return fmt.Errorf("%w: incoming miniblock at metachain must have Final construction state, got %d",
+			ErrInvalidConstructionState, constructionState)
+	}
+
+	return nil
+}
+
 // ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
 type ShardedCacheSearchMethod byte
 

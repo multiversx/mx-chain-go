@@ -171,6 +171,11 @@ func TestBaseForkDetector_ReconcileFinalCheckpointBelow(t *testing.T) {
 		finalBefore := sfd.finalCheckpoint()
 		lastBefore := sfd.lastCheckpoint()
 		probableBefore := sfd.ProbableHighestNonce()
+		sfd.mutHeaders.Lock()
+		records := sfd.headers[4]
+		sfd.headers[4] = []*headerInfo{records[1], records[0]}
+		recordsBefore := append([]*headerInfo(nil), sfd.headers[4]...)
+		sfd.mutHeaders.Unlock()
 
 		require.False(t, sfd.ReconcileFinalCheckpointFromAuthority(4, []byte("missingAuthority")))
 
@@ -178,8 +183,28 @@ func TestBaseForkDetector_ReconcileFinalCheckpointBelow(t *testing.T) {
 		require.Equal(t, lastBefore, sfd.lastCheckpoint())
 		require.Equal(t, probableBefore, sfd.ProbableHighestNonce())
 		sfd.mutHeaders.RLock()
-		require.NotEmpty(t, sfd.headers[4])
+		require.Equal(t, recordsBefore, sfd.headers[4])
 		require.NotEmpty(t, sfd.headers[5])
+		sfd.mutHeaders.RUnlock()
+	})
+
+	t.Run("missing processed conflict leaves the detector unchanged", func(t *testing.T) {
+		t.Parallel()
+
+		sfd := buildDetector()
+		selectedHash := []byte("selectedAuthority")
+		sfd.mutHeaders.Lock()
+		sfd.headers[4] = []*headerInfo{
+			{nonce: 4, round: 4, hash: []byte("otherAuthority"), state: process.BHNotarized, hasProof: true},
+			{nonce: 4, round: 5, hash: selectedHash, state: process.BHNotarized, hasProof: true},
+		}
+		recordsBefore := append([]*headerInfo(nil), sfd.headers[4]...)
+		sfd.mutHeaders.Unlock()
+
+		require.False(t, sfd.ReconcileFinalCheckpointFromAuthority(4, selectedHash))
+
+		sfd.mutHeaders.RLock()
+		require.Equal(t, recordsBefore, sfd.headers[4])
 		sfd.mutHeaders.RUnlock()
 	})
 }

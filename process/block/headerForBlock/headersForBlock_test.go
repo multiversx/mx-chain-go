@@ -30,15 +30,15 @@ var errorExpected = errors.New("expected error")
 
 func createMockArgs() headerForBlock.ArgHeadersForBlock {
 	return headerForBlock.ArgHeadersForBlock{
-		DataPool:            dataRetriever.NewPoolsHolderMock(),
-		RequestHandler:      &testscommon.RequestHandlerStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
-		BlockTracker:        &mock.BlockTrackerStub{},
-		TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
-		RoundHandler:        &testscommon.RoundHandlerMock{},
-		ExtraDelayForRequestBlockInfoInMilliseconds: 10,
-		GenesisNonce: 12345,
+		DataPool:              dataRetriever.NewPoolsHolderMock(),
+		RequestHandler:        &testscommon.RequestHandlerStub{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ShardCoordinator:      &testscommon.ShardsCoordinatorMock{},
+		BlockTracker:          &mock.BlockTrackerStub{},
+		TxCoordinator:         &testscommon.TransactionCoordinatorMock{},
+		RoundHandler:          &testscommon.RoundHandlerMock{},
+		ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(10 * time.Millisecond),
+		GenesisNonce:          12345,
 	}
 }
 

@@ -195,6 +195,7 @@ func NewShardProcessorEmptyWith3shards(
 				NumFloodingRoundsOutOfSpecs:            40,
 				MaxConsecutiveRoundsOfRatingDecrease:   600,
 				MaxBlockProcessingTimeMs:               1000,
+				ExtraDelayForRequestBlockInfoMs:        1,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
@@ -282,15 +283,15 @@ func NewShardProcessorEmptyWith3shards(
 
 	blockTracker := mock.NewBlockTrackerMock(shardCoordinator, genesisBlocks)
 	headersForBlockComponent, _ := headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
-		DataPool:            dataComponents.DataPool,
-		RequestHandler:      &testscommon.RequestHandlerStub{},
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-		ShardCoordinator:    boostrapComponents.ShardCoordinator(),
-		BlockTracker:        blockTracker,
-		TxCoordinator:       &testscommon.TransactionCoordinatorMock{},
-		RoundHandler:        coreComponents.RoundHandler(),
-		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-		GenesisNonce: 0,
+		DataPool:              dataComponents.DataPool,
+		RequestHandler:        &testscommon.RequestHandlerStub{},
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:      boostrapComponents.ShardCoordinator(),
+		BlockTracker:          blockTracker,
+		TxCoordinator:         &testscommon.TransactionCoordinatorMock{},
+		RoundHandler:          coreComponents.RoundHandler(),
+		ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+		GenesisNonce:          0,
 	})
 
 	argsGasConsumption := ArgsGasConsumption{

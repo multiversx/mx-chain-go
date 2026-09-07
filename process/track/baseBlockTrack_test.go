@@ -155,6 +155,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 				MaxConsecutiveRoundsOfRatingDecrease:   600,
 				MaxBlockProcessingTimeMs:               1000,
 				RoundModulusTriggerWhenSyncIsStuck:     20,
+				ExtraDelayForRequestBlockInfoMs:        1,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
