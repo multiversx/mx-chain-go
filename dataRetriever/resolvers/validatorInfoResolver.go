@@ -1,7 +1,6 @@
 package resolvers
 
 import (
-	"encoding/hex"
 	"fmt"
 	"runtime/debug"
 
@@ -116,7 +115,7 @@ func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P,
 	case dataRetriever.HashType:
 		err = res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
 	case dataRetriever.HashArrayType:
-		err = res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
+		err = res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, source, message.SeqNo())
 	default:
 		err = fmt.Errorf("%w for value %s", dataRetriever.ErrRequestTypeNotImplemented, logger.DisplayByteSlice(rd.Value))
 	}
@@ -138,21 +137,21 @@ func (res *validatorInfoResolver) resolveHashRequest(hash []byte, epoch uint32, 
 }
 
 // resolveMultipleHashesRequest sends the response for a hash array type request
-func (res *validatorInfoResolver) resolveMultipleHashesRequest(hashesBuff []byte, epoch uint32, pid core.PeerID, source p2p.MessageHandler) error {
-	b := batch.Batch{}
-	err := res.marshalizer.Unmarshal(&b, hashesBuff)
+func (res *validatorInfoResolver) resolveMultipleHashesRequest(
+	hashesBuff []byte,
+	epoch uint32,
+	pid core.PeerID,
+	source p2p.MessageHandler,
+	sequence []byte,
+) error {
+	hashes, err := res.parseRequestedHashes(hashesBuff, pid, sequence)
 	if err != nil {
 		return err
 	}
-	hashes := deduplicateHashes(b.Data)
 
 	validatorInfoForHashes, err := res.fetchValidatorInfoForHashes(hashes, epoch)
 	if err != nil {
-		outputHashes := ""
-		for _, hash := range hashes {
-			outputHashes += hex.EncodeToString(hash) + " "
-		}
-		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %s", err, outputHashes)
+		return fmt.Errorf("resolveMultipleHashesRequest error %w for %d hashes", err, len(hashes))
 	}
 
 	return res.sendValidatorInfoForHashes(validatorInfoForHashes, pid, source)
@@ -175,19 +174,19 @@ func (res *validatorInfoResolver) sendValidatorInfoForHashes(validatorInfoForHas
 }
 
 func (res *validatorInfoResolver) fetchValidatorInfoForHashes(hashes [][]byte, epoch uint32) ([][]byte, error) {
-	validatorInfos := make([][]byte, 0)
+	reply := newHashArrayReply()
 	for _, hash := range hashes {
 		validatorInfoForHash, _ := res.fetchValidatorInfoByteSlice(hash, epoch)
-		if validatorInfoForHash != nil {
-			validatorInfos = append(validatorInfos, validatorInfoForHash)
+		if validatorInfoForHash != nil && !reply.add(validatorInfoForHash) {
+			break
 		}
 	}
 
-	if len(validatorInfos) == 0 {
+	if len(reply.data) == 0 {
 		return nil, dataRetriever.ErrValidatorInfoNotFound
 	}
 
-	return validatorInfos, nil
+	return reply.data, nil
 }
 
 func (res *validatorInfoResolver) fetchValidatorInfoByteSlice(hash []byte, epoch uint32) ([]byte, error) {

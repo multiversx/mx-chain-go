@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -36,6 +37,36 @@ func (mp *messageProcessor) canProcessMessage(message p2p.MessageP2P, fromConnec
 	}
 
 	return nil
+}
+
+func (mp *messageProcessor) parseRequestedHashes(
+	hashesBuff []byte,
+	fromConnectedPeer core.PeerID,
+	sequence []byte,
+) ([][]byte, error) {
+	b := batch.Batch{}
+	err := mp.marshalizer.Unmarshal(&b, hashesBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	numHashes := len(b.Data)
+	if numHashes > maxHashesInRequest {
+		return nil, fmt.Errorf("%w: received %d hashes, maximum is %d", dataRetriever.ErrBadRequest, numHashes, maxHashesInRequest)
+	}
+
+	err = mp.antifloodHandler.CanProcessMessagesOnTopic(
+		fromConnectedPeer,
+		mp.topic,
+		uint32(numHashes),
+		uint64(len(hashesBuff)),
+		sequence,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w on resolver topic %s", err, mp.topic)
+	}
+
+	return deduplicateHashes(b.Data), nil
 }
 
 // parseReceivedMessage will transform the received p2p.Message in a RequestData object.

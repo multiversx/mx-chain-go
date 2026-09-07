@@ -1,11 +1,13 @@
 package resolvers
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -200,4 +202,120 @@ func TestMessageProcessor_ParseReceivedMessageShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	require.NotNil(t, rd)
 	assert.Equal(t, expectedValue, rd.Value)
+}
+
+func TestMessageProcessor_ParseRequestedHashesTooManyShouldErr(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hashes := make([][]byte, maxHashesInRequest+1)
+	for index := range hashes {
+		hashes[index] = []byte{byte(index)}
+	}
+	hashesBuff, err := marshalizer.Marshal(&batch.Batch{Data: hashes})
+	require.NoError(t, err)
+
+	wasAccounted := false
+	mp := &messageProcessor{
+		marshalizer: marshalizer,
+		antifloodHandler: &mock.P2PAntifloodHandlerStub{
+			CanProcessMessagesOnTopicCalled: func(_ core.PeerID, _ string, _ uint32, _ uint64, _ []byte) error {
+				wasAccounted = true
+				return nil
+			},
+		},
+	}
+
+	result, err := mp.parseRequestedHashes(hashesBuff, fromConnectedPeer, nil)
+
+	require.ErrorIs(t, err, dataRetriever.ErrBadRequest)
+	require.Nil(t, result)
+	require.False(t, wasAccounted)
+}
+
+func TestMessageProcessor_ParseRequestedHashesShouldAccountAndDeduplicate(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hashes := [][]byte{[]byte("hash1"), []byte("hash1"), []byte("hash2")}
+	hashesBuff, err := marshalizer.Marshal(&batch.Batch{Data: hashes})
+	require.NoError(t, err)
+
+	topic := "topic"
+	sequence := []byte("sequence")
+	mp := &messageProcessor{
+		marshalizer: marshalizer,
+		topic:       topic,
+		antifloodHandler: &mock.P2PAntifloodHandlerStub{
+			CanProcessMessagesOnTopicCalled: func(peer core.PeerID, receivedTopic string, numMessages uint32, totalSize uint64, receivedSequence []byte) error {
+				require.Equal(t, fromConnectedPeer, peer)
+				require.Equal(t, topic, receivedTopic)
+				require.Equal(t, uint32(len(hashes)), numMessages)
+				require.Equal(t, uint64(len(hashesBuff)), totalSize)
+				require.Equal(t, sequence, receivedSequence)
+
+				return nil
+			},
+		},
+	}
+
+	result, err := mp.parseRequestedHashes(hashesBuff, fromConnectedPeer, sequence)
+
+	require.NoError(t, err)
+	require.Equal(t, [][]byte{[]byte("hash1"), []byte("hash2")}, result)
+}
+
+func TestMessageProcessor_ParseRequestedHashesAntifloodErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	marshalizer := &mock.MarshalizerMock{}
+	hashesBuff, err := marshalizer.Marshal(&batch.Batch{Data: [][]byte{[]byte("hash")}})
+	require.NoError(t, err)
+
+	mp := &messageProcessor{
+		marshalizer: marshalizer,
+		antifloodHandler: &mock.P2PAntifloodHandlerStub{
+			CanProcessMessagesOnTopicCalled: func(_ core.PeerID, _ string, _ uint32, _ uint64, _ []byte) error {
+				return expectedErr
+			},
+		},
+	}
+
+	result, err := mp.parseRequestedHashes(hashesBuff, fromConnectedPeer, nil)
+
+	require.ErrorIs(t, err, expectedErr)
+	require.Nil(t, result)
+}
+
+func TestHashArrayReplyShouldLimitAccumulatedData(t *testing.T) {
+	t.Parallel()
+
+	reply := newHashArrayReply()
+	first := bytes.Repeat([]byte{1}, maxHashArrayReplySize/2+1)
+	second := bytes.Repeat([]byte{2}, maxHashArrayReplySize/2)
+
+	require.True(t, reply.add(first))
+	require.False(t, reply.add(second))
+	require.Equal(t, [][]byte{first}, reply.data)
+	require.Equal(t, len(first), reply.size)
+}
+
+func TestHashArrayReplyShouldAllowOneLargeItem(t *testing.T) {
+	t.Parallel()
+
+	reply := newHashArrayReply()
+	largeItem := bytes.Repeat([]byte{1}, maxHashArrayReplySize+1)
+
+	require.True(t, reply.add(largeItem))
+	require.False(t, reply.add([]byte{2}))
+	require.Equal(t, [][]byte{largeItem}, reply.data)
+}
+
+func TestNewHashArrayReplyShouldHaveNonNilData(t *testing.T) {
+	t.Parallel()
+
+	reply := newHashArrayReply()
+
+	require.NotNil(t, reply.data)
 }
