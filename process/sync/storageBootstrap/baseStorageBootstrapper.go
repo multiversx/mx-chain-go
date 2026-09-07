@@ -210,15 +210,18 @@ func (st *storageBootstrapper) loadBlocks() error {
 		log.Debug("cannot save last round in storage ", "error", err.Error())
 	}
 
-	err = st.scheduledTxsExecutionHandler.RollBackToBlock(headerInfo.LastHeader.Hash)
-	if err != nil {
-		scheduledInfo := &process.ScheduledInfo{
-			RootHash:        st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
-			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
-			GasAndFees:      process.GetZeroGasAndFees(),
-			MiniBlocks:      make(block.MiniBlockSlice, 0),
+	currentHeader := st.blkc.GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) && currentHeader.HasScheduledSupport() {
+		err = st.scheduledTxsExecutionHandler.RollBackToBlock(headerInfo.LastHeader.Hash)
+		if err != nil {
+			scheduledInfo := &process.ScheduledInfo{
+				RootHash:        st.bootstrapper.getRootHash(headerInfo.LastHeader.Hash),
+				IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+				GasAndFees:      process.GetZeroGasAndFees(),
+				MiniBlocks:      make(block.MiniBlockSlice, 0),
+			}
+			st.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 		}
-		st.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 	}
 
 	st.highestNonce = headerInfo.LastHeader.Nonce

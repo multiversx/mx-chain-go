@@ -2785,10 +2785,59 @@ func TestBaseProcessor_ProcessScheduledBlockShouldErrWhenProcessorBusy(t *testin
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	err := bp.ProcessScheduledBlock(
-		&block.MetaBlock{}, &block.Body{}, haveTime,
+		&block.HeaderV2{}, &block.Body{}, haveTime,
 	)
 	require.Equal(t, process.ErrBlockProcessorBusy, err)
 	require.False(t, setIdleCalled, "SetIdle should not be called when TrySetBusy fails")
+}
+
+func TestBaseProcessor_ProcessScheduledBlockSkipsUnsupportedHeaders(t *testing.T) {
+	for _, header := range []data.HeaderHandler{&block.MetaBlock{}, &block.MetaBlockV3{}, &block.HeaderV3{}} {
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+			ExecuteAllCalled: func(func() time.Duration) error {
+				t.Fatal("unsupported header reached scheduled execution")
+				return nil
+			},
+			SetScheduledRootHashCalled: func([]byte) { t.Fatal("unsupported header set scheduled root") },
+		}
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+		require.NoError(t, bp.ProcessScheduledBlock(header, &block.Body{}, haveTime))
+	}
+}
+
+func TestBaseProcessor_RevertSkipsScheduledStateForMetaAndV3(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		header data.HeaderHandler
+		active bool
+	}{
+		{"meta", &block.MetaBlock{}, false},
+		{"meta v3", &block.MetaBlockV3{}, false},
+		{"shard v3", &block.HeaderV3{}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+			if tc.active {
+				coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SupernovaFlag)
+				coreComponents.EnableRoundsHandlerField = testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag)
+			}
+			dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler { return tc.header },
+			}
+			arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+			arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+				RollBackToBlockCalled:  func([]byte) error { t.Fatal("scheduled restore must be skipped"); return nil },
+				SetScheduledInfoCalled: func(*process.ScheduledInfo) { t.Fatal("scheduled info must not be set") },
+				ExecuteAllCalled:       func(func() time.Duration) error { t.Fatal("scheduled execution must be skipped"); return nil },
+			}
+			bp, err := blproc.NewShardProcessor(arguments)
+			require.NoError(t, err)
+			bp.RevertCurrentBlock()
+			require.NoError(t, bp.ProcessScheduledBlock(tc.header, &block.Body{}, haveTime))
+		})
+	}
 }
 
 func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
@@ -2819,7 +2868,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 
 		err := bp.ProcessScheduledBlock(
-			&block.MetaBlock{}, &block.Body{}, haveTime,
+			&block.HeaderV2{}, &block.Body{}, haveTime,
 		)
 
 		assert.Equal(t, expectedError, err)
@@ -2850,7 +2899,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 
 		err := bp.ProcessScheduledBlock(
-			&block.MetaBlock{}, &block.Body{}, haveTime,
+			&block.HeaderV2{}, &block.Body{}, haveTime,
 		)
 
 		assert.Equal(t, expectedError, err)
@@ -2929,7 +2978,7 @@ func TestBaseProcessor_ProcessScheduledBlockShouldWork(t *testing.T) {
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	err := bp.ProcessScheduledBlock(
-		&block.MetaBlock{}, &block.Body{}, haveTime,
+		&block.HeaderV2{}, &block.Body{}, haveTime,
 	)
 	require.Nil(t, err)
 

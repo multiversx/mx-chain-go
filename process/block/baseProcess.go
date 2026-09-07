@@ -2261,7 +2261,9 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 			"err", errNotCritical)
 	}
 
-	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
+	if header.HasScheduledSupport() {
+		bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
+	}
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= bp.getPutInStorerMaxTime() {
@@ -2550,8 +2552,7 @@ func (bp *baseProcessor) revertAccountState() {
 
 func (bp *baseProcessor) revertScheduledInfo() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
-	if header.IsHeaderV3() {
-		// v3 headers don't have scheduled info
+	if !header.HasScheduledSupport() {
 		return
 	}
 
@@ -3039,6 +3040,9 @@ func (bp *baseProcessor) Close() error {
 
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
+	if check.IfNil(headerHandler) || !headerHandler.HasScheduledSupport() {
+		return nil
+	}
 	var err error
 	if !bp.processStatusHandler.TrySetBusy("baseProcessor.ProcessScheduledBlock") {
 		return process.ErrBlockProcessorBusy

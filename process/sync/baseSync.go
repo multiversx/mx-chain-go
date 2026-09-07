@@ -1881,7 +1881,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) (err error) {
 
 	defer func() {
 		isHeaderV3 := !check.IfNil(currHeader) && currHeader.IsHeaderV3()
-		if !roleBackOneBlockExecuted && !isHeaderV3 {
+		if !roleBackOneBlockExecuted && !isHeaderV3 && !check.IfNil(currHeader) && currHeader.HasScheduledSupport() {
 			errScheduled := boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 			if errScheduled != nil {
 				rootHash := boot.chainHandler.GetGenesisHeader().GetRootHash()
@@ -1995,7 +1995,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) (err error) {
 			return err
 		}
 
-		if !currHeader.IsHeaderV3() {
+		if currHeader.HasScheduledSupport() {
 			err = boot.scheduledTxsExecutionHandler.RollBackToBlock(prevHeaderHash)
 			if err != nil {
 				scheduledInfo := &process.ScheduledInfo{
@@ -3588,15 +3588,17 @@ func (boot *baseBootstrap) restoreState(
 		boot.chainHandler.SetLastExecutedBlockHeaderAndRootHash(currHeader, currHeaderHash, currRootHash)
 	}
 
-	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
-	if err != nil {
-		scheduledInfo := &process.ScheduledInfo{
-			RootHash:        currHeader.GetRootHash(),
-			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
-			GasAndFees:      process.GetZeroGasAndFees(),
-			MiniBlocks:      make(block.MiniBlockSlice, 0),
+	if currHeader.HasScheduledSupport() {
+		err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
+		if err != nil {
+			scheduledInfo := &process.ScheduledInfo{
+				RootHash:        currHeader.GetRootHash(),
+				IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+				GasAndFees:      process.GetZeroGasAndFees(),
+				MiniBlocks:      make(block.MiniBlockSlice, 0),
+			}
+			boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 		}
-		boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 	}
 
 	err = boot.blockProcessor.RevertStateToBlock(currHeader, boot.scheduledTxsExecutionHandler.GetScheduledRootHash())
