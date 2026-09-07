@@ -3588,17 +3588,23 @@ func (boot *baseBootstrap) restoreState(
 		boot.chainHandler.SetLastExecutedBlockHeaderAndRootHash(currHeader, currHeaderHash, currRootHash)
 	}
 
-	if currHeader.HasScheduledSupport() {
-		err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
+	if !currHeader.HasScheduledSupport() {
+		err = boot.blockProcessor.RevertStateToBlock(currHeader, currRootHash)
 		if err != nil {
-			scheduledInfo := &process.ScheduledInfo{
-				RootHash:        currHeader.GetRootHash(),
-				IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
-				GasAndFees:      process.GetZeroGasAndFees(),
-				MiniBlocks:      make(block.MiniBlockSlice, 0),
-			}
-			boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
+			log.Debug("RevertState", "error", err.Error())
 		}
+		return
+	}
+
+	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
+	if err != nil {
+		scheduledInfo := &process.ScheduledInfo{
+			RootHash:        currHeader.GetRootHash(),
+			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+			GasAndFees:      process.GetZeroGasAndFees(),
+			MiniBlocks:      make(block.MiniBlockSlice, 0),
+		}
+		boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
 	}
 
 	err = boot.blockProcessor.RevertStateToBlock(currHeader, boot.scheduledTxsExecutionHandler.GetScheduledRootHash())
