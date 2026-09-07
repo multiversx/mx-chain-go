@@ -1880,16 +1880,11 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) (err error) {
 	var currBody data.BodyHandler
 
 	defer func() {
-		isHeaderV3 := !check.IfNil(currHeader) && currHeader.IsHeaderV3()
-		if !roleBackOneBlockExecuted && !isHeaderV3 {
+		if !roleBackOneBlockExecuted && !check.IfNil(currHeader) && currHeader.HasScheduledSupport() {
 			errScheduled := boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 			if errScheduled != nil {
-				rootHash := boot.chainHandler.GetGenesisHeader().GetRootHash()
-				if currHeader != nil {
-					rootHash = currHeader.GetRootHash()
-				}
 				scheduledInfo := &process.ScheduledInfo{
-					RootHash:        rootHash,
+					RootHash:        currHeader.GetRootHash(),
 					IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
 					GasAndFees:      process.GetZeroGasAndFees(),
 					MiniBlocks:      make(block.MiniBlockSlice, 0),
@@ -1995,7 +1990,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) (err error) {
 			return err
 		}
 
-		if !currHeader.IsHeaderV3() {
+		if currHeader.HasScheduledSupport() {
 			err = boot.scheduledTxsExecutionHandler.RollBackToBlock(prevHeaderHash)
 			if err != nil {
 				scheduledInfo := &process.ScheduledInfo{
@@ -2458,6 +2453,10 @@ func (boot *baseBootstrap) finishRollBackV3AfterSiblingCommit(pending *pendingV3
 
 func (boot *baseBootstrap) getRootHashFromBlock(hdr data.HeaderHandler, hdrHash []byte) []byte {
 	hdrRootHash := hdr.GetRootHash()
+	if !hdr.HasScheduledSupport() {
+		return hdrRootHash
+	}
+
 	scheduledHdrRootHash, err := boot.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(hdrHash)
 	if err == nil {
 		hdrRootHash = scheduledHdrRootHash
@@ -3586,6 +3585,14 @@ func (boot *baseBootstrap) restoreState(
 	// for legacy (non-V3) headers, keep last executed block header in sync with current block header
 	if check.IfNil(currHeader) || !currHeader.IsHeaderV3() {
 		boot.chainHandler.SetLastExecutedBlockHeaderAndRootHash(currHeader, currHeaderHash, currRootHash)
+	}
+
+	if !currHeader.HasScheduledSupport() {
+		err = boot.blockProcessor.RevertStateToBlock(currHeader, currRootHash)
+		if err != nil {
+			log.Debug("RevertState", "error", err.Error())
+		}
+		return
 	}
 
 	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)

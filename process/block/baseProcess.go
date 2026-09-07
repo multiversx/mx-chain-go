@@ -2261,7 +2261,9 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 			"err", errNotCritical)
 	}
 
-	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
+	if header.HasScheduledSupport() {
+		bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
+	}
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= bp.getPutInStorerMaxTime() {
@@ -2550,8 +2552,7 @@ func (bp *baseProcessor) revertAccountState() {
 
 func (bp *baseProcessor) revertScheduledInfo() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
-	if header.IsHeaderV3() {
-		// v3 headers don't have scheduled info
+	if !header.HasScheduledSupport() {
 		return
 	}
 
@@ -2680,8 +2681,7 @@ func (bp *baseProcessor) commitInEpoch(currentEpoch uint32, epochToCommit uint32
 }
 
 // PruneStateOnRollback recreates the state tries to the root hashes indicated by the provided headers.
-// Not called for V3 headers: shouldAllowRollback returns false for V3 in baseSync.go.
-// V3 block dismissal is handled via cancelPruneForDismissedExecutionResults.
+// V3 rollback uses execution-result pruning instead of this legacy path.
 func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte) {
 	for key := range bp.accountsDB {
 		if !bp.accountsDB[key].IsPruningEnabled() {
@@ -2690,21 +2690,25 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 
 		rootHash, prevRootHash := bp.getRootHashes(currHeader, prevHeader, key)
 		if key == state.UserAccountsState {
-			scheduledRootHash, err := bp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currHeaderHash)
-			if err == nil {
-				rootHash = scheduledRootHash
+			if currHeader.HasScheduledSupport() {
+				scheduledRootHash, err := bp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currHeaderHash)
+				if err == nil {
+					rootHash = scheduledRootHash
+				}
 			}
 
-			scheduledPrevRootHash, err := bp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(prevHeaderHash)
-			if err == nil {
-				prevRootHash = scheduledPrevRootHash
-			}
+			if prevHeader.HasScheduledSupport() {
+				scheduledPrevRootHash, err := bp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(prevHeaderHash)
+				if err == nil {
+					prevRootHash = scheduledPrevRootHash
+				}
 
-			var prevStartScheduledRootHash []byte
-			if prevHeader.GetAdditionalData() != nil && prevHeader.GetAdditionalData().GetScheduledRootHash() != nil {
-				prevStartScheduledRootHash = prevHeader.GetAdditionalData().GetScheduledRootHash()
-				if bytes.Equal(prevStartScheduledRootHash, prevRootHash) {
-					bp.accountsDB[key].CancelPrune(prevStartScheduledRootHash, state.OldRoot)
+				prevAdditionalData := prevHeader.GetAdditionalData()
+				if prevAdditionalData != nil && prevAdditionalData.GetScheduledRootHash() != nil {
+					prevStartScheduledRootHash := prevAdditionalData.GetScheduledRootHash()
+					if bytes.Equal(prevStartScheduledRootHash, prevRootHash) {
+						bp.accountsDB[key].CancelPrune(prevStartScheduledRootHash, state.OldRoot)
+					}
 				}
 			}
 		}
@@ -3039,6 +3043,12 @@ func (bp *baseProcessor) Close() error {
 
 // ProcessScheduledBlock processes a scheduled block
 func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
+	if check.IfNil(headerHandler) {
+		return process.ErrNilBlockHeader
+	}
+	if !headerHandler.HasScheduledSupport() {
+		return nil
+	}
 	var err error
 	if !bp.processStatusHandler.TrySetBusy("baseProcessor.ProcessScheduledBlock") {
 		return process.ErrBlockProcessorBusy

@@ -110,6 +110,132 @@ func TestBaseBootstrap_GetOrderedMiniBlocksShouldErrMissingBody(t *testing.T) {
 	assert.Equal(t, process.ErrMissingBody, err)
 }
 
+func TestBaseBootstrap_GetRootHashFromBlockUsesScheduledRootOnlyForSupportedHeaders(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("header hash")
+	scheduledRootHash := []byte("scheduled root hash")
+
+	t.Run("meta header uses header root", func(t *testing.T) {
+		t.Parallel()
+
+		headerRootHash := []byte("meta root hash")
+		boot := &baseBootstrap{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func([]byte) ([]byte, error) {
+					t.Fatal("scheduled storage should not be queried")
+					return nil, nil
+				},
+			},
+		}
+
+		rootHash := boot.getRootHashFromBlock(&block.MetaBlock{RootHash: headerRootHash}, headerHash)
+
+		require.Equal(t, headerRootHash, rootHash)
+	})
+
+	t.Run("v1 shard header uses header root", func(t *testing.T) {
+		t.Parallel()
+
+		headerRootHash := []byte("v1 root hash")
+		boot := &baseBootstrap{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func([]byte) ([]byte, error) {
+					t.Fatal("scheduled storage should not be queried")
+					return nil, nil
+				},
+			},
+		}
+
+		rootHash := boot.getRootHashFromBlock(&block.Header{RootHash: headerRootHash}, headerHash)
+
+		require.Equal(t, headerRootHash, rootHash)
+	})
+
+	t.Run("v2 shard header uses persisted scheduled root", func(t *testing.T) {
+		t.Parallel()
+
+		boot := &baseBootstrap{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func(receivedHash []byte) ([]byte, error) {
+					require.Equal(t, headerHash, receivedHash)
+					return scheduledRootHash, nil
+				},
+			},
+		}
+		header := &block.HeaderV2{Header: &block.Header{RootHash: []byte("v2 root hash")}}
+
+		rootHash := boot.getRootHashFromBlock(header, headerHash)
+
+		require.Equal(t, scheduledRootHash, rootHash)
+	})
+
+	t.Run("v2 shard header falls back to header root", func(t *testing.T) {
+		t.Parallel()
+
+		headerRootHash := []byte("v2 root hash")
+		boot := &baseBootstrap{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func([]byte) ([]byte, error) {
+					return nil, errors.New("scheduled state not found")
+				},
+			},
+		}
+		header := &block.HeaderV2{Header: &block.Header{RootHash: headerRootHash}}
+
+		rootHash := boot.getRootHashFromBlock(header, headerHash)
+
+		require.Equal(t, headerRootHash, rootHash)
+	})
+}
+
+func TestBaseBootstrap_RestoreStateForUnsupportedHeaderUsesProvidedRoot(t *testing.T) {
+	t.Parallel()
+
+	header := &block.MetaBlock{RootHash: []byte("header root hash")}
+	headerHash := []byte("header hash")
+	restoreRootHash := []byte("restore root hash")
+	var revertedRootHash []byte
+	boot := &baseBootstrap{
+		chainHandler: &testscommon.ChainHandlerStub{
+			SetCurrentBlockHeaderAndRootHashCalled: func(receivedHeader data.HeaderHandler, rootHash []byte) error {
+				require.Same(t, header, receivedHeader)
+				require.Equal(t, restoreRootHash, rootHash)
+				return nil
+			},
+			SetCurrentBlockHeaderHashCalled: func(receivedHash []byte) {
+				require.Equal(t, headerHash, receivedHash)
+			},
+			SetLastExecutedBlockHeaderAndRootHashCalled: func(receivedHeader data.HeaderHandler, receivedHash []byte, rootHash []byte) {
+				require.Same(t, header, receivedHeader)
+				require.Equal(t, headerHash, receivedHash)
+				require.Equal(t, restoreRootHash, rootHash)
+			},
+		},
+		blockProcessor: &testscommon.BlockProcessorStub{
+			RevertStateToBlockCalled: func(receivedHeader data.HeaderHandler, rootHash []byte) error {
+				require.Same(t, header, receivedHeader)
+				revertedRootHash = rootHash
+				return nil
+			},
+		},
+		scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+			RollBackToBlockCalled: func([]byte) error {
+				t.Fatal("scheduled state should not be restored")
+				return nil
+			},
+			GetScheduledRootHashCalled: func() []byte {
+				t.Fatal("scheduled root should not be used")
+				return nil
+			},
+		},
+	}
+
+	boot.restoreState(headerHash, header, restoreRootHash)
+
+	require.Equal(t, restoreRootHash, revertedRootHash)
+}
+
 func TestBaseBootstrap_GetOrderedMiniBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -2338,4 +2464,88 @@ func TestBaseBootstrap_RollBackOneBlockV3RevertsEpochStartTrigger(t *testing.T) 
 		require.True(t, boot.pendingV3RollBack.restoreDone)
 		require.True(t, metricUpdated)
 	})
+}
+
+func TestBaseBootstrap_RollBackFirstV3ToFinalV2DoesNotRestoreScheduledState(t *testing.T) {
+	t.Parallel()
+
+	prevHeaderHash := []byte("final v2 hash")
+	prevHeader := &block.HeaderV2{
+		Header: &block.Header{
+			Nonce:    10,
+			Round:    20,
+			RootHash: []byte("final v2 root hash"),
+		},
+	}
+	currHeaderHash := []byte("first v3 hash")
+	currHeader := &block.HeaderV3{
+		Nonce:    11,
+		Round:    21,
+		PrevHash: prevHeaderHash,
+	}
+	currentHeader := data.HeaderHandler(currHeader)
+	currentHeaderHash := currHeaderHash
+
+	boot := &baseBootstrap{
+		chainHandler: &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return currentHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return currentHeaderHash
+			},
+			SetCurrentBlockHeaderAndHashCalled: func(hash []byte, header data.HeaderHandler) error {
+				currentHeader = header
+				currentHeaderHash = hash
+				return nil
+			},
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{}
+			},
+		},
+		blockBootstrapper: &blockBootstrapperStub{
+			getCurrHeaderCalled: func() (data.HeaderHandler, error) {
+				return currentHeader, nil
+			},
+			getPrevHeaderCalled: func(data.HeaderHandler, storage.Storer) (data.HeaderHandler, error) {
+				return prevHeader, nil
+			},
+			getBlockBodyCalled: func(data.HeaderHandler) (data.BodyHandler, error) {
+				return &block.Body{}, nil
+			},
+		},
+		blockProcessor:    &testscommon.BlockProcessorStub{},
+		epochStartTrigger: &testscommon.EpochStartTriggerStub{},
+		executionManager:  &processMocks.ExecutionManagerMock{},
+		forkDetector: &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return prevHeader.GetNonce()
+			},
+		},
+		headers:              &mock.HeadersCacherStub{},
+		marshalizer:          &marshal.GogoProtoMarshalizer{},
+		hasher:               &hashingMocks.HasherMock{},
+		uint64Converter:      &mock.Uint64ByteSliceConverterMock{},
+		headerNonceHashStore: &storageStubs.StorerStub{},
+		store:                &storageStubs.ChainStorerStub{},
+		bootStorer:           &mock.BoostrapStorerMock{},
+		historyRepo:          &dblookupext.HistoryRepositoryStub{},
+		outportHandler:       &outport.OutportStub{},
+		scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+			RollBackToBlockCalled: func([]byte) error {
+				t.Fatal("scheduled state should remain drained")
+				return nil
+			},
+			SetScheduledInfoCalled: func(*process.ScheduledInfo) {
+				t.Fatal("scheduled state should not be recreated")
+			},
+		},
+		forkInfo: &process.ForkInfo{},
+	}
+
+	err := boot.rollBack(false)
+
+	require.NoError(t, err)
+	require.Same(t, prevHeader, currentHeader)
+	require.Equal(t, prevHeaderHash, currentHeaderHash)
 }
