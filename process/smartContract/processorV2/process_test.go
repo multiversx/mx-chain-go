@@ -3013,8 +3013,73 @@ func TestScProcessor_ProcessSmartContractResultErrGetAccount(t *testing.T) {
 	require.Nil(t, err)
 
 	scr := smartContractResult.SmartContractResult{RcvAddr: []byte("recv address")}
-	_, _ = sc.ProcessSmartContractResult(&scr)
+	_, err = sc.ProcessSmartContractResult(&scr)
+	require.ErrorIs(t, err, accError)
 	require.True(t, called)
+}
+
+func TestScProcessor_ProcessSmartContractResultCrossShardReservedAddressShouldUseFailurePath(t *testing.T) {
+	t.Parallel()
+
+	senderAddress := []byte("sender")
+	receiverAddress := []byte("receiver")
+	var stateAccessTxHash []byte
+	accountsDB := &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			require.Equal(t, receiverAddress, address)
+			return nil, state.ErrAccountAddressIsReserved
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			require.Zero(t, snapshot)
+			return nil
+		},
+		SetTxHashForLatestStateAccessesCalled: func(txHash []byte) {
+			stateAccessTxHash = txHash
+		},
+	}
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.CurrentShard = 1
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, receiverAddress) {
+			return 1
+		}
+
+		return 0
+	}
+	var refund *smartContractResult.SmartContractResult
+	var forwardedTxHash []byte
+	scrForwarder := &mock.IntermediateTransactionHandlerMock{
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, txHash []byte) error {
+			forwardedTxHash = txHash
+			require.Len(t, txs, 1)
+			var ok bool
+			refund, ok = txs[0].(*smartContractResult.SmartContractResult)
+			require.True(t, ok)
+			return nil
+		},
+	}
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.AccountsDB = accountsDB
+	arguments.ShardCoordinator = shardCoordinator
+	arguments.ScrForwarder = scrForwarder
+	sc, err := NewSmartContractProcessorV2(arguments)
+	require.NoError(t, err)
+
+	value := big.NewInt(7)
+	scr := &smartContractResult.SmartContractResult{
+		SndAddr: senderAddress,
+		RcvAddr: receiverAddress,
+		Value:   value,
+	}
+	returnCode, err := sc.ProcessSmartContractResult(scr)
+	require.NoError(t, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.NotNil(t, refund)
+	require.Equal(t, senderAddress, refund.RcvAddr)
+	require.Equal(t, receiverAddress, refund.SndAddr)
+	require.Equal(t, value, refund.Value)
+	require.NotEmpty(t, forwardedTxHash)
+	require.Equal(t, forwardedTxHash, stateAccessTxHash)
 }
 
 func TestScProcessor_ProcessSmartContractResultAccNotInShard(t *testing.T) {
