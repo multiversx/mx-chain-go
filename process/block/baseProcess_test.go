@@ -2980,6 +2980,69 @@ func TestBaseProcessor_RevertSkipsScheduledStateForMetaAndV3(t *testing.T) {
 	}
 }
 
+func TestBaseProcessor_RevertRestoresScheduledStateForV2(t *testing.T) {
+	headerHash := []byte("committed v2 hash")
+	headerRootHash := []byte("committed v2 root hash")
+	header := &block.HeaderV2{
+		Header: &block.Header{RootHash: headerRootHash},
+	}
+	missingStateErr := errors.New("scheduled state not found")
+
+	tests := []struct {
+		name           string
+		rollBackErr    error
+		expectFallback bool
+	}{
+		{name: "restores persisted state"},
+		{name: "uses empty state when persisted state is missing", rollBackErr: missingStateErr, expectFallback: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			rollBackCalls := 0
+			setScheduledInfoCalls := 0
+			coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+			dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return header
+				},
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return headerHash
+				},
+			}
+			arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+			arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+				RollBackToBlockCalled: func(receivedHash []byte) error {
+					rollBackCalls++
+					require.Equal(t, headerHash, receivedHash)
+					return tc.rollBackErr
+				},
+				SetScheduledInfoCalled: func(info *process.ScheduledInfo) {
+					setScheduledInfoCalls++
+					require.True(t, tc.expectFallback)
+					require.Equal(t, headerRootHash, info.RootHash)
+					require.NotNil(t, info.IntermediateTxs)
+					require.Empty(t, info.IntermediateTxs)
+					require.Equal(t, process.GetZeroGasAndFees(), info.GasAndFees)
+					require.NotNil(t, info.MiniBlocks)
+					require.Empty(t, info.MiniBlocks)
+				},
+			}
+			bp, err := blproc.NewShardProcessor(arguments)
+			require.NoError(t, err)
+
+			bp.RevertCurrentBlock()
+
+			require.Equal(t, 1, rollBackCalls)
+			if tc.expectFallback {
+				require.Equal(t, 1, setScheduledInfoCalls)
+			} else {
+				require.Zero(t, setScheduledInfoCalls)
+			}
+		})
+	}
+}
+
 func TestBaseProcessor_ProcessScheduledBlockShouldFail(t *testing.T) {
 	t.Parallel()
 

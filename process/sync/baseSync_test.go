@@ -2549,3 +2549,146 @@ func TestBaseBootstrap_RollBackFirstV3ToFinalV2DoesNotRestoreScheduledState(t *t
 	require.Same(t, prevHeader, currentHeader)
 	require.Equal(t, prevHeaderHash, currentHeaderHash)
 }
+
+func TestBaseBootstrap_RollBackV2RestoresScheduledState(t *testing.T) {
+	missingStateErr := errors.New("scheduled state not found")
+
+	tests := []struct {
+		name           string
+		rollBackErr    error
+		expectFallback bool
+	}{
+		{name: "restores persisted state"},
+		{name: "uses empty state when persisted state is missing", rollBackErr: missingStateErr, expectFallback: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			prevHeaderHash := []byte("target v2 hash")
+			prevHeaderRootHash := []byte("target v2 root hash")
+			prevScheduledRootHash := []byte("target v2 scheduled root hash")
+			prevHeader := &block.HeaderV2{
+				Header: &block.Header{
+					Nonce:    10,
+					Round:    20,
+					RootHash: prevHeaderRootHash,
+				},
+			}
+			currHeaderHash := []byte("current v2 hash")
+			currScheduledRootHash := []byte("current v2 scheduled root hash")
+			currHeader := &block.HeaderV2{
+				Header: &block.Header{
+					Nonce:    11,
+					Round:    21,
+					PrevHash: prevHeaderHash,
+					RootHash: []byte("current v2 root hash"),
+				},
+			}
+			currentHeader := data.HeaderHandler(currHeader)
+			currentHeaderHash := currHeaderHash
+			rollBackCalls := 0
+			setScheduledInfoCalls := 0
+
+			boot := &baseBootstrap{
+				chainHandler: &testscommon.ChainHandlerStub{
+					GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+						return currentHeader
+					},
+					GetCurrentBlockHeaderHashCalled: func() []byte {
+						return currentHeaderHash
+					},
+					SetCurrentBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, rootHash []byte) error {
+						require.Same(t, prevHeader, header)
+						if tc.expectFallback {
+							require.Equal(t, prevHeaderRootHash, rootHash)
+						} else {
+							require.Equal(t, prevScheduledRootHash, rootHash)
+						}
+						currentHeader = header
+						return nil
+					},
+					SetCurrentBlockHeaderHashCalled: func(hash []byte) {
+						currentHeaderHash = hash
+					},
+					SetLastExecutedBlockHeaderAndRootHashCalled: func(data.HeaderHandler, []byte, []byte) {},
+				},
+				blockBootstrapper: &blockBootstrapperStub{
+					getCurrHeaderCalled: func() (data.HeaderHandler, error) {
+						return currentHeader, nil
+					},
+					getPrevHeaderCalled: func(data.HeaderHandler, storage.Storer) (data.HeaderHandler, error) {
+						return prevHeader, nil
+					},
+					getBlockBodyCalled: func(data.HeaderHandler) (data.BodyHandler, error) {
+						return &block.Body{}, nil
+					},
+				},
+				blockProcessor: &testscommon.BlockProcessorStub{
+					RevertStateToBlockCalled: func(header data.HeaderHandler, rootHash []byte) error {
+						require.Same(t, prevHeader, header)
+						if tc.expectFallback {
+							require.Equal(t, prevHeaderRootHash, rootHash)
+						} else {
+							require.Equal(t, prevScheduledRootHash, rootHash)
+						}
+						return nil
+					},
+				},
+				forkDetector: &mock.ForkDetectorMock{
+					GetHighestFinalBlockNonceCalled: func() uint64 {
+						return 0
+					},
+				},
+				headers:              &mock.HeadersCacherStub{},
+				marshalizer:          &marshal.GogoProtoMarshalizer{},
+				hasher:               &hashingMocks.HasherMock{},
+				uint64Converter:      &mock.Uint64ByteSliceConverterMock{},
+				headerNonceHashStore: &storageStubs.StorerStub{},
+				store:                &storageStubs.ChainStorerStub{},
+				bootStorer:           &mock.BoostrapStorerMock{},
+				historyRepo:          &dblookupext.HistoryRepositoryStub{},
+				outportHandler:       &outport.OutportStub{},
+				scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+					GetScheduledRootHashForHeaderCalled: func(headerHash []byte) ([]byte, error) {
+						if tc.expectFallback {
+							return nil, missingStateErr
+						}
+						if bytes.Equal(headerHash, prevHeaderHash) {
+							return prevScheduledRootHash, nil
+						}
+						require.Equal(t, currHeaderHash, headerHash)
+						return currScheduledRootHash, nil
+					},
+					RollBackToBlockCalled: func(headerHash []byte) error {
+						rollBackCalls++
+						require.Equal(t, prevHeaderHash, headerHash)
+						return tc.rollBackErr
+					},
+					SetScheduledInfoCalled: func(info *process.ScheduledInfo) {
+						setScheduledInfoCalls++
+						require.True(t, tc.expectFallback)
+						require.Equal(t, prevHeaderRootHash, info.RootHash)
+						require.NotNil(t, info.IntermediateTxs)
+						require.Empty(t, info.IntermediateTxs)
+						require.Equal(t, process.GetZeroGasAndFees(), info.GasAndFees)
+						require.NotNil(t, info.MiniBlocks)
+						require.Empty(t, info.MiniBlocks)
+					},
+				},
+				forkInfo: &process.ForkInfo{},
+			}
+
+			err := boot.rollBack(false)
+
+			require.NoError(t, err)
+			require.Same(t, prevHeader, currentHeader)
+			require.Equal(t, prevHeaderHash, currentHeaderHash)
+			require.Equal(t, 1, rollBackCalls)
+			if tc.expectFallback {
+				require.Equal(t, 1, setScheduledInfoCalls)
+			} else {
+				require.Zero(t, setScheduledInfoCalls)
+			}
+		})
+	}
+}
