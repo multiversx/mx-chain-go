@@ -1,7 +1,6 @@
 package resolvers
 
 const (
-	maxHashesInRequest    = 1000
 	maxHashArrayReplySize = 1 << 20
 )
 

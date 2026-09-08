@@ -163,7 +163,7 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(
 	fromConnectedPeer core.PeerID,
 	sequence []byte,
 ) error {
-	hashes, err := mbRes.parseRequestedHashes(mbBuff, fromConnectedPeer, sequence)
+	hashes, err := mbRes.parseRequestedHashesWithPartialResponse(mbBuff, fromConnectedPeer, sequence)
 	if err != nil {
 		return err
 	}
