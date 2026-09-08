@@ -201,6 +201,32 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 	}
 }
 
+func (rrh *resolverRequestHandler) requestHashesInBatches(
+	hashes [][]byte,
+	requester HashSliceRequester,
+	epoch uint32,
+	onSuccess func(hashes [][]byte),
+) {
+	for startIndex := 0; startIndex < len(hashes); startIndex += common.MaxHashesInRequest {
+		endIndex := core.MinInt(startIndex+common.MaxHashesInRequest, len(hashes))
+		batch := hashes[startIndex:endIndex]
+
+		err := requester.RequestDataFromHashArray(batch, epoch)
+		if err != nil {
+			log.Debug("requestHashesInBatches.RequestDataFromHashArray",
+				"error", err.Error(),
+				"epoch", epoch,
+				"batch size", len(batch),
+			)
+			continue
+		}
+
+		if onSuccess != nil {
+			onSuccess(batch)
+		}
+	}
+}
+
 func (rrh *resolverRequestHandler) requestReferenceWithChunkIndex(
 	reference []byte,
 	chunkIndex uint32,
@@ -323,17 +349,9 @@ func (rrh *resolverRequestHandler) RequestMiniBlocksForEpoch(destShardID uint32,
 
 	rrh.whiteList.Add(unrequestedHashes)
 
-	err = miniBlocksRequester.RequestDataFromHashArray(unrequestedHashes, epoch)
-	if err != nil {
-		log.Debug("RequestMiniBlocksForEpoch.RequestDataFromHashArray",
-			"error", err.Error(),
-			"epoch", epoch,
-			"num mbs", len(unrequestedHashes),
-		)
-		return
-	}
-
-	rrh.addRequestedItems(unrequestedHashes, suffix)
+	rrh.requestHashesInBatches(unrequestedHashes, miniBlocksRequester, epoch, func(hashes [][]byte) {
+		rrh.addRequestedItems(hashes, suffix)
+	})
 }
 
 // RequestShardHeader method asks for shard header from the connected peers
@@ -723,18 +741,9 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfoForEpoch(hashes [][]byte
 
 	rrh.whiteList.Add(unrequestedHashes)
 
-	err = validatorInfoRequester.RequestDataFromHashArray(unrequestedHashes, epoch)
-	if err != nil {
-		log.Debug("RequestValidatorsInfoForEpoch.RequestDataFromHash",
-			"error", err.Error(),
-			"topic", common.ValidatorInfoTopic,
-			"num hashes", len(unrequestedHashes),
-			"epoch", epoch,
-		)
-		return
-	}
-
-	rrh.addRequestedItems(unrequestedHashes, uniqueValidatorInfoSuffix)
+	rrh.requestHashesInBatches(unrequestedHashes, validatorInfoRequester, epoch, func(hashes [][]byte) {
+		rrh.addRequestedItems(hashes, uniqueValidatorInfoSuffix)
+	})
 }
 
 func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte, suffix string) bool {
@@ -959,15 +968,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashesForEpoch(de
 
 	rrh.whiteList.Add(identifiers)
 
-	err = peerAuthRequester.RequestDataFromHashArray(hashes, epoch)
-	if err != nil {
-		log.Debug("RequestPeerAuthenticationsByHashesForEpoch.RequestDataFromHashArray",
-			"error", err.Error(),
-			"topic", common.PeerAuthenticationTopic,
-			"shard", destShardID,
-			"epoch", epoch,
-		)
-	}
+	rrh.requestHashesInBatches(hashes, peerAuthRequester, epoch, nil)
 }
 
 // RequestEquivalentProofByHash asks for equivalent proof for the provided header hash

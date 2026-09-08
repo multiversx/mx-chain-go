@@ -3,11 +3,13 @@ package resolvers
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -208,9 +210,9 @@ func TestMessageProcessor_ParseRequestedHashesTooManyShouldErr(t *testing.T) {
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	hashes := make([][]byte, maxHashesInRequest+1)
+	hashes := make([][]byte, common.MaxHashesInRequest+1)
 	for index := range hashes {
-		hashes[index] = []byte{byte(index)}
+		hashes[index] = []byte(fmt.Sprintf("hash-%d", index))
 	}
 	hashesBuff, err := marshalizer.Marshal(&batch.Batch{Data: hashes})
 	require.NoError(t, err)
@@ -231,6 +233,66 @@ func TestMessageProcessor_ParseRequestedHashesTooManyShouldErr(t *testing.T) {
 	require.ErrorIs(t, err, dataRetriever.ErrBadRequest)
 	require.Nil(t, result)
 	require.False(t, wasAccounted)
+}
+
+func TestMessageProcessor_ParseRequestedHashesWithPartialResponseAtLimitShouldPreserveOrder(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hashes := make([][]byte, common.MaxHashesInRequest)
+	for index := range hashes {
+		hashes[index] = []byte(fmt.Sprintf("hash-%d", index))
+	}
+	hashesBuff, err := marshalizer.Marshal(&batch.Batch{Data: hashes})
+	require.NoError(t, err)
+
+	mp := &messageProcessor{
+		marshalizer:      marshalizer,
+		antifloodHandler: &mock.P2PAntifloodHandlerStub{},
+	}
+
+	result, err := mp.parseRequestedHashesWithPartialResponse(hashesBuff, fromConnectedPeer, nil)
+
+	require.NoError(t, err)
+	require.Equal(t, hashes, result)
+}
+
+func TestMessageProcessor_ParseRequestedHashesWithPartialResponseShouldSelectOneBatch(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hashes := make([][]byte, 2*common.MaxHashesInRequest+17)
+	for index := range hashes {
+		hashes[index] = []byte(fmt.Sprintf("hash-%d", index))
+	}
+	hashesBuff, err := marshalizer.Marshal(&batch.Batch{Data: hashes})
+	require.NoError(t, err)
+
+	accountedHashes := uint32(0)
+	mp := &messageProcessor{
+		marshalizer: marshalizer,
+		antifloodHandler: &mock.P2PAntifloodHandlerStub{
+			CanProcessMessagesOnTopicCalled: func(_ core.PeerID, _ string, numHashes uint32, size uint64, _ []byte) error {
+				accountedHashes = numHashes
+				require.Equal(t, uint64(len(hashesBuff)), size)
+				return nil
+			},
+		},
+	}
+
+	result, err := mp.parseRequestedHashesWithPartialResponse(hashesBuff, fromConnectedPeer, nil)
+
+	require.NoError(t, err)
+	require.LessOrEqual(t, len(result), common.MaxHashesInRequest)
+	require.Equal(t, uint32(len(result)), accountedHashes)
+	for startIndex := 0; startIndex < len(hashes); startIndex += common.MaxHashesInRequest {
+		endIndex := core.MinInt(startIndex+common.MaxHashesInRequest, len(hashes))
+		if bytes.Equal(result[0], hashes[startIndex]) {
+			require.Equal(t, hashes[startIndex:endIndex], result)
+			return
+		}
+	}
+	require.Fail(t, "selected hashes do not match any request batch")
 }
 
 func TestMessageProcessor_ParseRequestedHashesShouldAccountAndDeduplicate(t *testing.T) {

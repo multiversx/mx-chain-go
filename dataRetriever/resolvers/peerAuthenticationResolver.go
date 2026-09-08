@@ -118,7 +118,7 @@ func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(
 	fromConnectedPeer core.PeerID,
 	sequence []byte,
 ) error {
-	hashes, err := res.parseRequestedHashes(hashesBuff, fromConnectedPeer, sequence)
+	hashes, err := res.parseRequestedHashesWithPartialResponse(hashesBuff, fromConnectedPeer, sequence)
 	if err != nil {
 		return err
 	}

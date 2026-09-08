@@ -144,7 +144,7 @@ func (res *validatorInfoResolver) resolveMultipleHashesRequest(
 	source p2p.MessageHandler,
 	sequence []byte,
 ) error {
-	hashes, err := res.parseRequestedHashes(hashesBuff, pid, sequence)
+	hashes, err := res.parseRequestedHashesWithPartialResponse(hashesBuff, pid, sequence)
 	if err != nil {
 		return err
 	}
