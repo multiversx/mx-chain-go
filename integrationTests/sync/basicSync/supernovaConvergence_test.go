@@ -184,9 +184,11 @@ func TestSupernovaSync_NodesSplitOnSiblings_ConvergeOnLowerRound(t *testing.T) {
 	}
 
 	require.True(t, allOnBlockA(), "nodes did not converge on the lower-round sibling within the bounded number of rounds")
-	for _, n := range shardNodes {
-		assert.Equal(t, uint64(5), n.ForkDetector.GetHighestFinalBlockNonce())
-	}
+	// Island 2 knows both proofs when it adopts A, so finality remains deferred there.
+	assert.Equal(t, uint64(5), pA.ForkDetector.GetHighestFinalBlockNonce())
+	assert.Equal(t, uint64(5), obsA.ForkDetector.GetHighestFinalBlockNonce())
+	assert.Equal(t, uint64(4), pB.ForkDetector.GetHighestFinalBlockNonce())
+	assert.Equal(t, uint64(4), obsB.ForkDetector.GetHighestFinalBlockNonce())
 
 	// the chain stays usable after the switch: island 1 extends A, island 2 follows
 	nonce++
@@ -227,10 +229,9 @@ func TestSupernovaSync_NodesSplitOnSiblings_ConvergeOnLowerRound(t *testing.T) {
 	}
 
 	require.True(t, allExtended(), "nodes did not extend the adopted branch together")
-	// the first extension block carries a round gap (rounds ticked during convergence),
-	// so it is contended: finality holds at the fork nonce and never regresses; it would
-	// catch up only through meta notarization (covered by the chain-simulator suite)
-	for _, n := range shardNodes {
-		assert.Equal(t, uint64(5), n.ForkDetector.GetHighestFinalBlockNonce())
-	}
+	// The first extension carries a round gap, so local finality advances only after meta settlement.
+	assert.Equal(t, uint64(5), pA.ForkDetector.GetHighestFinalBlockNonce())
+	assert.Equal(t, uint64(5), obsA.ForkDetector.GetHighestFinalBlockNonce())
+	assert.Equal(t, uint64(4), pB.ForkDetector.GetHighestFinalBlockNonce())
+	assert.Equal(t, uint64(4), obsB.ForkDetector.GetHighestFinalBlockNonce())
 }

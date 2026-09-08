@@ -50,6 +50,14 @@ func addProofedMetaParent(t *testing.T, pools dataRetriever.PoolsHolder) *block.
 	return parent
 }
 
+func addProofedV3MetaParent(t *testing.T, pools dataRetriever.PoolsHolder) *block.MetaBlockV3 {
+	parent := &block.MetaBlockV3{Nonce: metaParentNonce, Round: metaParentRound}
+	pools.Headers().AddHeader(metaParentHash, parent)
+	addMetaProof(t, pools, metaParentHash, metaParentNonce, metaParentRound)
+
+	return parent
+}
+
 func TestNewMetaFinalityView(t *testing.T) {
 	t.Parallel()
 
@@ -220,6 +228,125 @@ func TestMetaFinalityView_IsMetaHeaderHeldFinal(t *testing.T) {
 		addMetaProof(t, pools, siblingChildHash, 7, metaParentRound+5)
 
 		require.False(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+	})
+}
+
+func TestMetaFinalityView_IsV3MetaHeaderHeldFinal(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("headerHash")
+
+	t.Run("non contended header keeps the fast path", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addProofedV3MetaParent(t, pools)
+
+		header := &block.MetaBlockV3{Nonce: metaParentNonce + 1, Round: metaParentRound + 1, PrevHash: metaParentHash}
+		addMetaProof(t, pools, headerHash, header.Nonce, header.Round)
+
+		require.True(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+	})
+
+	t.Run("contended header without a sibling settles on a proofed child", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addProofedV3MetaParent(t, pools)
+
+		header := &block.MetaBlockV3{Nonce: metaParentNonce + 1, Round: metaParentRound + 4, PrevHash: metaParentHash}
+		addMetaProof(t, pools, headerHash, header.Nonce, header.Round)
+
+		childHash := []byte("childHash")
+		child := &block.MetaBlockV3{Nonce: header.Nonce + 1, Round: header.Round + 1, PrevHash: headerHash}
+		pools.Headers().AddHeader(childHash, child)
+		addMetaProof(t, pools, childHash, child.Nonce, child.Round)
+
+		require.True(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+	})
+
+	t.Run("proofed sibling disables the fast path but reconciliation remains available", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addProofedV3MetaParent(t, pools)
+
+		header := &block.MetaBlockV3{Nonce: metaParentNonce + 1, Round: metaParentRound + 1, PrevHash: metaParentHash}
+		addMetaProof(t, pools, headerHash, header.Nonce, header.Round)
+
+		siblingHash := []byte("siblingHash")
+		sibling := &block.MetaBlockV3{Nonce: header.Nonce, Round: header.Round + 1, PrevHash: metaParentHash}
+		pools.Headers().AddHeader(siblingHash, sibling)
+		addMetaProof(t, pools, siblingHash, sibling.Nonce, sibling.Round)
+
+		require.False(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+
+		childHash := []byte("childHash")
+		child := &block.MetaBlockV3{Nonce: header.Nonce + 1, Round: sibling.Round + 1, PrevHash: headerHash}
+		pools.Headers().AddHeader(childHash, child)
+		addMetaProof(t, pools, childHash, child.Nonce, child.Round)
+		require.False(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+
+		grandChildHash := []byte("grandChildHash")
+		grandChild := &block.MetaBlockV3{Nonce: child.Nonce + 1, Round: child.Round + 1, PrevHash: childHash}
+		pools.Headers().AddHeader(grandChildHash, grandChild)
+		addMetaProof(t, pools, grandChildHash, grandChild.Nonce, grandChild.Round)
+
+		require.True(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+	})
+
+	t.Run("proofed sibling with missing header disables the fast path", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addProofedV3MetaParent(t, pools)
+
+		header := &block.MetaBlockV3{Nonce: metaParentNonce + 1, Round: metaParentRound + 1, PrevHash: metaParentHash}
+		addMetaProof(t, pools, headerHash, header.Nonce, header.Round)
+		addMetaProof(t, pools, []byte("missingSiblingHash"), header.Nonce, header.Round+1)
+
+		require.False(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+	})
+
+	t.Run("missing sibling ancestry requires two proofed descendants", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addProofedV3MetaParent(t, pools)
+
+		header := &block.MetaBlockV3{Nonce: metaParentNonce + 1, Round: metaParentRound + 4, PrevHash: metaParentHash}
+		addMetaProof(t, pools, headerHash, header.Nonce, header.Round)
+		addMetaProof(t, pools, []byte("missingSiblingHash"), header.Nonce, header.Round+1)
+
+		childHash := []byte("childHash")
+		child := &block.MetaBlockV3{Nonce: header.Nonce + 1, Round: header.Round + 1, PrevHash: headerHash}
+		pools.Headers().AddHeader(childHash, child)
+		addMetaProof(t, pools, childHash, child.Nonce, child.Round)
+		require.False(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+
+		grandChildHash := []byte("grandChildHash")
+		grandChild := &block.MetaBlockV3{Nonce: child.Nonce + 1, Round: child.Round + 1, PrevHash: childHash}
+		pools.Headers().AddHeader(grandChildHash, grandChild)
+		addMetaProof(t, pools, grandChildHash, grandChild.Nonce, grandChild.Round)
+
+		require.True(t, view.IsMetaHeaderHeldFinal(header, headerHash))
+	})
+
+	t.Run("proofed header with a different parent does not disable the fast path", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		addProofedV3MetaParent(t, pools)
+
+		header := &block.MetaBlockV3{Nonce: metaParentNonce + 1, Round: metaParentRound + 1, PrevHash: metaParentHash}
+		addMetaProof(t, pools, headerHash, header.Nonce, header.Round)
+
+		otherHash := []byte("otherHash")
+		other := &block.MetaBlockV3{Nonce: header.Nonce, Round: header.Round + 1, PrevHash: []byte("otherParentHash")}
+		pools.Headers().AddHeader(otherHash, other)
+		addMetaProof(t, pools, otherHash, other.Nonce, other.Round)
+
+		require.True(t, view.IsMetaHeaderHeldFinal(header, headerHash))
 	})
 }
 
@@ -395,6 +522,13 @@ func TestMetaFinalityView_IsIncludedInHeldFinalMetaBlock(t *testing.T) {
 		}
 		pools.Headers().AddHeader(metaHash, metaBlock)
 		addMetaProof(t, pools, metaHash, metaParentNonce+1, metaParentRound+1)
+		childHash := []byte("metaChildHash")
+		pools.Headers().AddHeader(childHash, &block.MetaBlockV3{
+			Nonce:    metaParentNonce + 2,
+			Round:    metaParentRound + 2,
+			PrevHash: metaHash,
+		})
+		addMetaProof(t, pools, childHash, metaParentNonce+2, metaParentRound+2)
 
 		require.True(t, view.IsIncludedInHeldFinalMetaBlock(shardID, shardHash, shardNonce, metaParentNonce, metaParentNonce+track.MaxMetaBlocksScannedForInclusion-1))
 	})
@@ -470,6 +604,26 @@ func TestMetaFinalityView_IsDeadMetaBlock(t *testing.T) {
 		addHeader(pools, foreignGrandChildHash, deadNonce+2, foreignChildHash)
 		addMetaProof(t, pools, foreignGrandChildHash, deadNonce+2, deadNonce+3)
 
+		require.True(t, view.IsDeadMetaBlock(deadHash, deadNonce))
+	})
+
+	t.Run("instant held finality and dead branch evidence can coexist", func(t *testing.T) {
+		t.Parallel()
+
+		pools, view := newFinalityViewWithPools(t)
+		parentHash := []byte("deadSourceParent")
+		parent := &block.MetaBlockV3{Nonce: deadNonce - 1, Round: deadNonce - 1}
+		pools.Headers().AddHeader(parentHash, parent)
+		addMetaProof(t, pools, parentHash, parent.Nonce, parent.Round)
+
+		source := &block.MetaBlockV3{Nonce: deadNonce, Round: deadNonce, PrevHash: parentHash}
+		addMetaProof(t, pools, deadHash, source.Nonce, source.Round)
+		addHeader(pools, foreignChildHash, deadNonce+1, []byte("foreignParentHash"))
+		addMetaProof(t, pools, foreignChildHash, deadNonce+1, deadNonce+2)
+		addHeader(pools, foreignGrandChildHash, deadNonce+2, foreignChildHash)
+		addMetaProof(t, pools, foreignGrandChildHash, deadNonce+2, deadNonce+3)
+
+		require.True(t, view.IsMetaHeaderHeldFinal(source, deadHash))
 		require.True(t, view.IsDeadMetaBlock(deadHash, deadNonce))
 	})
 

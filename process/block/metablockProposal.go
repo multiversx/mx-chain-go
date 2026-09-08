@@ -122,6 +122,11 @@ func (mp *metaProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
+	err = mp.updateGasConsumptionLimitsForProposal()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch, metaHdr.Round))
 
 	if metaHdr.IsStartOfEpochBlock() || metaHdr.GetEpochChangeProposed() || mp.epochStartTrigger.GetEpochChangeProposed() {
@@ -316,6 +321,11 @@ func (mp *metaProcessor) VerifyBlockProposal(
 	}
 
 	err = mp.verifyCrossShardMiniBlockDstMe(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.updateGasConsumptionLimitsForProposal()
 	if err != nil {
 		return err
 	}
@@ -1408,18 +1418,33 @@ func (mp *metaProcessor) requestShardHeadersInAdvanceIfNeeded(
 func (mp *metaProcessor) verifyEpochStartData(
 	headerHandler data.MetaHeaderHandler,
 ) bool {
-	epochStartData, err := mp.getComputedEpochStartData(headerHandler.GetEpoch())
-	if err != nil {
-		// only an epoch start header needs the data; for any other header the result is discarded
-		if headerHandler.IsStartOfEpochBlock() {
-			log.Error("verifyEpochStartData: failed to get epoch start data", "error", err)
-		} else {
-			log.Debug("verifyEpochStartData: no epoch start data for header epoch", "error", err)
-		}
+	if !headerHandler.IsStartOfEpochBlock() {
 		return false
 	}
 
-	return epochStartData.Equal(headerHandler.GetEpochStartHandler())
+	epochStart := headerHandler.GetEpochStartHandler()
+	if epochStart == nil {
+		return false
+	}
+
+	economics := epochStart.GetEconomicsHandler()
+	if economics == nil ||
+		economics.GetTotalSupply() == nil ||
+		economics.GetTotalToDistribute() == nil ||
+		economics.GetTotalNewlyMinted() == nil ||
+		economics.GetRewardsPerBlock() == nil ||
+		economics.GetRewardsForProtocolSustainability() == nil ||
+		economics.GetNodePrice() == nil {
+		return false
+	}
+
+	epochStartData, err := mp.getComputedEpochStartData(headerHandler.GetEpoch())
+	if err != nil {
+		log.Error("verifyEpochStartData: failed to get epoch start data", "error", err)
+		return false
+	}
+
+	return epochStartData.Equal(epochStart)
 }
 
 func (mp *metaProcessor) checkEpochCorrectnessV3(

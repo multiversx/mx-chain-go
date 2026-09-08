@@ -46,6 +46,7 @@ func NewShardChainMessenger(
 		peerSignatureHandler:    args.PeerSignatureHandler,
 		keysHandler:             args.KeysHandler,
 		delayedBlockBroadcaster: args.DelayedBroadcaster,
+		processConfigsHandler:   args.ProcessConfigsHandler,
 	}
 
 	scm := &shardChainMessenger{
@@ -155,7 +156,7 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 	}
 
 	// TODO: analyze if we can treat it similar to equivalent proofs broadcast (on interceptors)
-	go scm.BroadcastBlockData(dtb.metaMiniBlocks, dtb.metaTransactions, pkBytes, common.ExtraDelayForBroadcastBlockInfo)
+	go scm.BroadcastBlockData(dtb.metaMiniBlocks, dtb.metaTransactions, pkBytes, header.GetRound())
 	return nil
 }
 
@@ -254,7 +255,7 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataWithEquivalentProofs(
 	}
 
 	// TODO: consider moving this to the initial block broadcast - optimization
-	go scm.BroadcastBlockData(dtb.metaMiniBlocks, dtb.metaTransactions, pkBytes, common.ExtraDelayForBroadcastBlockInfo)
+	go scm.BroadcastBlockData(dtb.metaMiniBlocks, dtb.metaTransactions, pkBytes, header.GetRound())
 }
 
 // PrepareBroadcastBlockDataValidator prepares the validator block data broadcast in case leader broadcast fails

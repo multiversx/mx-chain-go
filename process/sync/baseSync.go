@@ -50,6 +50,19 @@ type txSizeHandler interface {
 	Size() int
 }
 
+type notarizedHeaderSelector interface {
+	getNotarizedHeaderSelection(nonce uint64) notarizedHeaderSelection
+	getHeaderVersion(nonce uint64, hash []byte) (bool, bool)
+}
+
+type notarizedHeaderAuthority interface {
+	notarizedHeaderSelector
+	hasUnresolvedNotarizedAmbiguity() bool
+	getLowestAmbiguousNotarizedHeaderSelection() (notarizedHeaderSelection, bool)
+	applyNotarizedHeaderSelection(nonce uint64, selectedHash []byte) notarizedHeaderResolution
+	getProcessedHeaderHash(nonce uint64) []byte
+}
+
 var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
@@ -87,11 +100,18 @@ type nonceRecoveryInfo struct {
 }
 
 type reconcileEvidence struct {
+	nonce               uint64
+	localHash           []byte
+	competitorHash      []byte
+	lastEvaluatedRound  int64
+	scanCursor          uint64
+	selectedByAuthority bool
+}
+
+type ambiguityRecoveryState struct {
 	nonce              uint64
-	localHash          []byte
-	competitorHash     []byte
-	lastEvaluatedRound int64
 	scanCursor         uint64
+	lastEvaluatedRound int64
 }
 
 type baseBootstrap struct {
@@ -134,6 +154,7 @@ type baseBootstrap struct {
 	mutNodeState          sync.RWMutex
 	isNodeSynchronized    bool
 	isNodeStateCalculated bool
+	nodeStateHasAmbiguity bool
 	hasLastBlock          bool
 	roundIndex            int64
 
@@ -141,6 +162,8 @@ type baseBootstrap struct {
 
 	mutReconcile      sync.Mutex
 	pendingReconcile  *reconcileEvidence
+	mutAmbiguity      sync.Mutex
+	ambiguityRecovery ambiguityRecoveryState
 	mutRecovery       sync.Mutex
 	recoveryState     resyncRecoveryState
 	recoveryActive    atomic.Bool
@@ -269,13 +292,12 @@ func (boot *baseBootstrap) processReceivedProof(headerProof data.HeaderProofHand
 }
 
 func (boot *baseBootstrap) enrichForkDetectorWithProofHeader(headerProof data.HeaderProofHandler) {
-	if headerProof.GetHeaderShardId() == core.MetachainShardId ||
-		!common.IsAsyncExecutionEnabledForEpochAndRound(
-			boot.enableEpochsHandler,
-			boot.enableRoundsHandler,
-			headerProof.GetHeaderEpoch(),
-			headerProof.GetHeaderRound(),
-		) {
+	if !common.IsAsyncExecutionEnabledForEpochAndRound(
+		boot.enableEpochsHandler,
+		boot.enableRoundsHandler,
+		headerProof.GetHeaderEpoch(),
+		headerProof.GetHeaderRound(),
+	) {
 		return
 	}
 
@@ -571,15 +593,19 @@ func (boot *baseBootstrap) waitForHeaderAndProofByHash() error {
 }
 
 func (boot *baseBootstrap) computeNodeState(round int64) {
+	boot.tryResolveNotarizedAmbiguity(round)
+	hasUnresolvedAuthority := boot.hasUnresolvedNotarizedAmbiguity()
+
 	boot.mutNodeState.Lock()
 	defer boot.mutNodeState.Unlock()
 
 	isNodeStateCalculatedInCurrentRound := boot.roundIndex == round && boot.isNodeStateCalculated
-	if isNodeStateCalculatedInCurrentRound {
+	if isNodeStateCalculatedInCurrentRound && boot.nodeStateHasAmbiguity == hasUnresolvedAuthority {
 		return
 	}
 
 	boot.forkInfo = boot.forkDetector.CheckFork()
+	hasUnresolvedAuthority = hasUnresolvedAuthority || boot.hasUnresolvedNotarizedAmbiguity()
 
 	genesisNonce := boot.chainHandler.GetGenesisHeader().GetNonce()
 	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
@@ -598,7 +624,7 @@ func (boot *baseBootstrap) computeNodeState(round int64) {
 	}
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
-	isNodeSynchronized := !boot.forkInfo.IsDetected && boot.hasLastBlock && isNodeConnectedToTheNetwork
+	isNodeSynchronized := !boot.forkInfo.IsDetected && !hasUnresolvedAuthority && boot.hasLastBlock && isNodeConnectedToTheNetwork
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Debug("node has changed its synchronized state",
 			"state", isNodeSynchronized,
@@ -607,6 +633,7 @@ func (boot *baseBootstrap) computeNodeState(round int64) {
 
 	boot.isNodeSynchronized = isNodeSynchronized
 	boot.isNodeStateCalculated = true
+	boot.nodeStateHasAmbiguity = hasUnresolvedAuthority
 	boot.roundIndex = round
 	boot.notifySyncStateListeners(isNodeSynchronized)
 
@@ -1242,6 +1269,9 @@ func (boot *baseBootstrap) syncBlock() error {
 		if err != nil {
 			return err
 		}
+	}
+	if boot.hasUnresolvedNotarizedAmbiguity() {
+		return errBranchAwareSyncRetry
 	}
 
 	var body data.BodyHandler
@@ -2442,14 +2472,49 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	boot.setRequestedHeaderHash(nil)
 	boot.setRequestedHeaderNonce(nil)
 
-	hash := boot.forkDetector.GetNotarizedHeaderHash(nonce)
+	var hash []byte
+	isDirectedV3 := false
+	selectedByAuthority := false
+	selector, ok := boot.forkDetector.(notarizedHeaderSelector)
+	if ok {
+		selection := selector.getNotarizedHeaderSelection(nonce)
+		hash = selection.hash
+		isDirectedV3 = selection.isV3
+		selectedByAuthority = selection.selectedByAuthority
+		if len(selection.candidates) > 1 {
+			round := int64(-1)
+			if !check.IfNil(boot.roundHandler) {
+				round = boot.roundHandler.Index()
+			}
+			boot.tryResolveNotarizedAmbiguity(round)
+			selection = selector.getNotarizedHeaderSelection(nonce)
+			hash = selection.hash
+			isDirectedV3 = selection.isV3
+			selectedByAuthority = selection.selectedByAuthority
+			if len(selection.candidates) > 1 {
+				return nil, nil, errBranchAwareSyncRetry
+			}
+		}
+	} else {
+		hash = boot.forkDetector.GetNotarizedHeaderHash(nonce)
+		isDirectedV3 = len(hash) > 0 && boot.isAsyncExecutionEnabledForHash(hash)
+	}
 	if boot.forkInfo.IsDetected {
-		hash = boot.forkInfo.Hash
+		// A V3 or authority-selected notarization takes precedence over the recovery hint.
+		if !isDirectedV3 && !selectedByAuthority {
+			hash = boot.forkInfo.Hash
+			versionFound := false
+			if ok && len(hash) > 0 {
+				isDirectedV3, versionFound = selector.getHeaderVersion(nonce, hash)
+			}
+			if !versionFound {
+				isDirectedV3 = len(hash) > 0 && boot.isAsyncExecutionEnabledForHash(hash)
+			}
+		}
 	}
 
-	isDirectedV3 := len(hash) > 0 && boot.isAsyncExecutionEnabledForHash(hash)
 	selectedFromProof := false
-	if !isDirectedV3 {
+	if !isDirectedV3 && !selectedByAuthority {
 		proof, err := boot.proofs.GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
 		if err == nil {
 			hash = proof.GetHeaderHash()
@@ -2460,7 +2525,7 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	hash = boot.selectNonBlackListedHash(hash, nonce)
 
 	if hash != nil {
-		if selectedFromProof && boot.shardCoordinator.SelfId() != core.MetachainShardId {
+		if selectedFromProof {
 			return boot.getGenericProofHeaderRequestingIfMissing(nonce, hash)
 		}
 
@@ -2471,19 +2536,148 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	return boot.getHeaderWithNonceRequestingIfMissing(nonce)
 }
 
-func (boot *baseBootstrap) isAsyncExecutionEnabledForHash(hash []byte) bool {
+func (boot *baseBootstrap) hasUnresolvedNotarizedAmbiguity() bool {
 	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
 		return false
 	}
 
+	authority, ok := boot.forkDetector.(notarizedHeaderAuthority)
+	return ok && authority.hasUnresolvedNotarizedAmbiguity()
+}
+
+func (boot *baseBootstrap) tryResolveNotarizedAmbiguity(round int64) bool {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		return false
+	}
+
+	authority, ok := boot.forkDetector.(notarizedHeaderAuthority)
+	if !ok || !authority.hasUnresolvedNotarizedAmbiguity() {
+		return false
+	}
+
+	selection, found := authority.getLowestAmbiguousNotarizedHeaderSelection()
+	if !found || len(selection.candidates) < 2 {
+		boot.clearAmbiguityRecovery(0)
+		return false
+	}
+	if boot.settlementChecker == nil {
+		return true
+	}
+
+	scanCursor, shouldEvaluate := boot.ambiguityRecoveryToEvaluate(selection.candidates[0].nonce, round)
+	if !shouldEvaluate {
+		return true
+	}
+
+	nonce := selection.candidates[0].nonce
+	selectedHash := boot.settlementChecker.resolveNotarizedHeader(nonce, selection.candidates)
+	if len(selectedHash) > 0 {
+		switch authority.applyNotarizedHeaderSelection(nonce, selectedHash) {
+		case notarizedHeaderApplied:
+			boot.clearAmbiguityRecovery(nonce)
+			return authority.hasUnresolvedNotarizedAmbiguity()
+		case notarizedHeaderNeedsReconciliation:
+			if boot.proofs.HasProof(boot.shardCoordinator.SelfId(), selectedHash) {
+				boot.armAuthorityReconciliation(nonce, selectedHash, round)
+			}
+		}
+	}
+
+	boot.requestAmbiguousNotarizedCandidates(selection.candidates)
+	_, _, nextCursor := boot.settlementChecker.prepareInclusionScan(scanCursor)
+	boot.storeAmbiguityScanCursor(nonce, nextCursor)
+
+	return true
+}
+
+func (boot *baseBootstrap) ambiguityRecoveryToEvaluate(nonce uint64, round int64) (uint64, bool) {
+	boot.mutAmbiguity.Lock()
+	defer boot.mutAmbiguity.Unlock()
+
+	if boot.ambiguityRecovery.nonce != nonce {
+		boot.ambiguityRecovery = ambiguityRecoveryState{
+			nonce:              nonce,
+			lastEvaluatedRound: -1,
+		}
+	}
+	if boot.ambiguityRecovery.lastEvaluatedRound == round {
+		return boot.ambiguityRecovery.scanCursor, false
+	}
+
+	boot.ambiguityRecovery.lastEvaluatedRound = round
+	return boot.ambiguityRecovery.scanCursor, true
+}
+
+func (boot *baseBootstrap) storeAmbiguityScanCursor(nonce uint64, scanCursor uint64) {
+	boot.mutAmbiguity.Lock()
+	if boot.ambiguityRecovery.nonce == nonce {
+		boot.ambiguityRecovery.scanCursor = scanCursor
+	}
+	boot.mutAmbiguity.Unlock()
+}
+
+func (boot *baseBootstrap) clearAmbiguityRecovery(nonce uint64) {
+	boot.mutAmbiguity.Lock()
+	if nonce == 0 || boot.ambiguityRecovery.nonce == nonce {
+		boot.ambiguityRecovery = ambiguityRecoveryState{}
+	}
+	boot.mutAmbiguity.Unlock()
+}
+
+func (boot *baseBootstrap) requestAmbiguousNotarizedCandidates(candidates []notarizedHeaderCandidate) {
+	shardID := boot.shardCoordinator.SelfId()
+	if shardID == core.MetachainShardId {
+		return
+	}
+
+	for _, candidate := range candidates {
+		if _, err := boot.headers.GetHeaderByHash(candidate.hash); err != nil {
+			boot.requestHandler.RequestShardHeaderForEpoch(shardID, candidate.hash, candidate.epoch)
+		}
+		if !boot.proofs.HasProof(shardID, candidate.hash) {
+			boot.requestHandler.RequestEquivalentProofByHashForEpoch(shardID, candidate.hash, candidate.epoch)
+		}
+	}
+}
+
+func (boot *baseBootstrap) armAuthorityReconciliation(nonce uint64, selectedHash []byte, round int64) {
+	authority, ok := boot.forkDetector.(notarizedHeaderAuthority)
+	if !ok {
+		return
+	}
+	localHash := authority.getProcessedHeaderHash(nonce)
+	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) || currentHeader.GetNonce() < nonce || len(localHash) == 0 || bytes.Equal(localHash, selectedHash) {
+		return
+	}
+
+	boot.mutReconcile.Lock()
+	defer boot.mutReconcile.Unlock()
+
+	if boot.pendingReconcile != nil && boot.pendingReconcile.nonce == nonce &&
+		bytes.Equal(boot.pendingReconcile.localHash, localHash) &&
+		bytes.Equal(boot.pendingReconcile.competitorHash, selectedHash) &&
+		boot.pendingReconcile.selectedByAuthority {
+		return
+	}
+
+	boot.pendingReconcile = &reconcileEvidence{
+		nonce:               nonce,
+		localHash:           append([]byte(nil), localHash...),
+		competitorHash:      append([]byte(nil), selectedHash...),
+		lastEvaluatedRound:  round,
+		selectedByAuthority: true,
+	}
+}
+
+func (boot *baseBootstrap) isAsyncExecutionEnabledForHash(hash []byte) bool {
 	header, err := boot.getHeaderFromPool(hash)
-	if err == nil && header.GetShardID() != core.MetachainShardId &&
-		common.IsAsyncExecutionEnabledForEpochAndRound(
-			boot.enableEpochsHandler,
-			boot.enableRoundsHandler,
-			header.GetEpoch(),
-			header.GetRound(),
-		) {
+	if err == nil && common.IsAsyncExecutionEnabledForEpochAndRound(
+		boot.enableEpochsHandler,
+		boot.enableRoundsHandler,
+		header.GetEpoch(),
+		header.GetRound(),
+	) {
 		return true
 	}
 
@@ -2492,13 +2686,12 @@ func (boot *baseBootstrap) isAsyncExecutionEnabledForHash(hash []byte) bool {
 		return false
 	}
 
-	return proof.GetHeaderShardId() != core.MetachainShardId &&
-		common.IsAsyncExecutionEnabledForEpochAndRound(
-			boot.enableEpochsHandler,
-			boot.enableRoundsHandler,
-			proof.GetHeaderEpoch(),
-			proof.GetHeaderRound(),
-		)
+	return common.IsAsyncExecutionEnabledForEpochAndRound(
+		boot.enableEpochsHandler,
+		boot.enableRoundsHandler,
+		proof.GetHeaderEpoch(),
+		proof.GetHeaderRound(),
+	)
 }
 
 func (boot *baseBootstrap) getGenericProofHeaderRequestingIfMissing(
@@ -2507,7 +2700,7 @@ func (boot *baseBootstrap) getGenericProofHeaderRequestingIfMissing(
 ) (data.HeaderHandler, []byte, error) {
 	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
 	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
-	if check.IfNil(currentHeader) || currentHeader.GetShardID() == core.MetachainShardId || len(currentHash) == 0 ||
+	if check.IfNil(currentHeader) || len(currentHash) == 0 ||
 		!common.IsAsyncExecutionEnabledForEpochAndRound(
 			boot.enableEpochsHandler,
 			boot.enableRoundsHandler,
@@ -2554,11 +2747,7 @@ func (boot *baseBootstrap) getGenericProofHeaderRequestingIfMissing(
 
 	if len(missingProofs) > 0 {
 		for _, proof := range missingProofs {
-			boot.requestHandler.RequestShardHeaderForEpoch(
-				boot.shardCoordinator.SelfId(),
-				proof.GetHeaderHash(),
-				proof.GetHeaderEpoch(),
-			)
+			boot.requestProofHeader(proof)
 		}
 
 		return nil, nil, errBranchAwareSyncRetry
@@ -2566,6 +2755,20 @@ func (boot *baseBootstrap) getGenericProofHeaderRequestingIfMissing(
 
 	boot.requestUnknownCanonicalHeader(nonce, currentHeader.GetNonce())
 	return nil, nil, errBranchAwareSyncRetry
+}
+
+func (boot *baseBootstrap) requestProofHeader(proof data.HeaderProofHandler) {
+	shardID := boot.shardCoordinator.SelfId()
+	if shardID == core.MetachainShardId {
+		boot.requestHandler.RequestMetaHeaderForEpoch(proof.GetHeaderHash(), proof.GetHeaderEpoch())
+		return
+	}
+
+	boot.requestHandler.RequestShardHeaderForEpoch(
+		shardID,
+		proof.GetHeaderHash(),
+		proof.GetHeaderEpoch(),
+	)
 }
 
 func (boot *baseBootstrap) requestUnknownCanonicalHeader(nonce uint64, currentNonce uint64) {
@@ -3030,24 +3233,110 @@ func (boot *baseBootstrap) tryReconcileEquivocation(round int64) bool {
 	if !shouldEvaluate {
 		return false
 	}
+	boot.requestMissingPreferredReconcileHeader(evidence)
+
+	if evidence.selectedByAuthority {
+		candidates := []notarizedHeaderCandidate{
+			{hash: evidence.localHash, nonce: evidence.nonce},
+			{hash: evidence.competitorHash, nonce: evidence.nonce},
+		}
+		selectedHash := boot.settlementChecker.resolveNotarizedHeader(evidence.nonce, candidates)
+		if bytes.Equal(selectedHash, evidence.localHash) {
+			boot.clearReconcileEvidence(evidence)
+			return false
+		}
+		if !bytes.Equal(selectedHash, evidence.competitorHash) ||
+			!boot.proofs.HasProof(boot.shardCoordinator.SelfId(), evidence.competitorHash) {
+			_, _, nextCursor := boot.settlementChecker.prepareInclusionScan(evidence.scanCursor)
+			boot.storeReconcileScanCursor(evidence, nextCursor)
+			return false
+		}
+
+		return boot.applyReconcileSwitch(evidence)
+	}
 
 	scanFrom, scanTo, nextCursor := boot.settlementChecker.prepareInclusionScan(evidence.scanCursor)
 	boot.storeReconcileScanCursor(evidence, nextCursor)
 
-	if boot.settlementChecker.isSettled(evidence.nonce, evidence.localHash, scanFrom, scanTo) {
+	competitorHash := evidence.competitorHash
+	if !boot.proofs.HasProof(boot.shardCoordinator.SelfId(), competitorHash) {
+		competitorHash = nil
+	}
+	localSettled, competitorSettled := boot.settlementChecker.settlementVerdict(
+		evidence.nonce, evidence.localHash, competitorHash, scanFrom, scanTo)
+	if localSettled {
 		boot.clearReconcileEvidence(evidence)
 		return false
 	}
 
-	selfID := boot.shardCoordinator.SelfId()
-	isCompetitorSettled := boot.proofs.HasProof(selfID, evidence.competitorHash) &&
-		boot.settlementChecker.isSettled(evidence.nonce, evidence.competitorHash, scanFrom, scanTo)
-	if !isCompetitorSettled {
+	if !competitorSettled {
 		// the authority's verdict may still arrive; keep the evidence armed for the next round
 		return false
 	}
 
+	return boot.applyReconcileSwitch(evidence)
+}
+
+func (boot *baseBootstrap) requestMissingPreferredReconcileHeader(evidence *reconcileEvidence) {
+	if boot.shardCoordinator.SelfId() != core.MetachainShardId {
+		return
+	}
+	currentHeader, currentHash := boot.chainHandler.GetCurrentBlockHeaderAndHash()
+	if check.IfNil(currentHeader) || !currentHeader.IsHeaderV3() || currentHeader.GetNonce() != evidence.nonce ||
+		!bytes.Equal(currentHash, evidence.localHash) {
+		return
+	}
+
+	proof, err := boot.proofs.GetProofByNonce(evidence.nonce, core.MetachainShardId)
+	if err != nil || check.IfNil(proof) || bytes.Equal(proof.GetHeaderHash(), evidence.localHash) {
+		return
+	}
+	if !isLowerRoundOrHash(proof.GetHeaderRound(), proof.GetHeaderHash(), currentHeader.GetRound(), currentHash) {
+		return
+	}
+
+	header, err := boot.headers.GetHeaderByHash(proof.GetHeaderHash())
+	if err != nil || check.IfNil(header) {
+		boot.requestProofHeader(proof)
+		return
+	}
+	if bytes.Equal(header.GetPrevHash(), currentHeader.GetPrevHash()) {
+		return
+	}
+
+	proofs, err := boot.proofs.GetProofsByNonce(evidence.nonce, core.MetachainShardId)
+	if err != nil {
+		return
+	}
+	for _, candidateProof := range proofs {
+		if check.IfNil(candidateProof) || bytes.Equal(candidateProof.GetHeaderHash(), evidence.localHash) ||
+			bytes.Equal(candidateProof.GetHeaderHash(), proof.GetHeaderHash()) ||
+			!isLowerRoundOrHash(candidateProof.GetHeaderRound(), candidateProof.GetHeaderHash(), currentHeader.GetRound(), currentHash) {
+			continue
+		}
+
+		candidateHeader, getErr := boot.headers.GetHeaderByHash(candidateProof.GetHeaderHash())
+		if getErr != nil || check.IfNil(candidateHeader) {
+			boot.requestProofHeader(candidateProof)
+			return
+		}
+		if bytes.Equal(candidateHeader.GetPrevHash(), currentHeader.GetPrevHash()) {
+			return
+		}
+	}
+}
+
+func (boot *baseBootstrap) applyReconcileSwitch(evidence *reconcileEvidence) bool {
 	boot.clearReconcileEvidence(evidence)
+	var reconciled bool
+	if evidence.selectedByAuthority {
+		reconciled = boot.forkDetector.ReconcileFinalCheckpointFromAuthority(evidence.nonce, evidence.competitorHash)
+	} else {
+		reconciled = boot.forkDetector.ReconcileFinalCheckpoint(evidence.nonce)
+	}
+	if !reconciled {
+		return false
+	}
 
 	log.Error("reconcile backstop: switching away from a finalized block on equivocation evidence",
 		"nonce", evidence.nonce,
@@ -3055,7 +3344,6 @@ func (boot *baseBootstrap) tryReconcileEquivocation(round int64) bool {
 		"competitor hash", evidence.competitorHash)
 	boot.statusHandler.Increment(common.MetricNumReconcileSwitches)
 
-	boot.forkDetector.ReconcileFinalCheckpoint(evidence.nonce)
 	process.AddHeaderToBlackList(boot.blackListHandler, evidence.localHash)
 	boot.forkDetector.SetRollBackNonce(evidence.nonce)
 
@@ -3089,6 +3377,15 @@ func (boot *baseBootstrap) invalidateNodeState() {
 }
 
 func (boot *baseBootstrap) reconcileEvidenceStillApplies(evidence *reconcileEvidence) bool {
+	if evidence.selectedByAuthority {
+		authority, ok := boot.forkDetector.(notarizedHeaderAuthority)
+		if !ok || !bytes.Equal(authority.getProcessedHeaderHash(evidence.nonce), evidence.localHash) {
+			return false
+		}
+		currentHeader := boot.chainHandler.GetCurrentBlockHeader()
+		return !check.IfNil(currentHeader) && currentHeader.GetNonce() >= evidence.nonce
+	}
+
 	currentHeader := boot.chainHandler.GetCurrentBlockHeader()
 	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
 

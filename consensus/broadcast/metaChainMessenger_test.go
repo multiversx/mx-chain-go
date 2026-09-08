@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
@@ -54,6 +53,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			AlarmScheduler:             alarmScheduler,
 			KeysHandler:                &testscommon.KeysHandlerStub{},
 			DelayedBroadcaster:         delayedBroadcaster,
+			ProcessConfigsHandler:      createTestProcessConfigsHandler(),
 		},
 	}
 }
@@ -269,8 +269,8 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 
 		err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions, nodePkBytes)
 		require.Nil(t, err)
-		sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
-			common.ExtraDelayForBroadcastBlockInfo +
+		sleepTime := testExtraDelayBetweenBroadcastMbsAndTxs +
+			testExtraDelayForBroadcastBlockInfo +
 			time.Millisecond*100
 		time.Sleep(sleepTime)
 
@@ -292,8 +292,8 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 
 		err := mcm.BroadcastBlockDataLeader(nil, miniBlocks, transactions, []byte("pk bytes"))
 		require.Nil(t, err)
-		sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
-			common.ExtraDelayForBroadcastBlockInfo +
+		sleepTime := testExtraDelayBetweenBroadcastMbsAndTxs +
+			testExtraDelayForBroadcastBlockInfo +
 			time.Millisecond*100
 		time.Sleep(sleepTime)
 

@@ -49,6 +49,11 @@ func (ost *ownShardTracker) ComputeOwnShardStuck(lastExecutionResultsInfo data.B
 	ost.ownShardStuck.Store(false)
 }
 
+// ResetOwnShardStuck restores the unstuck state.
+func (ost *ownShardTracker) ResetOwnShardStuck() {
+	ost.ownShardStuck.Store(false)
+}
+
 // IsOwnShardStuck returns true if the own shard is stuck, false otherwise
 func (ost *ownShardTracker) IsOwnShardStuck() bool {
 	return ost.ownShardStuck.Load()

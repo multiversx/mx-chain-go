@@ -600,7 +600,7 @@ func createMetaForkDetectorForFinality(enableEpochsHandler common.EnableEpochsHa
 		0,
 		0,
 		enableEpochsHandler,
-		&testscommon.EnableRoundsHandlerStub{},
+		testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag),
 		&dataRetriever.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
 				return true
@@ -628,10 +628,10 @@ func TestMetaForkDetector_DeferredFinalityUnderSupernova(t *testing.T) {
 	}
 
 	hash1, hash2, hash3, hash4 := []byte("hash1"), []byte("hash2"), []byte("hash3"), []byte("hash4")
-	hdr1 := &block.MetaBlock{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
-	contendedHdr2 := &block.MetaBlock{Nonce: 2, Round: 4, PrevHash: hash1, PubKeysBitmap: []byte("X")}
-	contendedHdr3 := &block.MetaBlock{Nonce: 3, Round: 7, PrevHash: hash2, PubKeysBitmap: []byte("X")}
-	cleanHdr4 := &block.MetaBlock{Nonce: 4, Round: 8, PrevHash: hash3, PubKeysBitmap: []byte("X")}
+	hdr1 := &block.MetaBlockV3{Epoch: 1, Nonce: 1, Round: 1}
+	contendedHdr2 := &block.MetaBlockV3{Epoch: 1, Nonce: 2, Round: 4, PrevHash: hash1}
+	contendedHdr3 := &block.MetaBlockV3{Epoch: 1, Nonce: 3, Round: 7, PrevHash: hash2}
+	cleanHdr4 := &block.MetaBlockV3{Epoch: 1, Nonce: 4, Round: 8, PrevHash: hash3}
 
 	t.Run("contended block defers finality and settles on the next committed child", func(t *testing.T) {
 		t.Parallel()
@@ -659,7 +659,7 @@ func TestMetaForkDetector_DeferredFinalityUnderSupernova(t *testing.T) {
 		mfd := createMetaForkDetectorForFinality(supernovaHandler)
 		mfd.AddCheckPoint(10, 5, []byte("headHash"))
 
-		olderHdr := &block.MetaBlock{Nonce: 3, Round: 4, PrevHash: []byte("otherHash"), PubKeysBitmap: []byte("X")}
+		olderHdr := &block.MetaBlockV3{Epoch: 1, Nonce: 3, Round: 4, PrevHash: []byte("otherHash")}
 		_ = mfd.AddHeader(olderHdr, hash3, process.BHProcessed, nil, nil)
 		require.Equal(t, uint64(0), mfd.FinalCheckpointNonce())
 	})
@@ -690,8 +690,8 @@ func TestMetaForkDetector_SettledWatermarkUnderSupernova(t *testing.T) {
 	}
 
 	hash1, hash2 := []byte("hash1"), []byte("hash2")
-	hdr1 := &block.MetaBlock{Nonce: 1, Round: 1, PubKeysBitmap: []byte("X")}
-	cleanHdr2 := &block.MetaBlock{Nonce: 2, Round: 2, PrevHash: hash1, PubKeysBitmap: []byte("X")}
+	hdr1 := &block.MetaBlockV3{Epoch: 1, Nonce: 1, Round: 1}
+	cleanHdr2 := &block.MetaBlockV3{Epoch: 1, Nonce: 2, Round: 2, PrevHash: hash1}
 
 	t.Run("instant finality does not advance the settled watermark, settle-on-child does", func(t *testing.T) {
 		t.Parallel()

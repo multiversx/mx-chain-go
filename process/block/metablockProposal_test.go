@@ -1113,6 +1113,12 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		resetOwnShardStuck := false
+		blockTracker, ok := arguments.BlockTracker.(*mock.BlockTrackerMock)
+		require.True(t, ok)
+		blockTracker.ResetOwnShardStuckCalled = func() {
+			resetOwnShardStuck = true
+		}
 		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
 			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler { return nil },
 		}
@@ -1124,6 +1130,7 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, header)
 		require.NotNil(t, body)
+		require.True(t, resetOwnShardStuck)
 	})
 	t.Run("no mini blocks added if epoch change propose set", func(t *testing.T) {
 		t.Parallel()
@@ -1783,6 +1790,12 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		computedOwnShardStuck := false
+		blockTracker, ok := arguments.BlockTracker.(*mock.BlockTrackerMock)
+		require.True(t, ok)
+		blockTracker.ComputeOwnShardStuckCalled = func(_ data.BaseExecutionResultHandler, _ uint64) {
+			computedOwnShardStuck = true
+		}
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
@@ -1796,6 +1809,7 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 
 		err = mp.VerifyBlockProposal(header, body, haveTime)
 		require.NoError(t, err)
+		require.True(t, computedOwnShardStuck)
 	})
 	t.Run("epoch change proposed with miniblocks in body, should error", func(t *testing.T) {
 		t.Parallel()
@@ -3503,6 +3517,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{}, {},
 			},
+			Economics: validEpochStartEconomics(),
 		}
 
 		metaHeader := &block.MetaBlockV3{
@@ -3705,6 +3720,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			LastFinalizedHeaders: []block.EpochStartShardData{
 				{}, {},
 			},
+			Economics: validEpochStartEconomics(),
 		}
 		metaHeader := &block.MetaBlockV3{
 			Epoch:            2,
@@ -3758,6 +3774,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			Epoch: 2,
 			EpochStartData: &block.EpochStart{
 				LastFinalizedHeaders: epochStartData.LastFinalizedHeaders,
+				Economics:            epochStartData.Economics,
 			},
 		})
 		require.Nil(t, err)
@@ -4113,6 +4130,17 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 	})
 }
 
+func validEpochStartEconomics() block.Economics {
+	return block.Economics{
+		TotalSupply:                      big.NewInt(0),
+		TotalToDistribute:                big.NewInt(0),
+		TotalNewlyMinted:                 big.NewInt(0),
+		RewardsPerBlock:                  big.NewInt(0),
+		RewardsForProtocolSustainability: big.NewInt(0),
+		NodePrice:                        big.NewInt(0),
+	}
+}
+
 func TestMetaProcessor_VerifyEpochStartData(t *testing.T) {
 	t.Parallel()
 
@@ -4141,12 +4169,13 @@ func TestMetaProcessor_VerifyEpochStartData(t *testing.T) {
 			Epoch: 1,
 			EpochStartData: &block.EpochStart{
 				LastFinalizedHeaders: lastFinalizedData,
-				Economics:            block.Economics{},
+				Economics:            validEpochStartEconomics(),
 			},
 		})
 
 		epochStartData := &block.EpochStart{
 			LastFinalizedHeaders: lastFinalizedData,
+			Economics:            validEpochStartEconomics(),
 		}
 		metaHeader := &block.MetaBlockV3{
 			Epoch:      1,
@@ -4198,6 +4227,96 @@ func TestMetaProcessor_VerifyEpochStartData(t *testing.T) {
 		ok := mp.VerifyEpochStartData(metaHeader)
 		require.False(t, ok)
 	})
+}
+
+func TestMetaProcessor_VerifyEpochStartDataRejectsNilEconomicsFields(t *testing.T) {
+	t.Parallel()
+
+	lastFinalizedData := []block.EpochStartShardData{{
+		ShardID:    1,
+		Epoch:      1,
+		Nonce:      1,
+		HeaderHash: []byte("headerHash1"),
+	}}
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	mp, err := blproc.NewMetaProcessor(arguments)
+	require.NoError(t, err)
+
+	testCases := map[string]func(*block.Economics){
+		"total supply": func(economics *block.Economics) {
+			economics.TotalSupply = nil
+		},
+		"total to distribute": func(economics *block.Economics) {
+			economics.TotalToDistribute = nil
+		},
+		"total newly minted": func(economics *block.Economics) {
+			economics.TotalNewlyMinted = nil
+		},
+		"rewards per block": func(economics *block.Economics) {
+			economics.RewardsPerBlock = nil
+		},
+		"protocol sustainability rewards": func(economics *block.Economics) {
+			economics.RewardsForProtocolSustainability = nil
+		},
+		"node price": func(economics *block.Economics) {
+			economics.NodePrice = nil
+		},
+	}
+
+	for name, clearField := range testCases {
+		t.Run(name, func(t *testing.T) {
+			economics := validEpochStartEconomics()
+			clearField(&economics)
+			header := &block.MetaBlockV3{
+				Epoch: 1,
+				EpochStart: block.EpochStart{
+					LastFinalizedHeaders: lastFinalizedData,
+					Economics:            economics,
+				},
+			}
+
+			require.False(t, mp.VerifyEpochStartData(header))
+		})
+	}
+
+	require.False(t, mp.VerifyEpochStartData(&block.MetaBlockV3{Epoch: 1}))
+}
+
+func TestMetaProcessor_VerifyGasLimitRejectsIncomingMiniBlocksWhenOwnShardIsStuck(t *testing.T) {
+	t.Parallel()
+
+	_, incomingMiniBlock := createMiniBlock("incomingMBHash", 1, core.MetachainShardId)
+	incomingMiniBlockHeader := block.MiniBlockHeader{
+		Hash:            []byte("incomingMBHash"),
+		SenderShardID:   1,
+		ReceiverShardID: core.MetachainShardId,
+	}
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.DataPool = adaptDataPoolForVerifyGas(dataComponents.DataPool)
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.BlockTracker = &mock.BlockTrackerMock{
+		IsOwnShardStuckCalled: func() bool {
+			return true
+		},
+	}
+	gasAccountingCalled := false
+	arguments.GasComputation = &testscommon.GasComputationMock{
+		ResetCalled: func() {
+			gasAccountingCalled = true
+		},
+		AddIncomingMiniBlocksCalled: func(_ []data.MiniBlockHeaderHandler, _ map[string][]data.TransactionHandler) (int, int, error) {
+			gasAccountingCalled = true
+			return 0, 0, nil
+		},
+	}
+	mp, err := blproc.NewMetaProcessor(arguments)
+	require.NoError(t, err)
+	header := &block.MetaBlockV3{MiniBlockHeaders: []block.MiniBlockHeader{incomingMiniBlockHeader}}
+
+	err = mp.VerifyGasLimit(header, block.MiniBlockSlice{incomingMiniBlock}, false)
+	require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
+	require.False(t, gasAccountingCalled)
 }
 
 func TestMetaProcessor_processIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
@@ -6425,10 +6544,9 @@ func TestMetaProcessor_ComputedEpochStartDataEpochGuard(t *testing.T) {
 		LastFinalizedHeaders: []block.EpochStartShardData{
 			{ShardID: 0, HeaderHash: []byte("shard header hash")},
 		},
-		Economics: block.Economics{
-			PrevEpochStartRound: 100,
-		},
+		Economics: validEpochStartEconomics(),
 	}
+	epochStartData.Economics.PrevEpochStartRound = 100
 
 	buildProcessor := func(t *testing.T) epochStartDataProcessor {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()

@@ -446,6 +446,9 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 	if !sr.shouldSendProof() {
 		return false, nil
 	}
+	if sr.ShouldRefuseCompetingParent(sr.GetHeader().GetEpoch(), sr.GetHeader().GetRound()) {
+		return false, nil
+	}
 
 	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
@@ -470,6 +473,9 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 
 	// Re-check grace period after aggregation which may have been slow under CPU contention
 	if !sr.shouldSendProof() {
+		return false, nil
+	}
+	if sr.ShouldRefuseCompetingParent(sr.GetHeader().GetEpoch(), sr.GetHeader().GetRound()) {
 		return false, nil
 	}
 
@@ -755,6 +761,9 @@ func (sr *subroundEndRound) createAndBroadcastProof(
 ) error {
 	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		// no need to broadcast a proof if already received and verified one
+		return ErrProofAlreadyPropagated
+	}
+	if sr.ShouldRefuseCompetingParent(sr.GetHeader().GetEpoch(), sr.GetHeader().GetRound()) {
 		return ErrProofAlreadyPropagated
 	}
 
