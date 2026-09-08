@@ -2,6 +2,7 @@ package interceptedBlocks_test
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -697,6 +698,24 @@ func TestInterceptedHeader_Getters(t *testing.T) {
 
 	assert.Equal(t, hash, inHdr.Hash())
 	require.False(t, inHdr.ShouldAllowDuplicates())
+}
+
+func TestInterceptedHeader_IdentifiersShouldNotIncludeEpochIdentifier(t *testing.T) {
+	t.Parallel()
+
+	hdr := createMockShardHeader()
+	hdr.EpochStartMetaHash = []byte("epoch start meta hash")
+	arg := createDefaultShardArgument()
+	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	require.NoError(t, err)
+	require.True(t, inHdr.HeaderHandler().IsStartOfEpochBlock())
+
+	expectedIdentifiers := [][]byte{
+		inHdr.Hash(),
+		[]byte(fmt.Sprintf("%d-%d", hdrShardId, hdrNonce)),
+	}
+	require.Equal(t, expectedIdentifiers, inHdr.Identifiers())
 }
 
 // ------- IsInterfaceNil
