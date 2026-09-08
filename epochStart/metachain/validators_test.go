@@ -337,6 +337,41 @@ func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksShouldBeCorrect(
 	require.Nil(t, err)
 }
 
+func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksDuplicatedMiniBlockOmittingShard(t *testing.T) {
+	t.Parallel()
+
+	validatorInfo := createMockValidatorInfo()
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	vic, _ := NewValidatorInfoCreator(arguments)
+	miniblocks := createValidatorInfoMiniBlocks(validatorInfo, arguments)
+	require.True(t, len(miniblocks) > 1)
+
+	duplicatedMiniBlocks := make([]*block.MiniBlock, 0, len(miniblocks))
+	duplicatedMiniBlocks = append(duplicatedMiniBlocks, miniblocks[:len(miniblocks)-1]...)
+	duplicatedMiniBlocks = append(duplicatedMiniBlocks, miniblocks[0])
+
+	err := vic.VerifyValidatorInfoMiniBlocks(duplicatedMiniBlocks, validatorInfo)
+	require.Equal(t, epochStart.ErrDuplicatedValidatorInfoMiniBlock, err)
+}
+
+func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksUnorderedShouldWork(t *testing.T) {
+	t.Parallel()
+
+	validatorInfo := createMockValidatorInfo()
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	vic, _ := NewValidatorInfoCreator(arguments)
+	miniblocks := createValidatorInfoMiniBlocks(validatorInfo, arguments)
+	require.True(t, len(miniblocks) > 1)
+
+	reversedMiniBlocks := make([]*block.MiniBlock, 0, len(miniblocks))
+	for i := len(miniblocks) - 1; i >= 0; i-- {
+		reversedMiniBlocks = append(reversedMiniBlocks, miniblocks[i])
+	}
+
+	err := vic.VerifyValidatorInfoMiniBlocks(reversedMiniBlocks, validatorInfo)
+	require.Nil(t, err)
+}
+
 func TestEpochValidatorInfoCreator_VerifyValidatorInfoMiniBlocksNilValidatorInfo(t *testing.T) {
 	t.Parallel()
 

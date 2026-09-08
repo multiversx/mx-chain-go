@@ -247,17 +247,22 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 		return err
 	}
 
-	hashesToMiniBlocks := make(map[string]*block.MiniBlock)
+	hashesToMiniBlocks := make(map[string]*block.MiniBlock, len(createdMiniBlocks))
 	for _, mb := range createdMiniBlocks {
 		hash, hashError := core.CalculateHash(vic.marshalizer, vic.hasher, mb)
 		if hashError != nil {
 			return hashError
 		}
 
+		_, alreadyCreated := hashesToMiniBlocks[string(hash)]
+		if alreadyCreated {
+			return epochStart.ErrDuplicatedCreatedValidatorInfoMiniBlock
+		}
+
 		hashesToMiniBlocks[string(hash)] = mb
 	}
 
-	numReceivedValidatorInfoMBs := 0
+	matchedHashes := make(map[string]struct{}, len(createdMiniBlocks))
 	var receivedMbHash []byte
 	for _, receivedMb := range miniBlocks {
 		if receivedMb == nil {
@@ -268,7 +273,6 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 			continue
 		}
 
-		numReceivedValidatorInfoMBs++
 		receivedMbHash, err = core.CalculateHash(vic.marshalizer, vic.hasher, receivedMb)
 		if err != nil {
 			return err
@@ -279,9 +283,17 @@ func (vic *validatorInfoCreator) VerifyValidatorInfoMiniBlocks(
 			vic.printAllMiniBlocks(createdMiniBlocks, miniBlocks)
 			return epochStart.ErrValidatorMiniBlockHashDoesNotMatch
 		}
+
+		_, alreadyMatched := matchedHashes[string(receivedMbHash)]
+		if alreadyMatched {
+			vic.printAllMiniBlocks(createdMiniBlocks, miniBlocks)
+			return epochStart.ErrDuplicatedValidatorInfoMiniBlock
+		}
+
+		matchedHashes[string(receivedMbHash)] = struct{}{}
 	}
 
-	if len(createdMiniBlocks) != numReceivedValidatorInfoMBs {
+	if len(createdMiniBlocks) != len(matchedHashes) {
 		return epochStart.ErrValidatorInfoMiniBlocksNumDoesNotMatch
 	}
 
