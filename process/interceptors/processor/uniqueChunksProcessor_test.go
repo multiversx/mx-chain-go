@@ -7,13 +7,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewUniqueChunksProcessor(t *testing.T) {
@@ -114,6 +115,10 @@ func TestUniqueChunksProcessor_CheckBatch(t *testing.T) {
 		result, err = ucp.CheckBatch(b, nil, p2p.Broadcast)
 		require.Equal(t, process.CheckedChunkResult{}, result)
 		require.Equal(t, process.ErrDuplicatedInterceptedDataNotAllowed, err)
+
+		result, err = ucp.CheckBatch(b, nil, p2p.Direct)
+		require.Equal(t, process.CheckedChunkResult{}, result)
+		require.NoError(t, err)
 	})
 }
 

@@ -43,12 +43,21 @@ func (d *disabledStateAccessesCollector) RevertToIndex(_ int) error {
 	return nil
 }
 
-// GetStateAccessesForRootHash -
-func (d *disabledStateAccessesCollector) GetStateAccessesForRootHash(_ []byte) map[string]*data.StateAccesses {
-	return nil
+// BeginExecution -
+func (d *disabledStateAccessesCollector) BeginExecution(_ []byte) {
 }
 
-func (d *disabledStateAccessesCollector) RemoveStateAccessesForRootHash(_ []byte) {
+// EndExecution -
+func (d *disabledStateAccessesCollector) EndExecution(_ []byte) {
+}
+
+// TakeStateAccessesForHeader -
+func (d *disabledStateAccessesCollector) TakeStateAccessesForHeader(_, _ []byte) (map[string]*data.StateAccesses, error) {
+	return nil, nil
+}
+
+// DiscardStateAccessesForHeader -
+func (d *disabledStateAccessesCollector) DiscardStateAccessesForHeader(_ []byte) {
 }
 
 // CommitCollectedAccesses -

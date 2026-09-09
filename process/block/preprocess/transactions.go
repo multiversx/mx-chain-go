@@ -514,7 +514,17 @@ func (txs *transactions) processTxsToMe(
 		return process.ErrNilHeaderHandler
 	}
 
-	var err error
+	gasProcessingPolicy, err := process.ResolveGasProcessingPolicy(
+		header,
+		txs.enableEpochsHandler,
+		txs.enableRoundsHandler,
+		txs.economicsFee,
+		txs.shardCoordinator.SelfId(),
+	)
+	if err != nil {
+		return err
+	}
+
 	scheduledMode := false
 	isAsyncExecEnabled := header.IsHeaderV3()
 	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) && !isAsyncExecEnabled {
@@ -584,13 +594,14 @@ func (txs *transactions) processTxsToMe(
 		senderShardID := txsToMe[index].SenderShardID
 		receiverShardID := txsToMe[index].ReceiverShardID
 
-		gasProvidedByTxInSelfShard, errComputeGas := txs.computeGasProvided(
+		gasProvidedByTxInSelfShard, errComputeGas := txs.computeGasProvidedWithPolicy(
 			senderShardID,
 			receiverShardID,
 			tx,
 			txHash,
 			&gasInfo,
-			isAsyncExecEnabled)
+			isAsyncExecEnabled,
+			gasProcessingPolicy)
 
 		if errComputeGas != nil {
 			return errComputeGas
@@ -1587,6 +1598,7 @@ func (txs *transactions) ProcessMiniBlock(
 	partialMbExecutionMode bool,
 	indexOfLastTxProcessed int,
 	preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) ([][]byte, int, bool, error) {
 
 	if miniBlock.Type != block.TxBlock {
@@ -1626,13 +1638,7 @@ func (txs *transactions) ProcessMiniBlock(
 		totalGasConsumed = txs.getTotalGasConsumed()
 	}
 
-	var maxGasLimitUsedForDestMeTxs uint64
-	isFirstMiniBlockDestMe := totalGasConsumed == 0
-	if isFirstMiniBlockDestMe {
-		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
-	} else {
-		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
-	}
+	maxGasLimitUsedForDestMeTxs := txs.getMaxGasLimitUsedForDestMeTxs(totalGasConsumed, gasProcessingPolicy)
 
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
@@ -1669,13 +1675,14 @@ func (txs *transactions) ProcessMiniBlock(
 			break
 		}
 
-		gasProvidedByTxInSelfShard, err = txs.computeGasProvided(
+		gasProvidedByTxInSelfShard, err = txs.computeGasProvidedWithPolicy(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			miniBlockTxs[txIndex],
 			miniBlockTxHashes[txIndex],
 			&gasInfo,
-			skipBlockLimitChecks)
+			skipBlockLimitChecks,
+			gasProcessingPolicy)
 
 		if err != nil {
 			break

@@ -59,3 +59,5 @@ var ErrPendingStorageRepair = errors.New("pending storage repair after an interr
 
 // ErrRollBackExecutionBaseMissing signals a roll back refused for a non-recreatable execution base
 var ErrRollBackExecutionBaseMissing = errors.New("roll back refused: execution base state is missing")
+
+var errBranchAwareSyncRetry = errors.New("waiting for branch-aware sync candidate")

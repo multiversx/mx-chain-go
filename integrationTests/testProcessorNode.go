@@ -121,6 +121,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
+	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -184,6 +185,7 @@ var TestProcessConfigsHandler, _ = configs.NewProcessConfigsHandler([]config.Pro
 			NumFloodingRoundsOutOfSpecs:            40,
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
 			MaxBlockProcessingTimeMs:               1000,
+			ExtraDelayForRequestBlockInfoMs:        1,
 		},
 	},
 	forking.NewGenericRoundNotifier(),
@@ -963,6 +965,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 		tpn.DataPool.Headers(),
 		tpn.DataPool.Proofs(),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		tpn.ProcessConfigsHandler,
 		tpn.MainInterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
 		testscommon.NewKeysHandlerSingleSignerMock(
@@ -1195,6 +1198,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		tpn.DataPool.Headers(),
 		tpn.DataPool.Proofs(),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		tpn.ProcessConfigsHandler,
 		tpn.MainInterceptorsContainer,
 		&testscommon.AlarmSchedulerStub{},
 		testscommon.NewKeysHandlerSingleSignerMock(
@@ -1410,7 +1414,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	if tpn.EnableEpochsHandler == nil {
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
-	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
+	coreComponents := getDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EnableRoundsHandler, tpn.EpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
 	coreComponents.HasherField = TestHasher
@@ -1516,22 +1520,23 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		}
 		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:          TestMarshalizer,
-			Hasher:               TestHasher,
-			HeaderValidator:      tpn.HeaderValidator,
-			Uint64Converter:      TestUint64Converter,
-			DataPool:             tpn.DataPool,
-			Storage:              tpn.Storage,
-			RequestHandler:       tpn.RequestHandler,
-			Epoch:                0,
-			Validity:             1,
-			Finality:             1,
-			EpochStartNotifier:   tpn.EpochStartNotifier,
-			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			RoundHandler:         tpn.RoundHandler,
-			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-			EnableEpochsHandler:  tpn.EnableEpochsHandler,
-			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+			Marshalizer:           TestMarshalizer,
+			Hasher:                TestHasher,
+			HeaderValidator:       tpn.HeaderValidator,
+			Uint64Converter:       TestUint64Converter,
+			DataPool:              tpn.DataPool,
+			Storage:               tpn.Storage,
+			RequestHandler:        tpn.RequestHandler,
+			ShardID:               tpn.ShardCoordinator.SelfId(),
+			Epoch:                 0,
+			Validity:              1,
+			Finality:              1,
+			EpochStartNotifier:    tpn.EpochStartNotifier,
+			PeerMiniBlocksSyncer:  peerMiniBlockSyncer,
+			RoundHandler:          tpn.RoundHandler,
+			AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
+			EnableEpochsHandler:   tpn.EnableEpochsHandler,
+			ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 		}
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -2475,7 +2480,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	if tpn.EnableEpochsHandler == nil {
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
-	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
+	coreComponents := getDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EnableRoundsHandler, tpn.EpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
@@ -2528,15 +2533,15 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
-		DataPool:            tpn.DataPool,
-		RequestHandler:      tpn.RequestHandler,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		BlockTracker:        tpn.BlockTracker,
-		TxCoordinator:       tpn.TxCoordinator,
-		RoundHandler:        tpn.RoundHandler,
-		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-		GenesisNonce: tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
+		DataPool:              tpn.DataPool,
+		RequestHandler:        tpn.RequestHandler,
+		EnableEpochsHandler:   tpn.EnableEpochsHandler,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		BlockTracker:          tpn.BlockTracker,
+		TxCoordinator:         tpn.TxCoordinator,
+		RoundHandler:          tpn.RoundHandler,
+		ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+		GenesisNonce:          tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
 	}
 	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
 	if err != nil {
@@ -2565,7 +2570,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		log.LogIfError(err)
 	}
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(stateDisabled.NewDisabledStateAccessesCollector())
 	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
@@ -2877,22 +2882,23 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			}
 			peerMiniBlocksSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 			argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-				Marshalizer:          TestMarshalizer,
-				Hasher:               TestHasher,
-				HeaderValidator:      tpn.HeaderValidator,
-				Uint64Converter:      TestUint64Converter,
-				DataPool:             tpn.DataPool,
-				Storage:              tpn.Storage,
-				RequestHandler:       tpn.RequestHandler,
-				Epoch:                0,
-				Validity:             1,
-				Finality:             1,
-				EpochStartNotifier:   tpn.EpochStartNotifier,
-				PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
-				RoundHandler:         tpn.RoundHandler,
-				AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-				EnableEpochsHandler:  tpn.EnableEpochsHandler,
-				CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+				Marshalizer:           TestMarshalizer,
+				Hasher:                TestHasher,
+				HeaderValidator:       tpn.HeaderValidator,
+				Uint64Converter:       TestUint64Converter,
+				DataPool:              tpn.DataPool,
+				Storage:               tpn.Storage,
+				RequestHandler:        tpn.RequestHandler,
+				ShardID:               tpn.ShardCoordinator.SelfId(),
+				Epoch:                 0,
+				Validity:              1,
+				Finality:              1,
+				EpochStartNotifier:    tpn.EpochStartNotifier,
+				PeerMiniBlocksSyncer:  peerMiniBlocksSyncer,
+				RoundHandler:          tpn.RoundHandler,
+				AppStatusHandler:      &statusHandlerMock.AppStatusHandlerStub{},
+				EnableEpochsHandler:   tpn.EnableEpochsHandler,
+				ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 			}
 			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 			tpn.EpochStartTrigger = &shardchain.TestTrigger{}
@@ -2952,7 +2958,7 @@ func (tpn *TestProcessorNode) initNode() {
 	if tpn.EnableEpochsHandler == nil {
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
-	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
+	coreComponents := getDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EnableRoundsHandler, tpn.EpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.VmMarshalizerField = TestVmMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
@@ -3873,6 +3879,14 @@ func GetDefaultCoreComponents(
 	enableEpochsHandler common.EnableEpochsHandler,
 	epochNotifier process.EpochNotifier,
 ) *mock.CoreComponentsStub {
+	return getDefaultCoreComponents(enableEpochsHandler, &testscommon.EnableRoundsHandlerStub{}, epochNotifier)
+}
+
+func getDefaultCoreComponents(
+	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
+	epochNotifier process.EpochNotifier,
+) *mock.CoreComponentsStub {
 	return &mock.CoreComponentsStub{
 		InternalMarshalizerField:      TestMarshalizer,
 		TxMarshalizerField:            TestTxSignMarshalizer,
@@ -3901,7 +3915,7 @@ func GetDefaultCoreComponents(
 		GenesisTimeField:                   time.Time{},
 		SupernovaGenesisTimeField:          time.Time{},
 		EpochNotifierField:                 epochNotifier,
-		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
+		EnableRoundsHandlerField:           enableRoundsHandler,
 		TxVersionCheckField:                versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal:       &testscommon.ProcessStatusHandlerStub{},
 		EnableEpochsHandlerField:           enableEpochsHandler,

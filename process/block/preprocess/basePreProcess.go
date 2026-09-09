@@ -453,6 +453,22 @@ func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
 	return totalGasProvided - totalGasToBeSubtracted
 }
 
+func (bpp *basePreProcess) getMaxGasLimitUsedForDestMeTxs(
+	totalGasConsumed uint64,
+	gasProcessingPolicy process.GasProcessingPolicy,
+) uint64 {
+	if gasProcessingPolicy.HasMaxGasLimitPerBlock() {
+		return gasProcessingPolicy.MaxGasLimitPerBlock()
+	}
+
+	maxGasLimitPerBlock := bpp.economicsFee.MaxGasLimitPerBlock(bpp.shardCoordinator.SelfId())
+	if totalGasConsumed == 0 {
+		return maxGasLimitPerBlock
+	}
+
+	return maxGasLimitPerBlock * maxGasLimitPercentUsedForDestMeTxs / 100
+}
+
 func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	txHash []byte,
 	gasInfo *gasConsumedInfo,

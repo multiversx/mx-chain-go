@@ -348,6 +348,7 @@ type DebugHandler interface {
 // CurrentNetworkEpochProviderHandler is an interface able to compute if the provided epoch is active on the network or not
 type CurrentNetworkEpochProviderHandler interface {
 	EpochIsActiveInNetwork(epoch uint32) bool
+	EpochIsAvailableOnMainPeers(epoch uint32) bool
 	EpochConfirmed(newEpoch uint32, newTimestamp uint64)
 	IsInterfaceNil() bool
 }
@@ -398,6 +399,7 @@ type ProofsPool interface {
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	GetProofsByNonce(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
+	HasProofForDifferentHash(shardID uint32, headerNonce uint64, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
 	IsInterfaceNil() bool
 }

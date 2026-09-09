@@ -33,6 +33,9 @@ func GetDefaultProcessConfigsHandler() common.ProcessConfigsHandler {
 				MaxConsecutiveRoundsOfRatingDecrease:   600,
 				MaxBlockProcessingTimeMs:               1000,
 				NumHeadersToRequestInAdvance:           10,
+				ExtraDelayForBroadcastBlockInfoMs:      1000,
+				ExtraDelayBetweenBroadcastMbsAndTxsMs:  1000,
+				ExtraDelayForRequestBlockInfoMs:        3000,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
@@ -55,6 +58,9 @@ type ProcessConfigsHandlerStub struct {
 	GetValueCalled                                    func(variable dto.ConfigVariable) uint64
 	GetMaxBlockProcessingTimeCalled                   func(round uint64) time.Duration
 	GetNumHeadersToRequestInAdvanceCalled             func(round uint64) uint64
+	GetExtraDelayForBroadcastBlockInfoCalled          func(round uint64) time.Duration
+	GetExtraDelayBetweenBroadcastMbsAndTxsCalled      func(round uint64) time.Duration
+	GetExtraDelayForRequestBlockInfoCalled            func(round uint64) time.Duration
 }
 
 // GetMaxMetaNoncesBehindByEpoch -
@@ -164,7 +170,44 @@ func (p *ProcessConfigsHandlerStub) GetNumHeadersToRequestInAdvance(round uint64
 	return 10
 }
 
+// GetExtraDelayForBroadcastBlockInfo -
+func (p *ProcessConfigsHandlerStub) GetExtraDelayForBroadcastBlockInfo(round uint64) time.Duration {
+	if p.GetExtraDelayForBroadcastBlockInfoCalled != nil {
+		return p.GetExtraDelayForBroadcastBlockInfoCalled(round)
+	}
+
+	return 0
+}
+
+// GetExtraDelayBetweenBroadcastMbsAndTxs -
+func (p *ProcessConfigsHandlerStub) GetExtraDelayBetweenBroadcastMbsAndTxs(round uint64) time.Duration {
+	if p.GetExtraDelayBetweenBroadcastMbsAndTxsCalled != nil {
+		return p.GetExtraDelayBetweenBroadcastMbsAndTxsCalled(round)
+	}
+
+	return 0
+}
+
+// GetExtraDelayForRequestBlockInfo -
+func (p *ProcessConfigsHandlerStub) GetExtraDelayForRequestBlockInfo(round uint64) time.Duration {
+	if p.GetExtraDelayForRequestBlockInfoCalled != nil {
+		return p.GetExtraDelayForRequestBlockInfoCalled(round)
+	}
+
+	return 0
+}
+
 // IsInterfaceNil -
 func (p *ProcessConfigsHandlerStub) IsInterfaceNil() bool {
 	return p == nil
+}
+
+// GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo returns a process configs handler stub that reports the
+// provided extra delay for requesting missing block info, on any round
+func GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(delay time.Duration) common.ProcessConfigsHandler {
+	return &ProcessConfigsHandlerStub{
+		GetExtraDelayForRequestBlockInfoCalled: func(_ uint64) time.Duration {
+			return delay
+		},
+	}
 }

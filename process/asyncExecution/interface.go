@@ -23,7 +23,8 @@ type ExecutionResultsHandler interface {
 // BlockProcessor defines what a block processor should be able to do
 type BlockProcessor interface {
 	ProcessBlockProposal(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
-	CommitBlockProposalState(headerHandler data.HeaderHandler) error
+	CommitBlockProposalState(headerHandler data.HeaderHandler, headerHash []byte) error
+	DiscardStateAccessesForHeader(headerHash []byte)
 	RevertBlockProposalState()
 	PruneTrieAsyncHeader()
 	IsInterfaceNil() bool

@@ -5,7 +5,8 @@ import "github.com/multiversx/mx-chain-core-go/data"
 // BlockProcessorStub -
 type BlockProcessorStub struct {
 	ProcessBlockProposalCalled     func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
-	CommitBlockProposalStateCalled func(headerHandler data.HeaderHandler) error
+	CommitBlockProposalStateCalled func(headerHandler data.HeaderHandler, headerHash []byte) error
+	DiscardStateAccessesCalled     func(headerHash []byte)
 	RevertBlockProposalStateCalled func()
 	PruneTrieAsyncHeaderCalled     func()
 }
@@ -20,12 +21,19 @@ func (bp *BlockProcessorStub) ProcessBlockProposal(header data.HeaderHandler, he
 }
 
 // CommitBlockProposalState -
-func (bp *BlockProcessorStub) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+func (bp *BlockProcessorStub) CommitBlockProposalState(headerHandler data.HeaderHandler, headerHash []byte) error {
 	if bp.CommitBlockProposalStateCalled != nil {
-		return bp.CommitBlockProposalStateCalled(headerHandler)
+		return bp.CommitBlockProposalStateCalled(headerHandler, headerHash)
 	}
 
 	return nil
+}
+
+// DiscardStateAccessesForHeader -
+func (bp *BlockProcessorStub) DiscardStateAccessesForHeader(headerHash []byte) {
+	if bp.DiscardStateAccessesCalled != nil {
+		bp.DiscardStateAccessesCalled(headerHash)
+	}
 }
 
 // RevertBlockProposalState -

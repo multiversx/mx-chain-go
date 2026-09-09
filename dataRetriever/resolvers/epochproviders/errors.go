@@ -25,3 +25,6 @@ var ErrInvalidRoundTimeInMilliseconds = errors.New("invalid round time in millis
 
 // ErrInvalidStartTime signals that the provided start time is incorrect
 var ErrInvalidStartTime = errors.New("invalid start time value")
+
+// ErrInvalidAssumedPeersNumActivePersisters signals that the provided assumed peers active persisters value is incorrect
+var ErrInvalidAssumedPeersNumActivePersisters = errors.New("invalid assumed peers num active persisters value")

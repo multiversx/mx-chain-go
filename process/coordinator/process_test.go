@@ -53,6 +53,57 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
+func TestSortedMiniBlockMapKeys(t *testing.T) {
+	t.Parallel()
+
+	miniBlocksMap := map[string]block.MiniBlockSlice{
+		"header-c": nil,
+		"header-a": nil,
+		"header-b": nil,
+	}
+
+	require.Equal(t, []string{"header-a", "header-b", "header-c"}, sortedMiniBlockMapKeys(miniBlocksMap))
+}
+
+func TestTransactionCoordinator_CreateMarshalledDataV3ShouldBeDeterministic(t *testing.T) {
+	t.Parallel()
+
+	txs := map[string]*transaction.Transaction{
+		"tx-a": {Nonce: 1},
+		"tx-b": {Nonce: 2},
+	}
+	tc := &transactionCoordinator{
+		dataPool: &dataRetrieverMock.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{GetCalled: func(_ []byte) (interface{}, bool) {
+					return map[block.Type]map[string]data.TransactionHandler{}, true
+				}}
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{SearchFirstDataCalled: func(key []byte) (interface{}, bool) {
+					tx, ok := txs[string(key)]
+					return tx, ok
+				}}
+			},
+		},
+		shardCoordinator: mock.NewMultiShardsCoordinatorMock(3),
+		marshalizer: &marshallerMock.MarshalizerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return []byte(fmt.Sprintf("nonce-%d", obj.(*transaction.Transaction).Nonce)), nil
+		}},
+	}
+	miniBlockA := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 1, Type: block.TxBlock, TxHashes: [][]byte{[]byte("tx-a")}}
+	miniBlockB := &block.MiniBlock{SenderShardID: 0, ReceiverShardID: 1, Type: block.TxBlock, TxHashes: [][]byte{[]byte("tx-b")}}
+	firstMap := map[string]block.MiniBlockSlice{"header-b": {miniBlockB}, "header-a": {miniBlockA}}
+	secondMap := map[string]block.MiniBlockSlice{"header-a": {miniBlockA}, "header-b": {miniBlockB}}
+
+	first := tc.createMarshalledDataV3(firstMap)
+	second := tc.createMarshalledDataV3(secondMap)
+
+	require.Equal(t, first, second)
+	require.Contains(t, first, factory.TransactionTopic+"_0_1")
+	require.Equal(t, [][]byte{[]byte("nonce-1"), []byte("nonce-2")}, first[factory.TransactionTopic+"_0_1"])
+}
+
 const MaxGasLimitPerBlock = uint64(100000)
 
 var txHash = []byte("tx_hash1")
@@ -931,7 +982,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNi
 	haveAdditionalTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, haveTime, haveAdditionalTime, false)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(nil, nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
@@ -976,7 +1027,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsDstMeNo
 	haveAdditionalTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, haveAdditionalTime, false)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
@@ -999,7 +1050,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 	haveAdditionalTime := func() bool {
 		return false
 	}
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, haveAdditionalTime, false)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(createTestMetablock(), nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(mbs))
 	assert.Equal(t, uint32(0), txs)
@@ -1098,7 +1149,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		}
 	}
 
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, haveAdditionalTime, false)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(mbs))
@@ -1148,13 +1199,257 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSki
 		}
 	}
 
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaBlock, nil, haveTime, haveAdditionalTime, false)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaBlock, nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 	assert.Nil(t, err)
 	require.Equal(t, 1, len(mbs))
 	assert.Equal(t, uint32(1), txs)
 	assert.False(t, finalized)
 	require.Equal(t, 1, len(mbs[0].TxHashes))
 	assert.Equal(t, []byte("tx_hash_from_mb0"), mbs[0].TxHashes[0])
+}
+
+func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsPartialMode(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name                          string
+		allowStartingPartialExecution bool
+		processedMiniBlocksInfo       map[string]*processedMb.ProcessedMiniBlockInfo
+		expectedPartialMode           bool
+	}{
+		{
+			name:                          "fresh miniblock is atomic when starting partial execution is disabled",
+			allowStartingPartialExecution: false,
+			expectedPartialMode:           false,
+		},
+		{
+			name:                          "tracked continuation keeps partial execution enabled",
+			allowStartingPartialExecution: false,
+			processedMiniBlocksInfo: map[string]*processedMb.ProcessedMiniBlockInfo{
+				"mb": {
+					FullyProcessed:         false,
+					IndexOfLastTxProcessed: 0,
+				},
+			},
+			expectedPartialMode: true,
+		},
+		{
+			name:                          "fresh miniblock keeps existing behavior outside drain",
+			allowStartingPartialExecution: true,
+			expectedPartialMode:           true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			args := createMockTransactionCoordinatorArguments()
+			args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.MiniBlockPartialExecutionFlag
+				},
+			}
+			args.BlockDataRequester = &preprocMocks.BlockDataRequesterStub{
+				GetFinalCrossMiniBlockInfoAndRequestMissingCalled: func(header data.HeaderHandler) []*data.MiniBlockInfo {
+					return []*data.MiniBlockInfo{{Hash: []byte("mb"), SenderShardID: 1}}
+				},
+			}
+
+			miniBlock := &block.MiniBlock{
+				SenderShardID:   1,
+				ReceiverShardID: args.ShardCoordinator.SelfId(),
+				Type:            block.TxBlock,
+				TxHashes:        [][]byte{[]byte("tx0"), []byte("tx1")},
+			}
+			args.DataPool.MiniBlocks().Put([]byte("mb"), miniBlock, miniBlock.Size())
+
+			tc, err := NewTransactionCoordinator(args)
+			require.NoError(t, err)
+			gasProcessingPolicy, err := process.ResolveGasProcessingPolicy(
+				&testscommon.HeaderHandlerStub{EpochField: 2, RoundField: 259},
+				&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+					IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+						return flag == common.SupernovaFlag && epoch >= 2
+					},
+					GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+						return 2
+					},
+				},
+				&testscommon.EnableRoundsHandlerStub{
+					IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+						return flag == common.SupernovaRoundFlag && round >= 260
+					},
+				},
+				&economicsmocks.EconomicsHandlerMock{
+					MaxGasLimitPerBlockInEpochCalled: func(_ uint32, _ uint32) uint64 {
+						return 1_500_000_000
+					},
+				},
+				args.ShardCoordinator.SelfId(),
+			)
+			require.NoError(t, err)
+			tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+				GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
+					return nil, 0
+				},
+				ProcessMiniBlockWithPolicyCalled: func(
+					miniBlock *block.MiniBlock,
+					haveTime func() bool,
+					haveAdditionalTime func() bool,
+					scheduledMode bool,
+					partialMbExecutionMode bool,
+					indexOfLastTxProcessed int,
+					preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
+					receivedPolicy process.GasProcessingPolicy,
+				) ([][]byte, int, bool, error) {
+					require.Equal(t, testCase.expectedPartialMode, partialMbExecutionMode)
+					require.True(t, receivedPolicy.HasMaxGasLimitPerBlock())
+					require.Equal(t, uint64(1_500_000_000), receivedPolicy.MaxGasLimitPerBlock())
+					return nil, len(miniBlock.TxHashes) - 1, false, nil
+				},
+			}
+
+			_, _, _, err = tc.CreateMbsAndProcessCrossShardTransactionsDstMe(
+				&block.MetaBlock{},
+				testCase.processedMiniBlocksInfo,
+				func() bool { return true },
+				func() bool { return false },
+				false,
+				testCase.allowStartingPartialExecution,
+				gasProcessingPolicy,
+			)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestTransactionCoordinator_AtomicFailureKeepsPerSenderSkip(t *testing.T) {
+	t.Parallel()
+
+	args := createMockTransactionCoordinatorArguments()
+	numAccountReverts := 0
+	args.Accounts = &stateMock.AccountsStub{
+		JournalLenCalled: func() int {
+			return 1
+		},
+		RevertToSnapshotCalled: func(snapshot int) error {
+			numAccountReverts++
+			require.Equal(t, 1, snapshot)
+			return nil
+		},
+	}
+	numGasRestores := 0
+	args.GasHandler = &testscommon.GasHandlerStub{
+		RestoreGasSinceLastResetCalled: func(key []byte) {
+			numGasRestores++
+			require.Equal(t, []byte("fresh"), key)
+		},
+	}
+	removedResultsForKeys := make([]string, 0, 1)
+	args.InterProcessors = &mock.InterimProcessorContainerMock{
+		KeysCalled: func() []block.Type {
+			return []block.Type{block.SmartContractResultBlock}
+		},
+		GetCalled: func(key block.Type) (process.IntermediateTransactionHandler, error) {
+			require.Equal(t, block.SmartContractResultBlock, key)
+			return &mock.IntermediateTransactionHandlerMock{
+				RemoveProcessedResultsCalled: func(key []byte) [][]byte {
+					removedResultsForKeys = append(removedResultsForKeys, string(key))
+					return [][]byte{[]byte("result")}
+				},
+			}, nil
+		},
+	}
+	feeReverts := make([][][]byte, 0, 2)
+	args.FeeHandler = &mock.FeeAccumulatorStub{
+		RevertFeesCalled: func(txHashes [][]byte) {
+			feeReverts = append(feeReverts, txHashes)
+		},
+	}
+	executionOrderRemovals := make([][][]byte, 0, 3)
+	args.TxExecutionOrderHandler = &commonMock.TxExecutionOrderHandlerStub{
+		RemoveMultipleCalled: func(txHashes [][]byte) {
+			executionOrderRemovals = append(executionOrderRemovals, txHashes)
+		},
+	}
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.MiniBlockPartialExecutionFlag
+		},
+	}
+	args.BlockDataRequester = &preprocMocks.BlockDataRequesterStub{
+		GetFinalCrossMiniBlockInfoAndRequestMissingCalled: func(header data.HeaderHandler) []*data.MiniBlockInfo {
+			return []*data.MiniBlockInfo{
+				{Hash: []byte("fresh"), SenderShardID: 1},
+				{Hash: []byte("same-sender"), SenderShardID: 1},
+				{Hash: []byte("continuation"), SenderShardID: 2},
+			}
+		},
+	}
+
+	for _, miniBlock := range []*block.MiniBlock{
+		{SenderShardID: 1, ReceiverShardID: args.ShardCoordinator.SelfId(), Type: block.TxBlock, TxHashes: [][]byte{[]byte("fresh")}},
+		{SenderShardID: 1, ReceiverShardID: args.ShardCoordinator.SelfId(), Type: block.TxBlock, TxHashes: [][]byte{[]byte("same-sender")}},
+		{SenderShardID: 2, ReceiverShardID: args.ShardCoordinator.SelfId(), Type: block.TxBlock, TxHashes: [][]byte{[]byte("old"), []byte("continuation")}},
+	} {
+		args.DataPool.MiniBlocks().Put(miniBlock.TxHashes[len(miniBlock.TxHashes)-1], miniBlock, miniBlock.Size())
+	}
+
+	tc, err := NewTransactionCoordinator(args)
+	require.NoError(t, err)
+	processedHashes := make([]string, 0, 2)
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
+			return nil, 0
+		},
+		ProcessMiniBlockCalled: func(
+			miniBlock *block.MiniBlock,
+			haveTime func() bool,
+			haveAdditionalTime func() bool,
+			scheduledMode bool,
+			partialMbExecutionMode bool,
+			indexOfLastTxProcessed int,
+			preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
+		) ([][]byte, int, bool, error) {
+			hash := string(miniBlock.TxHashes[len(miniBlock.TxHashes)-1])
+			processedHashes = append(processedHashes, hash)
+			if hash == "fresh" {
+				require.False(t, partialMbExecutionMode)
+				return [][]byte{[]byte("fresh")}, 0, true, process.ErrTimeIsOut
+			}
+
+			require.Equal(t, "continuation", hash)
+			require.True(t, partialMbExecutionMode)
+			return nil, 1, false, nil
+		},
+	}
+
+	processedMiniBlocksInfo := map[string]*processedMb.ProcessedMiniBlockInfo{
+		"continuation": {
+			FullyProcessed:         false,
+			IndexOfLastTxProcessed: 0,
+		},
+	}
+	_, _, allProcessed, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(
+		&block.MetaBlock{},
+		processedMiniBlocksInfo,
+		func() bool { return true },
+		func() bool { return false },
+		false,
+		false,
+		process.GasProcessingPolicy{},
+	)
+
+	require.NoError(t, err)
+	require.False(t, allProcessed)
+	require.Equal(t, []string{"fresh", "continuation"}, processedHashes)
+	require.True(t, processedMiniBlocksInfo["continuation"].FullyProcessed)
+	require.Equal(t, 1, numAccountReverts)
+	require.Equal(t, 1, numGasRestores)
+	require.Equal(t, []string{"fresh"}, removedResultsForKeys)
+	require.Equal(t, [][][]byte{{[]byte("result")}, {[]byte("fresh")}}, feeReverts)
+	require.Equal(t, [][][]byte{{[]byte("result")}, {[]byte("fresh")}, {[]byte("fresh")}}, executionOrderRemovals)
 }
 
 func TestTransactionCoordinator_HandleProcessMiniBlockInit(t *testing.T) {
@@ -1291,7 +1586,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		}
 	}
 
-	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, haveAdditionalTime, false)
+	mbs, txs, finalized, err := tc.CreateMbsAndProcessCrossShardTransactionsDstMe(metaHdr, nil, haveTime, haveAdditionalTime, false, true, process.GasProcessingPolicy{})
 
 	assert.NotNil(t, err)
 	assert.True(t, errors.Is(err, process.ErrNilPreProcessor))
@@ -2456,7 +2751,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		IndexOfLastTxProcessed: -1,
 		FullyProcessed:         false,
 	}
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo, headerHash)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, true, processedMbInfo, headerHash, process.GasProcessingPolicy{})
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
@@ -2612,7 +2907,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		IndexOfLastTxProcessed: -1,
 		FullyProcessed:         false,
 	}
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo, headerHash)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, true, processedMbInfo, headerHash, process.GasProcessingPolicy{})
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 	assert.True(t, revertAccntStateCalled)

@@ -14,14 +14,17 @@ import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	dr "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
+	chainState "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
@@ -72,6 +75,38 @@ func TestNewOutportDataProvider(t *testing.T) {
 	outportDataP, err := NewOutportDataProvider(arg)
 	require.Nil(t, err)
 	require.False(t, outportDataP.IsInterfaceNil())
+}
+
+func TestOutportDataProvider_GetStateAccessForHeader(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("header hash")
+	rootHash := []byte("root hash")
+	expectedAccesses := map[string]*stateChange.StateAccesses{"tx": {}}
+	arg := createArgOutportDataProvider()
+	arg.StateAccessesCollector = &state.StateAccessesCollectorStub{
+		TakeStateAccessesForHeaderCalled: func(receivedHeaderHash, receivedRootHash []byte) (map[string]*stateChange.StateAccesses, error) {
+			require.Equal(t, headerHash, receivedHeaderHash)
+			require.Equal(t, rootHash, receivedRootHash)
+			return expectedAccesses, nil
+		},
+	}
+	outportDataP, err := NewOutportDataProvider(arg)
+	require.NoError(t, err)
+	require.Equal(t, expectedAccesses, outportDataP.getStateAccessForHeader(headerHash, rootHash))
+
+	arg.StateAccessesCollector = &state.StateAccessesCollectorStub{
+		TakeStateAccessesForHeaderCalled: func(_, _ []byte) (map[string]*stateChange.StateAccesses, error) {
+			return nil, &chainState.StateAccessesRootMismatchError{
+				HeaderHash:   append([]byte(nil), headerHash...),
+				ExpectedRoot: append([]byte(nil), rootHash...),
+				ActualRoot:   []byte("other root"),
+			}
+		},
+	}
+	outportDataP, err = NewOutportDataProvider(arg)
+	require.NoError(t, err)
+	require.Nil(t, outportDataP.getStateAccessForHeader(headerHash, rootHash))
 }
 
 func TestPrepareOutportSaveBlockDataNilHeader(t *testing.T) {

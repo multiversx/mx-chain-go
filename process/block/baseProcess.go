@@ -1290,8 +1290,36 @@ func checkProposalMiniBlocksConsistency(
 	return nil
 }
 
-// checkLegacyPredecessorReadyForV3 hard-stops the Supernova transition when the last
-// legacy block still carries non-final mini blocks, whose work V3 would discard
+type supernovaTransitionState struct {
+	firstNonFinalMiniBlockHash []byte
+	numNonFinalMiniBlocks      int
+	hasUnfinishedMiniBlocks    bool
+}
+
+func (state supernovaTransitionState) isReady() bool {
+	return state.numNonFinalMiniBlocks == 0 && !state.hasUnfinishedMiniBlocks
+}
+
+func (bp *baseProcessor) getSupernovaTransitionState(header data.HeaderHandler) supernovaTransitionState {
+	state := supernovaTransitionState{}
+	numNonFinalMiniBlocks := 0
+	for _, mbHeader := range header.GetMiniBlockHeaderHandlers() {
+		if !mbHeader.IsFinal() {
+			numNonFinalMiniBlocks++
+			if state.firstNonFinalMiniBlockHash == nil {
+				state.firstNonFinalMiniBlockHash = mbHeader.GetHash()
+			}
+		}
+	}
+	state.numNonFinalMiniBlocks = numNonFinalMiniBlocks
+	state.hasUnfinishedMiniBlocks = numNonFinalMiniBlocks == 0 &&
+		bp.shardCoordinator.SelfId() != core.MetachainShardId &&
+		bp.processedMiniBlocksTracker.HasUnfinishedMiniBlocks()
+
+	return state
+}
+
+// checkLegacyPredecessorReadyForV3 rejects the transition while legacy work remains in the predecessor or tracker.
 func (bp *baseProcessor) checkLegacyPredecessorReadyForV3(header data.HeaderHandler) error {
 	prevHeader := bp.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(prevHeader) || prevHeader.IsHeaderV3() {
@@ -1301,27 +1329,65 @@ func (bp *baseProcessor) checkLegacyPredecessorReadyForV3(header data.HeaderHand
 		return nil
 	}
 
-	nonFinalMbHashes := make([][]byte, 0)
-	for _, mbHeader := range prevHeader.GetMiniBlockHeaderHandlers() {
-		if !mbHeader.IsFinal() {
-			nonFinalMbHashes = append(nonFinalMbHashes, mbHeader.GetHash())
-		}
+	transitionState := bp.getSupernovaTransitionState(prevHeader)
+	if transitionState.numNonFinalMiniBlocks > 0 {
+		log.Error("supernova transition blocked: the last legacy block still carries non-final mini blocks and their work would be discarded",
+			"legacy nonce", prevHeader.GetNonce(),
+			"num mini blocks", transitionState.numNonFinalMiniBlocks,
+			"first hash", transitionState.firstNonFinalMiniBlockHash,
+		)
+
+		return fmt.Errorf("%w: %d non-final mini blocks in legacy block with nonce %d",
+			process.ErrLeftoverScheduledMiniBlocksOnTransition,
+			transitionState.numNonFinalMiniBlocks,
+			prevHeader.GetNonce(),
+		)
 	}
-	if len(nonFinalMbHashes) == 0 {
+
+	if !transitionState.hasUnfinishedMiniBlocks {
 		return nil
 	}
 
-	log.Error("supernova transition blocked: the last legacy block still carries non-final mini blocks and their work would be discarded",
+	log.Error("supernova transition blocked: the processed mini blocks tracker contains unfinished work",
 		"legacy nonce", prevHeader.GetNonce(),
-		"num mini blocks", len(nonFinalMbHashes),
-		"hashes", nonFinalMbHashes,
 	)
 
-	return fmt.Errorf("%w: %d non-final mini blocks in legacy block with nonce %d",
+	return fmt.Errorf("%w: unfinished tracked mini blocks after legacy block with nonce %d",
 		process.ErrLeftoverScheduledMiniBlocksOnTransition,
-		len(nonFinalMbHashes),
 		prevHeader.GetNonce(),
 	)
+}
+
+func (bp *baseProcessor) checkSupernovaDrainRules(header data.HeaderHandler) error {
+	isInDrainWindow := common.IsInSupernovaDrainWindowForEpochAndRound(
+		bp.enableEpochsHandler,
+		bp.enableRoundsHandler,
+		header.GetEpoch(),
+		header.GetRound(),
+	)
+	if !isInDrainWindow {
+		return nil
+	}
+
+	for _, miniBlockHeader := range header.GetMiniBlockHeaderHandlers() {
+		if miniBlockHeader.GetProcessingType() == int32(block.Scheduled) {
+			return process.ErrScheduledMiniBlockInSupernovaDrain
+		}
+		if miniBlockHeader.GetConstructionState() != int32(block.PartialExecuted) {
+			continue
+		}
+
+		processedMbInfo, metaBlockHash := bp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHeader.GetHash())
+		isExistingContinuation := processedMbInfo != nil &&
+			len(metaBlockHash) > 0 &&
+			processedMbInfo.IndexOfLastTxProcessed >= 0 &&
+			!processedMbInfo.FullyProcessed
+		if !isExistingContinuation {
+			return process.ErrNewPartialMiniBlockInSupernovaDrain
+		}
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) checkMiniBlockWithMiniBlockHeaderWithoutConstructionAndProcessing(mbHash []byte, mbHdr data.MiniBlockHeaderHandler, miniBlock *block.MiniBlock) error {
@@ -1469,6 +1535,9 @@ func checkForDuplicatedTxHashes(body *block.Body) error {
 //	Processed, yes -> Final
 //	Processed, no  -> impossible
 //
+// As a stricter exception, an incoming miniblock at the metachain must be
+// Normal and Final.
+//
 // It also checks body PT validity, type-vs-scheduling, and IndexOfLastTxProcessed vs
 // ConstructionState. Body-vs-header PT consistency is enforced only when sender is
 // blockShardID; for incoming MBs the body PT belongs to the source shard.
@@ -1496,6 +1565,13 @@ func checkConstructionStateProcessingTypeAndIndexesCorrectness(
 	}
 
 	constructionState := mbh.GetConstructionState()
+	if blockShardID == core.MetachainShardId {
+		err := process.CheckIncomingMiniBlockHeaderAtMetachain(mbh)
+		if err != nil {
+			return err
+		}
+	}
+
 	switch hdrPT {
 	case int32(block.Normal):
 		if senderIsBlockShard {
@@ -2540,6 +2616,38 @@ func (bp *baseProcessor) commitState(headerHandler data.HeaderHandler) error {
 	return bp.commit()
 }
 
+func (bp *baseProcessor) commitStateForHeader(headerHandler data.HeaderHandler, headerHash []byte) error {
+	if !bp.outportHandler.HasDrivers() {
+		return bp.commitState(headerHandler)
+	}
+
+	bp.stateAccessesCollector.BeginExecution(headerHash)
+	defer bp.stateAccessesCollector.EndExecution(headerHash)
+
+	err := bp.commitState(headerHandler)
+	if err != nil {
+		bp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
+	}
+
+	return err
+}
+
+// DiscardStateAccessesForHeader removes accesses retained for a header
+func (bp *baseProcessor) DiscardStateAccessesForHeader(headerHash []byte) {
+	bp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
+}
+
+func (bp *baseProcessor) cleanupStateAccessesAfterOutport(header data.HeaderHandler, headerHash []byte) {
+	if !header.IsHeaderV3() {
+		bp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
+		return
+	}
+
+	for _, executionResult := range header.GetExecutionResultsHandlers() {
+		bp.stateAccessesCollector.DiscardStateAccessesForHeader(executionResult.GetHeaderHash())
+	}
+}
+
 func (bp *baseProcessor) commitInLastEpoch(currentEpoch uint32) error {
 	lastEpoch := uint32(0)
 	if currentEpoch > 0 {
@@ -3352,6 +3460,26 @@ func (bp *baseProcessor) computeOwnShardStuckIfNeeded(header data.HeaderHandler)
 	return nil
 }
 
+func (bp *baseProcessor) updateGasConsumptionLimitsForProposal() error {
+	currentHeader := bp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) || !currentHeader.IsHeaderV3() {
+		bp.blockTracker.ResetOwnShardStuck()
+		bp.gasComputation.ResetIncomingLimit()
+		bp.gasComputation.ResetOutgoingLimit()
+
+		return nil
+	}
+
+	err := bp.computeOwnShardStuckIfNeeded(currentHeader)
+	if err != nil {
+		return err
+	}
+
+	bp.updateGasConsumptionLimitsIfNeeded()
+
+	return nil
+}
+
 func (bp *baseProcessor) updateGasConsumptionLimitsIfNeeded() {
 	if !bp.blockTracker.IsOwnShardStuck() {
 		bp.gasComputation.ResetIncomingLimit()
@@ -3985,6 +4113,10 @@ func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks bl
 	if err != nil {
 		return err
 	}
+	if bp.blockTracker.IsOwnShardStuck() &&
+		(len(splitRes.incomingMiniBlocks) > 0 || len(splitRes.outgoingTransactionHashes) > 0) {
+		return fmt.Errorf("%w, transactions are disabled while own shard is stuck", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
 
 	bp.gasComputation.Reset()
 	_, numPendingMiniBlocks, err := bp.gasComputation.AddIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
@@ -4438,7 +4570,6 @@ func (bp *baseProcessor) cleanupDismissedEWLEntries() {
 		)
 
 		bp.blockProcessor.cancelPruneForDismissedExecutionResults(dismissedBatches)
-		bp.resetLastPrunedHeader()
 	}
 
 	bp.checkEWLSizeAndReset()
@@ -4459,7 +4590,6 @@ func (bp *baseProcessor) checkEWLSizeAndReset() {
 				"threshold", bp.ewlResetThreshold,
 			)
 			accountsDb.ResetPruning()
-			bp.resetLastPrunedHeader()
 		}
 	}
 }
@@ -4484,13 +4614,6 @@ func cancelPruneForRootHashTransition(accountsDb state.AccountsAdapter, prevRoot
 	}
 	accountsDb.CancelPrune(currentRootHash, state.NewRoot)
 	accountsDb.CancelPrune(prevRootHash, state.OldRoot)
-}
-
-func (bp *baseProcessor) resetLastPrunedHeader() {
-	bp.mutLastPrunedHeader.Lock()
-	bp.lastPrunedHeaderHash = nil
-	bp.lastPrunedHeaderNonce = 0
-	bp.mutLastPrunedHeader.Unlock()
 }
 
 // PruneTrieAsyncHeader will trigger trie pruning for header from async execution flow
@@ -4589,9 +4712,7 @@ func (bp *baseProcessor) pruneTrieForHeadersUnprotected(
 // isContendedUnsettledCrossHeader applies the cross-shard referencing gate: a header that
 // skipped a round after its parent is not includable until it settles (see IsSettledCrossHeader)
 func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandler, parentHeader data.HeaderHandler, headerHash []byte) bool {
-	// keyed on the header's own epoch: a pre-Supernova header predates the settlement rules and
-	// could never satisfy them
-	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
+	if !common.IsCrossHeaderSettlementEnabledForHeader(bp.enableEpochsHandler, bp.enableRoundsHandler, header) {
 		return false
 	}
 	if !common.IsContendedHeader(header, parentHeader) {
@@ -4604,7 +4725,7 @@ func (bp *baseProcessor) isContendedUnsettledCrossHeader(header data.HeaderHandl
 // checkNotContendedUnsettled errors when a referenced cross-shard header is contended and not yet
 // settled; the header hash is computed only on the contended path
 func (bp *baseProcessor) checkNotContendedUnsettled(header data.HeaderHandler, parentHeader data.HeaderHandler) error {
-	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch()) {
+	if !common.IsCrossHeaderSettlementEnabledForHeader(bp.enableEpochsHandler, bp.enableRoundsHandler, header) {
 		return nil
 	}
 	if !common.IsContendedHeader(header, parentHeader) {

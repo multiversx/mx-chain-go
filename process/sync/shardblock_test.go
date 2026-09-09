@@ -96,6 +96,17 @@ type headerAndHash struct {
 	hash   []byte
 }
 
+type bootstrapCompletedEpochStartTriggerStub struct {
+	*testscommon.EpochStartTriggerStub
+	onBootstrapCompletedCalled func()
+}
+
+func (stub *bootstrapCompletedEpochStartTriggerStub) OnBootstrapCompleted() {
+	if stub.onBootstrapCompletedCalled != nil {
+		stub.onBootstrapCompletedCalled()
+	}
+}
+
 func setupPools(headersAndHashes ...headerAndHash) dataRetriever.PoolsHolder {
 	pools := dataRetrieverMock.NewPoolsHolderStub()
 	pools.HeadersCalled = func() dataRetriever.HeadersPool {
@@ -901,6 +912,51 @@ func TestBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	_ = bs.StartSyncingBlocks()
 	time.Sleep(200 * time.Millisecond)
 	_ = bs.Close()
+}
+
+func TestShardBootstrap_StartSyncingBlocksNotifiesBootstrapCompletion(t *testing.T) {
+	testCases := []struct {
+		name      string
+		loadError error
+	}{
+		{
+			name: "successful storage load",
+		},
+		{
+			name:      "non-critical storage load error",
+			loadError: errExpected,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			args := CreateShardBootstrapMockArguments()
+			events := make([]string, 0, 2)
+			args.StorageBootstrapper = &mock.StorageBootstrapperMock{
+				LoadFromStorageCalled: func() error {
+					events = append(events, "load")
+					return testCase.loadError
+				},
+			}
+			args.EpochStartTrigger = &bootstrapCompletedEpochStartTriggerStub{
+				EpochStartTriggerStub: &testscommon.EpochStartTriggerStub{},
+				onBootstrapCompletedCalled: func() {
+					events = append(events, "notify")
+				},
+			}
+
+			bs, err := sync.NewShardBootstrap(args)
+			require.NoError(t, err)
+
+			err = bs.StartSyncingBlocks()
+			require.NoError(t, err)
+			t.Cleanup(func() {
+				require.NoError(t, bs.Close())
+			})
+
+			require.Equal(t, []string{"load", "notify"}, events)
+		})
+	}
 }
 
 func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
@@ -2331,25 +2387,29 @@ func TestShardBootstrap_DoJobOnSyncBlockFailRemovesBlockingUnprovenHeader(t *tes
 		return args, c
 	}
 
-	t.Run("removes the unproven blocking header and resets the error counter when the limit is reached", func(t *testing.T) {
+	t.Run("removes the unproven blocking header after its presence window, error counter untouched", func(t *testing.T) {
 		t.Parallel()
 
 		args, c := buildArgs(false)
 		bs, _ := sync.NewShardBootstrap(args)
-		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 100)
 
+		for i := 0; i < 9; i++ {
+			bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+			assert.Nil(t, c.removedFromPool)
+		}
 		bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
 
 		assert.Equal(t, hashY, c.removedFromPool)
 		assert.True(t, c.removedFromForkDetector)
 		assert.Equal(t, nextNonce, c.removedNonce)
-		assert.Equal(t, uint32(0), bs.GetNumSyncedWithErrorsForNonce(nextNonce))
+		// the rollback-limit counter keeps its own accumulation, no reset on removal
+		assert.Equal(t, uint32(10), bs.GetNumSyncedWithErrorsForNonce(nextNonce))
 	})
 
-	t.Run("does not remove a header that has a proof", func(t *testing.T) {
+	t.Run("a high error counter alone does not trigger removal", func(t *testing.T) {
 		t.Parallel()
 
-		args, c := buildArgs(true)
+		args, c := buildArgs(false)
 		bs, _ := sync.NewShardBootstrap(args)
 		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 100)
 
@@ -2359,14 +2419,29 @@ func TestShardBootstrap_DoJobOnSyncBlockFailRemovesBlockingUnprovenHeader(t *tes
 		assert.False(t, c.removedFromForkDetector)
 	})
 
-	t.Run("does not remove before the error limit is reached", func(t *testing.T) {
+	t.Run("does not remove a header that has a proof", func(t *testing.T) {
+		t.Parallel()
+
+		args, c := buildArgs(true)
+		bs, _ := sync.NewShardBootstrap(args)
+
+		for i := 0; i < 10; i++ {
+			bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+		}
+
+		assert.Nil(t, c.removedFromPool)
+		assert.False(t, c.removedFromForkDetector)
+	})
+
+	t.Run("does not remove before the presence window elapses", func(t *testing.T) {
 		t.Parallel()
 
 		args, c := buildArgs(false)
 		bs, _ := sync.NewShardBootstrap(args)
-		bs.SetNumSyncedWithErrorsForNonce(nextNonce, 0)
 
-		bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+		for i := 0; i < 9; i++ {
+			bs.DoJobOnSyncBlockFail(nil, nil, process.ErrTimeIsOut)
+		}
 
 		assert.Nil(t, c.removedFromPool)
 		assert.False(t, c.removedFromForkDetector)
@@ -2980,10 +3055,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		bs, _ := sync.NewShardBootstrap(args)
 
 		go func() {
-			// wait for both header and proof requests
 			<-receive
-			<-receive
-
 			bs.SetRcvHdrNonce()
 		}()
 
@@ -3032,7 +3104,6 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 
 		pools := createMockPools()
 
-		numProofCalls := 0
 		pools.ProofsCalled = func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{
 				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
@@ -3042,12 +3113,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 					return nil, errors.New("missing proof")
 				},
 				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-					if numProofCalls == 0 {
-						numProofCalls++
-						return false
-					}
-
-					return true // second check after wait is done by hash
+					return true
 				},
 			}
 		}
@@ -3086,10 +3152,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		bs, _ := sync.NewShardBootstrap(args)
 
 		go func() {
-			// wait for both header and proof requests
 			<-receive
-			<-receive
-
 			bs.SetRcvHdrHash()
 		}()
 

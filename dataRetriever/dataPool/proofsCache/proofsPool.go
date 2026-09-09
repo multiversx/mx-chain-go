@@ -281,6 +281,18 @@ func (pp *proofsPool) HasProof(
 	return err == nil
 }
 
+// HasProofForDifferentHash checks whether the nonce contains proof evidence for another header.
+func (pp *proofsPool) HasProofForDifferentHash(shardID uint32, headerNonce uint64, headerHash []byte) bool {
+	pp.mutCache.RLock()
+	proofsPerShard, ok := pp.cache[shardID]
+	pp.mutCache.RUnlock()
+	if !ok {
+		return false
+	}
+
+	return proofsPerShard.hasProofForDifferentHash(headerNonce, headerHash)
+}
+
 // RegisterHandler registers a new handler to be called when a new data is added
 func (pp *proofsPool) RegisterHandler(handler func(headerProof data.HeaderProofHandler)) {
 	if handler == nil {

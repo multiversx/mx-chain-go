@@ -28,7 +28,7 @@ type txCache interface {
 	OnBackfilledBlock(blockHash []byte, blockBody data.BodyHandler, blockHeader data.HeaderHandler) error
 	OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error
 	ResetTracker()
-	Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64
+	Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) uint64
 }
 
 type txGasHandler interface {

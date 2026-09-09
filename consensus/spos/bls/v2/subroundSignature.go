@@ -107,6 +107,10 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 
 		return true
 	}
+	if sr.ShouldRefuseCompetingParent(sr.GetHeader().GetEpoch(), sr.GetHeader().GetRound()) {
+		log.Debug("step 2: subround cannot proceed, proposal parent was superseded")
+		return false
+	}
 
 	if sr.HasProofForCompetingBlock() {
 		log.Debug("step 2: subround cannot proceed, proof for competing block exists")

@@ -76,6 +76,16 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
+	err = sp.checkConsecutiveShardEpochForProposal(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sp.updateGasConsumptionLimitsForProposal()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	sp.gasComputation.Reset()
 	sp.miniBlocksSelectionSession.ResetSelectionSession()
 	err = sp.createBlockBodyProposal(shardHdr, haveTime)
@@ -182,6 +192,11 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return process.ErrInvalidHeader
 	}
 
+	err = checkMetaBlockHashesBasicValidity(header)
+	if err != nil {
+		return err
+	}
+
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -247,6 +262,11 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	}
 
 	err = sp.verifyCrossShardMiniBlockDstMe(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.updateGasConsumptionLimitsForProposal()
 	if err != nil {
 		return err
 	}
@@ -408,7 +428,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 
 // CommitBlockProposalState commits the accounts state after processing a block proposal
 // and performs any post-commit operations (e.g. saving epoch start economics metrics).
-func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHandler, headerHash []byte) error {
 	if check.IfNil(headerHandler) {
 		return process.ErrNilBlockHeader
 	}
@@ -420,7 +440,7 @@ func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHand
 
 	sp.cleanupDismissedEWLEntries()
 
-	err := sp.commitState(headerHandler)
+	err := sp.commitStateForHeader(headerHandler, headerHash)
 	if err != nil {
 		return err
 	}
@@ -463,11 +483,12 @@ func (sp *shardProcessor) createBlockBodyProposal(
 		return err
 	}
 
-	return sp.createProposalMiniBlocks(haveTime, shardHdr.GetNonce())
+	return sp.createProposalMiniBlocks(haveTime, shardHdr.GetNonce(), shardHdr.GetEpoch())
 }
 
 func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 	haveTime func() bool,
+	candidateShardEpoch uint32,
 ) ([]*pendingBlocksAfterSelection, error) {
 	log.Debug("selectIncomingMiniBlocksForProposal has been started")
 
@@ -487,7 +508,13 @@ func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 		return nil, err
 	}
 
-	pendingBlocks, err := sp.selectIncomingMiniBlocks(lastMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
+	pendingBlocks, err := sp.selectIncomingMiniBlocks(
+		lastMetaHdr,
+		orderedMetaBlocks,
+		orderedMetaBlocksHashes,
+		haveTime,
+		candidateShardEpoch,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -513,6 +540,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	orderedMetaBlocks []data.HeaderHandler,
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
+	candidateShardEpoch uint32,
 ) ([]*pendingBlocksAfterSelection, error) {
 	var currentMetaBlock data.HeaderHandler
 	var currentMetaBlockHash []byte
@@ -556,7 +584,9 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 
 		metaBlock, ok := currentMetaBlock.(data.MetaHeaderHandler)
 		if !ok {
-			log.Warn("selectIncomingMiniBlocks: wrong type assertion for meta block")
+			return nil, process.ErrWrongTypeAssertion
+		}
+		if checkFutureEpochStartMeta(candidateShardEpoch, metaBlock) != nil {
 			break
 		}
 
@@ -635,13 +665,14 @@ func miniBlocksSliceToMap(miniBlocksAndHashes []block.MiniblockAndHash) map[stri
 func (sp *shardProcessor) createProposalMiniBlocks(
 	haveTime func() bool,
 	nonce uint64,
+	candidateShardEpoch uint32,
 ) error {
 	if !haveTime() {
 		log.Debug("shardProcessor.createProposalMiniBlocks", "error", process.ErrTimeIsOut)
 		return nil
 	}
 	startTime := time.Now()
-	pendingBlocks, err := sp.selectIncomingMiniBlocksForProposal(haveTime)
+	pendingBlocks, err := sp.selectIncomingMiniBlocksForProposal(haveTime, candidateShardEpoch)
 	if err != nil {
 		return err
 	}
@@ -680,10 +711,20 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 		log.Error("appendPendingMiniBlocksAfterSelectingOutgoingTransactions: no header referenced yet")
 		return process.ErrNoReferencedHeader
 	}
-
-	extraMiniBlocksAdded := make([]block.MiniblockAndHash, len(pendingIncomingMiniBlocksAdded))
+	extraMiniBlocksAdded := make([]block.MiniblockAndHash, 0, len(pendingIncomingMiniBlocksAdded))
 	lastNonceReferenced := referencedHeaders[len(referencedHeaders)-1].GetNonce()
-	lastHeaderReferencedFinished := false
+	lastHeaderReferencedFinished := true
+	for _, pendingBlock := range pendingBlocksLeft {
+		if pendingBlock.header.GetNonce() == lastNonceReferenced {
+			lastHeaderReferencedFinished = false
+			break
+		}
+	}
+
+	numReferencedHeaders := len(referencedHeaders)
+	firstDroppedIndex := len(pendingIncomingMiniBlocksAdded)
+
+grantsLoop:
 	for i, pendingMbAdded := range pendingIncomingMiniBlocksAdded {
 		miniBlockAndHash, headerHash, header, found, isHeaderFinished := findPendingMiniBlock(pendingBlocksLeft, pendingMbAdded)
 		if !found {
@@ -691,49 +732,78 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 			return process.ErrInvalidHash
 		}
 
-		extraMiniBlocksAdded[i] = miniBlockAndHash
-
 		// if this is still the last one referenced, continue adding its mini blocks
 		// possible gaps should have been filled already and the current one already referenced
 		if header.GetNonce() == lastNonceReferenced {
+			extraMiniBlocksAdded = append(extraMiniBlocksAdded, miniBlockAndHash)
+			lastHeaderReferencedFinished = isHeaderFinished
 			continue
+		}
+		if !lastHeaderReferencedFinished {
+			firstDroppedIndex = i
+			break
 		}
 
 		// if the header is consecutive to the previous one, reference it
 		if header.GetNonce() == lastNonceReferenced+1 {
+			if numReferencedHeaders >= process.MaxMetaHeadersAllowedInOneShardBlock {
+				firstDroppedIndex = i
+				break
+			}
 			sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
+			numReferencedHeaders++
 			lastNonceReferenced = header.GetNonce()
 			lastHeaderReferencedFinished = isHeaderFinished
+			extraMiniBlocksAdded = append(extraMiniBlocksAdded, miniBlockAndHash)
 			continue
 		}
 
 		// if the header is not consecutive, check for all headers that should be in between
 		// return error if missing, all of them should be available and without mini blocks with dest me
 		for missingNonce := lastNonceReferenced + 1; missingNonce < header.GetNonce(); missingNonce++ {
+			if numReferencedHeaders >= process.MaxMetaHeadersAllowedInOneShardBlock {
+				firstDroppedIndex = i
+				break grantsLoop
+			}
 			hash, hdr, err := findPendingHeaderWithNonceAndNoMiniBlocksDstMe(missingNonce, pendingBlocksLeft)
 			if err != nil {
 				return err
 			}
 
 			sp.miniBlocksSelectionSession.AddReferencedHeader(hdr, hash)
+			numReferencedHeaders++
+			lastNonceReferenced = hdr.GetNonce()
 		}
 
+		if numReferencedHeaders >= process.MaxMetaHeadersAllowedInOneShardBlock {
+			firstDroppedIndex = i
+			break
+		}
 		sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
+		numReferencedHeaders++
 		lastNonceReferenced = header.GetNonce()
 		lastHeaderReferencedFinished = isHeaderFinished
+		extraMiniBlocksAdded = append(extraMiniBlocksAdded, miniBlockAndHash)
+	}
+
+	if firstDroppedIndex < len(pendingIncomingMiniBlocksAdded) {
+		droppedMiniBlocks := make([]block.MiniblockAndHash, len(pendingIncomingMiniBlocksAdded)-firstDroppedIndex)
+		for i, miniBlockHeader := range pendingIncomingMiniBlocksAdded[firstDroppedIndex:] {
+			droppedMiniBlocks[i].Hash = miniBlockHeader.GetHash()
+		}
+		sp.revertGasForCrossShardDstMeMiniBlocks(droppedMiniBlocks, nil)
 	}
 
 	// if the last header referenced was finished, continue referencing headers that do not have mini blocks dest me
 	if lastHeaderReferencedFinished {
-		referencedHeaders = sp.miniBlocksSelectionSession.GetReferencedHeaders()
-		lastNonceReferenced = referencedHeaders[len(referencedHeaders)-1].GetNonce()
-		for {
+		for numReferencedHeaders < process.MaxMetaHeadersAllowedInOneShardBlock {
 			hash, hdr, err := findPendingHeaderWithNonceAndNoMiniBlocksDstMe(lastNonceReferenced+1, pendingBlocksLeft)
 			if err != nil {
 				break
 			}
 
 			sp.miniBlocksSelectionSession.AddReferencedHeader(hdr, hash)
+			numReferencedHeaders++
 			lastNonceReferenced = hdr.GetNonce()
 		}
 	}
@@ -818,6 +888,11 @@ func (sp *shardProcessor) selectOutgoingTransactions(
 }
 
 func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header data.ShardHeaderHandler) error {
+	err := sp.checkMetaBlockHashesOrder(header)
+	if err != nil {
+		return err
+	}
+
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return err
@@ -832,6 +907,21 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	isOwnProofed := sp.ownProofResolver(header)
 
 	for idx, metaHeader := range usedMetaHeaders {
+		metaHeaderHandler, ok := metaHeader.(data.MetaHeaderHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+		err = checkFutureEpochStartMeta(header.GetEpoch(), metaHeaderHandler)
+		if err != nil {
+			return fmt.Errorf(
+				"%w: shard %d, shard epoch %d, meta epoch %d, meta hash %s",
+				err,
+				sp.shardCoordinator.SelfId(),
+				header.GetEpoch(),
+				metaHeader.GetEpoch(),
+				logger.DisplayByteSlice(usedMetaHashes[idx]),
+			)
+		}
 		if sp.isContendedUnsettledCrossHeader(metaHeader, lastCrossNotarizedHeader, usedMetaHashes[idx]) && !isOwnProofed() {
 			return fmt.Errorf("%w with hash %x", errIncludedContendedUnsettledHeader, usedMetaHashes[idx])
 		}
@@ -857,10 +947,19 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	return nil
 }
 
+func checkFutureEpochStartMeta(candidateShardEpoch uint32, metaHeader data.MetaHeaderHandler) error {
+	if !metaHeader.IsStartOfEpochBlock() || metaHeader.GetEpoch() <= candidateShardEpoch {
+		return nil
+	}
+
+	return errFutureEpochStartMetaHeader
+}
+
 // isDeadReferencedMetaHeader rejects on local evidence only; validators without the competitor
 // evidence accept, the same liveness model as the contention checks
 func (sp *shardProcessor) isDeadReferencedMetaHeader(metaHeader data.HeaderHandler, metaHash []byte) bool {
-	if !sp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	if !metaHeader.IsHeaderV3() ||
+		!common.IsCrossHeaderSettlementEnabledForHeader(sp.enableEpochsHandler, sp.enableRoundsHandler, metaHeader) {
 		return false
 	}
 
@@ -994,6 +1093,18 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	sort.Slice(partialReferencedMetaBlocks, func(i, j int) bool {
 		return partialReferencedMetaBlocks[i].hdr.GetNonce() < partialReferencedMetaBlocks[j].hdr.GetNonce()
 	})
+	if len(partialReferencedMetaBlocks) > 0 {
+		firstPartialNonce := partialReferencedMetaBlocks[0].hdr.GetNonce()
+		firstTrimmedIndex := sort.Search(len(fullyReferencedMetaBlocks), func(i int) bool {
+			return fullyReferencedMetaBlocks[i].GetNonce() >= firstPartialNonce
+		})
+		if firstTrimmedIndex < len(fullyReferencedMetaBlocks) {
+			log.Warn("getOrderedProcessedMetaBlocksFromMiniBlockHashesV3: fully processed meta block above a not fully processed one",
+				"not fully processed nonce", firstPartialNonce,
+				"first trimmed fully processed nonce", fullyReferencedMetaBlocks[firstTrimmedIndex].GetNonce())
+			fullyReferencedMetaBlocks = fullyReferencedMetaBlocks[:firstTrimmedIndex]
+		}
+	}
 
 	return fullyReferencedMetaBlocks, partialReferencedMetaBlocks, nil
 }

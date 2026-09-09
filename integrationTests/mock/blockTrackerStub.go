@@ -41,6 +41,7 @@ type BlockTrackerStub struct {
 	RestoreToGenesisCalled                             func()
 	ShouldAddHeaderCalled                              func(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	ResetOwnShardStuckCalled                           func()
 	IsSettledCrossHeaderCalled                         func(header data.HeaderHandler, headerHash []byte) bool
 }
 
@@ -307,6 +308,13 @@ func (bts *BlockTrackerStub) ShouldAddHeader(headerHandler data.HeaderHandler) b
 func (bts *BlockTrackerStub) ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64) {
 	if bts.ComputeOwnShardStuckCalled != nil {
 		bts.ComputeOwnShardStuckCalled(lastExecutionResultsInfo, currentNonce)
+	}
+}
+
+// ResetOwnShardStuck -
+func (bts *BlockTrackerStub) ResetOwnShardStuck() {
+	if bts.ResetOwnShardStuckCalled != nil {
+		bts.ResetOwnShardStuckCalled()
 	}
 }
 

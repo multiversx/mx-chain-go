@@ -62,7 +62,7 @@ func marshalTransactionsToNewlineDelimitedJSON(transactions []*WrappedTransactio
 		printedTx := convertWrappedTransactionToPrintedTransaction(wrappedTx)
 		printedTxJSON, _ := json.Marshal(printedTx)
 
-		builder.WriteString(fmt.Sprintf("%s#%d: ", linePrefix, i))
+		_, _ = fmt.Fprintf(&builder, "%s#%d: ", linePrefix, i)
 		builder.WriteString(string(printedTxJSON))
 		builder.WriteString("\n")
 	}
@@ -97,7 +97,7 @@ func marshalTrackedBlockToNewlineDelimitedJSON(trackedBlocks map[string]*tracked
 		printedBlock := convertTrackedBlockToPrintedBlock(block)
 		printedBlockJSON, _ := json.Marshal(printedBlock)
 
-		builder.WriteString(fmt.Sprintf("%s#%d: ", linePrefix, i))
+		_, _ = fmt.Fprintf(&builder, "%s#%d: ", linePrefix, i)
 		builder.WriteString(string(printedBlockJSON))
 		builder.WriteString("\n")
 

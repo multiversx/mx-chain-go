@@ -301,6 +301,64 @@ func TestInterceptedMetaHeader_CheckValidityShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func createIncomingMiniBlockHeaderAtMetachain(
+	processingType dataBlock.ProcessingType,
+	constructionState dataBlock.MiniBlockState,
+	lastIndex int32,
+) *dataBlock.MiniBlockHeader {
+	mbh := &dataBlock.MiniBlockHeader{
+		Hash:            []byte("incoming-mb-hash"),
+		SenderShardID:   0,
+		ReceiverShardID: core.MetachainShardId,
+		TxCount:         3,
+		Type:            dataBlock.TxBlock,
+	}
+	_ = mbh.SetProcessingType(int32(processingType))
+	_ = mbh.SetConstructionState(int32(constructionState))
+	_ = mbh.SetIndexOfFirstTxProcessed(0)
+	_ = mbh.SetIndexOfLastTxProcessed(lastIndex)
+
+	return mbh
+}
+
+func TestInterceptedMetaHeader_CheckIncomingLegacyMiniBlockExecution(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		processingType    dataBlock.ProcessingType
+		constructionState dataBlock.MiniBlockState
+		lastIndex         int32
+		expectedErr       error
+	}{
+		{"normal final full execution allowed", dataBlock.Normal, dataBlock.Final, 2, nil},
+		{"normal partial execution rejected", dataBlock.Normal, dataBlock.PartialExecuted, 0, process.ErrInvalidConstructionState},
+		{"scheduled final execution rejected", dataBlock.Scheduled, dataBlock.Final, 2, process.ErrInvalidMiniBlockProcessingType},
+		{"scheduled partial execution rejected", dataBlock.Scheduled, dataBlock.PartialExecuted, 0, process.ErrInvalidMiniBlockProcessingType},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			hdr := createMockMetaHeader()
+			mbh := createIncomingMiniBlockHeaderAtMetachain(test.processingType, test.constructionState, test.lastIndex)
+			hdr.MiniBlockHeaders = []dataBlock.MiniBlockHeader{*mbh}
+			arg := createMetaArgumentWithShardCoordinatorAndHeader(mock.NewOneShardCoordinatorMock(), hdr)
+			inHdr, err := interceptedBlocks.NewInterceptedMetaHeader(arg)
+			require.NoError(t, err)
+
+			err = inHdr.CheckValidity()
+			if test.expectedErr == nil {
+				assert.NoError(t, err)
+				return
+			}
+			assert.ErrorIs(t, err, test.expectedErr)
+		})
+	}
+}
+
 func TestInterceptedMetaHeader_CheckAgainstRoundHandlerAttesterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 

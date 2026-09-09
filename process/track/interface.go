@@ -42,6 +42,23 @@ type blockTrackerHandler interface {
 	IsInterfaceNil() bool
 }
 
+type sourceAwareSelfHeadersProvider interface {
+	getSelfHeadersWithSource(headerHandler data.HeaderHandler, headerHash []byte) []*selfHeaderInfo
+}
+
+type sourceAwareSelfHeadersPublisher interface {
+	publishSelfNotarizedFromCrossHeaders(shardID uint32, headersInfo []*selfHeaderInfo)
+}
+
+type selfHeaderInfo struct {
+	Hash   []byte
+	Header data.HeaderHandler
+
+	sourceMetaHeader data.MetaHeaderHandler
+	sourceMetaHash   []byte
+	sourceView       uint64
+}
+
 type blockBalancerHandler interface {
 	GetNumPendingMiniBlocks(shardID uint32) uint32
 	SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
@@ -60,5 +77,6 @@ type KeysHandler interface {
 // OwnShardTrackerHandler defines the operations implemented by a component that will track the own shard
 type OwnShardTrackerHandler interface {
 	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	ResetOwnShardStuck()
 	IsOwnShardStuck() bool
 }

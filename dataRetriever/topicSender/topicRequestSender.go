@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/random"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
@@ -116,27 +117,31 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 
 	topicToSendRequest := trs.topicName + core.TopicRequestSuffix
 
-	var numSentIntra, numSentCross int
+	epochIsRecent := trs.currentNetworkEpochProviderHandler.EpochIsActiveInNetwork(rd.Epoch)
+	epochOnMainPeers := epochIsRecent
+	if !epochIsRecent {
+		epochOnMainPeers = trs.currentNetworkEpochProviderHandler.EpochIsAvailableOnMainPeers(rd.Epoch)
+	}
+	sendToFullArchive := !epochIsRecent
+	sendToMain := epochOnMainPeers
+
+	var numSentIntra, numSentCross, numSentFullArchive int
 	var intraPeers, crossPeers []core.PeerID
 	fullHistoryPeers := make([]core.PeerID, 0)
 	requestedNetworks := make([]string, 0)
-	if !trs.currentNetworkEpochProviderHandler.EpochIsActiveInNetwork(rd.Epoch) {
-		preferredPeer := trs.getPreferredFullArchivePeer()
-		fullHistoryPeers = trs.fullArchiveMessenger.ConnectedPeers()
+	if sendToFullArchive {
+		maxFullArchivePeersToQuery := trs.numFullHistoryPeers
+		if sendToMain {
+			// dual-send band: the main network is the primary source, full-archive is insurance only
+			maxFullArchivePeersToQuery = min(numFullArchivePeersInDualBand, trs.numFullHistoryPeers)
+		}
 
-		numSentIntra = trs.sendOnTopic(
-			fullHistoryPeers,
-			preferredPeer,
-			topicToSendRequest,
-			buff,
-			trs.numFullHistoryPeers,
-			core.FullHistoryPeer.String(),
-			trs.fullArchiveMessenger)
+		numSentFullArchive, fullHistoryPeers = trs.sendOnFullArchiveNetwork(topicToSendRequest, buff, maxFullArchivePeersToQuery)
 
 		requestedNetworks = append(requestedNetworks, "full archive network")
 	}
 
-	if numSentCross+numSentIntra == 0 {
+	if sendToMain || numSentFullArchive == 0 {
 		crossPeers = trs.peerListCreator.CrossShardPeerList()
 		preferredPeer := trs.getPreferredPeer(trs.targetShardId)
 		numSentCross = trs.sendOnTopic(
@@ -144,6 +149,7 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			preferredPeer,
 			topicToSendRequest,
 			buff,
+			trs.numCrossShardPeers,
 			trs.numCrossShardPeers,
 			core.CrossShardPeer.String(),
 			trs.mainMessenger)
@@ -156,15 +162,16 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 			topicToSendRequest,
 			buff,
 			trs.numIntraShardPeers,
+			trs.numIntraShardPeers,
 			core.IntraShardPeer.String(),
 			trs.mainMessenger)
 
 		requestedNetworks = append(requestedNetworks, "main network")
 	}
 
-	trs.callDebugHandler(originalHashes, numSentIntra, numSentCross)
+	trs.callDebugHandler(originalHashes, numSentIntra+numSentFullArchive, numSentCross)
 
-	if numSentCross+numSentIntra == 0 {
+	if numSentCross+numSentIntra+numSentFullArchive == 0 {
 		return fmt.Errorf("%w, topic: %s, crossPeers: %d, intraPeers: %d, fullHistoryPeers: %d, requested networks: %s",
 			dataRetriever.ErrSendRequest,
 			trs.topicName,
@@ -176,6 +183,105 @@ func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData,
 	}
 
 	return nil
+}
+
+// sendOnFullArchiveNetwork queries the topic subscribers first, then explores the rest of the
+// connected peers with the leftover capacity; the topic view is a cached gossip-mesh snapshot that
+// can be incomplete, so one exploration slot is always reserved while unexplored peers exist
+func (trs *topicRequestSender) sendOnFullArchiveNetwork(topicToSendRequest string, buff []byte, maxPeersToQuery int) (int, []core.PeerID) {
+	topicPeers := trs.fullArchiveMessenger.ConnectedPeersOnTopic(trs.topicName)
+	allConnectedPeers := trs.fullArchiveMessenger.ConnectedPeers()
+	fillPeers := peersNotIn(allConnectedPeers, topicPeers)
+	preferredPeer := trs.getPreferredFullArchivePeer()
+
+	pass1MaxPeers := maxPeersToQuery
+	if len(fillPeers) > 0 && maxPeersToQuery > 1 {
+		pass1MaxPeers = maxPeersToQuery - 1
+	}
+
+	numSent := trs.sendFullArchivePass(topicPeers, preferredPeer, topicToSendRequest, buff, pass1MaxPeers)
+
+	remaining := maxPeersToQuery - numSent
+	if remaining > 0 {
+		numSent += trs.sendFullArchivePass(fillPeers, preferredPeer, topicToSendRequest, buff, remaining)
+	}
+
+	return numSent, allConnectedPeers
+}
+
+func (trs *topicRequestSender) sendFullArchivePass(
+	peers []core.PeerID,
+	preferredPeer core.PeerID,
+	topicToSendRequest string,
+	buff []byte,
+	maxToSend int,
+) int {
+	if len(peers) == 0 || maxToSend <= 0 {
+		return 0
+	}
+
+	candidates, preferred := splitPreferred(peers, preferredPeer, maxToSend)
+
+	// full coverage on every full-archive pass: a coverage below the candidate count would let the
+	// rating tiers exclude bad-rated capable peers from the shuffle indefinitely
+	ratingCoverage := len(candidates)
+
+	return trs.sendOnTopic(
+		candidates,
+		preferred,
+		topicToSendRequest,
+		buff,
+		maxToSend,
+		ratingCoverage,
+		core.FullHistoryPeer.String(),
+		trs.fullArchiveMessenger)
+}
+
+// splitPreferred prevents a double send: sendOnTopic prepends the preferred peer without removing
+// it from the ordinary candidate list, so a preferred peer that is also a candidate could be
+// contacted twice and consume two send slots
+func splitPreferred(peers []core.PeerID, preferredPeer core.PeerID, maxToSend int) ([]core.PeerID, core.PeerID) {
+	// with a single slot sendOnTopic does not inject the preferred peer; keep it an ordinary candidate
+	if len(preferredPeer) == 0 || maxToSend <= 1 {
+		return peers, ""
+	}
+
+	filtered := make([]core.PeerID, 0, len(peers))
+	found := false
+	for _, peer := range peers {
+		if peer == preferredPeer {
+			found = true
+			continue
+		}
+		filtered = append(filtered, peer)
+	}
+	if !found {
+		// the preferred peer belongs to the other pass
+		return peers, ""
+	}
+	if len(filtered) == 0 {
+		// sole candidate: keep it ordinary, an empty list would skip the pass entirely
+		return peers, ""
+	}
+
+	return filtered, preferredPeer
+}
+
+func peersNotIn(allPeers []core.PeerID, excludedPeers []core.PeerID) []core.PeerID {
+	excluded := make(map[core.PeerID]struct{}, len(excludedPeers))
+	for _, peer := range excludedPeers {
+		excluded[peer] = struct{}{}
+	}
+
+	remaining := make([]core.PeerID, 0, len(allPeers))
+	for _, peer := range allPeers {
+		_, isExcluded := excluded[peer]
+		if !isExcluded {
+			remaining = append(remaining, peer)
+		}
+	}
+
+	return remaining
 }
 
 func (trs *topicRequestSender) callDebugHandler(originalHashes [][]byte, numSentIntra int, numSentCross int) {
@@ -200,6 +306,7 @@ func (trs *topicRequestSender) sendOnTopic(
 	topicToSendRequest string,
 	buff []byte,
 	maxToSend int,
+	ratingCoverage int,
 	peerType string,
 	messenger p2p.MessageHandler,
 ) int {
@@ -209,7 +316,7 @@ func (trs *topicRequestSender) sendOnTopic(
 
 	histogramMap := make(map[string]int)
 
-	topRatedPeersList := trs.peersRatingHandler.GetTopRatedPeersFromList(peerList, maxToSend)
+	topRatedPeersList := trs.peersRatingHandler.GetTopRatedPeersFromList(peerList, ratingCoverage)
 
 	indexes := createIndexList(len(topRatedPeersList))
 	shuffledIndexes := random.FisherYatesShuffle(indexes, trs.randomizer)

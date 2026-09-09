@@ -21,3 +21,5 @@ var errReferencedNonAncestorMetaHeader = errors.New("shard header references a m
 var errNilMetaAncestryView = errors.New("nil meta ancestry view")
 
 var errReferencedDeadMetaHeader = errors.New("shard header references a meta block the authority built past")
+
+var errFutureEpochStartMetaHeader = errors.New("shard header references a future epoch start meta block")

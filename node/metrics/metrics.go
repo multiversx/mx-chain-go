@@ -374,6 +374,9 @@ func InitMetrics(
 
 	appStatusHandler.SetStringValue(common.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(common.MetricShardId, shardId)
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		appStatusHandler.SetUInt64Value(common.MetricSupernovaTransitionReady, 0)
+	}
 	appStatusHandler.SetUInt64Value(common.MetricNumShardsWithoutMetachain, numOfShards)
 	appStatusHandler.SetStringValue(common.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(common.MetricRoundTime, roundDuration)

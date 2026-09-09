@@ -105,6 +105,42 @@ func TestRequestMiniBlocksOnProof_PreAndromedaRequestsImmediately(t *testing.T) 
 	require.Zero(t, hfb.NumPendingMbRequests())
 }
 
+func TestRequestMiniBlocksOnProof_PatienceIsTakenForTheHeaderRound(t *testing.T) {
+	t.Parallel()
+
+	providedRound := uint64(1)
+	chRound := make(chan uint64, 1)
+
+	recorder := &requestRecorder{}
+	args := createRequestOnProofArgs(recorder)
+	args.ProcessConfigsHandler = &testscommon.ProcessConfigsHandlerStub{
+		GetExtraDelayForRequestBlockInfoCalled: func(round uint64) time.Duration {
+			select {
+			case chRound <- round:
+			default:
+			}
+			return 0
+		},
+	}
+	hfb, err := headerForBlock.NewHeadersForBlock(args)
+	require.NoError(t, err)
+
+	header, hash := createTestMetaHeader(1)
+	require.Equal(t, providedRound, header.GetRound())
+	require.True(t, args.DataPool.Proofs().AddProof(createTestProof(hash, 1)))
+
+	hfb.RequestMiniBlocksOnProofIfNeeded(header, hash)
+
+	requireEventuallyNumRequests(t, recorder, 1)
+
+	select {
+	case round := <-chRound:
+		require.Equal(t, providedRound, round)
+	case <-time.After(time.Second):
+		require.Fail(t, "the request patience was not looked up for the header round")
+	}
+}
+
 func TestRequestMiniBlocksOnProof_ProofAlreadyPresentRequestsImmediately(t *testing.T) {
 	t.Parallel()
 

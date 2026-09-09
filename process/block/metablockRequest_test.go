@@ -283,15 +283,15 @@ func createMetaProcessorArguments(t *testing.T, noOfShards uint32) *blockProcess
 		},
 	}
 	headersForBlock, err := headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
-		DataPool:            arguments.DataComponents.Datapool(),
-		RequestHandler:      arguments.RequestHandler,
-		EnableEpochsHandler: arguments.CoreComponents.EnableEpochsHandler(),
-		ShardCoordinator:    arguments.BootstrapComponents.ShardCoordinator(),
-		BlockTracker:        arguments.BlockTracker,
-		TxCoordinator:       arguments.TxCoordinator,
-		RoundHandler:        arguments.CoreComponents.RoundHandler(),
-		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-		GenesisNonce: 0,
+		DataPool:              arguments.DataComponents.Datapool(),
+		RequestHandler:        arguments.RequestHandler,
+		EnableEpochsHandler:   arguments.CoreComponents.EnableEpochsHandler(),
+		ShardCoordinator:      arguments.BootstrapComponents.ShardCoordinator(),
+		BlockTracker:          arguments.BlockTracker,
+		TxCoordinator:         arguments.TxCoordinator,
+		RoundHandler:          arguments.CoreComponents.RoundHandler(),
+		ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+		GenesisNonce:          0,
 	})
 	require.Nil(t, err)
 	arguments.HeadersForBlock = headersForBlock

@@ -39,7 +39,7 @@ type TxCacheMock struct {
 	OnBackfilledBlockCalled            func(blockHash []byte, blockBody data.BodyHandler, blockHeader data.HeaderHandler) error
 	OnExecutedBlockCalled              func(blockHeader data.HeaderHandler, rootHash []byte) error
 	ResetTrackerCalled                 func()
-	CleanupCalled                      func(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64
+	CleanupCalled                      func(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) uint64
 }
 
 // GetTrackerDiagnosis -
@@ -86,9 +86,9 @@ func (cache *TxCacheMock) ResetTracker() {
 }
 
 // Cleanup -
-func (cache *TxCacheMock) Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
+func (cache *TxCacheMock) Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) uint64 {
 	if cache.CleanupCalled != nil {
-		return cache.CleanupCalled(accountsProvider, randomness, maxNum, cleanupLoopMaximumDurationMs)
+		return cache.CleanupCalled(accountsProvider, randomness, maxNum, cleanupLoopMaximumDuration)
 	}
 
 	return 0

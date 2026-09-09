@@ -31,6 +31,22 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
+const (
+	testExtraDelayForBroadcastBlockInfo     = 30 * time.Millisecond
+	testExtraDelayBetweenBroadcastMbsAndTxs = 50 * time.Millisecond
+)
+
+func createTestProcessConfigsHandler() common.ProcessConfigsHandler {
+	return &testscommon.ProcessConfigsHandlerStub{
+		GetExtraDelayForBroadcastBlockInfoCalled: func(_ uint64) time.Duration {
+			return testExtraDelayForBroadcastBlockInfo
+		},
+		GetExtraDelayBetweenBroadcastMbsAndTxsCalled: func(_ uint64) time.Duration {
+			return testExtraDelayBetweenBroadcastMbsAndTxs
+		},
+	}
+}
+
 type validatorDelayArgs struct {
 	headerHash       []byte
 	header           data.HeaderHandler
@@ -141,6 +157,7 @@ func createDefaultDelayedBroadcasterArgs() *broadcast.ArgsDelayedBlockBroadcaste
 		HeadersSubscriber:     headersSubscriber,
 		ProofsPool:            &dataRetrieverMock.ProofsPoolMock{},
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ProcessConfigsHandler: createTestProcessConfigsHandler(),
 		LeaderCacheSize:       2,
 		ValidatorCacheSize:    2,
 		AlarmScheduler:        alarm.NewAlarmScheduler(),
@@ -266,7 +283,7 @@ func TestDelayedBlockBroadcaster_HeaderReceivedProofsEnabled_ShouldNotBroadcastW
 	metaBlock.Nonce = 1 // nonce > 0 so proofs flag applies
 
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
-	time.Sleep(common.ExtraDelayForBroadcastBlockInfo + common.ExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
+	time.Sleep(testExtraDelayForBroadcastBlockInfo + testExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
 
 	assert.False(t, mbBroadcastCalled.IsSet(), "should NOT broadcast when proof is missing and proofs flag enabled")
 }
@@ -311,7 +328,7 @@ func TestDelayedBlockBroadcaster_ReceivedProof_HeaderNotInPoolShouldNotBroadcast
 		HeaderNonce:   1,
 	}
 	dbb.ProofReceived(proof)
-	time.Sleep(common.ExtraDelayForBroadcastBlockInfo + common.ExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
+	time.Sleep(testExtraDelayForBroadcastBlockInfo + testExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
 
 	assert.False(t, mbBroadcastCalled.IsSet(), "should NOT broadcast when header is not in pool")
 }
@@ -386,7 +403,7 @@ func TestDelayedBlockBroadcaster_HeaderReceivedProofsDisabled_ShouldBroadcastImm
 
 	metaBlock := createMetaBlock()
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
-	time.Sleep(common.ExtraDelayForBroadcastBlockInfo + common.ExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
+	time.Sleep(testExtraDelayForBroadcastBlockInfo + testExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
 
 	assert.True(t, mbBroadcastCalled.IsSet(), "should broadcast when proofs flag is disabled (backwards compat)")
 }
@@ -444,7 +461,7 @@ func TestDelayedBlockBroadcaster_HeaderArrivesFirst_ThenProofTriggersBroadcast(t
 
 	// Step 1: header arrives, no proof yet -> should NOT broadcast
 	dbb.HeaderReceived(metaBlock, metaHash)
-	time.Sleep(common.ExtraDelayForBroadcastBlockInfo + common.ExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
+	time.Sleep(testExtraDelayForBroadcastBlockInfo + testExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
 	assert.False(t, mbBroadcastCalled.IsSet(), "should not broadcast before proof arrives")
 
 	// Step 2: proof arrives -> should trigger broadcast via headerReceived delegation
@@ -455,7 +472,7 @@ func TestDelayedBlockBroadcaster_HeaderArrivesFirst_ThenProofTriggersBroadcast(t
 		HeaderNonce:   1,
 	}
 	dbb.ProofReceived(proof)
-	time.Sleep(common.ExtraDelayForBroadcastBlockInfo + common.ExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
+	time.Sleep(testExtraDelayForBroadcastBlockInfo + testExtraDelayBetweenBroadcastMbsAndTxs + 100*time.Millisecond)
 	assert.True(t, mbBroadcastCalled.IsSet(), "should broadcast after proof arrives")
 }
 
@@ -536,8 +553,8 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataShouldBro
 	assert.False(t, txBroadcastCalled.IsSet())
 
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
-	sleepTime := common.ExtraDelayForBroadcastBlockInfo +
-		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+	sleepTime := testExtraDelayForBroadcastBlockInfo +
+		testExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 	assert.True(t, mbBroadcastCalled.IsSet())
@@ -646,8 +663,8 @@ func TestDelayedBlockBroadcaster_HeaderReceivedWithoutSignaturesForShardShouldNo
 	assert.False(t, txBroadcastCalled.IsSet())
 
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
-	sleepTime := common.ExtraDelayForBroadcastBlockInfo +
-		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+	sleepTime := testExtraDelayForBroadcastBlockInfo +
+		testExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
@@ -709,8 +726,8 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNextRegisteredDelayedDataShoul
 	metaBlock.ShardInfo[0].HeaderHash = headerHash2
 
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
-	sleepTime := common.ExtraDelayForBroadcastBlockInfo +
-		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+	sleepTime := testExtraDelayForBroadcastBlockInfo +
+		testExtraDelayBetweenBroadcastMbsAndTxs +
 		10*time.Millisecond
 	time.Sleep(sleepTime)
 	assert.Equal(t, int64(2), mbBroadcastCalled.Get())
@@ -1123,8 +1140,8 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 	require.Equal(t, int64(0), txBroadcastCalled.Get())
 
 	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
-		common.ExtraDelayForBroadcastBlockInfo +
-		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+		testExtraDelayForBroadcastBlockInfo +
+		testExtraDelayBetweenBroadcastMbsAndTxs +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 
@@ -1350,8 +1367,8 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 	dbb.InterceptedHeaderData("headerTopic", headerHash, differentHeader)
 	dbb.InterceptedMiniBlockData("headerTopic", headerHash, invalidHeader)
 	sleepTime := broadcast.ValidatorDelayPerOrder()*time.Duration(vArgs.order) +
-		common.ExtraDelayForBroadcastBlockInfo +
-		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+		testExtraDelayForBroadcastBlockInfo +
+		testExtraDelayBetweenBroadcastMbsAndTxs +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 
@@ -1571,8 +1588,8 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastSameRoundAndPrevRandS
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
 	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
-		common.ExtraDelayForBroadcastBlockInfo +
-		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+		testExtraDelayForBroadcastBlockInfo +
+		testExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
@@ -1628,7 +1645,7 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldBroadcastTheDataForRegistered
 	require.Equal(t, 1, len(vbd))
 
 	dbb.AlarmExpired(hex.EncodeToString(vArgs.headerHash))
-	sleepTime := common.ExtraDelayBetweenBroadcastMbsAndTxs +
+	sleepTime := testExtraDelayBetweenBroadcastMbsAndTxs +
 		time.Millisecond*100
 	time.Sleep(sleepTime)
 
@@ -1853,7 +1870,7 @@ func TestDelayedBlockBroadcaster_BroadcastBlockDataFailedBroadcast(t *testing.T)
 	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
-	dbb.BroadcastBlockData(nil, nil, nil, time.Millisecond*100)
+	dbb.BroadcastBlockData(nil, nil, nil, time.Millisecond*100, 0)
 
 	logOutputStr := observer.getBufferStr()
 	require.Contains(t, logOutputStr, errMiniBlocks)
@@ -2060,8 +2077,8 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
 	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
-		common.ExtraDelayForBroadcastBlockInfo +
-		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+		testExtraDelayForBroadcastBlockInfo +
+		testExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
@@ -2127,8 +2144,8 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
 	dbb.InterceptedMiniBlockData("txBlockBodies_0_"+strconv.Itoa(destShardID), miniBlockHashToNotify, &block.MiniBlock{})
 	sleepTime := time.Duration(vArgs.order)*broadcast.ValidatorDelayPerOrder() +
-		common.ExtraDelayForBroadcastBlockInfo +
-		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+		testExtraDelayForBroadcastBlockInfo +
+		testExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
@@ -2320,8 +2337,8 @@ func TestDelayedBlockBroadcaster_HeaderReceivedWithProofsEnabled_DefersUntilProo
 
 	dbb.HeaderReceived(metaBlock, metaHash)
 
-	sleepTime := common.ExtraDelayForBroadcastBlockInfo +
-		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+	sleepTime := testExtraDelayForBroadcastBlockInfo +
+		testExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
@@ -2441,8 +2458,8 @@ func TestDelayedBlockBroadcaster_HeaderReceivedWithProofsEnabled_ProofAlreadyAva
 
 	dbb.HeaderReceived(metaBlock, []byte("meta hash"))
 
-	sleepTime := common.ExtraDelayForBroadcastBlockInfo +
-		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+	sleepTime := testExtraDelayForBroadcastBlockInfo +
+		testExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 
@@ -2495,8 +2512,8 @@ func TestDelayedBlockBroadcaster_DuplicateProcessingPrevented(t *testing.T) {
 	dbb.HeaderReceived(metaBlock, metaHash)
 	dbb.HeaderReceived(metaBlock, metaHash)
 
-	sleepTime := common.ExtraDelayForBroadcastBlockInfo +
-		common.ExtraDelayBetweenBroadcastMbsAndTxs +
+	sleepTime := testExtraDelayForBroadcastBlockInfo +
+		testExtraDelayBetweenBroadcastMbsAndTxs +
 		100*time.Millisecond
 	time.Sleep(sleepTime)
 

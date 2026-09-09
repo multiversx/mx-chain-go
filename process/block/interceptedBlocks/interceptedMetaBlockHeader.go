@@ -153,6 +153,14 @@ func (imh *InterceptedMetaHeader) integrity() error {
 	if err != nil {
 		return err
 	}
+	if !imh.hdr.IsHeaderV3() {
+		for _, mbh := range imh.hdr.GetMiniBlockHeaderHandlers() {
+			err = process.CheckIncomingMiniBlockHeaderAtMetachain(mbh)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	if imh.hdr.IsHeaderV3() {
 		err = checkMetaShardDataProposal(imh.hdr.GetShardInfoProposalHandlers(), imh.shardCoordinator)

@@ -1,0 +1,14 @@
+version: "2"
+
+linters:
+  exclusions:
+    rules:
+      # Opinionated staticcheck style checks that conflict with established
+      # codebase conventions (embedded selectors and error var names kept explicit).
+      - linters:
+          - staticcheck
+        text: "^(QF1008|ST1012|QF1001|QF1006|QF1007):"
+      # govet inline analyzer cannot rewrite generic calls; not actionable.
+      - linters:
+          - govet
+        text: "cannot inline: type parameter inference is not yet supported"

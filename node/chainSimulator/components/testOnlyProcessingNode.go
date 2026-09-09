@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
 	"github.com/multiversx/mx-chain-go/debug/handler"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -276,6 +277,11 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 
 	instance.collectClosableComponents(args.APIInterface)
 
+	bootstrapCompletedNotifier, ok := instance.ProcessComponentsHolder.EpochStartTrigger().(epochStart.BootstrapCompletedNotifier)
+	if ok {
+		bootstrapCompletedNotifier.OnBootstrapCompleted()
+	}
+
 	return instance, nil
 }
 
@@ -377,6 +383,7 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.DataComponentsHolder.Datapool().Headers(),
 		node.DataComponentsHolder.Datapool().Proofs(),
 		node.CoreComponentsHolder.EnableEpochsHandler(),
+		node.CoreComponentsHolder.ProcessConfigsHandler(),
 		node.ProcessComponentsHolder.InterceptorsContainer(),
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),

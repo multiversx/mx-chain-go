@@ -241,7 +241,7 @@ func checkIfPubkeyIsInMap(
 	for shardIdStr, validatorList := range allShardList {
 		isValidatorInList := checkIfValidatorIsInList(pubKey, validatorList)
 		if isValidatorInList {
-			shardId, err := strconv.ParseInt(shardIdStr, 10, 64)
+			shardId, err := strconv.ParseUint(shardIdStr, 10, 32)
 			if err != nil {
 				log.Error("checkIfIsValidatorForEpoch parsing string to int error should not happen", "err", err)
 				return 0, false

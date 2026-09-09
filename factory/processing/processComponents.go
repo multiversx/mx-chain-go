@@ -283,6 +283,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		genesisUnixTime,
 		pcf.prefConfigs.Preferences.FullArchive,
 		pcf.coreData.EnableEpochsHandler(),
+		pcf.config.StoragePruning.AssumedPeersNumActivePersisters,
 	)
 	if err != nil {
 		return nil, err
@@ -644,7 +645,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	blocksCache := headersCache.NewHeaderBodyCache(pcf.config.HeaderBodyCacheConfig)
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, err := executionTrack.NewExecutionResultsTracker(pcf.state.StateAccessesCollector())
+	if err != nil {
+		return nil, err
+	}
 
 	argExecManager := executionManager.ArgsExecutionManager{
 		BlocksCache:             blocksCache,
@@ -735,16 +739,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
 	argVSP := peer.ArgValidatorsProvider{
-		NodesCoordinator:                  pcf.nodesCoordinator,
-		StartEpoch:                        startEpochNum,
-		EpochStartEventNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
-		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
-		ValidatorStatistics:               validatorStatisticsProcessor,
-		MaxRating:                         pcf.maxRating,
-		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
-		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
-		AuctionListSelector:               pcf.auctionListSelectorAPI,
-		StakingDataProvider:               pcf.stakingDataProviderAPI,
+		NodesCoordinator:             pcf.nodesCoordinator,
+		StartEpoch:                   startEpochNum,
+		EpochStartEventNotifier:      pcf.coreData.EpochStartNotifierWithConfirm(),
+		CacheRefreshIntervalDuration: cacheRefreshDuration,
+		ValidatorStatistics:          validatorStatisticsProcessor,
+		MaxRating:                    pcf.maxRating,
+		ValidatorPubKeyConverter:     pcf.coreData.ValidatorPubKeyConverter(),
+		AddressPubKeyConverter:       pcf.coreData.AddressPubKeyConverter(),
+		AuctionListSelector:          pcf.auctionListSelectorAPI,
+		StakingDataProvider:          pcf.stakingDataProviderAPI,
 	}
 
 	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
@@ -916,22 +920,24 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 		}
 
 		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:          pcf.coreData.InternalMarshalizer(),
-			Hasher:               pcf.coreData.Hasher(),
-			HeaderValidator:      headerValidator,
-			Uint64Converter:      pcf.coreData.Uint64ByteSliceConverter(),
-			DataPool:             pcf.data.Datapool(),
-			Storage:              pcf.data.StorageService(),
-			RequestHandler:       requestHandler,
-			Epoch:                pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			EpochStartNotifier:   pcf.coreData.EpochStartNotifierWithConfirm(),
-			Validity:             process.MetaBlockValidity,
-			Finality:             process.BlockFinality,
-			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			RoundHandler:         pcf.coreData.RoundHandler(),
-			AppStatusHandler:     pcf.statusCoreComponents.AppStatusHandler(),
-			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
-			CommonConfigsHandler: pcf.coreData.CommonConfigsHandler(),
+			Marshalizer:                pcf.coreData.InternalMarshalizer(),
+			Hasher:                     pcf.coreData.Hasher(),
+			HeaderValidator:            headerValidator,
+			Uint64Converter:            pcf.coreData.Uint64ByteSliceConverter(),
+			DataPool:                   pcf.data.Datapool(),
+			Storage:                    pcf.data.StorageService(),
+			RequestHandler:             requestHandler,
+			ShardID:                    shardCoordinator.SelfId(),
+			Epoch:                      pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+			EpochStartNotifier:         pcf.coreData.EpochStartNotifierWithConfirm(),
+			Validity:                   process.MetaBlockValidity,
+			Finality:                   process.BlockFinality,
+			PeerMiniBlocksSyncer:       peerMiniBlockSyncer,
+			RoundHandler:               pcf.coreData.RoundHandler(),
+			AppStatusHandler:           pcf.statusCoreComponents.AppStatusHandler(),
+			EnableEpochsHandler:        pcf.coreData.EnableEpochsHandler(),
+			ProcessConfigsHandler:      pcf.coreData.ProcessConfigsHandler(),
+			WaitForBootstrapCompletion: true,
 		}
 		return shardchain.NewEpochStartTrigger(argEpochStart)
 	}

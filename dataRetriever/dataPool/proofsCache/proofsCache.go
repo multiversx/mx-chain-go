@@ -92,6 +92,24 @@ func (pc *proofsCache) getProofsByNonce(headerNonce uint64) []data.HeaderProofHa
 	return pc.sortedProofsAtNonce(headerNonce)
 }
 
+func (pc *proofsCache) hasProofForDifferentHash(headerNonce uint64, headerHash []byte) bool {
+	pc.mutProofsCache.RLock()
+	defer pc.mutProofsCache.RUnlock()
+
+	bucket, ok := pc.proofsByNonceBuckets[pc.getBucketKey(headerNonce)]
+	if !ok {
+		return false
+	}
+
+	for _, currentHash := range bucket.hashesAt(headerNonce) {
+		if currentHash != string(headerHash) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // sortedProofsAtNonce must be called under mutex protection
 func (pc *proofsCache) sortedProofsAtNonce(headerNonce uint64) []data.HeaderProofHandler {
 	bucket, ok := pc.proofsByNonceBuckets[pc.getBucketKey(headerNonce)]

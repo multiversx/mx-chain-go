@@ -531,6 +531,16 @@ func validateSupernovaActivationTuple(
 	supernovaEpoch uint32,
 	supernovaRound uint64,
 ) error {
+	if supernovaEpoch == 0 && supernovaRound > 0 {
+		return fmt.Errorf("%w: delayed Supernova activation in epoch zero has no previous epoch gas configuration",
+			errors.ErrSupernovaActivationConfigMismatch)
+	}
+
+	err := validateRoundDurationChanges(cfg.GeneralSettings.ChainParametersByEpoch, supernovaEpoch)
+	if err != nil {
+		return err
+	}
+
 	if supernovaEpoch >= supernovaFarAwayActivationEpoch {
 		// a live round with a disabled epoch would switch chronology and force-activate on the
 		// round flag alone while headers stay legacy
@@ -545,7 +555,7 @@ func validateSupernovaActivationTuple(
 		return checkDisabledSupernovaCoherence(cfg)
 	}
 
-	err := checkSupernovaVersionEntry(cfg.Versions.VersionsByEpochs, supernovaEpoch, supernovaRound)
+	err = checkSupernovaVersionEntry(cfg.Versions.VersionsByEpochs, supernovaEpoch, supernovaRound)
 	if err != nil {
 		return err
 	}
@@ -608,6 +618,38 @@ func validateSupernovaActivationTuple(
 	return nil
 }
 
+func validateRoundDurationChanges(chainParameters []config.ChainParametersByEpochConfig, supernovaEpoch uint32) error {
+	var baseRoundDuration uint64
+	foundEpochZero := false
+	for _, chainParameter := range chainParameters {
+		if chainParameter.EnableEpoch == 0 {
+			baseRoundDuration = chainParameter.RoundDuration
+			foundEpochZero = true
+			break
+		}
+	}
+	if !foundEpochZero {
+		return nil
+	}
+
+	for _, chainParameter := range chainParameters {
+		if chainParameter.EnableEpoch >= supernovaEpoch {
+			continue
+		}
+		if chainParameter.RoundDuration != baseRoundDuration {
+			return fmt.Errorf("%w: [ChainParametersByEpoch] entry at epoch %d changes RoundDuration from %d to %d before supernova activation epoch %d",
+				errors.ErrSupernovaActivationConfigMismatch,
+				chainParameter.EnableEpoch,
+				baseRoundDuration,
+				chainParameter.RoundDuration,
+				supernovaEpoch,
+			)
+		}
+	}
+
+	return nil
+}
+
 // checkDisabledSupernovaCoherence ensures a disabled Supernova leaves no near-boundary
 // leftovers that fire on their own: V3 header stamping and round-keyed config switches
 func checkDisabledSupernovaCoherence(cfg config.Config) error {
@@ -621,23 +663,6 @@ func checkDisabledSupernovaCoherence(cfg config.Config) error {
 				supernovaHeaderVersion,
 				version.StartEpoch,
 				supernovaFarAwayActivationEpoch,
-			)
-		}
-	}
-
-	// round duration changes exist only via the Supernova machinery; an entry parked at or
-	// beyond the far-away epoch is the disabled convention itself and stays allowed
-	chainParams := cfg.GeneralSettings.ChainParametersByEpoch
-	for i := 1; i < len(chainParams); i++ {
-		if chainParams[i].EnableEpoch >= supernovaFarAwayActivationEpoch {
-			continue
-		}
-		if chainParams[i].RoundDuration != chainParams[0].RoundDuration {
-			return fmt.Errorf("%w: supernova is disabled but [ChainParametersByEpoch] entry at epoch %d changes RoundDuration from %d to %d",
-				errors.ErrSupernovaActivationConfigMismatch,
-				chainParams[i].EnableEpoch,
-				chainParams[0].RoundDuration,
-				chainParams[i].RoundDuration,
 			)
 		}
 	}

@@ -152,6 +152,10 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	mdi.mutChunksProcessor.RUnlock()
 	if err != nil {
 		mdi.throttler.EndProcessing()
+		if errors.Is(err, process.ErrDuplicatedInterceptedDataNotAllowed) {
+			return nil, p2p.ErrMessageShouldBeIgnored
+		}
+
 		return nil, err
 	}
 
@@ -165,7 +169,8 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		multiDataBuff = [][]byte{checkChunksRes.CompleteBuffer}
 	}
 
-	listInterceptedData := make([]process.InterceptedData, 0, len(multiDataBuff))
+	allInterceptedData := make([]process.InterceptedData, 0, len(multiDataBuff))
+	newInterceptedData := make([]process.InterceptedData, 0, len(multiDataBuff))
 	errOriginator := mdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), mdi.topic)
 	var isWhiteListed bool
 	for _, dataBuff := range multiDataBuff {
@@ -177,7 +182,12 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			errOriginator)
 
 		if err == nil {
-			listInterceptedData = append(listInterceptedData, interceptedData)
+			allInterceptedData = append(allInterceptedData, interceptedData)
+			newInterceptedData = append(newInterceptedData, interceptedData)
+			continue
+		}
+		if errors.Is(err, process.ErrDuplicatedInterceptedDataNotAllowed) {
+			allInterceptedData = append(allInterceptedData, interceptedData)
 			continue
 		}
 
@@ -188,23 +198,29 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		mdi.throttler.EndProcessing()
 		return nil, err
 	}
+
+	messageID := mdi.createInterceptedMultiDataMsgID(allInterceptedData)
+	if len(newInterceptedData) == 0 {
+		mdi.chunksProcessor.MarkVerified(&b, message.BroadcastMethod())
+		mdi.throttler.EndProcessing()
+		return messageID, p2p.ErrMessageShouldBeIgnored
+	}
+
 	go func() {
 		cntSaves := 0
-		for _, interceptedData := range listInterceptedData {
+		for _, interceptedData := range newInterceptedData {
 			dataSaved := mdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
 			if dataSaved {
 				cntSaves++
 			}
 		}
 
-		allInfoSaved := cntSaves == len(listInterceptedData)
+		allInfoSaved := cntSaves == len(newInterceptedData)
 		if allInfoSaved {
 			mdi.chunksProcessor.MarkVerified(&b, message.BroadcastMethod())
 		}
 		mdi.throttler.EndProcessing()
 	}()
-
-	messageID := mdi.createInterceptedMultiDataMsgID(listInterceptedData)
 
 	return messageID, nil
 }
@@ -281,7 +297,7 @@ func (mdi *MultiDataInterceptor) interceptedData(
 			mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 		}
 
-		return nil, isWhiteListed, err
+		return interceptedData, isWhiteListed, err
 	}
 
 	return interceptedData, isWhiteListed, nil

@@ -119,7 +119,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 	if sr.shouldRefuseCompetingParent() {
-		log.Debug("doBlockJob - lower-round sibling proof exists for the current head, skipping block proposal")
+		log.Debug("doBlockJob - preferred sibling proof exists for the current head, skipping block proposal")
 		return false
 	}
 	if sr.hasQuorumEvidenceForCompetingBlock() {
@@ -166,7 +166,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 	if sr.shouldRefuseCompetingParent() {
-		log.Debug("doBlockJob - lower-round sibling proof exists for the current head, skipping block proposal")
+		log.Debug("doBlockJob - preferred sibling proof exists for the current head, skipping block proposal")
 		return false
 	}
 
@@ -200,21 +200,19 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	return true
 }
 
-// shouldRefuseCompetingParent applies the signing guard on the meta chain: never build on or
-// accept a proposal over a head with a known lower-round proofed sibling (the chain must move there)
+// shouldRefuseCompetingParent prevents extending a meta head with a proofed sibling that ranks first
 func (sr *subroundBlock) shouldRefuseCompetingParent() bool {
-	if sr.ShardCoordinator().SelfId() != core.MetachainShardId {
+	header := sr.GetHeader()
+	if !check.IfNil(header) {
+		return sr.ShouldRefuseCompetingParent(header.GetEpoch(), header.GetRound())
+	}
+
+	round := sr.RoundHandler().Index()
+	if round < 0 {
 		return false
 	}
 
-	round := uint64(sr.RoundHandler().Index())
-	isSupernovaActiveInRound := sr.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round)
-	isSupernovaActiveInEpoch := sr.EnableEpochsHandler().IsFlagEnabled(common.SupernovaFlag)
-	if !isSupernovaActiveInRound || !isSupernovaActiveInEpoch {
-		return false
-	}
-
-	return sr.HasProofForCompetingParent()
+	return sr.ShouldRefuseCompetingParentInCurrentEpoch(uint64(round))
 }
 
 // hasQuorumEvidenceForCompetingBlock refuses to propose a block doomed by quorum-level signature
@@ -312,10 +310,12 @@ func (sr *subroundBlock) sendBlock(
 	sr.logBlockSize(marshalledBody, marshalledHeader)
 	headerHash := sr.Hasher().Compute(string(marshalledHeader))
 
-	timeLeft := sr.RoundHandler().RemainingTime(sr.GetRoundTimeStamp(), time.Duration(sr.EndTime()))
-	if timeLeft <= 0 {
-		log.Debug("sendBlock: no remaining time left to send block")
-		return false
+	if header.IsHeaderV3() {
+		timeLeft := sr.RoundHandler().RemainingTime(sr.GetRoundTimeStamp(), time.Duration(sr.EndTime()))
+		if timeLeft <= 0 {
+			log.Debug("sendBlock: no remaining time left to send block")
+			return false
+		}
 	}
 
 	if !sr.sendBlockBody(body, marshalledBody) || !sr.sendBlockHeader(ctx, header, headerHash) {
@@ -340,7 +340,8 @@ func (sr *subroundBlock) logBlockSize(marshalledBody []byte, marshalledHeader []
 
 func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := time.Duration(sr.EndTime())
+	blockSubroundDuration := sr.EndTime() - sr.StartTime()
+	maxTime := time.Duration(sr.StartTime() + blockSubroundDuration*blockCreationMaxTimePercentage/100)
 	haveTimeInCurrentSubround := func() bool {
 		return sr.RoundHandler().RemainingTime(startTime, maxTime) > 0
 	}
@@ -780,7 +781,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	// the proposal's parent is the current head, pinned by isHeaderForCurrentConsensus
 	if sr.shouldRefuseCompetingParent() {
-		log.Debug("subroundBlock.receivedBlockHeader - lower-round sibling proof exists for the proposal parent, refusing")
+		log.Debug("subroundBlock.receivedBlockHeader - preferred sibling proof exists for the proposal parent, refusing")
 		return
 	}
 

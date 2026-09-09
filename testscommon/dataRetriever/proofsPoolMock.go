@@ -15,6 +15,7 @@ type ProofsPoolMock struct {
 	GetProofByNonceCalled             func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	GetProofsByNonceCalled            func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error)
 	HasProofCalled                    func(shardID uint32, headerHash []byte) bool
+	HasProofForDifferentHashCalled    func(shardID uint32, headerNonce uint64, headerHash []byte) bool
 	IsProofInPoolEqualToCalled        func(headerProof data.HeaderProofHandler) bool
 	RegisterHandlerCalled             func(handler func(headerProof data.HeaderProofHandler))
 	RegisterEquivocationHandlerCalled func(handler func(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler))
@@ -87,6 +88,15 @@ func (p *ProofsPoolMock) GetProofsByNonce(headerNonce uint64, shardID uint32) ([
 func (p *ProofsPoolMock) HasProof(shardID uint32, headerHash []byte) bool {
 	if p.HasProofCalled != nil {
 		return p.HasProofCalled(shardID, headerHash)
+	}
+
+	return false
+}
+
+// HasProofForDifferentHash -
+func (p *ProofsPoolMock) HasProofForDifferentHash(shardID uint32, headerNonce uint64, headerHash []byte) bool {
+	if p.HasProofForDifferentHashCalled != nil {
+		return p.HasProofForDifferentHashCalled(shardID, headerNonce, headerHash)
 	}
 
 	return false

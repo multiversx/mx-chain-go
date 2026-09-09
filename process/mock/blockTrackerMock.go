@@ -54,6 +54,7 @@ type BlockTrackerMock struct {
 	RestoreToGenesisCalled                             func()
 	ShouldAddHeaderCalled                              func(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	ResetOwnShardStuckCalled                           func()
 	IsSettledCrossHeaderCalled                         func(header data.HeaderHandler, headerHash []byte) bool
 
 	shardCoordinator sharding.Coordinator
@@ -559,6 +560,13 @@ func (btm *BlockTrackerMock) ShouldAddHeader(headerHandler data.HeaderHandler) b
 func (btm *BlockTrackerMock) ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64) {
 	if btm.ComputeOwnShardStuckCalled != nil {
 		btm.ComputeOwnShardStuckCalled(lastExecutionResultsInfo, currentNonce)
+	}
+}
+
+// ResetOwnShardStuck -
+func (btm *BlockTrackerMock) ResetOwnShardStuck() {
+	if btm.ResetOwnShardStuckCalled != nil {
+		btm.ResetOwnShardStuckCalled()
 	}
 }
 

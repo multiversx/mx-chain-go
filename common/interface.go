@@ -504,6 +504,9 @@ type ProcessConfigsHandler interface {
 	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
 	GetMaxBlockProcessingTime(round uint64) time.Duration
 	GetNumHeadersToRequestInAdvance(round uint64) uint64
+	GetExtraDelayForBroadcastBlockInfo(round uint64) time.Duration
+	GetExtraDelayBetweenBroadcastMbsAndTxs(round uint64) time.Duration
+	GetExtraDelayForRequestBlockInfo(round uint64) time.Duration
 
 	GetValue(variable dto.ConfigVariable) uint64
 
@@ -513,7 +516,6 @@ type ProcessConfigsHandler interface {
 // CommonConfigsHandler defines the behavior of a component that can return epoch start configurations by epoch or by round
 type CommonConfigsHandler interface {
 	GetGracePeriodRoundsByEpoch(epoch uint32) uint32
-	GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round uint64) uint32
 	GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32
 	GetSubroundsTimingByRound(round uint64) config.ConsensusConfigByRound

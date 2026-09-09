@@ -433,6 +433,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 	partialMbExecutionMode bool,
 	indexOfLastTxProcessed int,
 	preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
+	_ process.GasProcessingPolicy,
 ) ([][]byte, int, bool, error) {
 
 	var err error

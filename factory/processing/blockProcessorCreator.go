@@ -563,15 +563,15 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
 	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
-		DataPool:            pcf.data.Datapool(),
-		RequestHandler:      requestHandler,
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		BlockTracker:        blockTracker,
-		TxCoordinator:       txCoordinator,
-		RoundHandler:        pcf.coreData.RoundHandler(),
-		ExtraDelayForRequestBlockInfoInMilliseconds: pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds,
-		GenesisNonce: pcf.genesisNonce,
+		DataPool:              pcf.data.Datapool(),
+		RequestHandler:        requestHandler,
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+		BlockTracker:          blockTracker,
+		TxCoordinator:         txCoordinator,
+		RoundHandler:          pcf.coreData.RoundHandler(),
+		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
+		GenesisNonce:          pcf.genesisNonce,
 	}
 	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
 	if err != nil {
@@ -1149,15 +1149,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
 	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
-		DataPool:            pcf.data.Datapool(),
-		RequestHandler:      requestHandler,
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		BlockTracker:        blockTracker,
-		TxCoordinator:       txCoordinator,
-		RoundHandler:        pcf.coreData.RoundHandler(),
-		ExtraDelayForRequestBlockInfoInMilliseconds: pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds,
-		GenesisNonce: pcf.genesisNonce,
+		DataPool:              pcf.data.Datapool(),
+		RequestHandler:        requestHandler,
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+		BlockTracker:          blockTracker,
+		TxCoordinator:         txCoordinator,
+		RoundHandler:          pcf.coreData.RoundHandler(),
+		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
+		GenesisNonce:          pcf.genesisNonce,
 	}
 	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
 	if err != nil {
