@@ -497,7 +497,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 
 				select {
 				case <-sigCtx.Done():
-					log.Info("triggerCreateSignaturesForManagedKeys: context done", "timeLeft", timeLeft)
+					log.Debug("triggerCreateSignaturesForManagedKeys: context done", "timeLeft", timeLeft)
 					return
 				default:
 				}
@@ -510,7 +510,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 					pkBytes,
 				)
 				if err != nil {
-					log.Info("triggerCreateSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
+					log.Debug("triggerCreateSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
 					return
 				}
 			}(sigCtx, pk.idx, pk.pkBytes)
