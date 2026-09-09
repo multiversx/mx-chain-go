@@ -2573,6 +2573,65 @@ func TestBaseBootstrap_RollBackFirstV3ToFinalV2DoesNotRestoreScheduledState(t *t
 	require.True(t, resetTrackerCalled)
 }
 
+func TestBaseBootstrap_PendingV3RealignRetriesWithLegacyTip(t *testing.T) {
+	t.Parallel()
+
+	legacyTipHash := []byte("legacy tip hash")
+	legacyTip := &block.HeaderV2{
+		Header: &block.Header{
+			Nonce:    10,
+			Round:    20,
+			RootHash: []byte("legacy root hash"),
+		},
+	}
+	rewindCalls := 0
+	resetTrackerCalls := 0
+	boot := &baseBootstrap{
+		pendingV3Realign: true,
+		preparedForSync:  true,
+		chainHandler: &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return legacyTip, legacyTipHash
+			},
+		},
+		executionManager: &processMocks.ExecutionManagerMock{
+			RewindExecutionStateToTipCalled: func(newTip data.HeaderHandler, newTipHash []byte) error {
+				rewindCalls++
+				require.Same(t, legacyTip, newTip)
+				require.Equal(t, legacyTipHash, newTipHash)
+				if rewindCalls == 1 {
+					return errors.New("temporary rewind error")
+				}
+
+				return nil
+			},
+		},
+		poolsHolder: &testscommonDataRetriever.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					ResetTrackerCalled: func() {
+						resetTrackerCalls++
+					},
+				}
+			},
+		},
+	}
+
+	err := boot.syncBlock()
+	require.ErrorIs(t, err, ErrExecutionRealignPending)
+	require.True(t, boot.pendingV3Realign)
+	require.True(t, boot.preparedForSync)
+	require.Equal(t, 1, rewindCalls)
+	require.Zero(t, resetTrackerCalls)
+
+	err = boot.syncBlock()
+	require.NoError(t, err)
+	require.False(t, boot.pendingV3Realign)
+	require.False(t, boot.preparedForSync)
+	require.Equal(t, 2, rewindCalls)
+	require.Equal(t, 1, resetTrackerCalls)
+}
+
 func TestBaseBootstrap_RollBackV2RestoresScheduledState(t *testing.T) {
 	missingStateErr := errors.New("scheduled state not found")
 

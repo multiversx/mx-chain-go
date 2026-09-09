@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -1901,6 +1902,87 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 		require.False(t, rewindCalled)
 		require.False(t, pauseCalled)
 		require.False(t, resumeCalled)
+	})
+
+	t.Run("real tracker keeps committed hashes through the tip and removes the losing suffix", func(t *testing.T) {
+		t.Parallel()
+
+		discardedHashes := make([]string, 0, 4)
+		tracker, err := executionTrack.NewExecutionResultsTracker(&processMocks.BlockProcessorStub{
+			DiscardStateAccessesCalled: func(headerHash []byte) {
+				discardedHashes = append(discardedHashes, string(headerHash))
+			},
+		})
+		require.NoError(t, err)
+		require.NoError(t, tracker.SetLastNotarizedResult(&block.BaseExecutionResult{
+			HeaderHash:  []byte("hash8"),
+			HeaderNonce: 8,
+		}))
+
+		addResult := func(nonce uint64, hash string) {
+			added, addErr := tracker.AddExecutionResult(&block.BaseExecutionResult{
+				HeaderHash:  []byte(hash),
+				HeaderNonce: nonce,
+			})
+			require.NoError(t, addErr)
+			require.True(t, added)
+		}
+		addResult(9, "hash9")
+		addResult(10, "hash10")
+		addResult(11, "hash11")
+		addResult(12, "losingHash12")
+		tracker.CleanOnConsensusReached([]byte("hash10"), &block.HeaderV3{Nonce: 10})
+		tracker.CleanOnConsensusReached([]byte("hash11"), &block.HeaderV3{Nonce: 11})
+		tracker.CleanOnConsensusReached([]byte("losingHash12"), &block.HeaderV3{Nonce: 12})
+
+		cacheCleaned := false
+		args := createMockArgs()
+		args.ExecutionResultsTracker = tracker
+		args.BlocksCache = &processMocks.BlocksCacheMock{
+			CleanCalled: func() {
+				cacheCleaned = true
+			},
+		}
+		header9 := &block.HeaderV3{Nonce: 9}
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, []byte("hash9"), hash)
+				return header9, nil
+			},
+		}
+		chainMock := &testscommon.ChainHandlerMock{}
+		args.BlockChain = chainMock
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.NoError(t, err)
+		require.NoError(t, em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{}))
+		tip := &block.HeaderV3{
+			Nonce: 11,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash9"),
+					HeaderNonce: 9,
+					RootHash:    []byte("root9"),
+				},
+			},
+		}
+
+		err = em.RewindExecutionStateToTip(tip, []byte("hash11"))
+		require.NoError(t, err)
+		require.True(t, cacheCleaned)
+		require.Same(t, header9, chainMock.GetLastExecutedBlockHeader())
+		require.Equal(t, uint64(9), chainMock.GetLastExecutionResult().GetHeaderNonce())
+		require.ElementsMatch(t, []string{"hash9", "hash10", "hash11", "losingHash12"}, discardedHashes)
+
+		added, err := tracker.AddExecutionResult(&block.BaseExecutionResult{
+			HeaderHash:  []byte("otherHash10"),
+			HeaderNonce: 10,
+		})
+		require.NoError(t, err)
+		require.False(t, added)
+		addResult(10, "hash10")
+		addResult(11, "hash11")
+		addResult(12, "canonicalHash12")
 	})
 }
 

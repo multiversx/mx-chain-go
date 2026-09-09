@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 )
@@ -750,6 +752,137 @@ func TestExecutionResultsTracker_RewindCommittedHashes(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.True(t, added)
+}
+
+func TestExecutionResultsTracker_RewindLosingSuffixAllowsCanonicalReplacement(t *testing.T) {
+	t.Parallel()
+
+	discardedHashes := make([]string, 0, 2)
+	tracker, err := NewExecutionResultsTracker(&dismissedExecutionHandlerStub{
+		discardCalled: func(headerHash []byte) {
+			discardedHashes = append(discardedHashes, string(headerHash))
+		},
+	})
+	require.NoError(t, err)
+
+	anchor := &block.BaseExecutionResult{
+		HeaderHash:  []byte("anchorHash10"),
+		HeaderNonce: 10,
+	}
+	require.NoError(t, tracker.SetLastNotarizedResult(anchor))
+
+	losingResult := &block.BaseExecutionResult{
+		HeaderHash:  []byte("losingHash11"),
+		HeaderNonce: 11,
+	}
+	losingChildResult := &block.BaseExecutionResult{
+		HeaderHash:  []byte("losingHash12"),
+		HeaderNonce: 12,
+	}
+	added, err := tracker.AddExecutionResult(losingResult)
+	require.NoError(t, err)
+	require.True(t, added)
+	added, err = tracker.AddExecutionResult(losingChildResult)
+	require.NoError(t, err)
+	require.True(t, added)
+
+	tracker.CleanOnConsensusReached(losingResult.GetHeaderHash(), &block.HeaderV3{Nonce: 11})
+	tracker.CleanOnConsensusReached(losingChildResult.GetHeaderHash(), &block.HeaderV3{Nonce: 12})
+
+	tracker.Rewind(anchor, anchor.GetHeaderNonce())
+
+	pending, err := tracker.GetPendingExecutionResults()
+	require.NoError(t, err)
+	require.Empty(t, pending)
+	require.NotContains(t, tracker.consensusCommittedHashes, uint64(11))
+	require.NotContains(t, tracker.consensusCommittedHashes, uint64(12))
+	require.ElementsMatch(t, []string{"losingHash11", "losingHash12"}, discardedHashes)
+
+	dismissed := tracker.PopDismissedResults()
+	require.Len(t, dismissed, 1)
+	require.Same(t, anchor, dismissed[0].AnchorResult)
+	require.Equal(t, []data.BaseExecutionResultHandler{losingResult, losingChildResult}, dismissed[0].Results)
+
+	canonicalResult := &block.BaseExecutionResult{
+		HeaderHash:  []byte("canonicalHash11"),
+		HeaderNonce: 11,
+	}
+	canonicalChildResult := &block.BaseExecutionResult{
+		HeaderHash:  []byte("canonicalHash12"),
+		HeaderNonce: 12,
+	}
+	added, err = tracker.AddExecutionResult(canonicalResult)
+	require.NoError(t, err)
+	require.True(t, added)
+	added, err = tracker.AddExecutionResult(canonicalChildResult)
+	require.NoError(t, err)
+	require.True(t, added)
+}
+
+func TestExecutionResultsTracker_RewindNotifiesAfterUnlock(t *testing.T) {
+	t.Parallel()
+
+	callbackResult := make(chan error, 1)
+	var tracker *executionResultsTracker
+	handler := &dismissedExecutionHandlerStub{
+		discardCalled: func(_ []byte) {
+			pending, err := tracker.GetPendingExecutionResults()
+			if err != nil {
+				callbackResult <- err
+				return
+			}
+			if len(pending) != 0 {
+				callbackResult <- fmt.Errorf("expected no pending results, got %d", len(pending))
+				return
+			}
+
+			lastNotarized, err := tracker.GetLastNotarizedExecutionResult()
+			if err != nil {
+				callbackResult <- err
+				return
+			}
+			if string(lastNotarized.GetHeaderHash()) != "rewindHash" {
+				callbackResult <- fmt.Errorf("unexpected rewind hash %q", lastNotarized.GetHeaderHash())
+				return
+			}
+
+			callbackResult <- nil
+		},
+	}
+	var err error
+	tracker, err = NewExecutionResultsTracker(handler)
+	require.NoError(t, err)
+	require.NoError(t, tracker.SetLastNotarizedResult(&block.BaseExecutionResult{
+		HeaderHash:  []byte("anchorHash"),
+		HeaderNonce: 10,
+	}))
+	added, err := tracker.AddExecutionResult(&block.BaseExecutionResult{
+		HeaderHash:  []byte("pendingHash"),
+		HeaderNonce: 11,
+	})
+	require.NoError(t, err)
+	require.True(t, added)
+
+	done := make(chan struct{})
+	go func() {
+		tracker.Rewind(&block.BaseExecutionResult{
+			HeaderHash:  []byte("rewindHash"),
+			HeaderNonce: 10,
+		}, 10)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		require.FailNow(t, "rewind did not complete")
+	}
+	select {
+	case callbackErr := <-callbackResult:
+		require.NoError(t, callbackErr)
+	case <-time.After(time.Second):
+		require.FailNow(t, "dismissal callback was not called")
+	}
 }
 
 func TestExecutionResultsTracker_RewindFirstV3ToLegacyTip(t *testing.T) {
