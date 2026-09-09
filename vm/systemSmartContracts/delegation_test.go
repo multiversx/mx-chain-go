@@ -2563,6 +2563,66 @@ func TestDelegation_ExecuteClaimRewardsShouldDeleteDelegator(t *testing.T) {
 	require.Len(t, res, 0)
 }
 
+func TestDelegation_ClaimRewardsOfUnauthorizedBot(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.AddActiveFlags(common.DelegationOnBehalfFlag)
+	eei := createDefaultEei()
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+	vmInput := getDefaultVmInputForFunc(claimRewardsOf, [][]byte{[]byte("owner-bot")})
+	vmInput.CallerAddr = []byte("bot-address")
+
+	output := d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, "caller is not authorized for delegator", eei.GetReturnMessage())
+}
+
+func TestDelegation_ClaimRewardsOfByBot(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.AddActiveFlags(common.DelegationOnBehalfFlag)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return 1
+		},
+	}
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+	require.NoError(t, d.saveDelegationStatus(&DelegationContractStatus{NumUsers: 1}))
+	owner := bytes.Repeat([]byte{3}, 32)
+	bot := bytes.Repeat([]byte{4}, 32)
+	setDelegatedWalletInManager(d.eei, d.delegationMgrSCAddress, owner, bot)
+
+	err := d.saveDelegatorData(owner, &DelegatorData{
+		RewardsCheckpoint:     0,
+		UnClaimedRewards:      big.NewInt(70),
+		TotalCumulatedRewards: big.NewInt(0),
+	})
+	require.NoError(t, err)
+
+	vmInput := getDefaultVmInputForFunc(claimRewardsOf, [][]byte{owner})
+	vmInput.CallerAddr = bot
+
+	output := d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output, eei.GetReturnMessage())
+
+	destAcc, exists := eei.outputAccounts[string(bot)]
+	require.True(t, exists)
+	require.Equal(t, 1, len(destAcc.OutputTransfers))
+	require.Equal(t, big.NewInt(70), destAcc.OutputTransfers[0].Value)
+
+	require.Len(t, eei.GetStorage(owner), 0)
+}
+
 func TestDelegation_ExecuteReDelegateRewardsNoExtraCheck(t *testing.T) {
 	t.Parallel()
 
@@ -2618,6 +2678,44 @@ func TestDelegation_ExecuteReDelegateRewardsWithExtraCheckReDelegateIsBelowMinim
 	vmInput.CallerAddr = []byte("stakingProvider")
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
+}
+
+func TestDelegation_ReDelegateRewardsOfUnauthorizedBot(t *testing.T) {
+	t.Parallel()
+
+	d, eei := prepareReDelegateRewardsComponents(t, 0, big.NewInt(155))
+	enableEpochsHandler, _ := d.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.AddActiveFlags(common.DelegationOnBehalfFlag)
+
+	vmInput := getDefaultVmInputForFunc(reDelegateRewardsOf, [][]byte{[]byte("stakingProvider")})
+	vmInput.CallerAddr = []byte("bot")
+
+	output := d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, "caller is not authorized for delegator", eei.GetReturnMessage())
+}
+
+func TestDelegation_ReDelegateRewardsOfByBot(t *testing.T) {
+	t.Parallel()
+
+	d, _ := prepareReDelegateRewardsComponents(t, 0, big.NewInt(155))
+	enableEpochsHandler, _ := d.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.AddActiveFlags(common.DelegationOnBehalfFlag)
+
+	owner := []byte("stakingProvider")
+	bot := bytes.Repeat([]byte{9}, len(owner))
+	setDelegatedWalletInManager(d.eei, d.delegationMgrSCAddress, owner, bot)
+
+	vmInput := getDefaultVmInputForFunc(reDelegateRewardsOf, [][]byte{owner})
+	vmInput.CallerAddr = bot
+
+	output := d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+
+	_, delegator, _ := d.getOrCreateDelegatorData(owner)
+	require.Equal(t, uint64(0), delegator.UnClaimedRewards.Uint64())
+	activeFund, _ := d.getFund(delegator.ActiveFund)
+	require.Equal(t, big.NewInt(1155), activeFund.Value)
 }
 
 func prepareReDelegateRewardsComponents(

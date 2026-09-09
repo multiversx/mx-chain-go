@@ -847,6 +847,12 @@ func createTestEEIAndDelegationFormMergeValidator() (*delegationManager, *vmCont
 	return d, eei
 }
 
+func enableDelegationOnBehalfFeature(d *delegationManager) *enableEpochsHandlerMock.EnableEpochsHandlerStub {
+	enableEpochsHandler, _ := d.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.AddActiveFlags(common.DelegationOnBehalfFlag, common.MultiClaimOnDelegationFlag)
+	return enableEpochsHandler
+}
+
 func TestDelegationManagerSystemSC_mergeValidatorToDelegationWithWhiteListInvalidFunctionCall(t *testing.T) {
 	d, eei := createTestEEIAndDelegationFormMergeValidator()
 
@@ -1253,6 +1259,221 @@ func TestDelegationManagerSystemSC_ReDelegateMulti(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, returnCode)
 	require.Equal(t, len(eei.output), 1)
 	require.Equal(t, eei.output[0], big.NewInt(20).Bytes())
+}
+
+func TestDelegationManagerSystemSC_ClaimMultiOfRequiresDelegationFlag(t *testing.T) {
+	t.Parallel()
+
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	vmInput := getDefaultVmInputForDelegationManager("claimMultiOf", [][]byte{})
+	vmInput.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+
+	returnCode := d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, "delegation on behalf feature is not enabled", eei.GetReturnMessage())
+}
+
+func TestDelegationManagerSystemSC_ClaimMultiOfValidations(t *testing.T) {
+	t.Parallel()
+
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	enableDelegationOnBehalfFeature(d)
+
+	owner := bytes.Repeat([]byte{4}, 32)
+	bot := bytes.Repeat([]byte{3}, 32)
+	setDelegatedWalletInManager(d.eei, d.delegationMgrSCAddress, owner, bot)
+
+	vmInput := getDefaultVmInputForDelegationManager("claimMultiOf", [][]byte{owner})
+	vmInput.CallerAddr = bot
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
+	eei.gasRemaining = 20
+
+	returnCode := d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, vm.ErrInvalidNumOfArguments.Error(), eei.GetReturnMessage())
+
+	vmInput.Arguments = [][]byte{owner, vm.FirstDelegationSCAddress}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, "first delegation sc address cannot be called", eei.GetReturnMessage())
+
+	_ = eei.SetSystemSCContainer(
+		&mock.SystemSCContainerStub{
+			GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+				return &mock.SystemSCStub{
+					ExecuteCalled: func(callInput *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+						return vmcommon.Ok
+					},
+				}, nil
+			},
+		})
+
+	vmInput.Arguments = [][]byte{owner, bytes.Repeat([]byte{5}, 32), bytes.Repeat([]byte{5}, 32)}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, "duplicated input", eei.GetReturnMessage())
+}
+
+func TestDelegationManagerSystemSC_ClaimMultiOfUnauthorizedBot(t *testing.T) {
+	t.Parallel()
+
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	enableDelegationOnBehalfFeature(d)
+
+	owner := bytes.Repeat([]byte{4}, 32)
+	bot := bytes.Repeat([]byte{5}, 32)
+	contract := bytes.Repeat([]byte{6}, 32)
+
+	vmInput := getDefaultVmInputForDelegationManager("claimMultiOf", [][]byte{owner, contract})
+	vmInput.CallerAddr = bot
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
+	eei.gasRemaining = 20
+
+	returnCode := d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, vm.ErrInvalidCaller.Error(), eei.GetReturnMessage())
+}
+
+func TestDelegationManagerSystemSC_ClaimMultiOfSuccess(t *testing.T) {
+	t.Parallel()
+
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	enableDelegationOnBehalfFeature(d)
+
+	owner := bytes.Repeat([]byte{4}, 32)
+	bot := bytes.Repeat([]byte{5}, 32)
+	contract := bytes.Repeat([]byte{6}, 32)
+	setDelegatedWalletInManager(d.eei, d.delegationMgrSCAddress, owner, bot)
+
+	_ = eei.SetSystemSCContainer(
+		&mock.SystemSCContainerStub{
+			GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+				return &mock.SystemSCStub{
+					ExecuteCalled: func(callInput *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+						require.Equal(t, claimRewardsOf, callInput.Function)
+						require.Equal(t, bot, callInput.CallerAddr)
+						require.Equal(t, contract, callInput.RecipientAddr)
+						require.Equal(t, owner, callInput.Arguments[0])
+						d.eei.Transfer(callInput.CallerAddr, callInput.RecipientAddr, big.NewInt(10), nil, 0)
+						return vmcommon.Ok
+					},
+				}, nil
+			}})
+
+	vmInput := getDefaultVmInputForDelegationManager("claimMultiOf", [][]byte{owner, contract})
+	vmInput.CallerAddr = bot
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
+	eei.gasRemaining = 30
+
+	returnCode := d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	destAcc, exists := eei.outputAccounts[string(bot)]
+	require.True(t, exists)
+	require.Equal(t, 1, len(destAcc.OutputTransfers))
+	require.Equal(t, big.NewInt(10), destAcc.OutputTransfers[0].Value)
+}
+
+func TestDelegationManagerSystemSC_ReDelegateMultiOfSuccess(t *testing.T) {
+	t.Parallel()
+
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	enableDelegationOnBehalfFeature(d)
+
+	owner := bytes.Repeat([]byte{7}, 32)
+	bot := bytes.Repeat([]byte{8}, 32)
+	contract := bytes.Repeat([]byte{9}, 32)
+	setDelegatedWalletInManager(d.eei, d.delegationMgrSCAddress, owner, bot)
+
+	_ = eei.SetSystemSCContainer(
+		&mock.SystemSCContainerStub{
+			GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+				return &mock.SystemSCStub{
+					ExecuteCalled: func(callInput *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+						require.Equal(t, reDelegateRewardsOf, callInput.Function)
+						entry := &vmcommon.LogEntry{
+							Identifier: []byte(delegate),
+							Topics:     [][]byte{big.NewInt(15).Bytes()},
+						}
+						d.eei.AddLogEntry(entry)
+						return vmcommon.Ok
+					},
+				}, nil
+			}})
+
+	vmInput := getDefaultVmInputForDelegationManager("reDelegateMultiOf", [][]byte{owner, contract})
+	vmInput.CallerAddr = bot
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
+	eei.gasRemaining = 30
+
+	returnCode := d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	require.Equal(t, big.NewInt(15), getTotalReDelegatedFromLogs(eei.logs))
+}
+
+func TestDelegationManagerSystemSC_SetAndRemoveDelegatedWallet(t *testing.T) {
+	t.Parallel()
+
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	enableDelegationOnBehalfFeature(d)
+
+	owner := bytes.Repeat([]byte{5}, 32)
+	bot := bytes.Repeat([]byte{6}, 32)
+
+	vmInput := getDefaultVmInputForDelegationManager("setDelegatedWallet", [][]byte{bot})
+	vmInput.CallerAddr = owner
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 5
+	eei.gasRemaining = 20
+
+	returnCode := d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	stored := getDelegatedWalletForUserFromManager(eei, d.delegationMgrSCAddress, owner)
+	require.Equal(t, bot, stored)
+	require.NotEmpty(t, eei.logs)
+	require.Equal(t, logDelegatedWalletSet, string(eei.logs[len(eei.logs)-1].Identifier))
+
+	removeInput := getDefaultVmInputForDelegationManager("removeDelegatedWallet", [][]byte{})
+	removeInput.CallerAddr = owner
+	removeInput.RecipientAddr = vm.DelegationManagerSCAddress
+	eei.gasRemaining = 20
+
+	returnCode = d.Execute(removeInput)
+	require.Equal(t, vmcommon.Ok, returnCode)
+	stored = getDelegatedWalletForUserFromManager(eei, d.delegationMgrSCAddress, owner)
+	require.Nil(t, stored)
+	require.Equal(t, logDelegatedWalletRemoved, string(eei.logs[len(eei.logs)-1].Identifier))
+}
+
+func TestDelegationManagerSystemSC_SetDelegatedWalletErrors(t *testing.T) {
+	t.Parallel()
+
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+
+	vmInput := getDefaultVmInputForDelegationManager("setDelegatedWallet", [][]byte{})
+	vmInput.CallerAddr = bytes.Repeat([]byte{4}, 32)
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	returnCode := d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, "delegation on behalf feature is not enabled", eei.GetReturnMessage())
+
+	enableDelegationOnBehalfFeature(d)
+	vmInput.Arguments = [][]byte{}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.FunctionWrongSignature, returnCode)
+
+	vmInput.Arguments = [][]byte{[]byte{1}}
+	eei.returnMessage = ""
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, vm.ErrInvalidArgument.Error(), eei.GetReturnMessage())
 }
 
 func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
