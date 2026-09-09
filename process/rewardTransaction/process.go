@@ -1,6 +1,7 @@
 package rewardTransaction
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -92,6 +93,16 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 
 	accHandler, err := rtp.getAccountFromAddress(rTx.RcvAddr)
 	if err != nil {
+		if errors.Is(err, state.ErrAccountAddressIsReserved) {
+			txHash, hashErr := rtp.computeRewardTxHash(rTx)
+			if hashErr != nil {
+				return hashErr
+			}
+
+			rtp.setTxHashForLatestStateAccesses(txHash)
+			return nil
+		}
+
 		return err
 	}
 
@@ -108,16 +119,14 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 		rtp.pubkeyConv,
 	)
 
-	txHash, err := core.CalculateHash(rtp.marshaller, rtp.hasher, rTx)
+	txHash, err := rtp.computeRewardTxHash(rTx)
 	if err != nil {
-		log.Debug("CalculateHash error", "error", err)
 		return err
 	}
 
 	// TODO refactor to set the tx hash for the following state accesses before the processing occurs
 	defer func() {
-		rtp.accounts.SetTxHashForLatestStateAccesses(txHash)
-		log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
+		rtp.setTxHashForLatestStateAccesses(txHash)
 	}()
 
 	err = accHandler.AddToBalance(rTx.Value)
@@ -131,6 +140,21 @@ func (rtp *rewardTxProcessor) ProcessRewardTransaction(rTx *rewardTx.RewardTx) e
 	}
 
 	return rtp.accounts.SaveAccount(accHandler)
+}
+
+func (rtp *rewardTxProcessor) computeRewardTxHash(rTx *rewardTx.RewardTx) ([]byte, error) {
+	txHash, err := core.CalculateHash(rtp.marshaller, rtp.hasher, rTx)
+	if err != nil {
+		log.Debug("CalculateHash error", "error", err)
+		return nil, err
+	}
+
+	return txHash, nil
+}
+
+func (rtp *rewardTxProcessor) setTxHashForLatestStateAccesses(txHash []byte) {
+	rtp.accounts.SetTxHashForLatestStateAccesses(txHash)
+	log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
 }
 
 func (rtp *rewardTxProcessor) saveAccumulatedRewards(

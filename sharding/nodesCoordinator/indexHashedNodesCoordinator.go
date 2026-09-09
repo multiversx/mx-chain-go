@@ -31,6 +31,7 @@ const (
 	defaultSelectionChances = uint32(1)
 	minEpochsToWait         = uint32(1)
 	leaderSelectionSize     = 1
+	maxRandomnessSize       = 48 // maximum random-seed size for the active BLS scheme
 )
 
 // TODO: move this to config parameters
@@ -357,15 +358,18 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	var selector RandomSelector
 	var eligibleList []Validator
 
+	if len(randomness) == 0 {
+		return nil, nil, ErrNilRandomness
+	}
+	if len(randomness) > maxRandomnessSize {
+		return nil, nil, ErrInvalidRandomnessSize
+	}
+
 	log.Trace("computing consensus group for",
 		"epoch", epoch,
 		"shardID", shardID,
 		"randomness", randomness,
 		"round", round)
-
-	if len(randomness) == 0 {
-		return nil, nil, ErrNilRandomness
-	}
 
 	ihnc.mutNodesConfig.RLock()
 	nodesConfig, ok := ihnc.nodesConfig[epoch]

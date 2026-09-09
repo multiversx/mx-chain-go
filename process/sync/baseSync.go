@@ -1880,16 +1880,11 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) (err error) {
 	var currBody data.BodyHandler
 
 	defer func() {
-		isHeaderV3 := !check.IfNil(currHeader) && currHeader.IsHeaderV3()
-		if !roleBackOneBlockExecuted && !isHeaderV3 {
+		if !roleBackOneBlockExecuted && !check.IfNil(currHeader) && currHeader.HasScheduledSupport() {
 			errScheduled := boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
 			if errScheduled != nil {
-				rootHash := boot.chainHandler.GetGenesisHeader().GetRootHash()
-				if currHeader != nil {
-					rootHash = currHeader.GetRootHash()
-				}
 				scheduledInfo := &process.ScheduledInfo{
-					RootHash:        rootHash,
+					RootHash:        currHeader.GetRootHash(),
 					IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
 					GasAndFees:      process.GetZeroGasAndFees(),
 					MiniBlocks:      make(block.MiniBlockSlice, 0),
@@ -1995,7 +1990,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) (err error) {
 			return err
 		}
 
-		if !currHeader.IsHeaderV3() {
+		if currHeader.HasScheduledSupport() {
 			err = boot.scheduledTxsExecutionHandler.RollBackToBlock(prevHeaderHash)
 			if err != nil {
 				scheduledInfo := &process.ScheduledInfo{
@@ -2123,12 +2118,12 @@ func (boot *baseBootstrap) postRollBackBookkeeping(pending *pendingV3RollBack, u
 // the sync prepare step; a failed rewind arms a mandatory retry that blocks the sync loop
 func (boot *baseBootstrap) realignAfterV3RollBack() {
 	boot.pendingV3Realign = false
-	newTip := boot.chainHandler.GetCurrentBlockHeader()
-	if check.IfNil(newTip) || !newTip.IsHeaderV3() {
+	newTip, newTipHash := boot.chainHandler.GetCurrentBlockHeaderAndHash()
+	if check.IfNil(newTip) {
 		return
 	}
 
-	err := boot.executionManager.RewindExecutionStateToTip(newTip)
+	err := boot.executionManager.RewindExecutionStateToTip(newTip, newTipHash)
 	if err != nil {
 		boot.pendingV3Realign = true
 		log.Warn("realignAfterV3RollBack: cannot rewind execution state, sync blocked until retried",
@@ -2347,8 +2342,7 @@ func (boot *baseBootstrap) finishRollBackOneBlockV3(pending *pendingV3RollBack) 
 		return false, err
 	}
 
-	hash := boot.removeHeaderFromPools(pending.currHeader)
-	boot.forkDetector.RemoveCommittedHeader(pending.currHeader.GetNonce(), hash)
+	boot.forkDetector.RemoveCommittedHeader(pending.currHeader.GetNonce(), pending.currHeaderHash)
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(pending.currHeader.GetNonce())
 	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 	boot.pendingV3RollBack = nil
@@ -2449,8 +2443,7 @@ func (boot *baseBootstrap) finishRollBackV3AfterSiblingCommit(pending *pendingV3
 		"nonce", pending.currHeader.GetNonce(),
 	)
 
-	hash := boot.removeHeaderFromPools(pending.currHeader)
-	boot.forkDetector.RemoveCommittedHeader(pending.currHeader.GetNonce(), hash)
+	boot.forkDetector.RemoveCommittedHeader(pending.currHeader.GetNonce(), pending.currHeaderHash)
 	boot.pendingV3RollBack = nil
 
 	return nil
@@ -2458,6 +2451,10 @@ func (boot *baseBootstrap) finishRollBackV3AfterSiblingCommit(pending *pendingV3
 
 func (boot *baseBootstrap) getRootHashFromBlock(hdr data.HeaderHandler, hdrHash []byte) []byte {
 	hdrRootHash := hdr.GetRootHash()
+	if !hdr.HasScheduledSupport() {
+		return hdrRootHash
+	}
+
 	scheduledHdrRootHash, err := boot.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(hdrHash)
 	if err == nil {
 		hdrRootHash = scheduledHdrRootHash
@@ -3586,6 +3583,14 @@ func (boot *baseBootstrap) restoreState(
 	// for legacy (non-V3) headers, keep last executed block header in sync with current block header
 	if check.IfNil(currHeader) || !currHeader.IsHeaderV3() {
 		boot.chainHandler.SetLastExecutedBlockHeaderAndRootHash(currHeader, currHeaderHash, currRootHash)
+	}
+
+	if !currHeader.HasScheduledSupport() {
+		err = boot.blockProcessor.RevertStateToBlock(currHeader, currRootHash)
+		if err != nil {
+			log.Debug("RevertState", "error", err.Error())
+		}
+		return
 	}
 
 	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)

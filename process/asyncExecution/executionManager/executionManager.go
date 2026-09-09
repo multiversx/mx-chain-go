@@ -333,7 +333,7 @@ func (em *executionManager) RemovePendingExecutionResultsFromNonce(nonce uint64)
 
 // RewindExecutionStateToTip realigns the tracker's notarized watermark and the blockchain last-executed
 // marker to the rolled-back tip; unlike RemoveAtNonceAndHigher it can lower the watermark
-func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler) error {
+func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler, newTipHash []byte) error {
 	if check.IfNil(newTip) {
 		return process.ErrNilHeaderHandler
 	}
@@ -345,20 +345,8 @@ func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler)
 		return process.ErrProcessClosed
 	}
 
-	newLastNotarized, err := common.GetLastBaseExecutionResultHandler(newTip)
+	newLastNotarized, lastExecutedHeader, err := em.getRewindExecutionAnchor(newTip, newTipHash)
 	if err != nil {
-		return err
-	}
-
-	// resolved before any mutation: the tracker reset below cannot be undone, so a rewind that
-	// fails has to leave the state untouched for the caller to retry
-	lastExecutedHeader, err := process.GetHeader(newLastNotarized.GetHeaderHash(), em.headers, em.storageService, em.marshaller, em.shardCoordinator.SelfId())
-	if err != nil {
-		log.Debug("executionManager.RewindExecutionStateToTip: could not find header in pool or storage",
-			"hash", newLastNotarized.GetHeaderHash(),
-			"nonce", newLastNotarized.GetHeaderNonce(),
-			"error", err,
-		)
 		return err
 	}
 
@@ -373,10 +361,40 @@ func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler)
 	defer em.headersExecutor.ResumeExecution()
 
 	// the tracker reset empties the pending results, so the tip's own result is the last executed one
-	em.resetTrackerToLastNotarized(newLastNotarized)
+	em.executionResultsTracker.Rewind(newLastNotarized, newTip.GetNonce())
+	em.blocksCache.Clean()
 	em.blockChain.SetLastExecutionInfo(lastExecutedHeader, newLastNotarized)
 
 	return nil
+}
+
+func (em *executionManager) getRewindExecutionAnchor(
+	newTip data.HeaderHandler,
+	newTipHash []byte,
+) (data.BaseExecutionResultHandler, data.HeaderHandler, error) {
+	if !newTip.IsHeaderV3() {
+		newLastNotarized, err := common.GetOrCreateLastExecutionResultForPrevHeader(newTip, newTipHash)
+		return newLastNotarized, newTip, err
+	}
+
+	newLastNotarized, err := common.GetLastBaseExecutionResultHandler(newTip)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// resolved before any mutation: the tracker reset below cannot be undone, so a rewind that
+	// fails has to leave the state untouched for the caller to retry
+	lastExecutedHeader, err := process.GetHeader(newLastNotarized.GetHeaderHash(), em.headers, em.storageService, em.marshaller, em.shardCoordinator.SelfId())
+	if err != nil {
+		log.Debug("executionManager.RewindExecutionStateToTip: could not find header in pool or storage",
+			"hash", newLastNotarized.GetHeaderHash(),
+			"nonce", newLastNotarized.GetHeaderNonce(),
+			"error", err,
+		)
+		return nil, nil, err
+	}
+
+	return newLastNotarized, lastExecutedHeader, nil
 }
 
 // PopDismissedResults returns all batches of dismissed execution results and clears the internal queue
