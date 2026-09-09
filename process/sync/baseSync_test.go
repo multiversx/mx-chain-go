@@ -2485,6 +2485,16 @@ func TestBaseBootstrap_RollBackFirstV3ToFinalV2DoesNotRestoreScheduledState(t *t
 	}
 	currentHeader := data.HeaderHandler(currHeader)
 	currentHeaderHash := currHeaderHash
+	rewindCalled := false
+	resetTrackerCalled := false
+	pools := testscommonDataRetriever.NewPoolsHolderStub()
+	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &testscommon.ShardedDataStub{
+			ResetTrackerCalled: func() {
+				resetTrackerCalled = true
+			},
+		}
+	}
 
 	boot := &baseBootstrap{
 		chainHandler: &testscommon.ChainHandlerStub{
@@ -2493,6 +2503,9 @@ func TestBaseBootstrap_RollBackFirstV3ToFinalV2DoesNotRestoreScheduledState(t *t
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
 				return currentHeaderHash
+			},
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return currentHeader, currentHeaderHash
 			},
 			SetCurrentBlockHeaderAndHashCalled: func(hash []byte, header data.HeaderHandler) error {
 				currentHeader = header
@@ -2516,7 +2529,14 @@ func TestBaseBootstrap_RollBackFirstV3ToFinalV2DoesNotRestoreScheduledState(t *t
 		},
 		blockProcessor:    &testscommon.BlockProcessorStub{},
 		epochStartTrigger: &testscommon.EpochStartTriggerStub{},
-		executionManager:  &processMocks.ExecutionManagerMock{},
+		executionManager: &processMocks.ExecutionManagerMock{
+			RewindExecutionStateToTipCalled: func(newTip data.HeaderHandler, newTipHash []byte) error {
+				require.Same(t, prevHeader, newTip)
+				require.Equal(t, prevHeaderHash, newTipHash)
+				rewindCalled = true
+				return nil
+			},
+		},
 		forkDetector: &mock.ForkDetectorMock{
 			GetHighestFinalBlockNonceCalled: func() uint64 {
 				return prevHeader.GetNonce()
@@ -2531,6 +2551,7 @@ func TestBaseBootstrap_RollBackFirstV3ToFinalV2DoesNotRestoreScheduledState(t *t
 		bootStorer:           &mock.BoostrapStorerMock{},
 		historyRepo:          &dblookupext.HistoryRepositoryStub{},
 		outportHandler:       &outport.OutportStub{},
+		poolsHolder:          pools,
 		scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
 			RollBackToBlockCalled: func([]byte) error {
 				t.Fatal("scheduled state should remain drained")
@@ -2548,6 +2569,8 @@ func TestBaseBootstrap_RollBackFirstV3ToFinalV2DoesNotRestoreScheduledState(t *t
 	require.NoError(t, err)
 	require.Same(t, prevHeader, currentHeader)
 	require.Equal(t, prevHeaderHash, currentHeaderHash)
+	require.True(t, rewindCalled)
+	require.True(t, resetTrackerCalled)
 }
 
 func TestBaseBootstrap_RollBackV2RestoresScheduledState(t *testing.T) {

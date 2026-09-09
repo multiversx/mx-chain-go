@@ -2118,12 +2118,12 @@ func (boot *baseBootstrap) postRollBackBookkeeping(pending *pendingV3RollBack, u
 // the sync prepare step; a failed rewind arms a mandatory retry that blocks the sync loop
 func (boot *baseBootstrap) realignAfterV3RollBack() {
 	boot.pendingV3Realign = false
-	newTip := boot.chainHandler.GetCurrentBlockHeader()
-	if check.IfNil(newTip) || !newTip.IsHeaderV3() {
+	newTip, newTipHash := boot.chainHandler.GetCurrentBlockHeaderAndHash()
+	if check.IfNil(newTip) {
 		return
 	}
 
-	err := boot.executionManager.RewindExecutionStateToTip(newTip)
+	err := boot.executionManager.RewindExecutionStateToTip(newTip, newTipHash)
 	if err != nil {
 		boot.pendingV3Realign = true
 		log.Warn("realignAfterV3RollBack: cannot rewind execution state, sync blocked until retried",
@@ -2342,8 +2342,7 @@ func (boot *baseBootstrap) finishRollBackOneBlockV3(pending *pendingV3RollBack) 
 		return false, err
 	}
 
-	hash := boot.removeHeaderFromPools(pending.currHeader)
-	boot.forkDetector.RemoveCommittedHeader(pending.currHeader.GetNonce(), hash)
+	boot.forkDetector.RemoveCommittedHeader(pending.currHeader.GetNonce(), pending.currHeaderHash)
 	nonceToByteSlice := boot.uint64Converter.ToByteSlice(pending.currHeader.GetNonce())
 	_ = boot.headerNonceHashStore.Remove(nonceToByteSlice)
 	boot.pendingV3RollBack = nil
@@ -2444,8 +2443,7 @@ func (boot *baseBootstrap) finishRollBackV3AfterSiblingCommit(pending *pendingV3
 		"nonce", pending.currHeader.GetNonce(),
 	)
 
-	hash := boot.removeHeaderFromPools(pending.currHeader)
-	boot.forkDetector.RemoveCommittedHeader(pending.currHeader.GetNonce(), hash)
+	boot.forkDetector.RemoveCommittedHeader(pending.currHeader.GetNonce(), pending.currHeaderHash)
 	boot.pendingV3RollBack = nil
 
 	return nil

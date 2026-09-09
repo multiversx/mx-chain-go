@@ -710,6 +710,98 @@ func TestExecutionResultsTracker_Clean(t *testing.T) {
 	})
 }
 
+func TestExecutionResultsTracker_RewindCommittedHashes(t *testing.T) {
+	t.Parallel()
+
+	tracker := newExecutionResultsTrackerForTest()
+	lastNotarized := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash10"),
+			HeaderNonce: 10,
+		},
+	}
+	require.NoError(t, tracker.SetLastNotarizedResult(lastNotarized))
+
+	tracker.CleanOnConsensusReached([]byte("hash11"), &block.HeaderV3{Nonce: 11})
+	tracker.CleanOnConsensusReached([]byte("oldHash12"), &block.HeaderV3{Nonce: 12})
+
+	tracker.Rewind(lastNotarized, 11)
+
+	require.Equal(t, []byte("hash11"), tracker.consensusCommittedHashes[11])
+	require.NotContains(t, tracker.consensusCommittedHashes, uint64(12))
+
+	added, err := tracker.AddExecutionResult(&block.BaseExecutionResult{
+		HeaderHash:  []byte("otherHash11"),
+		HeaderNonce: 11,
+	})
+	require.NoError(t, err)
+	require.False(t, added)
+
+	added, err = tracker.AddExecutionResult(&block.BaseExecutionResult{
+		HeaderHash:  []byte("hash11"),
+		HeaderNonce: 11,
+	})
+	require.NoError(t, err)
+	require.True(t, added)
+
+	added, err = tracker.AddExecutionResult(&block.BaseExecutionResult{
+		HeaderHash:  []byte("newHash12"),
+		HeaderNonce: 12,
+	})
+	require.NoError(t, err)
+	require.True(t, added)
+}
+
+func TestExecutionResultsTracker_RewindFirstV3ToLegacyTip(t *testing.T) {
+	t.Parallel()
+
+	tracker := newExecutionResultsTrackerForTest()
+	legacyTip := &block.BaseExecutionResult{
+		HeaderHash:  []byte("legacyHash10"),
+		HeaderNonce: 10,
+	}
+	require.NoError(t, tracker.SetLastNotarizedResult(legacyTip))
+
+	rolledBackHash := []byte("oldHash11")
+	tracker.CleanOnConsensusReached(rolledBackHash, &block.HeaderV3{Nonce: 11})
+	require.NoError(t, tracker.RemoveFromNonce(11))
+
+	tracker.Rewind(legacyTip, legacyTip.GetHeaderNonce())
+
+	require.NotContains(t, tracker.consensusCommittedHashes, uint64(11))
+	added, err := tracker.AddExecutionResult(&block.BaseExecutionResult{
+		HeaderHash:  []byte("replacementHash11"),
+		HeaderNonce: 11,
+	})
+	require.NoError(t, err)
+	require.True(t, added)
+}
+
+func TestExecutionResultsTracker_RemoveFromNoncePreservesCommittedHash(t *testing.T) {
+	t.Parallel()
+
+	tracker := newExecutionResultsTrackerForTest()
+	require.NoError(t, tracker.SetLastNotarizedResult(&block.BaseExecutionResult{
+		HeaderHash:  []byte("hash10"),
+		HeaderNonce: 10,
+	}))
+
+	committedHash := []byte("hash11")
+	result := &block.BaseExecutionResult{HeaderHash: committedHash, HeaderNonce: 11}
+	added, err := tracker.AddExecutionResult(result)
+	require.NoError(t, err)
+	require.True(t, added)
+	tracker.CleanOnConsensusReached(committedHash, &block.HeaderV3{Nonce: 11})
+
+	require.NoError(t, tracker.RemoveFromNonce(11))
+	added, err = tracker.AddExecutionResult(&block.BaseExecutionResult{
+		HeaderHash:  []byte("otherHash11"),
+		HeaderNonce: 11,
+	})
+	require.NoError(t, err)
+	require.False(t, added)
+}
+
 func TestExecutionResultsTracker_PopDismissedResults_EmptyByDefault(t *testing.T) {
 	t.Parallel()
 

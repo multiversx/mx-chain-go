@@ -1714,7 +1714,7 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 
 		em, _ := executionManager.NewExecutionManager(createMockArgs())
 
-		err := em.RewindExecutionStateToTip(nil)
+		err := em.RewindExecutionStateToTip(nil, nil)
 		require.Equal(t, process.ErrNilHeaderHandler, err)
 	})
 
@@ -1723,7 +1723,7 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 
 		em, _ := executionManager.NewExecutionManager(createMockArgs())
 
-		err := em.RewindExecutionStateToTip(&block.HeaderV3{Nonce: 9})
+		err := em.RewindExecutionStateToTip(&block.HeaderV3{Nonce: 9}, []byte("hash9"))
 		require.Error(t, err)
 	})
 
@@ -1741,7 +1741,7 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 		err := em.Close()
 		require.NoError(t, err)
 
-		err = em.RewindExecutionStateToTip(newTip)
+		err = em.RewindExecutionStateToTip(newTip, []byte("hash9"))
 		require.ErrorIs(t, err, process.ErrProcessClosed)
 	})
 
@@ -1752,11 +1752,16 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 		pauseCalled := false
 		resumeCalled := false
 		cacheCleaned := false
-		var cleanedWith data.BaseExecutionResultHandler
+		var rewoundWith data.BaseExecutionResultHandler
+		var rewoundTipNonce uint64
 
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
 			CleanCalled: func(lastNotarizedResult data.BaseExecutionResultHandler) {
-				cleanedWith = lastNotarizedResult
+				require.Fail(t, "generic clean should not be used during rewind")
+			},
+			RewindCalled: func(lastNotarizedResult data.BaseExecutionResultHandler, chainTipNonce uint64) {
+				rewoundWith = lastNotarizedResult
+				rewoundTipNonce = chainTipNonce
 			},
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return []data.BaseExecutionResultHandler{}, nil
@@ -1786,19 +1791,67 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 			},
 		})
 
-		err := em.RewindExecutionStateToTip(newTip)
+		err := em.RewindExecutionStateToTip(newTip, []byte("hash9"))
 		require.NoError(t, err)
 		require.True(t, pauseCalled)
 		require.True(t, resumeCalled)
 		require.True(t, cacheCleaned)
-		require.NotNil(t, cleanedWith)
-		require.Equal(t, uint64(7), cleanedWith.GetHeaderNonce())
-		require.Equal(t, []byte("hash7"), cleanedWith.GetHeaderHash())
+		require.NotNil(t, rewoundWith)
+		require.Equal(t, uint64(7), rewoundWith.GetHeaderNonce())
+		require.Equal(t, []byte("hash7"), rewoundWith.GetHeaderHash())
+		require.Equal(t, newTip.GetNonce(), rewoundTipNonce)
 
 		nonce, hash, rootHash := chainMock.GetLastExecutedBlockInfo()
 		require.Equal(t, uint64(7), nonce)
 		require.Equal(t, []byte("hash7"), hash)
 		require.Equal(t, []byte("root7"), rootHash)
+	})
+
+	t.Run("legacy tip should synthesize the execution anchor", func(t *testing.T) {
+		t.Parallel()
+
+		legacyTipHash := []byte("hash8")
+		legacyTip := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce:    8,
+				Round:    12,
+				Epoch:    2,
+				RootHash: []byte("root8"),
+			},
+		}
+
+		var rewoundWith data.BaseExecutionResultHandler
+		var rewoundTipNonce uint64
+		args := createMockArgs()
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			RewindCalled: func(lastNotarizedResult data.BaseExecutionResultHandler, chainTipNonce uint64) {
+				rewoundWith = lastNotarizedResult
+				rewoundTipNonce = chainTipNonce
+			},
+		}
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+				require.Fail(t, "legacy tip should not be resolved from the pool")
+				return nil, nil
+			},
+		}
+		chainMock := &testscommon.ChainHandlerMock{}
+		args.BlockChain = chainMock
+
+		em, _ := executionManager.NewExecutionManager(args)
+		_ = em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{})
+
+		err := em.RewindExecutionStateToTip(legacyTip, legacyTipHash)
+		require.NoError(t, err)
+		require.NotNil(t, rewoundWith)
+		require.Equal(t, legacyTip.GetNonce(), rewoundTipNonce)
+		require.Equal(t, legacyTip.GetNonce(), rewoundWith.GetHeaderNonce())
+		require.Equal(t, legacyTip.GetRound(), rewoundWith.GetHeaderRound())
+		require.Equal(t, legacyTip.GetEpoch(), rewoundWith.GetHeaderEpoch())
+		require.Equal(t, legacyTipHash, rewoundWith.GetHeaderHash())
+		require.Equal(t, legacyTip.GetRootHash(), rewoundWith.GetRootHash())
+		require.Same(t, legacyTip, chainMock.GetLastExecutedBlockHeader())
+		require.Same(t, rewoundWith, chainMock.GetLastExecutionResult())
 	})
 
 	t.Run("missing header for the new watermark should error without touching any state", func(t *testing.T) {
@@ -1807,14 +1860,14 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 		args := createMockArgs()
 		pauseCalled := false
 		resumeCalled := false
-		cleanCalled := false
+		rewindCalled := false
 
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return []data.BaseExecutionResultHandler{}, nil
 			},
-			CleanCalled: func(lastNotarizedResult data.BaseExecutionResultHandler) {
-				cleanCalled = true
+			RewindCalled: func(lastNotarizedResult data.BaseExecutionResultHandler, chainTipNonce uint64) {
+				rewindCalled = true
 			},
 		}
 		args.Headers = &pool.HeadersPoolStub{
@@ -1842,10 +1895,10 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 			},
 		})
 
-		err := em.RewindExecutionStateToTip(newTip)
+		err := em.RewindExecutionStateToTip(newTip, []byte("hash9"))
 		require.Error(t, err)
 		// the header is resolved before any mutation, so the rewind is a no-op on failure
-		require.False(t, cleanCalled)
+		require.False(t, rewindCalled)
 		require.False(t, pauseCalled)
 		require.False(t, resumeCalled)
 	})
