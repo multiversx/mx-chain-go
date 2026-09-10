@@ -2788,7 +2788,7 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	outaddress := []byte("newsmartcontract")
+	outaddress := []byte("newsmartcontract1")
 	outacc1 := &vmcommon.OutputAccount{}
 	outacc1.Address = outaddress
 	outacc1.Nonce = 0
@@ -2796,6 +2796,20 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 	outacc1.BalanceDelta = big.NewInt(15)
 	outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(5)}
 	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
+
+	outacc2 := &vmcommon.OutputAccount{}
+	outacc2.Address = []byte("newsmartcontract2")
+	outacc2.Nonce = 0
+	outacc2.Balance = big.NewInt(5)
+	outacc2.BalanceDelta = big.NewInt(15)
+	outacc2.OutputTransfers = append(outacc2.OutputTransfers, outTransfer)
+
+	outacc3 := &vmcommon.OutputAccount{}
+	outacc3.Address = []byte("newsmartcontract3")
+	outacc3.Nonce = 0
+	outacc3.Balance = big.NewInt(5)
+	outacc3.BalanceDelta = big.NewInt(15)
+	outacc3.OutputTransfers = append(outacc3.OutputTransfers, outTransfer)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 1
@@ -2811,8 +2825,8 @@ func TestScProcessor_CreateCrossShardTransactions(t *testing.T) {
 		&vmcommon.VMOutput{
 			OutputAccounts: map[string]*vmcommon.OutputAccount{
 				"newsmartcontract1": outacc1,
-				"newsmartcontract2": outacc1,
-				"newsmartcontract3": outacc1,
+				"newsmartcontract2": outacc2,
+				"newsmartcontract3": outacc3,
 			}}, tx, txHash)
 	require.Nil(t, err)
 	require.Equal(t, 3, len(scTxs))
@@ -2840,7 +2854,7 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	outaddress := []byte("newsmartcontract")
+	outaddress := []byte("newsmartcontract1")
 	outacc1 := &vmcommon.OutputAccount{}
 	outacc1.Address = outaddress
 	outacc1.Nonce = 0
@@ -2848,6 +2862,20 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	outacc1.BalanceDelta = big.NewInt(15)
 	outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(5)}
 	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
+
+	outacc2 := &vmcommon.OutputAccount{}
+	outacc2.Address = []byte("newsmartcontract2")
+	outacc2.Nonce = 0
+	outacc2.Balance = big.NewInt(5)
+	outacc2.BalanceDelta = big.NewInt(15)
+	outacc2.OutputTransfers = append(outacc2.OutputTransfers, outTransfer)
+
+	outacc3 := &vmcommon.OutputAccount{}
+	outacc3.Address = []byte("newsmartcontract3")
+	outacc3.Nonce = 0
+	outacc3.Balance = big.NewInt(5)
+	outacc3.BalanceDelta = big.NewInt(15)
+	outacc3.OutputTransfers = append(outacc3.OutputTransfers, outTransfer)
 
 	tx := &smartContractResult.SmartContractResult{}
 	tx.Nonce = 1
@@ -2864,8 +2892,8 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 			GasRemaining: 1000,
 			OutputAccounts: map[string]*vmcommon.OutputAccount{
 				"newsmartcontract1": outacc1,
-				"newsmartcontract2": outacc1,
-				"newsmartcontract3": outacc1,
+				"newsmartcontract2": outacc2,
+				"newsmartcontract3": outacc3,
 			},
 		}, tx, txHash)
 	require.Nil(t, err)
@@ -2891,8 +2919,8 @@ func TestScProcessor_CreateCrossShardTransactionsWithAsyncCalls(t *testing.T) {
 	}, &vmcommon.VMOutput{GasRemaining: 1000,
 		OutputAccounts: map[string]*vmcommon.OutputAccount{
 			"newsmartcontract1":                outacc1,
-			"newsmartcontract2":                outacc1,
-			"newsmartcontract3":                outacc1,
+			"newsmartcontract2":                outacc2,
+			"newsmartcontract3":                outacc3,
 			string(outAccBackTransfer.Address): outAccBackTransfer,
 		}}, tx, txHash)
 	require.Nil(t, err)
@@ -2934,7 +2962,7 @@ func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	outaddress := []byte("newsmartcontract")
+	outaddress := []byte("newsmartcontract1")
 	outacc1 := &vmcommon.OutputAccount{}
 	outacc1.Address = outaddress
 	outacc1.Nonce = 0
@@ -2942,6 +2970,20 @@ func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
 	outacc1.BalanceDelta = big.NewInt(15)
 	outTransfer := vmcommon.OutputTransfer{Value: big.NewInt(5), Index: 1}
 	outacc1.OutputTransfers = append(outacc1.OutputTransfers, outTransfer)
+
+	outacc2 := &vmcommon.OutputAccount{}
+	outacc2.Address = []byte("newsmartcontract2")
+	outacc2.Nonce = 0
+	outacc2.Balance = big.NewInt(5)
+	outacc2.BalanceDelta = big.NewInt(15)
+	outacc2.OutputTransfers = append(outacc2.OutputTransfers, outTransfer)
+
+	outacc3 := &vmcommon.OutputAccount{}
+	outacc3.Address = []byte("newsmartcontract3")
+	outacc3.Nonce = 0
+	outacc3.Balance = big.NewInt(5)
+	outacc3.BalanceDelta = big.NewInt(15)
+	outacc3.OutputTransfers = append(outacc3.OutputTransfers, outTransfer)
 
 	tx := &transaction.Transaction{}
 	tx.Nonce = 1
@@ -2969,8 +3011,8 @@ func TestScProcessor_CreateIntraShardTransactionsWithAsyncCalls(t *testing.T) {
 			GasRemaining: 1000,
 			OutputAccounts: map[string]*vmcommon.OutputAccount{
 				"newsmartcontract1":                outacc1,
-				"newsmartcontract2":                outacc1,
-				"newsmartcontract3":                outacc1,
+				"newsmartcontract2":                outacc2,
+				"newsmartcontract3":                outacc3,
 				string(outAccBackTransfer.Address): outAccBackTransfer,
 			},
 		}, tx, txHash)
