@@ -90,10 +90,16 @@ func (bd *broadcastDebugHandler) getCurrentTimeStampMilli() int64 {
 
 // PrintReceivedTxsBroadcastAndCleanRecords will print information about received transactions from current epoch and clean records
 func (bd *broadcastDebugHandler) PrintReceivedTxsBroadcastAndCleanRecords() {
-	log.Info("Received broadcast information")
-
 	bd.mutex.Lock()
 	defer bd.mutex.Unlock()
+
+	if len(bd.receivedBroadcast) == 0 {
+		return
+	}
+
+	// the records below are Debug, so the header belongs at the same level; printing it at Info
+	// only produced an empty heading on every interval
+	log.Debug("Received broadcast information", "num message types", len(bd.receivedBroadcast))
 
 	for messageType := range bd.receivedBroadcast {
 		mapHashEvent := bd.receivedBroadcast[messageType]

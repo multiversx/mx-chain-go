@@ -99,14 +99,14 @@ func (cm *ConsensusMetrics) updateAverages(metric string, metricsTime uint64) {
 		cm.blockReceivedDelaySum += metricsTime
 		cm.blockReceivedCount++
 		averageReceivedBlockDelay := avg(cm.blockReceivedDelaySum, cm.blockReceivedCount)
+		// the value is published as a metric; logging it every round only duplicates that
 		cm.appStatusHandler.SetUInt64Value(common.MetricAvgReceivedOrSentProposedBlock, averageReceivedBlockDelay)
-		log.Debug("Computed average block header and body received delay", "currentBlockReceivedDelay", metricsTime, "averageBlockReceivedDelay", averageReceivedBlockDelay)
 	case common.MetricReceivedProof:
 		cm.proofReceivedDelaySum += metricsTime
 		cm.proofReceivedCount++
 		averageProofDelay := avg(cm.proofReceivedDelaySum, cm.proofReceivedCount)
+		// the value is published as a metric; logging it every round only duplicates that
 		cm.appStatusHandler.SetUInt64Value(common.MetricAvgReceivedProof, averageProofDelay)
-		log.Debug("Computed average signature received delay from block body received", "currentProofDelay", metricsTime, "averageProofDelay", averageProofDelay)
 	}
 }
 
