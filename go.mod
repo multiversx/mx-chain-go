@@ -1,6 +1,6 @@
 module github.com/multiversx/mx-chain-go
 
-go 1.26
+go 1.26.0
 
 require (
 	github.com/beevik/ntp v1.3.0
@@ -36,7 +36,7 @@ require (
 	github.com/urfave/cli v1.22.17
 	golang.org/x/crypto v0.54.0
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
-	golang.org/x/sync v0.22.0
+	golang.org/x/sync v0.23.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
