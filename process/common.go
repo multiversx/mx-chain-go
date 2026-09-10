@@ -797,6 +797,12 @@ func VMOutputValidationChecker(vmOutput *vmcommon.VMOutput) error {
 		if acc == nil || !bytes.Equal([]byte(key), acc.Address) {
 			return ErrAccountAddressMismatch
 		}
+
+		for storeKey, storeUpdate := range acc.StorageUpdates {
+			if storeUpdate == nil || !bytes.Equal([]byte(storeKey), storeUpdate.Offset) {
+				return ErrAccountAddressMismatch
+			}
+		}
 	}
 	return nil
 }
