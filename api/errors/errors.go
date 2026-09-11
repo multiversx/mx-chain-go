@@ -10,6 +10,9 @@ var ErrInvalidAppContext = errors.New("invalid app context")
 // ErrInvalidJSONRequest signals an error in json request formatting
 var ErrInvalidJSONRequest = errors.New("invalid json request")
 
+// ErrCallValueTooLong signals that the provided call value exceeds the accepted length
+var ErrCallValueTooLong = errors.New("call value is too long")
+
 // ErrCouldNotGetAccount signals that a requested account could not be retrieved
 var ErrCouldNotGetAccount = errors.New("could not get requested account")
 
