@@ -306,14 +306,13 @@ func (txProc *baseTxProcessor) checkUserNames(tx *transaction.Transaction, acntS
 	return nil
 }
 
-func (txProc *baseTxProcessor) processIfTxErrorCrossShard(tx *transaction.Transaction, errorString string) error {
-	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
-	if err != nil {
-		return err
-	}
-
+func (txProc *baseTxProcessor) processIfTxErrorCrossShard(
+	tx *transaction.Transaction,
+	txHash []byte,
+	errorString string,
+) error {
 	snapshot := txProc.accounts.JournalLen()
-	err = txProc.scProcessor.ProcessIfError(nil, txHash, tx, errorString, nil, snapshot, 0)
+	err := txProc.scProcessor.ProcessIfError(nil, txHash, tx, errorString, nil, snapshot, 0)
 	if err != nil {
 		return err
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -20,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewRewardTxProcessor_NilAccountsDbShouldErr(t *testing.T) {
@@ -202,6 +204,82 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
 	assert.Equal(t, expectedErr, err)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionReservedAddressShouldBeConsumed(t *testing.T) {
+	t.Parallel()
+
+	loadCalls := 0
+	saveCalls := 0
+	stateAccessHashes := make([][]byte, 0)
+	accountsDB := &stateMock.AccountsStub{
+		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			loadCalls++
+			return nil, state.ErrAccountAddressIsReserved
+		},
+		SaveAccountCalled: func(_ vmcommon.AccountHandler) error {
+			saveCalls++
+			return nil
+		},
+		SetTxHashForLatestStateAccessesCalled: func(txHash []byte) {
+			stateAccessHashes = append(stateAccessHashes, append([]byte(nil), txHash...))
+		},
+	}
+	marshalizer := &marshallerMock.MarshalizerMock{}
+	hasher := &hashingMocks.HasherMock{}
+	rtp, err := rewardTransaction.NewRewardTxProcessor(
+		accountsDB,
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+		marshalizer,
+		hasher,
+	)
+	require.NoError(t, err)
+
+	rwdTx := &rewardTx.RewardTx{
+		Round:   1,
+		Epoch:   2,
+		Value:   big.NewInt(100),
+		RcvAddr: []byte("rcvr"),
+	}
+	expectedHash, err := core.CalculateHash(marshalizer, hasher, rwdTx)
+	require.NoError(t, err)
+
+	require.NoError(t, rtp.ProcessRewardTransaction(rwdTx))
+	require.NoError(t, rtp.ProcessRewardTransaction(rwdTx))
+	require.Equal(t, 2, loadCalls)
+	require.Zero(t, saveCalls)
+	require.Equal(t, [][]byte{expectedHash, expectedHash}, stateAccessHashes)
+}
+
+func TestRewardTxProcessor_ProcessRewardTransactionReservedAddressHashErrorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	stateAccessWasSet := false
+	accountsDB := &stateMock.AccountsStub{
+		LoadAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return nil, state.ErrAccountAddressIsReserved
+		},
+		SetTxHashForLatestStateAccessesCalled: func(_ []byte) {
+			stateAccessWasSet = true
+		},
+	}
+	rtp, err := rewardTransaction.NewRewardTxProcessor(
+		accountsDB,
+		createMockPubkeyConverter(),
+		mock.NewMultiShardsCoordinatorMock(3),
+		&marshallerMock.MarshalizerMock{Fail: true},
+		&hashingMocks.HasherMock{},
+	)
+	require.NoError(t, err)
+
+	err = rtp.ProcessRewardTransaction(&rewardTx.RewardTx{
+		Value:   big.NewInt(100),
+		RcvAddr: []byte("rcvr"),
+	})
+
+	require.ErrorIs(t, err, marshallerMock.ErrMockMarshalizer)
+	require.False(t, stateAccessWasSet)
 }
 
 func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHolderShouldErr(t *testing.T) {

@@ -358,7 +358,7 @@ type ExecutionManager interface {
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	RemoveAtNonceAndHigher(nonce uint64) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
-	RewindExecutionStateToTip(newTip data.HeaderHandler) error
+	RewindExecutionStateToTip(newTip data.HeaderHandler, newTipHash []byte) error
 	PopDismissedResults() []executionTrack.DismissedBatch
 	GetSignalProcessCompletionChan() chan uint64
 	Close() error
@@ -1714,6 +1714,7 @@ type ExecutionResultsTracker interface {
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	RemoveFromNonce(nonce uint64) error
 	Clean(lastNotarizedResult data.BaseExecutionResultHandler)
+	Rewind(lastNotarizedResult data.BaseExecutionResultHandler, chainTipNonce uint64)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
 	CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler)
 	PopDismissedResults() []executionTrack.DismissedBatch

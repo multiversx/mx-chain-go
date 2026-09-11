@@ -104,7 +104,7 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 	case dataRetriever.HashType:
 		err = mbRes.resolveMbRequestByHash(rd.Value, message.Peer(), rd.Epoch, source)
 	case dataRetriever.HashArrayType:
-		err = mbRes.resolveMbRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, source)
+		err = mbRes.resolveMbRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, source, fromConnectedPeer, message.SeqNo())
 	default:
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
@@ -155,17 +155,22 @@ func (mbRes *miniblockResolver) fetchMbAsByteSlice(hash []byte, epoch uint32) ([
 	return buff, nil
 }
 
-func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid core.PeerID, epoch uint32, source p2p.MessageHandler) error {
-	b := batch.Batch{}
-	err := mbRes.marshalizer.Unmarshal(&b, mbBuff)
+func (mbRes *miniblockResolver) resolveMbRequestByHashArray(
+	mbBuff []byte,
+	pid core.PeerID,
+	epoch uint32,
+	source p2p.MessageHandler,
+	fromConnectedPeer core.PeerID,
+	sequence []byte,
+) error {
+	hashes, err := mbRes.parseRequestedHashesWithPartialResponse(mbBuff, fromConnectedPeer, sequence)
 	if err != nil {
 		return err
 	}
-	hashes := deduplicateHashes(b.Data)
 
 	var errFetch error
 	errorsFound := 0
-	mbsBuffSlice := make([][]byte, 0, len(hashes))
+	reply := newHashArrayReply()
 	for _, hash := range hashes {
 		mb, errTemp := mbRes.fetchMbAsByteSlice(hash, epoch)
 		if errTemp != nil {
@@ -177,10 +182,12 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(mbBuff []byte, pid c
 
 			continue
 		}
-		mbsBuffSlice = append(mbsBuffSlice, mb)
+		if !reply.add(mb) {
+			break
+		}
 	}
 
-	buffsToSend, errPack := mbRes.dataPacker.PackDataInChunks(mbsBuffSlice, maxBuffToSendBulkMiniblocks)
+	buffsToSend, errPack := mbRes.dataPacker.PackDataInChunks(reply.data, maxBuffToSendBulkMiniblocks)
 	if errPack != nil {
 		return errPack
 	}

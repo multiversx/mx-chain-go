@@ -405,6 +405,44 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupNilRandomnessShouldEr
 	require.Nil(t, leader)
 }
 
+func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupOversizedRandomnessShouldErr(t *testing.T) {
+	t.Parallel()
+
+	cacheAccessed := false
+	arguments := createArguments()
+	arguments.ConsensusGroupCache = &mock.NodesCoordinatorCacheMock{
+		GetCalled: func(_ []byte) (interface{}, bool) {
+			cacheAccessed = true
+			return nil, false
+		},
+		PutCalled: func(_ []byte, _ interface{}, _ int) bool {
+			cacheAccessed = true
+			return false
+		},
+	}
+	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+
+	leader, validatorsGroup, err := ihnc.ComputeConsensusGroup(make([]byte, maxRandomnessSize+1), 0, 0, 0)
+
+	require.ErrorIs(t, err, ErrInvalidRandomnessSize)
+	require.Nil(t, validatorsGroup)
+	require.Nil(t, leader)
+	require.False(t, cacheAccessed)
+}
+
+func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupMaximumRandomnessSizeShouldWork(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+
+	leader, validatorsGroup, err := ihnc.ComputeConsensusGroup(make([]byte, maxRandomnessSize), 0, 0, 0)
+
+	require.NoError(t, err)
+	require.NotNil(t, validatorsGroup)
+	require.NotNil(t, leader)
+}
+
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupInvalidShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
