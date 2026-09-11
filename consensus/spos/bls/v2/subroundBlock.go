@@ -469,8 +469,6 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 	done := make(chan struct{})
 	sr.SetSignaturesDone(done)
 
-	// counters instead of per-key log lines: a node with many managed keys would otherwise emit
-	// one line per key per round whenever the signature subround deadline passes
 	numCtxDone := &atomic.Int32{}
 	numSignFailures := &atomic.Int32{}
 	logFirstSignFailure := &sync.Once{}

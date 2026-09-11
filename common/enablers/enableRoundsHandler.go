@@ -30,15 +30,12 @@ type roundFlagHandler struct {
 }
 
 type enableRoundsHandler struct {
-	allFlagsDefined map[common.EnableRoundFlag]roundFlagHandler
-	currentRound    uint64
-	roundMut        sync.RWMutex
-	// unknownFlagsLogged keeps the unknown flags already reported by logUnknownFlagOnce
+	allFlagsDefined    map[common.EnableRoundFlag]roundFlagHandler
+	currentRound       uint64
+	roundMut           sync.RWMutex
 	unknownFlagsLogged sync.Map
 }
 
-// logUnknownFlagOnce reports an unknown flag a single time per flag. These lookups sit on per-block
-// paths and carry a full stack trace, so repeating them would flood the log for one bad flag name.
 func (handler *enableRoundsHandler) logUnknownFlagOnce(context string, flag common.EnableRoundFlag, args ...interface{}) {
 	_, alreadyLogged := handler.unknownFlagsLogged.LoadOrStore(flag, struct{}{})
 	if alreadyLogged {

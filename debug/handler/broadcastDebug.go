@@ -97,8 +97,6 @@ func (bd *broadcastDebugHandler) PrintReceivedTxsBroadcastAndCleanRecords() {
 		return
 	}
 
-	// the records below are Debug, so the header belongs at the same level; printing it at Info
-	// only produced an empty heading on every interval
 	log.Debug("Received broadcast information", "num message types", len(bd.receivedBroadcast))
 
 	for messageType := range bd.receivedBroadcast {
