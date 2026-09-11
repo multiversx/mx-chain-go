@@ -348,6 +348,9 @@
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
     SupernovaEnableEpoch = 2
 
+    # FixEpochChangeProposedCurrentEpochEnableEpoch represents the epoch when epoch change proposed blocks expose the prepared epoch
+    FixEpochChangeProposedCurrentEpochEnableEpoch = 3
+
     # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
     CheckBuiltInCallOnTransferValueAndFailEnableRound = 1
 

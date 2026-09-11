@@ -140,6 +140,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ConsumedGasInEconomicsFixEnableEpoch:                     120,
 		AttributeExtraGasUsageEnableEpoch:                        121,
 		SupernovaEnableEpoch:                                     122,
+		FixEpochChangeProposedCurrentEpochEnableEpoch:            123,
 	}
 }
 
@@ -203,6 +204,18 @@ func TestEnableEpochsHandler_IsFlagEnabledInEpoch(t *testing.T) {
 	require.True(t, handler.IsFlagEnabledInEpoch(common.BuiltInFunctionsFlag, cfg.BuiltInFunctionsEnableEpoch+1))
 	require.False(t, handler.IsFlagEnabledInEpoch(common.BuiltInFunctionsFlag, cfg.BuiltInFunctionsEnableEpoch-1))
 	require.False(t, handler.IsFlagEnabledInEpoch("new flag", 0))
+}
+
+func TestEnableEpochsHandler_FixEpochChangeProposedCurrentEpochFlag(t *testing.T) {
+	t.Parallel()
+
+	cfg := createEnableEpochsConfig()
+	handler, err := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+	require.NoError(t, err)
+
+	require.False(t, handler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch-1))
+	require.True(t, handler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch))
+	require.True(t, handler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch+1))
 }
 
 func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
@@ -489,6 +502,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.ConsumedGasInEconomicsFixEnableEpoch, handler.GetActivationEpoch(common.ConsumedGasInEconomicsFlag))
 	require.Equal(t, cfg.AttributeExtraGasUsageEnableEpoch, handler.GetActivationEpoch(common.AttributeExtraGasUsageFlag))
 	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
+	require.Equal(t, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch, handler.GetActivationEpoch(common.FixEpochChangeProposedCurrentEpochFlag))
 }
 
 func TestEnableEpochsHandler_GetAllEnableEpochs(t *testing.T) {
