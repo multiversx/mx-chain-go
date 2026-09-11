@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -468,9 +469,26 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 	done := make(chan struct{})
 	sr.SetSignaturesDone(done)
 
+	numCtxDone := &atomic.Int32{}
+	numSignFailures := &atomic.Int32{}
+	logFirstSignFailure := &sync.Once{}
+
 	go func() {
 		wg.Wait()
 		close(done)
+
+		ctxDone := numCtxDone.Load()
+		signFailures := numSignFailures.Load()
+		if ctxDone == 0 && signFailures == 0 {
+			return
+		}
+
+		log.Debug("triggerCreateSignaturesForManagedKeys: not all signature shares were created",
+			"num keys", len(keys),
+			"num skipped on context done", ctxDone,
+			"num failed", signFailures,
+			"timeLeft", timeLeft,
+		)
 	}()
 
 	go func() {
@@ -497,7 +515,7 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 
 				select {
 				case <-sigCtx.Done():
-					log.Debug("triggerCreateSignaturesForManagedKeys: context done", "timeLeft", timeLeft)
+					numCtxDone.Add(1)
 					return
 				default:
 				}
@@ -510,7 +528,10 @@ func (sr *subroundBlock) triggerCreateSignaturesForManagedKeys(
 					pkBytes,
 				)
 				if err != nil {
-					log.Debug("triggerCreateSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
+					numSignFailures.Add(1)
+					logFirstSignFailure.Do(func() {
+						log.Debug("triggerCreateSignaturesForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
+					})
 					return
 				}
 			}(sigCtx, pk.idx, pk.pkBytes)
