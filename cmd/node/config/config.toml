@@ -45,14 +45,14 @@
     ChainParametersByEpoch = [
         { EnableEpoch = 0, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 0 },
         { EnableEpoch = 1, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 0 },
-        { EnableEpoch = 2, RoundDuration = 600, RoundsPerEpoch = 2000, MinRoundsBetweenEpochs = 50, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 2 }
+        { EnableEpoch = 9999999, RoundDuration = 600, RoundsPerEpoch = 2000, MinRoundsBetweenEpochs = 50, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 2 }
     ]
 
     # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
     EpochChangeGracePeriodByEpoch = [
         {EnableEpoch = 0, GracePeriodInRounds = 5 },
         {EnableEpoch = 1, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
-        {EnableEpoch = 2, GracePeriodInRounds = 100 }, # Supernova epoch comes with an even longer grace period due to round duration reduction
+        {EnableEpoch = 9999999, GracePeriodInRounds = 100 }, # Supernova epoch comes with an even longer grace period due to round duration reduction
     ]
 
     # ProcessConfigsByEpoch represents the configuration of process configuration parameters by epoch
@@ -60,7 +60,7 @@
         { EnableEpoch = 0, MaxMetaNoncesBehind = 15, MaxMetaNoncesBehindForGlobalStuck = 30, MaxShardNoncesBehind = 15 },
         # Pre-Supernova epoch (immediately before Supernova) configuration
         { EnableEpoch = 1, MaxMetaNoncesBehind = 5, MaxMetaNoncesBehindForGlobalStuck = 8, MaxShardNoncesBehind = 5 },
-        { EnableEpoch = 2, MaxMetaNoncesBehind = 15, MaxMetaNoncesBehindForGlobalStuck = 30, MaxShardNoncesBehind = 15 },
+        { EnableEpoch = 9999999, MaxMetaNoncesBehind = 15, MaxMetaNoncesBehindForGlobalStuck = 30, MaxShardNoncesBehind = 15 },
     ]
 
     ProcessConfigsByRound = [
@@ -86,7 +86,7 @@
             ExtraDelayForRequestBlockInfoMs = 3000
         },
         {
-            EnableRound = 440,
+            EnableRound = 99999999999,
             MaxRoundsWithoutNewBlockReceived = 100,
             MaxRoundsWithoutCommittedBlock = 100,
             RoundModulusTriggerWhenSyncIsStuck = 20,
@@ -105,17 +105,17 @@
 
     EpochStartConfigsByEpoch = [
         { EnableEpoch = 0, GracePeriodRounds = 25 },
-        { EnableEpoch = 2, GracePeriodRounds = 250 },
+        { EnableEpoch = 9999999, GracePeriodRounds = 250 },
     ]
 
     EpochStartConfigsByRound = [
         { EnableRound = 0, MaxRoundsWithoutCommittedStartInEpochBlock = 50 },
-        { EnableRound = 440, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
+        { EnableRound = 99999999999, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
     ]
 
     ConsensusConfigsByEpoch = [
         { EnableEpoch = 0, NumRoundsToWaitBeforeSignalingChronologyStuck = 10 },
-        { EnableEpoch = 2, NumRoundsToWaitBeforeSignalingChronologyStuck = 100 },
+        { EnableEpoch = 9999999, NumRoundsToWaitBeforeSignalingChronologyStuck = 100 },
     ]
 
     ConsensusConfigsByRound = [
@@ -130,7 +130,7 @@
             ProcessingThresholdPercent = 85
         },
         {
-            EnableRound = 440,
+            EnableRound = 99999999999,
             SubroundsTiming = [
                 { StartTime = 0.0,  EndTime = 0.05 },  # start round
                 { StartTime = 0.05, EndTime = 0.35 },  # block
@@ -153,7 +153,7 @@
 
         # StartEpoch and StartRound for version 3 must equal SupernovaEnableEpoch (enableEpochs.toml) and
         # SupernovaEnableRound (enableRounds.toml); this is enforced at node startup
-        { StartEpoch = 2, StartRound = 440, Version = "3" },
+        { StartEpoch = 9999999, StartRound = 99999999999, Version = "3" },
     ]
 
 [StoragePruning]
@@ -778,7 +778,7 @@
             MaxDeviationTimeInMilliseconds = 25
 
     [[Antiflood.ConfigsByRound]]
-        Round = 440
+        Round = 99999999999
         NumConcurrentResolverJobs = 50 # TODO: analyse for meta on bootstrap there was a constant used with value 10
         NumConcurrentResolvingTrieNodesJobs = 3
 

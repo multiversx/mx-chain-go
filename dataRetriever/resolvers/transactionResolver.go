@@ -109,7 +109,7 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 	case dataRetriever.HashType:
 		err = txRes.resolveTxRequestByHash(rd.Value, message.Peer(), rd.Epoch, source)
 	case dataRetriever.HashArrayType:
-		err = txRes.resolveTxRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, source)
+		err = txRes.resolveTxRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, source, fromConnectedPeer, message.SeqNo())
 	default:
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
@@ -161,18 +161,23 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, 
 	return buff, nil
 }
 
-func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core.PeerID, epoch uint32, source p2p.MessageHandler) error {
+func (txRes *TxResolver) resolveTxRequestByHashArray(
+	hashesBuff []byte,
+	pid core.PeerID,
+	epoch uint32,
+	source p2p.MessageHandler,
+	fromConnectedPeer core.PeerID,
+	sequence []byte,
+) error {
 	// TODO this can be optimized by searching in corresponding datapool (taken by topic name)
-	b := batch.Batch{}
-	err := txRes.marshalizer.Unmarshal(&b, hashesBuff)
+	hashes, err := txRes.parseRequestedHashes(hashesBuff, fromConnectedPeer, sequence)
 	if err != nil {
 		return err
 	}
-	hashes := deduplicateHashes(b.Data)
 
 	var errFetch error
 	errorsFound := 0
-	txsBuffSlice := make([][]byte, 0, len(hashes))
+	reply := newHashArrayReply()
 	for _, hash := range hashes {
 		tx, errTemp := txRes.fetchTxAsByteSlice(hash, epoch)
 		if errTemp != nil {
@@ -186,10 +191,12 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core
 
 			continue
 		}
-		txsBuffSlice = append(txsBuffSlice, tx)
+		if !reply.add(tx) {
+			break
+		}
 	}
 
-	buffsToSend, errPack := txRes.dataPacker.PackDataInChunks(txsBuffSlice, maxBuffToSendBulkTransactions)
+	buffsToSend, errPack := txRes.dataPacker.PackDataInChunks(reply.data, maxBuffToSendBulkTransactions)
 	if errPack != nil {
 		return errPack
 	}

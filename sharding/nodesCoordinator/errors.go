@@ -43,6 +43,9 @@ var ErrEpochNodesConfigDoesNotExist = errors.New("epoch nodes configuration does
 // ErrNilRandomness signals that a nil randomness source has been provided
 var ErrNilRandomness = errors.New("nil randomness source")
 
+// ErrInvalidRandomnessSize signals that the randomness source exceeds the supported size
+var ErrInvalidRandomnessSize = errors.New("invalid randomness source size")
+
 // ErrNilHasher signals that a nil hasher has been provided
 var ErrNilHasher = errors.New("nil hasher")
 

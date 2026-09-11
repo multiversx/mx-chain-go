@@ -447,6 +447,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
+	verificationCalledNum := int32(0)
 	throttler := createMockThrottler()
 	msgHash := []byte("hash")
 	interceptedData := &testscommon.InterceptedDataStub{
@@ -474,6 +475,12 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 	}
 	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
 	arg.Throttler = throttler
+	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
+		VerifyCalled: func(interceptedData process.InterceptedData, _ string, _ p2p.BroadcastMethod) error {
+			atomic.AddInt32(&verificationCalledNum, 1)
+			return interceptedData.CheckValidity()
+		},
+	}
 	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 		IsOriginatorEligibleForTopicCalled: func(pid core.PeerID, topic string) error {
 			return process.ErrOnlyValidatorsCanUseThisTopic
@@ -490,6 +497,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 	time.Sleep(time.Second)
 
 	assert.Nil(t, err)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&verificationCalledNum))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&checkCalledNum))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(1), throttler.EndProcessingCount())
@@ -505,6 +513,7 @@ func TestSingleDataInterceptor_ProcessReceivedMessageWithOriginator(t *testing.T
 	time.Sleep(time.Second)
 
 	assert.Equal(t, err, process.ErrOnlyValidatorsCanUseThisTopic)
+	assert.Equal(t, int32(1), atomic.LoadInt32(&verificationCalledNum))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&checkCalledNum))
 	assert.Equal(t, int32(1), atomic.LoadInt32(&processCalledNum))
 	assert.Equal(t, int32(2), throttler.EndProcessingCount())

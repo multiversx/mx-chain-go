@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
@@ -320,6 +322,40 @@ func createMetaBlockHeader() *block.MetaBlock {
 	hdr.ShardInfo = append(hdr.ShardInfo, shardData)
 
 	return &hdr
+}
+
+func TestMetaProcessor_IndexBlockDoesNotUseScheduledRoot(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	statusComponents.Outport = &outport.OutportStub{
+		HasDriversCalled: func() bool {
+			return true
+		},
+	}
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+		GetScheduledRootHashCalled: func() []byte {
+			t.Fatal("scheduled root should not be used for a meta block")
+			return nil
+		},
+	}
+	wasPrepared := false
+	arguments.OutportDataProvider = &outport.OutportDataProviderStub{
+		PrepareOutportSaveBlockDataCalled: func(arg processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
+			wasPrepared = true
+			require.Nil(t, arg.ScheduledRootHash)
+			return &outportcore.OutportBlockWithHeaderAndBody{
+				OutportBlock: &outportcore.OutportBlock{},
+			}, nil
+		},
+	}
+	mp, err := processBlock.NewMetaProcessor(arguments)
+	require.NoError(t, err)
+
+	mp.IndexBlock(&block.MetaBlock{Nonce: 1}, []byte("header hash"), &block.Body{}, nil)
+
+	require.True(t, wasPrepared)
 }
 
 func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {

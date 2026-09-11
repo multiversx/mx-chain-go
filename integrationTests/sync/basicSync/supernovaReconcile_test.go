@@ -54,12 +54,10 @@ func requireNotarizes(t *testing.T, metaHeader data.HeaderHandler, shardID uint3
 	require.Fail(t, "meta block does not notarize the winning branch")
 }
 
-// backstop scenario: island 1 instantly finalizes clean sibling A; island 2,
-// blind to A, commits contended sibling B AND extends it with a proofed child C.
-// When B and C reach island 1, its nodes hold a FINALIZED block that objectively
-// lost (childless, competitor settled via proofed child): the reconcile backstop
-// must fire -- final checkpoint lowered below the fork nonce (the only sanctioned
-// finality regression), the loser blacklisted, and the nodes converge on C.
+// backstop scenario: island 1 instantly finalizes clean sibling A and its child;
+// island 2, blind to A, commits contended sibling B and extends it with child C.
+// Once metachain settles B, the reconcile backstop must move island 1 from its
+// losing suffix to B and C, then leave it able to extend the adopted branch.
 func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -158,16 +156,24 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 	headerA, hashA, proofA := grabCurrentBlock(t, pA)
 	require.Equal(t, uint64(5), headerA.GetNonce())
 
-	// two silent rounds so the island 2 sibling lands contended
+	// Island 1 extends A so reconciliation has to replace a committed suffix, not
+	// only the sibling at the fork nonce.
 	round = integrationTests.IncrementAndPrintRound(round)
 	integrationTests.UpdateRound(allNodes, round)
 	time.Sleep(integrationTests.SyncDelay)
+	integrationTests.ProposeBlockWithProof(island1, []*integrationTests.TestProcessorNode{pA}, round, nonce+1)
+	time.Sleep(integrationTests.SyncDelay)
+	headerAChild, hashAChild, proofAChild := grabCurrentBlock(t, pA)
+	require.Equal(t, nonce+1, headerAChild.GetNonce())
+	require.Equal(t, string(hashA), string(headerAChild.GetPrevHash()))
+
+	// The second island remains on the common prefix, so B still lands with a round gap.
 	round = integrationTests.IncrementAndPrintRound(round)
 	integrationTests.UpdateRound(allNodes, round)
 
-	// island 1 holds A instantly finalized (clean, proofed)
-	require.Equal(t, uint64(5), pA.ForkDetector.GetHighestFinalBlockNonce())
-	require.Equal(t, uint64(5), obsA.ForkDetector.GetHighestFinalBlockNonce())
+	// island 1 holds the clean suffix instantly finalized
+	require.Equal(t, headerAChild.GetNonce(), pA.ForkDetector.GetHighestFinalBlockNonce())
+	require.Equal(t, headerAChild.GetNonce(), obsA.ForkDetector.GetHighestFinalBlockNonce())
 
 	// round 7: island 2 commits the contended sibling B
 	integrationTests.ProposeBlockWithProof(island2, []*integrationTests.TestProcessorNode{pB}, round, nonce)
@@ -254,9 +260,10 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 
 	require.True(t, island1OnC(), "backstop did not converge the finalized minority onto the settled branch")
 
-	// The held-final meta decision settles B, then finality advances through clean child C.
+	// The held-final meta decision settles B. Since both nonce-6 siblings are proven,
+	// local finality remains at B until another canonical child confirms C's ancestry.
 	for _, n := range []*integrationTests.TestProcessorNode{pA, obsA} {
-		assert.Equal(t, uint64(6), n.ForkDetector.GetHighestFinalBlockNonce())
+		assert.Equal(t, headerB.GetNonce(), n.ForkDetector.GetHighestFinalBlockNonce())
 	}
 
 	// island 2 was never on the losing block and is untouched (the meta node runs its own chain,
@@ -266,9 +273,10 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 		assert.Equal(t, uint64(6), n.ForkDetector.GetHighestFinalBlockNonce())
 	}
 
-	// Late lower-round evidence cannot override the branch already settled by metachain.
+	// Late evidence for the discarded suffix cannot override the branch already settled by metachain.
 	for _, n := range island1 {
 		injectBlock(n, headerA, hashA, proofA)
+		injectBlock(n, headerAChild, hashAChild, proofAChild)
 	}
 	round = integrationTests.IncrementAndPrintRound(round)
 	integrationTests.UpdateRound(allNodes, round)
@@ -297,6 +305,7 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 	for i := 0; i < maxReconcileRounds && !island1OnD(); i++ {
 		for _, node := range island1 {
 			injectBlock(node, headerA, hashA, proofA)
+			injectBlock(node, headerAChild, hashAChild, proofAChild)
 			injectBlock(node, headerD, hashD, proofD)
 		}
 		round = integrationTests.IncrementAndPrintRound(round)
@@ -305,6 +314,7 @@ func TestSupernovaSync_ReconcileBackstop_FinalizedMinorityConverges(t *testing.T
 	}
 	require.True(t, island1OnD(), "settled branch stopped advancing after late losing evidence")
 	for _, node := range island1 {
+		require.Equal(t, headerB.GetNonce(), node.ForkDetector.GetHighestFinalBlockNonce())
 		require.False(t, node.ForkDetector.CheckFork().IsDetected)
 	}
 }

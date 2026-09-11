@@ -1055,19 +1055,17 @@ func TestBaseRewardsCreator_verifyCreatedRewardMiniBlocksWithMetaBlockMiniBlockH
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
+	mbs := createDefaultMiniBlocksSlice()
+
+	mbHdr := createRewardsMiniBlockHeader(t, mbs[0])
+	mbHdr.ReceiverShardID = core.MetachainShardId
+
 	metaBlk := &block.MetaBlock{
 		EpochStart:       getDefaultEpochStart(),
 		DevFeesInEpoch:   big.NewInt(0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 4),
+		MiniBlockHeaders: []block.MiniBlockHeader{mbHdr},
 	}
 
-	mbs := createDefaultMiniBlocksSlice()
-	mbs[0].ReceiverShardID = core.MetachainShardId
-	mbs[1].ReceiverShardID = core.MetachainShardId
-
-	for i := range metaBlk.MiniBlockHeaders {
-		metaBlk.MiniBlockHeaders[i].Type = block.RewardsBlock
-	}
 	err = rwd.verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlk, mbs)
 	require.Equal(t, epochStart.ErrRewardMiniBlockHashDoesNotMatch, err)
 }
@@ -1080,18 +1078,19 @@ func TestBaseRewardsCreator_verifyCreatedRewardMiniBlocksWithMetaBlockMiniBlockH
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
+	mbs := createDefaultMiniBlocksSlice()
 	metaBlk := &block.MetaBlock{
-		EpochStart:       getDefaultEpochStart(),
-		DevFeesInEpoch:   big.NewInt(0),
-		MiniBlockHeaders: make([]block.MiniBlockHeader, 4),
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			createRewardsMiniBlockHeader(t, mbs[0]),
+			createRewardsMiniBlockHeader(t, mbs[1]),
+			createRewardsMiniBlockHeader(t, mbs[2]),
+		},
 	}
 
-	mbs := createDefaultMiniBlocksSlice()
 	mbs[0].TxHashes = [][]byte{[]byte("txHash")}
 
-	for i := range metaBlk.MiniBlockHeaders {
-		metaBlk.MiniBlockHeaders[i].Type = block.RewardsBlock
-	}
 	err = rwd.verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlk, mbs)
 	require.Equal(t, epochStart.ErrRewardMiniBlockHashDoesNotMatch, err)
 }
@@ -1119,21 +1118,110 @@ func TestBaseRewardsCreator_verifyCreatedRewardMiniBlocksWithMetaBlockMiniBlockN
 	require.Equal(t, epochStart.ErrRewardMiniBlocksNumDoesNotMatch, err)
 }
 
-func TestBaseRewardsCreator_getMiniBlockWithReceiverShardIDNotFound(t *testing.T) {
-	mbSlice := createDefaultMiniBlocksSlice()
-	for i := range mbSlice {
-		mbSlice[i].ReceiverShardID = 0
+func TestBaseRewardsCreator_verifyCreatedRewardMiniBlocksWithMetaBlockDuplicatedHeaderOmittingShard(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	rwd, err := NewBaseRewardsCreator(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	mbs := createDefaultMiniBlocksSlice()
+
+	metaBlk := &block.MetaBlock{
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			createRewardsMiniBlockHeader(t, mbs[0]),
+			createRewardsMiniBlockHeader(t, mbs[1]),
+			createRewardsMiniBlockHeader(t, mbs[0]),
+		},
 	}
 
-	mb := getMiniBlockWithReceiverShardID(core.MetachainShardId, mbSlice)
-	require.Nil(t, mb)
+	err = rwd.verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlk, mbs)
+	require.True(t, errors.Is(err, epochStart.ErrDuplicatedRewardMiniBlockHeader))
 }
 
-func TestBaseRewardsCreator_getMiniBlockWithReceiverShardIDFound(t *testing.T) {
-	mbSlice := createDefaultMiniBlocksSlice()
-	mbSlice[0].ReceiverShardID = 0
-	mb := getMiniBlockWithReceiverShardID(0, mbSlice)
-	require.Equal(t, mbSlice[0], mb)
+func TestBaseRewardsCreator_verifyCreatedRewardMiniBlocksWithMetaBlockAllShardsMatched(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	rwd, err := NewBaseRewardsCreator(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	mbs := createDefaultMiniBlocksSlice()
+	metaBlk := &block.MetaBlock{
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			createRewardsMiniBlockHeader(t, mbs[2]),
+			createRewardsMiniBlockHeader(t, mbs[0]),
+			createRewardsMiniBlockHeader(t, mbs[1]),
+		},
+	}
+
+	err = rwd.verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlk, mbs)
+	require.Nil(t, err)
+}
+
+func TestBaseRewardsCreator_verifyCreatedRewardMiniBlocksWithMetaBlockDuplicatedCreatedMiniBlock(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	rwd, err := NewBaseRewardsCreator(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	mbs := createDefaultMiniBlocksSlice()
+	mbs[1].ReceiverShardID = mbs[0].ReceiverShardID
+
+	metaBlk := &block.MetaBlock{
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			createRewardsMiniBlockHeader(t, mbs[0]),
+		},
+	}
+
+	err = rwd.verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlk, mbs)
+	require.True(t, errors.Is(err, epochStart.ErrDuplicatedCreatedRewardMiniBlock))
+}
+
+func TestBaseRewardsCreator_verifyCreatedRewardMiniBlocksWithMetaBlockWrongSenderShard(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	rwd, err := NewBaseRewardsCreator(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	mbs := createDefaultMiniBlocksSlice()
+	mbHdr := createRewardsMiniBlockHeader(t, mbs[0])
+	mbHdr.SenderShardID = 0
+
+	metaBlk := &block.MetaBlock{
+		EpochStart:       getDefaultEpochStart(),
+		DevFeesInEpoch:   big.NewInt(0),
+		MiniBlockHeaders: []block.MiniBlockHeader{mbHdr},
+	}
+
+	err = rwd.verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlk, mbs)
+	require.True(t, errors.Is(err, epochStart.ErrRewardMiniBlockHashDoesNotMatch))
+}
+
+func createRewardsMiniBlockHeader(t *testing.T, miniBlock *block.MiniBlock) block.MiniBlockHeader {
+	args := getBaseRewardsArguments()
+	mbHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, miniBlock)
+	require.Nil(t, err)
+
+	return block.MiniBlockHeader{
+		Hash:            mbHash,
+		SenderShardID:   miniBlock.SenderShardID,
+		ReceiverShardID: miniBlock.ReceiverShardID,
+		TxCount:         uint32(len(miniBlock.TxHashes)),
+		Type:            block.RewardsBlock,
+	}
 }
 
 func getBaseRewardsArguments() BaseRewardsCreatorArgs {
