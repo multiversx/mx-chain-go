@@ -785,6 +785,77 @@ func TestAccountsDB_LoadAccountNotFoundShouldCreateEmpty(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestAccountsDB_LoadAccountReservedEntryShouldReturnDedicatedError(t *testing.T) {
+	t.Parallel()
+
+	code := []byte("contract code")
+	hasher := &hashingMocks.HasherMock{}
+	address := hasher.Compute(string(code))
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	codeEntryBytes, err := marshaller.Marshal(&state.CodeEntry{
+		Code:          code,
+		NumReferences: 1,
+	})
+	require.NoError(t, err)
+
+	numTrieReads := 0
+	trieStub := &trieMock.TrieStub{
+		GetCalled: func(key []byte) ([]byte, uint32, error) {
+			numTrieReads++
+			require.Equal(t, address, key)
+			return codeEntryBytes, 0, nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+	args := createMockAccountsDBArgs()
+	args.Trie = trieStub
+	args.Hasher = hasher
+	args.Marshaller = marshaller
+	adb, err := state.NewAccountsDB(args)
+	require.NoError(t, err)
+
+	account, err := adb.LoadAccount(address)
+	require.Nil(t, account)
+	require.ErrorIs(t, err, state.ErrAccountAddressIsReserved)
+
+	account, err = adb.GetExistingAccount(address)
+	require.Nil(t, account)
+	require.ErrorIs(t, err, state.ErrAccountAddressIsReserved)
+	require.Equal(t, 2, numTrieReads)
+}
+
+func TestAccountsDB_LoadAccountUnrelatedEntryShouldPreserveUnmarshalError(t *testing.T) {
+	t.Parallel()
+
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	codeEntryBytes, err := marshaller.Marshal(&state.CodeEntry{
+		Code:          []byte("contract code"),
+		NumReferences: 1,
+	})
+	require.NoError(t, err)
+
+	trieStub := &trieMock.TrieStub{
+		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+			return codeEntryBytes, 0, nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+	args := createMockAccountsDBArgs()
+	args.Trie = trieStub
+	args.Marshaller = marshaller
+	adb, err := state.NewAccountsDB(args)
+	require.NoError(t, err)
+
+	account, err := adb.LoadAccount([]byte("different hash"))
+	require.Nil(t, account)
+	require.Error(t, err)
+	require.NotErrorIs(t, err, state.ErrAccountAddressIsReserved)
+}
+
 func TestAccountsDB_LoadAccountExistingShouldLoadDataTrie(t *testing.T) {
 	t.Parallel()
 

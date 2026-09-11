@@ -2,6 +2,7 @@ package interceptedBlocks_test
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -301,6 +302,64 @@ func TestInterceptedMetaHeader_CheckValidityShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func createIncomingMiniBlockHeaderAtMetachain(
+	processingType dataBlock.ProcessingType,
+	constructionState dataBlock.MiniBlockState,
+	lastIndex int32,
+) *dataBlock.MiniBlockHeader {
+	mbh := &dataBlock.MiniBlockHeader{
+		Hash:            []byte("incoming-mb-hash"),
+		SenderShardID:   0,
+		ReceiverShardID: core.MetachainShardId,
+		TxCount:         3,
+		Type:            dataBlock.TxBlock,
+	}
+	_ = mbh.SetProcessingType(int32(processingType))
+	_ = mbh.SetConstructionState(int32(constructionState))
+	_ = mbh.SetIndexOfFirstTxProcessed(0)
+	_ = mbh.SetIndexOfLastTxProcessed(lastIndex)
+
+	return mbh
+}
+
+func TestInterceptedMetaHeader_CheckIncomingLegacyMiniBlockExecution(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name              string
+		processingType    dataBlock.ProcessingType
+		constructionState dataBlock.MiniBlockState
+		lastIndex         int32
+		expectedErr       error
+	}{
+		{"normal final full execution allowed", dataBlock.Normal, dataBlock.Final, 2, nil},
+		{"normal partial execution rejected", dataBlock.Normal, dataBlock.PartialExecuted, 0, process.ErrInvalidConstructionState},
+		{"scheduled final execution rejected", dataBlock.Scheduled, dataBlock.Final, 2, process.ErrInvalidMiniBlockProcessingType},
+		{"scheduled partial execution rejected", dataBlock.Scheduled, dataBlock.PartialExecuted, 0, process.ErrInvalidMiniBlockProcessingType},
+	}
+
+	for _, test := range tests {
+		test := test
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			hdr := createMockMetaHeader()
+			mbh := createIncomingMiniBlockHeaderAtMetachain(test.processingType, test.constructionState, test.lastIndex)
+			hdr.MiniBlockHeaders = []dataBlock.MiniBlockHeader{*mbh}
+			arg := createMetaArgumentWithShardCoordinatorAndHeader(mock.NewOneShardCoordinatorMock(), hdr)
+			inHdr, err := interceptedBlocks.NewInterceptedMetaHeader(arg)
+			require.NoError(t, err)
+
+			err = inHdr.CheckValidity()
+			if test.expectedErr == nil {
+				assert.NoError(t, err)
+				return
+			}
+			assert.ErrorIs(t, err, test.expectedErr)
+		})
+	}
+}
+
 func TestInterceptedMetaHeader_CheckAgainstRoundHandlerAttesterFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -348,6 +407,45 @@ func TestInterceptedMetaHeader_Getters(t *testing.T) {
 	assert.Equal(t, hash, inHdr.Hash())
 	assert.True(t, inHdr.IsForCurrentShard())
 	require.False(t, inHdr.ShouldAllowDuplicates())
+}
+
+func TestInterceptedMetaHeader_IdentifiersShouldIncludeEpochIdentifierOnlyForEpochStart(t *testing.T) {
+	t.Parallel()
+
+	metaV1EpochStart := createMockMetaHeader()
+	metaV1EpochStart.EpochStart.LastFinalizedHeaders = []dataBlock.EpochStartShardData{{}}
+	metaV3EpochStart := createMockMetaHeaderV3()
+	metaV3EpochStart.EpochStart.LastFinalizedHeaders = []dataBlock.EpochStartShardData{{}}
+	tests := []struct {
+		name                   string
+		header                 data.MetaHeaderHandler
+		includeEpochIdentifier bool
+	}{
+		{name: "regular V1", header: createMockMetaHeader()},
+		{name: "epoch start V1", header: metaV1EpochStart, includeEpochIdentifier: true},
+		{name: "regular V3", header: createMockMetaHeaderV3()},
+		{name: "epoch start V3", header: metaV3EpochStart, includeEpochIdentifier: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			arg := createMetaArgumentWithShardCoordinatorAndHeader(mock.NewOneShardCoordinatorMock(), test.header)
+			inHdr, err := interceptedBlocks.NewInterceptedMetaHeader(arg)
+			require.NoError(t, err)
+			require.Equal(t, test.includeEpochIdentifier, inHdr.HeaderHandler().IsStartOfEpochBlock())
+
+			expectedIdentifiers := [][]byte{
+				inHdr.Hash(),
+				[]byte(fmt.Sprintf("%d-%d", core.MetachainShardId, test.header.GetNonce())),
+			}
+			if test.includeEpochIdentifier {
+				expectedIdentifiers = append(expectedIdentifiers,
+					[]byte(core.EpochStartIdentifier(test.header.GetEpoch())))
+			}
+
+			require.Equal(t, expectedIdentifiers, inHdr.Identifiers())
+		})
+	}
 }
 
 func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *testing.T) {

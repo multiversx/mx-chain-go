@@ -122,6 +122,9 @@ var ErrMissingTransaction = errors.New("missing transaction")
 // ErrMarshalWithoutSuccess signals that marshal some data was not done with success
 var ErrMarshalWithoutSuccess = errors.New("marshal without success")
 
+// ErrNonCanonicalTransactionEncoding signals that a transaction does not use its canonical protobuf encoding
+var ErrNonCanonicalTransactionEncoding = errors.New("non-canonical transaction encoding")
+
 // ErrUnmarshalWithoutSuccess signals that unmarshal some data was not done with success
 var ErrUnmarshalWithoutSuccess = errors.New("unmarshal without success")
 
@@ -1583,3 +1586,6 @@ var ErrNilClosingNodeStartedFlag = errors.New("closing node started flag is nil"
 
 // ErrOutgoingTxsDisabled signals that the outgoing transactions are disabled
 var ErrOutgoingTxsDisabled = errors.New("outgoing transactions are disabled")
+
+// ErrAccountAddressMismatch signals that the output account address is wrong
+var ErrAccountAddressMismatch = errors.New("account address mismatch")

@@ -17,12 +17,22 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 )
 
 var timeoutSendRequests = time.Second * 2
 var errExpected = errors.New("expected error")
+
+func createHashes(numHashes int) [][]byte {
+	hashes := make([][]byte, numHashes)
+	for index := range hashes {
+		hashes[index] = []byte(fmt.Sprintf("hash-%d", index))
+	}
+
+	return hashes
+}
 
 func createRequestersFinderStubThatShouldNotBeCalled(tb testing.TB) *dataRetrieverMocks.RequestersFinderStub {
 	return &dataRetrieverMocks.RequestersFinderStub{
@@ -1792,6 +1802,51 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 	})
 }
 
+func TestResolverRequestHandler_RequestPeerAuthenticationsByHashesShouldBatch(t *testing.T) {
+	t.Parallel()
+
+	providedHashes := createHashes(common.MaxHashesInRequest + 1)
+	requestEpoch := uint32(7)
+	requestedBatches := make([][][]byte, 0)
+	peerAuthRequester := &dataRetrieverMocks.HashSliceRequesterStub{
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+			require.Equal(t, requestEpoch, epoch)
+			requestedBatches = append(requestedBatches, hashes)
+			return nil
+		},
+	}
+
+	var whitelistedIdentifiers [][]byte
+	rrh, _ := NewResolverRequestHandler(
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+				require.Equal(t, common.PeerAuthenticationTopic, baseTopic)
+				return peerAuthRequester, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{
+			AddCalled: func(keys [][]byte) {
+				whitelistedIdentifiers = keys
+			},
+		},
+		1,
+		0,
+		time.Second,
+		time.Millisecond,
+	)
+
+	rrh.RequestPeerAuthenticationsByHashesForEpoch(3, providedHashes, requestEpoch)
+
+	require.Len(t, requestedBatches, 2)
+	require.Equal(t, providedHashes[:common.MaxHashesInRequest], requestedBatches[0])
+	require.Equal(t, providedHashes[common.MaxHashesInRequest:], requestedBatches[1])
+	require.Len(t, whitelistedIdentifiers, len(providedHashes))
+	for index, hash := range providedHashes {
+		require.Equal(t, common.PeerAuthenticationPublicKeyIdentifier(hash), whitelistedIdentifiers[index])
+	}
+}
+
 func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 	t.Parallel()
 
@@ -1911,6 +1966,66 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 		rrh.RequestValidatorInfo(providedHash)
 		assert.True(t, wasCalled)
 	})
+}
+
+func TestResolverRequestHandler_RequestValidatorsInfoShouldBatchAndTrackSuccessfulRequests(t *testing.T) {
+	t.Parallel()
+
+	providedHashes := createHashes(2*common.MaxHashesInRequest + 1)
+	requestEpoch := uint32(8)
+	requestedBatches := make([][][]byte, 0)
+	validatorInfoRequester := &dataRetrieverMocks.HashSliceRequesterStub{
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+			require.Equal(t, requestEpoch, epoch)
+			requestedBatches = append(requestedBatches, hashes)
+			if len(requestedBatches) == 2 {
+				return errExpected
+			}
+
+			return nil
+		},
+	}
+
+	trackedHashes := make(map[string]struct{})
+	var whitelistedHashes [][]byte
+	rrh, _ := NewResolverRequestHandler(
+		&dataRetrieverMocks.RequestersFinderStub{
+			MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+				require.Equal(t, common.ValidatorInfoTopic, baseTopic)
+				return validatorInfoRequester, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{
+			AddCalled: func(key string) error {
+				trackedHashes[key] = struct{}{}
+				return nil
+			},
+		},
+		&mock.WhiteListHandlerStub{
+			AddCalled: func(keys [][]byte) {
+				whitelistedHashes = keys
+			},
+		},
+		1,
+		0,
+		time.Second,
+		time.Millisecond,
+	)
+
+	rrh.RequestValidatorsInfoForEpoch(providedHashes, requestEpoch)
+
+	require.Len(t, requestedBatches, 3)
+	require.Equal(t, providedHashes[:common.MaxHashesInRequest], requestedBatches[0])
+	require.Equal(t, providedHashes[common.MaxHashesInRequest:2*common.MaxHashesInRequest], requestedBatches[1])
+	require.Equal(t, providedHashes[2*common.MaxHashesInRequest:], requestedBatches[2])
+	require.Equal(t, providedHashes, whitelistedHashes)
+	require.Len(t, trackedHashes, common.MaxHashesInRequest+1)
+	_, firstBatchTracked := trackedHashes[string(providedHashes[0])+uniqueValidatorInfoSuffix]
+	require.True(t, firstBatchTracked)
+	_, failedBatchTracked := trackedHashes[string(providedHashes[common.MaxHashesInRequest])+uniqueValidatorInfoSuffix]
+	require.False(t, failedBatchTracked)
+	_, finalBatchTracked := trackedHashes[string(providedHashes[2*common.MaxHashesInRequest])+uniqueValidatorInfoSuffix]
+	require.True(t, finalBatchTracked)
 }
 
 func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
@@ -2197,6 +2312,57 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 		require.Len(t, receivedHashes, 1)
 		assert.Equal(t, duplicateHash, receivedHashes[0])
 	})
+}
+
+func TestResolverRequestHandler_RequestMiniblocksShouldBatch(t *testing.T) {
+	t.Parallel()
+
+	providedHashes := createHashes(common.MaxHashesInRequest + 1)
+	requestEpoch := uint32(9)
+	destinationShard := uint32(2)
+	requestedBatches := make([][][]byte, 0)
+	miniBlocksRequester := &dataRetrieverMocks.HashSliceRequesterStub{
+		RequestDataFromHashArrayCalled: func(hashes [][]byte, epoch uint32) error {
+			require.Equal(t, requestEpoch, epoch)
+			requestedBatches = append(requestedBatches, hashes)
+			return nil
+		},
+	}
+
+	trackedHashes := make(map[string]struct{})
+	var whitelistedHashes [][]byte
+	rrh, _ := NewResolverRequestHandler(
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+				require.Equal(t, factory.MiniBlocksTopic, baseTopic)
+				require.Equal(t, destinationShard, crossShard)
+				return miniBlocksRequester, nil
+			},
+		},
+		&mock.RequestedItemsHandlerStub{
+			AddCalled: func(key string) error {
+				trackedHashes[key] = struct{}{}
+				return nil
+			},
+		},
+		&mock.WhiteListHandlerStub{
+			AddCalled: func(keys [][]byte) {
+				whitelistedHashes = keys
+			},
+		},
+		1,
+		0,
+		time.Second,
+		time.Millisecond,
+	)
+
+	rrh.RequestMiniBlocksForEpoch(destinationShard, providedHashes, requestEpoch)
+
+	require.Len(t, requestedBatches, 2)
+	require.Equal(t, providedHashes[:common.MaxHashesInRequest], requestedBatches[0])
+	require.Equal(t, providedHashes[common.MaxHashesInRequest:], requestedBatches[1])
+	require.Equal(t, providedHashes, whitelistedHashes)
+	require.Len(t, trackedHashes, len(providedHashes))
 }
 
 func TestResolverRequestHandler_RequestInterval(t *testing.T) {

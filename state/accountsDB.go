@@ -744,10 +744,25 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 
 	err = adb.marshaller.Unmarshal(acnt, val)
 	if err != nil {
+		if adb.isReservedAccountAddress(address, val) {
+			return nil, ErrAccountAddressIsReserved
+		}
+
 		return nil, err
 	}
 
 	return acnt, nil
+}
+
+func (adb *AccountsDB) isReservedAccountAddress(address []byte, value []byte) bool {
+	var codeEntry CodeEntry
+	err := adb.marshaller.Unmarshal(&codeEntry, value)
+	if err != nil || len(codeEntry.Code) == 0 {
+		return false
+	}
+
+	computedHash := adb.hasher.Compute(string(codeEntry.Code))
+	return bytes.Equal(computedHash, address)
 }
 
 // GetExistingAccount returns an existing account if exists or nil if missing

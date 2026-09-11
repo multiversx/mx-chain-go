@@ -3,6 +3,7 @@ package processorV2
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -2812,6 +2813,19 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	dstAcc, err := sc.getAccountFromAddress(scr.RcvAddr)
 	if err != nil {
+		if errors.Is(err, state.ErrAccountAddressIsReserved) {
+			selfShardID := sc.shardCoordinator.SelfId()
+			isCrossShardDestination := selfShardID == sc.shardCoordinator.ComputeId(scr.RcvAddr) &&
+				selfShardID != sc.shardCoordinator.ComputeId(scr.SndAddr)
+			if isCrossShardDestination {
+				snapshot := sc.accounts.JournalLen()
+				gasLocked := sc.getGasLockedFromSCR(scr)
+				defer sc.accounts.SetTxHashForLatestStateAccesses(txHash)
+
+				return returnCode, sc.ProcessIfError(nil, txHash, scr, err.Error(), scr.ReturnMessage, snapshot, gasLocked)
+			}
+		}
+
 		return returnCode, err
 	}
 	sndAcc, err := sc.getAccountFromAddress(scr.SndAddr)

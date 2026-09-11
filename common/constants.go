@@ -70,8 +70,11 @@ const MaxTxNonceDeltaAllowed = 100
 // TODO convert this const into a var and read it from config when this code moves to another binary
 const MaxBulkTransactionSize = 1 << 18 // 256KB bulks
 
+// MaxHashesInRequest specifies the maximum number of hashes sent or processed in one request batch
+const MaxHashesInRequest = 1000
+
 // MaxTxsToRequest specifies the maximum number of txs to request
-const MaxTxsToRequest = 1000
+const MaxTxsToRequest = MaxHashesInRequest
 
 // NodesSetupJsonFileName specifies the name of the json file which contains the setup of the nodes
 const NodesSetupJsonFileName = "nodesSetup.json"

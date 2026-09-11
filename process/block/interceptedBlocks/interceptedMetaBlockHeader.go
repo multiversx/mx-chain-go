@@ -153,6 +153,14 @@ func (imh *InterceptedMetaHeader) integrity() error {
 	if err != nil {
 		return err
 	}
+	if !imh.hdr.IsHeaderV3() {
+		for _, mbh := range imh.hdr.GetMiniBlockHeaderHandlers() {
+			err = process.CheckIncomingMiniBlockHeaderAtMetachain(mbh)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	if imh.hdr.IsHeaderV3() {
 		err = checkMetaShardDataProposal(imh.hdr.GetShardInfoProposalHandlers(), imh.shardCoordinator)
@@ -196,8 +204,11 @@ func (imh *InterceptedMetaHeader) String() string {
 // Identifiers returns the identifiers used in requests
 func (imh *InterceptedMetaHeader) Identifiers() [][]byte {
 	keyNonce := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, imh.hdr.GetNonce()))
-	keyEpoch := []byte(core.EpochStartIdentifier(imh.hdr.GetEpoch()))
+	if !imh.hdr.IsStartOfEpochBlock() {
+		return [][]byte{imh.hash, keyNonce}
+	}
 
+	keyEpoch := []byte(core.EpochStartIdentifier(imh.hdr.GetEpoch()))
 	return [][]byte{imh.hash, keyNonce, keyEpoch}
 }
 

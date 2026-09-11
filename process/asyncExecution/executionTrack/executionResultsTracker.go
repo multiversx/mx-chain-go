@@ -395,6 +395,23 @@ func (ert *executionResultsTracker) Clean(lastNotarizedResult data.BaseExecution
 	ert.deliverDismissedNotifications(notifications)
 }
 
+// Rewind cleans the pending state and removes committed hashes above the chain tip.
+func (ert *executionResultsTracker) Rewind(lastNotarizedResult data.BaseExecutionResultHandler, chainTipNonce uint64) {
+	ert.mutex.Lock()
+	if !check.IfNil(lastNotarizedResult) {
+		ert.cleanUnprotected(lastNotarizedResult)
+		for nonce := range ert.consensusCommittedHashes {
+			if nonce > chainTipNonce {
+				delete(ert.consensusCommittedHashes, nonce)
+			}
+		}
+	}
+	notifications := ert.takeDismissedNotificationsUnprotected()
+	ert.mutex.Unlock()
+
+	ert.deliverDismissedNotifications(notifications)
+}
+
 func (ert *executionResultsTracker) cleanUnprotected(lastNotarizedResult data.BaseExecutionResultHandler) {
 	if check.IfNil(lastNotarizedResult) {
 		return
