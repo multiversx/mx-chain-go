@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
@@ -199,6 +200,20 @@ func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
+}
+
+func TestHeaderResolver_ProcessReceivedMessageOversizedHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	hdrRes, _ := resolvers.NewHeaderResolver(createMockArgHeaderResolver())
+	msgID, err := hdrRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashType, make([]byte, common.HashSize+1)),
+		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
+	)
+
+	require.ErrorIs(t, err, dataRetriever.ErrBadRequest)
+	require.Nil(t, msgID)
 }
 
 func TestHeaderResolver_ProcessReceivedMessage_WrongIdentifierStartBlock(t *testing.T) {
