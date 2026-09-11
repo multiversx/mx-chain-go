@@ -1586,3 +1586,6 @@ var ErrNilClosingNodeStartedFlag = errors.New("closing node started flag is nil"
 
 // ErrOutgoingTxsDisabled signals that the outgoing transactions are disabled
 var ErrOutgoingTxsDisabled = errors.New("outgoing transactions are disabled")
+
+// ErrAccountAddressMismatch signals that the output account address is wrong
+var ErrAccountAddressMismatch = errors.New("account address mismatch")
