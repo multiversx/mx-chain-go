@@ -455,6 +455,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricFixGetBalanceEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricTailInflationEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricSupernovaEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricFixEpochChangeProposedCurrentEpochEnableEpoch, uint64(4))
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -596,6 +597,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricFixGetBalanceEnableEpoch:                                 uint64(4),
 		common.MetricTailInflationEnableEpoch:                                 uint64(4),
 		common.MetricSupernovaEnableEpoch:                                     uint64(4),
+		common.MetricFixEpochChangeProposedCurrentEpochEnableEpoch:            uint64(4),
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{
 				common.MetricEpochEnable:            uint64(0),
