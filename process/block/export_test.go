@@ -1379,6 +1379,15 @@ func (mp *metaProcessor) ProcessEconomicsDataForEpochStartProposeBlock(metaHeade
 	return mp.processEconomicsDataForEpochStartProposeBlock(metaHeader)
 }
 
+// CreateRewardsMiniBlocks -
+func (mp *metaProcessor) CreateRewardsMiniBlocks(
+	metaHeader data.MetaHeaderHandler,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
+	computedEconomics *block.Economics,
+) (block.MiniBlockSlice, error) {
+	return mp.createRewardsMiniBlocks(metaHeader, validatorsInfo, computedEconomics)
+}
+
 // CreateExecutionResult -
 func (mp *metaProcessor) CreateExecutionResult(
 	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler,
