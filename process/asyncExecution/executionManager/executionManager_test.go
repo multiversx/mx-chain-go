@@ -1708,6 +1708,15 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 				RootHash:    []byte("root7"),
 			},
 		},
+		ExecutionResults: []*block.ExecutionResult{
+			{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 7,
+					HeaderHash:  []byte("hash7"),
+					RootHash:    []byte("root7"),
+				},
+			},
+		},
 	}
 
 	t.Run("nil header should error", func(t *testing.T) {
@@ -1798,6 +1807,7 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 		require.True(t, resumeCalled)
 		require.True(t, cacheCleaned)
 		require.NotNil(t, rewoundWith)
+		require.Same(t, newTip.ExecutionResults[0], rewoundWith)
 		require.Equal(t, uint64(7), rewoundWith.GetHeaderNonce())
 		require.Equal(t, []byte("hash7"), rewoundWith.GetHeaderHash())
 		require.Equal(t, newTip.GetNonce(), rewoundTipNonce)
@@ -1806,6 +1816,247 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 		require.Equal(t, uint64(7), nonce)
 		require.Equal(t, []byte("hash7"), hash)
 		require.Equal(t, []byte("root7"), rootHash)
+	})
+
+	t.Run("metachain rewind keeps the full execution result", func(t *testing.T) {
+		t.Parallel()
+
+		fullResult := &block.MetaExecutionResult{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("metaHash113003"),
+					HeaderNonce: 113003,
+					HeaderRound: 113202,
+					HeaderEpoch: 115,
+					RootHash:    []byte("metaRoot113003"),
+				},
+				ValidatorStatsRootHash: []byte("validatorStatsRoot"),
+			},
+			ReceiptsHash:    []byte("receiptsHash"),
+			ExecutedTxCount: 42,
+		}
+		tip := &block.MetaBlockV3{
+			Nonce: 113004,
+			Round: 113204,
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				NotarizedInRound: 113204,
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("metaHash113003"),
+						HeaderNonce: 113003,
+						HeaderRound: 113202,
+						HeaderEpoch: 115,
+						RootHash:    []byte("metaRoot113003"),
+					},
+					ValidatorStatsRootHash: []byte("validatorStatsRoot"),
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{fullResult},
+		}
+
+		args := createMockArgs()
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, []byte("metaHash113003"), hash)
+				return &block.MetaBlockV3{Nonce: 113003}, nil
+			},
+		}
+		chainMock := &testscommon.ChainHandlerMock{}
+		args.BlockChain = chainMock
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.NoError(t, err)
+		require.NoError(t, em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{}))
+
+		err = em.RewindExecutionStateToTip(tip, []byte("metaHash113004"))
+		require.NoError(t, err)
+		require.Same(t, fullResult, chainMock.GetLastExecutionResult())
+		_, ok := chainMock.GetLastExecutionResult().(data.MetaExecutionResultHandler)
+		require.True(t, ok)
+	})
+
+	t.Run("finds a full execution result carried by an earlier header", func(t *testing.T) {
+		t.Parallel()
+
+		fullResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash7"),
+				HeaderNonce: 7,
+				HeaderRound: 17,
+				RootHash:    []byte("root7"),
+			},
+			ReceiptsHash: []byte("receipts7"),
+		}
+		carrier := &block.HeaderV3{
+			Nonce:            9,
+			Round:            20,
+			PrevHash:         []byte("hash8"),
+			ExecutionResults: []*block.ExecutionResult{fullResult},
+		}
+		header10 := &block.HeaderV3{Nonce: 10, PrevHash: []byte("hash9")}
+		tip := &block.HeaderV3{
+			Nonce:    11,
+			PrevHash: []byte("hash10"),
+			LastExecutionResult: &block.ExecutionResultInfo{
+				NotarizedInRound: 20,
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash7"),
+					HeaderNonce: 7,
+					HeaderRound: 17,
+					RootHash:    []byte("root7"),
+				},
+			},
+		}
+
+		args := createMockArgs()
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				switch string(hash) {
+				case "hash7":
+					return &block.HeaderV3{Nonce: 7}, nil
+				case "hash10":
+					return header10, nil
+				case "hash9":
+					return carrier, nil
+				default:
+					return nil, errExpected
+				}
+			},
+		}
+		chainMock := &testscommon.ChainHandlerMock{}
+		args.BlockChain = chainMock
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.NoError(t, err)
+		require.NoError(t, em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{}))
+
+		err = em.RewindExecutionStateToTip(tip, []byte("hash11"))
+		require.NoError(t, err)
+		require.Same(t, fullResult, chainMock.GetLastExecutionResult())
+	})
+
+	t.Run("V3 tip referencing a legacy header keeps the compact transition anchor", func(t *testing.T) {
+		t.Parallel()
+
+		tip := &block.HeaderV3{
+			Nonce: 8,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("legacyHash7"),
+					HeaderNonce: 7,
+					RootHash:    []byte("legacyRoot7"),
+				},
+			},
+		}
+		legacyHeader := &block.HeaderV2{Header: &block.Header{Nonce: 7}}
+
+		args := createMockArgs()
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, []byte("legacyHash7"), hash)
+				return legacyHeader, nil
+			},
+		}
+		chainMock := &testscommon.ChainHandlerMock{}
+		args.BlockChain = chainMock
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.NoError(t, err)
+		require.NoError(t, em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{}))
+
+		err = em.RewindExecutionStateToTip(tip, []byte("hash8"))
+		require.NoError(t, err)
+		require.Same(t, legacyHeader, chainMock.GetLastExecutedBlockHeader())
+		require.IsType(t, &block.BaseExecutionResult{}, chainMock.GetLastExecutionResult())
+	})
+
+	t.Run("mismatching full V3 result fails without mutating state", func(t *testing.T) {
+		t.Parallel()
+
+		tip := &block.HeaderV3{
+			Nonce: 8,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				NotarizedInRound: 18,
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash7"),
+					HeaderNonce: 7,
+					RootHash:    []byte("expectedRoot7"),
+				},
+			},
+			Round: 18,
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hash7"),
+						HeaderNonce: 7,
+						RootHash:    []byte("differentRoot7"),
+					},
+				},
+			},
+		}
+		rewindCalled := false
+		args := createMockArgs()
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			RewindCalled: func(data.BaseExecutionResultHandler, uint64) {
+				rewindCalled = true
+			},
+		}
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, []byte("hash7"), hash)
+				return &block.HeaderV3{Nonce: 7}, nil
+			},
+		}
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.NoError(t, err)
+		require.NoError(t, em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{}))
+
+		err = em.RewindExecutionStateToTip(tip, []byte("hash8"))
+		require.ErrorIs(t, err, process.ErrInvalidLastExecutionResult)
+		require.False(t, rewindCalled)
+	})
+
+	t.Run("missing full V3 result fails without mutating state", func(t *testing.T) {
+		t.Parallel()
+
+		tip := &block.HeaderV3{
+			Nonce: 8,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash7"),
+					HeaderNonce: 7,
+				},
+			},
+		}
+		rewindCalled := false
+		cacheCleaned := false
+		args := createMockArgs()
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			RewindCalled: func(data.BaseExecutionResultHandler, uint64) {
+				rewindCalled = true
+			},
+		}
+		args.BlocksCache = &processMocks.BlocksCacheMock{
+			CleanCalled: func() {
+				cacheCleaned = true
+			},
+		}
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, []byte("hash7"), hash)
+				return &block.HeaderV3{Nonce: 7}, nil
+			},
+		}
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.NoError(t, err)
+		require.NoError(t, em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{}))
+
+		err = em.RewindExecutionStateToTip(tip, []byte("hash8"))
+		require.ErrorIs(t, err, process.ErrExecutionResultNotFound)
+		require.False(t, rewindCalled)
+		require.False(t, cacheCleaned)
 	})
 
 	t.Run("legacy tip should synthesize the execution anchor", func(t *testing.T) {
@@ -1963,6 +2214,15 @@ func TestExecutionManager_RewindExecutionStateToTip(t *testing.T) {
 					HeaderHash:  []byte("hash9"),
 					HeaderNonce: 9,
 					RootHash:    []byte("root9"),
+				},
+			},
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hash9"),
+						HeaderNonce: 9,
+						RootHash:    []byte("root9"),
+					},
 				},
 			},
 		}
