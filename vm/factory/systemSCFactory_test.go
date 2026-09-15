@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -16,10 +17,34 @@ import (
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/mock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type rewardsImportPayloadFormatter struct{}
+
+func (ripf *rewardsImportPayloadFormatter) Output(line logger.LogLineHandler) []byte {
+	if line.GetLoggerName() != "vm/systemsmartcontracts/rewardsimport" ||
+		line.GetMessage() != "delegation rewards import report" {
+		return nil
+	}
+
+	arguments := line.GetArgs()
+	for index := 0; index+1 < len(arguments); index += 2 {
+		if arguments[index] == "payload" {
+			return append([]byte(arguments[index+1]), '\n')
+		}
+	}
+
+	return nil
+}
+
+func (ripf *rewardsImportPayloadFormatter) IsInterfaceNil() bool {
+	return ripf == nil
+}
 
 func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 	gasMap := wasmConfig.MakeGasMapForTests()
@@ -288,6 +313,62 @@ func TestSystemSCFactory_Create(t *testing.T) {
 	assert.Nil(t, err)
 	require.NotNil(t, container)
 	assert.Equal(t, 6, container.Len())
+}
+
+func TestSystemSCFactory_CreatePropagatesImportDBMode(t *testing.T) {
+	originalLogPattern := logger.GetLogLevelPattern()
+	require.NoError(t, logger.SetLogLevel("*:INFO"))
+	buffer := &bytes.Buffer{}
+	require.NoError(t, logger.AddLogObserver(buffer, &rewardsImportPayloadFormatter{}))
+	t.Cleanup(func() {
+		require.NoError(t, logger.RemoveLogObserver(buffer))
+		require.NoError(t, logger.SetLogLevel(originalLogPattern))
+	})
+
+	for _, importDBMode := range []bool{false, true} {
+		buffer.Reset()
+		arguments := createMockNewSystemScFactoryArgs()
+		arguments.IsImportDBMode = importDBMode
+		arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+			common.DelegationSmartContractFlag,
+			common.DelegationManagerFlag,
+		)
+		scFactory, err := NewSystemSCFactory(arguments)
+		require.NoError(t, err)
+		container, err := scFactory.Create()
+		require.NoError(t, err)
+
+		delegationContract, err := container.Get(vm.FirstDelegationSCAddress)
+		require.NoError(t, err)
+		returnCode := delegationContract.Execute(&vmcommon.ContractCallInput{
+			VMInput: vmcommon.VMInput{
+				CallerAddr: []byte("caller"),
+				CallValue:  big.NewInt(0),
+			},
+			RecipientAddr: []byte("delegation contract"),
+			Function:      "claimRewards",
+		})
+		require.Equal(t, vmcommon.UserError, returnCode)
+
+		delegationManager, err := container.Get(vm.DelegationManagerSCAddress)
+		require.NoError(t, err)
+		returnCode = delegationManager.Execute(&vmcommon.ContractCallInput{
+			VMInput: vmcommon.VMInput{
+				CallerAddr: []byte("caller"),
+				CallValue:  big.NewInt(0),
+			},
+			RecipientAddr: vm.DelegationManagerSCAddress,
+			Function:      "createNewDelegationContract",
+		})
+		require.Equal(t, vmcommon.FunctionWrongSignature, returnCode)
+
+		if importDBMode {
+			require.Contains(t, buffer.String(), `"event":"operation"`)
+			require.Contains(t, buffer.String(), `"event":"manager_operation"`)
+		} else {
+			require.Empty(t, buffer.String())
+		}
+	}
 }
 
 func TestSystemSCFactory_CreateForGenesis(t *testing.T) {
