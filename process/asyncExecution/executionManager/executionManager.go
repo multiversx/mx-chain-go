@@ -2,6 +2,7 @@ package executionManager
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -333,7 +334,7 @@ func (em *executionManager) RemovePendingExecutionResultsFromNonce(nonce uint64)
 
 // RewindExecutionStateToTip realigns the tracker's notarized watermark and the blockchain last-executed
 // marker to the rolled-back tip; unlike RemoveAtNonceAndHigher it can lower the watermark
-func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler) error {
+func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler, newTipHash []byte) error {
 	if check.IfNil(newTip) {
 		return process.ErrNilHeaderHandler
 	}
@@ -345,20 +346,8 @@ func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler)
 		return process.ErrProcessClosed
 	}
 
-	newLastNotarized, err := common.GetLastBaseExecutionResultHandler(newTip)
+	newLastNotarized, lastExecutedHeader, err := em.getRewindExecutionAnchor(newTip, newTipHash)
 	if err != nil {
-		return err
-	}
-
-	// resolved before any mutation: the tracker reset below cannot be undone, so a rewind that
-	// fails has to leave the state untouched for the caller to retry
-	lastExecutedHeader, err := process.GetHeader(newLastNotarized.GetHeaderHash(), em.headers, em.storageService, em.marshaller, em.shardCoordinator.SelfId())
-	if err != nil {
-		log.Debug("executionManager.RewindExecutionStateToTip: could not find header in pool or storage",
-			"hash", newLastNotarized.GetHeaderHash(),
-			"nonce", newLastNotarized.GetHeaderNonce(),
-			"error", err,
-		)
 		return err
 	}
 
@@ -373,10 +362,151 @@ func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler)
 	defer em.headersExecutor.ResumeExecution()
 
 	// the tracker reset empties the pending results, so the tip's own result is the last executed one
-	em.resetTrackerToLastNotarized(newLastNotarized)
+	em.executionResultsTracker.Rewind(newLastNotarized, newTip.GetNonce())
+	em.blocksCache.Clean()
 	em.blockChain.SetLastExecutionInfo(lastExecutedHeader, newLastNotarized)
 
 	return nil
+}
+
+func (em *executionManager) getRewindExecutionAnchor(
+	newTip data.HeaderHandler,
+	newTipHash []byte,
+) (data.BaseExecutionResultHandler, data.HeaderHandler, error) {
+	if !newTip.IsHeaderV3() {
+		newLastNotarized, err := common.GetOrCreateLastExecutionResultForPrevHeader(newTip, newTipHash)
+		return newLastNotarized, newTip, err
+	}
+
+	lastExecutionResultInfo := newTip.GetLastExecutionResultHandler()
+	newLastNotarized, err := common.ExtractBaseExecutionResultHandler(lastExecutionResultInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// resolved before any mutation: the tracker reset below cannot be undone, so a rewind that
+	// fails has to leave the state untouched for the caller to retry
+	shardID := newTip.GetShardID()
+	lastExecutedHeader, err := process.GetHeader(newLastNotarized.GetHeaderHash(), em.headers, em.storageService, em.marshaller, shardID)
+	if err != nil {
+		log.Debug("executionManager.RewindExecutionStateToTip: could not find header in pool or storage",
+			"hash", newLastNotarized.GetHeaderHash(),
+			"nonce", newLastNotarized.GetHeaderNonce(),
+			"error", err,
+		)
+		return nil, nil, err
+	}
+
+	if check.IfNil(lastExecutedHeader) {
+		return nil, nil, process.ErrNilHeaderHandler
+	}
+	if lastExecutedHeader.GetShardID() != shardID || lastExecutedHeader.GetNonce() != newLastNotarized.GetHeaderNonce() {
+		return nil, nil, fmt.Errorf(
+			"%w: execution anchor header does not match the last execution result info",
+			process.ErrInvalidLastExecutionResult,
+		)
+	}
+
+	// At the header V3 activation boundary there is no full asynchronous execution result
+	// for the legacy header. Processing the first V3 header explicitly supports this case.
+	if !lastExecutedHeader.IsHeaderV3() {
+		return newLastNotarized, lastExecutedHeader, nil
+	}
+
+	fullExecutionResult, err := em.findFullExecutionResult(newTip, lastExecutionResultInfo, newLastNotarized.GetHeaderNonce())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return fullExecutionResult, lastExecutedHeader, nil
+}
+
+func (em *executionManager) findFullExecutionResult(
+	startHeader data.HeaderHandler,
+	expectedInfo data.LastExecutionResultHandler,
+	expectedNonce uint64,
+) (data.BaseExecutionResultHandler, error) {
+	if expectedNonce >= startHeader.GetNonce() {
+		return nil, fmt.Errorf(
+			"%w: execution result nonce %d is not before tip nonce %d",
+			process.ErrInvalidLastExecutionResult,
+			expectedNonce,
+			startHeader.GetNonce(),
+		)
+	}
+
+	shardID := startHeader.GetShardID()
+	currentHeader := startHeader
+	for currentHeader.GetNonce() > expectedNonce {
+		result, found, err := findExecutionResultMatchingInfo(currentHeader, expectedInfo, expectedNonce, shardID)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			return result, nil
+		}
+
+		prevHash := currentHeader.GetPrevHash()
+		if len(prevHash) == 0 {
+			break
+		}
+
+		previousHeader, err := process.GetHeader(prevHash, em.headers, em.storageService, em.marshaller, shardID)
+		if err != nil {
+			return nil, err
+		}
+		if check.IfNil(previousHeader) {
+			return nil, process.ErrNilHeaderHandler
+		}
+		if previousHeader.GetShardID() != shardID || previousHeader.GetNonce()+1 != currentHeader.GetNonce() {
+			return nil, fmt.Errorf(
+				"%w: invalid header lineage while resolving execution result for nonce %d",
+				process.ErrInvalidLastExecutionResult,
+				expectedNonce,
+			)
+		}
+
+		currentHeader = previousHeader
+	}
+
+	return nil, fmt.Errorf(
+		"%w: full execution result for nonce %d",
+		process.ErrExecutionResultNotFound,
+		expectedNonce,
+	)
+}
+
+func findExecutionResultMatchingInfo(
+	carrierHeader data.HeaderHandler,
+	expectedInfo data.LastExecutionResultHandler,
+	expectedNonce uint64,
+	shardID uint32,
+) (data.BaseExecutionResultHandler, bool, error) {
+	for _, executionResult := range carrierHeader.GetExecutionResultsHandlers() {
+		if check.IfNil(executionResult) || executionResult.GetHeaderNonce() != expectedNonce {
+			continue
+		}
+
+		actualInfo, err := process.CreateLastExecutionResultInfoFromExecutionResult(
+			carrierHeader.GetRound(),
+			executionResult,
+			shardID,
+		)
+		if err != nil {
+			return nil, false, err
+		}
+		if !expectedInfo.Equal(actualInfo) {
+			return nil, false, fmt.Errorf(
+				"%w: full execution result for nonce %d does not match the last execution result info",
+				process.ErrInvalidLastExecutionResult,
+				expectedNonce,
+			)
+		}
+
+		return executionResult, true, nil
+	}
+
+	return nil, false, nil
 }
 
 // PopDismissedResults returns all batches of dismissed execution results and clears the internal queue

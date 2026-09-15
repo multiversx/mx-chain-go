@@ -627,6 +627,11 @@ func (bp *baseProcessor) CreateBlockStarted() error {
 	return bp.createBlockStarted()
 }
 
+// SaveBody -
+func (bp *baseProcessor) SaveBody(body *block.Body, header data.HeaderHandler, headerHash []byte) {
+	bp.saveBody(body, header, headerHash)
+}
+
 // AddProcessedCrossMiniBlocksFromHeader -
 func (sp *shardProcessor) AddProcessedCrossMiniBlocksFromHeader(header data.HeaderHandler) error {
 	return sp.addProcessedCrossMiniBlocksFromHeader(header)
@@ -952,6 +957,16 @@ func DisplayHeader(
 // VerifyShardDataAgainstHeaders -
 func (mp *metaProcessor) VerifyShardDataAgainstHeaders(metaHdr *block.MetaBlock) error {
 	return mp.verifyShardDataAgainstHeaders(metaHdr)
+}
+
+// IndexBlock -
+func (mp *metaProcessor) IndexBlock(
+	metaBlock data.HeaderHandler,
+	headerHash []byte,
+	body data.BodyHandler,
+	lastMetaBlock data.HeaderHandler,
+) {
+	mp.indexBlock(metaBlock, headerHash, body, lastMetaBlock, nil, nil)
 }
 
 // BuildShardDataFromHeader -
@@ -1362,6 +1377,15 @@ func (mp *metaProcessor) ProcessEpochStartProposeBlock(metaHeader data.MetaHeade
 // ProcessEconomicsDataForEpochStartProposeBlock -
 func (mp *metaProcessor) ProcessEconomicsDataForEpochStartProposeBlock(metaHeader data.MetaHeaderHandler) error {
 	return mp.processEconomicsDataForEpochStartProposeBlock(metaHeader)
+}
+
+// CreateRewardsMiniBlocks -
+func (mp *metaProcessor) CreateRewardsMiniBlocks(
+	metaHeader data.MetaHeaderHandler,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
+	computedEconomics *block.Economics,
+) (block.MiniBlockSlice, error) {
+	return mp.createRewardsMiniBlocks(metaHeader, validatorsInfo, computedEconomics)
 }
 
 // CreateExecutionResult -

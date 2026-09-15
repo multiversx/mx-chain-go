@@ -3,6 +3,7 @@ package metachain
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"sort"
 	"strings"
@@ -464,17 +465,45 @@ func (brc *baseRewardsCreator) getConsensusGroupSizeForShardAndEpoch(shardID uin
 }
 
 func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock data.HeaderHandler, createdMiniBlocks block.MiniBlockSlice) error {
-	numReceivedRewardsMBs := 0
+	createdMiniBlocksByReceiverShard := make(map[uint32]*block.MiniBlock, len(createdMiniBlocks))
+	for _, createdMiniBlock := range createdMiniBlocks {
+		if createdMiniBlock == nil {
+			return epochStart.ErrNilMiniblock
+		}
+
+		_, alreadyCreated := createdMiniBlocksByReceiverShard[createdMiniBlock.ReceiverShardID]
+		if alreadyCreated {
+			return fmt.Errorf("%w, receiver shard %d",
+				epochStart.ErrDuplicatedCreatedRewardMiniBlock, createdMiniBlock.ReceiverShardID)
+		}
+
+		createdMiniBlocksByReceiverShard[createdMiniBlock.ReceiverShardID] = createdMiniBlock
+	}
+
+	matchedReceiverShards := make(map[uint32]struct{}, len(createdMiniBlocks))
 	for _, miniBlockHdr := range metaBlock.GetMiniBlockHeaderHandlers() {
 		if miniBlockHdr.GetTypeInt32() != int32(block.RewardsBlock) {
 			continue
 		}
 
-		numReceivedRewardsMBs++
-		createdMiniBlock := getMiniBlockWithReceiverShardID(miniBlockHdr.GetReceiverShardID(), createdMiniBlocks)
-		if createdMiniBlock == nil {
+		if miniBlockHdr.GetSenderShardID() != core.MetachainShardId {
+			return fmt.Errorf("%w, unexpected sender shard %d for a rewards miniblock header",
+				epochStart.ErrRewardMiniBlockHashDoesNotMatch, miniBlockHdr.GetSenderShardID())
+		}
+
+		receiverShardID := miniBlockHdr.GetReceiverShardID()
+		_, alreadyMatched := matchedReceiverShards[receiverShardID]
+		if alreadyMatched {
+			return fmt.Errorf("%w, receiver shard %d",
+				epochStart.ErrDuplicatedRewardMiniBlockHeader, receiverShardID)
+		}
+
+		createdMiniBlock, ok := createdMiniBlocksByReceiverShard[receiverShardID]
+		if !ok {
 			return epochStart.ErrRewardMiniBlockHashDoesNotMatch
 		}
+
+		matchedReceiverShards[receiverShardID] = struct{}{}
 
 		createdMBHash, errComputeHash := core.CalculateHash(brc.marshalizer, brc.hasher, createdMiniBlock)
 		if errComputeHash != nil {
@@ -498,19 +527,10 @@ func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBl
 		}
 	}
 
-	if len(createdMiniBlocks) != numReceivedRewardsMBs {
+	if len(createdMiniBlocks) != len(matchedReceiverShards) {
 		return epochStart.ErrRewardMiniBlocksNumDoesNotMatch
 	}
 
-	return nil
-}
-
-func getMiniBlockWithReceiverShardID(shardId uint32, miniBlocks block.MiniBlockSlice) *block.MiniBlock {
-	for _, miniBlock := range miniBlocks {
-		if miniBlock.ReceiverShardID == shardId {
-			return miniBlock
-		}
-	}
 	return nil
 }
 

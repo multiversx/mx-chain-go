@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -191,6 +192,14 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 		Nonce: 10,
 		Value: big.NewInt(0),
 	}
+
+	return initDataPoolWithTransaction(testHash, tx)
+}
+
+func initDataPoolWithTransaction(
+	testHash []byte,
+	tx *transaction.Transaction,
+) *dataRetrieverMock.PoolsHolderStub {
 	sc := &smartContractResult.SmartContractResult{Nonce: 10, SndAddr: []byte("0"), RcvAddr: []byte("1")}
 	rTx := &rewardTx.RewardTx{Epoch: 0, Round: 1, RcvAddr: []byte("1")}
 
@@ -264,6 +273,19 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 		},
 	}
 	return sdp
+}
+
+func createAddressShardCoordinator(numShards uint32) sharding.Coordinator {
+	coordinator := mock.NewMultiShardsCoordinatorMock(numShards)
+	coordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if len(address) == 0 {
+			return coordinator.SelfId()
+		}
+
+		return uint32(address[0])
+	}
+
+	return coordinator
 }
 
 func initStore() *dataRetriever.ChainStorer {
@@ -761,10 +783,24 @@ func createPreProcessorContainerWithDataPool(
 	feeHandler process.FeeHandler,
 	accounts state.AccountsAdapter,
 ) process.PreProcessorsContainer {
+	return createPreProcessorContainerWithDataPoolAndShardCoordinator(
+		dataPool,
+		feeHandler,
+		accounts,
+		mock.NewMultiShardsCoordinatorMock(5),
+	)
+}
+
+func createPreProcessorContainerWithDataPoolAndShardCoordinator(
+	dataPool dataRetriever.PoolsHolder,
+	feeHandler process.FeeHandler,
+	accounts state.AccountsAdapter,
+	shardCoordinator sharding.Coordinator,
+) process.PreProcessorsContainer {
 
 	totalGasProvided := uint64(0)
 	args := shard.ArgsPreProcessorsContainerFactory{
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
+		ShardCoordinator: shardCoordinator,
 		Store:            initStore(),
 		Marshalizer:      &mock.MarshalizerMock{},
 		Hasher:           &hashingMocks.HasherMock{},
@@ -1060,7 +1096,12 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNothing
 func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *testing.T) {
 	t.Parallel()
 
-	tdp := initDataPool(txHash)
+	tdp := initDataPoolWithTransaction(txHash, &transaction.Transaction{
+		Nonce:   10,
+		Value:   big.NewInt(0),
+		SndAddr: []byte{1},
+		RcvAddr: []byte{0},
+	})
 	cacherCfg := storageunit.CacheConfig{Capacity: 100, Type: storageunit.LRUCache}
 	hdrPool, _ := storageunit.NewCache(cacherCfg)
 	tdp.MiniBlocksCalled = func() storage.Cacher {
@@ -1070,7 +1111,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 	totalGasProvided := uint64(0)
 
 	args := shard.ArgsPreProcessorsContainerFactory{
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
+		ShardCoordinator: createAddressShardCoordinator(5),
 		Store:            initStore(),
 		Marshalizer:      &mock.MarshalizerMock{},
 		Hasher:           &hashingMocks.HasherMock{},
@@ -2219,11 +2260,16 @@ func TestTransactionCoordinator_RemoveBlockDataFromPool(t *testing.T) {
 func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing.T) {
 	t.Parallel()
 
-	dataPool := initDataPool(txHash)
+	dataPool := initDataPoolWithTransaction(txHash, &transaction.Transaction{
+		Nonce:   10,
+		Value:   big.NewInt(0),
+		SndAddr: []byte{1},
+		RcvAddr: []byte{0},
+	})
 
 	accounts := initAccountsMock()
 	args := shard.ArgsPreProcessorsContainerFactory{
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
+		ShardCoordinator: createAddressShardCoordinator(5),
 		Store:            initStore(),
 		Marshalizer:      &mock.MarshalizerMock{},
 		Hasher:           &hashingMocks.HasherMock{},
@@ -2309,7 +2355,26 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 func TestTransactionCoordinator_ProcessBlockTransaction(t *testing.T) {
 	t.Parallel()
 
-	argsTransactionCoordinator := createDefaultTxCoordinatorArgs()
+	dataPool := initDataPoolWithTransaction(txHash, &transaction.Transaction{
+		Nonce:   10,
+		Value:   big.NewInt(0),
+		SndAddr: []byte{1},
+		RcvAddr: []byte{0},
+	})
+	accounts := initAccountsMock()
+	shardCoordinator := createAddressShardCoordinator(3)
+	preProcessors := createPreProcessorContainerWithDataPoolAndShardCoordinator(
+		dataPool,
+		FeeHandlerMock(),
+		accounts,
+		shardCoordinator,
+	)
+	argsTransactionCoordinator := createDefaultTxCoordinatorArgsFromComponents(
+		dataPool,
+		accounts,
+		preProcessors,
+		shardCoordinator,
+	)
 	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
 	assert.Nil(t, err)
 	assert.NotNil(t, tc)
@@ -2634,16 +2699,22 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	// put the existing tx inside datapool
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
-		Nonce: tx1Nonce,
-		Data:  txHash1,
+		Nonce:   tx1Nonce,
+		Data:    txHash1,
+		SndAddr: []byte{byte(senderShardId)},
+		RcvAddr: []byte{byte(receiverShardId)},
 	}, 0, cacheId)
 	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
-		Nonce: tx2Nonce,
-		Data:  txHash2,
+		Nonce:   tx2Nonce,
+		Data:    txHash2,
+		SndAddr: []byte{byte(senderShardId)},
+		RcvAddr: []byte{byte(receiverShardId)},
 	}, 0, cacheId)
 	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
-		Nonce: tx3Nonce,
-		Data:  txHash3,
+		Nonce:   tx3Nonce,
+		Data:    txHash3,
+		SndAddr: []byte{byte(senderShardId)},
+		RcvAddr: []byte{byte(receiverShardId)},
 	}, 0, cacheId)
 
 	tx1ExecutionResult := uint64(0)
@@ -2665,7 +2736,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 
 	totalGasProvided := uint64(0)
 	args := shard.ArgsPreProcessorsContainerFactory{
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
+		ShardCoordinator: createAddressShardCoordinator(5),
 		Store:            initStore(),
 		Marshalizer:      marshalizer,
 		Hasher:           hasher,
@@ -2791,16 +2862,22 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	// put the existing tx inside datapool
 	cacheId := process.ShardCacherIdentifier(senderShardId, receiverShardId)
 	dataPool.Transactions().AddData(txHash1, &transaction.Transaction{
-		Nonce: tx1Nonce,
-		Data:  txHash1,
+		Nonce:   tx1Nonce,
+		Data:    txHash1,
+		SndAddr: []byte{byte(senderShardId)},
+		RcvAddr: []byte{byte(receiverShardId)},
 	}, 0, cacheId)
 	dataPool.Transactions().AddData(txHash2, &transaction.Transaction{
-		Nonce: tx2Nonce,
-		Data:  txHash2,
+		Nonce:   tx2Nonce,
+		Data:    txHash2,
+		SndAddr: []byte{byte(senderShardId)},
+		RcvAddr: []byte{byte(receiverShardId)},
 	}, 0, cacheId)
 	dataPool.Transactions().AddData(txHash3, &transaction.Transaction{
-		Nonce: tx3Nonce,
-		Data:  txHash3,
+		Nonce:   tx3Nonce,
+		Data:    txHash3,
+		SndAddr: []byte{byte(senderShardId)},
+		RcvAddr: []byte{byte(receiverShardId)},
 	}, 0, cacheId)
 
 	currentJournalLen := 445
@@ -2823,7 +2900,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	}
 
 	args := shard.ArgsPreProcessorsContainerFactory{
-		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
+		ShardCoordinator: createAddressShardCoordinator(5),
 		Store:            initStore(),
 		Marshalizer:      marshalizer,
 		Hasher:           hasher,
@@ -4931,6 +5008,16 @@ func createDefaultTxCoordinatorArgs() ArgTransactionCoordinator {
 	accounts := initAccountsMock()
 	preProcessors := createPreProcessorContainerWithDataPool(dataPool, FeeHandlerMock(), accounts)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+
+	return createDefaultTxCoordinatorArgsFromComponents(dataPool, accounts, preProcessors, shardCoordinator)
+}
+
+func createDefaultTxCoordinatorArgsFromComponents(
+	dataPool dataRetriever.PoolsHolder,
+	accounts state.AccountsAdapter,
+	preProcessors process.PreProcessorsContainer,
+	shardCoordinator sharding.Coordinator,
+) ArgTransactionCoordinator {
 	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	args := BlockDataRequestArgs{
 		RequestHandler:      &testscommon.RequestHandlerStub{},

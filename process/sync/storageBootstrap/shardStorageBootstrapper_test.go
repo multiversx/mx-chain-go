@@ -40,7 +40,9 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	wasCalledForkDetectorAddHeader := false
 	wasCalledBlockTrackerAddTrackedHeader := false
 	wasCalledEpochNotifier := false
+	wasCalledScheduledRollback := false
 	savedLastRound := int64(0)
+	var restoredScheduledInfo *process.ScheduledInfo
 
 	marshaller := &marshallerMock.MarshalizerMock{}
 	startRound := 4000
@@ -134,9 +136,18 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 					wasCalledBlockTrackerAddTrackedHeader = true
 				},
 			},
-			ChainID:                      string(hdr.GetChainID()),
-			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-			MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
+			ChainID: string(hdr.GetChainID()),
+			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				RollBackToBlockCalled: func(headerHash []byte) error {
+					assert.Equal(t, hdrHash, headerHash)
+					wasCalledScheduledRollback = true
+					return errors.New("scheduled state not found")
+				},
+				SetScheduledInfoCalled: func(info *process.ScheduledInfo) {
+					restoredScheduledInfo = info
+				},
+			},
+			MiniblocksProvider: &mock.MiniBlocksProviderStub{},
 			EpochNotifier: &epochNotifierMock.EpochNotifierStub{
 				CheckEpochCalled: func(header data.HeaderHandler) {
 					assert.Equal(t, hdr, header)
@@ -162,6 +173,12 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	assert.True(t, wasCalledBlockTrackerAddTrackedHeader)
 	assert.Equal(t, int64(3999), savedLastRound)
 	assert.True(t, wasCalledEpochNotifier)
+	require.True(t, wasCalledScheduledRollback)
+	require.NotNil(t, restoredScheduledInfo)
+	require.Equal(t, hdr.GetRootHash(), restoredScheduledInfo.RootHash)
+	require.Empty(t, restoredScheduledInfo.MiniBlocks)
+	require.Empty(t, restoredScheduledInfo.IntermediateTxs)
+	require.Equal(t, process.GetZeroGasAndFees(), restoredScheduledInfo.GasAndFees)
 }
 
 func TestShardStorageBootstrapper_SetSupernovaTransitionReadyForV3(t *testing.T) {

@@ -132,7 +132,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
 		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
-			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, err.Error())
+			errProcessIfErr := txProc.processIfTxErrorCrossShard(tx, txHash, err.Error())
 			if errProcessIfErr != nil {
 				return 0, errProcessIfErr
 			}

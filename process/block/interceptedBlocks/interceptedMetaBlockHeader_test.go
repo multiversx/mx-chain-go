@@ -2,6 +2,7 @@ package interceptedBlocks_test
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -406,6 +407,45 @@ func TestInterceptedMetaHeader_Getters(t *testing.T) {
 	assert.Equal(t, hash, inHdr.Hash())
 	assert.True(t, inHdr.IsForCurrentShard())
 	require.False(t, inHdr.ShouldAllowDuplicates())
+}
+
+func TestInterceptedMetaHeader_IdentifiersShouldIncludeEpochIdentifierOnlyForEpochStart(t *testing.T) {
+	t.Parallel()
+
+	metaV1EpochStart := createMockMetaHeader()
+	metaV1EpochStart.EpochStart.LastFinalizedHeaders = []dataBlock.EpochStartShardData{{}}
+	metaV3EpochStart := createMockMetaHeaderV3()
+	metaV3EpochStart.EpochStart.LastFinalizedHeaders = []dataBlock.EpochStartShardData{{}}
+	tests := []struct {
+		name                   string
+		header                 data.MetaHeaderHandler
+		includeEpochIdentifier bool
+	}{
+		{name: "regular V1", header: createMockMetaHeader()},
+		{name: "epoch start V1", header: metaV1EpochStart, includeEpochIdentifier: true},
+		{name: "regular V3", header: createMockMetaHeaderV3()},
+		{name: "epoch start V3", header: metaV3EpochStart, includeEpochIdentifier: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			arg := createMetaArgumentWithShardCoordinatorAndHeader(mock.NewOneShardCoordinatorMock(), test.header)
+			inHdr, err := interceptedBlocks.NewInterceptedMetaHeader(arg)
+			require.NoError(t, err)
+			require.Equal(t, test.includeEpochIdentifier, inHdr.HeaderHandler().IsStartOfEpochBlock())
+
+			expectedIdentifiers := [][]byte{
+				inHdr.Hash(),
+				[]byte(fmt.Sprintf("%d-%d", core.MetachainShardId, test.header.GetNonce())),
+			}
+			if test.includeEpochIdentifier {
+				expectedIdentifiers = append(expectedIdentifiers,
+					[]byte(core.EpochStartIdentifier(test.header.GetEpoch())))
+			}
+
+			require.Equal(t, expectedIdentifiers, inHdr.Identifiers())
+		})
+	}
 }
 
 func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t *testing.T) {

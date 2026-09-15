@@ -591,6 +591,59 @@ func TestTxResolver_ProcessReceivedMessageHashArrayWithDuplicateHashesShouldDedu
 	assert.Len(t, msgID, 0)
 }
 
+func TestTxResolver_ProcessReceivedMessageHashArrayShouldLimitReplySize(t *testing.T) {
+	t.Parallel()
+
+	hashes := [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")}
+	largeTx := bytes.Repeat([]byte{1}, 1<<19+1)
+	numSearches := 0
+	packedTxs := 0
+	sendWasCalled := false
+
+	arg := createMockArgTxResolver()
+	arg.TxPool = testscommon.NewShardedDataStub()
+	arg.TxStorage = &storageStubs.StorerStub{
+		SearchFirstCalled: func(_ []byte) ([]byte, error) {
+			numSearches++
+			return largeTx, nil
+		},
+	}
+	arg.DataPacker = &mock.DataPackerStub{
+		PackDataInChunksCalled: func(data [][]byte, _ int) ([][]byte, error) {
+			packedTxs = len(data)
+			return [][]byte{[]byte("reply")}, nil
+		},
+	}
+	arg.SenderResolver = &mock.TopicResolverSenderStub{
+		SendCalled: func(_ []byte, _ core.PeerID, _ p2p.MessageHandler) error {
+			sendWasCalled = true
+			return nil
+		},
+	}
+	txRes, err := resolvers.NewTxResolver(arg)
+	assert.NoError(t, err)
+
+	hashesBuff, err := arg.Marshaller.Marshal(&batch.Batch{Data: hashes})
+	assert.NoError(t, err)
+	request, err := arg.Marshaller.Marshal(&dataRetriever.RequestData{
+		Type:  dataRetriever.HashArrayType,
+		Value: hashesBuff,
+	})
+	assert.NoError(t, err)
+
+	msgID, err := txRes.ProcessReceivedMessage(
+		&p2pmocks.P2PMessageMock{DataField: request},
+		connectedPeerId,
+		&p2pmocks.MessengerStub{},
+	)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 2, numSearches)
+	assert.Equal(t, 1, packedTxs)
+	assert.True(t, sendWasCalled)
+	assert.Len(t, msgID, 0)
+}
+
 func TestTxResolver_ProcessReceivedMessageHashArrayUnmarshalFails(t *testing.T) {
 	t.Parallel()
 

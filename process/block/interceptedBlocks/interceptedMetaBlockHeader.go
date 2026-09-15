@@ -204,8 +204,11 @@ func (imh *InterceptedMetaHeader) String() string {
 // Identifiers returns the identifiers used in requests
 func (imh *InterceptedMetaHeader) Identifiers() [][]byte {
 	keyNonce := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, imh.hdr.GetNonce()))
-	keyEpoch := []byte(core.EpochStartIdentifier(imh.hdr.GetEpoch()))
+	if !imh.hdr.IsStartOfEpochBlock() {
+		return [][]byte{imh.hash, keyNonce}
+	}
 
+	keyEpoch := []byte(core.EpochStartIdentifier(imh.hdr.GetEpoch()))
 	return [][]byte{imh.hash, keyNonce, keyEpoch}
 }
 
