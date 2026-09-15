@@ -5,8 +5,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/integrationTests"
@@ -155,6 +157,19 @@ func TestSupernovaSmokeSignedGuardian(t *testing.T) {
 func TestSupernovaSmokeSignedESDT(t *testing.T) {
 	f := newFixture(t)
 	sender, receiver := f.wallet(0), f.wallet(1)
+	// The reserved EGLD ticker must fail without retaining the issuance payment
+	// or leaving token registry/role storage behind. The next issue is a retry.
+	beforeSenderAccount, beforeRegistry := f.account(sender.Address), f.account(core.ESDTSCAddress)
+	invalidIssue := tokenTests.IssueNonFungibleTx(beforeSenderAccount.Nonce, sender.Address, []byte("EGLD"), "1000")
+	f.sign(invalidIssue, sender, nil, nil)
+	failedIssue := f.execute(invalidIssue)
+	requireExecutionFailure(t, failedIssue)
+	require.Contains(t, executionMessages(failedIssue), vm.ErrCouldNotCreateNewTokenIdentifier.Error())
+	require.Equal(t, new(big.Int).Sub(amount(t, beforeSenderAccount.Balance), amount(t, failedIssue.Fee)).String(), f.account(sender.Address).Balance)
+	require.Equal(t, beforeSenderAccount.Nonce+1, f.account(sender.Address).Nonce)
+	require.Equal(t, beforeSenderAccount.RootHash, f.account(sender.Address).RootHash)
+	require.Equal(t, beforeRegistry.Balance, f.account(core.ESDTSCAddress).Balance)
+	require.Equal(t, beforeRegistry.RootHash, f.account(core.ESDTSCAddress).RootHash)
 	// Reuse the existing token issuance builder; sign the actual transaction.
 	issue := tokenTests.IssueTx(f.account(sender.Address).Nonce, sender.Address, []byte("SMOKE"), "1000")
 	for _, property := range []string{"canFreeze", "canWipe", "canPause", "canAddSpecialRoles"} {

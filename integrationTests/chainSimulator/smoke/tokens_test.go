@@ -126,20 +126,33 @@ func TestSupernovaSmokeNFTAndMixedTransfers(t *testing.T) {
 	// A second NFT nonce gives a genuine multi-NFT transfer, alongside SFT and MetaESDT.
 	nftHex := hexArg([]byte(tokens[0]))
 	f.success(f.tx(owner, owner.Address, 0, "ESDTNFTCreate@"+nftHex+"@01@736d6f6b65@00@@@757269", 100_000_000))
-	items := []string{nftHex, "01", "01", nftHex, "02", "01", hexArg([]byte(tokens[1])), "01", "02", hexArg([]byte(tokens[2])), "01", "03"}
-	data := "MultiESDTNFTTransfer@" + hexArg(receiver.Address) + "@04@" + strings.Join(items, "@")
+	items := []string{hexArg([]byte("EGLD-000000")), "00", "64", nftHex, "01", "01", nftHex, "02", "01", hexArg([]byte(tokens[1])), "01", "02", hexArg([]byte(tokens[2])), "01", "03"}
+	data := "MultiESDTNFTTransfer@" + hexArg(receiver.Address) + "@05@" + strings.Join(items, "@")
 	badItems := append([]string(nil), items...)
 	badItems[len(badItems)-1] = "ff" // valid encoding, insufficient MetaESDT quantity
-	bad := "MultiESDTNFTTransfer@" + hexArg(receiver.Address) + "@04@" + strings.Join(badItems, "@")
+	bad := "MultiESDTNFTTransfer@" + hexArg(receiver.Address) + "@05@" + strings.Join(badItems, "@")
 	before := []int64{1, 10, 10}
-	requireExecutionFailure(t, f.execute(f.tx(owner, owner.Address, 0, bad, 30_000_000)))
+	beforeOwner, beforeReceiver := f.account(owner.Address), f.account(receiver.Address)
+	failed := f.execute(f.tx(owner, owner.Address, 0, bad, 30_000_000))
+	requireExecutionFailure(t, failed)
+	require.Equal(t, new(big.Int).Sub(amount(t, beforeOwner.Balance), amount(t, failed.Fee)).String(), f.account(owner.Address).Balance)
+	require.Equal(t, beforeOwner.Nonce+1, f.account(owner.Address).Nonce)
+	require.Equal(t, beforeReceiver.Balance, f.account(receiver.Address).Balance)
+	require.Equal(t, beforeOwner.RootHash, f.account(owner.Address).RootHash)
+	require.Equal(t, beforeReceiver.RootHash, f.account(receiver.Address).RootHash)
 	for i, token := range tokens {
 		require.Equal(t, big.NewInt(before[i]), f.tokenBalance(owner, token, 1))
 		require.Zero(t, f.tokenBalance(receiver, token, 1).Sign())
 	}
 	require.Equal(t, big.NewInt(1), f.tokenBalance(owner, tokens[0], 2))
 	require.Zero(t, f.tokenBalance(receiver, tokens[0], 2).Sign())
-	f.success(f.tx(owner, owner.Address, 0, data, 30_000_000))
+	beforeOwner = f.account(owner.Address)
+	paid := f.success(f.tx(owner, owner.Address, 0, data, 30_000_000))
+	expected := new(big.Int).Sub(amount(t, beforeOwner.Balance), amount(t, paid.Fee))
+	expected.Sub(expected, big.NewInt(100))
+	require.Equal(t, expected.String(), f.account(owner.Address).Balance)
+	require.Equal(t, beforeOwner.Nonce+1, f.account(owner.Address).Nonce)
+	require.Equal(t, new(big.Int).Add(amount(t, beforeReceiver.Balance), big.NewInt(100)).String(), f.account(receiver.Address).Balance)
 	for i, qty := range []int64{1, 2, 3} {
 		require.Equal(t, big.NewInt(before[i]-qty), f.tokenBalance(owner, tokens[i], 1))
 		require.Equal(t, big.NewInt(qty), f.tokenBalance(receiver, tokens[i], 1))

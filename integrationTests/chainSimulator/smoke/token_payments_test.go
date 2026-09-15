@@ -40,7 +40,9 @@ func (f *fixture) tokenContractPayments(sender, remoteOwner *integrationTests.Te
 			data := "ESDTTransfer@" + hexArg([]byte(payments[0].token)) + "@01@" + hexArg([]byte(endpoint))
 			if multi {
 				receiver = sender.Address
-				parts := []string{"MultiESDTNFTTransfer", hexArg(contract), hexArg(big.NewInt(int64(len(payments))).Bytes())}
+				parts := []string{"MultiESDTNFTTransfer", hexArg(contract), hexArg(big.NewInt(int64(len(payments) + 1)).Bytes())}
+				// EGLD is the first item so a later token/endpoint failure must refund it too.
+				parts = append(parts, hexArg([]byte("EGLD-000000")), "00", "64")
 				for _, payment := range payments {
 					parts = append(parts, hexArg([]byte(payment.token)), hexArg(new(big.Int).SetUint64(payment.nonce).Bytes()), "01")
 				}
@@ -56,6 +58,7 @@ func (f *fixture) tokenContractPayments(sender, remoteOwner *integrationTests.Te
 				f.rejected(tx, sender.Address, relayer.Address, contract)
 				tx.RelayerSignature = validSignature
 			}
+			beforeContract := f.account(contract)
 			beforeSender, beforeRelayer := f.account(sender.Address), f.account(relayer.Address)
 			senderTokens, contractTokens := make([]*big.Int, len(payments)), make([]*big.Int, len(payments))
 			for i, payment := range payments {
@@ -95,12 +98,24 @@ func (f *fixture) tokenContractPayments(sender, remoteOwner *integrationTests.Te
 				require.Zero(t, new(big.Int).Sub(senderTokens[i], big.NewInt(moved)).Cmp(f.tokenBalance(sender, payment.token, payment.nonce)), payment.token+"/"+strconv.FormatUint(payment.nonce, 10))
 				require.Zero(t, new(big.Int).Add(contractTokens[i], big.NewInt(moved)).Cmp(f.tokenBalance(contractAccount, payment.token, payment.nonce)))
 			}
+			movedEGLD := big.NewInt(0)
+			if multi && scenario.success {
+				movedEGLD.SetInt64(100)
+			}
+			require.Equal(t, new(big.Int).Add(amount(t, beforeContract.Balance), movedEGLD).String(), f.account(contract).Balance)
+			if !scenario.success {
+				require.Equal(t, beforeContract.RootHash, f.account(contract).RootHash)
+			}
 			payerBefore, payer := beforeSender, sender
 			if scenario.relayed {
 				payerBefore, payer = beforeRelayer, relayer
-				require.Equal(t, beforeSender.Balance, f.account(sender.Address).Balance)
+				require.Equal(t, new(big.Int).Sub(amount(t, beforeSender.Balance), movedEGLD).String(), f.account(sender.Address).Balance)
 			}
-			require.Equal(t, new(big.Int).Sub(amount(t, payerBefore.Balance), amount(t, result.Fee)).String(), f.account(payer.Address).Balance)
+			expectedPayer := new(big.Int).Sub(amount(t, payerBefore.Balance), amount(t, result.Fee))
+			if !scenario.relayed {
+				expectedPayer.Sub(expectedPayer, movedEGLD)
+			}
+			require.Equal(t, expectedPayer.String(), f.account(payer.Address).Balance)
 			require.Equal(t, beforeSender.Nonce+1, f.account(sender.Address).Nonce)
 			require.Equal(t, beforeRelayer.Nonce, f.account(relayer.Address).Nonce)
 		})

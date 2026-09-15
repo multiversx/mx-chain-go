@@ -10,6 +10,9 @@ its metered gas in a finite loop. Successful callbacks increment a stored counte
 the other two modes must roll back that increment. This is a test fixture, not an
 application contract: exported callbacks deliberately have no caller authorization.
 
+The `send(destination)` endpoint forwards the incoming EGLD as a pure transfer,
+without a destination endpoint, for the contract payability matrix.
+
 Rebuild with a WAT compiler, for example:
 
 ```sh
@@ -18,4 +21,4 @@ wat2wasm promise-probe.wat -o promise-probe.wasm
 
 The included binary was built with Wasmtime 48.0.0's `wat2wasm` compiler.
 Compiler-specific custom name sections can change the file hash without changing
-execution. Keep the source and binary together and rerun the Go promise tests after rebuilding.
+execution. Keep the source and binary together and rerun the Go promise and payability tests after rebuilding.
