@@ -324,7 +324,7 @@ func (txs *transactions) ProcessBlockTransactions(
 
 	if txs.isBodyFromMe(body) {
 		randomness := helpers.ComputeRandomnessForTxSorting(header, txs.enableEpochsHandler)
-		return txs.processTxsFromMe(body, haveTime, randomness)
+		return txs.processTxsFromMe(header, body, haveTime, randomness)
 	}
 
 	return process.ErrInvalidBody
@@ -380,7 +380,7 @@ func (txs *transactions) computeTxsToMe(
 			return nil, err
 		}
 
-		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, pi)
+		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, pi, true)
 		if err != nil {
 			return nil, err
 		}
@@ -391,7 +391,10 @@ func (txs *transactions) computeTxsToMe(
 	return allTxs, nil
 }
 
-func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedTransaction, error) {
+func (txs *transactions) computeTxsFromMe(
+	body *block.Body,
+	checkReceiverShardID bool,
+) ([]*txcache.WrappedTransaction, error) {
 	if check.IfNil(body) {
 		return nil, process.ErrNilBlockBody
 	}
@@ -410,7 +413,8 @@ func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedT
 			indexOfLastTxProcessedByProposer: int32(len(miniBlock.TxHashes)) - 1,
 		}
 
-		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, pi)
+		shouldCheckReceiverShardID := checkReceiverShardID && miniBlock.Type == block.TxBlock
+		txsFromMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, pi, shouldCheckReceiverShardID)
 		if err != nil {
 			return nil, err
 		}
@@ -421,7 +425,10 @@ func (txs *transactions) computeTxsFromMe(body *block.Body) ([]*txcache.WrappedT
 	return allTxs, nil
 }
 
-func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache.WrappedTransaction, error) {
+func (txs *transactions) computeScheduledTxsFromMe(
+	body *block.Body,
+	checkReceiverShardID bool,
+) ([]*txcache.WrappedTransaction, error) {
 	if check.IfNil(body) {
 		return nil, process.ErrNilBlockBody
 	}
@@ -440,7 +447,7 @@ func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache
 			indexOfLastTxProcessedByProposer: int32(len(miniBlock.TxHashes)) - 1,
 		}
 
-		txsFromScheduledMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, pi)
+		txsFromScheduledMiniBlock, err := txs.computeTxsFromMiniBlock(miniBlock, pi, checkReceiverShardID)
 		if err != nil {
 			return nil, err
 		}
@@ -454,6 +461,7 @@ func (txs *transactions) computeScheduledTxsFromMe(body *block.Body) ([]*txcache
 func (txs *transactions) computeTxsFromMiniBlock(
 	miniBlock *block.MiniBlock,
 	pi *processedIndexes,
+	checkReceiverShardID bool,
 ) ([]*txcache.WrappedTransaction, error) {
 
 	txsFromMiniBlock := make([]*txcache.WrappedTransaction, 0, len(miniBlock.TxHashes))
@@ -479,6 +487,10 @@ func (txs *transactions) computeTxsFromMiniBlock(
 
 		calculatedSenderShardId := txs.getShardFromAddress(tx.GetSndAddr())
 		calculatedReceiverShardId := txs.getShardFromAddress(tx.GetRcvAddr())
+		err = checkTxShardIDs(miniBlock, calculatedSenderShardId, calculatedReceiverShardId, checkReceiverShardID)
+		if err != nil {
+			return nil, err
+		}
 
 		wrappedTx := &txcache.WrappedTransaction{
 			Tx:              tx,
@@ -500,6 +512,22 @@ func (txs *transactions) getShardFromAddress(address []byte) uint32 {
 	}
 
 	return txs.shardCoordinator.ComputeId(address)
+}
+
+func checkTxShardIDs(
+	miniBlock *block.MiniBlock,
+	senderShardID uint32,
+	receiverShardID uint32,
+	checkReceiverShardID bool,
+) error {
+	if miniBlock.SenderShardID != senderShardID {
+		return process.ErrShardIdMissmatch
+	}
+	if checkReceiverShardID && miniBlock.ReceiverShardID != receiverShardID {
+		return process.ErrShardIdMissmatch
+	}
+
+	return nil
 }
 
 func (txs *transactions) processTxsToMe(
@@ -640,6 +668,7 @@ func (txs *transactions) processTxsToMe(
 }
 
 func (txs *transactions) processTxsFromMe(
+	header data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
 	randomness []byte,
@@ -648,7 +677,8 @@ func (txs *transactions) processTxsFromMe(
 		return process.ErrNilBlockBody
 	}
 
-	txsFromMe, err := txs.computeTxsFromMe(body)
+	checkReceiverShardID := !header.IsHeaderV3()
+	txsFromMe, err := txs.computeTxsFromMe(body, checkReceiverShardID)
 	if err != nil {
 		return err
 	}
@@ -696,6 +726,7 @@ func (txs *transactions) processTxsFromMe(
 		isMaxBlockSizeReachedFalse,
 		mapSCTxs,
 		randomness,
+		checkReceiverShardID,
 	)
 	if err != nil {
 		return err
@@ -752,12 +783,13 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 	isMaxBlockSizeReached func(int, int) bool,
 	mapSCTxs map[string]struct{},
 	randomness []byte,
+	checkReceiverShardID bool,
 ) (block.MiniBlockSlice, error) {
 	if !txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	scheduledTxsFromMe, err := txs.computeScheduledTxsFromMe(body)
+	scheduledTxsFromMe, err := txs.computeScheduledTxsFromMe(body, checkReceiverShardID)
 	if err != nil {
 		return nil, err
 	}
@@ -1018,6 +1050,14 @@ func (txs *transactions) getAllTxsFromMiniBlock(
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
+
+		senderShardID := txs.getShardFromAddress(tx.GetSndAddr())
+		receiverShardID := txs.getShardFromAddress(tx.GetRcvAddr())
+		err := checkTxShardIDs(mb, senderShardID, receiverShardID, true)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		txHashes = append(txHashes, txHash)
 		txsSlice = append(txsSlice, tx)
 	}

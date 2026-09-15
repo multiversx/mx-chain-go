@@ -213,9 +213,8 @@ func (inHdr *InterceptedHeader) String() string {
 // Identifiers returns the identifiers used in requests
 func (inHdr *InterceptedHeader) Identifiers() [][]byte {
 	keyNonce := []byte(fmt.Sprintf("%d-%d", inHdr.hdr.GetShardID(), inHdr.hdr.GetNonce()))
-	keyEpoch := []byte(core.EpochStartIdentifier(inHdr.hdr.GetEpoch()))
 
-	return [][]byte{inHdr.hash, keyNonce, keyEpoch}
+	return [][]byte{inHdr.hash, keyNonce}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

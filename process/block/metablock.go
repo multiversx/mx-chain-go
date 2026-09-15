@@ -652,7 +652,7 @@ func (mp *metaProcessor) indexBlock(
 		NotarizedHeadersHashes: notarizedHeadersHashes,
 		HighestFinalBlockNonce: settledNonce,
 		HighestFinalBlockHash:  settledHash,
-		ScheduledRootHash:      mp.scheduledTxsExecutionHandler.GetScheduledRootHash(),
+		ScheduledRootHash:      nil,
 	})
 	if err != nil {
 		log.Error("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error(),

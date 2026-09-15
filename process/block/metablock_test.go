@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
@@ -320,6 +322,168 @@ func createMetaBlockHeader() *block.MetaBlock {
 	hdr.ShardInfo = append(hdr.ShardInfo, shardData)
 
 	return &hdr
+}
+
+func TestMetaProcessor_IndexBlockDoesNotUseScheduledRoot(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	statusComponents.Outport = &outport.OutportStub{
+		HasDriversCalled: func() bool {
+			return true
+		},
+	}
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
+		GetScheduledRootHashCalled: func() []byte {
+			t.Fatal("scheduled root should not be used for a meta block")
+			return nil
+		},
+	}
+	wasPrepared := false
+	arguments.OutportDataProvider = &outport.OutportDataProviderStub{
+		PrepareOutportSaveBlockDataCalled: func(arg processOutport.ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
+			wasPrepared = true
+			require.Nil(t, arg.ScheduledRootHash)
+			return &outportcore.OutportBlockWithHeaderAndBody{
+				OutportBlock: &outportcore.OutportBlock{},
+			}, nil
+		},
+	}
+	mp, err := processBlock.NewMetaProcessor(arguments)
+	require.NoError(t, err)
+
+	mp.IndexBlock(&block.MetaBlock{Nonce: 1}, []byte("header hash"), &block.Body{}, nil)
+
+	require.True(t, wasPrepared)
+}
+
+func TestMetaProcessor_FullExecutionResultIsAvailableAfterRewind(t *testing.T) {
+	t.Parallel()
+
+	anchorHash := []byte("anchor hash")
+	tipHash := []byte("tip hash")
+	baseResult := &block.BaseMetaExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  anchorHash,
+			HeaderNonce: 7,
+			HeaderRound: 17,
+			HeaderEpoch: 2,
+			RootHash:    []byte("root hash"),
+		},
+		ValidatorStatsRootHash: []byte("validator stats root"),
+		AccumulatedFeesInEpoch: big.NewInt(100),
+		DevFeesInEpoch:         big.NewInt(10),
+	}
+	fullResult := &block.MetaExecutionResult{
+		ExecutionResult: baseResult,
+		ReceiptsHash:    []byte("receipts hash"),
+		ExecutedTxCount: 11,
+	}
+	tip := &block.MetaBlockV3{
+		Nonce: 9,
+		Round: 20,
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			NotarizedInRound: 20,
+			ExecutionResult:  baseResult,
+		},
+		ExecutionResults: []*block.MetaExecutionResult{fullResult},
+	}
+	anchorHeader := &block.MetaBlockV3{
+		Nonce: 7,
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{},
+			},
+		},
+	}
+
+	chainHandler := &testscommon.ChainHandlerMock{}
+	require.NoError(t, chainHandler.SetGenesisHeader(&block.MetaBlock{}))
+	chainHandler.SetGenesisHeaderHash([]byte("genesis hash"))
+	execManager, err := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+		BlocksCache:             &processMocks.BlocksCacheMock{},
+		ExecutionResultsTracker: &processMocks.ExecutionTrackerStub{},
+		BlockChain:              chainHandler,
+		Headers: &poolMock.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Equal(t, anchorHash, hash)
+				return anchorHeader, nil
+			},
+		},
+		PostProcessTransactions: &cache.CacherStub{},
+		ExecutedMiniBlocks:      &cache.CacherStub{},
+		StorageService:          &storageStubs.ChainStorerStub{},
+		Marshaller:              &mock.MarshalizerMock{},
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+	})
+	require.NoError(t, err)
+	require.NoError(t, execManager.SetHeadersExecutor(&processMocks.HeadersExecutorMock{}))
+	defer func() {
+		require.NoError(t, execManager.Close())
+	}()
+
+	err = execManager.RewindExecutionStateToTip(tip, tipHash)
+	require.NoError(t, err)
+	require.Same(t, fullResult, chainHandler.GetLastExecutionResult())
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents.BlockChain = chainHandler
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	economicsChecked := false
+	arguments.EpochEconomics = &mock.EpochEconomicsStub{
+		ComputeEndOfEpochEconomicsV3Called: func(
+			_ data.MetaHeaderHandler,
+			previousResult data.BaseMetaExecutionResultHandler,
+			_ data.EpochStartHandler,
+		) (*block.Economics, error) {
+			require.Same(t, fullResult, previousResult)
+			economicsChecked = true
+			return &block.Economics{}, nil
+		},
+	}
+	rewardsChecked := false
+	arguments.EpochRewardsCreator = &testscommon.RewardsCreatorStub{
+		CreateRewardsMiniBlocksV3called: func(
+			_ data.MetaHeaderHandler,
+			_ state.ShardValidatorsInfoMapHandler,
+			_ *block.Economics,
+			previousResult data.BaseMetaExecutionResultHandler,
+		) (block.MiniBlockSlice, error) {
+			require.Same(t, fullResult, previousResult)
+			rewardsChecked = true
+			return nil, nil
+		},
+	}
+	validatorStatisticsChecked := false
+	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+		UpdatePeerStateV3Called: func(_ data.MetaHeaderHandler, previousResult data.MetaExecutionResultHandler) ([]byte, error) {
+			require.Same(t, fullResult, previousResult)
+			validatorStatisticsChecked = true
+			return []byte("new validator stats root"), nil
+		},
+	}
+
+	metaProcessor, err := processBlock.NewMetaProcessor(arguments)
+	require.NoError(t, err)
+	nextHeader := &block.MetaBlockV3{
+		Nonce:    tip.GetNonce() + 1,
+		PrevHash: tipHash,
+		Epoch:    tip.GetEpoch(),
+	}
+
+	err = metaProcessor.ProcessEconomicsDataForEpochStartProposeBlock(nextHeader)
+	require.NoError(t, err)
+	_, err = metaProcessor.CreateRewardsMiniBlocks(nextHeader, nil, &block.Economics{})
+	require.NoError(t, err)
+	_, err = metaProcessor.UpdatePeerState(nextHeader, map[string]data.HeaderHandler{
+		string(tipHash): tip,
+	})
+	require.NoError(t, err)
+	require.True(t, economicsChecked)
+	require.True(t, rewardsChecked)
+	require.True(t, validatorStatisticsChecked)
 }
 
 func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {

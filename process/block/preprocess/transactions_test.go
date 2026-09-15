@@ -270,6 +270,19 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 	}
 }
 
+func createAddressShardCoordinator() sharding.Coordinator {
+	coordinator := mock.NewMultiShardsCoordinatorMock(3)
+	coordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if len(address) == 0 {
+			return coordinator.SelfId()
+		}
+
+		return uint32(address[0])
+	}
+
+	return coordinator
+}
+
 func TestTxsPreprocessor_NewTransactionPreprocessorNilPool(t *testing.T) {
 	t.Parallel()
 
@@ -692,9 +705,9 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 	destinationShardId := uint32(1)
 
 	txsSlice := []*transaction.Transaction{
-		{Nonce: 1},
-		{Nonce: 2},
-		{Nonce: 3},
+		{Nonce: 1, SndAddr: []byte{0}, RcvAddr: []byte{1}},
+		{Nonce: 2, SndAddr: []byte{0}, RcvAddr: []byte{1}},
+		{Nonce: 3, SndAddr: []byte{0}, RcvAddr: []byte{1}},
 	}
 	transactionsHashes := make([][]byte, len(txsSlice))
 
@@ -720,6 +733,7 @@ func TestTransactionPreprocessor_GetAllTxsFromMiniBlockShouldWork(t *testing.T) 
 	)
 
 	txs := createGoodPreprocessor(dataPool)
+	txs.shardCoordinator = createAddressShardCoordinator()
 
 	mb := &block.MiniBlock{
 		SenderShardID:   senderShardId,
@@ -1618,7 +1632,7 @@ func createGoodPreprocessor(dataPool dataRetriever.PoolsHolder) *transactions {
 	return preprocessor
 }
 
-func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiverShards(t *testing.T) {
+func TestTransactionPreprocessor_ProcessTxsToMeShouldRejectShardMismatch(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinatorMock := mock.NewMultiShardsCoordinatorMock(3)
@@ -1670,12 +1684,172 @@ func TestTransactionPreprocessor_ProcessTxsToMeShouldUseCorrectSenderAndReceiver
 	assert.Equal(t, uint32(1), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
 
-	_ = preprocessor.ProcessTxsToMe(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash, TxCount: 1}}}, &body, haveTimeTrue)
+	err := preprocessor.ProcessTxsToMe(&block.Header{MiniBlockHeaders: []block.MiniBlockHeader{{Hash: miniBlockHash, TxCount: 1}}}, &body, haveTimeTrue)
+	require.ErrorIs(t, err, process.ErrShardIdMissmatch)
 
 	_, senderShardID, receiverShardID = preprocessor.GetTxInfoForCurrentBlock(txHash)
-	assert.Equal(t, uint32(2), senderShardID)
+	assert.Equal(t, uint32(1), senderShardID)
 	assert.Equal(t, uint32(0), receiverShardID)
-	assert.Equal(t, 1, calledCount)
+	assert.Equal(t, 0, calledCount)
+}
+
+func TestTransactionPreprocessor_ProcessBlockTransactionsShouldRejectShardMismatchBeforeExecution(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		asyncExecution bool
+		miniBlockType  block.Type
+		tx             *transaction.Transaction
+	}{
+		{
+			name:          "legacy transaction",
+			miniBlockType: block.TxBlock,
+			tx:            &transaction.Transaction{SndAddr: []byte{1}, RcvAddr: []byte{0}},
+		},
+		{
+			name:          "legacy transaction receiver",
+			miniBlockType: block.TxBlock,
+			tx:            &transaction.Transaction{SndAddr: []byte{0}, RcvAddr: []byte{1}},
+		},
+		{
+			name:           "async transaction",
+			asyncExecution: true,
+			miniBlockType:  block.TxBlock,
+			tx:             &transaction.Transaction{SndAddr: []byte{1}, RcvAddr: []byte{0}},
+		},
+		{
+			name:          "invalid transaction",
+			miniBlockType: block.InvalidBlock,
+			tx:            &transaction.Transaction{SndAddr: []byte{1}, RcvAddr: []byte{0}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			processCalls := 0
+			args := createDefaultTransactionsProcessorArgs()
+			args.ShardCoordinator = createAddressShardCoordinator()
+			args.TxProcessor = &testscommon.TxProcessorMock{
+				ProcessTransactionCalled: func(_ *transaction.Transaction) (vmcommon.ReturnCode, error) {
+					processCalls++
+					return vmcommon.Ok, nil
+				},
+			}
+			if test.asyncExecution {
+				args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SupernovaFlag)
+				args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+					IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+						return flag == common.SupernovaRoundFlag
+					},
+				}
+			}
+
+			preprocessor, err := NewTransactionPreprocessor(args)
+			require.NoError(t, err)
+
+			txHash := []byte("tx hash")
+			miniBlock := &block.MiniBlock{
+				TxHashes:        [][]byte{txHash},
+				SenderShardID:   0,
+				ReceiverShardID: 0,
+				Type:            test.miniBlockType,
+			}
+			preprocessor.AddTxForCurrentBlock(txHash, test.tx, miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+
+			var header data.HeaderHandler = &block.Header{}
+			if test.asyncExecution {
+				header = &block.HeaderV3{}
+			}
+
+			err = preprocessor.ProcessBlockTransactions(
+				header,
+				&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}},
+				haveTimeTrue,
+			)
+
+			require.ErrorIs(t, err, process.ErrShardIdMissmatch)
+			require.Zero(t, processCalls)
+		})
+	}
+}
+
+func TestTransactionPreprocessor_ProcessBlockTransactionsShouldAllowUnsplitReceiversWithAsyncExecution(t *testing.T) {
+	t.Parallel()
+
+	processCalls := 0
+	args := createDefaultTransactionsProcessorArgs()
+	args.ShardCoordinator = createAddressShardCoordinator()
+	args.TxProcessor = &testscommon.TxProcessorMock{
+		ProcessTransactionCalled: func(_ *transaction.Transaction) (vmcommon.ReturnCode, error) {
+			processCalls++
+			return vmcommon.Ok, nil
+		},
+	}
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SupernovaFlag)
+	args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return flag == common.SupernovaRoundFlag
+		},
+	}
+
+	preprocessor, err := NewTransactionPreprocessor(args)
+	require.NoError(t, err)
+
+	txHash := []byte("tx hash")
+	tx := &transaction.Transaction{SndAddr: []byte{0}, RcvAddr: []byte{2}}
+	miniBlock := &block.MiniBlock{
+		TxHashes:        [][]byte{txHash},
+		SenderShardID:   0,
+		ReceiverShardID: 0,
+		Type:            block.TxBlock,
+	}
+	preprocessor.AddTxForCurrentBlock(txHash, tx, miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+
+	err = preprocessor.ProcessBlockTransactions(
+		&block.HeaderV3{},
+		&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}},
+		haveTimeTrue,
+	)
+
+	require.NoError(t, err)
+	require.Equal(t, 1, processCalls)
+	createdMiniBlocks := preprocessor.GetCreatedMiniBlocksFromMe()
+	require.Len(t, createdMiniBlocks, 1)
+	require.Equal(t, uint32(0), createdMiniBlocks[0].SenderShardID)
+	require.Equal(t, uint32(2), createdMiniBlocks[0].ReceiverShardID)
+	require.Equal(t, [][]byte{txHash}, createdMiniBlocks[0].TxHashes)
+}
+
+func TestTransactionPreprocessor_ComputeTxsFromMeShouldAllowInvalidTxReceiverShardMismatch(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultTransactionsProcessorArgs()
+	args.ShardCoordinator = createAddressShardCoordinator()
+	preprocessor, err := NewTransactionPreprocessor(args)
+	require.NoError(t, err)
+
+	txHash := []byte("tx hash")
+	tx := &transaction.Transaction{SndAddr: []byte{0}, RcvAddr: []byte{2}}
+	miniBlock := &block.MiniBlock{
+		TxHashes:        [][]byte{txHash},
+		SenderShardID:   0,
+		ReceiverShardID: 0,
+		Type:            block.InvalidBlock,
+	}
+	preprocessor.AddTxForCurrentBlock(txHash, tx, miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+
+	txsFromMe, err := preprocessor.computeTxsFromMe(
+		&block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}},
+		true,
+	)
+
+	require.NoError(t, err)
+	require.Len(t, txsFromMe, 1)
+	require.Equal(t, uint32(0), txsFromMe[0].SenderShardID)
+	require.Equal(t, uint32(2), txsFromMe[0].ReceiverShardID)
 }
 
 func TestTransactionPreprocessor_ProcessTxsToMeEnforcesHistoricalDrainLimit(t *testing.T) {
@@ -1816,6 +1990,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeMissingTrieNode(t *testing.T) {
 	missingNodeErr := fmt.Errorf(core.GetNodeFromDBErrorString)
 
 	args := createDefaultTransactionsProcessorArgs()
+	args.ShardCoordinator = createAddressShardCoordinator()
 	args.Accounts = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return nil, missingNodeErr
@@ -1823,7 +1998,7 @@ func TestTransactionPreprocessor_ProcessTxsToMeMissingTrieNode(t *testing.T) {
 	}
 	preprocessor, _ := NewTransactionPreprocessor(args)
 
-	tx := transaction.Transaction{SndAddr: []byte("2"), RcvAddr: []byte("0")}
+	tx := transaction.Transaction{SndAddr: []byte{1}, RcvAddr: []byte{0}}
 	txHash, _ := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, tx)
 	miniBlock := &block.MiniBlock{
 		TxHashes:        [][]byte{txHash},
@@ -1852,13 +2027,13 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 					return &cache.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, []byte("tx_hash1")) {
-								return &transaction.Transaction{Nonce: 10}, true
+								return &transaction.Transaction{Nonce: 10, SndAddr: []byte{1}, RcvAddr: []byte{0}}, true
 							}
 							if reflect.DeepEqual(key, []byte("tx_hash2")) {
-								return &transaction.Transaction{Nonce: 11}, true
+								return &transaction.Transaction{Nonce: 11, SndAddr: []byte{1}, RcvAddr: []byte{0}}, true
 							}
 							if reflect.DeepEqual(key, []byte("tx_hash3")) {
-								return &transaction.Transaction{Nonce: 12}, true
+								return &transaction.Transaction{Nonce: 12, SndAddr: []byte{1}, RcvAddr: []byte{0}}, true
 							}
 							return nil, false
 						},
@@ -1872,6 +2047,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 		nbTxsProcessed := 0
 		maxBlockSize := 16
 		args := createDefaultTransactionsProcessorArgs()
+		args.ShardCoordinator = createAddressShardCoordinator()
 		args.TxProcessor = &testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				nbTxsProcessed++
@@ -1933,6 +2109,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	t.Run("with async execution", func(t *testing.T) {
 		nbTxsProcessed := 0
 		args := createDefaultTransactionsProcessorArgs()
+		args.ShardCoordinator = createAddressShardCoordinator()
 		args.TxProcessor = &testscommon.TxProcessorMock{
 			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
 				nbTxsProcessed++
@@ -2004,6 +2181,76 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 	})
 }
 
+func TestTransactionsPreprocessor_ProcessMiniBlockShouldRejectShardMismatchBeforeExecution(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		tx   *transaction.Transaction
+	}{
+		{
+			name: "sender mismatch",
+			tx:   &transaction.Transaction{SndAddr: []byte{2}, RcvAddr: []byte{0}},
+		},
+		{
+			name: "receiver mismatch",
+			tx:   &transaction.Transaction{SndAddr: []byte{1}, RcvAddr: []byte{2}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			processCalls := 0
+			args := createDefaultTransactionsProcessorArgs()
+			args.ShardCoordinator = createAddressShardCoordinator()
+			args.DataPool = &testscommon.ShardedDataStub{
+				ShardDataStoreCalled: func(_ string) storage.Cacher {
+					return &cache.CacherStub{
+						PeekCalled: func(_ []byte) (interface{}, bool) {
+							return test.tx, true
+						},
+					}
+				},
+			}
+			args.TxProcessor = &testscommon.TxProcessorMock{
+				ProcessTransactionCalled: func(_ *transaction.Transaction) (vmcommon.ReturnCode, error) {
+					processCalls++
+					return vmcommon.Ok, nil
+				},
+			}
+
+			preprocessor, err := NewTransactionPreprocessor(args)
+			require.NoError(t, err)
+
+			miniBlock := &block.MiniBlock{
+				ReceiverShardID: 0,
+				SenderShardID:   1,
+				TxHashes:        [][]byte{[]byte("tx hash")},
+				Type:            block.TxBlock,
+			}
+
+			processedHashes, lastProcessedIndex, shouldRevert, err := preprocessor.ProcessMiniBlock(
+				miniBlock,
+				haveTimeTrue,
+				haveAdditionalTimeFalse,
+				false,
+				false,
+				-1,
+				&testscommon.PreProcessorExecutionInfoHandlerMock{},
+				process.GasProcessingPolicy{},
+			)
+
+			require.ErrorIs(t, err, process.ErrShardIdMissmatch)
+			require.Empty(t, processedHashes)
+			require.Equal(t, -1, lastProcessedIndex)
+			require.False(t, shouldRevert)
+			require.Zero(t, processCalls)
+		})
+	}
+}
+
 func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDestMeTxsIsReached(t *testing.T) {
 	t.Parallel()
 
@@ -2014,7 +2261,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 					return &cache.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if reflect.DeepEqual(key, []byte("tx_hash1")) {
-								return &transaction.Transaction{}, true
+								return &transaction.Transaction{SndAddr: []byte{1}, RcvAddr: []byte{0}}, true
 							}
 							return nil, false
 						},
@@ -2025,6 +2272,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDes
 	}
 
 	args := createDefaultTransactionsProcessorArgs()
+	args.ShardCoordinator = createAddressShardCoordinator()
 	enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	args.EnableEpochsHandler = enableEpochsHandlerStub
 	args.DataPool = tdp.Transactions()
@@ -2080,7 +2328,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockScheduledRollsBackOnError(t *t
 				ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 					return &cache.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
-							return &transaction.Transaction{}, true
+							return &transaction.Transaction{SndAddr: []byte{1}, RcvAddr: []byte{0}}, true
 						},
 					}
 				},
@@ -2130,6 +2378,7 @@ func TestTransactionsPreprocessor_ProcessMiniBlockScheduledRollsBackOnError(t *t
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			args := createDefaultTransactionsProcessorArgs()
+			args.ShardCoordinator = createAddressShardCoordinator()
 			args.DataPool = tdp.Transactions()
 			txs, err := NewTransactionPreprocessor(args)
 			require.NoError(t, err)

@@ -20,7 +20,7 @@ type ExecutionManagerMock struct {
 	RemoveAtNonceAndHigherCalled                 func(nonce uint64) error
 	GetLastNotarizedExecutionResultCalled        func() (data.BaseExecutionResultHandler, error)
 	RemovePendingExecutionResultsFromNonceCalled func(nonce uint64) error
-	RewindExecutionStateToTipCalled              func(newTip data.HeaderHandler) error
+	RewindExecutionStateToTipCalled              func(newTip data.HeaderHandler, newTipHash []byte) error
 	GetSignalProcessCompletionChanCalled         func() chan uint64
 	PopDismissedResultsCalled                    func() []executionTrack.DismissedBatch
 	CloseCalled                                  func() error
@@ -105,9 +105,9 @@ func (emm *ExecutionManagerMock) RemovePendingExecutionResultsFromNonce(nonce ui
 }
 
 // RewindExecutionStateToTip -
-func (emm *ExecutionManagerMock) RewindExecutionStateToTip(newTip data.HeaderHandler) error {
+func (emm *ExecutionManagerMock) RewindExecutionStateToTip(newTip data.HeaderHandler, newTipHash []byte) error {
 	if emm.RewindExecutionStateToTipCalled != nil {
-		return emm.RewindExecutionStateToTipCalled(newTip)
+		return emm.RewindExecutionStateToTipCalled(newTip, newTipHash)
 	}
 	return nil
 }

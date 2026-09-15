@@ -791,6 +791,22 @@ func SortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccou
 	return outPutAccounts
 }
 
+// VMOutputValidationChecker validates the vmOutput for various input
+func VMOutputValidationChecker(vmOutput *vmcommon.VMOutput) error {
+	for key, acc := range vmOutput.OutputAccounts {
+		if acc == nil || !bytes.Equal([]byte(key), acc.Address) {
+			return ErrAccountAddressMismatch
+		}
+
+		for storeKey, storeUpdate := range acc.StorageUpdates {
+			if storeUpdate == nil || !bytes.Equal([]byte(storeKey), storeUpdate.Offset) {
+				return ErrAccountAddressMismatch
+			}
+		}
+	}
+	return nil
+}
+
 // GetSortedStorageUpdates returns the storage updates as a sorted list
 func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.StorageUpdate {
 	storageUpdates := make([]*vmcommon.StorageUpdate, len(account.StorageUpdates))

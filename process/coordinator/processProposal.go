@@ -175,7 +175,7 @@ func (tc *transactionCoordinator) getAOTSelection(nonce uint64) ([][]byte, []dat
 		return [][]byte{}, []data.TransactionHandler{}
 	}
 
-	log.Info("SelectOutgoingTransactions: using AOT pre-selected transactions",
+	log.Debug("SelectOutgoingTransactions: using AOT pre-selected transactions",
 		"nonce", nonce,
 		"numTxs", len(aotResult.TxHashes))
 
