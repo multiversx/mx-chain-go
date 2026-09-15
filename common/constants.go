@@ -839,6 +839,9 @@ const (
 	// MetricSupernovaEnableEpoch represents the epoch when supernova is enabled
 	MetricSupernovaEnableEpoch = "erd_supernova_enable_epoch"
 
+	// MetricFixEpochChangeProposedCurrentEpochEnableEpoch represents the epoch when epoch change proposed blocks expose the prepared epoch
+	MetricFixEpochChangeProposedCurrentEpochEnableEpoch = "erd_fix_epoch_change_proposed_current_epoch_enable_epoch"
+
 	// MetricSupernovaTransitionReady represents whether the shard is ready for or has completed the Supernova transition
 	MetricSupernovaTransitionReady = "erd_supernova_transition_ready"
 
@@ -1344,6 +1347,7 @@ const (
 	RelayedTransactionsV3FixESDTTransferFlag            core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
 	AndromedaFlag                                       core.EnableEpochFlag = "AndromedaFlag"
 	SupernovaFlag                                       core.EnableEpochFlag = "SupernovaFlag"
+	FixEpochChangeProposedCurrentEpochFlag              core.EnableEpochFlag = "FixEpochChangeProposedCurrentEpochFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
 	MaskInternalDependenciesErrorsFlag                  core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
 	FixBackTransferOPCODEFlag                           core.EnableEpochFlag = "FixBackTransferOPCODEFlag"

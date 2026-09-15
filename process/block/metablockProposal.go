@@ -257,7 +257,8 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrEpochChangeProposedOutsideTriggerWindow
 	}
 
-	if header.IsEpochChangeProposed() && len(body.MiniBlocks) != 0 {
+	if len(body.MiniBlocks) != 0 &&
+		(header.IsStartOfEpochBlock() || header.IsEpochChangeProposed() || mp.epochStartTrigger.GetEpochChangeProposed()) {
 		return process.ErrEpochStartProposeBlockHasMiniBlocks
 	}
 
