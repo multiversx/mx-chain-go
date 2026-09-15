@@ -43,17 +43,6 @@ func (f *fixture) validatorKey(address []byte) (string, string) {
 	return publicKeys[0], hexArg(signature)
 }
 
-func (f *fixture) stakeValidator(owner *integrationTests.TestWalletAccount) string {
-	f.t.Helper()
-	f.fund(owner, egld(10000))
-	key, signature := f.validatorKey(owner.Address)
-	f.success(f.call(owner, vm.ValidatorSCAddress, egld(2500), "stake@01@"+key+"@"+signature))
-	decoded, err := hex.DecodeString(key)
-	require.NoError(f.t, err)
-	require.Equal(f.t, "staked", staking.GetBLSKeyStatus(f.t, f.cs.GetNodeHandler(core.MetachainShardId), decoded))
-	return key
-}
-
 func TestSupernovaSmokeValidatorLifecycle(t *testing.T) {
 	f := newFixture(t, stakingConfig)
 	owner := f.wallet(0)
