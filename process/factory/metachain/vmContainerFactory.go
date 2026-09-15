@@ -46,6 +46,7 @@ type vmContainerFactory struct {
 	enableEpochsHandler    common.EnableEpochsHandler
 	enableRoundsHandler    common.EnableRoundsHandler
 	nodesCoordinator       vm.NodesCoordinator
+	isImportDBMode         bool
 }
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
@@ -67,6 +68,7 @@ type ArgsNewVMContainerFactory struct {
 	EnableEpochsHandler common.EnableEpochsHandler
 	EnableRoundsHandler common.EnableRoundsHandler
 	NodesCoordinator    vm.NodesCoordinator
+	IsImportDBMode      bool
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -140,6 +142,7 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 		enableEpochsHandler:    args.EnableEpochsHandler,
 		enableRoundsHandler:    args.EnableRoundsHandler,
 		nodesCoordinator:       args.NodesCoordinator,
+		isImportDBMode:         args.IsImportDBMode,
 	}, nil
 }
 
@@ -215,6 +218,7 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		EnableEpochsHandler:    vmf.enableEpochsHandler,
 		EnableRoundsHandler:    vmf.enableRoundsHandler,
 		NodesCoordinator:       vmf.nodesCoordinator,
+		IsImportDBMode:         vmf.isImportDBMode,
 	}
 	scFactory, err := systemVMFactory.NewSystemSCFactory(argsNewSystemScFactory)
 	if err != nil {

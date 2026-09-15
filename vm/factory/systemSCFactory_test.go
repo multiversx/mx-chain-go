@@ -214,10 +214,12 @@ func TestNewSystemSCFactory_Ok(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockNewSystemScFactoryArgs()
+	arguments.IsImportDBMode = true
 	scFactory, err := NewSystemSCFactory(arguments)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, scFactory)
+	assert.True(t, scFactory.isImportDBMode)
 }
 
 func TestNewSystemSCFactory_GasScheduleChangeMissingElementsShouldNotPanic(t *testing.T) {

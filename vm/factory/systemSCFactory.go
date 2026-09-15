@@ -33,6 +33,7 @@ type systemSCFactory struct {
 	enableEpochsHandler    common.EnableEpochsHandler
 	enableRoundsHandler    common.EnableRoundsHandler
 	nodesCoordinator       vm.NodesCoordinator
+	isImportDBMode         bool
 }
 
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
@@ -50,6 +51,7 @@ type ArgsNewSystemSCFactory struct {
 	EnableEpochsHandler    common.EnableEpochsHandler
 	EnableRoundsHandler    common.EnableRoundsHandler
 	NodesCoordinator       vm.NodesCoordinator
+	IsImportDBMode         bool
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
@@ -101,6 +103,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		enableEpochsHandler:    args.EnableEpochsHandler,
 		enableRoundsHandler:    args.EnableRoundsHandler,
 		nodesCoordinator:       args.NodesCoordinator,
+		isImportDBMode:         args.IsImportDBMode,
 	}
 
 	err := scf.createGasConfig(args.GasSchedule.LatestGasSchedule())
@@ -273,6 +276,7 @@ func (scf *systemSCFactory) createDelegationContract() (vm.SystemSmartContract, 
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		AddTokensAddress:       addTokensAddress,
 		EnableEpochsHandler:    scf.enableEpochsHandler,
+		IsImportDBMode:         scf.isImportDBMode,
 	}
 	delegation, err := systemSmartContracts.NewDelegationSystemSC(argsDelegation)
 	return delegation, err
@@ -295,6 +299,7 @@ func (scf *systemSCFactory) createDelegationManagerContract() (vm.SystemSmartCon
 		GasCost:                scf.gasCost,
 		Marshalizer:            scf.marshalizer,
 		EnableEpochsHandler:    scf.enableEpochsHandler,
+		IsImportDBMode:         scf.isImportDBMode,
 	}
 	delegationManager, err := systemSmartContracts.NewDelegationManagerSystemSC(argsDelegationManager)
 	return delegationManager, err
