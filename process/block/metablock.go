@@ -3268,8 +3268,8 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	return metaBlock
 }
 
-func (mp *metaProcessor) ForceStart(metaHdr *block.MetaBlock) {
-	forceEpochTrigger := mp.epochStartTrigger.(update.EpochHandler)
+func (mp *metaProcessor) ForceStart(metaHdr data.MetaHeaderHandler) {
+	forceEpochTrigger, _ := mp.epochStartTrigger.(update.EpochHandler)
 
 	txBlockTxs := mp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 
@@ -3307,7 +3307,7 @@ func (mp *metaProcessor) ForceStart(metaHdr *block.MetaBlock) {
 	}
 }
 
-func (mp *metaProcessor) epochsFastForward(metaHdr *block.MetaBlock, tokens []string) {
+func (mp *metaProcessor) epochsFastForward(metaHdr data.MetaHeaderHandler, tokens []string) {
 	epochs, err := strconv.ParseInt(tokens[1], 10, 64)
 	if err != nil {
 		log.Error("epochfastforward", "epochs could not be parsed", tokens[1])
