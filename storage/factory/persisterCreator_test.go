@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"fmt"
+	"path"
 	"strings"
 	"testing"
 
@@ -46,9 +47,10 @@ func TestPersisterCreator_Create(t *testing.T) {
 
 		pc := factory.NewPersisterCreator(conf)
 
-		p, err := pc.Create("path1")
+		p, err := pc.Create(path.Join(t.TempDir(), "path1"))
 		require.Nil(t, err)
 		require.NotNil(t, p)
+		_ = p.Close()
 	})
 
 	t.Run("should create non sharded persister", func(t *testing.T) {

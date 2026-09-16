@@ -82,7 +82,7 @@ func TestPersisterFactory_CreateWithRetries(t *testing.T) {
 	t.Run("wrong config should error", func(t *testing.T) {
 		t.Parallel()
 
-		path := "TEST"
+		path := path.Join(t.TempDir(), "TEST")
 		dbConfig := createDefaultDBConfig()
 		dbConfig.Type = "invalid type"
 
@@ -186,6 +186,65 @@ func TestPersisterFactory_Create_ConfigSaveToFilePath(t *testing.T) {
 		require.Nil(t, err)
 
 		_, err = os.Stat(path)
+		require.True(t, os.IsNotExist(err))
+	})
+}
+
+func TestPersisterFactory_Create_ConfigBeforeEngine(t *testing.T) {
+	t.Parallel()
+
+	t.Run("legacy goleveldb dir without config file gets the config written", func(t *testing.T) {
+		t.Parallel()
+
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
+		dir := t.TempDir()
+
+		p, err := pf.Create(dir)
+		require.Nil(t, err)
+		require.Nil(t, p.Close())
+
+		configPath := factory.GetPersisterConfigFilePath(dir)
+		require.Nil(t, os.Remove(configPath))
+
+		p, err = pf.Create(dir)
+		require.Nil(t, err)
+		require.Nil(t, p.Close())
+
+		_, err = os.Stat(configPath)
+		require.Nil(t, err)
+	})
+
+	t.Run("dir with files of another engine and no config file, should fail without touching it", func(t *testing.T) {
+		t.Parallel()
+
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
+		dir := t.TempDir()
+		foreignFile := path.Join(dir, "000004.sst")
+		require.Nil(t, os.WriteFile(foreignFile, []byte("engine data"), 0600))
+
+		p, err := pf.Create(dir)
+		require.Nil(t, p)
+		require.ErrorContains(t, err, "unsupported db engine")
+
+		entries, err := os.ReadDir(dir)
+		require.Nil(t, err)
+		require.Len(t, entries, 1)
+		require.Equal(t, "000004.sst", entries[0].Name())
+	})
+
+	t.Run("unsupported type leaves no config file behind", func(t *testing.T) {
+		t.Parallel()
+
+		dbConfig := createDefaultDBConfig()
+		dbConfig.Type = "invalid type"
+		pf, _ := factory.NewPersisterFactory(dbConfig)
+		dir := path.Join(t.TempDir(), "storer")
+
+		p, err := pf.Create(dir)
+		require.Nil(t, p)
+		require.Equal(t, common.ErrNotSupportedDBType, err)
+
+		_, err = os.Stat(dir)
 		require.True(t, os.IsNotExist(err))
 	})
 }

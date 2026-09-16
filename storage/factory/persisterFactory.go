@@ -65,14 +65,19 @@ func (pf *persisterFactory) Create(path string) (storage.Persister, error) {
 	}
 
 	pc := newPersisterCreator(*dbConfig)
+	if !isKnownPersistentDBType(dbConfig.Type) {
+		return pc.Create(path)
+	}
 
-	persister, err := pc.Create(path)
+	// written before the engine creates any file, so a crash cannot leave an engine-less directory
+	err = pf.dbConfigHandler.SaveDBConfigToFilePath(path, dbConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	err = pf.dbConfigHandler.SaveDBConfigToFilePath(path, dbConfig)
+	persister, err := pc.Create(path)
 	if err != nil {
+		removeConfigIfAlone(path)
 		return nil, err
 	}
 
