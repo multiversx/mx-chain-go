@@ -202,6 +202,13 @@
     # it is a good idea to increase the maximum number of opened files allowed by the operating system
     FullArchiveNumActivePersisters = 10
 
+[StorageEngine]
+    # SharedCacheSizeMB is the block cache shared by all persisters of type PebbleDB; 0 gives each persister
+    # a small private cache
+    SharedCacheSizeMB = 256
+    # SharedFileCacheSize is the number of open sstables kept across all persisters of type PebbleDB
+    SharedFileCacheSize = 4096
+
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Name = "MiniBlocksStorage"

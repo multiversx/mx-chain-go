@@ -1,23 +1,27 @@
 package factory
 
 import (
+	"github.com/multiversx/mx-chain-storage-go/factory"
+	"github.com/multiversx/mx-chain-storage-go/pebbledb"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-storage-go/factory"
 )
 
 const minNumShards = 2
 
 // persisterCreator is the factory which will handle creating new persisters
 type persisterCreator struct {
-	conf config.DBConfig
+	conf            config.DBConfig
+	pebbleResources *pebbledb.SharedResources
 }
 
-func newPersisterCreator(config config.DBConfig) *persisterCreator {
+func newPersisterCreator(config config.DBConfig, pebbleResources *pebbledb.SharedResources) *persisterCreator {
 	return &persisterCreator{
-		conf: config,
+		conf:            config,
+		pebbleResources: pebbleResources,
 	}
 }
 
@@ -49,6 +53,8 @@ func (pc *persisterCreator) CreateBasePersister(path string) (storage.Persister,
 		MaxBatchSize:          pc.conf.MaxBatchSize,
 		MaxOpenFiles:          pc.conf.MaxOpenFiles,
 		BloomFilterBitsPerKey: pc.conf.BloomFilterBitsPerKey,
+		PebbleProfile:         pc.conf.PebbleProfile,
+		PebbleResources:       pc.pebbleResources,
 	}
 
 	return storageunit.NewDB(argsDB)

@@ -26,8 +26,8 @@ const (
 )
 
 var (
-	errInvalidConfiguration = errors.New("invalid configuration")
-	errUnknownDBLayout      = errors.New("directory holds files of an unsupported db engine")
+	errInvalidConfiguration       = errors.New("invalid configuration")
+	errShardedLayoutWithoutConfig = errors.New("sharded persister directory without config file")
 )
 
 type dbConfigHandler struct {
@@ -74,6 +74,7 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 		MaxOpenFiles:          dh.conf.MaxOpenFiles,
 		UseTmpAsFilePath:      dh.conf.UseTmpAsFilePath,
 		BloomFilterBitsPerKey: dh.conf.BloomFilterBitsPerKey,
+		PebbleProfile:         dh.conf.PebbleProfile,
 	}
 
 	log.Debug("GetDBConfig: loaded default db config",
@@ -91,6 +92,9 @@ func (dh *dbConfigHandler) withMainConfigTuning(persisted *config.DBConfig) *con
 	dbConfig.MaxBatchSize = positiveOrFallback(dh.conf.MaxBatchSize, persisted.MaxBatchSize)
 	dbConfig.MaxOpenFiles = positiveOrFallback(dh.conf.MaxOpenFiles, persisted.MaxOpenFiles)
 	dbConfig.BloomFilterBitsPerKey = dh.conf.BloomFilterBitsPerKey
+	if len(dh.conf.PebbleProfile) > 0 {
+		dbConfig.PebbleProfile = dh.conf.PebbleProfile
+	}
 
 	return &dbConfig
 }
@@ -103,48 +107,28 @@ func positiveOrFallback(value int, fallback int) int {
 	return fallback
 }
 
-// detectLegacyEngineType refuses a config-less directory holding another engine's files, so the
-// goleveldb open (and its automatic recovery) never touches it
+// detectLegacyEngineType classifies a config-less directory by its files, so the goleveldb open (and
+// its automatic recovery) never touches a pebble directory; a sharded layout cannot be inferred
 func detectLegacyEngineType(path string) (string, error) {
-	foreign, err := holdsForeignEngineFiles(path)
+	entries, err := os.ReadDir(path)
 	if err != nil {
 		return "", err
 	}
-	if foreign {
-		return "", errUnknownDBLayout
-	}
 
-	return defaultType, nil
-}
-
-// holdsForeignEngineFiles also descends into sub directories for the sharded layout
-func holdsForeignEngineFiles(path string) (bool, error) {
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		return false, err
-	}
-
+	engineType := defaultType
 	for _, entry := range entries {
 		if entry.IsDir() {
-			foreign, errSub := holdsForeignEngineFiles(filepath.Join(path, entry.Name()))
-			if errSub != nil {
-				return false, errSub
-			}
-			if foreign {
-				return true, nil
-			}
-			continue
+			return "", errShardedLayoutWithoutConfig
 		}
-
 		if isForeignEngineFile(entry.Name()) {
-			return true, nil
+			engineType = string(storageunit.PebbleDB)
 		}
 	}
 
-	return false, nil
+	return engineType, nil
 }
 
-// isForeignEngineFile matches file names goleveldb never produces (pebble/rocksdb naming)
+// isForeignEngineFile matches file names goleveldb never produces (pebble naming)
 func isForeignEngineFile(name string) bool {
 	return strings.HasPrefix(name, "OPTIONS-") ||
 		strings.HasPrefix(name, "marker.") ||
@@ -236,7 +220,7 @@ func syncDir(dirPath string) error {
 // isKnownPersistentDBType is an allow list: an unknown type must fail without leaving a config behind
 func isKnownPersistentDBType(dbType string) bool {
 	switch storageunit.DBType(dbType) {
-	case storageunit.LvlDB, storageunit.LvlDBSerial:
+	case storageunit.LvlDB, storageunit.LvlDBSerial, storageunit.PebbleDB:
 		return true
 	default:
 		return false

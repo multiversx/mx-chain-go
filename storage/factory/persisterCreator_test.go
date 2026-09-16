@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-storage-go/pebbledb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -122,6 +123,20 @@ func TestPersisterCreator_CreateBasePersister(t *testing.T) {
 		require.Nil(t, err)
 
 		assert.True(t, strings.Contains(fmt.Sprintf("%T", p), "*leveldb.SerialDB"))
+	})
+
+	t.Run("pebbledb", func(t *testing.T) {
+		t.Parallel()
+
+		conf := createDefaultBasePersisterConfig()
+		conf.Type = string(storageunit.PebbleDB)
+		conf.PebbleProfile = pebbledb.HeavyWriteProfile
+		pc := factory.NewPersisterCreator(conf)
+
+		p, err := pc.CreateBasePersister(t.TempDir())
+		require.Nil(t, err)
+		require.Equal(t, "*pebbledb.DB", fmt.Sprintf("%T", p))
+		require.Nil(t, p.Close())
 	})
 
 	t.Run("memorydb", func(t *testing.T) {

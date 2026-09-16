@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -95,21 +96,24 @@ func TestDBConfigHandler_GetDBConfig(t *testing.T) {
 		require.Equal(t, factory.DefaultType, conf.Type)
 		require.Equal(t, 10, conf.BloomFilterBitsPerKey)
 	})
-	t.Run("legacy dir with files of another engine, should error", func(t *testing.T) {
+	t.Run("legacy dir with pebble files, should resolve to pebble", func(t *testing.T) {
 		t.Parallel()
 
-		pf := factory.NewDBConfigHandler(createDefaultDBConfig())
+		testConfig := createDefaultDBConfig()
+		testConfig.PebbleProfile = "profile"
+		pf := factory.NewDBConfigHandler(testConfig)
 
-		for _, foreignFile := range []string{"OPTIONS-000003", "000004.sst", "marker.manifest.000001.MANIFEST-000001", "000005.blob"} {
+		for _, pebbleFile := range []string{"OPTIONS-000003", "000004.sst", "marker.manifest.000001.MANIFEST-000001", "000005.blob"} {
 			dirPath := t.TempDir()
-			createEmptyFiles(t, dirPath, "MANIFEST-000001", "000002.log", foreignFile)
+			createEmptyFiles(t, dirPath, "MANIFEST-000001", "000002.log", pebbleFile)
 
 			conf, err := pf.GetDBConfig(dirPath)
-			require.Nil(t, conf, foreignFile)
-			require.ErrorContains(t, err, "unsupported db engine", foreignFile)
+			require.Nil(t, err, pebbleFile)
+			require.Equal(t, string(storageunit.PebbleDB), conf.Type, pebbleFile)
+			require.Equal(t, "profile", conf.PebbleProfile, pebbleFile)
 		}
 	})
-	t.Run("legacy sharded dir with files of another engine in a shard, should error", func(t *testing.T) {
+	t.Run("legacy sharded dir without config file, should error", func(t *testing.T) {
 		t.Parallel()
 
 		pf := factory.NewDBConfigHandler(createDefaultDBConfig())
@@ -117,11 +121,30 @@ func TestDBConfigHandler_GetDBConfig(t *testing.T) {
 		dirPath := t.TempDir()
 		shardPath := path.Join(dirPath, "1")
 		require.Nil(t, os.Mkdir(shardPath, 0700))
-		createEmptyFiles(t, shardPath, "000004.sst")
+		createEmptyFiles(t, shardPath, "000004.ldb")
 
 		conf, err := pf.GetDBConfig(dirPath)
 		require.Nil(t, conf)
-		require.ErrorContains(t, err, "unsupported db engine")
+		require.ErrorContains(t, err, "sharded persister directory without config file")
+	})
+	t.Run("pebble profile: main config wins, empty main config keeps the file profile", func(t *testing.T) {
+		t.Parallel()
+
+		dirPath := t.TempDir()
+		persisted := createDefaultDBConfig()
+		persisted.PebbleProfile = "fromFile"
+		require.Nil(t, core.SaveTomlFile(persisted, factory.GetPersisterConfigFilePath(dirPath)))
+
+		mainConfig := createDefaultDBConfig()
+		mainConfig.PebbleProfile = "fromMain"
+		conf, err := factory.NewDBConfigHandler(mainConfig).GetDBConfig(dirPath)
+		require.Nil(t, err)
+		require.Equal(t, "fromMain", conf.PebbleProfile)
+
+		mainConfig.PebbleProfile = ""
+		conf, err = factory.NewDBConfigHandler(mainConfig).GetDBConfig(dirPath)
+		require.Nil(t, err)
+		require.Equal(t, "fromFile", conf.PebbleProfile)
 	})
 	t.Run("not empty dir, load default provided config", func(t *testing.T) {
 		t.Parallel()

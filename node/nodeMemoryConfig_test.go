@@ -45,6 +45,7 @@ func TestMemoryConfig(t *testing.T) {
 	// One cache for each pair (meta, shard)
 	plannedMemory += nodeConfig.RewardTransactionDataPool.SizeInBytes * uint64(numShards)
 	plannedMemory += nodeConfig.ValidatorInfoPool.SizeInBytes
+	plannedMemory += uint64(nodeConfig.StorageEngine.SharedCacheSizeMB) * core.MegabyteSize
 
 	require.LessOrEqual(t, int(plannedMemory), 3000*core.MegabyteSize)
 }

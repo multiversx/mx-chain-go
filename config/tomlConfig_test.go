@@ -1541,3 +1541,26 @@ func TestEnableRoundsConfig(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCfg, cfg)
 }
+
+func TestTomlParser_StorageEngineAndPebbleProfile(t *testing.T) {
+	t.Parallel()
+
+	testString := `
+[StorageEngine]
+    SharedCacheSizeMB = 256
+    SharedFileCacheSize = 4096
+
+[TxStorage]
+    [TxStorage.DB]
+        FilePath = "Transactions"
+        Type = "PebbleDB"
+        PebbleProfile = "heavy-write"
+`
+	cfg := Config{}
+	err := toml.Unmarshal([]byte(testString), &cfg)
+	require.Nil(t, err)
+	require.Equal(t, uint32(256), cfg.StorageEngine.SharedCacheSizeMB)
+	require.Equal(t, uint32(4096), cfg.StorageEngine.SharedFileCacheSize)
+	require.Equal(t, "PebbleDB", cfg.TxStorage.DB.Type)
+	require.Equal(t, "heavy-write", cfg.TxStorage.DB.PebbleProfile)
+}

@@ -68,6 +68,15 @@ type DBConfig struct {
 	// BloomFilterBitsPerKey == 0, the Bloom filter is disabled.
 	// Otherwise, it specifies the number of bits per key used by the Bloom filter.
 	BloomFilterBitsPerKey int
+	// PebbleProfile selects the pebble tuning profile for the PebbleDB type; empty means the default profile
+	PebbleProfile string
+}
+
+// StorageEngineConfig holds the process-wide resources shared by the pebble persisters
+type StorageEngineConfig struct {
+	// SharedCacheSizeMB == 0 gives each pebble persister a small private cache instead of one shared cache
+	SharedCacheSizeMB   uint32
+	SharedFileCacheSize uint32
 }
 
 // StorageConfig will map the storage unit configuration
@@ -254,6 +263,7 @@ type Config struct {
 	GeneralSettings      GeneralSettingsConfig
 	Consensus            ConsensusConfig
 	StoragePruning       StoragePruningConfig
+	StorageEngine        StorageEngineConfig
 	LogsAndEvents        LogsAndEventsConfig
 	HardwareRequirements HardwareRequirementsConfig
 
