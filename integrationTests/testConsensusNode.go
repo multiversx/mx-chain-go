@@ -519,7 +519,7 @@ func (tcn *TestConsensusNode) initInterceptors(
 
 	cacherVerifiedCfg := storageunit.CacheConfig{Capacity: 5000, Type: storageunit.LRUCache, Shards: 1}
 	cacheVerified, _ := storageunit.NewCache(cacherVerifiedCfg)
-	whiteListerVerifiedTxs, _ := interceptors.NewWhiteListDataVerifier(cacheVerified)
+	whiteListerVerifiedTxs, _ := interceptors.NewWhiteListDataVerifier(cacheVerified, 0)
 
 	interceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:                          coreComponents,

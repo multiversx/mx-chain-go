@@ -780,7 +780,7 @@ func (txProc *txProcessor) processRelayedTxV2(
 
 	userTx := makeUserTxFromRelayedTxV2Args(args)
 	userTx.GasPrice = tx.GasPrice
-	userTx.GasLimit = tx.GasLimit - txProc.economicsFee.ComputeGasLimit(tx)
+	userTx.GasLimit = computeProcessingGasForInnerTx(tx.GasLimit, txProc.economicsFee.ComputeGasLimit(tx))
 	userTx.SndAddr = tx.RcvAddr
 
 	return txProc.finishExecutionOfRelayedTx(relayerAcnt, acntDst, tx, userTx)
@@ -818,7 +818,7 @@ func (txProc *txProcessor) processRelayedTx(
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, acntDst, process.ErrRelayedGasPriceMissmatch)
 	}
 
-	remainingGasLimit := tx.GasLimit - txProc.economicsFee.ComputeGasLimit(tx)
+	remainingGasLimit := computeProcessingGasForInnerTx(tx.GasLimit, txProc.economicsFee.ComputeGasLimit(tx))
 	if userTx.GasLimit != remainingGasLimit {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, acntDst, process.ErrRelayedTxGasLimitMissmatch)
 	}
@@ -1120,7 +1120,7 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 
 	totalFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, userTx.GasLimit)
 	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(userTx)
-	gasToUse := userTx.GetGasLimit() - moveBalanceGasLimit
+	gasToUse := computeProcessingGasForInnerTx(userTx.GetGasLimit(), moveBalanceGasLimit)
 	processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, gasToUse)
 	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
 		moveBalanceUserFee := txProc.economicsFee.ComputeMoveBalanceFee(userTx)

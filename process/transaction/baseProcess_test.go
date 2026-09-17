@@ -365,3 +365,82 @@ func Test_CheckSetGuardianExecutable(t *testing.T) {
 		require.Nil(t, err)
 	})
 }
+
+func Test_computeProcessingGasForInnerTx(t *testing.T) {
+	t.Parallel()
+
+	t.Run("gas limit above the move balance cost should subtract", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, uint64(49950), computeProcessingGasForInnerTx(100000, 50050))
+	})
+	t.Run("gas limit equal to the move balance cost should return 0", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, uint64(0), computeProcessingGasForInnerTx(50050, 50050))
+	})
+	t.Run("gas limit below the move balance cost should return 0 instead of wrapping", func(t *testing.T) {
+		t.Parallel()
+
+		// the derived inner gas limit of a relayed v2 tx is not signed by the user and can be arbitrarily
+		// small; an unchecked subtraction would yield ~2^64 here
+		assert.Equal(t, uint64(0), computeProcessingGasForInnerTx(10, 50050))
+		assert.Equal(t, uint64(0), computeProcessingGasForInnerTx(0, 1))
+	})
+}
+
+func Test_computeInnerTxFeeAfterBaseCostFixShouldNotUnderflow(t *testing.T) {
+	t.Parallel()
+
+	moveBalanceGasLimit := uint64(50050)
+	moveBalanceFee := big.NewInt(1000)
+	gasPrice := uint64(1000000000)
+
+	createProcessor := func(gasToUseRecorder *uint64) *baseTxProcessor {
+		baseProc := createMockBaseTxProcessor()
+		baseProc.txTypeHandler = &testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+				return process.SCInvoking, process.SCInvoking, false
+			},
+		}
+		baseProc.economicsFee = &economicsmocks.EconomicsHandlerMock{
+			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
+				return moveBalanceGasLimit
+			},
+			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return moveBalanceFee
+			},
+			ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
+				*gasToUseRecorder = gasToUse
+				return big.NewInt(0).Mul(big.NewInt(0).SetUint64(gasToUse), big.NewInt(0).SetUint64(gasPrice))
+			},
+		}
+
+		return baseProc
+	}
+
+	t.Run("under-gassed inner tx should not inflate the fee", func(t *testing.T) {
+		t.Parallel()
+
+		gasToUse := uint64(0)
+		baseProc := createProcessor(&gasToUse)
+
+		// an inner gas limit far below the tx's own minimum, as a relayed v2 derivation can produce
+		fee := baseProc.computeInnerTxFeeAfterBaseCostFix(&transaction.Transaction{GasLimit: 10, GasPrice: gasPrice})
+
+		assert.Equal(t, uint64(0), gasToUse)
+		assert.Equal(t, moveBalanceFee, fee)
+	})
+	t.Run("properly gassed inner tx should be unaffected", func(t *testing.T) {
+		t.Parallel()
+
+		gasToUse := uint64(0)
+		baseProc := createProcessor(&gasToUse)
+
+		fee := baseProc.computeInnerTxFeeAfterBaseCostFix(&transaction.Transaction{GasLimit: 100000, GasPrice: gasPrice})
+
+		expectedProcessingFee := big.NewInt(0).Mul(big.NewInt(49950), big.NewInt(0).SetUint64(gasPrice))
+		assert.Equal(t, uint64(49950), gasToUse)
+		assert.Equal(t, big.NewInt(0).Add(moveBalanceFee, expectedProcessingFee), fee)
+	})
+}

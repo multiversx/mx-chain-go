@@ -279,12 +279,29 @@ func (txProc *baseTxProcessor) computeInnerTxFeeAfterBaseCostFix(tx *transaction
 	}
 
 	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
-	gasToUse := tx.GetGasLimit() - moveBalanceGasLimit
+	gasToUse := computeProcessingGasForInnerTx(tx.GetGasLimit(), moveBalanceGasLimit)
 	moveBalanceUserFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
 	processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(tx, gasToUse)
 	txFee := big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
 
 	return txFee
+}
+
+// computeProcessingGasForInnerTx returns the gas an inner transaction has left for processing, after covering
+// its own move balance cost. An inner transaction whose gas limit does not even cover its move balance has no
+// processing gas at all: without this guard the unsigned subtraction wraps around and the derived fee becomes
+// gasPrice * ~2^64, an amount no account ever paid.
+func computeProcessingGasForInnerTx(gasLimit uint64, moveBalanceGasLimit uint64) uint64 {
+	gasToUse, err := core.SafeSubUint64(gasLimit, moveBalanceGasLimit)
+	if err != nil {
+		log.Warn("computeProcessingGasForInnerTx: inner tx gas limit does not cover its move balance cost",
+			"gas limit", gasLimit,
+			"move balance gas limit", moveBalanceGasLimit,
+		)
+		return 0
+	}
+
+	return gasToUse
 }
 
 func (txProc *baseTxProcessor) checkUserNames(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {

@@ -258,6 +258,9 @@ var TimeSpanForBadHeaders = time.Second * 30
 // roundDuration defines the duration of the round
 const roundDuration = 5 * time.Second
 
+// whiteListRequestTTL defines the lifespan of a whitelist entry added by a data request
+var whiteListRequestTTL = interceptors.WhiteListRequestTTL(roundDuration)
+
 // ChainID is the chain ID identifier used in integration tests, processing nodes
 var ChainID = []byte("integration tests chain ID")
 
@@ -1217,11 +1220,11 @@ func (tpn *TestProcessorNode) initDataPools() {
 	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
 	suCache, _ := storageunit.NewCache(cacherCfg)
-	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
+	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache, whiteListRequestTTL)
 
 	cacherVerifiedCfg := storageunit.CacheConfig{Capacity: 5000, Type: storageunit.LRUCache, Shards: 1}
 	cacheVerified, _ := storageunit.NewCache(cacherVerifiedCfg)
-	tpn.WhiteListerVerifiedTxs, _ = interceptors.NewWhiteListDataVerifier(cacheVerified)
+	tpn.WhiteListerVerifiedTxs, _ = interceptors.NewWhiteListDataVerifier(cacheVerified, 0)
 }
 
 func (tpn *TestProcessorNode) initStorage() {
