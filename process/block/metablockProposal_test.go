@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/require"
 
@@ -36,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
@@ -5877,6 +5879,109 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Equal(t, 0, len(metaExecutionResult.MiniBlockHeaders))
 		require.Equal(t, uint64(0), metaExecutionResult.GetExecutedTxCount())
 	})
+}
+
+func TestMetaProcessor_ProcessBlockProposal_EpochsFastForward(t *testing.T) {
+	t.Parallel()
+
+	cutoffErr := errors.New("cutoff error")
+	for _, test := range []struct {
+		name           string
+		command        string
+		receiver       []byte
+		cutoffErr      error
+		expectedRounds []uint64
+	}{
+		{
+			name:           "continues across proposals and stops after requested epochs",
+			command:        "epochsFastForward@2@8",
+			receiver:       vm.ValidatorSCAddress,
+			expectedRounds: []uint64{8, 16},
+		},
+		{
+			name:           "respects minimum rounds per epoch",
+			command:        "epochsFastForward@2@1",
+			receiver:       vm.ValidatorSCAddress,
+			expectedRounds: []uint64{4, 8},
+		},
+		{
+			name:     "ignores other receivers",
+			command:  "epochsFastForward@2@8",
+			receiver: []byte("other receiver"),
+		},
+		{
+			name:     "ignores incomplete commands",
+			command:  "epochsFastForward@2",
+			receiver: vm.ValidatorSCAddress,
+		},
+		{
+			name:      "failed proposal does not enable fast forward",
+			command:   "epochsFastForward@2@8",
+			receiver:  vm.ValidatorSCAddress,
+			cutoffErr: cutoffErr,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+			lastHeader := &block.MetaBlockV3{}
+			dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+				GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+					return lastHeader.Nonce, nil, nil
+				},
+				GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+					return &block.MetaExecutionResult{
+						ExecutionResult: &block.BaseMetaExecutionResult{
+							AccumulatedFeesInEpoch: big.NewInt(0),
+							DevFeesInEpoch:         big.NewInt(0),
+						},
+					}
+				},
+				GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+					return lastHeader
+				},
+			}
+			arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+			var forcedRounds []uint64
+			arguments.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
+				ForceEpochStartCalled: func(round uint64) {
+					forcedRounds = append(forcedRounds, round)
+				},
+			}
+			usedTxs := map[string]data.TransactionHandler{
+				"fast forward": &transaction.Transaction{RcvAddr: test.receiver, Data: []byte(test.command)},
+			}
+			arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+				GetAllCurrentUsedTxsCalled: func(blockType block.Type) map[string]data.TransactionHandler {
+					if blockType == block.TxBlock {
+						return usedTxs
+					}
+					return nil
+				},
+			}
+			currentCutoffErr := test.cutoffErr
+			arguments.BlockProcessingCutoffHandler = &testscommon.BlockProcessingCutoffStub{
+				HandleProcessErrorCutoffCalled: func(_ data.HeaderHandler) error {
+					return currentCutoffErr
+				},
+			}
+			mp, err := blproc.NewMetaProcessor(arguments)
+			require.NoError(t, err)
+
+			for _, round := range []uint64{4, 5, 8, 12, 16, 24} {
+				header := &block.MetaBlockV3{Nonce: lastHeader.Nonce + 1, Round: round}
+				_, err = mp.ProcessBlockProposal(header, []byte("headerHash"), &block.Body{})
+				require.ErrorIs(t, err, currentCutoffErr)
+				if err == nil {
+					lastHeader = header
+				}
+				usedTxs = nil
+				currentCutoffErr = nil
+			}
+			require.Equal(t, test.expectedRounds, forcedRounds)
+		})
+	}
 }
 
 func createTxCoordinatorMock() testscommon.TransactionCoordinatorMock {

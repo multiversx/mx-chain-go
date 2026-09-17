@@ -27,3 +27,8 @@ func TimeDurationToUnix(
 ) int64 {
 	return timeDurationToUnix(duration, enableEpochsHandler, epoch)
 }
+
+// PatchFileRoundValues -
+func PatchFileRoundValues(filePath string, roundStr string, isRoundConfig bool) {
+	patchFileRoundValues(filePath, roundStr, isRoundConfig)
+}
