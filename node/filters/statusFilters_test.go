@@ -129,6 +129,7 @@ func TestStatusFilters_ApplyStatusFiltersFailedMoveBalance(t *testing.T) {
 
 		sf := NewStatusFilters(0)
 		tx := createMoveBalanceTx(big.NewInt(100), userAddr1, userAddr2)
+		tx.ReceiverUsername = []byte("aa")
 		mbs := createMbs(tx, createRefundSCR(big.NewInt(100), receiverStr, senderStr, txHash))
 
 		sf.ApplyStatusFilters(mbs)

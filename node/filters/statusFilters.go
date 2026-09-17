@@ -126,6 +126,9 @@ func iterateMiniblockTxsForFailedMoveBalance(miniblock *api.MiniBlock, miniblock
 		if !isMoveBalanceWithValue(tx) {
 			continue
 		}
+		if len(tx.ReceiverUsername) == 0 {
+			continue
+		}
 
 		searchMirroredRefundSCR(tx, miniblocks)
 	}
