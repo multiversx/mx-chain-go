@@ -45,7 +45,6 @@ type round struct {
 	supernovaStartRound       int64
 	importDBMode              bool
 
-	initialGenesisTime time.Time
 	*sync.RWMutex
 
 	enableRoundsHandler common.EnableRoundsHandler
@@ -74,7 +73,6 @@ func NewRound(args ArgsRound) (*round, error) {
 		RWMutex:                   &sync.RWMutex{},
 		enableRoundsHandler:       args.EnableRoundsHandler,
 		importDBMode:              args.ImportDBMode,
-		initialGenesisTime:        args.GenesisTimeStamp,
 	}
 	rnd.UpdateRound(args.GenesisTimeStamp, args.CurrentTimeStamp)
 
@@ -83,25 +81,9 @@ func NewRound(args ArgsRound) (*round, error) {
 	return &rnd, nil
 }
 
-func (rnd *round) GetSupernovaGenesisTimestamp() time.Time {
-	supernovaStartRound := int64(rnd.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag))
-	if supernovaStartRound != rnd.supernovaStartRound {
-		log.Debug("round.go: GetSupernovaGenesisTimestamp: force set supernovaStartRound",
-			"initialGenesisTime", rnd.initialGenesisTime,
-			"timeDuration", rnd.timeDuration.Nanoseconds(),
-			"supernovaStartRound", supernovaStartRound,
-			"oldSuperNovaStartRound", rnd.supernovaStartRound)
-		rnd.supernovaStartRound = supernovaStartRound
-		rnd.supernovaGenesisTimeStamp = rnd.initialGenesisTime.Add(time.Duration(supernovaStartRound * rnd.timeDuration.Nanoseconds()))
-		log.Debug("round.go: GetSupernovaGenesisTimestamp: force set supernovaStartRound", "round", supernovaStartRound, "supernovaGenesisTimeStamp", rnd.supernovaGenesisTimeStamp)
-	}
-
-	return rnd.supernovaGenesisTimeStamp
-}
-
 // UpdateRound updates the index and the time stamp of the round depending on the genesis time and the current time given
 func (rnd *round) UpdateRound(genesisTimeStamp time.Time, currentTimeStamp time.Time) {
-	baseTimeStamp := rnd.GetSupernovaGenesisTimestamp()
+	baseTimeStamp := rnd.supernovaGenesisTimeStamp
 	roundDuration := rnd.supernovaTimeDuration
 	startRound := rnd.supernovaStartRound
 
@@ -152,7 +134,7 @@ func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
 		return supernovaActivated
 	}
 
-	currentTimeAfterSupernova := currentTimeStamp.UnixMilli() >= rnd.GetSupernovaGenesisTimestamp().UnixMilli()
+	currentTimeAfterSupernova := currentTimeStamp.UnixMilli() >= rnd.supernovaGenesisTimeStamp.UnixMilli()
 
 	if currentTimeAfterSupernova && !rnd.importDBMode {
 		log.Debug("isSupernovaActivated: force set supernovaActivated",
