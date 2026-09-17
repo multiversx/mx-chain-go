@@ -1347,6 +1347,7 @@ const (
 	RelayedTransactionsV3FixESDTTransferFlag            core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
 	AndromedaFlag                                       core.EnableEpochFlag = "AndromedaFlag"
 	SupernovaFlag                                       core.EnableEpochFlag = "SupernovaFlag"
+	FixEmptyValidatorRegistrationFlag                   core.EnableEpochFlag = "FixEmptyValidatorRegistrationFlag"
 	FixEpochChangeProposedCurrentEpochFlag              core.EnableEpochFlag = "FixEpochChangeProposedCurrentEpochFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
 	MaskInternalDependenciesErrorsFlag                  core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"

@@ -122,6 +122,7 @@ func NewValidatorSmartContract(
 		common.MultiClaimOnDelegationFlag,
 		common.DelegationManagerFlag,
 		common.UnBondTokensV2Flag,
+		common.FixEmptyValidatorRegistrationFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -1721,6 +1722,14 @@ func (v *validatorSC) basicCheckForUnStakeUnBond(args *vmcommon.ContractCallInpu
 	if len(registrationData.RewardAddress) == 0 {
 		v.eei.AddReturnMessage("key is not registered, validator operation is not possible")
 		return nil, vmcommon.UserError
+	}
+	// The registered key list is authoritative. Legacy empty registrations can
+	// retain counters even after their last key has been removed. Repair only
+	// this empty-list case; records with any key keep the existing deposit guard.
+	// The caller persists the repaired counters only on a successful token exit.
+	if v.enableEpochsHandler.IsFlagEnabled(common.FixEmptyValidatorRegistrationFlag) && len(registrationData.BlsPubKeys) == 0 {
+		registrationData.NumRegistered = 0
+		registrationData.LockedStake.SetInt64(0)
 	}
 	if registrationData.TotalUnstaked == nil {
 		registrationData.TotalUnstaked = big.NewInt(0)
