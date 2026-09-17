@@ -79,6 +79,23 @@ func (pf *persisterFactory) Create(path string) (storage.Persister, error) {
 	return persister, nil
 }
 
+// PersisterExists returns true if a persister was already created on the provided path.
+// It is used by the read paths in order to avoid creating new on-disk databases for caller
+// provided (thus untrusted) epochs.
+func (pf *persisterFactory) PersisterExists(path string) bool {
+	if len(path) == 0 {
+		return false
+	}
+
+	exists, err := checkIfDirExists(path)
+	if err != nil {
+		log.Debug("persisterFactory.PersisterExists", "path", path, "error", err.Error())
+		return false
+	}
+
+	return exists
+}
+
 // CreateDisabled will return a new disabled persister
 func (pf *persisterFactory) CreateDisabled() storage.Persister {
 	return disabled.NewErrorDisabledPersister()

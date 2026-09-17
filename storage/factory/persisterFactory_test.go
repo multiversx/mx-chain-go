@@ -76,6 +76,39 @@ func TestPersisterFactory_Create(t *testing.T) {
 	})
 }
 
+func TestPersisterFactory_PersisterExists(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty path, should return false", func(t *testing.T) {
+		t.Parallel()
+
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
+
+		require.False(t, pf.PersisterExists(""))
+	})
+
+	t.Run("not existing path, should return false", func(t *testing.T) {
+		t.Parallel()
+
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
+
+		require.False(t, pf.PersisterExists(path.Join(t.TempDir(), "Epoch_4294967295")))
+	})
+
+	t.Run("created persister, should return true", func(t *testing.T) {
+		t.Parallel()
+
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
+
+		dir := path.Join(t.TempDir(), "Epoch_1")
+		p, err := pf.Create(dir)
+		require.Nil(t, err)
+		require.Nil(t, p.Close())
+
+		require.True(t, pf.PersisterExists(dir))
+	})
+}
+
 func TestPersisterFactory_CreateWithRetries(t *testing.T) {
 	t.Parallel()
 

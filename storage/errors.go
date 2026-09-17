@@ -118,6 +118,10 @@ var ErrNilBootstrapDataProvider = errors.New("nil bootstrap data provider")
 // ErrNilDirectoryReader signals that a nil directory reader has been provided
 var ErrNilDirectoryReader = errors.New("nil directory reader")
 
+// ErrPersisterNotFoundForEpoch signals that no persister is held by the node for the provided epoch.
+// It is returned on read paths, which must never create new persisters for caller provided epochs.
+var ErrPersisterNotFoundForEpoch = errors.New("persister not found for the provided epoch")
+
 // IsNotFoundInStorageErr returns whether an error is a "not found in storage" error.
 // Currently, "item not found" storage errors are untyped (thus not distinguishable from others). E.g. see "pruningStorer.go".
 // As a workaround, we test the error message for a match.
