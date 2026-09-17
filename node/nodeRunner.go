@@ -73,7 +73,9 @@ const (
 	// defaultDelayBeforeScQueriesStartInSec represents the default delay before the sc query processor should start to allow external queries
 	defaultDelayBeforeScQueriesStartInSec = 120
 
-	maxTimeToClose = 10 * time.Second
+	maxTimeToClose              = 10 * time.Second
+	wrongConfigReminderInterval = 5 * time.Minute
+
 	// SoftRestartMessage is the custom message used when the node does a soft restart operation
 	SoftRestartMessage = "Shuffled out - soft restart"
 
@@ -1076,9 +1078,10 @@ func waitForSignal(
 	if wrongConfig {
 		// hang the node's process because it cannot continue with the current configuration and a restart doesn't
 		// change this behaviour
+		log.Error("wrong configuration. stopped the processing and left the node unclosed", "description", wrongConfigDescription)
 		for {
-			log.Error("wrong configuration. stopped the processing and left the node unclosed", "description", wrongConfigDescription)
-			time.Sleep(1 * time.Minute)
+			time.Sleep(wrongConfigReminderInterval)
+			log.Error("wrong configuration. the node is parked and is doing no work", "description", wrongConfigDescription)
 		}
 	}
 

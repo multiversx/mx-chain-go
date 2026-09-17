@@ -39,7 +39,7 @@ func selectTransactionsFromBunches(
 	maxNumTxs := options.GetMaxNumTxs()
 	loopDurationCheckInterval := options.GetLoopDurationCheckInterval()
 
-	logSelect.Debug("TxCache.selectTransactionsFromBunches",
+	logSelect.Trace("TxCache.selectTransactionsFromBunches",
 		"len(bunches)", len(bunches),
 		"gasRequested", gasRequested,
 		"maxNumTxs", maxNumTxs,
