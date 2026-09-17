@@ -1549,6 +1549,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		NodesCoordinator:    pcf.nodesCoordinator,
+		IsImportDBMode:      pcf.importDBConfig.IsImportDBMode,
 	}
 	return metachain.NewVMContainerFactory(argsNewVMContainer)
 }

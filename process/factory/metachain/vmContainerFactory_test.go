@@ -272,10 +272,12 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 
 	gasSchedule := makeGasSchedule()
 	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.IsImportDBMode = true
 	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
 
 	assert.False(t, check.IfNil(vmf))
 	assert.Nil(t, err)
+	assert.True(t, vmf.isImportDBMode)
 }
 
 func TestVmContainerFactory_Create(t *testing.T) {
