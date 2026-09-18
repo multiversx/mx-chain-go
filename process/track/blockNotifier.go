@@ -31,6 +31,26 @@ func (bn *blockNotifier) CallHandlers(shardID uint32, headers []data.HeaderHandl
 	bn.mutNotarizedHeadersHandlers.RUnlock()
 }
 
+func (bn *blockNotifier) callHandlersAndWait(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
+	if len(headers) == 0 {
+		return
+	}
+
+	bn.mutNotarizedHeadersHandlers.RLock()
+	handlers := append([]func(uint32, []data.HeaderHandler, [][]byte){}, bn.notarizedHeadersHandlers...)
+	bn.mutNotarizedHeadersHandlers.RUnlock()
+
+	var handlersDone sync.WaitGroup
+	handlersDone.Add(len(handlers))
+	for _, handler := range handlers {
+		go func() {
+			defer handlersDone.Done()
+			handler(shardID, headers, headersHashes)
+		}()
+	}
+	handlersDone.Wait()
+}
+
 // RegisterHandler registers a handler which wants to be notified when new headers are received
 func (bn *blockNotifier) RegisterHandler(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)) {
 	if handler == nil {

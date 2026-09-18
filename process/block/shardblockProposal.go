@@ -76,6 +76,16 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
+	err = sp.checkConsecutiveShardEpochForProposal(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sp.updateGasConsumptionLimitsForProposal()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	sp.gasComputation.Reset()
 	sp.miniBlocksSelectionSession.ResetSelectionSession()
 	err = sp.createBlockBodyProposal(shardHdr, haveTime)
@@ -252,6 +262,11 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	}
 
 	err = sp.verifyCrossShardMiniBlockDstMe(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.updateGasConsumptionLimitsForProposal()
 	if err != nil {
 		return err
 	}
@@ -468,11 +483,12 @@ func (sp *shardProcessor) createBlockBodyProposal(
 		return err
 	}
 
-	return sp.createProposalMiniBlocks(haveTime, shardHdr.GetNonce())
+	return sp.createProposalMiniBlocks(haveTime, shardHdr.GetNonce(), shardHdr.GetEpoch())
 }
 
 func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 	haveTime func() bool,
+	candidateShardEpoch uint32,
 ) ([]*pendingBlocksAfterSelection, error) {
 	log.Debug("selectIncomingMiniBlocksForProposal has been started")
 
@@ -492,7 +508,13 @@ func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 		return nil, err
 	}
 
-	pendingBlocks, err := sp.selectIncomingMiniBlocks(lastMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
+	pendingBlocks, err := sp.selectIncomingMiniBlocks(
+		lastMetaHdr,
+		orderedMetaBlocks,
+		orderedMetaBlocksHashes,
+		haveTime,
+		candidateShardEpoch,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -518,6 +540,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	orderedMetaBlocks []data.HeaderHandler,
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
+	candidateShardEpoch uint32,
 ) ([]*pendingBlocksAfterSelection, error) {
 	var currentMetaBlock data.HeaderHandler
 	var currentMetaBlockHash []byte
@@ -561,7 +584,9 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 
 		metaBlock, ok := currentMetaBlock.(data.MetaHeaderHandler)
 		if !ok {
-			log.Warn("selectIncomingMiniBlocks: wrong type assertion for meta block")
+			return nil, process.ErrWrongTypeAssertion
+		}
+		if checkFutureEpochStartMeta(candidateShardEpoch, metaBlock) != nil {
 			break
 		}
 
@@ -640,13 +665,14 @@ func miniBlocksSliceToMap(miniBlocksAndHashes []block.MiniblockAndHash) map[stri
 func (sp *shardProcessor) createProposalMiniBlocks(
 	haveTime func() bool,
 	nonce uint64,
+	candidateShardEpoch uint32,
 ) error {
 	if !haveTime() {
 		log.Debug("shardProcessor.createProposalMiniBlocks", "error", process.ErrTimeIsOut)
 		return nil
 	}
 	startTime := time.Now()
-	pendingBlocks, err := sp.selectIncomingMiniBlocksForProposal(haveTime)
+	pendingBlocks, err := sp.selectIncomingMiniBlocksForProposal(haveTime, candidateShardEpoch)
 	if err != nil {
 		return err
 	}
@@ -881,6 +907,21 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	isOwnProofed := sp.ownProofResolver(header)
 
 	for idx, metaHeader := range usedMetaHeaders {
+		metaHeaderHandler, ok := metaHeader.(data.MetaHeaderHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+		err = checkFutureEpochStartMeta(header.GetEpoch(), metaHeaderHandler)
+		if err != nil {
+			return fmt.Errorf(
+				"%w: shard %d, shard epoch %d, meta epoch %d, meta hash %s",
+				err,
+				sp.shardCoordinator.SelfId(),
+				header.GetEpoch(),
+				metaHeader.GetEpoch(),
+				logger.DisplayByteSlice(usedMetaHashes[idx]),
+			)
+		}
 		if sp.isContendedUnsettledCrossHeader(metaHeader, lastCrossNotarizedHeader, usedMetaHashes[idx]) && !isOwnProofed() {
 			return fmt.Errorf("%w with hash %x", errIncludedContendedUnsettledHeader, usedMetaHashes[idx])
 		}
@@ -906,10 +947,19 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	return nil
 }
 
+func checkFutureEpochStartMeta(candidateShardEpoch uint32, metaHeader data.MetaHeaderHandler) error {
+	if !metaHeader.IsStartOfEpochBlock() || metaHeader.GetEpoch() <= candidateShardEpoch {
+		return nil
+	}
+
+	return errFutureEpochStartMetaHeader
+}
+
 // isDeadReferencedMetaHeader rejects on local evidence only; validators without the competitor
 // evidence accept, the same liveness model as the contention checks
 func (sp *shardProcessor) isDeadReferencedMetaHeader(metaHeader data.HeaderHandler, metaHash []byte) bool {
-	if !sp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+	if !metaHeader.IsHeaderV3() ||
+		!common.IsCrossHeaderSettlementEnabledForHeader(sp.enableEpochsHandler, sp.enableRoundsHandler, metaHeader) {
 		return false
 	}
 

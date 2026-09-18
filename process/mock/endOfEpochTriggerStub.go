@@ -26,6 +26,7 @@ type EpochStartTriggerStub struct {
 	SetEpochChangeProposedCalled      func(value bool)
 	GetEpochChangeProposedCalled      func() bool
 	RevertStateToBlockCalled          func(header data.HeaderHandler) error
+	RequestEpochStartIfNeededCalled   func(header data.HeaderHandler)
 }
 
 func (e *EpochStartTriggerStub) SetEpochChangeProposed(value bool) {
@@ -58,7 +59,10 @@ func (e *EpochStartTriggerStub) RevertStateToBlock(header data.HeaderHandler) er
 }
 
 // RequestEpochStartIfNeeded -
-func (e *EpochStartTriggerStub) RequestEpochStartIfNeeded(_ data.HeaderHandler) {
+func (e *EpochStartTriggerStub) RequestEpochStartIfNeeded(header data.HeaderHandler) {
+	if e.RequestEpochStartIfNeededCalled != nil {
+		e.RequestEpochStartIfNeededCalled(header)
+	}
 }
 
 // SetCurrentEpochStartRound -

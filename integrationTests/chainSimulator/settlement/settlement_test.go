@@ -429,7 +429,9 @@ func TestChainSimulator_EquivocatingLeaderMetaArbitratesCompetitor(t *testing.T)
 	require.NoError(t, err)
 	require.Equal(t, competitorHash, notarizedHash)
 
-	// the shard keeps its own final block, but settlement never covered the equivocated nonce
+	// the shard keeps its own final block, but settlement never covers the equivocated nonce
 	require.Equal(t, withheldNonce, getFinalNonce(shardNode))
-	require.Equal(t, settledBefore, getSettledNonce(shardNode))
+	settledAfter := getSettledNonce(shardNode)
+	require.GreaterOrEqual(t, settledAfter, settledBefore)
+	require.Less(t, settledAfter, withheldNonce)
 }

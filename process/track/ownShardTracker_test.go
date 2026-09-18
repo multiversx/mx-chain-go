@@ -80,3 +80,20 @@ func TestComputeOwnShardStuck(t *testing.T) {
 		assert.True(t, tracker.IsOwnShardStuck())
 	})
 }
+
+func TestOwnShardTracker_ResetOwnShardStuck(t *testing.T) {
+	t.Parallel()
+
+	tracker, err := NewOwnShardTracker(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(_ core.EnableEpochFlag) bool {
+			return true
+		},
+	}, 1)
+	assert.NoError(t, err)
+
+	tracker.ComputeOwnShardStuck(&block.BaseExecutionResult{HeaderNonce: 1}, 3)
+	assert.True(t, tracker.IsOwnShardStuck())
+
+	tracker.ResetOwnShardStuck()
+	assert.False(t, tracker.IsOwnShardStuck())
+}

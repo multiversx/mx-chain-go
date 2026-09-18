@@ -75,6 +75,9 @@ func TestTomlParser(t *testing.T) {
 					MaxRoundsOfInactivityAccepted:          12,
 					MaxBlockProcessingTimeMs:               13,
 					NumHeadersToRequestInAdvance:           14,
+					ExtraDelayForBroadcastBlockInfoMs:      15,
+					ExtraDelayBetweenBroadcastMbsAndTxsMs:  16,
+					ExtraDelayForRequestBlockInfoMs:        17,
 				},
 			},
 		},
@@ -385,7 +388,10 @@ func TestTomlParser(t *testing.T) {
         MaxConsecutiveRoundsOfRatingDecrease = 11,
         MaxRoundsOfInactivityAccepted = 12,
 		MaxBlockProcessingTimeMs = 13,
-        NumHeadersToRequestInAdvance = 14
+        NumHeadersToRequestInAdvance = 14,
+        ExtraDelayForBroadcastBlockInfoMs = 15,
+        ExtraDelayBetweenBroadcastMbsAndTxsMs = 16,
+        ExtraDelayForRequestBlockInfoMs = 17
         }
     ]
 
@@ -1318,6 +1324,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
     SupernovaEnableEpoch = 116
 
+    # FixEpochChangeProposedCurrentEpochEnableEpoch represents the epoch when epoch change proposed blocks expose the prepared epoch
+    FixEpochChangeProposedCurrentEpochEnableEpoch = 117
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1453,6 +1462,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ConsumedGasInEconomicsFixEnableEpoch:                     114,
 			AttributeExtraGasUsageEnableEpoch:                        115,
 			SupernovaEnableEpoch:                                     116,
+			FixEpochChangeProposedCurrentEpochEnableEpoch:            117,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

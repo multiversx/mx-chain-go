@@ -4,14 +4,72 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 )
+
+func TestBasePreProcessGetMaxGasLimitUsedForDestMeTxs(t *testing.T) {
+	t.Parallel()
+
+	const (
+		supernovaEpoch  = uint32(2)
+		supernovaRound  = uint64(260)
+		currentGasLimit = uint64(600_000_000)
+		legacyGasLimit  = uint64(1_500_000_000)
+	)
+
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
+			return currentGasLimit
+		},
+		MaxGasLimitPerBlockInEpochCalled: func(_ uint32, _ uint32) uint64 {
+			return legacyGasLimit
+		},
+	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && epoch >= supernovaEpoch
+		},
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			return supernovaEpoch
+		},
+	}
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return flag == common.SupernovaRoundFlag && round >= supernovaRound
+		},
+	}
+	policy, err := process.ResolveGasProcessingPolicy(
+		&testscommon.HeaderHandlerStub{EpochField: supernovaEpoch, RoundField: supernovaRound - 1},
+		enableEpochsHandler,
+		enableRoundsHandler,
+		economicsFee,
+		0,
+	)
+	require.NoError(t, err)
+
+	bp := &basePreProcess{
+		gasTracker: gasTracker{
+			shardCoordinator: &testscommon.ShardsCoordinatorMock{},
+			economicsFee:     economicsFee,
+		},
+	}
+
+	require.Equal(t, currentGasLimit, bp.getMaxGasLimitUsedForDestMeTxs(0, process.GasProcessingPolicy{}))
+	require.Equal(t, currentGasLimit/2, bp.getMaxGasLimitUsedForDestMeTxs(1, process.GasProcessingPolicy{}))
+	require.Equal(t, legacyGasLimit, bp.getMaxGasLimitUsedForDestMeTxs(0, policy))
+	require.Equal(t, legacyGasLimit, bp.getMaxGasLimitUsedForDestMeTxs(1, policy))
+}
 
 func TestBasePreProcess_handleProcessTransactionInit(t *testing.T) {
 	t.Parallel()

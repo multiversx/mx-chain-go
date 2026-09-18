@@ -30,7 +30,8 @@ type syncStarter interface {
 // authority of the chain the node belongs to
 type settlementChecker interface {
 	prepareInclusionScan(scanCursor uint64) (scanFrom uint64, scanTo uint64, nextCursor uint64)
-	isSettled(nonce uint64, headerHash []byte, scanFrom uint64, scanTo uint64) bool
+	settlementVerdict(nonce uint64, localHash []byte, competitorHash []byte, scanFrom uint64, scanTo uint64) (bool, bool)
+	resolveNotarizedHeader(nonce uint64, candidates []notarizedHeaderCandidate) []byte
 	deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool)
 }
 

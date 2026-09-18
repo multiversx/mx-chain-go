@@ -128,12 +128,11 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinShuffledOutRestartThreshold              float64
-	MaxShuffledOutRestartThreshold              float64
-	MinNumConnectedPeersToStart                 int
-	MinNumOfPeersToConsiderBlockValid           int
-	ExtraDelayForRequestBlockInfoInMilliseconds int
-	GenesisEpoch                                uint32
+	MinShuffledOutRestartThreshold    float64
+	MaxShuffledOutRestartThreshold    float64
+	MinNumConnectedPeersToStart       int
+	MinNumOfPeersToConsiderBlockValid int
+	GenesisEpoch                      uint32
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
@@ -431,6 +430,20 @@ type ProcessConfigByRound struct {
 	MaxRoundsOfInactivityAccepted        uint64
 	MaxBlockProcessingTimeMs             uint32
 	NumHeadersToRequestInAdvance         uint64
+
+	// ExtraDelayForBroadcastBlockInfoMs defines the wait, in milliseconds, between the block broadcast and the
+	// moment when its components, like mini blocks, would be broadcast too
+	ExtraDelayForBroadcastBlockInfoMs uint32
+
+	// ExtraDelayBetweenBroadcastMbsAndTxsMs defines the wait, in milliseconds, since the mini blocks have been
+	// broadcast and the moment when their transactions would be broadcast too
+	ExtraDelayBetweenBroadcastMbsAndTxsMs uint32
+
+	// ExtraDelayForRequestBlockInfoMs defines the wait, in milliseconds, since a block has been observed and the
+	// moment when its components, like mini blocks and transactions, would be requested too if still missing.
+	// It must exceed the sender's broadcast chain (ExtraDelayForBroadcastBlockInfoMs +
+	// ExtraDelayBetweenBroadcastMbsAndTxsMs) plus the gossip delivery time of the broadcast data
+	ExtraDelayForRequestBlockInfoMs uint32
 }
 
 // GeneralSettingsConfig will hold the general settings for a node

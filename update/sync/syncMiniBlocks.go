@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -30,6 +31,11 @@ type pendingMiniBlocks struct {
 	syncedAll               bool
 	requestHandler          process.RequestHandler
 	waitTimeBetweenRequests time.Duration
+}
+
+type pendingMiniBlockRequest struct {
+	hash    string
+	shardID uint32
 }
 
 // ArgsNewPendingMiniBlocksSyncer defines the arguments needed for the sycner
@@ -61,7 +67,7 @@ func NewPendingMiniBlocksSyncer(args ArgsNewPendingMiniBlocksSyncer) (*pendingMi
 		mapHashes:               make(map[string]struct{}),
 		pool:                    args.Cache,
 		storage:                 args.Storage,
-		chReceivedAll:           make(chan bool),
+		chReceivedAll:           make(chan bool, 1),
 		requestHandler:          args.RequestHandler,
 		stopSyncing:             true,
 		syncedAll:               false,
@@ -113,7 +119,7 @@ func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []data.MiniBloc
 	p.mutPendingMb.Unlock()
 
 	for {
-		requestedMBs := 0
+		requests := make([]pendingMiniBlockRequest, 0, len(mapHashesToRequest))
 		p.mutPendingMb.Lock()
 		p.stopSyncing = false
 		for hash, shardId := range mapHashesToRequest {
@@ -130,22 +136,48 @@ func (p *pendingMiniBlocks) syncMiniBlocks(listPendingMiniBlocks []data.MiniBloc
 				continue
 			}
 
-			p.requestHandler.RequestMiniBlock(shardId, []byte(hash))
-			requestedMBs++
+			requests = append(requests, pendingMiniBlockRequest{
+				hash:    hash,
+				shardID: shardId,
+			})
 		}
-		p.mutPendingMb.Unlock()
 
-		if requestedMBs == 0 {
-			p.mutPendingMb.Lock()
+		if len(requests) == 0 {
 			p.stopSyncing = true
 			p.syncedAll = true
 			p.mutPendingMb.Unlock()
 			return nil
 		}
+		p.mutPendingMb.Unlock()
+
+		for _, request := range requests {
+			select {
+			case <-ctx.Done():
+				p.mutPendingMb.Lock()
+				p.stopSyncing = true
+				p.mutPendingMb.Unlock()
+				return update.ErrTimeIsOut
+			default:
+			}
+
+			p.requestHandler.RequestMiniBlock(request.shardID, []byte(request.hash))
+		}
 
 		select {
 		case <-p.chReceivedAll:
 			p.mutPendingMb.Lock()
+			receivedAll := true
+			for hash := range mapHashesToRequest {
+				if _, ok := p.mapMiniBlocks[hash]; !ok {
+					receivedAll = false
+					break
+				}
+			}
+			if !receivedAll {
+				p.mutPendingMb.Unlock()
+				continue
+			}
+
 			p.stopSyncing = true
 			p.syncedAll = true
 			p.mutPendingMb.Unlock()
@@ -190,7 +222,10 @@ func (p *pendingMiniBlocks) receivedMiniBlock(miniBlockHash []byte, val interfac
 	receivedAll := len(p.mapHashes) == len(p.mapMiniBlocks)
 	p.mutPendingMb.Unlock()
 	if receivedAll {
-		p.chReceivedAll <- true
+		select {
+		case p.chReceivedAll <- true:
+		default:
+		}
 	}
 }
 

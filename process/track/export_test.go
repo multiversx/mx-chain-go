@@ -43,6 +43,63 @@ func (sbt *shardBlockTrack) GetTrackedShardHeaderWithNonceAndHash(shardID uint32
 	return sbt.getTrackedShardHeaderWithNonceAndHash(shardID, nonce, hash)
 }
 
+// NumPendingSelfHeaders -
+func (sbt *shardBlockTrack) NumPendingSelfHeaders() int64 {
+	return sbt.numPendingSelfHeaders.Load()
+}
+
+// NumPendingSources -
+func (sbt *shardBlockTrack) NumPendingSources(hash []byte) int {
+	sbt.mutPendingSelfHeaders.Lock()
+	defer sbt.mutPendingSelfHeaders.Unlock()
+
+	pending := sbt.pendingSelfHeaders[string(hash)]
+	if pending == nil {
+		return 0
+	}
+
+	return len(pending.sources)
+}
+
+func (sbt *shardBlockTrack) SetMetaFinalityView(view process.MetaFinalityView) {
+	sbt.metaFinalityView = view
+}
+
+func (sbt *shardBlockTrack) RememberResolvedSelfHeader(hash []byte, nonce uint64) {
+	sbt.mutPendingSelfHeaders.Lock()
+	sbt.rememberResolvedSelfHeader(string(hash), nonce)
+	sbt.mutPendingSelfHeaders.Unlock()
+}
+
+func (sbt *shardBlockTrack) ResolvedSelfHeaders() map[string]uint64 {
+	sbt.mutPendingSelfHeaders.Lock()
+	defer sbt.mutPendingSelfHeaders.Unlock()
+
+	result := make(map[string]uint64, len(sbt.resolvedSelfHeaders))
+	for hash, nonce := range sbt.resolvedSelfHeaders {
+		result[hash] = nonce
+	}
+
+	return result
+}
+
+func (sbt *shardBlockTrack) NumResolvedSelfHeaders() int64 {
+	return sbt.numResolvedSelfHeaders.Load()
+}
+
+// SelfHeaderInfo -
+type SelfHeaderInfo = selfHeaderInfo
+
+// GetSelfHeadersWithSource -
+func (sbt *shardBlockTrack) GetSelfHeadersWithSource(header data.HeaderHandler, hash []byte) []*SelfHeaderInfo {
+	return sbt.getSelfHeadersWithSource(header, hash)
+}
+
+// PublishSelfNotarizedFromCrossHeaders -
+func (sbt *shardBlockTrack) PublishSelfNotarizedFromCrossHeaders(shardID uint32, headersInfo []*SelfHeaderInfo) {
+	sbt.publishSelfNotarizedFromCrossHeaders(shardID, headersInfo)
+}
+
 // metaBlockTrack
 
 // GetTrackedMetaBlockWithHash -

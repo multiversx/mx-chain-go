@@ -122,6 +122,9 @@ var ErrMissingTransaction = errors.New("missing transaction")
 // ErrMarshalWithoutSuccess signals that marshal some data was not done with success
 var ErrMarshalWithoutSuccess = errors.New("marshal without success")
 
+// ErrNonCanonicalTransactionEncoding signals that a transaction does not use its canonical protobuf encoding
+var ErrNonCanonicalTransactionEncoding = errors.New("non-canonical transaction encoding")
+
 // ErrUnmarshalWithoutSuccess signals that unmarshal some data was not done with success
 var ErrUnmarshalWithoutSuccess = errors.New("unmarshal without success")
 
@@ -1500,6 +1503,12 @@ var ErrInvalidSelfSenderIndexes = errors.New("self-sender mini block indexes do 
 // ErrLeftoverScheduledMiniBlocksOnTransition signals that the legacy predecessor of the first Supernova block carries non-final mini blocks
 var ErrLeftoverScheduledMiniBlocksOnTransition = errors.New("leftover scheduled mini blocks on supernova transition")
 
+// ErrScheduledMiniBlockInSupernovaDrain signals that a block starts scheduled work during the Supernova drain window
+var ErrScheduledMiniBlockInSupernovaDrain = errors.New("scheduled mini block in supernova drain window")
+
+// ErrNewPartialMiniBlockInSupernovaDrain signals that a block starts partial execution during the Supernova drain window
+var ErrNewPartialMiniBlockInSupernovaDrain = errors.New("new partial mini block in supernova drain window")
+
 // ErrInvalidNumberOfExecutionResultsInHeader signals that the number of execution results in header is invalid
 var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of execution results in header")
 
@@ -1577,3 +1586,6 @@ var ErrNilClosingNodeStartedFlag = errors.New("closing node started flag is nil"
 
 // ErrOutgoingTxsDisabled signals that the outgoing transactions are disabled
 var ErrOutgoingTxsDisabled = errors.New("outgoing transactions are disabled")
+
+// ErrAccountAddressMismatch signals that the output account address is wrong
+var ErrAccountAddressMismatch = errors.New("account address mismatch")

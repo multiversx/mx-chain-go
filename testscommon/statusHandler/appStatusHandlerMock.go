@@ -84,6 +84,9 @@ func (ashm *AppStatusHandlerMock) SetUInt64Value(key string, value uint64) {
 	ashm.mut.Lock()
 	defer ashm.mut.Unlock()
 
+	if ashm.data == nil {
+		ashm.data = make(map[string]interface{})
+	}
 	ashm.data[key] = value
 }
 

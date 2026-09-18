@@ -7,15 +7,23 @@ import (
 
 // ValidatorInfoSyncerStub -
 type ValidatorInfoSyncerStub struct {
+	SyncMiniBlocksCalled     func(header data.HeaderHandler) ([][]byte, data.BodyHandler, error)
+	SyncValidatorsInfoCalled func(body data.BodyHandler) ([][]byte, map[string]*state.ShardValidatorInfo, error)
 }
 
 // SyncMiniBlocks -
-func (vip *ValidatorInfoSyncerStub) SyncMiniBlocks(_ data.HeaderHandler) ([][]byte, data.BodyHandler, error) {
+func (vip *ValidatorInfoSyncerStub) SyncMiniBlocks(header data.HeaderHandler) ([][]byte, data.BodyHandler, error) {
+	if vip.SyncMiniBlocksCalled != nil {
+		return vip.SyncMiniBlocksCalled(header)
+	}
 	return nil, nil, nil
 }
 
 // SyncValidatorsInfo -
-func (vip *ValidatorInfoSyncerStub) SyncValidatorsInfo(_ data.BodyHandler) ([][]byte, map[string]*state.ShardValidatorInfo, error) {
+func (vip *ValidatorInfoSyncerStub) SyncValidatorsInfo(body data.BodyHandler) ([][]byte, map[string]*state.ShardValidatorInfo, error) {
+	if vip.SyncValidatorsInfoCalled != nil {
+		return vip.SyncValidatorsInfoCalled(body)
+	}
 	return nil, nil, nil
 }
 

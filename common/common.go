@@ -92,6 +92,17 @@ func IsAsyncExecutionEnabledForEpochAndRound(
 		enableRoundsHandler.IsFlagEnabledInRound(SupernovaRoundFlag, round)
 }
 
+// IsInSupernovaDrainWindowForEpochAndRound returns true between the Supernova epoch and round activations.
+func IsInSupernovaDrainWindowForEpochAndRound(
+	enableEpochsHandler EnableEpochsHandler,
+	enableRoundsHandler EnableRoundsHandler,
+	epoch uint32,
+	round uint64,
+) bool {
+	return enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, epoch) &&
+		!enableRoundsHandler.IsFlagEnabledInRound(SupernovaRoundFlag, round)
+}
+
 // IsAsyncExecutionEnabled returns true if both Supernova epochs and Supernova rounds are enabled
 func IsAsyncExecutionEnabled(enableEpochsHandler EnableEpochsHandler, enableRoundsHandler EnableRoundsHandler) bool {
 	return enableEpochsHandler.IsFlagEnabled(SupernovaFlag) &&
@@ -655,4 +666,17 @@ func IsContendedHeader(header data.HeaderHandler, parentHeader data.HeaderHandle
 // child at round
 func IsContendedRound(round uint64, parentRound uint64) bool {
 	return round > parentRound+1
+}
+
+// IsCrossHeaderSettlementEnabledForHeader returns true for headers produced after both Supernova activations.
+func IsCrossHeaderSettlementEnabledForHeader(
+	enableEpochsHandler EnableEpochsHandler,
+	enableRoundsHandler EnableRoundsHandler,
+	header data.HeaderHandler,
+) bool {
+	if check.IfNil(header) {
+		return false
+	}
+
+	return IsAsyncExecutionEnabledForEpochAndRound(enableEpochsHandler, enableRoundsHandler, header.GetEpoch(), header.GetRound())
 }

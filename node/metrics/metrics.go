@@ -219,6 +219,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV1V2DisableEpoch, uint64(enableEpochs.RelayedTransactionsV1V2DisableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricTailInflationEnableEpoch, uint64(economicsConfig.GlobalSettings.TailInflation.EnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricSupernovaEnableEpoch, uint64(enableEpochs.SupernovaEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricFixEpochChangeProposedCurrentEpochEnableEpoch, uint64(enableEpochs.FixEpochChangeProposedCurrentEpochEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriod, systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriod)
 	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriodSupernova, systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriodSupernova)
 	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriodInEpochs, uint64(systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriodInEpochs))
@@ -374,6 +375,9 @@ func InitMetrics(
 
 	appStatusHandler.SetStringValue(common.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(common.MetricShardId, shardId)
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		appStatusHandler.SetUInt64Value(common.MetricSupernovaTransitionReady, 0)
+	}
 	appStatusHandler.SetUInt64Value(common.MetricNumShardsWithoutMetachain, numOfShards)
 	appStatusHandler.SetStringValue(common.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(common.MetricRoundTime, roundDuration)

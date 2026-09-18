@@ -461,7 +461,7 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 	cacheKey := []byte(fmt.Sprintf("%d", targetNonce))
 	s.cache.Put(cacheKey, result, 1)
 
-	log.Info("runAOTSelection: completed",
+	log.Debug("runAOTSelection: completed",
 		"targetNonce", targetNonce,
 		"numTxs", len(txHashes),
 		"gasProvided", accumulatedGas,

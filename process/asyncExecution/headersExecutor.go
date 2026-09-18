@@ -39,6 +39,7 @@ type headersExecutor struct {
 	cancelFunc                  context.CancelFunc
 	mutPaused                   sync.Mutex
 	isPaused                    bool
+	pauseRequested              chan struct{}
 	processingDone              chan struct{}
 	signalProcessCompletionChan chan uint64
 }
@@ -63,6 +64,7 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 		executionTracker:            args.ExecutionTracker,
 		blockProcessor:              args.BlockProcessor,
 		blockChain:                  args.BlockChain,
+		pauseRequested:              make(chan struct{}, 1),
 		signalProcessCompletionChan: args.SignalProcessCompletionChan,
 	}
 
@@ -98,6 +100,10 @@ func (he *headersExecutor) PauseExecution() {
 	he.isPaused = true
 	ch := make(chan struct{})
 	he.processingDone = ch
+	select {
+	case he.pauseRequested <- struct{}{}:
+	default:
+	}
 	he.mutPaused.Unlock()
 
 	// Block until the processing loop acknowledges the pause by closing this channel.
@@ -113,6 +119,10 @@ func (he *headersExecutor) ResumeExecution() {
 	defer he.mutPaused.Unlock()
 
 	he.isPaused = false
+	select {
+	case <-he.pauseRequested:
+	default:
+	}
 
 	// If PauseExecution is waiting for acknowledgement but we're resuming first,
 	// close the channel to unblock it.
@@ -244,10 +254,11 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 			}
 
 			// Exponential backoff with maximum limit
-			select {
-			case <-ctx.Done():
+			timer := time.NewTimer(backoffTime)
+			shouldRetry := he.waitForRetry(ctx, timer.C)
+			if !shouldRetry {
+				timer.Stop()
 				return
-			case <-time.After(backoffTime):
 			}
 			backoffTime = backoffTime * 2
 			if backoffTime > maxBackoffTime {
@@ -285,6 +296,17 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 		"nonce", pair.Header.GetNonce(),
 		"max_retries", maxRetryAttempts,
 		"last_error", lastErr)
+}
+
+func (he *headersExecutor) waitForRetry(ctx context.Context, retryTimer <-chan time.Time) bool {
+	select {
+	case <-ctx.Done():
+		return false
+	case <-he.pauseRequested:
+		return false
+	case <-retryTimer:
+		return true
+	}
 }
 
 func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {

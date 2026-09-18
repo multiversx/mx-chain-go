@@ -1274,7 +1274,7 @@ func TestSubroundBlock_CreateBlockShouldUseNinetyPercentOfSubround(t *testing.T)
 			roundDuration:   6 * time.Second,
 			startPercentage: 0.05,
 			endPercentage:   0.25,
-			expectedMaxTime: 1380 * time.Millisecond,
+			expectedMaxTime: 1020 * time.Millisecond,
 		},
 		{
 			name:            "after Supernova",
@@ -1282,7 +1282,7 @@ func TestSubroundBlock_CreateBlockShouldUseNinetyPercentOfSubround(t *testing.T)
 			roundDuration:   600 * time.Millisecond,
 			startPercentage: 0.05,
 			endPercentage:   0.35,
-			expectedMaxTime: 192 * time.Millisecond,
+			expectedMaxTime: 138 * time.Millisecond,
 		},
 	}
 
@@ -1678,6 +1678,60 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 			return prevHeader.RandSeed
 		},
 	}
+	prevHeader.Epoch = 7
+	newHeaderForCurrentConsensus := func(epoch uint32, isStartOfEpoch bool) data.HeaderHandler {
+		header := createDefaultHeader()
+		header.ShardID = container.ShardCoordinator().SelfId()
+		header.Round = uint64(container.RoundHandler().Index())
+		header.PrevHash = prevHash
+		header.Nonce = prevHeader.GetNonce() + 1
+		header.PrevRandSeed = prevHeader.RandSeed
+		header.Epoch = epoch
+		if isStartOfEpoch {
+			header.EpochStartMetaHash = []byte("epoch start meta hash")
+		}
+
+		return &block.HeaderV2{
+			Header:                   header,
+			ScheduledAccumulatedFees: big.NewInt(0),
+			ScheduledDeveloperFees:   big.NewInt(0),
+		}
+	}
+
+	invalidEpochHeaders := []struct {
+		name           string
+		epoch          uint32
+		isStartOfEpoch bool
+	}{
+		{name: "older epoch", epoch: 6},
+		{name: "next epoch without start", epoch: 8},
+		{name: "current epoch with start", epoch: 7, isStartOfEpoch: true},
+		{name: "epoch zero with start", epoch: 0, isStartOfEpoch: true},
+		{name: "two epochs ahead with start", epoch: 9, isStartOfEpoch: true},
+	}
+	for _, testCase := range invalidEpochHeaders {
+		t.Run(testCase.name, func(t *testing.T) {
+			sr.ReceivedBlockHeader(newHeaderForCurrentConsensus(testCase.epoch, testCase.isStartOfEpoch))
+			require.Nil(t, sr.GetData())
+			require.Nil(t, sr.GetHeader())
+		})
+	}
+
+	// start header from the next epoch
+	sr.ReceivedBlockHeader(newHeaderForCurrentConsensus(8, true))
+	require.NotNil(t, sr.GetData())
+	require.NotNil(t, sr.GetHeader())
+	sr.SetHeader(nil)
+	sr.SetData(nil)
+
+	// non-start header from the current epoch
+	sr.ReceivedBlockHeader(newHeaderForCurrentConsensus(7, false))
+	require.NotNil(t, sr.GetData())
+	require.NotNil(t, sr.GetHeader())
+	sr.SetHeader(nil)
+	sr.SetData(nil)
+
+	headerForCurrentConsensus.EpochField = 7
 
 	// leader
 	defaultLeader := sr.Leader()
@@ -1777,6 +1831,7 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 	headNonce := uint64(7)
 	headRound := uint64(5)
 	headHash := []byte("headHash")
+	headParentHash := []byte("headParentHash")
 	lowerRoundSiblingProof := &block.HeaderProof{
 		HeaderHash:  []byte("siblingHash"),
 		HeaderNonce: headNonce,
@@ -1787,20 +1842,47 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 		HeaderNonce: headNonce,
 		HeaderRound: headRound + 3,
 	}
+	offBranchSiblingProof := &block.HeaderProof{
+		HeaderHash:  []byte("offBranchSiblingHash"),
+		HeaderNonce: headNonce,
+		HeaderRound: headRound - 3,
+	}
 
 	head := createDefaultHeader()
 	head.Nonce = headNonce
 	head.Round = headRound
 
-	buildScaffold := func(shardID uint32, supernovaOn bool, siblingProof data.HeaderProofHandler) (competingParentTestSubround, *spos.ConsensusCore, *bool, *bool) {
+	buildScaffold := func(
+		shardID uint32,
+		supernovaEpochOn bool,
+		supernovaRoundOn bool,
+		siblingProof data.HeaderProofHandler,
+	) (competingParentTestSubround, *spos.ConsensusCore, *bool, *bool) {
 		container := consensusMocks.InitConsensusCore()
 		container.SetShardCoordinator(mock.ShardCoordinatorMock{ShardID: shardID})
+		currentHeader := data.HeaderHandler(&block.HeaderV2{Header: head})
+		if shardID == core.MetachainShardId && supernovaEpochOn && supernovaRoundOn {
+			currentHeader = &block.MetaBlockV3{
+				Nonce:        headNonce,
+				Round:        headRound,
+				PrevHash:     headParentHash,
+				RandSeed:     head.RandSeed,
+				ChainID:      head.ChainID,
+				TxCount:      head.TxCount,
+				Epoch:        head.Epoch,
+				Reserved:     head.Reserved,
+				PrevRandSeed: head.PrevRandSeed,
+			}
+		}
 		container.SetBlockchain(&testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV2{Header: head}
+				return currentHeader
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
 				return headHash
+			},
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return currentHeader, headHash
 			},
 		})
 		container.SetRoundHandler(&round.RoundHandlerMock{RoundIndex: int64(headRound) + 1})
@@ -1811,27 +1893,45 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 				}
 				return nil, fmt.Errorf("no proof for nonce")
 			},
+			GetProofsByNonceCalled: func(headerNonce uint64, _ uint32) ([]data.HeaderProofHandler, error) {
+				if headerNonce == headNonce && siblingProof != nil {
+					return []data.HeaderProofHandler{siblingProof}, nil
+				}
+				return nil, fmt.Errorf("no proofs for nonce")
+			},
 		})
-		if supernovaOn {
-			supernovaRoundFlag := func(flag common.EnableRoundFlag) bool {
-				return flag == common.SupernovaRoundFlag
-			}
-			container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
-				IsFlagEnabledCalled: supernovaRoundFlag,
-				IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, _ uint64) bool {
-					return supernovaRoundFlag(flag)
-				},
-			})
-			supernovaEpochFlag := func(flag core.EnableEpochFlag) bool {
-				return flag == common.SupernovaFlag
-			}
-			container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsFlagEnabledCalled: supernovaEpochFlag,
-				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
-					return supernovaEpochFlag(flag)
-				},
-			})
+		container.SetHeadersPool(&dataRetrieverMock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if siblingProof == nil || string(hash) != string(siblingProof.GetHeaderHash()) {
+					return nil, fmt.Errorf("header not found")
+				}
+
+				parentHash := headParentHash
+				if string(hash) == string(offBranchSiblingProof.GetHeaderHash()) {
+					parentHash = []byte("otherParentHash")
+				}
+
+				return &block.MetaBlockV3{PrevHash: parentHash}, nil
+			},
+		})
+		supernovaRoundFlag := func(flag common.EnableRoundFlag) bool {
+			return supernovaRoundOn && flag == common.SupernovaRoundFlag
 		}
+		container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: supernovaRoundFlag,
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, _ uint64) bool {
+				return supernovaRoundFlag(flag)
+			},
+		})
+		supernovaEpochFlag := func(flag core.EnableEpochFlag) bool {
+			return supernovaEpochOn && flag == common.SupernovaFlag
+		}
+		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: supernovaEpochFlag,
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+				return supernovaEpochFlag(flag)
+			},
+		})
 
 		reachedHeaderCreation := false
 		acceptedProposal := false
@@ -1879,7 +1979,7 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 		require.False(t, sr.DoBlockJob())
 	}
 
-	newProposalOverHead := func(shardID uint32) *testscommon.HeaderHandlerStub {
+	newProposalOverHead := func(shardID uint32, headerV3 bool) *testscommon.HeaderHandlerStub {
 		return &testscommon.HeaderHandlerStub{
 			GetShardIDCalled: func() uint32 {
 				return shardID
@@ -1895,14 +1995,14 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 				return head.RandSeed
 			},
 			IsHeaderV3Called: func() bool {
-				return true
+				return headerV3
 			},
 		}
 	}
 
 	// the default coordinator cannot derive the proposal's leader for the metachain shard id, so it
 	// is pinned to the round leader after the consensus state is built
-	receiveAsValidator := func(t *testing.T, sr competingParentTestSubround, container *spos.ConsensusCore) {
+	receiveAsValidator := func(t *testing.T, sr competingParentTestSubround, container *spos.ConsensusCore, headerV3 bool) {
 		leader, err := sr.GetLeader()
 		require.Nil(t, err)
 		container.SetNodesCoordinator(&shardingMocks.NodesCoordinatorMock{
@@ -1918,13 +2018,13 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 		sr.SetStatus(bls.SrStartRound, spos.SsFinished)
 		sr.SetData(nil)
 		sr.SetBody(&block.Body{})
-		sr.ReceivedBlockHeader(newProposalOverHead(core.MetachainShardId))
+		sr.ReceivedBlockHeader(newProposalOverHead(core.MetachainShardId, headerV3))
 	}
 
 	t.Run("leader skips proposing over an outcompeted head", func(t *testing.T) {
 		t.Parallel()
 
-		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, lowerRoundSiblingProof)
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, true, lowerRoundSiblingProof)
 		proposeAsLeader(t, sr)
 		require.False(t, *reachedHeaderCreation)
 	})
@@ -1932,7 +2032,7 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 	t.Run("leader proposes when no sibling proof is known", func(t *testing.T) {
 		t.Parallel()
 
-		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, nil)
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, true, nil)
 		proposeAsLeader(t, sr)
 		require.True(t, *reachedHeaderCreation)
 	})
@@ -1940,7 +2040,15 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 	t.Run("a higher-round sibling proof does not block the lower-round head", func(t *testing.T) {
 		t.Parallel()
 
-		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, higherRoundSiblingProof)
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, true, higherRoundSiblingProof)
+		proposeAsLeader(t, sr)
+		require.True(t, *reachedHeaderCreation)
+	})
+
+	t.Run("an off-branch lower-round proof does not block the current head", func(t *testing.T) {
+		t.Parallel()
+
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, true, offBranchSiblingProof)
 		proposeAsLeader(t, sr)
 		require.True(t, *reachedHeaderCreation)
 	})
@@ -1948,7 +2056,7 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 	t.Run("shard nodes are not gated", func(t *testing.T) {
 		t.Parallel()
 
-		sr, _, reachedHeaderCreation, _ := buildScaffold(0, true, lowerRoundSiblingProof)
+		sr, _, reachedHeaderCreation, _ := buildScaffold(0, true, true, lowerRoundSiblingProof)
 		proposeAsLeader(t, sr)
 		require.True(t, *reachedHeaderCreation)
 	})
@@ -1956,7 +2064,23 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 	t.Run("inactive supernova leaves the flow untouched", func(t *testing.T) {
 		t.Parallel()
 
-		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, false, lowerRoundSiblingProof)
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, false, false, lowerRoundSiblingProof)
+		proposeAsLeader(t, sr)
+		require.True(t, *reachedHeaderCreation)
+	})
+
+	t.Run("drain period leaves the leader flow untouched", func(t *testing.T) {
+		t.Parallel()
+
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, true, false, lowerRoundSiblingProof)
+		proposeAsLeader(t, sr)
+		require.True(t, *reachedHeaderCreation)
+	})
+
+	t.Run("round activation alone leaves the leader flow untouched", func(t *testing.T) {
+		t.Parallel()
+
+		sr, _, reachedHeaderCreation, _ := buildScaffold(core.MetachainShardId, false, true, lowerRoundSiblingProof)
 		proposeAsLeader(t, sr)
 		require.True(t, *reachedHeaderCreation)
 	})
@@ -1964,8 +2088,8 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 	t.Run("validator refuses a proposal over an outcompeted head", func(t *testing.T) {
 		t.Parallel()
 
-		sr, container, _, acceptedProposal := buildScaffold(core.MetachainShardId, true, lowerRoundSiblingProof)
-		receiveAsValidator(t, sr, container)
+		sr, container, _, acceptedProposal := buildScaffold(core.MetachainShardId, true, true, lowerRoundSiblingProof)
+		receiveAsValidator(t, sr, container, true)
 
 		require.Nil(t, sr.GetData())
 		require.False(t, *acceptedProposal)
@@ -1974,11 +2098,30 @@ func TestSubroundBlock_CompetingParentGuard(t *testing.T) {
 	t.Run("validator accepts the proposal without the sibling proof", func(t *testing.T) {
 		t.Parallel()
 
-		sr, container, _, acceptedProposal := buildScaffold(core.MetachainShardId, true, nil)
-		receiveAsValidator(t, sr, container)
+		sr, container, _, acceptedProposal := buildScaffold(core.MetachainShardId, true, true, nil)
+		receiveAsValidator(t, sr, container, true)
 
 		require.NotNil(t, sr.GetData())
 		require.True(t, *acceptedProposal)
+	})
+
+	t.Run("validator accepts the proposal when the preferred proof is off-branch", func(t *testing.T) {
+		t.Parallel()
+
+		sr, container, _, acceptedProposal := buildScaffold(core.MetachainShardId, true, true, offBranchSiblingProof)
+		receiveAsValidator(t, sr, container, true)
+
+		require.NotNil(t, sr.GetData())
+		require.True(t, *acceptedProposal)
+	})
+
+	t.Run("drain period does not apply the validator guard", func(t *testing.T) {
+		t.Parallel()
+
+		sr, container, _, _ := buildScaffold(core.MetachainShardId, true, false, lowerRoundSiblingProof)
+		receiveAsValidator(t, sr, container, false)
+
+		require.NotNil(t, sr.GetData())
 	})
 }
 

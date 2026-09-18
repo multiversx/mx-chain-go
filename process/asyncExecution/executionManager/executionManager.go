@@ -1,6 +1,8 @@
 package executionManager
 
 import (
+	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -35,6 +37,7 @@ type ArgsExecutionManager struct {
 
 type executionManager struct {
 	mut                     sync.RWMutex
+	closed                  bool
 	headersExecutor         process.HeadersExecutor
 	blocksCache             process.BlocksCache
 	executionResultsTracker process.ExecutionResultsTracker
@@ -98,6 +101,10 @@ func (em *executionManager) StartExecution() {
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	if em.closed {
+		return
+	}
+
 	log.Debug("starting headers execution...")
 	em.headersExecutor.StartExecution()
 }
@@ -111,6 +118,10 @@ func (em *executionManager) SetHeadersExecutor(executor process.HeadersExecutor)
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	if em.closed {
+		return process.ErrProcessClosed
+	}
+
 	em.headersExecutor = executor
 
 	return nil
@@ -122,26 +133,107 @@ func (em *executionManager) AddPairForExecution(pair cache.HeaderBodyPair) error
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	if em.closed {
+		return process.ErrProcessClosed
+	}
+	if check.IfNil(pair.Header) {
+		return common.ErrNilHeaderHandler
+	}
+
 	lastExecutedBlock := em.blockChain.GetLastExecutedBlockHeader()
 	if !check.IfNil(lastExecutedBlock) &&
 		lastExecutedBlock.GetNonce() >= pair.Header.GetNonce() {
-		err := process.UpdateContextForReplacedHeader(
-			pair.Header,
-			em,
-			em.blockChain,
-			em.headers,
-			em.postProcessTransactions,
-			em.executedMiniBlocks,
-			em.storageService,
-			em.marshaller,
-			em.shardCoordinator.SelfId(),
-		)
-		if err != nil {
-			return err
-		}
+		return em.addReplacementPair(pair)
+	}
+
+	previousPair, hadPreviousPair := em.blocksCache.GetByNonce(pair.Header.GetNonce())
+	err := em.blocksCache.AddOrReplace(pair)
+	if err != nil {
+		return err
+	}
+
+	lastExecutedBlock = em.blockChain.GetLastExecutedBlockHeader()
+	if check.IfNil(lastExecutedBlock) || lastExecutedBlock.GetNonce() < pair.Header.GetNonce() {
+		return nil
+	}
+
+	em.headersExecutor.PauseExecution()
+	defer em.headersExecutor.ResumeExecution()
+
+	pairWasExecuted, err := em.wasPairExecuted(pair)
+	if err != nil {
+		em.restoreCachedPair(previousPair, hadPreviousPair, pair.Header.GetNonce())
+		return err
+	}
+	if pairWasExecuted {
+		return nil
+	}
+
+	err = em.updateContextForReplacedHeader(pair.Header)
+	if err != nil {
+		em.restoreCachedPair(previousPair, hadPreviousPair, pair.Header.GetNonce())
+		return err
+	}
+
+	return nil
+}
+
+func (em *executionManager) addReplacementPair(pair cache.HeaderBodyPair) error {
+	em.headersExecutor.PauseExecution()
+	defer em.headersExecutor.ResumeExecution()
+
+	err := em.updateContextForReplacedHeader(pair.Header)
+	if err != nil {
+		return err
 	}
 
 	return em.blocksCache.AddOrReplace(pair)
+}
+
+func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHandler) error {
+	return process.UpdateContextForReplacedHeader(
+		header,
+		em,
+		em.blockChain,
+		em.headers,
+		em.postProcessTransactions,
+		em.executedMiniBlocks,
+		em.storageService,
+		em.marshaller,
+		em.shardCoordinator.SelfId(),
+	)
+}
+
+func (em *executionManager) wasPairExecuted(pair cache.HeaderBodyPair) (bool, error) {
+	lastExecutionResult := em.blockChain.GetLastExecutionResult()
+	if !check.IfNil(lastExecutionResult) &&
+		lastExecutionResult.GetHeaderNonce() == pair.Header.GetNonce() {
+		return bytes.Equal(lastExecutionResult.GetHeaderHash(), pair.HeaderHash), nil
+	}
+
+	pendingResults, err := em.executionResultsTracker.GetPendingExecutionResults()
+	if err != nil {
+		return false, err
+	}
+	for _, result := range pendingResults {
+		if result.GetHeaderNonce() == pair.Header.GetNonce() {
+			return bytes.Equal(result.GetHeaderHash(), pair.HeaderHash), nil
+		}
+	}
+
+	return false, nil
+}
+
+func (em *executionManager) restoreCachedPair(previousPair cache.HeaderBodyPair, hadPreviousPair bool, nonce uint64) {
+	if hadPreviousPair {
+		err := em.blocksCache.AddOrReplace(previousPair)
+		if err != nil {
+			log.Warn("executionManager.restoreCachedPair - failed to restore previous pair", "error", err)
+		}
+		return
+	}
+
+	em.blocksCache.Remove(nonce)
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker
@@ -161,6 +253,9 @@ func (em *executionManager) SetLastNotarizedResult(executionResult data.BaseExec
 
 // CleanConfirmedExecutionResults calls the same method from executionResultsTracker
 func (em *executionManager) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
+	em.mut.Lock()
+	defer em.mut.Unlock()
+
 	for _, executionResult := range header.GetExecutionResultsHandlers() {
 		em.blocksCache.Remove(executionResult.GetHeaderNonce())
 	}
@@ -174,6 +269,9 @@ func (em *executionManager) CleanOnConsensusReached(headerHash []byte, header da
 		return
 	}
 
+	em.mut.Lock()
+	defer em.mut.Unlock()
+
 	em.executionResultsTracker.CleanOnConsensusReached(headerHash, header)
 	em.blocksCache.RemoveAtNonceAndHigher(header.GetNonce() + 1)
 }
@@ -185,6 +283,10 @@ func (em *executionManager) CleanOnConsensusReached(headerHash []byte, header da
 func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	em.mut.Lock()
 	defer em.mut.Unlock()
+
+	if em.closed {
+		return process.ErrProcessClosed
+	}
 
 	lastNotarizedResult, err := em.executionResultsTracker.GetLastNotarizedExecutionResult()
 	if err != nil {
@@ -232,39 +334,179 @@ func (em *executionManager) RemovePendingExecutionResultsFromNonce(nonce uint64)
 
 // RewindExecutionStateToTip realigns the tracker's notarized watermark and the blockchain last-executed
 // marker to the rolled-back tip; unlike RemoveAtNonceAndHigher it can lower the watermark
-func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler) error {
+func (em *executionManager) RewindExecutionStateToTip(newTip data.HeaderHandler, newTipHash []byte) error {
 	if check.IfNil(newTip) {
 		return process.ErrNilHeaderHandler
 	}
 
-	newLastNotarized, err := common.GetLastBaseExecutionResultHandler(newTip)
-	if err != nil {
-		return err
+	em.mut.RLock()
+	closed := em.closed
+	em.mut.RUnlock()
+	if closed {
+		return process.ErrProcessClosed
 	}
 
-	// resolved before any mutation: the tracker reset below cannot be undone, so a rewind that
-	// fails has to leave the state untouched for the caller to retry
-	lastExecutedHeader, err := process.GetHeader(newLastNotarized.GetHeaderHash(), em.headers, em.storageService, em.marshaller, em.shardCoordinator.SelfId())
+	newLastNotarized, lastExecutedHeader, err := em.getRewindExecutionAnchor(newTip, newTipHash)
 	if err != nil {
-		log.Debug("executionManager.RewindExecutionStateToTip: could not find header in pool or storage",
-			"hash", newLastNotarized.GetHeaderHash(),
-			"nonce", newLastNotarized.GetHeaderNonce(),
-			"error", err,
-		)
 		return err
 	}
 
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	if em.closed {
+		return process.ErrProcessClosed
+	}
+
 	em.headersExecutor.PauseExecution()
 	defer em.headersExecutor.ResumeExecution()
 
 	// the tracker reset empties the pending results, so the tip's own result is the last executed one
-	em.resetTrackerToLastNotarized(newLastNotarized)
+	em.executionResultsTracker.Rewind(newLastNotarized, newTip.GetNonce())
+	em.blocksCache.Clean()
 	em.blockChain.SetLastExecutionInfo(lastExecutedHeader, newLastNotarized)
 
 	return nil
+}
+
+func (em *executionManager) getRewindExecutionAnchor(
+	newTip data.HeaderHandler,
+	newTipHash []byte,
+) (data.BaseExecutionResultHandler, data.HeaderHandler, error) {
+	if !newTip.IsHeaderV3() {
+		newLastNotarized, err := common.GetOrCreateLastExecutionResultForPrevHeader(newTip, newTipHash)
+		return newLastNotarized, newTip, err
+	}
+
+	lastExecutionResultInfo := newTip.GetLastExecutionResultHandler()
+	newLastNotarized, err := common.ExtractBaseExecutionResultHandler(lastExecutionResultInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// resolved before any mutation: the tracker reset below cannot be undone, so a rewind that
+	// fails has to leave the state untouched for the caller to retry
+	shardID := newTip.GetShardID()
+	lastExecutedHeader, err := process.GetHeader(newLastNotarized.GetHeaderHash(), em.headers, em.storageService, em.marshaller, shardID)
+	if err != nil {
+		log.Debug("executionManager.RewindExecutionStateToTip: could not find header in pool or storage",
+			"hash", newLastNotarized.GetHeaderHash(),
+			"nonce", newLastNotarized.GetHeaderNonce(),
+			"error", err,
+		)
+		return nil, nil, err
+	}
+
+	if check.IfNil(lastExecutedHeader) {
+		return nil, nil, process.ErrNilHeaderHandler
+	}
+	if lastExecutedHeader.GetShardID() != shardID || lastExecutedHeader.GetNonce() != newLastNotarized.GetHeaderNonce() {
+		return nil, nil, fmt.Errorf(
+			"%w: execution anchor header does not match the last execution result info",
+			process.ErrInvalidLastExecutionResult,
+		)
+	}
+
+	// At the header V3 activation boundary there is no full asynchronous execution result
+	// for the legacy header. Processing the first V3 header explicitly supports this case.
+	if !lastExecutedHeader.IsHeaderV3() {
+		return newLastNotarized, lastExecutedHeader, nil
+	}
+
+	fullExecutionResult, err := em.findFullExecutionResult(newTip, lastExecutionResultInfo, newLastNotarized.GetHeaderNonce())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return fullExecutionResult, lastExecutedHeader, nil
+}
+
+func (em *executionManager) findFullExecutionResult(
+	startHeader data.HeaderHandler,
+	expectedInfo data.LastExecutionResultHandler,
+	expectedNonce uint64,
+) (data.BaseExecutionResultHandler, error) {
+	if expectedNonce >= startHeader.GetNonce() {
+		return nil, fmt.Errorf(
+			"%w: execution result nonce %d is not before tip nonce %d",
+			process.ErrInvalidLastExecutionResult,
+			expectedNonce,
+			startHeader.GetNonce(),
+		)
+	}
+
+	shardID := startHeader.GetShardID()
+	currentHeader := startHeader
+	for currentHeader.GetNonce() > expectedNonce {
+		result, found, err := findExecutionResultMatchingInfo(currentHeader, expectedInfo, expectedNonce, shardID)
+		if err != nil {
+			return nil, err
+		}
+		if found {
+			return result, nil
+		}
+
+		prevHash := currentHeader.GetPrevHash()
+		if len(prevHash) == 0 {
+			break
+		}
+
+		previousHeader, err := process.GetHeader(prevHash, em.headers, em.storageService, em.marshaller, shardID)
+		if err != nil {
+			return nil, err
+		}
+		if check.IfNil(previousHeader) {
+			return nil, process.ErrNilHeaderHandler
+		}
+		if previousHeader.GetShardID() != shardID || previousHeader.GetNonce()+1 != currentHeader.GetNonce() {
+			return nil, fmt.Errorf(
+				"%w: invalid header lineage while resolving execution result for nonce %d",
+				process.ErrInvalidLastExecutionResult,
+				expectedNonce,
+			)
+		}
+
+		currentHeader = previousHeader
+	}
+
+	return nil, fmt.Errorf(
+		"%w: full execution result for nonce %d",
+		process.ErrExecutionResultNotFound,
+		expectedNonce,
+	)
+}
+
+func findExecutionResultMatchingInfo(
+	carrierHeader data.HeaderHandler,
+	expectedInfo data.LastExecutionResultHandler,
+	expectedNonce uint64,
+	shardID uint32,
+) (data.BaseExecutionResultHandler, bool, error) {
+	for _, executionResult := range carrierHeader.GetExecutionResultsHandlers() {
+		if check.IfNil(executionResult) || executionResult.GetHeaderNonce() != expectedNonce {
+			continue
+		}
+
+		actualInfo, err := process.CreateLastExecutionResultInfoFromExecutionResult(
+			carrierHeader.GetRound(),
+			executionResult,
+			shardID,
+		)
+		if err != nil {
+			return nil, false, err
+		}
+		if !expectedInfo.Equal(actualInfo) {
+			return nil, false, fmt.Errorf(
+				"%w: full execution result for nonce %d does not match the last execution result info",
+				process.ErrInvalidLastExecutionResult,
+				expectedNonce,
+			)
+		}
+
+		return executionResult, true, nil
+	}
+
+	return nil, false, nil
 }
 
 // PopDismissedResults returns all batches of dismissed execution results and clears the internal queue
@@ -323,6 +565,14 @@ func (em *executionManager) GetSignalProcessCompletionChan() chan uint64 {
 // Close closes the execution manager and all its components
 func (em *executionManager) Close() error {
 	log.Debug("closing execution manager")
+
+	em.mut.Lock()
+	defer em.mut.Unlock()
+
+	if em.closed {
+		return nil
+	}
+	em.closed = true
 
 	err := em.headersExecutor.Close()
 	if err != nil {

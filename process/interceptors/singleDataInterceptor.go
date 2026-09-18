@@ -108,6 +108,16 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	sdi.receivedDebugInterceptedData(interceptedData)
 	messageID := interceptedData.Hash()
+	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
+	isWhiteListed := sdi.whiteListRequest.IsWhiteListed(interceptedData)
+	if !isWhiteListed && errOriginator != nil {
+		log.Trace("got message from peer on topic only for validators",
+			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",
+			sdi.topic, "err", errOriginator)
+		sdi.throttler.EndProcessing()
+		return nil, errOriginator
+	}
+
 	isInterceptedEquivalentProof := strings.HasPrefix(message.Topic(), common.EquivalentProofsTopic)
 	isMessageFromSelfOriginator := sdi.isMessageFromSelfOriginator(message)
 	isMessageFromSelfToSelf := sdi.isMessageFromSelfToSelf(fromConnectedPeer, message)
@@ -134,16 +144,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		}
 	} else {
 		sdi.interceptedDataVerifier.MarkVerified(interceptedData, message.BroadcastMethod())
-	}
-
-	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
-	isWhiteListed := sdi.whiteListRequest.IsWhiteListed(interceptedData)
-	if !isWhiteListed && errOriginator != nil {
-		log.Trace("got message from peer on topic only for validators",
-			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",
-			sdi.topic, "err", errOriginator)
-		sdi.throttler.EndProcessing()
-		return nil, errOriginator
 	}
 
 	isForCurrentShard := interceptedData.IsForCurrentShard()

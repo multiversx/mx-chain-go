@@ -369,7 +369,12 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
 	if !header.IsHeaderV3() &&
-		shouldDisableOutgoingTxs(tc.enableEpochsHandler, tc.enableRoundsHandler, header) &&
+		common.IsInSupernovaDrainWindowForEpochAndRound(
+			tc.enableEpochsHandler,
+			tc.enableRoundsHandler,
+			header.GetEpoch(),
+			header.GetRound(),
+		) &&
 		hasForbiddenOutgoingTxMiniBlocks(tc.shardCoordinator.SelfId(), miniBlocksFromMe) {
 		return process.ErrOutgoingTxsDisabled
 	}
@@ -384,16 +389,6 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	return nil
-}
-
-func shouldDisableOutgoingTxs(
-	enableEpochsHandler common.EnableEpochsHandler,
-	enableRoundsHandler common.EnableRoundsHandler,
-	header data.HeaderHandler,
-) bool {
-	isSupernovaEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, header.GetEpoch())
-	supernovaRoundEnabled := enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, header.GetRound())
-	return isSupernovaEnabled && !supernovaRoundEnabled
 }
 
 func hasForbiddenOutgoingTxMiniBlocks(selfShardID uint32, miniBlocks block.MiniBlockSlice) bool {
@@ -577,6 +572,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
+	allowStartingPartialExecution bool,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 
 	createMBDestMeExecutionInfo := initMiniBlockDestMeExecutionInfo()
@@ -712,8 +709,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		oldIndexOfLastTxProcessed := processedMbInfo.IndexOfLastTxProcessed
+		isContinuation := oldIndexOfLastTxProcessed >= 0
+		allowPartialExecution := tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag) &&
+			(allowStartingPartialExecution || isContinuation)
 
-		errProc := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo, headerHash)
+		errProc := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, allowPartialExecution, processedMbInfo, headerHash, gasProcessingPolicy)
 		tc.handleProcessMiniBlockExecution(oldIndexOfLastTxProcessed, miniBlock, processedMbInfo, createMBDestMeExecutionInfo)
 		if errProc != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
@@ -1256,8 +1256,10 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
+	allowPartialExecution bool,
 	processedMbInfo *processedMb.ProcessedMiniBlockInfo,
 	headerHash []byte,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) error {
 
 	snapshot := tc.handleProcessMiniBlockInit(miniBlockHash, headerHash)
@@ -1279,9 +1281,10 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		haveTime,
 		haveAdditionalTime,
 		scheduledMode,
-		tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag),
+		allowPartialExecution,
 		int(processedMbInfo.IndexOfLastTxProcessed),
 		tc,
+		gasProcessingPolicy,
 	)
 
 	log.Debug("transactionsCoordinator.processCompleteMiniBlock: after processing",
@@ -1312,7 +1315,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		if shouldRevert {
 			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
 		} else {
-			if tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag) {
+			if allowPartialExecution {
 				processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
 				processedMbInfo.FullyProcessed = false
 			}

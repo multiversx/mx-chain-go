@@ -413,6 +413,23 @@ func TestValidateSupernovaActivationTuple(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("delayed activation in epoch zero should error", func(t *testing.T) {
+		t.Parallel()
+
+		err := coreComp.ValidateSupernovaActivationTuple(config.Config{}, config.EconomicsConfig{}, config.RatingsConfig{}, 0, 1)
+		require.ErrorIs(t, err, errorsMx.ErrSupernovaActivationConfigMismatch)
+		require.ErrorContains(t, err, "epoch zero")
+	})
+
+	t.Run("immediate activation in epoch zero should pass the new guard", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := coherentConfig()
+		cfg.Versions.VersionsByEpochs = []config.VersionByEpochs{{StartEpoch: 0, StartRound: 0, Version: "3"}}
+		err := coreComp.ValidateSupernovaActivationTuple(cfg, coherentEconomics(), coherentRatings(), 0, 0)
+		require.NoError(t, err)
+	})
+
 	t.Run("far away epoch skips the boundary alignment check", func(t *testing.T) {
 		t.Parallel()
 

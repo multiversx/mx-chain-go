@@ -52,6 +52,7 @@ type ConsensusCoreHandler interface {
 	EnableRoundsHandler() common.EnableRoundsHandler
 	CommonConfigsHandler() common.CommonConfigsHandler
 	EquivalentProofsPool() consensus.EquivalentProofsPool
+	HeadersPool() consensus.HeadersPoolGetter
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache
 	MessagesHandler() ConsensusService

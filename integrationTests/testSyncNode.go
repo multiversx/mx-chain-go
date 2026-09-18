@@ -2,6 +2,7 @@ package integrationTests
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -69,7 +70,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	if tpn.EnableEpochsHandler == nil {
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
-	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
+	coreComponents := getDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EnableRoundsHandler, tpn.EpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
@@ -92,15 +93,15 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
-		DataPool:            tpn.DataPool,
-		RequestHandler:      tpn.RequestHandler,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		ShardCoordinator:    tpn.ShardCoordinator,
-		BlockTracker:        tpn.BlockTracker,
-		TxCoordinator:       tpn.TxCoordinator,
-		RoundHandler:        tpn.RoundHandler,
-		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-		GenesisNonce: tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
+		DataPool:              tpn.DataPool,
+		RequestHandler:        tpn.RequestHandler,
+		EnableEpochsHandler:   tpn.EnableEpochsHandler,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		BlockTracker:          tpn.BlockTracker,
+		TxCoordinator:         tpn.TxCoordinator,
+		RoundHandler:          tpn.RoundHandler,
+		ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+		GenesisNonce:          tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()].GetNonce(),
 	}
 	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
 	if err != nil {
