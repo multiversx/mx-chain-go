@@ -457,6 +457,8 @@ func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
 		return Parameters{}, err
 	}
 
+	e.setEpochStartMetrics()
+
 	epochToStart := e.baseData.lastEpoch
 	if shuffledOut {
 		epochToStart = e.startEpoch
