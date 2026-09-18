@@ -19,6 +19,8 @@ const (
 	LvlDBSerial = common.LvlDBSerial
 	// MemoryDB represents an in memory storage identifier
 	MemoryDB = common.MemoryDB
+	// PebbleDB represents a pebble storage identifier
+	PebbleDB = common.PebbleDB
 )
 
 // Shard id provider types that are currently supported

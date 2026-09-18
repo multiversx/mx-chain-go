@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/pebbledb"
 )
 
 var log = logger.GetOrCreate("storage/factory")
@@ -59,6 +60,7 @@ type StorageServiceFactory struct {
 	snapshotsEnabled              bool
 	repopulateTokensSupplies      bool
 	stateStatsHandler             common.StateStatisticsHandler
+	pebbleResources               *pebbledb.SharedResources
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
@@ -76,6 +78,7 @@ type StorageServiceFactoryArgs struct {
 	NodeProcessingMode            common.NodeProcessingMode
 	RepopulateTokensSupplies      bool
 	StateStatsHandler             common.StateStatisticsHandler
+	PebbleResources               *pebbledb.SharedResources
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -112,6 +115,7 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		snapshotsEnabled:              args.Config.StateTriesConfig.SnapshotsEnabled,
 		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
 		stateStatsHandler:             args.StateStatsHandler,
+		pebbleResources:               args.PebbleResources,
 	}, nil
 }
 
@@ -314,7 +318,7 @@ func (psf *StorageServiceFactory) createStaticStorageUnit(
 	dbPath := psf.pathManager.PathForStatic(shardID, storageConf.DB.FilePath) + dbPathSuffix
 	storageUnitDBConf.FilePath = dbPath
 
-	persisterCreator, err := NewPersisterFactory(storageConf.DB)
+	persisterCreator, err := NewPersisterFactoryWithResources(storageConf.DB, psf.pebbleResources)
 	if err != nil {
 		return nil, err
 	}
@@ -598,7 +602,7 @@ func (psf *StorageServiceFactory) createPruningStorerArgs(
 		NumOfActivePersisters: numOfActivePersisters,
 	}
 
-	persisterFactory, err := NewPersisterFactory(storageConfig.DB)
+	persisterFactory, err := NewPersisterFactoryWithResources(storageConfig.DB, psf.pebbleResources)
 	if err != nil {
 		return pruning.StorerArgs{}, err
 	}
