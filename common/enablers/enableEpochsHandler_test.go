@@ -140,6 +140,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ConsumedGasInEconomicsFixEnableEpoch:                     120,
 		AttributeExtraGasUsageEnableEpoch:                        121,
 		SupernovaEnableEpoch:                                     122,
+		GuardUnbackedEGLDInMultiTransferEnableEpoch:              123,
 	}
 }
 
@@ -489,6 +490,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.ConsumedGasInEconomicsFixEnableEpoch, handler.GetActivationEpoch(common.ConsumedGasInEconomicsFlag))
 	require.Equal(t, cfg.AttributeExtraGasUsageEnableEpoch, handler.GetActivationEpoch(common.AttributeExtraGasUsageFlag))
 	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
+	require.Equal(t, cfg.GuardUnbackedEGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.GuardUnbackedEGLDInMultiTransferFlag))
 }
 
 func TestEnableEpochsHandler_GetAllEnableEpochs(t *testing.T) {

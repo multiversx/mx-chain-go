@@ -1355,6 +1355,7 @@ const (
 	FullShardDataValidationFlag                         core.EnableEpochFlag = "FullShardDataValidationFlag"
 	ConsumedGasInEconomicsFlag                          core.EnableEpochFlag = "ConsumedGasInEconomicsFlag"
 	AttributeExtraGasUsageFlag                          core.EnableEpochFlag = "AttributeExtraGasUsageFlag"
+	GuardUnbackedEGLDInMultiTransferFlag                core.EnableEpochFlag = "GuardUnbackedEGLDInMultiTransferFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
 

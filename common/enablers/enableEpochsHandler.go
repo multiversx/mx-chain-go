@@ -1023,6 +1023,13 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			activationEpoch:     handler.enableEpochsConfig.AttributeExtraGasUsageEnableEpoch,
 			activationEpochName: "AttributeExtraGasUsageEnableEpoch",
 		},
+		common.GuardUnbackedEGLDInMultiTransferFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.GuardUnbackedEGLDInMultiTransferEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.GuardUnbackedEGLDInMultiTransferEnableEpoch,
+			activationEpochName: "GuardUnbackedEGLDInMultiTransferEnableEpoch",
+		},
 	}
 }
 

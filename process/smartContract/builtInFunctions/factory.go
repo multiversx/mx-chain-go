@@ -100,6 +100,15 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		return nil, err
 	}
 
+	err = wrapMultiESDTNFTTransferWithUnbackedEGLDGuard(
+		bContainerFactory.BuiltInFunctionContainer(),
+		args.EnableEpochsHandler,
+		args.ShardCoordinator,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	args.GasSchedule.RegisterNotifyHandler(bContainerFactory)
 
 	return bContainerFactory, nil

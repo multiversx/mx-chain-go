@@ -1080,6 +1080,11 @@ var ErrNilCurrentNetworkEpochProvider = errors.New("nil current network epoch pr
 // ErrNilESDTTransferParser signals that a nil ESDT transfer parser has been provided
 var ErrNilESDTTransferParser = errors.New("nil esdt transfer parser")
 
+// ErrUnbackedEGLDInMultiTransfer signals that a dest-path MultiESDTNFTTransfer tried to
+// credit EGLD-000000 without a matching CallValue. Dest-path AddToBalance is otherwise
+// unbacked when the incoming execution did not debit the sender.
+var ErrUnbackedEGLDInMultiTransfer = errors.New("unbacked EGLD-000000 in MultiESDTNFTTransfer")
+
 // ErrResultingSCRIsTooBig signals that resulting smart contract result is too big
 var ErrResultingSCRIsTooBig = errors.New("resulting SCR is too big")
 

@@ -175,6 +175,11 @@ func TestCreateBuiltInFunctionContainer(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 42, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()))
 
+		wrapped, err := builtInFuncFactory.BuiltInFunctionContainer().Get(core.BuiltInFunctionMultiESDTNFTTransfer)
+		assert.Nil(t, err)
+		_, ok := wrapped.(*unbackedEGLDCreditGuard)
+		assert.True(t, ok)
+
 		err = builtInFuncFactory.SetPayableHandler(&testscommon.BlockChainHookStub{})
 		assert.Nil(t, err)
 

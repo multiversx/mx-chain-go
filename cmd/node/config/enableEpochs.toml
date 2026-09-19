@@ -382,6 +382,12 @@
     # AttributeExtraGasUsageEnableEpoch represents the epoch when the extra gas usage for attributes is enabled
     AttributeExtraGasUsageEnableEpoch = 1
 
+    # GuardUnbackedEGLDInMultiTransferEnableEpoch represents the epoch when dest-path
+    # MultiESDTNFTTransfer credits of EGLD-000000 must be backed by CallValue.
+    # Mainnet/devnet config must set the coordinated activation epoch; do not flip this
+    # on an already-running network without a consensus break.
+    GuardUnbackedEGLDInMultiTransferEnableEpoch = 1
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

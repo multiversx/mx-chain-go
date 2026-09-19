@@ -1324,6 +1324,10 @@ func TestEnableEpochConfig(t *testing.T) {
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
     SupernovaEnableEpoch = 116
 
+    # GuardUnbackedEGLDInMultiTransferEnableEpoch represents the epoch when dest-path
+    # MultiESDTNFTTransfer credits of EGLD-000000 must be backed by CallValue
+    GuardUnbackedEGLDInMultiTransferEnableEpoch = 117
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1459,6 +1463,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			ConsumedGasInEconomicsFixEnableEpoch:                     114,
 			AttributeExtraGasUsageEnableEpoch:                        115,
 			SupernovaEnableEpoch:                                     116,
+			GuardUnbackedEGLDInMultiTransferEnableEpoch:              117,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
