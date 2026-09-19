@@ -15,6 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 )
 
@@ -22,6 +24,26 @@ const cleanupDelta = 3
 const bucketSize = 100
 
 var shardID = uint32(1)
+
+func TestProofsPool_AddProofSkipsExcludedRound(t *testing.T) {
+	t.Parallel()
+
+	roundExclusions, err := common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{{StartRound: 10, EndRound: 12}})
+	require.NoError(t, err)
+	pool := proofscache.NewProofsPoolWithRoundExclusions(cleanupDelta, bucketSize, roundExclusions)
+
+	excluded := &block.HeaderProof{HeaderShardId: shardID, HeaderHash: []byte("excluded"), HeaderNonce: 1, HeaderRound: 11}
+	require.False(t, pool.AddProof(excluded))
+	require.False(t, pool.UpsertProof(excluded))
+	added, existing := pool.AddProofIfNoneAtNonce(excluded)
+	require.False(t, added)
+	require.Nil(t, existing)
+	require.False(t, pool.HasProof(shardID, excluded.GetHeaderHash()))
+
+	accepted := &block.HeaderProof{HeaderShardId: shardID, HeaderHash: []byte("accepted"), HeaderNonce: 2, HeaderRound: 13}
+	require.True(t, pool.AddProof(accepted))
+	require.True(t, pool.HasProof(shardID, accepted.GetHeaderHash()))
+}
 
 var proof1 = &block.HeaderProof{
 	PubKeysBitmap:       []byte("pubKeysBitmap1"),

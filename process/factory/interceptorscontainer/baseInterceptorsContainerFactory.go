@@ -62,7 +62,8 @@ type baseInterceptorsContainerFactory struct {
 	nodeOperationMode               common.NodeOperation
 	interceptedDataVerifierFactory  process.InterceptedDataVerifierFactory
 	enableEpochsHandler             common.EnableEpochsHandler
-	config                         config.Config
+	roundExclusions                 common.RoundExclusionHandler
+	config                          config.Config
 }
 
 func checkBaseParams(
@@ -467,6 +468,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 		BlockBlackList:      bicf.blockBlackList,
 		Proofs:              bicf.dataPool.Proofs(),
 		EnableEpochsHandler: bicf.enableEpochsHandler,
+		RoundExclusions:     bicf.roundExclusions,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -653,6 +655,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 		BlockBlackList:      bicf.blockBlackList,
 		Proofs:              bicf.dataPool.Proofs(),
 		EnableEpochsHandler: bicf.enableEpochsHandler,
+		RoundExclusions:     bicf.roundExclusions,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

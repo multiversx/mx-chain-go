@@ -22,6 +22,7 @@ const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 95 / 100)
 // subroundBlock defines the data needed by the subround Block
 type subroundBlock struct {
 	*spos.Subround
+	roundExclusions common.RoundExclusionHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -29,8 +30,13 @@ func NewSubroundBlock(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
 	processingThresholdPercentage int,
+	roundExclusionHandlers ...common.RoundExclusionHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
+	if err != nil {
+		return nil, err
+	}
+	roundExclusions, err := common.ResolveRoundExclusionHandler(roundExclusionHandlers...)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +44,8 @@ func NewSubroundBlock(
 	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
 
 	srBlock := subroundBlock{
-		Subround: baseSubround,
+		Subround:        baseSubround,
+		roundExclusions: roundExclusions,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -66,6 +73,11 @@ func checkNewSubroundBlockParams(
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
+	round := sr.RoundHandler().Index()
+	if round < 0 || sr.roundExclusions.IsRoundExcluded(uint64(round)) {
+		return false
+	}
+
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
@@ -423,6 +435,9 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	}
 
 	header := sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
+	if !check.IfNil(header) && sr.roundExclusions.IsRoundExcluded(header.GetRound()) {
+		return false
+	}
 	if sr.isFlagActiveForHeader(header) {
 		return false
 	}

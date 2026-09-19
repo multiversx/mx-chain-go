@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -164,6 +165,9 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 func (boot *MetaBootstrap) StartSyncingBlocks() error {
 	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
+	if errors.Is(errNotCritical, common.ErrRoundExcluded) {
+		return errNotCritical
+	}
 	if errNotCritical != nil {
 		log.Debug("syncFromStorer", "error", errNotCritical.Error())
 	} else {

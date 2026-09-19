@@ -294,6 +294,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	if err != nil {
 		return nil, err
 	}
+	roundExclusions, err := common.NewRoundExclusionHandler(ccf.config.HardforkRoundExclusions)
+	if err != nil {
+		return nil, err
+	}
 
 	subroundsHandlerArgs := &proxy.SubroundsHandlerArgs{
 		Chronology:           cc.chronology,
@@ -305,6 +309,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		OutportHandler:       ccf.statusComponents.OutportHandler(),
 		SentSignatureTracker: ccf.processComponents.SentSignaturesTracker(),
 		EnableEpochsHandler:  ccf.coreComponents.EnableEpochsHandler(),
+		RoundExclusions:      roundExclusions,
 		ChainID:              []byte(ccf.coreComponents.ChainID()),
 		CurrentPid:           ccf.networkComponents.NetworkMessenger().ID(),
 	}
@@ -456,6 +461,10 @@ func (ccf *consensusComponentsFactory) createBootstrapper() (process.Bootstrappe
 }
 
 func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootstrapper, error) {
+	roundExclusions, err := common.NewRoundExclusionHandler(ccf.config.HardforkRoundExclusions)
+	if err != nil {
+		return nil, err
+	}
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		BootStorer:                   ccf.processComponents.BootStorer(),
 		ForkDetector:                 ccf.processComponents.ForkDetector(),
@@ -478,6 +487,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 		ProofsPool:                   ccf.dataComponents.Datapool().Proofs(),
 		ExecutionManager:             ccf.processComponents.ExecutionManager(),
+		RoundExclusions:              roundExclusions,
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -608,6 +618,10 @@ func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.Accou
 }
 
 func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bootstrapper, error) {
+	roundExclusions, err := common.NewRoundExclusionHandler(ccf.config.HardforkRoundExclusions)
+	if err != nil {
+		return nil, err
+	}
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		BootStorer:                   ccf.processComponents.BootStorer(),
 		ForkDetector:                 ccf.processComponents.ForkDetector(),
@@ -630,6 +644,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 		ProofsPool:                   ccf.dataComponents.Datapool().Proofs(),
 		ExecutionManager:             ccf.processComponents.ExecutionManager(),
+		RoundExclusions:              roundExclusions,
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{

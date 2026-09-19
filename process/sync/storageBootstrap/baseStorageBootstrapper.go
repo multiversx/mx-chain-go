@@ -52,6 +52,7 @@ type ArgsBaseStorageBootstrapper struct {
 	EnableEpochsHandler          common.EnableEpochsHandler
 	ProofsPool                   process.ProofsPool
 	ExecutionManager             process.ExecutionManager
+	RoundExclusions              common.RoundExclusionHandler
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -90,6 +91,7 @@ type storageBootstrapper struct {
 	enableEpochsHandler          common.EnableEpochsHandler
 	proofsPool                   process.ProofsPool
 	executionManager             process.ExecutionManager
+	roundExclusions              common.RoundExclusionHandler
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -181,6 +183,10 @@ func (st *storageBootstrapper) loadBlocks() error {
 		)
 
 		return process.ErrNotEnoughValidBlocksInStorage
+	}
+	currentTip := st.blkc.GetCurrentBlockHeader()
+	if !check.IfNil(currentTip) && st.roundExclusions.IsRoundExcluded(currentTip.GetRound()) {
+		return fmt.Errorf("%w: stored tip round %d", common.ErrRoundExcluded, currentTip.GetRound())
 	}
 
 	log.Debug("storageBootstrapper.loadBlocks",
