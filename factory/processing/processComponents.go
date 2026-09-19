@@ -634,7 +634,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	blockCutoffProcessingHandler, err := cutoff.CreateBlockProcessingCutoffHandler(pcf.prefConfigs.BlockProcessingCutoff)
+	blockCutoffProcessingHandler, err := cutoff.CreateBlockProcessingCutoffHandler(
+		pcf.prefConfigs.BlockProcessingCutoff,
+		pcf.coreData.ChanStopNodeProcess(),
+	)
 	if err != nil {
 		return nil, err
 	}

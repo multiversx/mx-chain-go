@@ -7427,9 +7427,16 @@ func TestBaseProcessor_Close(t *testing.T) {
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	closeCutoffCalled := false
+	arguments.BlockProcessingCutoffHandler = &testscommon.BlockProcessingCutoffStub{
+		CloseCalled: func() {
+			closeCutoffCalled = true
+		},
+	}
 	bp, _ := blproc.NewShardProcessor(arguments)
 
 	require.NoError(t, bp.Close())
+	require.True(t, closeCutoffCalled)
 }
 
 func TestBaseProcessor_WaitForExecutionResultsVerification(t *testing.T) {

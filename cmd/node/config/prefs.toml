@@ -61,9 +61,10 @@
    # If set to true, the node will stop at the given coordinate
    Enabled = false
 
-   # Mode represents the cutoff mode. possible values: "pause" or "process-error".
+   # Mode represents the cutoff mode. possible values: "pause", "process-error", or "graceful-stop".
    # "pause" mode will halt the processing at the block with the given coordinates. Useful for snapshots/analytics
    # "process-error" will return an error when processing the block with the given coordinates. Useful for debugging
+   # "graceful-stop" will finish the block and stop the node cleanly. Useful for creating a restartable snapshot
    Mode = "pause"
 
    # CutoffTrigger represents the kind of coordinate to look after when cutting off the processing.

@@ -1311,6 +1311,12 @@ func (mp *metaProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+	commitCompleted := false
+	defer func() {
+		if commitCompleted {
+			mp.blockProcessingCutoffHandler.HandleGracefulStopCutoff(headerHandler, mp.executionManager.PauseExecution)
+		}
+	}()
 
 	prevBlockHeader := mp.blockChain.GetCurrentBlockHeader()
 	prevBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
@@ -1545,6 +1551,7 @@ func (mp *metaProcessor) CommitBlock(
 	if header.IsHeaderV3() && header.IsStartOfEpochBlock() {
 		mp.saveEpochStartEconomicsMetrics(header)
 	}
+	commitCompleted = true
 
 	return nil
 }
