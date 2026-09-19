@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -45,7 +46,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		return nil, err
 	}
 	roundExclusions := arg.RoundExclusions
-	if roundExclusions == nil || roundExclusions.IsInterfaceNil() {
+	if check.IfNil(roundExclusions) {
 		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
 	}
 

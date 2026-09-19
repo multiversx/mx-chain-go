@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -37,7 +38,7 @@ type interceptedEquivalentProofsFactory struct {
 // NewInterceptedEquivalentProofsFactory creates a new instance of interceptedEquivalentProofsFactory
 func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFactory) *interceptedEquivalentProofsFactory {
 	roundExclusions := args.ArgInterceptedDataFactory.RoundExclusions
-	if roundExclusions == nil || roundExclusions.IsInterfaceNil() {
+	if check.IfNil(roundExclusions) {
 		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
 	}
 
