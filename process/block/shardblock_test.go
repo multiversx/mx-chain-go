@@ -2672,6 +2672,20 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 			resetCountersForManagedBlockSignerCalled = true
 		},
 	}
+	pauseExecutionCalled := false
+	arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+		PauseExecutionCalled: func() {
+			pauseExecutionCalled = true
+		},
+	}
+	gracefulStopCutoffCalled := false
+	arguments.BlockProcessingCutoffHandler = &testscommon.BlockProcessingCutoffStub{
+		HandleGracefulStopCutoffCalled: func(header data.HeaderHandler, beforeStop func()) {
+			require.Equal(t, hdr, header)
+			beforeStop()
+			gracefulStopCutoffCalled = true
+		},
+	}
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	debuggerMethodWasCalled := false
@@ -2699,6 +2713,8 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	assert.True(t, debuggerMethodWasCalled)
 	assert.True(t, resetCountersForManagedBlockSignerCalled)
 	assert.True(t, txPoolOnExecutedBlockCalled)
+	assert.True(t, gracefulStopCutoffCalled)
+	assert.True(t, pauseExecutionCalled)
 }
 
 func TestShardProcessor_CommitBlockFailsWhenOnExecutedBlockFails(t *testing.T) {
@@ -9420,6 +9436,12 @@ func TestShardProcessor_CommitBlockV3BlocksBackgroundJobs(t *testing.T) {
 			return nil
 		},
 	}
+	gracefulStopCutoffCalled := false
+	arguments.BlockProcessingCutoffHandler = &testscommon.BlockProcessingCutoffStub{
+		HandleGracefulStopCutoffCalled: func(_ data.HeaderHandler, _ func()) {
+			gracefulStopCutoffCalled = true
+		},
+	}
 	sp, err := blproc.NewShardProcessor(arguments)
 	require.Nil(t, err)
 
@@ -9429,6 +9451,7 @@ func TestShardProcessor_CommitBlockV3BlocksBackgroundJobs(t *testing.T) {
 
 	require.Equal(t, []string{"shardProcessor.CommitBlock"}, blockedFor)
 	require.Equal(t, 1, unblockCount)
+	require.False(t, gracefulStopCutoffCalled)
 	// the deferred cleanup touches the execution manager, so it runs before the release
 	require.Equal(t, []string{"revert", "unblock"}, releaseOrder)
 }
