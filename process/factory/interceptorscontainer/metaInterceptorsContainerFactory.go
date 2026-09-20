@@ -87,6 +87,10 @@ func NewMetaInterceptorsContainerFactory(
 	if args.HeartbeatExpiryTimespanInSec < minTimespanDurationInSec {
 		return nil, process.ErrInvalidExpiryTimespan
 	}
+	roundExclusions, err := common.NewRoundExclusionHandler(args.Config.HardforkRoundExclusions)
+	if err != nil {
+		return nil, err
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents:                          args.CoreComponents,
@@ -107,6 +111,7 @@ func NewMetaInterceptorsContainerFactory(
 		PeerShardMapper:                         args.MainPeerShardMapper,
 		PeerAuthCacher:                          args.DataPool.PeerAuthentications(),
 		PeerAuthenticationTimeBetweenSendsInSec: args.PeerAuthenticationTimeBetweenSendsInSec,
+		RoundExclusions:                         roundExclusions,
 	}
 
 	base := &baseInterceptorsContainerFactory{
@@ -136,6 +141,7 @@ func NewMetaInterceptorsContainerFactory(
 		nodeOperationMode:               args.NodeOperationMode,
 		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 		enableEpochsHandler:             args.CoreComponents.EnableEpochsHandler(),
+		roundExclusions:                 roundExclusions,
 		config:                          args.Config,
 	}
 
@@ -275,6 +281,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 		BlockBlackList:      micf.blockBlackList,
 		Proofs:              micf.dataPool.Proofs(),
 		EnableEpochsHandler: micf.enableEpochsHandler,
+		RoundExclusions:     micf.roundExclusions,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

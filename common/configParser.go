@@ -27,6 +27,10 @@ func LoadMainConfig(filepath string) (*config.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, err = NewRoundExclusionHandler(cfg.HardforkRoundExclusions)
+	if err != nil {
+		return nil, err
+	}
 
 	return cfg, nil
 }

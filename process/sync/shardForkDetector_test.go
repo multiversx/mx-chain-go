@@ -237,6 +237,40 @@ func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 	assert.Equal(t, hash, hInfos[0].Hash())
 }
 
+func TestShardForkDetector_AddHeaderExcludedRoundShouldNotAffectState(t *testing.T) {
+	t.Parallel()
+
+	roundExclusions, err := common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{
+		{StartRound: 10, EndRound: 20},
+	})
+	require.NoError(t, err)
+	bfd, err := sync.NewShardForkDetector(
+		&mock.RoundHandlerMock{RoundIndex: 100},
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
+		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
+		roundExclusions,
+	)
+	require.NoError(t, err)
+
+	err = bfd.AddHeader(&block.Header{Nonce: 1, Round: 10}, []byte("hash"), process.BHReceived, nil, nil)
+
+	require.ErrorIs(t, err, common.ErrRoundExcluded)
+	require.Empty(t, bfd.GetHeaders(1))
+	require.Zero(t, bfd.ProbableHighestNonce())
+
+	bfd.ReceivedProof(&block.HeaderProof{HeaderNonce: 1, HeaderRound: 10, HeaderShardId: 0, HeaderHash: []byte("hash")})
+	require.Empty(t, bfd.GetHeaders(1))
+	require.Zero(t, bfd.ProbableHighestNonce())
+}
+
 func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 	t.Parallel()
 

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/headersCache"
 	"github.com/stretchr/testify/assert"
@@ -44,6 +45,40 @@ func TestNewHeadersCacher(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, headersCacher)
 	})
+}
+
+func TestHeadersPool_AddHeaderSkipsExcludedRound(t *testing.T) {
+	t.Parallel()
+
+	roundExclusions, err := common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{{StartRound: 10, EndRound: 12}})
+	require.NoError(t, err)
+	pool, err := headersCache.NewHeadersPoolWithRoundExclusions(config.HeadersPoolConfig{
+		MaxHeadersPerShard:            10,
+		NumElementsToRemoveOnEviction: 1,
+	}, roundExclusions)
+	require.NoError(t, err)
+	notified := make(chan struct{}, 1)
+	pool.RegisterHandler(func(headerHandler data.HeaderHandler, headerHash []byte) {
+		notified <- struct{}{}
+	})
+
+	pool.AddHeader([]byte("excluded"), &block.Header{Round: 11})
+	_, err = pool.GetHeaderByHash([]byte("excluded"))
+	require.Error(t, err)
+	select {
+	case <-notified:
+		require.Fail(t, "excluded header should not notify")
+	default:
+	}
+
+	pool.AddHeader([]byte("accepted"), &block.Header{Round: 13})
+	_, err = pool.GetHeaderByHash([]byte("accepted"))
+	require.NoError(t, err)
+	select {
+	case <-notified:
+	case <-time.After(time.Second):
+		require.Fail(t, "accepted header should notify")
+	}
 }
 
 func testNewHeadersCacher(cfg config.HeadersPoolConfig) func(t *testing.T) {

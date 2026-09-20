@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -31,6 +32,7 @@ type InterceptedHeader struct {
 	epochStartTrigger             process.EpochStartTriggerHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	roundExclusions               common.RoundExclusionHandler
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -44,6 +46,10 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 	if err != nil {
 		return nil, err
 	}
+	roundExclusions := arg.RoundExclusions
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
+	}
 
 	inHdr := &InterceptedHeader{
 		hdr:                           hdr,
@@ -55,6 +61,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		epochStartTrigger:             arg.EpochStartTrigger,
 		enableEpochsHandler:           arg.EnableEpochsHandler,
 		epochChangeGracePeriodHandler: arg.EpochChangeGracePeriodHandler,
+		roundExclusions:               roundExclusions,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -71,6 +78,10 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 
 // CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
 func (inHdr *InterceptedHeader) CheckValidity() error {
+	if inHdr.roundExclusions.IsRoundExcluded(inHdr.hdr.GetRound()) {
+		return common.ErrRoundExcluded
+	}
+
 	err := inHdr.integrityVerifier.Verify(inHdr.hdr)
 	if err != nil {
 		return err

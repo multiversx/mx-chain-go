@@ -1007,6 +1007,11 @@
         "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
     ]
 
+# Each interval is inclusive. Keep previous intervals when adding a later recovery.
+# [[HardforkRoundExclusions]]
+#     StartRound = 0
+#     EndRound = 0
+
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true

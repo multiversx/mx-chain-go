@@ -89,6 +89,44 @@ func TestLoadMainConfig(t *testing.T) {
 		assert.Equal(t, "default", conf.Versions.DefaultVersion)
 		assert.Equal(t, "MiniBlocksStorage", conf.MiniBlocksStorage.Cache.Name)
 	})
+	t.Run("round exclusions should be loaded and validated", func(t *testing.T) {
+		t.Parallel()
+
+		testString := `
+[[HardforkRoundExclusions]]
+    StartRound = 20
+    EndRound = 30
+[[HardforkRoundExclusions]]
+    StartRound = 10
+    EndRound = 15
+`
+		filePath := path.Join(t.TempDir(), "config.toml")
+		require.NoError(t, os.WriteFile(filePath, []byte(testString), 0o600))
+
+		conf, err := common.LoadMainConfig(filePath)
+
+		require.NoError(t, err)
+		require.Len(t, conf.HardforkRoundExclusions, 2)
+	})
+	t.Run("overlapping round exclusions should error", func(t *testing.T) {
+		t.Parallel()
+
+		testString := `
+[[HardforkRoundExclusions]]
+    StartRound = 10
+    EndRound = 20
+[[HardforkRoundExclusions]]
+    StartRound = 20
+    EndRound = 30
+`
+		filePath := path.Join(t.TempDir(), "config.toml")
+		require.NoError(t, os.WriteFile(filePath, []byte(testString), 0o600))
+
+		conf, err := common.LoadMainConfig(filePath)
+
+		require.Nil(t, conf)
+		require.ErrorIs(t, err, common.ErrOverlappingHardforkRoundExclusions)
+	})
 }
 
 func TestLoadApiConfig(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -30,6 +31,7 @@ type InterceptedMetaHeader struct {
 	validityAttester    process.ValidityAttester
 	epochStartTrigger   process.EpochStartTriggerHandler
 	enableEpochsHandler common.EnableEpochsHandler
+	roundExclusions     common.RoundExclusionHandler
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -43,6 +45,10 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	if err != nil {
 		return nil, err
 	}
+	roundExclusions := arg.RoundExclusions
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
+	}
 
 	inHdr := &InterceptedMetaHeader{
 		hdr:                 hdr,
@@ -53,6 +59,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		validityAttester:    arg.ValidityAttester,
 		epochStartTrigger:   arg.EpochStartTrigger,
 		enableEpochsHandler: arg.EnableEpochsHandler,
+		roundExclusions:     roundExclusions,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -76,6 +83,9 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
 	log.Trace("CheckValidity for header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
+	if imh.roundExclusions.IsRoundExcluded(imh.hdr.GetRound()) {
+		return common.ErrRoundExcluded
+	}
 
 	err := imh.integrity()
 	if err != nil {

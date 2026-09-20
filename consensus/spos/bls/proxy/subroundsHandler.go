@@ -27,6 +27,7 @@ type SubroundsHandlerArgs struct {
 	OutportHandler       outport.OutportHandler
 	SentSignatureTracker spos.SentSignaturesTracker
 	EnableEpochsHandler  core.EnableEpochsHandler
+	RoundExclusions      common.RoundExclusionHandler
 	ChainID              []byte
 	CurrentPid           core.PeerID
 }
@@ -51,6 +52,7 @@ type SubroundsHandler struct {
 	outportHandler       outport.OutportHandler
 	sentSignatureTracker spos.SentSignaturesTracker
 	enableEpochsHandler  core.EnableEpochsHandler
+	roundExclusions      common.RoundExclusionHandler
 	chainID              []byte
 	currentPid           core.PeerID
 	currentConsensusType consensusStateMachineType
@@ -76,6 +78,10 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 	if err != nil {
 		return nil, err
 	}
+	roundExclusions := args.RoundExclusions
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
+	}
 
 	subroundHandler := &SubroundsHandler{
 		chronology:           args.Chronology,
@@ -87,6 +93,7 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 		outportHandler:       args.OutportHandler,
 		sentSignatureTracker: args.SentSignatureTracker,
 		enableEpochsHandler:  args.EnableEpochsHandler,
+		roundExclusions:      roundExclusions,
 		chainID:              args.ChainID,
 		currentPid:           args.CurrentPid,
 		currentConsensusType: consensusNone,
@@ -182,6 +189,7 @@ func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32) error {
 			s.sentSignatureTracker,
 			s.signatureThrottler,
 			s.outportHandler,
+			s.roundExclusions,
 		)
 	} else {
 		fct, err = v1.NewSubroundsFactory(
@@ -193,6 +201,7 @@ func (s *SubroundsHandler) generateSubroundsForCurrentType(epoch uint32) error {
 			s.appStatusHandler,
 			s.sentSignatureTracker,
 			s.outportHandler,
+			s.roundExclusions,
 		)
 	}
 	if err != nil {

@@ -24,6 +24,10 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 	if err != nil {
 		return nil, err
 	}
+	roundExclusions := arguments.RoundExclusions
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
+	}
 
 	base := &storageBootstrapper{
 		bootStorer:                   arguments.BootStorer,
@@ -47,6 +51,7 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		proofsPool:                   arguments.ProofsPool,
 		executionManager:             arguments.ExecutionManager,
+		roundExclusions:              roundExclusions,
 	}
 
 	boot := shardStorageBootstrapper{
