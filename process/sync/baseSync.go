@@ -1336,7 +1336,7 @@ func (boot *baseBootstrap) syncBlock() error {
 		// update err to enable the deferred treatment
 		err = boot.syncBlockLegacy(body, header)
 	}
-	if err == nil {
+	if err == nil && !boot.isInImportMode {
 		go boot.requestHeadersAfterCommittedProgress(header)
 	}
 
