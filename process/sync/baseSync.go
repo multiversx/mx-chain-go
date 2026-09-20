@@ -695,18 +695,11 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 		lastSyncedRound = currHeader.GetRound()
 	}
 
-	currentRound := boot.roundHandler.Index()
-	if currentRound < 0 || uint64(currentRound) <= lastSyncedRound {
+	numHeadersToRequest := boot.numHeadersToRequestIfStuck(lastSyncedRound)
+	if numHeadersToRequest == 0 {
 		return
 	}
-
-	roundDiff := uint64(currentRound) - lastSyncedRound
-	if roundDiff <= boot.getMaxRoundsWithoutBlockReceived(lastSyncedRound) {
-		return
-	}
-
 	fromNonce := boot.getNonceForNextBlock()
-	numHeadersToRequest := core.MinUint64(process.MaxHeadersToRequestInAdvance, roundDiff-1)
 	toNonce := fromNonce + numHeadersToRequest - 1
 
 	if fromNonce > toNonce {
@@ -719,6 +712,20 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
 
 	boot.requestHeaders(fromNonce, toNonce)
+}
+
+func (boot *baseBootstrap) numHeadersToRequestIfStuck(lastSyncedRound uint64) uint64 {
+	currentRound := boot.roundHandler.Index()
+	if currentRound < 0 || uint64(currentRound) <= lastSyncedRound {
+		return 0
+	}
+
+	roundDiff := uint64(currentRound) - lastSyncedRound
+	if roundDiff <= boot.getMaxRoundsWithoutBlockReceived(lastSyncedRound) {
+		return 0
+	}
+
+	return core.MinUint64(process.MaxHeadersToRequestInAdvance, roundDiff-1)
 }
 
 func (boot *baseBootstrap) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {
@@ -861,6 +868,29 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(fromNonce uint64) {
 	}
 
 	log.Debug("requestHeadersFromNonceIfMissing",
+		"from nonce", fromNonce,
+		"to nonce", toNonce,
+		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
+
+	boot.requestHeaders(fromNonce, toNonce)
+}
+
+func (boot *baseBootstrap) requestHeadersAfterCommittedProgress(header data.HeaderHandler) {
+	if check.IfNil(header) || boot.isInImportMode || !boot.networkWatcher.IsConnectedToTheNetwork() {
+		return
+	}
+	if header.GetNonce() != boot.currentCommittedNonce() || header.GetNonce() < boot.forkDetector.ProbableHighestNonce() {
+		return
+	}
+
+	numHeadersToRequest := boot.numHeadersToRequestIfStuck(header.GetRound())
+	if numHeadersToRequest == 0 {
+		return
+	}
+
+	fromNonce := header.GetNonce() + 1
+	toNonce := fromNonce + numHeadersToRequest - 1
+	log.Debug("requestHeadersAfterCommittedProgress",
 		"from nonce", fromNonce,
 		"to nonce", toNonce,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
@@ -1302,11 +1332,13 @@ func (boot *baseBootstrap) syncBlock() error {
 	if header.IsHeaderV3() {
 		// update err to enable the deferred treatment
 		err = boot.syncBlockV3(body, header, headerHash)
-		return err
+	} else {
+		// update err to enable the deferred treatment
+		err = boot.syncBlockLegacy(body, header)
 	}
-
-	// update err to enable the deferred treatment
-	err = boot.syncBlockLegacy(body, header)
+	if err == nil {
+		go boot.requestHeadersAfterCommittedProgress(header)
+	}
 
 	return err
 }

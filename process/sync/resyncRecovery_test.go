@@ -701,3 +701,104 @@ func TestBaseBootstrap_LookaheadRequestsWindowWhileProbableIsAhead(t *testing.T)
 
 	require.Equal(t, []uint64{11, 12, 13}, requestedProofNonces)
 }
+
+func TestBaseBootstrap_RequestHeadersAfterCommittedProgress(t *testing.T) {
+	t.Parallel()
+
+	newBootstrap := func(
+		header data.HeaderHandler,
+		probableNonce *uint64,
+		requestedNonces *[]uint64,
+	) *baseBootstrap {
+		boot := newRecoveryBootstrap(
+			&mock.RoundHandlerMock{RoundIndex: 150},
+			header,
+			probableNonce,
+			&recoveryRequestHandlerStub{},
+		)
+		boot.proofs = &testscommonDataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(_ uint64, _ uint32) (data.HeaderProofHandler, error) {
+				return nil, errors.New("missing proof")
+			},
+		}
+		boot.blockBootstrapper = &blockBootstrapperStub{
+			requestProofByNonceCalled: func(nonce uint64) {
+				*requestedNonces = append(*requestedNonces, nonce)
+			},
+		}
+
+		return boot
+	}
+
+	t.Run("stale committed frontier requests one bounded window", func(t *testing.T) {
+		t.Parallel()
+
+		probableNonce := uint64(10)
+		header := &block.Header{ShardID: 1, Nonce: 10, Round: 1, Epoch: 6}
+		requestedNonces := make([]uint64, 0)
+		boot := newBootstrap(header, &probableNonce, &requestedNonces)
+
+		boot.requestHeadersAfterCommittedProgress(header)
+
+		require.Len(t, requestedNonces, process.MaxHeadersToRequestInAdvance)
+		require.Equal(t, uint64(11), requestedNonces[0])
+		require.Equal(t, uint64(30), requestedNonces[len(requestedNonces)-1])
+	})
+
+	t.Run("known backlog does not request another window", func(t *testing.T) {
+		t.Parallel()
+
+		probableNonce := uint64(30)
+		header := &block.Header{ShardID: 1, Nonce: 11, Round: 1, Epoch: 6}
+		requestedNonces := make([]uint64, 0)
+		boot := newBootstrap(header, &probableNonce, &requestedNonces)
+
+		boot.requestHeadersAfterCommittedProgress(header)
+
+		require.Empty(t, requestedNonces)
+	})
+
+	t.Run("delayed request for an older commit is ignored", func(t *testing.T) {
+		t.Parallel()
+
+		probableNonce := uint64(11)
+		header := &block.Header{ShardID: 1, Nonce: 11, Round: 1, Epoch: 6}
+		currentHeader := &block.Header{ShardID: 1, Nonce: 12, Round: 2, Epoch: 6}
+		requestedNonces := make([]uint64, 0)
+		boot := newBootstrap(header, &probableNonce, &requestedNonces)
+		boot.chainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler { return currentHeader },
+		}
+
+		boot.requestHeadersAfterCommittedProgress(header)
+
+		require.Empty(t, requestedNonces)
+	})
+
+	t.Run("recent committed frontier retains normal discovery", func(t *testing.T) {
+		t.Parallel()
+
+		probableNonce := uint64(10)
+		header := &block.Header{ShardID: 1, Nonce: 10, Round: 50, Epoch: 6}
+		requestedNonces := make([]uint64, 0)
+		boot := newBootstrap(header, &probableNonce, &requestedNonces)
+
+		boot.requestHeadersAfterCommittedProgress(header)
+
+		require.Empty(t, requestedNonces)
+	})
+
+	t.Run("import mode does not request a speculative window", func(t *testing.T) {
+		t.Parallel()
+
+		probableNonce := uint64(10)
+		header := &block.Header{ShardID: 1, Nonce: 10, Round: 1, Epoch: 6}
+		requestedNonces := make([]uint64, 0)
+		boot := newBootstrap(header, &probableNonce, &requestedNonces)
+		boot.isInImportMode = true
+
+		boot.requestHeadersAfterCommittedProgress(header)
+
+		require.Empty(t, requestedNonces)
+	})
+}
