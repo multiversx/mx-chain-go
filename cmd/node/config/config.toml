@@ -1012,6 +1012,14 @@
 #     StartRound = 0
 #     EndRound = 0
 
+[HardforkRecoveryCheckpoint]
+    Enabled = false
+    Round = 0
+
+# [[HardforkRecoveryCheckpoint.Headers]]
+#     ShardID = 0
+#     Hash = ""
+
 [Hardfork]
     EnableTrigger = true
     EnableTriggerFromP2P = true

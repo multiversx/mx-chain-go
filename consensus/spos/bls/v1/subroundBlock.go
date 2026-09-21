@@ -435,7 +435,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	}
 
 	header := sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
-	if !check.IfNil(header) && sr.roundExclusions.IsRoundExcluded(header.GetRound()) {
+	if !check.IfNil(header) && common.IsHeaderExcluded(sr.roundExclusions, header.GetRound(), header.GetShardID(), cnsDta.BlockHeaderHash) {
 		return false
 	}
 	if sr.isFlagActiveForHeader(header) {

@@ -146,7 +146,7 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.InterceptedDataVerifierFactory) {
 		return nil, process.ErrNilInterceptedDataVerifierFactory
 	}
-	roundExclusions, err := common.NewRoundExclusionHandler(args.Config.HardforkRoundExclusions)
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&args.Config)
 	if err != nil {
 		return nil, err
 	}

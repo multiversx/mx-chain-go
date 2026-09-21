@@ -1885,7 +1885,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 	headerBlackList process.TimeCacher,
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
-	roundExclusions, err := common.NewRoundExclusionHandler(pcf.config.HardforkRoundExclusions)
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&pcf.config)
 	if err != nil {
 		return nil, err
 	}

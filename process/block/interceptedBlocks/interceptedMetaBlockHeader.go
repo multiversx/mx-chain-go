@@ -83,7 +83,7 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
 	log.Trace("CheckValidity for header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
-	if imh.roundExclusions.IsRoundExcluded(imh.hdr.GetRound()) {
+	if common.IsHeaderExcluded(imh.roundExclusions, imh.hdr.GetRound(), imh.hdr.GetShardID(), imh.hash) {
 		return common.ErrRoundExcluded
 	}
 

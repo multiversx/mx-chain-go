@@ -85,6 +85,12 @@ func (d *depthFirstTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 
 	d.nodes.addInitialRootHash(string(rootHash))
 	d.requestedHashes = make(map[string]*request)
+	if d.checkNodesOnDisk {
+		root, err := d.getNode(rootHash)
+		if err == nil {
+			d.nodes.processMissingHashWasFound(root, string(rootHash))
+		}
+	}
 
 	timeStart := time.Now()
 	defer func() {

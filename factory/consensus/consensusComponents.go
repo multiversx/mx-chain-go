@@ -294,7 +294,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-	roundExclusions, err := common.NewRoundExclusionHandler(ccf.config.HardforkRoundExclusions)
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&ccf.config)
 	if err != nil {
 		return nil, err
 	}
@@ -461,9 +461,16 @@ func (ccf *consensusComponentsFactory) createBootstrapper() (process.Bootstrappe
 }
 
 func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootstrapper, error) {
-	roundExclusions, err := common.NewRoundExclusionHandler(ccf.config.HardforkRoundExclusions)
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&ccf.config)
 	if err != nil {
 		return nil, err
+	}
+	recoveryCheckpoint, err := common.NewRecoveryCheckpoint(&ccf.config)
+	if err != nil {
+		return nil, err
+	}
+	if recoveryCheckpoint != nil && !recoveryCheckpoint.HasAllShards(ccf.processComponents.ShardCoordinator().NumberOfShards()) {
+		return nil, common.ErrInvalidRecoveryCheckpoint
 	}
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		BootStorer:                   ccf.processComponents.BootStorer(),
@@ -488,6 +495,8 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ProofsPool:                   ccf.dataComponents.Datapool().Proofs(),
 		ExecutionManager:             ccf.processComponents.ExecutionManager(),
 		RoundExclusions:              roundExclusions,
+		RecoveryCheckpoint:           recoveryCheckpoint,
+		Hasher:                       ccf.coreComponents.Hasher(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -547,6 +556,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ExecutionManager:             ccf.processComponents.ExecutionManager(),
 		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
 		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
+		RecoveryCheckpoint:           recoveryCheckpoint,
 	}
 
 	dataPool := ccf.dataComponents.Datapool()
@@ -618,9 +628,16 @@ func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.Accou
 }
 
 func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bootstrapper, error) {
-	roundExclusions, err := common.NewRoundExclusionHandler(ccf.config.HardforkRoundExclusions)
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&ccf.config)
 	if err != nil {
 		return nil, err
+	}
+	recoveryCheckpoint, err := common.NewRecoveryCheckpoint(&ccf.config)
+	if err != nil {
+		return nil, err
+	}
+	if recoveryCheckpoint != nil && !recoveryCheckpoint.HasAllShards(ccf.processComponents.ShardCoordinator().NumberOfShards()) {
+		return nil, common.ErrInvalidRecoveryCheckpoint
 	}
 	argsBaseStorageBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		BootStorer:                   ccf.processComponents.BootStorer(),
@@ -645,6 +662,8 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ProofsPool:                   ccf.dataComponents.Datapool().Proofs(),
 		ExecutionManager:             ccf.processComponents.ExecutionManager(),
 		RoundExclusions:              roundExclusions,
+		RecoveryCheckpoint:           recoveryCheckpoint,
+		Hasher:                       ccf.coreComponents.Hasher(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
@@ -701,6 +720,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
 		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
+		RecoveryCheckpoint:           recoveryCheckpoint,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

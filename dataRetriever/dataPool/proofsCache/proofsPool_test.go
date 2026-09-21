@@ -2,6 +2,7 @@ package proofscache_test
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -10,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
@@ -19,6 +21,29 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 )
+
+func TestProofsPool_AddProofRejectsCompetingRecoveryHash(t *testing.T) {
+	approvedHash := make([]byte, 32)
+	approvedHash[0] = 1
+	otherHash := make([]byte, 32)
+	otherHash[0] = 2
+	cfg := &config.Config{
+		HardforkRoundExclusions: []config.HardforkRoundExclusionConfig{{StartRound: 11, EndRound: 19}},
+		HardforkRecoveryCheckpoint: config.HardforkRecoveryCheckpointConfig{
+			Enabled: true,
+			Round:   10,
+			Headers: []config.HardforkRecoveryHeaderConfig{
+				{ShardID: 1, Hash: hex.EncodeToString(approvedHash)},
+				{ShardID: core.MetachainShardId, Hash: hex.EncodeToString(approvedHash)},
+			},
+		},
+	}
+	handler, err := common.NewConfiguredRoundExclusionHandler(cfg)
+	require.NoError(t, err)
+	pool := proofscache.NewProofsPoolWithRoundExclusions(cleanupDelta, bucketSize, handler)
+	require.False(t, pool.AddProof(&block.HeaderProof{HeaderShardId: 1, HeaderRound: 10, HeaderHash: otherHash}))
+	require.True(t, pool.AddProof(&block.HeaderProof{HeaderShardId: 1, HeaderRound: 10, HeaderHash: approvedHash}))
+}
 
 const cleanupDelta = 3
 const bucketSize = 100

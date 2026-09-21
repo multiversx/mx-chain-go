@@ -355,6 +355,17 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer e.closeTrieComponents()
 	defer e.closeBootstrapHeartbeatSender()
+	if e.generalConfig.HardforkRecoveryCheckpoint.Enabled {
+		checkpoint, err := common.NewRecoveryCheckpoint(&e.generalConfig)
+		if err != nil || !checkpoint.HasAllShards(e.genesisShardCoordinator.NumberOfShards()) {
+			return Parameters{}, common.ErrInvalidRecoveryCheckpoint
+		}
+		e.initializeFromLocalStorage()
+		if !e.baseData.storageExists {
+			return Parameters{}, common.ErrInvalidRecoveryCheckpoint
+		}
+		return e.prepareEpochFromStorage()
+	}
 
 	if e.flagsConfig.ForceStartFromNetwork {
 		log.Warn("epochStartBootstrap.Bootstrap: forcing start from network")
@@ -625,7 +636,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	if err != nil {
 		return err
 	}
-	roundExclusions, err := common.NewRoundExclusionHandler(e.generalConfig.HardforkRoundExclusions)
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&e.generalConfig)
 	if err != nil {
 		return err
 	}

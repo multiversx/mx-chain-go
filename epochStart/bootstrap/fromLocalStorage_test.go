@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,6 +25,67 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
+
+func TestRecoveryBootstrapDataUsesExactRound(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	approvedHash := bytes.Repeat([]byte{1}, 32)
+	args.GeneralConfig.HardforkRoundExclusions = []config.HardforkRoundExclusionConfig{{StartRound: 101, EndRound: 199}}
+	args.GeneralConfig.HardforkRecoveryCheckpoint = config.HardforkRecoveryCheckpointConfig{
+		Enabled: true,
+		Round:   100,
+		Headers: []config.HardforkRecoveryHeaderConfig{
+			{ShardID: 0, Hash: hex.EncodeToString(approvedHash)},
+			{ShardID: core.MetachainShardId, Hash: hex.EncodeToString(approvedHash)},
+		},
+	}
+	provider, err := NewEpochStartBootstrap(args)
+	require.NoError(t, err)
+	provider.baseData.shardId = 0
+
+	selected := bootstrapStorage.BootstrapData{
+		LastHeader:                bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Epoch: 7, Hash: approvedHash},
+		NodesCoordinatorConfigKey: []byte("registry"),
+	}
+	roundBytes, _ := json.Marshal(&bootstrapStorage.RoundNum{Num: 105})
+	selectedBytes, _ := json.Marshal(selected)
+	registryBytes, _ := json.Marshal(&nodesCoordinator.NodesCoordinatorRegistry{})
+	storer := &storageStubs.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			if bytes.Equal(key, []byte(common.HighestRoundFromBootStorage)) {
+				return roundBytes, nil
+			}
+			require.Equal(t, []byte("100"), key)
+			return selectedBytes, nil
+		},
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			require.Equal(t, []byte(common.NodesCoordinatorRegistryKeyPrefix+"registry"), key)
+			return registryBytes, nil
+		},
+	}
+	data, _, err := provider.getLastBootstrapData(storer)
+	require.NoError(t, err)
+	require.Equal(t, selected.LastHeader, data.LastHeader)
+	require.Equal(t, uint32(7), provider.baseData.lastEpoch)
+	require.Equal(t, int64(100), provider.baseData.lastRound)
+}
+
+func TestRecoveryEpochStartLookupDoesNotFallBack(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.GeneralConfig.HardforkRecoveryCheckpoint.Enabled = true
+	provider, err := NewEpochStartBootstrap(args)
+	require.NoError(t, err)
+	provider.baseData.lastEpoch = 7
+	lookups := 0
+	storer := &storageStubs.StorerStub{SearchFirstCalled: func(_ []byte) ([]byte, error) {
+		lookups++
+		return nil, storage.ErrKeyNotFound
+	}}
+	_, err = provider.getEpochStartMetaFromStorage(storer)
+	require.ErrorIs(t, err, storage.ErrKeyNotFound)
+	require.Equal(t, 1, lookups)
+}
 
 func TestPrepareEpochFromStorage(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()

@@ -1,6 +1,7 @@
 package headersCache_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sort"
@@ -17,6 +18,36 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestHeadersPool_AddHeaderRejectsCompetingRecoveryHash(t *testing.T) {
+	approvedHash := make([]byte, 32)
+	approvedHash[0] = 1
+	otherHash := make([]byte, 32)
+	otherHash[0] = 2
+	cfg := &config.Config{
+		HardforkRoundExclusions: []config.HardforkRoundExclusionConfig{{StartRound: 11, EndRound: 19}},
+		HardforkRecoveryCheckpoint: config.HardforkRecoveryCheckpointConfig{
+			Enabled: true,
+			Round:   10,
+			Headers: []config.HardforkRecoveryHeaderConfig{
+				{ShardID: 0, Hash: hex.EncodeToString(approvedHash)},
+				{ShardID: core.MetachainShardId, Hash: hex.EncodeToString(approvedHash)},
+			},
+		},
+	}
+	handler, err := common.NewConfiguredRoundExclusionHandler(cfg)
+	require.NoError(t, err)
+	pool, err := headersCache.NewHeadersPoolWithRoundExclusions(config.HeadersPoolConfig{
+		MaxHeadersPerShard: 10, NumElementsToRemoveOnEviction: 1,
+	}, handler)
+	require.NoError(t, err)
+	pool.AddHeader(otherHash, &block.Header{Round: 10, ShardID: 0})
+	_, err = pool.GetHeaderByHash(otherHash)
+	require.Error(t, err)
+	pool.AddHeader(approvedHash, &block.Header{Round: 10, ShardID: 0})
+	_, err = pool.GetHeaderByHash(approvedHash)
+	require.NoError(t, err)
+}
 
 func TestNewHeadersCacher(t *testing.T) {
 	t.Parallel()

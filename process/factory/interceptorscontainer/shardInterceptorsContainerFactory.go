@@ -87,7 +87,7 @@ func NewShardInterceptorsContainerFactory(
 	if args.HeartbeatExpiryTimespanInSec < minTimespanDurationInSec {
 		return nil, process.ErrInvalidExpiryTimespan
 	}
-	roundExclusions, err := common.NewRoundExclusionHandler(args.Config.HardforkRoundExclusions)
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&args.Config)
 	if err != nil {
 		return nil, err
 	}

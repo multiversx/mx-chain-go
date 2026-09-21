@@ -168,7 +168,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	if err != nil {
 		return err
 	}
-	roundExclusions, err := common.NewRoundExclusionHandler(sesb.generalConfig.HardforkRoundExclusions)
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&sesb.generalConfig)
 	if err != nil {
 		return err
 	}

@@ -75,7 +75,7 @@ func (pp *proofsPool) UpsertProof(
 	if check.IfNil(headerProof) {
 		return false
 	}
-	if pp.roundExclusions.IsRoundExcluded(headerProof.GetHeaderRound()) {
+	if common.IsHeaderExcluded(pp.roundExclusions, headerProof.GetHeaderRound(), headerProof.GetHeaderShardId(), headerProof.GetHeaderHash()) {
 		return false
 	}
 
@@ -91,7 +91,7 @@ func (pp *proofsPool) AddProof(
 	if check.IfNil(headerProof) {
 		return false
 	}
-	if pp.roundExclusions.IsRoundExcluded(headerProof.GetHeaderRound()) {
+	if common.IsHeaderExcluded(pp.roundExclusions, headerProof.GetHeaderRound(), headerProof.GetHeaderShardId(), headerProof.GetHeaderHash()) {
 		return false
 	}
 
@@ -111,7 +111,7 @@ func (pp *proofsPool) AddProofIfNoneAtNonce(
 	if check.IfNil(headerProof) {
 		return false, nil
 	}
-	if pp.roundExclusions.IsRoundExcluded(headerProof.GetHeaderRound()) {
+	if common.IsHeaderExcluded(pp.roundExclusions, headerProof.GetHeaderRound(), headerProof.GetHeaderShardId(), headerProof.GetHeaderHash()) {
 		return false, nil
 	}
 

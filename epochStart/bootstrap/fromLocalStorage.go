@@ -107,6 +107,9 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
+	if isShuffledOut && e.generalConfig.HardforkRecoveryCheckpoint.Enabled {
+		return Parameters{}, common.ErrInvalidRecoveryCheckpoint
+	}
 
 	if !isShuffledOut {
 		parameters := Parameters{
@@ -274,9 +277,32 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 	}
 
 	highestRound := bootStorer.GetHighestRound()
+	var checkpoint *common.RecoveryCheckpoint
+	if e.generalConfig.HardforkRecoveryCheckpoint.Enabled {
+		checkpoint, err = common.NewRecoveryCheckpoint(&e.generalConfig)
+		if err != nil {
+			return nil, nil, err
+		}
+		if highestRound < int64(checkpoint.Round) {
+			return nil, nil, common.ErrInvalidRecoveryCheckpoint
+		}
+		if uint64(highestRound) <= checkpoint.ExcludedEnd {
+			highestRound = int64(checkpoint.Round)
+		}
+	}
 	bootstrapData, err := bootStorer.Get(highestRound)
 	if err != nil {
 		return nil, nil, err
+	}
+	if checkpoint != nil {
+		if uint64(highestRound) == checkpoint.Round {
+			expectedHash, ok := checkpoint.HeaderHash(e.baseData.shardId)
+			if !ok || !bytes.Equal(bootstrapData.LastHeader.Hash, expectedHash) || bootstrapData.LastHeader.ShardId != e.baseData.shardId {
+				return nil, nil, common.ErrInvalidRecoveryCheckpoint
+			}
+		}
+		e.baseData.lastEpoch = bootstrapData.LastHeader.Epoch
+		e.baseData.lastRound = highestRound
 	}
 
 	ncInternalkey := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), bootstrapData.NodesCoordinatorConfigKey...)
@@ -310,6 +336,9 @@ func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer
 		}
 
 		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
+		if e.generalConfig.HardforkRecoveryCheckpoint.Enabled {
+			return nil, err
+		}
 		if epoch == 0 {
 			return nil, err
 		}

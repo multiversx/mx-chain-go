@@ -200,6 +200,7 @@ type baseBootstrap struct {
 	syncStarter          syncStarter
 	bootStorer           process.BootStorer
 	storageBootstrapper  process.BootstrapperFromStorage
+	recoveryCheckpoint   *common.RecoveryCheckpoint
 	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
 	outportHandler        outport.OutportHandler
@@ -1321,6 +1322,9 @@ func (boot *baseBootstrap) syncBlock() error {
 	if err != nil {
 		return err
 	}
+	if !check.IfNil(header) && boot.recoveryCheckpoint.IsDiscarded(header.GetRound(), header.GetShardID(), headerHash) {
+		return common.ErrRoundExcluded
+	}
 
 	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
 
@@ -1817,12 +1821,24 @@ func (boot *baseBootstrap) hasProofInCacheOrStorage(hash []byte) bool {
 	proof := &block.HeaderProof{}
 	err = boot.marshalizer.Unmarshal(proof, proofBytes)
 	if err != nil {
+		if boot.recoveryCheckpoint != nil {
+			return false
+		}
 		// return true here, since the proof exists in storer
 		log.Warn("hasProofInCacheOrStorage invalid proof in storage", "error", err.Error(), "hash", hash)
 		return true
 	}
+	if boot.recoveryCheckpoint.IsDiscarded(proof.GetHeaderRound(), proof.GetHeaderShardId(), proof.GetHeaderHash()) {
+		return false
+	}
+	if boot.recoveryCheckpoint != nil && !bytes.Equal(proof.GetHeaderHash(), hash) {
+		return false
+	}
 
 	boot.proofs.AddProof(proof)
+	if boot.recoveryCheckpoint != nil {
+		return boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)
+	}
 
 	return true
 }
@@ -1865,6 +1881,49 @@ func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
 func (boot *baseBootstrap) syncUserAccountsState(key []byte) error {
 	log.Warn("base sync: started syncUserAccountsState")
 	return boot.accountsDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
+}
+
+func (boot *baseBootstrap) syncRecoveryUserAccountsState(rootHash []byte, epoch uint32) error {
+	syncer, ok := boot.accountsDBSyncer.(interface {
+		SyncAccountsWithDiskCheck([]byte, common.StorageMarker, uint32) error
+	})
+	if !ok {
+		return fmt.Errorf("recovery account syncer does not support disk traversal")
+	}
+	return syncer.SyncAccountsWithDiskCheck(rootHash, storageMarker.NewDisabledStorageMarker(), epoch)
+}
+
+func (boot *baseBootstrap) loadRecoveryCheckpointFromStorage(syncPeerAccounts func([]byte, uint32) error) error {
+	recovery, ok := boot.storageBootstrapper.(interface {
+		RecoveryCheckpointRequired() (bool, error)
+		RecoveryCheckpointState() ([]byte, []byte, uint32, error)
+	})
+	if !ok {
+		return fmt.Errorf("recovery bootstrapper does not expose checkpoint state")
+	}
+	required, err := recovery.RecoveryCheckpointRequired()
+	if err != nil {
+		return err
+	}
+	if !required {
+		return boot.storageBootstrapper.LoadFromStorage()
+	}
+	userRoot, peerRoot, epoch, err := recovery.RecoveryCheckpointState()
+	if err != nil {
+		return err
+	}
+	if err = boot.syncRecoveryUserAccountsState(userRoot, epoch); err != nil {
+		return err
+	}
+	if len(peerRoot) > 0 {
+		if syncPeerAccounts == nil {
+			return fmt.Errorf("recovery peer account syncer is missing")
+		}
+		if err = syncPeerAccounts(peerRoot, epoch); err != nil {
+			return err
+		}
+	}
+	return boot.storageBootstrapper.LoadFromStorage()
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
@@ -2850,6 +2909,9 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 			boot.store,
 		)
 	}
+	if err == nil && !check.IfNil(hdr) && boot.recoveryCheckpoint.IsDiscarded(hdr.GetRound(), hdr.GetShardID(), hash) {
+		return nil, common.ErrRoundExcluded
+	}
 
 	hasHeader := err == nil
 	needsProof := boot.checkNeedsProofByHash(hash, hdr)
@@ -2874,6 +2936,9 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 
 	if !boot.hasProof(hash, hdr) {
 		return nil, process.ErrMissingHeaderProof
+	}
+	if boot.recoveryCheckpoint.IsDiscarded(hdr.GetRound(), hdr.GetShardID(), hash) {
+		return nil, common.ErrRoundExcluded
 	}
 
 	return hdr, nil
