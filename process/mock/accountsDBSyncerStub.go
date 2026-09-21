@@ -11,7 +11,6 @@ type AccountsDBSyncerStub struct {
 	SyncAccountsWithDiskCheckCalled func(rootHash []byte, storageMarker common.StorageMarker, epoch uint32) error
 }
 
-// SyncAccountsWithDiskCheck -
 func (a *AccountsDBSyncerStub) SyncAccountsWithDiskCheck(rootHash []byte, storageMarker common.StorageMarker, epoch uint32) error {
 	if a.SyncAccountsWithDiskCheckCalled != nil {
 		return a.SyncAccountsWithDiskCheckCalled(rootHash, storageMarker, epoch)

@@ -38,6 +38,12 @@ func TestRecoveryCheckpoint_RequiresExactVectorAndExclusion(t *testing.T) {
 	require.True(t, checkpoint.IsDiscarded(199, 0, hash0))
 	require.False(t, checkpoint.IsDiscarded(200, 0, hash0))
 
+	cfg.HardforkRoundExclusions = append(cfg.HardforkRoundExclusions,
+		config.HardforkRoundExclusionConfig{StartRound: 100, EndRound: 100})
+	_, err = common.NewRecoveryCheckpoint(cfg)
+	require.ErrorIs(t, err, common.ErrInvalidRecoveryCheckpoint)
+	cfg.HardforkRoundExclusions = cfg.HardforkRoundExclusions[:1]
+
 	cfg.HardforkRoundExclusions[0].StartRound = 102
 	_, err = common.NewRecoveryCheckpoint(cfg)
 	require.ErrorIs(t, err, common.ErrInvalidRecoveryCheckpoint)

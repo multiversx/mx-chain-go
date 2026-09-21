@@ -14,6 +14,8 @@ import (
 
 var ErrInvalidRecoveryCheckpoint = errors.New("invalid recovery checkpoint")
 
+const minRecoveryChains = 2
+
 type RecoveryCheckpoint struct {
 	Round        uint64
 	ExcludedEnd  uint64
@@ -34,9 +36,11 @@ func NewRecoveryCheckpoint(cfg *config.Config) (*RecoveryCheckpoint, error) {
 
 	var excludedEnd uint64
 	for _, interval := range cfg.HardforkRoundExclusions {
+		if interval.StartRound <= checkpoint.Round && checkpoint.Round <= interval.EndRound {
+			return nil, fmt.Errorf("%w: round %d is excluded", ErrInvalidRecoveryCheckpoint, checkpoint.Round)
+		}
 		if interval.StartRound == checkpoint.Round+1 {
 			excludedEnd = interval.EndRound
-			break
 		}
 	}
 	if excludedEnd < checkpoint.Round+1 {
@@ -49,12 +53,12 @@ func NewRecoveryCheckpoint(cfg *config.Config) (*RecoveryCheckpoint, error) {
 			return nil, fmt.Errorf("%w: duplicate shard %d", ErrInvalidRecoveryCheckpoint, entry.ShardID)
 		}
 		hash, err := hex.DecodeString(entry.Hash)
-		if err != nil || len(hash) != 32 {
+		if err != nil || len(hash) != HashSize {
 			return nil, fmt.Errorf("%w: hash for shard %d", ErrInvalidRecoveryCheckpoint, entry.ShardID)
 		}
 		hashes[entry.ShardID] = hash
 	}
-	if len(hashes) < 2 || len(hashes[core.MetachainShardId]) == 0 {
+	if len(hashes) < minRecoveryChains || len(hashes[core.MetachainShardId]) == 0 {
 		return nil, fmt.Errorf("%w: missing chain hashes", ErrInvalidRecoveryCheckpoint)
 	}
 

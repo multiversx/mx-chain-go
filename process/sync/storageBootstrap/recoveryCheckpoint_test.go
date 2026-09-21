@@ -128,10 +128,19 @@ func TestRecoveryCheckpoint_SelectorCleanupVerifiesRemoval(t *testing.T) {
 	require.EqualError(t, err, "read failed")
 }
 
+type recoveryEpochStorer struct {
+	*storageStubs.StorerStub
+	removeAll func([]byte) error
+}
+
+func (storer *recoveryEpochStorer) RemoveFromAllActiveEpochs(key []byte) error {
+	return storer.removeAll(key)
+}
+
 func TestRecoveryCheckpoint_SelectorCleanupRemovesAllCopies(t *testing.T) {
 	converter := uint64ByteSlice.NewBigEndianConverter()
 	copies := 3
-	storer := &storageStubs.StorerStub{
+	storer := &recoveryEpochStorer{StorerStub: &storageStubs.StorerStub{
 		HasCalled: func(_ []byte) error {
 			if copies == 0 {
 				return storage.ErrKeyNotFound
@@ -139,9 +148,13 @@ func TestRecoveryCheckpoint_SelectorCleanupRemovesAllCopies(t *testing.T) {
 			return nil
 		},
 		RemoveCalled: func(_ []byte) error {
-			copies--
+			t.Fatal("single-epoch removal must not be used")
 			return nil
 		},
+	}}
+	storer.removeAll = func(_ []byte) error {
+		copies = 0
+		return nil
 	}
 	bootstrapper := &storageBootstrapper{uint64Converter: converter}
 	require.NoError(t, bootstrapper.removeNonceSelectors(storer, 11, 11))

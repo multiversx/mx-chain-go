@@ -74,9 +74,12 @@ func TestRecoveryEpochStartLookupDoesNotFallBack(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.GeneralConfig.HardforkRecoveryCheckpoint.Enabled = true
+	args.GeneralConfig.HardforkRecoveryCheckpoint.Round = 100
 	provider, err := NewEpochStartBootstrap(args)
 	require.NoError(t, err)
 	provider.baseData.lastEpoch = 7
+	provider.baseData.lastRound = 100
+	require.True(t, provider.isRecoveryCheckpointSelected())
 	lookups := 0
 	storer := &storageStubs.StorerStub{SearchFirstCalled: func(_ []byte) ([]byte, error) {
 		lookups++
@@ -85,6 +88,35 @@ func TestRecoveryEpochStartLookupDoesNotFallBack(t *testing.T) {
 	_, err = provider.getEpochStartMetaFromStorage(storer)
 	require.ErrorIs(t, err, storage.ErrKeyNotFound)
 	require.Equal(t, 1, lookups)
+}
+
+func TestRecoveryEpochStartLookupAllowsPostExclusionFallback(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.GeneralConfig.HardforkRecoveryCheckpoint.Enabled = true
+	args.GeneralConfig.HardforkRecoveryCheckpoint.Round = 100
+	provider, err := NewEpochStartBootstrap(args)
+	require.NoError(t, err)
+	provider.baseData.lastEpoch = 7
+	provider.baseData.lastRound = 200
+	require.False(t, provider.isRecoveryCheckpointSelected())
+
+	meta := &block.MetaBlock{Epoch: 6}
+	metaBytes, err := json.Marshal(meta)
+	require.NoError(t, err)
+	lookups := 0
+	storer := &storageStubs.StorerStub{SearchFirstCalled: func(_ []byte) ([]byte, error) {
+		lookups++
+		if lookups == 1 {
+			return nil, storage.ErrKeyNotFound
+		}
+		return metaBytes, nil
+	}}
+	got, err := provider.getEpochStartMetaFromStorage(storer)
+	require.NoError(t, err)
+	require.Equal(t, meta, got)
+	require.Equal(t, 2, lookups)
+	require.Equal(t, uint32(6), provider.baseData.lastEpoch)
 }
 
 func TestPrepareEpochFromStorage(t *testing.T) {

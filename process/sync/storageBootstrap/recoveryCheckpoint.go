@@ -21,8 +21,12 @@ import (
 
 var ErrRecoveryCheckpointUnavailable = errors.New("recovery checkpoint unavailable")
 
-const maxRecoverySelectorSpan = 1_000_000
-const maxRecoverySelectorCopies = 64
+// Larger selector gaps require a checkpoint snapshot instead of an unbounded storage scan.
+const maxRecoverySelectorNonces = 1_000_000
+
+type activeEpochKeyRemover interface {
+	RemoveFromAllActiveEpochs(key []byte) error
+}
 
 type recoverySelectorBounds struct {
 	maxOwnNonce uint64
@@ -80,13 +84,13 @@ func (st *storageBootstrapper) getRecoveryHeader() (bootstrapStorage.BootstrapDa
 		return bootstrapStorage.BootstrapData{}, nil, err
 	}
 	rootHash, err := st.getRootHashForBlock(header, expectedHash)
-	if err != nil || len(rootHash) != 32 {
+	if err != nil || len(rootHash) != common.HashSize {
 		return bootstrapStorage.BootstrapData{}, nil, fmt.Errorf("%w: target state root: %v", ErrRecoveryCheckpointUnavailable, err)
 	}
 	if header.GetShardID() == core.MetachainShardId {
 		lastResult, ok := header.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
 		if !ok || check.IfNil(lastResult) || check.IfNil(lastResult.GetExecutionResultHandler()) ||
-			len(lastResult.GetExecutionResultHandler().GetValidatorStatsRootHash()) != 32 {
+			len(lastResult.GetExecutionResultHandler().GetValidatorStatsRootHash()) != common.HashSize {
 			return bootstrapStorage.BootstrapData{}, nil, fmt.Errorf("%w: target peer state root", ErrRecoveryCheckpointUnavailable)
 		}
 	}
@@ -183,26 +187,34 @@ func (st *storageBootstrapper) removeNonceSelectors(unit storage.Storer, firstNo
 	if lastNonce == math.MaxUint64 {
 		return ErrRecoveryCheckpointUnavailable
 	}
-	if lastNonce-firstNonce > maxRecoverySelectorSpan {
+	if lastNonce-firstNonce >= maxRecoverySelectorNonces {
 		return ErrRecoveryCheckpointUnavailable
 	}
 	for nonce := firstNonce; nonce <= lastNonce; nonce++ {
 		key := st.uint64Converter.ToByteSlice(nonce)
-		for copyIndex := 0; copyIndex < maxRecoverySelectorCopies; copyIndex++ {
-			err := unit.Has(key)
-			if errors.Is(err, storage.ErrKeyNotFound) {
-				break
-			}
-			if err != nil {
-				return err
-			}
-			if err = unit.Remove(key); err != nil {
-				return err
-			}
-			if copyIndex == maxRecoverySelectorCopies-1 {
-				return fmt.Errorf("%w: nonce selector %d remains", ErrRecoveryCheckpointUnavailable, nonce)
-			}
+		err := unit.Has(key)
+		if errors.Is(err, storage.ErrKeyNotFound) {
+			continue
 		}
+		if err != nil {
+			return err
+		}
+		if allEpochs, ok := unit.(activeEpochKeyRemover); ok {
+			err = allEpochs.RemoveFromAllActiveEpochs(key)
+		} else {
+			err = unit.Remove(key)
+		}
+		if err != nil {
+			return err
+		}
+		err = unit.Has(key)
+		if errors.Is(err, storage.ErrKeyNotFound) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("%w: nonce selector %d remains", ErrRecoveryCheckpointUnavailable, nonce)
 	}
 	return nil
 }

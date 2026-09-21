@@ -107,7 +107,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	if err != nil {
 		return Parameters{}, err
 	}
-	if isShuffledOut && e.generalConfig.HardforkRecoveryCheckpoint.Enabled {
+	if isShuffledOut && e.isRecoveryCheckpointSelected() {
 		return Parameters{}, common.ErrInvalidRecoveryCheckpoint
 	}
 
@@ -320,6 +320,11 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 	return &bootstrapData, config, nil
 }
 
+func (e *epochStartBootstrap) isRecoveryCheckpointSelected() bool {
+	checkpoint := e.generalConfig.HardforkRecoveryCheckpoint
+	return checkpoint.Enabled && e.baseData.lastRound == int64(checkpoint.Round)
+}
+
 func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer) (data.MetaHeaderHandler, error) {
 	initialEpoch := e.baseData.lastEpoch
 	for epoch := initialEpoch; ; epoch-- {
@@ -336,7 +341,7 @@ func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer
 		}
 
 		log.Debug("getEpochStartMetaFromStorage", "key", epochIdentifier, "error", err)
-		if e.generalConfig.HardforkRecoveryCheckpoint.Enabled {
+		if e.isRecoveryCheckpointSelected() {
 			return nil, err
 		}
 		if epoch == 0 {
