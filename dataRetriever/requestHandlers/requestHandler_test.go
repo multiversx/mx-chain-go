@@ -3259,3 +3259,112 @@ func TestResolverRequestHandler_RequestEquivalentProofByNonceCoalescing(t *testi
 		require.Equal(t, int32(1), numSends.Load())
 	})
 }
+
+func TestResolverRequestHandler_MiniBlockDeduplicationIncludesEpoch(t *testing.T) {
+	t.Parallel()
+
+	var epochs []uint32
+	lookups := 0
+	requester := &dataRetrieverMocks.RequesterStub{
+		RequestDataFromHashCalled: func(_ []byte, epoch uint32) error {
+			epochs = append(epochs, epoch)
+			return nil
+		},
+	}
+	rrh, err := NewResolverRequestHandler(
+		&dataRetrieverMocks.RequestersFinderStub{
+			CrossShardRequesterCalled: func(string, uint32) (dataRetriever.Requester, error) {
+				lookups++
+				return requester, nil
+			},
+		},
+		cache.NewTimeCache(time.Minute),
+		&mock.WhiteListHandlerStub{},
+		1, 2, time.Second, time.Millisecond,
+	)
+	require.NoError(t, err)
+	hash := []byte("pending")
+	rrh.RequestMiniBlockForEpoch(2, hash, 2239)
+	rrh.RequestMiniBlockForEpoch(2, hash, 2238)
+	// Both entry points must still suppress duplicates within the same epoch.
+	rrh.RequestMiniBlockForEpoch(2, hash, 2239)
+	rrh.RequestMiniBlockForEpoch(2, hash, 2238)
+	rrh.RequestMiniBlocksForEpoch(2, [][]byte{hash}, 2239)
+	rrh.RequestMiniBlocksForEpoch(2, [][]byte{hash}, 2238)
+	require.Equal(t, []uint32{2239, 2238}, epochs)
+	require.Equal(t, 2, lookups)
+}
+
+func TestResolverRequestHandler_HeaderDeduplicationIncludesEpoch(t *testing.T) {
+	t.Parallel()
+	for _, name := range []string{"shard hash", "meta hash", "shard nonce", "meta nonce"} {
+		t.Run(name, func(t *testing.T) {
+			var epochs []uint32
+			lookups := 0
+			requester := &dataRetrieverMocks.HeaderRequesterStub{
+				RequestDataFromHashCalled:  func(_ []byte, epoch uint32) error { epochs = append(epochs, epoch); return nil },
+				RequestDataFromNonceCalled: func(_ uint64, epoch uint32) error { epochs = append(epochs, epoch); return nil },
+			}
+			rrh, err := NewResolverRequestHandler(&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(string, uint32) (dataRetriever.Requester, error) { lookups++; return requester, nil },
+				MetaChainRequesterCalled:  func(string) (dataRetriever.Requester, error) { lookups++; return requester, nil },
+			}, cache.NewTimeCache(time.Minute), &mock.WhiteListHandlerStub{}, 1, 2, time.Second, time.Millisecond)
+			require.NoError(t, err)
+			for _, epoch := range []uint32{2239, 2238, 2239, 2238} {
+				switch name {
+				case "shard hash":
+					rrh.RequestShardHeaderForEpoch(2, []byte("header"), epoch)
+				case "meta hash":
+					rrh.RequestMetaHeaderForEpoch([]byte("header"), epoch)
+				case "shard nonce":
+					rrh.RequestShardHeaderByNonceForEpoch(2, 42, epoch)
+				case "meta nonce":
+					rrh.RequestMetaHeaderByNonceForEpoch(42, epoch)
+				}
+			}
+			require.Equal(t, []uint32{2239, 2238}, epochs)
+			require.Equal(t, 2, lookups)
+		})
+	}
+}
+
+func TestResolverRequestHandler_TransactionDeduplicationIncludesEpoch(t *testing.T) {
+	t.Parallel()
+	for _, name := range []string{"transactions", "unsigned", "rewards", "miniblocks"} {
+		t.Run(name, func(t *testing.T) {
+			epochs := make(chan uint32, 4)
+			lookups := 0
+			requester := &dataRetrieverMocks.HashSliceRequesterStub{
+				RequestDataFromHashArrayCalled: func(_ [][]byte, epoch uint32) error { epochs <- epoch; return nil },
+			}
+			rrh, err := NewResolverRequestHandler(&dataRetrieverMocks.RequestersFinderStub{
+				CrossShardRequesterCalled: func(string, uint32) (dataRetriever.Requester, error) { lookups++; return requester, nil },
+			}, cache.NewTimeCache(time.Minute), &mock.WhiteListHandlerStub{}, 1, 2, time.Second, time.Millisecond)
+			require.NoError(t, err)
+			for _, epoch := range []uint32{2239, 2238, 2239, 2238} {
+				hashes := [][]byte{[]byte("data")}
+				switch name {
+				case "transactions":
+					rrh.RequestTransactionsForEpoch(2, hashes, epoch)
+				case "unsigned":
+					rrh.RequestUnsignedTransactionsForEpoch(2, hashes, epoch)
+				case "rewards":
+					rrh.RequestRewardTransactionsForEpoch(2, hashes, epoch)
+				case "miniblocks":
+					rrh.RequestMiniBlocksForEpoch(2, hashes, epoch)
+				}
+			}
+			require.Equal(t, 2, lookups, "duplicates in the same epoch must not reach the requester")
+			var received []uint32
+			for range 2 {
+				select {
+				case epoch := <-epochs:
+					received = append(received, epoch)
+				case <-time.After(timeoutSendRequests):
+					t.Fatal("missing epoch request")
+				}
+			}
+			require.ElementsMatch(t, []uint32{2239, 2238}, received)
+		})
+	}
+}

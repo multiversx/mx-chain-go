@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -201,13 +202,17 @@ func TestSyncValidatorStatus_getPeerBlockBodyForMeta(t *testing.T) {
 	t.Parallel()
 
 	args := getSyncValidatorStatusArgs()
+	requestEpoch := uint32(2239)
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		SetEpochCalled: func(epoch uint32) { requestEpoch = epoch },
+	}
 
 	mbHeaderHash1 := []byte("mb-hash1")
 	mbHeaderHash2 := []byte("mb-hash2")
 
 	metaBlock := &block.MetaBlock{
 		Nonce: 37,
-		Epoch: 0,
+		Epoch: 2238,
 		MiniBlockHeaders: []block.MiniBlockHeader{
 			{
 				Hash: mbHeaderHash1,
@@ -223,6 +228,7 @@ func TestSyncValidatorStatus_getPeerBlockBodyForMeta(t *testing.T) {
 	svs, _ := NewSyncValidatorStatus(args)
 	svs.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
 		SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
+			require.Equal(t, uint32(2238), requestEpoch)
 			return nil
 		},
 		GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {
@@ -248,6 +254,27 @@ func TestSyncValidatorStatus_getPeerBlockBodyForMeta(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expectedBody, body)
 	require.Equal(t, expectedBody.MiniBlocks, miniBlocks)
+}
+
+func TestSyncValidatorStatus_RestoresTargetEpochAfterPreviousEpochFailure(t *testing.T) {
+	t.Parallel()
+
+	args := getSyncValidatorStatusArgs()
+	var requestEpochs []uint32
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		SetEpochCalled: func(epoch uint32) { requestEpochs = append(requestEpochs, epoch) },
+	}
+	svs, err := NewSyncValidatorStatus(args)
+	require.NoError(t, err)
+	expectedErr := errors.New("miniblock unavailable")
+	svs.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
+		SyncPendingMiniBlocksCalled: func([]data.MiniBlockHeaderHandler, context.Context) error {
+			return expectedErr
+		},
+	}
+	_, _, _, err = svs.NodesConfigFromMetaBlock(&block.MetaBlock{Epoch: 2239}, &block.MetaBlock{Epoch: 2238})
+	require.ErrorIs(t, err, expectedErr)
+	require.Equal(t, []uint32{2238, 2239}, requestEpochs)
 }
 
 func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {

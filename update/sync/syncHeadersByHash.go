@@ -147,8 +147,10 @@ func (m *syncHeadersByHash) updateMapsAndRequestIfNeeded(
 	hasProof := false
 	hasHeader := false
 	hasRequestedProof := false
+	var headerEpoch uint32
 	if header, ok := m.mapHeaders[hash]; ok {
 		hasHeader = ok
+		headerEpoch = header.GetEpoch()
 		hasProof = m.hasProof(shardId, []byte(hash), header.GetEpoch())
 		if hasProof {
 			delete(mapHashesToRequest, hash)
@@ -160,6 +162,7 @@ func (m *syncHeadersByHash) updateMapsAndRequestIfNeeded(
 	header, ok := m.getHeaderFromPoolOrStorage([]byte(hash))
 	if ok {
 		hasHeader = ok
+		headerEpoch = header.GetEpoch()
 		hasProof = m.hasProof(shardId, []byte(hash), header.GetEpoch())
 		if hasProof {
 			m.mapHeaders[hash] = header
@@ -173,7 +176,7 @@ func (m *syncHeadersByHash) updateMapsAndRequestIfNeeded(
 	if hasHeader {
 		if !hasProof {
 			hasRequestedProof = true
-			m.requestHandler.RequestEquivalentProofByHash(shardId, []byte(hash))
+			m.requestHandler.RequestEquivalentProofByHashForEpoch(shardId, []byte(hash), headerEpoch)
 		}
 
 		return false, hasRequestedProof
@@ -212,7 +215,7 @@ func (m *syncHeadersByHash) receivedHeader(hdrHandler data.HeaderHandler, hdrHas
 	}
 
 	if !m.hasProof(hdrHandler.GetShardID(), hdrHash, hdrHandler.GetEpoch()) {
-		go m.requestHandler.RequestEquivalentProofByHash(hdrHandler.GetShardID(), hdrHash)
+		go m.requestHandler.RequestEquivalentProofByHashForEpoch(hdrHandler.GetShardID(), hdrHash, hdrHandler.GetEpoch())
 		m.mutMissingHdrs.Unlock()
 		return
 	}

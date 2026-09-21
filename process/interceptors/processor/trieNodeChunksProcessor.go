@@ -3,6 +3,7 @@ package processor
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -57,6 +58,7 @@ type trieNodeChunksProcessor struct {
 	chunkInactivityTimeout time.Duration
 	cancel                 func()
 	chanClose              chan struct{}
+	closeOnce              sync.Once
 }
 
 // NewTrieNodeChunksProcessor creates a new trieNodeChunksProcessor instance
@@ -290,13 +292,13 @@ func (proc *trieNodeChunksProcessor) requestMissingForReference(reference []byte
 
 // Close will close the process go routine
 func (proc *trieNodeChunksProcessor) Close() error {
-	log.Debug("trieNodeChunkProcessor.Close()", "key", proc.topic)
-	defer func() {
-		// this instruction should be called last as to release hanging go routines
+	proc.closeOnce.Do(func() {
+		log.Debug("trieNodeChunkProcessor.Close()", "key", proc.topic)
+		proc.cancel()
+		// Main and archive interceptors can share this processor. Release pending
+		// checks exactly once, even when both containers close it.
 		close(proc.chanClose)
-	}()
-
-	proc.cancel()
+	})
 	return nil
 }
 

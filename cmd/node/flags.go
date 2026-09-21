@@ -314,6 +314,11 @@ var (
 		Usage: "Boolean option for enabling a node the fast bootstrap mechanism from the network." +
 			"Should be enabled if data is not available in local disk.",
 	}
+	startInEpochOffset = cli.Uint64Flag{
+		Name:  "start-in-epoch-offset",
+		Usage: "Number of epochs to go back from the latest network epoch (0 = latest). Historical data must be available from peers.",
+		Value: 0,
+	}
 
 	// importDbDirectory defines a flag for the optional import DB directory on which the node will re-check the blockchain against
 	importDbDirectory = cli.StringFlag{
@@ -466,6 +471,7 @@ func getFlags() []cli.Flag {
 		numEpochsToSave,
 		numActivePersisters,
 		startInEpoch,
+		startInEpochOffset,
 		importDbDirectory,
 		importDbNoSigCheck,
 		importDbSaveEpochRootHash,
@@ -510,6 +516,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.UseLogView = ctx.GlobalBool(useLogView.Name)
 	flagsConfig.ValidatorKeyIndex = ctx.GlobalInt(validatorKeyIndex.Name)
 	flagsConfig.ForceStartFromNetwork = ctx.GlobalBool(forceStartFromNetwork.Name)
+	flagsConfig.StartInEpochOffset = uint32(ctx.GlobalUint64(startInEpochOffset.Name))
 	flagsConfig.DisableConsensusWatchdog = ctx.GlobalBool(disableConsensusWatchdog.Name)
 	flagsConfig.SerializeSnapshots = ctx.GlobalBool(serializeSnapshots.Name)
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
@@ -526,6 +533,11 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 }
 
 func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.ContextFlagsConfig, log logger.Logger) error {
+	startInEpochOffsetValue := ctx.GlobalUint64(startInEpochOffset.Name)
+	if startInEpochOffsetValue > math.MaxUint32 {
+		return fmt.Errorf("start-in-epoch-offset must fit in uint32, got %d", startInEpochOffsetValue)
+	}
+	flagsConfig.StartInEpochOffset = uint32(startInEpochOffsetValue)
 
 	cfgs.ConfigurationPathsHolder.Nodes = ctx.GlobalString(nodesFile.Name)
 	cfgs.ConfigurationPathsHolder.Genesis = ctx.GlobalString(genesisFile.Name)
@@ -538,6 +550,10 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	if ctx.IsSet(startInEpoch.Name) {
 		log.Debug("start in epoch is enabled")
 		cfgs.GeneralConfig.GeneralSettings.StartInEpochEnabled = ctx.GlobalBool(startInEpoch.Name)
+	}
+	if flagsConfig.StartInEpochOffset > 0 {
+		log.Debug("start in epoch is enabled with epoch offset", "offset", flagsConfig.StartInEpochOffset)
+		cfgs.GeneralConfig.GeneralSettings.StartInEpochEnabled = true
 	}
 
 	if ctx.IsSet(numEpochsToSave.Name) {
@@ -620,6 +636,10 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	// would bring confusion
 	isInImportDBMode := configs.ImportDbConfig.IsImportDBMode
 	if isInImportDBMode {
+		if configs.FlagsConfig.StartInEpochOffset > 0 {
+			return fmt.Errorf("start-in-epoch-offset cannot be used with import-db")
+		}
+
 		err := processConfigImportDBMode(log, configs)
 		if err != nil {
 			return err
@@ -731,7 +751,9 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) {
 	generalConfigs := configs.GeneralConfig
 
-	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+	// An explicit historical offset selects the initial state; full archive mode
+	// retains the data downloaded from that point onward.
+	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = configs.FlagsConfig.StartInEpochOffset > 0
 	configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
 	configs.GeneralConfig.StoragePruning.Enabled = true

@@ -55,6 +55,7 @@ GLOBAL OPTIONS:
    --num-epochs-to-keep value                This flag represents the number of epochs which will kept in the databases. It is relevant only if the full archive flag is not set. (default: 2)
    --num-active-persisters value             This flag represents the number of databases (1 database = 1 epoch) which are kept open at a moment. It is relevant even if the node is full archive or not. (default: 2)
    --start-in-epoch                          Boolean option for enabling a node the fast bootstrap mechanism from the network.Should be enabled if data is not available in local disk.
+   --start-in-epoch-offset value             Number of epochs to go back from the latest network epoch (0 = latest). Historical data must be available from peers. (default: 0)
    --import-db value                         This flag, if set, will make the node start the import process using the provided data path. Will re-checkand re-process everything
    --import-db-no-sig-check                  This flag, if set, will cause the signature checks on headers to be skipped. Can be used only if the import-db was previously set
    --import-db-save-epoch-root-hash          This flag, if set, will export the trie snapshots at every new epoch
@@ -81,3 +82,11 @@ GLOBAL OPTIONS:
 
 ```
 
+
+### Starting from an older epoch
+
+Use `--start-in-epoch-offset N` to bootstrap `N` epochs before the latest epoch discovered from peers. For example, if the latest epoch is 100, `--start-in-epoch-offset 25` selects epoch 75. The default, `0`, preserves the normal bootstrap behavior. A positive offset enables network bootstrap and bypasses the saved local bootstrap position.
+
+The offset accepts unsigned 32-bit values. The selected epoch must not precede the configured genesis or hardfork start epoch. Selecting that start epoch uses genesis bootstrap. For other epochs, the node follows and validates the previous epoch-start header hashes, then synchronizes the selected epoch's state. Peers must retain the required historical headers, proofs, miniblocks and trie data; unavailable data causes bootstrap to fail instead of silently selecting a newer epoch. Larger offsets require more header requests.
+
+A positive offset cannot be combined with `--import-db`. It can be combined with `--full-archive`, `--operation-mode=full-archive`, or `FullArchive = true` in `prefs.toml`: bootstrap starts at the selected epoch, and full-archive mode retains the data synchronized from that point onward. It does not backfill epochs before the selected starting point. Without a positive offset, full-archive mode keeps its normal bootstrap behavior. Remove the offset for subsequent ordinary restarts.

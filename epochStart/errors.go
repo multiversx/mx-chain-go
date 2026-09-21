@@ -11,6 +11,12 @@ var ErrNilEpochStartSettings = errors.New("nil start of epoch settings")
 // ErrInvalidSettingsForEpochStartTrigger signals that settings for start of epoch trigger are invalid
 var ErrInvalidSettingsForEpochStartTrigger = errors.New("invalid start of epoch trigger settings")
 
+// ErrInvalidStartInEpochOffset signals that the requested start-in-epoch offset is unsupported
+var ErrInvalidStartInEpochOffset = errors.New("invalid start in epoch offset")
+
+// ErrEpochStartMetaBlockEpochMismatch signals that the fetched epoch-start meta block has an unexpected epoch
+var ErrEpochStartMetaBlockEpochMismatch = errors.New("epoch start meta block epoch mismatch")
+
 // ErrNilArgsNewShardEpochStartTrigger signals that nil arguments for shard epoch trigger has been provided
 var ErrNilArgsNewShardEpochStartTrigger = errors.New("nil arguments for shard start of epoch trigger")
 

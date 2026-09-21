@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -38,7 +39,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -56,7 +56,7 @@ func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testNodeStartsInEpoch(t, 0, 18)
+	testNodeStartsInEpoch(t, 0, 0, integrationTests.UnreachableEpoch, 2, false)
 }
 
 func TestStartInEpochForAMetaNodeInMultiShardedEnvironment(t *testing.T) {
@@ -64,15 +64,71 @@ func TestStartInEpochForAMetaNodeInMultiShardedEnvironment(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testNodeStartsInEpoch(t, core.MetachainShardId, 20)
+	testNodeStartsInEpoch(t, core.MetachainShardId, 0, integrationTests.UnreachableEpoch, 2, false)
 }
 
-func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound uint64) {
+func TestStartInPreviousEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testNodeStartsInEpoch(t, 0, 1, integrationTests.UnreachableEpoch, 1, false)
+}
+
+func TestStartInPreviousEpochForAMetaNodeWithAndromedaInMultiShardedEnvironment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testNodeStartsInEpoch(t, core.MetachainShardId, 1, 2, 1, false)
+}
+
+func TestStartInOlderEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testNodeStartsInEpoch(t, 0, 2, integrationTests.UnreachableEpoch, 1, false)
+}
+
+func TestStartInOlderEpochForAMetaNodeWithAndromedaInMultiShardedEnvironment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	// Traverse epochs 3 -> 2 -> 1, requiring proof transport for epoch 2.
+	testNodeStartsInEpoch(t, core.MetachainShardId, 2, 2, 1, false)
+}
+
+func TestStartInOlderEpochWithFullArchiveForAShardNode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testNodeStartsInEpoch(t, 0, 2, integrationTests.UnreachableEpoch, 1, true)
+}
+
+func TestStartInOlderEpochWithFullArchiveForAMetaNode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testNodeStartsInEpoch(t, core.MetachainShardId, 2, 2, 1, true)
+}
+
+func testNodeStartsInEpoch(
+	t *testing.T,
+	shardID uint32,
+	startInEpochOffset uint32,
+	bootstrapAndromedaEnableEpoch uint32,
+	expectedBootstrapEpoch uint32,
+	fullArchive bool,
+) {
 	numOfShards := 2
 	numNodesPerShard := 3
 	numMetachainNodes := 3
 
-	enableEpochsConfig := config.EnableEpochs{
+	networkEnableEpochsConfig := config.EnableEpochs{
 		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
@@ -88,7 +144,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		numOfShards,
 		numNodesPerShard,
 		numMetachainNodes,
-		enableEpochsConfig,
+		networkEnableEpochsConfig,
 	)
 
 	roundsPerEpoch := uint64(10)
@@ -123,12 +179,18 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	time.Sleep(time.Second)
 
 	// ----- wait for epoch end period
-	epoch := uint32(2)
-	nrRoundsToPropagateMultiShard := uint64(5)
+	epoch := expectedBootstrapEpoch + startInEpochOffset
+	proofEpochs := make(map[uint32]bool)
+	nrRoundsToPropagateMultiShard := uint64(7)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
 		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
 		integrationTests.SyncBlock(t, nodes, leaders, round)
+		metaEpoch := nodes[numOfShards*numNodesPerShard].EpochStartTrigger.Epoch()
+		if metaEpoch >= bootstrapAndromedaEnableEpoch && !proofEpochs[metaEpoch] {
+			addEpochStartProofToNetwork(t, nodes, numOfShards*numNodesPerShard, metaEpoch)
+			proofEpochs[metaEpoch] = true
+		}
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 
@@ -155,11 +217,16 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	}
 
 	generalConfig := getGeneralConfig()
+	if fullArchive {
+		generalConfig.StoragePruning.FullArchiveNumActivePersisters = 10
+		generalConfig.StoragePruning.ValidatorCleanOldEpochsData = false
+		generalConfig.StoragePruning.ObserverCleanOldEpochsData = false
+	}
 	roundDurationMillis := 4000
 	numRoundsPerEpoch := nodes[0].Node.GetCoreComponents().ChainParametersHandler().CurrentChainParameters().RoundsPerEpoch
 	epochDurationMillis := numRoundsPerEpoch * int64(roundDurationMillis)
 	prefsConfig := config.PreferencesConfig{
-		FullArchive: false,
+		FullArchive: fullArchive,
 	}
 
 	pksBytes := integrationTests.CreatePkBytes(uint32(numOfShards))
@@ -218,10 +285,19 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.MainMessenger = messenger
 
-	nodeToJoinLate.FullArchiveMessenger = &p2pmocks.MessengerStub{}
+	if fullArchive {
+		_ = nodeToJoinLate.FullArchiveMessenger.Close()
+		nodeToJoinLate.FullArchiveMessenger = integrationTests.CreateMessengerWithNoDiscovery()
+	} else {
+		nodeToJoinLate.FullArchiveMessenger = &p2pmocks.MessengerStub{}
+	}
+	defer nodeToJoinLate.Close()
 
 	for _, n := range nodes {
 		_ = n.ConnectOnMain(nodeToJoinLate)
+		if fullArchive {
+			require.NoError(t, n.ConnectOnFullArchive(nodeToJoinLate))
+		}
 	}
 
 	roundHandler := &mock.RoundHandlerMock{IndexField: int64(round)}
@@ -233,7 +309,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
+	bootstrapEnableEpochsConfig := networkEnableEpochsConfig
+	bootstrapEnableEpochsConfig.AndromedaEnableEpoch = bootstrapAndromedaEnableEpoch
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(bootstrapEnableEpochsConfig, genericEpochNotifier)
 	coreComponents := integrationTests.GetDefaultCoreComponents(enableEpochsHandler, genericEpochNotifier)
 	coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
 	coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
@@ -266,7 +344,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		FullArchiveMessenger:            nodeToJoinLate.FullArchiveMessenger,
 		GeneralConfig:                   generalConfig,
 		PrefsConfig: config.PreferencesConfig{
-			FullArchive: false,
+			FullArchive: fullArchive,
 		},
 		GenesisShardCoordinator:    genesisShardCoordinator,
 		EconomicsData:              nodeToJoinLate.EconomicsData,
@@ -295,10 +373,11 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ScheduledSCRsStorer: genericMocks.NewStorerMock(),
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
+			StartInEpochOffset:    startInEpochOffset,
 		},
 		TrieSyncStatisticsProvider:     &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:              disabled.NewStateStatistics(),
-		EnableEpochsHandler:            &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:            enableEpochsHandler,
 		InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
 	}
 
@@ -306,9 +385,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	assert.Nil(t, err)
 
 	bootstrapParams, err := epochStartBootstrap.Bootstrap()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, bootstrapParams.SelfShardId, shardID)
-	assert.Equal(t, bootstrapParams.Epoch, epoch)
+	assert.Equal(t, expectedBootstrapEpoch, bootstrapParams.Epoch)
 
 	shardC, _ := sharding.NewMultiShardCoordinator(2, shardID)
 
@@ -339,6 +418,12 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	bootstrapStorer, err := bootstrapStorage.NewBootstrapStorer(integrationTests.TestMarshalizer, bootstrapUnit)
 	assert.NoError(t, err)
 	assert.NotNil(t, bootstrapStorer)
+
+	persistedEpochStartBytes, err := bootstrapUnit.Get([]byte(core.EpochStartIdentifier(expectedBootstrapEpoch)))
+	assert.NoError(t, err)
+	persistedEpochStartMeta, err := process.UnmarshalMetaHeader(integrationTests.TestMarshalizer, persistedEpochStartBytes)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedBootstrapEpoch, persistedEpochStartMeta.GetEpoch())
 
 	argsBaseBootstrapper := storageBootstrap.ArgsBaseStorageBootstrapper{
 		BootStorer:     bootstrapStorer,
@@ -388,8 +473,51 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	err = bootstrapper.LoadFromStorage()
 	assert.NoError(t, err)
 
-	highestNonce := bootstrapper.GetHighestBlockNonce()
-	assert.True(t, highestNonce > expectedHighestRound)
+	expectedNonce := persistedEpochStartMeta.GetNonce()
+	if shardID != core.MetachainShardId {
+		foundShard := false
+		for _, shardData := range persistedEpochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+			if shardData.GetShardID() == shardID {
+				expectedNonce = shardData.GetNonce()
+				foundShard = true
+				break
+			}
+		}
+		require.True(t, foundShard)
+	}
+	require.NotZero(t, expectedNonce)
+	assert.Equal(t, expectedNonce, bootstrapper.GetHighestBlockNonce(), "storage restart must restore the selected epoch's header")
+}
+
+func addEpochStartProofToNetwork(
+	t *testing.T,
+	nodes []*integrationTests.TestProcessorNode,
+	metaNodeIndex int,
+	expectedEpoch uint32,
+) {
+	t.Helper()
+
+	epochStartHeader, err := nodes[metaNodeIndex].EpochStartTrigger.LastCommitedEpochStartHdr()
+	require.NoError(t, err)
+	require.Equal(t, expectedEpoch, epochStartHeader.GetEpoch())
+
+	headerHash, err := core.CalculateHash(integrationTests.TestMarshalizer, integrationTests.TestHasher, epochStartHeader)
+	require.NoError(t, err)
+
+	proof := &block.HeaderProof{
+		PubKeysBitmap:       []byte("bitmap"),
+		AggregatedSignature: []byte("signature"),
+		HeaderHash:          headerHash,
+		HeaderEpoch:         epochStartHeader.GetEpoch(),
+		HeaderNonce:         epochStartHeader.GetNonce(),
+		HeaderShardId:       epochStartHeader.GetShardID(),
+		HeaderRound:         epochStartHeader.GetRound(),
+		IsStartOfEpoch:      epochStartHeader.IsStartOfEpochBlock(),
+	}
+
+	for _, node := range nodes {
+		require.True(t, node.DataPool.Proofs().AddProof(proof))
+	}
 }
 
 func getBootstrapper(shardID uint32, baseArgs storageBootstrap.ArgsBaseStorageBootstrapper) (process.BootstrapperFromStorage, error) {
@@ -417,6 +545,7 @@ func getGeneralConfig() config.Config {
 	generalConfig.BootstrapStorage.DB.Type = string(storageunit.LvlDBSerial)
 	generalConfig.ReceiptsStorage.DB.Type = string(storageunit.LvlDBSerial)
 	generalConfig.ScheduledSCRsStorage.DB.Type = string(storageunit.LvlDBSerial)
+	generalConfig.ProofsStorage.DB.Type = string(storageunit.LvlDBSerial)
 
 	return generalConfig
 }

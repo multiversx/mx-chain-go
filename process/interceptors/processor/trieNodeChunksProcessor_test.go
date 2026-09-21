@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -125,6 +126,28 @@ func TestNewTrieNodeChunksProcessor_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(tncp))
 	assert.Nil(t, tncp.Close())
+}
+
+func TestTrieNodeChunksProcessor_CloseSharedByNetworkContainers(t *testing.T) {
+	t.Parallel()
+
+	processor, err := NewTrieNodeChunksProcessor(createMockTrieNodesChunksProcessorArgs())
+	assert.NoError(t, err)
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			assert.NoError(t, processor.Close())
+		}()
+	}
+	wg.Wait()
+	assert.NoError(t, processor.Close())
+	select {
+	case <-processor.chanClose:
+	default:
+		t.Fatal("close must release pending checks")
+	}
 }
 
 func TestTrieNodeChunksProcessor_CheckBatchInvalidBatch(t *testing.T) {

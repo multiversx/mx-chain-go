@@ -360,7 +360,9 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		log.Warn("epochStartBootstrap.Bootstrap: forcing start from network")
 	}
 
-	shouldStartFromNetwork := e.generalConfig.GeneralSettings.StartInEpochEnabled || e.flagsConfig.ForceStartFromNetwork
+	shouldStartFromNetwork := e.generalConfig.GeneralSettings.StartInEpochEnabled ||
+		e.flagsConfig.ForceStartFromNetwork ||
+		e.flagsConfig.StartInEpochOffset > 0
 	if !shouldStartFromNetwork {
 		return e.bootstrapFromLocalStorage()
 	}
@@ -392,10 +394,14 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
-	params, shouldContinue, err := e.startFromSavedEpoch()
-	shouldContinue = shouldContinue || e.flagsConfig.ForceStartFromNetwork
-	if !shouldContinue {
-		return params, err
+	var params Parameters
+	if e.flagsConfig.StartInEpochOffset == 0 {
+		var shouldContinue bool
+		params, shouldContinue, err = e.startFromSavedEpoch()
+		shouldContinue = shouldContinue || e.flagsConfig.ForceStartFromNetwork
+		if !shouldContinue {
+			return params, err
+		}
 	}
 
 	err = e.prepareComponentsToSyncFromNetwork()
@@ -408,11 +414,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 	log.Debug("start in epoch bootstrap: got epoch start meta header", "epoch", e.epochStartMeta.GetEpoch(), "nonce", e.epochStartMeta.GetNonce())
-
-	err = e.createSyncers()
-	if err != nil {
-		return Parameters{}, err
-	}
 
 	defer func() {
 		if !check.IfNil(e.mainInterceptorContainer) {
@@ -430,6 +431,21 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		}
 	}()
 
+	if e.flagsConfig.StartInEpochOffset > 0 {
+		params, shouldReturn, errOffset := e.applyStartInEpochOffset()
+		if errOffset != nil {
+			return Parameters{}, errOffset
+		}
+		if shouldReturn {
+			return params, nil
+		}
+	} else {
+		err = e.createSyncers()
+		if err != nil {
+			return Parameters{}, err
+		}
+	}
+
 	params, err = e.requestAndProcessing()
 	if err != nil {
 		return Parameters{}, err
@@ -438,6 +454,106 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	e.setEpochStartMetrics()
 
 	return params, nil
+}
+
+func (e *epochStartBootstrap) applyStartInEpochOffset() (Parameters, bool, error) {
+	latestEpoch := e.epochStartMeta.GetEpoch()
+	offset := e.flagsConfig.StartInEpochOffset
+	// Check the range before subtracting to avoid unsigned underflow.
+	if latestEpoch < e.startEpoch || offset > latestEpoch-e.startEpoch {
+		return Parameters{}, false, fmt.Errorf(
+			"cannot apply start-in-epoch offset %d to latest epoch %d with configured start epoch %d: %w",
+			offset,
+			latestEpoch,
+			e.startEpoch,
+			epochStart.ErrInvalidStartInEpochOffset,
+		)
+	}
+
+	targetEpoch := latestEpoch - offset
+	if targetEpoch == e.startEpoch {
+		e.requestHandler.SetEpoch(targetEpoch)
+		params, err := e.prepareEpochZero()
+		return params, true, err
+	}
+
+	if check.IfNil(e.headersSyncer) {
+		err := e.createSyncers()
+		if err != nil {
+			return Parameters{}, false, err
+		}
+	}
+
+	// Follow the hash-linked epoch-start chain from the discovered latest header.
+	// Keep the selected header unchanged until the whole traversal succeeds.
+	selectedMeta := e.epochStartMeta
+	for epoch := latestEpoch; epoch > targetEpoch; epoch-- {
+		e.requestHandler.SetEpoch(epoch - 1)
+		previousMeta, err := e.syncPreviousEpochStartMeta(selectedMeta, epoch-1)
+		if err != nil {
+			return Parameters{}, false, err
+		}
+		selectedMeta = previousMeta
+	}
+
+	e.epochStartMeta = selectedMeta
+	log.Debug("start in epoch bootstrap: selected epoch start meta header",
+		"latest epoch", latestEpoch,
+		"target epoch", targetEpoch,
+		"nonce", selectedMeta.GetNonce(),
+	)
+
+	return Parameters{}, false, nil
+}
+
+func (e *epochStartBootstrap) syncPreviousEpochStartMeta(
+	latestMeta data.MetaHeaderHandler,
+	targetEpoch uint32,
+) (data.MetaHeaderHandler, error) {
+	epochStartHandler := latestMeta.GetEpochStartHandler()
+	if epochStartHandler == nil {
+		return nil, fmt.Errorf("cannot resolve previous epoch start meta for target epoch %d: missing epoch-start data", targetEpoch)
+	}
+
+	economicsHandler := epochStartHandler.GetEconomicsHandler()
+	if economicsHandler == nil {
+		return nil, fmt.Errorf("cannot resolve previous epoch start meta for target epoch %d: missing epoch-start economics", targetEpoch)
+	}
+
+	previousHash := economicsHandler.GetPrevEpochStartHash()
+	if len(previousHash) == 0 {
+		return nil, fmt.Errorf("cannot resolve previous epoch start meta for target epoch %d: empty previous hash: %w", targetEpoch, epochStart.ErrMissingHeader)
+	}
+
+	syncedHeaders := make(map[string]data.HeaderHandler)
+	err := e.syncOneHeader(syncedHeaders, previousHash, core.MetachainShardId)
+	if err != nil {
+		return nil, fmt.Errorf("cannot sync previous epoch start meta for target epoch %d by hash %x: %w", targetEpoch, previousHash, err)
+	}
+
+	previousHeader, ok := syncedHeaders[string(previousHash)]
+	if !ok || check.IfNil(previousHeader) {
+		return nil, fmt.Errorf("previous epoch start meta for target epoch %d not returned for hash %x: %w", targetEpoch, previousHash, epochStart.ErrMissingHeader)
+	}
+
+	previousMeta, ok := previousHeader.(data.MetaHeaderHandler)
+	if !ok || check.IfNil(previousMeta) {
+		return nil, fmt.Errorf("previous epoch start header for target epoch %d and hash %x: %w", targetEpoch, previousHash, epochStart.ErrWrongTypeAssertion)
+	}
+	if !previousMeta.IsStartOfEpochBlock() {
+		return nil, fmt.Errorf("previous meta header for target epoch %d and hash %x: %w", targetEpoch, previousHash, epochStart.ErrNotEpochStartBlock)
+	}
+	if previousMeta.GetEpoch() != targetEpoch {
+		return nil, fmt.Errorf(
+			"previous epoch start meta for hash %x has epoch %d, expected %d: %w",
+			previousHash,
+			previousMeta.GetEpoch(),
+			targetEpoch,
+			epochStart.ErrEpochStartMetaBlockEpochMismatch,
+		)
+	}
+
+	return previousMeta, nil
 }
 
 func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
@@ -1990,14 +2106,16 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 
 func (e *epochStartBootstrap) createRequestHandler() error {
 	requestersContainerArgs := requesterscontainer.FactoryArgs{
-		RequesterConfig:                 e.generalConfig.Requesters,
-		ShardCoordinator:                e.shardCoordinator,
-		MainMessenger:                   e.mainMessenger,
-		FullArchiveMessenger:            e.fullArchiveMessenger,
-		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
-		Uint64ByteSliceConverter:        uint64ByteSlice.NewBigEndianConverter(),
-		OutputAntifloodHandler:          disabled.NewAntiFloodHandler(),
-		CurrentNetworkEpochProvider:     disabled.NewCurrentNetworkEpochProviderHandler(),
+		RequesterConfig:          e.generalConfig.Requesters,
+		ShardCoordinator:         e.shardCoordinator,
+		MainMessenger:            e.mainMessenger,
+		FullArchiveMessenger:     e.fullArchiveMessenger,
+		Marshaller:               e.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter: uint64ByteSlice.NewBigEndianConverter(),
+		OutputAntifloodHandler:   disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider: &bootstrapEpochProvider{
+			queryFullArchive: e.prefsConfig.FullArchive && e.flagsConfig.StartInEpochOffset > 0,
+		},
 		MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
 		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
 		PeersRatingHandler:              disabled.NewDisabledPeersRatingHandler(),
@@ -2041,7 +2159,11 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		timeBetweenRequests,
 		time.Duration(e.generalConfig.Requesters.RequestProofByNonceDelayMs)*time.Millisecond,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	e.enableHistoricalRequests()
+	return nil
 }
 
 func (e *epochStartBootstrap) setEpochStartMetrics() {

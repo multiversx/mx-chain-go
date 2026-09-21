@@ -15,6 +15,7 @@ import (
 	disabledFactory "github.com/multiversx/mx-chain-go/factory/disabled"
 	disabledGenesis "github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -137,10 +138,18 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		return nil, nil, err
 	}
 
-	if args.NodeOperationMode == common.FullArchiveMode {
-		err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(fullArchiveContainer)
-		if err != nil {
-			return nil, nil, err
+	if args.NodeOperationMode == common.FullArchiveMode && args.ShardCoordinator.SelfId() == core.MetachainShardId {
+		// AddShardTrieNodeInterceptors already registers each interceptor on both
+		// messengers. Share the instances without registering the topics twice.
+		for shardID := uint32(0); shardID < args.ShardCoordinator.NumberOfShards(); shardID++ {
+			topic := processFactory.AccountTrieNodesTopic + args.ShardCoordinator.CommunicationIdentifier(shardID)
+			interceptor, errGet := mainContainer.Get(topic)
+			if errGet != nil {
+				return nil, nil, errGet
+			}
+			if err = fullArchiveContainer.Add(topic, interceptor); err != nil {
+				return nil, nil, err
+			}
 		}
 	}
 

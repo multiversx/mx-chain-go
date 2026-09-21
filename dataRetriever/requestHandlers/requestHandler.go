@@ -132,7 +132,7 @@ func (rrh *resolverRequestHandler) RequestTransactionsForEpoch(destShardID uint3
 }
 
 func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string, abbreviatedTopic string, epoch uint32) {
-	suffix := fmt.Sprintf("%s_%d", abbreviatedTopic, destShardID)
+	suffix := fmt.Sprintf("%s_%d_%d", abbreviatedTopic, destShardID, epoch)
 	unrequestedHashes := rrh.getUnrequestedHashes(hashes, suffix)
 	if len(unrequestedHashes) == 0 {
 		return
@@ -272,7 +272,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, miniBloc
 
 // RequestMiniBlockForEpoch method asks for miniblock from the connected peers for a specific epoch
 func (rrh *resolverRequestHandler) RequestMiniBlockForEpoch(destShardID uint32, miniblockHash []byte, epoch uint32) {
-	suffix := fmt.Sprintf("%s_%d", uniqueMiniblockSuffix, destShardID)
+	suffix := fmt.Sprintf("%s_%d_%d", uniqueMiniblockSuffix, destShardID, epoch)
 	if !rrh.testIfRequestIsNeeded(miniblockHash, suffix) {
 		return
 	}
@@ -318,7 +318,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniBlo
 
 // RequestMiniBlocksForEpoch method asks for miniBlocks from the connected peers for a specific epoch
 func (rrh *resolverRequestHandler) RequestMiniBlocksForEpoch(destShardID uint32, miniBlocksHashes [][]byte, epoch uint32) {
-	suffix := fmt.Sprintf("%s_%d", uniqueMiniblockSuffix, destShardID)
+	suffix := fmt.Sprintf("%s_%d_%d", uniqueMiniblockSuffix, destShardID, epoch)
 	unrequestedHashes := rrh.getUnrequestedHashes(miniBlocksHashes, suffix)
 	if len(unrequestedHashes) == 0 {
 		return
@@ -362,7 +362,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 
 // RequestShardHeaderForEpoch method asks for shard header from the connected peers for a specific epoch
 func (rrh *resolverRequestHandler) RequestShardHeaderForEpoch(shardID uint32, hash []byte, epoch uint32) {
-	suffix := fmt.Sprintf("%s_%d", uniqueHeadersSuffix, shardID)
+	suffix := fmt.Sprintf("%s_%d_%d", uniqueHeadersSuffix, shardID, epoch)
 	if !rrh.testIfRequestIsNeeded(hash, suffix) {
 		return
 	}
@@ -405,7 +405,8 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 
 // RequestMetaHeaderForEpoch method asks for meta header from the connected peers for a specific epoch
 func (rrh *resolverRequestHandler) RequestMetaHeaderForEpoch(hash []byte, epoch uint32) {
-	if !rrh.testIfRequestIsNeeded(hash, uniqueMetaHeadersSuffix) {
+	suffix := fmt.Sprintf("%s_%d", uniqueMetaHeadersSuffix, epoch)
+	if !rrh.testIfRequestIsNeeded(hash, suffix) {
 		return
 	}
 	log.Debug("requesting meta header from network",
@@ -440,7 +441,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderForEpoch(hash []byte, epoch 
 		return
 	}
 
-	rrh.addRequestedItems([][]byte{hash}, uniqueMetaHeadersSuffix)
+	rrh.addRequestedItems([][]byte{hash}, suffix)
 }
 
 // RequestShardHeaderByNonce method asks for shard header from the connected peers by nonce
@@ -451,7 +452,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 
 // RequestShardHeaderByNonceForEpoch method asks for shard header from the connected peers by nonce and epoch
 func (rrh *resolverRequestHandler) RequestShardHeaderByNonceForEpoch(shardID uint32, nonce uint64, epoch uint32) {
-	suffix := fmt.Sprintf("%s_%d", uniqueHeadersSuffix, shardID)
+	suffix := fmt.Sprintf("%s_%d_%d", uniqueHeadersSuffix, shardID, epoch)
 	key := []byte(fmt.Sprintf("%d-%d", shardID, nonce))
 	if !rrh.testIfRequestIsNeeded(key, suffix) {
 		return
@@ -626,8 +627,9 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 
 // RequestMetaHeaderByNonceForEpoch method asks for meta header from the connected peers by nonce and epoch
 func (rrh *resolverRequestHandler) RequestMetaHeaderByNonceForEpoch(nonce uint64, epoch uint32) {
+	suffix := fmt.Sprintf("%s_%d", uniqueMetaHeadersSuffix, epoch)
 	key := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, nonce))
-	if !rrh.testIfRequestIsNeeded(key, uniqueMetaHeadersSuffix) {
+	if !rrh.testIfRequestIsNeeded(key, suffix) {
 		return
 	}
 
@@ -655,7 +657,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonceForEpoch(nonce uint64
 		return
 	}
 
-	rrh.addRequestedItems([][]byte{key}, uniqueMetaHeadersSuffix)
+	rrh.addRequestedItems([][]byte{key}, suffix)
 }
 
 // RequestValidatorInfo asks for the validator info associated with a specific hash from connected peers

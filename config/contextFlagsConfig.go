@@ -23,6 +23,7 @@ type ContextFlagsConfig struct {
 	BaseVersion                  string
 	Version                      string
 	ForceStartFromNetwork        bool
+	StartInEpochOffset           uint32
 	DisableConsensusWatchdog     bool
 	SerializeSnapshots           bool
 	OperationMode                string

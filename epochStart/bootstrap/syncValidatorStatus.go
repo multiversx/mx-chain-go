@@ -161,6 +161,7 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 	if prevMetaBlock.GetNonce() > 1 && !prevMetaBlock.IsStartOfEpochBlock() {
 		return nil, 0, nil, epochStart.ErrNotEpochStartBlock
 	}
+	defer s.requestHandler.SetEpoch(currMetaBlock.GetEpoch())
 
 	allMiniblocks := make([]*block.MiniBlock, 0)
 	prevMiniBlocks, err := s.processValidatorChangesFor(prevMetaBlock)
@@ -226,6 +227,9 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 	}
 
 	s.miniBlocksSyncer.ClearFields()
+	// The previous epoch's validator miniblocks must be requested from its own
+	// storage epoch when bootstrapping through full-history peers.
+	s.requestHandler.SetEpoch(metaBlock.GetEpoch())
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	err = s.miniBlocksSyncer.SyncPendingMiniBlocks(shardMBHeaders, ctx)
 	cancel()

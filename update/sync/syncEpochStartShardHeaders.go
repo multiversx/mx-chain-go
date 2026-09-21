@@ -256,7 +256,7 @@ func (p *pendingEpochStartShardHeader) receivedHeader(header data.HeaderHandler,
 	p.mutPending.Unlock()
 
 	if needsProof {
-		p.requestHandler.RequestEquivalentProofByHash(header.GetShardID(), headerHash)
+		p.requestHandler.RequestEquivalentProofByHashForEpoch(header.GetShardID(), headerHash, header.GetEpoch())
 		return
 	}
 

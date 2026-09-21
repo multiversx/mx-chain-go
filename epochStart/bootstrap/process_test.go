@@ -887,6 +887,205 @@ func TestEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
 	assert.NotNil(t, params)
 }
 
+func TestEpochStartBootstrap_ApplyStartInEpochOffset(t *testing.T) {
+	t.Parallel()
+
+	t.Run("previous epoch start meta is selected by hash", func(t *testing.T) {
+		t.Parallel()
+
+		previousHash := []byte("previous-epoch-start")
+		latestMeta := createEpochStartMetaForOffsetTest(3, previousHash)
+		previousMeta := createEpochStartMetaForOffsetTest(2, []byte("older-epoch-start"))
+		epochStartProvider := createEpochStartBootstrapForOffsetTest(t, latestMeta)
+
+		var requestedHash []byte
+		var requestedShardID uint32
+		var requestEpoch uint32
+		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{
+			SetEpochCalled: func(epoch uint32) {
+				requestEpoch = epoch
+			},
+		}
+		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headerHashes [][]byte, _ context.Context) error {
+				require.Len(t, shardIDs, 1)
+				require.Len(t, headerHashes, 1)
+				require.Equal(t, uint32(2), requestEpoch, "request epoch must be set before syncing the previous header and proof")
+				requestedShardID = shardIDs[0]
+				requestedHash = headerHashes[0]
+				return nil
+			},
+			GetHeadersCalled: func() (map[string]data.HeaderHandler, error) {
+				return map[string]data.HeaderHandler{string(previousHash): previousMeta}, nil
+			},
+		}
+
+		params, shouldReturn, err := epochStartProvider.applyStartInEpochOffset()
+
+		require.NoError(t, err)
+		require.False(t, shouldReturn)
+		require.Equal(t, Parameters{}, params)
+		require.Equal(t, uint32(2), requestEpoch)
+		require.Equal(t, core.MetachainShardId, requestedShardID)
+		require.Equal(t, previousHash, requestedHash)
+		require.Same(t, previousMeta, epochStartProvider.epochStartMeta)
+	})
+
+	t.Run("missing proof is returned without falling back to latest", func(t *testing.T) {
+		t.Parallel()
+
+		missingProofErr := errors.New("missing previous epoch proof")
+		previousHash := []byte("missing-proof")
+		latestMeta := createEpochStartMetaForOffsetTest(3, previousHash)
+		epochStartProvider := createEpochStartBootstrapForOffsetTest(t, latestMeta)
+		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			SyncMissingHeadersByHashCalled: func(_ []uint32, _ [][]byte, _ context.Context) error {
+				return missingProofErr
+			},
+		}
+
+		_, _, err := epochStartProvider.applyStartInEpochOffset()
+
+		require.ErrorIs(t, err, missingProofErr)
+		require.ErrorContains(t, err, "cannot sync previous epoch start meta")
+		require.Same(t, latestMeta, epochStartProvider.epochStartMeta)
+	})
+
+	t.Run("missing returned header is rejected", func(t *testing.T) {
+		t.Parallel()
+
+		latestMeta := createEpochStartMetaForOffsetTest(3, []byte("missing-header"))
+		epochStartProvider := createEpochStartBootstrapForOffsetTest(t, latestMeta)
+		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			GetHeadersCalled: func() (map[string]data.HeaderHandler, error) {
+				return map[string]data.HeaderHandler{}, nil
+			},
+		}
+
+		_, _, err := epochStartProvider.applyStartInEpochOffset()
+
+		require.ErrorIs(t, err, epochStart.ErrMissingHeader)
+		require.Same(t, latestMeta, epochStartProvider.epochStartMeta)
+	})
+
+	t.Run("wrong header type is rejected", func(t *testing.T) {
+		t.Parallel()
+
+		previousHash := []byte("wrong-type")
+		latestMeta := createEpochStartMetaForOffsetTest(3, previousHash)
+		epochStartProvider := createEpochStartBootstrapForOffsetTest(t, latestMeta)
+		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			GetHeadersCalled: func() (map[string]data.HeaderHandler, error) {
+				return map[string]data.HeaderHandler{string(previousHash): &block.Header{Epoch: 2}}, nil
+			},
+		}
+
+		_, _, err := epochStartProvider.applyStartInEpochOffset()
+
+		require.ErrorIs(t, err, epochStart.ErrWrongTypeAssertion)
+		require.Same(t, latestMeta, epochStartProvider.epochStartMeta)
+	})
+
+	t.Run("non epoch start meta is rejected", func(t *testing.T) {
+		t.Parallel()
+
+		previousHash := []byte("not-epoch-start")
+		latestMeta := createEpochStartMetaForOffsetTest(3, previousHash)
+		epochStartProvider := createEpochStartBootstrapForOffsetTest(t, latestMeta)
+		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			GetHeadersCalled: func() (map[string]data.HeaderHandler, error) {
+				return map[string]data.HeaderHandler{string(previousHash): &block.MetaBlock{Epoch: 2}}, nil
+			},
+		}
+
+		_, _, err := epochStartProvider.applyStartInEpochOffset()
+
+		require.ErrorIs(t, err, epochStart.ErrNotEpochStartBlock)
+		require.Same(t, latestMeta, epochStartProvider.epochStartMeta)
+	})
+
+	t.Run("wrong previous epoch is rejected", func(t *testing.T) {
+		t.Parallel()
+
+		previousHash := []byte("wrong-epoch")
+		latestMeta := createEpochStartMetaForOffsetTest(3, previousHash)
+		wrongEpochMeta := createEpochStartMetaForOffsetTest(1, []byte("older"))
+		epochStartProvider := createEpochStartBootstrapForOffsetTest(t, latestMeta)
+		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
+			GetHeadersCalled: func() (map[string]data.HeaderHandler, error) {
+				return map[string]data.HeaderHandler{string(previousHash): wrongEpochMeta}, nil
+			},
+		}
+
+		_, _, err := epochStartProvider.applyStartInEpochOffset()
+
+		require.ErrorIs(t, err, epochStart.ErrEpochStartMetaBlockEpochMismatch)
+		require.Same(t, latestMeta, epochStartProvider.epochStartMeta)
+	})
+
+	t.Run("configured start epoch uses genesis bootstrap", func(t *testing.T) {
+		t.Parallel()
+
+		latestMeta := createEpochStartMetaForOffsetTest(8, []byte("hardfork-start"))
+		epochStartProvider := createEpochStartBootstrapForOffsetTest(t, latestMeta)
+		epochStartProvider.startEpoch = 7
+
+		var requestEpoch uint32
+		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{
+			SetEpochCalled: func(epoch uint32) {
+				requestEpoch = epoch
+			},
+		}
+
+		params, shouldReturn, err := epochStartProvider.applyStartInEpochOffset()
+
+		require.NoError(t, err)
+		require.True(t, shouldReturn)
+		require.Equal(t, uint32(7), params.Epoch)
+		require.Equal(t, uint32(7), requestEpoch)
+		require.Same(t, latestMeta, epochStartProvider.epochStartMeta)
+	})
+
+	t.Run("latest epoch at configured start cannot be offset", func(t *testing.T) {
+		t.Parallel()
+
+		latestMeta := createEpochStartMetaForOffsetTest(7, []byte("before-hardfork"))
+		epochStartProvider := createEpochStartBootstrapForOffsetTest(t, latestMeta)
+		epochStartProvider.startEpoch = 7
+
+		_, _, err := epochStartProvider.applyStartInEpochOffset()
+
+		require.ErrorIs(t, err, epochStart.ErrInvalidStartInEpochOffset)
+		require.Same(t, latestMeta, epochStartProvider.epochStartMeta)
+	})
+}
+
+func createEpochStartBootstrapForOffsetTest(t *testing.T, latestMeta data.MetaHeaderHandler) *epochStartBootstrap {
+	t.Helper()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.FlagsConfig.StartInEpochOffset = 1
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	require.NoError(t, err)
+	epochStartProvider.epochStartMeta = latestMeta
+	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
+
+	return epochStartProvider
+}
+
+func createEpochStartMetaForOffsetTest(epoch uint32, previousHash []byte) *block.MetaBlock {
+	return &block.MetaBlock{
+		Epoch: epoch,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{ShardID: 0}},
+			Economics: block.Economics{
+				PrevEpochStartHash: previousHash,
+			},
+		},
+	}
+}
+
 func TestEpochStartBootstrap_BootstrapShouldStartBootstrapProcess(t *testing.T) {
 	roundDuration := uint64(60000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
