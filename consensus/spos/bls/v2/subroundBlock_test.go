@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -936,6 +937,63 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		assert.True(t, wasCreateBlockProposalCalled)
 		assert.True(t, wasBroadcastTransactionsCalled)
 	})
+}
+
+func TestSubroundBlock_ExcludedRoundShouldNotProposeOrAcceptHeader(t *testing.T) {
+	t.Parallel()
+
+	const excludedRound = uint64(42)
+	container := consensusMocks.InitConsensusCore()
+	container.SetRoundHandler(&testscommon.RoundHandlerMock{
+		IndexCalled: func() int64 {
+			return int64(excludedRound)
+		},
+	})
+	createHeaderCalled := false
+	container.SetBlockProcessor(&testscommon.BlockProcessorStub{
+		CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
+			createHeaderCalled = true
+			return nil, nil
+		},
+	})
+	consensusState := initializers.InitConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+	baseSubround, err := defaultSubroundForSRBlock(
+		consensusState,
+		make(chan bool, 1),
+		container,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	require.NoError(t, err)
+	roundExclusions, err := common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{
+		{StartRound: excludedRound, EndRound: excludedRound},
+	})
+	require.NoError(t, err)
+	srBlock, err := v2.NewSubroundBlock(
+		baseSubround,
+		v2.ProcessingThresholdPercent,
+		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
+		&dataRetrieverMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
+		roundExclusions,
+	)
+	require.NoError(t, err)
+	leader, err := srBlock.GetLeader()
+	require.NoError(t, err)
+	srBlock.SetSelfPubKey(leader)
+
+	require.False(t, srBlock.DoBlockJob())
+	require.False(t, createHeaderCalled)
+
+	fieldsChecked := false
+	srBlock.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{
+		RoundField: excludedRound,
+		CheckFieldsForNilCalled: func() error {
+			fieldsChecked = true
+			return nil
+		},
+	})
+	require.False(t, fieldsChecked)
 }
 
 func TestSubroundBlock_ReceivedBlock(t *testing.T) {

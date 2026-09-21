@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
@@ -63,6 +64,10 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	mainConfig := args.Config
+	roundExclusions, err := common.NewRoundExclusionHandler(mainConfig.HardforkRoundExclusions)
+	if err != nil {
+		return nil, err
+	}
 
 	txPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
 		Config:              factory.GetCacherFromConfig(mainConfig.TxDataPool),
@@ -86,7 +91,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the rewards", err)
 	}
 
-	hdrPool, err := headersCache.NewHeadersPool(mainConfig.HeadersPoolConfig)
+	hdrPool, err := headersCache.NewHeadersPoolWithRoundExclusions(mainConfig.HeadersPoolConfig, roundExclusions)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the headers", err)
 	}
@@ -153,7 +158,11 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the validator info results", err)
 	}
 
-	proofsPool := proofscache.NewProofsPool(mainConfig.ProofsPoolConfig.CleanupNonceDelta, mainConfig.ProofsPoolConfig.BucketSize)
+	proofsPool := proofscache.NewProofsPoolWithRoundExclusions(
+		mainConfig.ProofsPoolConfig.CleanupNonceDelta,
+		mainConfig.ProofsPoolConfig.BucketSize,
+		roundExclusions,
+	)
 	currBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 

@@ -168,6 +168,10 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	if err != nil {
 		return err
 	}
+	roundExclusions, err := common.NewRoundExclusionHandler(sesb.generalConfig.HardforkRoundExclusions)
+	if err != nil {
+		return err
+	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
 		CoreComponentsHolder:                    sesb.coreComponentsHolder,
@@ -184,6 +188,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		ProofsPool:                              sesb.dataPool.Proofs(),
 		HeadersPool:                             sesb.dataPool.Headers(),
 		ProofsInterceptorProcessor:              processor.NewEquivalentProofsInterceptorProcessor(),
+		RoundExclusions:                         roundExclusions,
 		PeerAuthCacher:                          sesb.dataPool.PeerAuthentications(),
 		PeerAuthenticationTimeBetweenSendsInSec: sesb.generalConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec,
 	}

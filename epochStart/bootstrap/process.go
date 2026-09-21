@@ -625,6 +625,10 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	if err != nil {
 		return err
 	}
+	roundExclusions, err := common.NewRoundExclusionHandler(e.generalConfig.HardforkRoundExclusions)
+	if err != nil {
+		return err
+	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
 		CoreComponentsHolder:                    e.coreComponentsHolder,
@@ -641,6 +645,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		ProofsPool:                              e.dataPool.Proofs(),
 		HeadersPool:                             e.dataPool.Headers(),
 		ProofsInterceptorProcessor:              processor.NewEquivalentProofsInterceptorProcessor(),
+		RoundExclusions:                         roundExclusions,
 		PeerAuthCacher:                          e.dataPool.PeerAuthentications(),
 		PeerAuthenticationTimeBetweenSendsInSec: e.generalConfig.HeartbeatV2.PeerAuthenticationTimeBetweenSendsInSec,
 	}

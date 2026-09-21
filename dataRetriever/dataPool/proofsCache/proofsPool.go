@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 const defaultCleanupNonceDelta = 3
@@ -27,10 +29,25 @@ type proofsPool struct {
 
 	cleanupNonceDelta uint64
 	bucketSize        int
+	roundExclusions   common.RoundExclusionHandler
 }
 
 // NewProofsPool creates a new proofs pool component
 func NewProofsPool(cleanupNonceDelta uint64, bucketSize int) *proofsPool {
+	roundExclusions, _ := common.NewRoundExclusionHandler(nil)
+
+	return NewProofsPoolWithRoundExclusions(cleanupNonceDelta, bucketSize, roundExclusions)
+}
+
+// NewProofsPoolWithRoundExclusions creates a proofs pool which ignores excluded rounds.
+func NewProofsPoolWithRoundExclusions(
+	cleanupNonceDelta uint64,
+	bucketSize int,
+	roundExclusions common.RoundExclusionHandler,
+) *proofsPool {
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
+	}
 	if cleanupNonceDelta < defaultCleanupNonceDelta {
 		log.Debug("proofs pool: using default cleanup nonce delta", "cleanupNonceDelta", defaultCleanupNonceDelta)
 		cleanupNonceDelta = defaultCleanupNonceDelta
@@ -46,6 +63,7 @@ func NewProofsPool(cleanupNonceDelta uint64, bucketSize int) *proofsPool {
 		equivocationSubscribers: make([]func(headerProof data.HeaderProofHandler, competingProofs []data.HeaderProofHandler), 0),
 		cleanupNonceDelta:       cleanupNonceDelta,
 		bucketSize:              bucketSize,
+		roundExclusions:         roundExclusions,
 	}
 }
 
@@ -55,6 +73,9 @@ func (pp *proofsPool) UpsertProof(
 	headerProof data.HeaderProofHandler,
 ) bool {
 	if check.IfNil(headerProof) {
+		return false
+	}
+	if pp.roundExclusions.IsRoundExcluded(headerProof.GetHeaderRound()) {
 		return false
 	}
 
@@ -68,6 +89,9 @@ func (pp *proofsPool) AddProof(
 	headerProof data.HeaderProofHandler,
 ) bool {
 	if check.IfNil(headerProof) {
+		return false
+	}
+	if pp.roundExclusions.IsRoundExcluded(headerProof.GetHeaderRound()) {
 		return false
 	}
 
@@ -85,6 +109,9 @@ func (pp *proofsPool) AddProofIfNoneAtNonce(
 	headerProof data.HeaderProofHandler,
 ) (bool, data.HeaderProofHandler) {
 	if check.IfNil(headerProof) {
+		return false, nil
+	}
+	if pp.roundExclusions.IsRoundExcluded(headerProof.GetHeaderRound()) {
 		return false, nil
 	}
 

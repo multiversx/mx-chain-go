@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
@@ -20,13 +22,27 @@ type headersPool struct {
 	mutAddedDataHandlers sync.RWMutex
 	mutHeadersPool       sync.RWMutex
 	addedDataHandlers    []func(headerHandler data.HeaderHandler, headerHash []byte)
+	roundExclusions      common.RoundExclusionHandler
 }
 
 // NewHeadersPool will create a new items cacher
 func NewHeadersPool(hdrsPoolConfig config.HeadersPoolConfig) (*headersPool, error) {
+	roundExclusions, _ := common.NewRoundExclusionHandler(nil)
+
+	return NewHeadersPoolWithRoundExclusions(hdrsPoolConfig, roundExclusions)
+}
+
+// NewHeadersPoolWithRoundExclusions creates a headers pool which ignores excluded rounds.
+func NewHeadersPoolWithRoundExclusions(
+	hdrsPoolConfig config.HeadersPoolConfig,
+	roundExclusions common.RoundExclusionHandler,
+) (*headersPool, error) {
 	err := checkHeadersPoolConfig(hdrsPoolConfig)
 	if err != nil {
 		return nil, err
+	}
+	if check.IfNil(roundExclusions) {
+		return nil, common.ErrNilRoundExclusionHandler
 	}
 
 	headersCacheObject := newHeadersCache(hdrsPoolConfig.MaxHeadersPerShard, hdrsPoolConfig.NumElementsToRemoveOnEviction)
@@ -36,6 +52,7 @@ func NewHeadersPool(hdrsPoolConfig config.HeadersPoolConfig) (*headersPool, erro
 		mutAddedDataHandlers: sync.RWMutex{},
 		mutHeadersPool:       sync.RWMutex{},
 		addedDataHandlers:    make([]func(headerHandler data.HeaderHandler, headerHash []byte), 0),
+		roundExclusions:      roundExclusions,
 	}, nil
 }
 
@@ -59,6 +76,10 @@ func checkHeadersPoolConfig(hdrsPoolConfig config.HeadersPoolConfig) error {
 
 // AddHeader is used to add a header in pool
 func (pool *headersPool) AddHeader(headerHash []byte, header data.HeaderHandler) {
+	if !check.IfNil(header) && pool.roundExclusions.IsRoundExcluded(header.GetRound()) {
+		return
+	}
+
 	pool.mutHeadersPool.Lock()
 	defer pool.mutHeadersPool.Unlock()
 
