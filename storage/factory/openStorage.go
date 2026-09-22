@@ -20,6 +20,7 @@ type ArgsNewOpenStorageUnits struct {
 	LatestStorageDataProvider storage.LatestStorageDataProviderHandler
 	DefaultEpochString        string
 	DefaultShardString        string
+	RecoveryCheckpointEnabled bool
 }
 
 type openStorageUnits struct {
@@ -27,6 +28,7 @@ type openStorageUnits struct {
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	defaultEpochString        string
 	defaultShardString        string
+	recoveryCheckpointEnabled bool
 }
 
 // NewStorageUnitOpenHandler creates an openStorageUnits component
@@ -43,6 +45,7 @@ func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits,
 		defaultShardString:        args.DefaultShardString,
 		bootstrapDataProvider:     args.BootstrapDataProvider,
 		latestStorageDataProvider: args.LatestStorageDataProvider,
+		recoveryCheckpointEnabled: args.RecoveryCheckpointEnabled,
 	}
 
 	return o, nil
@@ -149,7 +152,10 @@ func (o *openStorageUnits) getMostUpToDateDirectory(
 			continue
 		}
 
-		if bootstrapData.LastRound > highestRoundInStoredShards {
+		isSnapshot := o.recoveryCheckpointEnabled && highestRoundInStoredShards == 0 &&
+			bootstrapData.LastRound == 0 && len(bootstrapData.LastHeader.Hash) > 0 &&
+			bootstrapData.HighestFinalBlockNonce == bootstrapData.LastHeader.Nonce
+		if bootstrapData.LastRound > highestRoundInStoredShards || isSnapshot {
 			highestRoundInStoredShards = bootstrapData.LastRound
 			mostRecentShard = shardIdStr
 		}

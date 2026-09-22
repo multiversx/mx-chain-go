@@ -78,6 +78,47 @@ func TestGetMostUpToDateDirectory(t *testing.T) {
 	assert.Equal(t, shardIDsStr[1], dirName)
 }
 
+func TestGetMostUpToDateDirectory_RecoverySnapshots(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		enabled    bool
+		shards     []string
+		finalNonce uint64
+		wantShard  string
+	}{
+		{name: "enabled snapshot", enabled: true, shards: []string{"0"}, finalNonce: 10, wantShard: "0"},
+		{name: "disabled snapshot", shards: []string{"0"}, finalNonce: 10},
+		{name: "unfinished record", enabled: true, shards: []string{"0"}, finalNonce: 9},
+		{name: "committed record after snapshot", enabled: true, shards: []string{"0", "1"}, finalNonce: 10, wantShard: "1"},
+		{name: "snapshot after committed record", enabled: true, shards: []string{"1", "0"}, finalNonce: 10, wantShard: "1"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			args := createMockArgsOpenStorageUnits()
+			args.RecoveryCheckpointEnabled = tc.enabled
+			args.BootstrapDataProvider = &mock.BootStrapDataProviderStub{
+				LoadForPathCalled: func(_ storage.PersisterFactory, path string) (*bootstrapStorage.BootstrapData, storage.Storer, error) {
+					if strings.Contains(path, "Shard_1") {
+						return &bootstrapStorage.BootstrapData{LastRound: 100}, nil, nil
+					}
+					return &bootstrapStorage.BootstrapData{
+						LastHeader:             bootstrapStorage.BootstrapHeaderInfo{Nonce: 10, Hash: []byte("anchor")},
+						HighestFinalBlockNonce: tc.finalNonce,
+					}, nil, nil
+				},
+			}
+			opener, err := NewStorageUnitOpenHandler(args)
+			require.NoError(t, err)
+			shard, err := opener.getMostUpToDateDirectory(config.DBConfig{}, t.TempDir(), tc.shards, nil)
+			if tc.wantShard == "" {
+				require.ErrorIs(t, err, storage.ErrBootstrapDataNotFoundInStorage)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Equal(t, tc.wantShard, shard)
+		})
+	}
+}
+
 func TestGetMostRecentBootstrapStorageUnit_GetParentDirAndLastEpochErr(t *testing.T) {
 	t.Parallel()
 

@@ -13,6 +13,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -23,6 +24,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/directoryhandler"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
 	storageMock "github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
@@ -208,6 +211,8 @@ func TestPrepareEpochFromStorage_RecoveryKeepsSnapshotStorageEpoch(t *testing.T)
 			}
 			provider, err := NewEpochStartBootstrap(args)
 			require.NoError(t, err)
+			_, err = args.LatestStorageDataProvider.Get()
+			require.NoError(t, err)
 			provider.initializeFromLocalStorage()
 			require.True(t, provider.baseData.storageExists)
 			params, err := provider.prepareEpochFromStorage()
@@ -216,6 +221,105 @@ func TestPrepareEpochFromStorage_RecoveryKeepsSnapshotStorageEpoch(t *testing.T)
 			require.Equal(t, selectedRound, provider.baseData.lastRound)
 			require.Equal(t, tc.headerEpoch, bootstrapData.LastHeader.Epoch)
 			require.Equal(t, approvedHash, bootstrapData.LastHeader.Hash)
+		})
+	}
+}
+
+func TestRecoverySnapshotRestartWithRealStorage(t *testing.T) {
+	for _, round := range []int64{99, 100, 200} {
+		t.Run(strconv.FormatInt(round, 10), func(t *testing.T) {
+			parentDir := t.TempDir()
+			coreComp, cryptoComp := createComponentsForEpochStart()
+			coreComp.IntMarsh = &marshal.GogoProtoMarshalizer{}
+			args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+			setRecoveryCheckpointConfig(&args.GeneralConfig)
+			dbConfig := config.DBConfig{
+				FilePath: "BootstrapData", Type: "LvlDBSerial", BatchDelaySeconds: 1, MaxBatchSize: 10, MaxOpenFiles: 10,
+			}
+			args.GeneralConfig.BootstrapStorage.DB = dbConfig
+			hash, err := hex.DecodeString(args.GeneralConfig.HardforkRecoveryCheckpoint.Headers[0].Hash)
+			require.NoError(t, err)
+			snapshot := bootstrapStorage.BootstrapData{
+				LastHeader:             bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Epoch: 7, Nonce: 10, Hash: hash},
+				HighestFinalBlockNonce: 10, LastRound: 0,
+				NodesCoordinatorConfigKey: []byte("registry"), EpochStartTriggerConfigKey: []byte("trigger"),
+			}
+			marshaller := coreComp.InternalMarshalizer()
+			bootstrapBytes, err := marshaller.Marshal(&snapshot)
+			require.NoError(t, err)
+			roundBytes, err := marshaller.Marshal(&bootstrapStorage.RoundNum{Num: round})
+			require.NoError(t, err)
+			triggerBytes, err := marshaller.Marshal(&block.ShardTriggerRegistryV3{
+				EpochStartRound: 100, EpochStartShardHeader: &block.HeaderV3{Epoch: 8, Round: 100},
+			})
+			require.NoError(t, err)
+			metaBytes, err := marshaller.Marshal(&block.MetaBlock{Epoch: 8})
+			require.NoError(t, err)
+			registryBytes, err := json.Marshal(&nodesCoordinator.NodesCoordinatorRegistry{})
+			require.NoError(t, err)
+			persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
+			require.NoError(t, err)
+			persister, err := persisterFactory.Create(filepath.Join(parentDir, "Epoch_8", "Shard_0", dbConfig.FilePath))
+			require.NoError(t, err)
+			for key, value := range map[string][]byte{
+				common.HighestRoundFromBootStorage:                    roundBytes,
+				strconv.FormatInt(round, 10):                          bootstrapBytes,
+				common.TriggerRegistryKeyPrefix + "trigger":           triggerBytes,
+				common.NodesCoordinatorRegistryKeyPrefix + "registry": registryBytes,
+				core.EpochStartIdentifier(8):                          metaBytes,
+			} {
+				require.NoError(t, persister.Put([]byte(key), value))
+			}
+			require.NoError(t, persister.Close())
+			bootstrapProvider, err := storageFactory.NewBootstrapDataProvider(marshaller)
+			require.NoError(t, err)
+			loaded, opened, err := bootstrapProvider.LoadForPath(persisterFactory, filepath.Join(parentDir, "Epoch_8", "Shard_0", dbConfig.FilePath))
+			require.NoError(t, err)
+			require.Equal(t, snapshot, *loaded)
+			storedTrigger, err := opened.Get([]byte(common.TriggerRegistryKeyPrefix + "trigger"))
+			require.NoError(t, err)
+			_, err = epochStart.UnmarshalShardTrigger(marshaller, storedTrigger)
+			require.NoError(t, err)
+			require.NoError(t, opened.Close())
+			args.LatestStorageDataProvider, err = latestData.NewLatestDataProvider(latestData.ArgsLatestDataProvider{
+				GeneralConfig: args.GeneralConfig, BootstrapDataProvider: bootstrapProvider,
+				DirectoryReader: directoryhandler.NewDirectoryReader(), ParentDir: parentDir,
+				DefaultEpochString: "Epoch", DefaultShardString: "Shard",
+			})
+			require.NoError(t, err)
+			openerArgs := storageFactory.ArgsNewOpenStorageUnits{
+				BootstrapDataProvider: bootstrapProvider, LatestStorageDataProvider: args.LatestStorageDataProvider,
+				DefaultEpochString: "Epoch", DefaultShardString: "Shard",
+			}
+			ordinaryOpener, err := storageFactory.NewStorageUnitOpenHandler(openerArgs)
+			require.NoError(t, err)
+			_, err = ordinaryOpener.GetMostRecentStorageUnit(dbConfig)
+			require.ErrorIs(t, err, storage.ErrBootstrapDataNotFoundInStorage)
+			openerArgs.RecoveryCheckpointEnabled = true
+			args.StorageUnitOpener, err = storageFactory.NewStorageUnitOpenHandler(openerArgs)
+			require.NoError(t, err)
+			_, err = args.LatestStorageDataProvider.Get()
+			require.NoError(t, err)
+			provider, err := NewEpochStartBootstrap(args)
+			require.NoError(t, err)
+			provider.initializeFromLocalStorage()
+			require.True(t, provider.baseData.storageExists)
+			require.Equal(t, uint32(8), provider.baseData.lastEpoch)
+			highestRound, err := provider.getHighestStoredRound()
+			require.NoError(t, err)
+			require.Equal(t, round, highestRound)
+			params, err := provider.prepareEpochFromStorage()
+			require.NoError(t, err)
+			require.Equal(t, uint32(8), params.Epoch)
+			require.Equal(t, uint32(0), params.SelfShardId)
+			require.Equal(t, round, provider.baseData.lastRound)
+			if round == int64(args.GeneralConfig.HardforkRecoveryCheckpoint.Round) {
+				restarted, createErr := NewEpochStartBootstrap(args)
+				require.NoError(t, createErr)
+				params, err = restarted.Bootstrap()
+				require.NoError(t, err)
+				require.Equal(t, uint32(8), params.Epoch)
+			}
 		})
 	}
 }
