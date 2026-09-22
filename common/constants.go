@@ -833,6 +833,9 @@ const (
 	// MetricAttributeExtraGasUsageEnableEpoch represents the epoch when attributes are using extra gas usage fees
 	MetricAttributeExtraGasUsageEnableEpoch = "erd_attribute_extra_gasusage_enable_epoch"
 
+	// MetricESDTTransferAndExecuteAtomicityEnableEpoch represents the epoch when ESDT transfer and execute atomicity is enabled
+	MetricESDTTransferAndExecuteAtomicityEnableEpoch = "erd_esdt_transfer_and_execute_atomicity_enable_epoch"
+
 	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
 	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
 
@@ -1359,6 +1362,7 @@ const (
 	FullShardDataValidationFlag                         core.EnableEpochFlag = "FullShardDataValidationFlag"
 	ConsumedGasInEconomicsFlag                          core.EnableEpochFlag = "ConsumedGasInEconomicsFlag"
 	AttributeExtraGasUsageFlag                          core.EnableEpochFlag = "AttributeExtraGasUsageFlag"
+	ESDTTransferAndExecuteAtomicityFlag                 core.EnableEpochFlag = "ESDTTransferAndExecuteAtomicityFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
 

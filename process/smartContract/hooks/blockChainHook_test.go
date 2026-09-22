@@ -2289,6 +2289,200 @@ func TestBlockChainHookImpl_ProcessBuiltInFunction(t *testing.T) {
 		require.Nil(t, output)
 		require.Equal(t, errSaveAccount, err)
 	})
+	t.Run("atomicity flag enabled - built-in function error rolls back to snapshot", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ESDTTransferAndExecuteAtomicityFlag)
+		errBuiltIn := errors.New("built in function error")
+		containerWithError := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
+		_ = containerWithError.Add(funcName, &mock.BuiltInFunctionStub{
+			ProcessBuiltinFunctionCalled: func(acntSnd, acntDst vmcommon.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+				return nil, errBuiltIn
+			},
+		})
+		args.BuiltInFunctions = containerWithError
+
+		journalLenCalled := false
+		revertToSnapshotCalled := false
+		snapshotValue := 42
+
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return stateMock.NewAccountWrapMock(addrSender), nil
+			},
+			JournalLenCalled: func() int {
+				journalLenCalled = true
+				return snapshotValue
+			},
+			RevertToSnapshotCalled: func(snapshot int) error {
+				revertToSnapshotCalled = true
+				require.Equal(t, snapshotValue, snapshot)
+				return nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrSender)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, output)
+		require.Equal(t, errBuiltIn, err)
+		require.True(t, journalLenCalled)
+		require.True(t, revertToSnapshotCalled)
+	})
+	t.Run("atomicity flag disabled - built-in function error does not snapshot or revert", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+		errBuiltIn := errors.New("built in function error")
+		containerWithError := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
+		_ = containerWithError.Add(funcName, &mock.BuiltInFunctionStub{
+			ProcessBuiltinFunctionCalled: func(acntSnd, acntDst vmcommon.UserAccountHandler, vmInput *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+				return nil, errBuiltIn
+			},
+		})
+		args.BuiltInFunctions = containerWithError
+
+		journalLenCalled := false
+		revertToSnapshotCalled := false
+
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return stateMock.NewAccountWrapMock(addrSender), nil
+			},
+			JournalLenCalled: func() int {
+				journalLenCalled = true
+				return 42
+			},
+			RevertToSnapshotCalled: func(snapshot int) error {
+				revertToSnapshotCalled = true
+				return nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrSender)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, output)
+		require.Equal(t, errBuiltIn, err)
+		require.False(t, journalLenCalled)
+		require.False(t, revertToSnapshotCalled)
+	})
+	t.Run("atomicity flag enabled - cannot save sender account reverts to snapshot", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ESDTTransferAndExecuteAtomicityFlag)
+		args.BuiltInFunctions = builtInFunctionsContainer
+
+		revertToSnapshotCalled := false
+		snapshotValue := 77
+
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return stateMock.NewAccountWrapMock(addrSender), nil
+			},
+			JournalLenCalled: func() int {
+				return snapshotValue
+			},
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+				return errSaveAccount
+			},
+			RevertToSnapshotCalled: func(snapshot int) error {
+				revertToSnapshotCalled = true
+				require.Equal(t, snapshotValue, snapshot)
+				return nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrSender)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, output)
+		require.Equal(t, errSaveAccount, err)
+		require.True(t, revertToSnapshotCalled)
+	})
+	t.Run("atomicity flag enabled - cannot save receiver account reverts to snapshot", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ESDTTransferAndExecuteAtomicityFlag)
+		args.BuiltInFunctions = builtInFunctionsContainer
+
+		revertToSnapshotCalled := false
+		snapshotValue := 88
+
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return stateMock.NewAccountWrapMock(addrSender), nil
+			},
+			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return stateMock.NewAccountWrapMock(addrReceiver), nil
+			},
+			JournalLenCalled: func() int {
+				return snapshotValue
+			},
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+				if bytes.Equal(addrSender, account.AddressBytes()) {
+					return nil
+				}
+				return errSaveAccount
+			},
+			RevertToSnapshotCalled: func(snapshot int) error {
+				revertToSnapshotCalled = true
+				require.Equal(t, snapshotValue, snapshot)
+				return nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrReceiver)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, output)
+		require.Equal(t, errSaveAccount, err)
+		require.True(t, revertToSnapshotCalled)
+	})
+	t.Run("atomicity flag disabled - cannot save receiver account does not revert to snapshot", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+		args.BuiltInFunctions = builtInFunctionsContainer
+
+		revertToSnapshotCalled := false
+
+		args.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return stateMock.NewAccountWrapMock(addrSender), nil
+			},
+			LoadAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return stateMock.NewAccountWrapMock(addrReceiver), nil
+			},
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+				if bytes.Equal(addrSender, account.AddressBytes()) {
+					return nil
+				}
+				return errSaveAccount
+			},
+			RevertToSnapshotCalled: func(snapshot int) error {
+				revertToSnapshotCalled = true
+				return nil
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+		input := createContractCallInput(funcName, addrSender, addrReceiver)
+		output, err := bh.ProcessBuiltInFunction(input)
+
+		require.Nil(t, output)
+		require.Equal(t, errSaveAccount, err)
+		require.False(t, revertToSnapshotCalled)
+	})
 	t.Run("processing counter errors should error", func(t *testing.T) {
 		t.Parallel()
 

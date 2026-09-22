@@ -141,6 +141,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		AttributeExtraGasUsageEnableEpoch:                        121,
 		SupernovaEnableEpoch:                                     122,
 		FixEpochChangeProposedCurrentEpochEnableEpoch:            123,
+		ESDTTransferAndExecuteAtomicityEnableEpoch:               124,
 	}
 }
 
@@ -503,6 +504,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.AttributeExtraGasUsageEnableEpoch, handler.GetActivationEpoch(common.AttributeExtraGasUsageFlag))
 	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
 	require.Equal(t, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch, handler.GetActivationEpoch(common.FixEpochChangeProposedCurrentEpochFlag))
+	require.Equal(t, cfg.ESDTTransferAndExecuteAtomicityEnableEpoch, handler.GetActivationEpoch(common.ESDTTransferAndExecuteAtomicityFlag))
 }
 
 func TestEnableEpochsHandler_GetAllEnableEpochs(t *testing.T) {

@@ -228,6 +228,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			RelayedTransactionsV1V2DisableEpoch:                      116,
 			SupernovaEnableEpoch:                                     118, // tail inflation 117 comes from EconomicsConfig
 			FixEpochChangeProposedCurrentEpochEnableEpoch:            122,
+			ESDTTransferAndExecuteAtomicityEnableEpoch:               123,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -361,6 +362,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_tail_inflation_enable_epoch":                                      uint32(117),
 		"erd_supernova_enable_epoch":                                           uint32(118),
 		"erd_fix_epoch_change_proposed_current_epoch_enable_epoch":             uint32(122),
+		"erd_esdt_transfer_and_execute_atomicity_enable_epoch":                 uint32(123),
 		"erd_unbond_period":                                                    uint32(119),
 		"erd_unbond_period_supernova":                                          uint32(120),
 		"erd_unbond_period_in_epochs":                                          uint32(121),

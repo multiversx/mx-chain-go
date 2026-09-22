@@ -1327,6 +1327,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # FixEpochChangeProposedCurrentEpochEnableEpoch represents the epoch when epoch change proposed blocks expose the prepared epoch
     FixEpochChangeProposedCurrentEpochEnableEpoch = 117
 
+    # ESDTTransferAndExecuteAtomicityEnableEpoch represents the epoch when ESDT transfer and execute atomicity is enabled
+    ESDTTransferAndExecuteAtomicityEnableEpoch = 118
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1463,6 +1466,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			AttributeExtraGasUsageEnableEpoch:                        115,
 			SupernovaEnableEpoch:                                     116,
 			FixEpochChangeProposedCurrentEpochEnableEpoch:            117,
+			ESDTTransferAndExecuteAtomicityEnableEpoch:               118,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

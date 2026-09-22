@@ -139,6 +139,7 @@ type EnableEpochs struct {
 	FullShardDataValidationEnableEpoch                       uint32
 	ConsumedGasInEconomicsFixEnableEpoch                     uint32
 	AttributeExtraGasUsageEnableEpoch                        uint32
+	ESDTTransferAndExecuteAtomicityEnableEpoch               uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

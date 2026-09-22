@@ -385,6 +385,9 @@
     # AttributeExtraGasUsageEnableEpoch represents the epoch when the extra gas usage for attributes is enabled
     AttributeExtraGasUsageEnableEpoch = 1
 
+    # ESDTTransferAndExecuteAtomicityEnableEpoch represents the epoch when the atomicity for ESDT transfer and execute is enabled
+    ESDTTransferAndExecuteAtomicityEnableEpoch = 1
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

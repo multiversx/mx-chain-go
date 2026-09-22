@@ -1030,6 +1030,13 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			activationEpoch:     handler.enableEpochsConfig.AttributeExtraGasUsageEnableEpoch,
 			activationEpochName: "AttributeExtraGasUsageEnableEpoch",
 		},
+		common.ESDTTransferAndExecuteAtomicityFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.ESDTTransferAndExecuteAtomicityEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.ESDTTransferAndExecuteAtomicityEnableEpoch,
+			activationEpochName: "ESDTTransferAndExecuteAtomicityEnableEpoch",
+		},
 	}
 }
 
