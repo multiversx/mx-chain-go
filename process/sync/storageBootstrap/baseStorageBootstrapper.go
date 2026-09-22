@@ -124,7 +124,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	round := st.bootStorer.GetHighestRound()
 	if round <= int64(minRound) {
-		if st.recoveryCheckpoint != nil {
+		if st.recoveryCheckpoint != nil && minRound >= st.recoveryCheckpoint.Round {
 			return fmt.Errorf("%w: bootstrap round %d is not after genesis round %d", ErrRecoveryCheckpointUnavailable, round, minRound)
 		}
 		log.Debug("Load blocks does nothing as start from genesis")

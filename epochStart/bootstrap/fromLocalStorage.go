@@ -270,6 +270,22 @@ func checkIfValidatorIsInList(
 	return false
 }
 
+func (e *epochStartBootstrap) getHighestStoredRound() (int64, error) {
+	storer, err := e.storageOpenerHandler.GetMostRecentStorageUnit(e.generalConfig.BootstrapStorage.DB)
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		log.LogIfError(storer.Close())
+	}()
+
+	bootStorer, err := bootstrapStorage.NewBootstrapStorer(e.coreComponentsHolder.InternalMarshalizer(), storer)
+	if err != nil {
+		return 0, err
+	}
+	return bootStorer.GetHighestRound(), nil
+}
+
 func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*bootstrapStorage.BootstrapData, nodesCoordinator.NodesCoordinatorRegistryHandler, error) {
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(e.coreComponentsHolder.InternalMarshalizer(), storer)
 	if err != nil {
@@ -283,10 +299,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		if err != nil {
 			return nil, nil, err
 		}
-		if highestRound < int64(checkpoint.Round) {
-			return nil, nil, common.ErrInvalidRecoveryCheckpoint
-		}
-		if uint64(highestRound) <= checkpoint.ExcludedEnd {
+		if highestRound >= int64(checkpoint.Round) && uint64(highestRound) <= checkpoint.ExcludedEnd {
 			highestRound = int64(checkpoint.Round)
 		}
 	}

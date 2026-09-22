@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 )
@@ -224,6 +225,27 @@ func TestLoadRecoveryCheckpointFromStorage_DoesNotResyncCheckpointForLaterTip(t 
 	err := boot.loadRecoveryCheckpointFromStorage(nil)
 	require.NoError(t, err)
 	require.Equal(t, 1, loadCount)
+}
+
+func TestLoadRecoveryCheckpointFromStorage_AllowsGenesisBeforeCheckpoint(t *testing.T) {
+	storer := &recoveryRootsStorageBootstrapper{
+		StorageBootstrapperMock: &mock.StorageBootstrapperMock{LoadFromStorageCalled: func() error {
+			return process.ErrNotEnoughValidBlocksInStorage
+		}},
+	}
+	boot := &baseBootstrap{
+		recoveryCheckpoint:  &common.RecoveryCheckpoint{Round: 100},
+		storageBootstrapper: storer,
+		chainHandler: &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler { return &block.Header{Round: 0} },
+		},
+	}
+	require.NoError(t, boot.loadRecoveryCheckpointFromStorage(nil))
+
+	boot.chainHandler = &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler { return &block.Header{Round: 100} },
+	}
+	require.ErrorIs(t, boot.loadRecoveryCheckpointFromStorage(nil), process.ErrNotEnoughValidBlocksInStorage)
 }
 
 func TestLoadRecoveryCheckpointFromStorage_DoesNotRepairLaterTipWithCheckpointState(t *testing.T) {

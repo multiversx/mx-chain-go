@@ -192,6 +192,33 @@ func TestRecoveryCheckpoint_RecoverySelectionUsesStoredTipRound(t *testing.T) {
 	}
 }
 
+func TestRecoveryCheckpoint_EmptyStorageBeforeCheckpointUsesGenesis(t *testing.T) {
+	args := createMockShardStorageBootstrapperArgs()
+	args.RecoveryCheckpoint = newTestRecoveryCheckpoint(t)
+	genesisRound := uint64(0)
+	args.ChainHandler = &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler { return &block.Header{Round: genesisRound} },
+	}
+	saved := false
+	args.BootStorer = &mock.BoostrapStorerMock{
+		GetHighestRoundCalled: func() int64 { return 0 },
+		SaveLastRoundCalled: func(round int64) error {
+			require.Zero(t, round)
+			saved = true
+			return nil
+		},
+	}
+	bootstrapper, err := NewShardStorageBootstrapper(ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: args})
+	require.NoError(t, err)
+	require.ErrorIs(t, bootstrapper.LoadFromStorage(), process.ErrNotEnoughValidBlocksInStorage)
+	require.True(t, saved)
+
+	genesisRound = 100
+	saved = false
+	require.ErrorIs(t, bootstrapper.LoadFromStorage(), ErrRecoveryCheckpointUnavailable)
+	require.False(t, saved)
+}
+
 func TestRecoveryCheckpoint_LoadsNetworkBootstrapBeforeTarget(t *testing.T) {
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	parentHash := []byte("parent")
@@ -230,7 +257,7 @@ func TestRecoveryCheckpoint_LoadsNetworkBootstrapBeforeTarget(t *testing.T) {
 			require.Equal(t, int64(99), round)
 			return bootstrapStorage.BootstrapData{
 				LastHeader:             bootstrapStorage.BootstrapHeaderInfo{Hash: headerHash, ShardId: 0, Nonce: 9, Epoch: 2241},
-				LastRound:              98,
+				LastRound:              0,
 				HighestFinalBlockNonce: 9,
 			}, nil
 		},
@@ -269,6 +296,86 @@ func TestRecoveryCheckpoint_LoadsNetworkBootstrapBeforeTarget(t *testing.T) {
 	require.NoError(t, bootstrapper.LoadFromStorage())
 	require.Equal(t, header, restored)
 	require.Equal(t, int64(99), savedRound)
+}
+
+func TestRecoveryCheckpoint_AcceptsNetworkBootstrapAtTarget(t *testing.T) {
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	hasher := sha256.NewSha256()
+	rootHash := bytes.Repeat([]byte{3}, common.HashSize)
+	header := &block.HeaderV3{
+		Round: 100, Nonce: 10, Epoch: 2241, ShardID: 0, ChainID: []byte("1"),
+		PrevHash: []byte("parent-not-in-snapshot"),
+		LastExecutionResult: &block.ExecutionResultInfo{ExecutionResult: &block.BaseExecutionResult{
+			RootHash: rootHash,
+		}},
+	}
+	headerHash, err := core.CalculateHash(marshaller, hasher, header)
+	require.NoError(t, err)
+	headerBytes, err := marshaller.Marshal(header)
+	require.NoError(t, err)
+	proofBytes, err := marshaller.Marshal(&block.HeaderProof{
+		HeaderHash: headerHash, HeaderRound: 100, HeaderNonce: 10, HeaderShardId: 0, HeaderEpoch: 2241,
+	})
+	require.NoError(t, err)
+	checkpoint, err := common.NewRecoveryCheckpoint(&config.Config{
+		HardforkRoundExclusions: []config.HardforkRoundExclusionConfig{{StartRound: 101, EndRound: 199}},
+		HardforkRecoveryCheckpoint: config.HardforkRecoveryCheckpointConfig{
+			Enabled: true, Round: 100,
+			Headers: []config.HardforkRecoveryHeaderConfig{
+				{ShardID: 0, Hash: hex.EncodeToString(headerHash)},
+				{ShardID: core.MetachainShardId, Hash: hex.EncodeToString(headerHash)},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	finalNonce := uint64(10)
+	args := createMockShardStorageBootstrapperArgs()
+	args.RecoveryCheckpoint = checkpoint
+	args.Marshalizer = marshaller
+	args.Hasher = hasher
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, _ uint32) bool {
+			return flag == common.AndromedaFlag
+		},
+	}
+	args.BootStorer = &mock.BoostrapStorerMock{GetCalled: func(round int64) (bootstrapStorage.BootstrapData, error) {
+		require.Equal(t, int64(100), round)
+		return bootstrapStorage.BootstrapData{
+			LastHeader: bootstrapStorage.BootstrapHeaderInfo{
+				Hash: headerHash, ShardId: 0, Nonce: 10, Epoch: 2241,
+			},
+			HighestFinalBlockNonce: finalNonce,
+			LastRound:              0,
+		}, nil
+	}}
+	args.Store = &storageStubs.ChainStorerStub{GetStorerCalled: func(unit dataRetriever.UnitType) (storage.Storer, error) {
+		switch unit {
+		case dataRetriever.BlockHeaderUnit:
+			return &storageStubs.StorerStub{GetCalled: func(_ []byte) ([]byte, error) { return headerBytes, nil }}, nil
+		case dataRetriever.ProofsUnit:
+			return &storageStubs.StorerStub{SearchFirstCalled: func(_ []byte) ([]byte, error) { return proofBytes, nil }}, nil
+		default:
+			return &storageStubs.StorerStub{}, nil
+		}
+	}}
+	bootstrapper, err := NewShardStorageBootstrapper(ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: args})
+	require.NoError(t, err)
+	_, restored, err := bootstrapper.getRecoveryHeader()
+	require.NoError(t, err)
+	require.Equal(t, header, restored)
+
+	finalNonce = 9
+	_, _, err = bootstrapper.getRecoveryHeader()
+	require.ErrorIs(t, err, ErrRecoveryCheckpointUnavailable)
+
+	finalNonce = 10
+	proofBytes, err = marshaller.Marshal(&block.HeaderProof{
+		HeaderHash: []byte("different"), HeaderRound: 100, HeaderNonce: 10, HeaderShardId: 0, HeaderEpoch: 2241,
+	})
+	require.NoError(t, err)
+	_, _, err = bootstrapper.getRecoveryHeader()
+	require.ErrorIs(t, err, ErrRecoveryCheckpointUnavailable)
 }
 
 func TestRecoveryCheckpoint_PostExclusionFallbackStopsAtTarget(t *testing.T) {

@@ -362,16 +362,17 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		if err != nil || !checkpoint.HasAllShards(e.genesisShardCoordinator.NumberOfShards()) {
 			return Parameters{}, common.ErrInvalidRecoveryCheckpoint
 		}
-		if e.hasNoLocalStorage() {
-			if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
-				return Parameters{}, common.ErrInvalidRecoveryCheckpoint
-			}
-		} else {
+		if !e.hasNoLocalStorage() {
 			e.initializeFromLocalStorage()
-			if !e.baseData.storageExists {
-				return Parameters{}, common.ErrInvalidRecoveryCheckpoint
+			if e.baseData.storageExists {
+				highestRound, err := e.getHighestStoredRound()
+				if err != nil {
+					return Parameters{}, err
+				}
+				if highestRound >= int64(checkpoint.Round) && uint64(highestRound) <= checkpoint.ExcludedEnd {
+					return e.prepareEpochFromStorage()
+				}
 			}
-			return e.prepareEpochFromStorage()
 		}
 	}
 

@@ -88,6 +88,67 @@ func TestRecoveryBootstrapDataUsesExactRound(t *testing.T) {
 	require.Equal(t, int64(100), provider.baseData.lastRound)
 }
 
+func TestRecoveryBootstrapDataBeforeCheckpointUsesSavedRound(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	setRecoveryCheckpointConfig(&args.GeneralConfig)
+	provider, err := NewEpochStartBootstrap(args)
+	require.NoError(t, err)
+	provider.baseData.shardId = 0
+
+	selected := bootstrapStorage.BootstrapData{
+		LastHeader:                bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Epoch: 7},
+		NodesCoordinatorConfigKey: []byte("registry"),
+	}
+	roundBytes, err := json.Marshal(&bootstrapStorage.RoundNum{Num: 99})
+	require.NoError(t, err)
+	selectedBytes, err := json.Marshal(selected)
+	require.NoError(t, err)
+	registryBytes, err := json.Marshal(&nodesCoordinator.NodesCoordinatorRegistry{})
+	require.NoError(t, err)
+	storer := &storageStubs.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			if bytes.Equal(key, []byte(common.HighestRoundFromBootStorage)) {
+				return roundBytes, nil
+			}
+			require.Equal(t, []byte("99"), key)
+			return selectedBytes, nil
+		},
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			require.Equal(t, []byte(common.NodesCoordinatorRegistryKeyPrefix+"registry"), key)
+			return registryBytes, nil
+		},
+	}
+	data, _, err := provider.getLastBootstrapData(storer)
+	require.NoError(t, err)
+	require.Equal(t, selected.LastHeader, data.LastHeader)
+	require.Equal(t, int64(99), provider.baseData.lastRound)
+}
+
+func TestGetHighestStoredRoundUsesBootstrapIndex(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	provider, err := NewEpochStartBootstrap(args)
+	require.NoError(t, err)
+	provider.baseData.lastRound = 99
+
+	roundBytes, err := json.Marshal(&bootstrapStorage.RoundNum{Num: 100})
+	require.NoError(t, err)
+	provider.storageOpenerHandler = &storageStubs.UnitOpenerStub{
+		GetMostRecentStorageUnitCalled: func(_ config.DBConfig) (storage.Storer, error) {
+			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+				require.Equal(t, []byte(common.HighestRoundFromBootStorage), key)
+				return roundBytes, nil
+			}}, nil
+		},
+	}
+
+	highestRound, err := provider.getHighestStoredRound()
+	require.NoError(t, err)
+	require.Equal(t, int64(100), highestRound)
+	require.Equal(t, int64(99), provider.baseData.lastRound)
+}
+
 func TestRecoveryEpochStartLookupDoesNotFallBack(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)

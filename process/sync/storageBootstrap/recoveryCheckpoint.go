@@ -94,6 +94,15 @@ func (st *storageBootstrapper) getRecoveryHeader() (bootstrapStorage.BootstrapDa
 			return bootstrapStorage.BootstrapData{}, nil, fmt.Errorf("%w: target peer state root", ErrRecoveryCheckpointUnavailable)
 		}
 	}
+	proof, err := st.getProofForHeader(expectedHash, header)
+	if err != nil || proof == nil || !bytes.Equal(proof.GetHeaderHash(), expectedHash) ||
+		proof.GetHeaderRound() != header.GetRound() || proof.GetHeaderNonce() != header.GetNonce() ||
+		proof.GetHeaderShardId() != header.GetShardID() || proof.GetHeaderEpoch() != header.GetEpoch() {
+		return bootstrapStorage.BootstrapData{}, nil, fmt.Errorf("%w: target proof: %v", ErrRecoveryCheckpointUnavailable, err)
+	}
+	if target.LastRound == 0 && target.HighestFinalBlockNonce == header.GetNonce() {
+		return target, header, nil
+	}
 	if target.LastRound <= 0 || uint64(target.LastRound) >= st.recoveryCheckpoint.Round {
 		return bootstrapStorage.BootstrapData{}, nil, fmt.Errorf("%w: target parent bootstrap record is invalid", ErrRecoveryCheckpointUnavailable)
 	}
@@ -105,12 +114,6 @@ func (st *storageBootstrapper) getRecoveryHeader() (bootstrapStorage.BootstrapDa
 	}
 	if err = st.verifyRecoveryHeaderHash(parent, header.GetPrevHash()); err != nil {
 		return bootstrapStorage.BootstrapData{}, nil, err
-	}
-	proof, err := st.getProofForHeader(expectedHash, header)
-	if err != nil || proof == nil || !bytes.Equal(proof.GetHeaderHash(), expectedHash) ||
-		proof.GetHeaderRound() != header.GetRound() || proof.GetHeaderNonce() != header.GetNonce() ||
-		proof.GetHeaderShardId() != header.GetShardID() || proof.GetHeaderEpoch() != header.GetEpoch() {
-		return bootstrapStorage.BootstrapData{}, nil, fmt.Errorf("%w: target proof: %v", ErrRecoveryCheckpointUnavailable, err)
 	}
 	return target, header, nil
 }

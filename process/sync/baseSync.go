@@ -1925,7 +1925,12 @@ func (boot *baseBootstrap) loadRecoveryCheckpointFromStorage(syncPeerAccounts fu
 		return err
 	}
 	if !required {
-		return boot.storageBootstrapper.LoadFromStorage()
+		err = boot.storageBootstrapper.LoadFromStorage()
+		if errors.Is(err, process.ErrNotEnoughValidBlocksInStorage) &&
+			boot.chainHandler.GetGenesisHeader().GetRound() < boot.recoveryCheckpoint.Round {
+			return nil
+		}
+		return err
 	}
 	userRoot, peerRoot, epoch, err := recovery.RecoveryCheckpointState()
 	if err != nil {
