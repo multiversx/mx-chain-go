@@ -72,7 +72,11 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 
 // Get will return a struct containing the latest usable data in storage
 func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
-	lastData, _, _, err := ldp.getLastData()
+	lastData, _, storageEpoch, err := ldp.getLastData()
+	if err == nil && ldp.generalConfig.HardforkRecoveryCheckpoint.Enabled {
+		// A snapshot's anchor header may belong to the previous epoch.
+		lastData.Epoch = storageEpoch
+	}
 	return lastData, err
 }
 
@@ -198,7 +202,10 @@ func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shard
 		return &iteratedShardData{}
 	}
 
-	if bootstrapData.LastRound > currentHighestRound {
+	isSnapshot := ldp.generalConfig.HardforkRecoveryCheckpoint.Enabled && currentHighestRound == 0 &&
+		bootstrapData.LastRound == 0 && len(bootstrapData.LastHeader.Hash) > 0 &&
+		bootstrapData.HighestFinalBlockNonce == bootstrapData.LastHeader.Nonce
+	if bootstrapData.LastRound > currentHighestRound || isSnapshot {
 		shardID := uint32(0)
 		var err error
 		shardID, err = core.ConvertShardIDToUint32(shardIdStr)

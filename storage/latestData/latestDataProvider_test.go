@@ -158,6 +158,60 @@ func getLatestDataProviderArgs() ArgsLatestDataProvider {
 	}
 }
 
+func TestLatestDataProvider_RecoveryStorageEpoch(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		enabled    bool
+		lastRound  int64
+		finalNonce uint64
+		wantEpoch  uint32
+		wantError  bool
+	}{
+		{name: "snapshot", enabled: true, finalNonce: 10, wantEpoch: 8},
+		{name: "committed header", enabled: true, lastRound: 99, finalNonce: 9, wantEpoch: 8},
+		{name: "disabled keeps header epoch", lastRound: 99, finalNonce: 9, wantEpoch: 7},
+		{name: "disabled keeps snapshot selection unchanged", finalNonce: 10, wantError: true},
+		{name: "unfinished record is not a snapshot", enabled: true, finalNonce: 9, wantError: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			args := getLatestDataProviderArgs()
+			args.GeneralConfig.HardforkRecoveryCheckpoint.Enabled = tc.enabled
+			args.DirectoryReader = &mock.DirectoryReaderStub{
+				ListDirectoriesAsStringCalled: func(path string) ([]string, error) {
+					if path == args.ParentDir {
+						return []string{"Epoch_8"}, nil
+					}
+					return []string{"Shard_0"}, nil
+				},
+			}
+			trigger, err := json.Marshal(&block.ShardTriggerRegistry{EpochStartRound: 100})
+			require.NoError(t, err)
+			args.BootstrapDataProvider = &mock.BootStrapDataProviderStub{
+				LoadForPathCalled: func(_ storage.PersisterFactory, path string) (*bootstrapStorage.BootstrapData, storage.Storer, error) {
+					require.Contains(t, path, filepath.Join("Epoch_8", "Shard_0"))
+					return &bootstrapStorage.BootstrapData{
+						LastHeader: bootstrapStorage.BootstrapHeaderInfo{Epoch: 7, Nonce: 10, Hash: []byte("anchor")},
+						LastRound:  tc.lastRound, HighestFinalBlockNonce: tc.finalNonce,
+					}, &storageStubs.StorerStub{GetCalled: func(_ []byte) ([]byte, error) { return trigger, nil }}, nil
+				},
+			}
+			provider, err := NewLatestDataProvider(args)
+			require.NoError(t, err)
+			data, err := provider.Get()
+			if tc.wantError {
+				require.ErrorIs(t, err, storage.ErrBootstrapDataNotFoundInStorage)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.wantEpoch, data.Epoch)
+			require.Equal(t, tc.lastRound, data.LastRound)
+			_, storageEpoch, err := provider.GetParentDirAndLastEpoch()
+			require.NoError(t, err)
+			require.Equal(t, uint32(8), storageEpoch)
+		})
+	}
+}
+
 func TestLoadEpochStartRoundShard(t *testing.T) {
 	t.Parallel()
 

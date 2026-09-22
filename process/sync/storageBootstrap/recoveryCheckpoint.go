@@ -95,9 +95,12 @@ func (st *storageBootstrapper) getRecoveryHeader() (bootstrapStorage.BootstrapDa
 		}
 	}
 	proof, err := st.getProofForHeader(expectedHash, header)
-	if err != nil || proof == nil || !bytes.Equal(proof.GetHeaderHash(), expectedHash) ||
-		proof.GetHeaderRound() != header.GetRound() || proof.GetHeaderNonce() != header.GetNonce() ||
-		proof.GetHeaderShardId() != header.GetShardID() || proof.GetHeaderEpoch() != header.GetEpoch() {
+	hasProof := err == nil && proof != nil
+	proofMatchesBlock := hasProof && bytes.Equal(proof.GetHeaderHash(), expectedHash) &&
+		proof.GetHeaderRound() == header.GetRound() && proof.GetHeaderNonce() == header.GetNonce()
+	proofMatchesShardAndEpoch := hasProof && proof.GetHeaderShardId() == header.GetShardID() &&
+		proof.GetHeaderEpoch() == header.GetEpoch()
+	if !proofMatchesBlock || !proofMatchesShardAndEpoch {
 		return bootstrapStorage.BootstrapData{}, nil, fmt.Errorf("%w: target proof: %v", ErrRecoveryCheckpointUnavailable, err)
 	}
 	if target.LastRound == 0 && target.HighestFinalBlockNonce == header.GetNonce() {

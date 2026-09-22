@@ -314,7 +314,6 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 				return nil, nil, common.ErrInvalidRecoveryCheckpoint
 			}
 		}
-		e.baseData.lastEpoch = bootstrapData.LastHeader.Epoch
 		e.baseData.lastRound = highestRound
 	}
 

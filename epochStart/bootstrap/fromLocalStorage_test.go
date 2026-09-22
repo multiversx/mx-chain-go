@@ -23,6 +23,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
+	storageMock "github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -60,6 +62,7 @@ func TestRecoveryBootstrapDataUsesExactRound(t *testing.T) {
 	provider, err := NewEpochStartBootstrap(args)
 	require.NoError(t, err)
 	provider.baseData.shardId = 0
+	provider.baseData.lastEpoch = 8
 
 	selected := bootstrapStorage.BootstrapData{
 		LastHeader:                bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Epoch: 7, Hash: approvedHash},
@@ -84,7 +87,7 @@ func TestRecoveryBootstrapDataUsesExactRound(t *testing.T) {
 	data, _, err := provider.getLastBootstrapData(storer)
 	require.NoError(t, err)
 	require.Equal(t, selected.LastHeader, data.LastHeader)
-	require.Equal(t, uint32(7), provider.baseData.lastEpoch)
+	require.Equal(t, uint32(8), provider.baseData.lastEpoch)
 	require.Equal(t, int64(100), provider.baseData.lastRound)
 }
 
@@ -123,6 +126,98 @@ func TestRecoveryBootstrapDataBeforeCheckpointUsesSavedRound(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, selected.LastHeader, data.LastHeader)
 	require.Equal(t, int64(99), provider.baseData.lastRound)
+}
+
+func TestPrepareEpochFromStorage_RecoveryKeepsSnapshotStorageEpoch(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		highestRound int64
+		lastRound    int64
+		headerEpoch  uint32
+	}{
+		{name: "snapshot at checkpoint", highestRound: 100, headerEpoch: 7},
+		{name: "snapshot before checkpoint", highestRound: 99, headerEpoch: 7},
+		{name: "committed tip after exclusion", highestRound: 200, lastRound: 100, headerEpoch: 7},
+		{name: "rewind within same epoch", highestRound: 105, lastRound: 99, headerEpoch: 8},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			coreComp, cryptoComp := createComponentsForEpochStart()
+			args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+			setRecoveryCheckpointConfig(&args.GeneralConfig)
+			approvedHash, err := hex.DecodeString(args.GeneralConfig.HardforkRecoveryCheckpoint.Headers[0].Hash)
+			require.NoError(t, err)
+			bootstrapData := bootstrapStorage.BootstrapData{
+				LastHeader:             bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Epoch: tc.headerEpoch, Nonce: 10, Hash: approvedHash},
+				HighestFinalBlockNonce: 10, LastRound: tc.lastRound,
+				NodesCoordinatorConfigKey: []byte("registry"), EpochStartTriggerConfigKey: []byte("trigger"),
+			}
+			roundBytes, err := json.Marshal(&bootstrapStorage.RoundNum{Num: tc.highestRound})
+			require.NoError(t, err)
+			bootstrapBytes, err := json.Marshal(&bootstrapData)
+			require.NoError(t, err)
+			registryBytes, err := json.Marshal(&nodesCoordinator.NodesCoordinatorRegistry{})
+			require.NoError(t, err)
+			triggerBytes, err := json.Marshal(&block.ShardTriggerRegistry{EpochStartRound: 100})
+			require.NoError(t, err)
+			metaBytes, err := json.Marshal(&block.MetaBlock{Epoch: 8})
+			require.NoError(t, err)
+			selectedRound := tc.highestRound
+			if selectedRound >= 100 && selectedRound <= 199 {
+				selectedRound = 100
+			}
+			storer := &storageStubs.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					switch string(key) {
+					case common.HighestRoundFromBootStorage:
+						return roundBytes, nil
+					case common.TriggerRegistryKeyPrefix + "trigger":
+						return triggerBytes, nil
+					default:
+						require.Equal(t, strconv.FormatInt(selectedRound, 10), string(key))
+						return bootstrapBytes, nil
+					}
+				},
+				SearchFirstCalled: func(key []byte) ([]byte, error) {
+					if string(key) == common.NodesCoordinatorRegistryKeyPrefix+"registry" {
+						return registryBytes, nil
+					}
+					require.Equal(t, core.EpochStartIdentifier(8), string(key))
+					return metaBytes, nil
+				},
+			}
+			args.LatestStorageDataProvider, err = latestData.NewLatestDataProvider(latestData.ArgsLatestDataProvider{
+				GeneralConfig: args.GeneralConfig, ParentDir: "db", DefaultEpochString: "Epoch", DefaultShardString: "Shard",
+				DirectoryReader: &storageMock.DirectoryReaderStub{
+					ListDirectoriesAsStringCalled: func(path string) ([]string, error) {
+						if path == "db" {
+							return []string{"Epoch_8"}, nil
+						}
+						return []string{"Shard_0"}, nil
+					},
+				},
+				BootstrapDataProvider: &storageMock.BootStrapDataProviderStub{
+					LoadForPathCalled: func(_ storage.PersisterFactory, path string) (*bootstrapStorage.BootstrapData, storage.Storer, error) {
+						require.Contains(t, path, filepath.Join("Epoch_8", "Shard_0"))
+						return &bootstrapData, storer, nil
+					},
+				},
+			})
+			require.NoError(t, err)
+			args.StorageUnitOpener = &storageStubs.UnitOpenerStub{
+				GetMostRecentStorageUnitCalled: func(_ config.DBConfig) (storage.Storer, error) { return storer, nil },
+			}
+			provider, err := NewEpochStartBootstrap(args)
+			require.NoError(t, err)
+			provider.initializeFromLocalStorage()
+			require.True(t, provider.baseData.storageExists)
+			params, err := provider.prepareEpochFromStorage()
+			require.NoError(t, err)
+			require.Equal(t, uint32(8), params.Epoch)
+			require.Equal(t, selectedRound, provider.baseData.lastRound)
+			require.Equal(t, tc.headerEpoch, bootstrapData.LastHeader.Epoch)
+			require.Equal(t, approvedHash, bootstrapData.LastHeader.Hash)
+		})
+	}
 }
 
 func TestGetHighestStoredRoundUsesBootstrapIndex(t *testing.T) {

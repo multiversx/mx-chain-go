@@ -135,8 +135,12 @@ func TestGetMostRecentBootstrapStorageUnit_CannotCreatePersister(t *testing.T) {
 
 	t.Parallel()
 
+	parentDir := t.TempDir()
 	args := createMockArgsOpenStorageUnits()
 	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetParentDirAndLastEpochCalled: func() (string, uint32, error) {
+			return parentDir, 0, nil
+		},
 		GetShardsFromDirectoryCalled: func(path string) ([]string, error) {
 			return []string{"0", "1"}, nil
 		},
