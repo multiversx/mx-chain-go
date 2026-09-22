@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 
@@ -25,6 +27,22 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
+
+func TestRecoveryBootstrapOnlyUsesNetworkWithoutLocalStorage(t *testing.T) {
+	parent := t.TempDir()
+	missing := filepath.Join(parent, "missing")
+	provider := &epochStartBootstrap{latestStorageDataProvider: &mock.LatestStorageDataProviderStub{
+		GetParentDirectoryCalled: func() string { return missing },
+	}}
+	require.True(t, provider.hasNoLocalStorage())
+
+	provider.latestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetParentDirectoryCalled: func() string { return parent },
+	}
+	require.True(t, provider.hasNoLocalStorage())
+	require.NoError(t, os.Mkdir(filepath.Join(parent, "Epoch_1"), 0o700))
+	require.False(t, provider.hasNoLocalStorage())
+}
 
 func TestRecoveryBootstrapDataUsesExactRound(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()

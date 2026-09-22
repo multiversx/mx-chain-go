@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"sync"
 	"time"
 
@@ -360,11 +362,17 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		if err != nil || !checkpoint.HasAllShards(e.genesisShardCoordinator.NumberOfShards()) {
 			return Parameters{}, common.ErrInvalidRecoveryCheckpoint
 		}
-		e.initializeFromLocalStorage()
-		if !e.baseData.storageExists {
-			return Parameters{}, common.ErrInvalidRecoveryCheckpoint
+		if e.hasNoLocalStorage() {
+			if !e.generalConfig.GeneralSettings.StartInEpochEnabled {
+				return Parameters{}, common.ErrInvalidRecoveryCheckpoint
+			}
+		} else {
+			e.initializeFromLocalStorage()
+			if !e.baseData.storageExists {
+				return Parameters{}, common.ErrInvalidRecoveryCheckpoint
+			}
+			return e.prepareEpochFromStorage()
 		}
-		return e.prepareEpochFromStorage()
 	}
 
 	if e.flagsConfig.ForceStartFromNetwork {
@@ -449,6 +457,24 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	e.setEpochStartMetrics()
 
 	return params, nil
+}
+
+func (e *epochStartBootstrap) hasNoLocalStorage() bool {
+	path := e.latestStorageDataProvider.GetParentDirectory()
+	if len(path) == 0 {
+		return false
+	}
+	dir, err := os.Open(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return true
+	}
+	if err != nil {
+		return false
+	}
+	defer dir.Close()
+
+	_, err = dir.Readdirnames(1)
+	return errors.Is(err, io.EOF)
 }
 
 func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {

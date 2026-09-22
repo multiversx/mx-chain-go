@@ -2,16 +2,137 @@ package sync
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
+
+type recoveryEpochProviderStub struct {
+	*testscommon.CurrentEpochProviderStub
+	activeForSync bool
+}
+
+func (stub *recoveryEpochProviderStub) EpochIsActiveForSync(_ uint32) bool {
+	return stub.activeForSync
+}
+
+func TestRecoveryCheckpoint_ObservedEpochOnlyAffectsSyncState(t *testing.T) {
+	provider := &recoveryEpochProviderStub{
+		CurrentEpochProviderStub: &testscommon.CurrentEpochProviderStub{
+			EpochIsActiveInNetworkCalled: func(_ uint32) bool { return false },
+		},
+		activeForSync: true,
+	}
+	boot := &baseBootstrap{
+		currentEpochProvider: provider,
+		recoveryCheckpoint:   &common.RecoveryCheckpoint{},
+		roundHandler:         &mock.RoundHandlerMock{},
+		chainHandler: &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled:      func() data.HeaderHandler { return &block.HeaderV3{} },
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler { return &block.HeaderV3{Epoch: 2241} },
+		},
+		isNodeStateCalculated: true,
+		isNodeSynchronized:    true,
+	}
+	require.Equal(t, common.NsSynchronized, boot.GetNodeState())
+	provider.activeForSync = false
+	require.Equal(t, common.NsNotSynchronized, boot.GetNodeState())
+	boot.recoveryCheckpoint = nil
+	provider.activeForSync = true
+	require.Equal(t, common.NsNotSynchronized, boot.GetNodeState())
+}
+
+func TestRecoveryCheckpoint_UsesArithmeticAfterExcludedRounds(t *testing.T) {
+	var currentHeader data.HeaderHandler
+	arithmeticActive := false
+	expectedEpoch := uint32(2241)
+	provider := &recoveryEpochProviderStub{
+		CurrentEpochProviderStub: &testscommon.CurrentEpochProviderStub{
+			EpochIsActiveInNetworkCalled: func(epoch uint32) bool {
+				require.Equal(t, expectedEpoch, epoch)
+				return arithmeticActive
+			},
+		},
+		activeForSync: true,
+	}
+	boot := &baseBootstrap{
+		currentEpochProvider: provider,
+		recoveryCheckpoint:   &common.RecoveryCheckpoint{Round: 100, ExcludedEnd: 199},
+		roundHandler:         &mock.RoundHandlerMock{},
+		chainHandler: &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled:      func() data.HeaderHandler { return &block.HeaderV3{Epoch: 2241} },
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler { return currentHeader },
+		},
+		isNodeStateCalculated: true,
+		isNodeSynchronized:    true,
+	}
+
+	require.Equal(t, common.NsSynchronized, boot.GetNodeState())
+	currentHeader = &block.HeaderV3{Epoch: 2241, Round: 100}
+	require.Equal(t, common.NsSynchronized, boot.GetNodeState())
+	currentHeader = &block.HeaderV3{Epoch: 2241, Round: 199}
+	require.Equal(t, common.NsSynchronized, boot.GetNodeState())
+	currentHeader = &block.HeaderV3{Epoch: 2241, Round: 200}
+	require.Equal(t, common.NsNotSynchronized, boot.GetNodeState())
+
+	provider.activeForSync = false
+	arithmeticActive = true
+	currentHeader = &block.HeaderV3{Epoch: 2241, Round: 300}
+	require.Equal(t, common.NsSynchronized, boot.GetNodeState())
+	expectedEpoch = 2245
+	currentHeader = &block.HeaderV3{Epoch: expectedEpoch, Round: 400}
+	require.Equal(t, common.NsSynchronized, boot.GetNodeState())
+}
+
+func TestRecoveryCheckpoint_SyncStateRequiresCheckpoint(t *testing.T) {
+	hash := bytes.Repeat([]byte{1}, common.HashSize)
+	checkpoint, err := common.NewRecoveryCheckpoint(&config.Config{
+		HardforkRoundExclusions: []config.HardforkRoundExclusionConfig{{StartRound: 101, EndRound: 199}},
+		HardforkRecoveryCheckpoint: config.HardforkRecoveryCheckpointConfig{
+			Enabled: true,
+			Round:   100,
+			Headers: []config.HardforkRecoveryHeaderConfig{
+				{ShardID: 0, Hash: hex.EncodeToString(hash)},
+				{ShardID: core.MetachainShardId, Hash: hex.EncodeToString(hash)},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	var header data.HeaderHandler
+	var currentHash []byte
+	boot := &baseBootstrap{
+		recoveryCheckpoint: checkpoint,
+		chainHandler: &testscommon.ChainHandlerStub{GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+			return header, currentHash
+		}},
+	}
+	require.False(t, boot.isRecoveryCheckpointReached())
+
+	header = &block.HeaderV3{Round: 99, ShardID: 0}
+	currentHash = hash
+	require.False(t, boot.isRecoveryCheckpointReached())
+
+	header = &block.HeaderV3{Round: 100, ShardID: 0}
+	currentHash = []byte("other")
+	require.False(t, boot.isRecoveryCheckpointReached())
+	currentHash = hash
+	require.True(t, boot.isRecoveryCheckpointReached())
+
+	header = &block.HeaderV3{Round: 200, ShardID: 0}
+	require.True(t, boot.isRecoveryCheckpointReached())
+}
 
 type recoveryRootsStorageBootstrapper struct {
 	*mock.StorageBootstrapperMock

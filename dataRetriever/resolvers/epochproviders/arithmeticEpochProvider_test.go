@@ -374,6 +374,33 @@ func TestArithmeticEpochProvider_EpochConfirmed(t *testing.T) {
 
 }
 
+func TestArithmeticEpochProvider_UsesObservedEpochDuringRecovery(t *testing.T) {
+	arg := ArgArithmeticEpochProvider{
+		AssumedPeersNumActivePersisters: 3,
+		ChainParametersHandler:          getMockChainParametersHandler(),
+		StartTime:                       1000,
+		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		UseObservedEpoch:                true,
+	}
+	aep := NewTestArithmeticEpochProvider(arg, getUnixHandler(1000000))
+	aep.EpochConfirmed(2241, 1000)
+	require.Greater(t, aep.CurrentComputedEpoch(), uint32(2241))
+	require.False(t, aep.EpochIsActiveInNetwork(2241))
+	require.True(t, aep.EpochIsActiveForSync(2241))
+	require.False(t, aep.EpochIsActiveForSync(2239))
+
+	aep.SetUnixHandler(getUnixHandler(2000000))
+	aep.EpochConfirmed(2241, 1000)
+	require.False(t, aep.EpochIsActiveInNetwork(2241))
+	require.True(t, aep.EpochIsActiveForSync(2241))
+
+	aep.EpochConfirmed(2242, 2000000)
+	require.Equal(t, uint32(2242), aep.CurrentComputedEpoch())
+	require.True(t, aep.EpochIsActiveForSync(2242))
+	aep.useObservedEpoch = false
+	require.Equal(t, aep.EpochIsActiveInNetwork(2242), aep.EpochIsActiveForSync(2242))
+}
+
 func TestArithmeticEpochProvider_ComputeCurrentEpoch_WithRealConfigs(t *testing.T) {
 	t.Parallel()
 

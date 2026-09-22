@@ -46,7 +46,7 @@ func (st *storageBootstrapper) checkRecoveryHeader(header data.HeaderHandler, ha
 func (st *storageBootstrapper) shouldRecoverCheckpoint() (bool, error) {
 	highestRound := st.bootStorer.GetHighestRound()
 	if highestRound < int64(st.recoveryCheckpoint.Round) {
-		return false, fmt.Errorf("%w: bootstrap round %d is before target %d", ErrRecoveryCheckpointUnavailable, highestRound, st.recoveryCheckpoint.Round)
+		return false, nil
 	}
 	return uint64(highestRound) <= st.recoveryCheckpoint.ExcludedEnd, nil
 }

@@ -284,6 +284,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.prefConfigs.Preferences.FullArchive,
 		pcf.coreData.EnableEpochsHandler(),
 		pcf.config.StoragePruning.AssumedPeersNumActivePersisters,
+		pcf.config.HardforkRecoveryCheckpoint.Enabled,
 	)
 	if err != nil {
 		return nil, err

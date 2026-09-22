@@ -45,6 +45,11 @@ import (
 )
 
 var log = logger.GetOrCreate("process/sync")
+var errRecoveryCheckpointPending = errors.New("recovery checkpoint not reached")
+
+type recoverySyncEpochProvider interface {
+	EpochIsActiveForSync(epoch uint32) bool
+}
 
 type txSizeHandler interface {
 	Size() int
@@ -559,14 +564,13 @@ func (boot *baseBootstrap) getNonceForCurrentBlock() uint64 {
 	return nonce
 }
 
-// getEpochOfCurrentBlock will get the epoch for the current block as stored in the chain handler implementation
-func (boot *baseBootstrap) getEpochOfCurrentBlock() uint32 {
-	epoch := boot.chainHandler.GetGenesisHeader().GetEpoch()
+func (boot *baseBootstrap) getEpochAndRoundOfCurrentBlock() (uint32, uint64) {
 	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currentBlockHeader) {
-		epoch = currentBlockHeader.GetEpoch()
+		return currentBlockHeader.GetEpoch(), currentBlockHeader.GetRound()
 	}
-	return epoch
+	genesisHeader := boot.chainHandler.GetGenesisHeader()
+	return genesisHeader.GetEpoch(), genesisHeader.GetRound()
 }
 
 func (boot *baseBootstrap) getWaitTime() time.Duration {
@@ -625,7 +629,8 @@ func (boot *baseBootstrap) computeNodeState(round int64) {
 	}
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
-	isNodeSynchronized := !boot.forkInfo.IsDetected && !hasUnresolvedAuthority && boot.hasLastBlock && isNodeConnectedToTheNetwork
+	isNodeSynchronized := !boot.forkInfo.IsDetected && !hasUnresolvedAuthority && boot.hasLastBlock &&
+		isNodeConnectedToTheNetwork && boot.isRecoveryCheckpointReached()
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Debug("node has changed its synchronized state",
 			"state", isNodeSynchronized,
@@ -652,6 +657,17 @@ func (boot *baseBootstrap) computeNodeState(round int64) {
 	if shouldRequest {
 		go boot.requestHeadersIfSyncIsStuckForGeneration(bypassGeneration)
 	}
+}
+
+func (boot *baseBootstrap) isRecoveryCheckpointReached() bool {
+	if boot.recoveryCheckpoint == nil {
+		return true
+	}
+	header, hash := boot.chainHandler.GetCurrentBlockHeaderAndHash()
+	if check.IfNil(header) || header.GetRound() < boot.recoveryCheckpoint.Round {
+		return false
+	}
+	return !boot.recoveryCheckpoint.IsDiscarded(header.GetRound(), header.GetShardID(), hash)
 }
 
 func (boot *baseBootstrap) shouldTryToRequestHeaders() (bool, uint64) {
@@ -957,7 +973,7 @@ func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
-	if errors.Is(err, errBranchAwareSyncRetry) {
+	if errors.Is(err, errBranchAwareSyncRetry) || errors.Is(err, errRecoveryCheckpointPending) {
 		return
 	}
 
@@ -1324,6 +1340,9 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 	if !check.IfNil(header) && boot.recoveryCheckpoint.IsDiscarded(header.GetRound(), header.GetShardID(), headerHash) {
 		return common.ErrRoundExcluded
+	}
+	if boot.recoveryCheckpoint != nil && header.GetRound() > boot.recoveryCheckpoint.Round && !boot.isRecoveryCheckpointReached() {
+		return errRecoveryCheckpointPending
 	}
 
 	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
@@ -3902,8 +3921,17 @@ func (boot *baseBootstrap) GetNodeState() common.NodeState {
 	if boot.isInImportMode {
 		return common.NsNotSynchronized
 	}
-	currentSyncedEpoch := boot.getEpochOfCurrentBlock()
-	if !boot.currentEpochProvider.EpochIsActiveInNetwork(currentSyncedEpoch) {
+	currentSyncedEpoch, currentTipRound := boot.getEpochAndRoundOfCurrentBlock()
+	provider, supportsRecoveryEpoch := boot.currentEpochProvider.(recoverySyncEpochProvider)
+	epochIsActive := false
+	useObservedEpoch := boot.recoveryCheckpoint != nil && supportsRecoveryEpoch &&
+		currentTipRound <= boot.recoveryCheckpoint.ExcludedEnd
+	if useObservedEpoch {
+		epochIsActive = provider.EpochIsActiveForSync(currentSyncedEpoch)
+	} else {
+		epochIsActive = boot.currentEpochProvider.EpochIsActiveInNetwork(currentSyncedEpoch)
+	}
+	if !epochIsActive {
 		return common.NsNotSynchronized
 	}
 

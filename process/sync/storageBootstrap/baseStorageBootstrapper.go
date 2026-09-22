@@ -101,6 +101,7 @@ type storageBootstrapper struct {
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
+	preCheckpointBootstrap := false
 	if st.recoveryCheckpoint != nil {
 		recoverCheckpoint, err := st.shouldRecoverCheckpoint()
 		if err != nil {
@@ -109,6 +110,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 		if recoverCheckpoint {
 			return st.loadRecoveryCheckpoint()
 		}
+		preCheckpointBootstrap = st.bootStorer.GetHighestRound() < int64(st.recoveryCheckpoint.Round)
 		st.bootstrapRoundIndex = math.MaxUint64
 	}
 
@@ -140,7 +142,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 	log.Debug("Load blocks started...")
 
 	for {
-		if st.recoveryCheckpoint != nil && round < int64(st.recoveryCheckpoint.Round) {
+		if st.recoveryCheckpoint != nil && !preCheckpointBootstrap && round < int64(st.recoveryCheckpoint.Round) {
 			return fmt.Errorf("%w: fallback round %d is before target %d", ErrRecoveryCheckpointUnavailable, round, st.recoveryCheckpoint.Round)
 		}
 		headerInfo, err = st.bootStorer.Get(round)
@@ -211,7 +213,7 @@ func (st *storageBootstrapper) loadBlocks() error {
 		return process.ErrNotEnoughValidBlocksInStorage
 	}
 	currentTip := st.blkc.GetCurrentBlockHeader()
-	if st.recoveryCheckpoint != nil && !check.IfNil(currentTip) && currentTip.GetRound() < st.recoveryCheckpoint.Round {
+	if st.recoveryCheckpoint != nil && !preCheckpointBootstrap && !check.IfNil(currentTip) && currentTip.GetRound() < st.recoveryCheckpoint.Round {
 		return fmt.Errorf("%w: stored tip round %d is before target %d", ErrRecoveryCheckpointUnavailable, currentTip.GetRound(), st.recoveryCheckpoint.Round)
 	}
 	if !check.IfNil(currentTip) && st.roundExclusions.IsRoundExcluded(currentTip.GetRound()) {
