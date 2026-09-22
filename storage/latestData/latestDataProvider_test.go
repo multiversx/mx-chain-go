@@ -1,6 +1,7 @@
 package latestData
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,9 +11,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/directoryhandler"
+	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -187,12 +192,20 @@ func TestLatestDataProvider_RecoveryStorageEpoch(t *testing.T) {
 			trigger, err := json.Marshal(&block.ShardTriggerRegistry{EpochStartRound: 100})
 			require.NoError(t, err)
 			args.BootstrapDataProvider = &mock.BootStrapDataProviderStub{
+				GetStorerCalled: func(unit storage.Storer) (process.BootStorer, error) {
+					return bootstrapStorage.NewBootstrapStorer(&mock.MarshalizerMock{}, unit)
+				},
 				LoadForPathCalled: func(_ storage.PersisterFactory, path string) (*bootstrapStorage.BootstrapData, storage.Storer, error) {
 					require.Contains(t, path, filepath.Join("Epoch_8", "Shard_0"))
 					return &bootstrapStorage.BootstrapData{
-						LastHeader: bootstrapStorage.BootstrapHeaderInfo{Epoch: 7, Nonce: 10, Hash: []byte("anchor")},
-						LastRound:  tc.lastRound, HighestFinalBlockNonce: tc.finalNonce,
-					}, &storageStubs.StorerStub{GetCalled: func(_ []byte) ([]byte, error) { return trigger, nil }}, nil
+							LastHeader: bootstrapStorage.BootstrapHeaderInfo{Epoch: 7, Nonce: 10, Hash: []byte("anchor")},
+							LastRound:  tc.lastRound, HighestFinalBlockNonce: tc.finalNonce,
+						}, &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+							if string(key) == common.HighestRoundFromBootStorage {
+								return json.Marshal(&bootstrapStorage.RoundNum{Num: 100})
+							}
+							return trigger, nil
+						}}, nil
 				},
 			}
 			provider, err := NewLatestDataProvider(args)
@@ -209,6 +222,110 @@ func TestLatestDataProvider_RecoveryStorageEpoch(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, uint32(8), storageEpoch)
 		})
+	}
+}
+
+func TestRecoveryDirectorySelectionUsesStoredTip(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		recovery    bool
+		parentRound [2]int64
+		wantShard   uint32
+		badTrigger  string
+		metachain   bool
+	}{
+		{name: "two snapshots", recovery: true},
+		{name: "newest snapshot missing trigger", recovery: true, badTrigger: "missing", wantShard: 1},
+		{name: "newest snapshot malformed trigger", recovery: true, badTrigger: "malformed", wantShard: 1},
+		{name: "newest committed missing trigger", recovery: true, parentRound: [2]int64{190, 90}, badTrigger: "missing", wantShard: 1},
+		{name: "metachain snapshot", recovery: true, metachain: true},
+		{name: "new snapshot and old committed", recovery: true, parentRound: [2]int64{0, 90}},
+		{name: "new committed and old snapshot", recovery: true, parentRound: [2]int64{190, 0}},
+		{name: "tip order differs from parent order", recovery: true, parentRound: [2]int64{90, 95}},
+		{name: "disabled retains parent ordering", parentRound: [2]int64{90, 95}, wantShard: 1},
+	} {
+		for _, reverse := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/reverse=%t", tc.name, reverse), func(t *testing.T) {
+				parentDir := t.TempDir()
+				args := getLatestDataProviderArgs()
+				args.ParentDir = parentDir
+				args.GeneralConfig.HardforkRecoveryCheckpoint.Enabled = tc.recovery
+				dbConfig := config.DBConfig{FilePath: "BootstrapData", Type: "LvlDBSerial", BatchDelaySeconds: 1, MaxBatchSize: 10, MaxOpenFiles: 10}
+				args.GeneralConfig.BootstrapStorage.DB = dbConfig
+				marshaller := &marshal.GogoProtoMarshalizer{}
+				bootstrapProvider, err := factory.NewBootstrapDataProvider(marshaller)
+				require.NoError(t, err)
+				args.BootstrapDataProvider = bootstrapProvider
+				persisterFactory, err := factory.NewPersisterFactory(dbConfig)
+				require.NoError(t, err)
+				tips := [2]int64{200, 100}
+				shardIDs := [2]uint32{0, 1}
+				if tc.metachain {
+					shardIDs[0] = core.MetachainShardId
+				}
+				for shard, tip := range tips {
+					persister, createErr := persisterFactory.Create(filepath.Join(parentDir, "Epoch_8", "Shard_"+core.GetShardIDString(shardIDs[shard]), dbConfig.FilePath))
+					require.NoError(t, createErr)
+					data := &bootstrapStorage.BootstrapData{
+						LastRound: tc.parentRound[shard], HighestFinalBlockNonce: 10,
+						LastHeader:                 bootstrapStorage.BootstrapHeaderInfo{ShardId: shardIDs[shard], Epoch: 7, Nonce: 10, Hash: bytes.Repeat([]byte{byte(shard + 1)}, 32)},
+						EpochStartTriggerConfigKey: []byte("trigger"),
+					}
+					bootstrapBytes, marshalErr := marshaller.Marshal(data)
+					require.NoError(t, marshalErr)
+					roundBytes, marshalErr := marshaller.Marshal(&bootstrapStorage.RoundNum{Num: tip})
+					require.NoError(t, marshalErr)
+					triggerBytes, marshalErr := marshaller.Marshal(&block.ShardTriggerRegistryV3{
+						EpochStartRound: 100, EpochStartShardHeader: &block.HeaderV3{Epoch: 8, Round: 100},
+					})
+					require.NoError(t, marshalErr)
+					if shardIDs[shard] == core.MetachainShardId {
+						triggerBytes, marshalErr = marshaller.Marshal(&block.MetaTriggerRegistry{CurrEpochStartRound: 100})
+						require.NoError(t, marshalErr)
+					}
+					require.NoError(t, persister.Put([]byte(common.HighestRoundFromBootStorage), roundBytes))
+					require.NoError(t, persister.Put([]byte(fmt.Sprint(tip)), bootstrapBytes))
+					if shard == 0 && tc.badTrigger == "malformed" {
+						triggerBytes = []byte{0xff}
+					}
+					if shard != 0 || tc.badTrigger != "missing" {
+						require.NoError(t, persister.Put([]byte(common.TriggerRegistryKeyPrefix+"trigger"), triggerBytes))
+					}
+					require.NoError(t, persister.Close())
+				}
+				reader := directoryhandler.NewDirectoryReader()
+				args.DirectoryReader = &mock.DirectoryReaderStub{ListDirectoriesAsStringCalled: func(path string) ([]string, error) {
+					dirs, readErr := reader.ListDirectoriesAsString(path)
+					if reverse {
+						for i, j := 0, len(dirs)-1; i < j; i, j = i+1, j-1 {
+							dirs[i], dirs[j] = dirs[j], dirs[i]
+						}
+					}
+					return dirs, readErr
+				}}
+				provider, err := NewLatestDataProvider(args)
+				require.NoError(t, err)
+				selected, err := provider.Get()
+				require.NoError(t, err)
+				require.Equal(t, shardIDs[tc.wantShard], selected.ShardID)
+				require.Equal(t, tc.parentRound[tc.wantShard], selected.LastRound)
+				opener, err := factory.NewStorageUnitOpenHandler(factory.ArgsNewOpenStorageUnits{
+					BootstrapDataProvider: bootstrapProvider, LatestStorageDataProvider: provider,
+					DefaultEpochString: "Epoch", DefaultShardString: "Shard", RecoveryCheckpointEnabled: tc.recovery,
+				})
+				require.NoError(t, err)
+				unit, err := opener.GetMostRecentStorageUnit(dbConfig)
+				require.NoError(t, err)
+				t.Cleanup(func() { require.NoError(t, unit.Close()) })
+				bootStorer, err := bootstrapProvider.GetStorer(unit)
+				require.NoError(t, err)
+				require.Equal(t, tips[tc.wantShard], bootStorer.GetHighestRound())
+				loaded, err := bootStorer.Get(bootStorer.GetHighestRound())
+				require.NoError(t, err)
+				require.Equal(t, shardIDs[tc.wantShard], loaded.LastHeader.ShardId)
+				require.Equal(t, tc.parentRound[tc.wantShard], loaded.LastRound)
+			})
+		}
 	}
 }
 

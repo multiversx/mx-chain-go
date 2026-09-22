@@ -37,6 +37,7 @@ type ArgsLatestDataProvider struct {
 
 type iteratedShardData struct {
 	bootstrapData   *bootstrapStorage.BootstrapData
+	selectionRound  int64
 	epochStartRound uint64
 	shardIDStr      string
 	successful      bool
@@ -164,7 +165,7 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 		shardData := ldp.loadDataForShard(highestRoundInStoredShards, shardIdStr, persisterFactory, persisterPath)
 		if shardData.successful {
 			epochStartRound = shardData.epochStartRound
-			highestRoundInStoredShards = shardData.bootstrapData.LastRound
+			highestRoundInStoredShards = shardData.selectionRound
 			mostRecentBootstrapData = shardData.bootstrapData
 			mostRecentShard = shardIdStr
 		}
@@ -202,10 +203,11 @@ func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shard
 		return &iteratedShardData{}
 	}
 
-	isSnapshot := ldp.generalConfig.HardforkRecoveryCheckpoint.Enabled && currentHighestRound == 0 &&
-		bootstrapData.LastRound == 0 && len(bootstrapData.LastHeader.Hash) > 0 &&
-		bootstrapData.HighestFinalBlockNonce == bootstrapData.LastHeader.Nonce
-	if bootstrapData.LastRound > currentHighestRound || isSnapshot {
+	round, err := factory.GetBootstrapSelectionRound(ldp.bootstrapDataProvider, bootstrapData, storer, ldp.generalConfig.HardforkRecoveryCheckpoint.Enabled)
+	if err != nil {
+		return &iteratedShardData{}
+	}
+	if round > currentHighestRound {
 		shardID := uint32(0)
 		var err error
 		shardID, err = core.ConvertShardIDToUint32(shardIdStr)
@@ -219,6 +221,7 @@ func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shard
 
 		return &iteratedShardData{
 			bootstrapData:   bootstrapData,
+			selectionRound:  round,
 			shardIDStr:      shardIdStr,
 			epochStartRound: epochStartRound,
 			successful:      true,

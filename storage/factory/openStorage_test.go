@@ -78,23 +78,20 @@ func TestGetMostUpToDateDirectory(t *testing.T) {
 	assert.Equal(t, shardIDsStr[1], dirName)
 }
 
-func TestGetMostUpToDateDirectory_RecoverySnapshots(t *testing.T) {
+func TestGetMostUpToDateDirectory_DisabledRecoverySnapshots(t *testing.T) {
 	for _, tc := range []struct {
 		name       string
-		enabled    bool
 		shards     []string
 		finalNonce uint64
 		wantShard  string
 	}{
-		{name: "enabled snapshot", enabled: true, shards: []string{"0"}, finalNonce: 10, wantShard: "0"},
 		{name: "disabled snapshot", shards: []string{"0"}, finalNonce: 10},
-		{name: "unfinished record", enabled: true, shards: []string{"0"}, finalNonce: 9},
-		{name: "committed record after snapshot", enabled: true, shards: []string{"0", "1"}, finalNonce: 10, wantShard: "1"},
-		{name: "snapshot after committed record", enabled: true, shards: []string{"1", "0"}, finalNonce: 10, wantShard: "1"},
+		{name: "unfinished record", shards: []string{"0"}, finalNonce: 9},
+		{name: "committed record after snapshot", shards: []string{"0", "1"}, finalNonce: 10, wantShard: "1"},
+		{name: "snapshot after committed record", shards: []string{"1", "0"}, finalNonce: 10, wantShard: "1"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			args := createMockArgsOpenStorageUnits()
-			args.RecoveryCheckpointEnabled = tc.enabled
 			args.BootstrapDataProvider = &mock.BootStrapDataProviderStub{
 				LoadForPathCalled: func(_ storage.PersisterFactory, path string) (*bootstrapStorage.BootstrapData, storage.Storer, error) {
 					if strings.Contains(path, "Shard_1") {
@@ -117,6 +114,26 @@ func TestGetMostUpToDateDirectory_RecoverySnapshots(t *testing.T) {
 			require.Equal(t, tc.wantShard, shard)
 		})
 	}
+}
+
+func TestGetMostRecentBootstrapStorageUnit_RecoveryDiscoveryError(t *testing.T) {
+	args := createMockArgsOpenStorageUnits()
+	args.RecoveryCheckpointEnabled = true
+	expectedErr := errors.New("discovery failed")
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetCalled: func() (storage.LatestDataFromStorage, error) {
+			return storage.LatestDataFromStorage{}, expectedErr
+		},
+		GetParentDirAndLastEpochCalled: func() (string, uint32, error) {
+			t.Fatal("recovery must not fall back to independent directory selection")
+			return "", 0, nil
+		},
+	}
+	opener, err := NewStorageUnitOpenHandler(args)
+	require.NoError(t, err)
+	unit, err := opener.GetMostRecentStorageUnit(config.DBConfig{})
+	require.ErrorIs(t, err, expectedErr)
+	require.Nil(t, unit)
 }
 
 func TestGetMostRecentBootstrapStorageUnit_GetParentDirAndLastEpochErr(t *testing.T) {

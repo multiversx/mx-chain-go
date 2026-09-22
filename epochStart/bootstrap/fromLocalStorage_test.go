@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -199,6 +200,9 @@ func TestPrepareEpochFromStorage_RecoveryKeepsSnapshotStorageEpoch(t *testing.T)
 					},
 				},
 				BootstrapDataProvider: &storageMock.BootStrapDataProviderStub{
+					GetStorerCalled: func(unit storage.Storer) (process.BootStorer, error) {
+						return bootstrapStorage.NewBootstrapStorer(coreComp.InternalMarshalizer(), unit)
+					},
 					LoadForPathCalled: func(_ storage.PersisterFactory, path string) (*bootstrapStorage.BootstrapData, storage.Storer, error) {
 						require.Contains(t, path, filepath.Join("Epoch_8", "Shard_0"))
 						return &bootstrapData, storer, nil
