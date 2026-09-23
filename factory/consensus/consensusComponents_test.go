@@ -42,7 +42,6 @@ import (
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
-	"github.com/multiversx/mx-chain-go/update"
 )
 
 func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
@@ -127,7 +126,6 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			EpochNotifier:                 &testsMocks.EpochStartNotifierStub{},
 			NodesCoord:                    &shardingMocks.NodesCoordinatorMock{},
 			NodeRedundancyHandlerInternal: &testsMocks.RedundancyHandlerStub{},
-			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
 			ReqHandler:                    &testscommon.RequestHandlerStub{},
 			MainPeerMapper:                &testsMocks.PeerShardMapperStub{},
 			FullArchivePeerMapper:         &testsMocks.PeerShardMapperStub{},
@@ -361,28 +359,12 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 			NodesCoord:                    &shardingMocks.NodesCoordinatorMock{},
 			ShardCoord:                    &testscommon.ShardsCoordinatorMock{},
 			RoundHandlerField:             &testscommon.RoundHandlerMock{},
-			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
 			NodeRedundancyHandlerInternal: nil,
 		}
 		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
 
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilNodeRedundancyHandler, err)
-	})
-	t.Run("nil HardforkTrigger should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockConsensusComponentsFactoryArgs()
-		args.ProcessComponents = &testsMocks.ProcessComponentsStub{
-			NodesCoord:           &shardingMocks.NodesCoordinatorMock{},
-			ShardCoord:           &testscommon.ShardsCoordinatorMock{},
-			RoundHandlerField:    &testscommon.RoundHandlerMock{},
-			HardforkTriggerField: nil,
-		}
-		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
-
-		require.Nil(t, ccf)
-		require.Equal(t, errorsMx.ErrNilHardforkTrigger, err)
 	})
 	t.Run("nil StateComponents should error", func(t *testing.T) {
 		t.Parallel()
@@ -864,24 +846,6 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		cc, err := ccf.Create()
 		require.Error(t, err)
 		require.True(t, strings.Contains(err.Error(), "signing handler"))
-		require.Nil(t, cc)
-	})
-	t.Run("addCloserInstances failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockConsensusComponentsFactoryArgs()
-		processCompStub, ok := args.ProcessComponents.(*testsMocks.ProcessComponentsStub)
-		require.True(t, ok)
-		processCompStub.HardforkTriggerField = &testscommon.HardforkTriggerStub{
-			AddCloserCalled: func(closer update.Closer) error {
-				return expectedErr
-			},
-		}
-		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
-		require.NotNil(t, ccf)
-
-		cc, err := ccf.Create()
-		require.Equal(t, expectedErr, err)
 		require.Nil(t, cc)
 	})
 	t.Run("should work", func(t *testing.T) {

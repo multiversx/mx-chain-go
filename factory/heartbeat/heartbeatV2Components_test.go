@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
-	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -45,9 +44,6 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 		CoreComponents: &factory.CoreComponentsHolderStub{
 			InternalMarshalizerCalled: func() marshal.Marshalizer {
 				return &marshallerMock.MarshalizerStub{}
-			},
-			HardforkTriggerPubKeyCalled: func() []byte {
-				return []byte("hardfork pub key")
 			},
 			ValidatorPubKeyConverterCalled: func() core.PubkeyConverter {
 				return &testscommon.PubkeyConverterStub{}
@@ -78,7 +74,6 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 			EpochNotifier:                 &testsMocks.EpochStartNotifierStub{},
 			NodesCoord:                    &shardingMocks.NodesCoordinatorStub{},
 			NodeRedundancyHandlerInternal: &testsMocks.RedundancyHandlerStub{},
-			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
 			ReqHandler:                    &testscommon.RequestHandlerStub{},
 			MainPeerMapper:                &testsMocks.PeerShardMapperStub{},
 			FullArchivePeerMapper:         &testsMocks.PeerShardMapperStub{},
@@ -110,7 +105,6 @@ func createMockConfig() config.Config {
 			MaxMissingKeysInRequest:                          100,
 			MaxDurationPeerUnresponsiveInSec:                 10,
 			HideInactiveValidatorIntervalInSec:               60,
-			HardforkTimeBetweenSendsInSec:                    5,
 			TimeBetweenConnectionsMetricsUpdateInSec:         10,
 			TimeToReadDirectConnectionsInSec:                 15,
 			HeartbeatPool: config.CacheConfig{
@@ -118,9 +112,6 @@ func createMockConfig() config.Config {
 				Capacity: 1000,
 				Shards:   1,
 			},
-		},
-		Hardfork: config.HardforkConfig{
-			PublicKeyToListenFrom: componentsMock.DummyPk,
 		},
 	}
 }

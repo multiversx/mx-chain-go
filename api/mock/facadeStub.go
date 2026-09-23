@@ -712,16 +712,6 @@ func (f *FacadeStub) IsDataTrieMigrated(address string, options api.AccountQuery
 	return false, nil
 }
 
-// Trigger -
-func (f *FacadeStub) Trigger(_ uint32, _ bool) error {
-	return nil
-}
-
-// IsSelfTrigger -
-func (f *FacadeStub) IsSelfTrigger() bool {
-	return false
-}
-
 // GetManagedKeysCount -
 func (f *FacadeStub) GetManagedKeysCount() int {
 	if f.GetManagedKeysCountCalled != nil {

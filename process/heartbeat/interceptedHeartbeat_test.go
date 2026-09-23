@@ -16,8 +16,7 @@ import (
 
 func createDefaultInterceptedHeartbeat() *heartbeat.HeartbeatV2 {
 	payload := &heartbeat.Payload{
-		Timestamp:       time.Now().Unix(),
-		HardforkMessage: "hardfork message",
+		Timestamp: time.Now().Unix(),
 	}
 	marshaller := marshal.GogoProtoMarshalizer{}
 	payloadBytes, err := marshaller.Marshal(payload)

@@ -13,15 +13,8 @@ type senderHandler interface {
 	IsInterfaceNil() bool
 }
 
-type hardforkHandler interface {
-	ShouldTriggerHardfork() <-chan struct{}
-	Execute()
-	Close()
-}
-
 type peerAuthenticationSenderHandler interface {
 	senderHandler
-	hardforkHandler
 }
 
 type heartbeatSenderHandler interface {

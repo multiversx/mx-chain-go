@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/update"
 )
 
 // ProcessComponentsStub -
@@ -50,14 +49,12 @@ type ProcessComponentsStub struct {
 	WhiteListHandlerInternal             process.WhiteListHandler
 	WhiteListerVerifiedTxsInternal       process.WhiteListHandler
 	HistoryRepositoryInternal            dblookupext.HistoryRepository
-	ImportStartHandlerInternal           update.ImportStartHandler
 	RequestedItemsHandlerInternal        dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
 	AccountsParserInternal               genesis.AccountsParser
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
-	HardforkTriggerField                 factory.HardforkTrigger
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
@@ -242,11 +239,6 @@ func (pcs *ProcessComponentsStub) HistoryRepository() dblookupext.HistoryReposit
 	return pcs.HistoryRepositoryInternal
 }
 
-// ImportStartHandler -
-func (pcs *ProcessComponentsStub) ImportStartHandler() update.ImportStartHandler {
-	return pcs.ImportStartHandlerInternal
-}
-
 // RequestedItemsHandler -
 func (pcs *ProcessComponentsStub) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
 	return pcs.RequestedItemsHandlerInternal
@@ -280,11 +272,6 @@ func (pcs *ProcessComponentsStub) ScheduledTxsExecutionHandler() process.Schedul
 // TxsSenderHandler -
 func (pcs *ProcessComponentsStub) TxsSenderHandler() process.TxsSenderHandler {
 	return pcs.TxsSenderHandlerField
-}
-
-// HardforkTrigger -
-func (pcs *ProcessComponentsStub) HardforkTrigger() factory.HardforkTrigger {
-	return pcs.HardforkTriggerField
 }
 
 // ProcessedMiniBlocksTracker -

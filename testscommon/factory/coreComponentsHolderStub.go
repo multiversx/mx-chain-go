@@ -55,7 +55,6 @@ type CoreComponentsHolderStub struct {
 	NodeTypeProviderCalled              func() core.NodeTypeProviderHandler
 	WasmVMChangeLockerCalled            func() common.Locker
 	ProcessStatusHandlerCalled          func() common.ProcessStatusHandler
-	HardforkTriggerPubKeyCalled         func() []byte
 	EnableEpochsHandlerCalled           func() common.EnableEpochsHandler
 	RoundNotifierCalled                 func() process.RoundNotifier
 	ChainParametersSubscriberCalled     func() process.ChainParametersSubscriber
@@ -103,7 +102,6 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 		NodeTypeProviderCalled:              coreComponents.NodeTypeProvider,
 		WasmVMChangeLockerCalled:            coreComponents.WasmVMChangeLocker,
 		ProcessStatusHandlerCalled:          coreComponents.ProcessStatusHandler,
-		HardforkTriggerPubKeyCalled:         coreComponents.HardforkTriggerPubKey,
 		EnableEpochsHandlerCalled:           coreComponents.EnableEpochsHandler,
 		RoundNotifierCalled:                 coreComponents.RoundNotifier,
 		ChainParametersHandlerCalled:        coreComponents.ChainParametersHandler,
@@ -376,14 +374,6 @@ func (stub *CoreComponentsHolderStub) WasmVMChangeLocker() common.Locker {
 func (stub *CoreComponentsHolderStub) ProcessStatusHandler() common.ProcessStatusHandler {
 	if stub.ProcessStatusHandlerCalled != nil {
 		return stub.ProcessStatusHandlerCalled()
-	}
-	return nil
-}
-
-// HardforkTriggerPubKey -
-func (stub *CoreComponentsHolderStub) HardforkTriggerPubKey() []byte {
-	if stub.HardforkTriggerPubKeyCalled != nil {
-		return stub.HardforkTriggerPubKeyCalled()
 	}
 	return nil
 }

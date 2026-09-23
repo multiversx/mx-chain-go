@@ -63,7 +63,6 @@ import (
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/update/trigger"
 )
 
 type nextOperationForNode int
@@ -468,12 +467,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	)
 	if err != nil {
 		return true, err
-	}
-
-	hardforkTrigger := managedProcessComponents.HardforkTrigger()
-	err = hardforkTrigger.AddCloser(nodesShufflerOut)
-	if err != nil {
-		return true, fmt.Errorf("%w when adding nodeShufflerOut in hardForkTrigger", err)
 	}
 
 	err = managedStatusComponents.SetForkDetector(managedProcessComponents.ForkDetector())
@@ -1121,20 +1114,7 @@ func (nr *nodeRunner) logInformation(
 }
 
 func (nr *nodeRunner) getNodesFileName() (string, error) {
-	flagsConfig := nr.configs.FlagsConfig
-	configurationPaths := nr.configs.ConfigurationPathsHolder
-	nodesFileName := configurationPaths.Nodes
-
-	exportFolder := filepath.Join(flagsConfig.WorkingDir, nr.configs.GeneralConfig.Hardfork.ImportFolder)
-	if nr.configs.GeneralConfig.Hardfork.AfterHardFork {
-		exportFolderNodesSetupPath := filepath.Join(exportFolder, common.NodesSetupJsonFileName)
-		if !core.FileExists(exportFolderNodesSetupPath) {
-			return "", fmt.Errorf("cannot find %s in the export folder", common.NodesSetupJsonFileName)
-		}
-
-		nodesFileName = exportFolderNodesSetupPath
-	}
-	return nodesFileName, nil
+	return nr.configs.ConfigurationPathsHolder.Nodes, nil
 }
 
 // CreateManagedStatusComponents is the managed status components factory
@@ -1229,10 +1209,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.DbDir, common.DefaultDBPath), configs.FlagsConfig.Version)
-	if err != nil {
-		return nil, err
-	}
 
 	totalSupply, ok := big.NewInt(0).SetString(configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
 	if !ok {
@@ -1330,7 +1306,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		MaxRating:               configs.RatingsConfig.General.MaxRating,
 		SystemSCConfig:          configs.SystemSCConfig,
-		ImportStartHandler:      importStartHandler,
 		HistoryRepo:             historyRepository,
 		FlagsConfig:             *configs.FlagsConfig,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
@@ -1630,7 +1605,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 
 func closeAllComponents(
 	healthService io.Closer,
-	facade mainFactory.Closer,
+	facade io.Closer,
 	httpServer shared.UpgradeableHttpServerHandler,
 	node *Node,
 	chanCloseComponents chan struct{},

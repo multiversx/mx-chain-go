@@ -1146,16 +1146,6 @@ func (n *Node) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, erro
 	return n.processComponents.ValidatorsProvider().GetAuctionList()
 }
 
-// DirectTrigger will start the hardfork trigger
-func (n *Node) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
-	return n.processComponents.HardforkTrigger().Trigger(epoch, withEarlyEndOfEpoch)
-}
-
-// IsSelfTrigger returns true if the trigger's registered public key matches the self public key
-func (n *Node) IsSelfTrigger() bool {
-	return n.processComponents.HardforkTrigger().IsSelfTrigger()
-}
-
 // EncodeAddressPubkey will encode the provided address public key bytes to string
 func (n *Node) EncodeAddressPubkey(pk []byte) (string, error) {
 	if n.coreComponents.AddressPubKeyConverter() == nil {

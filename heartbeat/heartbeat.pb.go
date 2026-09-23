@@ -205,8 +205,7 @@ func (m *PeerAuthentication) GetPayloadSignature() []byte {
 
 // Payload represents the DTO used as payload for both HeartbeatV2 and PeerAuthentication messages
 type Payload struct {
-	Timestamp       int64  `protobuf:"varint,1,opt,name=Timestamp,proto3" json:"Timestamp,omitempty"`
-	HardforkMessage string `protobuf:"bytes,2,opt,name=HardforkMessage,proto3" json:"HardforkMessage,omitempty"`
+	Timestamp int64 `protobuf:"varint,1,opt,name=Timestamp,proto3" json:"Timestamp,omitempty"`
 }
 
 func (m *Payload) Reset()      { *m = Payload{} }
@@ -246,13 +245,6 @@ func (m *Payload) GetTimestamp() int64 {
 		return m.Timestamp
 	}
 	return 0
-}
-
-func (m *Payload) GetHardforkMessage() string {
-	if m != nil {
-		return m.HardforkMessage
-	}
-	return ""
 }
 
 func init() {
@@ -395,9 +387,6 @@ func (this *Payload) Equal(that interface{}) bool {
 	if this.Timestamp != that1.Timestamp {
 		return false
 	}
-	if this.HardforkMessage != that1.HardforkMessage {
-		return false
-	}
 	return true
 }
 func (this *HeartbeatV2) GoString() string {
@@ -435,10 +424,9 @@ func (this *Payload) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 6)
+	s := make([]string, 0, 5)
 	s = append(s, "&heartbeat.Payload{")
 	s = append(s, "Timestamp: "+fmt.Sprintf("%#v", this.Timestamp)+",\n")
-	s = append(s, "HardforkMessage: "+fmt.Sprintf("%#v", this.HardforkMessage)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -601,13 +589,6 @@ func (m *Payload) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.HardforkMessage) > 0 {
-		i -= len(m.HardforkMessage)
-		copy(dAtA[i:], m.HardforkMessage)
-		i = encodeVarintHeartbeat(dAtA, i, uint64(len(m.HardforkMessage)))
-		i--
-		dAtA[i] = 0x12
-	}
 	if m.Timestamp != 0 {
 		i = encodeVarintHeartbeat(dAtA, i, uint64(m.Timestamp))
 		i--
@@ -703,10 +684,6 @@ func (m *Payload) Size() (n int) {
 	if m.Timestamp != 0 {
 		n += 1 + sovHeartbeat(uint64(m.Timestamp))
 	}
-	l = len(m.HardforkMessage)
-	if l > 0 {
-		n += 1 + l + sovHeartbeat(uint64(l))
-	}
 	return n
 }
 
@@ -753,7 +730,6 @@ func (this *Payload) String() string {
 	}
 	s := strings.Join([]string{`&Payload{`,
 		`Timestamp:` + fmt.Sprintf("%v", this.Timestamp) + `,`,
-		`HardforkMessage:` + fmt.Sprintf("%v", this.HardforkMessage) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1311,38 +1287,6 @@ func (m *Payload) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field HardforkMessage", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowHeartbeat
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthHeartbeat
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.HardforkMessage = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipHeartbeat(dAtA[iNdEx:])

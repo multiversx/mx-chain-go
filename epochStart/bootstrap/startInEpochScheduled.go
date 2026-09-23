@@ -14,14 +14,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/update"
 )
 
 type startInEpochWithScheduledDataSyncer struct {
 	scheduledTxsHandler       process.ScheduledTxsExecutionHandler
 	scheduledHeadersSyncer    epochStart.HeadersByHashSyncer
 	scheduledMiniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler
-	txSyncer                  update.TransactionsSyncHandler
+	txSyncer                  epochStart.TransactionsSyncHandler
 	scheduledEnableEpoch      uint32
 }
 
@@ -29,7 +28,7 @@ func newStartInEpochShardHeaderDataSyncerWithScheduled(
 	scheduledTxsHandler process.ScheduledTxsExecutionHandler,
 	headersSyncer epochStart.HeadersByHashSyncer,
 	miniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler,
-	txSyncer update.TransactionsSyncHandler,
+	txSyncer epochStart.TransactionsSyncHandler,
 	scheduledEnableEpoch uint32,
 ) (*startInEpochWithScheduledDataSyncer, error) {
 

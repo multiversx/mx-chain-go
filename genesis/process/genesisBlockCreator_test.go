@@ -27,7 +27,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -42,8 +41,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/update"
-	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 )
 
@@ -95,34 +92,6 @@ func createMockArgument(
 				{StartEpoch: 0, Version: "*"},
 			},
 			TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
-		},
-		HardForkConfig: config.HardforkConfig{
-			ImportKeysStorageConfig: config.StorageConfig{
-				Cache: config.CacheConfig{
-					Type:     "LRU",
-					Capacity: 1000,
-					Shards:   1,
-				},
-				DB: config.DBConfig{
-					Type:              "MemoryDB",
-					BatchDelaySeconds: 1,
-					MaxBatchSize:      1,
-					MaxOpenFiles:      10,
-				},
-			},
-			ImportStateStorageConfig: config.StorageConfig{
-				Cache: config.CacheConfig{
-					Type:     "LRU",
-					Capacity: 1000,
-					Shards:   1,
-				},
-				DB: config.DBConfig{
-					Type:              "MemoryDB",
-					BatchDelaySeconds: 1,
-					MaxBatchSize:      1,
-					MaxOpenFiles:      10,
-				},
-			},
 		},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
@@ -484,7 +453,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 	})
 }
 
-func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResultingAddresses(t *testing.T) {
+func TestGenesisBlockCreator_ComputeDNSAddresses(t *testing.T) {
 	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
 	initialNodesSetup := &mock.InitialNodesHandlerStub{
 		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
@@ -530,16 +499,16 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 		initialNodesSetup,
 		big.NewInt(22000),
 	)
-	hardForkGbc, err := NewGenesisBlockCreator(newArgs)
+	secondGbc, err := NewGenesisBlockCreator(newArgs)
 	assert.Nil(t, err)
-	err = hardForkGbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+	err = secondGbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 	assert.Nil(t, err)
 
-	mapAfterHardForkAddresses, err := newArgs.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+	mapAfterComputeAddresses, err := newArgs.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
 	assert.Nil(t, err)
-	assert.Equal(t, len(mapAfterHardForkAddresses), core.MaxNumShards)
+	assert.Equal(t, len(mapAfterComputeAddresses), core.MaxNumShards)
 	for address := range mapAddressesWithDeploy {
-		_, ok := mapAfterHardForkAddresses[address]
+		_, ok := mapAfterComputeAddresses[address]
 		assert.True(t, ok)
 	}
 }
@@ -828,54 +797,6 @@ func TestCreateArgsGenesisBlockCreator_ShouldWork(t *testing.T) {
 	require.Equal(t, 2, len(mapArgsGenesisBlockCreator))
 	assert.Equal(t, uint32(0), mapArgsGenesisBlockCreator[0].ShardCoordinator.SelfId())
 	assert.Equal(t, uint32(1), mapArgsGenesisBlockCreator[1].ShardCoordinator.SelfId())
-}
-
-func TestCreateHardForkBlockProcessors_ShouldWork(t *testing.T) {
-	selfShardID := uint32(0)
-	shardIDs := []uint32{1, core.MetachainShardId}
-	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
-	mapHardForkBlockProcessor := make(map[uint32]update.HardForkBlockProcessor)
-	scAddressBytes, _ := hex.DecodeString("00000000000000000500761b8c4a25d3979359223208b412285f635e71300102")
-	initialNodesSetup := &mock.InitialNodesHandlerStub{
-		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
-			return map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
-				0: {
-					&mock.GenesisNodeInfoHandlerMock{
-						AddressBytesValue: scAddressBytes,
-						PubKeyBytesValue:  bytes.Repeat([]byte{1}, 96),
-					},
-				},
-				1: {
-					&mock.GenesisNodeInfoHandlerMock{
-						AddressBytesValue: scAddressBytes,
-						PubKeyBytesValue:  bytes.Repeat([]byte{3}, 96),
-					},
-				},
-			}, make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
-		},
-		MinNumberOfNodesCalled: func() uint32 {
-			return 1
-		},
-	}
-	arg := createMockArgument(
-		t,
-		"testdata/genesisTest1.json",
-		initialNodesSetup,
-		big.NewInt(22000),
-	)
-	arg.importHandler = &updateMock.ImportHandlerStub{
-		GetAccountsDBForShardCalled: func(shardID uint32) state.AccountsAdapter {
-			return &stateMock.AccountsStub{}
-		},
-	}
-	gbc, err := NewGenesisBlockCreator(arg)
-	require.Nil(t, err)
-
-	_ = gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
-
-	err = createHardForkBlockProcessors(selfShardID, shardIDs, mapArgsGenesisBlockCreator, mapHardForkBlockProcessor)
-	assert.Nil(t, err)
-	require.Equal(t, 2, len(mapHardForkBlockProcessor))
 }
 
 func createDummyNodesHandler(scAddressBytes []byte) genesis.InitialNodesHandler {

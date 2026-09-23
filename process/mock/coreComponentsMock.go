@@ -44,7 +44,6 @@ type CoreComponentsMock struct {
 	EconomicsDataField                 process.EconomicsDataHandler
 	ProcessStatusHandlerField          common.ProcessStatusHandler
 	ChainParametersHandlerField        process.ChainParametersHandler
-	HardforkTriggerPubKeyField         []byte
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
@@ -195,11 +194,6 @@ func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 // ProcessStatusHandler -
 func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
 	return ccm.ProcessStatusHandlerField
-}
-
-// HardforkTriggerPubKey -
-func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
-	return ccm.HardforkTriggerPubKeyField
 }
 
 // ChainParametersSubscriber -

@@ -246,9 +246,6 @@ func GetGeneralConfig() config.Config {
 			DefaultVersion:   "1",
 			VersionsByEpochs: nil,
 		},
-		Hardfork: config.HardforkConfig{
-			PublicKeyToListenFrom: DummyPk,
-		},
 		HeartbeatV2: config.HeartbeatV2Config{
 			HeartbeatExpiryTimespanInSec: 10,
 		},

@@ -29,14 +29,12 @@ func createPeerAuthenticationInterceptorProcessArg() processor.ArgPeerAuthentica
 		PeerAuthenticationCacher: cache.NewCacherStub(),
 		PeerShardMapper:          &p2pmocks.NetworkShardingCollectorStub{},
 		Marshaller:               marshallerMock.MarshalizerMock{},
-		HardforkTrigger:          &testscommon.HardforkTriggerStub{},
 	}
 }
 
 func createInterceptedPeerAuthentication() *heartbeatMessages.PeerAuthentication {
 	payload := &heartbeatMessages.Payload{
-		Timestamp:       time.Now().Unix(),
-		HardforkMessage: "hardfork message",
+		Timestamp: time.Now().Unix(),
 	}
 	marshaller := mock.MarshalizerMock{}
 	payloadBytes, _ := marshaller.Marshal(payload)
@@ -61,7 +59,6 @@ func createMockInterceptedPeerAuthentication() process.InterceptedData {
 		SignaturesHandler:                       &mock.SignaturesHandlerStub{},
 		PeerSignatureHandler:                    &mock.PeerSignatureHandlerStub{},
 		PayloadValidator:                        payloadValidator,
-		HardforkTriggerPubKey:                   []byte("provided hardfork pub key"),
 		PeerShardMapper:                         &mock.PeerShardMapperStub{},
 		PeerAuthCacher:                          cache.NewCacherStub(),
 		PeerAuthenticationTimeBetweenSendsInSec: 10,
@@ -102,15 +99,6 @@ func TestNewPeerAuthenticationInterceptorProcessor(t *testing.T) {
 		arg.Marshaller = nil
 		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(arg)
 		assert.Equal(t, heartbeatMessages.ErrNilMarshaller, err)
-		assert.Nil(t, paip)
-	})
-	t.Run("nil hardfork trigger should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createPeerAuthenticationInterceptorProcessArg()
-		arg.HardforkTrigger = nil
-		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(arg)
-		assert.Equal(t, heartbeatMessages.ErrNilHardforkTrigger, err)
 		assert.Nil(t, paip)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -161,23 +149,6 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		args.Marshaller = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return expectedError
-			},
-		}
-		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(args)
-		assert.Nil(t, err)
-		assert.False(t, paip.IsInterfaceNil())
-
-		_, err = paip.Save(createMockInterceptedPeerAuthentication(), "", "", "")
-		assert.Equal(t, expectedError, err)
-	})
-	t.Run("trigger received returns error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedError := errors.New("expected error")
-		args := createPeerAuthenticationInterceptorProcessArg()
-		args.HardforkTrigger = &testscommon.HardforkTriggerStub{
-			TriggerReceivedCalled: func(payload []byte, data []byte, pkBytes []byte) (bool, error) {
-				return true, expectedError
 			},
 		}
 		paip, err := processor.NewPeerAuthenticationInterceptorProcessor(args)

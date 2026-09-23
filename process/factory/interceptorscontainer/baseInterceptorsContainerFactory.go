@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -58,7 +57,6 @@ type baseInterceptorsContainerFactory struct {
 	trieNodeChunksInactivityTimeout time.Duration
 	mainPeerShardMapper             process.PeerShardMapper
 	fullArchivePeerShardMapper      process.PeerShardMapper
-	hardforkTrigger                 heartbeat.HardforkTrigger
 	nodeOperationMode               common.NodeOperation
 	interceptedDataVerifierFactory  process.InterceptedDataVerifierFactory
 	enableEpochsHandler             common.EnableEpochsHandler
@@ -83,7 +81,6 @@ func checkBaseParams(
 	requestHandler process.RequestHandler,
 	mainPeerShardMapper process.PeerShardMapper,
 	fullArchivePeerShardMapper process.PeerShardMapper,
-	hardforkTrigger heartbeat.HardforkTrigger,
 ) error {
 	if check.IfNil(coreComponents) {
 		return process.ErrNilCoreComponentsHolder
@@ -178,9 +175,6 @@ func checkBaseParams(
 	}
 	if check.IfNil(fullArchivePeerShardMapper) {
 		return fmt.Errorf("%w %s", process.ErrNilPeerShardMapper, errorOnFullArchiveNetworkString)
-	}
-	if check.IfNil(hardforkTrigger) {
-		return process.ErrNilHardforkTrigger
 	}
 
 	return nil
@@ -794,7 +788,6 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 		PeerAuthenticationCacher: bicf.dataPool.PeerAuthentications(),
 		PeerShardMapper:          bicf.mainPeerShardMapper,
 		Marshaller:               internalMarshaller,
-		HardforkTrigger:          bicf.hardforkTrigger,
 	}
 	peerAuthenticationProcessor, err := processor.NewPeerAuthenticationInterceptorProcessor(argProcessor)
 	if err != nil {

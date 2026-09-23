@@ -1,8 +1,6 @@
 package factory
 
 import (
-	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -21,7 +19,6 @@ type interceptedPeerAuthenticationDataFactory struct {
 	nodesCoordinator                        heartbeat.NodesCoordinator
 	signaturesHandler                       heartbeat.SignaturesHandler
 	peerSignatureHandler                    crypto.PeerSignatureHandler
-	hardforkTriggerPubKey                   []byte
 	payloadValidator                        process.PeerAuthenticationPayloadValidator
 	peerShardMapper                         process.PeerShardMapper
 	peerAuthCacher                          storage.Cacher
@@ -48,7 +45,6 @@ func NewInterceptedPeerAuthenticationDataFactory(arg ArgInterceptedDataFactory) 
 		signaturesHandler:                       arg.SignaturesHandler,
 		peerSignatureHandler:                    arg.PeerSignatureHandler,
 		payloadValidator:                        payloadValidator,
-		hardforkTriggerPubKey:                   arg.CoreComponents.HardforkTriggerPubKey(),
 		peerShardMapper:                         arg.PeerShardMapper,
 		peerAuthCacher:                          arg.PeerAuthCacher,
 		peerAuthenticationTimeBetweenSendsInSec: arg.PeerAuthenticationTimeBetweenSendsInSec,
@@ -79,9 +75,6 @@ func checkArgInterceptedDataFactory(args ArgInterceptedDataFactory) error {
 	if args.HeartbeatExpiryTimespanInSec < minDurationInSec {
 		return process.ErrInvalidExpiryTimespan
 	}
-	if len(args.CoreComponents.HardforkTriggerPubKey()) == 0 {
-		return fmt.Errorf("%w hardfork trigger public key bytes length is 0", process.ErrInvalidValue)
-	}
 
 	return nil
 }
@@ -97,7 +90,6 @@ func (ipadf *interceptedPeerAuthenticationDataFactory) Create(buff []byte, messa
 		SignaturesHandler:                       ipadf.signaturesHandler,
 		PeerSignatureHandler:                    ipadf.peerSignatureHandler,
 		PayloadValidator:                        ipadf.payloadValidator,
-		HardforkTriggerPubKey:                   ipadf.hardforkTriggerPubKey,
 		PeerShardMapper:                         ipadf.peerShardMapper,
 		PeerAuthCacher:                          ipadf.peerAuthCacher,
 		MessageOriginator:                       messageOriginator,

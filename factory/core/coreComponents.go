@@ -127,7 +127,6 @@ type coreComponents struct {
 	encodedAddressLen             uint32
 	wasmVMChangeLocker            common.Locker
 	processStatusHandler          common.ProcessStatusHandler
-	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
 	chainParametersHandler        process.ChainParametersHandler
 	fieldsSizeChecker             common.FieldsSizeChecker
@@ -285,14 +284,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	startRound := int64(0)
 	supernovaStartRound := int64(enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag))
 
-	if ccf.config.Hardfork.AfterHardFork {
-		log.Debug("changed genesis time after hardfork",
-			"old genesis time", genesisNodesConfig.StartTime,
-			"new genesis time", ccf.config.Hardfork.GenesisTime)
-		genesisNodesConfig.StartTime = ccf.config.Hardfork.GenesisTime
-		startRound = int64(ccf.config.Hardfork.StartRound)
-	}
-
 	if genesisNodesConfig.StartTime == 0 {
 		time.Sleep(1000 * time.Millisecond)
 
@@ -436,12 +427,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	// set as observer at first - it will be updated when creating the nodes coordinator
 	nodeTypeProvider := nodetype.NewNodeTypeProvider(core.NodeTypeObserver)
 
-	pubKeyStr := ccf.config.Hardfork.PublicKeyToListenFrom
-	pubKeyBytes, err := validatorPubkeyConverter.Decode(pubKeyStr)
-	if err != nil {
-		return nil, err
-	}
-
 	encodedAddressLen, err := computeEncodedAddressLen(addressPubkeyConverter)
 	if err != nil {
 		return nil, err
@@ -487,7 +472,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		nodeTypeProvider:              nodeTypeProvider,
 		wasmVMChangeLocker:            wasmVMChangeLocker,
 		processStatusHandler:          statusHandler.NewProcessStatusHandler(),
-		hardforkTriggerPubKey:         pubKeyBytes,
 		enableEpochsHandler:           enableEpochsHandler,
 		chainParametersHandler:        chainParametersHandler,
 		fieldsSizeChecker:             fieldsSizeChecker,

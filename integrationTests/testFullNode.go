@@ -414,7 +414,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	tpn.addGenesisBlocksIntoStorage()
 
 	if args.GenesisFile != "" {
-		tpn.createHeartbeatWithHardforkTrigger()
+		tpn.createHeartbeat()
 	}
 }
 
@@ -461,15 +461,6 @@ func (tpn *TestFullNode) initNode(
 	epochTrigger := tpn.createEpochStartTrigger()
 	tpn.EpochStartTrigger = epochTrigger
 
-	strPk := ""
-	if !check.IfNil(args.HardforkPk) {
-		buff, err := args.HardforkPk.ToByteArray()
-		log.LogIfError(err)
-
-		strPk = hex.EncodeToString(buff)
-	}
-	_ = tpn.createHardforkTrigger(strPk)
-
 	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
 	coreComponents.SyncTimerField = syncer
 	coreComponents.RoundHandlerField = roundHandler
@@ -498,8 +489,6 @@ func (tpn *TestFullNode) initNode(
 		return tpn.MinTransactionVersion
 	}
 	coreComponents.TxVersionCheckField = versioning.NewTxVersionChecker(tpn.MinTransactionVersion)
-	hardforkPubKeyBytes, _ := coreComponents.ValidatorPubKeyConverterField.Decode(hardforkPubKey)
-	coreComponents.HardforkTriggerPubKeyField = hardforkPubKeyBytes
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 	coreComponents.APIEconomicsHandler = tpn.EconomicsData
@@ -597,7 +586,6 @@ func (tpn *TestFullNode) initNode(
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
 	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.MainMessenger)
-	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
 	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
@@ -834,7 +822,6 @@ func (tfn *TestFullNode) initInterceptors(
 		TrieNodeChunksInactivityTimeout:         10 * time.Second,
 		MainPeerShardMapper:                     mock.NewNetworkShardingCollectorMock(),
 		FullArchivePeerShardMapper:              mock.NewNetworkShardingCollectorMock(),
-		HardforkTrigger:                         &testscommon.HardforkTriggerStub{},
 		NodeOperationMode:                       common.NormalOperation,
 		InterceptedDataVerifierFactory:          interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
 		Config: config.Config{

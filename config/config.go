@@ -172,7 +172,6 @@ type HeartbeatV2Config struct {
 	MaxDurationPeerUnresponsiveInSec                 int64
 	HideInactiveValidatorIntervalInSec               int64
 	HeartbeatPool                                    CacheConfig
-	HardforkTimeBetweenSendsInSec                    int64
 	TimeBetweenConnectionsMetricsUpdateInSec         int64
 	TimeToReadDirectConnectionsInSec                 int64
 	PeerAuthenticationTimeBetweenChecksInSec         int64
@@ -264,9 +263,8 @@ type Config struct {
 	VirtualMachine          VirtualMachineServicesConfig
 	BuiltInFunctions        BuiltInFunctionsConfig
 
-	Hardfork HardforkConfig
-	Debug    DebugConfig
-	Health   HealthServiceConfig
+	Debug  DebugConfig
+	Health HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
 	GatewayMetricsConfig  GatewayMetricsConfig
@@ -633,27 +631,6 @@ type BuiltInFunctionsConfig struct {
 	AutomaticCrawlerAddresses     []string
 	MaxNumAddressesInTransferRole uint32
 	DNSV2Addresses                []string
-}
-
-// HardforkConfig holds the configuration for the hardfork trigger
-type HardforkConfig struct {
-	ExportStateStorageConfig     StorageConfig
-	ExportKeysStorageConfig      StorageConfig
-	ExportTriesStorageConfig     StorageConfig
-	ImportStateStorageConfig     StorageConfig
-	ImportKeysStorageConfig      StorageConfig
-	PublicKeyToListenFrom        string
-	ImportFolder                 string
-	GenesisTime                  int64
-	StartRound                   uint64
-	StartNonce                   uint64
-	CloseAfterExportInMinutes    uint32
-	StartEpoch                   uint32
-	ValidatorGracePeriodInEpochs uint32
-	EnableTrigger                bool
-	EnableTriggerFromP2P         bool
-	MustImport                   bool
-	AfterHardFork                bool
 }
 
 // LogsAndEventsConfig hold the configuration for the logs and events

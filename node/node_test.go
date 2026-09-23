@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -3870,65 +3869,6 @@ func TestNode_DecodeAddressPubkeyWithNilConverterShouldErr(t *testing.T) {
 
 	assert.True(t, errors.Is(err, node.ErrNilPubkeyConverter))
 	assert.Nil(t, recoveredBytes)
-}
-
-func TestNode_DirectTrigger(t *testing.T) {
-	t.Parallel()
-
-	wasCalled := false
-	epoch := uint32(47839)
-	recoveredEpoch := uint32(0)
-	recoveredWithEarlyEndOfEpoch := atomicCore.Flag{}
-	hardforkTrigger := &testscommon.HardforkTriggerStub{
-		TriggerCalled: func(epoch uint32, withEarlyEndOfEpoch bool) error {
-			wasCalled = true
-			atomic.StoreUint32(&recoveredEpoch, epoch)
-			recoveredWithEarlyEndOfEpoch.SetValue(withEarlyEndOfEpoch)
-
-			return nil
-		},
-	}
-
-	processComponents := &integrationTestsMock.ProcessComponentsStub{
-		HardforkTriggerField: hardforkTrigger,
-	}
-
-	n, _ := node.NewNode(
-		node.WithProcessComponents(processComponents),
-	)
-
-	err := n.DirectTrigger(epoch, true)
-
-	assert.Nil(t, err)
-	assert.True(t, wasCalled)
-	assert.Equal(t, epoch, recoveredEpoch)
-	assert.True(t, recoveredWithEarlyEndOfEpoch.IsSet())
-}
-
-func TestNode_IsSelfTrigger(t *testing.T) {
-	t.Parallel()
-
-	wasCalled := false
-	hardforkTrigger := &testscommon.HardforkTriggerStub{
-		IsSelfTriggerCalled: func() bool {
-			wasCalled = true
-
-			return true
-		},
-	}
-
-	processComponents := &integrationTestsMock.ProcessComponentsStub{
-		HardforkTriggerField: hardforkTrigger,
-	}
-
-	n, _ := node.NewNode(
-		node.WithProcessComponents(processComponents),
-	)
-
-	isSelf := n.IsSelfTrigger()
-
-	assert.True(t, isSelf)
-	assert.True(t, wasCalled)
 }
 
 // ------- Query handlers

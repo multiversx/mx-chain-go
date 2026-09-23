@@ -12,6 +12,9 @@ type MarshalizerMock struct {
 	Fail bool
 }
 
+// MarshalizerFake that will be used for testing
+type MarshalizerFake = MarshalizerMock
+
 // Marshal converts the input object in a slice of bytes
 func (mm *MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
 	if mm.Fail {

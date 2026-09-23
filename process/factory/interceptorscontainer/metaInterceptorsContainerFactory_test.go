@@ -480,18 +480,6 @@ func TestNewMetaInterceptorsContainerFactory_NilFullArchivePeerShardMapperShould
 	assert.True(t, errors.Is(err, process.ErrNilPeerShardMapper))
 }
 
-func TestNewMetaInterceptorsContainerFactory_NilHardforkTriggerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.HardforkTrigger = nil
-	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
-
-	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilHardforkTrigger, err)
-}
-
 func TestNewMetaInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -741,7 +729,6 @@ func getArgumentsMeta(
 		TrieNodeChunksInactivityTimeout:         10 * time.Second,
 		MainPeerShardMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
 		FullArchivePeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
-		HardforkTrigger:                         &testscommon.HardforkTriggerStub{},
 		NodeOperationMode:                       common.NormalOperation,
 		InterceptedDataVerifierFactory:          &mock.InterceptedDataVerifierFactoryMock{},
 		Config: config.Config{

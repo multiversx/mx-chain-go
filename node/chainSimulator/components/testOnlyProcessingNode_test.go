@@ -157,7 +157,7 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 	})
 	t.Run("CreateProcessComponents failure should error", func(t *testing.T) {
 		args := createMockArgsTestOnlyProcessingNode(t)
-		args.Configs.FlagsConfig.Version = ""
+		args.Configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply = "invalid number"
 		node, err := NewTestOnlyProcessingNode(args)
 		require.Error(t, err)
 		require.Nil(t, node)

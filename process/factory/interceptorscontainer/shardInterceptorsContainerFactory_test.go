@@ -35,7 +35,6 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
-var providedHardforkPubKey = []byte("provided hardfork pub key")
 
 func createShardStubTopicHandler(matchStrToErrOnCreate string, matchStrToErrOnRegister string) process.TopicHandler {
 	return &mock.TopicHandlerStub{
@@ -443,18 +442,6 @@ func TestNewShardInterceptorsContainerFactory_NilFullArchivePeerShardMapperShoul
 	assert.True(t, errors.Is(err, process.ErrNilPeerShardMapper))
 }
 
-func TestNewShardInterceptorsContainerFactory_NilHardforkTriggerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createMockComponentHolders()
-	args := getArgumentsShard(coreComp, cryptoComp)
-	args.HardforkTrigger = nil
-	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
-
-	assert.Nil(t, icf)
-	assert.Equal(t, process.ErrNilHardforkTrigger, err)
-}
-
 func TestNewShardInterceptorsContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -720,7 +707,6 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		},
 		EpochNotifierField:                 &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckField:                versioning.NewTxVersionChecker(1),
-		HardforkTriggerPubKeyField:         providedHardforkPubKey,
 		EnableEpochsHandlerField:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
 		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
@@ -774,7 +760,6 @@ func getArgumentsShard(
 		TrieNodeChunksInactivityTimeout:         10 * time.Second,
 		MainPeerShardMapper:                     &p2pmocks.NetworkShardingCollectorStub{},
 		FullArchivePeerShardMapper:              &p2pmocks.NetworkShardingCollectorStub{},
-		HardforkTrigger:                         &testscommon.HardforkTriggerStub{},
 		InterceptedDataVerifierFactory:          &mock.InterceptedDataVerifierFactoryMock{},
 		Config: config.Config{
 			InterceptedDataVerifier: config.InterceptedDataVerifierConfig{

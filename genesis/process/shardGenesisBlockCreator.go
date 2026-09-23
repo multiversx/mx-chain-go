@@ -17,7 +17,6 @@ import (
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	epochStart "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
@@ -31,7 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	disabledGuardian "github.com/multiversx/mx-chain-go/process/guardian/disabled"
-	"github.com/multiversx/mx-chain-go/process/receipts"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
@@ -44,8 +42,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/txcache"
-	"github.com/multiversx/mx-chain-go/update"
-	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 )
 
 const unreachableEpoch = ^uint32(0)
@@ -86,12 +82,7 @@ func CreateShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
 	body *dataBlock.Body,
 	nodesListSplitter genesis.NodesListSplitter,
-	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
-	if mustDoHardForkImportProcess(arg) {
-		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
-	}
-
 	indexingData := &genesis.IndexingData{
 		DelegationTxs:      make([]data.TransactionHandler, 0),
 		ScrsTxs:            make(map[string]data.TransactionHandler),
@@ -222,95 +213,6 @@ func setInitialDataInHeader(
 	return nil
 }
 
-func createShardGenesisBlockAfterHardFork(
-	arg ArgsGenesisBlockCreator,
-	body *dataBlock.Body,
-	hardForkBlockProcessor update.HardForkBlockProcessor,
-) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
-	if check.IfNil(hardForkBlockProcessor) {
-		return nil, nil, nil, update.ErrNilHardForkBlockProcessor
-	}
-
-	hdrHandler, err := hardForkBlockProcessor.CreateBlock(
-		body,
-		arg.Core.ChainID(),
-		arg.HardForkConfig.StartRound,
-		arg.HardForkConfig.StartNonce,
-		arg.HardForkConfig.StartEpoch,
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	err = hdrHandler.SetTimeStamp(arg.GenesisTime)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	rootHashHolder := holders.NewDefaultRootHashesHolder(hdrHandler.GetRootHash())
-	err = arg.Accounts.RecreateTrie(rootHashHolder)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	indexingData := &genesis.IndexingData{
-		DelegationTxs:      make([]data.TransactionHandler, 0),
-		ScrsTxs:            make(map[string]data.TransactionHandler),
-		StakingTxs:         make([]data.TransactionHandler, 0),
-		DeploySystemScTxs:  make([]data.TransactionHandler, 0),
-		DeployInitialScTxs: make([]data.TransactionHandler, 0),
-	}
-
-	return hdrHandler, make([][]byte, 0), indexingData, nil
-}
-
-func createArgsShardBlockCreatorAfterHardFork(
-	arg ArgsGenesisBlockCreator,
-	selfShardID uint32,
-) (hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork, error) {
-	tmpArg := arg
-	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
-	processors, err := createProcessorsForShardGenesisBlock(tmpArg, arg.EpochConfig.EnableEpochs, arg.RoundConfig)
-	if err != nil {
-		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
-	}
-
-	argsPendingTxProcessor := hardForkProcess.ArgsPendingTransactionProcessor{
-		Accounts:         tmpArg.Accounts,
-		TxProcessor:      processors.txProcessor,
-		RwdTxProcessor:   processors.rwdProcessor,
-		ScrTxProcessor:   processors.scrProcessor,
-		PubKeyConv:       arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator: arg.ShardCoordinator,
-	}
-	pendingTxProcessor, err := hardForkProcess.NewPendingTransactionProcessor(argsPendingTxProcessor)
-	if err != nil {
-		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
-	}
-
-	receiptsRepository, err := receipts.NewReceiptsRepository(receipts.ArgsNewReceiptsRepository{
-		Marshaller: arg.Core.InternalMarshalizer(),
-		Hasher:     arg.Core.Hasher(),
-		Store:      arg.Data.StorageService(),
-	})
-	if err != nil {
-		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
-	}
-
-	argsShardBlockCreatorAfterHardFork := hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{
-		Hasher:             arg.Core.Hasher(),
-		ImportHandler:      arg.importHandler,
-		Marshalizer:        arg.Core.InternalMarshalizer(),
-		PendingTxProcessor: pendingTxProcessor,
-		ShardCoordinator:   arg.ShardCoordinator,
-		Storage:            arg.Data.StorageService(),
-		TxCoordinator:      processors.txCoordinator,
-		ReceiptsRepository: receiptsRepository,
-		SelfShardID:        selfShardID,
-	}
-
-	return argsShardBlockCreatorAfterHardFork, nil
-}
 
 // setBalancesToTrie adds balances to trie
 func setBalancesToTrie(arg ArgsGenesisBlockCreator) (int, error) {

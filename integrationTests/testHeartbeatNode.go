@@ -60,7 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/multiversx/mx-chain-go/update"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
 )
 
 // constants used for the hearbeat node & generated messages
@@ -71,13 +71,11 @@ const (
 	timeBetweenHeartbeats     = 5 * time.Second
 	timeBetweenSendsWhenError = time.Second
 	thresholdBetweenSends     = 0.2
-	timeBetweenHardforks      = 2 * time.Second
 
 	minPeersThreshold       = 1.0
 	delayBetweenRequests    = time.Second
 	maxTimeout              = time.Minute
 	maxMissingKeysInRequest = 1
-	providedHardforkPubKey  = "provided pub key"
 )
 
 // TestMarshaller represents the main marshaller
@@ -107,7 +105,7 @@ type TestHeartbeatNode struct {
 	FullArchiveMessenger                 p2p.Messenger
 	NodeKeys                             *TestNodeKeys
 	DataPool                             dataRetriever.PoolsHolder
-	Sender                               update.Closer
+	Sender                               mainFactory.Closer
 	PeerAuthInterceptor                  *interceptors.MultiDataInterceptor
 	HeartbeatInterceptor                 *interceptors.SingleDataInterceptor
 	FullArchiveHeartbeatInterceptor      *interceptors.SingleDataInterceptor
@@ -121,10 +119,10 @@ type TestHeartbeatNode struct {
 	RequestersFinder                     dataRetriever.RequestersFinder
 	RequestHandler                       process.RequestHandler
 	RequestedItemsHandler                dataRetriever.RequestedItemsHandler
-	RequestsProcessor                    update.Closer
-	ShardSender                          update.Closer
-	MainDirectConnectionProcessor        update.Closer
-	FullArchiveDirectConnectionProcessor update.Closer
+	RequestsProcessor                    mainFactory.Closer
+	ShardSender                          mainFactory.Closer
+	MainDirectConnectionProcessor        mainFactory.Closer
+	FullArchiveDirectConnectionProcessor mainFactory.Closer
 	Interceptor                          *CountInterceptor
 	ManagedPeersHolder                   common.ManagedPeersHolder
 	heartbeatExpiryTimespanInSec         int64
@@ -503,8 +501,6 @@ func (thn *TestHeartbeatNode) initSender() {
 		PrivateKey:              thn.NodeKeys.MainKey.Sk,
 		RedundancyHandler:       &mock.RedundancyHandlerStub{},
 		NodesCoordinator:        thn.NodesCoordinator,
-		HardforkTrigger:         &testscommon.HardforkTriggerStub{},
-		HardforkTriggerPubKey:   []byte(providedHardforkPubKey),
 		PeerTypeProvider:        &mock.PeerTypeProviderStub{},
 		ManagedPeersHolder:      thn.ManagedPeersHolder,
 		ShardCoordinator:        thn.ShardCoordinator,
@@ -515,7 +511,6 @@ func (thn *TestHeartbeatNode) initSender() {
 		HeartbeatTimeBetweenSends:                   timeBetweenHeartbeats,
 		HeartbeatTimeBetweenSendsWhenError:          timeBetweenSendsWhenError,
 		HeartbeatTimeThresholdBetweenSends:          thresholdBetweenSends,
-		HardforkTimeBetweenSends:                    timeBetweenHardforks,
 		PeerAuthenticationTimeBetweenChecks:         time.Second * 2,
 	}
 
@@ -643,8 +638,7 @@ func (thn *TestHeartbeatNode) initRequestedItemsHandler() {
 func (thn *TestHeartbeatNode) initInterceptors() {
 	argsFactory := interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents: &processMock.CoreComponentsMock{
-			IntMarsh:                   TestMarshaller,
-			HardforkTriggerPubKeyField: []byte(providedHardforkPubKey),
+			IntMarsh: TestMarshaller,
 		},
 		ShardCoordinator:                        thn.ShardCoordinator,
 		NodesCoordinator:                        thn.NodesCoordinator,
@@ -670,7 +664,6 @@ func (thn *TestHeartbeatNode) createPeerAuthInterceptor(argsFactory interceptorF
 		PeerAuthenticationCacher: thn.DataPool.PeerAuthentications(),
 		PeerShardMapper:          thn.MainPeerShardMapper,
 		Marshaller:               TestMarshaller,
-		HardforkTrigger:          &testscommon.HardforkTriggerStub{},
 	}
 	paProcessor, _ := interceptorsProcessor.NewPeerAuthenticationInterceptorProcessor(args)
 	paFactory, _ := interceptorFactory.NewInterceptedPeerAuthenticationDataFactory(argsFactory)

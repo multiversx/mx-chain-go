@@ -310,16 +310,6 @@ updateJSONValue() {
   sed -i "s,\"$key\": .*\$,\"$key\": $escaped_value\,," $filename
 }
 
-changeConfigForHardfork(){
-  pushd $TESTNETDIR/node/config
-
-  export FIRST_PUBKEY=$(cat nodesSetup.json | grep pubkey -m 1 | sed -E 's/^.*"([0-9a-f]+)".*$/\1/g')
-  updateTOMLValue config_observer.toml "PublicKeyToListenFrom" "\"$FIRST_PUBKEY\""
-  updateTOMLValue config_validator.toml "PublicKeyToListenFrom" "\"$FIRST_PUBKEY\""
-
-  popd
-}
-
 copyBackConfigs(){
   pushd $TESTNETDIR
 

@@ -33,9 +33,6 @@ type ArgSender struct {
 	PrivateKey                                  crypto.PrivateKey
 	RedundancyHandler                           heartbeat.NodeRedundancyHandler
 	NodesCoordinator                            heartbeat.NodesCoordinator
-	HardforkTrigger                             heartbeat.HardforkTrigger
-	HardforkTimeBetweenSends                    time.Duration
-	HardforkTriggerPubKey                       []byte
 	PeerTypeProvider                            heartbeat.PeerTypeProviderHandler
 	ManagedPeersHolder                          heartbeat.ManagedPeersHolder
 	PeerAuthenticationTimeBetweenChecks         time.Duration
@@ -67,14 +64,11 @@ func NewSender(args ArgSender) (*sender, error) {
 			privKey:                   args.PrivateKey,
 			redundancyHandler:         args.RedundancyHandler,
 		},
-		nodesCoordinator:         args.NodesCoordinator,
-		peerSignatureHandler:     args.PeerSignatureHandler,
-		hardforkTrigger:          args.HardforkTrigger,
-		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
-		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
-		managedPeersHolder:       args.ManagedPeersHolder,
-		timeBetweenChecks:        args.PeerAuthenticationTimeBetweenChecks,
-		shardCoordinator:         args.ShardCoordinator,
+		nodesCoordinator:     args.NodesCoordinator,
+		peerSignatureHandler: args.PeerSignatureHandler,
+		managedPeersHolder:   args.ManagedPeersHolder,
+		timeBetweenChecks:    args.PeerAuthenticationTimeBetweenChecks,
+		shardCoordinator:     args.ShardCoordinator,
 	})
 	if err != nil {
 		return nil, err
@@ -110,7 +104,7 @@ func NewSender(args ArgSender) (*sender, error) {
 
 	return &sender{
 		heartbeatSender: hbs,
-		routineHandler:  newRoutineHandler(pas, hbs, pas),
+		routineHandler:  newRoutineHandler(pas, hbs),
 	}, nil
 }
 
@@ -127,12 +121,9 @@ func checkSenderArgs(args ArgSender) error {
 		redundancyHandler:         args.RedundancyHandler,
 	}
 	pasArgs := argPeerAuthenticationSender{
-		argBaseSender:            basePeerAuthSenderArgs,
-		nodesCoordinator:         args.NodesCoordinator,
-		peerSignatureHandler:     args.PeerSignatureHandler,
-		hardforkTrigger:          args.HardforkTrigger,
-		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
-		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
+		argBaseSender:        basePeerAuthSenderArgs,
+		nodesCoordinator:     args.NodesCoordinator,
+		peerSignatureHandler: args.PeerSignatureHandler,
 	}
 	err := checkPeerAuthenticationSenderArgs(pasArgs)
 	if err != nil {
@@ -140,15 +131,12 @@ func checkSenderArgs(args ArgSender) error {
 	}
 
 	mpasArgs := argMultikeyPeerAuthenticationSender{
-		argBaseSender:            basePeerAuthSenderArgs,
-		nodesCoordinator:         args.NodesCoordinator,
-		peerSignatureHandler:     args.PeerSignatureHandler,
-		hardforkTrigger:          args.HardforkTrigger,
-		hardforkTimeBetweenSends: args.HardforkTimeBetweenSends,
-		hardforkTriggerPubKey:    args.HardforkTriggerPubKey,
-		managedPeersHolder:       args.ManagedPeersHolder,
-		timeBetweenChecks:        args.PeerAuthenticationTimeBetweenChecks,
-		shardCoordinator:         args.ShardCoordinator,
+		argBaseSender:        basePeerAuthSenderArgs,
+		nodesCoordinator:     args.NodesCoordinator,
+		peerSignatureHandler: args.PeerSignatureHandler,
+		managedPeersHolder:   args.ManagedPeersHolder,
+		timeBetweenChecks:    args.PeerAuthenticationTimeBetweenChecks,
+		shardCoordinator:     args.ShardCoordinator,
 	}
 	err = checkMultikeyPeerAuthenticationSenderArgs(mpasArgs)
 	if err != nil {

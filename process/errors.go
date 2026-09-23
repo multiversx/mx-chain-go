@@ -1170,9 +1170,6 @@ var ErrInvalidProcessWaitTime = errors.New("invalid process wait time")
 // ErrMetaHeaderEpochOutOfRange signals that the given header is out of accepted range
 var ErrMetaHeaderEpochOutOfRange = errors.New("epoch out of range for meta block header")
 
-// ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
-var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
-
 // ErrMissingMiniBlockHeader signals that mini block header is missing
 var ErrMissingMiniBlockHeader = errors.New("missing mini block header")
 

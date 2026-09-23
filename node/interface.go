@@ -5,8 +5,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
-	"github.com/multiversx/mx-chain-go/update"
 )
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component
@@ -15,19 +13,6 @@ type NetworkShardingCollector interface {
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
-	IsInterfaceNil() bool
-}
-
-// HardforkTrigger defines the behavior of a hardfork trigger
-type HardforkTrigger interface {
-	SetExportFactoryHandler(exportFactoryHandler update.ExportFactoryHandler) error
-	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
-	RecordedTriggerMessage() ([]byte, bool)
-	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
-	CreateData() []byte
-	AddCloser(closer update.Closer) error
-	NotifyTriggerReceivedV2() <-chan struct{}
-	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }
 

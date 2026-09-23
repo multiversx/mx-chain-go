@@ -381,3 +381,15 @@ var ErrNilPrevBlockExecutionResults = errors.New("nil previous block execution r
 
 // ErrMissingNodesConfigForBootstrapEpoch signals that the nodes coordinator config does not contain the resolved bootstrap epoch
 var ErrMissingNodesConfigForBootstrapEpoch = errors.New("nodes coordinator config missing for resolved bootstrap epoch")
+
+// ErrNilCacher signals that a nil cacher has been provided
+var ErrNilCacher = errors.New("nil cacher")
+
+// ErrNilHeadersPool signals that nil headers pool was provided
+var ErrNilHeadersPool = errors.New("nil headers pool")
+
+// ErrNotSynced signals that syncing has not been finished yet
+var ErrNotSynced = errors.New("not synced")
+
+// ErrEpochStartShardHeaderNotFound signals that the walk reached the target epoch without finding its epoch start block
+var ErrEpochStartShardHeaderNotFound = errors.New("epoch start shard header not found, walked past the target epoch boundary")

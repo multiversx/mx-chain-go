@@ -74,8 +74,6 @@ type Facade interface {
 	GetBlockByHash(hash string, options dataApi.BlockQueryOptions) (*dataApi.Block, error)
 	GetBlockByNonce(nonce uint64, options dataApi.BlockQueryOptions) (*dataApi.Block, error)
 	GetBlockByRound(round uint64, options dataApi.BlockQueryOptions) (*dataApi.Block, error)
-	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
-	IsSelfTrigger() bool
 	GetTotalStakedValue() (*dataApi.StakeValues, error)
 	GetDirectStakedList() ([]*dataApi.DirectStakedValue, error)
 	GetDelegatorsList() ([]*dataApi.Delegator, error)

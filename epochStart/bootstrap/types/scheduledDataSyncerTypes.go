@@ -5,7 +5,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/update"
 )
 
 // ScheduledDataSyncerCreateArgs holds the arguments to create a scheduled data syncer factory
@@ -13,7 +12,7 @@ type ScheduledDataSyncerCreateArgs struct {
 	ScheduledTxsHandler  process.ScheduledTxsExecutionHandler
 	HeadersSyncer        epochStart.HeadersByHashSyncer
 	MiniBlocksSyncer     epochStart.PendingMiniBlocksSyncHandler
-	TxSyncer             update.TransactionsSyncHandler
+	TxSyncer             epochStart.TransactionsSyncHandler
 	ScheduledEnableEpoch uint32
 }
 

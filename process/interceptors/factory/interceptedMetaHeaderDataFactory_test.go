@@ -77,7 +77,6 @@ func createMockComponentHolders() (*processMocks.CoreComponentsMock, *processMoc
 		},
 		TxVersionCheckField:                versioning.NewTxVersionChecker(1),
 		EpochNotifierField:                 &epochNotifier.EpochNotifierStub{},
-		HardforkTriggerPubKeyField:         []byte("provided hardfork pub key"),
 		EnableEpochsHandlerField:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,

@@ -20,9 +20,6 @@ var ErrNilPeerTypeProvider = errors.New("nil peer type provider")
 // ErrPropertyTooLong signals that one of the properties is too long
 var ErrPropertyTooLong = errors.New("property too long in Heartbeat")
 
-// ErrNilHardforkTrigger signals that a nil hardfork trigger has been provided
-var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
-
 // ErrNilPubkeyConverter signals that a nil public key converter has been provided
 var ErrNilPubkeyConverter = errors.New("trying to use a nil pubkey converter")
 

@@ -28,8 +28,7 @@ func createHeartbeatInterceptorProcessArg() processor.ArgHeartbeatInterceptorPro
 
 func createInterceptedHeartbeat() *heartbeatMessages.HeartbeatV2 {
 	payload := &heartbeatMessages.Payload{
-		Timestamp:       time.Now().Unix(),
-		HardforkMessage: "hardfork message",
+		Timestamp: time.Now().Unix(),
 	}
 	marshaller := mock.MarshalizerMock{}
 	payloadBytes, _ := marshaller.Marshal(payload)

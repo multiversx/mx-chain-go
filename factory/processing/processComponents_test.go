@@ -60,7 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
+	epochStartMock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 )
 
 const (
@@ -176,7 +176,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				MaxNumberOfIterations: 100000,
 			},
 		},
-		ImportStartHandler: &testscommon.ImportStartHandlerStub{},
 		HistoryRepo:        &dblookupext.HistoryRepositoryStub{},
 		Data: &testsMocks.DataComponentsStub{
 			DataPool: dataRetriever.NewPoolsHolderMock(),
@@ -220,12 +219,11 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			RatingHandler:                      &testscommon.RaterMock{},
 			EnableEpochsHandlerField:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
-			EpochNotifierWithConfirm:           &updateMocks.EpochStartNotifierStub{},
+			EpochNotifierWithConfirm:           &epochStartMock.EpochStartNotifierStub{},
 			RoundHandlerField:                  &testscommon.RoundHandlerMock{},
 			RoundChangeNotifier:                &epochNotifier.RoundNotifierStub{},
 			ChanStopProcess:                    make(chan endProcess.ArgEndProcess, 1),
 			TxSignHasherField:                  keccak.NewKeccak(),
-			HardforkTriggerPubKeyField:         []byte("hardfork pub key"),
 			WasmVMChangeLockerInternal:         &sync.RWMutex{},
 			NodeTypeProviderField:              &nodeTypeProviderMock.NodeTypeProviderStub{},
 			RatingsConfig:                      &testscommon.RatingsInfoMock{},
@@ -751,13 +749,6 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			return args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerField
 		}
 		testCreateWithArgs(t, args, "NewTxsPoolsCleaner")
-	})
-	t.Run("createHardforkTrigger fails due to Decode failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.Config.Hardfork.PublicKeyToListenFrom = "invalid key"
-		testCreateWithArgs(t, args, "PublicKeyToListenFrom")
 	})
 	t.Run("NewCache fails for vmOutput should error", func(t *testing.T) {
 		t.Parallel()

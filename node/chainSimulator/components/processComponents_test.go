@@ -43,7 +43,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
+	epochStartMock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 )
 
 const testingProtocolSustainabilityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
@@ -168,12 +168,11 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			RatingHandler:                      &testscommon.RaterMock{},
 			EnableEpochsHandlerField:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
-			EpochNotifierWithConfirm:           &updateMocks.EpochStartNotifierStub{},
+			EpochNotifierWithConfirm:           &epochStartMock.EpochStartNotifierStub{},
 			RoundHandlerField:                  &testscommon.RoundHandlerMock{},
 			RoundChangeNotifier:                &epochNotifier.RoundNotifierStub{},
 			ChanStopProcess:                    make(chan endProcess.ArgEndProcess, 1),
 			TxSignHasherField:                  keccak.NewKeccak(),
-			HardforkTriggerPubKeyField:         []byte("hardfork pub key"),
 			WasmVMChangeLockerInternal:         &sync.RWMutex{},
 			NodeTypeProviderField:              &nodeTypeProviderMock.NodeTypeProviderStub{},
 			RatingsConfig:                      &testscommon.RatingsInfoMock{},
@@ -267,15 +266,6 @@ func TestCreateProcessComponents(t *testing.T) {
 
 		require.Nil(t, comp.Create())
 		require.Nil(t, comp.Close())
-	})
-	t.Run("NewImportStartHandler failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createArgsProcessComponentsHolder()
-		args.FlagsConfig.Version = ""
-		comp, err := CreateProcessComponents(args)
-		require.Error(t, err)
-		require.Nil(t, comp)
 	})
 	t.Run("total supply conversion failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -416,13 +406,11 @@ func TestProcessComponentsHolder_Getters(t *testing.T) {
 	require.NotNil(t, comp.WhiteListHandler())
 	require.NotNil(t, comp.WhiteListerVerifiedTxs())
 	require.NotNil(t, comp.HistoryRepository())
-	require.NotNil(t, comp.ImportStartHandler())
 	require.NotNil(t, comp.RequestedItemsHandler())
 	require.NotNil(t, comp.NodeRedundancyHandler())
 	require.NotNil(t, comp.CurrentEpochProvider())
 	require.NotNil(t, comp.ScheduledTxsExecutionHandler())
 	require.NotNil(t, comp.TxsSenderHandler())
-	require.NotNil(t, comp.HardforkTrigger())
 	require.NotNil(t, comp.ProcessedMiniBlocksTracker())
 	require.NotNil(t, comp.ESDTDataStorageHandlerForAPI())
 	require.NotNil(t, comp.AccountsParser())

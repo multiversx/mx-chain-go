@@ -246,7 +246,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	}
 	coreComponents.NodeTypeProviderField = &nodeTypeProviderMock.NodeTypeProviderStub{}
 	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
-	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 	coreComponents.ChainParametersHandlerField = &chainParameters.ChainParametersHandlerStub{}
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(

@@ -571,7 +571,6 @@ func GetProcessArgs(
 		WhiteListHandler:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs: &testscommon.WhiteListHandlerStub{},
 		MaxRating:              100,
-		ImportStartHandler:     &testscommon.ImportStartHandlerStub{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",

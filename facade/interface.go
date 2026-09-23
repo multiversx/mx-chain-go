@@ -97,8 +97,6 @@ type NodeHandler interface {
 	ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error)
 
 	AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error)
-	DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error
-	IsSelfTrigger() bool
 
 	EncodeAddressPubkey(pk []byte) (string, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
@@ -163,12 +161,5 @@ type ApiResolver interface {
 	GetWaitingManagedKeys() ([]string, error)
 	GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error)
 	Close() error
-	IsInterfaceNil() bool
-}
-
-// HardforkTrigger defines the structure used to trigger hardforks
-type HardforkTrigger interface {
-	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
-	IsSelfTrigger() bool
 	IsInterfaceNil() bool
 }

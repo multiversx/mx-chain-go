@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/update"
 )
 
 type coreComponentsHandler interface {
@@ -63,7 +62,6 @@ type ArgsGenesisBlockCreator struct {
 	GasSchedule             core.GasScheduleNotifier
 	TxLogsProcessor         process.TransactionLogProcessor
 	VirtualMachineConfig    config.VirtualMachineConfig
-	HardForkConfig          config.HardforkConfig
 	TrieStorageManagers     map[string]common.StorageManager
 	SystemSCConfig          config.SystemSmartContractsConfig
 	RoundConfig             config.RoundConfig
@@ -80,6 +78,5 @@ type ArgsGenesisBlockCreator struct {
 	GenesisString    string
 
 	// created components
-	importHandler          update.ImportHandler
 	versionedHeaderFactory genesis.VersionedHeaderFactory
 }

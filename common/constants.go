@@ -1102,21 +1102,11 @@ const DefaultResolversIdentifier = "default resolver"
 // (that makes the node run properly)
 const DefaultInterceptorsIdentifier = "default interceptor"
 
-// HardforkInterceptorsIdentifier represents the identifier that is used in the hardfork process
-const HardforkInterceptorsIdentifier = "hardfork interceptor"
-
-// HardforkResolversIdentifier represents the resolver that is used in the hardfork process
-const HardforkResolversIdentifier = "hardfork resolver"
-
 // EpochStartInterceptorsIdentifier represents the identifier that is used in the start-in-epoch process
 const EpochStartInterceptorsIdentifier = "epoch start interceptor"
 
 // TimeoutGettingTrieNodes defines the timeout in trie sync operation if no node is received
 const TimeoutGettingTrieNodes = 2 * time.Minute // to consider syncing a very large trie node of 64MB at ~1MB/s
-
-// TimeoutGettingTrieNodesInHardfork represents the maximum time allowed between 2 nodes fetches (and commits)
-// during the hardfork process
-const TimeoutGettingTrieNodesInHardfork = time.Minute * 10
 
 // RetrialIntervalForOutportDriver is the interval in which the outport driver should try to call the driver again
 const RetrialIntervalForOutportDriver = time.Second * 10

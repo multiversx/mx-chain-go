@@ -12,13 +12,11 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
-	disabledFactory "github.com/multiversx/mx-chain-go/factory/disabled"
 	disabledGenesis "github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/update"
 )
 
 const timeSpanForBadHeaders = time.Minute
@@ -33,8 +31,8 @@ type ArgsEpochStartInterceptorContainer struct {
 	MainMessenger                  process.TopicHandler
 	FullArchiveMessenger           process.TopicHandler
 	DataPool                       dataRetriever.PoolsHolder
-	WhiteListHandler               update.WhiteListHandler
-	WhiteListerVerifiedTxs         update.WhiteListHandler
+	WhiteListHandler               process.WhiteListHandler
+	WhiteListerVerifiedTxs         process.WhiteListHandler
 	AddressPubkeyConv              core.PubkeyConverter
 	NonceConverter                 typeConverters.Uint64ByteSliceConverter
 	ChainID                        []byte
@@ -77,7 +75,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 	// TODO: move the peerShardMapper creation before boostrapComponents
 	peerShardMapper := disabled.NewPeerShardMapper()
 	fullArchivePeerShardMapper := disabled.NewPeerShardMapper()
-	hardforkTrigger := disabledFactory.HardforkTrigger()
 
 	containerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:                          args.CoreComponents,
@@ -111,7 +108,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		TrieNodeChunksInactivityTimeout:         time.Duration(args.Config.Antiflood.TrieNodeChunksInactivityTimeoutInSec) * time.Second,
 		MainPeerShardMapper:                     peerShardMapper,
 		FullArchivePeerShardMapper:              fullArchivePeerShardMapper,
-		HardforkTrigger:                         hardforkTrigger,
 		NodeOperationMode:                       args.NodeOperationMode,
 		InterceptedDataVerifierFactory:          args.InterceptedDataVerifierFactory,
 		Config:                                  args.Config,
