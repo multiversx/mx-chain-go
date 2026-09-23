@@ -464,9 +464,10 @@ func (t *trigger) requestMissingMiniBlocks(ctx context.Context) {
 		missingMiniBlocks := make([][]byte, 0, len(t.mapMissingMiniBlocks))
 		for hash, epoch := range t.mapMissingMiniBlocks {
 			missingMiniBlocks = append(missingMiniBlocks, []byte(hash))
-			log.Debug("trigger.requestMissingMiniBlocks", "epoch", epoch, "hash", []byte(hash))
+			log.Trace("trigger.requestMissingMiniBlocks", "epoch", epoch, "hash", []byte(hash))
 		}
 		t.mutMissingMiniBlocks.RUnlock()
+		log.Debug("trigger.requestMissingMiniBlocks", "num missing mini blocks", len(missingMiniBlocks))
 
 		go t.requestHandler.RequestMiniBlocks(core.MetachainShardId, missingMiniBlocks)
 
@@ -506,9 +507,10 @@ func (t *trigger) requestMissingValidatorsInfo(ctx context.Context) {
 		missingValidatorsInfo := make([][]byte, 0, len(t.mapMissingValidatorsInfo))
 		for hash, epoch := range t.mapMissingValidatorsInfo {
 			missingValidatorsInfo = append(missingValidatorsInfo, []byte(hash))
-			log.Debug("trigger.requestMissingValidatorsInfo", "epoch", epoch, "hash", []byte(hash))
+			log.Trace("trigger.requestMissingValidatorsInfo", "epoch", epoch, "hash", []byte(hash))
 		}
 		t.mutMissingValidatorsInfo.RUnlock()
+		log.Debug("trigger.requestMissingValidatorsInfo", "num missing validators info", len(missingValidatorsInfo))
 
 		go t.requestHandler.RequestValidatorsInfo(missingValidatorsInfo)
 

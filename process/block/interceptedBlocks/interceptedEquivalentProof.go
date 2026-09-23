@@ -157,7 +157,7 @@ func extractIsForCurrentShard(shardCoordinator sharding.Coordinator, equivalentP
 // CheckValidity checks if the received proof is valid
 func (iep *interceptedEquivalentProof) CheckValidity() error {
 	log.Trace("Checking intercepted equivalent proof validity", "proof header hash", iep.proof.HeaderHash)
-	if iep.roundExclusions.IsRoundExcluded(iep.proof.GetHeaderRound()) {
+	if common.IsHeaderExcluded(iep.roundExclusions, iep.proof.GetHeaderRound(), iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash()) {
 		return common.ErrRoundExcluded
 	}
 

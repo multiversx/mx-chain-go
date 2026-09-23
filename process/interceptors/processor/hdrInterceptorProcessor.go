@@ -65,7 +65,7 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 		return process.ErrWrongTypeAssertion
 	}
 	header := interceptedHdr.HeaderHandler()
-	if !check.IfNil(header) && hip.roundExclusions.IsRoundExcluded(header.GetRound()) {
+	if !check.IfNil(header) && common.IsHeaderExcluded(hip.roundExclusions, header.GetRound(), header.GetShardID(), interceptedHdr.Hash()) {
 		return common.ErrRoundExcluded
 	}
 
@@ -86,7 +86,7 @@ func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 		return false, process.ErrWrongTypeAssertion
 	}
 	header := interceptedHdr.HeaderHandler()
-	if !check.IfNil(header) && hip.roundExclusions.IsRoundExcluded(header.GetRound()) {
+	if !check.IfNil(header) && common.IsHeaderExcluded(hip.roundExclusions, header.GetRound(), header.GetShardID(), interceptedHdr.Hash()) {
 		return false, common.ErrRoundExcluded
 	}
 

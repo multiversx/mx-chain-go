@@ -868,6 +868,9 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		log.Debug("subroundBlock.receivedBlockHeader", "error", err.Error())
 		return
 	}
+	if common.IsHeaderExcluded(sr.roundExclusions, headerHandler.GetRound(), headerHandler.GetShardID(), headerHash) {
+		return
+	}
 
 	if !sr.SetDataIfNotSet(headerHash) {
 		log.Debug("subroundBlock.receivedBlockHeader - consensus data already set")

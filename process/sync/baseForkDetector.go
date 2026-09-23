@@ -144,7 +144,7 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	if headerHash == nil {
 		return ErrNilHash
 	}
-	if bfd.isRoundExcluded(header.GetRound()) {
+	if bfd.isHeaderExcluded(header.GetRound(), headerHash) {
 		return common.ErrRoundExcluded
 	}
 
@@ -297,7 +297,7 @@ func (bfd *baseForkDetector) classifyProbableHeaders(
 
 	uniqueProofs := 0
 	for index, hdrInfo := range hdrInfos {
-		if bfd.isRoundExcluded(hdrInfo.round) {
+		if bfd.isHeaderExcluded(hdrInfo.round, hdrInfo.hash) {
 			continue
 		}
 		isV3 := false
@@ -913,7 +913,7 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 }
 
 func (bfd *baseForkDetector) appendHeaderInfo(hdrInfo *headerInfo) appendHeaderInfoResult {
-	if hdrInfo == nil || bfd.isRoundExcluded(hdrInfo.round) {
+	if hdrInfo == nil || bfd.isHeaderExcluded(hdrInfo.round, hdrInfo.hash) {
 		return appendHeaderInfoResult{}
 	}
 
@@ -1317,7 +1317,7 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		forkHeaderEpoch = 0
 		bfd.maxForkHeaderEpoch = selfHdrInfo.epoch
 		for _, hdrInfo := range hdrsInfo {
-			if bfd.isRoundExcluded(hdrInfo.round) {
+			if bfd.isHeaderExcluded(hdrInfo.round, hdrInfo.hash) {
 				continue
 			}
 			if hdrInfo.state == process.BHProcessed ||
@@ -1330,7 +1330,7 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		}
 
 		for i := 0; i < len(hdrsInfo); i++ {
-			if bfd.isRoundExcluded(hdrsInfo[i].round) {
+			if bfd.isHeaderExcluded(hdrsInfo[i].round, hdrsInfo[i].hash) {
 				continue
 			}
 			if hdrsInfo[i].state == process.BHProcessed {
@@ -1365,7 +1365,7 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 func (bfd *baseForkDetector) getProcessedHeaderInfo(hdrInfos []*headerInfo) *headerInfo {
 	var processedHeader *headerInfo
 	for _, hdrInfo := range hdrInfos {
-		if bfd.isRoundExcluded(hdrInfo.round) {
+		if bfd.isHeaderExcluded(hdrInfo.round, hdrInfo.hash) {
 			continue
 		}
 		if hdrInfo.state == process.BHProcessed {
@@ -1941,7 +1941,7 @@ func (bfd *baseForkDetector) ReceivedProof(proof data.HeaderProofHandler) {
 }
 
 func (bfd *baseForkDetector) processReceivedProof(proof data.HeaderProofHandler) {
-	if check.IfNil(proof) || bfd.isRoundExcluded(proof.GetHeaderRound()) {
+	if check.IfNil(proof) || bfd.isHeaderExcluded(proof.GetHeaderRound(), proof.GetHeaderHash()) {
 		return
 	}
 
@@ -1979,7 +1979,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	selfNotarizedHeadersHashes [][]byte,
 	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
 ) {
-	if bfd.isRoundExcluded(header.GetRound()) {
+	if bfd.isHeaderExcluded(header.GetRound(), headerHash) {
 		return
 	}
 
@@ -2033,8 +2033,8 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		"has proof", hInfo.hasProof)
 }
 
-func (bfd *baseForkDetector) isRoundExcluded(round uint64) bool {
-	return !check.IfNil(bfd.roundExclusions) && bfd.roundExclusions.IsRoundExcluded(round)
+func (bfd *baseForkDetector) isHeaderExcluded(round uint64, hash []byte) bool {
+	return common.IsHeaderExcluded(bfd.roundExclusions, round, bfd.shardID, hash)
 }
 
 // SetFinalToLastCheckpoint sets the final and settled checkpoints to the last checkpoint added in

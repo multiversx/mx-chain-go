@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 	"sync"
 	"time"
 
@@ -355,6 +357,24 @@ func (e *epochStartBootstrap) isNodeInGenesisNodesConfig() bool {
 func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer e.closeTrieComponents()
 	defer e.closeBootstrapHeartbeatSender()
+	if e.generalConfig.HardforkRecoveryCheckpoint.Enabled {
+		checkpoint, err := common.NewRecoveryCheckpoint(&e.generalConfig)
+		if err != nil || !checkpoint.HasAllShards(e.genesisShardCoordinator.NumberOfShards()) {
+			return Parameters{}, common.ErrInvalidRecoveryCheckpoint
+		}
+		if !e.hasNoLocalStorage() {
+			e.initializeFromLocalStorage()
+			if e.baseData.storageExists {
+				highestRound, err := e.getHighestStoredRound()
+				if err != nil {
+					return Parameters{}, err
+				}
+				if highestRound >= int64(checkpoint.Round) && uint64(highestRound) <= checkpoint.ExcludedEnd {
+					return e.prepareEpochFromStorage()
+				}
+			}
+		}
+	}
 
 	if e.flagsConfig.ForceStartFromNetwork {
 		log.Warn("epochStartBootstrap.Bootstrap: forcing start from network")
@@ -438,6 +458,24 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	e.setEpochStartMetrics()
 
 	return params, nil
+}
+
+func (e *epochStartBootstrap) hasNoLocalStorage() bool {
+	path := e.latestStorageDataProvider.GetParentDirectory()
+	if len(path) == 0 {
+		return false
+	}
+	dir, err := os.Open(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return true
+	}
+	if err != nil {
+		return false
+	}
+	defer dir.Close()
+
+	_, err = dir.Readdirnames(1)
+	return errors.Is(err, io.EOF)
 }
 
 func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
@@ -625,7 +663,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	if err != nil {
 		return err
 	}
-	roundExclusions, err := common.NewRoundExclusionHandler(e.generalConfig.HardforkRoundExclusions)
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&e.generalConfig)
 	if err != nil {
 		return err
 	}

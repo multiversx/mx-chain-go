@@ -713,18 +713,19 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:                   topic,
-			Marshalizer:             internalMarshaller,
-			Hasher:                  bicf.argInterceptorFactory.CoreComponents.Hasher(),
-			DataFactory:             trieNodesFactory,
-			Processor:               trieNodesProcessor,
-			Throttler:               bicf.globalThrottler,
-			AntifloodHandler:        bicf.antifloodHandler,
-			WhiteListRequest:        bicf.whiteListHandler,
-			CurrentPeerId:           bicf.mainMessenger.ID(),
-			PreferredPeersHolder:    bicf.preferredPeersHolder,
-			InterceptedDataVerifier: interceptedDataVerifier,
-			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
+			Topic:                          topic,
+			Marshalizer:                    internalMarshaller,
+			Hasher:                         bicf.argInterceptorFactory.CoreComponents.Hasher(),
+			DataFactory:                    trieNodesFactory,
+			Processor:                      trieNodesProcessor,
+			Throttler:                      bicf.globalThrottler,
+			AntifloodHandler:               bicf.antifloodHandler,
+			WhiteListRequest:               bicf.whiteListHandler,
+			CurrentPeerId:                  bicf.mainMessenger.ID(),
+			PreferredPeersHolder:           bicf.preferredPeersHolder,
+			InterceptedDataVerifier:        interceptedDataVerifier,
+			ManagedPeersHolder:             bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
+			SkipUnrequestedDirectTrieNodes: true,
 		},
 	)
 	if err != nil {

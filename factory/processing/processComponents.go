@@ -284,6 +284,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.prefConfigs.Preferences.FullArchive,
 		pcf.coreData.EnableEpochsHandler(),
 		pcf.config.StoragePruning.AssumedPeersNumActivePersisters,
+		pcf.config.HardforkRecoveryCheckpoint.Enabled,
 	)
 	if err != nil {
 		return nil, err
@@ -1885,7 +1886,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 	headerBlackList process.TimeCacher,
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
-	roundExclusions, err := common.NewRoundExclusionHandler(pcf.config.HardforkRoundExclusions)
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&pcf.config)
 	if err != nil {
 		return nil, err
 	}

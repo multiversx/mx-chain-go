@@ -76,7 +76,7 @@ func checkHeadersPoolConfig(hdrsPoolConfig config.HeadersPoolConfig) error {
 
 // AddHeader is used to add a header in pool
 func (pool *headersPool) AddHeader(headerHash []byte, header data.HeaderHandler) {
-	if !check.IfNil(header) && pool.roundExclusions.IsRoundExcluded(header.GetRound()) {
+	if !check.IfNil(header) && common.IsHeaderExcluded(pool.roundExclusions, header.GetRound(), header.GetShardID(), headerHash) {
 		return
 	}
 

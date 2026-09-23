@@ -127,6 +127,35 @@ func TestLoadMainConfig(t *testing.T) {
 		require.Nil(t, conf)
 		require.ErrorIs(t, err, common.ErrOverlappingHardforkRoundExclusions)
 	})
+	t.Run("checkpoint round in another exclusion should error", func(t *testing.T) {
+		t.Parallel()
+
+		testString := `
+[[HardforkRoundExclusions]]
+    StartRound = 100
+    EndRound = 100
+[[HardforkRoundExclusions]]
+    StartRound = 101
+    EndRound = 199
+[HardforkRecoveryCheckpoint]
+    Enabled = true
+    Round = 100
+[[HardforkRecoveryCheckpoint.Headers]]
+    ShardID = 0
+    Hash = "{hash}"
+[[HardforkRecoveryCheckpoint.Headers]]
+    ShardID = 4294967295
+    Hash = "{hash}"
+`
+		testString = strings.ReplaceAll(testString, "{hash}", strings.Repeat("0", 64))
+		filePath := path.Join(t.TempDir(), "config.toml")
+		require.NoError(t, os.WriteFile(filePath, []byte(testString), 0o600))
+
+		conf, err := common.LoadMainConfig(filePath)
+
+		require.Nil(t, conf)
+		require.ErrorIs(t, err, common.ErrInvalidRecoveryCheckpoint)
+	})
 }
 
 func TestLoadApiConfig(t *testing.T) {

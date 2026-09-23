@@ -28,7 +28,40 @@ type RoundExclusionHandler interface {
 }
 
 type roundExclusionHandler struct {
-	intervals []config.HardforkRoundExclusionConfig
+	intervals  []config.HardforkRoundExclusionConfig
+	checkpoint *RecoveryCheckpoint
+}
+
+type headerExclusionHandler interface {
+	IsHeaderExcluded(round uint64, shardID uint32, hash []byte) bool
+}
+
+func NewConfiguredRoundExclusionHandler(cfg *config.Config) (RoundExclusionHandler, error) {
+	if cfg == nil {
+		return nil, ErrInvalidRecoveryCheckpoint
+	}
+	handler, err := NewRoundExclusionHandler(cfg.HardforkRoundExclusions)
+	if err != nil {
+		return nil, err
+	}
+	checkpoint, err := NewRecoveryCheckpoint(cfg)
+	if err != nil {
+		return nil, err
+	}
+	handler.(*roundExclusionHandler).checkpoint = checkpoint
+
+	return handler, nil
+}
+
+func IsHeaderExcluded(handler RoundExclusionHandler, round uint64, shardID uint32, hash []byte) bool {
+	if check.IfNil(handler) {
+		return false
+	}
+	if withHeader, ok := handler.(headerExclusionHandler); ok {
+		return withHeader.IsHeaderExcluded(round, shardID, hash)
+	}
+
+	return handler.IsRoundExcluded(round)
 }
 
 // NewRoundExclusionHandler creates an immutable round exclusion lookup.
@@ -75,6 +108,10 @@ func (reh *roundExclusionHandler) IsRoundExcluded(round uint64) bool {
 	})
 
 	return index < len(reh.intervals) && reh.intervals[index].StartRound <= round
+}
+
+func (reh *roundExclusionHandler) IsHeaderExcluded(round uint64, shardID uint32, hash []byte) bool {
+	return reh.IsRoundExcluded(round) || reh.checkpoint.IsDiscarded(round, shardID, hash)
 }
 
 func (reh *roundExclusionHandler) IsInterfaceNil() bool {

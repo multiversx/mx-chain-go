@@ -64,7 +64,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	}
 
 	mainConfig := args.Config
-	roundExclusions, err := common.NewRoundExclusionHandler(mainConfig.HardforkRoundExclusions)
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(mainConfig)
 	if err != nil {
 		return nil, err
 	}

@@ -327,6 +327,9 @@ func getNodeFromCacheOrStorage(
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}
+	if !bytes.Equal(existingNode.getHash(), hash) {
+		return nil, ErrNodeNotFound
+	}
 
 	return existingNode, nil
 }

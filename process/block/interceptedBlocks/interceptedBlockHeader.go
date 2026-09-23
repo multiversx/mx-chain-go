@@ -78,7 +78,7 @@ func (inHdr *InterceptedHeader) processFields(txBuff []byte) {
 
 // CheckValidity checks if the received header is valid (not nil fields, valid sig and so on)
 func (inHdr *InterceptedHeader) CheckValidity() error {
-	if inHdr.roundExclusions.IsRoundExcluded(inHdr.hdr.GetRound()) {
+	if common.IsHeaderExcluded(inHdr.roundExclusions, inHdr.hdr.GetRound(), inHdr.hdr.GetShardID(), inHdr.hash) {
 		return common.ErrRoundExcluded
 	}
 

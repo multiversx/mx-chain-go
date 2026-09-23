@@ -22,6 +22,12 @@ import (
 
 const leaderIndex = 0
 
+// maxRoundsInfoPerBatch caps how many RoundInfo entries are sent in a single
+// SaveRoundsInfo call. Without batching, a long pause (e.g. one day offline)
+// would accumulate tens/hundreds of thousands of missed rounds into a single
+// huge payload, which can OOM the node or fail in the drivers / indexers.
+const maxRoundsInfoPerBatch = 2000
+
 func getMetricsFromMetaHeader(
 	header data.MetaHeaderHandler,
 	marshalizer marshal.Marshalizer,
@@ -204,9 +210,10 @@ func indexRoundInfo(
 	lastBlockRound := lastHeader.GetRound()
 	currentBlockRound := header.GetRound()
 
-	roundsInfo := make([]*outportcore.RoundInfo, 0)
-	roundsInfo = append(roundsInfo, roundInfo)
 	epoch := header.GetEpoch()
+	batch := make([]*outportcore.RoundInfo, 0, maxRoundsInfoPerBatch)
+	batch = append(batch, roundInfo)
+
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		var ok bool
 		signersIndexes, ok = getSignersIndices(header, enableEpochsHandler, lastHeader, i, nodesCoordinator)
@@ -227,10 +234,16 @@ func indexRoundInfo(
 			TimestampMs:      roundTimestampMs,
 		}
 
-		roundsInfo = append(roundsInfo, roundInfo)
+		batch = append(batch, roundInfo)
+		if len(batch) >= maxRoundsInfoPerBatch {
+			outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: batch})
+			batch = make([]*outportcore.RoundInfo, 0, maxRoundsInfoPerBatch)
+		}
 	}
 
-	outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: roundsInfo})
+	if len(batch) > 0 {
+		outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: batch})
+	}
 }
 
 func getSignersIndices(
