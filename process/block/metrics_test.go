@@ -149,7 +149,7 @@ func TestMetrics_IndexRoundInfoSplitsLargeGapIntoMultipleBatches(t *testing.T) {
 
 	lastRound := uint64(0)
 	currentRound := uint64(2*maxRoundsInfoPerBatch + 505)
-	totalEntries := int(currentRound - lastRound) // 1 current + (current-last-1) missed
+	totalEntries := int(currentRound - lastRound)
 	require.Equal(t, 2*maxRoundsInfoPerBatch+505, totalEntries)
 
 	var savedBatches []*outportcore.RoundsInfo
@@ -191,7 +191,6 @@ func TestMetrics_IndexRoundInfoSplitsLargeGapIntoMultipleBatches(t *testing.T) {
 
 	indexRoundInfo(outportHandler, nodesCoordinator, 1, header, lastHeader, []uint64{22}, enableEpochsHandler, roundHandler)
 
-	// 2505 entries with batch size 1000 must result in 3 SaveRoundsInfo calls: 1000, 1000, 505
 	require.Len(t, savedBatches, 3)
 	require.Len(t, savedBatches[0].RoundsInfo, maxRoundsInfoPerBatch)
 	require.Len(t, savedBatches[1].RoundsInfo, maxRoundsInfoPerBatch)
@@ -205,7 +204,6 @@ func TestMetrics_IndexRoundInfoSplitsLargeGapIntoMultipleBatches(t *testing.T) {
 	}
 	assert.Equal(t, totalEntries, totalSaved)
 
-	// first entry is the current block, the rest are missed rounds in order
 	currentRoundInfo := savedBatches[0].RoundsInfo[0]
 	assert.Equal(t, currentRound, currentRoundInfo.Round)
 	assert.True(t, currentRoundInfo.BlockWasProposed)
