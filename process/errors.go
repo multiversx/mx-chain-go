@@ -495,6 +495,9 @@ var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshInterv
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
+// ErrEpochStartPending signals that the local epoch trigger is not ready yet.
+var ErrEpochStartPending = errors.New("epoch start pending")
+
 // ErrInvalidTimestamp signals that the header timestamp does not match the expected value for the round
 var ErrInvalidTimestamp = errors.New("invalid timestamp")
 

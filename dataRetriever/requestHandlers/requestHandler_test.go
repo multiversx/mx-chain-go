@@ -1347,7 +1347,7 @@ func TestRequestTrieNodes(t *testing.T) {
 		t.Parallel()
 
 		chTxRequested := make(chan struct{})
-		requesterMock := &dataRetrieverMocks.HashSliceRequesterStub{
+		requesterMock := &dataRetrieverMocks.TrieNodeRequesterStub{
 			RequestDataFromHashArrayCalled: func(hash [][]byte, epoch uint32) error {
 				chTxRequested <- struct{}{}
 				return nil
@@ -1558,7 +1558,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 	chTxRequested := make(chan struct{})
 	localErr := errors.New("local error")
-	requesterMock := &dataRetrieverMocks.ChunkRequesterStub{
+	requesterMock := &dataRetrieverMocks.TrieNodeRequesterStub{
 		RequestDataFromReferenceAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
 			chTxRequested <- struct{}{}
 			return localErr
@@ -1591,7 +1591,7 @@ func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 
 func TestResolverRequestHandler_RequestTrieNodeShouldWork(t *testing.T) {
 	chTxRequested := make(chan struct{})
-	requesterMock := &dataRetrieverMocks.ChunkRequesterStub{
+	requesterMock := &dataRetrieverMocks.TrieNodeRequesterStub{
 		RequestDataFromReferenceAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
 			chTxRequested <- struct{}{}
 			return nil

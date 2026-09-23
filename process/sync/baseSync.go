@@ -973,7 +973,8 @@ func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
-	if errors.Is(err, errBranchAwareSyncRetry) || errors.Is(err, errRecoveryCheckpointPending) {
+	if errors.Is(err, errBranchAwareSyncRetry) || errors.Is(err, errRecoveryCheckpointPending) ||
+		errors.Is(err, process.ErrEpochStartPending) {
 		return
 	}
 
@@ -1936,6 +1937,8 @@ func (boot *baseBootstrap) loadRecoveryCheckpointFromStorage(syncPeerAccounts fu
 	if err != nil {
 		return err
 	}
+	boot.requestHandler.SetRecoveryTrieRequests(true)
+	defer boot.requestHandler.SetRecoveryTrieRequests(false)
 	if err = boot.syncRecoveryUserAccountsState(userRoot, epoch); err != nil {
 		return err
 	}

@@ -1089,6 +1089,20 @@ func TestBaseBootstrap_DoJobOnBranchAwareSyncRetryHasNoFailureSideEffects(t *tes
 	require.Empty(t, boot.mapNonceSyncedWithErrors)
 }
 
+func TestBaseBootstrap_DoJobOnEpochStartPendingHasNoFailureSideEffects(t *testing.T) {
+	t.Parallel()
+
+	boot := &baseBootstrap{
+		mapNonceSyncedWithErrors: map[uint64]uint32{11: 2},
+	}
+	header, _ := createBranchAwareHeader(11, []byte("hash"), []byte("parent"))
+	err := fmt.Errorf("%w: %w", process.ErrEpochDoesNotMatch, process.ErrEpochStartPending)
+	for i := 0; i < 10; i++ {
+		boot.doJobOnSyncBlockFail(&block.Body{}, header, err)
+	}
+	require.Equal(t, map[uint64]uint32{11: 2}, boot.mapNonceSyncedWithErrors)
+}
+
 func TestBaseBootstrap_ProcessReceivedProofEnrichesV3AncestryAfterRecordingProof(t *testing.T) {
 	t.Parallel()
 

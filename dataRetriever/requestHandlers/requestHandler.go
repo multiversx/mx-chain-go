@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -38,6 +39,7 @@ const uniqueEquivalentProofSuffix = "eqp"
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
 type resolverRequestHandler struct {
+	recoveryTrieRequests     atomic.Bool
 	mutEpoch                 sync.RWMutex
 	epoch                    uint32
 	shardID                  uint32
@@ -548,7 +550,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodesForEpoch(destShardID uint32, 
 		return
 	}
 
-	trieRequester, ok := requester.(HashSliceRequester)
+	typedRequester, ok := requester.(trieRequester)
 	if !ok {
 		log.Warn("wrong assertion type when creating a trie nodes requester")
 		return
@@ -556,7 +558,11 @@ func (rrh *resolverRequestHandler) RequestTrieNodesForEpoch(destShardID uint32, 
 
 	rrh.logTrieHashesFromAccumulator()
 
-	go rrh.requestHashesWithDataSplit(itemsToRequest, trieRequester, epoch)
+	var hashRequester HashSliceRequester = typedRequester
+	if rrh.recoveryTrieRequests.Load() {
+		hashRequester = &recoveryTrieRequesterAdapter{typedRequester}
+	}
+	go rrh.requestHashesWithDataSplit(itemsToRequest, hashRequester, epoch)
 
 	rrh.addRequestedItems(itemsToRequest, uniqueTrieNodesSuffix)
 	rrh.lastTrieRequestTime = time.Now()
@@ -597,13 +603,17 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 		return
 	}
 
-	trieRequester, ok := requester.(ChunkRequester)
+	typedRequester, ok := requester.(trieRequester)
 	if !ok {
 		log.Warn("wrong assertion type when creating a trie chunk requester")
 		return
 	}
 
-	go rrh.requestReferenceWithChunkIndex(requestHash, chunkIndex, trieRequester)
+	var chunkRequester ChunkRequester = typedRequester
+	if rrh.recoveryTrieRequests.Load() {
+		chunkRequester = &recoveryTrieRequesterAdapter{typedRequester}
+	}
+	go rrh.requestReferenceWithChunkIndex(requestHash, chunkIndex, chunkRequester)
 
 	rrh.addRequestedItems([][]byte{identifier}, uniqueTrieNodesSuffix)
 }

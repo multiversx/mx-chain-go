@@ -479,8 +479,12 @@ func (sp *shardProcessor) checkEpochCorrectness(
 		sp.epochStartTrigger.MetaEpoch() == currentBlockHeader.GetEpoch()
 	if incorrectStartOfEpochBlock {
 		sp.epochStartTrigger.RequestEpochStartIfNeeded(header)
-		return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
-			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
+		if !header.IsStartOfEpochBlock() {
+			return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
+				process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
+		}
+		return fmt.Errorf("%w: %w proposed header with new epoch %d with trigger still in last epoch %d",
+			process.ErrEpochDoesNotMatch, process.ErrEpochStartPending, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
 	}
 
 	isHeaderOfInvalidEpoch := header.GetEpoch() > sp.epochStartTrigger.MetaEpoch()
