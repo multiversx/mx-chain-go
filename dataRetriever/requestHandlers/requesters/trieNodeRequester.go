@@ -1,8 +1,6 @@
 package requesters
 
 import (
-	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
@@ -38,25 +36,15 @@ func (requester *trieNodeRequester) RequestDataFromHashArrayForRecovery(hashes [
 	if err != nil {
 		return err
 	}
-	return requester.sendRecoveryRequest(&dataRetriever.RequestData{
+	return requester.SendOnRequestTopicIncludingMainPeers(&dataRetriever.RequestData{
 		Type: dataRetriever.HashArrayType, Value: buff, Epoch: epoch,
 	}, hashes)
 }
 
 func (requester *trieNodeRequester) RequestDataFromReferenceAndChunkForRecovery(hash []byte, chunkIndex uint32) error {
-	return requester.sendRecoveryRequest(&dataRetriever.RequestData{
+	return requester.SendOnRequestTopicIncludingMainPeers(&dataRetriever.RequestData{
 		Type: dataRetriever.HashType, Value: hash, ChunkIndex: chunkIndex,
 	}, [][]byte{hash})
-}
-
-func (requester *trieNodeRequester) sendRecoveryRequest(rd *dataRetriever.RequestData, hashes [][]byte) error {
-	sender, ok := requester.TopicRequestSender.(interface {
-		SendOnRequestTopicIncludingMainPeers(*dataRetriever.RequestData, [][]byte) error
-	})
-	if !ok {
-		return fmt.Errorf("trie request sender does not support recovery routing")
-	}
-	return sender.SendOnRequestTopicIncludingMainPeers(rd, hashes)
 }
 
 // RequestDataFromReferenceAndChunk requests a trie node's chunk by specifying the reference and the chunk index

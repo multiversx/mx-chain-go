@@ -550,7 +550,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodesForEpoch(destShardID uint32, 
 		return
 	}
 
-	trieRequester, ok := requester.(HashSliceRequester)
+	typedRequester, ok := requester.(trieRequester)
 	if !ok {
 		log.Warn("wrong assertion type when creating a trie nodes requester")
 		return
@@ -558,15 +558,11 @@ func (rrh *resolverRequestHandler) RequestTrieNodesForEpoch(destShardID uint32, 
 
 	rrh.logTrieHashesFromAccumulator()
 
+	var hashRequester HashSliceRequester = typedRequester
 	if rrh.recoveryTrieRequests.Load() {
-		recoveryRequester, ok := requester.(recoveryTrieRequester)
-		if !ok {
-			log.Error("trie requester does not support recovery routing", "topic", topic)
-			return
-		}
-		trieRequester = &recoveryTrieRequesterAdapter{recoveryRequester}
+		hashRequester = &recoveryTrieRequesterAdapter{typedRequester}
 	}
-	go rrh.requestHashesWithDataSplit(itemsToRequest, trieRequester, epoch)
+	go rrh.requestHashesWithDataSplit(itemsToRequest, hashRequester, epoch)
 
 	rrh.addRequestedItems(itemsToRequest, uniqueTrieNodesSuffix)
 	rrh.lastTrieRequestTime = time.Now()
@@ -607,21 +603,17 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 		return
 	}
 
-	trieRequester, ok := requester.(ChunkRequester)
+	typedRequester, ok := requester.(trieRequester)
 	if !ok {
 		log.Warn("wrong assertion type when creating a trie chunk requester")
 		return
 	}
 
+	var chunkRequester ChunkRequester = typedRequester
 	if rrh.recoveryTrieRequests.Load() {
-		recoveryRequester, ok := requester.(recoveryTrieRequester)
-		if !ok {
-			log.Error("trie chunk requester does not support recovery routing", "topic", topic)
-			return
-		}
-		trieRequester = &recoveryTrieRequesterAdapter{recoveryRequester}
+		chunkRequester = &recoveryTrieRequesterAdapter{typedRequester}
 	}
-	go rrh.requestReferenceWithChunkIndex(requestHash, chunkIndex, trieRequester)
+	go rrh.requestReferenceWithChunkIndex(requestHash, chunkIndex, chunkRequester)
 
 	rrh.addRequestedItems([][]byte{identifier}, uniqueTrieNodesSuffix)
 }

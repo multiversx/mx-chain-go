@@ -5,13 +5,15 @@ func (rrh *resolverRequestHandler) SetRecoveryTrieRequests(enabled bool) {
 	rrh.recoveryTrieRequests.Store(enabled)
 }
 
-type recoveryTrieRequester interface {
+type trieRequester interface {
+	HashSliceRequester
+	ChunkRequester
 	RequestDataFromHashArrayForRecovery(hashes [][]byte, epoch uint32) error
 	RequestDataFromReferenceAndChunkForRecovery(hash []byte, chunkIndex uint32) error
 }
 
 type recoveryTrieRequesterAdapter struct {
-	recoveryTrieRequester
+	trieRequester
 }
 
 func (requester *recoveryTrieRequesterAdapter) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {

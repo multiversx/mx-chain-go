@@ -225,6 +225,7 @@ func TestLoadRecoveryCheckpointFromStorage_CompletesCheckpointTriesBeforeRestore
 		required: true,
 	}
 	boot := &baseBootstrap{
+		requestHandler:      &testscommon.RequestHandlerStub{},
 		storageBootstrapper: storer,
 		accountsDBSyncer: &mock.AccountsDBSyncerStub{SyncAccountsWithDiskCheckCalled: func(rootHash []byte, _ common.StorageMarker, epoch uint32) error {
 			require.Equal(t, userRoot, rootHash)
@@ -254,6 +255,7 @@ func TestLoadRecoveryCheckpointFromStorage_StopsWhenCheckpointTrieCannotSync(t *
 		required: true,
 	}
 	boot := &baseBootstrap{
+		requestHandler:      &testscommon.RequestHandlerStub{},
 		storageBootstrapper: storer,
 		accountsDBSyncer: &mock.AccountsDBSyncerStub{SyncAccountsWithDiskCheckCalled: func(_ []byte, _ common.StorageMarker, _ uint32) error {
 			return syncErr
