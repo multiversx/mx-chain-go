@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -38,6 +39,7 @@ const uniqueEquivalentProofSuffix = "eqp"
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
 type resolverRequestHandler struct {
+	recoveryTrieRequests     atomic.Bool
 	mutEpoch                 sync.RWMutex
 	epoch                    uint32
 	shardID                  uint32
@@ -556,6 +558,14 @@ func (rrh *resolverRequestHandler) RequestTrieNodesForEpoch(destShardID uint32, 
 
 	rrh.logTrieHashesFromAccumulator()
 
+	if rrh.recoveryTrieRequests.Load() {
+		recoveryRequester, ok := requester.(recoveryTrieRequester)
+		if !ok {
+			log.Error("trie requester does not support recovery routing", "topic", topic)
+			return
+		}
+		trieRequester = &recoveryTrieRequesterAdapter{recoveryRequester}
+	}
 	go rrh.requestHashesWithDataSplit(itemsToRequest, trieRequester, epoch)
 
 	rrh.addRequestedItems(itemsToRequest, uniqueTrieNodesSuffix)
@@ -603,6 +613,14 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 		return
 	}
 
+	if rrh.recoveryTrieRequests.Load() {
+		recoveryRequester, ok := requester.(recoveryTrieRequester)
+		if !ok {
+			log.Error("trie chunk requester does not support recovery routing", "topic", topic)
+			return
+		}
+		trieRequester = &recoveryTrieRequesterAdapter{recoveryRequester}
+	}
 	go rrh.requestReferenceWithChunkIndex(requestHash, chunkIndex, trieRequester)
 
 	rrh.addRequestedItems([][]byte{identifier}, uniqueTrieNodesSuffix)

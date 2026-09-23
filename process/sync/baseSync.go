@@ -1937,6 +1937,10 @@ func (boot *baseBootstrap) loadRecoveryCheckpointFromStorage(syncPeerAccounts fu
 	if err != nil {
 		return err
 	}
+	if requester, ok := boot.requestHandler.(interface{ SetRecoveryTrieRequests(bool) }); ok {
+		requester.SetRecoveryTrieRequests(true)
+		defer requester.SetRecoveryTrieRequests(false)
+	}
 	if err = boot.syncRecoveryUserAccountsState(userRoot, epoch); err != nil {
 		return err
 	}

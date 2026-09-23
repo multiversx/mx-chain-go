@@ -151,6 +151,63 @@ func (stub *recoveryRootsStorageBootstrapper) RecoveryCheckpointRequired() (bool
 	return stub.required, nil
 }
 
+type recoveryRoutingRequestHandler struct {
+	process.RequestHandler
+	enabled bool
+	changes []bool
+}
+
+func (handler *recoveryRoutingRequestHandler) SetRecoveryTrieRequests(enabled bool) {
+	handler.enabled = enabled
+	handler.changes = append(handler.changes, enabled)
+}
+
+func TestLoadRecoveryCheckpointFromStorage_RecoveryRoutingLifecycle(t *testing.T) {
+	for _, failStage := range []string{"none", "user", "peer", "storage", "not required"} {
+		t.Run(failStage, func(t *testing.T) {
+			requester := &recoveryRoutingRequestHandler{}
+			expectedErr := errors.New("restore failed")
+			storer := &recoveryRootsStorageBootstrapper{
+				StorageBootstrapperMock: &mock.StorageBootstrapperMock{LoadFromStorageCalled: func() error {
+					if failStage == "storage" {
+						return expectedErr
+					}
+					return nil
+				}},
+				userRoot: []byte("user"), peerRoot: []byte("peer"), epoch: 6617, required: failStage != "not required",
+			}
+			boot := &baseBootstrap{
+				requestHandler: requester, storageBootstrapper: storer,
+				accountsDBSyncer: &mock.AccountsDBSyncerStub{SyncAccountsWithDiskCheckCalled: func(_ []byte, _ common.StorageMarker, _ uint32) error {
+					require.True(t, requester.enabled)
+					if failStage == "user" {
+						return expectedErr
+					}
+					return nil
+				}},
+			}
+			err := boot.loadRecoveryCheckpointFromStorage(func(_ []byte, _ uint32) error {
+				require.True(t, requester.enabled)
+				if failStage == "peer" {
+					return expectedErr
+				}
+				return nil
+			})
+			if failStage == "none" || failStage == "not required" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorIs(t, err, expectedErr)
+			}
+			require.False(t, requester.enabled)
+			if failStage == "not required" {
+				require.Empty(t, requester.changes)
+			} else {
+				require.Equal(t, []bool{true, false}, requester.changes)
+			}
+		})
+	}
+}
+
 func TestLoadRecoveryCheckpointFromStorage_CompletesCheckpointTriesBeforeRestore(t *testing.T) {
 	userRoot := bytes.Repeat([]byte{1}, 32)
 	peerRoot := bytes.Repeat([]byte{2}, 32)
