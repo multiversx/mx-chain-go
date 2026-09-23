@@ -973,7 +973,8 @@ func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
-	if errors.Is(err, errBranchAwareSyncRetry) || errors.Is(err, errRecoveryCheckpointPending) {
+	if errors.Is(err, errBranchAwareSyncRetry) || errors.Is(err, errRecoveryCheckpointPending) ||
+		errors.Is(err, process.ErrEpochStartPending) {
 		return
 	}
 
