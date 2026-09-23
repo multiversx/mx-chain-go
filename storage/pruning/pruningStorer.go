@@ -740,6 +740,22 @@ func (ps *PruningStorer) Remove(key []byte) error {
 	return err
 }
 
+// RemoveFromAllActiveEpochs removes a key from every active persister.
+func (ps *PruningStorer) RemoveFromAllActiveEpochs(key []byte) error {
+	ps.cacher.Remove(key)
+
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	for _, pd := range ps.activePersisters {
+		ps.stateStatsHandler.IncrWritePersister(pd.epoch)
+		if err := pd.getPersister().Remove(key); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // ClearCache cleans up the entire cache
 func (ps *PruningStorer) ClearCache() {
 	ps.cacher.Clear()

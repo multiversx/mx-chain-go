@@ -102,6 +102,13 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 	d.rootHash = rootHash
 
 	d.missingHashes[string(rootHash)] = struct{}{}
+	if d.checkNodesOnDisk {
+		root, err := d.getNode(rootHash)
+		if err == nil {
+			d.existingNodes[string(rootHash)] = root
+			delete(d.missingHashes, string(rootHash))
+		}
+	}
 
 	timeStart := time.Now()
 	defer func() {

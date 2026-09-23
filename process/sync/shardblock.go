@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -86,6 +88,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		enableRoundsHandler:          arguments.EnableRoundsHandler,
 		processConfigsHandler:        arguments.ProcessConfigsHandler,
+		recoveryCheckpoint:           arguments.RecoveryCheckpoint,
 	}
 
 	if base.isInImportMode {
@@ -149,7 +152,18 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 
 // StartSyncingBlocks method will start syncing blocks as a go routine
 func (boot *ShardBootstrap) StartSyncingBlocks() error {
-	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
+	var errNotCritical error
+	if boot.recoveryCheckpoint != nil {
+		errNotCritical = boot.loadRecoveryCheckpointFromStorage(nil)
+		if errNotCritical != nil {
+			return errNotCritical
+		}
+	} else {
+		errNotCritical = boot.storageBootstrapper.LoadFromStorage()
+	}
+	if errors.Is(errNotCritical, common.ErrRoundExcluded) {
+		return errNotCritical
+	}
 	if errNotCritical != nil {
 		log.Debug("boot.syncFromStorer",
 			"error", errNotCritical.Error(),

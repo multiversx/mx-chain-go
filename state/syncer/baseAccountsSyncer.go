@@ -97,6 +97,8 @@ func (b *baseAccountsSyncer) syncMainTrie(
 	trieTopic string,
 	ctx context.Context,
 	leavesChan chan core.KeyValueHolder,
+	checkNodesOnDisk bool,
+	requestHandler trie.RequestHandler,
 ) error {
 	atomic.AddInt32(&b.numMaxTries, 1)
 
@@ -104,7 +106,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 
 	b.dataTries[string(rootHash)] = struct{}{}
 	arg := trie.ArgTrieSyncer{
-		RequestHandler:            b.requestHandler,
+		RequestHandler:            requestHandler,
 		InterceptedNodes:          b.cacher,
 		DB:                        b.trieStorageManager,
 		Marshalizer:               b.marshalizer,
@@ -114,7 +116,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 		TrieSyncStatistics:        b.userAccountsSyncStatisticsHandler,
 		TimeoutHandler:            b.timeoutHandler,
 		MaxHardCapForMissingNodes: b.maxHardCapForMissingNodes,
-		CheckNodesOnDisk:          b.checkNodesOnDisk,
+		CheckNodesOnDisk:          checkNodesOnDisk,
 		LeavesChan:                leavesChan,
 	}
 	trieSyncer, err := trie.CreateTrieSyncer(arg, b.trieSyncerVersion)

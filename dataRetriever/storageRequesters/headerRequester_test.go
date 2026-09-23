@@ -302,6 +302,7 @@ func TestHeaderRequester_RequestDataFromNonceNotFoundShouldErr(t *testing.T) {
 	assert.Equal(t, expectedErr, err)
 	assert.False(t, newEpochCalled)
 	assert.False(t, sendCalled)
+	assert.True(t, hdReq.signaled)
 }
 
 func TestHeaderRequester_RequestDataFromNonceShouldWork(t *testing.T) {
@@ -364,7 +365,7 @@ func TestHeaderRequester_RequestDataFromEpoch(t *testing.T) {
 		err := hdReq.RequestDataFromEpoch(epochIdentifier)
 		assert.Equal(t, core.ErrInvalidIdentifierForEpochStartBlockRequest, err)
 	})
-	t.Run("identifier not found should error", func(t *testing.T) {
+	t.Run("identifier not found should error without signaling import completion", func(t *testing.T) {
 		t.Parallel()
 
 		epochIdentifier := []byte(core.EpochStartIdentifier(100))
@@ -384,6 +385,7 @@ func TestHeaderRequester_RequestDataFromEpoch(t *testing.T) {
 
 		err := hdReq.RequestDataFromEpoch(epochIdentifier)
 		assert.Equal(t, expectedErr, err)
+		assert.False(t, hdReq.signaled)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
