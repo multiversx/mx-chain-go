@@ -366,7 +366,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 			return uint32(args.ConsensusSize)
 		},
 	}
-	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:    args.KeyGen,
@@ -553,7 +552,6 @@ func (tcn *TestConsensusNode) initInterceptors(
 		TrieNodeChunksInactivityTimeout:         10 * time.Second,
 		MainPeerShardMapper:                     mock.NewNetworkShardingCollectorMock(),
 		FullArchivePeerShardMapper:              mock.NewNetworkShardingCollectorMock(),
-		HardforkTrigger:                         &testscommon.HardforkTriggerStub{},
 		NodeOperationMode:                       common.NormalOperation,
 		InterceptedDataVerifierFactory:          interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
 		Config: config.Config{

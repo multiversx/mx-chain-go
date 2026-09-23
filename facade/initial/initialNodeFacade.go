@@ -202,11 +202,6 @@ func (inf *initialNodeFacade) GetCode(_ []byte, _ api.AccountQueryOptions) []byt
 	return nil
 }
 
-// DirectTrigger returns error
-func (inf *initialNodeFacade) DirectTrigger(_ uint32, _ bool) error {
-	return errNodeStarting
-}
-
 // GetHeartbeats returns nil and error
 func (inf *initialNodeFacade) GetHeartbeats() ([]data.PubKeyHeartbeat, error) {
 	return nil, errNodeStarting
@@ -230,16 +225,6 @@ func (inf *initialNodeFacade) ExecuteSCQuery(_ *process.SCQuery) (*vm.VMOutputAp
 // PprofEnabled returns false
 func (inf *initialNodeFacade) PprofEnabled() bool {
 	return inf.pprofEnabled
-}
-
-// Trigger returns error
-func (inf *initialNodeFacade) Trigger(_ uint32, _ bool) error {
-	return errNodeStarting
-}
-
-// IsSelfTrigger returns false
-func (inf *initialNodeFacade) IsSelfTrigger() bool {
-	return false
 }
 
 // EncodeAddressPubkey returns empty string and error

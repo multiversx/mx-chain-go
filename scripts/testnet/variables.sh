@@ -43,7 +43,6 @@ export NODE_WATCHER=0
 # Delays after running executables.
 export SEEDNODE_DELAY=5
 export GENESIS_DELAY=30
-export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
 export NODE_DELAY=60
 
 export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
@@ -155,9 +154,6 @@ export COPY_BACK_CONFIGS=0
 export SKIP_VALIDATOR_IDX=-1
 # SKIP_OBSERVER_IDX when setting a value greater than -1 will not launch the observer with the provided index
 export SKIP_OBSERVER_IDX=-1
-
-# USE_HARDFORK will prepare the nodes to run the hardfork process, if needed
-export USE_HARDFORK=1
 
 # Load local overrides, .gitignored
 LOCAL_OVERRIDES="$MULTIVERSXTESTNETSCRIPTSDIR/local.sh"

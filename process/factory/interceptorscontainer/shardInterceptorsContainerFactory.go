@@ -43,7 +43,6 @@ func NewShardInterceptorsContainerFactory(
 		args.RequestHandler,
 		args.MainPeerShardMapper,
 		args.FullArchivePeerShardMapper,
-		args.HardforkTrigger,
 	)
 	if err != nil {
 		return nil, err
@@ -132,7 +131,6 @@ func NewShardInterceptorsContainerFactory(
 		trieNodeChunksInactivityTimeout: args.TrieNodeChunksInactivityTimeout,
 		mainPeerShardMapper:             args.MainPeerShardMapper,
 		fullArchivePeerShardMapper:      args.FullArchivePeerShardMapper,
-		hardforkTrigger:                 args.HardforkTrigger,
 		nodeOperationMode:               args.NodeOperationMode,
 		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 		enableEpochsHandler:             args.CoreComponents.EnableEpochsHandler(),

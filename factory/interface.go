@@ -41,7 +41,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -92,6 +91,7 @@ type PreferredPeersHolderHandler interface {
 // Closer defines the Close behavior
 type Closer interface {
 	Close() error
+	IsInterfaceNil() bool
 }
 
 // ComponentHandler defines the actions common to all component handlers
@@ -139,7 +139,6 @@ type CoreComponentsHolder interface {
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	WasmVMChangeLocker() common.Locker
 	ProcessStatusHandler() common.ProcessStatusHandler
-	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
 	ChainParametersHandler() process.ChainParametersHandler
 	FieldsSizeChecker() common.FieldsSizeChecker
@@ -314,13 +313,11 @@ type ProcessComponentsHolder interface {
 	WhiteListHandler() process.WhiteListHandler
 	WhiteListerVerifiedTxs() process.WhiteListHandler
 	HistoryRepository() dblookupext.HistoryRepository
-	ImportStartHandler() update.ImportStartHandler
 	RequestedItemsHandler() dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
 	CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler
 	TxsSenderHandler() process.TxsSenderHandler
-	HardforkTrigger() HardforkTrigger
 	ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker
 	ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler
 	AccountsParser() genesis.AccountsParser
@@ -434,19 +431,6 @@ type ConsensusWorker interface {
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 	ConsensusMetrics() spos.ConsensusMetricsHandler
-}
-
-// HardforkTrigger defines the hard-fork trigger functionality
-type HardforkTrigger interface {
-	SetExportFactoryHandler(exportFactoryHandler update.ExportFactoryHandler) error
-	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
-	RecordedTriggerMessage() ([]byte, bool)
-	Trigger(epoch uint32, withEarlyEndOfEpoch bool) error
-	CreateData() []byte
-	AddCloser(closer update.Closer) error
-	NotifyTriggerReceivedV2() <-chan struct{}
-	IsSelfTrigger() bool
-	IsInterfaceNil() bool
 }
 
 // ConsensusComponentsHolder holds the consensus components

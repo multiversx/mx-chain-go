@@ -53,7 +53,6 @@ type CoreComponentsMock struct {
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	WasmVMChangeLockerInternal         common.Locker
 	ProcessStatusHandlerInternal       common.ProcessStatusHandler
-	HardforkTriggerPubKeyField         []byte
 	EnableEpochsHandlerField           common.EnableEpochsHandler
 	ChainParametersHandlerField        process.ChainParametersHandler
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
@@ -261,11 +260,6 @@ func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandle
 // String -
 func (ccm *CoreComponentsMock) String() string {
 	return "CoreComponentsMock"
-}
-
-// HardforkTriggerPubKey -
-func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
-	return ccm.HardforkTriggerPubKeyField
 }
 
 // EnableEpochsHandler -

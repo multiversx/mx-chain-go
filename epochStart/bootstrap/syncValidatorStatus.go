@@ -19,15 +19,14 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/update"
-	"github.com/multiversx/mx-chain-go/update/sync"
+	bootstrapSync "github.com/multiversx/mx-chain-go/epochStart/bootstrap/sync"
 )
 
 const consensusGroupCacheSize = 50
 
 type syncValidatorStatus struct {
 	miniBlocksSyncer    epochStart.PendingMiniBlocksSyncHandler
-	transactionsSyncer  update.TransactionsSyncHandler
+	transactionsSyncer  epochStart.TransactionsSyncHandler
 	dataPool            dataRetriever.PoolsHolder
 	marshalizer         marshal.Marshalizer
 	requestHandler      process.RequestHandler
@@ -72,24 +71,24 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 
 	var err error
 
-	syncMiniBlocksArgs := sync.ArgsNewPendingMiniBlocksSyncer{
+	syncMiniBlocksArgs := bootstrapSync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          s.dataPool.MiniBlocks(),
 		Marshalizer:    s.marshalizer,
 		RequestHandler: s.requestHandler,
 	}
-	s.miniBlocksSyncer, err = sync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	s.miniBlocksSyncer, err = bootstrapSync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	syncTxsArgs := sync.ArgsNewTransactionsSyncer{
+	syncTxsArgs := bootstrapSync.ArgsNewTransactionsSyncer{
 		DataPools:      s.dataPool,
 		Storages:       disabled.NewChainStorer(),
 		Marshaller:     s.marshalizer,
 		RequestHandler: s.requestHandler,
 	}
-	s.transactionsSyncer, err = sync.NewTransactionsSyncer(syncTxsArgs)
+	s.transactionsSyncer, err = bootstrapSync.NewTransactionsSyncer(syncTxsArgs)
 	if err != nil {
 		return nil, err
 	}

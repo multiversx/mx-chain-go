@@ -64,7 +64,7 @@ func NewBootstrapSender(args ArgBootstrapSender) (*bootstrapSender, error) {
 
 	return &bootstrapSender{
 		heartbeatSender: hbs,
-		routineHandler:  newRoutineHandler(disabled.NewDisabledSenderHandler(), hbs, disabled.NewDisabledHardforkHandler()),
+		routineHandler:  newRoutineHandler(disabled.NewDisabledSenderHandler(), hbs),
 	}, nil
 }
 

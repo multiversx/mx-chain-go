@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/update"
 )
 
 // ProcessComponentsMock -
@@ -47,13 +46,11 @@ type ProcessComponentsMock struct {
 	WhiteListHandlerInternal             process.WhiteListHandler
 	WhiteListerVerifiedTxsInternal       process.WhiteListHandler
 	HistoryRepositoryInternal            dblookupext.HistoryRepository
-	ImportStartHandlerInternal           update.ImportStartHandler
 	RequestedItemsHandlerInternal        dataRetriever.RequestedItemsHandler
 	NodeRedundancyHandlerInternal        consensus.NodeRedundancyHandler
 	CurrentEpochProviderInternal         process.CurrentNetworkEpochProviderHandler
 	ScheduledTxsExecutionHandlerInternal process.ScheduledTxsExecutionHandler
 	TxsSenderHandlerField                process.TxsSenderHandler
-	HardforkTriggerField                 factory.HardforkTrigger
 	ProcessedMiniBlocksTrackerInternal   process.ProcessedMiniBlocksTracker
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	AccountsParserInternal               genesis.AccountsParser
@@ -230,11 +227,6 @@ func (pcm *ProcessComponentsMock) HistoryRepository() dblookupext.HistoryReposit
 	return pcm.HistoryRepositoryInternal
 }
 
-// ImportStartHandler -
-func (pcm *ProcessComponentsMock) ImportStartHandler() update.ImportStartHandler {
-	return pcm.ImportStartHandlerInternal
-}
-
 // RequestedItemsHandler -
 func (pcm *ProcessComponentsMock) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
 	return pcm.RequestedItemsHandlerInternal
@@ -268,11 +260,6 @@ func (pcm *ProcessComponentsMock) ScheduledTxsExecutionHandler() process.Schedul
 // TxsSenderHandler -
 func (pcm *ProcessComponentsMock) TxsSenderHandler() process.TxsSenderHandler {
 	return pcm.TxsSenderHandlerField
-}
-
-// HardforkTrigger -
-func (pcm *ProcessComponentsMock) HardforkTrigger() factory.HardforkTrigger {
-	return pcm.HardforkTriggerField
 }
 
 // ProcessedMiniBlocksTracker -

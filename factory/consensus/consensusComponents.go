@@ -33,7 +33,6 @@ import (
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/multiversx/mx-chain-go/update"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -315,11 +314,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 
 	err = subroundsHandler.Start(epoch)
-	if err != nil {
-		return nil, err
-	}
-
-	err = ccf.addCloserInstances(cc.chronology, cc.bootstrapper, cc.worker, ccf.coreComponents.SyncTimer())
 	if err != nil {
 		return nil, err
 	}
@@ -744,18 +738,6 @@ func (ccf *consensusComponentsFactory) createP2pSigningHandler() (consensus.P2PS
 	return p2pFactory.NewMessageVerifier(p2pSignerArgs)
 }
 
-func (ccf *consensusComponentsFactory) addCloserInstances(closers ...update.Closer) error {
-	hardforkTrigger := ccf.processComponents.HardforkTrigger()
-	for _, c := range closers {
-		err := hardforkTrigger.AddCloser(c)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	if check.IfNil(args.CoreComponents) {
 		return errors.ErrNilCoreComponentsHolder
@@ -798,9 +780,6 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.ProcessComponents.RoundHandler()) {
 		return errors.ErrNilRoundHandler
-	}
-	if check.IfNil(args.ProcessComponents.HardforkTrigger()) {
-		return errors.ErrNilHardforkTrigger
 	}
 	if check.IfNil(args.ProcessComponents.NodeRedundancyHandler()) {
 		return errors.ErrNilNodeRedundancyHandler

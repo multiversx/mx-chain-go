@@ -1,7 +1,6 @@
 package heartbeat
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -27,7 +26,6 @@ type ArgInterceptedPeerAuthentication struct {
 	SignaturesHandler                       SignaturesHandler
 	PeerSignatureHandler                    crypto.PeerSignatureHandler
 	PayloadValidator                        process.PeerAuthenticationPayloadValidator
-	HardforkTriggerPubKey                   []byte
 	PeerShardMapper                         process.PeerShardMapper
 	PeerAuthCacher                          storage.Cacher
 	MessageOriginator                       core.PeerID
@@ -45,7 +43,6 @@ type interceptedPeerAuthentication struct {
 	signaturesHandler      SignaturesHandler
 	peerSignatureHandler   crypto.PeerSignatureHandler
 	payloadValidator       process.PeerAuthenticationPayloadValidator
-	hardforkTriggerPubKey  []byte
 	peerShardMapper        process.PeerShardMapper
 	peerAuthCacher         storage.Cacher
 	messageOriginator      core.PeerID
@@ -75,7 +72,6 @@ func NewInterceptedPeerAuthentication(arg ArgInterceptedPeerAuthentication) (*in
 		signaturesHandler:      arg.SignaturesHandler,
 		peerSignatureHandler:   arg.PeerSignatureHandler,
 		payloadValidator:       arg.PayloadValidator,
-		hardforkTriggerPubKey:  arg.HardforkTriggerPubKey,
 		peerShardMapper:        arg.PeerShardMapper,
 		peerAuthCacher:         arg.PeerAuthCacher,
 		messageOriginator:      arg.MessageOriginator,
@@ -104,9 +100,6 @@ func checkArg(arg ArgInterceptedPeerAuthentication) error {
 	}
 	if check.IfNil(arg.PeerSignatureHandler) {
 		return process.ErrNilPeerSignatureHandler
-	}
-	if len(arg.HardforkTriggerPubKey) == 0 {
-		return fmt.Errorf("%w hardfork trigger public key bytes length is 0", process.ErrInvalidValue)
 	}
 	if check.IfNil(arg.PeerShardMapper) {
 		return process.ErrNilPeerShardMapper
@@ -168,21 +161,18 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 		return err
 	}
 
-	// If the message is hardfork trigger, it should be from the expected source
-	if !ipa.isHardforkFromSource() {
-		// Verify validator
-		_, _, err = ipa.nodesCoordinator.GetValidatorWithPublicKey(ipa.peerAuthentication.Pubkey)
-		if err != nil {
-			return err
-		}
+	// Verify validator
+	_, _, err = ipa.nodesCoordinator.GetValidatorWithPublicKey(ipa.peerAuthentication.Pubkey)
+	if err != nil {
+		return err
+	}
 
-		shouldSkipSigChecks, errCheck := ipa.checkExistingInfo()
-		if errCheck != nil {
-			return errCheck
-		}
-		if shouldSkipSigChecks {
-			return nil
-		}
+	shouldSkipSigChecks, errCheck := ipa.checkExistingInfo()
+	if errCheck != nil {
+		return errCheck
+	}
+	if shouldSkipSigChecks {
+		return nil
 	}
 
 	// Verify payload
@@ -304,14 +294,6 @@ func (ipa *interceptedPeerAuthentication) String() string {
 		logger.DisplayByteSlice(ipa.peerAuthentication.Payload),
 		logger.DisplayByteSlice(ipa.peerAuthentication.PayloadSignature),
 	)
-}
-
-func (ipa *interceptedPeerAuthentication) isHardforkFromSource() bool {
-	if len(ipa.payload.HardforkMessage) == 0 {
-		return false
-	}
-
-	return bytes.Equal(ipa.peerAuthentication.Pubkey, ipa.hardforkTriggerPubKey)
 }
 
 // SizeInBytes returns the size in bytes held by this instance

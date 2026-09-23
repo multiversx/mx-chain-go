@@ -1439,7 +1439,6 @@ type CoreComponentsHolder interface {
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
-	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
 	ChainParametersHandler() ChainParametersHandler
 	FieldsSizeChecker() common.FieldsSizeChecker

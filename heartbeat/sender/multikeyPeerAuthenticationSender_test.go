@@ -38,9 +38,6 @@ func createMockMultikeyPeerAuthenticationSenderArgs(argBase argBaseSender) argMu
 		argBaseSender:            argBase,
 		nodesCoordinator:         &shardingMocks.NodesCoordinatorStub{},
 		peerSignatureHandler:     &cryptoMocks.PeerSignatureHandlerStub{},
-		hardforkTrigger:          &testscommon.HardforkTriggerStub{},
-		hardforkTimeBetweenSends: time.Second,
-		hardforkTriggerPubKey:    providedHardforkPubKey,
 		timeBetweenChecks:        time.Second,
 		managedPeersHolder: &testscommon.ManagedPeersHolderStub{
 			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
@@ -122,9 +119,6 @@ func createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(
 				return singleSigner.Sign(privateKey, pid)
 			},
 		},
-		hardforkTrigger:          &testscommon.HardforkTriggerStub{},
-		hardforkTimeBetweenSends: time.Second,
-		hardforkTriggerPubKey:    providedHardforkPubKey,
 		timeBetweenChecks:        time.Second,
 		managedPeersHolder:       managedPeersHolder,
 		shardCoordinator:         createShardCoordinatorInShard(0),
@@ -268,27 +262,6 @@ func TestNewMultikeyPeerAuthenticationSender(t *testing.T) {
 		assert.Nil(t, senderInstance)
 		assert.Equal(t, heartbeat.ErrNilPeerSignatureHandler, err)
 	})
-	t.Run("nil hardfork trigger should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockMultikeyPeerAuthenticationSenderArgs(createMockBaseArgs())
-		args.hardforkTrigger = nil
-		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
-
-		assert.Nil(t, senderInstance)
-		assert.Equal(t, heartbeat.ErrNilHardforkTrigger, err)
-	})
-	t.Run("invalid time between hardforks should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockMultikeyPeerAuthenticationSenderArgs(createMockBaseArgs())
-		args.hardforkTimeBetweenSends = time.Second - time.Nanosecond
-		senderInstance, err := newMultikeyPeerAuthenticationSender(args)
-
-		assert.Nil(t, senderInstance)
-		assert.True(t, errors.Is(err, heartbeat.ErrInvalidTimeDuration))
-		assert.True(t, strings.Contains(err.Error(), "hardforkTimeBetweenSends"))
-	})
 	t.Run("nil managed peers holder should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -358,7 +331,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		senderInstance.Execute()
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys, "")
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys)
 		mutData.Unlock()
 	})
 	t.Run("should work with some real components", func(t *testing.T) {
@@ -396,14 +369,14 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		senderInstance.Execute() // this will not add messages
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0, "")
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0)
 		mutData.Unlock()
 
 		time.Sleep(time.Second * 5) // allow the resending of the messages
 		senderInstance.Execute()
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys, "")
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys)
 		mutData.Unlock()
 	})
 	t.Run("should work with some real components and one key not handled by the current node", func(t *testing.T) {
@@ -442,7 +415,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		senderInstance.Execute()
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1)
 		mutData.Unlock()
 
 		// reset data from initialization
@@ -455,14 +428,14 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		senderInstance.Execute() // this will not add messages
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0, "")
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0)
 		mutData.Unlock()
 
 		time.Sleep(time.Second * 5) // allow the resending of the messages
 		senderInstance.Execute()
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1)
 		mutData.Unlock()
 	})
 	t.Run("should work with some real components one key not a validator", func(t *testing.T) {
@@ -505,7 +478,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		senderInstance.Execute()
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1)
 		mutData.Unlock()
 
 		// reset data from initialization
@@ -518,14 +491,14 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		senderInstance.Execute() // this will not add messages
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0, "")
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0)
 		mutData.Unlock()
 
 		time.Sleep(time.Second * 5) // allow the resending of the messages
 		senderInstance.Execute()
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1)
 		mutData.Unlock()
 	})
 	t.Run("should work with some real components one key is on a different shard", func(t *testing.T) {
@@ -568,7 +541,7 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		senderInstance.Execute()
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1)
 		mutData.Unlock()
 
 		// reset data from initialization
@@ -581,80 +554,14 @@ func TestNewMultikeyPeerAuthenticationSender_Execute(t *testing.T) {
 		senderInstance.Execute() // this will not add messages
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0, "")
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, 0)
 		mutData.Unlock()
 
 		time.Sleep(time.Second * 5) // allow the resending of the messages
 		senderInstance.Execute()
 
 		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1, "")
-		mutData.Unlock()
-	})
-	t.Run("should work with some real components and hardfork trigger", func(t *testing.T) {
-		t.Parallel()
-
-		numKeys := 3
-		mutData := sync.Mutex{}
-		var buffResulted [][]byte
-		var pids []core.PeerID
-		var skBytesBroadcast [][]byte
-
-		args, messenger := createMockMultikeyPeerAuthenticationSenderArgsSemiIntegrationTests(numKeys)
-		messenger.BroadcastUsingPrivateKeyCalled = func(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
-			assert.Equal(t, args.topic, topic)
-
-			mutData.Lock()
-			buffResulted = append(buffResulted, buff)
-			pids = append(pids, pid)
-			skBytesBroadcast = append(skBytesBroadcast, skBytes)
-			mutData.Unlock()
-		}
-		args.timeBetweenSends = time.Second * 3
-		args.thresholdBetweenSends = 0.20
-		hardforkTriggerPayload := []byte("hardfork payload")
-		args.hardforkTrigger = &testscommon.HardforkTriggerStub{
-			RecordedTriggerMessageCalled: func() ([]byte, bool) {
-				return make([]byte, 0), true
-			},
-			CreateDataCalled: func() []byte {
-				return hardforkTriggerPayload
-			},
-		}
-
-		senderInstance, _ := newMultikeyPeerAuthenticationSender(args)
-		senderInstance.Execute()
-
-		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys, string(hardforkTriggerPayload))
-		mutData.Unlock()
-
-		// reset data from initialization
-		mutData.Lock()
-		buffResulted = make([][]byte, 0)
-		pids = make([]core.PeerID, 0)
-		skBytesBroadcast = make([][]byte, 0)
-		mutData.Unlock()
-
-		time.Sleep(time.Second * 2)
-		senderInstance.Execute() // this will add messages because we are in hardfork mode
-
-		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys, string(hardforkTriggerPayload))
-		mutData.Unlock()
-
-		// reset data
-		mutData.Lock()
-		buffResulted = make([][]byte, 0)
-		pids = make([]core.PeerID, 0)
-		skBytesBroadcast = make([][]byte, 0)
-		mutData.Unlock()
-
-		time.Sleep(time.Second * 5) // allow the resending of the messages
-		senderInstance.Execute()
-
-		mutData.Lock()
-		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys, string(hardforkTriggerPayload))
+		testRecoveredMessages(t, args, buffResulted, pids, skBytesBroadcast, numKeys-1)
 		mutData.Unlock()
 	})
 }
@@ -677,8 +584,6 @@ func testRecoveredMessages(
 	pids []core.PeerID,
 	skBytesBroadcast [][]byte,
 	numExpected int,
-
-	hardforkPayload string,
 ) {
 	require.Equal(tb, numExpected, len(payloads))
 	require.Equal(tb, numExpected, len(pids))
@@ -688,7 +593,7 @@ func testRecoveredMessages(
 		payload := payloads[i]
 		pid := pids[i]
 
-		testSingleMessage(tb, args, payload, pid, hardforkPayload)
+		testSingleMessage(tb, args, payload, pid)
 	}
 }
 
@@ -697,7 +602,6 @@ func testSingleMessage(
 	args argMultikeyPeerAuthenticationSender,
 	payload []byte,
 	pid core.PeerID,
-	hardforkPayload string,
 ) {
 	recoveredBatch := batch.Batch{}
 	err := args.marshaller.Unmarshal(&recoveredBatch, payload)
@@ -727,5 +631,4 @@ func testSingleMessage(
 
 	messageTime := time.Unix(recoveredPayload.Timestamp, 0)
 	assert.True(tb, messageTime.Unix() <= endTime.Unix())
-	assert.Equal(tb, hardforkPayload, recoveredPayload.HardforkMessage)
 }

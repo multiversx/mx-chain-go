@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/update"
 )
 
 var _ factory.ComponentHandler = (*managedProcessComponents)(nil)
@@ -570,18 +569,6 @@ func (m *managedProcessComponents) HistoryRepository() dblookupext.HistoryReposi
 	return m.processComponents.historyRepository
 }
 
-// ImportStartHandler returns the import status handler
-func (m *managedProcessComponents) ImportStartHandler() update.ImportStartHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
-
-	if m.processComponents == nil {
-		return nil
-	}
-
-	return m.processComponents.importStartHandler
-}
-
 // RequestedItemsHandler returns the items handler for the requests
 func (m *managedProcessComponents) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
 	m.mutProcessComponents.RLock()
@@ -652,18 +639,6 @@ func (m *managedProcessComponents) TxsSenderHandler() process.TxsSenderHandler {
 	}
 
 	return m.processComponents.txsSender
-}
-
-// HardforkTrigger returns the hardfork trigger
-func (m *managedProcessComponents) HardforkTrigger() factory.HardforkTrigger {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
-
-	if m.processComponents == nil {
-		return nil
-	}
-
-	return m.processComponents.hardforkTrigger
 }
 
 // ProcessedMiniBlocksTracker returns the processed mini blocks tracker

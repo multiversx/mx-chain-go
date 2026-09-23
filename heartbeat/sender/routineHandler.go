@@ -2,7 +2,6 @@ package sender
 
 import (
 	"context"
-	"time"
 
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -10,19 +9,15 @@ import (
 var log = logger.GetOrCreate("heartbeat/sender")
 
 type routineHandler struct {
-	peerAuthenticationSender           senderHandler
-	heartbeatSender                    senderHandler
-	hardforkSender                     hardforkHandler
-	delayAfterHardforkMessageBroadcast time.Duration
-	cancel                             func()
+	peerAuthenticationSender senderHandler
+	heartbeatSender          senderHandler
+	cancel                   func()
 }
 
-func newRoutineHandler(peerAuthenticationSender senderHandler, heartbeatSender senderHandler, hardforkSender hardforkHandler) *routineHandler {
+func newRoutineHandler(peerAuthenticationSender senderHandler, heartbeatSender senderHandler) *routineHandler {
 	handler := &routineHandler{
-		peerAuthenticationSender:           peerAuthenticationSender,
-		heartbeatSender:                    heartbeatSender,
-		hardforkSender:                     hardforkSender,
-		delayAfterHardforkMessageBroadcast: time.Minute,
+		peerAuthenticationSender: peerAuthenticationSender,
+		heartbeatSender:          heartbeatSender,
 	}
 
 	var ctx context.Context
@@ -38,7 +33,6 @@ func (handler *routineHandler) processLoop(ctx context.Context) {
 
 		handler.peerAuthenticationSender.Close()
 		handler.heartbeatSender.Close()
-		handler.hardforkSender.Close()
 	}()
 
 	handler.peerAuthenticationSender.Execute()
@@ -50,22 +44,9 @@ func (handler *routineHandler) processLoop(ctx context.Context) {
 			handler.peerAuthenticationSender.Execute()
 		case <-handler.heartbeatSender.ExecutionReadyChannel():
 			handler.heartbeatSender.Execute()
-		case <-handler.hardforkSender.ShouldTriggerHardfork():
-			handler.hardforkSender.Execute()
-			handler.waitAfterHarforkBroadcast(ctx)
 		case <-ctx.Done():
 			return
 		}
-	}
-}
-
-func (handler *routineHandler) waitAfterHarforkBroadcast(ctx context.Context) {
-	timer := time.NewTimer(handler.delayAfterHardforkMessageBroadcast)
-	defer timer.Stop()
-
-	select {
-	case <-timer.C:
-	case <-ctx.Done():
 	}
 }
 

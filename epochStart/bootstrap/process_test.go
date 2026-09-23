@@ -62,7 +62,6 @@ import (
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	validatorInfoCacherStub "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/trie/factory"
-	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 )
 
 var errExpected = errors.New("expected error")
@@ -106,7 +105,6 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			TxVersionCheckField:          versioning.NewTxVersionChecker(1),
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
-			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
 			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 				GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
 					if flag == common.StakingV4Step2Flag {
@@ -167,7 +165,6 @@ func createMockEpochStartBootstrapArgs(
 			AccountsTrieStorage:             generalCfg.AccountsTrieStorage,
 			PeerAccountsTrieStorage:         generalCfg.PeerAccountsTrieStorage,
 			HeartbeatV2:                     generalCfg.HeartbeatV2,
-			Hardfork:                        generalCfg.Hardfork,
 			ProofsStorage:                   generalCfg.ProofsStorage,
 			ExecutionResultsStorage:         generalCfg.ExecutionResultsStorage,
 			EvictionWaitingList: config.EvictionWaitingListConfig{
@@ -677,27 +674,11 @@ func TestNewEpochStartBootstrap(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
-	t.Run("hardfork disabled", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-		epochStartProvider, err := NewEpochStartBootstrap(args)
-		assert.Nil(t, err)
-		assert.NotNil(t, epochStartProvider)
-	})
-
-	t.Run("hardfork enabled", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.GeneralConfig.Hardfork.AfterHardFork = true
-
-		epochStartProvider, err := NewEpochStartBootstrap(args)
-		assert.Nil(t, err)
-		assert.NotNil(t, epochStartProvider)
-	})
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	assert.Nil(t, err)
+	assert.NotNil(t, epochStartProvider)
 }
 
 func TestEpochStartBootstrap_Boostrap(t *testing.T) {
@@ -1541,7 +1522,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 				}, nil
 			},
 		}
-		epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+		epochStartProvider.epochStartShardHeaderSyncer = &mock.PendingEpochStartShardHeaderStub{
 			GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
 				return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
 			},
@@ -1597,7 +1578,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 				}, nil
 			},
 		}
-		epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+		epochStartProvider.epochStartShardHeaderSyncer = &mock.PendingEpochStartShardHeaderStub{
 			GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
 				return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
 			},
@@ -1672,7 +1653,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 				}, nil
 			},
 		}
-		epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+		epochStartProvider.epochStartShardHeaderSyncer = &mock.PendingEpochStartShardHeaderStub{
 			GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
 				return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
 			},
@@ -1750,7 +1731,7 @@ func TestRequestAndProcessForShard_WalkTargetEpochIsAheadOfAnchor(t *testing.T) 
 	var gotTargetEpoch uint32
 	var gotStartNonce uint64
 	numCalls := 0
-	epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+	epochStartProvider.epochStartShardHeaderSyncer = &mock.PendingEpochStartShardHeaderStub{
 		SyncEpochStartShardHeaderCalled: func(shardId uint32, epoch uint32, startNonce uint64, _ context.Context) error {
 			numCalls++
 			gotTargetEpoch = epoch
@@ -2240,7 +2221,7 @@ func TestRequestAndProcessing(t *testing.T) {
 				}, nil
 			},
 		}
-		epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+		epochStartProvider.epochStartShardHeaderSyncer = &mock.PendingEpochStartShardHeaderStub{
 			GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
 				return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
 			},
@@ -2424,7 +2405,7 @@ func testRequestAndProcessingByShardId(t *testing.T, shardId uint32) {
 			}, nil
 		},
 	}
-	epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+	epochStartProvider.epochStartShardHeaderSyncer = &mock.PendingEpochStartShardHeaderStub{
 		GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
 			return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
 		},

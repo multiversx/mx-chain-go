@@ -48,8 +48,7 @@ func TestNewInterceptedHeartbeatDataFactory(t *testing.T) {
 		assert.Nil(t, err)
 
 		payload := &heartbeat.Payload{
-			Timestamp:       time.Now().Unix(),
-			HardforkMessage: "hardfork message",
+			Timestamp: time.Now().Unix(),
 		}
 		marshaller := mock.MarshalizerMock{}
 		payloadBytes, err := marshaller.Marshal(payload)

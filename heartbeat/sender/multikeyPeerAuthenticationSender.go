@@ -15,23 +15,19 @@ const delayedBroadcast = 200 * time.Millisecond
 // argMultikeyPeerAuthenticationSender represents the arguments for the peer authentication sender
 type argMultikeyPeerAuthenticationSender struct {
 	argBaseSender
-	nodesCoordinator         heartbeat.NodesCoordinator
-	peerSignatureHandler     crypto.PeerSignatureHandler
-	hardforkTrigger          heartbeat.HardforkTrigger
-	hardforkTimeBetweenSends time.Duration
-	hardforkTriggerPubKey    []byte
-	managedPeersHolder       heartbeat.ManagedPeersHolder
-	timeBetweenChecks        time.Duration
-	shardCoordinator         heartbeat.ShardCoordinator
+	nodesCoordinator     heartbeat.NodesCoordinator
+	peerSignatureHandler crypto.PeerSignatureHandler
+	managedPeersHolder   heartbeat.ManagedPeersHolder
+	timeBetweenChecks    time.Duration
+	shardCoordinator     heartbeat.ShardCoordinator
 }
 
 type multikeyPeerAuthenticationSender struct {
 	commonPeerAuthenticationSender
-	hardforkTimeBetweenSends time.Duration
-	managedPeersHolder       heartbeat.ManagedPeersHolder
-	timeBetweenChecks        time.Duration
-	shardCoordinator         heartbeat.ShardCoordinator
-	getCurrentTimeHandler    func() time.Time
+	managedPeersHolder    heartbeat.ManagedPeersHolder
+	timeBetweenChecks     time.Duration
+	shardCoordinator      heartbeat.ShardCoordinator
+	getCurrentTimeHandler func() time.Time
 }
 
 // newMultikeyPeerAuthenticationSender will create a new instance of type multikeyPeerAuthenticationSender
@@ -43,17 +39,14 @@ func newMultikeyPeerAuthenticationSender(args argMultikeyPeerAuthenticationSende
 
 	senderInstance := &multikeyPeerAuthenticationSender{
 		commonPeerAuthenticationSender: commonPeerAuthenticationSender{
-			baseSender:            createBaseSender(args.argBaseSender),
-			nodesCoordinator:      args.nodesCoordinator,
-			peerSignatureHandler:  args.peerSignatureHandler,
-			hardforkTrigger:       args.hardforkTrigger,
-			hardforkTriggerPubKey: args.hardforkTriggerPubKey,
+			baseSender:           createBaseSender(args.argBaseSender),
+			nodesCoordinator:     args.nodesCoordinator,
+			peerSignatureHandler: args.peerSignatureHandler,
 		},
-		hardforkTimeBetweenSends: args.hardforkTimeBetweenSends,
-		managedPeersHolder:       args.managedPeersHolder,
-		timeBetweenChecks:        args.timeBetweenChecks,
-		shardCoordinator:         args.shardCoordinator,
-		getCurrentTimeHandler:    getCurrentTime,
+		managedPeersHolder:    args.managedPeersHolder,
+		timeBetweenChecks:     args.timeBetweenChecks,
+		shardCoordinator:      args.shardCoordinator,
+		getCurrentTimeHandler: getCurrentTime,
 	}
 
 	return senderInstance, nil
@@ -73,15 +66,6 @@ func checkMultikeyPeerAuthenticationSenderArgs(args argMultikeyPeerAuthenticatio
 	}
 	if check.IfNil(args.peerSignatureHandler) {
 		return heartbeat.ErrNilPeerSignatureHandler
-	}
-	if check.IfNil(args.hardforkTrigger) {
-		return heartbeat.ErrNilHardforkTrigger
-	}
-	if args.hardforkTimeBetweenSends < minTimeBetweenSends {
-		return fmt.Errorf("%w for hardforkTimeBetweenSends", heartbeat.ErrInvalidTimeDuration)
-	}
-	if len(args.hardforkTriggerPubKey) == 0 {
-		return fmt.Errorf("%w hardfork trigger public key bytes length is 0", heartbeat.ErrInvalidValue)
 	}
 	if check.IfNil(args.managedPeersHolder) {
 		return heartbeat.ErrNilManagedPeersHolder
@@ -125,21 +109,16 @@ func (sender *multikeyPeerAuthenticationSender) process(pk string, sk crypto.Pri
 
 	currentTimeStamp := time.Unix(currentTimeAsUnix, 0)
 
-	data, isHardforkTriggered, _, err := sender.prepareMessage([]byte(pk), sk)
+	data, _, err := sender.prepareMessage([]byte(pk), sk)
 	if err != nil {
 		sender.managedPeersHolder.SetNextPeerAuthenticationTime(pkBytes, currentTimeStamp.Add(sender.timeBetweenSendsWhenError))
 		return err
 	}
-	if isHardforkTriggered {
-		nextTimeStamp := currentTimeStamp.Add(sender.computeRandomDuration(sender.hardforkTimeBetweenSends))
-		sender.managedPeersHolder.SetNextPeerAuthenticationTime(pkBytes, nextTimeStamp)
-	} else {
-		nextTimeStamp := currentTimeStamp.Add(sender.computeRandomDuration(sender.timeBetweenSends))
-		sender.managedPeersHolder.SetNextPeerAuthenticationTime(pkBytes, nextTimeStamp)
-		sender.managedPeersHolder.SetValidatorState(pkBytes, true)
-	}
+	nextTimeStamp := currentTimeStamp.Add(sender.computeRandomDuration(sender.timeBetweenSends))
+	sender.managedPeersHolder.SetNextPeerAuthenticationTime(pkBytes, nextTimeStamp)
+	sender.managedPeersHolder.SetValidatorState(pkBytes, true)
 
-	sender.sendData(pkBytes, data, isHardforkTriggered)
+	sender.sendData(pkBytes, data)
 
 	return nil
 }
@@ -149,11 +128,10 @@ func (sender *multikeyPeerAuthenticationSender) processIfShouldSend(pkBytes []by
 		return false
 	}
 	isValidatorNow, shardID := sender.getIsValidatorStatusAndShardID(pkBytes)
-	isHardforkSource := sender.isHardforkSource(pkBytes)
 	oldIsValidator := sender.managedPeersHolder.IsKeyValidator(pkBytes)
 	sender.managedPeersHolder.SetValidatorState(pkBytes, isValidatorNow)
 
-	if !isValidatorNow && !isHardforkSource {
+	if !isValidatorNow {
 		return false
 	}
 	if shardID != sender.shardCoordinator.SelfId() {
@@ -176,16 +154,16 @@ func (sender *multikeyPeerAuthenticationSender) processIfShouldSend(pkBytes []by
 	return false
 }
 
-func (sender *multikeyPeerAuthenticationSender) prepareMessage(pkBytes []byte, privateKey crypto.PrivateKey) ([]byte, bool, int64, error) {
+func (sender *multikeyPeerAuthenticationSender) prepareMessage(pkBytes []byte, privateKey crypto.PrivateKey) ([]byte, int64, error) {
 	p2pSkBytes, pid, err := sender.managedPeersHolder.GetP2PIdentity(pkBytes)
 	if err != nil {
-		return nil, false, 0, err
+		return nil, 0, err
 	}
 
 	return sender.generateMessageBytes(pkBytes, privateKey, p2pSkBytes, pid.Bytes())
 }
 
-func (sender *multikeyPeerAuthenticationSender) sendData(pkBytes []byte, data []byte, isHardforkTriggered bool) {
+func (sender *multikeyPeerAuthenticationSender) sendData(pkBytes []byte, data []byte) {
 	// extra delay as to avoid sending a lot of messages in the same time
 	time.Sleep(delayedBroadcast)
 
@@ -205,13 +183,7 @@ func (sender *multikeyPeerAuthenticationSender) sendData(pkBytes []byte, data []
 	log.Debug("peer authentication message sent",
 		"bls pk", pkBytes,
 		"pid", pid.Pretty(),
-		"is hardfork triggered", isHardforkTriggered,
 		"next send is scheduled on", nextTimeToCheck)
-}
-
-// ShouldTriggerHardfork signals when hardfork message should be sent
-func (sender *multikeyPeerAuthenticationSender) ShouldTriggerHardfork() <-chan struct{} {
-	return sender.hardforkTrigger.NotifyTriggerReceivedV2()
 }
 
 func (sender *multikeyPeerAuthenticationSender) getIsValidatorStatusAndShardID(pkBytes []byte) (bool, uint32) {

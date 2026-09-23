@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -48,7 +47,6 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	TrieNodeChunksInactivityTimeout         time.Duration
 	MainPeerShardMapper                     process.PeerShardMapper
 	FullArchivePeerShardMapper              process.PeerShardMapper
-	HardforkTrigger                         heartbeat.HardforkTrigger
 	NodeOperationMode                       common.NodeOperation
 	InterceptedDataVerifierFactory          process.InterceptedDataVerifierFactory
 	Config                                  config.Config

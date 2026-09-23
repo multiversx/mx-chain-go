@@ -15,7 +15,6 @@ type ArgPeerAuthenticationInterceptorProcessor struct {
 	PeerAuthenticationCacher storage.Cacher
 	PeerShardMapper          process.PeerShardMapper
 	Marshaller               marshal.Marshalizer
-	HardforkTrigger          heartbeat.HardforkTrigger
 }
 
 // peerAuthenticationInterceptorProcessor is the processor used when intercepting peer authentication
@@ -23,7 +22,6 @@ type peerAuthenticationInterceptorProcessor struct {
 	peerAuthenticationCacher storage.Cacher
 	peerShardMapper          process.PeerShardMapper
 	marshaller               marshal.Marshalizer
-	hardforkTrigger          heartbeat.HardforkTrigger
 }
 
 // NewPeerAuthenticationInterceptorProcessor creates a new peerAuthenticationInterceptorProcessor
@@ -37,7 +35,6 @@ func NewPeerAuthenticationInterceptorProcessor(args ArgPeerAuthenticationInterce
 		peerAuthenticationCacher: args.PeerAuthenticationCacher,
 		peerShardMapper:          args.PeerShardMapper,
 		marshaller:               args.Marshaller,
-		hardforkTrigger:          args.HardforkTrigger,
 	}, nil
 }
 
@@ -50,9 +47,6 @@ func checkArgsPeerAuthentication(args ArgPeerAuthenticationInterceptorProcessor)
 	}
 	if check.IfNil(args.Marshaller) {
 		return heartbeat.ErrNilMarshaller
-	}
-	if check.IfNil(args.HardforkTrigger) {
-		return heartbeat.ErrNilHardforkTrigger
 	}
 
 	return nil
@@ -75,11 +69,6 @@ func (paip *peerAuthenticationInterceptorProcessor) Save(data process.Intercepte
 	payload := &heartbeat.Payload{}
 	err := paip.marshaller.Unmarshal(payload, payloadBuff)
 	if err != nil {
-		return false, err
-	}
-
-	isHardforkTrigger, err := paip.hardforkTrigger.TriggerReceived(nil, []byte(payload.HardforkMessage), interceptedPeerAuthenticationData.Pubkey())
-	if isHardforkTrigger {
 		return false, err
 	}
 

@@ -133,12 +133,6 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	b = inf.PprofEnabled()
 	assert.True(t, b)
 
-	err = inf.Trigger(0, false)
-	assert.Equal(t, errNodeStarting, err)
-
-	b = inf.IsSelfTrigger()
-	assert.False(t, b)
-
 	s1, err = inf.EncodeAddressPubkey(nil)
 	assert.Equal(t, emptyString, s1)
 	assert.Equal(t, errNodeStarting, err)
@@ -195,9 +189,6 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 
 	sa, _, err = inf.GetESDTsWithRole("", "", api.AccountQueryOptions{})
 	assert.Nil(t, sa)
-	assert.Equal(t, errNodeStarting, err)
-
-	err = inf.DirectTrigger(0, true)
 	assert.Equal(t, errNodeStarting, err)
 
 	asv, err := inf.GetDirectStakedList()

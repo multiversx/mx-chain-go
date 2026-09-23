@@ -589,18 +589,6 @@ func (mcc *managedCoreComponents) ProcessStatusHandler() common.ProcessStatusHan
 	return mcc.coreComponents.processStatusHandler
 }
 
-// HardforkTriggerPubKey returns the hardfork source public key
-func (mcc *managedCoreComponents) HardforkTriggerPubKey() []byte {
-	mcc.mutCoreComponents.RLock()
-	defer mcc.mutCoreComponents.RUnlock()
-
-	if mcc.coreComponents == nil {
-		return nil
-	}
-
-	return mcc.coreComponents.hardforkTriggerPubKey
-}
-
 // EnableEpochsHandler returns the enable epochs handler
 func (mcc *managedCoreComponents) EnableEpochsHandler() common.EnableEpochsHandler {
 	mcc.mutCoreComponents.RLock()

@@ -38,7 +38,6 @@ type CoreComponentsMock struct {
 	ChanStopNode                       chan endProcess.ArgEndProcess
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	ProcessStatusHandlerInstance       common.ProcessStatusHandler
-	HardforkTriggerPubKeyField         []byte
 	ChainParametersHandlerField        process.ChainParametersHandler
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
 	FieldsSizeCheckerField             common.FieldsSizeChecker
@@ -165,11 +164,6 @@ func (ccm *CoreComponentsMock) GenesisNodesSetup() sharding.GenesisNodesSetupHan
 // ProcessStatusHandler -
 func (ccm *CoreComponentsMock) ProcessStatusHandler() common.ProcessStatusHandler {
 	return ccm.ProcessStatusHandlerInstance
-}
-
-// HardforkTriggerPubKey -
-func (ccm *CoreComponentsMock) HardforkTriggerPubKey() []byte {
-	return ccm.HardforkTriggerPubKeyField
 }
 
 // ChainParametersHandler -

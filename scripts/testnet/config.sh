@@ -37,10 +37,6 @@ if [ $USE_TXGEN -eq 1 ]; then
   updateTxGenConfig
 fi
 
-if [ $USE_HARDFORK -eq 1 ]; then
-  changeConfigForHardfork
-fi
-
 if [ $COPY_BACK_CONFIGS -eq 1 ]; then
   copyBackConfigs
 fi

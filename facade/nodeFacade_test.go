@@ -6,12 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
@@ -647,52 +645,6 @@ func TestNodeFacade_CreateTransaction(t *testing.T) {
 	_, _, _ = nf.CreateTransaction(&external.ArgsCreateTransaction{})
 
 	require.True(t, nodeCreateTxWasCalled)
-}
-
-func TestNodeFacade_Trigger(t *testing.T) {
-	t.Parallel()
-
-	wasCalled := false
-	arg := createMockArguments()
-	epoch := uint32(4638)
-	recoveredEpoch := uint32(0)
-	recoveredWithEarlyEndOfEpoch := atomicCore.Flag{}
-	arg.Node = &mock.NodeStub{
-		DirectTriggerCalled: func(epoch uint32, withEarlyEndOfEpoch bool) error {
-			wasCalled = true
-			atomic.StoreUint32(&recoveredEpoch, epoch)
-			recoveredWithEarlyEndOfEpoch.SetValue(withEarlyEndOfEpoch)
-
-			return expectedErr
-		},
-	}
-	nf, _ := NewNodeFacade(arg)
-
-	err := nf.Trigger(epoch, true)
-
-	require.True(t, wasCalled)
-	require.Equal(t, expectedErr, err)
-	require.Equal(t, epoch, atomic.LoadUint32(&recoveredEpoch))
-	require.True(t, recoveredWithEarlyEndOfEpoch.IsSet())
-}
-
-func TestNodeFacade_IsSelfTrigger(t *testing.T) {
-	t.Parallel()
-
-	wasCalled := false
-	arg := createMockArguments()
-	arg.Node = &mock.NodeStub{
-		IsSelfTriggerCalled: func() bool {
-			wasCalled = true
-			return true
-		},
-	}
-	nf, _ := NewNodeFacade(arg)
-
-	isSelf := nf.IsSelfTrigger()
-
-	require.True(t, wasCalled)
-	require.True(t, isSelf)
 }
 
 func TestNodeFacade_EncodeDecodeAddressPubkey(t *testing.T) {

@@ -26,9 +26,8 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/epochStart"
+	bootstrapSync "github.com/multiversx/mx-chain-go/epochStart/bootstrap/sync"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
-	"github.com/multiversx/mx-chain-go/update"
-	updateSync "github.com/multiversx/mx-chain-go/update/sync"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -224,7 +223,7 @@ type baseBootstrap struct {
 	repopulateTokensSupplies bool
 
 	miniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler
-	txSyncer         update.TransactionsSyncHandler
+	txSyncer         epochStart.TransactionsSyncHandler
 
 	signalProcessCompletionChan chan uint64
 }
@@ -3926,24 +3925,24 @@ func (boot *baseBootstrap) createTxSyncer() error {
 		return err
 	}
 
-	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
+	syncMiniBlocksArgs := bootstrapSync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        miniBlocksStorer,
 		Cache:          boot.dataPool.MiniBlocks(),
 		Marshalizer:    boot.marshalizer,
 		RequestHandler: boot.requestHandler,
 	}
-	boot.miniBlocksSyncer, err = updateSync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	boot.miniBlocksSyncer, err = bootstrapSync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
 	if err != nil {
 		return err
 	}
 
-	syncTxsArgs := updateSync.ArgsNewTransactionsSyncer{
+	syncTxsArgs := bootstrapSync.ArgsNewTransactionsSyncer{
 		DataPools:      boot.dataPool,
 		Storages:       boot.store,
 		Marshaller:     boot.marshalizer,
 		RequestHandler: boot.requestHandler,
 	}
-	boot.txSyncer, err = updateSync.NewTransactionsSyncer(syncTxsArgs)
+	boot.txSyncer, err = bootstrapSync.NewTransactionsSyncer(syncTxsArgs)
 	if err != nil {
 		return err
 	}

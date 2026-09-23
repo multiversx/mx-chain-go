@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"path"
-	"path/filepath"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -31,13 +29,6 @@ import (
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/statusHandler"
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/factory"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/update"
-	hardfork "github.com/multiversx/mx-chain-go/update/genesis"
-	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
-	"github.com/multiversx/mx-chain-go/update/storing"
 )
 
 const accountStartNonce = uint64(0)
@@ -68,88 +59,11 @@ func NewGenesisBlockCreator(arg ArgsGenesisBlockCreator) (*genesisBlockCreator, 
 	}
 	gbc.arg.GenesisNodePrice = big.NewInt(0).Set(nodePrice)
 
-	if mustDoHardForkImportProcess(gbc.arg) {
-		err = gbc.createHardForkImportHandler()
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return gbc, nil
 }
 
-func mustDoHardForkImportProcess(arg ArgsGenesisBlockCreator) bool {
-	return arg.HardForkConfig.AfterHardFork && arg.StartEpochNum <= arg.HardForkConfig.StartEpoch
-}
-
 func getGenesisBlocksRoundNonceEpoch(arg ArgsGenesisBlockCreator) (uint64, uint64, uint32) {
-	if arg.HardForkConfig.AfterHardFork {
-		return arg.HardForkConfig.StartRound, arg.HardForkConfig.StartNonce, arg.HardForkConfig.StartEpoch
-	}
 	return arg.GenesisRound, arg.GenesisNonce, arg.GenesisEpoch
-}
-
-func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
-	importFolder := filepath.Join(gbc.arg.WorkingDir, gbc.arg.HardForkConfig.ImportFolder)
-
-	// TODO remove duplicate code found in update/factory/exportHandlerFactory.go
-	keysStorer, err := createStorer(gbc.arg.HardForkConfig.ImportKeysStorageConfig, importFolder)
-	if err != nil {
-		return fmt.Errorf("%w while creating keys storer", err)
-	}
-	keysVals, err := createStorer(gbc.arg.HardForkConfig.ImportStateStorageConfig, importFolder)
-	if err != nil {
-		return fmt.Errorf("%w while creating keys-values storer", err)
-	}
-
-	arg := storing.ArgHardforkStorer{
-		KeysStore:   keysStorer,
-		KeyValue:    keysVals,
-		Marshalizer: gbc.arg.Core.InternalMarshalizer(),
-	}
-	hs, err := storing.NewHardforkStorer(arg)
-	if err != nil {
-		return fmt.Errorf("%w while creating hardfork storer", err)
-	}
-
-	argsHardForkImport := hardfork.ArgsNewStateImport{
-		HardforkStorer:      hs,
-		Hasher:              gbc.arg.Core.Hasher(),
-		Marshalizer:         gbc.arg.Core.InternalMarshalizer(),
-		ShardID:             gbc.arg.ShardCoordinator.SelfId(),
-		StorageConfig:       gbc.arg.HardForkConfig.ImportStateStorageConfig,
-		TrieStorageManagers: gbc.arg.TrieStorageManagers,
-		AddressConverter:    gbc.arg.Core.AddressPubKeyConverter(),
-		EnableEpochsHandler: gbc.arg.Core.EnableEpochsHandler(),
-	}
-	importHandler, err := hardfork.NewStateImport(argsHardForkImport)
-	if err != nil {
-		return err
-	}
-
-	gbc.arg.importHandler = importHandler
-	return nil
-}
-
-func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
-	dbConfig := factory.GetDBFromConfig(storageConfig.DB)
-	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
-
-	persisterFactory, err := factory.NewPersisterFactory(storageConfig.DB)
-	if err != nil {
-		return nil, err
-	}
-
-	store, err := storageunit.NewStorageUnitFromConf(
-		factory.GetCacherFromConfig(storageConfig.Cache),
-		dbConfig,
-		persisterFactory,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return store, nil
 }
 
 func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
@@ -212,16 +126,7 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 }
 
 func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
-	genesisEpoch := arg.GenesisEpoch
-	if arg.HardForkConfig.AfterHardFork {
-		genesisEpoch = arg.HardForkConfig.StartEpoch
-	}
-
-	if arg.StartEpochNum != genesisEpoch {
-		return false
-	}
-
-	return true
+	return arg.StartEpochNum == arg.GenesisEpoch
 }
 
 func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
@@ -259,23 +164,8 @@ func (gbc *genesisBlockCreator) GetIndexingData() map[uint32]*genesis.IndexingDa
 
 // CreateGenesisBlocks will try to create the genesis blocks for all shards
 func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	var err error
-	var lastPostMbs []*update.MbInfo
-
 	if !mustDoGenesisProcess(gbc.arg) {
 		return gbc.createEmptyGenesisBlocks()
-	}
-
-	if mustDoHardForkImportProcess(gbc.arg) {
-		err = gbc.arg.importHandler.ImportAll()
-		if err != nil {
-			return nil, err
-		}
-
-		err = gbc.computeDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	shardIDs := make([]uint32, gbc.arg.ShardCoordinator.NumberOfShards()+1)
@@ -285,43 +175,15 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 	shardIDs[gbc.arg.ShardCoordinator.NumberOfShards()] = core.MetachainShardId
 
 	mapArgsGenesisBlockCreator := make(map[uint32]ArgsGenesisBlockCreator)
-	mapHardForkBlockProcessor := make(map[uint32]update.HardForkBlockProcessor)
 	mapBodies := make(map[uint32]*block.Body)
 
-	err = gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
+	err := gbc.createArgsGenesisBlockCreator(shardIDs, mapArgsGenesisBlockCreator)
 	if err != nil {
 		return nil, err
 	}
 
-	if mustDoHardForkImportProcess(gbc.arg) {
-		selfShardID := gbc.arg.ShardCoordinator.SelfId()
-		err = createHardForkBlockProcessors(selfShardID, shardIDs, mapArgsGenesisBlockCreator, mapHardForkBlockProcessor)
-		if err != nil {
-			return nil, err
-		}
-
-		args := update.ArgsHardForkProcessor{
-			Hasher:                    gbc.arg.Core.Hasher(),
-			Marshalizer:               gbc.arg.Core.InternalMarshalizer(),
-			ShardIDs:                  shardIDs,
-			MapBodies:                 mapBodies,
-			MapHardForkBlockProcessor: mapHardForkBlockProcessor,
-		}
-
-		lastPostMbs, err = update.CreateBody(args)
-		if err != nil {
-			return nil, err
-		}
-
-		args.PostMbs = lastPostMbs
-		err = update.CreatePostMiniBlocks(args)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
-	err = gbc.createHeaders(mapArgsGenesisBlockCreator, mapHardForkBlockProcessor, mapBodies, shardIDs, genesisBlocks)
+	err = gbc.createHeaders(mapArgsGenesisBlockCreator, mapBodies, shardIDs, genesisBlocks)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +195,6 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 
 func (gbc *genesisBlockCreator) createHeaders(
 	mapArgsGenesisBlockCreator map[uint32]ArgsGenesisBlockCreator,
-	mapHardForkBlockProcessor map[uint32]update.HardForkBlockProcessor,
 	mapBodies map[uint32]*block.Body,
 	shardIDs []uint32,
 	genesisBlocks map[uint32]data.HeaderHandler,
@@ -368,14 +229,12 @@ func (gbc *genesisBlockCreator) createHeaders(
 				metaArgsGenesisBlockCreator,
 				mapBodies[core.MetachainShardId],
 				nodesListSplitter,
-				mapHardForkBlockProcessor[core.MetachainShardId],
 			)
 		} else {
 			genesisBlock, scResults, gbc.initialIndexingData[shardID], err = CreateShardGenesisBlock(
 				mapArgsGenesisBlockCreator[shardID],
 				mapBodies[shardID],
 				nodesListSplitter,
-				mapHardForkBlockProcessor[shardID],
 			)
 		}
 		if err != nil {
@@ -409,7 +268,7 @@ func (gbc *genesisBlockCreator) createHeaders(
 	return nil
 }
 
-// in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
+// computeDNSAddresses computes DNS addresses for initial smart contracts
 func (gbc *genesisBlockCreator) computeDNSAddresses(
 	enableEpochsConfig config.EnableEpochs,
 ) error {
@@ -464,7 +323,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(
 	}
 
 	isForCurrentShard := func([]byte) bool {
-		// after hardfork we are interested only in the smart contract addresses, as they are already deployed
+		// we are interested only in the smart contract addresses, as they are already deployed
 		return true
 	}
 	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
@@ -574,10 +433,6 @@ func (gbc *genesisBlockCreator) checkDelegationsAgainstDeployedSC(
 	allScAddresses [][]byte,
 	arg ArgsGenesisBlockCreator,
 ) error {
-	if mustDoHardForkImportProcess(arg) {
-		return nil
-	}
-
 	initialAccounts := arg.AccountsParser.InitialAccounts()
 	for _, ia := range initialAccounts {
 		dh := ia.GetDelegationHandler()
@@ -608,11 +463,6 @@ func (gbc *genesisBlockCreator) searchDeployedContract(allScAddresses [][]byte, 
 	return false
 }
 
-// ImportHandler returns the ImportHandler object
-func (gbc *genesisBlockCreator) ImportHandler() update.ImportHandler {
-	return gbc.arg.importHandler
-}
-
 func (gbc *genesisBlockCreator) createArgsGenesisBlockCreator(
 	shardIDs []uint32,
 	mapArgsGenesisBlockCreator map[uint32]ArgsGenesisBlockCreator,
@@ -625,44 +475,6 @@ func (gbc *genesisBlockCreator) createArgsGenesisBlockCreator(
 		}
 
 		mapArgsGenesisBlockCreator[shardID] = newArgument
-	}
-
-	return nil
-}
-
-func createHardForkBlockProcessors(
-	selfShardID uint32,
-	shardIDs []uint32,
-	mapArgsGenesisBlockCreator map[uint32]ArgsGenesisBlockCreator,
-	mapHardForkBlockProcessor map[uint32]update.HardForkBlockProcessor,
-) error {
-	var hardForkBlockProcessor update.HardForkBlockProcessor
-	var err error
-	for _, shardID := range shardIDs {
-		log.Debug("createHarForkBlockProcessor", "shard", shardID)
-		if shardID == core.MetachainShardId {
-			argsMetaBlockCreatorAfterHardFork, errCreate := createArgsMetaBlockCreatorAfterHardFork(mapArgsGenesisBlockCreator[shardID], selfShardID)
-			if errCreate != nil {
-				return errCreate
-			}
-			hardForkBlockProcessor, err = hardForkProcess.NewMetaBlockCreatorAfterHardfork(argsMetaBlockCreatorAfterHardFork)
-			if err != nil {
-				return err
-			}
-
-		} else {
-			argsShardBlockAfterHardFork, errCreate := createArgsShardBlockCreatorAfterHardFork(mapArgsGenesisBlockCreator[shardID], selfShardID)
-			if errCreate != nil {
-				return errCreate
-			}
-
-			hardForkBlockProcessor, err = hardForkProcess.NewShardBlockCreatorAfterHardFork(argsShardBlockAfterHardFork)
-			if err != nil {
-				return err
-			}
-		}
-
-		mapHardForkBlockProcessor[shardID] = hardForkBlockProcessor
 	}
 
 	return nil

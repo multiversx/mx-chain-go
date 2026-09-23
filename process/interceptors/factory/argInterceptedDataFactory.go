@@ -25,7 +25,6 @@ type interceptedDataCoreComponentsHolder interface {
 	ChainID() string
 	MinTransactionVersion() uint32
 	IsInterfaceNil() bool
-	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
 	FieldsSizeChecker() common.FieldsSizeChecker

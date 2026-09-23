@@ -110,12 +110,6 @@
         { Name = "/:address/is-data-trie-migrated", Open = true }
     ]
 
-[APIPackages.hardfork]
-    Routes = [
-        # /hardfork/trigger will receive a trigger request from the client and propagate it for processing
-        { Name = "/trigger", Open = true }
-    ]
-
 [APIPackages.network]
     Routes = [
         # /network/status will return metrics related to current status of the chain (epoch, nonce, round)

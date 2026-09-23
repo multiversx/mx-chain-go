@@ -24,12 +24,10 @@ import (
 )
 
 var expectedErr = errors.New("expected error")
-var providedHardforkPubKey = []byte("provided pub key")
 
 func createDefaultInterceptedPeerAuthentication() *heartbeat.PeerAuthentication {
 	payload := &heartbeat.Payload{
-		Timestamp:       time.Now().Unix(),
-		HardforkMessage: "",
+		Timestamp: time.Now().Unix(),
 	}
 	marshaller := marshal.GogoProtoMarshalizer{}
 	payloadBytes, err := marshaller.Marshal(payload)
@@ -61,7 +59,6 @@ func createMockInterceptedPeerAuthenticationArg(interceptedData *heartbeat.PeerA
 		SignaturesHandler:                       &processMocks.SignaturesHandlerStub{},
 		PeerSignatureHandler:                    &cryptoMocks.PeerSignatureHandlerStub{},
 		PayloadValidator:                        &testscommon.PeerAuthenticationPayloadValidatorStub{},
-		HardforkTriggerPubKey:                   providedHardforkPubKey,
 		PeerShardMapper:                         &processMocks.PeerShardMapperStub{},
 		PeerAuthCacher:                          cache.NewCacherStub(),
 		PeerAuthenticationTimeBetweenSendsInSec: 10,
@@ -201,17 +198,6 @@ func TestNewInterceptedPeerAuthentication(t *testing.T) {
 		ipa, err := NewInterceptedPeerAuthentication(arg)
 		assert.True(t, check.IfNil(ipa))
 		assert.NotNil(t, err)
-	})
-	t.Run("invalid hardfork pub key should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockInterceptedPeerAuthenticationArg(createDefaultInterceptedPeerAuthentication())
-		args.HardforkTriggerPubKey = make([]byte, 0)
-		ipa, err := NewInterceptedPeerAuthentication(args)
-
-		assert.True(t, check.IfNil(ipa))
-		assert.True(t, errors.Is(err, process.ErrInvalidValue))
-		assert.True(t, strings.Contains(err.Error(), "hardfork"))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -382,24 +368,6 @@ func TestInterceptedPeerAuthentication_CheckValidity(t *testing.T) {
 				}
 			},
 		}
-		ipa, _ := NewInterceptedPeerAuthentication(arg)
-		err := ipa.CheckValidity()
-		assert.Nil(t, err)
-	})
-	t.Run("should work - hardfork from source", func(t *testing.T) {
-		t.Parallel()
-
-		peerAuth := createDefaultInterceptedPeerAuthentication()
-		peerAuth.Pubkey = providedHardforkPubKey
-		payload := &heartbeat.Payload{
-			Timestamp:       time.Now().Unix(),
-			HardforkMessage: "hardfork message",
-		}
-		marshaller := marshal.GogoProtoMarshalizer{}
-		payloadBytes, _ := marshaller.Marshal(payload)
-		peerAuth.Payload = payloadBytes
-
-		arg := createMockInterceptedPeerAuthenticationArg(peerAuth)
 		ipa, _ := NewInterceptedPeerAuthentication(arg)
 		err := ipa.CheckValidity()
 		assert.Nil(t, err)

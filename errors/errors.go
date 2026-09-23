@@ -346,8 +346,6 @@ var ErrNilStatusComponentsHolder = errors.New("nil status components holder")
 // ErrNilStatusHandler signals that a nil status handler was provided
 var ErrNilStatusHandler = errors.New("nil status handler provided")
 
-// ErrNilHardforkTrigger signals that a nil hardfork trigger was provided
-var ErrNilHardforkTrigger = errors.New("nil hardfork trigger")
 
 // ErrNilStorageManagers signals that a nil storage managers instance was provided
 var ErrNilStorageManagers = errors.New("nil storage managers")

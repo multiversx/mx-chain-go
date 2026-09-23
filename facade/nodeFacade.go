@@ -497,16 +497,6 @@ func (nf *nodeFacade) PprofEnabled() bool {
 	return nf.config.PprofEnabled
 }
 
-// Trigger will trigger a hardfork event
-func (nf *nodeFacade) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
-	return nf.node.DirectTrigger(epoch, withEarlyEndOfEpoch)
-}
-
-// IsSelfTrigger returns true if the self public key is the same with the registered public key
-func (nf *nodeFacade) IsSelfTrigger() bool {
-	return nf.node.IsSelfTrigger()
-}
-
 // EncodeAddressPubkey will encode the provided address public key bytes to string
 func (nf *nodeFacade) EncodeAddressPubkey(pk []byte) (string, error) {
 	return nf.node.EncodeAddressPubkey(pk)

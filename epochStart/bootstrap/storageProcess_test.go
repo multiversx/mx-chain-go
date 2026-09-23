@@ -26,7 +26,6 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
-	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -251,7 +250,7 @@ func testRequestAndProcessFromStorageByShardId(t *testing.T, shardId uint32) {
 		},
 	}
 
-	sesb.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+	sesb.epochStartShardHeaderSyncer = &mock.PendingEpochStartShardHeaderStub{
 		GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
 			return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
 		},

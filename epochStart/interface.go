@@ -144,10 +144,18 @@ type NodesConfigProvider interface {
 	IsInterfaceNil() bool
 }
 
-// ImportStartHandler can manage the process of starting the import after the hardfork event
-type ImportStartHandler interface {
-	ShouldStartImport() bool
-	IsAfterExportBeforeImport() bool
+// TransactionsSyncHandler defines the methods to sync all transactions from a set of miniblocks
+type TransactionsSyncHandler interface {
+	SyncTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error
+	GetTransactions() (map[string]data.TransactionHandler, error)
+	GetValidatorsInfo() (map[string]*state.ShardValidatorInfo, error)
+	ClearFields()
+	IsInterfaceNil() bool
+}
+
+// Closer defines the functionality of an entity that can be closed
+type Closer interface {
+	Close() error
 	IsInterfaceNil() bool
 }
 

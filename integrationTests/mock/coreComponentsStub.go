@@ -55,7 +55,6 @@ type CoreComponentsStub struct {
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	WasmVMChangeLockerInternal         common.Locker
 	ProcessStatusHandlerInternal       common.ProcessStatusHandler
-	HardforkTriggerPubKeyField         []byte
 	EnableEpochsHandlerField           common.EnableEpochsHandler
 	ChainParametersHandlerField        process.ChainParametersHandler
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
@@ -263,11 +262,6 @@ func (ccs *CoreComponentsStub) ProcessStatusHandler() common.ProcessStatusHandle
 // String -
 func (ccs *CoreComponentsStub) String() string {
 	return "CoreComponentsStub"
-}
-
-// HardforkTriggerPubKey -
-func (ccs *CoreComponentsStub) HardforkTriggerPubKey() []byte {
-	return ccs.HardforkTriggerPubKeyField
 }
 
 // EnableEpochsHandler -

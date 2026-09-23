@@ -77,7 +77,6 @@ type coreComponentsHolder struct {
 	nodeTypeProvider              core.NodeTypeProviderHandler
 	wasmVMChangeLocker            common.Locker
 	processStatusHandler          common.ProcessStatusHandler
-	hardforkTriggerPubKey         []byte
 	enableEpochsHandler           common.EnableEpochsHandler
 	chainParametersSubscriber     process.ChainParametersSubscriber
 	chainParametersHandler        process.ChainParametersHandler
@@ -307,12 +306,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.nodeTypeProvider = nodetype.NewNodeTypeProvider(core.NodeTypeObserver)
 	instance.processStatusHandler = statusHandler.NewProcessStatusHandler()
 
-	pubKeyBytes, err := instance.validatorPubKeyConverter.Decode(args.Config.Hardfork.PublicKeyToListenFrom)
-	if err != nil {
-		return nil, err
-	}
-	instance.hardforkTriggerPubKey = pubKeyBytes
-
 	fchecker, err := fieldsChecker.NewFieldsSizeChecker(instance.chainParametersHandler, hasher)
 	if err != nil {
 		return nil, err
@@ -531,11 +524,6 @@ func (c *coreComponentsHolder) WasmVMChangeLocker() common.Locker {
 // ProcessStatusHandler will return the process status handler
 func (c *coreComponentsHolder) ProcessStatusHandler() common.ProcessStatusHandler {
 	return c.processStatusHandler
-}
-
-// HardforkTriggerPubKey will return the pub key for the hard fork trigger
-func (c *coreComponentsHolder) HardforkTriggerPubKey() []byte {
-	return c.hardforkTriggerPubKey
 }
 
 // EnableEpochsHandler will return the enable epoch handler

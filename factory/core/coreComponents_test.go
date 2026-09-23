@@ -286,34 +286,10 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidRatingsConfigShouldErr
 	require.NotNil(t, err)
 }
 
-func TestCoreComponentsFactory_CreateCoreComponentsInvalidHardforkPubKeyShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := componentsMock.GetCoreArgs()
-	args.Config.Hardfork.PublicKeyToListenFrom = "invalid"
-	ccf, _ := coreComp.NewCoreComponentsFactory(args)
-
-	cc, err := ccf.Create()
-	require.Nil(t, cc)
-	require.NotNil(t, err)
-}
-
 func TestCoreComponentsFactory_CreateCoreComponentsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := componentsMock.GetCoreArgs()
-	ccf, _ := coreComp.NewCoreComponentsFactory(args)
-
-	cc, err := ccf.Create()
-	require.NoError(t, err)
-	require.NotNil(t, cc)
-}
-
-func TestCoreComponentsFactory_CreateCoreComponentsShouldWorkAfterHardfork(t *testing.T) {
-	t.Parallel()
-
-	args := componentsMock.GetCoreArgs()
-	args.Config.Hardfork.AfterHardFork = true
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()

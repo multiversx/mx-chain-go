@@ -13,3 +13,8 @@ func (c *CloserStub) Close() error {
 
 	return nil
 }
+
+// IsInterfaceNil -
+func (c *CloserStub) IsInterfaceNil() bool {
+	return c == nil
+}

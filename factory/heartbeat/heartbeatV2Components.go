@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	processFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/peer"
-	"github.com/multiversx/mx-chain-go/update"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -54,13 +53,13 @@ type heartbeatV2ComponentsFactory struct {
 }
 
 type heartbeatV2Components struct {
-	sender                               update.Closer
-	peerAuthRequestsProcessor            update.Closer
-	shardSender                          update.Closer
+	sender                               factory.Closer
+	peerAuthRequestsProcessor            factory.Closer
+	shardSender                          factory.Closer
 	monitor                              factory.HeartbeatV2Monitor
-	statusHandler                        update.Closer
-	mainDirectConnectionProcessor        update.Closer
-	fullArchiveDirectConnectionProcessor update.Closer
+	statusHandler                        factory.Closer
+	mainDirectConnectionProcessor        factory.Closer
+	fullArchiveDirectConnectionProcessor factory.Closer
 }
 
 // NewHeartbeatV2ComponentsFactory creates a new instance of heartbeatV2ComponentsFactory
@@ -175,9 +174,6 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 		PrivateKey:                                  hcf.cryptoComponents.PrivateKey(),
 		RedundancyHandler:                           hcf.processComponents.NodeRedundancyHandler(),
 		NodesCoordinator:                            hcf.processComponents.NodesCoordinator(),
-		HardforkTrigger:                             hcf.processComponents.HardforkTrigger(),
-		HardforkTimeBetweenSends:                    time.Second * time.Duration(cfg.HardforkTimeBetweenSendsInSec),
-		HardforkTriggerPubKey:                       hcf.coreComponents.HardforkTriggerPubKey(),
 		PeerTypeProvider:                            peerTypeProvider,
 		ManagedPeersHolder:                          hcf.cryptoComponents.ManagedPeersHolder(),
 		PeerAuthenticationTimeBetweenChecks:         time.Second * time.Duration(cfg.PeerAuthenticationTimeBetweenChecksInSec),

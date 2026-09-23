@@ -55,8 +55,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/factory"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
-	"github.com/multiversx/mx-chain-go/update"
-	updateSync "github.com/multiversx/mx-chain-go/update/sync"
+	bootstrapSync "github.com/multiversx/mx-chain-go/epochStart/bootstrap/sync"
 )
 
 // ErrGetEpochStartRootHash signals that root hash was not found in execution results for epoch start header
@@ -125,7 +124,7 @@ type epochStartBootstrap struct {
 	maxHardCapForMissingNodes  int
 	trieSyncerVersion          int
 	checkNodesOnDisk           bool
-	bootstrapHeartbeatSender   update.Closer
+	bootstrapHeartbeatSender   epochStart.Closer
 	trieSyncStatisticsProvider common.SizeSyncStatisticsHandler
 	nodeProcessingMode         common.NodeProcessingMode
 	nodeOperationMode          common.NodeOperation
@@ -142,11 +141,11 @@ type epochStartBootstrap struct {
 	miniBlocksSyncer                epochStart.PendingMiniBlocksSyncHandler
 	headersSyncer                   epochStart.HeadersByHashSyncer
 	epochStartShardHeaderSyncer     epochStart.PendingEpochStartShardHeaderSyncer
-	txSyncerForScheduled            update.TransactionsSyncHandler
+	txSyncerForScheduled            epochStart.TransactionsSyncHandler
 	epochStartMetaBlockSyncer       epochStart.StartOfEpochMetaSyncer
 	nodesConfigHandler              StartOfEpochNodesConfigHandler
-	whiteListHandler                update.WhiteListHandler
-	whiteListerVerifiedTxs          update.WhiteListHandler
+	whiteListHandler                process.WhiteListHandler
+	whiteListerVerifiedTxs          process.WhiteListHandler
 	storageOpenerHandler            storage.UnitOpenerHandler
 	latestStorageDataProvider       storage.LatestStorageDataProviderHandler
 	argumentsParser                 process.ArgumentsParser
@@ -286,14 +285,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 
 	epochStartProvider.trieContainer = state.NewDataTriesHolder()
 	epochStartProvider.trieStorageManagers = make(map[string]common.StorageManager)
-
-	if epochStartProvider.generalConfig.Hardfork.AfterHardFork {
-		epochStartProvider.startEpoch = epochStartProvider.generalConfig.Hardfork.StartEpoch
-		epochStartProvider.baseData.lastEpoch = epochStartProvider.startEpoch
-		epochStartProvider.startRound = int64(epochStartProvider.generalConfig.Hardfork.StartRound)
-		epochStartProvider.baseData.lastRound = epochStartProvider.startRound
-		epochStartProvider.baseData.epochStartRound = uint64(epochStartProvider.startRound)
-	}
 
 	return epochStartProvider, nil
 }
@@ -677,18 +668,18 @@ func (e *epochStartBootstrap) createSyncers() error {
 		return err
 	}
 
-	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
+	syncMiniBlocksArgs := bootstrapSync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          e.dataPool.MiniBlocks(),
 		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
-	e.miniBlocksSyncer, err = updateSync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	e.miniBlocksSyncer, err = bootstrapSync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
 	if err != nil {
 		return err
 	}
 
-	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
+	syncMissingHeadersArgs := bootstrapSync.ArgsNewMissingHeadersByHashSyncer{
 		Storage:             disabled.CreateMemUnit(),
 		Cache:               e.dataPool.Headers(),
 		ProofsPool:          e.dataPool.Proofs(),
@@ -696,31 +687,31 @@ func (e *epochStartBootstrap) createSyncers() error {
 		RequestHandler:      e.requestHandler,
 		EnableEpochsHandler: e.enableEpochsHandler,
 	}
-	e.headersSyncer, err = updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+	e.headersSyncer, err = bootstrapSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
 	if err != nil {
 		return err
 	}
 
-	epochStartShardHeaderSyncerArgs := updateSync.ArgsPendingEpochStartShardHeaderSyncer{
+	epochStartShardHeaderSyncerArgs := bootstrapSync.ArgsPendingEpochStartShardHeaderSyncer{
 		HeadersPool:         e.dataPool.Headers(),
 		ProofsPool:          e.dataPool.Proofs(),
 		Marshalizer:         e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler:      e.requestHandler,
 		EnableEpochsHandler: e.enableEpochsHandler,
 	}
-	e.epochStartShardHeaderSyncer, err = updateSync.NewPendingEpochStartShardHeaderSyncer(epochStartShardHeaderSyncerArgs)
+	e.epochStartShardHeaderSyncer, err = bootstrapSync.NewPendingEpochStartShardHeaderSyncer(epochStartShardHeaderSyncerArgs)
 	if err != nil {
 		return err
 	}
 
-	syncTxsArgs := updateSync.ArgsNewTransactionsSyncer{
+	syncTxsArgs := bootstrapSync.ArgsNewTransactionsSyncer{
 		DataPools:      e.dataPool,
 		Storages:       disabled.NewChainStorer(),
 		Marshaller:     e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
 	}
 
-	e.txSyncerForScheduled, err = updateSync.NewTransactionsSyncer(syncTxsArgs)
+	e.txSyncerForScheduled, err = bootstrapSync.NewTransactionsSyncer(syncTxsArgs)
 	if err != nil {
 		return err
 	}

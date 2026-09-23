@@ -10,14 +10,11 @@ import (
 
 type argPeerAuthenticationSenderFactory struct {
 	argBaseSender
-	nodesCoordinator         heartbeat.NodesCoordinator
-	peerSignatureHandler     crypto.PeerSignatureHandler
-	hardforkTrigger          heartbeat.HardforkTrigger
-	hardforkTimeBetweenSends time.Duration
-	hardforkTriggerPubKey    []byte
-	managedPeersHolder       heartbeat.ManagedPeersHolder
-	timeBetweenChecks        time.Duration
-	shardCoordinator         heartbeat.ShardCoordinator
+	nodesCoordinator     heartbeat.NodesCoordinator
+	peerSignatureHandler crypto.PeerSignatureHandler
+	managedPeersHolder   heartbeat.ManagedPeersHolder
+	timeBetweenChecks    time.Duration
+	shardCoordinator     heartbeat.ShardCoordinator
 }
 
 func createPeerAuthenticationSender(args argPeerAuthenticationSenderFactory) (peerAuthenticationSenderHandler, error) {
@@ -35,12 +32,9 @@ func createPeerAuthenticationSender(args argPeerAuthenticationSenderFactory) (pe
 
 func createRegularPeerAuthenticationSender(args argPeerAuthenticationSenderFactory) (*peerAuthenticationSender, error) {
 	argsSender := argPeerAuthenticationSender{
-		argBaseSender:            args.argBaseSender,
-		nodesCoordinator:         args.nodesCoordinator,
-		peerSignatureHandler:     args.peerSignatureHandler,
-		hardforkTrigger:          args.hardforkTrigger,
-		hardforkTimeBetweenSends: args.hardforkTimeBetweenSends,
-		hardforkTriggerPubKey:    args.hardforkTriggerPubKey,
+		argBaseSender:        args.argBaseSender,
+		nodesCoordinator:     args.nodesCoordinator,
+		peerSignatureHandler: args.peerSignatureHandler,
 	}
 
 	return newPeerAuthenticationSender(argsSender)

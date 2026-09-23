@@ -29,15 +29,6 @@ type PeerTypeProviderHandler interface {
 	IsInterfaceNil() bool
 }
 
-// HardforkTrigger defines the behavior of a hardfork trigger
-type HardforkTrigger interface {
-	TriggerReceived(payload []byte, data []byte, pkBytes []byte) (bool, error)
-	RecordedTriggerMessage() ([]byte, bool)
-	NotifyTriggerReceivedV2() <-chan struct{}
-	CreateData() []byte
-	IsInterfaceNil() bool
-}
-
 // CurrentBlockProvider can provide the current block that the node was able to commit
 type CurrentBlockProvider interface {
 	GetCurrentBlockHeader() data.HeaderHandler

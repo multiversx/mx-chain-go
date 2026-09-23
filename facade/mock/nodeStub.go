@@ -33,8 +33,6 @@ type NodeStub struct {
 	GenerateAndSendBulkTransactionsOneByOneHandler func(destination string, value *big.Int, nrTransactions uint64) error
 	GetHeartbeatsHandler                           func() []data.PubKeyHeartbeat
 	ValidatorStatisticsApiCalled                   func() (map[string]*validator.ValidatorStatistics, error)
-	DirectTriggerCalled                            func(epoch uint32, withEarlyEndOfEpoch bool) error
-	IsSelfTriggerCalled                            func() bool
 	GetQueryHandlerCalled                          func(name string) (debug.QueryHandler, error)
 	GetValueForKeyCalled                           func(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetGuardianDataCalled                          func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
@@ -247,24 +245,6 @@ func (ns *NodeStub) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse,
 	}
 
 	return nil, nil
-}
-
-// DirectTrigger -
-func (ns *NodeStub) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
-	if ns.DirectTriggerCalled != nil {
-		return ns.DirectTriggerCalled(epoch, withEarlyEndOfEpoch)
-	}
-
-	return nil
-}
-
-// IsSelfTrigger -
-func (ns *NodeStub) IsSelfTrigger() bool {
-	if ns.IsSelfTriggerCalled != nil {
-		return ns.IsSelfTriggerCalled()
-	}
-
-	return false
 }
 
 // GetQueryHandler -

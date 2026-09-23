@@ -49,10 +49,10 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should error when invalid field during multiple levels depth", func(t *testing.T) {
 		t.Parallel()
 
-		path := "Hardfork.ExportKeysStorageConfig.DB2.FilePath" // DB2 instead of DB
+		path := "AccountsTrieStorage.DB2.FilePath" // DB2 instead of DB
 		expectedNewValue := "new file path"
 		cfg := &config.Config{}
-		cfg.Hardfork.ExportKeysStorageConfig.DB.FilePath = "original file path"
+		cfg.AccountsTrieStorage.DB.FilePath = "original file path"
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
@@ -62,10 +62,10 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should error when the final value is invalid", func(t *testing.T) {
 		t.Parallel()
 
-		path := "Hardfork.ExportKeysStorageConfig.DB.FilePath2" // FilePath2 instead of FilePath
+		path := "AccountsTrieStorage.DB.FilePath2" // FilePath2 instead of FilePath
 		expectedNewValue := "new file path"
 		cfg := &config.Config{}
-		cfg.Hardfork.ExportKeysStorageConfig.DB.FilePath = "original file path"
+		cfg.AccountsTrieStorage.DB.FilePath = "original file path"
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
@@ -332,15 +332,15 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should work and override int64 value", func(t *testing.T) {
 		t.Parallel()
 
-		path := "Hardfork.GenesisTime"
+		path := "HeartbeatV2.HideInactiveValidatorIntervalInSec"
 		expectedNewValue := int64(38)
 		cfg := &config.Config{}
-		cfg.Hardfork.GenesisTime = 37
+		cfg.HeartbeatV2.HideInactiveValidatorIntervalInSec = 37
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNewValue, cfg.Hardfork.GenesisTime)
+		require.Equal(t, expectedNewValue, cfg.HeartbeatV2.HideInactiveValidatorIntervalInSec)
 	})
 
 	t.Run("should work and override uint64 value", func(t *testing.T) {
@@ -387,29 +387,29 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 	t.Run("should work and override string value on multiple levels depth", func(t *testing.T) {
 		t.Parallel()
 
-		path := "Hardfork.ExportKeysStorageConfig.DB.FilePath"
+		path := "AccountsTrieStorage.DB.FilePath"
 		expectedNewValue := "new file path"
 		cfg := &config.Config{}
-		cfg.Hardfork.ExportKeysStorageConfig.DB.FilePath = "original file path"
+		cfg.AccountsTrieStorage.DB.FilePath = "original file path"
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNewValue, cfg.Hardfork.ExportKeysStorageConfig.DB.FilePath)
+		require.Equal(t, expectedNewValue, cfg.AccountsTrieStorage.DB.FilePath)
 	})
 
 	t.Run("should work and override int value on multiple levels depth", func(t *testing.T) {
 		t.Parallel()
 
-		path := "Hardfork.ExportKeysStorageConfig.DB.MaxBatchSize"
+		path := "AccountsTrieStorage.DB.MaxBatchSize"
 		cfg := &config.Config{}
-		cfg.Hardfork.ExportKeysStorageConfig.DB.MaxBatchSize = 10
+		cfg.AccountsTrieStorage.DB.MaxBatchSize = 10
 		expectedNewValue := 37
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 		require.NoError(t, err)
 
-		require.Equal(t, expectedNewValue, cfg.Hardfork.ExportKeysStorageConfig.DB.MaxBatchSize)
+		require.Equal(t, expectedNewValue, cfg.AccountsTrieStorage.DB.MaxBatchSize)
 	})
 
 	t.Run("should error if setting int into string", func(t *testing.T) {

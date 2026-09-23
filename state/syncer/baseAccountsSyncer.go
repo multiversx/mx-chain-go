@@ -212,7 +212,6 @@ func convertBytesPerIntervalToSpeed(bytes uint64, interval time.Duration) string
 }
 
 // Deprecated: GetSyncedTries returns the synced map of data trie. This is likely to case OOM exceptions
-// TODO remove this function after fixing the hardfork sync state mechanism
 func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()

@@ -837,7 +837,6 @@ func CreateGenesisMetaBlock(
 			},
 			TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 		},
-		HardForkConfig: config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
 				BaseIssuingCost: "1000",
@@ -933,7 +932,7 @@ func CreateGenesisMetaBlock(
 	nodesHandler, err := mock.NewNodesHandlerMock(nodesSetup)
 	log.LogIfError(err)
 
-	metaHdr, _, _, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nil, nodesHandler, nil)
+	metaHdr, _, _, err := genesisProcess.CreateMetaGenesisBlock(argsMetaGenesis, nil, nodesHandler)
 	log.LogIfError(err)
 
 	log.Info("meta genesis root hash", "hash", hex.EncodeToString(metaHdr.GetRootHash()))
@@ -1772,7 +1771,7 @@ func CreateNodesWithFullGenesisCustomEnableEpochs(
 		},
 	)
 
-	hardforkStarter := NewTestProcessorNode(ArgTestProcessorNode{
+	starterNode := NewTestProcessorNode(ArgTestProcessorNode{
 		MaxShards:            uint32(numOfShards),
 		NodeShardId:          0,
 		TxSignPrivKeyShardId: 0,
@@ -1789,7 +1788,6 @@ func CreateNodesWithFullGenesisCustomEnableEpochs(
 				NodeShardId:          shardId,
 				TxSignPrivKeyShardId: shardId,
 				GenesisFile:          genesisFile,
-				HardforkPk:           hardforkStarter.NodeKeys.MainKey.Pk,
 				EpochsConfig:         enableEpochsConfig,
 				EconomicsConfig:      economicsConfig,
 			})
@@ -1805,17 +1803,16 @@ func CreateNodesWithFullGenesisCustomEnableEpochs(
 			NodeShardId:          core.MetachainShardId,
 			TxSignPrivKeyShardId: 0,
 			GenesisFile:          genesisFile,
-			HardforkPk:           hardforkStarter.NodeKeys.MainKey.Pk,
 			EpochsConfig:         enableEpochsConfig,
 			EconomicsConfig:      economicsConfig,
 		})
 		connectableNodes[idx] = nodes[idx]
 	}
 
-	connectableNodes = append(connectableNodes, hardforkStarter)
+	connectableNodes = append(connectableNodes, starterNode)
 	ConnectNodes(connectableNodes)
 
-	return nodes, hardforkStarter
+	return nodes, starterNode
 }
 
 // DisplayAndStartNodes prints each nodes shard ID, sk and pk, and then starts the node

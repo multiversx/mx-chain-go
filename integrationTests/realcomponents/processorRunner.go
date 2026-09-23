@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"io"
 	"math/big"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -39,7 +38,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/update/trigger"
 	"github.com/stretchr/testify/require"
 )
 
@@ -405,9 +403,6 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * pr.CoreComponents.GenesisNodesSetup().GetRoundDuration()))
 
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(pr.Config.FlagsConfig.DbDir, common.DefaultDBPath), pr.Config.FlagsConfig.Version)
-	require.Nil(tb, err)
-
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
 
 	argsProcess := factoryProcessing.ProcessComponentsFactoryArgs{
@@ -429,7 +424,6 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		MaxRating:               pr.Config.RatingsConfig.General.MaxRating,
 		SystemSCConfig:          pr.Config.SystemSCConfig,
-		ImportStartHandler:      importStartHandler,
 		HistoryRepo:             historyRepository,
 		Data:                    pr.DataComponents,
 		CoreData:                pr.CoreComponents,

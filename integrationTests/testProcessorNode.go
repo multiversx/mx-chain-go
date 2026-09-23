@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
@@ -148,16 +147,12 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
-	"github.com/multiversx/mx-chain-go/update"
-	"github.com/multiversx/mx-chain-go/update/trigger"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmProcess "github.com/multiversx/mx-chain-go/vm/process"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 )
 
 var zero = big.NewInt(0)
-
-var hardforkPubKey = "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307"
 
 // TestHasher represents a sha256 hasher
 var TestHasher = sha256.NewSha256()
@@ -343,7 +338,6 @@ type ArgTestProcessorNode struct {
 	EconomicsConfig         *config.EconomicsConfig
 	DataPool                dataRetriever.PoolsHolder
 	TrieStore               storage.Storer
-	HardforkPk              crypto.PublicKey
 	GenesisFile             string
 	NodeKeys                *TestNodeKeys
 	NodesSetup              sharding.GenesisNodesSetupHandler
@@ -466,7 +460,6 @@ type TestProcessorNode struct {
 	ChainID               []byte
 	MinTransactionVersion uint32
 
-	ExportHandler                 update.ExportHandler
 	WaitTime                      time.Duration
 	HistoryRepository             dblookupext.HistoryRepository
 	EpochNotifier                 process.EpochNotifier
@@ -481,7 +474,6 @@ type TestProcessorNode struct {
 	TransactionLogProcessor process.TransactionLogProcessor
 	PeersRatingHandler      p2p.PeersRatingHandler
 	PeersRatingMonitor      p2p.PeersRatingMonitor
-	HardforkTrigger         node.HardforkTrigger
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
 	ChainParametersHandler  common.ChainParametersHandler
@@ -901,15 +893,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.initValidatorStatistics()
 	tpn.initGenesisBlocks(args)
 	tpn.initBlockTracker()
-
-	strPk := ""
-	if !check.IfNil(args.HardforkPk) {
-		buff, err := args.HardforkPk.ToByteArray()
-		log.LogIfError(err)
-
-		strPk = hex.EncodeToString(buff)
-	}
-	tpn.initInterceptors(strPk)
+	tpn.initInterceptors()
 
 	gasMap := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasMap, 1)
@@ -983,7 +967,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.addGenesisBlocksIntoStorage()
 
 	if args.GenesisFile != "" {
-		tpn.createHeartbeatWithHardforkTrigger()
+		tpn.createHeartbeat()
 	}
 }
 
@@ -1401,7 +1385,7 @@ func CreateRatingsData() *rating.RatingsData {
 	return ratingsData
 }
 
-func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
+func (tpn *TestProcessorNode) initInterceptors() {
 	var err error
 	tpn.BlockBlackListHandler = cache.NewTimeCache(TimeSpanForBadHeaders)
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1461,8 +1445,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
 		tpn.EpochStartTrigger = &metachain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
-		providedHardforkPk := tpn.createHardforkTrigger(heartbeatPk)
-		coreComponents.HardforkTriggerPubKeyField = providedHardforkPk
 
 		metaInterceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 			CoreComponents:                          coreComponents,
@@ -1496,7 +1478,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			TrieNodeChunksInactivityTimeout:         10 * time.Second,
 			MainPeerShardMapper:                     tpn.MainPeerShardMapper,
 			FullArchivePeerShardMapper:              tpn.FullArchivePeerShardMapper,
-			HardforkTrigger:                         tpn.HardforkTrigger,
 			NodeOperationMode:                       tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory:          interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
 			Config: config.Config{
@@ -1541,8 +1522,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		tpn.EpochStartTrigger = &shardchain.TestTrigger{}
 		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
-		providedHardforkPk := tpn.createHardforkTrigger(heartbeatPk)
-		coreComponents.HardforkTriggerPubKeyField = providedHardforkPk
 
 		shardIntereptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 			CoreComponents:                          coreComponents,
@@ -1576,7 +1555,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			TrieNodeChunksInactivityTimeout:         10 * time.Second,
 			MainPeerShardMapper:                     tpn.MainPeerShardMapper,
 			FullArchivePeerShardMapper:              tpn.FullArchivePeerShardMapper,
-			HardforkTrigger:                         tpn.HardforkTrigger,
 			NodeOperationMode:                       tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory:          interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
 			Config: config.Config{
@@ -1594,36 +1572,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			fmt.Println(err.Error())
 		}
 	}
-}
-
-func (tpn *TestProcessorNode) createHardforkTrigger(heartbeatPk string) []byte {
-	pkBytes, _ := tpn.NodeKeys.MainKey.Pk.ToByteArray()
-	argHardforkTrigger := trigger.ArgHardforkTrigger{
-		TriggerPubKeyBytes:        pkBytes,
-		Enabled:                   true,
-		EnabledAuthenticated:      true,
-		ArgumentParser:            smartContract.NewArgumentParser(),
-		EpochProvider:             tpn.EpochStartTrigger,
-		ExportFactoryHandler:      &mock.ExportFactoryHandlerStub{},
-		CloseAfterExportInMinutes: 5,
-		ChanStopNodeProcess:       make(chan endProcess.ArgEndProcess),
-		EpochConfirmedNotifier:    tpn.EpochStartNotifier,
-		SelfPubKeyBytes:           pkBytes,
-		ImportStartHandler:        &mock.ImportStartHandlerStub{},
-		RoundHandler:              &mock.RoundHandlerMock{},
-		EnableEpochsHandler:       &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		EnableRoundsHandler:       &testscommon.EnableRoundsHandlerStub{},
-	}
-
-	var err error
-	if len(heartbeatPk) > 0 {
-		argHardforkTrigger.TriggerPubKeyBytes, err = hex.DecodeString(heartbeatPk)
-		log.LogIfError(err)
-	}
-	tpn.HardforkTrigger, err = trigger.NewTrigger(argHardforkTrigger)
-	log.LogIfError(err)
-
-	return argHardforkTrigger.TriggerPubKeyBytes
 }
 
 func (tpn *TestProcessorNode) initResolvers() {
@@ -2980,8 +2928,6 @@ func (tpn *TestProcessorNode) initNode() {
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.RoundNotifierField = tpn.RoundNotifier
 	coreComponents.WasmVMChangeLockerInternal = tpn.WasmVMChangeLocker
-	hardforkPubKeyBytes, _ := coreComponents.ValidatorPubKeyConverterField.Decode(hardforkPubKey)
-	coreComponents.HardforkTriggerPubKeyField = hardforkPubKeyBytes
 
 	coreComponents.ChainParametersHandlerField = tpn.ChainParametersHandler
 
@@ -3006,7 +2952,6 @@ func (tpn *TestProcessorNode) initNode() {
 	processComponents.WhiteListHandlerInternal = tpn.WhiteListHandler
 	processComponents.WhiteListerVerifiedTxsInternal = tpn.WhiteListerVerifiedTxs
 	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.MainMessenger)
-	processComponents.HardforkTriggerField = tpn.HardforkTrigger
 
 	cryptoComponents := GetDefaultCryptoComponents()
 	cryptoComponents.PrivKey = tpn.NodeKeys.MainKey.Sk
@@ -3680,7 +3625,7 @@ func (tpn *TestProcessorNode) initHeaderValidator() {
 	tpn.HeaderValidator, _ = block.NewHeaderValidator(argsHeaderValidator)
 }
 
-func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
+func (tpn *TestProcessorNode) createHeartbeat() {
 	cacher := cacheMocks.NewCacherMock()
 	psh, err := peerSignatureHandler.NewPeerSignatureHandler(
 		cacher,
@@ -3729,8 +3674,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	processComponents.HistoryRepositoryInternal = tpn.HistoryRepository
 	processComponents.TxsSenderHandlerField = createTxsSender(tpn.ShardCoordinator, tpn.MainMessenger)
 
-	processComponents.HardforkTriggerField = tpn.HardforkTrigger
-
 	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
 		AppStatusHandlerField: tpn.AppStatusHandler,
 	}
@@ -3760,7 +3703,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 		MaxMissingKeysInRequest:                          100,
 		MaxDurationPeerUnresponsiveInSec:                 10,
 		HideInactiveValidatorIntervalInSec:               60,
-		HardforkTimeBetweenSendsInSec:                    2,
 		TimeBetweenConnectionsMetricsUpdateInSec:         10,
 		PeerAuthenticationTimeBetweenChecksInSec:         1,
 		HeartbeatPool: config.CacheConfig{
@@ -3774,9 +3716,6 @@ func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
 	hbv2FactoryArgs := heartbeatComp.ArgHeartbeatV2ComponentsFactory{
 		Config: config.Config{
 			HeartbeatV2: hbv2Config,
-			Hardfork: config.HardforkConfig{
-				PublicKeyToListenFrom: hardforkPubKey,
-			},
 		},
 		BootstrapComponents:  tpn.Node.GetBootstrapComponents(),
 		CoreComponents:       tpn.Node.GetCoreComponents(),
@@ -3971,7 +3910,6 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		},
 		CurrentEpochProviderInternal: &testscommon.CurrentEpochProviderStub{},
 		HistoryRepositoryInternal:    &dblookupextMock.HistoryRepositoryStub{},
-		HardforkTriggerField:         &testscommon.HardforkTriggerStub{},
 		WhiteListHandlerInternal:     &testscommon.WhiteListHandlerStub{},
 	}
 }

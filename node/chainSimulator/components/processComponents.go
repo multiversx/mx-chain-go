@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"path/filepath"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
@@ -28,8 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/update"
-	"github.com/multiversx/mx-chain-go/update/trigger"
 )
 
 // ArgsProcessComponentsHolder will hold the components needed for process components
@@ -90,13 +86,11 @@ type processComponentsHolder struct {
 	whiteListHandler                 process.WhiteListHandler
 	whiteListerVerifiedTxs           process.WhiteListHandler
 	historyRepository                dblookupext.HistoryRepository
-	importStartHandler               update.ImportStartHandler
 	requestedItemsHandler            dataRetriever.RequestedItemsHandler
 	nodeRedundancyHandler            consensus.NodeRedundancyHandler
 	currentEpochProvider             process.CurrentNetworkEpochProviderHandler
 	scheduledTxsExecutionHandler     process.ScheduledTxsExecutionHandler
 	txsSenderHandler                 process.TxsSenderHandler
-	hardforkTrigger                  factory.HardforkTrigger
 	processedMiniBlocksTracker       process.ProcessedMiniBlocksTracker
 	esdtDataStorageHandlerForAPI     vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
@@ -110,10 +104,6 @@ type processComponentsHolder struct {
 
 // CreateProcessComponents will create the process components holder
 func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponentsHolder, error) {
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(args.FlagsConfig.DbDir, common.DefaultDBPath), args.FlagsConfig.Version)
-	if err != nil {
-		return nil, err
-	}
 	totalSupply, ok := big.NewInt(0).SetString(args.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
 	if !ok {
 		return nil, fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
@@ -216,7 +206,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		WhiteListerVerifiedTxs:  whiteListVerifiedTxs,
 		MaxRating:               50,
 		SystemSCConfig:          &args.SystemSCConfig,
-		ImportStartHandler:      importStartHandler,
 		HistoryRepo:             historyRepository,
 		FlagsConfig:             args.FlagsConfig,
 		Data:                    args.DataComponents,
@@ -277,13 +266,11 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		whiteListHandler:                 managedProcessComponents.WhiteListHandler(),
 		whiteListerVerifiedTxs:           managedProcessComponents.WhiteListerVerifiedTxs(),
 		historyRepository:                managedProcessComponents.HistoryRepository(),
-		importStartHandler:               managedProcessComponents.ImportStartHandler(),
 		requestedItemsHandler:            managedProcessComponents.RequestedItemsHandler(),
 		nodeRedundancyHandler:            managedProcessComponents.NodeRedundancyHandler(),
 		currentEpochProvider:             managedProcessComponents.CurrentEpochProvider(),
 		scheduledTxsExecutionHandler:     managedProcessComponents.ScheduledTxsExecutionHandler(),
 		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(), // warning: this will be replaced
-		hardforkTrigger:                  managedProcessComponents.HardforkTrigger(),
 		processedMiniBlocksTracker:       managedProcessComponents.ProcessedMiniBlocksTracker(),
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
@@ -478,11 +465,6 @@ func (p *processComponentsHolder) HistoryRepository() dblookupext.HistoryReposit
 	return p.historyRepository
 }
 
-// ImportStartHandler will return the import start handler
-func (p *processComponentsHolder) ImportStartHandler() update.ImportStartHandler {
-	return p.importStartHandler
-}
-
 // RequestedItemsHandler will return the requested item handler
 func (p *processComponentsHolder) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
 	return p.requestedItemsHandler
@@ -506,11 +488,6 @@ func (p *processComponentsHolder) ScheduledTxsExecutionHandler() process.Schedul
 // TxsSenderHandler will return the transactions sender handler
 func (p *processComponentsHolder) TxsSenderHandler() process.TxsSenderHandler {
 	return p.txsSenderHandler
-}
-
-// HardforkTrigger will return the hardfork trigger
-func (p *processComponentsHolder) HardforkTrigger() factory.HardforkTrigger {
-	return p.hardforkTrigger
 }
 
 // ProcessedMiniBlocksTracker will return the processed miniblocks tracker

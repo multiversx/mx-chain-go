@@ -1,16 +1,13 @@
 package components
 
 import (
-	"encoding/hex"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
-
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
@@ -102,9 +99,6 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						ProcessingThresholdPercent: 85,
 					},
 				},
-			},
-			Hardfork: config.HardforkConfig{
-				PublicKeyToListenFrom: components.DummyPk,
 			},
 			EpochStartConfig: config.EpochStartConfig{},
 			Antiflood:        testscommon.GetDefaultAntifloodConfig(),
@@ -310,15 +304,6 @@ func TestCreateCoreComponents(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, comp)
 	})
-	t.Run("validatorPubKeyConverter.Decode failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createArgsCoreComponentsHolder()
-		args.Config.Hardfork.PublicKeyToListenFrom = "invalid"
-		comp, err := CreateCoreComponents(args)
-		require.Error(t, err)
-		require.Nil(t, comp)
-	})
 }
 
 func TestCoreComponentsHolder_IsInterfaceNil(t *testing.T) {
@@ -370,8 +355,6 @@ func TestCoreComponents_GettersSetters(t *testing.T) {
 	require.Equal(t, uint32(1), comp.MinTransactionVersion())
 	require.NotNil(t, comp.TxVersionChecker())
 	require.Equal(t, uint32(62), comp.EncodedAddressLen())
-	hfPk, _ := hex.DecodeString(components.DummyPk)
-	require.Equal(t, hfPk, comp.HardforkTriggerPubKey())
 	require.NotNil(t, comp.NodeTypeProvider())
 	require.NotNil(t, comp.WasmVMChangeLocker())
 	require.NotNil(t, comp.ProcessStatusHandler())
