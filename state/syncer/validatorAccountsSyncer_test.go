@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
@@ -113,7 +114,7 @@ func TestValidatorAccountsSyncer_SyncAccounts(t *testing.T) {
 }
 
 func TestValidatorAccountsSyncer_SyncAccountsWithDiskCheckRepairsMissingChild(t *testing.T) {
-	for _, version := range []int{2, 3} {
+	for _, version := range []int{1, 2, 3} {
 		t.Run(strconv.Itoa(version), func(t *testing.T) {
 			testValidatorAccountsSyncerRepairsMissingChild(t, version)
 		})
@@ -126,6 +127,7 @@ func testValidatorAccountsSyncerRepairsMissingChild(t *testing.T, version int) {
 	args.Timeout = 5 * time.Second
 	var mut sync.Mutex
 	nodes := make(map[string][]byte)
+	writes := 0
 	args.TrieStorageManager = &storageManager.StorageManagerStub{
 		PutCalled: func(key []byte, value []byte) error {
 			mut.Lock()
@@ -133,8 +135,10 @@ func testValidatorAccountsSyncerRepairsMissingChild(t *testing.T, version int) {
 			mut.Unlock()
 			return nil
 		},
-		PutInEpochCalled: func(key []byte, value []byte, _ uint32) error {
+		PutInEpochCalled: func(key []byte, value []byte, epoch uint32) error {
+			require.Equal(t, uint32(2241), epoch)
 			mut.Lock()
+			writes++
 			nodes[string(key)] = bytes.Clone(value)
 			mut.Unlock()
 			return nil
@@ -144,7 +148,7 @@ func testValidatorAccountsSyncerRepairsMissingChild(t *testing.T, version int) {
 			defer mut.Unlock()
 			value, ok := nodes[string(key)]
 			if !ok {
-				return nil, errors.New("node not found")
+				return nil, storage.ErrKeyNotFound
 			}
 			return bytes.Clone(value), nil
 		},
@@ -196,12 +200,16 @@ func testValidatorAccountsSyncerRepairsMissingChild(t *testing.T, version int) {
 	require.NoError(t, err)
 	require.NoError(t, v.SyncAccountsWithDiskCheck(rootHash, storageMarker.NewDisabledStorageMarker(), 2241))
 	require.False(t, requested)
+	require.Zero(t, writes)
 	mut.Lock()
 	missingNode = bytes.Clone(nodes[string(missingHash)])
 	delete(nodes, string(missingHash))
 	mut.Unlock()
 	require.NoError(t, v.SyncAccountsWithDiskCheck(rootHash, storageMarker.NewDisabledStorageMarker(), 2241))
 	require.True(t, requested)
+	require.Equal(t, 1, writes)
+	require.NoError(t, v.SyncAccountsWithDiskCheck(rootHash, storageMarker.NewDisabledStorageMarker(), 2241))
+	require.Equal(t, 1, writes)
 	mut.Lock()
 	_, repaired := nodes[string(missingHash)]
 	nodes[string(missingHash)] = bytes.Clone(nodes[string(rootHash)])
@@ -210,6 +218,7 @@ func testValidatorAccountsSyncerRepairsMissingChild(t *testing.T, version int) {
 	requested = false
 	require.NoError(t, v.SyncAccountsWithDiskCheck(rootHash, storageMarker.NewDisabledStorageMarker(), 2241))
 	require.True(t, requested)
+	require.Equal(t, 2, writes)
 }
 
 func TestValidatorAccountsSyncer_IsInterfaceNil(t *testing.T) {

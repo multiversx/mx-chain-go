@@ -1903,6 +1903,16 @@ func (boot *baseBootstrap) syncUserAccountsState(key []byte) error {
 	return boot.accountsDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
 }
 
+func (boot *baseBootstrap) syncRecoveryUserAccountsState(rootHash []byte, epoch uint32) error {
+	syncer, ok := boot.accountsDBSyncer.(interface {
+		SyncAccountsWithDiskCheck([]byte, common.StorageMarker, uint32) error
+	})
+	if !ok {
+		return fmt.Errorf("recovery account syncer does not support disk traversal")
+	}
+	return syncer.SyncAccountsWithDiskCheck(rootHash, storageMarker.NewDisabledStorageMarker(), epoch)
+}
+
 func (boot *baseBootstrap) loadRecoveryCheckpointFromStorage(syncPeerAccounts func([]byte, uint32) error) error {
 	recovery, ok := boot.storageBootstrapper.(interface {
 		RecoveryCheckpointRequired() (bool, error)
@@ -1929,8 +1939,9 @@ func (boot *baseBootstrap) loadRecoveryCheckpointFromStorage(syncPeerAccounts fu
 	}
 	boot.requestHandler.SetRecoveryTrieRequests(true)
 	defer boot.requestHandler.SetRecoveryTrieRequests(false)
-	log.Warn("local recovery build: skipping accounts trie traversal; using operator-verified state",
-		"rootHash", userRoot, "epoch", epoch)
+	if err = boot.syncRecoveryUserAccountsState(userRoot, epoch); err != nil {
+		return err
+	}
 	if len(peerRoot) > 0 {
 		if syncPeerAccounts == nil {
 			return fmt.Errorf("recovery peer account syncer is missing")

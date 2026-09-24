@@ -163,7 +163,7 @@ func (handler *recoveryRoutingRequestHandler) SetRecoveryTrieRequests(enabled bo
 }
 
 func TestLoadRecoveryCheckpointFromStorage_RecoveryRoutingLifecycle(t *testing.T) {
-	for _, failStage := range []string{"none", "peer", "storage", "not required"} {
+	for _, failStage := range []string{"none", "user", "peer", "storage", "not required"} {
 		t.Run(failStage, func(t *testing.T) {
 			requester := &recoveryRoutingRequestHandler{}
 			expectedErr := errors.New("restore failed")
@@ -179,7 +179,10 @@ func TestLoadRecoveryCheckpointFromStorage_RecoveryRoutingLifecycle(t *testing.T
 			boot := &baseBootstrap{
 				requestHandler: requester, storageBootstrapper: storer,
 				accountsDBSyncer: &mock.AccountsDBSyncerStub{SyncAccountsWithDiskCheckCalled: func(_ []byte, _ common.StorageMarker, _ uint32) error {
-					t.Fatal("accounts trie traversal must be skipped in this local build")
+					require.True(t, requester.enabled)
+					if failStage == "user" {
+						return expectedErr
+					}
 					return nil
 				}},
 			}
@@ -205,12 +208,14 @@ func TestLoadRecoveryCheckpointFromStorage_RecoveryRoutingLifecycle(t *testing.T
 	}
 }
 
-func TestLoadRecoveryCheckpointFromStorage_SkipsAccountsTraversalButCompletesPeerTrieBeforeRestore(t *testing.T) {
+func TestLoadRecoveryCheckpointFromStorage_CompletesCheckpointTriesBeforeRestore(t *testing.T) {
 	userRoot := bytes.Repeat([]byte{1}, 32)
 	peerRoot := bytes.Repeat([]byte{2}, 32)
+	userSynced := false
 	peerSynced := false
 	storer := &recoveryRootsStorageBootstrapper{
 		StorageBootstrapperMock: &mock.StorageBootstrapperMock{LoadFromStorageCalled: func() error {
+			require.True(t, userSynced)
 			require.True(t, peerSynced)
 			return nil
 		}},
@@ -223,7 +228,9 @@ func TestLoadRecoveryCheckpointFromStorage_SkipsAccountsTraversalButCompletesPee
 		requestHandler:      &testscommon.RequestHandlerStub{},
 		storageBootstrapper: storer,
 		accountsDBSyncer: &mock.AccountsDBSyncerStub{SyncAccountsWithDiskCheckCalled: func(rootHash []byte, _ common.StorageMarker, epoch uint32) error {
-			t.Fatal("accounts trie traversal must be skipped in this local build")
+			require.Equal(t, userRoot, rootHash)
+			require.Equal(t, uint32(2241), epoch)
+			userSynced = true
 			return nil
 		}},
 	}
@@ -236,7 +243,7 @@ func TestLoadRecoveryCheckpointFromStorage_SkipsAccountsTraversalButCompletesPee
 	require.NoError(t, err)
 }
 
-func TestLoadRecoveryCheckpointFromStorage_StopsWhenPeerTrieCannotSync(t *testing.T) {
+func TestLoadRecoveryCheckpointFromStorage_StopsWhenCheckpointTrieCannotSync(t *testing.T) {
 	syncErr := errors.New("missing trie nodes")
 	loadCalled := false
 	storer := &recoveryRootsStorageBootstrapper{
@@ -245,20 +252,16 @@ func TestLoadRecoveryCheckpointFromStorage_StopsWhenPeerTrieCannotSync(t *testin
 			return nil
 		}},
 		userRoot: bytes.Repeat([]byte{1}, 32),
-		peerRoot: bytes.Repeat([]byte{2}, 32),
 		required: true,
 	}
 	boot := &baseBootstrap{
 		requestHandler:      &testscommon.RequestHandlerStub{},
 		storageBootstrapper: storer,
 		accountsDBSyncer: &mock.AccountsDBSyncerStub{SyncAccountsWithDiskCheckCalled: func(_ []byte, _ common.StorageMarker, _ uint32) error {
-			t.Fatal("accounts trie traversal must be skipped in this local build")
-			return nil
+			return syncErr
 		}},
 	}
-	err := boot.loadRecoveryCheckpointFromStorage(func(_ []byte, _ uint32) error {
-		return syncErr
-	})
+	err := boot.loadRecoveryCheckpointFromStorage(nil)
 	require.ErrorIs(t, err, syncErr)
 	require.False(t, loadCalled)
 }

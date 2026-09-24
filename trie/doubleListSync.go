@@ -55,7 +55,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		return nil, err
 	}
 
-	stsm, err := NewSyncTrieStorageManager(arg.DB)
+	stsm, err := newStorageForTrieSync(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +211,7 @@ func (d *doubleListTrieSyncer) processMissingHashes() {
 
 func (d *doubleListTrieSyncer) processExistingNodes() error {
 	for hash, element := range d.existingNodes {
-		numBytes, err := encodeNodeAndCommitToDB(element, d.db)
+		numBytes, err := commitSyncedNode(element, d.db)
 		if err != nil {
 			return err
 		}
