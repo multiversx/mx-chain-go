@@ -166,8 +166,9 @@ func (st *storageBootstrapper) collectRecoverySuffix() (recoverySelectorBounds, 
 			return bounds, fmt.Errorf("%w: discarded bootstrap ancestry at round %d", ErrRecoveryCheckpointUnavailable, round)
 		}
 		header, err := st.bootstrapper.getHeader(dataAtRound.LastHeader.Hash)
-		if err != nil || check.IfNil(header) || header.GetRound() != uint64(round) ||
-			header.GetShardID() != dataAtRound.LastHeader.ShardId || header.GetNonce() != dataAtRound.LastHeader.Nonce {
+		missingHeader := errors.Is(err, process.ErrMissingHeader)
+		if !missingHeader && (err != nil || check.IfNil(header) || header.GetRound() != uint64(round) ||
+			header.GetShardID() != dataAtRound.LastHeader.ShardId || header.GetNonce() != dataAtRound.LastHeader.Nonce) {
 			return bounds, fmt.Errorf("%w: discarded header at round %d: %v", ErrRecoveryCheckpointUnavailable, round, err)
 		}
 		if dataAtRound.LastHeader.Nonce > bounds.maxOwnNonce {

@@ -440,6 +440,66 @@ func TestRecoveryCheckpoint_BootstrapHistoryCanReadBeforeTarget(t *testing.T) {
 }
 
 func TestRecoveryCheckpoint_RestoresExactTipAndRemovesSuffixSelectors(t *testing.T) {
+	for _, missing := range []string{"none", "discarded", "checkpoint"} {
+		t.Run(missing, func(t *testing.T) {
+			testRecoveryCheckpointRestore(t, missing)
+		})
+	}
+}
+
+func TestCollectRecoverySuffix_ContinuesPastMissingHeader(t *testing.T) {
+	for _, invalid := range []bool{false, true} {
+		t.Run(map[bool]string{false: "valid lower header", true: "invalid lower header"}[invalid], func(t *testing.T) {
+			args := createMockShardStorageBootstrapperArgs()
+			args.RecoveryCheckpoint = newTestRecoveryCheckpoint(t)
+			args.Marshalizer = &marshal.GogoProtoMarshalizer{}
+			header := &block.HeaderV3{Round: 101, Nonce: 11, ShardID: 0, LastExecutionResult: &block.ExecutionResultInfo{}}
+			if invalid {
+				header.Nonce = 99
+			}
+			encoded, err := args.Marshalizer.Marshal(header)
+			require.NoError(t, err)
+			var visited []int64
+			args.BootStorer = &mock.BoostrapStorerMock{
+				GetHighestRoundCalled: func() int64 { return 102 },
+				GetCalled: func(round int64) (bootstrapStorage.BootstrapData, error) {
+					visited = append(visited, round)
+					return bootstrapStorage.BootstrapData{
+						LastRound: round - 1,
+						LastHeader: bootstrapStorage.BootstrapHeaderInfo{
+							Hash: []byte{byte(round)}, ShardId: 0, Nonce: uint64(round - 90),
+						},
+						LastCrossNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{
+							{ShardId: core.MetachainShardId, Nonce: uint64(round)},
+						},
+					}, nil
+				},
+			}
+			args.Store = &storageStubs.ChainStorerStub{GetStorerCalled: func(_ dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+					if bytes.Equal(key, []byte{102}) {
+						return nil, storage.ErrKeyNotFound
+					}
+					return encoded, nil
+				}}, nil
+			}}
+			boot, err := NewShardStorageBootstrapper(ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: args})
+			require.NoError(t, err)
+			bounds, err := boot.collectRecoverySuffix()
+			require.Equal(t, []int64{102, 101}, visited)
+			if invalid {
+				require.ErrorIs(t, err, ErrRecoveryCheckpointUnavailable)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, uint64(12), bounds.maxOwnNonce)
+			require.Equal(t, uint64(102), bounds.maxCross[core.MetachainShardId])
+		})
+	}
+}
+
+func testRecoveryCheckpointRestore(t *testing.T, missing string) {
+	t.Helper()
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	hasher := sha256.NewSha256()
 	converter := uint64ByteSlice.NewBigEndianConverter()
@@ -483,6 +543,12 @@ func TestRecoveryCheckpoint_RestoresExactTipAndRemovesSuffixSelectors(t *testing
 	selectors := map[string][]byte{
 		string(converter.ToByteSlice(10)): targetHash,
 		string(converter.ToByteSlice(11)): discardedHash,
+	}
+	if missing == "discarded" {
+		delete(headerBytes, string(discardedHash))
+	}
+	if missing == "checkpoint" {
+		delete(headerBytes, string(targetHash))
 	}
 	selectorStorer := &storageStubs.StorerStub{
 		HasCalled: func(key []byte) error {
@@ -628,6 +694,13 @@ func TestRecoveryCheckpoint_RestoresExactTipAndRemovesSuffixSelectors(t *testing
 	args.BlockTracker = &mock.BlockTrackerMock{AddTrackedHeaderCalled: func(_ data.HeaderHandler, _ []byte) {}}
 	bootstrapper, err := NewShardStorageBootstrapper(ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: args})
 	require.NoError(t, err)
+	if missing == "checkpoint" {
+		require.ErrorIs(t, bootstrapper.LoadFromStorage(), ErrRecoveryCheckpointUnavailable)
+		require.Zero(t, savedRound)
+		require.Nil(t, tip)
+		require.Contains(t, selectors, string(converter.ToByteSlice(11)))
+		return
+	}
 	require.NoError(t, bootstrapper.LoadFromStorage())
 	require.Equal(t, int64(100), savedRound)
 	require.Equal(t, targetHash, tipHash)

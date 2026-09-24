@@ -41,7 +41,7 @@ func NewDepthFirstTrieSyncer(arg ArgTrieSyncer) (*depthFirstTrieSyncer, error) {
 		return nil, err
 	}
 
-	stsm, err := NewSyncTrieStorageManager(arg.DB)
+	stsm, err := newStorageForTrieSync(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ func (d *depthFirstTrieSyncer) processFirstExistingNode() (bool, error) {
 }
 
 func (d *depthFirstTrieSyncer) storeTrieNode(element node) error {
-	numBytes, err := encodeNodeAndCommitToDB(element, d.db)
+	numBytes, err := commitSyncedNode(element, d.db)
 	if err != nil {
 		return err
 	}

@@ -106,6 +106,7 @@ func (b *baseAccountsSyncer) syncMainTrie(
 
 	b.dataTries[string(rootHash)] = struct{}{}
 	arg := trie.ArgTrieSyncer{
+		RecoveryEpoch:             recoveryEpochForSync(requestHandler),
 		RequestHandler:            requestHandler,
 		InterceptedNodes:          b.cacher,
 		DB:                        b.trieStorageManager,

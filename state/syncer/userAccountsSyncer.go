@@ -220,6 +220,7 @@ func (u *userAccountsSyncer) createAndStartSyncer(
 	requestHandler trie.RequestHandler,
 ) (trie.TrieSyncer, error) {
 	arg := trie.ArgTrieSyncer{
+		RecoveryEpoch:             recoveryEpochForSync(requestHandler),
 		RequestHandler:            requestHandler,
 		InterceptedNodes:          u.cacher,
 		DB:                        u.trieStorageManager,

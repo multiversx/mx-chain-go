@@ -3,11 +3,20 @@ package syncer
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
 type trieNodesForEpochRequester interface {
 	RequestTrieNodesForEpoch(destShardID uint32, hashes [][]byte, topic string, epoch uint32)
+}
+
+func recoveryEpochForSync(handler trie.RequestHandler) core.OptionalUint32 {
+	recovery, ok := handler.(*recoveryTrieRequestHandler)
+	if !ok {
+		return core.OptionalUint32{}
+	}
+	return core.OptionalUint32{Value: recovery.epoch, HasValue: true}
 }
 
 type recoveryTrieRequestHandler struct {
