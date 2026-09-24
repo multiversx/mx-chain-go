@@ -5,10 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRecoveryReadRetainedEpochs(t *testing.T) {
@@ -36,7 +37,9 @@ func TestRecoveryReadRetainedEpochs(t *testing.T) {
 
 	store, err = pruning.NewTriePruningStorer(args)
 	require.NoError(t, err)
-	defer store.Close()
+	defer func() {
+		require.NoError(t, store.Close())
+	}()
 	value, err = store.GetForRecovery([]byte("repair"), 7)
 	require.NoError(t, err)
 	require.Equal(t, []byte("repaired"), value)

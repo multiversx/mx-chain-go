@@ -472,7 +472,9 @@ func (e *epochStartBootstrap) hasNoLocalStorage() bool {
 	if err != nil {
 		return false
 	}
-	defer dir.Close()
+	defer func() {
+		log.LogIfError(dir.Close())
+	}()
 
 	_, err = dir.Readdirnames(1)
 	return errors.Is(err, io.EOF)
