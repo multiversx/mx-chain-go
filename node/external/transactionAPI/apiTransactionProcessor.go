@@ -55,6 +55,7 @@ type apiTransactionProcessor struct {
 	txVersionChecker            process.TxVersionCheckerHandler
 	chainHandler                data.ChainHandler
 	txProcessor                 process.TransactionProcessor
+	roundExclusionHandler       common.RoundExclusionHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -112,6 +113,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		txVersionChecker:            args.TxVersionChecker,
 		chainHandler:                args.ChainHandler,
 		txProcessor:                 args.TxProcessor,
+		roundExclusionHandler:       args.RoundExclusionHandler,
 	}, nil
 }
 
@@ -134,6 +136,10 @@ func (atp *apiTransactionProcessor) GetSCRsByTxHash(txHash string, scrHash strin
 	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(decodedScrHash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
+	}
+
+	if atp.isRoundExcluded(miniblockMetadata.Round) {
+		return nil, fmt.Errorf("%w: %w (round %d)", ErrTransactionNotFound, common.ErrRoundExcluded, miniblockMetadata.Round)
 	}
 
 	resultsHashes, err := atp.historyRepository.GetResultsHashesByTxHash(decodedTxHash, miniblockMetadata.Epoch)
@@ -169,6 +175,10 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 	tx, err := atp.doGetTransaction(hash, withResults)
 	if err != nil {
 		return nil, err
+	}
+
+	if atp.isRoundExcluded(tx.Round) {
+		return nil, fmt.Errorf("%w: %w (round %d)", ErrTransactionNotFound, common.ErrRoundExcluded, tx.Round)
 	}
 
 	tx.Hash = txHash
@@ -804,6 +814,10 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
 
+	if atp.isRoundExcluded(miniblockMetadata.Round) {
+		return nil, fmt.Errorf("%w: %w (round %d)", ErrTransactionNotFound, common.ErrRoundExcluded, miniblockMetadata.Round)
+	}
+
 	isExecuted, err := atp.checkExecutionResultAndTx(miniblockMetadata)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
@@ -1061,6 +1075,14 @@ func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType 
 // UnmarshalReceipt will try to unmarshal the provided receipts bytes
 func (atp *apiTransactionProcessor) UnmarshalReceipt(receiptBytes []byte) (*transaction.ApiReceipt, error) {
 	return atp.txUnmarshaller.unmarshalReceipt(receiptBytes)
+}
+
+func (atp *apiTransactionProcessor) isRoundExcluded(round uint64) bool {
+	if check.IfNil(atp.roundExclusionHandler) {
+		return false
+	}
+
+	return atp.roundExclusionHandler.IsRoundExcluded(round)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

@@ -232,6 +232,11 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	roundExclusionHandler, err := createRoundExclusionHandler(args.Configs.GeneralConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		RoundHandler:             args.ProcessComponents.RoundHandler(),
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
@@ -251,6 +256,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		TxVersionChecker:         args.CoreComponents.TxVersionChecker(),
 		ChainHandler:             args.DataComponents.Blockchain(),
 		TxProcessor:              args.ProcessComponents.TransactionProcessor(),
+		RoundExclusionHandler:    roundExclusionHandler,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
@@ -755,4 +761,12 @@ func createLogsFacade(args *ApiResolverArgs) (factory.LogsFacade, error) {
 		Marshaller:      args.CoreComponents.InternalMarshalizer(),
 		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
 	})
+}
+
+func createRoundExclusionHandler(generalConfig *config.Config) (common.RoundExclusionHandler, error) {
+	if generalConfig == nil {
+		return common.NewRoundExclusionHandler(nil)
+	}
+
+	return common.NewConfiguredRoundExclusionHandler(generalConfig)
 }
