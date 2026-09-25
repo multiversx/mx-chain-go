@@ -1190,6 +1190,7 @@ func TestDelegationManagerSystemSC_ClaimMultipleDelegation(t *testing.T) {
 	t.Parallel()
 
 	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	d.isImportDBMode = true
 	_ = prepareVmInputContextAndDelegationManager(d, eei)
 
 	_ = eei.SetSystemSCContainer(

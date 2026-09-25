@@ -35,6 +35,7 @@ type delegationManager struct {
 	minFee                 uint64
 	maxFee                 uint64
 	enableEpochsHandler    common.EnableEpochsHandler
+	isImportDBMode         bool
 	mutExecution           sync.RWMutex
 }
 
@@ -50,6 +51,7 @@ type ArgsNewDelegationManager struct {
 	GasCost                vm.GasCost
 	Marshalizer            marshal.Marshalizer
 	EnableEpochsHandler    common.EnableEpochsHandler
+	IsImportDBMode         bool
 }
 
 // NewDelegationManagerSystemSC creates a new delegation manager system SC
@@ -108,13 +110,14 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		minFee:                 args.DelegationSCConfig.MinServiceFee,
 		maxFee:                 args.DelegationSCConfig.MaxServiceFee,
 		enableEpochsHandler:    args.EnableEpochsHandler,
+		isImportDBMode:         args.IsImportDBMode,
 	}
 
 	return d, nil
 }
 
 // Execute calls one of the functions from the delegation manager contract and runs the code according to the input
-func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) (returnCode vmcommon.ReturnCode) {
 	d.mutExecution.RLock()
 	defer d.mutExecution.RUnlock()
 
@@ -132,6 +135,13 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 	if len(args.ESDTTransfers) > 0 {
 		d.eei.AddReturnMessage("cannot transfer ESDT to system SCs")
 		return vmcommon.UserError
+	}
+
+	if d.isImportDBMode {
+		reportCapture := d.startDelegationRewardsManagerOperationReport(args)
+		defer func() {
+			d.finishDelegationRewardsManagerOperationReport(reportCapture, returnCode)
+		}()
 	}
 
 	switch args.Function {
@@ -571,7 +581,13 @@ func getTotalReDelegatedFromLogs(logs []*vmcommon.LogEntry) *big.Int {
 func (d *delegationManager) executeFuncOnListAddresses(
 	args *vmcommon.ContractCallInput,
 	funcName string,
-) vmcommon.ReturnCode {
+) (returnCode vmcommon.ReturnCode) {
+	if d.isImportDBMode {
+		defer func() {
+			d.reportDelegationRewardsMultiOperation(args, funcName, returnCode)
+		}()
+	}
+
 	if !d.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError
