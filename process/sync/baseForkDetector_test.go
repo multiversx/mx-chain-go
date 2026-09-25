@@ -1624,6 +1624,9 @@ func TestBasicForkDetector_SetFinalToLastCheckpointShouldWork(t *testing.T) {
 
 	assert.Equal(t, uint64(900), bfd.GetHighestFinalBlockNonce())
 	assert.Equal(t, []byte("hash"), bfd.GetHighestFinalBlockHash())
+	settledNonce, settledHash := bfd.GetHighestSettledBlockInfo()
+	assert.Equal(t, uint64(900), settledNonce)
+	assert.Equal(t, []byte("hash"), settledHash)
 }
 
 func TestBaseForkDetector_GetNotarizedHeaderHash(t *testing.T) {

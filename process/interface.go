@@ -721,6 +721,7 @@ type RequestForEpochHandler interface {
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
 	RequestForEpochHandler
+	SetRecoveryTrieRequests(enabled bool)
 	SetEpoch(epoch uint32)
 	RequestShardHeader(shardID uint32, hash []byte)
 	RequestMetaHeader(hash []byte)

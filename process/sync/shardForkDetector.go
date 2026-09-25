@@ -33,7 +33,12 @@ func NewShardForkDetector(
 	chainParametersHandler common.ChainParametersHandler,
 	processConfigsHandler common.ProcessConfigsHandler,
 	shardID uint32,
+	roundExclusionHandlers ...common.RoundExclusionHandler,
 ) (*shardForkDetector, error) {
+	roundExclusions, err := common.ResolveRoundExclusionHandler(roundExclusionHandlers...)
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
@@ -79,6 +84,7 @@ func NewShardForkDetector(
 		chainParametersHandler: chainParametersHandler,
 		processConfigsHandler:  processConfigsHandler,
 		shardID:                shardID,
+		roundExclusions:        roundExclusions,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)

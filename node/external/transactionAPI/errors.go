@@ -49,3 +49,6 @@ var ErrNilAccountStateAPI = errors.New("nil account state api")
 
 // ErrNilBlockchain signals that a nil blockchain has been provided
 var ErrNilBlockchain = errors.New("nil blockchain")
+
+// ErrNilRoundExclusionHandler signals that a nil round exclusion handler has been provided
+var ErrNilRoundExclusionHandler = errors.New("nil round exclusion handler")

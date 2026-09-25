@@ -7,6 +7,7 @@ import (
 
 // StorageManagerStub -
 type StorageManagerStub struct {
+	GetForRecoveryCalled            func([]byte, uint32) ([]byte, error)
 	PutCalled                       func([]byte, []byte) error
 	PutInEpochCalled                func([]byte, []byte, uint32) error
 	PutInEpochWithoutCacheCalled    func([]byte, []byte, uint32) error
@@ -31,6 +32,17 @@ type StorageManagerStub struct {
 	RemoveFromAllActiveEpochsCalled func(hash []byte) error
 	IsSnapshotSupportedCalled       func() bool
 	GetStateStatsHandlerCalled      func() common.StateStatisticsHandler
+}
+
+func (sms *StorageManagerStub) GetForRecovery(key []byte, epoch uint32) ([]byte, error) {
+	if sms.GetForRecoveryCalled != nil {
+		return sms.GetForRecoveryCalled(key, epoch)
+	}
+	return sms.Get(key)
+}
+
+func (sms *StorageManagerStub) PutForRecovery(key, value []byte, epoch uint32) error {
+	return sms.PutInEpoch(key, value, epoch)
 }
 
 // Put -

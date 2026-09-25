@@ -22,7 +22,7 @@ func (u *userAccountsSyncer) SyncAccountDataTries(
 	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
 ) error {
-	return u.syncAccountDataTries(leavesChannels, ctx)
+	return u.syncAccountDataTries(leavesChannels, ctx, u.checkNodesOnDisk, u.requestHandler)
 }
 
 // GetNumHandlers -
