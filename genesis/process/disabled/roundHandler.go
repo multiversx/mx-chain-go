@@ -26,6 +26,11 @@ func (rh *RoundHandler) TimeDuration() time.Duration {
 	return 0
 }
 
+// TimeDurationForRound -
+func (rh *RoundHandler) TimeDurationForRound(_ uint64) time.Duration {
+	return 0
+}
+
 // TimeStamp -
 func (rh *RoundHandler) TimeStamp() time.Time {
 	return time.Unix(0, 0)
