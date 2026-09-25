@@ -56,6 +56,10 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByNonce(format common.Ap
 		return nil, err
 	}
 
+	if err = ibp.checkShardBlockBytesExcluded(blockBytes); err != nil {
+		return nil, err
+	}
+
 	return ibp.convertShardBlockBytesByOutputFormat(format, blockBytes)
 }
 
@@ -70,6 +74,10 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByHash(format common.Api
 		return nil, err
 	}
 
+	if err = ibp.checkShardBlockBytesExcluded(blockBytes); err != nil {
+		return nil, err
+	}
+
 	return ibp.convertShardBlockBytesByOutputFormat(format, blockBytes)
 }
 
@@ -79,12 +87,38 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByRound(format common.Ap
 		return nil, ErrShardOnlyEndpoint
 	}
 
+	if err := ibp.checkRoundExcluded(round); err != nil {
+		return nil, err
+	}
+
 	_, blockBytes, err := ibp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
 	}
 
+	if err = ibp.checkShardBlockBytesExcluded(blockBytes); err != nil {
+		return nil, err
+	}
+
 	return ibp.convertShardBlockBytesByOutputFormat(format, blockBytes)
+}
+
+func (ibp *internalBlockProcessor) checkShardBlockBytesExcluded(blockBytes []byte) error {
+	blockHeader, err := process.UnmarshalShardHeader(ibp.marshalizer, blockBytes)
+	if err != nil {
+		return err
+	}
+
+	return ibp.checkRoundExcluded(blockHeader.GetRound())
+}
+
+func (ibp *internalBlockProcessor) checkMetaBlockBytesExcluded(blockBytes []byte) error {
+	blockHeader, err := process.UnmarshalHeader(core.MetachainShardId, ibp.marshalizer, blockBytes)
+	if err != nil {
+		return err
+	}
+
+	return ibp.checkRoundExcluded(blockHeader.GetRound())
 }
 
 func (ibp *internalBlockProcessor) convertShardBlockBytesToInternalBlock(blockBytes []byte) (interface{}, error) {
@@ -121,6 +155,10 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByNonce(format common.Api
 		return nil, err
 	}
 
+	if err = ibp.checkMetaBlockBytesExcluded(blockBytes); err != nil {
+		return nil, err
+	}
+
 	return ibp.convertMetaBlockBytesByOutputFormat(format, blockBytes)
 }
 
@@ -135,6 +173,10 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByHash(format common.ApiO
 		return nil, err
 	}
 
+	if err = ibp.checkMetaBlockBytesExcluded(blockBytes); err != nil {
+		return nil, err
+	}
+
 	return ibp.convertMetaBlockBytesByOutputFormat(format, blockBytes)
 }
 
@@ -144,8 +186,16 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByRound(format common.Api
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
+	if err := ibp.checkRoundExcluded(round); err != nil {
+		return nil, err
+	}
+
 	_, blockBytes, err := ibp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = ibp.checkMetaBlockBytesExcluded(blockBytes); err != nil {
 		return nil, err
 	}
 
@@ -166,6 +216,10 @@ func (ibp *internalBlockProcessor) GetInternalStartOfEpochMetaBlock(format commo
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
 	blockBytes, err := storer.GetFromEpoch([]byte(epochStartIdentifier), epoch)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = ibp.checkMetaBlockBytesExcluded(blockBytes); err != nil {
 		return nil, err
 	}
 
@@ -191,6 +245,10 @@ func (ibp *internalBlockProcessor) GetInternalStartOfEpochValidatorsInfo(epoch u
 
 	metaBlock, err := process.UnmarshalHeader(core.MetachainShardId, ibp.marshalizer, blockBytes)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = ibp.checkRoundExcluded(metaBlock.GetRound()); err != nil {
 		return nil, err
 	}
 
