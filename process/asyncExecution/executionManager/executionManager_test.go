@@ -176,6 +176,74 @@ func TestExecutionManager_StartExecution(t *testing.T) {
 	require.False(t, startCalled)
 }
 
+func TestExecutionManager_PauseExecution(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+	em, _ := executionManager.NewExecutionManager(args)
+
+	pauseCalled := false
+	mockExecutor := &processMocks.HeadersExecutorMock{
+		PauseExecutionCalled: func() {
+			pauseCalled = true
+		},
+	}
+	_ = em.SetHeadersExecutor(mockExecutor)
+
+	em.PauseExecution()
+	require.True(t, pauseCalled)
+
+	err := em.Close()
+	require.NoError(t, err)
+
+	pauseCalled = false
+	em.PauseExecution()
+	require.False(t, pauseCalled)
+}
+
+func TestExecutionManager_PauseExecutionShouldCompleteBeforeClose(t *testing.T) {
+	pauseStarted := make(chan struct{})
+	continuePause := make(chan struct{})
+	pauseDone := make(chan struct{})
+	closeCalled := make(chan struct{})
+	closeDone := make(chan error)
+
+	em, _ := executionManager.NewExecutionManager(createMockArgs())
+	mockExecutor := &processMocks.HeadersExecutorMock{
+		PauseExecutionCalled: func() {
+			close(pauseStarted)
+			<-continuePause
+		},
+		CloseCalled: func() error {
+			close(closeCalled)
+			return nil
+		},
+	}
+	require.NoError(t, em.SetHeadersExecutor(mockExecutor))
+
+	go func() {
+		em.PauseExecution()
+		close(pauseDone)
+	}()
+	<-pauseStarted
+
+	go func() {
+		closeDone <- em.Close()
+	}()
+
+	closedBeforePauseCompleted := false
+	select {
+	case <-closeCalled:
+		closedBeforePauseCompleted = true
+	case <-time.After(50 * time.Millisecond):
+	}
+
+	close(continuePause)
+	<-pauseDone
+	require.NoError(t, <-closeDone)
+	require.False(t, closedBeforePauseCompleted)
+}
+
 func TestExecutionManager_SetHeadersExecutor(t *testing.T) {
 	t.Parallel()
 
