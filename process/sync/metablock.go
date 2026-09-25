@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -103,6 +104,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		enableRoundsHandler:          arguments.EnableRoundsHandler,
 		processConfigsHandler:        arguments.ProcessConfigsHandler,
+		recoveryCheckpoint:           arguments.RecoveryCheckpoint,
 	}
 
 	if base.isInImportMode {
@@ -163,7 +165,18 @@ func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.
 // StartSyncingBlocks method will start syncing blocks as a go routine
 func (boot *MetaBootstrap) StartSyncingBlocks() error {
 	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
-	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
+	var errNotCritical error
+	if boot.recoveryCheckpoint != nil {
+		errNotCritical = boot.loadRecoveryCheckpointFromStorage(boot.syncRecoveryValidatorAccountsState)
+		if errNotCritical != nil {
+			return errNotCritical
+		}
+	} else {
+		errNotCritical = boot.storageBootstrapper.LoadFromStorage()
+	}
+	if errors.Is(errNotCritical, common.ErrRoundExcluded) {
+		return errNotCritical
+	}
 	if errNotCritical != nil {
 		log.Debug("syncFromStorer", "error", errNotCritical.Error())
 	} else {
@@ -313,6 +326,16 @@ func (boot *MetaBootstrap) syncAccountsDBs(key []byte, id string) error {
 func (boot *MetaBootstrap) syncValidatorAccountsState(key []byte) error {
 	log.Warn("base sync: started syncValidatorAccountsState")
 	return boot.validatorStatisticsDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
+}
+
+func (boot *MetaBootstrap) syncRecoveryValidatorAccountsState(rootHash []byte, epoch uint32) error {
+	syncer, ok := boot.validatorStatisticsDBSyncer.(interface {
+		SyncAccountsWithDiskCheck([]byte, common.StorageMarker, uint32) error
+	})
+	if !ok {
+		return fmt.Errorf("recovery peer account syncer does not support disk traversal")
+	}
+	return syncer.SyncAccountsWithDiskCheck(rootHash, storageMarker.NewDisabledStorageMarker(), epoch)
 }
 
 // Close closes the synchronization loop

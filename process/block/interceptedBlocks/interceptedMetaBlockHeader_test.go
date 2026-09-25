@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -300,6 +301,29 @@ func TestInterceptedMetaHeader_CheckValidityShouldWork(t *testing.T) {
 	err := inHdr.CheckValidity()
 
 	assert.Nil(t, err)
+}
+
+func TestInterceptedMetaHeader_CheckValidityExcludedRoundShouldReturnBeforeIntegrityCheck(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultMetaArgument()
+	verifyCalled := false
+	arg.HeaderIntegrityVerifier = &mock.HeaderIntegrityVerifierStub{
+		VerifyCalled: func(header data.HeaderHandler) error {
+			verifyCalled = true
+			return nil
+		},
+	}
+	arg.RoundExclusions, _ = common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{
+		{StartRound: hdrRound, EndRound: hdrRound},
+	})
+	inHdr, err := interceptedBlocks.NewInterceptedMetaHeader(arg)
+	require.NoError(t, err)
+
+	err = inHdr.CheckValidity()
+
+	require.ErrorIs(t, err, common.ErrRoundExcluded)
+	require.False(t, verifyCalled)
 }
 
 func createIncomingMiniBlockHeaderAtMetachain(

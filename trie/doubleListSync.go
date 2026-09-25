@@ -55,7 +55,7 @@ func NewDoubleListTrieSyncer(arg ArgTrieSyncer) (*doubleListTrieSyncer, error) {
 		return nil, err
 	}
 
-	stsm, err := NewSyncTrieStorageManager(arg.DB)
+	stsm, err := newStorageForTrieSync(arg)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +102,13 @@ func (d *doubleListTrieSyncer) StartSyncing(rootHash []byte, ctx context.Context
 	d.rootHash = rootHash
 
 	d.missingHashes[string(rootHash)] = struct{}{}
+	if d.checkNodesOnDisk {
+		root, err := d.getNode(rootHash)
+		if err == nil {
+			d.existingNodes[string(rootHash)] = root
+			delete(d.missingHashes, string(rootHash))
+		}
+	}
 
 	timeStart := time.Now()
 	defer func() {
@@ -204,7 +211,7 @@ func (d *doubleListTrieSyncer) processMissingHashes() {
 
 func (d *doubleListTrieSyncer) processExistingNodes() error {
 	for hash, element := range d.existingNodes {
-		numBytes, err := encodeNodeAndCommitToDB(element, d.db)
+		numBytes, err := commitSyncedNode(element, d.db)
 		if err != nil {
 			return err
 		}

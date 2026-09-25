@@ -45,6 +45,11 @@ import (
 )
 
 var log = logger.GetOrCreate("process/sync")
+var errRecoveryCheckpointPending = errors.New("recovery checkpoint not reached")
+
+type recoverySyncEpochProvider interface {
+	EpochIsActiveForSync(epoch uint32) bool
+}
 
 type txSizeHandler interface {
 	Size() int
@@ -200,6 +205,7 @@ type baseBootstrap struct {
 	syncStarter          syncStarter
 	bootStorer           process.BootStorer
 	storageBootstrapper  process.BootstrapperFromStorage
+	recoveryCheckpoint   *common.RecoveryCheckpoint
 	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
 	outportHandler        outport.OutportHandler
@@ -558,14 +564,13 @@ func (boot *baseBootstrap) getNonceForCurrentBlock() uint64 {
 	return nonce
 }
 
-// getEpochOfCurrentBlock will get the epoch for the current block as stored in the chain handler implementation
-func (boot *baseBootstrap) getEpochOfCurrentBlock() uint32 {
-	epoch := boot.chainHandler.GetGenesisHeader().GetEpoch()
+func (boot *baseBootstrap) getEpochAndRoundOfCurrentBlock() (uint32, uint64) {
 	currentBlockHeader := boot.chainHandler.GetCurrentBlockHeader()
 	if !check.IfNil(currentBlockHeader) {
-		epoch = currentBlockHeader.GetEpoch()
+		return currentBlockHeader.GetEpoch(), currentBlockHeader.GetRound()
 	}
-	return epoch
+	genesisHeader := boot.chainHandler.GetGenesisHeader()
+	return genesisHeader.GetEpoch(), genesisHeader.GetRound()
 }
 
 func (boot *baseBootstrap) getWaitTime() time.Duration {
@@ -624,7 +629,8 @@ func (boot *baseBootstrap) computeNodeState(round int64) {
 	}
 
 	isNodeConnectedToTheNetwork := boot.networkWatcher.IsConnectedToTheNetwork()
-	isNodeSynchronized := !boot.forkInfo.IsDetected && !hasUnresolvedAuthority && boot.hasLastBlock && isNodeConnectedToTheNetwork
+	isNodeSynchronized := !boot.forkInfo.IsDetected && !hasUnresolvedAuthority && boot.hasLastBlock &&
+		isNodeConnectedToTheNetwork && boot.isRecoveryCheckpointReached()
 	if isNodeSynchronized != boot.isNodeSynchronized {
 		log.Debug("node has changed its synchronized state",
 			"state", isNodeSynchronized,
@@ -651,6 +657,17 @@ func (boot *baseBootstrap) computeNodeState(round int64) {
 	if shouldRequest {
 		go boot.requestHeadersIfSyncIsStuckForGeneration(bypassGeneration)
 	}
+}
+
+func (boot *baseBootstrap) isRecoveryCheckpointReached() bool {
+	if boot.recoveryCheckpoint == nil {
+		return true
+	}
+	header, hash := boot.chainHandler.GetCurrentBlockHeaderAndHash()
+	if check.IfNil(header) || header.GetRound() < boot.recoveryCheckpoint.Round {
+		return false
+	}
+	return !boot.recoveryCheckpoint.IsDiscarded(header.GetRound(), header.GetShardID(), hash)
 }
 
 func (boot *baseBootstrap) shouldTryToRequestHeaders() (bool, uint64) {
@@ -695,18 +712,11 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 		lastSyncedRound = currHeader.GetRound()
 	}
 
-	currentRound := boot.roundHandler.Index()
-	if currentRound < 0 || uint64(currentRound) <= lastSyncedRound {
+	numHeadersToRequest := boot.numHeadersToRequestIfStuck(lastSyncedRound)
+	if numHeadersToRequest == 0 {
 		return
 	}
-
-	roundDiff := uint64(currentRound) - lastSyncedRound
-	if roundDiff <= boot.getMaxRoundsWithoutBlockReceived(lastSyncedRound) {
-		return
-	}
-
 	fromNonce := boot.getNonceForNextBlock()
-	numHeadersToRequest := core.MinUint64(process.MaxHeadersToRequestInAdvance, roundDiff-1)
 	toNonce := fromNonce + numHeadersToRequest - 1
 
 	if fromNonce > toNonce {
@@ -719,6 +729,20 @@ func (boot *baseBootstrap) requestHeadersIfSyncIsStuck() {
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
 
 	boot.requestHeaders(fromNonce, toNonce)
+}
+
+func (boot *baseBootstrap) numHeadersToRequestIfStuck(lastSyncedRound uint64) uint64 {
+	currentRound := boot.roundHandler.Index()
+	if currentRound < 0 || uint64(currentRound) <= lastSyncedRound {
+		return 0
+	}
+
+	roundDiff := uint64(currentRound) - lastSyncedRound
+	if roundDiff <= boot.getMaxRoundsWithoutBlockReceived(lastSyncedRound) {
+		return 0
+	}
+
+	return core.MinUint64(process.MaxHeadersToRequestInAdvance, roundDiff-1)
 }
 
 func (boot *baseBootstrap) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {
@@ -868,6 +892,29 @@ func (boot *baseBootstrap) requestHeadersFromNonceIfMissing(fromNonce uint64) {
 	boot.requestHeaders(fromNonce, toNonce)
 }
 
+func (boot *baseBootstrap) requestHeadersAfterCommittedProgress(header data.HeaderHandler) {
+	if check.IfNil(header) || boot.isInImportMode || !boot.networkWatcher.IsConnectedToTheNetwork() {
+		return
+	}
+	if header.GetNonce() != boot.currentCommittedNonce() || header.GetNonce() < boot.forkDetector.ProbableHighestNonce() {
+		return
+	}
+
+	numHeadersToRequest := boot.numHeadersToRequestIfStuck(header.GetRound())
+	if numHeadersToRequest == 0 {
+		return
+	}
+
+	fromNonce := header.GetNonce() + 1
+	toNonce := fromNonce + numHeadersToRequest - 1
+	log.Debug("requestHeadersAfterCommittedProgress",
+		"from nonce", fromNonce,
+		"to nonce", toNonce,
+		"probable highest nonce", boot.forkDetector.ProbableHighestNonce())
+
+	boot.requestHeaders(fromNonce, toNonce)
+}
+
 // syncBlocks method calls repeatedly synchronization method SyncBlock
 func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 	for {
@@ -926,7 +973,8 @@ func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
 }
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
-	if errors.Is(err, errBranchAwareSyncRetry) {
+	if errors.Is(err, errBranchAwareSyncRetry) || errors.Is(err, errRecoveryCheckpointPending) ||
+		errors.Is(err, process.ErrEpochStartPending) {
 		return
 	}
 
@@ -1291,6 +1339,12 @@ func (boot *baseBootstrap) syncBlock() error {
 	if err != nil {
 		return err
 	}
+	if !check.IfNil(header) && boot.recoveryCheckpoint.IsDiscarded(header.GetRound(), header.GetShardID(), headerHash) {
+		return common.ErrRoundExcluded
+	}
+	if boot.recoveryCheckpoint != nil && header.GetRound() > boot.recoveryCheckpoint.Round && !boot.isRecoveryCheckpointReached() {
+		return errRecoveryCheckpointPending
+	}
 
 	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
 
@@ -1302,11 +1356,13 @@ func (boot *baseBootstrap) syncBlock() error {
 	if header.IsHeaderV3() {
 		// update err to enable the deferred treatment
 		err = boot.syncBlockV3(body, header, headerHash)
-		return err
+	} else {
+		// update err to enable the deferred treatment
+		err = boot.syncBlockLegacy(body, header)
 	}
-
-	// update err to enable the deferred treatment
-	err = boot.syncBlockLegacy(body, header)
+	if err == nil && !boot.isInImportMode {
+		go boot.requestHeadersAfterCommittedProgress(header)
+	}
 
 	return err
 }
@@ -1785,12 +1841,24 @@ func (boot *baseBootstrap) hasProofInCacheOrStorage(hash []byte) bool {
 	proof := &block.HeaderProof{}
 	err = boot.marshalizer.Unmarshal(proof, proofBytes)
 	if err != nil {
+		if boot.recoveryCheckpoint != nil {
+			return false
+		}
 		// return true here, since the proof exists in storer
 		log.Warn("hasProofInCacheOrStorage invalid proof in storage", "error", err.Error(), "hash", hash)
 		return true
 	}
+	if boot.recoveryCheckpoint.IsDiscarded(proof.GetHeaderRound(), proof.GetHeaderShardId(), proof.GetHeaderHash()) {
+		return false
+	}
+	if boot.recoveryCheckpoint != nil && !bytes.Equal(proof.GetHeaderHash(), hash) {
+		return false
+	}
 
 	boot.proofs.AddProof(proof)
+	if boot.recoveryCheckpoint != nil {
+		return boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash)
+	}
 
 	return true
 }
@@ -1833,6 +1901,56 @@ func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
 func (boot *baseBootstrap) syncUserAccountsState(key []byte) error {
 	log.Warn("base sync: started syncUserAccountsState")
 	return boot.accountsDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
+}
+
+func (boot *baseBootstrap) syncRecoveryUserAccountsState(rootHash []byte, epoch uint32) error {
+	syncer, ok := boot.accountsDBSyncer.(interface {
+		SyncAccountsWithDiskCheck([]byte, common.StorageMarker, uint32) error
+	})
+	if !ok {
+		return fmt.Errorf("recovery account syncer does not support disk traversal")
+	}
+	return syncer.SyncAccountsWithDiskCheck(rootHash, storageMarker.NewDisabledStorageMarker(), epoch)
+}
+
+func (boot *baseBootstrap) loadRecoveryCheckpointFromStorage(syncPeerAccounts func([]byte, uint32) error) error {
+	recovery, ok := boot.storageBootstrapper.(interface {
+		RecoveryCheckpointRequired() (bool, error)
+		RecoveryCheckpointState() ([]byte, []byte, uint32, error)
+	})
+	if !ok {
+		return fmt.Errorf("recovery bootstrapper does not expose checkpoint state")
+	}
+	required, err := recovery.RecoveryCheckpointRequired()
+	if err != nil {
+		return err
+	}
+	if !required {
+		err = boot.storageBootstrapper.LoadFromStorage()
+		if errors.Is(err, process.ErrNotEnoughValidBlocksInStorage) &&
+			boot.chainHandler.GetGenesisHeader().GetRound() < boot.recoveryCheckpoint.Round {
+			return nil
+		}
+		return err
+	}
+	userRoot, peerRoot, epoch, err := recovery.RecoveryCheckpointState()
+	if err != nil {
+		return err
+	}
+	boot.requestHandler.SetRecoveryTrieRequests(true)
+	defer boot.requestHandler.SetRecoveryTrieRequests(false)
+	if err = boot.syncRecoveryUserAccountsState(userRoot, epoch); err != nil {
+		return err
+	}
+	if len(peerRoot) > 0 {
+		if syncPeerAccounts == nil {
+			return fmt.Errorf("recovery peer account syncer is missing")
+		}
+		if err = syncPeerAccounts(peerRoot, epoch); err != nil {
+			return err
+		}
+	}
+	return boot.storageBootstrapper.LoadFromStorage()
 }
 
 func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
@@ -2818,6 +2936,9 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 			boot.store,
 		)
 	}
+	if err == nil && !check.IfNil(hdr) && boot.recoveryCheckpoint.IsDiscarded(hdr.GetRound(), hdr.GetShardID(), hash) {
+		return nil, common.ErrRoundExcluded
+	}
 
 	hasHeader := err == nil
 	needsProof := boot.checkNeedsProofByHash(hash, hdr)
@@ -2842,6 +2963,9 @@ func (boot *baseBootstrap) getHeaderWithHashRequestingIfMissing(hash []byte) (da
 
 	if !boot.hasProof(hash, hdr) {
 		return nil, process.ErrMissingHeaderProof
+	}
+	if boot.recoveryCheckpoint.IsDiscarded(hdr.GetRound(), hdr.GetShardID(), hash) {
+		return nil, common.ErrRoundExcluded
 	}
 
 	return hdr, nil
@@ -3805,8 +3929,17 @@ func (boot *baseBootstrap) GetNodeState() common.NodeState {
 	if boot.isInImportMode {
 		return common.NsNotSynchronized
 	}
-	currentSyncedEpoch := boot.getEpochOfCurrentBlock()
-	if !boot.currentEpochProvider.EpochIsActiveInNetwork(currentSyncedEpoch) {
+	currentSyncedEpoch, currentTipRound := boot.getEpochAndRoundOfCurrentBlock()
+	provider, supportsRecoveryEpoch := boot.currentEpochProvider.(recoverySyncEpochProvider)
+	epochIsActive := false
+	useObservedEpoch := boot.recoveryCheckpoint != nil && supportsRecoveryEpoch &&
+		currentTipRound <= boot.recoveryCheckpoint.ExcludedEnd
+	if useObservedEpoch {
+		epochIsActive = provider.EpochIsActiveForSync(currentSyncedEpoch)
+	} else {
+		epochIsActive = boot.currentEpochProvider.EpochIsActiveInNetwork(currentSyncedEpoch)
+	}
+	if !epochIsActive {
 		return common.NsNotSynchronized
 	}
 

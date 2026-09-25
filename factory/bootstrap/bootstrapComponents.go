@@ -168,6 +168,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		latestStorageDataProvider,
 		storage.DefaultEpochString,
 		storage.DefaultShardString,
+		bcf.config.HardforkRecoveryCheckpoint.Enabled,
 	)
 	if err != nil {
 		return nil, err
@@ -357,12 +358,14 @@ func createUnitOpener(
 	latestDataFromStorageProvider storage.LatestStorageDataProviderHandler,
 	defaultEpochString string,
 	defaultShardString string,
+	recoveryCheckpointEnabled bool,
 ) (storage.UnitOpenerHandler, error) {
 	argsStorageUnitOpener := storageFactory.ArgsNewOpenStorageUnits{
 		BootstrapDataProvider:     bootstrapDataProvider,
 		LatestStorageDataProvider: latestDataFromStorageProvider,
 		DefaultEpochString:        defaultEpochString,
 		DefaultShardString:        defaultShardString,
+		RecoveryCheckpointEnabled: recoveryCheckpointEnabled,
 	}
 
 	return storageFactory.NewStorageUnitOpenHandler(argsStorageUnitOpener)

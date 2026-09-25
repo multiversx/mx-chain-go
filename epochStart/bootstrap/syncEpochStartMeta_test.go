@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -145,6 +146,7 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaShouldWork(t *testing.T) {
 
 func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+	roundExclusions, _ := common.NewRoundExclusionHandler(nil)
 	return ArgsNewEpochStartMetaSyncer{
 		CoreComponentsHolder: &mock.CoreComponentsMock{
 			IntMarsh:            &mock.MarshalizerMock{},
@@ -167,6 +169,7 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 			ManagedPeers: &testscommon.ManagedPeersHolderStub{},
 		},
 		RequestHandler:   &testscommon.RequestHandlerStub{},
+		RoundExclusions:  roundExclusions,
 		Messenger:        &p2pmocks.MessengerStub{},
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(2),
 		EconomicsData:    &economicsmocks.EconomicsHandlerMock{},

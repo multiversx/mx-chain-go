@@ -79,6 +79,32 @@ func (bdp *bootstrapDataProvider) GetStorer(storer storage.Storer) (process.Boot
 	return bootStorer, nil
 }
 
+// GetBootstrapSelectionRound keeps the parent link separate from the recovery selection round.
+func GetBootstrapSelectionRound(provider BootstrapDataProviderHandler, data *bootstrapStorage.BootstrapData, storer storage.Storer, recoveryEnabled bool) (int64, error) {
+	if data == nil {
+		return 0, storage.ErrBootstrapDataNotFoundInStorage
+	}
+	if !recoveryEnabled {
+		return data.LastRound, nil
+	}
+	isSnapshot := data.LastRound == 0 && len(data.LastHeader.Hash) > 0 && data.HighestFinalBlockNonce == data.LastHeader.Nonce
+	if data.LastRound <= 0 && !isSnapshot {
+		return 0, storage.ErrBootstrapDataNotFoundInStorage
+	}
+	bootStorer, err := provider.GetStorer(storer)
+	if err != nil {
+		return 0, err
+	}
+	if check.IfNil(bootStorer) {
+		return 0, storage.ErrBootstrapDataNotFoundInStorage
+	}
+	round := bootStorer.GetHighestRound()
+	if round <= data.LastRound {
+		return 0, storage.ErrBootstrapDataNotFoundInStorage
+	}
+	return round, nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bdp *bootstrapDataProvider) IsInterfaceNil() bool {
 	return bdp == nil

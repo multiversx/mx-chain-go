@@ -171,6 +171,30 @@ func TestCreateApiResolver(t *testing.T) {
 		require.True(t, strings.Contains(err.Error(), "VirtualMachine.Querying.NumConcurrentVms"))
 		require.True(t, check.IfNil(apiResolver))
 	})
+	t.Run("invalid HardforkRoundExclusions should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		args.Configs.GeneralConfig.HardforkRoundExclusions = []config.HardforkRoundExclusionConfig{
+			{StartRound: 100, EndRound: 199},
+			{StartRound: 150, EndRound: 250},
+		}
+		apiResolver, err := api.CreateApiResolver(args)
+		require.NotNil(t, err)
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "overlapping"))
+		require.True(t, check.IfNil(apiResolver))
+	})
+	t.Run("valid HardforkRoundExclusions should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		args.Configs.GeneralConfig.HardforkRoundExclusions = []config.HardforkRoundExclusionConfig{
+			{StartRound: 100, EndRound: 199},
+		}
+		apiResolver, err := api.CreateApiResolver(args)
+		require.Nil(t, err)
+		require.False(t, check.IfNil(apiResolver))
+	})
 
 	failingStepsInstance := &failingSteps{}
 	failingArgs := createFailingMockArgs(t, failingStepsInstance)
