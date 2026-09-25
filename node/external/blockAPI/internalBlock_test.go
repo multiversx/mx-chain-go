@@ -51,7 +51,8 @@ func createMockInternalBlockProcessor(
 					return false
 				},
 			},
-			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			RoundExclusionHandler: createEmptyRoundExclusionHandler(),
 		}, nil)
 }
 

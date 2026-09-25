@@ -139,7 +139,7 @@ func (atp *apiTransactionProcessor) GetSCRsByTxHash(txHash string, scrHash strin
 	}
 
 	if atp.isRoundExcluded(miniblockMetadata.Round) {
-		return nil, fmt.Errorf("%w: %w (round %d)", ErrTransactionNotFound, common.ErrRoundExcluded, miniblockMetadata.Round)
+		return nil, ErrTransactionNotFound
 	}
 
 	resultsHashes, err := atp.historyRepository.GetResultsHashesByTxHash(decodedTxHash, miniblockMetadata.Epoch)
@@ -178,7 +178,7 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 	}
 
 	if atp.isRoundExcluded(tx.Round) {
-		return nil, fmt.Errorf("%w: %w (round %d)", ErrTransactionNotFound, common.ErrRoundExcluded, tx.Round)
+		return nil, ErrTransactionNotFound
 	}
 
 	tx.Hash = txHash
@@ -815,7 +815,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 	}
 
 	if atp.isRoundExcluded(miniblockMetadata.Round) {
-		return nil, fmt.Errorf("%w: %w (round %d)", ErrTransactionNotFound, common.ErrRoundExcluded, miniblockMetadata.Round)
+		return nil, ErrTransactionNotFound
 	}
 
 	isExecuted, err := atp.checkExecutionResultAndTx(miniblockMetadata)

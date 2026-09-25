@@ -63,6 +63,7 @@ type baseAPIBlockProcessor struct {
 	proofsPool                   dataRetriever.ProofsPool
 	blockchain                   data.ChainHandler
 	enableRoundsHandler          common.EnableRoundsHandler
+	roundExclusionHandler        common.RoundExclusionHandler
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -717,6 +718,22 @@ func (bap *baseAPIBlockProcessor) getHeaderProof(
 
 func (bap *baseAPIBlockProcessor) isBlockNonceInStorage(blockNonce uint64) bool {
 	return blockNonce <= bap.blockchain.GetCurrentBlockHeader().GetNonce()
+}
+
+func (bap *baseAPIBlockProcessor) isRoundExcluded(round uint64) bool {
+	if check.IfNil(bap.roundExclusionHandler) {
+		return false
+	}
+
+	return bap.roundExclusionHandler.IsRoundExcluded(round)
+}
+
+func (bap *baseAPIBlockProcessor) checkRoundExcluded(round uint64) error {
+	if bap.isRoundExcluded(round) {
+		return errBlockNotFound
+	}
+
+	return nil
 }
 
 func proofToAPIProof(proof data.HeaderProofHandler) *api.HeaderProof {

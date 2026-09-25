@@ -32,6 +32,7 @@ func newInternalBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			addressPubKeyConverter:   arg.AddressPubkeyConverter,
 			emptyReceiptsHash:        emptyReceiptsHash,
 			enableEpochsHandler:      arg.EnableEpochsHandler,
+			roundExclusionHandler:    arg.RoundExclusionHandler,
 		},
 	}
 }

@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
@@ -22,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
@@ -49,7 +52,16 @@ func createMockArgsAPIBlockProc() *ArgAPIBlockProcessor {
 		ProofsPool:                   &dataRetrieverTestCommon.ProofsPoolMock{},
 		BlockChain:                   chainHandler,
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		RoundExclusionHandler:        createEmptyRoundExclusionHandler(),
 	}
+}
+
+func createEmptyRoundExclusionHandler() common.RoundExclusionHandler {
+	handler, err := common.NewRoundExclusionHandler(nil)
+	if err != nil {
+		panic(err)
+	}
+	return handler
 }
 
 func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
@@ -219,6 +231,88 @@ func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
 
 		_, err := CreateAPIBlockProcessor(arguments)
 		assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+	})
+	t.Run("NilRoundExclusionHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgsAPIBlockProc()
+		arguments.RoundExclusionHandler = nil
+
+		_, err := CreateAPIBlockProcessor(arguments)
+		assert.Equal(t, errNilRoundExclusionHandler, err)
+	})
+}
+
+func TestCreateAPIBlockProcessor_RoundExclusion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetBlockByRound with excluded round should err", func(t *testing.T) {
+		t.Parallel()
+
+		exclusionHandler, err := common.NewRoundExclusionHandler(
+			[]config.HardforkRoundExclusionConfig{{StartRound: 2, EndRound: 2}},
+		)
+		require.Nil(t, err)
+
+		args := createMockArgsAPIBlockProc()
+		args.RoundExclusionHandler = exclusionHandler
+		apiBlockProc, err := CreateAPIBlockProcessor(args)
+		require.Nil(t, err)
+
+		blk, err := apiBlockProc.GetBlockByRound(2, api.BlockQueryOptions{})
+		require.Nil(t, blk)
+		require.Equal(t, errBlockNotFound, err)
+	})
+
+	t.Run("GetBlockByRound with non-excluded round should not hit exclusion", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsAPIBlockProc()
+		// empty handler excludes nothing; request will fail on storage, not on exclusion
+		_, err := CreateAPIBlockProcessor(args)
+		require.Nil(t, err)
+	})
+
+	t.Run("GetBlockByHash with excluded header round should err", func(t *testing.T) {
+		t.Parallel()
+
+		exclusionHandler, err := common.NewRoundExclusionHandler(
+			[]config.HardforkRoundExclusionConfig{{StartRound: 2, EndRound: 10}},
+		)
+		require.Nil(t, err)
+
+		headerHash := []byte("d08089f2ab739520598fd7aeed08c427460fe94f286383047f3f61951afc4e00")
+		storerMock := genericMocks.NewStorerMock()
+
+		args := createMockArgsAPIBlockProc()
+		args.RoundExclusionHandler = exclusionHandler
+		args.HistoryRepo = &dblookupext.HistoryRepositoryStub{
+			IsEnabledCalled: func() bool {
+				return false
+			},
+		}
+		args.Store = &storageMocks.ChainStorerStub{
+			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+				return storerMock.Get(key)
+			},
+		}
+		apiBlockProc, err := CreateAPIBlockProcessor(args)
+		require.Nil(t, err)
+
+		header := &block.Header{
+			Nonce:           1,
+			Round:           5,
+			Epoch:           1,
+			ShardID:         0,
+			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
+		}
+		headerBytes, _ := json.Marshal(header)
+		_ = storerMock.Put(headerHash, headerBytes)
+
+		blk, err := apiBlockProc.GetBlockByHash(headerHash, api.BlockQueryOptions{})
+		require.Nil(t, blk)
+		require.Equal(t, errBlockNotFound, err)
 	})
 }
 

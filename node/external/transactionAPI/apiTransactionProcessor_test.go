@@ -2335,8 +2335,7 @@ func TestApiTransactionProcessor_GetTransactionRoundExclusion(t *testing.T) {
 
 		processor, txHash := createHistoryProcessorForExclusionTest(t, excludedIntervals, 150)
 		_, err := processor.GetTransaction(txHash, false)
-		require.ErrorIs(t, err, ErrTransactionNotFound)
-		require.ErrorIs(t, err, common.ErrRoundExcluded)
+		require.Equal(t, ErrTransactionNotFound, err)
 	})
 
 	t.Run("interval bounds are inclusive", func(t *testing.T) {
@@ -2345,8 +2344,7 @@ func TestApiTransactionProcessor_GetTransactionRoundExclusion(t *testing.T) {
 		for _, round := range []uint64{100, 199} {
 			processor, txHash := createHistoryProcessorForExclusionTest(t, excludedIntervals, round)
 			_, err := processor.GetTransaction(txHash, false)
-			require.ErrorIs(t, err, ErrTransactionNotFound)
-			require.ErrorIs(t, err, common.ErrRoundExcluded)
+			require.Equal(t, ErrTransactionNotFound, err)
 		}
 	})
 
@@ -2421,8 +2419,7 @@ func TestApiTransactionProcessor_GetTransactionRoundExclusion(t *testing.T) {
 		require.Nil(t, err)
 
 		_, err = processor.GetTransaction(hex.EncodeToString(rewardKey), false)
-		require.ErrorIs(t, err, ErrTransactionNotFound)
-		require.ErrorIs(t, err, common.ErrRoundExcluded)
+		require.Equal(t, ErrTransactionNotFound, err)
 	})
 
 	t.Run("non-excluded round from pool reward is returned", func(t *testing.T) {
@@ -2481,8 +2478,7 @@ func TestApiTransactionProcessor_GetSCRsByTxHashRoundExclusion(t *testing.T) {
 		require.Nil(t, err)
 
 		_, err = processor.GetSCRsByTxHash(txHash, scrHash)
-		require.ErrorIs(t, err, ErrTransactionNotFound)
-		require.ErrorIs(t, err, common.ErrRoundExcluded)
+		require.Equal(t, ErrTransactionNotFound, err)
 	})
 
 	t.Run("non-excluded round still returns SCRs", func(t *testing.T) {
