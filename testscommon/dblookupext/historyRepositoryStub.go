@@ -12,14 +12,15 @@ import (
 
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
-	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrsPool map[string]data.TransactionHandler, receipts map[string]data.TransactionHandler, createdIntraMiniBlocks []*block.MiniBlock, logs []data.LogDataHandler) error
-	OnNotarizedBlocksCalled            func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
-	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
-	GetEpochByHashCalled               func(hash []byte) (uint32, error)
-	GetEventsHashesByTxHashCalled      func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error)
-	GetESDTSupplyCalled                func(token string) (*esdtSupply.SupplyESDT, error)
-	IsEnabledCalled                    func() bool
-	RevertBlockCalled                  func(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
+	GetMiniblockMetadataByMiniblockHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
+	RecordBlockCalled                         func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrsPool map[string]data.TransactionHandler, receipts map[string]data.TransactionHandler, createdIntraMiniBlocks []*block.MiniBlock, logs []data.LogDataHandler) error
+	OnNotarizedBlocksCalled                   func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
+	GetMiniblockMetadataByTxHashCalled        func(hash []byte) (*dblookupext.MiniblockMetadata, error)
+	GetEpochByHashCalled                      func(hash []byte) (uint32, error)
+	GetEventsHashesByTxHashCalled             func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error)
+	GetESDTSupplyCalled                       func(token string) (*esdtSupply.SupplyESDT, error)
+	IsEnabledCalled                           func() bool
+	RevertBlockCalled                         func(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
 }
 
 // RecordBlock -
@@ -49,6 +50,13 @@ func (hp *HistoryRepositoryStub) OnNotarizedBlocks(shardID uint32, headers []dat
 func (hp *HistoryRepositoryStub) GetMiniblockMetadataByTxHash(hash []byte) (*dblookupext.MiniblockMetadata, error) {
 	if hp.GetMiniblockMetadataByTxHashCalled != nil {
 		return hp.GetMiniblockMetadataByTxHashCalled(hash)
+	}
+	return nil, fmt.Errorf("miniblock metadata not found")
+}
+
+func (hp *HistoryRepositoryStub) GetMiniblockMetadataByMiniblockHash(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+	if hp.GetMiniblockMetadataByMiniblockHashCalled != nil {
+		return hp.GetMiniblockMetadataByMiniblockHashCalled(hash)
 	}
 	return nil, fmt.Errorf("miniblock metadata not found")
 }

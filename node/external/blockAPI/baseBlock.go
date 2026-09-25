@@ -728,6 +728,10 @@ func (bap *baseAPIBlockProcessor) isRoundExcluded(round uint64) bool {
 	return bap.roundExclusionHandler.IsRoundExcluded(round)
 }
 
+func (bap *baseAPIBlockProcessor) hasExcludedRounds() bool {
+	return !check.IfNil(bap.roundExclusionHandler) && bap.roundExclusionHandler.HasExcludedRounds()
+}
+
 func (bap *baseAPIBlockProcessor) checkRoundExcluded(round uint64) error {
 	if bap.isRoundExcluded(round) {
 		return errBlockNotFound

@@ -12,6 +12,15 @@ import (
 func TestNewRoundExclusionHandler(t *testing.T) {
 	t.Parallel()
 
+	t.Run("reports whether exclusions are configured", func(t *testing.T) {
+		empty, err := common.NewRoundExclusionHandler(nil)
+		require.NoError(t, err)
+		require.False(t, empty.HasExcludedRounds())
+		configured, err := common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{{StartRound: 10, EndRound: 20}})
+		require.NoError(t, err)
+		require.True(t, configured.HasExcludedRounds())
+	})
+
 	t.Run("rejects reversed interval", func(t *testing.T) {
 		_, err := common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{{StartRound: 8, EndRound: 7}})
 		require.ErrorIs(t, err, common.ErrInvalidHardforkRoundExclusion)

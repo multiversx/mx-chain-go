@@ -268,9 +268,15 @@ func TestCreateAPIBlockProcessor_RoundExclusion(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsAPIBlockProc()
-		// empty handler excludes nothing; request will fail on storage, not on exclusion
-		_, err := CreateAPIBlockProcessor(args)
+		args.Store = &storageMocks.ChainStorerStub{
+			GetCalled: func(dataRetriever.UnitType, []byte) ([]byte, error) {
+				return nil, storage.ErrKeyNotFound
+			},
+		}
+		proc, err := CreateAPIBlockProcessor(args)
 		require.Nil(t, err)
+		_, err = proc.GetBlockByRound(2, api.BlockQueryOptions{})
+		require.ErrorIs(t, err, storage.ErrKeyNotFound)
 	})
 
 	t.Run("GetBlockByHash with excluded header round should err", func(t *testing.T) {

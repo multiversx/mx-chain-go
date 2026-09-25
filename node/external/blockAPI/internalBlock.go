@@ -56,10 +56,6 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByNonce(format common.Ap
 		return nil, err
 	}
 
-	if err = ibp.checkShardBlockBytesExcluded(blockBytes); err != nil {
-		return nil, err
-	}
-
 	return ibp.convertShardBlockBytesByOutputFormat(format, blockBytes)
 }
 
@@ -74,10 +70,6 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByHash(format common.Api
 		return nil, err
 	}
 
-	if err = ibp.checkShardBlockBytesExcluded(blockBytes); err != nil {
-		return nil, err
-	}
-
 	return ibp.convertShardBlockBytesByOutputFormat(format, blockBytes)
 }
 
@@ -86,7 +78,6 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByRound(format common.Ap
 	if ibp.selfShardID == core.MetachainShardId {
 		return nil, ErrShardOnlyEndpoint
 	}
-
 	if err := ibp.checkRoundExcluded(round); err != nil {
 		return nil, err
 	}
@@ -96,33 +87,18 @@ func (ibp *internalBlockProcessor) GetInternalShardBlockByRound(format common.Ap
 		return nil, err
 	}
 
-	if err = ibp.checkShardBlockBytesExcluded(blockBytes); err != nil {
-		return nil, err
-	}
-
 	return ibp.convertShardBlockBytesByOutputFormat(format, blockBytes)
 }
 
-func (ibp *internalBlockProcessor) checkShardBlockBytesExcluded(blockBytes []byte) error {
-	blockHeader, err := process.UnmarshalShardHeader(ibp.marshalizer, blockBytes)
-	if err != nil {
-		return err
-	}
-
-	return ibp.checkRoundExcluded(blockHeader.GetRound())
-}
-
-func (ibp *internalBlockProcessor) checkMetaBlockBytesExcluded(blockBytes []byte) error {
-	blockHeader, err := process.UnmarshalHeader(core.MetachainShardId, ibp.marshalizer, blockBytes)
-	if err != nil {
-		return err
-	}
-
-	return ibp.checkRoundExcluded(blockHeader.GetRound())
-}
-
 func (ibp *internalBlockProcessor) convertShardBlockBytesToInternalBlock(blockBytes []byte) (interface{}, error) {
-	return process.UnmarshalShardHeader(ibp.marshalizer, blockBytes)
+	header, err := process.UnmarshalShardHeader(ibp.marshalizer, blockBytes)
+	if err != nil {
+		return nil, err
+	}
+	if err = ibp.checkRoundExcluded(header.GetRound()); err != nil {
+		return nil, err
+	}
+	return header, nil
 }
 
 func (ibp *internalBlockProcessor) convertShardBlockBytesByOutputFormat(format common.ApiOutputFormat, blockBytes []byte) (interface{}, error) {
@@ -130,6 +106,11 @@ func (ibp *internalBlockProcessor) convertShardBlockBytesByOutputFormat(format c
 	case common.ApiOutputFormatJSON:
 		return ibp.convertShardBlockBytesToInternalBlock(blockBytes)
 	case common.ApiOutputFormatProto:
+		if ibp.hasExcludedRounds() {
+			if _, err := ibp.convertShardBlockBytesToInternalBlock(blockBytes); err != nil {
+				return nil, err
+			}
+		}
 		return blockBytes, nil
 	default:
 		return nil, ErrInvalidOutputFormat
@@ -155,10 +136,6 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByNonce(format common.Api
 		return nil, err
 	}
 
-	if err = ibp.checkMetaBlockBytesExcluded(blockBytes); err != nil {
-		return nil, err
-	}
-
 	return ibp.convertMetaBlockBytesByOutputFormat(format, blockBytes)
 }
 
@@ -173,10 +150,6 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByHash(format common.ApiO
 		return nil, err
 	}
 
-	if err = ibp.checkMetaBlockBytesExcluded(blockBytes); err != nil {
-		return nil, err
-	}
-
 	return ibp.convertMetaBlockBytesByOutputFormat(format, blockBytes)
 }
 
@@ -185,17 +158,12 @@ func (ibp *internalBlockProcessor) GetInternalMetaBlockByRound(format common.Api
 	if ibp.selfShardID != core.MetachainShardId {
 		return nil, ErrMetachainOnlyEndpoint
 	}
-
 	if err := ibp.checkRoundExcluded(round); err != nil {
 		return nil, err
 	}
 
 	_, blockBytes, err := ibp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
 	if err != nil {
-		return nil, err
-	}
-
-	if err = ibp.checkMetaBlockBytesExcluded(blockBytes); err != nil {
 		return nil, err
 	}
 
@@ -219,10 +187,6 @@ func (ibp *internalBlockProcessor) GetInternalStartOfEpochMetaBlock(format commo
 		return nil, err
 	}
 
-	if err = ibp.checkMetaBlockBytesExcluded(blockBytes); err != nil {
-		return nil, err
-	}
-
 	return ibp.convertMetaBlockBytesByOutputFormat(format, blockBytes)
 }
 
@@ -243,12 +207,8 @@ func (ibp *internalBlockProcessor) GetInternalStartOfEpochValidatorsInfo(epoch u
 		return nil, err
 	}
 
-	metaBlock, err := process.UnmarshalHeader(core.MetachainShardId, ibp.marshalizer, blockBytes)
+	metaBlock, err := ibp.convertMetaBlockBytesToInternalBlock(blockBytes)
 	if err != nil {
-		return nil, err
-	}
-
-	if err = ibp.checkRoundExcluded(metaBlock.GetRound()); err != nil {
 		return nil, err
 	}
 
@@ -342,6 +302,9 @@ func (ibp *internalBlockProcessor) convertMetaBlockBytesToInternalBlock(blockByt
 	if err != nil {
 		return nil, err
 	}
+	if err = ibp.checkRoundExcluded(blockHeader.GetRound()); err != nil {
+		return nil, err
+	}
 
 	return blockHeader, nil
 }
@@ -351,6 +314,11 @@ func (ibp *internalBlockProcessor) convertMetaBlockBytesByOutputFormat(format co
 	case common.ApiOutputFormatJSON:
 		return ibp.convertMetaBlockBytesToInternalBlock(blockBytes)
 	case common.ApiOutputFormatProto:
+		if ibp.hasExcludedRounds() {
+			if _, err := ibp.convertMetaBlockBytesToInternalBlock(blockBytes); err != nil {
+				return nil, err
+			}
+		}
 		return blockBytes, nil
 	default:
 		return nil, ErrInvalidOutputFormat
@@ -367,6 +335,32 @@ func (ibp *internalBlockProcessor) GetInternalMiniBlock(format common.ApiOutputF
 	blockBytes, err := storer.GetFromEpoch(hash, epoch)
 	if err != nil {
 		return nil, err
+	}
+	if ibp.hasDbLookupExtensions && ibp.hasExcludedRounds() {
+		miniBlock := &block.MiniBlock{}
+		if err = ibp.marshalizer.Unmarshal(miniBlock, blockBytes); err != nil {
+			return nil, err
+		}
+		// Peer miniblocks have no history index.
+		if miniBlock.Type != block.PeerBlock {
+			metadata, errGet := ibp.historyRepo.GetMiniblockMetadataByMiniblockHash(hash)
+			if errGet != nil {
+				return nil, errGet
+			}
+			if metadata == nil {
+				return nil, errBlockNotFound
+			}
+			if err = ibp.checkRoundExcluded(metadata.Round); err != nil {
+				return nil, err
+			}
+		}
+		if format == common.ApiOutputFormatJSON {
+			return miniBlock, nil
+		}
+		if format == common.ApiOutputFormatProto {
+			return blockBytes, nil
+		}
+		return nil, ErrInvalidOutputFormat
 	}
 
 	return ibp.convertMiniBlockBytesByOutportFormat(format, blockBytes)
