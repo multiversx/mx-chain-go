@@ -1592,6 +1592,43 @@ func TestBlockChainHookImpl_GettersFromRoundHandler(t *testing.T) {
 	assert.Equal(t, uint64(expectedTime.Milliseconds()), bh.RoundTime())
 }
 
+func TestBlockChainHookImpl_RoundTime_UsesCurrentBlockRound(t *testing.T) {
+	t.Parallel()
+
+	supernovaRound := uint64(32170000)
+	preSupernovaDuration := 6000 * time.Millisecond
+	postSupernovaDuration := 600 * time.Millisecond
+
+	args := createMockBlockChainHookArgs()
+	args.RoundHandler = &testscommon.RoundHandlerMock{
+		TimeDurationForRoundCalled: func(round uint64) time.Duration {
+			if round >= supernovaRound {
+				return postSupernovaDuration
+			}
+			return preSupernovaDuration
+		},
+	}
+
+	bh, err := hooks.NewBlockChainHookImpl(args)
+	require.Nil(t, err)
+
+	// Block header at pre-Supernova round (e.g. 32055029 in epoch 2225)
+	err = bh.SetCurrentHeader(&block.Header{
+		Round: 32055029,
+		Epoch: 2225,
+	})
+	require.Nil(t, err)
+	require.Equal(t, uint64(preSupernovaDuration.Milliseconds()), bh.RoundTime())
+
+	// Block header at post-Supernova round (e.g. 33000000)
+	err = bh.SetCurrentHeader(&block.Header{
+		Round: 33000000,
+		Epoch: 2235,
+	})
+	require.Nil(t, err)
+	require.Equal(t, uint64(postSupernovaDuration.Milliseconds()), bh.RoundTime())
+}
+
 func TestBlockChainHookImpl_SaveNFTMetaDataToSystemAccount(t *testing.T) {
 	t.Parallel()
 

@@ -37,6 +37,11 @@ func (rhs *RoundHandlerStub) TimeDuration() time.Duration {
 	return 4000 * time.Millisecond
 }
 
+// TimeDurationForRound -
+func (rhs *RoundHandlerStub) TimeDurationForRound(_ uint64) time.Duration {
+	return rhs.TimeDuration()
+}
+
 // TimeStamp -
 func (rhs *RoundHandlerStub) TimeStamp() time.Time {
 	if rhs.TimeStampCalled != nil {

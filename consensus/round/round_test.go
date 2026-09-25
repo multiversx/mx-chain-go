@@ -819,3 +819,35 @@ func TestRound_IndexForCurrentTimeBeforeGenesis(t *testing.T) {
 	// add one to it, so they must not treat it as a huge unsigned bound
 	require.Equal(t, int64(-10), rnd.IndexForCurrentTime())
 }
+
+func TestRound_TimeDurationForRound(t *testing.T) {
+	t.Parallel()
+
+	supernovaActivationRound := uint64(500)
+	normalDuration := 6000 * time.Millisecond
+	supernovaDuration := 600 * time.Millisecond
+
+	args := createDefaultRoundArgs()
+	args.RoundTimeDuration = normalDuration
+	args.SupernovaTimeDuration = supernovaDuration
+	args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return flag == common.SupernovaRoundFlag && round >= supernovaActivationRound
+		},
+	}
+
+	rnd, err := round.NewRound(args)
+	require.Nil(t, err)
+
+	// Round 0 (before Supernova)
+	require.Equal(t, normalDuration, rnd.TimeDurationForRound(0))
+
+	// Round 499 (immediately before Supernova)
+	require.Equal(t, normalDuration, rnd.TimeDurationForRound(499))
+
+	// Round 500 (at Supernova activation)
+	require.Equal(t, supernovaDuration, rnd.TimeDurationForRound(500))
+
+	// Round 1000 (after Supernova)
+	require.Equal(t, supernovaDuration, rnd.TimeDurationForRound(1000))
+}

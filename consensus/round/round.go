@@ -215,7 +215,20 @@ func (rnd *round) TimeDuration() time.Duration {
 }
 
 func (rnd *round) getTimeDuration() time.Duration {
-	if rnd.isSupernovaRoundActivated() {
+	rnd.RLock()
+	index := rnd.index
+	rnd.RUnlock()
+
+	if index < 0 {
+		return rnd.timeDuration
+	}
+
+	return rnd.TimeDurationForRound(uint64(index))
+}
+
+// TimeDurationForRound returns the duration of the specified round
+func (rnd *round) TimeDurationForRound(round uint64) time.Duration {
+	if rnd.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
 		return rnd.supernovaTimeDuration
 	}
 

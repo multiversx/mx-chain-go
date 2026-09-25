@@ -53,6 +53,11 @@ func (mock *RoundHandlerMock) TimeDuration() time.Duration {
 	return mock.TimeDurationField
 }
 
+// TimeDurationForRound -
+func (mock *RoundHandlerMock) TimeDurationForRound(_ uint64) time.Duration {
+	return mock.TimeDuration()
+}
+
 // RemainingTime -
 func (mock *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.Duration {
 	return mock.RemainingTimeField
