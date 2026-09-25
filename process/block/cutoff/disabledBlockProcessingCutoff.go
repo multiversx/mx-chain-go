@@ -19,6 +19,14 @@ func (d *disabledBlockProcessingCutoff) HandleProcessErrorCutoff(_ data.HeaderHa
 func (d *disabledBlockProcessingCutoff) HandlePauseCutoff(_ data.HeaderHandler) {
 }
 
+// HandleGracefulStopCutoff does nothing
+func (d *disabledBlockProcessingCutoff) HandleGracefulStopCutoff(_ data.HeaderHandler, _ func()) {
+}
+
+// Close does nothing
+func (d *disabledBlockProcessingCutoff) Close() {
+}
+
 // IsInterfaceNil returns true since this structure uses value receivers
 func (d *disabledBlockProcessingCutoff) IsInterfaceNil() bool {
 	return d == nil

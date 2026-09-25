@@ -8,6 +8,22 @@ import (
 type BlockProcessingCutoffStub struct {
 	HandleProcessErrorCutoffCalled func(header data.HeaderHandler) error
 	HandlePauseCutoffCalled        func(header data.HeaderHandler)
+	HandleGracefulStopCutoffCalled func(header data.HeaderHandler, beforeStop func())
+	CloseCalled                    func()
+}
+
+// HandleGracefulStopCutoff -
+func (b *BlockProcessingCutoffStub) HandleGracefulStopCutoff(header data.HeaderHandler, beforeStop func()) {
+	if b.HandleGracefulStopCutoffCalled != nil {
+		b.HandleGracefulStopCutoffCalled(header, beforeStop)
+	}
+}
+
+// Close -
+func (b *BlockProcessingCutoffStub) Close() {
+	if b.CloseCalled != nil {
+		b.CloseCalled()
+	}
 }
 
 // HandleProcessErrorCutoff -
