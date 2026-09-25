@@ -24,6 +24,7 @@ var (
 // RoundExclusionHandler reports whether a round is excluded by configuration.
 type RoundExclusionHandler interface {
 	IsRoundExcluded(round uint64) bool
+	HasExcludedRounds() bool
 	IsInterfaceNil() bool
 }
 
@@ -100,6 +101,10 @@ func ResolveRoundExclusionHandler(handlers ...RoundExclusionHandler) (RoundExclu
 	}
 
 	return handlers[0], nil
+}
+
+func (reh *roundExclusionHandler) HasExcludedRounds() bool {
+	return len(reh.intervals) > 0
 }
 
 func (reh *roundExclusionHandler) IsRoundExcluded(round uint64) bool {

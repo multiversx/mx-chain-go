@@ -382,6 +382,11 @@ func (hr *historyRepository) putMiniblockMetadata(hash []byte, metadata *Miniblo
 	return nil
 }
 
+// GetMiniblockMetadataByMiniblockHash returns the indexed block inclusion.
+func (hr *historyRepository) GetMiniblockMetadataByMiniblockHash(hash []byte) (*MiniblockMetadata, error) {
+	return hr.getMiniblockMetadataByMiniblockHash(hash)
+}
+
 func (hr *historyRepository) getMiniblockMetadataByMiniblockHash(hash []byte) (*MiniblockMetadata, error) {
 	epoch, err := hr.epochByHashIndex.getEpochByHash(hash)
 	if err != nil {
