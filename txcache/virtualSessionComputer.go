@@ -31,7 +31,7 @@ func (computer *virtualSessionComputer) createVirtualSelectionSession(
 	}
 
 	virtualSession := newVirtualSelectionSession(computer.session, computer.virtualAccountsByAddress)
-	log.Debug("virtualSessionComputer.createVirtualSelectionSession",
+	log.Trace("virtualSessionComputer.createVirtualSelectionSession",
 		"num of global accounts breadcrumbs", len(globalAccountBreadcrumbs),
 		"num of actual virtual records", len(virtualSession.virtualAccountsByAddress),
 	)
