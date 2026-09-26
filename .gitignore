@@ -19,6 +19,7 @@ opcode.trace
 !/.golangci.yml
 
 /vendor
+/bin/
 /esdata
 .env
 *.log

@@ -889,7 +889,7 @@ func CheckTokenRoles(t *testing.T, returnData [][]byte, expectedRoles [][]byte) 
 	}
 }
 
-func GetTestChainSimulatorWithDynamicNFTEnabled(t *testing.T, baseIssuingCost string) (chainSimulatorIntegrationTests.ChainSimulator, int32) {
+func GetTestChainSimulatorWithDynamicNFTEnabled(t *testing.T, baseIssuingCost string, configure ...func(*config.Configs)) (chainSimulatorIntegrationTests.ChainSimulator, int32) {
 	activationEpochForDynamicNFT := uint32(2)
 
 	numOfShards := uint32(3)
@@ -911,6 +911,9 @@ func GetTestChainSimulatorWithDynamicNFTEnabled(t *testing.T, baseIssuingCost st
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpochForDynamicNFT
 			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = integrationTests.UnreachableEpoch // TODO: handle supernova activation with transition
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+			for _, alter := range configure {
+				alter(cfg)
+			}
 		},
 	})
 	require.Nil(t, err)

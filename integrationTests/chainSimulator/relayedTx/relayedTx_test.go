@@ -1575,9 +1575,12 @@ func TestSupernovaRelayedV3Txs(t *testing.T) {
 	// generate one block so the minting has effect
 	err = cs.GenerateBlocksUntilEpochIsReached(2)
 	require.NoError(t, err)
+	testsChainSimulator.RequireSupernova(t, cs, 3, 100)
 	relayedTx := generateRelayedV3Transaction(sender.Bytes, 0, receiverBytes, relayer1.Bytes, oneEGLD, "", uint64(100_000))
 
-	_, _ = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, 4)
+	firstResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, 10)
+	require.NoError(t, err)
+	require.Equal(t, transaction.TxStatusSuccess, firstResult.Status)
 
 	relayedTx = generateRelayedV3Transaction(receiverBytes, 0, receiverBytes, relayer2.Bytes, big.NewInt(0), "", uint64(100_000))
 	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
