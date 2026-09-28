@@ -31,6 +31,7 @@ type BlockChainHookStub struct {
 	EpochStartBlockRoundCalled              func() uint64
 	EpochStartBlockTimeStampMsCalled        func() uint64
 	ProcessBuiltInFunctionCalled            func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	ApplyDRWASyncEnvelopeBytesCalled        func(payload []byte, callerAddress []byte) error
 	GetBuiltinFunctionNamesCalled           func() vmcommon.FunctionNames
 	GetBuiltinFunctionsContainerCalled      func() vmcommon.BuiltInFunctionContainer
 	GetAllStateCalled                       func(address []byte) (map[string][]byte, error)
@@ -270,6 +271,15 @@ func (stub *BlockChainHookStub) ProcessBuiltInFunction(input *vmcommon.ContractC
 	}
 
 	return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
+}
+
+// ApplyDRWASyncEnvelopeBytes -
+func (stub *BlockChainHookStub) ApplyDRWASyncEnvelopeBytes(payload []byte, callerAddress []byte) error {
+	if stub.ApplyDRWASyncEnvelopeBytesCalled != nil {
+		return stub.ApplyDRWASyncEnvelopeBytesCalled(payload, callerAddress)
+	}
+
+	return nil
 }
 
 // SaveNFTMetaDataToSystemAccount -
