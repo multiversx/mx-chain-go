@@ -725,6 +725,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	vmFactory, err := pcf.createVMFactoryMeta(
 		pcf.state.AccountsAdapter(),
+		pcf.state.PeerAccounts(),
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		pcf.config.SmartContractsStorage,
 		builtInFuncFactory.NFTStorageHandler(),
@@ -1496,6 +1497,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 
 func (pcf *processComponentsFactory) createVMFactoryMeta(
 	accounts state.AccountsAdapter,
+	peerAccounts state.AccountsAdapter,
 	builtInFuncs vmcommon.BuiltInFunctionContainer,
 	configSCStorage config.StorageConfig,
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
@@ -1542,8 +1544,8 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		Hasher:              pcf.coreData.Hasher(),
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		SystemSCConfig:      pcf.systemSCConfig,
-		ValidatorAccountsDB: pcf.state.PeerAccounts(),
-		UserAccountsDB:      pcf.state.AccountsAdapter(),
+		ValidatorAccountsDB: peerAccounts,
+		UserAccountsDB:      accounts,
 		ChanceComputer:      pcf.coreData.Rater(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),

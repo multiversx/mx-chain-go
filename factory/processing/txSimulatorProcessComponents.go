@@ -37,6 +37,14 @@ func (pcf *processComponentsFactory) createAPITransactionEvaluator(epochStartTri
 		return nil, nil, err
 	}
 
+	var simulationPeerAccounts state.AccountsAdapterWithClean
+	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
+		simulationPeerAccounts, err = transactionEvaluator.NewSimulationAccountsDB(pcf.state.PeerAccounts())
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
 	vmOutputCacherConfig := storageFactory.GetCacherFromConfig(pcf.config.VMOutputCacher)
 	vmOutputCacher, err := storageunit.NewCache(vmOutputCacherConfig)
 	if err != nil {
@@ -51,7 +59,7 @@ func (pcf *processComponentsFactory) createAPITransactionEvaluator(epochStartTri
 		return nil, nil, err
 	}
 
-	txSimulatorProcessorArgs, vmContainerFactory, txTypeHandler, scrProcessor, err := pcf.createArgsTxSimulatorProcessor(simulationAccountsDB, vmOutputCacher, txLogsProcessor, epochStartTrigger)
+	txSimulatorProcessorArgs, vmContainerFactory, txTypeHandler, scrProcessor, err := pcf.createArgsTxSimulatorProcessor(simulationAccountsDB, simulationPeerAccounts, vmOutputCacher, txLogsProcessor, epochStartTrigger)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -84,6 +92,7 @@ func (pcf *processComponentsFactory) createAPITransactionEvaluator(epochStartTri
 		FeeHandler:          pcf.coreData.EconomicsData(),
 		TxSimulator:         txSimulator,
 		Accounts:            simulationAccountsDB,
+		PeerAccounts:        simulationPeerAccounts,
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		BlockChain:          pcf.data.Blockchain(),
@@ -94,13 +103,14 @@ func (pcf *processComponentsFactory) createAPITransactionEvaluator(epochStartTri
 
 func (pcf *processComponentsFactory) createArgsTxSimulatorProcessor(
 	accountsAdapter state.AccountsAdapter,
+	peerAccounts state.AccountsAdapter,
 	vmOutputCacher storage.Cacher,
 	txLogsProcessor process.TransactionLogProcessor,
 	epochStartTrigger process.EpochStartTriggerHandler,
 ) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, process.SmartContractResultProcessor, error) {
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 	if shardID == core.MetachainShardId {
-		return pcf.createArgsTxSimulatorProcessorForMeta(accountsAdapter, vmOutputCacher, txLogsProcessor, epochStartTrigger)
+		return pcf.createArgsTxSimulatorProcessorForMeta(accountsAdapter, peerAccounts, vmOutputCacher, txLogsProcessor, epochStartTrigger)
 	} else {
 		return pcf.createArgsTxSimulatorProcessorShard(accountsAdapter, vmOutputCacher, txLogsProcessor, epochStartTrigger)
 	}
@@ -108,6 +118,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessor(
 
 func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 	accountsAdapter state.AccountsAdapter,
+	peerAccounts state.AccountsAdapter,
 	vmOutputCacher storage.Cacher,
 	txLogsProcessor process.TransactionLogProcessor,
 	epochStartTrigger process.EpochStartTriggerHandler,
@@ -142,6 +153,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 
 	vmContainerFactory, err := pcf.createVMFactoryMeta(
 		accountsAdapter,
+		peerAccounts,
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		pcf.config.SmartContractsStorageSimulate,
 		builtInFuncFactory.NFTStorageHandler(),
