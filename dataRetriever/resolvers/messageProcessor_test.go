@@ -9,18 +9,19 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const fromConnectedPeer = core.PeerID("from connected peer")
 
-//------- canProcessMessage
+// ------- canProcessMessage
 
 func TestMessageProcessor_CanProcessNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
@@ -123,7 +124,7 @@ func TestMessageProcessor_CanProcessShouldWork(t *testing.T) {
 	assert.True(t, canProcessWasCalled)
 }
 
-//------- parseReceivedMessage
+// ------- parseReceivedMessage
 
 func TestMessageProcessor_ParseReceivedMessageMarshalizerFailsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -348,6 +349,18 @@ func TestMessageProcessor_ParseRequestedHashesAntifloodErrorShouldErr(t *testing
 
 	require.ErrorIs(t, err, expectedErr)
 	require.Nil(t, result)
+}
+
+func TestValidateRequestedHashSize(t *testing.T) {
+	t.Parallel()
+
+	require.NoError(t, validateRequestedHashSize(make([]byte, common.HashSize)))
+	require.NoError(t, validateRequestedHashSize(make([]byte, common.HashSize-1)))
+	require.ErrorIs(t, validateRequestedHashSize(make([]byte, common.HashSize+1)), dataRetriever.ErrBadRequest)
+	require.ErrorIs(t, validateRequestedHashesSize([][]byte{
+		make([]byte, common.HashSize),
+		make([]byte, common.HashSize+1),
+	}), dataRetriever.ErrBadRequest)
 }
 
 func TestHashArrayReplyShouldLimitAccumulatedData(t *testing.T) {

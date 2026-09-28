@@ -274,6 +274,22 @@ func TestNewBlockChainHookImpl(t *testing.T) {
 	}
 }
 
+func TestNewBlockChainHookImpl_MissingFixEpochChangeProposedCurrentEpochFlag(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagDefinedCalled: func(flag core.EnableEpochFlag) bool {
+			return flag != common.FixEpochChangeProposedCurrentEpochFlag
+		},
+	}
+
+	bh, err := hooks.NewBlockChainHookImpl(args)
+
+	require.Nil(t, bh)
+	require.ErrorIs(t, err, core.ErrInvalidEnableEpochsHandler)
+}
+
 func TestBlockChainHookImpl_GetCode(t *testing.T) {
 	t.Parallel()
 
@@ -1441,6 +1457,91 @@ func TestBlockChainHookImpl_UpdateEpochStartHeaderFromCurrentHeader(t *testing.T
 		expEpochStartTimestamp := common.ConvertTimeStampSecToMs(epochStartTimestamp)
 		assert.Equal(t, expEpochStartTimestamp, bh.EpochStartBlockTimeStampMs())
 	})
+}
+
+func TestBlockChainHookImpl_CurrentEpoch(t *testing.T) {
+	t.Parallel()
+
+	const activationEpoch = uint32(2235)
+	tests := []struct {
+		name                 string
+		header               data.HeaderHandler
+		expectedEpoch        uint32
+		expectedCheckedEpoch uint32
+	}{
+		{
+			name: "legacy header returns header epoch",
+			header: &block.MetaBlock{
+				Epoch: 2234,
+			},
+			expectedEpoch: 2234,
+		},
+		{
+			name: "regular V3 header returns header epoch",
+			header: &block.MetaBlockV3{
+				Epoch: 2234,
+			},
+			expectedEpoch: 2234,
+		},
+		{
+			name: "shard V3 header returns header epoch",
+			header: &block.HeaderV3{
+				Epoch: 2234,
+			},
+			expectedEpoch: 2234,
+		},
+		{
+			name: "epoch change proposed before activation returns header epoch",
+			header: &block.MetaBlockV3{
+				Epoch:               2233,
+				EpochChangeProposed: true,
+			},
+			expectedEpoch:        2233,
+			expectedCheckedEpoch: 2234,
+		},
+		{
+			name: "epoch change proposed at activation returns prepared epoch",
+			header: &block.MetaBlockV3{
+				Epoch:               2234,
+				EpochChangeProposed: true,
+			},
+			expectedEpoch:        2235,
+			expectedCheckedEpoch: 2235,
+		},
+		{
+			name: "epoch change proposed after activation returns prepared epoch",
+			header: &block.MetaBlockV3{
+				Epoch:               2235,
+				EpochChangeProposed: true,
+			},
+			expectedEpoch:        2236,
+			expectedCheckedEpoch: 2236,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			args := createMockBlockChainHookArgs()
+			args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					require.Equal(t, common.FixEpochChangeProposedCurrentEpochFlag, flag)
+					require.Equal(t, test.expectedCheckedEpoch, epoch)
+
+					return epoch >= activationEpoch
+				},
+			}
+
+			bh, err := hooks.NewBlockChainHookImpl(args)
+			require.NoError(t, err)
+
+			err = bh.SetEpochStartHeader(&block.MetaBlock{Epoch: test.header.GetEpoch()})
+			require.NoError(t, err)
+			err = bh.SetCurrentHeader(test.header)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedEpoch, bh.CurrentEpoch())
+		})
+	}
 }
 
 func TestBlockChainHookImpl_GettersFromEpochStartHeader(t *testing.T) {

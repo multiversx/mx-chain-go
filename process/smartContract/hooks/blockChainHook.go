@@ -216,6 +216,7 @@ func checkForNil(args ArgBlockChainHook) error {
 		common.DoNotReturnOldBlockInBlockchainHookFlag,
 		common.OptimizeNFTStoreFlag,
 		common.MaxBlockchainHookCountersFlag,
+		common.FixEpochChangeProposedCurrentEpochFlag,
 	})
 	if err != nil {
 		return err
@@ -533,7 +534,18 @@ func (bh *BlockChainHookImpl) CurrentEpoch() uint32 {
 	bh.mutCurrentHdr.RLock()
 	defer bh.mutCurrentHdr.RUnlock()
 
-	return bh.currentHdr.GetEpoch()
+	currentEpoch := bh.currentHdr.GetEpoch()
+	metaHeader, isMetaHeader := bh.currentHdr.(data.MetaHeaderHandler)
+	if !isMetaHeader || !metaHeader.IsHeaderV3() || !metaHeader.IsEpochChangeProposed() {
+		return currentEpoch
+	}
+
+	epochToPrepare := currentEpoch + 1
+	if bh.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, epochToPrepare) {
+		return epochToPrepare
+	}
+
+	return currentEpoch
 }
 
 // NewAddress is a hook which creates a new smart contract address from the creators address and nonce
@@ -583,14 +595,17 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 		return nil, err
 	}
 
+	snapshot := bh.accounts.JournalLen()
 	vmOutput, err := function.ProcessBuiltinFunction(sndAccount, dstAccount, input)
 	if err != nil {
+		_ = bh.accounts.RevertToSnapshot(snapshot)
 		return nil, err
 	}
 
 	if !check.IfNil(sndAccount) {
 		err = bh.accounts.SaveAccount(sndAccount)
 		if err != nil {
+			_ = bh.accounts.RevertToSnapshot(snapshot)
 			return nil, err
 		}
 	}
@@ -598,6 +613,7 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	if !check.IfNil(dstAccount) && !bytes.Equal(input.CallerAddr, input.RecipientAddr) {
 		err = bh.accounts.SaveAccount(dstAccount)
 		if err != nil {
+			_ = bh.accounts.RevertToSnapshot(snapshot)
 			return nil, err
 		}
 	}

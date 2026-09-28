@@ -364,6 +364,24 @@ func TestPruningStorer_RemoveShouldWork(t *testing.T) {
 	assert.Nil(t, res)
 }
 
+func TestPruningStorer_RemoveFromAllActiveEpochsRemovesOlderCopy(t *testing.T) {
+	t.Parallel()
+
+	ps, err := pruning.NewPruningStorer(getDefaultArgs())
+	require.NoError(t, err)
+	key := []byte("nonce-selector")
+	require.NoError(t, ps.PutInEpoch(key, []byte("older"), 0))
+	require.NoError(t, ps.ChangeEpochSimple(1))
+	require.NoError(t, ps.PutInEpoch(key, []byte("newer"), 1))
+
+	require.NoError(t, ps.Remove(key))
+	ps.ClearCache()
+	require.NoError(t, ps.Has(key))
+
+	require.NoError(t, ps.RemoveFromAllActiveEpochs(key))
+	require.Error(t, ps.Has(key))
+}
+
 func TestPruningStorer_DestroyUnitShouldWork(t *testing.T) {
 	t.Parallel()
 

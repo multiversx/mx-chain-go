@@ -402,6 +402,49 @@ func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.
 func TestEconomics_ComputeInflationRate(t *testing.T) {
 	t.Parallel()
 
+	t.Run("before supernova uses historical round duration", func(t *testing.T) {
+		t.Parallel()
+
+		args := getArguments()
+		args.RoundTime = &mock.RoundTimeDurationHandler{
+			TimeDurationCalled: func() time.Duration {
+				return 600 * time.Millisecond
+			},
+		}
+
+		requestedEpoch := uint32(0)
+		args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				requestedEpoch = epoch
+
+				return config.ChainParametersByEpochConfig{
+					RoundDuration: 6000,
+				}, nil
+			},
+		}
+
+		requestedYear := uint32(0)
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			MaxInflationRateCalled: func(year uint32, _ uint32) float64 {
+				requestedYear = year
+
+				return 0.1
+			},
+		}
+
+		economicsData, err := NewEndOfEpochEconomicsDataCreator(args)
+		require.NoError(t, err)
+
+		header := &block.MetaBlock{
+			Round: 1454500,
+			Epoch: 100,
+		}
+		economicsData.computeInflationRate(header)
+
+		require.Equal(t, uint32(99), requestedEpoch)
+		require.Equal(t, uint32(1), requestedYear)
+	})
+
 	t.Run("before supernova", func(t *testing.T) {
 		t.Parallel()
 
@@ -751,6 +794,13 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	args.RoundTime = &mock.RoundTimeDurationHandler{
 		TimeDurationCalled: func() time.Duration {
 			return time.Duration(roundDurationBeforeSupernova) * time.Millisecond
+		},
+	}
+	args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				RoundDuration: roundDurationBeforeSupernova,
+			}, nil
 		},
 	}
 

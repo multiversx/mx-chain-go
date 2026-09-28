@@ -2455,8 +2455,13 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 func TestStakingSC_UnstakeAtEndOfEpoch(t *testing.T) {
 	t.Parallel()
 
+	const currentEpoch = uint32(2235)
 	stakeValue := big.NewInt(100)
-	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
 	}
@@ -2482,6 +2487,10 @@ func TestStakingSC_UnstakeAtEndOfEpoch(t *testing.T) {
 
 	doUnStakeAtEndOfEpoch(t, stakingSmartContract, stakerPubKey, vmcommon.Ok)
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
+
+	registrationData, err := stakingSmartContract.getOrCreateRegisteredData(stakerPubKey)
+	require.NoError(t, err)
+	require.Equal(t, currentEpoch, registrationData.UnStakedEpoch)
 }
 
 func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
@@ -3826,7 +3835,12 @@ func TestStakingSC_UnStakeAllFromQueueErrors(t *testing.T) {
 func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 	t.Parallel()
 
-	blockChainHook := &mock.BlockChainHookStub{}
+	const currentEpoch = uint32(2235)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
 	}
@@ -3881,6 +3895,9 @@ func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 	assert.Equal(t, uint32(0), newHead.Length) // no entries in the queue list
 
 	doGetStatus(t, stakingSmartContract, eei, []byte("secondKey"), "unStaked")
+	registrationData, err := stakingSmartContract.getOrCreateRegisteredData([]byte("secondKey"))
+	require.NoError(t, err)
+	require.Equal(t, currentEpoch, registrationData.UnStakedEpoch)
 
 	// stake them again - as they were deleted from waiting list
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKey "))

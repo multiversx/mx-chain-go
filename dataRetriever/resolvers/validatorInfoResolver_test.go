@@ -133,6 +133,20 @@ func TestNewValidatorInfoResolver(t *testing.T) {
 	})
 }
 
+func TestValidatorInfoResolver_ProcessReceivedMessageOversizedHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	res, _ := resolvers.NewValidatorInfoResolver(createMockArgValidatorInfoResolver())
+	msgID, err := res.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashType, make([]byte, common.HashSize+1)),
+		fromConnectedPeer,
+		&p2pmocks.MessengerStub{},
+	)
+
+	require.ErrorIs(t, err, dataRetriever.ErrBadRequest)
+	require.Nil(t, msgID)
+}
+
 func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Parallel()
 

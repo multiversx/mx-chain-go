@@ -820,6 +820,23 @@ func TestMetaBootstrap_ShouldNotNeedToSync(t *testing.T) {
 	_ = bs.Close()
 }
 
+func TestMetaBootstrap_StartSyncingBlocksExcludedStoredTipShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.StorageBootstrapper = &mock.StorageBootstrapperMock{
+		LoadFromStorageCalled: func() error {
+			return common.ErrRoundExcluded
+		},
+	}
+	bs, err := sync.NewMetaBootstrap(args)
+	require.NoError(t, err)
+
+	err = bs.StartSyncingBlocks()
+
+	require.ErrorIs(t, err, common.ErrRoundExcluded)
+}
+
 func TestMetaBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	t.Parallel()
 

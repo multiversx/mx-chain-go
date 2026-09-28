@@ -3,10 +3,11 @@ package processing
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
+
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	bootstrapDisabled "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
@@ -71,6 +72,7 @@ func (pcf *processComponentsFactory) createAPITransactionEvaluator(epochStartTri
 	txSimulatorProcessorArgs.Marshalizer = pcf.coreData.InternalMarshalizer()
 	txSimulatorProcessorArgs.DataFieldParser = dataFieldParser
 	txSimulatorProcessorArgs.SCRProcessor = scrProcessor
+	txSimulatorProcessorArgs.TxLogsProcessor = txLogsProcessor
 
 	txSimulator, err := transactionEvaluator.NewTransactionSimulator(txSimulatorProcessorArgs)
 	if err != nil {

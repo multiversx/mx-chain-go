@@ -28,6 +28,7 @@ type ArgArithmeticEpochProvider struct {
 	StartTime                       int64
 	EnableEpochsHandler             common.EnableEpochsHandler
 	AssumedPeersNumActivePersisters uint32
+	UseObservedEpoch                bool
 }
 
 type arithmeticEpochProvider struct {
@@ -39,6 +40,7 @@ type arithmeticEpochProvider struct {
 	enableEpochsHandler             common.EnableEpochsHandler
 	chainParamsHandler              process.ChainParametersHandler
 	assumedPeersNumActivePersisters uint32
+	useObservedEpoch                bool
 }
 
 // NewArithmeticEpochProvider returns a new arithmetic epoch provider able to mathematically compute the current network epoch
@@ -63,6 +65,7 @@ func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpoc
 		enableEpochsHandler:             arg.EnableEpochsHandler,
 		chainParamsHandler:              arg.ChainParametersHandler,
 		assumedPeersNumActivePersisters: arg.AssumedPeersNumActivePersisters,
+		useObservedEpoch:                arg.UseObservedEpoch,
 	}
 	aep.getUnixHandler = func() int64 {
 		if aep.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, aep.headerEpoch) {
@@ -87,6 +90,17 @@ func (aep *arithmeticEpochProvider) EpochIsActiveInNetwork(epoch uint32) bool {
 	}
 
 	return aep.currentComputedEpoch-epoch <= deltaEpochActive
+}
+
+func (aep *arithmeticEpochProvider) EpochIsActiveForSync(epoch uint32) bool {
+	aep.RLock()
+	defer aep.RUnlock()
+
+	currentEpoch := aep.currentComputedEpoch
+	if aep.useObservedEpoch {
+		currentEpoch = aep.headerEpoch
+	}
+	return epoch > currentEpoch || currentEpoch-epoch <= deltaEpochActive
 }
 
 // EpochIsAvailableOnMainPeers returns true if regular network peers are assumed
