@@ -33,6 +33,11 @@ func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*dblook
 	return nil, nil
 }
 
+// GetMiniblockMetadataByMiniblockHash does nothing.
+func (nhr *nilHistoryRepository) GetMiniblockMetadataByMiniblockHash(_ []byte) (*dblookupext.MiniblockMetadata, error) {
+	return nil, nil
+}
+
 // GetEpochByHash returns a not implemented error
 func (nhr *nilHistoryRepository) GetEpochByHash(_ []byte) (uint32, error) {
 	return 0, nil

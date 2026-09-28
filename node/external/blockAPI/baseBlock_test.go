@@ -31,6 +31,7 @@ import (
 )
 
 func createBaseBlockProcessor() *baseAPIBlockProcessor {
+	emptyExclusionHandler, _ := common.NewRoundExclusionHandler(nil)
 	return &baseAPIBlockProcessor{
 		hasDbLookupExtensions:    true,
 		selfShardID:              0,
@@ -47,6 +48,7 @@ func createBaseBlockProcessor() *baseAPIBlockProcessor {
 		receiptsRepository:       &testscommon.ReceiptsRepositoryStub{},
 		enableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		enableRoundsHandler:      &testscommon.EnableRoundsHandlerStub{},
+		roundExclusionHandler:    emptyExclusionHandler,
 	}
 }
 

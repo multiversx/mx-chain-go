@@ -2,6 +2,7 @@ package proofscache_test
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -10,18 +11,64 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 )
+
+func TestProofsPool_AddProofRejectsCompetingRecoveryHash(t *testing.T) {
+	approvedHash := make([]byte, 32)
+	approvedHash[0] = 1
+	otherHash := make([]byte, 32)
+	otherHash[0] = 2
+	cfg := &config.Config{
+		HardforkRoundExclusions: []config.HardforkRoundExclusionConfig{{StartRound: 11, EndRound: 19}},
+		HardforkRecoveryCheckpoint: config.HardforkRecoveryCheckpointConfig{
+			Enabled: true,
+			Round:   10,
+			Headers: []config.HardforkRecoveryHeaderConfig{
+				{ShardID: 1, Hash: hex.EncodeToString(approvedHash)},
+				{ShardID: core.MetachainShardId, Hash: hex.EncodeToString(approvedHash)},
+			},
+		},
+	}
+	handler, err := common.NewConfiguredRoundExclusionHandler(cfg)
+	require.NoError(t, err)
+	pool := proofscache.NewProofsPoolWithRoundExclusions(cleanupDelta, bucketSize, handler)
+	require.False(t, pool.AddProof(&block.HeaderProof{HeaderShardId: 1, HeaderRound: 10, HeaderHash: otherHash}))
+	require.True(t, pool.AddProof(&block.HeaderProof{HeaderShardId: 1, HeaderRound: 10, HeaderHash: approvedHash}))
+}
 
 const cleanupDelta = 3
 const bucketSize = 100
 
 var shardID = uint32(1)
+
+func TestProofsPool_AddProofSkipsExcludedRound(t *testing.T) {
+	t.Parallel()
+
+	roundExclusions, err := common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{{StartRound: 10, EndRound: 12}})
+	require.NoError(t, err)
+	pool := proofscache.NewProofsPoolWithRoundExclusions(cleanupDelta, bucketSize, roundExclusions)
+
+	excluded := &block.HeaderProof{HeaderShardId: shardID, HeaderHash: []byte("excluded"), HeaderNonce: 1, HeaderRound: 11}
+	require.False(t, pool.AddProof(excluded))
+	require.False(t, pool.UpsertProof(excluded))
+	added, existing := pool.AddProofIfNoneAtNonce(excluded)
+	require.False(t, added)
+	require.Nil(t, existing)
+	require.False(t, pool.HasProof(shardID, excluded.GetHeaderHash()))
+
+	accepted := &block.HeaderProof{HeaderShardId: shardID, HeaderHash: []byte("accepted"), HeaderNonce: 2, HeaderRound: 13}
+	require.True(t, pool.AddProof(accepted))
+	require.True(t, pool.HasProof(shardID, accepted.GetHeaderHash()))
+}
 
 var proof1 = &block.HeaderProof{
 	PubKeysBitmap:       []byte("pubKeysBitmap1"),

@@ -23,6 +23,7 @@ func CreateCurrentEpochProvider(
 	isFullArchive bool,
 	enableEpochsHandler common.EnableEpochsHandler,
 	assumedPeersNumActivePersisters uint32,
+	useObservedEpoch bool,
 ) (dataRetriever.CurrentNetworkEpochProviderHandler, error) {
 	if !isFullArchive {
 		return disabled.NewEpochProvider(), nil
@@ -40,6 +41,7 @@ func CreateCurrentEpochProvider(
 		StartTime:                       startTime,
 		EnableEpochsHandler:             enableEpochsHandler,
 		AssumedPeersNumActivePersisters: assumedPeersNumActivePersisters,
+		UseObservedEpoch:                useObservedEpoch,
 	}
 
 	return epochproviders.NewArithmeticEpochProvider(arg)

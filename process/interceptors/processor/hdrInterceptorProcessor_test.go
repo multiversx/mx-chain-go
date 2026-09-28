@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -19,11 +20,13 @@ import (
 )
 
 func createMockHdrArgument() *processor.ArgHdrInterceptorProcessor {
+	roundExclusions, _ := common.NewRoundExclusionHandler(nil)
 	arg := &processor.ArgHdrInterceptorProcessor{
 		Headers:             &mock.HeadersCacherStub{},
 		Proofs:              &dataRetriever.ProofsPoolMock{},
 		BlockBlackList:      &testscommon.TimeCacheStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		RoundExclusions:     roundExclusions,
 	}
 
 	return arg
@@ -127,6 +130,11 @@ func TestHdrInterceptorProcessor_ValidateHeaderIsBlackListedShouldErr(t *testing
 				return make([]byte, 0)
 			},
 		},
+		GetHdrHandlerStub: mock.GetHdrHandlerStub{
+			HeaderHandlerCalled: func() data.HeaderHandler {
+				return &testscommon.HeaderHandlerStub{}
+			},
+		},
 	}
 	err := hip.Validate(hdrInterceptedData, "")
 
@@ -149,10 +157,48 @@ func TestHdrInterceptorProcessor_ValidateReturnsNil(t *testing.T) {
 				return make([]byte, 0)
 			},
 		},
+		GetHdrHandlerStub: mock.GetHdrHandlerStub{
+			HeaderHandlerCalled: func() data.HeaderHandler {
+				return &testscommon.HeaderHandlerStub{}
+			},
+		},
 	}
 	err := hip.Validate(hdrInterceptedData, "")
 
 	assert.Nil(t, err)
+}
+
+func TestHdrInterceptorProcessor_ValidateExcludedRoundShouldReturnBeforeBlacklistAccess(t *testing.T) {
+	t.Parallel()
+
+	const excludedRound = uint64(42)
+	roundExclusions, err := common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{
+		{StartRound: excludedRound, EndRound: excludedRound},
+	})
+	assert.NoError(t, err)
+	arg := createMockHdrArgument()
+	arg.RoundExclusions = roundExclusions
+	arg.BlockBlackList = &testscommon.TimeCacheStub{
+		SweepCalled: func() {
+			assert.Fail(t, "blacklist should not be accessed")
+		},
+	}
+	hip, err := processor.NewHdrInterceptorProcessor(arg)
+	assert.NoError(t, err)
+	hdrInterceptedData := &struct {
+		testscommon.InterceptedDataStub
+		mock.GetHdrHandlerStub
+	}{
+		GetHdrHandlerStub: mock.GetHdrHandlerStub{
+			HeaderHandlerCalled: func() data.HeaderHandler {
+				return &testscommon.HeaderHandlerStub{RoundField: excludedRound}
+			},
+		},
+	}
+
+	err = hip.Validate(hdrInterceptedData, "")
+
+	assert.ErrorIs(t, err, common.ErrRoundExcluded)
 }
 
 // ------- Save
@@ -222,6 +268,43 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 	case <-time.After(timeout):
 		assert.Fail(t, "save did not notify handler in a timely fashion")
 	}
+}
+
+func TestHdrInterceptorProcessor_SaveExcludedRoundShouldNotStoreOrNotify(t *testing.T) {
+	t.Parallel()
+
+	const excludedRound = uint64(42)
+	roundExclusions, err := common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{
+		{StartRound: excludedRound, EndRound: excludedRound},
+	})
+	assert.NoError(t, err)
+	arg := createMockHdrArgument()
+	arg.RoundExclusions = roundExclusions
+	arg.Headers = &mock.HeadersCacherStub{
+		AddCalled: func(headerHash []byte, header data.HeaderHandler) {
+			assert.Fail(t, "excluded header should not be stored")
+		},
+	}
+	hip, err := processor.NewHdrInterceptorProcessor(arg)
+	assert.NoError(t, err)
+	hip.RegisterHandler(func(topic string, hash []byte, data interface{}) {
+		assert.Fail(t, "excluded header should not be announced")
+	})
+	hdrInterceptedData := &struct {
+		testscommon.InterceptedDataStub
+		mock.GetHdrHandlerStub
+	}{
+		GetHdrHandlerStub: mock.GetHdrHandlerStub{
+			HeaderHandlerCalled: func() data.HeaderHandler {
+				return &testscommon.HeaderHandlerStub{RoundField: excludedRound}
+			},
+		},
+	}
+
+	saved, err := hip.Save(hdrInterceptedData, "", "", "")
+
+	assert.False(t, saved)
+	assert.ErrorIs(t, err, common.ErrRoundExcluded)
 }
 
 func TestHdrInterceptorProcessor_RegisterHandlerNilHandler(t *testing.T) {

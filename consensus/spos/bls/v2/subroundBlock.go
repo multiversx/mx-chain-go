@@ -35,6 +35,7 @@ type subroundBlock struct {
 	syncController     spos.NtpSyncControllerHandler
 	signatureThrottler core.Throttler
 	signatureEvidence  signatureEvidenceHandler
+	roundExclusions    common.RoundExclusionHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -45,6 +46,7 @@ func NewSubroundBlock(
 	syncController spos.NtpSyncControllerHandler,
 	signatureThrottler core.Throttler,
 	signatureEvidence signatureEvidenceHandler,
+	roundExclusionHandlers ...common.RoundExclusionHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
@@ -63,6 +65,10 @@ func NewSubroundBlock(
 	if check.IfNil(signatureEvidence) {
 		return nil, ErrNilSignatureEvidence
 	}
+	roundExclusions, err := common.ResolveRoundExclusionHandler(roundExclusionHandlers...)
+	if err != nil {
+		return nil, err
+	}
 
 	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
 
@@ -72,6 +78,7 @@ func NewSubroundBlock(
 		syncController:     syncController,
 		signatureThrottler: signatureThrottler,
 		signatureEvidence:  signatureEvidence,
+		roundExclusions:    roundExclusions,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -99,6 +106,11 @@ func checkNewSubroundBlockParams(
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
+	round := sr.RoundHandler().Index()
+	if round < 0 || sr.roundExclusions.IsRoundExcluded(uint64(round)) {
+		return false
+	}
+
 	if !sr.IsSelfLeader() { // is NOT self leader in this round?
 		return false
 	}
@@ -764,6 +776,9 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	}
 
 	log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
+	if sr.roundExclusions.IsRoundExcluded(headerHandler.GetRound()) {
+		return
+	}
 	if headerHandler.CheckFieldsForNil() != nil {
 		log.Debug("subroundBlock.receivedBlockHeader - header fields are nil")
 		return
@@ -851,6 +866,9 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	headerHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), headerHandler)
 	if err != nil {
 		log.Debug("subroundBlock.receivedBlockHeader", "error", err.Error())
+		return
+	}
+	if common.IsHeaderExcluded(sr.roundExclusions, headerHandler.GetRound(), headerHandler.GetShardID(), headerHash) {
 		return
 	}
 
