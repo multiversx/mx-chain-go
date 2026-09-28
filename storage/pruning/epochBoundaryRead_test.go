@@ -65,9 +65,10 @@ func TestEpochBoundaryRead(t *testing.T) {
 				t.Cleanup(func() { require.NoError(t, store.Close()) })
 				key, value := []byte("hash"), []byte("result")
 				writeEpoch := uint32(10)
-				if scenario == "next epoch" || scenario == "cache" {
+				switch scenario {
+				case "next epoch", "cache":
 					writeEpoch = 11
-				} else if scenario == "outside range" {
+				case "outside range":
 					writeEpoch = 12
 				}
 				if scenario != "missing" {

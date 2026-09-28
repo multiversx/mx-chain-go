@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"math"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -447,6 +448,58 @@ func TestRecoveryCheckpoint_RestoresExactTipAndRemovesSuffixSelectors(t *testing
 	}
 }
 
+func TestRecoveryCheckpoint_RejectsOversizedBoundsBeforeRestoringState(t *testing.T) {
+	for _, scenario := range []string{"oversized own", "oversized cross"} {
+		t.Run(scenario, func(t *testing.T) {
+			testRecoveryCheckpointRestore(t, scenario)
+		})
+	}
+}
+
+func TestValidateRecoverySelectorBounds(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		own     uint64
+		cross   uint64
+		invalid bool
+	}{
+		{name: "empty suffix"},
+		{name: "own at limit", own: 10 + maxRecoverySelectorNonces - 1},
+		{name: "own above limit", own: 10 + maxRecoverySelectorNonces, invalid: true},
+		{name: "own overflow", own: math.MaxUint64, invalid: true},
+		{name: "own extra selector overflow", own: math.MaxUint64 - 1, invalid: true},
+		{name: "cross at limit", cross: 20 + maxRecoverySelectorNonces},
+		{name: "cross above limit", cross: 21 + maxRecoverySelectorNonces, invalid: true},
+		{name: "cross overflow", cross: math.MaxUint64, invalid: true},
+		{name: "cross below baseline", cross: 19},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			target := bootstrapStorage.BootstrapData{
+				LastHeader:                bootstrapStorage.BootstrapHeaderInfo{Nonce: 10},
+				LastCrossNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{{ShardId: 1, Nonce: 20}},
+			}
+			baseline, err := validateRecoverySelectorBounds(target, recoverySelectorBounds{
+				maxOwnNonce: tc.own, maxCross: map[uint32]uint64{1: tc.cross},
+			})
+			if tc.invalid {
+				require.ErrorIs(t, err, ErrRecoveryCheckpointUnavailable)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, map[uint32]uint64{1: 20}, baseline)
+		})
+	}
+	for _, headers := range [][]bootstrapStorage.BootstrapHeaderInfo{
+		nil,
+		{{ShardId: 1, Nonce: 20}, {ShardId: 1, Nonce: 21}},
+	} {
+		_, err := validateRecoverySelectorBounds(bootstrapStorage.BootstrapData{
+			LastCrossNotarizedHeaders: headers,
+		}, recoverySelectorBounds{maxCross: map[uint32]uint64{1: 22}})
+		require.ErrorIs(t, err, ErrRecoveryCheckpointUnavailable)
+	}
+}
+
 func TestCollectRecoverySuffix_ContinuesPastMissingHeader(t *testing.T) {
 	for _, invalid := range []bool{false, true} {
 		t.Run(map[bool]string{false: "valid lower header", true: "invalid lower header"}[invalid], func(t *testing.T) {
@@ -550,6 +603,16 @@ func testRecoveryCheckpointRestore(t *testing.T, missing string) {
 	if missing == "checkpoint" {
 		delete(headerBytes, string(targetHash))
 	}
+	discardedNonce := uint64(11)
+	var targetCross, discardedCross []bootstrapStorage.BootstrapHeaderInfo
+	if missing == "oversized own" {
+		delete(headerBytes, string(discardedHash))
+		discardedNonce = target.GetNonce() + maxRecoverySelectorNonces
+	}
+	if missing == "oversized cross" {
+		targetCross = []bootstrapStorage.BootstrapHeaderInfo{{ShardId: core.MetachainShardId, Nonce: 20}}
+		discardedCross = []bootstrapStorage.BootstrapHeaderInfo{{ShardId: core.MetachainShardId, Nonce: 21 + maxRecoverySelectorNonces}}
+	}
 	selectorStorer := &storageStubs.StorerStub{
 		HasCalled: func(key []byte) error {
 			if _, exists := selectors[string(key)]; !exists {
@@ -620,13 +683,15 @@ func testRecoveryCheckpointRestore(t *testing.T, missing string) {
 				}, nil
 			case 100:
 				return bootstrapStorage.BootstrapData{
-					LastHeader: bootstrapStorage.BootstrapHeaderInfo{Hash: targetHash, ShardId: 0, Nonce: 10},
-					LastRound:  99, HighestFinalBlockNonce: 9,
+					LastCrossNotarizedHeaders: targetCross,
+					LastHeader:                bootstrapStorage.BootstrapHeaderInfo{Hash: targetHash, ShardId: 0, Nonce: 10},
+					LastRound:                 99, HighestFinalBlockNonce: 9,
 				}, nil
 			case 101:
 				return bootstrapStorage.BootstrapData{
-					LastHeader: bootstrapStorage.BootstrapHeaderInfo{Hash: discardedHash, ShardId: 0, Nonce: 11},
-					LastRound:  100,
+					LastCrossNotarizedHeaders: discardedCross,
+					LastHeader:                bootstrapStorage.BootstrapHeaderInfo{Hash: discardedHash, ShardId: 0, Nonce: discardedNonce},
+					LastRound:                 100,
 				}, nil
 			default:
 				return bootstrapStorage.BootstrapData{}, storage.ErrKeyNotFound
@@ -694,6 +759,23 @@ func testRecoveryCheckpointRestore(t *testing.T, missing string) {
 	args.BlockTracker = &mock.BlockTrackerMock{AddTrackedHeaderCalled: func(_ data.HeaderHandler, _ []byte) {}}
 	bootstrapper, err := NewShardStorageBootstrapper(ArgsShardStorageBootstrapper{ArgsBaseStorageBootstrapper: args})
 	require.NoError(t, err)
+	if missing == "oversized own" || missing == "oversized cross" {
+		args.ForkDetector.(*mock.ForkDetectorMock).RestoreToGenesisCalled = func() {
+			t.Fatal("invalid bounds must be rejected before restoring trackers")
+		}
+		selectorStorer.HasCalled = func([]byte) error {
+			t.Fatal("invalid bounds must be rejected before selector cleanup")
+			return nil
+		}
+		err = bootstrapper.LoadFromStorage()
+		require.ErrorIs(t, err, ErrRecoveryCheckpointUnavailable)
+		require.ErrorContains(t, err, "selector bounds")
+		require.Zero(t, savedRound)
+		require.Nil(t, tip)
+		require.Empty(t, finalityChanges)
+		require.Contains(t, selectors, string(converter.ToByteSlice(11)))
+		return
+	}
 	if missing == "checkpoint" {
 		require.ErrorIs(t, bootstrapper.LoadFromStorage(), ErrRecoveryCheckpointUnavailable)
 		require.Zero(t, savedRound)
