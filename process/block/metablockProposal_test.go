@@ -1849,6 +1849,103 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 		err = mp.VerifyBlockProposal(header, body, haveTime)
 		require.ErrorIs(t, err, process.ErrEpochStartProposeBlockHasMiniBlocks)
 	})
+	t.Run("block between epoch change proposed and epoch start with miniblocks in body, should error", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		prevLastMetaExecutionResult := &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						LastExecutionResult: prevLastMetaExecutionResult,
+					}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
+			ShouldProposeEpochChangeCalled: func(round uint64, nonce uint64) bool {
+				return false
+			},
+			GetEpochChangeProposedCalled: func() bool {
+				return true
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.NoError(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash:            prevBlockHash,
+			Nonce:               1,
+			Round:               1,
+			LastExecutionResult: prevLastMetaExecutionResult,
+		}
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{
+			{SenderShardID: 0},
+		}}
+
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrEpochStartProposeBlockHasMiniBlocks)
+
+		body.MiniBlocks = nil
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.NoError(t, err)
+	})
+	t.Run("start of epoch block with miniblocks in body, should error", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
+			ShouldProposeEpochChangeCalled: func(round uint64, nonce uint64) bool {
+				return false
+			},
+			GetEpochChangeProposedCalled: func() bool {
+				return false
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.NoError(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash: prevBlockHash,
+			Nonce:    1,
+			Round:    1,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{{}},
+			},
+		}
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{
+			{Type: block.RewardsBlock},
+		}}
+
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrEpochStartProposeBlockHasMiniBlocks)
+	})
 }
 
 func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {

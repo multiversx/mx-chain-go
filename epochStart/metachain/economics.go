@@ -498,13 +498,7 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 
 // compute inflation rate from genesisTotalSupply and economics settings for that year
 func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch uint32) float64 {
-	roundDurationInSec := uint64(e.roundTime.TimeDuration().Seconds())
-	if roundDurationInSec <= 0 {
-		// this means that round duration is sub-seconds
-		// set it to default number of seconds
-		log.Error("computeInflationBeforeSupernova: sub second round time before supernova activation")
-		roundDurationInSec = e.getDefaultRoundDuration()
-	}
+	roundDurationInSec := e.getRoundDurationBeforeSupernova(epoch)
 
 	roundsPerDay := numberOfSecondsInDay / roundDurationInSec
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
@@ -513,15 +507,31 @@ func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch u
 	return e.rewardsHandler.MaxInflationRate(yearsIndex, epoch)
 }
 
-func (e *economics) getDefaultRoundDuration() uint64 {
-	defaultRoundDuration := uint64(6) // seconds
-	chainParameters, err := e.chainParamsHandler.ChainParametersForEpoch(0)
+func (e *economics) getRoundDurationBeforeSupernova(epoch uint32) uint64 {
+	const defaultRoundDurationInSeconds = uint64(6)
+
+	prevEpoch := e.getPreviousEpoch(epoch)
+	chainParameters, err := e.chainParamsHandler.ChainParametersForEpoch(prevEpoch)
 	if err != nil {
-		// this should not happen, chain parameter configs is checked at init
-		return defaultRoundDuration
+		roundDurationInSeconds := uint64(e.roundTime.TimeDuration() / time.Second)
+		if roundDurationInSeconds > 0 {
+			return roundDurationInSeconds
+		}
+
+		return defaultRoundDurationInSeconds
 	}
 
-	return chainParameters.RoundDuration
+	roundDurationInSeconds := chainParameters.RoundDuration / uint64(time.Second/time.Millisecond)
+	if roundDurationInSeconds == 0 {
+		log.Error("computeInflationBeforeSupernova: sub second round time before supernova activation",
+			"epoch", prevEpoch,
+			"round duration milliseconds", chainParameters.RoundDuration,
+		)
+
+		return defaultRoundDurationInSeconds
+	}
+
+	return roundDurationInSeconds
 }
 
 func (e *economics) computeInflationRate(

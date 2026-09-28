@@ -407,6 +407,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricFixGetBalanceEnableEpoch] = sm.uint64Metrics[common.MetricFixGetBalanceEnableEpoch]
 	enableEpochsMetrics[common.MetricTailInflationEnableEpoch] = sm.uint64Metrics[common.MetricTailInflationEnableEpoch]
 	enableEpochsMetrics[common.MetricSupernovaEnableEpoch] = sm.uint64Metrics[common.MetricSupernovaEnableEpoch]
+	enableEpochsMetrics[common.MetricFixEpochChangeProposedCurrentEpochEnableEpoch] = sm.uint64Metrics[common.MetricFixEpochChangeProposedCurrentEpochEnableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/require"
@@ -19,6 +20,7 @@ import (
 )
 
 func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentProofsFactory {
+	roundExclusions, _ := common.NewRoundExclusionHandler(nil)
 	return ArgInterceptedEquivalentProofsFactory{
 		ArgInterceptedDataFactory: ArgInterceptedDataFactory{
 			CoreComponents: &processMock.CoreComponentsMock{
@@ -29,12 +31,13 @@ func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentP
 			CryptoComponents: &processMock.CryptoComponentsMock{
 				ManagedPeers: &testscommon.ManagedPeersHolderStub{},
 			},
-			ShardCoordinator:  &mock.ShardCoordinatorMock{},
-			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
-			NodesCoordinator:  &shardingMocks.NodesCoordinatorStub{},
-			ValidityAttester:  &processMock.ValidityAttesterStub{},
+			ShardCoordinator:                        &mock.ShardCoordinatorMock{},
+			HeaderSigVerifier:                       &consensus.HeaderSigVerifierMock{},
+			NodesCoordinator:                        &shardingMocks.NodesCoordinatorStub{},
+			ValidityAttester:                        &processMock.ValidityAttesterStub{},
 			PeerAuthCacher:                          cache.NewCacherStub(),
 			PeerAuthenticationTimeBetweenSendsInSec: 10,
+			RoundExclusions:                         roundExclusions,
 		},
 		ProofsPool:  &dataRetriever.ProofsPoolMock{},
 		HeadersPool: &pool.HeadersPoolStub{},

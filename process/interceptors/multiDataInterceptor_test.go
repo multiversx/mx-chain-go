@@ -3,6 +3,7 @@ package interceptors_test
 import (
 	"bytes"
 	"errors"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -865,6 +866,125 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteLis
 	assert.Equal(t, int32(2), throttler.StartProcessingCount())
 	assert.Equal(t, int32(2), throttler.EndProcessingCount())
 	assert.Nil(t, msgID)
+}
+
+func TestMultiDataInterceptor_DirectTrieResponseFromUnclassifiedPeer(t *testing.T) {
+	tests := []struct {
+		name          string
+		data          []string
+		method        p2p.BroadcastMethod
+		allowPartial  bool
+		originatorErr error
+		wantSaved     []string
+		wantError     error
+	}{
+		{
+			name:          "requested node after prefetched node",
+			data:          []string{"child", "root"},
+			method:        p2p.Direct,
+			allowPartial:  true,
+			originatorErr: process.ErrOnlyValidatorsCanUseThisTopic,
+			wantSaved:     []string{"root"},
+		},
+		{
+			name:          "requested node before prefetched node",
+			data:          []string{"root", "child"},
+			method:        p2p.Direct,
+			allowPartial:  true,
+			originatorErr: process.ErrOnlyValidatorsCanUseThisTopic,
+			wantSaved:     []string{"root"},
+		},
+		{
+			name:          "no requested node",
+			data:          []string{"child"},
+			method:        p2p.Direct,
+			allowPartial:  true,
+			originatorErr: process.ErrOnlyValidatorsCanUseThisTopic,
+			wantError:     p2p.ErrMessageShouldBeIgnored,
+		},
+		{
+			name:          "broadcast remains restricted",
+			data:          []string{"child", "root"},
+			method:        p2p.Broadcast,
+			allowPartial:  true,
+			originatorErr: process.ErrOnlyValidatorsCanUseThisTopic,
+			wantError:     process.ErrOnlyValidatorsCanUseThisTopic,
+		},
+		{
+			name:          "other multi-data interceptors remain restricted",
+			data:          []string{"child", "root"},
+			method:        p2p.Direct,
+			originatorErr: process.ErrOnlyValidatorsCanUseThisTopic,
+			wantError:     process.ErrOnlyValidatorsCanUseThisTopic,
+		},
+		{
+			name:         "eligible peer retains prefetch",
+			data:         []string{"child", "root"},
+			method:       p2p.Direct,
+			allowPartial: true,
+			wantSaved:    []string{"child", "root"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			arg := createMockArgMultiDataInterceptor()
+			throttler := createMockThrottler()
+			arg.Throttler = throttler
+			arg.SkipUnrequestedDirectTrieNodes = tt.allowPartial
+			arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
+				IsOriginatorEligibleForTopicCalled: func(_ core.PeerID, _ string) error {
+					return tt.originatorErr
+				},
+			}
+			arg.DataFactory = &mock.InterceptedDataFactoryStub{
+				CreateCalled: func(buff []byte) (process.InterceptedData, error) {
+					hash := bytes.Clone(buff)
+					return &testscommon.InterceptedDataStub{
+						HashCalled:              func() []byte { return hash },
+						IsForCurrentShardCalled: func() bool { return true },
+					}, nil
+				},
+			}
+			arg.WhiteListRequest = &testscommon.WhiteListHandlerStub{
+				IsWhiteListedCalled: func(data process.InterceptedData) bool {
+					return bytes.Equal(data.Hash(), []byte("root"))
+				},
+			}
+			var mut sync.Mutex
+			saved := make([]string, 0)
+			arg.Processor = &mock.InterceptorProcessorStub{
+				ValidateCalled: func(_ process.InterceptedData) error { return nil },
+				SaveCalled: func(data process.InterceptedData) (bool, error) {
+					mut.Lock()
+					saved = append(saved, string(data.Hash()))
+					mut.Unlock()
+					return true, nil
+				},
+			}
+			mdi, err := interceptors.NewMultiDataInterceptor(arg)
+			require.NoError(t, err)
+
+			data := make([][]byte, len(tt.data))
+			for i, item := range tt.data {
+				data[i] = []byte(item)
+			}
+			buff, err := arg.Marshalizer.Marshal(&batch.Batch{Data: data})
+			require.NoError(t, err)
+			msg := &p2pmocks.P2PMessageMock{DataField: buff, BroadcastMethodField: tt.method}
+			_, err = mdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+			require.ErrorIs(t, err, tt.wantError)
+
+			if len(tt.wantSaved) > 0 {
+				require.Eventually(t, func() bool {
+					return throttler.EndProcessingCount() == 1
+				}, time.Second, time.Millisecond)
+			}
+			mut.Lock()
+			assert.ElementsMatch(t, tt.wantSaved, saved)
+			mut.Unlock()
+		})
+	}
 }
 
 func TestMultiDataInterceptor_RegisterHandler(t *testing.T) {

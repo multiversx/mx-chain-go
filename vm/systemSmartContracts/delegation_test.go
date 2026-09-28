@@ -2409,6 +2409,52 @@ func TestDelegation_ExecuteUpdateRewards(t *testing.T) {
 	assert.Equal(t, callValue, rewardData.RewardsToDistribute)
 }
 
+func TestDelegation_ExecuteUpdateRewardsKeepsPreviousEpochData(t *testing.T) {
+	t.Parallel()
+
+	const previousEpoch = uint32(14)
+	const currentEpoch = uint32(15)
+	previousRewardData := &RewardComputationData{
+		RewardsToDistribute: big.NewInt(10),
+		TotalActive:         big.NewInt(100),
+		ServiceFee:          50,
+	}
+	callValue := big.NewInt(20)
+	totalActive := big.NewInt(200)
+	serviceFee := big.NewInt(100)
+	args := createMockArgumentsForDelegation()
+	eei := createDefaultEei()
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
+	args.Eei = eei
+
+	vmInput := getDefaultVmInputForFunc("updateRewards", [][]byte{})
+	vmInput.CallValue = callValue
+	vmInput.CallerAddr = vm.EndOfEpochAddress
+	d, _ := NewDelegationSystemSC(args)
+	require.NoError(t, d.saveRewardData(previousEpoch, previousRewardData))
+	d.eei.SetStorage([]byte(totalActiveKey), totalActive.Bytes())
+	d.eei.SetStorage([]byte(serviceFeeKey), serviceFee.Bytes())
+
+	output := d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+
+	wasPresent, storedPreviousRewardData, err := d.getRewardComputationData(previousEpoch)
+	require.True(t, wasPresent)
+	require.NoError(t, err)
+	require.Equal(t, previousRewardData, storedPreviousRewardData)
+
+	wasPresent, currentRewardData, err := d.getRewardComputationData(currentEpoch)
+	require.True(t, wasPresent)
+	require.NoError(t, err)
+	require.Equal(t, serviceFee.Uint64(), currentRewardData.ServiceFee)
+	require.Equal(t, totalActive, currentRewardData.TotalActive)
+	require.Equal(t, callValue, currentRewardData.RewardsToDistribute)
+}
+
 func TestDelegation_ExecuteClaimRewardsUserErrors(t *testing.T) {
 	t.Parallel()
 

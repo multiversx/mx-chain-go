@@ -94,6 +94,7 @@ type ResolversContainerFactory interface {
 // TopicRequestSender defines what sending operations are allowed for a topic requester
 type TopicRequestSender interface {
 	SendOnRequestTopic(rd *RequestData, originalHashes [][]byte) error
+	SendOnRequestTopicIncludingMainPeers(rd *RequestData, originalHashes [][]byte) error
 	SetNumPeersToQuery(intra int, cross int)
 	NumPeersToQuery() (int, int)
 	RequestTopic() string
