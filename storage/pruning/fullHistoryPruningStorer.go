@@ -68,6 +68,20 @@ func initFullHistoryPruningStorer(args FullHistoryStorerArgs, shardId string) (*
 	return fhps, nil
 }
 
+// GetFromEpochOrNext reuses the full-history lookup's existing next-epoch handling.
+func (fhps *FullHistoryPruningStorer) GetFromEpochOrNext(key []byte, epoch uint32) ([]byte, error) {
+	if value, ok := fhps.cacher.Get(key); ok {
+		fhps.stateStatsHandler.IncrCache()
+		return value.([]byte), nil
+	}
+
+	value, err := fhps.GetFromEpoch(key, epoch)
+	if err == nil {
+		_ = fhps.cacher.Put(key, value, len(value))
+	}
+	return value, err
+}
+
 // GetFromEpoch will search a key only in the persister for the given epoch
 func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 	value, err := fhps.searchInEpoch(key, epoch)

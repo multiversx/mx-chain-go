@@ -3,10 +3,13 @@ package node
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 )
+
+type epochBoundaryReader interface {
+	GetFromEpochOrNext(key []byte, epoch uint32) ([]byte, error)
+}
 
 func (n *Node) getBlockHeaderByNonce(nonce uint64) (data.HeaderHandler, []byte, error) {
 	headerHash, err := n.getBlockHashByNonce(nonce)
@@ -91,48 +94,35 @@ func (n *Node) getBlockHeaderInEpochByHash(headerHash []byte, epoch core.Optiona
 }
 
 // TODO: refactor to remove duplicated code sc query
-func (n *Node) getBlockRootHash(headerHash []byte, header data.HeaderHandler) []byte {
+func (n *Node) getBlockRootHash(headerHash []byte, header data.HeaderHandler) ([]byte, error) {
 	if header.IsHeaderV3() {
-		return n.getBlockRootHashV3(headerHash, header)
+		return n.getRootHashByExecutionResult(headerHash, header.GetEpoch())
 	}
 
 	blockRootHash, err := n.processComponents.ScheduledTxsExecutionHandler().GetScheduledRootHashForHeaderWithEpoch(
 		headerHash,
 		header.GetEpoch())
 	if err == nil {
-		return blockRootHash
+		return blockRootHash, nil
 	}
 
-	return header.GetRootHash()
-}
-
-func (n *Node) getBlockRootHashV3(
-	headerHash []byte,
-	header data.HeaderHandler,
-) []byte {
-	rootHash, err := n.getRootHashByExecutionResult(headerHash)
-	if err == nil {
-		return rootHash
-	}
-
-	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
-	if err != nil {
-		log.Error("getBlockRootHashV3: failed to get root hash for header v3, using root hash directly from header", "error", err)
-		return header.GetRootHash()
-	}
-
-	return lastExecutionResult.GetRootHash()
+	return header.GetRootHash(), nil
 }
 
 func (n *Node) getRootHashByExecutionResult(
 	currentHeaderHash []byte,
+	epoch uint32,
 ) ([]byte, error) {
 	execResStorer, err := n.dataComponents.StorageService().GetStorer(dataRetriever.ExecutionResultsUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	execResBytes, err := execResStorer.Get(currentHeaderHash)
+	read := execResStorer.GetFromEpoch
+	if reader, ok := execResStorer.(epochBoundaryReader); ok {
+		read = reader.GetFromEpochOrNext
+	}
+	execResBytes, err := read(currentHeaderHash, epoch)
 	if err != nil {
 		return nil, err
 	}
