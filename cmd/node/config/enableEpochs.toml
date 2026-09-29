@@ -351,6 +351,9 @@
     # FixEpochChangeProposedCurrentEpochEnableEpoch represents the epoch when epoch change proposed blocks expose the prepared epoch
     FixEpochChangeProposedCurrentEpochEnableEpoch = 3
 
+    # Keep disabled until a coordinated activation epoch is selected.
+    FixDataTrieLeafValidationEnableEpoch = 4294967295
+
     # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
     CheckBuiltInCallOnTransferValueAndFailEnableRound = 1
 

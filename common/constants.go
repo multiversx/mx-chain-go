@@ -1348,6 +1348,7 @@ const (
 	AndromedaFlag                                       core.EnableEpochFlag = "AndromedaFlag"
 	SupernovaFlag                                       core.EnableEpochFlag = "SupernovaFlag"
 	FixEpochChangeProposedCurrentEpochFlag              core.EnableEpochFlag = "FixEpochChangeProposedCurrentEpochFlag"
+	FixDataTrieLeafValidationFlag                       core.EnableEpochFlag = "FixDataTrieLeafValidationFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
 	MaskInternalDependenciesErrorsFlag                  core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
 	FixBackTransferOPCODEFlag                           core.EnableEpochFlag = "FixBackTransferOPCODEFlag"

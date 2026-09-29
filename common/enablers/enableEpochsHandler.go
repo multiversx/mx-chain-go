@@ -952,6 +952,13 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			activationEpoch:     handler.enableEpochsConfig.FixEpochChangeProposedCurrentEpochEnableEpoch,
 			activationEpochName: "FixEpochChangeProposedCurrentEpochEnableEpoch",
 		},
+		common.FixDataTrieLeafValidationFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixDataTrieLeafValidationEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.FixDataTrieLeafValidationEnableEpoch,
+			activationEpochName: "FixDataTrieLeafValidationEnableEpoch",
+		},
 		// TODO: move it to activation round
 		common.CheckBuiltInCallOnTransferValueAndFailExecutionFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {

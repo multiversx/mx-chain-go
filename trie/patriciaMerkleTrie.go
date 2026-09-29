@@ -95,21 +95,27 @@ func NewTrie(
 // Get starts at the root and searches for the given key.
 // If the key is present in the tree, it returns the corresponding value
 func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
+	value, depth, _, err := tr.GetWithVersion(key)
+	return value, depth, err
+}
+
+// GetWithVersion returns the stored leaf version in the same traversal as the value.
+func (tr *patriciaMerkleTrie) GetWithVersion(key []byte) (value []byte, depth uint32, version uint32, err error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
-		return nil, 0, nil
+		return nil, 0, 0, nil
 	}
 	hexKey := keyBytesToHex(key)
 
-	val, depth, err := tr.root.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
+	value, depth, version, err = tr.root.tryGetWithVersion(hexKey, rootDepthLevel, tr.trieStorage)
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
-		return nil, depth, err
+		return nil, depth, 0, err
 	}
 
-	return val, depth, nil
+	return value, depth, version, nil
 }
 
 // Update updates the value at the given key.

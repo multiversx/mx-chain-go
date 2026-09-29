@@ -128,6 +128,7 @@ type EnableEpochs struct {
 	AndromedaEnableEpoch                                     uint32
 	SupernovaEnableEpoch                                     uint32
 	FixEpochChangeProposedCurrentEpochEnableEpoch            uint32
+	FixDataTrieLeafValidationEnableEpoch                     uint32
 	CheckBuiltInCallOnTransferValueAndFailEnableRound        uint32
 	MaskVMInternalDependenciesErrorsEnableEpoch              uint32
 	FixBackTransferOPCODEEnableEpoch                         uint32
