@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -885,6 +886,182 @@ func TestEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
 	params, err := epochStartProvider.Bootstrap()
 	assert.NoError(t, err)
 	assert.NotNil(t, params)
+}
+
+func setRecoveryCheckpointConfig(cfg *config.Config) {
+	hash := strings.Repeat("01", common.HashSize)
+	cfg.HardforkRoundExclusions = []config.HardforkRoundExclusionConfig{{StartRound: 101, EndRound: 199}}
+	cfg.HardforkRecoveryCheckpoint = config.HardforkRecoveryCheckpointConfig{
+		Enabled: true,
+		Round:   100,
+		Headers: []config.HardforkRecoveryHeaderConfig{
+			{ShardID: 0, Hash: hash},
+			{ShardID: 1, Hash: hash},
+			{ShardID: core.MetachainShardId, Hash: hash},
+		},
+	}
+}
+
+func TestRecoveryCheckpoint_BootstrapWithoutStorageStartsFromGenesis(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	setRecoveryCheckpointConfig(&args.GeneralConfig)
+	args.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetParentDirectoryCalled: func() string { return t.TempDir() },
+		GetCalled: func() (storage.LatestDataFromStorage, error) {
+			return storage.LatestDataFromStorage{}, storage.ErrKeyNotFound
+		},
+	}
+
+	provider, err := NewEpochStartBootstrap(args)
+	require.NoError(t, err)
+	params, err := provider.Bootstrap()
+	require.NoError(t, err)
+	require.Equal(t, provider.startEpoch, params.Epoch)
+	require.Equal(t, provider.genesisShardCoordinator.SelfId(), params.SelfShardId)
+}
+
+func TestRecoveryCheckpoint_BootstrapWithoutStorageStartsInEpochZero(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.GeneralConfig = testscommon.GetGeneralConfig()
+	setRecoveryCheckpointConfig(&args.GeneralConfig)
+	args.GeneralConfig.GeneralSettings.StartInEpochEnabled = true
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
+		GetStartTimeCalled: func() int64 { return time.Now().Add(time.Hour).Unix() },
+	}
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetParentDirectoryCalled: func() string { return t.TempDir() },
+		GetCalled: func() (storage.LatestDataFromStorage, error) {
+			return storage.LatestDataFromStorage{}, storage.ErrKeyNotFound
+		},
+	}
+
+	provider, err := NewEpochStartBootstrap(args)
+	require.NoError(t, err)
+	params, err := provider.Bootstrap()
+	require.NoError(t, err)
+	require.Equal(t, provider.startEpoch, params.Epoch)
+}
+
+func TestRecoveryCheckpoint_BootstrapWithinRecoveryIntervalUsesStoredPath(t *testing.T) {
+	for _, highestRound := range []int64{100, 150, 199} {
+		t.Run(strconv.FormatInt(highestRound, 10), func(t *testing.T) {
+			coreComp, cryptoComp := createComponentsForEpochStart()
+			args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+			setRecoveryCheckpointConfig(&args.GeneralConfig)
+			args.GeneralConfig.GeneralSettings.StartInEpochEnabled = true
+			args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+				GetCalled: func() (storage.LatestDataFromStorage, error) {
+					return storage.LatestDataFromStorage{Epoch: 1, ShardID: 0, LastRound: highestRound - 1}, nil
+				},
+			}
+
+			provider, err := NewEpochStartBootstrap(args)
+			require.NoError(t, err)
+			roundBytes, err := json.Marshal(&bootstrapStorage.RoundNum{Num: highestRound})
+			require.NoError(t, err)
+			storageErr := errors.New("stored path selected")
+			openCount := 0
+			provider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
+				GetMostRecentStorageUnitCalled: func(_ config.DBConfig) (storage.Storer, error) {
+					openCount++
+					if openCount > 1 {
+						return nil, storageErr
+					}
+					return &storageMocks.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+						require.Equal(t, []byte(common.HighestRoundFromBootStorage), key)
+						return roundBytes, nil
+					}}, nil
+				},
+			}
+
+			_, err = provider.Bootstrap()
+			require.ErrorIs(t, err, storageErr)
+			require.Equal(t, 2, openCount)
+		})
+	}
+}
+
+func TestRecoveryCheckpoint_BootstrapOutsideRecoveryIntervalUsesNormalPath(t *testing.T) {
+	for _, highestRound := range []int64{99, 200} {
+		t.Run(strconv.FormatInt(highestRound, 10), func(t *testing.T) {
+			coreComp, cryptoComp := createComponentsForEpochStart()
+			args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+			setRecoveryCheckpointConfig(&args.GeneralConfig)
+			latestDataReads := 0
+			args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+				GetCalled: func() (storage.LatestDataFromStorage, error) {
+					latestDataReads++
+					return storage.LatestDataFromStorage{Epoch: 1, ShardID: 0, LastRound: highestRound - 1}, nil
+				},
+			}
+
+			provider, err := NewEpochStartBootstrap(args)
+			require.NoError(t, err)
+			roundBytes, err := json.Marshal(&bootstrapStorage.RoundNum{Num: highestRound})
+			require.NoError(t, err)
+			storageErr := errors.New("normal storage path selected")
+			openCount := 0
+			provider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
+				GetMostRecentStorageUnitCalled: func(_ config.DBConfig) (storage.Storer, error) {
+					openCount++
+					if openCount > 1 {
+						return nil, storageErr
+					}
+					return &storageMocks.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+						require.Equal(t, []byte(common.HighestRoundFromBootStorage), key)
+						return roundBytes, nil
+					}}, nil
+				},
+			}
+
+			_, err = provider.Bootstrap()
+			require.ErrorIs(t, err, storageErr)
+			require.Equal(t, 2, latestDataReads)
+			require.Equal(t, 2, openCount)
+		})
+	}
+}
+
+func TestRecoveryCheckpoint_BootstrapAfterRecoveryIntervalCanStartInEpoch(t *testing.T) {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.GeneralConfig = testscommon.GetGeneralConfig()
+	setRecoveryCheckpointConfig(&args.GeneralConfig)
+	args.GeneralConfig.GeneralSettings.StartInEpochEnabled = true
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
+		GetStartTimeCalled: func() int64 { return time.Now().Add(time.Hour).Unix() },
+	}
+	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
+		GetCalled: func() (storage.LatestDataFromStorage, error) {
+			return storage.LatestDataFromStorage{Epoch: 0, ShardID: 0, LastRound: 199}, nil
+		},
+	}
+
+	provider, err := NewEpochStartBootstrap(args)
+	require.NoError(t, err)
+	roundBytes, err := json.Marshal(&bootstrapStorage.RoundNum{Num: 200})
+	require.NoError(t, err)
+	openCount := 0
+	provider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
+		GetMostRecentStorageUnitCalled: func(_ config.DBConfig) (storage.Storer, error) {
+			openCount++
+			if openCount > 1 {
+				return nil, storage.ErrKeyNotFound
+			}
+			return &storageMocks.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+				require.Equal(t, []byte(common.HighestRoundFromBootStorage), key)
+				return roundBytes, nil
+			}}, nil
+		},
+	}
+
+	params, err := provider.Bootstrap()
+	require.NoError(t, err)
+	require.Equal(t, provider.startEpoch, params.Epoch)
+	require.Equal(t, 2, openCount)
 }
 
 func TestEpochStartBootstrap_BootstrapShouldStartBootstrapProcess(t *testing.T) {

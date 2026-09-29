@@ -6970,6 +6970,13 @@ func TestShardProcessor_CheckEpochCorrectnessShouldNotifyEpochStartTriggerWhenEp
 
 	assert.True(t, triggerNotified)
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
+	assert.ErrorIs(t, err, process.ErrEpochStartPending)
+
+	nextHeader.EpochStartMetaHash = nil
+	err = sp.CheckEpochCorrectness(nextHeader)
+	assert.ErrorIs(t, err, process.ErrEpochDoesNotMatch)
+	assert.NotErrorIs(t, err, process.ErrEpochStartPending)
+	assert.Equal(t, "epoch does not match proposed header with new epoch 2 with trigger still in last epoch 1", err.Error())
 }
 
 func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsHeaderOfInvalidEpoch(t *testing.T) {
@@ -7000,6 +7007,7 @@ func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsHeaderOfInvalidEpo
 	err = sp.CheckEpochCorrectness(header)
 	assert.Error(t, err)
 	assert.Equal(t, "epoch does not match proposed header with epoch too high 3 with trigger in epoch 2", err.Error())
+	assert.NotErrorIs(t, err, process.ErrEpochStartPending)
 }
 
 func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenEpochChangeGracePeriodHandlerErrors(t *testing.T) {

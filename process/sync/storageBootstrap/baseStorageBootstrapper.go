@@ -3,12 +3,14 @@ package storageBootstrap
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
@@ -52,6 +54,9 @@ type ArgsBaseStorageBootstrapper struct {
 	EnableEpochsHandler          common.EnableEpochsHandler
 	ProofsPool                   process.ProofsPool
 	ExecutionManager             process.ExecutionManager
+	RoundExclusions              common.RoundExclusionHandler
+	RecoveryCheckpoint           *common.RecoveryCheckpoint
+	Hasher                       hashing.Hasher
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -90,9 +95,25 @@ type storageBootstrapper struct {
 	enableEpochsHandler          common.EnableEpochsHandler
 	proofsPool                   process.ProofsPool
 	executionManager             process.ExecutionManager
+	roundExclusions              common.RoundExclusionHandler
+	recoveryCheckpoint           *common.RecoveryCheckpoint
+	hasher                       hashing.Hasher
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
+	preCheckpointBootstrap := false
+	if st.recoveryCheckpoint != nil {
+		recoverCheckpoint, err := st.shouldRecoverCheckpoint()
+		if err != nil {
+			return err
+		}
+		if recoverCheckpoint {
+			return st.loadRecoveryCheckpoint()
+		}
+		preCheckpointBootstrap = st.bootStorer.GetHighestRound() < int64(st.recoveryCheckpoint.Round)
+		st.bootstrapRoundIndex = math.MaxUint64
+	}
+
 	var err error
 	var headerInfo bootstrapStorage.BootstrapData
 
@@ -103,6 +124,9 @@ func (st *storageBootstrapper) loadBlocks() error {
 
 	round := st.bootStorer.GetHighestRound()
 	if round <= int64(minRound) {
+		if st.recoveryCheckpoint != nil && minRound >= st.recoveryCheckpoint.Round {
+			return fmt.Errorf("%w: bootstrap round %d is not after genesis round %d", ErrRecoveryCheckpointUnavailable, round, minRound)
+		}
 		log.Debug("Load blocks does nothing as start from genesis")
 		err = st.bootStorer.SaveLastRound(0)
 		log.LogIfError(
@@ -118,6 +142,9 @@ func (st *storageBootstrapper) loadBlocks() error {
 	log.Debug("Load blocks started...")
 
 	for {
+		if st.recoveryCheckpoint != nil && !preCheckpointBootstrap && round < int64(st.recoveryCheckpoint.Round) {
+			return fmt.Errorf("%w: fallback round %d is before target %d", ErrRecoveryCheckpointUnavailable, round, st.recoveryCheckpoint.Round)
+		}
 		headerInfo, err = st.bootStorer.Get(round)
 		if err != nil {
 			break
@@ -169,6 +196,9 @@ func (st *storageBootstrapper) loadBlocks() error {
 	}
 
 	if err != nil {
+		if st.recoveryCheckpoint != nil {
+			return fmt.Errorf("%w: bootstrap round %d: %w", ErrRecoveryCheckpointUnavailable, round, err)
+		}
 		log.Warn("bootstrapper", "error", err)
 		st.blockTracker.RestoreToGenesis()
 		st.forkDetector.RestoreToGenesis()
@@ -181,6 +211,13 @@ func (st *storageBootstrapper) loadBlocks() error {
 		)
 
 		return process.ErrNotEnoughValidBlocksInStorage
+	}
+	currentTip := st.blkc.GetCurrentBlockHeader()
+	if st.recoveryCheckpoint != nil && !preCheckpointBootstrap && !check.IfNil(currentTip) && currentTip.GetRound() < st.recoveryCheckpoint.Round {
+		return fmt.Errorf("%w: stored tip round %d is before target %d", ErrRecoveryCheckpointUnavailable, currentTip.GetRound(), st.recoveryCheckpoint.Round)
+	}
+	if !check.IfNil(currentTip) && st.roundExclusions.IsRoundExcluded(currentTip.GetRound()) {
+		return fmt.Errorf("%w: stored tip round %d", common.ErrRoundExcluded, currentTip.GetRound())
 	}
 
 	log.Debug("storageBootstrapper.loadBlocks",
@@ -287,6 +324,9 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 	headerFromStorage, err := st.bootstrapper.getHeader(headerHash)
 	if err != nil {
 		log.Debug("cannot get header ", "nonce", hdrInfo.LastHeader.Nonce, "error", err.Error())
+		return err
+	}
+	if err = st.checkRecoveryHeader(headerFromStorage, headerHash); err != nil {
 		return err
 	}
 
@@ -431,6 +471,9 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			log.Debug("cannot get header", "hash", bootInfos[i].LastHeader.Hash, "error", err.Error())
 			return err
 		}
+		if err = st.checkRecoveryHeader(header, bootInfos[i].LastHeader.Hash); err != nil {
+			return err
+		}
 
 		err = st.getAndApplyProofForHeader(bootInfos[i].LastHeader.Hash, header)
 		if err != nil {
@@ -446,6 +489,9 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 
 		errAddHeader := st.forkDetector.AddHeader(header, bootInfos[i].LastHeader.Hash, process.BHProcessed, selfNotarizedHeaders, selfNotarizedHeadersHashes)
 		if errAddHeader != nil {
+			if st.recoveryCheckpoint != nil {
+				return errAddHeader
+			}
 			log.Warn("cannot add header to fork detector", "error", errAddHeader.Error())
 		}
 

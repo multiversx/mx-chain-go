@@ -34,4 +34,5 @@ type ArgAPITransactionProcessor struct {
 	TxVersionChecker         process.TxVersionCheckerHandler
 	ChainHandler             data.ChainHandler
 	TxProcessor              process.TransactionProcessor
+	RoundExclusionHandler    common.RoundExclusionHandler
 }

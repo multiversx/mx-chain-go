@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
@@ -66,6 +67,7 @@ func createMockDataBuff() []byte {
 }
 
 func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
+	roundExclusions, _ := common.NewRoundExclusionHandler(nil)
 	return ArgInterceptedEquivalentProof{
 		DataBuff:          createMockDataBuff(),
 		Marshaller:        testMarshaller,
@@ -90,6 +92,7 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		ProofSizeChecker:  &testscommon.FieldsSizeCheckerMock{},
 		KeyRWMutexHandler: coreSync.NewKeyRWMutex(),
 		ValidityAttester:  &processMock.ValidityAttesterStub{},
+		RoundExclusions:   roundExclusions,
 	}
 }
 
@@ -381,6 +384,26 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 
 		err = iep.CheckValidity()
 		require.NoError(t, err)
+	})
+	t.Run("excluded round should return before pool access", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.RoundExclusions, _ = common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{
+			{StartRound: providedRound, EndRound: providedRound},
+		})
+		args.HeadersPool = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Fail(t, "header pool should not be accessed")
+				return nil, nil
+			},
+		}
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+
+		require.ErrorIs(t, err, common.ErrRoundExcluded)
 	})
 	t.Run("concurrent calls should work", func(t *testing.T) {
 		t.Parallel()

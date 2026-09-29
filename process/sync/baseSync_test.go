@@ -530,7 +530,7 @@ func TestBaseBootstrap_RollBackOneBlockForcedShouldRequestEquivalentProofForNext
 	})
 }
 
-func TestBaseSync_getEpochOfCurrentBlockGenesis(t *testing.T) {
+func TestBaseSync_getEpochAndRoundOfCurrentBlockGenesis(t *testing.T) {
 	t.Parallel()
 
 	genesisEpoch := uint32(1123)
@@ -547,15 +547,17 @@ func TestBaseSync_getEpochOfCurrentBlockGenesis(t *testing.T) {
 		},
 	}
 
-	epoch := boot.getEpochOfCurrentBlock()
+	epoch, round := boot.getEpochAndRoundOfCurrentBlock()
 	assert.Equal(t, genesisEpoch, epoch)
+	assert.Zero(t, round)
 }
 
-func TestBaseSync_getEpochOfCurrentBlockHeader(t *testing.T) {
+func TestBaseSync_getEpochAndRoundOfCurrentBlockHeader(t *testing.T) {
 	t.Parallel()
 
 	genesisEpoch := uint32(1123)
 	headerEpoch := uint32(97493)
+	headerRound := uint64(123)
 	boot := &baseBootstrap{
 		chainHandler: &testscommon.ChainHandlerStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -566,13 +568,15 @@ func TestBaseSync_getEpochOfCurrentBlockHeader(t *testing.T) {
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{
 					Epoch: headerEpoch,
+					Round: headerRound,
 				}
 			},
 		},
 	}
 
-	epoch := boot.getEpochOfCurrentBlock()
+	epoch, round := boot.getEpochAndRoundOfCurrentBlock()
 	assert.Equal(t, headerEpoch, epoch)
+	assert.Equal(t, headerRound, round)
 }
 
 func TestBaseBootstrap_confirmHeaderReceivedByHashShouldRequestMissingProof(t *testing.T) {

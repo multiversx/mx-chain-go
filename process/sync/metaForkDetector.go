@@ -31,7 +31,12 @@ func NewMetaForkDetector(
 	proofsPool process.ProofsPool,
 	chainParametersHandler common.ChainParametersHandler,
 	processConfigsHandler common.ProcessConfigsHandler,
+	roundExclusionHandlers ...common.RoundExclusionHandler,
 ) (*metaForkDetector, error) {
+	roundExclusions, err := common.ResolveRoundExclusionHandler(roundExclusionHandlers...)
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
@@ -77,6 +82,7 @@ func NewMetaForkDetector(
 		chainParametersHandler: chainParametersHandler,
 		processConfigsHandler:  processConfigsHandler,
 		shardID:                core.MetachainShardId,
+		roundExclusions:        roundExclusions,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)

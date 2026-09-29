@@ -904,6 +904,23 @@ func countOccurrences(peers []core.PeerID, target core.PeerID) int {
 	return num
 }
 
+func TestTopicRequestSender_RecoveryIncludesMainPeersWithoutChangingNormalRouting(t *testing.T) {
+	t.Parallel()
+	var archive, main []core.PeerID
+	peers := []core.PeerID{"archive"}
+	args := createBandArg(false, false, peers, peers, &archive, &main)
+	sender, err := topicsender.NewTopicRequestSender(args)
+	require.NoError(t, err)
+	rd := &dataRetriever.RequestData{Epoch: 6617}
+	require.NoError(t, sender.SendOnRequestTopicIncludingMainPeers(rd, bandTestHashes))
+	require.NotEmpty(t, archive)
+	require.NotEmpty(t, main)
+	archive, main = nil, nil
+	require.NoError(t, sender.SendOnRequestTopic(rd, bandTestHashes))
+	require.NotEmpty(t, archive)
+	require.Empty(t, main)
+}
+
 func TestTopicRequestSender_ThreeBandRouting(t *testing.T) {
 	t.Parallel()
 

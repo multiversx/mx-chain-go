@@ -66,6 +66,9 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	if check.IfNil(arg.TxProcessor) {
 		return process.ErrNilTxProcessor
 	}
+	if check.IfNil(arg.RoundExclusionHandler) {
+		return ErrNilRoundExclusionHandler
+	}
 
 	return nil
 }
