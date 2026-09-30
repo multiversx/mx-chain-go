@@ -1201,6 +1201,25 @@ func CreatePreparedTxProcessorWithVMs(enableEpochs config.EnableEpochs, gasPrice
 	return CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(enableEpochs, func(gasMap wasmConfig.GasScheduleMap) {}, gasPriceModifier)
 }
 
+// CreatePreparedTxProcessorWithAccountsDecorator installs an account observer
+// before constructing either the transaction processor or the VM blockchain hook.
+func CreatePreparedTxProcessorWithAccountsDecorator(
+	enableEpochs config.EnableEpochs,
+	gasPriceModifier float64,
+	decorate func(state.AccountsAdapter) state.AccountsAdapter,
+) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
+		enableEpochs,
+		mock.NewMultiShardsCoordinatorMock(2),
+		integrationtests.CreateMemUnit(),
+		CreateMockGasScheduleNotifier(),
+		testscommon.GetDefaultRoundsConfig(),
+		createDefaultVMConfig(),
+		gasPriceModifier,
+		decorate,
+	)
+}
+
 // CreatePreparedTxProcessorWithVMsAndCustomGasSchedule -
 func CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(
 	enableEpochs config.EnableEpochs,
@@ -1292,11 +1311,17 @@ func CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundCo
 	roundsConfig config.RoundConfig,
 	vmConfig *config.VirtualMachineConfig,
 	gasPriceModifier float64,
+	accountDecorators ...func(state.AccountsAdapter) state.AccountsAdapter,
 ) (*VMTestContext, error) {
 	feeAccumulator := postprocess.NewFeeAccumulator()
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
-	accounts := integrationtests.CreateAccountsDB(db, enableEpochsHandler)
+	var accounts state.AccountsAdapter = integrationtests.CreateAccountsDB(db, enableEpochsHandler)
+	for _, decorate := range accountDecorators {
+		if decorate != nil {
+			accounts = decorate(accounts)
+		}
+	}
 	wasmVMChangeLocker := &sync.RWMutex{}
 
 	roundNotifierInstance := forking.NewGenericRoundNotifier()
