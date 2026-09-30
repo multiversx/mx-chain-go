@@ -5,6 +5,8 @@ import (
 	"path"
 	"time"
 
+	"github.com/multiversx/mx-chain-storage-go/pebbledb"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/disabled"
@@ -13,14 +15,20 @@ import (
 // persisterFactory is the factory which will handle creating new databases
 type persisterFactory struct {
 	dbConfigHandler storage.DBConfigHandler
+	pebbleResources *pebbledb.SharedResources
 }
 
-// NewPersisterFactory will return a new instance of persister factory
+// NewPersisterFactory will return a new instance of persister factory; pebble persisters get private caches
 func NewPersisterFactory(config config.DBConfig) (*persisterFactory, error) {
-	dbConfigHandler := NewDBConfigHandler(config)
+	return NewPersisterFactoryWithResources(config, nil)
+}
 
+// NewPersisterFactoryWithResources will return a new instance of persister factory whose pebble persisters
+// share the provided caches
+func NewPersisterFactoryWithResources(config config.DBConfig, pebbleResources *pebbledb.SharedResources) (*persisterFactory, error) {
 	return &persisterFactory{
-		dbConfigHandler: dbConfigHandler,
+		dbConfigHandler: NewDBConfigHandler(config),
+		pebbleResources: pebbleResources,
 	}, nil
 }
 
@@ -64,15 +72,20 @@ func (pf *persisterFactory) Create(path string) (storage.Persister, error) {
 		path = filePath
 	}
 
-	pc := newPersisterCreator(*dbConfig)
+	pc := newPersisterCreator(*dbConfig, pf.pebbleResources)
+	if !isKnownPersistentDBType(dbConfig.Type) {
+		return pc.Create(path)
+	}
 
-	persister, err := pc.Create(path)
+	// written before the engine creates any file, so a crash cannot leave an engine-less directory
+	err = pf.dbConfigHandler.SaveDBConfigToFilePath(path, dbConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	err = pf.dbConfigHandler.SaveDBConfigToFilePath(path, dbConfig)
+	persister, err := pc.Create(path)
 	if err != nil {
+		removeConfigIfAlone(path)
 		return nil, err
 	}
 
