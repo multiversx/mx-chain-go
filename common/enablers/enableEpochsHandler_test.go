@@ -539,3 +539,20 @@ func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {
 	handler, _ = NewEnableEpochsHandler(createEnableEpochsConfig(), &epochNotifier.EpochNotifierStub{})
 	require.False(t, handler.IsInterfaceNil())
 }
+
+func TestEnableEpochsHandler_FixEmptyValidatorRegistrationFlag(t *testing.T) {
+	t.Parallel()
+
+	for _, activation := range []uint32{0, 2233, 2240} {
+		cfg := createEnableEpochsConfig()
+		cfg.FixEpochChangeProposedCurrentEpochEnableEpoch = activation
+		handler, err := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+		require.NoError(t, err)
+		require.Equal(t, activation, handler.GetActivationEpoch(common.FixEmptyValidatorRegistrationFlag))
+		if activation > 0 {
+			require.False(t, handler.IsFlagEnabledInEpoch(common.FixEmptyValidatorRegistrationFlag, activation-1))
+		}
+		require.True(t, handler.IsFlagEnabledInEpoch(common.FixEmptyValidatorRegistrationFlag, activation))
+		require.True(t, handler.IsFlagEnabledInEpoch(common.FixEmptyValidatorRegistrationFlag, activation+1))
+	}
+}

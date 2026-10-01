@@ -145,12 +145,6 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidity(cnsMsg *cons
 			len(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.Signature) != cmv.signatureSize {
-		return fmt.Errorf("%w : received signature from consensus topic has an invalid size: %d",
-			ErrInvalidSignatureSize,
-			len(cnsMsg.Signature))
-	}
-
 	isNodeInEligibleList := cmv.consensusState.IsNodeInEligibleList(string(cnsMsg.PubKey))
 	if !isNodeInEligibleList {
 		return fmt.Errorf("%w : received message from consensus topic has an invalid public key: %s",
@@ -410,11 +404,11 @@ func (cmv *consensusMessageValidator) checkMessageWithSignatureValidity(cnsMsg *
 			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.SignatureShare) != cmv.signatureSize {
-		return fmt.Errorf("%w : received signature share from consensus topic has an invalid size: %d",
-			ErrInvalidSignatureSize,
-			len(cnsMsg.SignatureShare))
-	}
+	//if len(cnsMsg.SignatureShare) != cmv.signatureSize {
+	//	return fmt.Errorf("%w : received signature share from consensus topic has an invalid size: %d",
+	//		ErrInvalidSignatureSize,
+	//		len(cnsMsg.SignatureShare))
+	//}
 
 	return nil
 }
