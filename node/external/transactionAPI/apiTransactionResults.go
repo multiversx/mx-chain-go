@@ -125,6 +125,7 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransaction(
 
 	statusFilters := filters.NewStatusFilters(arp.shardCoordinator.SelfId())
 	statusFilters.SetStatusIfIsFailedESDTTransfer(tx)
+	statusFilters.SetStatusIfFailedMoveBalanceWithError(tx)
 	return nil
 }
 

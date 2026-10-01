@@ -204,6 +204,8 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		NumOfShards: e.shardCoordinator.NumberOfShards(),
 		NodesConfig: e.nodesConfig,
 	}
+	e.setEpochStartMetrics()
+
 	return parameters, nil
 }
 
