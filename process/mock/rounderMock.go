@@ -51,6 +51,11 @@ func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
 	return rndm.RoundTimeDuration
 }
 
+// TimeDurationForRound -
+func (rndm *RoundHandlerMock) TimeDurationForRound(_ uint64) time.Duration {
+	return rndm.RoundTimeDuration
+}
+
 // TimeStamp -
 func (rndm *RoundHandlerMock) TimeStamp() time.Time {
 	return rndm.RoundTimeStamp

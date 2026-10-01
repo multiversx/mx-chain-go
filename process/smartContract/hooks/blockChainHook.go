@@ -439,7 +439,11 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 
 // RoundTime returns the duration of a round
 func (bh *BlockChainHookImpl) RoundTime() uint64 {
-	roundDuration := bh.roundHandler.TimeDuration()
+	bh.mutCurrentHdr.RLock()
+	currentRound := bh.currentHdr.GetRound()
+	bh.mutCurrentHdr.RUnlock()
+
+	roundDuration := bh.roundHandler.TimeDurationForRound(currentRound)
 
 	return uint64(roundDuration.Milliseconds())
 }
