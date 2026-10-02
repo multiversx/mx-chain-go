@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/gin-gonic/gin"
@@ -67,15 +68,15 @@ type FacadeHandler interface {
 	GetUsername(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetCodeHash(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetValueForKey(address string, key string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
-	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetAccount(ctx context.Context, address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
 	GetAccounts(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
 	GetESDTData(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
-	GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
-	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
-	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
-	IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error)
+	GetESDTsRoles(ctx context.Context, address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetESDTsWithRole(ctx context.Context, address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetAllESDTTokens(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetKeyValuePairs(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	IterateKeys(ctx context.Context, address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error)
 	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonce(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
@@ -97,7 +98,7 @@ type FacadeHandler interface {
 	GetDelegatorsList() ([]*api.Delegator, error)
 	StatusMetrics() external.StatusMetricsHandler
 	GetTokenSupply(token string) (*api.ESDTSupply, error)
-	GetAllIssuedESDTs(tokenType string) ([]string, error)
+	GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error)
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	GetQueryHandler(name string) (debug.QueryHandler, error)
 	GetEpochStartDataAPI(epoch uint32) (*common.EpochStartDataAPI, error)

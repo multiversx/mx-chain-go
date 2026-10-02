@@ -819,6 +819,7 @@ func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.S
 		Facade:          initialFacade,
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
 		AntiFloodConfig: nr.configs.GeneralConfig.WebServerAntiflood,
+		TrieOperations:  nr.configs.GeneralConfig.TrieOperations,
 	}
 
 	httpServerWrapper, err := gin.NewGinWebServerHandler(httpServerArgs)
