@@ -1,8 +1,10 @@
 package counters
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -157,5 +159,54 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 			crtTrieReads:    0,
 		}
 		assert.Equal(t, expectedMap, countersMap)
+	})
+	t.Run("parser error on transfer function propagates error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("malformed transfer arguments")
+		counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{
+			ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
+				return nil, expectedErr
+			},
+		})
+		values := generateMapsOfValues(10)
+		counter.SetMaximumValues(values)
+
+		vmInput := &vmcommon.ContractCallInput{
+			Function: core.BuiltInFunctionMultiESDTNFTTransfer,
+		}
+
+		err := counter.ProcessMaxBuiltInCounters(vmInput)
+		assert.Equal(t, expectedErr, err)
+
+		vmInputSingle := &vmcommon.ContractCallInput{
+			Function: core.BuiltInFunctionESDTTransfer,
+		}
+		err = counter.ProcessMaxBuiltInCounters(vmInputSingle)
+		assert.Equal(t, expectedErr, err)
+
+		vmInputNFT := &vmcommon.ContractCallInput{
+			Function: core.BuiltInFunctionESDTNFTTransfer,
+		}
+		err = counter.ProcessMaxBuiltInCounters(vmInputNFT)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("parser error on non-transfer function is ignored", func(t *testing.T) {
+		t.Parallel()
+
+		counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{
+			ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
+				return nil, errors.New("not an ESDT transfer")
+			},
+		})
+		values := generateMapsOfValues(10)
+		counter.SetMaximumValues(values)
+
+		vmInput := &vmcommon.ContractCallInput{
+			Function: "someCustomFunction",
+		}
+
+		err := counter.ProcessMaxBuiltInCounters(vmInput)
+		assert.Nil(t, err)
 	})
 }

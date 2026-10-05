@@ -1030,6 +1030,27 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			activationEpoch:     handler.enableEpochsConfig.AttributeExtraGasUsageEnableEpoch,
 			activationEpochName: "AttributeExtraGasUsageEnableEpoch",
 		},
+		common.FixCorrectSmallIntAndGasLimitsFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixCorrectSmallIntAndGasLimitsEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.FixCorrectSmallIntAndGasLimitsEnableEpoch,
+			activationEpochName: "FixCorrectSmallIntAndGasLimitsEnableEpoch",
+		},
+		common.FixGasCostForDynamicESDTOperationsFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixGasCostForDynamicESDTOperationsEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.FixGasCostForDynamicESDTOperationsEnableEpoch,
+			activationEpochName: "FixGasCostForDynamicESDTOperationsEnableEpoch",
+		},
+		common.KeepReturnDataOnAsyncTransferCallbackFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.KeepReturnDataOnAsyncTransferCallbackEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.KeepReturnDataOnAsyncTransferCallbackEnableEpoch,
+			activationEpochName: "KeepReturnDataOnAsyncTransferCallbackEnableEpoch",
+		},
 	}
 }
 

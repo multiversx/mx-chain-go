@@ -1471,6 +1471,11 @@ func TestStakingValidatorSC_StakeUnStake3XRestake2(t *testing.T) {
 
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
+
+	arguments.CallValue = big.NewInt(100)
+	retCode = sc.Execute(arguments)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Equal(t, vm.TransactionValueMustBeZero, eei.returnMessage)
 }
 
 func TestStakingValidatorSC_StakeShouldSetOwnerIfStakingV2IsEnabled(t *testing.T) {

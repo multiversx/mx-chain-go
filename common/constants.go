@@ -833,6 +833,12 @@ const (
 	// MetricAttributeExtraGasUsageEnableEpoch represents the epoch when attributes are using extra gas usage fees
 	MetricAttributeExtraGasUsageEnableEpoch = "erd_attribute_extra_gasusage_enable_epoch"
 
+	// MetricFixCorrectSmallIntAndGasLimitsEnableEpoch represents the epoch when the fix for signed small int encoding and gas loopholes is enabled
+	MetricFixCorrectSmallIntAndGasLimitsEnableEpoch = "erd_fix_correct_small_int_and_gas_limits_enable_epoch"
+
+	// MetricFixGasCostForDynamicESDTOperationsEnableEpoch represents the epoch when the fix for dynamic ESDT operations gas cost is enabled
+	MetricFixGasCostForDynamicESDTOperationsEnableEpoch = "erd_fix_gas_cost_for_dynamic_esdt_operations_enable_epoch"
+
 	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
 	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
 
@@ -1359,6 +1365,9 @@ const (
 	FullShardDataValidationFlag                         core.EnableEpochFlag = "FullShardDataValidationFlag"
 	ConsumedGasInEconomicsFlag                          core.EnableEpochFlag = "ConsumedGasInEconomicsFlag"
 	AttributeExtraGasUsageFlag                          core.EnableEpochFlag = "AttributeExtraGasUsageFlag"
+	FixCorrectSmallIntAndGasLimitsFlag                  core.EnableEpochFlag = "FixCorrectSmallIntAndGasLimitsFlag"
+	FixGasCostForDynamicESDTOperationsFlag              core.EnableEpochFlag = "FixGasCostForDynamicESDTOperationsFlag"
+	KeepReturnDataOnAsyncTransferCallbackFlag           core.EnableEpochFlag = "KeepReturnDataOnAsyncTransferCallbackFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
 

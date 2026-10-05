@@ -42,6 +42,8 @@ var log = logger.GetOrCreate("process/smartcontract/blockchainhook")
 
 const defaultCompiledSCPath = "compiledSCStorage"
 const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
+const maxTokenIdentifierLen = 32
+
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
@@ -95,8 +97,10 @@ type BlockChainHookImpl struct {
 	epochStartHdr    data.HeaderHandler
 
 	compiledScPool     storage.Cacher
+	mutCompiledSc      sync.RWMutex
 	compiledScStorage  storage.Storer
 	configSCStorage    config.StorageConfig
+
 	workingDir         string
 	nilCompiledSCStore bool
 
@@ -439,7 +443,11 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 
 // RoundTime returns the duration of a round
 func (bh *BlockChainHookImpl) RoundTime() uint64 {
-	roundDuration := bh.roundHandler.TimeDuration()
+	bh.mutCurrentHdr.RLock()
+	currentRound := bh.currentHdr.GetRound()
+	bh.mutCurrentHdr.RUnlock()
+
+	roundDuration := bh.roundHandler.TimeDurationForRound(currentRound)
 
 	return uint64(roundDuration.Milliseconds())
 }
@@ -770,6 +778,12 @@ func (bh *BlockChainHookImpl) GetAllState(_ []byte) (map[string][]byte, error) {
 
 // GetESDTToken returns the unmarshalled esdt data for the given key
 func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce uint64) (*esdt.ESDigitalToken, error) {
+	if bh.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if len(tokenID) == 0 || len(tokenID) > maxTokenIdentifierLen {
+			return nil, ErrInvalidTokenIdentifier
+		}
+	}
+
 	userAcc, err := bh.GetUserAccount(address)
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0)}
 	if err == state.ErrAccNotFound {
@@ -794,12 +808,24 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 
 // IsPaused returns true if the transfers for the given token ID are paused
 func (bh *BlockChainHookImpl) IsPaused(tokenID []byte) bool {
+	if bh.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if len(tokenID) == 0 || len(tokenID) > maxTokenIdentifierLen {
+			return false
+		}
+	}
+
 	esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
 	return bh.globalSettingsHandler.IsPaused(esdtTokenKey)
 }
 
 // IsLimitedTransfer returns true if the transfers
 func (bh *BlockChainHookImpl) IsLimitedTransfer(tokenID []byte) bool {
+	if bh.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if len(tokenID) == 0 || len(tokenID) > maxTokenIdentifierLen {
+			return false
+		}
+	}
+
 	esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
 	return bh.globalSettingsHandler.IsLimitedTransfer(esdtTokenKey)
 }
@@ -939,7 +965,10 @@ func (bh *BlockChainHookImpl) SetEpochStartHeader(header data.HeaderHandler) err
 // SaveCompiledCode saves the compiled code to cache and storage
 func (bh *BlockChainHookImpl) SaveCompiledCode(codeHash []byte, code []byte) {
 	bh.compiledScPool.Put(codeHash, code, len(code))
+
+	bh.mutCompiledSc.RLock()
 	err := bh.compiledScStorage.Put(codeHash, code)
+	bh.mutCompiledSc.RUnlock()
 	if err != nil {
 		log.Debug("BlockChainHookImpl.SaveCompiledCode: compiledScStorage.Put",
 			"error", err, "codeHash", codeHash)
@@ -956,7 +985,9 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 		}
 	}
 
+	bh.mutCompiledSc.RLock()
 	compiledCode, err := bh.compiledScStorage.Get(codeHash)
+	bh.mutCompiledSc.RUnlock()
 	if err != nil || len(compiledCode) == 0 {
 		return false, nil
 	}
@@ -969,7 +1000,10 @@ func (bh *BlockChainHookImpl) GetCompiledCode(codeHash []byte) (bool, []byte) {
 // DeleteCompiledCode deletes the compiled code from storage and cache
 func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 	bh.compiledScPool.Remove(codeHash)
+
+	bh.mutCompiledSc.RLock()
 	err := bh.compiledScStorage.Remove(codeHash)
+	bh.mutCompiledSc.RUnlock()
 	if err != nil {
 		log.Debug("BlockChainHookImpl.DeleteCompiledCode: compiledScStorage.Remove",
 			"error", err, "codeHash", codeHash)
@@ -979,12 +1013,20 @@ func (bh *BlockChainHookImpl) DeleteCompiledCode(codeHash []byte) {
 // Close closes/cleans up the blockchain hook
 func (bh *BlockChainHookImpl) Close() error {
 	bh.compiledScPool.Clear()
+
+	bh.mutCompiledSc.Lock()
+	defer bh.mutCompiledSc.Unlock()
+
 	return bh.compiledScStorage.DestroyUnit()
 }
 
 // ClearCompiledCodes deletes the compiled codes from storage and cache
 func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 	bh.compiledScPool.Clear()
+
+	bh.mutCompiledSc.Lock()
+	defer bh.mutCompiledSc.Unlock()
+
 	err := bh.compiledScStorage.DestroyUnit()
 	if err != nil {
 		log.Debug("BlockChainHookImpl.ClearCompiledCodes: compiledScStorage.DestroyUnit", "error", err)
@@ -995,6 +1037,7 @@ func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 		log.Debug("BlockChainHookImpl.ClearCompiledCodes: makeCompiledSCStorage", "error", err)
 	}
 }
+
 
 func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
 	if bh.nilCompiledSCStore {

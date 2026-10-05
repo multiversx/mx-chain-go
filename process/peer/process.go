@@ -1121,6 +1121,9 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 		return process.ErrNilPubKeysBitmap
 	}
 	lenValidators := len(validatorList)
+	if len(signingBitmap)*8 < lenValidators {
+		return process.ErrInvalidPubKeysBitmap
+	}
 	for i := 0; i < lenValidators; i++ {
 		peerAcc, err := vs.loadPeerAccount(validatorList[i].PubKey())
 		if err != nil {

@@ -145,6 +145,20 @@ func (bbc *baseBlockChain) GetLastExecutedBlockHeader() data.HeaderHandler {
 	return bbc.lastExecutedBlockHeader.ShallowClone()
 }
 
+// GetLastExecutedBlockHeaderAndInfo returns the last executed header, headerHash and rootHash under a single lock
+func (bbc *baseBlockChain) GetLastExecutedBlockHeaderAndInfo() (data.HeaderHandler, []byte, []byte) {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	var header data.HeaderHandler
+	if !check.IfNil(bbc.lastExecutedBlockHeader) {
+		header = bbc.lastExecutedBlockHeader.ShallowClone()
+	}
+
+	return header, bbc.lastExecutedBlockInfo.hash, bbc.lastExecutedBlockInfo.committedRootHash
+}
+
+
 // SetLastExecutedBlockHeaderAndRootHash sets header, hash and rootHash for last executed block
 func (bbc *baseBlockChain) SetLastExecutedBlockHeaderAndRootHash(
 	header data.HeaderHandler,

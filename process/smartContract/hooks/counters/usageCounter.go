@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -71,6 +72,9 @@ func (counter *usageCounter) ProcessMaxBuiltInCounters(input *vmcommon.ContractC
 
 	parsedTransfer, errESDTTransfer := counter.esdtTransferParser.ParseESDTTransfers(input.CallerAddr, input.RecipientAddr, input.Function, input.Arguments)
 	if errESDTTransfer != nil {
+		if isESDTTransferFunction(input.Function) {
+			return errESDTTransfer
+		}
 		// not a transfer - no need to count max transfers
 		return nil
 	}
@@ -129,4 +133,10 @@ func (counter *usageCounter) GetCounterValues() map[string]uint64 {
 // IsInterfaceNil returns true if there is no value under the interface
 func (counter *usageCounter) IsInterfaceNil() bool {
 	return counter == nil
+}
+
+func isESDTTransferFunction(function string) bool {
+	return function == core.BuiltInFunctionESDTTransfer ||
+		function == core.BuiltInFunctionESDTNFTTransfer ||
+		function == core.BuiltInFunctionMultiESDTNFTTransfer
 }

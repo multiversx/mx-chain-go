@@ -2239,9 +2239,10 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
-	miniBlockHashes := make(map[int][]byte, len(headerHandler.GetMiniBlockHeaderHandlers()))
-	for i := 0; i < len(headerHandler.GetMiniBlockHeaderHandlers()); i++ {
-		miniBlockHashes[i] = headerHandler.GetMiniBlockHeaderHandlers()[i].GetHash()
+	miniBlockHeaderHandlers := headerHandler.GetMiniBlockHeaderHandlers()
+	miniBlockHashes := make(map[int][]byte, len(miniBlockHeaderHandlers))
+	for i, mbHeader := range miniBlockHeaderHandlers {
+		miniBlockHashes[i] = mbHeader.GetHash()
 	}
 
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {

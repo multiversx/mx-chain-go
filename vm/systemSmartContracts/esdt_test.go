@@ -4622,6 +4622,33 @@ func TestEsdt_UpdateTokenID(t *testing.T) {
 
 	esdtData, _ = e.getExistingToken(vmInput.Arguments[0])
 	assert.Equal(t, esdtData.TokenType, []byte(core.NonFungibleESDTv2))
+
+	// Legacy behavior: when FixCorrectSmallIntAndGasLimitsFlag is not enabled, repeat calls and non-NFT return Ok
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	metaTokenInput := getDefaultVmInputForFunc("updateTokenID", [][]byte{[]byte("metaToken")})
+	metaEsdtData := &ESDTDataV2{TokenType: []byte(core.MetaESDT), OwnerAddress: metaTokenInput.CallerAddr}
+	_ = e.saveToken(metaTokenInput.Arguments[0], metaEsdtData)
+	eei.returnMessage = ""
+	output = e.Execute(metaTokenInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	// When FixCorrectSmallIntAndGasLimitsFlag is enabled, repeat calls and non-NFT must be rejected
+	enableEpochsHandler.AddActiveFlags(common.FixCorrectSmallIntAndGasLimitsFlag)
+
+	// Attempting to update already updated token (v2) must fail
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "token was already updated or not non-fungible"))
+
+	// Attempting to update MetaESDT must fail
+	eei.returnMessage = ""
+	output = e.Execute(metaTokenInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "token was already updated or not non-fungible"))
 }
 
 func TestEsdt_RegisterDynamic(t *testing.T) {
@@ -4813,3 +4840,86 @@ func TestEsdt_ChangeToDynamic(t *testing.T) {
 	esdtData, _ = e.getExistingToken(vmInput.Arguments[0])
 	assert.True(t, strings.Contains(string(esdtData.TokenType), core.Dynamic))
 }
+
+func TestESDT_DecimalsNarrowingValidation(t *testing.T) {
+	t.Parallel()
+
+	wideDecimals := big.NewInt(1)
+	wideDecimals.Lsh(wideDecimals, 32)
+	wideDecimals.Add(wideDecimals, big.NewInt(18)) // 2^32 + 18, would narrow to 18 if truncated to uint32
+
+	t.Run("registerMetaESDT rejects wide and out-of-range decimals", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgumentsForESDT()
+		eei := createDefaultEei()
+		args.Eei = eei
+		contract, err := NewESDTSmartContract(args)
+		require.NoError(t, err)
+
+		input := getDefaultVmInputForFunc("registerMetaESDT", [][]byte{
+			[]byte("tokenName"),
+			[]byte("TICKER"),
+			wideDecimals.Bytes(),
+		})
+		input.CallValue = big.NewInt(0).Set(contract.baseIssuingCost)
+		input.GasProvided = 100_000
+		eei.gasRemaining = input.GasProvided
+
+		code := contract.Execute(input)
+		assert.Equal(t, vmcommon.UserError, code)
+		assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumberOfDecimals.Error()))
+
+		// Also check > 18
+		input.Arguments[2] = big.NewInt(19).Bytes()
+		code = contract.Execute(input)
+		assert.Equal(t, vmcommon.UserError, code)
+		assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumberOfDecimals.Error()))
+	})
+
+	t.Run("issue rejects wide and out-of-range decimals", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgumentsForESDT()
+		eei := createDefaultEei()
+		args.Eei = eei
+		contract, err := NewESDTSmartContract(args)
+		require.NoError(t, err)
+
+		input := getDefaultVmInputForFunc("issue", [][]byte{
+			[]byte("tokenName"),
+			[]byte("TICKER"),
+			big.NewInt(1000).Bytes(),
+			wideDecimals.Bytes(),
+		})
+		input.CallValue = big.NewInt(0).Set(contract.baseIssuingCost)
+		input.GasProvided = 100_000
+		eei.gasRemaining = input.GasProvided
+
+		code := contract.Execute(input)
+		assert.Equal(t, vmcommon.UserError, code)
+		assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumberOfDecimals.Error()))
+	})
+
+	t.Run("changeSFTToMetaESDT rejects wide decimals", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgumentsForESDT()
+		enableHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+		enableHandler.AddActiveFlags(common.MetaESDTSetFlag)
+		eei := createDefaultEei()
+		args.Eei = eei
+		contract, err := NewESDTSmartContract(args)
+		require.NoError(t, err)
+
+		input := getDefaultVmInputForFunc("changeSFTToMetaESDT", [][]byte{
+			[]byte("TICKER-123456"),
+			wideDecimals.Bytes(),
+		})
+		input.GasProvided = 100_000
+		eei.gasRemaining = input.GasProvided
+
+		code := contract.Execute(input)
+		assert.Equal(t, vmcommon.UserError, code)
+		assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumberOfDecimals.Error()))
+	})
+
+}
+

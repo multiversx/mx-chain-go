@@ -572,6 +572,11 @@ func (d *delegationManager) executeFuncOnListAddresses(
 	args *vmcommon.ContractCallInput,
 	funcName string,
 ) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
+
 	if !d.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
 		d.eei.AddReturnMessage("invalid function to call")
 		return vmcommon.UserError

@@ -385,6 +385,15 @@
     # AttributeExtraGasUsageEnableEpoch represents the epoch when the extra gas usage for attributes is enabled
     AttributeExtraGasUsageEnableEpoch = 1
 
+    # FixCorrectSmallIntAndGasLimitsEnableEpoch represents the epoch when the fix for signed small int encoding and gas loopholes is enabled
+    FixCorrectSmallIntAndGasLimitsEnableEpoch = 2
+
+    # FixGasCostForDynamicESDTOperationsEnableEpoch represents the epoch when the fix for dynamic ESDT operations gas cost is enabled
+    FixGasCostForDynamicESDTOperationsEnableEpoch = 2
+
+    # KeepReturnDataOnAsyncTransferCallbackEnableEpoch represents the epoch when return data is preserved in async transfer callbacks
+    KeepReturnDataOnAsyncTransferCallbackEnableEpoch = 2
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

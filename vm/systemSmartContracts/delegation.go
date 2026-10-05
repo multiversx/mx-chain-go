@@ -954,6 +954,18 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
+	if d.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) && len(d.governanceSCAddr) > 0 {
+		hasActiveVote, errVote := d.hasActiveGovernanceVote(args.CallerAddr)
+		if errVote != nil {
+			d.eei.AddReturnMessage(errVote.Error())
+			return vmcommon.UserError
+		}
+		if hasActiveVote {
+			d.eei.AddReturnMessage("cannot change owner while stake has active governance vote")
+			return vmcommon.UserError
+		}
+	}
+
 	isNew, _, err := d.getOrCreateDelegatorData(newOwner)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1002,6 +1014,61 @@ func (d *delegation) saveOwnerToAccount(newOwner []byte) error {
 	}
 
 	return d.eei.SetOwnerOperatingOnAccount(newOwner)
+}
+
+func (d *delegation) hasActiveGovernanceVote(address []byte) (bool, error) {
+	marshaledData := d.eei.GetStorageFromAddress(d.governanceSCAddr, address)
+	if len(marshaledData) == 0 {
+		return false, nil
+	}
+
+	noncesToCheck := make(map[uint64]struct{})
+
+	onGoingListV2 := &OngoingVotedListV2{}
+	err := d.marshalizer.Unmarshal(onGoingListV2, marshaledData)
+	if err != nil {
+		return false, nil
+	}
+
+	for _, nonce := range onGoingListV2.Direct {
+		noncesToCheck[nonce] = struct{}{}
+	}
+	for _, delegated := range onGoingListV2.DelegatedWithAddress {
+		if delegated != nil {
+			noncesToCheck[delegated.Nonce] = struct{}{}
+		}
+	}
+
+	if len(noncesToCheck) == 0 {
+		return false, nil
+	}
+
+	currentEpoch := uint64(d.eei.BlockChainHook().CurrentEpoch())
+	for nonce := range noncesToCheck {
+		nonceKey := append([]byte(noncePrefix), big.NewInt(0).SetUint64(nonce).Bytes()...)
+		commitHash := d.eei.GetStorageFromAddress(d.governanceSCAddr, nonceKey)
+		if len(commitHash) == 0 {
+			continue
+		}
+
+		propKey := append([]byte(proposalPrefix), commitHash...)
+		propData := d.eei.GetStorageFromAddress(d.governanceSCAddr, propKey)
+		if len(propData) == 0 {
+			continue
+		}
+
+		proposal := &GeneralProposal{}
+		errUnmarshal := d.marshalizer.Unmarshal(proposal, propData)
+		if errUnmarshal != nil {
+			continue
+		}
+
+		if !proposal.Closed && currentEpoch <= proposal.EndVoteEpoch {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func (d *delegation) synchronizeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -2058,6 +2125,11 @@ func (d *delegation) computeRewards(
 }
 
 func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
+
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -2225,18 +2297,24 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 
 		totalUnBonded.Add(totalUnBonded, fund.Value)
 		if totalUnBonded.Cmp(actualUserUnBond) > 0 {
-			unBondedFromThisFund := big.NewInt(0).Sub(totalUnBonded, actualUserUnBond)
-			fund.Value.Sub(fund.Value, unBondedFromThisFund)
+			remainingInThisFund := big.NewInt(0).Sub(totalUnBonded, actualUserUnBond)
+			fund.Value.Set(remainingInThisFund)
 			err = d.saveFund(fundKey, fund)
 			if err != nil {
 				d.eei.AddReturnMessage(err.Error())
 				return vmcommon.UserError
 			}
+			tempUnStakedFunds = append(tempUnStakedFunds, fundKey)
+			tempUnStakedFunds = append(tempUnStakedFunds, delegator.UnStakedFunds[fundIndex+1:]...)
 			break
 		}
 
 		withdrawFundKeys = append(withdrawFundKeys, fundKey)
 		d.eei.SetStorage(fundKey, nil)
+		if totalUnBonded.Cmp(actualUserUnBond) == 0 {
+			tempUnStakedFunds = append(tempUnStakedFunds, delegator.UnStakedFunds[fundIndex+1:]...)
+			break
+		}
 	}
 	delegator.UnStakedFunds = tempUnStakedFunds
 
@@ -2655,6 +2733,10 @@ func (d *delegation) checkArgumentsForUserViewFunc(args *vmcommon.ContractCallIn
 		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
 		return nil, vmcommon.UserError
 	}
+	if len(args.Arguments[0]) != 32 {
+		d.eei.AddReturnMessage("invalid argument, wanted an address")
+		return nil, vmcommon.UserError
+	}
 
 	isNew, delegator, err := d.getOrCreateDelegatorData(args.Arguments[0])
 	if err != nil {
@@ -3053,6 +3135,12 @@ func (d *delegation) getOrCreateDelegatorData(address []byte) (bool, *DelegatorD
 	err := d.marshalizer.Unmarshal(dData, marshaledData)
 	if err != nil {
 		return false, nil, err
+	}
+	if dData.UnClaimedRewards == nil {
+		dData.UnClaimedRewards = big.NewInt(0)
+	}
+	if dData.TotalCumulatedRewards == nil {
+		dData.TotalCumulatedRewards = big.NewInt(0)
 	}
 
 	return false, dData, nil

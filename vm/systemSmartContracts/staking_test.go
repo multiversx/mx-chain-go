@@ -1872,6 +1872,61 @@ func TestStakingSc_UnBondFromWaitingNotPossible(t *testing.T) {
 	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("fourthKey"), vmcommon.Ok)
 }
 
+func TestStakingSc_UnBondNeverUnStakedKeyFailsUnderFlag(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(100)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return 1000
+		},
+	}
+
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.FixCorrectSmallIntAndGasLimitsFlag)
+
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
+	args.Eei = eei
+	args.StakingSCConfig.UnBondPeriod = 100
+	args.EnableEpochsHandler = enableEpochsHandler
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+	stakingSmartContract.addToStakedNodes(10)
+
+	key := []byte("neverUnstakedKey")
+	regData := &StakedDataV2_0{
+		RewardAddress: []byte("rewardAddr"),
+		Staked:        false,
+		Waiting:       false,
+		UnStakedNonce: 0,
+	}
+	marshaledData, _ := args.Marshalizer.Marshal(regData)
+	eei.SetStorage(key, marshaledData)
+
+	callInput := CreateVmContractCallInput()
+	callInput.Function = "unBond"
+	callInput.CallerAddr = stakingAccessAddress
+	callInput.Arguments = [][]byte{key}
+
+	retCode := stakingSmartContract.Execute(callInput)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Contains(t, eei.returnMessage, "was never unStaked")
+
+	// Now set UnStakedNonce > 0 (as if unstaked at nonce 100)
+	regData.UnStakedNonce = 100
+	marshaledData, _ = args.Marshalizer.Marshal(regData)
+	eei.SetStorage(key, marshaledData)
+
+	retCode = stakingSmartContract.Execute(callInput)
+	assert.Equal(t, vmcommon.Ok, retCode)
+}
+
+
 func Test_NoActionAllowedForBadRatingOrJailed(t *testing.T) {
 	t.Parallel()
 

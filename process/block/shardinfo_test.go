@@ -940,9 +940,10 @@ func TestShardInfoCreateData_miniBlockHeaderFromMiniBlockHeader(t *testing.T) {
 		enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
 			return flag == common.ScheduledMiniBlocksFlag
 		}
-		for i := 0; i < len(headerHandler.GetMiniBlockHeaderHandlers()); i++ {
-			_ = headerHandler.GetMiniBlockHeaderHandlers()[i].SetConstructionState(int32(block.Proposed))
-			require.False(t, headerHandler.GetMiniBlockHeaderHandlers()[i].IsFinal())
+		mbHeaders := headerHandler.GetMiniBlockHeaderHandlers()
+		for _, mbh := range mbHeaders {
+			_ = mbh.SetConstructionState(int32(block.Proposed))
+			require.False(t, mbh.IsFinal())
 		}
 
 		miniblockHeaders := createShardMiniBlockHeaderFromHeader(headerHandler, enableEpochsHandler)

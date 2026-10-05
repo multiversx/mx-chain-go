@@ -1,6 +1,7 @@
 package resolvers_test
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -589,3 +590,45 @@ func TestValidatorInfoResolver_SetDebugHandler(t *testing.T) {
 
 	_ = res.SetDebugHandler(nil)
 }
+
+func TestValidatorInfoResolver_ResolveMultipleHashesRequest_CappedMissingHashes_BUG547(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgValidatorInfoResolver()
+	args.ValidatorInfoPool = &testscommon.ShardedDataStub{
+		SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+			return nil, false
+		},
+	}
+	args.ValidatorInfoStorage = &storage.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			return nil, errors.New("not found")
+		},
+	}
+	res, _ := resolvers.NewValidatorInfoResolver(args)
+	require.False(t, check.IfNil(res))
+
+	hashes := make([][]byte, 50)
+	for i := 0; i < 50; i++ {
+		hashes[i] = []byte(fmt.Sprintf("missing_hash_%02d", i))
+	}
+
+	b := &batch.Batch{
+		Data: hashes,
+	}
+	buff, _ := args.Marshaller.Marshal(b)
+	msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer, &p2pmocks.MessengerStub{})
+	require.NotNil(t, err)
+	assert.Nil(t, msgID)
+
+	errStr := err.Error()
+	assert.True(t, strings.Contains(errStr, dataRetriever.ErrValidatorInfoNotFound.Error()))
+	assert.True(t, strings.Contains(errStr, "... (50 total hashes)"))
+	// First hash should be included
+	assert.True(t, strings.Contains(errStr, hex.EncodeToString(hashes[0])))
+	// 9th hash (index 9) should be included
+	assert.True(t, strings.Contains(errStr, hex.EncodeToString(hashes[9])))
+	// 11th hash (index 10) must NOT be included because capping limits to 10
+	assert.False(t, strings.Contains(errStr, hex.EncodeToString(hashes[10])))
+}
+
