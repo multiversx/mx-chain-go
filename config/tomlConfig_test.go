@@ -1324,9 +1324,6 @@ func TestEnableEpochConfig(t *testing.T) {
     # FixCorrectSmallIntAndGasLimitsEnableEpoch represents the epoch when the fix for signed small int encoding and gas loopholes is enabled
     FixCorrectSmallIntAndGasLimitsEnableEpoch = 116
 
-    # FixGasCostForDynamicESDTOperationsEnableEpoch represents the epoch when the fix for dynamic ESDT operations gas cost is enabled
-    FixGasCostForDynamicESDTOperationsEnableEpoch = 117
-
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
     SupernovaEnableEpoch = 118
 
@@ -1468,7 +1465,6 @@ func TestEnableEpochConfig(t *testing.T) {
 			ConsumedGasInEconomicsFixEnableEpoch:                     114,
 			AttributeExtraGasUsageEnableEpoch:                        115,
 			FixCorrectSmallIntAndGasLimitsEnableEpoch:                116,
-			FixGasCostForDynamicESDTOperationsEnableEpoch:            117,
 			SupernovaEnableEpoch:                                     118,
 			FixEpochChangeProposedCurrentEpochEnableEpoch:            119,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{

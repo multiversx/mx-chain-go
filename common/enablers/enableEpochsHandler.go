@@ -1037,13 +1037,6 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			activationEpoch:     handler.enableEpochsConfig.FixCorrectSmallIntAndGasLimitsEnableEpoch,
 			activationEpochName: "FixCorrectSmallIntAndGasLimitsEnableEpoch",
 		},
-		common.FixGasCostForDynamicESDTOperationsFlag: {
-			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.FixGasCostForDynamicESDTOperationsEnableEpoch
-			},
-			activationEpoch:     handler.enableEpochsConfig.FixGasCostForDynamicESDTOperationsEnableEpoch,
-			activationEpochName: "FixGasCostForDynamicESDTOperationsEnableEpoch",
-		},
 		common.KeepReturnDataOnAsyncTransferCallbackFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.KeepReturnDataOnAsyncTransferCallbackEnableEpoch

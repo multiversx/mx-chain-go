@@ -5639,6 +5639,20 @@ func TestDelegationSystemSC_ChangeOwner_GovernanceVoteScanBounded(t *testing.T) 
 
 	hasActive := d.hasActiveGovernanceVote(ownerAddress)
 	assert.False(t, hasActive)
+
+	// Now add an active proposal for the last nonce (150)
+	nonceKey := append([]byte(noncePrefix), big.NewInt(150).Bytes()...)
+	commitHash := []byte("active-proposal-hash")
+	eei.SetStorageForAddress(govAddr, nonceKey, commitHash)
+	propKey := append([]byte(proposalPrefix), commitHash...)
+	propData, _ := args.Marshalizer.Marshal(&GeneralProposal{
+		Closed:       false,
+		EndVoteEpoch: 10,
+	})
+	eei.SetStorageForAddress(govAddr, propKey, propData)
+
+	hasActive = d.hasActiveGovernanceVote(ownerAddress)
+	assert.True(t, hasActive)
 }
 
 func TestDelegationSystemSC_ChangeOwner_EmitsUnDelegateLogsForPendingUnstakedFunds(t *testing.T) {

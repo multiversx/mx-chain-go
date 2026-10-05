@@ -140,7 +140,6 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ConsumedGasInEconomicsFixEnableEpoch:                     120,
 		AttributeExtraGasUsageEnableEpoch:                        121,
 		FixCorrectSmallIntAndGasLimitsEnableEpoch:                122,
-		FixGasCostForDynamicESDTOperationsEnableEpoch:            123,
 		SupernovaEnableEpoch:                                     124,
 		FixEpochChangeProposedCurrentEpochEnableEpoch:            125,
 	}
@@ -504,7 +503,6 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.ConsumedGasInEconomicsFixEnableEpoch, handler.GetActivationEpoch(common.ConsumedGasInEconomicsFlag))
 	require.Equal(t, cfg.AttributeExtraGasUsageEnableEpoch, handler.GetActivationEpoch(common.AttributeExtraGasUsageFlag))
 	require.Equal(t, cfg.FixCorrectSmallIntAndGasLimitsEnableEpoch, handler.GetActivationEpoch(common.FixCorrectSmallIntAndGasLimitsFlag))
-	require.Equal(t, cfg.FixGasCostForDynamicESDTOperationsEnableEpoch, handler.GetActivationEpoch(common.FixGasCostForDynamicESDTOperationsFlag))
 	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
 	require.Equal(t, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch, handler.GetActivationEpoch(common.FixEpochChangeProposedCurrentEpochFlag))
 }

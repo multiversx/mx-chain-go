@@ -27,7 +27,6 @@ const totalActiveKey = "totalActive"
 const rewardKeyPrefix = "reward"
 const fundKeyPrefix = "fund"
 const maxNumOfUnStakedFunds = 50
-const maxActiveProposalsToCheck = 100
 
 const initFromValidatorData = "initFromValidatorData"
 const mergeValidatorDataToDelegation = "mergeValidatorDataToDelegation"
@@ -1018,59 +1017,63 @@ func (d *delegation) hasActiveGovernanceVote(address []byte) bool {
 		return false
 	}
 
-	noncesToCheck := make(map[uint64]struct{})
-
 	onGoingListV2 := &OngoingVotedListV2{}
 	err := d.marshalizer.Unmarshal(onGoingListV2, marshaledData)
 	if err != nil {
 		return false
 	}
 
-	for _, nonce := range onGoingListV2.Direct {
-		noncesToCheck[nonce] = struct{}{}
-		if len(noncesToCheck) >= maxActiveProposalsToCheck {
-			break
-		}
-	}
-	for _, delegated := range onGoingListV2.DelegatedWithAddress {
-		if len(noncesToCheck) >= maxActiveProposalsToCheck {
-			break
-		}
-		if delegated != nil {
-			noncesToCheck[delegated.Nonce] = struct{}{}
-		}
-	}
-
-	if len(noncesToCheck) == 0 {
-		return false
-	}
-
+	checkedNonces := make(map[uint64]struct{})
 	currentEpoch := uint64(d.eei.BlockChainHook().CurrentEpoch())
-	for nonce := range noncesToCheck {
-		nonceKey := append([]byte(noncePrefix), big.NewInt(0).SetUint64(nonce).Bytes()...)
-		commitHash := d.eei.GetStorageFromAddress(d.governanceSCAddr, nonceKey)
-		if len(commitHash) == 0 {
+
+	for i := len(onGoingListV2.Direct) - 1; i >= 0; i-- {
+		nonce := onGoingListV2.Direct[i]
+		if _, checked := checkedNonces[nonce]; checked {
 			continue
 		}
+		checkedNonces[nonce] = struct{}{}
+		if d.isProposalActive(nonce, currentEpoch) {
+			return true
+		}
+	}
 
-		propKey := append([]byte(proposalPrefix), commitHash...)
-		propData := d.eei.GetStorageFromAddress(d.governanceSCAddr, propKey)
-		if len(propData) == 0 {
+	for i := len(onGoingListV2.DelegatedWithAddress) - 1; i >= 0; i-- {
+		delegated := onGoingListV2.DelegatedWithAddress[i]
+		if delegated == nil {
 			continue
 		}
-
-		proposal := &GeneralProposal{}
-		errUnmarshal := d.marshalizer.Unmarshal(proposal, propData)
-		if errUnmarshal != nil {
+		if _, checked := checkedNonces[delegated.Nonce]; checked {
 			continue
 		}
-
-		if !proposal.Closed && currentEpoch <= proposal.EndVoteEpoch {
+		checkedNonces[delegated.Nonce] = struct{}{}
+		if d.isProposalActive(delegated.Nonce, currentEpoch) {
 			return true
 		}
 	}
 
 	return false
+}
+
+func (d *delegation) isProposalActive(nonce uint64, currentEpoch uint64) bool {
+	nonceKey := append([]byte(noncePrefix), big.NewInt(0).SetUint64(nonce).Bytes()...)
+	commitHash := d.eei.GetStorageFromAddress(d.governanceSCAddr, nonceKey)
+	if len(commitHash) == 0 {
+		return false
+	}
+
+	propKey := append([]byte(proposalPrefix), commitHash...)
+	propData := d.eei.GetStorageFromAddress(d.governanceSCAddr, propKey)
+	if len(propData) == 0 {
+		return false
+	}
+
+	proposal := &GeneralProposal{}
+	err := d.marshalizer.Unmarshal(proposal, propData)
+	if err != nil {
+		return false
+	}
+
+	return !proposal.Closed && currentEpoch <= proposal.EndVoteEpoch
 }
 
 func (d *delegation) synchronizeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

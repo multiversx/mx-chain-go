@@ -140,7 +140,6 @@ type EnableEpochs struct {
 	ConsumedGasInEconomicsFixEnableEpoch                     uint32
 	AttributeExtraGasUsageEnableEpoch                        uint32
 	FixCorrectSmallIntAndGasLimitsEnableEpoch                uint32
-	FixGasCostForDynamicESDTOperationsEnableEpoch            uint32
 	KeepReturnDataOnAsyncTransferCallbackEnableEpoch         uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
