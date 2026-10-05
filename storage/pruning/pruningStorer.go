@@ -413,6 +413,10 @@ func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Pe
 
 // PutInEpoch adds data to specified epoch
 func (ps *PruningStorer) PutInEpoch(key, data []byte, epoch uint32) error {
+	if !ps.pruningEnabled {
+		return ps.Put(key, data)
+	}
+
 	ps.cacher.Put(key, data, len(data))
 
 	ps.lock.RLock()
