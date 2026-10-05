@@ -2130,9 +2130,11 @@ func (d *delegation) computeRewards(
 }
 
 func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if args.CallValue.Cmp(zero) != 0 {
-		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
-		return vmcommon.UserError
+	if d.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if args.CallValue.Cmp(zero) != 0 {
+			d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+			return vmcommon.UserError
+		}
 	}
 
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)

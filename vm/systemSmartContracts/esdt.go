@@ -273,6 +273,32 @@ func (e *esdt) checkBasicCreateArguments(args *vmcommon.ContractCallInput) vmcom
 	return vmcommon.Ok
 }
 
+func (e *esdt) getNumOfDecimals(decimalsBytes []byte) (uint32, error) {
+	if e.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		decimalsBig := big.NewInt(0).SetBytes(decimalsBytes)
+		if !decimalsBig.IsUint64() || decimalsBig.Uint64() < minNumberOfDecimals || decimalsBig.Uint64() > maxNumberOfDecimals {
+			return 0, fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+				vm.ErrInvalidNumberOfDecimals,
+				minNumberOfDecimals,
+				maxNumberOfDecimals,
+				decimalsBig,
+			)
+		}
+		return uint32(decimalsBig.Uint64()), nil
+	}
+
+	numOfDecimals := uint32(big.NewInt(0).SetBytes(decimalsBytes).Uint64())
+	if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+		return 0, fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+			vm.ErrInvalidNumberOfDecimals,
+			minNumberOfDecimals,
+			maxNumberOfDecimals,
+			numOfDecimals,
+		)
+	}
+	return numOfDecimals, nil
+}
+
 // format: issue@tokenName@ticker@initialSupply@numOfDecimals@optional-list-of-properties
 func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if len(args.Arguments) < 4 {
@@ -300,17 +326,11 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return vmcommon.UserError
 	}
 
-	decimalsBig := big.NewInt(0).SetBytes(args.Arguments[3])
-	if !decimalsBig.IsUint64() || decimalsBig.Uint64() < minNumberOfDecimals || decimalsBig.Uint64() > maxNumberOfDecimals {
-		e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
-			vm.ErrInvalidNumberOfDecimals,
-			minNumberOfDecimals,
-			maxNumberOfDecimals,
-			decimalsBig,
-		).Error())
+	numOfDecimals, err := e.getNumOfDecimals(args.Arguments[3])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	numOfDecimals := uint32(decimalsBig.Uint64())
 
 	tokenIdentifier, _, err := e.createNewToken(
 		args.CallerAddr,
@@ -429,17 +449,11 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.UserError
 	}
-	decimalsBig := big.NewInt(0).SetBytes(args.Arguments[2])
-	if !decimalsBig.IsUint64() || decimalsBig.Uint64() < minNumberOfDecimals || decimalsBig.Uint64() > maxNumberOfDecimals {
-		e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
-			vm.ErrInvalidNumberOfDecimals,
-			minNumberOfDecimals,
-			maxNumberOfDecimals,
-			decimalsBig,
-		).Error())
+	numOfDecimals, err := e.getNumOfDecimals(args.Arguments[2])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	numOfDecimals := uint32(decimalsBig.Uint64())
 
 	tokenIdentifier, _, err := e.createNewToken(
 		args.CallerAddr,
@@ -489,17 +503,12 @@ func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.Re
 
 	numOfDecimals := uint32(0)
 	if isWithDecimals {
-		decimalsBig := big.NewInt(0).SetBytes(args.Arguments[3])
-		if !decimalsBig.IsUint64() || decimalsBig.Uint64() < minNumberOfDecimals || decimalsBig.Uint64() > maxNumberOfDecimals {
-			e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
-				vm.ErrInvalidNumberOfDecimals,
-				minNumberOfDecimals,
-				maxNumberOfDecimals,
-				decimalsBig,
-			).Error())
+		var err error
+		numOfDecimals, err = e.getNumOfDecimals(args.Arguments[3])
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
 			return vmcommon.UserError
 		}
-		numOfDecimals = uint32(decimalsBig.Uint64())
 	}
 
 	tokenIdentifier, token, err := e.createNewToken(
@@ -632,17 +641,11 @@ func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Re
 		e.eei.AddReturnMessage("not enough arguments")
 		return vmcommon.UserError
 	}
-	decimalsBig := big.NewInt(0).SetBytes(args.Arguments[1])
-	if !decimalsBig.IsUint64() || decimalsBig.Uint64() < minNumberOfDecimals || decimalsBig.Uint64() > maxNumberOfDecimals {
-		e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
-			vm.ErrInvalidNumberOfDecimals,
-			minNumberOfDecimals,
-			maxNumberOfDecimals,
-			decimalsBig,
-		).Error())
+	numOfDecimals, err := e.getNumOfDecimals(args.Arguments[1])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
-	numOfDecimals := uint32(decimalsBig.Uint64())
 
 	token, returnCode := e.basicOwnershipChecks(args)
 	if returnCode != vmcommon.Ok {
@@ -656,7 +659,7 @@ func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Re
 
 	token.TokenType = []byte(core.MetaESDT)
 	token.NumDecimals = numOfDecimals
-	err := e.saveToken(args.Arguments[0], token)
+	err = e.saveToken(args.Arguments[0], token)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2322,17 +2325,12 @@ func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ES
 			return nil, nil, vmcommon.UserError
 		}
 
-		decimalsBig := big.NewInt(0).SetBytes(args.Arguments[3])
-		if !decimalsBig.IsUint64() || decimalsBig.Uint64() < minNumberOfDecimals || decimalsBig.Uint64() > maxNumberOfDecimals {
-			e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
-				vm.ErrInvalidNumberOfDecimals,
-				minNumberOfDecimals,
-				maxNumberOfDecimals,
-				decimalsBig,
-			).Error())
+		var err error
+		numOfDecimals, err = e.getNumOfDecimals(args.Arguments[3])
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
 			return nil, nil, vmcommon.UserError
 		}
-		numOfDecimals = uint32(decimalsBig.Uint64())
 	}
 
 	dynamicTokenType := getDynamicTokenType(tokenType)

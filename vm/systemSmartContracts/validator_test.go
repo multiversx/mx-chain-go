@@ -1472,6 +1472,13 @@ func TestStakingValidatorSC_StakeUnStake3XRestake2(t *testing.T) {
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.Ok, retCode)
 
+	// Without FixCorrectSmallIntAndGasLimitsFlag, non-zero call value does not trigger TransactionValueMustBeZero
+	arguments.CallValue = big.NewInt(100)
+	retCode = sc.Execute(arguments)
+	assert.NotEqual(t, vm.TransactionValueMustBeZero, eei.returnMessage)
+
+	enableEpochsHandler.AddActiveFlags(common.FixCorrectSmallIntAndGasLimitsFlag)
+	eei.returnMessage = ""
 	arguments.CallValue = big.NewInt(100)
 	retCode = sc.Execute(arguments)
 	assert.Equal(t, vmcommon.UserError, retCode)

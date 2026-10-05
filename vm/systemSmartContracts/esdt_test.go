@@ -4848,9 +4848,11 @@ func TestESDT_DecimalsNarrowingValidation(t *testing.T) {
 	wideDecimals.Lsh(wideDecimals, 32)
 	wideDecimals.Add(wideDecimals, big.NewInt(18)) // 2^32 + 18, would narrow to 18 if truncated to uint32
 
-	t.Run("registerMetaESDT rejects wide and out-of-range decimals", func(t *testing.T) {
+	t.Run("registerMetaESDT rejects wide and out-of-range decimals when flag enabled", func(t *testing.T) {
 		t.Parallel()
 		args := createMockArgumentsForESDT()
+		enableHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+		enableHandler.AddActiveFlags(common.FixCorrectSmallIntAndGasLimitsFlag)
 		eei := createDefaultEei()
 		args.Eei = eei
 		contract, err := NewESDTSmartContract(args)
@@ -4876,9 +4878,11 @@ func TestESDT_DecimalsNarrowingValidation(t *testing.T) {
 		assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumberOfDecimals.Error()))
 	})
 
-	t.Run("issue rejects wide and out-of-range decimals", func(t *testing.T) {
+	t.Run("issue rejects wide and out-of-range decimals when flag enabled", func(t *testing.T) {
 		t.Parallel()
 		args := createMockArgumentsForESDT()
+		enableHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+		enableHandler.AddActiveFlags(common.FixCorrectSmallIntAndGasLimitsFlag)
 		eei := createDefaultEei()
 		args.Eei = eei
 		contract, err := NewESDTSmartContract(args)
@@ -4899,11 +4903,11 @@ func TestESDT_DecimalsNarrowingValidation(t *testing.T) {
 		assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumberOfDecimals.Error()))
 	})
 
-	t.Run("changeSFTToMetaESDT rejects wide decimals", func(t *testing.T) {
+	t.Run("changeSFTToMetaESDT rejects wide decimals when flag enabled", func(t *testing.T) {
 		t.Parallel()
 		args := createMockArgumentsForESDT()
 		enableHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-		enableHandler.AddActiveFlags(common.MetaESDTSetFlag)
+		enableHandler.AddActiveFlags(common.MetaESDTSetFlag, common.FixCorrectSmallIntAndGasLimitsFlag)
 		eei := createDefaultEei()
 		args.Eei = eei
 		contract, err := NewESDTSmartContract(args)
@@ -4921,4 +4925,27 @@ func TestESDT_DecimalsNarrowingValidation(t *testing.T) {
 		assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidNumberOfDecimals.Error()))
 	})
 
+	t.Run("legacy behavior without flag preserves uint32 truncation formatting", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgumentsForESDT()
+		eei := createDefaultEei()
+		args.Eei = eei
+		contract, err := NewESDTSmartContract(args)
+		require.NoError(t, err)
+
+		// Historical mainnet tx case: "canFreeze" as decimals argument
+		input := getDefaultVmInputForFunc("issue", [][]byte{
+			[]byte("tokenName"),
+			[]byte("TICKER"),
+			big.NewInt(1000).Bytes(),
+			[]byte("canFreeze"),
+		})
+		input.CallValue = big.NewInt(0).Set(contract.baseIssuingCost)
+		input.GasProvided = 100_000
+		eei.gasRemaining = input.GasProvided
+
+		code := contract.Execute(input)
+		assert.Equal(t, vmcommon.UserError, code)
+		assert.Equal(t, "invalid number of decimals, minimum: 0, maximum: 18, provided: 1701149285", eei.returnMessage)
+	})
 }

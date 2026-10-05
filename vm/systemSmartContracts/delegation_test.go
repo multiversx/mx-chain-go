@@ -5325,20 +5325,42 @@ func TestDelegation_getOrCreateDelegatorData_NilRewardsInitialized(t *testing.T)
 func TestDelegation_ClaimRewards_NonZeroCallValue_ShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgumentsForDelegation()
-	eei := createDefaultEei()
-	args.Eei = eei
-	d, err := NewDelegationSystemSC(args)
-	require.Nil(t, err)
+	t.Run("with FixCorrectSmallIntAndGasLimitsFlag", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgumentsForDelegation()
+		enableHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+		enableHandler.AddActiveFlags(common.FixCorrectSmallIntAndGasLimitsFlag)
+		eei := createDefaultEei()
+		args.Eei = eei
+		d, err := NewDelegationSystemSC(args)
+		require.Nil(t, err)
 
-	delegatorAddress := bytes.Repeat([]byte("d"), 32)
-	in := getDefaultVmInputForFunc("claimRewards", [][]byte{})
-	in.CallerAddr = delegatorAddress
-	in.CallValue = big.NewInt(100)
+		delegatorAddress := bytes.Repeat([]byte("d"), 32)
+		in := getDefaultVmInputForFunc("claimRewards", [][]byte{})
+		in.CallerAddr = delegatorAddress
+		in.CallValue = big.NewInt(100)
 
-	retCode := d.Execute(in)
-	assert.Equal(t, vmcommon.UserError, retCode)
-	assert.Equal(t, vm.ErrCallValueMustBeZero.Error(), eei.returnMessage)
+		retCode := d.Execute(in)
+		assert.Equal(t, vmcommon.UserError, retCode)
+		assert.Equal(t, vm.ErrCallValueMustBeZero.Error(), eei.returnMessage)
+	})
+
+	t.Run("legacy without flag does not reject non-zero call value upfront", func(t *testing.T) {
+		t.Parallel()
+		args := createMockArgumentsForDelegation()
+		eei := createDefaultEei()
+		args.Eei = eei
+		d, err := NewDelegationSystemSC(args)
+		require.Nil(t, err)
+
+		delegatorAddress := bytes.Repeat([]byte("d"), 32)
+		in := getDefaultVmInputForFunc("claimRewards", [][]byte{})
+		in.CallerAddr = delegatorAddress
+		in.CallValue = big.NewInt(100)
+
+		_ = d.Execute(in)
+		assert.NotEqual(t, vm.ErrCallValueMustBeZero.Error(), eei.returnMessage)
+	})
 }
 
 func TestDelegation_Withdraw_PartialUnbond_RetainsCorrectRemainderAndPreservesSubsequentFunds(t *testing.T) {
