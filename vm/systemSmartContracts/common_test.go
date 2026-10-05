@@ -133,11 +133,10 @@ func TestIsNumArgsCorrectToStake(t *testing.T) {
 
 	// 1 node: min args = 2*1+1 = 3, max args = 2*1+1+2 = 5
 	oneNodeBytes := big.NewInt(1).Bytes()
-	assert.False(t, isNumArgsCorrectToStake([][]byte{oneNodeBytes}))                     // len 1 -> false
-	assert.False(t, isNumArgsCorrectToStake([][]byte{oneNodeBytes, {1}}))                // len 2 -> false
-	assert.True(t, isNumArgsCorrectToStake([][]byte{oneNodeBytes, {1}, {2}}))            // len 3 -> true
-	assert.True(t, isNumArgsCorrectToStake([][]byte{oneNodeBytes, {1}, {2}, {3}}))       // len 4 -> true
-	assert.True(t, isNumArgsCorrectToStake([][]byte{oneNodeBytes, {1}, {2}, {3}, {4}}))  // len 5 -> true
+	assert.False(t, isNumArgsCorrectToStake([][]byte{oneNodeBytes}))                          // len 1 -> false
+	assert.False(t, isNumArgsCorrectToStake([][]byte{oneNodeBytes, {1}}))                     // len 2 -> false
+	assert.True(t, isNumArgsCorrectToStake([][]byte{oneNodeBytes, {1}, {2}}))                 // len 3 -> true
+	assert.True(t, isNumArgsCorrectToStake([][]byte{oneNodeBytes, {1}, {2}, {3}}))            // len 4 -> true
+	assert.True(t, isNumArgsCorrectToStake([][]byte{oneNodeBytes, {1}, {2}, {3}, {4}}))       // len 5 -> true
 	assert.False(t, isNumArgsCorrectToStake([][]byte{oneNodeBytes, {1}, {2}, {3}, {4}, {5}})) // len 6 -> false
 }
-

@@ -295,7 +295,6 @@ func (service *SCQueryService) getCurrentBlockRootHash(
 	return service.apiBlockChain.GetCurrentBlockRootHash()
 }
 
-
 func (service *SCQueryService) setCurrentBlockInfoV3(
 	header data.HeaderHandler,
 	rootHash []byte,
@@ -357,7 +356,6 @@ func (service *SCQueryService) getCurrentBlockHeaderAndRootHash() (data.HeaderHa
 	return currentHeader, service.mainBlockChain.GetCurrentBlockRootHash(), service.mainBlockChain.GetCurrentBlockHeaderHash(), nil
 }
 
-
 type lastExecutedBlockHeaderAndInfoProvider interface {
 	GetLastExecutedBlockHeaderAndInfo() (data.HeaderHandler, []byte, []byte)
 }
@@ -383,7 +381,6 @@ func (service *SCQueryService) getHeaderAndRootHashForBlock(currentHeader data.H
 	if currentHeader.IsHeaderV3() {
 		return service.getHeaderAndRootHashForBlockV3(currentHeader, currentHeaderHash)
 	}
-
 
 	blockHeader, headerHash, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
 	if err != nil {

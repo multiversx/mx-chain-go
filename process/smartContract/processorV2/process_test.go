@@ -4386,7 +4386,6 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	assert.Nil(t, sc.processSimpleSCR(&smartContractResult.SmartContractResult{Value: nil}, []byte("scrHash"), acntDst))
 }
 
-
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 
 	return &economics.ArgsNewEconomicsData{
@@ -4718,8 +4717,8 @@ func TestSmartContractProcessor_AsyncCallWithCallerInOutputAccountsWithoutTransf
 	}
 
 	vmOutput := &vmcommon.VMOutput{
-		ReturnCode:    vmcommon.Ok,
-		GasRemaining:  50000,
+		ReturnCode:     vmcommon.Ok,
+		GasRemaining:   50000,
 		OutputAccounts: make(map[string]*vmcommon.OutputAccount),
 	}
 

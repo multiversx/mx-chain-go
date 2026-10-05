@@ -5581,6 +5581,66 @@ func TestDelegationSystemSC_ChangeOwner_BlockedDuringActiveGovernanceVote(t *tes
 	assert.Equal(t, vmcommon.Ok, retCode)
 }
 
+func TestDelegationSystemSC_ChangeOwner_GovernanceVoteScanBounded(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	epochHandler := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	epochHandler.AddActiveFlags(common.ChangeDelegationOwnerFlag, common.FixCorrectSmallIntAndGasLimitsFlag)
+
+	account := &stateMock.AccountWrapMock{}
+	currentEpoch := uint32(5)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
+
+	argsVmContext := VMContextArgs{
+		BlockChainHook:      blockChainHook,
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		UserAccountsDB: &stateMock.AccountsStub{
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				return account, nil
+			},
+		},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: args.EnableEpochsHandler,
+	}
+	eei, err := NewVMContext(argsVmContext)
+	require.Nil(t, err)
+
+	ownerAddress := bytes.Repeat([]byte{1}, 32)
+	scAddress := bytes.Repeat([]byte{3}, 32)
+	eei.SetSCAddress(scAddress)
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = ownerAddress
+	marshalledData, _ := args.Marshalizer.Marshal(&DelegatorData{RewardsCheckpoint: 10})
+	delegationsMap[string(ownerAddress)] = marshalledData
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	args.Eei = eei
+
+	d, _ := NewDelegationSystemSC(args)
+
+	// Seed governance SC with 150 direct votes
+	govAddr := d.governanceSCAddr
+	nonces := make([]uint64, 150)
+	for i := 0; i < 150; i++ {
+		nonces[i] = uint64(i + 1)
+	}
+	onGoingList := &OngoingVotedListV2{
+		Direct: nonces,
+	}
+	govVotesData, _ := args.Marshalizer.Marshal(onGoingList)
+	eei.SetStorageForAddress(govAddr, ownerAddress, govVotesData)
+
+	hasActive := d.hasActiveGovernanceVote(ownerAddress)
+	assert.False(t, hasActive)
+}
+
 func TestDelegationSystemSC_ChangeOwner_EmitsUnDelegateLogsForPendingUnstakedFunds(t *testing.T) {
 	t.Parallel()
 

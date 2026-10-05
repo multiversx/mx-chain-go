@@ -312,7 +312,6 @@ func (e *esdt) issue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	}
 	numOfDecimals := uint32(decimalsBig.Uint64())
 
-
 	tokenIdentifier, _, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
@@ -442,7 +441,6 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 	}
 	numOfDecimals := uint32(decimalsBig.Uint64())
 
-
 	tokenIdentifier, _, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
@@ -503,7 +501,6 @@ func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.Re
 		}
 		numOfDecimals = uint32(decimalsBig.Uint64())
 	}
-
 
 	tokenIdentifier, token, err := e.createNewToken(
 		args.CallerAddr,
@@ -2337,7 +2334,6 @@ func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ES
 		}
 		numOfDecimals = uint32(decimalsBig.Uint64())
 	}
-
 
 	dynamicTokenType := getDynamicTokenType(tokenType)
 

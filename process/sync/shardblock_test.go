@@ -5384,4 +5384,3 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing_HoistedGet
 	require.True(t, miniblocksRequested)
 	require.Equal(t, 1, callCount, "GetMiniBlockHeaderHandlers must be hoisted and called exactly once")
 }
-

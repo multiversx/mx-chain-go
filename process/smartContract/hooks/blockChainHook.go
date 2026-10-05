@@ -44,7 +44,6 @@ const defaultCompiledSCPath = "compiledSCStorage"
 const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
 const maxTokenIdentifierLen = 32
 
-
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
 	Accounts                 state.AccountsAdapter
@@ -96,10 +95,10 @@ type BlockChainHookImpl struct {
 	mutEpochStartHdr sync.RWMutex
 	epochStartHdr    data.HeaderHandler
 
-	compiledScPool     storage.Cacher
-	mutCompiledSc      sync.RWMutex
-	compiledScStorage  storage.Storer
-	configSCStorage    config.StorageConfig
+	compiledScPool    storage.Cacher
+	mutCompiledSc     sync.RWMutex
+	compiledScStorage storage.Storer
+	configSCStorage   config.StorageConfig
 
 	workingDir         string
 	nilCompiledSCStore bool
@@ -1037,7 +1036,6 @@ func (bh *BlockChainHookImpl) ClearCompiledCodes() {
 		log.Debug("BlockChainHookImpl.ClearCompiledCodes: makeCompiledSCStorage", "error", err)
 	}
 }
-
 
 func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
 	if bh.nilCompiledSCStore {

@@ -3118,4 +3118,3 @@ func TestValidatorStatistics_UpdateValidatorInfoOnSuccessfulBlock_InvalidBitmapL
 	)
 	require.NoError(t, err)
 }
-

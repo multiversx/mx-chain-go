@@ -1926,7 +1926,6 @@ func TestStakingSc_UnBondNeverUnStakedKeyFailsUnderFlag(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 }
 
-
 func Test_NoActionAllowedForBadRatingOrJailed(t *testing.T) {
 	t.Parallel()
 

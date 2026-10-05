@@ -4922,4 +4922,3 @@ func TestESDT_DecimalsNarrowingValidation(t *testing.T) {
 	})
 
 }
-

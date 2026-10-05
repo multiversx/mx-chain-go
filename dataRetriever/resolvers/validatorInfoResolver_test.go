@@ -1,7 +1,6 @@
 package resolvers_test
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -591,7 +590,7 @@ func TestValidatorInfoResolver_SetDebugHandler(t *testing.T) {
 	_ = res.SetDebugHandler(nil)
 }
 
-func TestValidatorInfoResolver_ResolveMultipleHashesRequest_CappedMissingHashes_BUG547(t *testing.T) {
+func TestValidatorInfoResolver_ResolveMultipleHashesRequest_ErrorReporting(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgValidatorInfoResolver()
@@ -623,12 +622,5 @@ func TestValidatorInfoResolver_ResolveMultipleHashesRequest_CappedMissingHashes_
 
 	errStr := err.Error()
 	assert.True(t, strings.Contains(errStr, dataRetriever.ErrValidatorInfoNotFound.Error()))
-	assert.True(t, strings.Contains(errStr, "... (50 total hashes)"))
-	// First hash should be included
-	assert.True(t, strings.Contains(errStr, hex.EncodeToString(hashes[0])))
-	// 9th hash (index 9) should be included
-	assert.True(t, strings.Contains(errStr, hex.EncodeToString(hashes[9])))
-	// 11th hash (index 10) must NOT be included because capping limits to 10
-	assert.False(t, strings.Contains(errStr, hex.EncodeToString(hashes[10])))
+	assert.True(t, strings.Contains(errStr, "for 50 hashes"))
 }
-

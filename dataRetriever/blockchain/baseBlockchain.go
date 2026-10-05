@@ -158,7 +158,6 @@ func (bbc *baseBlockChain) GetLastExecutedBlockHeaderAndInfo() (data.HeaderHandl
 	return header, bbc.lastExecutedBlockInfo.hash, bbc.lastExecutedBlockInfo.committedRootHash
 }
 
-
 // SetLastExecutedBlockHeaderAndRootHash sets header, hash and rootHash for last executed block
 func (bbc *baseBlockChain) SetLastExecutedBlockHeaderAndRootHash(
 	header data.HeaderHandler,

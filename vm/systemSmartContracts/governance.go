@@ -755,7 +755,6 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 
 	g.eei.Transfer(generalProposal.IssuerAddress, args.RecipientAddr, tokensToReturn, nil, 0)
 
-
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    generalProposal.IssuerAddress,
@@ -1434,7 +1433,6 @@ func (g *governanceContract) processLastEndedNonce() {
 
 	g.eei.SetStorage([]byte(lastEndedNonceKey), nonceFound.Bytes())
 }
-
 
 func (g *governanceContract) getLastEndedNonce() uint64 {
 	marshaledData := g.eei.GetStorage([]byte(lastEndedNonceKey))

@@ -11,7 +11,6 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-
 // CheckIfNil verifies if contract call input is not nil
 func CheckIfNil(args *vmcommon.ContractCallInput) error {
 	if args == nil {
@@ -67,4 +66,3 @@ func isNumArgsCorrectToStake(args [][]byte) bool {
 	areNotTooManyArgs := uint64(len(args)) <= 2*maxNodesToRun+1+2 // +2 are the optionals - reward address, maxStakePerNode
 	return areEnoughArgs && areNotTooManyArgs
 }
-

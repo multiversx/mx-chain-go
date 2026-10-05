@@ -27,6 +27,7 @@ const totalActiveKey = "totalActive"
 const rewardKeyPrefix = "reward"
 const fundKeyPrefix = "fund"
 const maxNumOfUnStakedFunds = 50
+const maxActiveProposalsToCheck = 100
 
 const initFromValidatorData = "initFromValidatorData"
 const mergeValidatorDataToDelegation = "mergeValidatorDataToDelegation"
@@ -955,12 +956,7 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 	}
 
 	if d.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) && len(d.governanceSCAddr) > 0 {
-		hasActiveVote, errVote := d.hasActiveGovernanceVote(args.CallerAddr)
-		if errVote != nil {
-			d.eei.AddReturnMessage(errVote.Error())
-			return vmcommon.UserError
-		}
-		if hasActiveVote {
+		if d.hasActiveGovernanceVote(args.CallerAddr) {
 			d.eei.AddReturnMessage("cannot change owner while stake has active governance vote")
 			return vmcommon.UserError
 		}
@@ -1016,10 +1012,10 @@ func (d *delegation) saveOwnerToAccount(newOwner []byte) error {
 	return d.eei.SetOwnerOperatingOnAccount(newOwner)
 }
 
-func (d *delegation) hasActiveGovernanceVote(address []byte) (bool, error) {
+func (d *delegation) hasActiveGovernanceVote(address []byte) bool {
 	marshaledData := d.eei.GetStorageFromAddress(d.governanceSCAddr, address)
 	if len(marshaledData) == 0 {
-		return false, nil
+		return false
 	}
 
 	noncesToCheck := make(map[uint64]struct{})
@@ -1027,20 +1023,26 @@ func (d *delegation) hasActiveGovernanceVote(address []byte) (bool, error) {
 	onGoingListV2 := &OngoingVotedListV2{}
 	err := d.marshalizer.Unmarshal(onGoingListV2, marshaledData)
 	if err != nil {
-		return false, nil
+		return false
 	}
 
 	for _, nonce := range onGoingListV2.Direct {
 		noncesToCheck[nonce] = struct{}{}
+		if len(noncesToCheck) >= maxActiveProposalsToCheck {
+			break
+		}
 	}
 	for _, delegated := range onGoingListV2.DelegatedWithAddress {
+		if len(noncesToCheck) >= maxActiveProposalsToCheck {
+			break
+		}
 		if delegated != nil {
 			noncesToCheck[delegated.Nonce] = struct{}{}
 		}
 	}
 
 	if len(noncesToCheck) == 0 {
-		return false, nil
+		return false
 	}
 
 	currentEpoch := uint64(d.eei.BlockChainHook().CurrentEpoch())
@@ -1064,11 +1066,11 @@ func (d *delegation) hasActiveGovernanceVote(address []byte) (bool, error) {
 		}
 
 		if !proposal.Closed && currentEpoch <= proposal.EndVoteEpoch {
-			return true, nil
+			return true
 		}
 	}
 
-	return false, nil
+	return false
 }
 
 func (d *delegation) synchronizeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {

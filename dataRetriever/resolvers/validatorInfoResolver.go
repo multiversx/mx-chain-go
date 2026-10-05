@@ -1,10 +1,8 @@
 package resolvers
 
 import (
-	"encoding/hex"
 	"fmt"
 	"runtime/debug"
-	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -19,23 +17,6 @@ import (
 
 // maxBuffToSendValidatorsInfo represents max buffer size to send in bytes
 const maxBuffToSendValidatorsInfo = 1 << 18 // 256KB
-const maxLoggedMissingHashes = 10
-
-func formatMissingHashes(hashes [][]byte) string {
-	var builder strings.Builder
-	numToLog := len(hashes)
-	if numToLog > maxLoggedMissingHashes {
-		numToLog = maxLoggedMissingHashes
-	}
-	for i := 0; i < numToLog; i++ {
-		builder.WriteString(hex.EncodeToString(hashes[i]))
-		builder.WriteString(" ")
-	}
-	if len(hashes) > maxLoggedMissingHashes {
-		builder.WriteString(fmt.Sprintf("... (%d total hashes)", len(hashes)))
-	}
-	return builder.String()
-}
 
 // ArgValidatorInfoResolver is the argument structure used to create a new validator info resolver instance
 type ArgValidatorInfoResolver struct {
@@ -170,8 +151,7 @@ func (res *validatorInfoResolver) resolveMultipleHashesRequest(
 
 	validatorInfoForHashes, err := res.fetchValidatorInfoForHashes(hashes, epoch)
 	if err != nil {
-		outputHashes := formatMissingHashes(hashes)
-		return fmt.Errorf("resolveMultipleHashesRequest error %w from buff %s", err, outputHashes)
+		return fmt.Errorf("resolveMultipleHashesRequest error %w for %d hashes", err, len(hashes))
 	}
 
 	return res.sendValidatorInfoForHashes(validatorInfoForHashes, pid, source)

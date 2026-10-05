@@ -254,7 +254,6 @@ func TestDelegationManagerSystemSC_ExecuteInit(t *testing.T) {
 	assert.Equal(t, 1, len(dContractList.Addresses))
 }
 
-
 func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(t *testing.T) {
 	t.Parallel()
 
@@ -1319,5 +1318,3 @@ func TestDelegationManager_ExecuteFuncOnListAddresses_NonZeroCallValueShouldErr(
 		assert.Equal(t, vm.ErrCallValueMustBeZero.Error(), eei.GetReturnMessage())
 	}
 }
-
-

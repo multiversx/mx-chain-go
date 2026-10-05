@@ -1596,7 +1596,6 @@ func (sc *scProcessor) setEmptyRoothashOnErrorIfSaveKeyValue(tx data.Transaction
 		return
 	}
 
-
 	account.SetRootHash(make([]byte, 32))
 }
 
@@ -2424,17 +2423,6 @@ func (sc *scProcessor) createSCRFromStakingSC(
 	return result
 }
 
-func (sc *scProcessor) createSCRIfNoOutputTransfer(
-	_ *vmcommon.VMOutput,
-	_ vmData.CallType,
-	_ *vmcommon.OutputAccount,
-	_ data.TransactionHandler,
-	_ []byte,
-	_ uint32,
-) (bool, []internalIndexedScr) {
-	return false, nil
-}
-
 func (sc *scProcessor) preprocessOutTransferToSCR(
 	index int,
 	outputTransfer vmcommon.OutputTransfer,
@@ -2483,7 +2471,7 @@ func (sc *scProcessor) createSmartContractResults(
 
 	lenOutTransfers := len(outAcc.OutputTransfers)
 	if lenOutTransfers == 0 {
-		return sc.createSCRIfNoOutputTransfer(vmOutput, vmInput.CallType, outAcc, tx, txHash, nextAvailableScrIndex)
+		return false, nil
 	}
 
 	createdAsyncCallBack := false
@@ -2959,7 +2947,6 @@ func (sc *scProcessor) processSimpleSCR(
 	if scResult == nil || scResult.Value == nil || scResult.Value.Cmp(zero) <= 0 {
 		return nil
 	}
-
 
 	isPayable, err := sc.IsPayable(scResult.SndAddr, scResult.RcvAddr)
 	if err != nil {
