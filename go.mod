@@ -200,6 +200,6 @@ replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
 
 replace github.com/ipfs/go-log/v2 => github.com/sstanculeanu/go-log/v2 v2.0.0-20260714113044-ce58d5968237
 
-replace github.com/multiversx/mx-chain-vm-common-go => github.com/multiversx/mx-chain-vm-common-go-ghsa-w84w-h39x-g6cq v1.7.3-0.20261005161605-52bb6a6c03e2
+replace github.com/multiversx/mx-chain-vm-common-go => github.com/multiversx/mx-chain-vm-common-go-ghsa-w84w-h39x-g6cq v1.7.3-0.20261005164206-9f7d806f3e03
 
-replace github.com/multiversx/mx-chain-vm-go => github.com/multiversx/mx-chain-vm-go-ghsa-f474-vg6c-h9f2 v1.5.51-0.20261006142824-84cb1f0f155d
+replace github.com/multiversx/mx-chain-vm-go => github.com/multiversx/mx-chain-vm-go-ghsa-f474-vg6c-h9f2 v1.5.51-0.20261006144807-3c0d0e7283c3
