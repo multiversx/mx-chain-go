@@ -90,7 +90,6 @@ func (w *whiteListDataVerifier) isKeyValid(key []byte) bool {
 	expiry, ok := value.(time.Time)
 	if !ok {
 		log.Warn("whitelist isKeyValid", "error", "unexpected entry type")
-		w.cache.Remove(key)
 		return false
 	}
 
@@ -98,13 +97,8 @@ func (w *whiteListDataVerifier) isKeyValid(key []byte) bool {
 		return true
 	}
 
-	if !w.getTimeHandler().Before(expiry) {
-		// the request which added this key is long gone, free the slot as well
-		w.cache.Remove(key)
-		return false
-	}
-
-	return true
+	// Leave eviction to the cache; deletion could remove a concurrent refresh.
+	return w.getTimeHandler().Before(expiry)
 }
 
 // Add adds all the list to the cache

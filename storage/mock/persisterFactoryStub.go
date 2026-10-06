@@ -10,7 +10,7 @@ import (
 type PersisterFactoryStub struct {
 	CreateCalled          func(path string) (storage.Persister, error)
 	CreateDisabledCalled  func() storage.Persister
-	PersisterExistsCalled func(path string) bool
+	PersisterExistsCalled func(path string) (bool, error)
 }
 
 // Create -
@@ -31,12 +31,12 @@ func (pfs *PersisterFactoryStub) CreateDisabled() storage.Persister {
 }
 
 // PersisterExists -
-func (pfs *PersisterFactoryStub) PersisterExists(path string) bool {
+func (pfs *PersisterFactoryStub) PersisterExists(path string) (bool, error) {
 	if pfs.PersisterExistsCalled != nil {
 		return pfs.PersisterExistsCalled(path)
 	}
 
-	return true
+	return true, nil
 }
 
 // IsInterfaceNil -

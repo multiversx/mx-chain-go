@@ -258,7 +258,7 @@ func TestWhiteListDataVerifier_IsWhiteListedExpiryBehaviour(t *testing.T) {
 		assert.True(t, wldv.IsWhiteListed(ids))
 		assert.Empty(t, *removedKeys)
 	})
-	t.Run("entry is rejected and evicted once the ttl elapsed", func(t *testing.T) {
+	t.Run("entry is rejected without eviction once the ttl elapsed", func(t *testing.T) {
 		t.Parallel()
 
 		wldv, currentTime, removedKeys := createVerifier(testTTL)
@@ -267,11 +267,9 @@ func TestWhiteListDataVerifier_IsWhiteListedExpiryBehaviour(t *testing.T) {
 		*currentTime = currentTime.Add(testTTL)
 
 		assert.False(t, wldv.IsWhiteListed(ids))
-		require.Equal(t, 1, len(*removedKeys))
-		assert.Equal(t, keyCheck, (*removedKeys)[0])
-
-		// a second check does not find it anymore
+		assert.Empty(t, *removedKeys)
 		assert.False(t, wldv.IsWhiteListed(ids))
+		assert.Empty(t, *removedKeys)
 	})
 	t.Run("re-adding the key refreshes its expiry", func(t *testing.T) {
 		t.Parallel()
@@ -314,6 +312,56 @@ func TestWhiteListDataVerifier_IsWhiteListedExpiryBehaviour(t *testing.T) {
 		)
 
 		assert.False(t, wldv.IsWhiteListed(ids))
-		assert.Equal(t, 1, len(removedKeys))
+		assert.Empty(t, removedKeys)
 	})
+}
+
+func TestWhiteListDataVerifier_StaleReadPreservesRefresh(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	for _, testCase := range []struct {
+		name  string
+		value interface{}
+	}{
+		{name: "expired", value: now.Add(-testTTL)},
+		{name: "unexpected type", value: struct{}{}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			key := []byte("key")
+			keys := [][]byte{key}
+			cacher := cache.NewCacherMock()
+			cacher.Put(key, testCase.value, 0)
+			readStarted := make(chan struct{})
+			resumeRead := make(chan struct{})
+			readResult := make(chan bool, 1)
+			reader, err := NewWhiteListDataVerifier(&cache.CacherStub{
+				GetCalled: func(key []byte) (interface{}, bool) {
+					value, found := cacher.Get(key)
+					close(readStarted)
+					<-resumeRead
+					return value, found
+				},
+				RemoveCalled: cacher.Remove,
+			}, testTTL)
+			require.NoError(t, err)
+			reader.getTimeHandler = func() time.Time { return now }
+			writer, err := NewWhiteListDataVerifier(cacher, testTTL)
+			require.NoError(t, err)
+			writer.getTimeHandler = func() time.Time { return now }
+
+			go func() {
+				readResult <- reader.IsWhiteListedAtLeastOne(keys)
+			}()
+			<-readStarted
+			writer.Add(keys)
+			writer.Add(keys)
+			close(resumeRead)
+
+			assert.False(t, <-readResult)
+			assert.True(t, writer.IsWhiteListedAtLeastOne(keys))
+			writer.Remove(keys)
+			assert.False(t, writer.IsWhiteListedAtLeastOne(keys))
+		})
+	}
 }
