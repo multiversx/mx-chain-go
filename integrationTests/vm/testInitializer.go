@@ -1043,6 +1043,10 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		EnableEpochsHandler: argsNewSCProcessor.EnableEpochsHandler,
 		BlockChain:          chainHandler,
 	}
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		// This fixture shares user and validator accounts.
+		argsTransactionEvaluator.PeerAccounts = simulationAccountsDB
+	}
 	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	if err != nil {
 		return nil, err
