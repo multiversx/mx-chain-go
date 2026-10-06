@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"context"
 	"encoding/hex"
 	"math/big"
 
@@ -28,7 +29,7 @@ type FacadeStub struct {
 	ShouldErrorStop                             bool
 	GetHeartbeatsHandler                        func() ([]data.PubKeyHeartbeat, error)
 	GetBalanceCalled                            func(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error)
-	GetAccountCalled                            func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetAccountCalled                            func(ctx context.Context, address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
 	GetAccountsCalled                           func(addresses []string, options api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error)
 	GenerateTransactionHandler                  func(sender string, receiver string, value *big.Int, code string) (*transaction.Transaction, error)
 	GetTransactionHandler                       func(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
@@ -50,14 +51,14 @@ type FacadeStub struct {
 	GetThrottlerForEndpointCalled               func(endpoint string) (core.Throttler, bool)
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetCodeHashCalled                           func(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
-	GetKeyValuePairsCalled                      func(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
-	IterateKeysCalled                           func(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error)
+	GetKeyValuePairsCalled                      func(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	IterateKeysCalled                           func(ctx context.Context, address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error)
 	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	GetESDTDataCalled                           func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetAllESDTTokensCalled                      func(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
-	GetESDTsWithRoleCalled                      func(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
-	GetESDTsRolesCalled                         func(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
-	GetNFTTokenIDsRegisteredByAddressCalled     func(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetAllESDTTokensCalled                      func(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
+	GetESDTsWithRoleCalled                      func(ctx context.Context, address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
+	GetESDTsRolesCalled                         func(ctx context.Context, address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddressCalled     func(ctx context.Context, address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetBlockByHashCalled                        func(hash string, options api.BlockQueryOptions) (*api.Block, error)
 	GetBlockByNonceCalled                       func(nonce uint64, options api.BlockQueryOptions) (*api.Block, error)
 	GetAlteredAccountsForBlockCalled            func(options api.GetAlteredAccountsForBlockOptions) ([]*alteredAccount.AlteredAccount, error)
@@ -72,7 +73,7 @@ type FacadeStub struct {
 	GetInternalStartOfEpochValidatorsInfoCalled func(epoch uint32) ([]*state.ShardValidatorInfo, error)
 	GetInternalMiniBlockByHashCalled            func(format common.ApiOutputFormat, txHash string, epoch uint32) (interface{}, error)
 	GetTotalStakedValueHandler                  func() (*api.StakeValues, error)
-	GetAllIssuedESDTsCalled                     func(tokenType string) ([]string, error)
+	GetAllIssuedESDTsCalled                     func(ctx context.Context, tokenType string) ([]string, error)
 	GetDirectStakedListHandler                  func() ([]*api.DirectStakedValue, error)
 	GetDelegatorsListHandler                    func() ([]*api.Delegator, error)
 	GetProofCalled                              func(string, string) (*common.GetProofResponse, error)
@@ -248,18 +249,18 @@ func (f *FacadeStub) GetValueForKey(address string, key string, options api.Acco
 }
 
 // GetKeyValuePairs -
-func (f *FacadeStub) GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
+func (f *FacadeStub) GetKeyValuePairs(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
 	if f.GetKeyValuePairsCalled != nil {
-		return f.GetKeyValuePairsCalled(address, options)
+		return f.GetKeyValuePairsCalled(ctx, address, options)
 	}
 
 	return nil, api.BlockInfo{}, nil
 }
 
 // IterateKeys -
-func (f *FacadeStub) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
+func (f *FacadeStub) IterateKeys(ctx context.Context, address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
 	if f.IterateKeysCalled != nil {
-		return f.IterateKeysCalled(address, numKeys, iteratorState, options)
+		return f.IterateKeysCalled(ctx, address, numKeys, iteratorState, options)
 	}
 
 	return nil, nil, api.BlockInfo{}, nil
@@ -283,54 +284,54 @@ func (f *FacadeStub) GetESDTData(address string, key string, nonce uint64, optio
 }
 
 // GetESDTsRoles -
-func (f *FacadeStub) GetESDTsRoles(address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+func (f *FacadeStub) GetESDTsRoles(ctx context.Context, address string, options api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
 	if f.GetESDTsRolesCalled != nil {
-		return f.GetESDTsRolesCalled(address, options)
+		return f.GetESDTsRolesCalled(ctx, address, options)
 	}
 
 	return map[string][]string{}, api.BlockInfo{}, nil
 }
 
 // GetAllESDTTokens -
-func (f *FacadeStub) GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+func (f *FacadeStub) GetAllESDTTokens(ctx context.Context, address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
 	if f.GetAllESDTTokensCalled != nil {
-		return f.GetAllESDTTokensCalled(address, options)
+		return f.GetAllESDTTokensCalled(ctx, address, options)
 	}
 
 	return make(map[string]*esdt.ESDigitalToken), api.BlockInfo{}, nil
 }
 
 // GetNFTTokenIDsRegisteredByAddress -
-func (f *FacadeStub) GetNFTTokenIDsRegisteredByAddress(address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+func (f *FacadeStub) GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 	if f.GetNFTTokenIDsRegisteredByAddressCalled != nil {
-		return f.GetNFTTokenIDsRegisteredByAddressCalled(address, options)
+		return f.GetNFTTokenIDsRegisteredByAddressCalled(ctx, address, options)
 	}
 
 	return make([]string, 0), api.BlockInfo{}, nil
 }
 
 // GetESDTsWithRole -
-func (f *FacadeStub) GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+func (f *FacadeStub) GetESDTsWithRole(ctx context.Context, address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 	if f.GetESDTsWithRoleCalled != nil {
-		return f.GetESDTsWithRoleCalled(address, role, options)
+		return f.GetESDTsWithRoleCalled(ctx, address, role, options)
 	}
 
 	return make([]string, 0), api.BlockInfo{}, nil
 }
 
 // GetAllIssuedESDTs -
-func (f *FacadeStub) GetAllIssuedESDTs(tokenType string) ([]string, error) {
+func (f *FacadeStub) GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error) {
 	if f.GetAllIssuedESDTsCalled != nil {
-		return f.GetAllIssuedESDTsCalled(tokenType)
+		return f.GetAllIssuedESDTsCalled(ctx, tokenType)
 	}
 
 	return make([]string, 0), nil
 }
 
 // GetAccount -
-func (f *FacadeStub) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+func (f *FacadeStub) GetAccount(ctx context.Context, address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 	if f.GetAccountCalled != nil {
-		return f.GetAccountCalled(address, options)
+		return f.GetAccountCalled(ctx, address, options)
 	}
 
 	return api.AccountResponse{}, api.BlockInfo{}, nil

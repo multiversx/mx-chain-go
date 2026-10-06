@@ -2,7 +2,7 @@ package leavesRetriever
 
 import (
 	"context"
-	
+
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -13,9 +13,8 @@ func NewDisabledLeavesRetriever() *disabledLeavesRetriever {
 	return &disabledLeavesRetriever{}
 }
 
-// GetLeaves returns an empty map and a nil byte slice for this implementation
 func (dlr *disabledLeavesRetriever) GetLeaves(_ int, _ [][]byte, _ common.TrieLeafParser, _ context.Context) (map[string]string, [][]byte, error) {
-	return make(map[string]string), [][]byte{}, nil
+	return nil, nil, common.ErrTrieLeavesRetrieverDisabled
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

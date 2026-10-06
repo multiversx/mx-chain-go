@@ -79,6 +79,15 @@ func (pf *persisterFactory) Create(path string) (storage.Persister, error) {
 	return persister, nil
 }
 
+// PersisterExists checks for an existing database without creating it.
+func (pf *persisterFactory) PersisterExists(path string) (bool, error) {
+	if len(path) == 0 {
+		return false, nil
+	}
+
+	return checkIfDirExists(path)
+}
+
 // CreateDisabled will return a new disabled persister
 func (pf *persisterFactory) CreateDisabled() storage.Persister {
 	return disabled.NewErrorDisabledPersister()

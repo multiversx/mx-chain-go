@@ -113,6 +113,10 @@ func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	switch rd.Type {
 	case dataRetriever.HashType:
+		err = validateRequestedHashSize(rd.Value)
+		if err != nil {
+			return nil, err
+		}
 		err = res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
 	case dataRetriever.HashArrayType:
 		err = res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, source, message.SeqNo())
@@ -145,6 +149,10 @@ func (res *validatorInfoResolver) resolveMultipleHashesRequest(
 	sequence []byte,
 ) error {
 	hashes, err := res.parseRequestedHashesWithPartialResponse(hashesBuff, pid, sequence)
+	if err != nil {
+		return err
+	}
+	err = validateRequestedHashesSize(hashes)
 	if err != nil {
 		return err
 	}

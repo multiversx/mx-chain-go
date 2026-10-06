@@ -2,6 +2,10 @@ package common
 
 import "errors"
 
+var ErrTrieOperationsBusy = errors.New("too many concurrent trie operations")
+
+var ErrTrieLeavesRetrieverDisabled = errors.New("paginated trie retrieval is disabled")
+
 // ErrInvalidTimeout signals that an invalid timeout period has been provided
 var ErrInvalidTimeout = errors.New("invalid timeout value")
 

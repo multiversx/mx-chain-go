@@ -1,6 +1,7 @@
 package groups_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -376,7 +377,7 @@ func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
 func TestGetAllIssuedESDTs_ShouldWork(t *testing.T) {
 	tokens := []string{"tokenA", "tokenB"}
 	facade := mock.FacadeStub{
-		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
+		GetAllIssuedESDTsCalled: func(_ context.Context, _ string) ([]string, error) {
 			return tokens, nil
 		},
 	}
@@ -400,7 +401,7 @@ func TestGetAllIssuedESDTs_ShouldWork(t *testing.T) {
 func TestGetAllIssuedESDTs_Error(t *testing.T) {
 	localErr := fmt.Errorf("%s", "local error")
 	facade := mock.FacadeStub{
-		GetAllIssuedESDTsCalled: func(_ string) ([]string, error) {
+		GetAllIssuedESDTsCalled: func(_ context.Context, _ string) ([]string, error) {
 			return nil, localErr
 		},
 	}

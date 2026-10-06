@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var topic = "topic"
@@ -188,7 +189,7 @@ func TestInterceptorResolver_LogRequestedDataSameIdentifierShouldAddRequested(t 
 	fmt.Println(idh.Query("*"))
 }
 
-//------- LogProcessedHashes
+// ------- LogProcessedHashes
 
 func TestInterceptorResolver_LogProcessedHashesNotFoundShouldNotAdd(t *testing.T) {
 	t.Parallel()
@@ -242,7 +243,7 @@ func TestInterceptorResolver_LogProcessedHashesExistingWithErrorShouldIncrementP
 	fmt.Println(idh.Query("*"))
 }
 
-//------- LogReceivedHashes
+// ------- LogReceivedHashes
 
 func TestInterceptorResolver_LogReceivedHashesNotFoundShouldNotAdd(t *testing.T) {
 	t.Parallel()
@@ -282,7 +283,7 @@ func TestInterceptorResolver_LogReceivedHashesExistingShouldIncrementReceived(t 
 	assert.Equal(t, expected, requests[0])
 }
 
-//------- LogFailedToResolveData
+// ------- LogFailedToResolveData
 
 func TestInterceptorResolver_LogFailedToResolveDataShouldWork(t *testing.T) {
 	t.Parallel()
@@ -321,6 +322,39 @@ func TestInterceptorResolver_LogFailedToResolveDataShouldWork(t *testing.T) {
 	assert.Equal(t, expected, idh.Events()[0])
 }
 
+func TestInterceptorResolver_ShouldBoundStoredData(t *testing.T) {
+	t.Parallel()
+
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
+	oversizedIdentifier := make([]byte, maxDebugIdentifierSize+1)
+	idh.LogRequestedData(topic, [][]byte{oversizedIdentifier}, numIntra, numCross)
+	idh.LogFailedToResolveData(topic, oversizedIdentifier, errors.New("error"))
+	require.Empty(t, idh.Events())
+
+	identifier := make([]byte, maxDebugIdentifierSize)
+	errString := strings.Repeat("e", maxDebugErrorSize+1)
+	idh.LogFailedToResolveData(topic, identifier, errors.New(errString))
+	identifier[0] = 1
+
+	events := idh.Events()
+	require.Len(t, events, 1)
+	require.Len(t, events[0].hash, maxDebugIdentifierSize)
+	require.Zero(t, events[0].hash[0])
+	require.Len(t, events[0].lastErr.Error(), maxDebugErrorSize)
+}
+
+func TestInterceptorResolver_ShouldBoundProcessedError(t *testing.T) {
+	t.Parallel()
+
+	idh, _ := NewInterceptorDebugHandler(createWorkableConfig(), &testscommon.SyncTimerStub{})
+	idh.LogRequestedData(topic, [][]byte{hash}, numIntra, numCross)
+	idh.LogProcessedHashes(topic, [][]byte{hash}, errors.New(strings.Repeat("e", maxDebugErrorSize+1)))
+
+	events := idh.Events()
+	require.Len(t, events, 1)
+	require.Len(t, events[0].lastErr.Error(), maxDebugErrorSize)
+}
+
 func TestInterceptorResolver_LogFailedToResolveDataAndRequestedDataShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -335,7 +369,7 @@ func TestInterceptorResolver_LogFailedToResolveDataAndRequestedDataShouldWork(t 
 	fmt.Println(idh.Query("*"))
 }
 
-//------- LogSucceedToResolveData
+// ------- LogSucceedToResolveData
 
 func TestInterceptorResolver_LogSucceededToResolveDataShouldWork(t *testing.T) {
 	t.Parallel()
@@ -362,7 +396,7 @@ func TestInterceptorResolver_LogSucceededToResolveDataShouldWork(t *testing.T) {
 	assert.Equal(t, 0, len(idh.Events()))
 }
 
-//------- functions
+// ------- functions
 
 func TestInterceptorResolver_Query(t *testing.T) {
 	t.Parallel()

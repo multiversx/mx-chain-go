@@ -2,6 +2,7 @@ package chainSimulator
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -940,7 +941,7 @@ func (s *simulator) removeAllSystemAccounts() error {
 func (s *simulator) GetAccount(address dtos.WalletAddress) (api.AccountResponse, error) {
 	destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
 
-	account, _, err := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetAccount(address.Bech32, api.AccountQueryOptions{})
+	account, _, err := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetAccount(context.Background(), address.Bech32, api.AccountQueryOptions{})
 	return account, err
 }
 

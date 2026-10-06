@@ -1464,7 +1464,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 	}
 
 	cache := cache.NewCacherMock()
-	whiteListerVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(cache)
+	whiteListerVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(cache, 0)
 	require.Nil(t, err)
 
 	txi, err := transaction.NewInterceptedTransaction(
@@ -1808,7 +1808,7 @@ func TestRelayTransaction_NotAddedToWhitelistUntilIntegrityChecked(t *testing.T)
 	t.Parallel()
 
 	marshalizer := &mock.MarshalizerMock{}
-	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(cache.NewCacherMock())
+	whiteListHandler, _ := interceptors.NewWhiteListDataVerifier(cache.NewCacherMock(), 0)
 
 	userTx := &dataTransaction.Transaction{
 		SndAddr:   recvAddress,

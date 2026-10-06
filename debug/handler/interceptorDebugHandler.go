@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -12,6 +13,8 @@ import (
 	p2p2 "github.com/multiversx/mx-chain-communication-go/p2p"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
@@ -20,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const requestEvent = "request"
@@ -33,6 +35,10 @@ const newLineChar = "\n"
 const numIntsInEventStruct = 6
 const intSize = 8
 const maxKeysToDisplay = 200
+
+// Covers hashes, validator public keys and compound resolver keys.
+const maxDebugIdentifierSize = 128
+const maxDebugErrorSize = 1024
 
 var log = logger.GetOrCreate("debug/handler")
 
@@ -242,12 +248,16 @@ func (idh *interceptorDebugHandler) LogRequestedData(topic string, hashes [][]by
 }
 
 func (idh *interceptorDebugHandler) logRequestedData(topic string, hash []byte, numReqIntra int, numReqCross int) {
+	if len(hash) > maxDebugIdentifierSize {
+		return
+	}
+
 	identifier := idh.computeIdentifier(requestEvent, topic, hash)
 
 	obj, ok := idh.cache.Get(identifier)
 	if !ok {
 		req := &event{
-			hash:         hash,
+			hash:         append([]byte(nil), hash...),
 			eventType:    requestEvent,
 			topic:        topic,
 			numReqIntra:  numReqIntra,
@@ -282,6 +292,10 @@ func (idh *interceptorDebugHandler) LogReceivedHashes(topic string, hashes [][]b
 }
 
 func (idh *interceptorDebugHandler) logReceivedHash(topic string, hash []byte) {
+	if len(hash) > maxDebugIdentifierSize {
+		return
+	}
+
 	identifier := idh.computeIdentifier(requestEvent, topic, hash)
 
 	obj, ok := idh.cache.Get(identifier)
@@ -308,6 +322,10 @@ func (idh *interceptorDebugHandler) LogProcessedHashes(topic string, hashes [][]
 }
 
 func (idh *interceptorDebugHandler) logProcessedHash(topic string, hash []byte, err error) {
+	if len(hash) > maxDebugIdentifierSize {
+		return
+	}
+
 	identifier := idh.computeIdentifier(requestEvent, topic, hash)
 
 	obj, ok := idh.cache.Get(identifier)
@@ -321,10 +339,11 @@ func (idh *interceptorDebugHandler) logProcessedHash(topic string, hash []byte, 
 	}
 
 	if err != nil {
+		boundedErr := boundedDebugError(err)
 		req.mutEvent.Lock()
 		req.numProcessed++
 		req.timestamp = idh.timestampHandler()
-		req.lastErr = err
+		req.lastErr = boundedErr
 		req.mutEvent.Unlock()
 
 		return
@@ -341,7 +360,7 @@ func (idh *interceptorDebugHandler) computeIdentifier(eventType string, topic st
 // * will return each and every data
 func (idh *interceptorDebugHandler) Query(search string) []string {
 	acceptEvent := func(ev *event) bool {
-		//TODO replace this rudimentary search pattern with something like
+		// TODO replace this rudimentary search pattern with something like
 		// github.com/oleksandr/conditions
 		ev.mutEvent.RLock()
 		defer ev.mutEvent.RUnlock()
@@ -396,19 +415,24 @@ func (idh *interceptorDebugHandler) query(acceptEvent func(ev *event) bool, maxN
 
 // LogFailedToResolveData adds a record stating that the resolver was unable to process the data
 func (idh *interceptorDebugHandler) LogFailedToResolveData(topic string, hash []byte, err error) {
+	if len(hash) > maxDebugIdentifierSize {
+		return
+	}
+
 	identifier := idh.computeIdentifier(resolveEvent, topic, hash)
+	boundedErr := boundedDebugError(err)
 
 	obj, ok := idh.cache.Get(identifier)
 	if !ok {
 		req := &event{
-			hash:         hash,
+			hash:         append([]byte(nil), hash...),
 			eventType:    resolveEvent,
 			topic:        topic,
 			numReqIntra:  0,
 			numReqCross:  0,
 			numReceived:  1,
 			numProcessed: 0,
-			lastErr:      err,
+			lastErr:      boundedErr,
 			timestamp:    idh.timestampHandler(),
 		}
 		idh.cache.Put(identifier, req, req.Size())
@@ -424,12 +448,29 @@ func (idh *interceptorDebugHandler) LogFailedToResolveData(topic string, hash []
 	ev.mutEvent.Lock()
 	ev.numReceived++
 	ev.timestamp = idh.timestampHandler()
-	ev.lastErr = err
+	ev.lastErr = boundedErr
 	ev.mutEvent.Unlock()
+}
+
+func boundedDebugError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	errString := err.Error()
+	if len(errString) > maxDebugErrorSize {
+		errString = errString[:maxDebugErrorSize]
+	}
+
+	return errors.New(strings.Clone(errString))
 }
 
 // LogSucceededToResolveData removes the recording that the resolver did not resolve a hash in the past
 func (idh *interceptorDebugHandler) LogSucceededToResolveData(topic string, hash []byte) {
+	if len(hash) > maxDebugIdentifierSize {
+		return
+	}
+
 	identifier := idh.computeIdentifier(resolveEvent, topic, hash)
 
 	idh.cache.Remove(identifier)
