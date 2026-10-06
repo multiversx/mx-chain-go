@@ -6,6 +6,8 @@ import (
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -192,6 +194,13 @@ func (ac *antifloodConfigs) GetFloodPreventerConfigByType(configType common.Floo
 		// this case should not happen
 		return config.FloodPreventerConfig{}
 	}
+}
+
+// SetActivationRound -
+func (ac *antifloodConfigs) SetActivationRound(round uint64, log logger.Logger) {
+	nr := len(ac.orderedConfigsByRound)
+	log.Info("antifloodConfigs.SetActivationRound", "enableRound", round, "oldRound", ac.orderedConfigsByRound[nr-1].Round)
+	ac.orderedConfigsByRound[nr-1].Round = round
 }
 
 // IsInterfaceNil checks if the instance is nil
