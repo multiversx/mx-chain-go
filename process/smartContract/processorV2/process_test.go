@@ -4693,6 +4693,11 @@ func TestSmartContractProcessor_AsyncCallWithCallerInOutputAccountsWithoutTransf
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.SCDeployFlag || flag == common.FixCorrectSmallIntAndGasLimitsFlag
+		},
+	}
 	arguments.ArgsParser = smartContract.NewArgumentParser()
 	sc, err := NewSmartContractProcessorV2(arguments)
 	require.Nil(t, err)
@@ -4728,7 +4733,7 @@ func TestSmartContractProcessor_AsyncCallWithCallerInOutputAccountsWithoutTransf
 	}
 	vmOutput.OutputAccounts[string(callerAddr)] = outAccCaller
 
-	// In createSmartContractResults, caller output account with 0 transfers must NOT produce an incomplete async callback SCR
+	// In createSmartContractResults, caller output account with 0 transfers must NOT produce an incomplete async callback SCR under flag
 	createdAsyncCallback, results := sc.createSmartContractResults(vmInput, vmOutput, outAccCaller, tx, txHash)
 	require.False(t, createdAsyncCallback)
 	require.Empty(t, results)
@@ -4756,6 +4761,20 @@ func TestSmartContractProcessor_AsyncCallWithCallerInOutputAccountsWithoutTransf
 	}
 	require.NotNil(t, callbackSCR)
 	require.Contains(t, string(callbackSCR.Data), hex.EncodeToString(callID))
+
+	// Backward compatibility test: when FixCorrectSmallIntAndGasLimitsFlag is not enabled, createSCRIfNoOutputTransfer is called
+	legacyArgs := createMockSmartContractProcessorArguments()
+	legacyArgs.ArgsParser = smartContract.NewArgumentParser()
+	legacySC, err := NewSmartContractProcessorV2(legacyArgs)
+	require.Nil(t, err)
+
+	legacyCallback, legacyResults := legacySC.createSmartContractResults(vmInput, vmOutput, outAccCaller, tx, txHash)
+	require.True(t, legacyCallback)
+	require.Len(t, legacyResults, 1)
+	legacyScr, ok := legacyResults[0].result.(*smartContractResult.SmartContractResult)
+	require.True(t, ok)
+	require.Equal(t, vmData.AsynchronousCallBack, legacyScr.CallType)
+	require.Equal(t, vmOutput.GasRemaining, legacyScr.GasLimit)
 }
 
 func TestSmartContractProcessor_PrepareExecutionAfterBuiltInFunc_PreservesContextFields(t *testing.T) {

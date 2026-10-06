@@ -2423,6 +2423,22 @@ func (sc *scProcessor) createSCRFromStakingSC(
 	return result
 }
 
+func (sc *scProcessor) createSCRIfNoOutputTransfer(
+	vmOutput *vmcommon.VMOutput,
+	callType vmData.CallType,
+	outAcc *vmcommon.OutputAccount,
+	tx data.TransactionHandler,
+	txHash []byte,
+	scrIndex uint32,
+) (bool, []internalIndexedScr) {
+	if callType == vmData.AsynchronousCall && bytes.Equal(outAcc.Address, tx.GetSndAddr()) {
+		result := createBaseSCR(outAcc, tx, txHash, 0)
+		sc.addVMOutputResultsToSCR(vmOutput, result)
+		return true, []internalIndexedScr{{result, scrIndex}}
+	}
+	return false, nil
+}
+
 func (sc *scProcessor) preprocessOutTransferToSCR(
 	index int,
 	outputTransfer vmcommon.OutputTransfer,
@@ -2471,7 +2487,10 @@ func (sc *scProcessor) createSmartContractResults(
 
 	lenOutTransfers := len(outAcc.OutputTransfers)
 	if lenOutTransfers == 0 {
-		return false, nil
+		if sc.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+			return false, nil
+		}
+		return sc.createSCRIfNoOutputTransfer(vmOutput, vmInput.CallType, outAcc, tx, txHash, nextAvailableScrIndex)
 	}
 
 	createdAsyncCallBack := false
