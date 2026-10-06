@@ -111,6 +111,15 @@ func (handler *manualRoundHandler) TimeDuration() time.Duration {
 	return handler.supernovaRoundDuration
 }
 
+// TimeDurationForRound returns the provided time duration for the specified round
+func (handler *manualRoundHandler) TimeDurationForRound(round uint64) time.Duration {
+	if !handler.isSupernovaActive(int64(round)) {
+		return handler.roundDuration
+	}
+
+	return handler.supernovaRoundDuration
+}
+
 // RemainingTime returns the max time as the start time is not taken into account
 func (handler *manualRoundHandler) RemainingTime(_ time.Time, maxTime time.Duration) time.Duration {
 	return maxTime
