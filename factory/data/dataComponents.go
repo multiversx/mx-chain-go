@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/pebbledb"
 )
 
 // DataComponentsFactoryArgs holds the arguments needed for creating a data components factory
@@ -52,6 +53,7 @@ type dataComponents struct {
 	store              dataRetriever.StorageService
 	datapool           dataRetriever.PoolsHolder
 	miniBlocksProvider factory.MiniBlockProvider
+	pebbleResources    *pebbledb.SharedResources
 }
 
 var log = logger.GetOrCreate("factory")
@@ -93,8 +95,14 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 		return nil, err
 	}
 
-	store, err := dcf.createDataStoreFromConfig()
+	pebbleResources, err := storageFactory.NewPebbleResources(dcf.config.StorageEngine)
 	if err != nil {
+		return nil, err
+	}
+
+	store, err := dcf.createDataStoreFromConfig(pebbleResources)
+	if err != nil {
+		pebbleResources.Close()
 		return nil, err
 	}
 
@@ -137,6 +145,7 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 		store:              store,
 		datapool:           datapool,
 		miniBlocksProvider: miniBlocksProvider,
+		pebbleResources:    pebbleResources,
 	}, nil
 }
 
@@ -158,9 +167,10 @@ func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandle
 	return nil, errors.ErrBlockchainCreation
 }
 
-func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.StorageService, error) {
+func (dcf *dataComponentsFactory) createDataStoreFromConfig(pebbleResources *pebbledb.SharedResources) (dataRetriever.StorageService, error) {
 	storageServiceFactory, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
+			PebbleResources:               pebbleResources,
 			Config:                        dcf.config,
 			PrefsConfig:                   dcf.prefsConfig,
 			ShardCoordinator:              dcf.shardCoordinator,
@@ -202,6 +212,9 @@ func (cc *dataComponents) Close() error {
 	if !check.IfNil(cc.datapool) {
 		lastError = cc.datapool.Close()
 	}
+
+	// released after the store, so every persister dropped its reference first
+	cc.pebbleResources.Close()
 
 	return lastError
 }

@@ -18,7 +18,7 @@ func GetPersisterConfigFilePath(path string) string {
 
 // NewPersisterCreator -
 func NewPersisterCreator(config config.DBConfig) *persisterCreator {
-	return newPersisterCreator(config)
+	return newPersisterCreator(config, nil)
 }
 
 // CreateShardIDProvider -
