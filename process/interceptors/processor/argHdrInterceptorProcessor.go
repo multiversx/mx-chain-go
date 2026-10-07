@@ -12,5 +12,4 @@ type ArgHdrInterceptorProcessor struct {
 	Proofs              dataRetriever.ProofsPool
 	BlockBlackList      process.TimeCacher
 	EnableEpochsHandler common.EnableEpochsHandler
-	RoundExclusions     common.RoundExclusionHandler
 }

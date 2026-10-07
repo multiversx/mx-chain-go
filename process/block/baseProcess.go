@@ -3515,11 +3515,12 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler) error {
 
 	executionResults := header.GetExecutionResultsHandlers()
 	for _, execResult := range executionResults {
-		if check.IfNil(execResult) {
-			return process.ErrNilExecutionResultHandler
+		err := bp.saveExecutionResult(execResult)
+		if err != nil {
+			return err
 		}
 
-		err := bp.saveReceiptsForExecutionResult(execResult)
+		err = bp.saveReceiptsForExecutionResult(execResult)
 		if err != nil {
 			return err
 		}
@@ -3530,12 +3531,6 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler) error {
 		}
 
 		err = bp.saveIntermediateTxs(execResult.GetHeaderHash())
-		if err != nil {
-			return err
-		}
-
-		// Publish the execution result only after the data used to build its API block is stored.
-		err = bp.saveExecutionResult(execResult)
 		if err != nil {
 			return err
 		}
@@ -3557,12 +3552,7 @@ func (bp *baseProcessor) saveExecutionResult(
 		return err
 	}
 
-	storer, err := bp.store.GetStorer(dataRetriever.ExecutionResultsUnit)
-	if err != nil {
-		return err
-	}
-
-	return storer.PutInEpoch(headerHash, execResBytes, execResult.GetHeaderEpoch())
+	return bp.store.Put(dataRetriever.ExecutionResultsUnit, headerHash, execResBytes)
 }
 
 func (bp *baseProcessor) cleanPostProcessCache(header data.HeaderHandler) error {

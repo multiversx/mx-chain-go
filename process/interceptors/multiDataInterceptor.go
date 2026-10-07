@@ -22,31 +22,29 @@ var log = logger.GetOrCreate("process/interceptors")
 
 // ArgMultiDataInterceptor is the argument for the multi-data interceptor
 type ArgMultiDataInterceptor struct {
-	Topic                          string
-	Marshalizer                    marshal.Marshalizer
-	Hasher                         hashing.Hasher
-	DataFactory                    process.InterceptedDataFactory
-	Processor                      process.InterceptorProcessor
-	Throttler                      process.InterceptorThrottler
-	AntifloodHandler               process.P2PAntifloodHandler
-	WhiteListRequest               process.WhiteListHandler
-	PreferredPeersHolder           process.PreferredPeersHolderHandler
-	CurrentPeerId                  core.PeerID
-	InterceptedDataVerifier        process.InterceptedDataVerifier
-	ManagedPeersHolder             common.ManagedPeersHolder
-	SkipUnrequestedDirectTrieNodes bool
+	Topic                   string
+	Marshalizer             marshal.Marshalizer
+	Hasher                  hashing.Hasher
+	DataFactory             process.InterceptedDataFactory
+	Processor               process.InterceptorProcessor
+	Throttler               process.InterceptorThrottler
+	AntifloodHandler        process.P2PAntifloodHandler
+	WhiteListRequest        process.WhiteListHandler
+	PreferredPeersHolder    process.PreferredPeersHolderHandler
+	CurrentPeerId           core.PeerID
+	InterceptedDataVerifier process.InterceptedDataVerifier
+	ManagedPeersHolder      common.ManagedPeersHolder
 }
 
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
 	*baseDataInterceptor
-	marshalizer                    marshal.Marshalizer
-	hasher                         hashing.Hasher
-	factory                        process.InterceptedDataFactory
-	whiteListRequest               process.WhiteListHandler
-	skipUnrequestedDirectTrieNodes bool
-	mutChunksProcessor             sync.RWMutex
-	chunksProcessor                process.InterceptedChunksProcessor
+	marshalizer        marshal.Marshalizer
+	hasher             hashing.Hasher
+	factory            process.InterceptedDataFactory
+	whiteListRequest   process.WhiteListHandler
+	mutChunksProcessor sync.RWMutex
+	chunksProcessor    process.InterceptedChunksProcessor
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -100,12 +98,11 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 			interceptedDataVerifier: arg.InterceptedDataVerifier,
 			managedPeersHolder:      arg.ManagedPeersHolder,
 		},
-		marshalizer:                    arg.Marshalizer,
-		hasher:                         arg.Hasher,
-		factory:                        arg.DataFactory,
-		whiteListRequest:               arg.WhiteListRequest,
-		skipUnrequestedDirectTrieNodes: arg.SkipUnrequestedDirectTrieNodes,
-		chunksProcessor:                disabled.NewDisabledInterceptedChunksProcessor(),
+		marshalizer:      arg.Marshalizer,
+		hasher:           arg.Hasher,
+		factory:          arg.DataFactory,
+		whiteListRequest: arg.WhiteListRequest,
+		chunksProcessor:  disabled.NewDisabledInterceptedChunksProcessor(),
 	}
 
 	return multiDataIntercept, nil
@@ -191,10 +188,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		}
 		if errors.Is(err, process.ErrDuplicatedInterceptedDataNotAllowed) {
 			allInterceptedData = append(allInterceptedData, interceptedData)
-			continue
-		}
-		if mdi.skipUnrequestedDirectTrieNodes && message.BroadcastMethod() == p2p.Direct &&
-			!isWhiteListed && errors.Is(err, process.ErrOnlyValidatorsCanUseThisTopic) {
 			continue
 		}
 

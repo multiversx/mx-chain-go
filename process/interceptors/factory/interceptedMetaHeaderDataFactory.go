@@ -28,7 +28,6 @@ type interceptedMetaHeaderDataFactory struct {
 	epochStartTrigger             process.EpochStartTriggerHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
-	roundExclusions               common.RoundExclusionHandler
 }
 
 // NewInterceptedMetaHeaderDataFactory creates an instance of interceptedMetaHeaderDataFactory
@@ -66,10 +65,6 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFacto
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
-	roundExclusions := argument.RoundExclusions
-	if check.IfNil(roundExclusions) {
-		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
-	}
 
 	return &interceptedMetaHeaderDataFactory{
 		marshalizer:                   argument.CoreComponents.InternalMarshalizer(),
@@ -81,7 +76,6 @@ func NewInterceptedMetaHeaderDataFactory(argument *ArgInterceptedMetaHeaderFacto
 		epochStartTrigger:             argument.EpochStartTrigger,
 		enableEpochsHandler:           argument.CoreComponents.EnableEpochsHandler(),
 		epochChangeGracePeriodHandler: argument.CoreComponents.EpochChangeGracePeriodHandler(),
-		roundExclusions:               roundExclusions,
 	}, nil
 }
 
@@ -98,7 +92,6 @@ func (imhdf *interceptedMetaHeaderDataFactory) Create(buff []byte, _ core.PeerID
 		EpochStartTrigger:             imhdf.epochStartTrigger,
 		EnableEpochsHandler:           imhdf.enableEpochsHandler,
 		EpochChangeGracePeriodHandler: imhdf.epochChangeGracePeriodHandler,
-		RoundExclusions:               imhdf.roundExclusions,
 	}
 
 	return interceptedBlocks.NewInterceptedMetaHeader(arg)

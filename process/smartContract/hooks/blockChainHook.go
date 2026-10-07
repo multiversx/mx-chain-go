@@ -595,17 +595,14 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 		return nil, err
 	}
 
-	snapshot := bh.accounts.JournalLen()
 	vmOutput, err := function.ProcessBuiltinFunction(sndAccount, dstAccount, input)
 	if err != nil {
-		_ = bh.accounts.RevertToSnapshot(snapshot)
 		return nil, err
 	}
 
 	if !check.IfNil(sndAccount) {
 		err = bh.accounts.SaveAccount(sndAccount)
 		if err != nil {
-			_ = bh.accounts.RevertToSnapshot(snapshot)
 			return nil, err
 		}
 	}
@@ -613,7 +610,6 @@ func (bh *BlockChainHookImpl) ProcessBuiltInFunction(input *vmcommon.ContractCal
 	if !check.IfNil(dstAccount) && !bytes.Equal(input.CallerAddr, input.RecipientAddr) {
 		err = bh.accounts.SaveAccount(dstAccount)
 		if err != nil {
-			_ = bh.accounts.RevertToSnapshot(snapshot)
 			return nil, err
 		}
 	}

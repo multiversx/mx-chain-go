@@ -37,6 +37,7 @@ type HistoryRepositoryArguments struct {
 	Uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
 	EpochByHashStorer           storage.Storer
 	EventsHashesByTxHashStorer  storage.Storer
+	ExecutionResultsStorer      storage.Storer
 	Marshalizer                 marshal.Marshalizer
 	Hasher                      hashing.Hasher
 	ESDTSuppliesHandler         SuppliesHandler
@@ -51,6 +52,7 @@ type historyRepository struct {
 	uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
 	epochByHashIndex           *epochByHashIndex
 	eventsHashesByTxHashIndex  *eventsHashesByTxHash
+	executionResultsProcessor  *executionResultsProcessor
 	marshalizer                marshal.Marshalizer
 	hasher                     hashing.Hasher
 	esdtSuppliesHandler        SuppliesHandler
@@ -101,6 +103,9 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	if check.IfNil(arguments.Uint64ByteSliceConverter) {
 		return nil, process.ErrNilUint64Converter
 	}
+	if check.IfNil(arguments.ExecutionResultsStorer) {
+		return nil, process.ErrNilStore
+	}
 	if check.IfNil(arguments.DataPool) {
 		return nil, process.ErrNilDataPoolHolder
 	}
@@ -109,6 +114,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	deduplicationCacheForInsertMiniblockMetadata, _ := cache.NewLRUCache(sizeOfDeduplicationCache)
 
 	eventsHashesToTxHashIndex := newEventsHashesByTxHash(arguments.EventsHashesByTxHashStorer, arguments.Marshalizer)
+	executionResultsProc := newExecutionResultsProcessor(arguments.ExecutionResultsStorer, arguments.Marshalizer)
 
 	return &historyRepository{
 		selfShardID:                           arguments.SelfShardID,
@@ -125,6 +131,7 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 		eventsHashesByTxHashIndex:                    eventsHashesToTxHashIndex,
 		esdtSuppliesHandler:                          arguments.ESDTSuppliesHandler,
 		uint64ByteSliceConverter:                     arguments.Uint64ByteSliceConverter,
+		executionResultsProcessor:                    executionResultsProc,
 		dataPool:                                     arguments.DataPool,
 	}, nil
 }
@@ -158,6 +165,11 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	}
 
 	err = hr.putHashByRound(blockHeaderHash, blockHeader)
+	if err != nil {
+		return err
+	}
+
+	err = hr.executionResultsProcessor.saveExecutionResultsFromHeader(blockHeader)
 	if err != nil {
 		return err
 	}
@@ -368,11 +380,6 @@ func (hr *historyRepository) putMiniblockMetadata(hash []byte, metadata *Miniblo
 	}
 
 	return nil
-}
-
-// GetMiniblockMetadataByMiniblockHash returns the indexed block inclusion.
-func (hr *historyRepository) GetMiniblockMetadataByMiniblockHash(hash []byte) (*MiniblockMetadata, error) {
-	return hr.getMiniblockMetadataByMiniblockHash(hash)
 }
 
 func (hr *historyRepository) getMiniblockMetadataByMiniblockHash(hash []byte) (*MiniblockMetadata, error) {

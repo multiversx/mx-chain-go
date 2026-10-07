@@ -4,7 +4,6 @@ import "time"
 
 // RequestHandlerStub -
 type RequestHandlerStub struct {
-	SetRecoveryTrieRequestsCalled               func(bool)
 	RequestShardHeaderCalled                    func(shardID uint32, hash []byte)
 	RequestShardHeaderForEpochCalled            func(shardID uint32, hash []byte, epoch uint32)
 	RequestMetaHeaderCalled                     func(hash []byte)
@@ -39,12 +38,6 @@ type RequestHandlerStub struct {
 	RequestEquivalentProofByHashForEpochCalled  func(headerShard uint32, headerHash []byte, epoch uint32)
 	RequestEquivalentProofByNonceCalled         func(headerShard uint32, headerNonce uint64)
 	RequestEquivalentProofByNonceForEpochCalled func(headerShard uint32, headerNonce uint64, epoch uint32)
-}
-
-func (rhs *RequestHandlerStub) SetRecoveryTrieRequests(enabled bool) {
-	if rhs.SetRecoveryTrieRequestsCalled != nil {
-		rhs.SetRecoveryTrieRequestsCalled(enabled)
-	}
 }
 
 // SetNumPeersToQuery -

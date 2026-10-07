@@ -6,16 +6,8 @@ import (
 
 // AccountsDBSyncerStub -
 type AccountsDBSyncerStub struct {
-	GetSyncedTriesCalled            func() map[string]common.Trie
-	SyncAccountsCalled              func(rootHash []byte, storageMarker common.StorageMarker) error
-	SyncAccountsWithDiskCheckCalled func(rootHash []byte, storageMarker common.StorageMarker, epoch uint32) error
-}
-
-func (a *AccountsDBSyncerStub) SyncAccountsWithDiskCheck(rootHash []byte, storageMarker common.StorageMarker, epoch uint32) error {
-	if a.SyncAccountsWithDiskCheckCalled != nil {
-		return a.SyncAccountsWithDiskCheckCalled(rootHash, storageMarker, epoch)
-	}
-	return a.SyncAccounts(rootHash, storageMarker)
+	GetSyncedTriesCalled func() map[string]common.Trie
+	SyncAccountsCalled   func(rootHash []byte, storageMarker common.StorageMarker) error
 }
 
 // GetSyncedTries -

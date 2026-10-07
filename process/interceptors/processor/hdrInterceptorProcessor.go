@@ -22,7 +22,6 @@ type HdrInterceptorProcessor struct {
 	proofs              dataRetriever.ProofsPool
 	blackList           process.TimeCacher
 	enableEpochsHandler common.EnableEpochsHandler
-	roundExclusions     common.RoundExclusionHandler
 	registeredHandlers  []func(topic string, hash []byte, data interface{})
 	mutHandlers         sync.RWMutex
 }
@@ -44,16 +43,12 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	if check.IfNil(argument.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(argument.RoundExclusions) {
-		return nil, common.ErrNilRoundExclusionHandler
-	}
 
 	return &HdrInterceptorProcessor{
 		headers:             argument.Headers,
 		proofs:              argument.Proofs,
 		blackList:           argument.BlockBlackList,
 		enableEpochsHandler: argument.EnableEpochsHandler,
-		roundExclusions:     argument.RoundExclusions,
 		registeredHandlers:  make([]func(topic string, hash []byte, data interface{}), 0),
 	}, nil
 }
@@ -63,10 +58,6 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
-	}
-	header := interceptedHdr.HeaderHandler()
-	if !check.IfNil(header) && common.IsHeaderExcluded(hip.roundExclusions, header.GetRound(), header.GetShardID(), interceptedHdr.Hash()) {
-		return common.ErrRoundExcluded
 	}
 
 	hip.blackList.Sweep()
@@ -85,14 +76,10 @@ func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 	if !ok {
 		return false, process.ErrWrongTypeAssertion
 	}
-	header := interceptedHdr.HeaderHandler()
-	if !check.IfNil(header) && common.IsHeaderExcluded(hip.roundExclusions, header.GetRound(), header.GetShardID(), interceptedHdr.Hash()) {
-		return false, common.ErrRoundExcluded
-	}
 
-	go hip.notify(header, interceptedHdr.Hash(), topic)
+	go hip.notify(interceptedHdr.HeaderHandler(), interceptedHdr.Hash(), topic)
 
-	hip.headers.AddHeader(interceptedHdr.Hash(), header)
+	hip.headers.AddHeader(interceptedHdr.Hash(), interceptedHdr.HeaderHandler())
 
 	return true, nil
 }

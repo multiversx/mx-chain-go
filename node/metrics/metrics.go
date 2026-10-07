@@ -82,7 +82,6 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricTotalFees, initZeroString)
-	appStatusHandler.SetUInt64Value(common.MetricTxPoolLoad, initUint)
 
 	return nil
 }

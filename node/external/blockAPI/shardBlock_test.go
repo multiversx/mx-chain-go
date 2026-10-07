@@ -73,7 +73,6 @@ func createMockShardAPIProcessor(
 		ProofsPool:                   &dataRetrieverTestsCommon.ProofsPoolMock{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
 		BlockChain:                   chainHandler,
-		RoundExclusionHandler:        createEmptyRoundExclusionHandler(),
 	}, nil)
 }
 

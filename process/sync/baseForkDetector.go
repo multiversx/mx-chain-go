@@ -95,7 +95,6 @@ type baseForkDetector struct {
 	proofsPool             process.ProofsPool
 	chainParametersHandler common.ChainParametersHandler
 	processConfigsHandler  common.ProcessConfigsHandler
-	roundExclusions        common.RoundExclusionHandler
 }
 
 // SetRollBackNonce sets the nonce where the chain should roll back
@@ -143,9 +142,6 @@ func (bfd *baseForkDetector) checkBlockBasicValidity(
 	}
 	if headerHash == nil {
 		return ErrNilHash
-	}
-	if bfd.isHeaderExcluded(header.GetRound(), headerHash) {
-		return common.ErrRoundExcluded
 	}
 
 	roundDif := int64(header.GetRound()) - int64(bfd.finalCheckpoint().round)
@@ -297,9 +293,6 @@ func (bfd *baseForkDetector) classifyProbableHeaders(
 
 	uniqueProofs := 0
 	for index, hdrInfo := range hdrInfos {
-		if bfd.isHeaderExcluded(hdrInfo.round, hdrInfo.hash) {
-			continue
-		}
 		isV3 := false
 		if canSelectBranch || hdrInfo.state == process.BHNotarized {
 			isV3 = bfd.isAsyncExecutionEnabled(hdrInfo)
@@ -913,10 +906,6 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 }
 
 func (bfd *baseForkDetector) appendHeaderInfo(hdrInfo *headerInfo) appendHeaderInfoResult {
-	if hdrInfo == nil || bfd.isHeaderExcluded(hdrInfo.round, hdrInfo.hash) {
-		return appendHeaderInfoResult{}
-	}
-
 	bfd.mutHeaders.Lock()
 	defer bfd.mutHeaders.Unlock()
 
@@ -1307,7 +1296,7 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 			continue
 		}
 
-		selfHdrInfo = bfd.getProcessedHeaderInfo(hdrsInfo)
+		selfHdrInfo = getProcessedHeaderInfo(hdrsInfo)
 		if selfHdrInfo == nil {
 			continue
 		}
@@ -1317,9 +1306,6 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		forkHeaderEpoch = 0
 		bfd.maxForkHeaderEpoch = selfHdrInfo.epoch
 		for _, hdrInfo := range hdrsInfo {
-			if bfd.isHeaderExcluded(hdrInfo.round, hdrInfo.hash) {
-				continue
-			}
 			if hdrInfo.state == process.BHProcessed ||
 				!bfd.isForkCandidateForProcessedHeader(selfHdrInfo, hdrInfo) {
 				continue
@@ -1330,9 +1316,6 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 		}
 
 		for i := 0; i < len(hdrsInfo); i++ {
-			if bfd.isHeaderExcluded(hdrsInfo[i].round, hdrsInfo[i].hash) {
-				continue
-			}
 			if hdrsInfo[i].state == process.BHProcessed {
 				continue
 			}
@@ -1362,12 +1345,9 @@ func (bfd *baseForkDetector) CheckFork() *process.ForkInfo {
 	return forkInfoObject
 }
 
-func (bfd *baseForkDetector) getProcessedHeaderInfo(hdrInfos []*headerInfo) *headerInfo {
+func getProcessedHeaderInfo(hdrInfos []*headerInfo) *headerInfo {
 	var processedHeader *headerInfo
 	for _, hdrInfo := range hdrInfos {
-		if bfd.isHeaderExcluded(hdrInfo.round, hdrInfo.hash) {
-			continue
-		}
 		if hdrInfo.state == process.BHProcessed {
 			processedHeader = hdrInfo
 		}
@@ -1941,10 +1921,6 @@ func (bfd *baseForkDetector) ReceivedProof(proof data.HeaderProofHandler) {
 }
 
 func (bfd *baseForkDetector) processReceivedProof(proof data.HeaderProofHandler) {
-	if check.IfNil(proof) || bfd.isHeaderExcluded(proof.GetHeaderRound(), proof.GetHeaderHash()) {
-		return
-	}
-
 	bfd.setHighestNonceReceived(proof.GetHeaderNonce())
 
 	hInfo := &headerInfo{
@@ -1979,10 +1955,6 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	selfNotarizedHeadersHashes [][]byte,
 	doJobOnBHProcessed func(data.HeaderHandler, []byte, []data.HeaderHandler, [][]byte),
 ) {
-	if bfd.isHeaderExcluded(header.GetRound(), headerHash) {
-		return
-	}
-
 	hasProof := true // old blocks have consensus proof on them
 	if common.IsProofsFlagEnabledForHeader(bfd.enableEpochsHandler, header) {
 		hasProof = bfd.proofsPool.HasProof(header.GetShardID(), headerHash)
@@ -2031,10 +2003,6 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		"last checkpoint nonce", bfd.lastCheckpoint().nonce,
 		"final checkpoint nonce", bfd.finalCheckpoint().nonce,
 		"has proof", hInfo.hasProof)
-}
-
-func (bfd *baseForkDetector) isHeaderExcluded(round uint64, hash []byte) bool {
-	return common.IsHeaderExcluded(bfd.roundExclusions, round, bfd.shardID, hash)
 }
 
 // SetFinalToLastCheckpoint sets the final and settled checkpoints to the last checkpoint added in

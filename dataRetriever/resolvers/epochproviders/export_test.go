@@ -11,7 +11,6 @@ func NewTestArithmeticEpochProvider(arg ArgArithmeticEpochProvider, unixHandler 
 		getUnixHandler:                  unixHandler,
 		enableEpochsHandler:             arg.EnableEpochsHandler,
 		assumedPeersNumActivePersisters: arg.AssumedPeersNumActivePersisters,
-		useObservedEpoch:                arg.UseObservedEpoch,
 	}
 	aep.computeCurrentEpoch()
 

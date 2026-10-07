@@ -95,6 +95,7 @@ func TestHistoryRepositoryFactory_CreateMissingStorersReturnsError(t *testing.T)
 	t.Run("missing EpochByHashUnit", testWithMissingStorer(dataRetriever.EpochByHashUnit))
 	t.Run("missing MiniblockHashByTxHashUnit", testWithMissingStorer(dataRetriever.MiniblockHashByTxHashUnit))
 	t.Run("missing ResultsHashesByTxHashUnit", testWithMissingStorer(dataRetriever.ResultsHashesByTxHashUnit))
+	t.Run("missing ExecutionResultsUnit", testWithMissingStorer(dataRetriever.ExecutionResultsUnit))
 }
 
 func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T) {

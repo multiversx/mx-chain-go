@@ -110,15 +110,6 @@ func checkArgs(args ArgTopicRequestSender) error {
 // SendOnRequestTopic is used to send request data over channels (topics) to other peers
 // This method only sends the request, the received data should be handled by interceptors
 func (trs *topicRequestSender) SendOnRequestTopic(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-	return trs.sendOnRequestTopic(rd, originalHashes, false)
-}
-
-// SendOnRequestTopicIncludingMainPeers also queries main peers during checkpoint trie recovery.
-func (trs *topicRequestSender) SendOnRequestTopicIncludingMainPeers(rd *dataRetriever.RequestData, originalHashes [][]byte) error {
-	return trs.sendOnRequestTopic(rd, originalHashes, true)
-}
-
-func (trs *topicRequestSender) sendOnRequestTopic(rd *dataRetriever.RequestData, originalHashes [][]byte, includeMainPeers bool) error {
 	buff, err := trs.marshaller.Marshal(rd)
 	if err != nil {
 		return err
@@ -132,7 +123,7 @@ func (trs *topicRequestSender) sendOnRequestTopic(rd *dataRetriever.RequestData,
 		epochOnMainPeers = trs.currentNetworkEpochProviderHandler.EpochIsAvailableOnMainPeers(rd.Epoch)
 	}
 	sendToFullArchive := !epochIsRecent
-	sendToMain := epochOnMainPeers || includeMainPeers
+	sendToMain := epochOnMainPeers
 
 	var numSentIntra, numSentCross, numSentFullArchive int
 	var intraPeers, crossPeers []core.PeerID

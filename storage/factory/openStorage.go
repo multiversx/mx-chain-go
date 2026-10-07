@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -21,7 +20,6 @@ type ArgsNewOpenStorageUnits struct {
 	LatestStorageDataProvider storage.LatestStorageDataProviderHandler
 	DefaultEpochString        string
 	DefaultShardString        string
-	RecoveryCheckpointEnabled bool
 }
 
 type openStorageUnits struct {
@@ -29,7 +27,6 @@ type openStorageUnits struct {
 	latestStorageDataProvider storage.LatestStorageDataProviderHandler
 	defaultEpochString        string
 	defaultShardString        string
-	recoveryCheckpointEnabled bool
 }
 
 // NewStorageUnitOpenHandler creates an openStorageUnits component
@@ -46,7 +43,6 @@ func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits,
 		defaultShardString:        args.DefaultShardString,
 		bootstrapDataProvider:     args.BootstrapDataProvider,
 		latestStorageDataProvider: args.LatestStorageDataProvider,
-		recoveryCheckpointEnabled: args.RecoveryCheckpointEnabled,
 	}
 
 	return o, nil
@@ -54,15 +50,27 @@ func NewStorageUnitOpenHandler(args ArgsNewOpenStorageUnits) (*openStorageUnits,
 
 // GetMostRecentStorageUnit will open bootstrap storage unit
 func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (storage.Storer, error) {
-	persisterFactory, err := NewPersisterFactory(dbConfig)
+	parentDir, lastEpoch, err := o.latestStorageDataProvider.GetParentDirAndLastEpoch()
 	if err != nil {
 		return nil, err
 	}
 
-	persisterPath, err := o.getMostRecentPersisterPath(dbConfig, persisterFactory)
+	persisterFactory, err := NewPersisterFactory(dbConfig)
 	if err != nil {
 		return nil, err
 	}
+	pathWithoutShard := o.getPathWithoutShard(parentDir, lastEpoch)
+	shardIdsStr, err := o.latestStorageDataProvider.GetShardsFromDirectory(pathWithoutShard)
+	if err != nil {
+		return nil, err
+	}
+
+	mostRecentShard, err := o.getMostUpToDateDirectory(dbConfig, pathWithoutShard, shardIdsStr, persisterFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	persisterPath := o.getPersisterPath(pathWithoutShard, mostRecentShard, dbConfig)
 
 	persister, err := persisterFactory.CreateWithRetries(persisterPath)
 	if err != nil {
@@ -80,34 +88,6 @@ func (o *openStorageUnits) GetMostRecentStorageUnit(dbConfig config.DBConfig) (s
 	}
 
 	return storer, nil
-}
-
-func (o *openStorageUnits) getMostRecentPersisterPath(dbConfig config.DBConfig, persisterFactory storage.PersisterFactory) (string, error) {
-	if o.recoveryCheckpointEnabled {
-		selected, err := o.latestStorageDataProvider.Get()
-		if err != nil {
-			return "", err
-		}
-		parentDir := o.latestStorageDataProvider.GetParentDirectory()
-		pathWithoutShard := o.getPathWithoutShard(parentDir, selected.Epoch)
-		return o.getPersisterPath(pathWithoutShard, core.GetShardIDString(selected.ShardID), dbConfig), nil
-	}
-
-	parentDir, lastEpoch, err := o.latestStorageDataProvider.GetParentDirAndLastEpoch()
-	if err != nil {
-		return "", err
-	}
-	pathWithoutShard := o.getPathWithoutShard(parentDir, lastEpoch)
-	shardIdsStr, err := o.latestStorageDataProvider.GetShardsFromDirectory(pathWithoutShard)
-	if err != nil {
-		return "", err
-	}
-
-	mostRecentShard, err := o.getMostUpToDateDirectory(dbConfig, pathWithoutShard, shardIdsStr, persisterFactory)
-	if err != nil {
-		return "", err
-	}
-	return o.getPersisterPath(pathWithoutShard, mostRecentShard, dbConfig), nil
 }
 
 func (o *openStorageUnits) getPathWithoutShard(parentDir string, epoch uint32) string {

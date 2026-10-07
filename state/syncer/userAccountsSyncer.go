@@ -107,36 +107,12 @@ func NewUserAccountsSyncer(args ArgsNewUserAccountsSyncer) (*userAccountsSyncer,
 
 // SyncAccounts will launch the syncing method to gather all the data needed for userAccounts - it is a blocking method
 func (u *userAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
-	return u.syncAccounts(rootHash, storageMarker, u.checkNodesOnDisk, false, u.requestHandler)
-}
-
-// SyncAccountsWithDiskCheck completes local state and requests missing nodes for the given epoch.
-func (u *userAccountsSyncer) SyncAccountsWithDiskCheck(rootHash []byte, storageMarker common.StorageMarker, epoch uint32) error {
-	requestHandler, err := newRecoveryTrieRequestHandler(u.requestHandler, epoch)
-	if err != nil {
-		return err
-	}
-	return u.syncAccounts(rootHash, storageMarker, true, true, requestHandler)
-}
-
-func (u *userAccountsSyncer) syncAccounts(
-	rootHash []byte,
-	storageMarker common.StorageMarker,
-	checkNodesOnDisk bool,
-	resetDataTries bool,
-	requestHandler trie.RequestHandler,
-) error {
 	if check.IfNil(storageMarker) {
 		return ErrNilStorageMarker
 	}
 
 	u.mutex.Lock()
 	defer u.mutex.Unlock()
-	if resetDataTries {
-		u.syncerMutex.Lock()
-		u.dataTries = make(map[string]struct{})
-		u.syncerMutex.Unlock()
-	}
 
 	u.timeoutHandler.ResetWatchdog()
 
@@ -157,7 +133,7 @@ func (u *userAccountsSyncer) syncAccounts(
 	wgSyncMainTrie.Add(1)
 
 	go func() {
-		err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels.LeavesChan, checkNodesOnDisk, requestHandler)
+		err := u.syncMainTrie(rootHash, factory.AccountTrieNodesTopic, ctx, leavesChannels.LeavesChan)
 		if err != nil {
 			leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 		}
@@ -167,7 +143,7 @@ func (u *userAccountsSyncer) syncAccounts(
 		wgSyncMainTrie.Done()
 	}()
 
-	err := u.syncAccountDataTries(leavesChannels, ctx, checkNodesOnDisk, requestHandler)
+	err := u.syncAccountDataTries(leavesChannels, ctx)
 	if err != nil {
 		return err
 	}
@@ -186,13 +162,7 @@ func (u *userAccountsSyncer) syncAccounts(
 	return nil
 }
 
-func (u *userAccountsSyncer) syncDataTrie(
-	rootHash []byte,
-	address []byte,
-	ctx context.Context,
-	checkNodesOnDisk bool,
-	requestHandler trie.RequestHandler,
-) error {
+func (u *userAccountsSyncer) syncDataTrie(rootHash []byte, address []byte, ctx context.Context) error {
 	u.syncerMutex.Lock()
 	_, ok := u.dataTries[string(rootHash)]
 	if ok {
@@ -203,7 +173,7 @@ func (u *userAccountsSyncer) syncDataTrie(
 	u.dataTries[string(rootHash)] = struct{}{}
 	u.syncerMutex.Unlock()
 
-	trieSyncer, err := u.createAndStartSyncer(ctx, rootHash, checkNodesOnDisk, requestHandler)
+	trieSyncer, err := u.createAndStartSyncer(ctx, rootHash, u.checkNodesOnDisk)
 	if err != nil {
 		return err
 	}
@@ -217,11 +187,9 @@ func (u *userAccountsSyncer) createAndStartSyncer(
 	ctx context.Context,
 	hash []byte,
 	checkNodesOnDisk bool,
-	requestHandler trie.RequestHandler,
 ) (trie.TrieSyncer, error) {
 	arg := trie.ArgTrieSyncer{
-		RecoveryEpoch:             recoveryEpochForSync(requestHandler),
-		RequestHandler:            requestHandler,
+		RequestHandler:            u.requestHandler,
 		InterceptedNodes:          u.cacher,
 		DB:                        u.trieStorageManager,
 		Marshalizer:               u.marshalizer,
@@ -271,8 +239,6 @@ func (u *userAccountsSyncer) updateDataTrieStatistics(trieSyncer trie.TrieSyncer
 func (u *userAccountsSyncer) syncAccountDataTries(
 	leavesChannels *common.TrieIteratorChannels,
 	ctx context.Context,
-	checkNodesOnDisk bool,
-	requestHandler trie.RequestHandler,
 ) error {
 	if leavesChannels == nil {
 		return trie.ErrNilTrieIteratorChannels
@@ -308,7 +274,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 			defer u.throttler.EndProcessing()
 
 			log.Trace("sync data trie", "roothash", trieRootHash)
-			err := u.syncDataTrie(trieRootHash, address, ctx, checkNodesOnDisk, requestHandler)
+			err := u.syncDataTrie(trieRootHash, address, ctx)
 			if err != nil {
 				leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 			}
@@ -386,7 +352,7 @@ func (u *userAccountsSyncer) MissingDataTrieNodeFound(hash []byte) {
 		cancel()
 	}()
 
-	trieSyncer, err := u.createAndStartSyncer(ctx, hash, true, u.requestHandler)
+	trieSyncer, err := u.createAndStartSyncer(ctx, hash, true)
 	if err != nil {
 		log.Error("cannot sync trie", "err", err, "hash", hash)
 		return

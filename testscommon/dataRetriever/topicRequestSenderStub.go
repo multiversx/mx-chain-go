@@ -4,21 +4,13 @@ import "github.com/multiversx/mx-chain-go/dataRetriever"
 
 // TopicRequestSenderStub -
 type TopicRequestSenderStub struct {
-	SendOnRequestTopicIncludingMainPeersCalled func(*dataRetriever.RequestData, [][]byte) error
-	SendOnRequestTopicCalled                   func(rd *dataRetriever.RequestData, originalHashes [][]byte) error
-	SetNumPeersToQueryCalled                   func(intra int, cross int)
-	GetNumPeersToQueryCalled                   func() (int, int)
-	RequestTopicCalled                         func() string
-	TargetShardIDCalled                        func() uint32
-	SetDebugHandlerCalled                      func(handler dataRetriever.DebugHandler) error
-	DebugHandlerCalled                         func() dataRetriever.DebugHandler
-}
-
-func (stub *TopicRequestSenderStub) SendOnRequestTopicIncludingMainPeers(rd *dataRetriever.RequestData, hashes [][]byte) error {
-	if stub.SendOnRequestTopicIncludingMainPeersCalled != nil {
-		return stub.SendOnRequestTopicIncludingMainPeersCalled(rd, hashes)
-	}
-	return nil
+	SendOnRequestTopicCalled func(rd *dataRetriever.RequestData, originalHashes [][]byte) error
+	SetNumPeersToQueryCalled func(intra int, cross int)
+	GetNumPeersToQueryCalled func() (int, int)
+	RequestTopicCalled       func() string
+	TargetShardIDCalled      func() uint32
+	SetDebugHandlerCalled    func(handler dataRetriever.DebugHandler) error
+	DebugHandlerCalled       func() dataRetriever.DebugHandler
 }
 
 // SendOnRequestTopic -

@@ -35,5 +35,4 @@ type ArgAPIBlockProcessor struct {
 	EnableRoundsHandler          common.EnableRoundsHandler
 	ProofsPool                   dataRetriever.ProofsPool
 	BlockChain                   data.ChainHandler
-	RoundExclusionHandler        common.RoundExclusionHandler
 }

@@ -87,10 +87,6 @@ func NewShardInterceptorsContainerFactory(
 	if args.HeartbeatExpiryTimespanInSec < minTimespanDurationInSec {
 		return nil, process.ErrInvalidExpiryTimespan
 	}
-	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&args.Config)
-	if err != nil {
-		return nil, err
-	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents:                          args.CoreComponents,
@@ -111,7 +107,6 @@ func NewShardInterceptorsContainerFactory(
 		PeerShardMapper:                         args.MainPeerShardMapper,
 		PeerAuthCacher:                          args.DataPool.PeerAuthentications(),
 		PeerAuthenticationTimeBetweenSendsInSec: args.PeerAuthenticationTimeBetweenSendsInSec,
-		RoundExclusions:                         roundExclusions,
 	}
 
 	base := &baseInterceptorsContainerFactory{
@@ -141,7 +136,6 @@ func NewShardInterceptorsContainerFactory(
 		nodeOperationMode:               args.NodeOperationMode,
 		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 		enableEpochsHandler:             args.CoreComponents.EnableEpochsHandler(),
-		roundExclusions:                 roundExclusions,
 		config:                          args.Config,
 	}
 

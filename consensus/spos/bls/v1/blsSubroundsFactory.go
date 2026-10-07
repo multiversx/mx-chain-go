@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -25,7 +24,6 @@ type factory struct {
 	sentSignaturesTracker spos.SentSignaturesTracker
 	chainID               []byte
 	currentPid            core.PeerID
-	roundExclusions       common.RoundExclusionHandler
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -38,7 +36,6 @@ func NewSubroundsFactory(
 	appStatusHandler core.AppStatusHandler,
 	sentSignaturesTracker spos.SentSignaturesTracker,
 	outportHandler outport.OutportHandler,
-	roundExclusionHandlers ...common.RoundExclusionHandler,
 ) (*factory, error) {
 	// no need to check the outportHandler, it can be nil
 	err := checkNewFactoryParams(
@@ -52,10 +49,6 @@ func NewSubroundsFactory(
 	if err != nil {
 		return nil, err
 	}
-	roundExclusions, err := common.ResolveRoundExclusionHandler(roundExclusionHandlers...)
-	if err != nil {
-		return nil, err
-	}
 
 	fct := factory{
 		consensusCore:         consensusDataContainer,
@@ -66,7 +59,6 @@ func NewSubroundsFactory(
 		currentPid:            currentPid,
 		sentSignaturesTracker: sentSignaturesTracker,
 		outportHandler:        outportHandler,
-		roundExclusions:       roundExclusions,
 	}
 
 	return &fct, nil
@@ -214,7 +206,6 @@ func (fct *factory) generateBlockSubround(timing config.ConsensusConfigByRound) 
 		subround,
 		fct.worker.Extend,
 		int(timing.ProcessingThresholdPercent),
-		fct.roundExclusions,
 	)
 	if err != nil {
 		return err

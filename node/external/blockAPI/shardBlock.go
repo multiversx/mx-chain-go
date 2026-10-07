@@ -43,7 +43,6 @@ func newShardApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []by
 			proofsPool:                   arg.ProofsPool,
 			blockchain:                   arg.BlockChain,
 			enableRoundsHandler:          arg.EnableRoundsHandler,
-			roundExclusionHandler:        arg.RoundExclusionHandler,
 		},
 	}
 }
@@ -122,10 +121,6 @@ func (sbp *shardAPIBlockProcessor) GetBlockByHash(hash []byte, options api.Block
 
 // GetBlockByRound will return a shard APIBlock by round
 func (sbp *shardAPIBlockProcessor) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
-	if err := sbp.checkRoundExcluded(round); err != nil {
-		return nil, err
-	}
-
 	headerHash, blockBytes, err := sbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
@@ -180,11 +175,6 @@ func (sbp *shardAPIBlockProcessor) getHashAndBlockBytesFromStorerByNonce(params 
 
 func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte, blockBytes []byte, options api.BlockQueryOptions) (*api.Block, error) {
 	blockHeader, err := process.UnmarshalShardHeader(sbp.marshalizer, blockBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	err = sbp.checkRoundExcluded(blockHeader.GetRound())
 	if err != nil {
 		return nil, err
 	}

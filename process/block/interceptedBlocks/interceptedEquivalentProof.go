@@ -34,7 +34,6 @@ type ArgInterceptedEquivalentProof struct {
 	ProofSizeChecker  common.FieldsSizeChecker
 	KeyRWMutexHandler sync.KeyRWMutexHandler
 	ValidityAttester  process.ValidityAttester
-	RoundExclusions   common.RoundExclusionHandler
 }
 
 type interceptedEquivalentProof struct {
@@ -49,7 +48,6 @@ type interceptedEquivalentProof struct {
 	proofSizeChecker  common.FieldsSizeChecker
 	km                sync.KeyRWMutexHandler
 	validityAttester  process.ValidityAttester
-	roundExclusions   common.RoundExclusionHandler
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -78,7 +76,6 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		hash:              hash,
 		km:                args.KeyRWMutexHandler,
 		validityAttester:  args.ValidityAttester,
-		roundExclusions:   args.RoundExclusions,
 	}, nil
 }
 
@@ -112,9 +109,6 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.ValidityAttester) {
 		return process.ErrNilValidityAttester
-	}
-	if check.IfNil(args.RoundExclusions) {
-		return common.ErrNilRoundExclusionHandler
 	}
 
 	return nil
@@ -157,9 +151,6 @@ func extractIsForCurrentShard(shardCoordinator sharding.Coordinator, equivalentP
 // CheckValidity checks if the received proof is valid
 func (iep *interceptedEquivalentProof) CheckValidity() error {
 	log.Trace("Checking intercepted equivalent proof validity", "proof header hash", iep.proof.HeaderHash)
-	if common.IsHeaderExcluded(iep.roundExclusions, iep.proof.GetHeaderRound(), iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash()) {
-		return common.ErrRoundExcluded
-	}
 
 	err := iep.integrity()
 	if err != nil {

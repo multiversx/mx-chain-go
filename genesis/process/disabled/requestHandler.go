@@ -5,8 +5,6 @@ import "time"
 // RequestHandler implements the RequestHandler interface but does nothing as it is disabled
 type RequestHandler struct{}
 
-func (r *RequestHandler) SetRecoveryTrieRequests(_ bool) {}
-
 // SetEpoch does nothing
 func (r *RequestHandler) SetEpoch(_ uint32) {}
 

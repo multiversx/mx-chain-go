@@ -183,9 +183,6 @@ type HeartbeatV2Config struct {
 
 // Config will hold the entire application configuration parameters
 type Config struct {
-	HardforkRoundExclusions    []HardforkRoundExclusionConfig
-	HardforkRecoveryCheckpoint HardforkRecoveryCheckpointConfig
-
 	MiniBlocksStorage               StorageConfig
 	PeerBlockBodyStorage            StorageConfig
 	BlockHeaderStorage              StorageConfig
@@ -287,23 +284,6 @@ type Config struct {
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
 	DirectSentTransactions  DirectSentTransactionsConfig
-}
-
-// HardforkRoundExclusionConfig defines an inclusive interval of rounds which cannot be accepted.
-type HardforkRoundExclusionConfig struct {
-	StartRound uint64
-	EndRound   uint64
-}
-
-type HardforkRecoveryCheckpointConfig struct {
-	Enabled bool
-	Round   uint64
-	Headers []HardforkRecoveryHeaderConfig
-}
-
-type HardforkRecoveryHeaderConfig struct {
-	ShardID uint32
-	Hash    string
 }
 
 // PeersRatingConfig will hold settings related to peers rating

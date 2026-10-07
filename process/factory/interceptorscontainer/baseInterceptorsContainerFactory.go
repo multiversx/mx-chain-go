@@ -62,8 +62,7 @@ type baseInterceptorsContainerFactory struct {
 	nodeOperationMode               common.NodeOperation
 	interceptedDataVerifierFactory  process.InterceptedDataVerifierFactory
 	enableEpochsHandler             common.EnableEpochsHandler
-	roundExclusions                 common.RoundExclusionHandler
-	config                          config.Config
+	config                         config.Config
 }
 
 func checkBaseParams(
@@ -468,7 +467,6 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 		BlockBlackList:      bicf.blockBlackList,
 		Proofs:              bicf.dataPool.Proofs(),
 		EnableEpochsHandler: bicf.enableEpochsHandler,
-		RoundExclusions:     bicf.roundExclusions,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -655,7 +653,6 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 		BlockBlackList:      bicf.blockBlackList,
 		Proofs:              bicf.dataPool.Proofs(),
 		EnableEpochsHandler: bicf.enableEpochsHandler,
-		RoundExclusions:     bicf.roundExclusions,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -713,19 +710,18 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
-			Topic:                          topic,
-			Marshalizer:                    internalMarshaller,
-			Hasher:                         bicf.argInterceptorFactory.CoreComponents.Hasher(),
-			DataFactory:                    trieNodesFactory,
-			Processor:                      trieNodesProcessor,
-			Throttler:                      bicf.globalThrottler,
-			AntifloodHandler:               bicf.antifloodHandler,
-			WhiteListRequest:               bicf.whiteListHandler,
-			CurrentPeerId:                  bicf.mainMessenger.ID(),
-			PreferredPeersHolder:           bicf.preferredPeersHolder,
-			InterceptedDataVerifier:        interceptedDataVerifier,
-			ManagedPeersHolder:             bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
-			SkipUnrequestedDirectTrieNodes: true,
+			Topic:                   topic,
+			Marshalizer:             internalMarshaller,
+			Hasher:                  bicf.argInterceptorFactory.CoreComponents.Hasher(),
+			DataFactory:             trieNodesFactory,
+			Processor:               trieNodesProcessor,
+			Throttler:               bicf.globalThrottler,
+			AntifloodHandler:        bicf.antifloodHandler,
+			WhiteListRequest:        bicf.whiteListHandler,
+			CurrentPeerId:           bicf.mainMessenger.ID(),
+			PreferredPeersHolder:    bicf.preferredPeersHolder,
+			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      bicf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {

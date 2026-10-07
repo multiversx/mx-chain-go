@@ -64,5 +64,4 @@ type ArgInterceptedDataFactory struct {
 	PeerShardMapper                         process.PeerShardMapper
 	PeerAuthCacher                          storage.Cacher
 	PeerAuthenticationTimeBetweenSendsInSec int64
-	RoundExclusions                         common.RoundExclusionHandler
 }

@@ -53,8 +53,6 @@ type fullSyncInterceptorsContainerFactory struct {
 	preferredPeersHolder           update.PreferredPeersHolderHandler
 	nodeOperationMode              common.NodeOperation
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
-	enableEpochsHandler            common.EnableEpochsHandler
-	roundExclusions                common.RoundExclusionHandler
 	config                         config.Config
 }
 
@@ -146,10 +144,6 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.InterceptedDataVerifierFactory) {
 		return nil, process.ErrNilInterceptedDataVerifierFactory
 	}
-	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&args.Config)
-	if err != nil {
-		return nil, err
-	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents:                          args.CoreComponents,
@@ -165,7 +159,6 @@ func NewFullSyncInterceptorsContainerFactory(
 		ArgsParser:                              smartContract.NewArgumentParser(),
 		PeerAuthCacher:                          args.DataPool.PeerAuthentications(),
 		PeerAuthenticationTimeBetweenSendsInSec: args.PeerAuthenticationTimeBetweenSendsInSec,
-		RoundExclusions:                         roundExclusions,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{
@@ -188,8 +181,6 @@ func NewFullSyncInterceptorsContainerFactory(
 		preferredPeersHolder:           disabled.NewPreferredPeersHolder(),
 		nodeOperationMode:              args.NodeOperationMode,
 		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
-		enableEpochsHandler:            args.CoreComponents.EnableEpochsHandler(),
-		roundExclusions:                roundExclusions,
 	}
 
 	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
@@ -370,11 +361,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:             ficf.dataPool.Headers(),
-		BlockBlackList:      ficf.blockBlackList,
-		Proofs:              ficf.dataPool.Proofs(),
-		EnableEpochsHandler: ficf.enableEpochsHandler,
-		RoundExclusions:     ficf.roundExclusions,
+		Headers:        ficf.dataPool.Headers(),
+		BlockBlackList: ficf.blockBlackList,
+		Proofs:         ficf.dataPool.Proofs(),
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -846,11 +835,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:             ficf.dataPool.Headers(),
-		BlockBlackList:      ficf.blockBlackList,
-		Proofs:              ficf.dataPool.Proofs(),
-		EnableEpochsHandler: ficf.enableEpochsHandler,
-		RoundExclusions:     ficf.roundExclusions,
+		Headers:        ficf.dataPool.Headers(),
+		BlockBlackList: ficf.blockBlackList,
+		Proofs:         ficf.dataPool.Proofs(),
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

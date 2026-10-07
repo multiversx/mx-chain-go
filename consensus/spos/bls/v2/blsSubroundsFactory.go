@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -30,7 +29,6 @@ type factory struct {
 	ntpSyncController     spos.NtpSyncControllerHandler
 	// instantiated once on the factory so the evidence survives subround regeneration
 	signatureEvidence signatureEvidenceHandler
-	roundExclusions   common.RoundExclusionHandler
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -44,7 +42,6 @@ func NewSubroundsFactory(
 	sentSignaturesTracker spos.SentSignaturesTracker,
 	signatureThrottler core.Throttler,
 	outportHandler outport.OutportHandler,
-	roundExclusionHandlers ...common.RoundExclusionHandler,
 ) (*factory, error) {
 	// no need to check the outport handler, it can be nil
 	err := checkNewFactoryParams(
@@ -56,10 +53,6 @@ func NewSubroundsFactory(
 		sentSignaturesTracker,
 		signatureThrottler,
 	)
-	if err != nil {
-		return nil, err
-	}
-	roundExclusions, err := common.ResolveRoundExclusionHandler(roundExclusionHandlers...)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +83,6 @@ func NewSubroundsFactory(
 		outportHandler:        outportHandler,
 		signatureEvidence:     signatureEvidence,
 		ntpSyncController:     syncController,
-		roundExclusions:       roundExclusions,
 	}
 
 	return &fct, nil
@@ -244,7 +236,6 @@ func (fct *factory) generateBlockSubround(timing config.ConsensusConfigByRound) 
 		fct.ntpSyncController,
 		fct.signatureThrottler,
 		fct.signatureEvidence,
-		fct.roundExclusions,
 	)
 	if err != nil {
 		return err

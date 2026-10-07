@@ -2,7 +2,6 @@ package factory
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -32,16 +31,10 @@ type interceptedEquivalentProofsFactory struct {
 	proofSizeChecker  common.FieldsSizeChecker
 	km                sync.KeyRWMutexHandler
 	validityAttester  process.ValidityAttester
-	roundExclusions   common.RoundExclusionHandler
 }
 
 // NewInterceptedEquivalentProofsFactory creates a new instance of interceptedEquivalentProofsFactory
 func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFactory) *interceptedEquivalentProofsFactory {
-	roundExclusions := args.ArgInterceptedDataFactory.RoundExclusions
-	if check.IfNil(roundExclusions) {
-		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
-	}
-
 	return &interceptedEquivalentProofsFactory{
 		marshaller:        args.CoreComponents.InternalMarshalizer(),
 		shardCoordinator:  args.ShardCoordinator,
@@ -52,7 +45,6 @@ func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFa
 		proofSizeChecker:  args.CoreComponents.FieldsSizeChecker(),
 		km:                sync.NewKeyRWMutex(),
 		validityAttester:  args.ValidityAttester,
-		roundExclusions:   roundExclusions,
 	}
 }
 
@@ -69,7 +61,6 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, _ core.Pe
 		ProofSizeChecker:  factory.proofSizeChecker,
 		KeyRWMutexHandler: factory.km,
 		ValidityAttester:  factory.validityAttester,
-		RoundExclusions:   factory.roundExclusions,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }

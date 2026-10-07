@@ -37,7 +37,6 @@ type ArgsLatestDataProvider struct {
 
 type iteratedShardData struct {
 	bootstrapData   *bootstrapStorage.BootstrapData
-	selectionRound  int64
 	epochStartRound uint64
 	shardIDStr      string
 	successful      bool
@@ -73,11 +72,7 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 
 // Get will return a struct containing the latest usable data in storage
 func (ldp *latestDataProvider) Get() (storage.LatestDataFromStorage, error) {
-	lastData, _, storageEpoch, err := ldp.getLastData()
-	if err == nil && ldp.generalConfig.HardforkRecoveryCheckpoint.Enabled {
-		// A snapshot's anchor header may belong to the previous epoch.
-		lastData.Epoch = storageEpoch
-	}
+	lastData, _, _, err := ldp.getLastData()
 	return lastData, err
 }
 
@@ -165,7 +160,7 @@ func (ldp *latestDataProvider) getLastEpochAndRoundFromStorage(parentDir string,
 		shardData := ldp.loadDataForShard(highestRoundInStoredShards, shardIdStr, persisterFactory, persisterPath)
 		if shardData.successful {
 			epochStartRound = shardData.epochStartRound
-			highestRoundInStoredShards = shardData.selectionRound
+			highestRoundInStoredShards = shardData.bootstrapData.LastRound
 			mostRecentBootstrapData = shardData.bootstrapData
 			mostRecentShard = shardIdStr
 		}
@@ -203,11 +198,7 @@ func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shard
 		return &iteratedShardData{}
 	}
 
-	round, err := factory.GetBootstrapSelectionRound(ldp.bootstrapDataProvider, bootstrapData, storer, ldp.generalConfig.HardforkRecoveryCheckpoint.Enabled)
-	if err != nil {
-		return &iteratedShardData{}
-	}
-	if round > currentHighestRound {
+	if bootstrapData.LastRound > currentHighestRound {
 		shardID := uint32(0)
 		var err error
 		shardID, err = core.ConvertShardIDToUint32(shardIdStr)
@@ -221,7 +212,6 @@ func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shard
 
 		return &iteratedShardData{
 			bootstrapData:   bootstrapData,
-			selectionRound:  round,
 			shardIDStr:      shardIdStr,
 			epochStartRound: epochStartRound,
 			successful:      true,
