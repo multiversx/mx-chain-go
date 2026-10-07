@@ -372,6 +372,7 @@ func (mp *metaProcessor) updateMetrics(header data.MetaHeaderHandler) {
 		mp.appStatusHandler,
 		numShardHeadersFromPool,
 		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
+		uint64(txCounts.GetTotal()),
 	)
 }
 

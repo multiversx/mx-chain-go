@@ -72,6 +72,9 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	if check.IfNil(arg.EnableRoundsHandler) {
 		return process.ErrNilEnableRoundsHandler
 	}
+	if check.IfNil(arg.RoundExclusionHandler) {
+		return errNilRoundExclusionHandler
+	}
 
 	return core.CheckHandlerCompatibility(arg.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.RefactorPeersMiniBlocksFlag,

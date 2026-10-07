@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -179,6 +180,17 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	require.Empty(t, restoredScheduledInfo.MiniBlocks)
 	require.Empty(t, restoredScheduledInfo.IntermediateTxs)
 	require.Equal(t, process.GetZeroGasAndFees(), restoredScheduledInfo.GasAndFees)
+
+	roundExclusions, err := common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{
+		{StartRound: hdr.GetRound(), EndRound: hdr.GetRound()},
+	})
+	require.NoError(t, err)
+	args.RoundExclusions = roundExclusions
+	ssb, err = NewShardStorageBootstrapper(args)
+	require.NoError(t, err)
+
+	err = ssb.LoadFromStorage()
+	require.ErrorIs(t, err, common.ErrRoundExcluded)
 }
 
 func TestShardStorageBootstrapper_SetSupernovaTransitionReadyForV3(t *testing.T) {

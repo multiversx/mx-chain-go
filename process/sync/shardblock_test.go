@@ -959,6 +959,23 @@ func TestShardBootstrap_StartSyncingBlocksNotifiesBootstrapCompletion(t *testing
 	}
 }
 
+func TestShardBootstrap_StartSyncingBlocksExcludedStoredTipShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.StorageBootstrapper = &mock.StorageBootstrapperMock{
+		LoadFromStorageCalled: func() error {
+			return common.ErrRoundExcluded
+		},
+	}
+	bs, err := sync.NewShardBootstrap(args)
+	require.NoError(t, err)
+
+	err = bs.StartSyncingBlocks()
+
+	require.ErrorIs(t, err, common.ErrRoundExcluded)
+}
+
 func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	t.Parallel()
 

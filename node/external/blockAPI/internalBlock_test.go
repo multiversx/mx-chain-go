@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/state"
@@ -51,7 +52,8 @@ func createMockInternalBlockProcessor(
 					return false
 				},
 			},
-			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			RoundExclusionHandler: createEmptyRoundExclusionHandler(),
 		}, nil)
 }
 
@@ -1099,5 +1101,129 @@ func TestInternalBlockProcessor_GetInternalStartOfEpochValidatorsInfo(t *testing
 
 		assert.Nil(t, err)
 		assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
+	})
+}
+
+func TestInternalBlockProcessor_RoundExclusion(t *testing.T) {
+	t.Parallel()
+
+	excludedIntervals := []config.HardforkRoundExclusionConfig{{StartRound: 100, EndRound: 199}}
+
+	newExclusionHandler := func() common.RoundExclusionHandler {
+		handler, err := common.NewRoundExclusionHandler(excludedIntervals)
+		require.NoError(t, err)
+		return handler
+	}
+
+	t.Run("shard by hash hides excluded round for JSON and proto", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.Header{Nonce: 1, Round: 150, ShardID: 1, Epoch: 1}
+		headerBytes, _ := json.Marshal(header)
+		headerHash := []byte("shard-hash")
+		storerMock := genericMocks.NewStorerMock()
+		_ = storerMock.Put(headerHash, headerBytes)
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID:              1,
+				Marshalizer:              &mock.MarshalizerFake{},
+				Store:                    genericMocks.NewChainStorerMock(1),
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				RoundExclusionHandler:    newExclusionHandler(),
+			}, nil)
+		ibp.store = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return storerMock, nil
+			},
+			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+				return storerMock.Get(key)
+			},
+		}
+
+		blk, err := ibp.GetInternalShardBlockByHash(common.ApiOutputFormatJSON, headerHash)
+		assert.Nil(t, blk)
+		assert.Equal(t, errBlockNotFound, err)
+
+		blk, err = ibp.GetInternalShardBlockByHash(common.ApiOutputFormatProto, headerHash)
+		assert.Nil(t, blk)
+		assert.Equal(t, errBlockNotFound, err)
+	})
+
+	t.Run("shard by round with excluded round does not hit storage", func(t *testing.T) {
+		t.Parallel()
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID:              1,
+				Marshalizer:              &mock.MarshalizerFake{},
+				Store:                    genericMocks.NewChainStorerMock(1),
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				RoundExclusionHandler:    newExclusionHandler(),
+			}, nil)
+
+		blk, err := ibp.GetInternalShardBlockByRound(common.ApiOutputFormatJSON, 150)
+		assert.Nil(t, blk)
+		assert.Equal(t, errBlockNotFound, err)
+	})
+
+	t.Run("meta by hash hides excluded round for JSON and proto", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.MetaBlock{Nonce: 1, Round: 150, Epoch: 1}
+		headerBytes, _ := json.Marshal(header)
+		headerHash := []byte("meta-hash")
+		storerMock := genericMocks.NewStorerMock()
+		_ = storerMock.Put(headerHash, headerBytes)
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID:              core.MetachainShardId,
+				Marshalizer:              &mock.MarshalizerFake{},
+				Store:                    genericMocks.NewChainStorerMock(1),
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				RoundExclusionHandler:    newExclusionHandler(),
+			}, nil)
+		ibp.store = &storageMocks.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return storerMock, nil
+			},
+			GetCalled: func(unitType dataRetriever.UnitType, key []byte) ([]byte, error) {
+				return storerMock.Get(key)
+			},
+		}
+
+		blk, err := ibp.GetInternalMetaBlockByHash(common.ApiOutputFormatJSON, headerHash)
+		assert.Nil(t, blk)
+		assert.Equal(t, errBlockNotFound, err)
+
+		blk, err = ibp.GetInternalMetaBlockByHash(common.ApiOutputFormatProto, headerHash)
+		assert.Nil(t, blk)
+		assert.Equal(t, errBlockNotFound, err)
+	})
+
+	t.Run("meta by round with excluded round does not hit storage", func(t *testing.T) {
+		t.Parallel()
+
+		ibp := newInternalBlockProcessor(
+			&ArgAPIBlockProcessor{
+				SelfShardID:              core.MetachainShardId,
+				Marshalizer:              &mock.MarshalizerFake{},
+				Store:                    genericMocks.NewChainStorerMock(1),
+				Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+				HistoryRepo:              &dblookupext.HistoryRepositoryStub{},
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				RoundExclusionHandler:    newExclusionHandler(),
+			}, nil)
+
+		blk, err := ibp.GetInternalMetaBlockByRound(common.ApiOutputFormatJSON, 150)
+		assert.Nil(t, blk)
+		assert.Equal(t, errBlockNotFound, err)
 	})
 }

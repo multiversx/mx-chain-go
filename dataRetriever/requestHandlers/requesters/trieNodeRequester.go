@@ -1,6 +1,7 @@
 package requesters
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
@@ -28,6 +29,22 @@ func NewTrieNodeRequester(args ArgTrieNodeRequester) (*trieNodeRequester, error)
 // RequestDataFromHashArray requests trie nodes from other peers by having input multiple trie node hashes
 func (requester *trieNodeRequester) RequestDataFromHashArray(hashes [][]byte, epoch uint32) error {
 	return requester.requestDataFromHashArray(hashes, epoch)
+}
+
+func (requester *trieNodeRequester) RequestDataFromHashArrayForRecovery(hashes [][]byte, epoch uint32) error {
+	buff, err := requester.marshaller.Marshal(&batch.Batch{Data: hashes})
+	if err != nil {
+		return err
+	}
+	return requester.SendOnRequestTopicIncludingMainPeers(&dataRetriever.RequestData{
+		Type: dataRetriever.HashArrayType, Value: buff, Epoch: epoch,
+	}, hashes)
+}
+
+func (requester *trieNodeRequester) RequestDataFromReferenceAndChunkForRecovery(hash []byte, chunkIndex uint32) error {
+	return requester.SendOnRequestTopicIncludingMainPeers(&dataRetriever.RequestData{
+		Type: dataRetriever.HashType, Value: hash, ChunkIndex: chunkIndex,
+	}, [][]byte{hash})
 }
 
 // RequestDataFromReferenceAndChunk requests a trie node's chunk by specifying the reference and the chunk index

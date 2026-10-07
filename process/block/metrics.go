@@ -22,12 +22,19 @@ import (
 
 const leaderIndex = 0
 
+// maxRoundsInfoPerBatch caps how many RoundInfo entries are sent in a single
+// SaveRoundsInfo call. Without batching, a long pause (e.g. one day offline)
+// would accumulate tens/hundreds of thousands of missed rounds into a single
+// huge payload, which can OOM the node or fail in the drivers / indexers.
+const maxRoundsInfoPerBatch = 2000
+
 func getMetricsFromMetaHeader(
 	header data.MetaHeaderHandler,
 	marshalizer marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
 	numShardHeadersFromPool int,
 	numShardHeadersProcessed uint64,
+	numTxs uint64,
 ) {
 	numMiniBlocksMetaBlock := uint64(0)
 	headerSize := uint64(0)
@@ -41,6 +48,7 @@ func getMetricsFromMetaHeader(
 		headerSize = uint64(len(marshalizedHeader))
 	}
 
+	appStatusHandler.SetUInt64Value(common.MetricTxPoolLoad, numTxs)
 	appStatusHandler.SetUInt64Value(common.MetricHeaderSize, headerSize)
 	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(getMetaHeaderTxCount(header)))
 	appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
@@ -204,9 +212,10 @@ func indexRoundInfo(
 	lastBlockRound := lastHeader.GetRound()
 	currentBlockRound := header.GetRound()
 
-	roundsInfo := make([]*outportcore.RoundInfo, 0)
-	roundsInfo = append(roundsInfo, roundInfo)
 	epoch := header.GetEpoch()
+	batch := make([]*outportcore.RoundInfo, 0, maxRoundsInfoPerBatch)
+	batch = append(batch, roundInfo)
+
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		var ok bool
 		signersIndexes, ok = getSignersIndices(header, enableEpochsHandler, lastHeader, i, nodesCoordinator)
@@ -227,10 +236,16 @@ func indexRoundInfo(
 			TimestampMs:      roundTimestampMs,
 		}
 
-		roundsInfo = append(roundsInfo, roundInfo)
+		batch = append(batch, roundInfo)
+		if len(batch) >= maxRoundsInfoPerBatch {
+			outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: batch})
+			batch = make([]*outportcore.RoundInfo, 0, maxRoundsInfoPerBatch)
+		}
 	}
 
-	outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: roundsInfo})
+	if len(batch) > 0 {
+		outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: batch})
+	}
 }
 
 func getSignersIndices(

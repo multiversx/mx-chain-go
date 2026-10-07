@@ -55,6 +55,7 @@ type ArgBaseBootstrapper struct {
 	EnableEpochsHandler          common.EnableEpochsHandler
 	EnableRoundsHandler          common.EnableRoundsHandler
 	ProcessConfigsHandler        common.ProcessConfigsHandler
+	RecoveryCheckpoint           *common.RecoveryCheckpoint
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create

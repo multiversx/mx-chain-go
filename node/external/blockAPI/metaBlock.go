@@ -43,6 +43,7 @@ func newMetaApiBlockProcessor(arg *ArgAPIBlockProcessor, emptyReceiptsHash []byt
 			proofsPool:                   arg.ProofsPool,
 			blockchain:                   arg.BlockChain,
 			enableRoundsHandler:          arg.EnableRoundsHandler,
+			roundExclusionHandler:        arg.RoundExclusionHandler,
 		},
 	}
 }
@@ -119,6 +120,10 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, options api.BlockQ
 
 // GetBlockByRound will return a meta APIBlock by round
 func (mbp *metaAPIBlockProcessor) GetBlockByRound(round uint64, options api.BlockQueryOptions) (*api.Block, error) {
+	if err := mbp.checkRoundExcluded(round); err != nil {
+		return nil, err
+	}
+
 	headerHash, blockBytes, err := mbp.getBlockHeaderHashAndBytesByRound(round, dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return nil, err
@@ -173,6 +178,11 @@ func (mbp *metaAPIBlockProcessor) getHashAndBlockBytesFromStorerByNonce(params a
 
 func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, blockBytes []byte, options api.BlockQueryOptions) (*api.Block, error) {
 	blockHeader, err := process.UnmarshalMetaHeader(mbp.marshalizer, blockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mbp.checkRoundExcluded(blockHeader.GetRound())
 	if err != nil {
 		return nil, err
 	}
