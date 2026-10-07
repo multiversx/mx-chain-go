@@ -202,4 +202,4 @@ replace github.com/ipfs/go-log/v2 => github.com/sstanculeanu/go-log/v2 v2.0.0-20
 
 replace github.com/multiversx/mx-chain-vm-common-go => github.com/multiversx/mx-chain-vm-common-go-ghsa-w84w-h39x-g6cq v1.7.3-0.20261005164206-9f7d806f3e03
 
-replace github.com/multiversx/mx-chain-vm-go => github.com/multiversx/mx-chain-vm-go-ghsa-f474-vg6c-h9f2 v1.5.51-0.20261006144807-3c0d0e7283c3
+replace github.com/multiversx/mx-chain-vm-go => github.com/multiversx/mx-chain-vm-go-ghsa-f474-vg6c-h9f2 v1.5.51-0.20261007065300-e367fb6e4c89
