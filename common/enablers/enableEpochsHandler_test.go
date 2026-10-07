@@ -219,6 +219,18 @@ func TestEnableEpochsHandler_FixEpochChangeProposedCurrentEpochFlag(t *testing.T
 	require.True(t, handler.IsFlagEnabledInEpoch(common.FixEpochChangeProposedCurrentEpochFlag, cfg.FixEpochChangeProposedCurrentEpochEnableEpoch+1))
 }
 
+func TestEnableEpochsHandler_FixDataTrieLeafValidation(t *testing.T) {
+	cfg := createEnableEpochsConfig()
+	cfg.FixDataTrieLeafValidationEnableEpoch = 200
+	handler, err := NewEnableEpochsHandler(cfg, &epochNotifier.EpochNotifierStub{})
+	require.NoError(t, err)
+	require.True(t, handler.IsFlagDefined(common.FixDataTrieLeafValidationFlag))
+	require.False(t, handler.IsFlagEnabledInEpoch(common.FixDataTrieLeafValidationFlag, 199))
+	require.True(t, handler.IsFlagEnabledInEpoch(common.FixDataTrieLeafValidationFlag, 200))
+	require.True(t, handler.IsFlagEnabledInEpoch(common.FixDataTrieLeafValidationFlag, 201))
+	require.Equal(t, uint32(200), handler.GetActivationEpoch(common.FixDataTrieLeafValidationFlag))
+}
+
 func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	t.Parallel()
 

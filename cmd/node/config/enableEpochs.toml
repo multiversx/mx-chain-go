@@ -351,6 +351,9 @@
     # FixEpochChangeProposedCurrentEpochEnableEpoch represents the epoch when epoch change proposed blocks expose the prepared epoch
     FixEpochChangeProposedCurrentEpochEnableEpoch = 3
 
+    # Keep disabled until a coordinated activation epoch is selected.
+    FixDataTrieLeafValidationEnableEpoch = 1 # TODO can be removed if proven that there is no import-db issue or set to the activation epoch when released
+
     # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
     CheckBuiltInCallOnTransferValueAndFailEnableRound = 1
 

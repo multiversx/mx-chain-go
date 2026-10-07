@@ -8,6 +8,9 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+// ErrInvalidDataTrieLeaf signals a stored leaf inconsistent with the requested logical key.
+var ErrInvalidDataTrieLeaf = errors.New("invalid data trie leaf binding or version")
+
 // ErrAccountNotFoundAtBlock is an error-compatible struct holding the block info at which an account was not found
 type ErrAccountNotFoundAtBlock struct {
 	BlockInfo common.BlockInfo
