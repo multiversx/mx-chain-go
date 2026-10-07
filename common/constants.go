@@ -1173,6 +1173,8 @@ const (
 	BlockProcessingCutoffModePause = "pause"
 	// BlockProcessingCutoffModeProcessError represents the mode where the node will reprocess with error the block at the given coordinates
 	BlockProcessingCutoffModeProcessError = "process-error"
+	// BlockProcessingCutoffModeGracefulStop represents the mode where the node will stop after committing the block at the given coordinates
+	BlockProcessingCutoffModeGracefulStop = "graceful-stop"
 )
 
 // BlockProcessingCutoffTrigger represents the trigger of the cutoff potentially used in block processing

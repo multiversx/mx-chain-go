@@ -3,10 +3,12 @@ package cutoff
 import (
 	"fmt"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -15,27 +17,38 @@ import (
 var log = logger.GetOrCreate("process/block/cutoff")
 
 type blockProcessingCutoffHandler struct {
-	config    config.BlockProcessingCutoffConfig
-	stopRound uint64
-	stopNonce uint64
-	stopEpoch uint32
+	config              config.BlockProcessingCutoffConfig
+	stopRound           uint64
+	stopNonce           uint64
+	stopEpoch           uint32
+	chanStopNodeProcess chan endProcess.ArgEndProcess
+	closeChan           chan struct{}
+	closeOnce           sync.Once
 }
 
 // NewBlockProcessingCutoffHandler will return a new instance of blockProcessingCutoffHandler
-func NewBlockProcessingCutoffHandler(cfg config.BlockProcessingCutoffConfig) (*blockProcessingCutoffHandler, error) {
+func NewBlockProcessingCutoffHandler(
+	cfg config.BlockProcessingCutoffConfig,
+	chanStopNodeProcess chan endProcess.ArgEndProcess,
+) (*blockProcessingCutoffHandler, error) {
 	b := &blockProcessingCutoffHandler{
-		config:    cfg,
-		stopEpoch: math.MaxUint32,
-		stopNonce: math.MaxUint64,
-		stopRound: math.MaxUint64,
+		config:              cfg,
+		stopEpoch:           math.MaxUint32,
+		stopNonce:           math.MaxUint64,
+		stopRound:           math.MaxUint64,
+		chanStopNodeProcess: chanStopNodeProcess,
+		closeChan:           make(chan struct{}),
 	}
 
 	err := b.applyConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
+	if cfg.Mode == common.BlockProcessingCutoffModeGracefulStop && chanStopNodeProcess == nil {
+		return nil, errNilStopNodeChannel
+	}
 
-	log.Warn("node is started by using block processing cutoff and will pause/error at the provided coordinate", "mode", cfg.Mode, cfg.CutoffTrigger, cfg.Value)
+	log.Warn("node is started by using block processing cutoff", "mode", cfg.Mode, cfg.CutoffTrigger, cfg.Value)
 	return b, nil
 }
 
@@ -43,6 +56,7 @@ func (b *blockProcessingCutoffHandler) applyConfig(cfg config.BlockProcessingCut
 	switch common.BlockProcessingCutoffMode(cfg.Mode) {
 	case common.BlockProcessingCutoffModeProcessError:
 	case common.BlockProcessingCutoffModePause:
+	case common.BlockProcessingCutoffModeGracefulStop:
 	default:
 		return fmt.Errorf("%w, provided value=%s", errInvalidBlockProcessingCutOffMode, cfg.Mode)
 	}
@@ -59,6 +73,44 @@ func (b *blockProcessingCutoffHandler) applyConfig(cfg config.BlockProcessingCut
 	}
 
 	return nil
+}
+
+// HandleGracefulStopCutoff stops the node after all work for the cutoff block is complete
+func (b *blockProcessingCutoffHandler) HandleGracefulStopCutoff(header data.HeaderHandler, beforeStop func()) {
+	shouldSkip := !b.config.Enabled ||
+		check.IfNil(header) ||
+		b.config.Mode != common.BlockProcessingCutoffModeGracefulStop
+	if shouldSkip {
+		return
+	}
+
+	trigger, value, isTriggered := b.isTriggered(header)
+	if !isTriggered {
+		return
+	}
+
+	if beforeStop != nil {
+		beforeStop()
+	}
+
+	log.Info("block processing cutoff reached, stopping the node", trigger, value)
+	select {
+	case b.chanStopNodeProcess <- endProcess.ArgEndProcess{
+		Reason:      "BlockProcessingCutoff",
+		Description: fmt.Sprintf("block processing completed through %s %d", trigger, value),
+	}:
+	case <-b.closeChan:
+		return
+	}
+
+	<-b.closeChan
+}
+
+// Close releases a graceful cutoff waiting for component shutdown
+func (b *blockProcessingCutoffHandler) Close() {
+	b.closeOnce.Do(func() {
+		close(b.closeChan)
+	})
 }
 
 // HandlePauseCutoff will pause the processing if the required coordinates are met
