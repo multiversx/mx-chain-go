@@ -30,9 +30,21 @@ type roundFlagHandler struct {
 }
 
 type enableRoundsHandler struct {
-	allFlagsDefined map[common.EnableRoundFlag]roundFlagHandler
-	currentRound    uint64
-	roundMut        sync.RWMutex
+	allFlagsDefined    map[common.EnableRoundFlag]roundFlagHandler
+	currentRound       uint64
+	roundMut           sync.RWMutex
+	unknownFlagsLogged sync.Map
+}
+
+func (handler *enableRoundsHandler) logUnknownFlagOnce(context string, flag common.EnableRoundFlag, args ...interface{}) {
+	_, alreadyLogged := handler.unknownFlagsLogged.LoadOrStore(flag, struct{}{})
+	if alreadyLogged {
+		return
+	}
+
+	logArgs := append([]interface{}{"flag", flag}, args...)
+	logArgs = append(logArgs, "stack trace", string(debug.Stack()))
+	log.Warn(context, logArgs...)
 }
 
 // NewEnableRoundsHandler creates a new enable rounds handler instance
@@ -122,10 +134,7 @@ func (handler *enableRoundsHandler) IsFlagDefined(flag common.EnableRoundFlag) b
 		return true
 	}
 
-	log.Warn("flag is not defined",
-		"flag", flag,
-		"stack trace", string(debug.Stack()),
-	)
+	handler.logUnknownFlagOnce("flag is not defined", flag)
 
 	return false
 }
@@ -143,11 +152,7 @@ func (handler *enableRoundsHandler) IsFlagEnabled(flag common.EnableRoundFlag) b
 func (handler *enableRoundsHandler) IsFlagEnabledInRound(flag common.EnableRoundFlag, round uint64) bool {
 	fh, found := handler.allFlagsDefined[flag]
 	if !found {
-		log.Warn("IsFlagEnabledInRound: got unknown flag",
-			"flag", flag,
-			"round", round,
-			"stack trace", string(debug.Stack()),
-		)
+		handler.logUnknownFlagOnce("IsFlagEnabledInRound: got unknown flag", flag, "round", round)
 
 		return false
 	}
@@ -159,10 +164,7 @@ func (handler *enableRoundsHandler) IsFlagEnabledInRound(flag common.EnableRound
 func (handler *enableRoundsHandler) GetActivationRound(flag common.EnableRoundFlag) uint64 {
 	fh, found := handler.allFlagsDefined[flag]
 	if !found {
-		log.Warn("GetActivationRound: got unknown flag",
-			"flag", flag,
-			"stack trace", string(debug.Stack()),
-		)
+		handler.logUnknownFlagOnce("GetActivationRound: got unknown flag", flag)
 
 		return 0
 	}
