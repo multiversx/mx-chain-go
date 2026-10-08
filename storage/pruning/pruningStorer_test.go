@@ -1347,6 +1347,25 @@ func TestPruningStorer_PutInEpoch(t *testing.T) {
 	})
 }
 
+func TestPruningStorer_PutInEpochWithPruningDisabled(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.PruningEnabled = false
+	ps, err := pruning.NewPruningStorer(args)
+	require.Nil(t, err)
+
+	key := []byte("key")
+	value := []byte("value")
+
+	require.Nil(t, ps.PutInEpoch(key, value, 99))
+
+	ps.ClearCache()
+	recovered, err := ps.Get(key)
+	require.Nil(t, err)
+	assert.Equal(t, value, recovered)
+}
+
 func TestPruningStorer_RemoveFromCurrentEpoch(t *testing.T) {
 	t.Parallel()
 
