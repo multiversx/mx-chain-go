@@ -11,6 +11,7 @@ import (
 // ExecutionManagerMock is a mock implementation of the ExecutionManager interface
 type ExecutionManagerMock struct {
 	StartExecutionCalled                         func()
+	PauseExecutionCalled                         func()
 	SetHeadersExecutorCalled                     func(executor process.HeadersExecutor) error
 	AddPairForExecutionCalled                    func(pair cache.HeaderBodyPair) error
 	GetPendingExecutionResultsCalled             func() ([]data.BaseExecutionResultHandler, error)
@@ -30,6 +31,13 @@ type ExecutionManagerMock struct {
 func (emm *ExecutionManagerMock) StartExecution() {
 	if emm.StartExecutionCalled != nil {
 		emm.StartExecutionCalled()
+	}
+}
+
+// PauseExecution -
+func (emm *ExecutionManagerMock) PauseExecution() {
+	if emm.PauseExecutionCalled != nil {
+		emm.PauseExecutionCalled()
 	}
 }
 

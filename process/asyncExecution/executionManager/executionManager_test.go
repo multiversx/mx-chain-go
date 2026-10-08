@@ -176,6 +176,31 @@ func TestExecutionManager_StartExecution(t *testing.T) {
 	require.False(t, startCalled)
 }
 
+func TestExecutionManager_PauseExecution(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+	em, _ := executionManager.NewExecutionManager(args)
+
+	pauseCalled := false
+	mockExecutor := &processMocks.HeadersExecutorMock{
+		PauseExecutionCalled: func() {
+			pauseCalled = true
+		},
+	}
+	_ = em.SetHeadersExecutor(mockExecutor)
+
+	em.PauseExecution()
+	require.True(t, pauseCalled)
+
+	err := em.Close()
+	require.NoError(t, err)
+
+	pauseCalled = false
+	em.PauseExecution()
+	require.False(t, pauseCalled)
+}
+
 func TestExecutionManager_SetHeadersExecutor(t *testing.T) {
 	t.Parallel()
 

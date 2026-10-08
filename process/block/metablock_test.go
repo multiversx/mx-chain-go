@@ -1683,6 +1683,20 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		},
 	}
 	arguments.StateAccessesCollector = &stateMock.StateAccessesCollectorStub{}
+	pauseExecutionCalled := false
+	arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
+		PauseExecutionCalled: func() {
+			pauseExecutionCalled = true
+		},
+	}
+	gracefulStopCutoffCalled := false
+	arguments.BlockProcessingCutoffHandler = &testscommon.BlockProcessingCutoffStub{
+		HandleGracefulStopCutoffCalled: func(header data.HeaderHandler, beforeStop func()) {
+			require.Equal(t, hdr, header)
+			beforeStop()
+			gracefulStopCutoffCalled = true
+		},
+	}
 
 	mp, _ := processBlock.NewMetaProcessor(arguments)
 
@@ -1726,6 +1740,8 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	assert.True(t, debuggerMethodWasCalled)
 	assert.True(t, resetCountersForManagedBlockSignerCalled)
 	assert.True(t, commitCalled)
+	assert.True(t, gracefulStopCutoffCalled)
+	assert.True(t, pauseExecutionCalled)
 	// this should sleep as there is an async call to display current header and block in CommitBlock
 	time.Sleep(time.Second)
 }
