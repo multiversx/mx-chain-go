@@ -37,14 +37,15 @@ type usageCounter struct {
 }
 
 // NewUsageCounter will create a new instance of type usageCounter
-func NewUsageCounter(esdtTransferParser vmcommon.ESDTTransferParser, enableEpochsHandlers ...common.EnableEpochsHandler) (*usageCounter, error) {
+func NewUsageCounter(
+	esdtTransferParser vmcommon.ESDTTransferParser,
+	enableEpochsHandler common.EnableEpochsHandler,
+) (*usageCounter, error) {
 	if check.IfNil(esdtTransferParser) {
 		return nil, process.ErrNilESDTTransferParser
 	}
-
-	var enableEpochsHandler common.EnableEpochsHandler
-	if len(enableEpochsHandlers) > 0 {
-		enableEpochsHandler = enableEpochsHandlers[0]
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
 	}
 
 	return &usageCounter{
@@ -80,8 +81,7 @@ func (counter *usageCounter) ProcessMaxBuiltInCounters(input *vmcommon.ContractC
 
 	parsedTransfer, errESDTTransfer := counter.esdtTransferParser.ParseESDTTransfers(input.CallerAddr, input.RecipientAddr, input.Function, input.Arguments)
 	if errESDTTransfer != nil {
-		isFixEnabled := !check.IfNil(counter.enableEpochsHandler) && counter.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag)
-		if isFixEnabled && isESDTTransferFunction(input.Function) {
+		if counter.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) && isESDTTransferFunction(input.Function) {
 			return errESDTTransfer
 		}
 		// not a transfer - no need to count max transfers
