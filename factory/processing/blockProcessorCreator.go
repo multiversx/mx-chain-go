@@ -1443,7 +1443,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
 	epochStartTriggerHandler process.EpochStartTriggerHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
-	counter, err := counters.NewUsageCounter(esdtTransferParser)
+	counter, err := counters.NewUsageCounter(esdtTransferParser, pcf.coreData.EnableEpochsHandler())
 	if err != nil {
 		return nil, err
 	}

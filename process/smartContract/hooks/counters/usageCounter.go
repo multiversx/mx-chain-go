@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -31,17 +32,25 @@ type usageCounter struct {
 	crtNumberOfTransfers            uint64
 	crtNumberOfTrieReads            uint64
 
-	esdtTransferParser vmcommon.ESDTTransferParser
+	esdtTransferParser  vmcommon.ESDTTransferParser
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewUsageCounter will create a new instance of type usageCounter
-func NewUsageCounter(esdtTransferParser vmcommon.ESDTTransferParser) (*usageCounter, error) {
+func NewUsageCounter(
+	esdtTransferParser vmcommon.ESDTTransferParser,
+	enableEpochsHandler common.EnableEpochsHandler,
+) (*usageCounter, error) {
 	if check.IfNil(esdtTransferParser) {
 		return nil, process.ErrNilESDTTransferParser
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	return &usageCounter{
-		esdtTransferParser: esdtTransferParser,
+		esdtTransferParser:  esdtTransferParser,
+		enableEpochsHandler: enableEpochsHandler,
 	}, nil
 }
 
@@ -72,7 +81,7 @@ func (counter *usageCounter) ProcessMaxBuiltInCounters(input *vmcommon.ContractC
 
 	parsedTransfer, errESDTTransfer := counter.esdtTransferParser.ParseESDTTransfers(input.CallerAddr, input.RecipientAddr, input.Function, input.Arguments)
 	if errESDTTransfer != nil {
-		if isESDTTransferFunction(input.Function) {
+		if counter.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) && isESDTTransferFunction(input.Function) {
 			return errESDTTransfer
 		}
 		// not a transfer - no need to count max transfers

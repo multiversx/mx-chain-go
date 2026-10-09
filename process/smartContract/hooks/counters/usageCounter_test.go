@@ -6,8 +6,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -26,14 +28,21 @@ func TestNewUsageCounter(t *testing.T) {
 	t.Run("nil esdt transfer parser should error", func(t *testing.T) {
 		t.Parallel()
 
-		counter, err := NewUsageCounter(nil)
+		counter, err := NewUsageCounter(nil, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 		assert.True(t, check.IfNil(counter))
 		assert.Equal(t, process.ErrNilESDTTransferParser, err)
 	})
-	t.Run("nil esdt transfer parser should error", func(t *testing.T) {
+	t.Run("nil enable epochs handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		counter, err := NewUsageCounter(&testscommon.ESDTTransferParserStub{})
+		counter, err := NewUsageCounter(&testscommon.ESDTTransferParserStub{}, nil)
+		assert.True(t, check.IfNil(counter))
+		assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	})
+	t.Run("valid parameters should work", func(t *testing.T) {
+		t.Parallel()
+
+		counter, err := NewUsageCounter(&testscommon.ESDTTransferParserStub{}, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 		assert.False(t, check.IfNil(counter))
 		assert.Nil(t, err)
 	})
@@ -42,7 +51,7 @@ func TestNewUsageCounter(t *testing.T) {
 func TestUsageCounter_ProcessCrtNumberOfTrieReadsCounter(t *testing.T) {
 	t.Parallel()
 
-	counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{})
+	counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{}, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 	counter.SetMaximumValues(generateMapsOfValues(3))
 
 	assert.Nil(t, counter.ProcessCrtNumberOfTrieReadsCounter())                                 // counter is now 1
@@ -81,7 +90,7 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 	t.Run("builtin functions exceeded", func(t *testing.T) {
 		t.Parallel()
 
-		counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{})
+		counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{}, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 		counter.SetMaximumValues(generateMapsOfValues(3))
 
 		vmInput := &vmcommon.ContractCallInput{}
@@ -118,13 +127,16 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 	t.Run("number of transfers exceeded", func(t *testing.T) {
 		t.Parallel()
 
-		counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{
-			ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
-				return &vmcommon.ParsedESDTTransfers{
-					ESDTTransfers: make([]*vmcommon.ESDTTransfer, 2),
-				}, nil
+		counter, _ := NewUsageCounter(
+			&testscommon.ESDTTransferParserStub{
+				ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
+					return &vmcommon.ParsedESDTTransfers{
+						ESDTTransfers: make([]*vmcommon.ESDTTransfer, 2),
+					}, nil
+				},
 			},
-		})
+			enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		)
 		values := generateMapsOfValues(6)
 		values[maxBuiltinCalls] = 1000
 		counter.SetMaximumValues(values)
@@ -160,15 +172,18 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 		}
 		assert.Equal(t, expectedMap, countersMap)
 	})
-	t.Run("parser error on transfer function propagates error", func(t *testing.T) {
+	t.Run("parser error on transfer function propagates error when flag enabled", func(t *testing.T) {
 		t.Parallel()
 
 		expectedErr := errors.New("malformed transfer arguments")
-		counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{
-			ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
-				return nil, expectedErr
+		counter, _ := NewUsageCounter(
+			&testscommon.ESDTTransferParserStub{
+				ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
+					return nil, expectedErr
+				},
 			},
-		})
+			enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.FixCorrectSmallIntAndGasLimitsFlag),
+		)
 		values := generateMapsOfValues(10)
 		counter.SetMaximumValues(values)
 
@@ -191,14 +206,50 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 		err = counter.ProcessMaxBuiltInCounters(vmInputNFT)
 		assert.Equal(t, expectedErr, err)
 	})
+	t.Run("parser error on transfer function is ignored when flag disabled", func(t *testing.T) {
+		t.Parallel()
+
+		counter, _ := NewUsageCounter(
+			&testscommon.ESDTTransferParserStub{
+				ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
+					return nil, errors.New("malformed transfer arguments")
+				},
+			},
+			enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		)
+		values := generateMapsOfValues(10)
+		counter.SetMaximumValues(values)
+
+		vmInput := &vmcommon.ContractCallInput{
+			Function: core.BuiltInFunctionMultiESDTNFTTransfer,
+		}
+
+		err := counter.ProcessMaxBuiltInCounters(vmInput)
+		assert.Nil(t, err)
+
+		vmInputSingle := &vmcommon.ContractCallInput{
+			Function: core.BuiltInFunctionESDTTransfer,
+		}
+		err = counter.ProcessMaxBuiltInCounters(vmInputSingle)
+		assert.Nil(t, err)
+
+		vmInputNFT := &vmcommon.ContractCallInput{
+			Function: core.BuiltInFunctionESDTNFTTransfer,
+		}
+		err = counter.ProcessMaxBuiltInCounters(vmInputNFT)
+		assert.Nil(t, err)
+	})
 	t.Run("parser error on non-transfer function is ignored", func(t *testing.T) {
 		t.Parallel()
 
-		counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{
-			ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
-				return nil, errors.New("not an ESDT transfer")
+		counter, _ := NewUsageCounter(
+			&testscommon.ESDTTransferParserStub{
+				ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
+					return nil, errors.New("not an ESDT transfer")
+				},
 			},
-		})
+			enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		)
 		values := generateMapsOfValues(10)
 		counter.SetMaximumValues(values)
 
