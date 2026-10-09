@@ -583,7 +583,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(integrationtests.TestMarshalizer)
-	counter, _ := counters.NewUsageCounter(esdtTransferParser)
+	counter, _ := counters.NewUsageCounter(esdtTransferParser, enableEpochsHandler)
 
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{

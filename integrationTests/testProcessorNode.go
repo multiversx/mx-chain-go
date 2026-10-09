@@ -1811,7 +1811,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
-	counter, err := counters.NewUsageCounter(esdtTransferParser)
+	counter, err := counters.NewUsageCounter(esdtTransferParser, tpn.EnableEpochsHandler)
 	log.LogIfError(err)
 
 	argsHook := hooks.ArgBlockChainHook{

@@ -6,8 +6,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -160,15 +162,18 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 		}
 		assert.Equal(t, expectedMap, countersMap)
 	})
-	t.Run("parser error on transfer function propagates error", func(t *testing.T) {
+	t.Run("parser error on transfer function propagates error when flag enabled", func(t *testing.T) {
 		t.Parallel()
 
 		expectedErr := errors.New("malformed transfer arguments")
-		counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{
-			ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
-				return nil, expectedErr
+		counter, _ := NewUsageCounter(
+			&testscommon.ESDTTransferParserStub{
+				ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
+					return nil, expectedErr
+				},
 			},
-		})
+			enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.FixCorrectSmallIntAndGasLimitsFlag),
+		)
 		values := generateMapsOfValues(10)
 		counter.SetMaximumValues(values)
 
@@ -190,6 +195,36 @@ func TestUsageCounter_ProcessMaxBuiltInCounters(t *testing.T) {
 		}
 		err = counter.ProcessMaxBuiltInCounters(vmInputNFT)
 		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("parser error on transfer function is ignored when flag disabled", func(t *testing.T) {
+		t.Parallel()
+
+		counter, _ := NewUsageCounter(&testscommon.ESDTTransferParserStub{
+			ParseESDTTransfersCalled: func(sndAddr []byte, rcvAddr []byte, function string, args [][]byte) (*vmcommon.ParsedESDTTransfers, error) {
+				return nil, errors.New("malformed transfer arguments")
+			},
+		})
+		values := generateMapsOfValues(10)
+		counter.SetMaximumValues(values)
+
+		vmInput := &vmcommon.ContractCallInput{
+			Function: core.BuiltInFunctionMultiESDTNFTTransfer,
+		}
+
+		err := counter.ProcessMaxBuiltInCounters(vmInput)
+		assert.Nil(t, err)
+
+		vmInputSingle := &vmcommon.ContractCallInput{
+			Function: core.BuiltInFunctionESDTTransfer,
+		}
+		err = counter.ProcessMaxBuiltInCounters(vmInputSingle)
+		assert.Nil(t, err)
+
+		vmInputNFT := &vmcommon.ContractCallInput{
+			Function: core.BuiltInFunctionESDTNFTTransfer,
+		}
+		err = counter.ProcessMaxBuiltInCounters(vmInputNFT)
+		assert.Nil(t, err)
 	})
 	t.Run("parser error on non-transfer function is ignored", func(t *testing.T) {
 		t.Parallel()
