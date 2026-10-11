@@ -8,34 +8,35 @@ import (
 
 // BlockChainHookStub -
 type BlockChainHookStub struct {
-	AccountExtistsCalled          func(address []byte) (bool, error)
-	NewAddressCalled              func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
-	GetStorageDataCalled          func(accountsAddress []byte, index []byte) ([]byte, uint32, error)
-	GetUserAccountCalled          func(address []byte) (vmcommon.UserAccountHandler, error)
-	GetShardOfAddressCalled       func(address []byte) uint32
-	IsSmartContractCalled         func(address []byte) bool
-	GetBlockHashCalled            func(nonce uint64) ([]byte, error)
-	LastNonceCalled               func() uint64
-	LastRoundCalled               func() uint64
-	LastTimeStampCalled           func() uint64
-	LastRandomSeedCalled          func() []byte
-	LastEpochCalled               func() uint32
-	GetStateRootHashCalled        func() []byte
-	CurrentNonceCalled            func() uint64
-	CurrentRoundCalled            func() uint64
-	CurrentTimeStampCalled        func() uint64
-	CurrentRandomSeedCalled       func() []byte
-	CurrentEpochCalled            func() uint32
-	ProcessBuiltInFunctionCalled  func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
-	GetBuiltinFunctionNamesCalled func() vmcommon.FunctionNames
-	GetAllStateCalled             func(address []byte) (map[string][]byte, error)
-	IsPayableCalled               func(sndAddress, rcvAddress []byte) (bool, error)
-	NumberOfShardsCalled          func() uint32
-	GetCodeCalled                 func(account vmcommon.UserAccountHandler) []byte
-	CloseCalled                   func() error
-	GetSnapshotCalled             func() int
-	RevertToSnapshotCalled        func(snapshot int) error
-	IsBuiltinFunctionNameCalled   func(functionName string) bool
+	AccountExtistsCalled             func(address []byte) (bool, error)
+	NewAddressCalled                 func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
+	GetStorageDataCalled             func(accountsAddress []byte, index []byte) ([]byte, uint32, error)
+	GetUserAccountCalled             func(address []byte) (vmcommon.UserAccountHandler, error)
+	GetShardOfAddressCalled          func(address []byte) uint32
+	IsSmartContractCalled            func(address []byte) bool
+	GetBlockHashCalled               func(nonce uint64) ([]byte, error)
+	LastNonceCalled                  func() uint64
+	LastRoundCalled                  func() uint64
+	LastTimeStampCalled              func() uint64
+	LastRandomSeedCalled             func() []byte
+	LastEpochCalled                  func() uint32
+	GetStateRootHashCalled           func() []byte
+	CurrentNonceCalled               func() uint64
+	CurrentRoundCalled               func() uint64
+	CurrentTimeStampCalled           func() uint64
+	CurrentRandomSeedCalled          func() []byte
+	CurrentEpochCalled               func() uint32
+	ProcessBuiltInFunctionCalled     func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
+	ApplyDRWASyncEnvelopeBytesCalled func(payload []byte, callerAddress []byte) error
+	GetBuiltinFunctionNamesCalled    func() vmcommon.FunctionNames
+	GetAllStateCalled                func(address []byte) (map[string][]byte, error)
+	IsPayableCalled                  func(sndAddress, rcvAddress []byte) (bool, error)
+	NumberOfShardsCalled             func() uint32
+	GetCodeCalled                    func(account vmcommon.UserAccountHandler) []byte
+	CloseCalled                      func() error
+	GetSnapshotCalled                func() int
+	RevertToSnapshotCalled           func(snapshot int) error
+	IsBuiltinFunctionNameCalled      func(functionName string) bool
 }
 
 // AccountExists -
@@ -199,6 +200,14 @@ func (b *BlockChainHookStub) ProcessBuiltInFunction(input *vmcommon.ContractCall
 		return b.ProcessBuiltInFunctionCalled(input)
 	}
 	return &vmcommon.VMOutput{}, nil
+}
+
+// ApplyDRWASyncEnvelopeBytes -
+func (b *BlockChainHookStub) ApplyDRWASyncEnvelopeBytes(payload []byte, callerAddress []byte) error {
+	if b.ApplyDRWASyncEnvelopeBytesCalled != nil {
+		return b.ApplyDRWASyncEnvelopeBytesCalled(payload, callerAddress)
+	}
+	return nil
 }
 
 // GetAllState -
