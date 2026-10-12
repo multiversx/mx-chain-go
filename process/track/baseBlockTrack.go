@@ -68,6 +68,9 @@ type baseBlockTrack struct {
 	lastProofPullRound int64
 
 	cancelFunc context.CancelFunc
+
+	mutSettledNonceProvider sync.RWMutex
+	settledNonceProvider    func() uint64
 }
 
 func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
@@ -881,6 +884,23 @@ func (bbt *baseBlockTrack) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (bbt *baseBlockTrack) IsInterfaceNil() bool {
 	return bbt == nil
+}
+
+func (bbt *baseBlockTrack) SetSettledNonceProvider(provider func() uint64) {
+	bbt.mutSettledNonceProvider.Lock()
+	bbt.settledNonceProvider = provider
+	bbt.mutSettledNonceProvider.Unlock()
+}
+
+func (bbt *baseBlockTrack) getSettledNonce() uint64 {
+	bbt.mutSettledNonceProvider.RLock()
+	provider := bbt.settledNonceProvider
+	bbt.mutSettledNonceProvider.RUnlock()
+	if provider == nil {
+		return 0
+	}
+
+	return provider()
 }
 
 func checkTrackerNilParameters(arguments ArgBaseTracker) error {
