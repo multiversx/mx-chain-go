@@ -33,6 +33,7 @@ type OutportHandler interface {
 	SaveValidatorsPubKeys(validatorsPubKeys *outportcore.ValidatorsPubKeys)
 	SaveValidatorsRating(validatorsRating *outportcore.ValidatorsRating)
 	SaveAccounts(accounts *outportcore.Accounts)
+	NewTransactionHandlerInPool(key []byte, value interface{})
 	FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock)
 	SubscribeDriver(driver Driver) error
 	HasDrivers() bool
