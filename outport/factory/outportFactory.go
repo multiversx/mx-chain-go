@@ -166,7 +166,11 @@ func createAndSubscribeGRPCDriverIfNeeded(
 		return err
 	}
 
-	grpcDriver, err := grpcdriver.NewGRPCDriver(grpcClient, args.Marshaller)
+	grpcDriver, err := grpcdriver.NewGRPCDriver(
+		grpcClient,
+		args.Marshaller,
+		time.Duration(args.GRPCClient.RequestTimeoutSec)*time.Second,
+	)
 	if err != nil {
 		return err
 	}

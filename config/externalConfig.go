@@ -54,7 +54,8 @@ type HostDriversConfig struct {
 }
 
 type GRPCDriversConfig struct {
-	Enabled        bool
-	URL            string
-	MarshallerType string
+	Enabled           bool
+	URL               string
+	MarshallerType    string
+	RequestTimeoutSec int
 }

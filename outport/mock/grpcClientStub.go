@@ -15,6 +15,7 @@ type OutportGRPCClientStub struct {
 	SaveValidatorsRatingCalled  func(ctx context.Context, in *outportcore.ValidatorsRating) error
 	SaveAccountsCalled          func(ctx context.Context, in *outportcore.Accounts) error
 	FinalizedBlockEventCalled   func(ctx context.Context, in *outportcore.FinalizedBlock) error
+	CloseCalled                 func() error
 }
 
 // SaveBlock -
@@ -55,4 +56,12 @@ func (stub *OutportGRPCClientStub) FinalizedBlockEvent(ctx context.Context, in *
 // IsInterfaceNil -
 func (stub *OutportGRPCClientStub) IsInterfaceNil() bool {
 	return stub == nil
+}
+
+// Close -
+func (stub *OutportGRPCClientStub) Close() error {
+	if stub.CloseCalled != nil {
+		return stub.CloseCalled()
+	}
+	return nil
 }

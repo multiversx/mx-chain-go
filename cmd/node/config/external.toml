@@ -46,6 +46,8 @@
     Enabled = false
     URL = "localhost:50051"
     MarshallerType = "json"
+    # Maximum duration in seconds for one gRPC driver call.
+    RequestTimeoutSec = 30
 
 
 [[HostDriversConfig]]

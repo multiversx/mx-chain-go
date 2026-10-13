@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/outport/grpcadapter"
@@ -18,11 +19,25 @@ func TestNewGRPCDriver(t *testing.T) {
 	marshaller := &testscommon.MarshallerStub{}
 	client := &mock.OutportGRPCClientStub{}
 
-	driver, err := NewGRPCDriver(client, marshaller)
+	driver, err := NewGRPCDriver(client, marshaller, time.Second)
 
 	require.NoError(t, err)
 	require.NotNil(t, driver)
 	require.Same(t, marshaller, driver.GetMarshaller())
+
+	_, err = NewGRPCDriver(nil, marshaller, time.Second)
+	require.ErrorIs(t, err, ErrNilGRPCClient)
+
+	_, err = NewGRPCDriver(client, nil, time.Second)
+	require.ErrorIs(t, err, ErrNilMarshaller)
+
+	var nilClient *mock.OutportGRPCClientStub
+	_, err = NewGRPCDriver(nilClient, marshaller, time.Second)
+	require.ErrorIs(t, err, ErrNilGRPCClient)
+
+	driver, err = NewGRPCDriver(client, marshaller, 0)
+	require.NoError(t, err)
+	require.Equal(t, defaultGRPCCallTimeout, driver.(*grpcDriver).requestTimeout)
 }
 
 func TestGrpcDriverDelegatesCalls(t *testing.T) {
@@ -42,7 +57,8 @@ func TestGrpcDriverDelegatesCalls(t *testing.T) {
 				return &mock.OutportGRPCClientStub{
 					SaveBlockCalled: func(ctx context.Context, in *outportcore.OutportBlock) error {
 						require.Equal(t, expected, in)
-						require.NotNil(t, ctx)
+						_, hasDeadline := ctx.Deadline()
+						require.True(t, hasDeadline)
 						return expectedErr
 					},
 				}
@@ -154,12 +170,11 @@ func TestGrpcDriverDelegatesCalls(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			driver := &grpcDriver{
-				client:     tt.client(t),
-				marshaller: &testscommon.MarshallerStub{},
-			}
+			driverAsInterface, err := NewGRPCDriver(tt.client(t), &testscommon.MarshallerStub{}, time.Second)
+			require.NoError(t, err)
+			driver := driverAsInterface.(*grpcDriver)
 
-			err := tt.call(driver)
+			err = tt.call(driver)
 
 			require.ErrorIs(t, err, expectedErr)
 		})
@@ -169,11 +184,20 @@ func TestGrpcDriverDelegatesCalls(t *testing.T) {
 func TestGrpcDriverNoOpMethods(t *testing.T) {
 	t.Parallel()
 
-	driver := &grpcDriver{marshaller: &testscommon.MarshallerStub{}}
+	closeCalled := false
+	driverAsInterface, err := NewGRPCDriver(&mock.OutportGRPCClientStub{
+		CloseCalled: func() error {
+			closeCalled = true
+			return nil
+		},
+	}, &testscommon.MarshallerStub{}, time.Second)
+	require.NoError(t, err)
+	driver := driverAsInterface.(*grpcDriver)
 
 	require.NoError(t, driver.SetCurrentSettings(outportcore.OutportConfig{}))
 	require.NoError(t, driver.RegisterHandler(nil, ""))
 	require.NoError(t, driver.Close())
+	require.True(t, closeCalled)
 }
 
 func TestGrpcDriverIsInterfaceNil(t *testing.T) {
