@@ -229,6 +229,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	logsFacade := &testscommon.LogsFacadeStub{}
 	receiptsRepository := &testscommon.ReceiptsRepositoryStub{}
 
+	emptyExclusionHandler, _ := common.NewRoundExclusionHandler(nil)
 	argsApiTransactionProc := &transactionAPI.ArgAPITransactionProcessor{
 		RoundHandler:             tpn.RoundHandler,
 		Marshalizer:              TestMarshalizer,
@@ -248,6 +249,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		TxVersionChecker:         versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
 		ChainHandler:             tpn.BlockChain,
 		TxProcessor:              tpn.TxProcessor,
+		RoundExclusionHandler:    emptyExclusionHandler,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)
@@ -274,6 +276,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		ProofsPool:                   tpn.ProofsPool,
 		BlockChain:                   tpn.BlockChain,
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
+		RoundExclusionHandler:        emptyExclusionHandler,
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)

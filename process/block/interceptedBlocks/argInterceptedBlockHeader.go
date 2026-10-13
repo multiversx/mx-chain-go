@@ -21,4 +21,5 @@ type ArgInterceptedBlockHeader struct {
 	EpochStartTrigger             process.EpochStartTriggerHandler
 	EnableEpochsHandler           common.EnableEpochsHandler
 	EpochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	RoundExclusions               common.RoundExclusionHandler
 }

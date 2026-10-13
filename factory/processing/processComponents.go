@@ -284,6 +284,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		pcf.prefConfigs.Preferences.FullArchive,
 		pcf.coreData.EnableEpochsHandler(),
 		pcf.config.StoragePruning.AssumedPeersNumActivePersisters,
+		pcf.config.HardforkRecoveryCheckpoint.Enabled,
 	)
 	if err != nil {
 		return nil, err
@@ -1885,6 +1886,10 @@ func (pcf *processComponentsFactory) newForkDetector(
 	headerBlackList process.TimeCacher,
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&pcf.config)
+	if err != nil {
+		return nil, err
+	}
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return sync.NewShardForkDetector(
@@ -1899,6 +1904,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 			pcf.coreData.ChainParametersHandler(),
 			pcf.coreData.ProcessConfigsHandler(),
 			shardCoordinator.SelfId(),
+			roundExclusions,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1913,6 +1919,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 			pcf.data.Datapool().Proofs(),
 			pcf.coreData.ChainParametersHandler(),
 			pcf.coreData.ProcessConfigsHandler(),
+			roundExclusions,
 		)
 	}
 
