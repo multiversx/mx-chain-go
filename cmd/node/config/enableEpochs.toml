@@ -391,6 +391,9 @@
     # FixCorrectSmallIntAndGasLimitsEnableEpoch represents the epoch when the fix for signed small int encoding and gas loopholes is enabled
     FixCorrectSmallIntAndGasLimitsEnableEpoch = 2
 
+    # OutputRollbackOnDestContextEnableEpoch represents the epoch when output state rollback on failed destination context calls is enabled
+    OutputRollbackOnDestContextEnableEpoch = 2
+
     # KeepReturnDataOnAsyncTransferCallbackEnableEpoch represents the epoch when return data is preserved in async transfer callbacks
     KeepReturnDataOnAsyncTransferCallbackEnableEpoch = 2
 
