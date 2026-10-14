@@ -1,6 +1,7 @@
 package outport
 
 import (
+	"sync/atomic"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -10,15 +11,16 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/outport/mock"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestChainSimulatorWithOutportGrpcEnabled(t *testing.T) {
-	count := 0
+	var count atomic.Int32
 	indexer := &mock.DriverStub{
 		SaveBlockCalled: func(outportBlock *outportcore.OutportBlock) error {
-			require.NotNil(t, outportBlock.BlockData)
-			count++
+			assert.NotNil(t, outportBlock.BlockData)
+			count.Add(1)
 			return nil
 		},
 	}
@@ -59,8 +61,9 @@ func TestChainSimulatorWithOutportGrpcEnabled(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
+	defer cs.Close()
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
-	require.Equal(t, 8, count)
+	require.Equal(t, int32(8), count.Load())
 }

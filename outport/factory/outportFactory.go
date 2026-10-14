@@ -54,6 +54,7 @@ func CreateOutport(args *OutportFactoryArgs) (outport.OutportHandler, error) {
 
 	err = createAndSubscribeDrivers(outportHandler, args)
 	if err != nil {
+		_ = outportHandler.Close()
 		return nil, err
 	}
 
