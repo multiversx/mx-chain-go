@@ -58,11 +58,17 @@ func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandl
 	if err != nil {
 		return nil, err
 	}
+	grpcDriversArgs, err := makeGRPCDriversArgs(external)
+	if err != nil {
+		return nil, err
+	}
+
 	instance.outportHandler, err = outportFactory.CreateOutport(&outportFactory.OutportFactoryArgs{
 		IsImportDB:                false,
 		ShardID:                   shardID,
 		RetrialInterval:           time.Second,
 		HostDriversArgs:           hostDriverArgs,
+		GRPCDriversArgs:           grpcDriversArgs,
 		EventNotifierFactoryArgs:  &outportFactory.EventNotifierFactoryArgs{},
 		ElasticIndexerFactoryArgs: makeElasticIndexerArgs(external, coreComponents),
 		EnableEpochsHandler:       coreComponents.EnableEpochsHandler(),
@@ -109,6 +115,28 @@ func (s *statusComponentsHolder) epochStartEventHandler() epochStart.ActionHandl
 	}, func(_ nodeData.HeaderHandler) {}, common.IndexerOrder)
 
 	return subscribeHandler
+}
+
+func makeGRPCDriversArgs(external config.ExternalConfig) ([]outportFactory.ArgsGRPCDriverFactory, error) {
+	argsGRPCDriverFactorySlice := make([]outportFactory.ArgsGRPCDriverFactory, 0, len(external.GRPCDriversConfig))
+	for idx := 0; idx < len(external.GRPCDriversConfig); idx++ {
+		grpcConfig := external.GRPCDriversConfig[idx]
+		if !grpcConfig.Enabled {
+			continue
+		}
+
+		marshaller, err := factoryMarshalizer.NewMarshalizer(grpcConfig.MarshallerType)
+		if err != nil {
+			return argsGRPCDriverFactorySlice, err
+		}
+
+		argsGRPCDriverFactorySlice = append(argsGRPCDriverFactorySlice, outportFactory.ArgsGRPCDriverFactory{
+			Marshaller: marshaller,
+			GRPCClient: grpcConfig,
+		})
+	}
+
+	return argsGRPCDriverFactorySlice, nil
 }
 
 func makeHostDriversArgs(external config.ExternalConfig) ([]outportFactory.ArgsHostDriverFactory, error) {
