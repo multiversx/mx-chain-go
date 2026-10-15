@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -680,6 +681,134 @@ func TestNode_GetTransactionCheckExecutionResults(t *testing.T) {
 		apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
 		require.Nil(t, err)
 		require.Equal(t, transaction.TxStatusNotExecutable, apiTx.Status)
+	})
+
+	t.Run("get transaction by hash, transaction settled through receipts", func(t *testing.T) {
+		txHashBytes := []byte("txHash")
+		txHash := hex.EncodeToString(txHashBytes)
+		receiptsHash := []byte("receiptsHash")
+
+		tests := []struct {
+			name               string
+			txHashesInReceipts [][]byte
+			receiptsStorerErr  error
+			receiptsErr        error
+			expectedStatus     transaction.TxStatus
+		}{
+			{
+				name:               "transaction is part of the receipts",
+				txHashesInReceipts: [][]byte{txHashBytes},
+				expectedStatus:     transaction.TxStatusSuccess,
+			},
+			{
+				name:               "transaction is not part of the receipts",
+				txHashesInReceipts: [][]byte{[]byte("otherTxHash")},
+				expectedStatus:     transaction.TxStatusNotExecutable,
+			},
+			{
+				name:           "receipts are not available",
+				receiptsErr:    storage.ErrKeyNotFound,
+				expectedStatus: transaction.TxStatusNotExecutable,
+			},
+			{
+				name:              "receipts storer is not available",
+				receiptsStorerErr: storage.ErrKeyNotFound,
+				expectedStatus:    transaction.TxStatusNotExecutable,
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				marshalizer := &mock.MarshalizerFake{}
+				tx := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+				executionResult := &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{},
+					ReceiptsHash:        receiptsHash,
+				}
+				receiptsBytes := createTestReceiptsHolderBytes(t, marshalizer, tt.txHashesInReceipts)
+
+				chainStorer := &storageStubs.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						switch unitType {
+						case dataRetriever.TransactionUnit:
+							return &storageStubs.StorerStub{
+								GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+									return marshalizer.Marshal(tx)
+								},
+							}, nil
+						case dataRetriever.ExecutionResultsUnit:
+							return &storageStubs.StorerStub{
+								GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+									return marshalizer.Marshal(executionResult)
+								},
+							}, nil
+						case dataRetriever.ReceiptsUnit:
+							if tt.receiptsStorerErr != nil {
+								return nil, tt.receiptsStorerErr
+							}
+
+							return &storageStubs.StorerStub{
+								GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+									if tt.receiptsErr != nil {
+										return nil, tt.receiptsErr
+									}
+
+									return receiptsBytes, nil
+								},
+							}, nil
+						default:
+							return nil, storage.ErrKeyNotFound
+						}
+					},
+				}
+
+				historyRepo := &dblookupextMock.HistoryRepositoryStub{
+					GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+						return &dblookupext.MiniblockMetadata{
+							MiniblockHash: []byte("proposedMBHash"),
+							Round:         100,
+						}, nil
+					},
+					GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
+						return nil, dblookupext.ErrNotFoundInStorage
+					},
+				}
+
+				args := &ArgAPITransactionProcessor{
+					RoundHandler:             &mock.RoundHandlerMock{},
+					Marshalizer:              marshalizer,
+					AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+					ShardCoordinator:         &mock.ShardCoordinatorMock{},
+					HistoryRepository:        historyRepo,
+					StorageService:           chainStorer,
+					DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
+					Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+					FeeComputer:              &testscommon.FeeComputerStub{},
+					TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
+					LogsFacade:               &testscommon.LogsFacadeStub{},
+					DataFieldParser: &testscommon.DataFieldParserStub{
+						ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
+							return &datafield.ResponseParseData{}
+						},
+					},
+					TxMarshaller:        &marshallerMock.MarshalizerMock{},
+					EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+					EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{
+						IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+							return true
+						},
+					},
+					TxVersionChecker:      &testscommon.TxVersionCheckerStub{},
+					ChainHandler:          &testscommon.ChainHandlerMock{},
+					TxProcessor:           &testscommon.TxProcessorMock{},
+					RoundExclusionHandler: createEmptyRoundExclusionHandler(),
+				}
+				apiTransactionProc, _ := NewAPITransactionProcessor(args)
+
+				apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
+				require.Nil(t, err)
+				require.Equal(t, tt.expectedStatus, apiTx.Status)
+			})
+		}
 	})
 
 	t.Run("get transaction by hash, transaction is execution", func(t *testing.T) {
@@ -2540,4 +2669,17 @@ func TestApiTransactionProcessor_GetSCRsByTxHashRoundExclusion(t *testing.T) {
 		require.Nil(t, err)
 		require.Len(t, scrs, 1)
 	})
+}
+
+func createTestReceiptsHolderBytes(t *testing.T, marshaller marshal.Marshalizer, txHashes [][]byte) []byte {
+	receiptsMiniBlockBytes, err := marshaller.Marshal(&block.MiniBlock{
+		Type:     block.SmartContractResultBlock,
+		TxHashes: txHashes,
+	})
+	require.Nil(t, err)
+
+	receiptsBytes, err := marshaller.Marshal(&batch.Batch{Data: [][]byte{receiptsMiniBlockBytes}})
+	require.Nil(t, err)
+
+	return receiptsBytes
 }

@@ -147,7 +147,7 @@ func (repository *receiptsRepository) LoadReceipts(receiptsHash []byte, header d
 		return nil, fmt.Errorf("%w: %v, storageKey = %s", errCannotLoadReceipts, err, hex.EncodeToString(storageKey))
 	}
 
-	holder, err := unmarshalReceiptsHolder(batchBytes, repository.marshaller)
+	holder, err := UnmarshalReceiptsHolder(batchBytes, repository.marshaller)
 	if err != nil {
 		return nil, err
 	}
