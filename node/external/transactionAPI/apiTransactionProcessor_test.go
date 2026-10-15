@@ -2671,6 +2671,78 @@ func TestApiTransactionProcessor_GetSCRsByTxHashRoundExclusion(t *testing.T) {
 	})
 }
 
+func TestApiTransactionProcessor_isTxSettledThroughReceipts(t *testing.T) {
+	marshaller := &marshal.GogoProtoMarshalizer{}
+	marshalObject := func(value interface{}) []byte {
+		data, err := marshaller.Marshal(value)
+		require.NoError(t, err)
+		return data
+	}
+	txHash := []byte("txHash")
+	matchingMiniBlock := marshalObject(&block.MiniBlock{TxHashes: [][]byte{txHash}})
+	otherMiniBlock := marshalObject(&block.MiniBlock{TxHashes: [][]byte{[]byte("otherTxHash")}})
+	malformed := []byte{0xff}
+	executionResult := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{HeaderEpoch: 42},
+		ReceiptsHash:        []byte("receiptsHash"),
+	}
+
+	tests := []struct {
+		name          string
+		receiptsBytes []byte
+		expectedMatch bool
+		expectedError bool
+	}{
+		{name: "empty receipts"},
+		{name: "malformed batch", receiptsBytes: malformed, expectedError: true},
+		{
+			name:          "malformed miniblock before a match",
+			receiptsBytes: marshalObject(&batch.Batch{Data: [][]byte{malformed, matchingMiniBlock}}),
+			expectedError: true,
+		},
+		{
+			name:          "first miniblock matches without decoding the rest",
+			receiptsBytes: marshalObject(&batch.Batch{Data: [][]byte{matchingMiniBlock, malformed}}),
+			expectedMatch: true,
+		},
+		{
+			name:          "later miniblock matches without decoding the rest",
+			receiptsBytes: marshalObject(&batch.Batch{Data: [][]byte{otherMiniBlock, matchingMiniBlock, malformed}}),
+			expectedMatch: true,
+		},
+		{
+			name:          "no matching miniblock",
+			receiptsBytes: marshalObject(&batch.Batch{Data: [][]byte{otherMiniBlock, otherMiniBlock}}),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			processor := &apiTransactionProcessor{
+				marshalizer: marshaller,
+				storageService: &storageStubs.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						require.Equal(t, dataRetriever.ReceiptsUnit, unitType)
+						return &storageStubs.StorerStub{
+							GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+								require.Equal(t, executionResult.ReceiptsHash, key)
+								require.Equal(t, uint32(42), epoch)
+								return tt.receiptsBytes, nil
+							},
+						}, nil
+					},
+				},
+			}
+			found, err := processor.isTxSettledThroughReceipts(txHash, executionResult)
+			require.Equal(t, tt.expectedMatch, found)
+			if tt.expectedError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func createTestReceiptsHolderBytes(t *testing.T, marshaller marshal.Marshalizer, txHashes [][]byte) []byte {
 	receiptsMiniBlockBytes, err := marshaller.Marshal(&block.MiniBlock{
 		Type:     block.SmartContractResultBlock,

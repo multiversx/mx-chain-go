@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -26,7 +27,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/receipts"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -824,12 +824,23 @@ func (atp *apiTransactionProcessor) isTxSettledThroughReceipts(txHash []byte, ex
 		return false, err
 	}
 
-	receiptsHolder, err := receipts.UnmarshalReceiptsHolder(receiptsBytes, atp.marshalizer)
+	if len(receiptsBytes) == 0 {
+		return false, nil
+	}
+
+	receiptsBatch := &batch.Batch{}
+	err = atp.marshalizer.Unmarshal(receiptsBatch, receiptsBytes)
 	if err != nil {
 		return false, err
 	}
 
-	for _, miniBlock := range receiptsHolder.GetMiniblocks() {
+	for _, miniBlockBytes := range receiptsBatch.Data {
+		miniBlock := &block.MiniBlock{}
+		err = atp.marshalizer.Unmarshal(miniBlock, miniBlockBytes)
+		if err != nil {
+			return false, err
+		}
+
 		for _, txHashInMiniBlock := range miniBlock.TxHashes {
 			if bytes.Equal(txHashInMiniBlock, txHash) {
 				return true, nil
