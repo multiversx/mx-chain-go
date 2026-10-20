@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -15,15 +16,28 @@ import (
 type importDBPeerPruningStorer struct {
 	mut          sync.RWMutex
 	current, old *database.MemDB
+	bootstrap    storage.Storer
 	epoch        uint32
 	closed       bool
 }
 
 var _ storage.Storer = (*importDBPeerPruningStorer)(nil)
 
-// NewImportDBPeerPruningStorer creates cache-free memory storage for metachain replay.
-func NewImportDBPeerPruningStorer(epoch uint32) *importDBPeerPruningStorer {
-	return &importDBPeerPruningStorer{current: database.NewMemDB(), epoch: epoch}
+// NewImportDBPeerPruningStorer creates memory storage with an optional disk source
+// used only until the restored starting root has been copied by a snapshot.
+func NewImportDBPeerPruningStorer(epoch uint32, bootstrap storage.Storer) *importDBPeerPruningStorer {
+	if check.IfNil(bootstrap) {
+		bootstrap = nil
+	}
+	log.Debug("import-db peer memory storer created", "epoch", epoch, "has disk source", bootstrap != nil)
+	return &importDBPeerPruningStorer{current: database.NewMemDB(), epoch: epoch, bootstrap: bootstrap}
+}
+
+// HasBootstrapSource reports whether the initial disk snapshot is still needed.
+func (s *importDBPeerPruningStorer) HasBootstrapSource() bool {
+	s.mut.RLock()
+	defer s.mut.RUnlock()
+	return s.bootstrap != nil
 }
 
 // Rotate redirects every write immediately. Retargeting a pending rotation reuses
@@ -31,18 +45,31 @@ func NewImportDBPeerPruningStorer(epoch uint32) *importDBPeerPruningStorer {
 func (s *importDBPeerPruningStorer) Rotate() {
 	s.mut.Lock()
 	defer s.mut.Unlock()
-	if !s.closed && s.old == nil {
+	if !s.closed && s.old == nil && s.bootstrap == nil {
 		s.old, s.current = s.current, database.NewMemDB()
+		log.Debug("import-db peer memory DB rotated, old DB retained as read fallback", "epoch", s.epoch)
+	} else {
+		log.Debug("import-db peer memory DB rotation skipped", "epoch", s.epoch, "closed", s.closed,
+			"has old memory DB", s.old != nil, "has disk source", s.bootstrap != nil)
 	}
 }
 
-// SnapshotFinished releases the source after a settled-root snapshot completes.
+// SnapshotFinished closes the startup disk source or releases the previous
+// memory generation after its snapshot completes.
 func (s *importDBPeerPruningStorer) SnapshotFinished() {
 	s.mut.Lock()
 	defer s.mut.Unlock()
 	if s.old != nil {
-		_ = s.old.Destroy()
+		err := s.old.Destroy()
 		s.old = nil
+		log.Debug("import-db peer old memory DB retired", "epoch", s.epoch, "error", err)
+	}
+	if s.bootstrap != nil {
+		// The normal DB is a source, never a retired memory generation.
+		log.Debug("import-db peer closing startup disk source", "epoch", s.epoch)
+		err := s.bootstrap.Close()
+		s.bootstrap = nil
+		log.Debug("import-db peer startup disk source detached", "epoch", s.epoch, "error", err)
 	}
 }
 
@@ -62,10 +89,16 @@ func (s *importDBPeerPruningStorer) Get(key []byte) ([]byte, error) {
 		return nil, storage.ErrDBIsClosed
 	}
 	value, err := s.current.Get(key)
-	if err == nil || s.old == nil {
+	if err == nil {
 		return value, err
 	}
-	return s.old.Get(key)
+	if s.old != nil {
+		return s.old.Get(key)
+	}
+	if s.bootstrap != nil {
+		return s.bootstrap.SearchFirst(key)
+	}
+	return nil, err
 }
 
 func (s *importDBPeerPruningStorer) Has(key []byte) error                   { _, err := s.Get(key); return err }
@@ -111,6 +144,9 @@ func (s *importDBPeerPruningStorer) GetFromLastEpoch(key []byte) ([]byte, error)
 		return nil, storage.ErrDBIsClosed
 	}
 	if s.old == nil {
+		if s.bootstrap != nil {
+			return s.bootstrap.SearchFirst(key)
+		}
 		return nil, fmt.Errorf("no previous peer memory DB")
 	}
 	return s.old.Get(key)
@@ -203,12 +239,21 @@ func (s *importDBPeerPruningStorer) Close() error {
 	if s.closed {
 		return nil
 	}
+	log.Debug("import-db peer memory storer closing", "epoch", s.epoch,
+		"has old memory DB", s.old != nil, "has disk source", s.bootstrap != nil)
 	s.closed = true
 	_ = s.current.Destroy()
 	if s.old != nil {
 		_ = s.old.Destroy()
 		s.old = nil
 	}
+	if s.bootstrap != nil {
+		err := s.bootstrap.Close()
+		s.bootstrap = nil
+		log.Debug("import-db peer memory storer closed with disk source", "epoch", s.epoch, "error", err)
+		return err
+	}
+	log.Debug("import-db peer memory storer closed", "epoch", s.epoch)
 	return nil
 }
 func (s *importDBPeerPruningStorer) DestroyUnit() error   { return s.Close() }

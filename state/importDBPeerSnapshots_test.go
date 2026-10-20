@@ -41,9 +41,13 @@ func (s *importPeerSnapshotStub) SnapshotPeerState(root []byte, epoch uint32, ma
 	return s.copy(root, epoch, manager, start)
 }
 
-func newImportPeerFixture(t *testing.T, interval uint64, copy func([]byte, uint32, common.StorageManager, func()) bool) (*state.PeerAccountsDB, common.Trie, importPeerTestStore) {
+func newImportPeerFixture(t *testing.T, interval uint64, copy func([]byte, uint32, common.StorageManager, func()) bool, bootstrap ...storage.Storer) (*state.PeerAccountsDB, common.Trie, importPeerTestStore) {
 	t.Helper()
-	store := pruning.NewImportDBPeerPruningStorer(7)
+	var source storage.Storer
+	if len(bootstrap) > 0 {
+		source = bootstrap[0]
+	}
+	store := pruning.NewImportDBPeerPruningStorer(7, source)
 	msh, hsh := &marshallerMock.MarshalizerMock{}, &hashingMocks.HasherMock{}
 	manager, err := trie.NewTrieStorageManager(trie.NewTrieStorageManagerArgs{
 		MainStorer: store, Marshalizer: msh, Hasher: hsh, Identifier: "peer",
@@ -69,6 +73,62 @@ func newImportPeerFixture(t *testing.T, interval uint64, copy func([]byte, uint3
 	require.NoError(t, err)
 	require.NoError(t, peer.EnableImportDBPeerSnapshots(store, interval))
 	return peer, tr, store
+}
+
+func TestImportDBPeerStartupSnapshotCopiesWholeTrieBeforeDroppingSource(t *testing.T) {
+	sourcePeer, sourceTrie, source := newImportPeerFixture(t, 100, nil)
+	for i := 0; i < 64; i++ {
+		require.NoError(t, sourceTrie.Update([]byte(fmt.Sprintf("peer-%02d", i)), []byte(fmt.Sprintf("value-%02d", i))))
+	}
+	root, err := sourcePeer.Commit()
+	require.NoError(t, err)
+	require.NoError(t, source.Put([]byte(common.TrieSyncedKey), []byte(common.TrieSyncedVal)))
+	require.NoError(t, source.Put([]byte("obsolete-history"), []byte("not-reachable")))
+
+	peer, tr, memory := newImportPeerFixture(t, 100, nil, source)
+	// Restoring the root alone does not load its collapsed descendants.
+	require.NoError(t, peer.RecreateTrie(holders.NewDefaultRootHashesHolder(root)))
+	_, err = memory.GetFromCurrentEpoch(root)
+	require.Error(t, err)
+	require.NoError(t, peer.InitializeImportDBPeerState())
+	require.False(t, peer.IsSnapshotInProgress())
+	_, err = source.Get(root)
+	require.Error(t, err, "startup snapshot must close the source only after the copy completes")
+	_, err = memory.Get([]byte("obsolete-history"))
+	require.Error(t, err, "copy the live trie, not the entire database")
+	recreated, err := tr.Recreate(holders.NewDefaultRootHashesHolder(root))
+	require.NoError(t, err)
+	for i := 0; i < 64; i++ {
+		value, _, getErr := recreated.Get([]byte(fmt.Sprintf("peer-%02d", i)))
+		require.NoError(t, getErr)
+		require.Equal(t, fmt.Sprintf("value-%02d", i), string(value))
+	}
+	require.NoError(t, peer.InitializeImportDBPeerState(), "startup initialization must be idempotent")
+}
+
+func TestImportDBPeerStartupSnapshotKeepsSourceUntilSuccessfulCompletion(t *testing.T) {
+	source := pruning.NewImportDBPeerPruningStorer(7, nil)
+	require.NoError(t, source.Put([]byte("disk-node"), []byte("keep")))
+	succeeded := false
+	peer, _, memory := newImportPeerFixture(t, 100, func(_ []byte, epoch uint32, manager common.StorageManager, start func()) bool {
+		require.Equal(t, uint32(7), epoch)
+		start()
+		if succeeded {
+			require.NoError(t, manager.PutInEpochWithoutCache([]byte("disk-node"), []byte("copied"), epoch))
+		}
+		return succeeded
+	}, source)
+	require.NoError(t, peer.InitializeImportDBPeerState())
+	value, err := memory.Get([]byte("disk-node"))
+	require.NoError(t, err)
+	require.Equal(t, "keep", string(value))
+	succeeded = true
+	require.NoError(t, peer.InitializeImportDBPeerState())
+	value, err = memory.Get([]byte("disk-node"))
+	require.NoError(t, err)
+	require.Equal(t, "copied", string(value))
+	_, err = source.Get([]byte("disk-node"))
+	require.Error(t, err)
 }
 
 func commitImportPeer(t *testing.T, peer *state.PeerAccountsDB, tr common.Trie, header data.HeaderHandler) []byte {

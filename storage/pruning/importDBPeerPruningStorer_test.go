@@ -8,11 +8,58 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
+	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
+func TestImportDBPeerBootstrapSourceIsReadOnlyAndClosedWithoutDestroy(t *testing.T) {
+	closed := 0
+	source := &storageMocks.StorerStub{
+		SearchFirstCalled: func(key []byte) ([]byte, error) { return []byte("disk-value"), nil },
+		PutCalled:         func(_, _ []byte) error { t.Fatal("must not write to disk source"); return nil },
+		RemoveCalled:      func(_ []byte) error { t.Fatal("must not remove from disk source"); return nil },
+		DestroyUnitCalled: func() error { t.Fatal("must not destroy disk source"); return nil },
+		CloseCalled:       func() error { closed++; return nil },
+	}
+	s := NewImportDBPeerPruningStorer(7, source)
+	require.True(t, s.HasBootstrapSource())
+	value, err := s.Get([]byte("source-node"))
+	require.NoError(t, err)
+	require.Equal(t, "disk-value", string(value))
+	_, err = s.GetFromCurrentEpoch([]byte(common.TrieSyncedKey))
+	require.Error(t, err, "disk markers must not skip copying to memory")
+	replacement := s.current
+	s.Rotate()
+	require.Same(t, replacement, s.current, "do not rotate before the startup snapshot")
+	require.Nil(t, s.old)
+	require.NoError(t, s.Put([]byte("source-node"), []byte("memory-value")))
+	value, err = s.Get([]byte("source-node"))
+	require.NoError(t, err)
+	require.Equal(t, "memory-value", string(value))
+	require.NoError(t, s.Remove([]byte("other-key")))
+	require.Zero(t, closed)
+	s.SnapshotFinished()
+	require.False(t, s.HasBootstrapSource())
+	require.Equal(t, 1, closed)
+	s.Rotate()
+	require.Same(t, replacement, s.old, "normal memory rotation resumes after initialization")
+	require.NoError(t, s.Close())
+	require.Equal(t, 1, closed)
+}
+
+func TestImportDBPeerCloseBeforeStartupSnapshotClosesSource(t *testing.T) {
+	closed := 0
+	s := NewImportDBPeerPruningStorer(7, &storageMocks.StorerStub{
+		CloseCalled: func() error { closed++; return nil },
+	})
+	require.NoError(t, s.Close())
+	require.NoError(t, s.Close())
+	require.Equal(t, 1, closed)
+	require.False(t, s.HasBootstrapSource())
+}
+
 func TestRotationRoutesAllWritesAndDestroysOnlySource(t *testing.T) {
-	s := NewImportDBPeerPruningStorer(7)
+	s := NewImportDBPeerPruningStorer(7, nil)
 	require.NoError(t, s.Put([]byte("source"), []byte("old")))
 	require.NoError(t, s.Put([]byte(common.TrieSyncedKey), []byte(common.TrieSyncedVal)))
 	source := s.current
@@ -49,7 +96,7 @@ func TestRotationRoutesAllWritesAndDestroysOnlySource(t *testing.T) {
 }
 
 func TestRotationConcurrentReplacementWrites(t *testing.T) {
-	s := NewImportDBPeerPruningStorer(0)
+	s := NewImportDBPeerPruningStorer(0, nil)
 	s.Rotate()
 	var writers sync.WaitGroup
 	for worker := 0; worker < 4; worker++ {
@@ -78,7 +125,7 @@ func TestRotationConcurrentReplacementWrites(t *testing.T) {
 }
 
 func TestCloseDestroysBothMemoryGenerations(t *testing.T) {
-	s := NewImportDBPeerPruningStorer(0)
+	s := NewImportDBPeerPruningStorer(0, nil)
 	key := []byte("node")
 	require.NoError(t, s.Put(key, []byte("old")))
 	old := s.current

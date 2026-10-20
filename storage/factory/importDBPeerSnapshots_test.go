@@ -28,7 +28,7 @@ func TestImportDBPeerFactorySelectsProcessingMemoryOnly(t *testing.T) {
 	require.NoError(t, err)
 	storer, err := factory.createPeerTrieStorer(disabled.NewDisabledCustomDatabaseRemover())
 	require.NoError(t, err)
-	require.IsType(t, pruning.NewImportDBPeerPruningStorer(0), storer)
+	require.IsType(t, pruning.NewImportDBPeerPruningStorer(0, nil), storer)
 	require.NoError(t, storer.Close())
 	args.StorageType = ImportDBStorageService
 	factory, err = NewStorageServiceFactory(args)
@@ -40,6 +40,46 @@ func TestImportDBPeerFactorySelectsProcessingMemoryOnly(t *testing.T) {
 		SnapshotFinished()
 	})
 	require.False(t, memory, "import source trie storer must remain disabled")
+}
+
+func TestImportDBPeerFactoryReadsExistingDiskState(t *testing.T) {
+	args := importPeerFactoryArgs(t)
+	args.CurrentEpoch = 7
+	args.Config.PeerAccountsTrieStorage.DB.Type = "LvlDBSerial"
+	args.Config.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval = 0
+	factory, err := NewStorageServiceFactory(args)
+	require.NoError(t, err)
+	disk, err := factory.createPeerTrieStorer(disabled.NewDisabledCustomDatabaseRemover())
+	require.NoError(t, err)
+	require.NoError(t, disk.Put([]byte("starting-root"), []byte("persisted-node")))
+	require.NoError(t, disk.Close())
+
+	args.Config.PeerAccountsTrieStorage.DB.Type = "MemoryDB"
+	args.Config.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval = 100
+	factory, err = NewStorageServiceFactory(args)
+	require.NoError(t, err)
+	memory, err := factory.createPeerTrieStorer(disabled.NewDisabledCustomDatabaseRemover())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, memory.Close()) })
+	value, err := memory.Get([]byte("starting-root"))
+	require.NoError(t, err, "startup must read the normal disk DB before its first snapshot")
+	require.Equal(t, "persisted-node", string(value))
+	require.NoError(t, memory.Put([]byte("memory-only"), []byte("new-node")))
+	memory.(interface{ SnapshotFinished() }).SnapshotFinished()
+
+	// Closing the startup fallback must leave the normal DB intact and unlocked.
+	args.Config.PeerAccountsTrieStorage.DB.Type = "LvlDBSerial"
+	args.Config.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval = 0
+	factory, err = NewStorageServiceFactory(args)
+	require.NoError(t, err)
+	disk, err = factory.createPeerTrieStorer(disabled.NewDisabledCustomDatabaseRemover())
+	require.NoError(t, err)
+	defer func() { require.NoError(t, disk.Close()) }()
+	value, err = disk.Get([]byte("starting-root"))
+	require.NoError(t, err)
+	require.Equal(t, "persisted-node", string(value))
+	_, err = disk.Get([]byte("memory-only"))
+	require.Error(t, err, "replay writes must never reach the disk source")
 }
 
 func TestImportDBPeerFactoryRejectsIncompatibleSettings(t *testing.T) {
