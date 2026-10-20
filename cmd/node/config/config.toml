@@ -947,6 +947,9 @@
     OutOfBoundsThreshold = 120
 
 [StateTriesConfig]
+    # Metachain import-db only. Requires peer MemoryDB, snapshots, no peer pruning or full archive.
+    # Zero disables memory rotation. The interval resets when a snapshot starts.
+    ImportDBPeerSnapshotRoundsInterval = 0
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true

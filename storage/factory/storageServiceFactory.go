@@ -85,6 +85,14 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		return nil, err
 	}
 
+	if args.StorageType == ProcessStorageService && args.Config.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval > 0 {
+		if args.NodeProcessingMode != common.ImportDb || args.ShardCoordinator.SelfId() != core.MetachainShardId ||
+			args.Config.PeerAccountsTrieStorage.DB.Type != string(storageunit.MemoryDB) ||
+			!args.Config.StateTriesConfig.SnapshotsEnabled || args.Config.StateTriesConfig.PeerStatePruningEnabled || args.PrefsConfig.FullArchive {
+			return nil, fmt.Errorf("peer memory snapshots require metachain import-db, MemoryDB, snapshots, disabled peer pruning and disabled full archive")
+		}
+	}
+
 	argsOldDataCleanerProvider := clean.ArgOldDataCleanerProvider{
 		NodeTypeProvider:    args.NodeTypeProvider,
 		PruningStorerConfig: args.Config.StoragePruning,
@@ -417,7 +425,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 
-	peerAccountsUnit, err := psf.createTrieStorer(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
+	peerAccountsUnit, err := psf.createPeerTrieStorer(customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
@@ -460,6 +468,14 @@ func (psf *StorageServiceFactory) createTrieStorer(
 	}
 
 	return psf.createTrieUnit(storageConfig, accountsUnitArgs)
+}
+
+func (psf *StorageServiceFactory) createPeerTrieStorer(remover storage.CustomDatabaseRemoverHandler) (storage.Storer, error) {
+	if psf.storageType == ProcessStorageService && psf.nodeProcessingMode == common.ImportDb &&
+		psf.generalConfig.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval > 0 {
+		return pruning.NewImportDBPeerPruningStorer(psf.currentEpoch), nil
+	}
+	return psf.createTrieStorer(psf.generalConfig.PeerAccountsTrieStorage, remover)
 }
 
 func (psf *StorageServiceFactory) createTrieUnit(

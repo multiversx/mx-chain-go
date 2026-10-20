@@ -8,6 +8,7 @@ import (
 // PeerAccountsDB will save and synchronize data from peer processor, plus will synchronize with nodesCoordinator
 type PeerAccountsDB struct {
 	*AccountsDB
+	importDBSnapshots *importDBPeerSnapshots
 }
 
 // NewPeerAccountsDB creates a new account manager
