@@ -449,8 +449,8 @@ github.com/multiversx/mx-chain-storage-go v1.2.0 h1:c+T7NJdsnbZza5k7ez/pUEHeAT9B
 github.com/multiversx/mx-chain-storage-go v1.2.0/go.mod h1:jzaisAV6n/TdrQpYiMX/+A35yl9Cd8LAG+4Afqi6J5s=
 github.com/multiversx/mx-chain-vm-common-go-ghsa-w84w-h39x-g6cq v1.7.3-0.20261009071257-28206342f66f h1:TovqreTySos+Qxgzc2JcJS6V/pNMUNi1ZmH2V0U9z/w=
 github.com/multiversx/mx-chain-vm-common-go-ghsa-w84w-h39x-g6cq v1.7.3-0.20261009071257-28206342f66f/go.mod h1:Lk2ZNxVCThYFbFhjXxy1S8PwqjcEnF7uvTQ0QvA4BbQ=
-github.com/multiversx/mx-chain-vm-go-ghsa-f474-vg6c-h9f2 v1.5.51-0.20261014070458-fcebfe8f74e3 h1:OoFJe1f6CZTfUzhRmllUrC+czlPUSHPKVjUGD6a7AMI=
-github.com/multiversx/mx-chain-vm-go-ghsa-f474-vg6c-h9f2 v1.5.51-0.20261014070458-fcebfe8f74e3/go.mod h1:yRCBKSVzk3HLD0e+uomkvIvinQzF8MJ7cXJBm+oox3o=
+github.com/multiversx/mx-chain-vm-go-ghsa-f474-vg6c-h9f2 v1.5.51-0.20261020075133-1298a5f1ed96 h1:O3mV2XrgejZ9WbJjrVPShDtPwg3RuHwiDiaCHV9GdOQ=
+github.com/multiversx/mx-chain-vm-go-ghsa-f474-vg6c-h9f2 v1.5.51-0.20261020075133-1298a5f1ed96/go.mod h1:yRCBKSVzk3HLD0e+uomkvIvinQzF8MJ7cXJBm+oox3o=
 github.com/multiversx/mx-chain-vm-v1_2-go v1.2.70 h1:qwEqmynUoxzErFgpw6MPnkCTiZhzTYTXnIu29MjfHG0=
 github.com/multiversx/mx-chain-vm-v1_2-go v1.2.70/go.mod h1:iW0obcZE0oxQIgWEy+e3isNxU29wu6zKfqe1vFy5tnE=
 github.com/multiversx/mx-chain-vm-v1_3-go v1.3.71 h1:Pc23fdVXOOPpn3KUfXPkcqJ70yR2URWceDFgSgAang8=
