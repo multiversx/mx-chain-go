@@ -509,7 +509,7 @@
         SizeInBytes = 104857600 #100MB
     [PeerAccountsTrieStorage.DB]
         FilePath = "PeerAccountsTrie"
-        Type = "LvlDBSerial"
+        Type = "MemoryDB"
         BatchDelaySeconds = 2
         MaxBatchSize = 1000
         MaxOpenFiles = 10
@@ -949,10 +949,10 @@
 [StateTriesConfig]
     # Metachain import-db only. Requires peer MemoryDB, snapshots, no peer pruning or full archive.
     # Zero disables memory rotation. The interval resets when a snapshot starts.
-    ImportDBPeerSnapshotRoundsInterval = 0
+    ImportDBPeerSnapshotRoundsInterval = 200
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = false
-    PeerStatePruningEnabled = true
+    PeerStatePruningEnabled = false
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
     StateStatisticsEnabled = false
