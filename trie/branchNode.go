@@ -399,29 +399,29 @@ func (bn *branchNode) isPosCollapsed(pos int) bool {
 	return bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0
 }
 
-func (bn *branchNode) tryGet(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) (value []byte, err error) {
+func (bn *branchNode) tryGetWithVersion(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) (value []byte, version uint32, err error) {
 	err = bn.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("tryGet error %w", err)
+		return nil, 0, fmt.Errorf("tryGet error %w", err)
 	}
 	if len(key) == 0 {
-		return nil, nil
+		return nil, 0, nil
 	}
 	childPos := key[firstByte]
 	if childPosOutOfRange(childPos) {
-		return nil, ErrChildPosOutOfRange
+		return nil, 0, ErrChildPosOutOfRange
 	}
 	key = key[1:]
 	err = resolveIfCollapsed(bn, childPos, tmc, db)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if bn.children[childPos] == nil {
-		return nil, nil
+		return nil, 0, nil
 	}
 
 	tmc.SetDepth(tmc.GetCurrentDepth() + 1)
-	return bn.children[childPos].tryGet(key, tmc, db)
+	return bn.children[childPos].tryGetWithVersion(key, tmc, db)
 }
 
 func (bn *branchNode) getNext(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) (node, []byte, error) {

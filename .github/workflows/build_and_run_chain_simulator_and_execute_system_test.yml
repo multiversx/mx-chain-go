@@ -7,6 +7,10 @@ on:
       - 'master'
       - 'rc/*'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   issues: write
   pull-requests: write
@@ -33,6 +37,8 @@ jobs:
       REPORT_BASE_URL: https://mx-chain-go-testing-reports.multiversx.com
 
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      PYTEST_WORKERS: "16"
 
     steps:
       - name: Determine Target Branches
@@ -288,7 +294,7 @@ jobs:
       - name: Run tests and generate HTML report
         run: |
           set +e
-          pytest mx-chain-testing-suite/scenarios/ --html=report.html --self-contained-html --continue-on-collection-errors
+          pytest mx-chain-testing-suite/scenarios/ -m with_supernova -n "${PYTEST_WORKERS}" --html=report.html --self-contained-html --continue-on-collection-errors
           PYTEST_EXIT_CODE=$?
           set -e
           
@@ -362,13 +368,13 @@ jobs:
             TIMESTAMP=$(date +'%d%m%Y-%H%M%S')
             echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
             REPORT_DIR="reports/${BRANCH_NAME}/${TIMESTAMP}"
-            mkdir -p $REPORT_DIR
+            mkdir -p "$REPORT_DIR"
 
             # Move the report into the new directory
-            cp ../reports/report.html $REPORT_DIR/index.html
+            cp ../reports/report.html "$REPORT_DIR/index.html"
 
             # Add and commit only the new report
-            git add $REPORT_DIR/index.html
+            git add -f "$REPORT_DIR/index.html"
             git commit -m "Deploy Test Report at $BRANCH_NAME/$TIMESTAMP"
 
             # Set remote URL with authentication token

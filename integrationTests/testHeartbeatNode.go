@@ -478,7 +478,7 @@ func (thn *TestHeartbeatNode) initDataPools() {
 
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
 	suCache, _ := storageunit.NewCache(cacherCfg)
-	thn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
+	thn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache, whiteListRequestTTL)
 }
 
 func (thn *TestHeartbeatNode) initStorage() {
@@ -632,6 +632,7 @@ func (thn *TestHeartbeatNode) createRequestHandler() {
 		100,
 		thn.ShardCoordinator.SelfId(),
 		time.Second,
+		time.Millisecond,
 	)
 }
 
@@ -645,12 +646,16 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 			IntMarsh:                   TestMarshaller,
 			HardforkTriggerPubKeyField: []byte(providedHardforkPubKey),
 		},
-		ShardCoordinator:             thn.ShardCoordinator,
-		NodesCoordinator:             thn.NodesCoordinator,
-		PeerSignatureHandler:         thn.PeerSigHandler,
-		SignaturesHandler:            &processMock.SignaturesHandlerStub{},
-		HeartbeatExpiryTimespanInSec: thn.heartbeatExpiryTimespanInSec,
-		PeerID:                       thn.MainMessenger.ID(),
+		ShardCoordinator:                        thn.ShardCoordinator,
+		NodesCoordinator:                        thn.NodesCoordinator,
+		PeerSignatureHandler:                    thn.PeerSigHandler,
+		SignaturesHandler:                       &processMock.SignaturesHandlerStub{},
+		HeartbeatExpiryTimespanInSec:            thn.heartbeatExpiryTimespanInSec,
+		PeerID:                                  thn.MainMessenger.ID(),
+		PeerShardMapper:                         thn.MainPeerShardMapper,
+		PeerAuthCacher:                          thn.DataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: thn.heartbeatExpiryTimespanInSec,
+		CryptoComponents:                        GetDefaultCryptoComponents(),
 	}
 
 	thn.createPeerAuthInterceptor(argsFactory)

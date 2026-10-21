@@ -2,6 +2,7 @@ package storageBootstrap
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 )
 
@@ -12,6 +13,7 @@ type storageBootstrapperHandler interface {
 	applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error
 	applyNumPendingMiniBlocks(pendingMiniBlocks []bootstrapStorage.PendingMiniBlocksInfo)
 	applySelfNotarizedHeaders(selfNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) ([]data.HeaderHandler, [][]byte, error)
+	completeSelfNotarizedHeaders(lastMetaBlockHash []byte) error
 	cleanupNotarizedStorage(hash []byte)
 	cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo)
 	getRootHash(hash []byte) []byte

@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -21,6 +22,10 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 	err := checkMetaStorageBootstrapperArgs(arguments)
 	if err != nil {
 		return nil, err
+	}
+	roundExclusions := arguments.RoundExclusions
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
 	}
 
 	base := &storageBootstrapper{
@@ -45,6 +50,9 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		proofsPool:                   arguments.ProofsPool,
 		executionManager:             arguments.ExecutionManager,
+		roundExclusions:              roundExclusions,
+		recoveryCheckpoint:           arguments.RecoveryCheckpoint,
+		hasher:                       arguments.Hasher,
 	}
 
 	boot := metaStorageBootstrapper{
@@ -75,6 +83,9 @@ func (msb *metaStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHea
 	for _, crossNotarizedHeader := range crossNotarizedHeaders {
 		header, err := process.GetShardHeaderFromStorage(crossNotarizedHeader.Hash, msb.marshalizer, msb.store)
 		if err != nil {
+			return err
+		}
+		if err = msb.checkRecoveryHeader(header, crossNotarizedHeader.Hash); err != nil {
 			return err
 		}
 
@@ -165,6 +176,9 @@ func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(
 		if err != nil {
 			return nil, nil, err
 		}
+		if err = msb.checkRecoveryHeader(selfNotarizedHeader, bootstrapHeaderInfo.Hash); err != nil {
+			return nil, nil, err
+		}
 
 		err = msb.getAndApplyProofForHeader(bootstrapHeaderInfo.Hash, selfNotarizedHeader)
 		if err != nil {
@@ -181,6 +195,16 @@ func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(
 	}
 
 	return make([]data.HeaderHandler, 0), make([][]byte, 0), nil
+}
+
+func (msb *metaStorageBootstrapper) completeSelfNotarizedHeaders(lastMetaBlockHash []byte) error {
+	return process.CompleteMissingSelfNotarizedHeaders(
+		lastMetaBlockHash,
+		msb.shardCoordinator.NumberOfShards(),
+		msb.blockTracker,
+		msb.marshalizer,
+		msb.store,
+	)
 }
 
 func (msb *metaStorageBootstrapper) applyNumPendingMiniBlocks(pendingMiniBlocksInfo []bootstrapStorage.PendingMiniBlocksInfo) {

@@ -123,16 +123,35 @@ func TestMetaStorageBootstrapper_LoadFromStorageShouldCleanupRoundsAboveBootstra
 				EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 				BlockTracker: &mock.BlockTrackerMock{
 					AddTrackedHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
+					GetLastSelfNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+						return &testscommon.HeaderHandlerStub{
+							GetNonceCalled: func() uint64 {
+								return 1
+							},
+						}, []byte("hash"), nil
+					},
 				},
-				ChainID:                      "1",
-				ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-				MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
-				EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
-				ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
-				AppStatusHandler:             &statusHandler.AppStatusHandlerMock{},
-				EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-				ProofsPool:                   &dataRetrieverMocks.ProofsPoolMock{},
-				ExecutionManager:             &processMocks.ExecutionManagerMock{},
+				ChainID: "1",
+				ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+					RollBackToBlockCalled: func([]byte) error {
+						t.Fatal("scheduled state should not be restored for a meta header")
+						return nil
+					},
+					SetScheduledInfoCalled: func(*process.ScheduledInfo) {
+						t.Fatal("scheduled state should not be created for a meta header")
+					},
+					GetScheduledRootHashForHeaderCalled: func([]byte) ([]byte, error) {
+						t.Fatal("scheduled storage should not be queried for a meta header")
+						return nil, nil
+					},
+				},
+				MiniblocksProvider:         &mock.MiniBlocksProviderStub{},
+				EpochNotifier:              &epochNotifierMock.EpochNotifierStub{},
+				ProcessedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
+				AppStatusHandler:           &statusHandler.AppStatusHandlerMock{},
+				EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				ProofsPool:                 &dataRetrieverMocks.ProofsPoolMock{},
+				ExecutionManager:           &processMocks.ExecutionManagerMock{},
 			},
 			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
 		}
@@ -238,6 +257,13 @@ func TestMetaStorageBootstrapper_LoadFromStorageShouldCleanupRoundsAboveBootstra
 				EpochStartTrigger:   &mock.EpochStartTriggerStub{},
 				BlockTracker: &mock.BlockTrackerMock{
 					AddTrackedHeaderCalled: func(header data.HeaderHandler, hash []byte) {},
+					GetLastSelfNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+						return &testscommon.HeaderHandlerStub{
+							GetNonceCalled: func() uint64 {
+								return 1
+							},
+						}, []byte("hash"), nil
+					},
 				},
 				ChainID:                      "1",
 				ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},

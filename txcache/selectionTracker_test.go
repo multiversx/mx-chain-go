@@ -15,7 +15,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 )
 
 func proposeBlocks(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, accountsProvider common.AccountNonceAndBalanceProvider) {
@@ -158,7 +158,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 1, big.NewInt(20), true, nil
 			},
@@ -207,7 +207,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 1, big.NewInt(20), true, nil
 			},
@@ -262,7 +262,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 1, big.NewInt(20), true, nil
 			},
@@ -304,7 +304,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, nil, false, expectedErr
 			},
@@ -337,7 +337,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			},
 		}
 
-		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 			GetRootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash1"), nil
 			},
@@ -362,7 +362,7 @@ func TestSelectionTracker_OnProposedBlockShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	numOfBlocks := 20
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 
 	proposeBlocks(t, numOfBlocks, tracker, accountsProvider)
 	require.Equal(t, 20, len(tracker.blocks))
@@ -376,7 +376,7 @@ func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testin
 	require.Nil(t, err)
 
 	numOfBlocks := 3
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 
 	proposeBlocks(t, numOfBlocks, tracker, accountsProvider)
 
@@ -447,7 +447,7 @@ func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testin
 func Test_CompleteFlowShouldWork(t *testing.T) {
 	t.Parallel()
 
-	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+	accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
 		},
@@ -465,7 +465,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	cache, err := NewTxCache(config, host, 0)
 	require.Nil(t, err)
@@ -569,7 +569,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, expectedBreadcrumbs, tb.breadcrumbsByAddress)
 
-	selectionSession := &txcachemocks.SelectionSessionMock{
+	selectionSession := &mempool.SelectionSessionMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
 		},
@@ -600,7 +600,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	}
 
 	// update the session nonce
-	selectionSession = &txcachemocks.SelectionSessionMock{
+	selectionSession = &mempool.SelectionSessionMock{
 		GetRootHashCalled: func() ([]byte, error) {
 			return []byte("rootHash0"), nil
 		},
@@ -667,7 +667,7 @@ func TestSelectionTracker_OnExecutedBlockShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	numOfBlocks := 20
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 
 	proposeBlocks(t, numOfBlocks, tracker, accountsProvider)
 	require.Equal(t, numOfBlocks, len(tracker.blocks))
@@ -682,7 +682,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 
@@ -930,7 +930,7 @@ func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
 	t.Run("get roothash returns error, should error", func(t *testing.T) {
 		expectedErr := errors.New("expected err")
 
-		session := txcachemocks.SelectionSessionMock{}
+		session := mempool.SelectionSessionMock{}
 		session.GetRootHashCalled = func() ([]byte, error) {
 			return nil, expectedErr
 		}
@@ -939,7 +939,7 @@ func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
 		require.Equal(t, expectedErr, actualErr)
 	})
 	t.Run("cannot do simulation error on wrong nonce, returns error", func(t *testing.T) {
-		session := txcachemocks.SelectionSessionMock{}
+		session := mempool.SelectionSessionMock{}
 		session.GetRootHashCalled = func() ([]byte, error) {
 			return []byte("root hash"), nil
 		}
@@ -999,7 +999,7 @@ func TestSelectionTracker_deriveVirtualSelectionSessionShouldDeleteProposedBlock
 	tracker.blocks = createDummyTrackedBlocks()
 	require.Equal(t, 3, len(tracker.blocks))
 
-	session := txcachemocks.SelectionSessionMock{}
+	session := mempool.SelectionSessionMock{}
 	session.GetRootHashCalled = func() ([]byte, error) {
 		return nil, nil
 	}
@@ -1019,7 +1019,7 @@ func TestSelectionTracker_deriveVirtualSelectionSessionShouldNotDeleteProposedBl
 	require.Nil(t, err)
 	require.Equal(t, 3, len(tracker.blocks))
 
-	session := txcachemocks.SelectionSessionMock{}
+	session := mempool.SelectionSessionMock{}
 	session.GetRootHashCalled = func() ([]byte, error) {
 		return nil, nil
 	}
@@ -1072,7 +1072,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 			},
 		}
 
-		mockSelectionSession := txcachemocks.SelectionSessionMock{
+		mockSelectionSession := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, big.NewInt(20), true, nil
 			},
@@ -1128,7 +1128,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 			},
 		}
 
-		mockSelectionSession := txcachemocks.SelectionSessionMock{
+		mockSelectionSession := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, big.NewInt(5), true, nil
 			},
@@ -1184,7 +1184,7 @@ func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
 			},
 		}
 
-		mockSelectionSession := txcachemocks.SelectionSessionMock{
+		mockSelectionSession := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, big.NewInt(2), true, nil
 			},
@@ -1272,7 +1272,7 @@ func Test_isTransactionTracked(t *testing.T) {
 	require.Nil(t, err)
 	txCache.tracker = tracker
 
-	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+	accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 11, big.NewInt(6 * 100000 * oneBillion), true, nil
 		},
@@ -1415,7 +1415,7 @@ func TestSelectionTracker_IsTransactionTracked(t *testing.T) {
 
 	txCache.tracker = tracker
 
-	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+	accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 11, big.NewInt(6 * 100000 * oneBillion), true, nil
 		},
@@ -1606,7 +1606,7 @@ func TestSelectionTracker_MaxUniqueAccounts(t *testing.T) {
 		Nonce: 10,
 	}
 
-	accProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+	accProvider := &mempool.AccountNonceAndBalanceProviderMock{
 		GetRootHashCalled: func() ([]byte, error) {
 			return defaultLatestExecutedHash, nil
 		},
@@ -1732,7 +1732,7 @@ func TestSelectionTracker_OnExecutedBlock_multipleBlocksWithSharedSender(t *test
 	txCache.tracker = tracker
 
 	aliceInitialNonce := uint64(1)
-	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+	accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return aliceInitialNonce, big.NewInt(8 * 100000 * oneBillion), true, nil
 		},
@@ -1934,7 +1934,7 @@ func TestSelectionTracker_validateBreadcrumbsToleratesPredecessorDiscontinuity(t
 			},
 		}
 
-		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, big.NewInt(1000), true, nil
 			},
@@ -1990,7 +1990,7 @@ func TestSelectionTracker_validateBreadcrumbsToleratesPredecessorDiscontinuity(t
 			},
 		}
 
-		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, big.NewInt(1000), true, nil
 			},
@@ -2028,7 +2028,7 @@ func TestSelectionTracker_validateBreadcrumbsToleratesPredecessorDiscontinuity(t
 			},
 		}
 
-		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, big.NewInt(1000), true, nil
 			},
@@ -2101,7 +2101,7 @@ func TestSelectionTracker_validateBreadcrumbsToleratesPredecessorDiscontinuity(t
 			},
 		}
 
-		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, big.NewInt(1000), true, nil
 			},
@@ -2140,7 +2140,7 @@ func TestSelectionTracker_SelectionSkipsDiscontinuousAccounts(t *testing.T) {
 			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 		}
 
-		host := txcachemocks.NewMempoolHostMock()
+		host := mempool.NewMempoolHostMock()
 		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
@@ -2189,7 +2189,7 @@ func TestSelectionTracker_SelectionSkipsDiscontinuousAccounts(t *testing.T) {
 		cache.tracker.latestRootHash = []byte("rootHash0")
 		cache.tracker.latestNonce = 99
 
-		selectionSession := &txcachemocks.SelectionSessionMock{
+		selectionSession := &mempool.SelectionSessionMock{
 			GetRootHashCalled: func() ([]byte, error) {
 				return []byte("rootHash0"), nil
 			},
@@ -2234,7 +2234,7 @@ func TestSelectionTracker_RecoveryFromDiscontinuousBreadcrumbs(t *testing.T) {
 		"bob":   0,
 	}
 
-	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+	accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			nonce := accountNonces[string(address)]
 			return nonce, big.NewInt(8 * 100000 * oneBillion), true, nil
@@ -2256,7 +2256,7 @@ func TestSelectionTracker_RecoveryFromDiscontinuousBreadcrumbs(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	cache, err := NewTxCache(config, host, 0)
 	require.Nil(t, err)
 
@@ -2329,7 +2329,7 @@ func TestSelectionTracker_RecoveryFromDiscontinuousBreadcrumbs(t *testing.T) {
 
 	// Step 4: After the stale block is removed, alice's breadcrumbs are no longer in any tracked block
 	// Now verify alice can be selected in the next selection
-	selectionSession := &txcachemocks.SelectionSessionMock{
+	selectionSession := &mempool.SelectionSessionMock{
 		GetRootHashCalled: func() ([]byte, error) {
 			return []byte("rootHash1"), nil
 		},
@@ -2375,4 +2375,102 @@ func createDummyTrackedBlocks() map[string]*trackedBlock {
 			hash:  []byte("hash3"),
 		},
 	}
+}
+
+func TestSelectionTracker_ResetTrackerRewindsSelectionOffsets(t *testing.T) {
+	t.Parallel()
+
+	accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	config := ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
+	}
+
+	cache, err := NewTxCache(config, mempool.NewMempoolHostMock(), 0)
+	require.Nil(t, err)
+
+	txs := []*WrappedTransaction{
+		createTx([]byte("txHash1"), "alice", 11).withValue(big.NewInt(0)),
+		createTx([]byte("txHash2"), "alice", 12).withValue(big.NewInt(0)),
+		createTx([]byte("txHash3"), "alice", 13).withValue(big.NewInt(0)),
+		createTx([]byte("txHash4"), "bob", 11).withValue(big.NewInt(0)),
+		createTx([]byte("txHash5"), "bob", 12).withValue(big.NewInt(0)),
+	}
+	for _, tx := range txs {
+		cache.AddTx(tx)
+	}
+
+	err = cache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+						[]byte("txHash3"),
+						[]byte("txHash4"),
+						[]byte("txHash5"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	aliceList, ok := cache.txListBySender.getListForSender("alice")
+	require.True(t, ok)
+	bobList, ok := cache.txListBySender.getListForSender("bob")
+	require.True(t, ok)
+	require.Equal(t, 3, aliceList.getSelectionOffset())
+	require.Equal(t, 2, bobList.getSelectionOffset())
+
+	// the proposed block is dropped through the rollback / sync path
+	cache.ResetTracker()
+
+	require.Equal(t, 0, aliceList.getSelectionOffset())
+	require.Equal(t, 0, bobList.getSelectionOffset())
+
+	// after the reset, the executed-block notification re-seeds the tracker state
+	err = cache.OnExecutedBlock(&block.Header{Nonce: 0}, []byte("rootHash0"))
+	require.Nil(t, err)
+
+	selectionSession := &mempool.SelectionSessionMock{
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash0"), nil
+		},
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 11, big.NewInt(8 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	options, _ := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		10,
+		10,
+		haveTimeTrueForSelection,
+	)
+
+	selectedTxs, _, err := cache.SelectTransactions(selectionSession, options, 1)
+	require.Nil(t, err)
+	require.Len(t, selectedTxs, 5)
 }

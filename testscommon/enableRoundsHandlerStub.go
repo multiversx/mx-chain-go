@@ -13,6 +13,26 @@ type EnableRoundsHandlerStub struct {
 	GetAllEnableRoundsCalled   func() map[string]uint64
 }
 
+// NewEnableRoundsHandlerStub returns a stub with the provided flags active in every round
+func NewEnableRoundsHandlerStub(flags ...common.EnableRoundFlag) *EnableRoundsHandlerStub {
+	activeFlags := make(map[common.EnableRoundFlag]struct{}, len(flags))
+	for _, flag := range flags {
+		activeFlags[flag] = struct{}{}
+	}
+	isActive := func(flag common.EnableRoundFlag) bool {
+		_, found := activeFlags[flag]
+		return found
+	}
+
+	return &EnableRoundsHandlerStub{
+		IsFlagDefinedCalled: isActive,
+		IsFlagEnabledCalled: isActive,
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, _ uint64) bool {
+			return isActive(flag)
+		},
+	}
+}
+
 // RoundConfirmed -
 func (e *EnableRoundsHandlerStub) RoundConfirmed(round uint64, timestamp uint64) {
 	if e.RoundConfirmedCalled != nil {

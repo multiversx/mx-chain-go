@@ -167,10 +167,29 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	return cache
 }
 
-// ImmunizeSetOfDataAgainstEviction marks the items as non-evictable
-func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string) {
+// ImmunizeSetOfDataAgainstEviction marks the items as non-evictable for the provided confirmation nonce
+func (txPool *shardedTxPool) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID string, nonce uint64) {
 	shard := txPool.getOrCreateShard(cacheID)
-	shard.Cache.ImmunizeTxsAgainstEviction(keys)
+	shard.Cache.ImmunizeTxsAgainstEviction(keys, nonce)
+}
+
+// SetOldestImmuneNonce deactivates immunity below the provided nonce
+func (txPool *shardedTxPool) SetOldestImmuneNonce(cacheID string, nonce uint64) {
+	shard := txPool.getOrCreateShard(cacheID)
+	shard.Cache.SetOldestImmuneNonce(nonce)
+}
+
+// SetOldestImmuneNonceForAllCaches deactivates immunity below the provided nonce
+// on every backing cache. Called from the shard's commit path once cross-notarized
+// metablock processing has advanced and the items confirmed up to (nonce - 1)
+// are guaranteed to have been executed.
+func (txPool *shardedTxPool) SetOldestImmuneNonceForAllCaches(nonce uint64) {
+	txPool.mutexBackingMap.RLock()
+	defer txPool.mutexBackingMap.RUnlock()
+
+	for _, shard := range txPool.backingMap {
+		shard.Cache.SetOldestImmuneNonce(nonce)
+	}
 }
 
 // AddData adds the transaction to the cache

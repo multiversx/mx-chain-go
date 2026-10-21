@@ -22,7 +22,7 @@ func TestSystemAccountLiquidityAfterCrossShardTransferAndBurn(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	tokenID := []byte("MYNFT")
+	tokenID := []byte("MYNFT-123456")
 	sh0Addr := []byte("12345678901234567890123456789010")
 	sh1Addr := []byte("12345678901234567890123456789011")
 	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)

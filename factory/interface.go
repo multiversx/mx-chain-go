@@ -329,6 +329,7 @@ type ProcessComponentsHolder interface {
 	EpochSystemSCProcessor() process.EpochStartSystemSCProcessor
 	BlockchainHook() process.BlockChainHookWithAccountsAdapter
 	AOTSelector() process.AOTTransactionSelector
+	TransactionProcessor() process.TransactionProcessor
 	IsInterfaceNil() bool
 }
 

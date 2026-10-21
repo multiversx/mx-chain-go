@@ -8,7 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 )
 
 func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
@@ -97,7 +97,7 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should create blocked record for carol because it has discontinuous nonce with session nonce", func(t *testing.T) {
-		sessionMock := txcachemocks.SelectionSessionMock{
+		sessionMock := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 2, big.NewInt(2), true, nil
 			},
@@ -211,7 +211,7 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 
 	t.Run("should return error from selection session", func(t *testing.T) {
 		var expectedErr = errors.New("expected err")
-		sessionMock := txcachemocks.SelectionSessionMock{
+		sessionMock := mempool.SelectionSessionMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 0, big.NewInt(0), true, expectedErr
 			},

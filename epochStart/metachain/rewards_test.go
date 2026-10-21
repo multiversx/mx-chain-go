@@ -1,6 +1,7 @@
 package metachain
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 
@@ -220,7 +221,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 	})
 
 	err := rwd.VerifyRewardsMiniBlocks(mb, valInfo, &mb.EpochStart.Economics)
-	assert.Equal(t, epochStart.ErrRewardMiniBlocksNumDoesNotMatch, err)
+	assert.True(t, errors.Is(err, epochStart.ErrDuplicatedRewardMiniBlockHeader))
 }
 
 func TestRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *testing.T) {

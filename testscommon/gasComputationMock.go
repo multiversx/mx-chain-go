@@ -13,6 +13,7 @@ type GasComputationMock struct {
 	AddOutgoingTransactionsCalled func(
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
+		isProposer bool,
 	) ([][]byte, []data.MiniBlockHeaderHandler, error)
 	GetBandwidthForTransactionsCalled func() uint64
 	TotalGasConsumedInSelfShardCalled func() uint64
@@ -43,9 +44,10 @@ func (mock *GasComputationMock) AddIncomingMiniBlocks(
 func (mock *GasComputationMock) AddOutgoingTransactions(
 	txHashes [][]byte,
 	transactions []data.TransactionHandler,
+	isProposer bool,
 ) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 	if mock.AddOutgoingTransactionsCalled != nil {
-		return mock.AddOutgoingTransactionsCalled(txHashes, transactions)
+		return mock.AddOutgoingTransactionsCalled(txHashes, transactions, isProposer)
 	}
 	return nil, nil, nil
 }

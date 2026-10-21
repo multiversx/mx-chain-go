@@ -75,6 +75,9 @@ func TestTomlParser(t *testing.T) {
 					MaxRoundsOfInactivityAccepted:          12,
 					MaxBlockProcessingTimeMs:               13,
 					NumHeadersToRequestInAdvance:           14,
+					ExtraDelayForBroadcastBlockInfoMs:      15,
+					ExtraDelayBetweenBroadcastMbsAndTxsMs:  16,
+					ExtraDelayForRequestBlockInfoMs:        17,
 				},
 			},
 		},
@@ -178,6 +181,7 @@ func TestTomlParser(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               100,
 			PropagationGracePeriodMs:       200,
+			MaxTxNonceDeltaAllowed:         100,
 		},
 		TxCacheSelection: TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
@@ -383,7 +387,10 @@ func TestTomlParser(t *testing.T) {
         MaxConsecutiveRoundsOfRatingDecrease = 11,
         MaxRoundsOfInactivityAccepted = 12,
 		MaxBlockProcessingTimeMs = 13,
-        NumHeadersToRequestInAdvance = 14
+        NumHeadersToRequestInAdvance = 14,
+        ExtraDelayForBroadcastBlockInfoMs = 15,
+        ExtraDelayBetweenBroadcastMbsAndTxsMs = 16,
+        ExtraDelayForRequestBlockInfoMs = 17
         }
     ]
 
@@ -437,6 +444,7 @@ func TestTomlParser(t *testing.T) {
 	MaxNumBytesPerSenderUpperBound = 33_554_432
 	MaxTrackedBlocks = 100
 	PropagationGracePeriodMs = 200
+	MaxTxNonceDeltaAllowed = 100
 
 [TxCacheSelection]
 	SelectionMaxNumTxs = 30000
@@ -1305,8 +1313,23 @@ func TestEnableEpochConfig(t *testing.T) {
     # RelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
     RelayedTransactionsV1V2DisableEpoch = 113
 
+    # ConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas in accumulated economics is fixed
+    ConsumedGasInEconomicsFixEnableEpoch = 114
+
+    # AttributeExtraGasUsageEnableEpoch represents the epoch when the extra gas usage for attributes is enabled
+    AttributeExtraGasUsageEnableEpoch = 115
+
+    # FixCorrectSmallIntAndGasLimitsEnableEpoch represents the epoch when the fix for signed small int encoding and gas loopholes is enabled
+    FixCorrectSmallIntAndGasLimitsEnableEpoch = 116
+
+    # OutputRollbackOnDestContextEnableEpoch represents the epoch when output state rollback on failed destination context calls is enabled
+    OutputRollbackOnDestContextEnableEpoch = 117
+
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
-    SupernovaEnableEpoch = 114
+    SupernovaEnableEpoch = 118
+
+    # FixEpochChangeProposedCurrentEpochEnableEpoch represents the epoch when epoch change proposed blocks expose the prepared epoch
+    FixEpochChangeProposedCurrentEpochEnableEpoch = 119
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1440,7 +1463,12 @@ func TestEnableEpochConfig(t *testing.T) {
 			AutomaticActivationOfNodesDisableEpoch:                   111,
 			FixGetBalanceEnableEpoch:                                 112,
 			RelayedTransactionsV1V2DisableEpoch:                      113,
-			SupernovaEnableEpoch:                                     114,
+			ConsumedGasInEconomicsFixEnableEpoch:                     114,
+			AttributeExtraGasUsageEnableEpoch:                        115,
+			FixCorrectSmallIntAndGasLimitsEnableEpoch:                116,
+			OutputRollbackOnDestContextEnableEpoch:                   117,
+			SupernovaEnableEpoch:                                     118,
+			FixEpochChangeProposedCurrentEpochEnableEpoch:            119,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

@@ -7,24 +7,25 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+
 	"github.com/multiversx/mx-chain-go/common"
 )
 
 // Cleanup simulates a selection and removes not-executable transactions. Initial implementation: lower nonces
-func (cache *TxCache) Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
+func (cache *TxCache) Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) uint64 {
 	logRemove.Debug(
 		"TxCache.Cleanup: begin",
 		"randomness", randomness,
 		"maxNum", maxNum,
-		"cleanupLoopMaximumDuration", cleanupLoopMaximumDurationMs,
+		"cleanupLoopMaximumDuration", cleanupLoopMaximumDuration,
 		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
 	)
-	return cache.RemoveSweepableTxs(accountsProvider, randomness, maxNum, cleanupLoopMaximumDurationMs)
+	return cache.RemoveSweepableTxs(accountsProvider, randomness, maxNum, cleanupLoopMaximumDuration)
 }
 
-func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
+func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) uint64 {
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 
@@ -38,7 +39,7 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 	logRemove.Debug("TxCache.RemoveSweepableTxs start",
 		"randomness", randomness,
 		"maxNum", maxNum,
-		"cleanupLoopMaximumDuration", cleanupLoopMaximumDurationMs,
+		"cleanupLoopMaximumDuration", cleanupLoopMaximumDuration,
 		"rootHash", rootHash,
 	)
 
@@ -73,11 +74,11 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 		}
 
 		// stop if we reached the maximum duration for this cleanup loop
-		if time.Since(cleanupLoopStartTime) > cleanupLoopMaximumDurationMs {
+		if time.Since(cleanupLoopStartTime) > cleanupLoopMaximumDuration {
 			logRemove.Debug("TxCache.RemoveSweepableTxs reached cleanupLoopMaximumDuration",
 				"len(evicted)", len(evicted),
 				"duration", time.Since(cleanupLoopStartTime),
-				"cleanupLoopMaximumDuration", cleanupLoopMaximumDurationMs,
+				"cleanupLoopMaximumDuration", cleanupLoopMaximumDuration,
 			)
 			break
 		}

@@ -6,12 +6,53 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/stretchr/testify/require"
 )
+
+func TestGetBootstrapSelectionRound(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		recovery  bool
+		parent    int64
+		tip       int64
+		want      int64
+		wantError bool
+	}{
+		{name: "disabled uses parent without reading storage", parent: 90, want: 90},
+		{name: "snapshot uses tip", recovery: true, tip: 200, want: 200},
+		{name: "committed uses tip", recovery: true, parent: 90, tip: 200, want: 200},
+		{name: "missing tip", recovery: true, wantError: true},
+		{name: "tip must follow parent", recovery: true, parent: 100, tip: 100, wantError: true},
+		{name: "invalid parent", recovery: true, parent: -1, tip: 200, wantError: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data := &bootstrapStorage.BootstrapData{
+				LastRound: tc.parent, HighestFinalBlockNonce: 10,
+				LastHeader: bootstrapStorage.BootstrapHeaderInfo{Nonce: 10, Hash: []byte("anchor")},
+			}
+			provider := &mock.BootStrapDataProviderStub{
+				GetStorerCalled: func(_ storage.Storer) (process.BootStorer, error) {
+					require.True(t, tc.recovery)
+					return &processMock.BoostrapStorerMock{GetHighestRoundCalled: func() int64 { return tc.tip }}, nil
+				},
+			}
+			round, err := GetBootstrapSelectionRound(provider, data, nil, tc.recovery)
+			if tc.wantError {
+				require.ErrorIs(t, err, storage.ErrBootstrapDataNotFoundInStorage)
+			} else {
+				require.NoError(t, err)
+			}
+			require.Equal(t, tc.want, round)
+			require.Equal(t, tc.parent, data.LastRound)
+		})
+	}
+}
 
 func TestNewBootstrapDataProvider_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()

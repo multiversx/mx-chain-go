@@ -16,9 +16,9 @@ type throttlerGetter interface {
 
 // CreateEndpointThrottlerFromFacade will create a middleware-type of handler to be used in conjunction with special
 // REST API end points that need to be better protected
-func CreateEndpointThrottlerFromFacade(throttlerName string, facade interface{}) gin.HandlerFunc {
+func CreateEndpointThrottlerFromFacade(throttlerName string, getFacade func() interface{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		tg, ok := facade.(throttlerGetter)
+		tg, ok := getFacade().(throttlerGetter)
 		if !ok {
 			c.AbortWithStatusJSON(
 				http.StatusInternalServerError,

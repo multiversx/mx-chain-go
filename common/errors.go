@@ -2,6 +2,10 @@ package common
 
 import "errors"
 
+var ErrTrieOperationsBusy = errors.New("too many concurrent trie operations")
+
+var ErrTrieLeavesRetrieverDisabled = errors.New("paginated trie retrieval is disabled")
+
 // ErrInvalidTimeout signals that an invalid timeout period has been provided
 var ErrInvalidTimeout = errors.New("invalid timeout value")
 
@@ -40,6 +44,9 @@ var ErrInvalidHashShardKey = errors.New("invalid hash shard key")
 
 // ErrInvalidNonceShardKey signals that the provided nonce-shard key is invalid
 var ErrInvalidNonceShardKey = errors.New("invalid nonce shard key")
+
+// ErrPaddingBitsSet signals that the provided bitmap has padding bits set to 1 instead of 0
+var ErrPaddingBitsSet = errors.New("padding bits in the bitmap should be zero")
 
 // ErrNilCommonConfigsHandler signals that a nil common configs handler has been provided
 var ErrNilCommonConfigsHandler = errors.New("nil common configs handler")

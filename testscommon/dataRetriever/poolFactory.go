@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 )
 
@@ -41,7 +41,7 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 			},
 			NumberOfShards: numShards,
 			SelfShardID:    selfShard,
-			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+			TxGasHandler:   mempool.NewTxGasHandlerMock(),
 			Marshalizer:    &marshal.GogoProtoMarshalizer{},
 			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
 				MaxNumBytesPerSenderUpperBound: 33_554_432,

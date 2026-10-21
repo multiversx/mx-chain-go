@@ -940,9 +940,10 @@ func TestShardInfoCreateData_miniBlockHeaderFromMiniBlockHeader(t *testing.T) {
 		enableEpochsHandler.IsFlagEnabledCalled = func(flag core.EnableEpochFlag) bool {
 			return flag == common.ScheduledMiniBlocksFlag
 		}
-		for i := 0; i < len(headerHandler.GetMiniBlockHeaderHandlers()); i++ {
-			_ = headerHandler.GetMiniBlockHeaderHandlers()[i].SetConstructionState(int32(block.Proposed))
-			require.False(t, headerHandler.GetMiniBlockHeaderHandlers()[i].IsFinal())
+		mbHeaders := headerHandler.GetMiniBlockHeaderHandlers()
+		for _, mbh := range mbHeaders {
+			_ = mbh.SetConstructionState(int32(block.Proposed))
+			require.False(t, mbh.IsFinal())
 		}
 
 		miniblockHeaders := createShardMiniBlockHeaderFromHeader(headerHandler, enableEpochsHandler)
@@ -967,7 +968,6 @@ func TestShardInfoCreateData_createShardMiniBlockHeaderFromExecutionResultHandle
 	}
 }
 
-// TODO modify when the function is updated
 func TestShardInfoCreateData_updateShardDataWithCrossShardInfo(t *testing.T) {
 	t.Parallel()
 
@@ -988,6 +988,26 @@ func TestShardInfoCreateData_updateShardDataWithCrossShardInfo(t *testing.T) {
 		require.Nil(t, err)
 
 		err = sic.updateShardDataWithCrossShardInfo(shardData, &header)
+		require.Contains(t, err.Error(), "GetLastSelfNotarizedHeader error")
+	})
+
+	t.Run("should fail with GetLastSelfNotarizedHeader error for V3 header", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.HeaderV3{ShardID: 1}
+		shardData := &block.ShardData{}
+
+		args := createDefaultShardInfoCreateDataArgs()
+		args.BlockTracker = &mock.BlockTrackerMock{
+			GetLastSelfNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return nil, nil, fmt.Errorf("GetLastSelfNotarizedHeader error")
+			},
+		}
+
+		sic, err := NewShardInfoCreateData(args)
+		require.Nil(t, err)
+
+		err = sic.updateShardDataWithCrossShardInfo(shardData, header)
 		require.Contains(t, err.Error(), "GetLastSelfNotarizedHeader error")
 	})
 
@@ -1017,6 +1037,62 @@ func TestShardInfoCreateData_updateShardDataWithCrossShardInfo(t *testing.T) {
 		require.NotNil(t, shardData)
 		require.Nil(t, err)
 		require.Equal(t, uint32(2), shardData.NumPendingMiniBlocks)
+		require.Equal(t, expectedNonce, shardData.LastIncludedMetaNonce)
+	})
+
+	t.Run("should work with non-V3 header and no pending miniblocks", func(t *testing.T) {
+		t.Parallel()
+
+		header := block.Header{ShardID: 1}
+		shardData := &block.ShardData{}
+		expectedNonce := uint64(12345)
+
+		args := createDefaultShardInfoCreateDataArgs()
+		args.PendingMiniBlocksHandler = &mock.PendingMiniBlocksHandlerStub{
+			GetPendingMiniBlocksCalled: func(shardID uint32) [][]byte {
+				return nil
+			},
+		}
+		args.BlockTracker = &mock.BlockTrackerMock{
+			GetLastSelfNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.Header{Nonce: expectedNonce}, []byte("selfNotarizedHash"), nil
+			},
+		}
+
+		sic, err := NewShardInfoCreateData(args)
+		require.Nil(t, err)
+
+		err = sic.updateShardDataWithCrossShardInfo(shardData, &header)
+		require.Nil(t, err)
+		require.Equal(t, uint32(0), shardData.NumPendingMiniBlocks)
+		require.Equal(t, expectedNonce, shardData.LastIncludedMetaNonce)
+	})
+
+	t.Run("should work with V3 header and not set NumPendingMiniBlocks", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.HeaderV3{ShardID: 1}
+		shardData := &block.ShardData{}
+		expectedNonce := uint64(12345)
+
+		args := createDefaultShardInfoCreateDataArgs()
+		args.PendingMiniBlocksHandler = &mock.PendingMiniBlocksHandlerStub{
+			GetPendingMiniBlocksCalled: func(shardID uint32) [][]byte {
+				return [][]byte{[]byte("hash1"), []byte("hash2")}
+			},
+		}
+		args.BlockTracker = &mock.BlockTrackerMock{
+			GetLastSelfNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.Header{Nonce: expectedNonce}, []byte("selfNotarizedHash"), nil
+			},
+		}
+
+		sic, err := NewShardInfoCreateData(args)
+		require.Nil(t, err)
+
+		err = sic.updateShardDataWithCrossShardInfo(shardData, header)
+		require.Nil(t, err)
+		require.Equal(t, uint32(0), shardData.NumPendingMiniBlocks)
 		require.Equal(t, expectedNonce, shardData.LastIncludedMetaNonce)
 	})
 }

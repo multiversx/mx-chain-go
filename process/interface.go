@@ -180,7 +180,7 @@ type TransactionCoordinator interface {
 	GetCreatedMiniBlocksFromMe() block.MiniBlockSlice
 
 	CreateBlockStarted()
-	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
+	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, allowStartingPartialExecution bool, gasProcessingPolicy GasProcessingPolicy) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, randomness []byte) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
@@ -271,7 +271,7 @@ type PreProcessor interface {
 	RequestBlockTransactions(body *block.Body) int
 
 	GetTransactionsAndRequestMissingForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int)
-	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
+	ProcessMiniBlock(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler PreProcessorExecutionInfoHandler, gasProcessingPolicy GasProcessingPolicy) ([][]byte, int, bool, error)
 	SelectOutgoingTransactions(bandwidth uint64, nonce uint64, haveTimeForSelection func() bool) ([][]byte, []data.TransactionHandler, error)
 	CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error)
 
@@ -285,7 +285,8 @@ type PreProcessor interface {
 type BlockProcessor interface {
 	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	ProcessBlockProposal(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
-	CommitBlockProposalState(headerHandler data.HeaderHandler) error
+	CommitBlockProposalState(headerHandler data.HeaderHandler, headerHash []byte) error
+	DiscardStateAccessesForHeader(headerHash []byte)
 	RevertBlockProposalState()
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
@@ -356,8 +357,8 @@ type ExecutionManager interface {
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	RemoveAtNonceAndHigher(nonce uint64) error
-	ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
+	RewindExecutionStateToTip(newTip data.HeaderHandler, newTipHash []byte) error
 	PopDismissedResults() []executionTrack.DismissedBatch
 	GetSignalProcessCompletionChan() chan uint64
 	Close() error
@@ -469,9 +470,14 @@ type Bootstrapper interface {
 type ForkDetector interface {
 	AddHeader(header data.HeaderHandler, headerHash []byte, state BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error
 	RemoveHeader(nonce uint64, hash []byte)
+	RemoveCommittedHeader(nonce uint64, hash []byte)
+	ReconcileFinalCheckpoint(nonce uint64) bool
+	ReconcileFinalCheckpointBelow(nonce uint64) bool
+	ReconcileFinalCheckpointFromAuthority(nonce uint64, selectedHash []byte) bool
 	CheckFork() *ForkInfo
 	GetHighestFinalBlockNonce() uint64
 	GetHighestFinalBlockHash() []byte
+	GetHighestSettledBlockInfo() (uint64, []byte)
 	ProbableHighestNonce() uint64
 	ResetFork()
 	SetRollBackNonce(nonce uint64)
@@ -500,6 +506,7 @@ type InterceptorsContainer interface {
 // InterceptorsContainerFactory defines the functionality to create an interceptors container
 type InterceptorsContainerFactory interface {
 	Create() (InterceptorsContainer, InterceptorsContainer, error)
+	AddShardTrieNodeInterceptors(container InterceptorsContainer) error
 	IsInterfaceNil() bool
 }
 
@@ -713,6 +720,7 @@ type RequestForEpochHandler interface {
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
 	RequestForEpochHandler
+	SetRecoveryTrieRequests(enabled bool)
 	SetEpoch(epoch uint32)
 	RequestShardHeader(shardID uint32, hash []byte)
 	RequestMetaHeader(hash []byte)
@@ -915,7 +923,7 @@ type PeerBlackListCacher interface {
 
 // PeerShardMapper can return the public key of a provided peer ID
 type PeerShardMapper interface {
-	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte, timestamp int64)
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
@@ -1015,6 +1023,17 @@ type HeaderIntegrityVerifier interface {
 	IsInterfaceNil() bool
 }
 
+// MetaFinalityView defines the node's subjective finality view over the meta chain. All methods
+// answer false on missing evidence, so a caller never acts on what the node does not hold.
+type MetaFinalityView interface {
+	IsMetaHeaderHeldFinal(header data.HeaderHandler, headerHash []byte) bool
+	IsMetaHeaderSettlementReady(header data.HeaderHandler, headerHash []byte) bool
+	IsShardHeaderIncluded(metaHeader data.MetaHeaderHandler, shardID uint32, headerHash []byte, nonce uint64) bool
+	IsIncludedInHeldFinalMetaBlock(shardID uint32, headerHash []byte, nonce uint64, ascendingFrom uint64, ascendingTo uint64) bool
+	IsDeadMetaBlock(headerHash []byte, nonce uint64) bool
+	IsInterfaceNil() bool
+}
+
 // BlockTracker defines the functionality for node to track the blocks which are received from network
 type BlockTracker interface {
 	AddCrossNotarizedHeader(shradID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
@@ -1026,6 +1045,7 @@ type BlockTracker interface {
 	CheckProofAgainstFinal(proof data.HeaderProofHandler) error
 	CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
+	SetSettledNonceProvider(func() uint64)
 	CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
@@ -1049,7 +1069,30 @@ type BlockTracker interface {
 	RestoreToGenesis()
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	ResetOwnShardStuck()
 	IsOwnShardStuck() bool
+	IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// MiniBlockTracker tracks the confirmation status of cross-shard miniblocks so that
+// their referenced transactions can be granted immunity in the pool on metablock
+// arrival and released from immunity on this shard's commit.
+type MiniBlockTracker interface {
+	// ReleaseImmunityForCommittedMetaBlocks is called by the shard processor after
+	// metablocks up to (threshold-1) have been fully processed. It advances the
+	// immunity threshold for every cache on every pool and drops stale registry
+	// entries whose tracked nonce is strictly below `threshold`.
+	ReleaseImmunityForCommittedMetaBlocks(threshold uint64)
+
+	// ReleaseImmunityForCommittedShardBlocks is called by the meta processor after
+	// shard headers from `senderShard` up to (threshold-1) have been fully processed.
+	// It advances the immunity threshold for caches whose senderShardID matches
+	// `senderShard` and receiver is the metachain, and drops the corresponding stale
+	// registry entries.
+	ReleaseImmunityForCommittedShardBlocks(senderShard uint32, threshold uint64)
+
 	IsInterfaceNil() bool
 }
 
@@ -1191,6 +1234,9 @@ type RoundTimeDurationHandler interface {
 // RoundHandler defines the actions which should be handled by a round implementation
 type RoundHandler interface {
 	Index() int64
+	// IndexForCurrentTime returns the round index the current time falls into, which does not
+	// depend on the chronology goroutine having advanced the stored index
+	IndexForCurrentTime() int64
 	TimeDuration() time.Duration
 	IsInterfaceNil() bool
 }
@@ -1522,7 +1568,7 @@ type GuardedAccountHandler interface {
 
 // DoubleTransactionDetector is able to detect if a transaction hash is present more than once in a block body
 type DoubleTransactionDetector interface {
-	ProcessBlockBody(body *block.Body)
+	ProcessBlockBody(body *block.Body) error
 	IsInterfaceNil() bool
 }
 
@@ -1548,6 +1594,7 @@ type ProcessedMiniBlocksTracker interface {
 	GetProcessedMiniBlocksInfo(metaBlockHash []byte) map[string]*processedMb.ProcessedMiniBlockInfo
 	GetProcessedMiniBlockInfo(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte)
 	IsMiniBlockFullyProcessed(metaBlockHash []byte, miniBlockHash []byte) bool
+	HasUnfinishedMiniBlocks() bool
 	ConvertProcessedMiniBlocksMapToSlice() []bootstrapStorage.MiniBlocksInMeta
 	ConvertSliceToProcessedMiniBlocksMap(miniBlocksInMetaBlocks []bootstrapStorage.MiniBlocksInMeta)
 	DisplayProcessedMiniBlocks()
@@ -1572,8 +1619,9 @@ type Debugger interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
-	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte)
-	GetSignedHash(pkBytes []byte, nonce uint64) ([]byte, bool)
+	RecordSignedNonce(pkBytes []byte, nonce uint64, headerHash []byte, roundIndex int64)
+	GetSignedNonceInfo(pkBytes []byte, nonce uint64) ([]byte, int64, bool)
+	ReserveSignatureInRound(pkBytes []byte, roundIndex int64, headerHash []byte) bool
 	ResetCountersForManagedBlockSigner(signerPk []byte)
 	IsInterfaceNil() bool
 }
@@ -1597,6 +1645,8 @@ type ProofsPool interface {
 	AddProof(headerProof data.HeaderProofHandler) bool
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsProofInPoolEqualTo(headerProof data.HeaderProofHandler) bool
+	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
+	HasProofForDifferentHash(shardID uint32, headerNonce uint64, headerHash []byte) bool
 	IsInterfaceNil() bool
 }
 
@@ -1607,9 +1657,14 @@ type GasComputation interface {
 		miniBlocks []data.MiniBlockHeaderHandler,
 		transactions map[string][]data.TransactionHandler,
 	) (lastMiniBlockIndex int, pendingMiniBlocks int, err error)
+	// AddOutgoingTransactions verifies the outgoing transactions against the gas limits. isProposer must be
+	// true only when called from the leader's own block proposal flow, false when verifying a block proposal
+	// received from another node, since some checks (e.g. stuck shard skipping) rely on local, possibly
+	// non-deterministic state and must not be applied on verification.
 	AddOutgoingTransactions(
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
+		isProposer bool,
 	) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error)
 	GetBandwidthForTransactions() uint64
 	RevertIncomingMiniBlocks(miniBlockHashes [][]byte)
@@ -1661,6 +1716,7 @@ type ExecutionResultsTracker interface {
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	RemoveFromNonce(nonce uint64) error
 	Clean(lastNotarizedResult data.BaseExecutionResultHandler)
+	Rewind(lastNotarizedResult data.BaseExecutionResultHandler, chainTipNonce uint64)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
 	CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler)
 	PopDismissedResults() []executionTrack.DismissedBatch

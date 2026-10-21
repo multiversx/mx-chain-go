@@ -145,12 +145,13 @@ func (pr *ProcessorRunner) createCryptoComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createStatusCoreComponents(tb testing.TB) {
 	argsStatusCore := factoryStatusCore.StatusCoreComponentsFactoryArgs{
-		Config:          *pr.Config.GeneralConfig,
-		EpochConfig:     *pr.Config.EpochConfig,
-		RoundConfig:     *pr.Config.RoundConfig,
-		RatingsConfig:   *pr.Config.RatingsConfig,
-		EconomicsConfig: *pr.Config.EconomicsConfig,
-		CoreComp:        pr.CoreComponents,
+		Config:                     *pr.Config.GeneralConfig,
+		EpochConfig:                *pr.Config.EpochConfig,
+		RoundConfig:                *pr.Config.RoundConfig,
+		RatingsConfig:              *pr.Config.RatingsConfig,
+		EconomicsConfig:            *pr.Config.EconomicsConfig,
+		SystemSmartContractsConfig: *pr.Config.SystemSCConfig,
+		CoreComp:                   pr.CoreComponents,
 	}
 
 	statusCoreFactory, err := factoryStatusCore.NewStatusCoreComponentsFactory(argsStatusCore)
@@ -361,13 +362,13 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(pr.Config.GeneralConfig.WhiteListPool))
 	require.Nil(tb, err)
 
-	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache, time.Hour)
 	require.Nil(tb, err)
 
 	whiteListCacheVerified, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(pr.Config.GeneralConfig.WhiteListerVerifiedTxs))
 	require.Nil(tb, err)
 
-	whiteListerVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+	whiteListerVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(whiteListCacheVerified, 0)
 	require.Nil(tb, err)
 
 	smartContractParser, err := parsing.NewSmartContractsParser(

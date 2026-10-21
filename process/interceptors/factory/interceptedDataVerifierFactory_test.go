@@ -1,10 +1,14 @@
 package factory
 
 import (
+	"sync/atomic"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 func createMockArgInterceptedDataVerifierFactory() InterceptedDataVerifierFactoryArgs {
@@ -74,4 +78,29 @@ func TestInterceptedDataVerifierFactory_Create(t *testing.T) {
 
 		require.False(t, interceptedDataVerifier.IsInterfaceNil())
 	})
+}
+
+func TestInterceptedDataVerifierFactory_CreateShouldIsolateTopics(t *testing.T) {
+	t.Parallel()
+
+	factory := NewInterceptedDataVerifierFactory(createMockArgInterceptedDataVerifierFactory())
+	t.Cleanup(func() { require.NoError(t, factory.Close()) })
+	intraShardVerifier, err := factory.Create("transactions_0")
+	require.NoError(t, err)
+	crossShardVerifier, err := factory.Create("transactions_0_1")
+	require.NoError(t, err)
+	var validityChecks atomic.Int32
+	data := &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte { return []byte("same hash") },
+		CheckValidityCalled: func() error {
+			validityChecks.Add(1)
+			return nil
+		},
+		ShouldAllowDuplicatesCalled: func() bool { return false },
+	}
+
+	require.NoError(t, intraShardVerifier.Verify(data, "transactions_0", p2p.Broadcast))
+	intraShardVerifier.MarkVerified(data, p2p.Broadcast)
+	require.NoError(t, crossShardVerifier.Verify(data, "transactions_0_1", p2p.Broadcast))
+	require.Equal(t, int32(2), validityChecks.Load())
 }

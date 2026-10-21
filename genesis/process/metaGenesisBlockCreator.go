@@ -507,6 +507,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		BlockCapacityOverestimationFactor: arg.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         arg.FeeSettings.PercentDecreaseLimitsStep,
 		BlockSizeComputation:              disabledBlockSizeComputationHandler,
+		BlockTracker:                      disabledBlockTracker,
 	}
 	gasConsumption, err := processBlock.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -552,12 +553,12 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
-	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+	argsDetector := coordinator.ArgsDoubleTransactionsDetector{
 		Marshaller:          arg.Core.InternalMarshalizer(),
 		Hasher:              arg.Core.Hasher(),
 		EnableEpochsHandler: enableEpochsHandler,
 	}
-	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	doubleTransactionsDetector, err := coordinator.NewDoubleTransactionsDetector(argsDetector)
 	if err != nil {
 		return nil, err
 	}

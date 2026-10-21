@@ -76,6 +76,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			EnableRoundsHandlerField:   &testscommon.EnableRoundsHandlerStub{},
 			ProcessConfigsHandlerField: testscommon.GetDefaultProcessConfigsHandler(),
 			CommonConfigsHandlerField:  testscommon.GetDefaultCommonConfigsHandler(),
+			RoundChangeNotifier:        &epochNotifier.RoundNotifierStub{},
 		},
 		NetworkComponents: &testsMocks.NetworkComponentsStub{
 			Messenger:      &p2pmocks.MessengerStub{},
@@ -150,6 +151,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			HeaderSigVerif:                       &consensusMocks.HeaderSigVerifierMock{},
 			HeaderIntegrVerif:                    &mock.HeaderIntegrityVerifierStub{},
 			FallbackHdrValidator:                 &testscommon.FallBackHeaderValidatorStub{},
+			WhiteListHandlerInternal:             &testscommon.WhiteListHandlerStub{},
 			SentSignaturesTrackerInternal:        &testscommon.SentSignatureTrackerStub{},
 			BlockchainHookField:                  &testscommon.BlockChainHookStub{},
 			ExecManager:                          &processMocks.ExecutionManagerMock{},

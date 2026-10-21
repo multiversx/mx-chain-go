@@ -101,7 +101,6 @@ func (rtp *rewardTxPreprocessor) IsDataPrepared(requestedRewardTxs int, haveTime
 			"num reward txs", requestedRewardTxs)
 		err := rtp.rewardTxsForBlock.WaitForRequestedData(haveTime())
 		missingRewardTxs := rtp.rewardTxsForBlock.GetMissingTxsCount()
-		// TODO: previously the number of missing reward txs was cleared in rewardTxsForBlock - check if this is still needed
 		log.Debug("received reward txs",
 			"num reward txs", requestedRewardTxs-missingRewardTxs)
 		if err != nil {
@@ -434,6 +433,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 	partialMbExecutionMode bool,
 	indexOfLastTxProcessed int,
 	preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
+	_ process.GasProcessingPolicy,
 ) ([][]byte, int, bool, error) {
 
 	var err error

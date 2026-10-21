@@ -8,6 +8,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -21,8 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockShardStorageBootstrapperArgs() ArgsBaseStorageBootstrapper {
@@ -403,6 +404,97 @@ func TestBaseStorageBootstrapper_GetBlockBodyShouldWork(t *testing.T) {
 	assert.Equal(t, expectedBody, body)
 }
 
+func TestBaseStorageBootstrapper_GetRootHashForBlock(t *testing.T) {
+	t.Parallel()
+
+	headerHash := []byte("header hash")
+	scheduledRootHash := []byte("scheduled root hash")
+
+	t.Run("unsupported legacy headers do not query scheduled storage", func(t *testing.T) {
+		t.Parallel()
+
+		st := &storageBootstrapper{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func([]byte) ([]byte, error) {
+					t.Fatal("scheduled storage should not be queried")
+					return nil, nil
+				},
+			},
+		}
+
+		for _, header := range []data.HeaderHandler{
+			&block.MetaBlock{RootHash: []byte("meta root hash")},
+			&block.Header{RootHash: []byte("v1 root hash")},
+		} {
+			rootHash, err := st.getRootHashForBlock(header, headerHash)
+			require.NoError(t, err)
+			require.Equal(t, header.GetRootHash(), rootHash)
+		}
+	})
+
+	t.Run("v2 uses persisted scheduled root", func(t *testing.T) {
+		t.Parallel()
+
+		st := &storageBootstrapper{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func(receivedHash []byte) ([]byte, error) {
+					require.Equal(t, headerHash, receivedHash)
+					return scheduledRootHash, nil
+				},
+			},
+		}
+		header := &block.HeaderV2{Header: &block.Header{RootHash: []byte("v2 root hash")}}
+
+		rootHash, err := st.getRootHashForBlock(header, headerHash)
+
+		require.NoError(t, err)
+		require.Equal(t, scheduledRootHash, rootHash)
+	})
+
+	t.Run("v2 without persisted scheduled state uses header root", func(t *testing.T) {
+		t.Parallel()
+
+		headerRootHash := []byte("v2 root hash")
+		st := &storageBootstrapper{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func([]byte) ([]byte, error) {
+					return nil, errors.New("scheduled state not found")
+				},
+			},
+		}
+		header := &block.HeaderV2{Header: &block.Header{RootHash: headerRootHash}}
+
+		rootHash, err := st.getRootHashForBlock(header, headerHash)
+
+		require.NoError(t, err)
+		require.Equal(t, headerRootHash, rootHash)
+	})
+
+	t.Run("v3 uses last execution result", func(t *testing.T) {
+		t.Parallel()
+
+		executionRootHash := []byte("execution root hash")
+		st := &storageBootstrapper{
+			scheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{
+				GetScheduledRootHashForHeaderCalled: func([]byte) ([]byte, error) {
+					t.Fatal("scheduled storage should not be queried")
+					return nil, nil
+				},
+			},
+		}
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{RootHash: executionRootHash},
+			},
+		}
+
+		rootHash, err := st.getRootHashForBlock(header, headerHash)
+
+		require.NoError(t, err)
+		require.Equal(t, executionRootHash, rootHash)
+	})
+}
+
 func TestBaseStorageBootstrapper_setCurrentBlockInfoV3(t *testing.T) {
 	t.Parallel()
 
@@ -487,13 +579,10 @@ func TestBaseStorageBootstrapper_setCurrentBlockInfoV3(t *testing.T) {
 		counter := 0
 		ssb, _ := NewShardStorageBootstrapper(args)
 		ssb.blkc = &testscommon.ChainHandlerStub{
-			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+			SetLastExecutionInfoCalled: func(header data.HeaderHandler, result data.BaseExecutionResultHandler) {
 				counter += 1
 			},
-			SetCurrentBlockHeaderHashCalled: func(bytes []byte) {
-				counter += 1
-			},
-			SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
+			SetCurrentBlockHeaderAndHashCalled: func(headerHash []byte, header data.HeaderHandler) error {
 				counter += 1
 				return nil
 			},
@@ -508,6 +597,6 @@ func TestBaseStorageBootstrapper_setCurrentBlockInfoV3(t *testing.T) {
 		}, []byte("hash"))
 
 		require.Nil(t, err)
-		require.Equal(t, 3, counter)
+		require.Equal(t, 2, counter)
 	})
 }

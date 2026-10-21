@@ -34,12 +34,22 @@ func (rndm *RoundHandlerMock) Index() int64 {
 	return rndm.RoundIndex
 }
 
+// IndexForCurrentTime -
+func (rndm *RoundHandlerMock) IndexForCurrentTime() int64 {
+	return rndm.Index()
+}
+
 // TimeDuration -
 func (rndm *RoundHandlerMock) TimeDuration() time.Duration {
 	rndm.mutRoundHandler.RLock()
 	defer rndm.mutRoundHandler.RUnlock()
 
 	return rndm.RoundTimeDuration
+}
+
+// TimeDurationForRound -
+func (rndm *RoundHandlerMock) TimeDurationForRound(_ uint64) time.Duration {
+	return rndm.TimeDuration()
 }
 
 // TimeStamp -
@@ -73,7 +83,7 @@ func (rndm *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.D
 }
 
 // GetTimeStampForRound returns 0
-func (rndm *RoundHandlerMock) GetTimeStampForRound(round uint64) uint64 {
+func (rndm *RoundHandlerMock) GetTimeStampForRound(_ uint64) uint64 {
 	return 0
 }
 

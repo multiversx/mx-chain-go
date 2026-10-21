@@ -18,6 +18,7 @@ type BlockTrackerStub struct {
 	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
 	CheckAgainstWhitelistCalled                        func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
+	SetSettledNonceProviderCalled                      func(func() uint64)
 	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarizedCalled     func() ([]data.HeaderHandler, [][]byte, error)
 	ComputeLongestShardsChainsFromLastNotarizedCalled  func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
@@ -41,6 +42,14 @@ type BlockTrackerStub struct {
 	RestoreToGenesisCalled                             func()
 	ShouldAddHeaderCalled                              func(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	ResetOwnShardStuckCalled                           func()
+	IsSettledCrossHeaderCalled                         func(header data.HeaderHandler, headerHash []byte) bool
+}
+
+func (bts *BlockTrackerStub) SetSettledNonceProvider(provider func() uint64) {
+	if bts.SetSettledNonceProviderCalled != nil {
+		bts.SetSettledNonceProviderCalled(provider)
+	}
 }
 
 // AddTrackedHeader -
@@ -309,7 +318,27 @@ func (bts *BlockTrackerStub) ComputeOwnShardStuck(lastExecutionResultsInfo data.
 	}
 }
 
+// ResetOwnShardStuck -
+func (bts *BlockTrackerStub) ResetOwnShardStuck() {
+	if bts.ResetOwnShardStuckCalled != nil {
+		bts.ResetOwnShardStuckCalled()
+	}
+}
+
+// Close -
+func (bts *BlockTrackerStub) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (bts *BlockTrackerStub) IsInterfaceNil() bool {
 	return bts == nil
+}
+
+// IsSettledCrossHeader -
+func (bts *BlockTrackerStub) IsSettledCrossHeader(header data.HeaderHandler, headerHash []byte) bool {
+	if bts.IsSettledCrossHeaderCalled != nil {
+		return bts.IsSettledCrossHeaderCalled(header, headerHash)
+	}
+	return false
 }

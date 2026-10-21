@@ -62,7 +62,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	}
 	supernovaRoundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
-		Value:    200,
+		Value:    20,
 	}
 
 	numOfShards := uint32(3)
@@ -171,7 +171,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	}
 	supernovaRoundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
-		Value:    400,
+		Value:    40,
 	}
 
 	numOfShards := uint32(3)

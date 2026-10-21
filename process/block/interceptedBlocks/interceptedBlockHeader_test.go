@@ -2,6 +2,7 @@ package interceptedBlocks_test
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -420,6 +421,29 @@ func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestInterceptedHeader_CheckValidityExcludedRoundShouldReturnBeforeIntegrityCheck(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultShardArgumentWithV2Support()
+	verifyCalled := false
+	arg.HeaderIntegrityVerifier = &mock.HeaderIntegrityVerifierStub{
+		VerifyCalled: func(header data.HeaderHandler) error {
+			verifyCalled = true
+			return nil
+		},
+	}
+	arg.RoundExclusions, _ = common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{
+		{StartRound: hdrRound, EndRound: hdrRound},
+	})
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	require.NoError(t, err)
+
+	err = inHdr.CheckValidity()
+
+	require.ErrorIs(t, err, common.ErrRoundExcluded)
+	require.False(t, verifyCalled)
+}
+
 func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t *testing.T) {
 	t.Parallel()
 
@@ -697,6 +721,24 @@ func TestInterceptedHeader_Getters(t *testing.T) {
 
 	assert.Equal(t, hash, inHdr.Hash())
 	require.False(t, inHdr.ShouldAllowDuplicates())
+}
+
+func TestInterceptedHeader_IdentifiersShouldNotIncludeEpochIdentifier(t *testing.T) {
+	t.Parallel()
+
+	hdr := createMockShardHeader()
+	hdr.EpochStartMetaHash = []byte("epoch start meta hash")
+	arg := createDefaultShardArgument()
+	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	require.NoError(t, err)
+	require.True(t, inHdr.HeaderHandler().IsStartOfEpochBlock())
+
+	expectedIdentifiers := [][]byte{
+		inHdr.Hash(),
+		[]byte(fmt.Sprintf("%d-%d", hdrShardId, hdrNonce)),
+	}
+	require.Equal(t, expectedIdentifiers, inHdr.Identifiers())
 }
 
 // ------- IsInterfaceNil

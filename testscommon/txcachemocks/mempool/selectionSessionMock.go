@@ -1,4 +1,4 @@
-package txcachemocks
+package mempool
 
 import (
 	"math/big"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 )
 

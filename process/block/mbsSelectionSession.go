@@ -240,6 +240,33 @@ func (s *miniBlocksSelectionSession) AddMiniBlocksAndHashes(miniBlocksAndHashes 
 	return nil
 }
 
+// RemoveEmptyMiniBlocks removes any mini blocks that contain no transactions, keeping the internal slices consistent
+func (s *miniBlocksSelectionSession) RemoveEmptyMiniBlocks() {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
+	filteredMiniBlocks := make(block.MiniBlockSlice, 0, len(s.miniBlocks))
+	filteredHeaders := make([]data.MiniBlockHeaderHandler, 0, len(s.miniBlockHeaderHandlers))
+	filteredHashes := make([][]byte, 0, len(s.miniBlockHashes))
+
+	for i, miniBlock := range s.miniBlocks {
+		if len(miniBlock.GetTxHashes()) == 0 {
+			log.Trace("miniBlocksSelectionSession.RemoveEmptyMiniBlocks: removed empty mini block",
+				"hash", s.miniBlockHashes[i])
+			delete(s.miniBlockHashesUnique, string(s.miniBlockHashes[i]))
+			continue
+		}
+
+		filteredMiniBlocks = append(filteredMiniBlocks, miniBlock)
+		filteredHeaders = append(filteredHeaders, s.miniBlockHeaderHandlers[i])
+		filteredHashes = append(filteredHashes, s.miniBlockHashes[i])
+	}
+
+	s.miniBlocks = filteredMiniBlocks
+	s.miniBlockHeaderHandlers = filteredHeaders
+	s.miniBlockHashes = filteredHashes
+}
+
 // CreateAndAddMiniBlockFromTransactions creates a mini block from the provided transaction hashes
 func (s *miniBlocksSelectionSession) CreateAndAddMiniBlockFromTransactions(txHashes [][]byte) error {
 	if len(txHashes) == 0 {

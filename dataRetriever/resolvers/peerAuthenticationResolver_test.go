@@ -30,7 +30,7 @@ var expectedErr = errors.New("expected error")
 var pksMap = map[uint32][][]byte{
 	0: {[]byte("pk00"), []byte("pk01"), []byte("pk02")},
 	1: {[]byte("pk10"), []byte("pk11")},
-	2: {[]byte("pk21"), []byte("pk21"), []byte("pk32"), []byte("pk33")},
+	2: {[]byte("pk20"), []byte("pk21"), []byte("pk32"), []byte("pk33")},
 }
 
 func getKeysSlice() [][]byte {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,9 +15,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/preprocMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
@@ -52,10 +55,11 @@ func testRequestMissingHeaderAndProofsAllReceived(
 		},
 	}
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     &testscommon.RequestHandlerStub{},
-		BlockDataRequester: &preprocMocks.BlockDataRequesterStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		BlockDataRequester:  &preprocMocks.BlockDataRequesterStub{},
 	}
 	mdr, _ := NewMissingDataResolver(commonArgs)
 
@@ -89,10 +93,11 @@ func TestNewMissingDataResolver(t *testing.T) {
 	requestHandler := &testscommon.RequestHandlerStub{}
 	blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     requestHandler,
-		BlockDataRequester: blockDataRequester,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  blockDataRequester,
 	}
 
 	t.Run("valid inputs ok", func(t *testing.T) {
@@ -165,10 +170,11 @@ func TestResolver_AddAndMarkMissingData(t *testing.T) {
 
 	blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     requestHandler,
-		BlockDataRequester: blockDataRequester,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  blockDataRequester,
 	}
 	t.Run("add missing and mark header", func(t *testing.T) {
 		t.Parallel()
@@ -224,10 +230,11 @@ func TestResolver_requestHeaderIfNeeded(t *testing.T) {
 	}
 	blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     requestHandler,
-		BlockDataRequester: blockDataRequester,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  blockDataRequester,
 	}
 
 	t.Run("header already exists", func(t *testing.T) {
@@ -275,10 +282,11 @@ func TestResolver_requestHeaderIfNeeded(t *testing.T) {
 		}
 
 		commonArgs := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(commonArgs)
 		mdr.requestHeaderIfNeeded(core.MetachainShardId, []byte(existingMetaHeader))
@@ -294,9 +302,10 @@ func TestResolver_requestProofIfNeeded(t *testing.T) {
 	requestHandler := &testscommon.RequestHandlerStub{}
 	blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		RequestHandler:     requestHandler,
-		BlockDataRequester: blockDataRequester,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  blockDataRequester,
 	}
 	t.Run("proof already exists", func(t *testing.T) {
 		t.Parallel()
@@ -309,7 +318,7 @@ func TestResolver_requestProofIfNeeded(t *testing.T) {
 		commonArgsCopy := commonArgs
 		commonArgsCopy.ProofsPool = proofsPool
 		mdr, _ := NewMissingDataResolver(commonArgsCopy)
-		mdr.requestProofIfNeeded(0, proofHash)
+		mdr.requestProofIfNeeded(0, proofHash, nil)
 		require.NotContains(t, mdr.missingProofs, string(proofHash))
 		require.True(t, mdr.allProofsReceived())
 	})
@@ -324,7 +333,7 @@ func TestResolver_requestProofIfNeeded(t *testing.T) {
 		commonArgsCopy := commonArgs
 		commonArgsCopy.ProofsPool = proofsPool
 		mdr, _ := NewMissingDataResolver(commonArgsCopy)
-		mdr.requestProofIfNeeded(0, []byte("missingProof"))
+		mdr.requestProofIfNeeded(0, []byte("missingProof"), nil)
 		require.False(t, mdr.allProofsReceived())
 	})
 	t.Run("proof arriving in pool after first check, should not request", func(t *testing.T) {
@@ -342,12 +351,15 @@ func TestResolver_requestProofIfNeeded(t *testing.T) {
 			RequestEquivalentProofByHashCalled: func(shardID uint32, hash []byte) {
 				require.Fail(t, "RequestHeaderProof should not be called again for existing proof")
 			},
+			RequestEquivalentProofByHashForEpochCalled: func(shardID uint32, hash []byte, epoch uint32) {
+				require.Fail(t, "RequestHeaderProof should not be called again for existing proof")
+			},
 		}
 		commonArgsCopy := commonArgs
 		commonArgsCopy.ProofsPool = proofsPool
 		commonArgsCopy.RequestHandler = requestHandler
 		mdr, _ := NewMissingDataResolver(commonArgsCopy)
-		mdr.requestProofIfNeeded(0, proofHash)
+		mdr.requestProofIfNeeded(0, proofHash, nil)
 		require.True(t, mdr.allProofsReceived())
 	})
 }
@@ -373,10 +385,11 @@ func TestResolver_WaitForMissingData(t *testing.T) {
 		}
 		requestHandler := &testscommon.RequestHandlerStub{}
 		commonArgs := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(commonArgs)
 		mdr.addMissingHeader(headerHash)
@@ -401,10 +414,11 @@ func TestResolver_WaitForMissingData(t *testing.T) {
 		}
 		requestHandler := &testscommon.RequestHandlerStub{}
 		commonArgs := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(commonArgs)
 		_ = mdr.addMissingHeader(headerHash)
@@ -425,10 +439,11 @@ func TestResolver_WaitForMissingData(t *testing.T) {
 			},
 		}
 		commonArgs := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(commonArgs)
 		err := mdr.WaitForMissingData(50 * time.Millisecond)
@@ -455,10 +470,11 @@ func TestResolver_MonitorReceivedData(t *testing.T) {
 	}
 	blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     requestHandler,
-		BlockDataRequester: blockDataRequester,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  blockDataRequester,
 	}
 	mdr, _ := NewMissingDataResolver(commonArgs)
 
@@ -507,10 +523,11 @@ func TestResolver_RequestMissingMetaHeadersBlocking(t *testing.T) {
 	requestHandler := &testscommon.RequestHandlerStub{}
 	blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     requestHandler,
-		BlockDataRequester: blockDataRequester,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  blockDataRequester,
 	}
 	mdr, _ := NewMissingDataResolver(commonArgs)
 
@@ -540,8 +557,9 @@ func TestResolver_RequestMissingMetaHeadersBlocking(t *testing.T) {
 			},
 		}
 		args := ResolverArgs{
-			HeadersPool: headersPool,
-			ProofsPool:  proofsPool,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
 			RequestHandler: &testscommon.RequestHandlerStub{
 				RequestMetaHeaderCalled: func(hash []byte) {
 					mutRequestedData.Lock()
@@ -617,10 +635,11 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 	}
 
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     &testscommon.RequestHandlerStub{},
-		BlockDataRequester: &preprocMocks.BlockDataRequesterStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		BlockDataRequester:  &preprocMocks.BlockDataRequesterStub{},
 	}
 
 	t.Run("nil meta header, should return err", func(t *testing.T) {
@@ -670,10 +689,11 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 		}
 
 		args := ResolverArgs{
-			HeadersPool:        headersPoolMock,
-			ProofsPool:         proofsPoolMock,
-			RequestHandler:     requestHandlerMock,
-			BlockDataRequester: commonArgs.BlockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPoolMock,
+			ProofsPool:          proofsPoolMock,
+			RequestHandler:      requestHandlerMock,
+			BlockDataRequester:  commonArgs.BlockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
@@ -815,10 +835,11 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 		}
 
 		args := ResolverArgs{
-			HeadersPool:        headersPoolMock,
-			ProofsPool:         proofsPoolMock,
-			RequestHandler:     requestHandlerMock,
-			BlockDataRequester: commonArgs.BlockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPoolMock,
+			ProofsPool:          proofsPoolMock,
+			RequestHandler:      requestHandlerMock,
+			BlockDataRequester:  commonArgs.BlockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
@@ -920,10 +941,11 @@ func TestResolver_RequestBlockTransactions(t *testing.T) {
 		},
 	}
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     requestHandler,
-		BlockDataRequester: blockDataRequester,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  blockDataRequester,
 	}
 
 	mdr, _ := NewMissingDataResolver(commonArgs)
@@ -945,10 +967,11 @@ func TestResolver_RequestMiniBlocksAndTransactions(t *testing.T) {
 	}
 
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     requestHandler,
-		BlockDataRequester: blockDataRequester,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  blockDataRequester,
 	}
 
 	mdr, _ := NewMissingDataResolver(commonArgs)
@@ -975,10 +998,11 @@ func TestResolver_GetFinalCrossMiniBlockInfoAndRequestMissing(t *testing.T) {
 		},
 	}
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     requestHandler,
-		BlockDataRequester: blockDataRequester,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  blockDataRequester,
 	}
 
 	mdr, _ := NewMissingDataResolver(commonArgs)
@@ -1000,10 +1024,11 @@ func TestResolver_Reset(t *testing.T) {
 		},
 	}
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     requestHandler,
-		BlockDataRequester: blockDataRequester,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  blockDataRequester,
 	}
 
 	mdr, _ := NewMissingDataResolver(commonArgs)
@@ -1035,16 +1060,17 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		}
 		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 		args := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
 		finalizedNonces := map[uint32]uint64{0: 10}
-		proposedNonces := map[uint32]uint64{0: 5}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 5}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1065,16 +1091,51 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		}
 		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 		args := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
 		finalizedNonces := map[uint32]uint64{0: 10}
-		proposedNonces := map[uint32]uint64{0: 10}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 10}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
+
+		require.Equal(t, 0, numRequests)
+	})
+
+	t.Run("proposed header finalized in the same meta block (transition) should not request", func(t *testing.T) {
+		t.Parallel()
+
+		numRequests := 0
+		headersPool := &pool.HeadersPoolStub{}
+		proofsPool := &dataRetriever.ProofsPoolMock{}
+		requestHandler := &testscommon.RequestHandlerStub{
+			RequestShardHeaderByNonceCalled: func(_ uint32, _ uint64) {
+				numRequests++
+			},
+			RequestEquivalentProofByNonceCalled: func(_ uint32, _ uint64) {
+				numRequests++
+			},
+		}
+		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
+		args := ResolverArgs{
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
+		}
+		mdr, _ := NewMissingDataResolver(args)
+
+		finalizedNonces := map[uint32]uint64{0: 10}
+		finalizedHeaders := map[finalizedHeaderKey]struct{}{
+			{shardID: 0, nonce: 10, hash: "legacyHash"}: {},
+		}
+		proposals := map[uint32]proposalInfo{0: {nonce: 10, hash: []byte("legacyHash")}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, finalizedHeaders, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1095,16 +1156,17 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		}
 		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 		args := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
 		finalizedNonces := map[uint32]uint64{0: 10}
-		proposedNonces := map[uint32]uint64{0: 11}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 11}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1125,16 +1187,17 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		}
 		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 		args := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
 		finalizedNonces := map[uint32]uint64{0: math.MaxUint64}
-		proposedNonces := map[uint32]uint64{0: math.MaxUint64 - 1}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: math.MaxUint64 - 1}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1165,17 +1228,18 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		}
 		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 		args := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
 		// finalized=5, proposed=7: gap=2, should request nonce 6
 		finalizedNonces := map[uint32]uint64{0: 5}
-		proposedNonces := map[uint32]uint64{0: 7}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 7}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		// wait for goroutines spawned by requestShardHeaderByNonceIfNeeded
 		time.Sleep(50 * time.Millisecond)
@@ -1201,17 +1265,18 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		}
 		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 		args := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
 		// proposed has shard 0, finalized has shard 1 - no match
 		finalizedNonces := map[uint32]uint64{1: 5}
-		proposedNonces := map[uint32]uint64{0: 10}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 10}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1232,16 +1297,17 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		}
 		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 		args := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
 		finalizedNonces := map[uint32]uint64{0: 0}
-		proposedNonces := map[uint32]uint64{0: 0}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		proposals := map[uint32]proposalInfo{0: {nonce: 0}}
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		require.Equal(t, 0, numRequests)
 	})
@@ -1272,10 +1338,11 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		}
 		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 		args := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
@@ -1284,12 +1351,12 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 			1: 20,             // shard 1: proposed < finalized (invalid)
 			2: math.MaxUint64, // shard 2: underflow scenario (invalid)
 		}
-		proposedNonces := map[uint32]uint64{
-			0: 13,                 // gap=3, valid
-			1: 5,                  // proposed < finalized, should skip
-			2: math.MaxUint64 - 1, // underflow, should skip
+		proposals := map[uint32]proposalInfo{
+			0: {nonce: 13},                 // gap=3, valid
+			1: {nonce: 5},                  // proposed < finalized, should skip
+			2: {nonce: math.MaxUint64 - 1}, // underflow, should skip
 		}
-		mdr.requestNonceGapsIfNeeded(finalizedNonces, proposedNonces)
+		mdr.requestNonceGapsIfNeeded(finalizedNonces, nil, proposals)
 
 		// wait for goroutines spawned by requestShardHeaderByNonceIfNeeded
 		time.Sleep(50 * time.Millisecond)
@@ -1300,6 +1367,93 @@ func TestResolver_requestNonceGapsIfNeeded(t *testing.T) {
 		require.ElementsMatch(t, []uint64{11, 12}, requestedShardNonces[0])
 		mut.Unlock()
 	})
+}
+
+func TestStoreProposalIfGreater(t *testing.T) {
+	t.Parallel()
+
+	highestProposals := make(map[uint32]proposalInfo)
+	storeProposalIfGreater(highestProposals, &block.ShardDataProposal{ShardID: 0, Nonce: 5, HeaderHash: []byte("hash5")})
+	storeProposalIfGreater(highestProposals, &block.ShardDataProposal{ShardID: 0, Nonce: 7, HeaderHash: []byte("hash7")})
+	storeProposalIfGreater(highestProposals, &block.ShardDataProposal{ShardID: 0, Nonce: 6, HeaderHash: []byte("hash6")})
+	storeProposalIfGreater(highestProposals, &block.ShardDataProposal{ShardID: 1, Nonce: 0, HeaderHash: []byte("hash0")})
+
+	require.Equal(t, proposalInfo{nonce: 7, hash: []byte("hash7")}, highestProposals[0])
+	require.Equal(t, proposalInfo{nonce: 0, hash: []byte("hash0")}, highestProposals[1])
+}
+
+func TestGetShardDataFinalizedInfo(t *testing.T) {
+	t.Parallel()
+
+	nonces, finalizedHeaders := getShardDataFinalizedInfo([]data.ShardDataHandler{
+		&block.ShardData{ShardID: 0, Nonce: 10, HeaderHash: []byte("hash10")},
+		&block.ShardData{ShardID: 0, Nonce: 9, HeaderHash: []byte("hash9")},
+		&block.ShardData{ShardID: 1, Nonce: 4, HeaderHash: []byte("hash4")},
+	})
+
+	require.Equal(t, map[uint32]uint64{0: 10, 1: 4}, nonces)
+	require.Equal(t, map[finalizedHeaderKey]struct{}{
+		{shardID: 0, nonce: 10, hash: "hash10"}: {},
+		{shardID: 0, nonce: 9, hash: "hash9"}:   {},
+		{shardID: 1, nonce: 4, hash: "hash4"}:   {},
+	}, finalizedHeaders)
+}
+
+func TestIsFinalizedTransitionHeader(t *testing.T) {
+	t.Parallel()
+
+	finalizedHeaders := map[finalizedHeaderKey]struct{}{
+		{shardID: 0, nonce: 10, hash: "legacyHash"}:     {},
+		{shardID: 1, nonce: 10, hash: "otherShardHash"}: {},
+	}
+
+	testCases := []struct {
+		name               string
+		shardID            uint32
+		lastFinalizedNonce uint64
+		proposal           proposalInfo
+		expected           bool
+	}{
+		{
+			name:               "same shard nonce and hash",
+			shardID:            0,
+			lastFinalizedNonce: 10,
+			proposal:           proposalInfo{nonce: 10, hash: []byte("legacyHash")},
+			expected:           true,
+		},
+		{
+			name:               "different hash",
+			shardID:            0,
+			lastFinalizedNonce: 10,
+			proposal:           proposalInfo{nonce: 10, hash: []byte("otherShardHash")},
+		},
+		{
+			name:               "different shard",
+			shardID:            1,
+			lastFinalizedNonce: 10,
+			proposal:           proposalInfo{nonce: 10, hash: []byte("legacyHash")},
+		},
+		{
+			name:               "proposal below finalized nonce",
+			shardID:            0,
+			lastFinalizedNonce: 11,
+			proposal:           proposalInfo{nonce: 10, hash: []byte("legacyHash")},
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			actual := isFinalizedTransitionHeader(
+				testCase.shardID,
+				testCase.lastFinalizedNonce,
+				testCase.proposal,
+				finalizedHeaders,
+			)
+			require.Equal(t, testCase.expected, actual)
+		})
+	}
 }
 
 func TestResolver_RequestMissingShardHeaders_NonceGapProtection(t *testing.T) {
@@ -1343,10 +1497,11 @@ func TestResolver_RequestMissingShardHeaders_NonceGapProtection(t *testing.T) {
 		}
 		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 		args := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
@@ -1407,10 +1562,11 @@ func TestResolver_RequestMissingShardHeaders_NonceGapProtection(t *testing.T) {
 		}
 		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 		args := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
@@ -1466,10 +1622,11 @@ func TestResolver_RequestMissingShardHeaders_NonceGapProtection(t *testing.T) {
 		}
 		blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 		args := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+			HeadersPool:         headersPool,
+			ProofsPool:          proofsPool,
+			RequestHandler:      requestHandler,
+			BlockDataRequester:  blockDataRequester,
 		}
 		mdr, _ := NewMissingDataResolver(args)
 
@@ -1502,10 +1659,11 @@ func TestResolver_IsInterfaceNil(t *testing.T) {
 	requestHandler := &testscommon.RequestHandlerStub{}
 	blockDataRequester := &preprocMocks.BlockDataRequesterStub{}
 	commonArgs := ResolverArgs{
-		HeadersPool:        headersPool,
-		ProofsPool:         proofsPool,
-		RequestHandler:     requestHandler,
-		BlockDataRequester: blockDataRequester,
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AndromedaFlag),
+		HeadersPool:         headersPool,
+		ProofsPool:          proofsPool,
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  blockDataRequester,
 	}
 	t.Run("nil receiver should be nil", func(t *testing.T) {
 		t.Parallel()
@@ -1519,5 +1677,113 @@ func TestResolver_IsInterfaceNil(t *testing.T) {
 
 		mdr, _ := NewMissingDataResolver(commonArgs)
 		require.False(t, check.IfNil(mdr))
+	})
+}
+
+func TestResolver_ProofRequestsEraGating(t *testing.T) {
+	t.Parallel()
+
+	andromedaFromEpochOne := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.AndromedaFlag && epoch >= 1
+		},
+	}
+
+	createArgs := func(requestedByHash *atomic.Int32, requestedByNonce *atomic.Int32) ResolverArgs {
+		return ResolverArgs{
+			HeadersPool: &pool.HeadersPoolStub{},
+			ProofsPool: &dataRetriever.ProofsPoolMock{
+				HasProofCalled: func(_ uint32, _ []byte) bool { return false },
+				GetProofByNonceCalled: func(_ uint64, _ uint32) (data.HeaderProofHandler, error) {
+					return nil, errors.New("no proof")
+				},
+			},
+			RequestHandler: &testscommon.RequestHandlerStub{
+				RequestEquivalentProofByHashCalled: func(_ uint32, _ []byte) {
+					requestedByHash.Add(1)
+				},
+				RequestEquivalentProofByHashForEpochCalled: func(_ uint32, _ []byte, _ uint32) {
+					requestedByHash.Add(1)
+				},
+				RequestEquivalentProofByNonceCalled: func(_ uint32, _ uint64) {
+					requestedByNonce.Add(1)
+				},
+			},
+			BlockDataRequester:  &preprocMocks.BlockDataRequesterStub{},
+			EnableEpochsHandler: andromedaFromEpochOne,
+		}
+	}
+
+	t.Run("pooled pre-proofs header gets no proof request", func(t *testing.T) {
+		t.Parallel()
+
+		requestedByHash, requestedByNonce := &atomic.Int32{}, &atomic.Int32{}
+		mdr, err := NewMissingDataResolver(createArgs(requestedByHash, requestedByNonce))
+		require.Nil(t, err)
+
+		mdr.requestProofIfNeeded(0, []byte("hash"), &block.Header{Epoch: 0})
+
+		require.True(t, mdr.allProofsReceived())
+		require.Equal(t, int32(0), requestedByHash.Load())
+	})
+
+	t.Run("pooled proofs-era header gets its proof requested", func(t *testing.T) {
+		t.Parallel()
+
+		requestedByHash, requestedByNonce := &atomic.Int32{}, &atomic.Int32{}
+		mdr, err := NewMissingDataResolver(createArgs(requestedByHash, requestedByNonce))
+		require.Nil(t, err)
+
+		mdr.requestProofIfNeeded(0, []byte("hash"), &block.Header{Epoch: 1})
+
+		require.False(t, mdr.allProofsReceived())
+		require.Eventually(t, func() bool { return requestedByHash.Load() == 1 }, time.Second, 10*time.Millisecond)
+	})
+
+	t.Run("unresolved header keeps the fail-safe request", func(t *testing.T) {
+		t.Parallel()
+
+		requestedByHash, requestedByNonce := &atomic.Int32{}, &atomic.Int32{}
+		mdr, err := NewMissingDataResolver(createArgs(requestedByHash, requestedByNonce))
+		require.Nil(t, err)
+
+		mdr.requestProofIfNeeded(0, []byte("hash"), nil)
+
+		require.False(t, mdr.allProofsReceived())
+		require.Eventually(t, func() bool { return requestedByHash.Load() == 1 }, time.Second, 10*time.Millisecond)
+	})
+
+	t.Run("nonce gap fill skips proofs when all pooled candidates predate the flag", func(t *testing.T) {
+		t.Parallel()
+
+		requestedByHash, requestedByNonce := &atomic.Int32{}, &atomic.Int32{}
+		args := createArgs(requestedByHash, requestedByNonce)
+		args.HeadersPool = &pool.HeadersPoolStub{
+			GetHeaderByNonceAndShardIdCalled: func(_ uint64, _ uint32) ([]data.HeaderHandler, [][]byte, error) {
+				return []data.HeaderHandler{&block.Header{Epoch: 0}}, [][]byte{[]byte("h")}, nil
+			},
+		}
+		mdr, err := NewMissingDataResolver(args)
+		require.Nil(t, err)
+
+		mdr.requestShardProofByNonceIfNeeded(0, 103)
+		require.Equal(t, int32(0), requestedByNonce.Load())
+	})
+
+	t.Run("nonce gap fill requests proofs when a proofs-era candidate exists", func(t *testing.T) {
+		t.Parallel()
+
+		requestedByHash, requestedByNonce := &atomic.Int32{}, &atomic.Int32{}
+		args := createArgs(requestedByHash, requestedByNonce)
+		args.HeadersPool = &pool.HeadersPoolStub{
+			GetHeaderByNonceAndShardIdCalled: func(_ uint64, _ uint32) ([]data.HeaderHandler, [][]byte, error) {
+				return []data.HeaderHandler{&block.Header{Epoch: 0}, &block.Header{Epoch: 1}}, [][]byte{[]byte("h0"), []byte("h1")}, nil
+			},
+		}
+		mdr, err := NewMissingDataResolver(args)
+		require.Nil(t, err)
+
+		mdr.requestShardProofByNonceIfNeeded(0, 103)
+		require.Eventually(t, func() bool { return requestedByNonce.Load() == 1 }, time.Second, 10*time.Millisecond)
 	})
 }

@@ -233,9 +233,13 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
+	roundExclusionHandler, err := createRoundExclusionHandler(args.Configs.GeneralConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	argsAPITransactionProc := &transactionAPI.ArgAPITransactionProcessor{
-		RoundDuration:            args.CoreComponents.GenesisNodesSetup().GetRoundDuration(),
-		GenesisTime:              args.CoreComponents.GenesisTime(),
+		RoundHandler:             args.ProcessComponents.RoundHandler(),
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
 		AddressPubKeyConverter:   args.CoreComponents.AddressPubKeyConverter(),
 		ShardCoordinator:         args.ProcessComponents.ShardCoordinator(),
@@ -251,18 +255,21 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:      args.CoreComponents.EnableRoundsHandler(),
 		TxVersionChecker:         args.CoreComponents.TxVersionChecker(),
+		ChainHandler:             args.DataComponents.Blockchain(),
+		TxProcessor:              args.ProcessComponents.TransactionProcessor(),
+		RoundExclusionHandler:    roundExclusionHandler,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
 		return nil, err
 	}
 
-	apiBlockProcessor, err := createAPIBlockProcessor(args, apiTransactionProcessor)
+	apiBlockProcessor, err := createAPIBlockProcessor(args, apiTransactionProcessor, roundExclusionHandler)
 	if err != nil {
 		return nil, err
 	}
 
-	apiInternalBlockProcessor, err := createAPIInternalBlockProcessor(args, apiTransactionProcessor)
+	apiInternalBlockProcessor, err := createAPIInternalBlockProcessor(args, apiTransactionProcessor, roundExclusionHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -692,8 +699,8 @@ func createBuiltinFuncs(
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 }
 
-func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIBlockHandler, error) {
-	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler, roundExclusionHandler common.RoundExclusionHandler) (blockAPI.APIBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler, roundExclusionHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -701,8 +708,8 @@ func createAPIBlockProcessor(args *ApiResolverArgs, apiTransactionHandler extern
 	return blockAPI.CreateAPIBlockProcessor(blockApiArgs)
 }
 
-func createAPIInternalBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (blockAPI.APIInternalBlockHandler, error) {
-	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler)
+func createAPIInternalBlockProcessor(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler, roundExclusionHandler common.RoundExclusionHandler) (blockAPI.APIInternalBlockHandler, error) {
+	blockApiArgs, err := createAPIBlockProcessorArgs(args, apiTransactionHandler, roundExclusionHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -710,7 +717,7 @@ func createAPIInternalBlockProcessor(args *ApiResolverArgs, apiTransactionHandle
 	return blockAPI.CreateAPIInternalBlockProcessor(blockApiArgs)
 }
 
-func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler) (*blockAPI.ArgAPIBlockProcessor, error) {
+func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler external.APITransactionHandler, roundExclusionHandler common.RoundExclusionHandler) (*blockAPI.ArgAPIBlockProcessor, error) {
 	statusComputer, err := txstatus.NewStatusComputer(
 		args.ProcessComponents.ShardCoordinator().SelfId(),
 		args.CoreComponents.Uint64ByteSliceConverter(),
@@ -754,6 +761,7 @@ func createAPIBlockProcessorArgs(args *ApiResolverArgs, apiTransactionHandler ex
 		ProofsPool:                   args.DataComponents.Datapool().Proofs(),
 		BlockChain:                   args.DataComponents.Blockchain(),
 		EnableRoundsHandler:          args.CoreComponents.EnableRoundsHandler(),
+		RoundExclusionHandler:        roundExclusionHandler,
 	}
 
 	return blockApiArgs, nil
@@ -765,4 +773,12 @@ func createLogsFacade(args *ApiResolverArgs) (factory.LogsFacade, error) {
 		Marshaller:      args.CoreComponents.InternalMarshalizer(),
 		PubKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
 	})
+}
+
+func createRoundExclusionHandler(generalConfig *config.Config) (common.RoundExclusionHandler, error) {
+	if generalConfig == nil {
+		return common.NewRoundExclusionHandler(nil)
+	}
+
+	return common.NewConfiguredRoundExclusionHandler(generalConfig)
 }

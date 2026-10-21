@@ -813,6 +813,7 @@ func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.S
 		Facade:          initialFacade,
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
 		AntiFloodConfig: nr.configs.GeneralConfig.WebServerAntiflood,
+		TrieOperations:  nr.configs.GeneralConfig.TrieOperations,
 	}
 
 	httpServerWrapper, err := gin.NewGinWebServerHandler(httpServerArgs)
@@ -1278,7 +1279,8 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	if err != nil {
 		return nil, err
 	}
-	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	roundDuration := time.Duration(coreComponents.GenesisNodesSetup().GetRoundDuration()) * time.Millisecond
+	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache, interceptors.WhiteListRequestTTL(roundDuration))
 	if err != nil {
 		return nil, err
 	}
@@ -1295,8 +1297,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 
 	log.Trace("creating time cache for requested items components")
 	// TODO consider lowering this (perhaps to 1 second) and use a common const
-	requestedItemsHandler := cache.NewTimeCache(
-		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
+	requestedItemsHandler := cache.NewTimeCache(roundDuration)
 
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
 
@@ -1520,16 +1521,17 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:              *nr.configs.GeneralConfig,
-		ConfigPathsHolder:   *nr.configs.ConfigurationPathsHolder,
-		EpochConfig:         *nr.configs.EpochConfig,
-		RoundConfig:         *nr.configs.RoundConfig,
-		ImportDbConfig:      *nr.configs.ImportDbConfig,
-		RatingsConfig:       *nr.configs.RatingsConfig,
-		EconomicsConfig:     *nr.configs.EconomicsConfig,
-		NodesConfig:         *nr.configs.NodesConfig,
-		WorkingDirectory:    nr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess: chanStopNodeProcess,
+		Config:                *nr.configs.GeneralConfig,
+		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
+		EpochConfig:           *nr.configs.EpochConfig,
+		RoundConfig:           *nr.configs.RoundConfig,
+		ImportDbConfig:        *nr.configs.ImportDbConfig,
+		RatingsConfig:         *nr.configs.RatingsConfig,
+		EconomicsConfig:       *nr.configs.EconomicsConfig,
+		NodesConfig:           *nr.configs.NodesConfig,
+		WorkingDirectory:      nr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess:   chanStopNodeProcess,
+		PrintPrettifiedHeader: nr.configs.FlagsConfig.PrintPrettifiedHeader,
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)
@@ -1555,12 +1557,13 @@ func (nr *nodeRunner) CreateManagedStatusCoreComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 ) (mainFactory.StatusCoreComponentsHandler, error) {
 	args := statusCore.StatusCoreComponentsFactoryArgs{
-		Config:          *nr.configs.GeneralConfig,
-		EpochConfig:     *nr.configs.EpochConfig,
-		RoundConfig:     *nr.configs.RoundConfig,
-		RatingsConfig:   *nr.configs.RatingsConfig,
-		EconomicsConfig: *nr.configs.EconomicsConfig,
-		CoreComp:        coreComponents,
+		Config:                     *nr.configs.GeneralConfig,
+		EpochConfig:                *nr.configs.EpochConfig,
+		RoundConfig:                *nr.configs.RoundConfig,
+		RatingsConfig:              *nr.configs.RatingsConfig,
+		EconomicsConfig:            *nr.configs.EconomicsConfig,
+		SystemSmartContractsConfig: *nr.configs.SystemSCConfig,
+		CoreComp:                   coreComponents,
 	}
 
 	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
@@ -1809,5 +1812,6 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	if err != nil {
 		return nil, err
 	}
-	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+	// the entries only record that a transaction's signatures were already verified, which does not become stale
+	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified, 0)
 }

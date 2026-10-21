@@ -8,17 +8,19 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
+	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateTest "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
-	"github.com/stretchr/testify/assert"
 )
 
 func getDefaultSnapshotManagerArgs() state.ArgsNewSnapshotsManager {
@@ -550,5 +552,48 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 
 		assert.True(t, putInEpochWithoutCacheCalled)
 		assert.True(t, removeFromAllActiveEpochsCalled)
+	})
+	t.Run("serialized wait does not deadlock on a held background job blocker", func(t *testing.T) {
+		t.Parallel()
+
+		psh := statusHandler.NewProcessStatusHandler()
+		// the commit that triggered this snapshot holds a blocker for its whole duration
+		psh.BlockBackgroundJobs("commit")
+
+		args := getDefaultSnapshotManagerArgs()
+		args.ProcessingMode = common.ImportDb
+		args.ProcessStatusHandler = psh
+		sm, _ := state.NewSnapshotsManager(args)
+
+		tsm := &storageManager.StorageManagerStub{
+			ShouldTakeSnapshotCalled: func() bool { return true },
+			TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
+				// emulate the trie snapshot goroutine, which yields until the node reports idle
+				for !psh.IsIdle() {
+					time.Sleep(time.Millisecond)
+				}
+				if iteratorChannels.LeavesChan != nil {
+					close(iteratorChannels.LeavesChan)
+				}
+				stats.SnapshotFinished()
+			},
+		}
+
+		done := make(chan struct{})
+		go func() {
+			sm.SnapshotState(rootHash, epoch, tsm)
+			close(done)
+		}()
+
+		select {
+		case <-done:
+		case <-time.After(10 * time.Second):
+			assert.Fail(t, "SnapshotState deadlocked waiting for the serialized snapshot")
+			return
+		}
+
+		assert.False(t, psh.IsIdle(), "blocking must resume once the wait is over")
+		psh.UnblockBackgroundJobs()
+		assert.True(t, psh.IsIdle())
 	})
 }

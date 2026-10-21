@@ -294,27 +294,27 @@ func (en *extensionNode) isPosCollapsed(_ int) bool {
 	return en.isCollapsed()
 }
 
-func (en *extensionNode) tryGet(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) (value []byte, err error) {
+func (en *extensionNode) tryGetWithVersion(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) (value []byte, version uint32, err error) {
 	err = en.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("tryGet error %w", err)
+		return nil, 0, fmt.Errorf("tryGet error %w", err)
 	}
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
-		return nil, nil
+		return nil, 0, nil
 	}
 	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
 	if keysDontMatch {
-		return nil, nil
+		return nil, 0, nil
 	}
 	key = key[len(en.Key):]
 	err = resolveIfCollapsed(en, 0, tmc, db)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	tmc.SetDepth(tmc.GetCurrentDepth() + 1)
-	return en.child.tryGet(key, tmc, db)
+	return en.child.tryGetWithVersion(key, tmc, db)
 }
 
 func (en *extensionNode) getNext(key []byte, tmc MetricsCollector, db common.TrieStorageInteractor) (node, []byte, error) {
@@ -720,6 +720,10 @@ func (en *extensionNode) getAllHashes(tmc MetricsCollector, db common.TrieStorag
 
 func (en *extensionNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
 	if len(key) == 0 || check.IfNil(en) {
+		return false, nil, nil
+	}
+
+	if len(en.Key) > len(key) || !bytes.HasPrefix(key, en.Key) {
 		return false, nil, nil
 	}
 

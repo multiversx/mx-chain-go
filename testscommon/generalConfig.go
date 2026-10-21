@@ -93,16 +93,32 @@ func GetGeneralConfig() config.Config {
 					MaxConsecutiveRoundsOfRatingDecrease:   2000,
 					MaxBlockProcessingTimeMs:               1000,
 					NumHeadersToRequestInAdvance:           10,
+					ExtraDelayForRequestBlockInfoMs:        1,
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
-				{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+				{EnableEpoch: 0, GracePeriodRounds: 25},
 			},
 			EpochStartConfigsByRound: []config.EpochStartConfigByRound{
 				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
 			},
 			ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
-				{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+				{
+					EnableEpoch: 0,
+					NumRoundsToWaitBeforeSignalingChronologyStuck: 10,
+				},
+			},
+			ConsensusConfigsByRound: []config.ConsensusConfigByRound{
+				{
+					EnableRound: 0,
+					SubroundsTiming: []config.SubroundTiming{
+						{StartTime: 0.0, EndTime: 0.05},
+						{StartTime: 0.05, EndTime: 0.25},
+						{StartTime: 0.25, EndTime: 0.85},
+						{StartTime: 0.85, EndTime: 0.95},
+					},
+					ProcessingThresholdPercent: 85,
+				},
 			},
 		},
 		EpochStartConfig: config.EpochStartConfig{
@@ -112,11 +128,12 @@ func GetGeneralConfig() config.Config {
 		WhiteListPool:          getLRUCacheConfig(),
 		WhiteListerVerifiedTxs: getLRUCacheConfig(),
 		StoragePruning: config.StoragePruningConfig{
-			Enabled:                     false,
-			ValidatorCleanOldEpochsData: false,
-			ObserverCleanOldEpochsData:  false,
-			NumEpochsToKeep:             3,
-			NumActivePersisters:         3,
+			Enabled:                         false,
+			ValidatorCleanOldEpochsData:     false,
+			ObserverCleanOldEpochsData:      false,
+			NumEpochsToKeep:                 3,
+			NumActivePersisters:             3,
+			AssumedPeersNumActivePersisters: 3,
 		},
 		EvictionWaitingList: config.EvictionWaitingListConfig{
 			HashesSize:     100,
@@ -159,9 +176,9 @@ func GetGeneralConfig() config.Config {
 			NumLeavesToCollapseSingleRun: common.NumLeavesToCollapseSingleRun,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-			PruningBufferLen:      1000,
-			SnapshotsBufferLen:    10,
-			SnapshotsGoroutineNum: 2,
+			PruningBufferLen:           1000,
+			SnapshotsBufferLen:         10,
+			SnapshotsGoroutinesPerCore: 2,
 		},
 		TxDataPool: config.CacheConfig{
 			Capacity:             10000,
@@ -174,6 +191,7 @@ func GetGeneralConfig() config.Config {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               100,
 			PropagationGracePeriodMs:       0,
+			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
 		},
 		TxCacheSelection: config.TxCacheSelectionConfig{
 			SelectionGasBandwidthIncreasePercent:          400,
@@ -318,7 +336,7 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		HeartbeatV2: config.HeartbeatV2Config{
-			PeerAuthenticationTimeBetweenSendsInSec:          1,
+			PeerAuthenticationTimeBetweenSendsInSec:          10,
 			PeerAuthenticationTimeBetweenSendsWhenErrorInSec: 1,
 			PeerAuthenticationTimeThresholdBetweenSends:      0.1,
 			HeartbeatTimeBetweenSendsInSec:                   1,
@@ -525,7 +543,9 @@ func getLRUCacheConfig() config.CacheConfig {
 // GetDefaultAntifloodConfig -
 func GetDefaultAntifloodConfig() config.AntifloodConfig {
 	return config.AntifloodConfig{
-		Enabled: true,
+		Enabled:                              true,
+		MaxAllowedTrieNodeChunks:             10,
+		TrieNodeChunksInactivityTimeoutInSec: 10,
 		ConfigsByRound: []config.AntifloodConfigByRound{
 			{
 				Round:                               0,
@@ -599,7 +619,7 @@ func GetDefaultAntifloodConfig() config.AntifloodConfig {
 				},
 			},
 			{
-				Round:                               100,
+				Round:                               99_999_999_999, // far-away supernova round, coherent with the disabled default
 				NumConcurrentResolverJobs:           10,
 				NumConcurrentResolvingTrieNodesJobs: 3,
 				Cache: config.CacheConfig{

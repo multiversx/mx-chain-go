@@ -23,6 +23,11 @@ func (rhs *RoundHandlerStub) Index() int64 {
 	return rhs.RoundIndex
 }
 
+// IndexForCurrentTime -
+func (rhs *RoundHandlerStub) IndexForCurrentTime() int64 {
+	return rhs.Index()
+}
+
 // TimeDuration -
 func (rhs *RoundHandlerStub) TimeDuration() time.Duration {
 	if rhs.TimeDurationCalled != nil {
@@ -30,6 +35,11 @@ func (rhs *RoundHandlerStub) TimeDuration() time.Duration {
 	}
 
 	return 4000 * time.Millisecond
+}
+
+// TimeDurationForRound -
+func (rhs *RoundHandlerStub) TimeDurationForRound(_ uint64) time.Duration {
+	return rhs.TimeDuration()
 }
 
 // TimeStamp -

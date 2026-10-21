@@ -167,12 +167,25 @@ func (hsv *HeaderSigVerifier) getConsensusSignersForEquivalentProofs(proof data.
 		return nil, err
 	}
 
-	shouldApplyFallbackValidation := hsv.fallbackHeaderValidator.ShouldApplyFallbackValidationForHeaderWith(
-		proof.GetHeaderShardId(),
-		proof.GetIsStartOfEpoch(),
-		proof.GetHeaderRound(),
-		proof.GetHeaderHash(),
-	)
+	shouldApplyFallbackValidation := false
+	// fallback validation only applies to start-of-epoch metachain headers (re-checked inside
+	// ShouldApplyFallbackValidation); short-circuit here to avoid the header lookup below in every other case.
+	if proof.GetIsStartOfEpoch() && proof.GetHeaderShardId() == core.MetachainShardId {
+		log.Debug("getConsensusSignersForEquivalentProofs: header is start of epoch, evaluating fallback validation")
+		// fetch with storage fallback (consistent with getHeaderForProofAtTransition): the start-of-epoch
+		// metablock may have been evicted from the in-memory pool but still be available in storage.
+		header, err := process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, hsv.storageService, hsv.marshalizer, proof.GetHeaderShardId())
+		if err != nil {
+			// the header is not available locally: keep strict validation (the stricter bitmap threshold)
+			// instead of rejecting the proof, since fallback validation can only relax that threshold.
+			log.Debug("getConsensusSignersForEquivalentProofs: could not get header, applying strict validation",
+				"headerHash", proof.GetHeaderHash(),
+				"error", err.Error(),
+			)
+		} else {
+			shouldApplyFallbackValidation = hsv.fallbackHeaderValidator.ShouldApplyFallbackValidation(header)
+		}
+	}
 
 	err = common.IsConsensusBitmapValid(
 		log,

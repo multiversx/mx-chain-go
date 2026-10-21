@@ -213,16 +213,16 @@ func (ln *leafNode) isPosCollapsed(_ int) bool {
 	return false
 }
 
-func (ln *leafNode) tryGet(key []byte, _ MetricsCollector, _ common.TrieStorageInteractor) (value []byte, err error) {
+func (ln *leafNode) tryGetWithVersion(key []byte, _ MetricsCollector, _ common.TrieStorageInteractor) (value []byte, version uint32, err error) {
 	err = ln.isEmptyOrNil()
 	if err != nil {
-		return nil, fmt.Errorf("tryGet error %w", err)
+		return nil, 0, fmt.Errorf("tryGet error %w", err)
 	}
 	if bytes.Equal(key, ln.Key) {
-		return ln.Value, nil
+		return ln.Value, ln.Version, nil
 	}
 
-	return nil, nil
+	return nil, 0, nil
 }
 
 func (ln *leafNode) getNext(key []byte, _ MetricsCollector, _ common.TrieStorageInteractor) (node, []byte, error) {

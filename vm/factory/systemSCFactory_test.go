@@ -309,3 +309,20 @@ func TestSystemSCFactory_IsInterfaceNil(t *testing.T) {
 	scFactory = nil
 	assert.True(t, check.IfNil(scFactory))
 }
+
+func TestSystemSCFactory_CreateGasConfig_ZeroBuiltInCostShouldError(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockNewSystemScFactoryArgs()
+	scFactory, err := NewSystemSCFactory(arguments)
+	require.Nil(t, err)
+
+	gasMap := wasmConfig.MakeGasMapForTests()
+	gasMap = defaults.FillGasMapInternal(gasMap, 1)
+
+	// Set a BuiltInCost field to 0
+	gasMap[common.BuiltInCost]["ChangeOwnerAddress"] = 0
+
+	err = scFactory.createGasConfig(gasMap)
+	assert.Error(t, err)
+}

@@ -34,9 +34,9 @@ func GetBroadcastMessenger(
 	shardCoordinator sharding.Coordinator,
 	peerSignatureHandler crypto.PeerSignatureHandler,
 	headersSubscriber consensus.HeadersPoolSubscriber,
-	headersPool consensus.HeadersPoolGetter,
 	proofsPool consensus.EquivalentProofsPool,
 	enableEpochsHandler common.EnableEpochsHandler,
+	processConfigsHandler common.ProcessConfigsHandler,
 	interceptorsContainer process.InterceptorsContainer,
 	alarmScheduler core.TimersScheduler,
 	keysHandler consensus.KeysHandler,
@@ -49,9 +49,9 @@ func GetBroadcastMessenger(
 	dbbArgs := &broadcast.ArgsDelayedBlockBroadcaster{
 		InterceptorsContainer: interceptorsContainer,
 		HeadersSubscriber:     headersSubscriber,
-		HeadersPool:           headersPool,
 		ProofsPool:            proofsPool,
 		EnableEpochsHandler:   enableEpochsHandler,
+		ProcessConfigsHandler: processConfigsHandler,
 		ShardCoordinator:      shardCoordinator,
 		LeaderCacheSize:       maxDelayCacheSize,
 		ValidatorCacheSize:    maxDelayCacheSize,
@@ -76,6 +76,7 @@ func GetBroadcastMessenger(
 		AlarmScheduler:             alarmScheduler,
 		KeysHandler:                keysHandler,
 		DelayedBroadcaster:         delayedBroadcaster,
+		ProcessConfigsHandler:      processConfigsHandler,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

@@ -8,6 +8,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 )
 
+// EpochStartTriggerForTests returns the epoch-start trigger.
+func (pc *processComponents) EpochStartTriggerForTests() epochStart.TriggerHandler {
+	return pc.epochStartTrigger
+}
+
 // NewBlockProcessor calls the unexported method with the same name in order to use it in tests
 func (pcf *processComponentsFactory) NewBlockProcessor(
 	requestHandler process.RequestHandler,

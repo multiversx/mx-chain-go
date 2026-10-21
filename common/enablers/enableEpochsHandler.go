@@ -945,6 +945,20 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			activationEpoch:     handler.enableEpochsConfig.SupernovaEnableEpoch,
 			activationEpochName: "SupernovaEnableEpoch",
 		},
+		common.FixEpochChangeProposedCurrentEpochFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixEpochChangeProposedCurrentEpochEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.FixEpochChangeProposedCurrentEpochEnableEpoch,
+			activationEpochName: "FixEpochChangeProposedCurrentEpochEnableEpoch",
+		},
+		common.FixDataTrieLeafValidationFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixDataTrieLeafValidationEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.FixDataTrieLeafValidationEnableEpoch,
+			activationEpochName: "FixDataTrieLeafValidationEnableEpoch",
+		},
 		// TODO: move it to activation round
 		common.CheckBuiltInCallOnTransferValueAndFailExecutionFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
@@ -1001,6 +1015,48 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch:     handler.enableEpochsConfig.RelayedTransactionsV1V2DisableEpoch,
 			activationEpochName: "RelayedTransactionsV1V2DisableEpoch",
+		},
+		common.FullShardDataValidationFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FullShardDataValidationEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.FullShardDataValidationEnableEpoch,
+			activationEpochName: "FullShardDataValidationEnableEpoch",
+		},
+		common.ConsumedGasInEconomicsFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.ConsumedGasInEconomicsFixEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.ConsumedGasInEconomicsFixEnableEpoch,
+			activationEpochName: "ConsumedGasInEconomicsFixEnableEpoch",
+		},
+		common.AttributeExtraGasUsageFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.AttributeExtraGasUsageEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.AttributeExtraGasUsageEnableEpoch,
+			activationEpochName: "AttributeExtraGasUsageEnableEpoch",
+		},
+		common.FixCorrectSmallIntAndGasLimitsFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixCorrectSmallIntAndGasLimitsEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.FixCorrectSmallIntAndGasLimitsEnableEpoch,
+			activationEpochName: "FixCorrectSmallIntAndGasLimitsEnableEpoch",
+		},
+		common.OutputRollbackOnDestContextFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.OutputRollbackOnDestContextEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.OutputRollbackOnDestContextEnableEpoch,
+			activationEpochName: "OutputRollbackOnDestContextEnableEpoch",
+		},
+		common.KeepReturnDataOnAsyncTransferCallbackFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.KeepReturnDataOnAsyncTransferCallbackEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.KeepReturnDataOnAsyncTransferCallbackEnableEpoch,
+			activationEpochName: "KeepReturnDataOnAsyncTransferCallbackEnableEpoch",
 		},
 	}
 }

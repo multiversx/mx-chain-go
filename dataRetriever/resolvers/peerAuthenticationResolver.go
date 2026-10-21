@@ -2,10 +2,10 @@ package resolvers
 
 import (
 	"fmt"
+	"runtime/debug"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data/batch"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -76,8 +76,15 @@ func checkArgPeerAuthenticationResolver(arg ArgPeerAuthenticationResolver) error
 
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
 // (for the topic this validator was registered to, usually a request topic)
-func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-	err := res.canProcessMessage(message, fromConnectedPeer)
+func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) (msg []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logTrieNodes.Error("panic recovered", "peer", fromConnectedPeer, "panic", r, "stack", string(debug.Stack()))
+			err = fmt.Errorf("panic in peerAuthenticationResolver.ProcessReceivedMessage: %v", r)
+		}
+	}()
+
+	err = res.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +99,7 @@ func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.Messag
 
 	switch rd.Type {
 	case dataRetriever.HashArrayType:
-		return nil, res.resolveMultipleHashesRequest(rd.Value, message.Peer(), source)
+		return nil, res.resolveMultipleHashesRequest(rd.Value, message.Peer(), source, fromConnectedPeer, message.SeqNo())
 	default:
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
@@ -104,13 +111,17 @@ func (res *peerAuthenticationResolver) ProcessReceivedMessage(message p2p.Messag
 }
 
 // resolveMultipleHashesRequest sends the response for multiple hashes request
-func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(hashesBuff []byte, pid core.PeerID, source p2p.MessageHandler) error {
-	b := batch.Batch{}
-	err := res.marshalizer.Unmarshal(&b, hashesBuff)
+func (res *peerAuthenticationResolver) resolveMultipleHashesRequest(
+	hashesBuff []byte,
+	pid core.PeerID,
+	source p2p.MessageHandler,
+	fromConnectedPeer core.PeerID,
+	sequence []byte,
+) error {
+	hashes, err := res.parseRequestedHashesWithPartialResponse(hashesBuff, fromConnectedPeer, sequence)
 	if err != nil {
 		return err
 	}
-	hashes := b.Data
 
 	peerAuthsForHashes, err := res.fetchPeerAuthenticationSlicesForPublicKeys(hashes)
 	if err != nil {
@@ -139,19 +150,19 @@ func (res *peerAuthenticationResolver) sendPeerAuthsForHashes(dataBuff [][]byte,
 
 // fetchPeerAuthenticationSlicesForPublicKeys fetches all peer authentications for all pks
 func (res *peerAuthenticationResolver) fetchPeerAuthenticationSlicesForPublicKeys(pks [][]byte) ([][]byte, error) {
-	peerAuths := make([][]byte, 0)
+	reply := newHashArrayReply()
 	for _, pk := range pks {
 		peerAuthForHash, _ := res.fetchPeerAuthenticationAsByteSlice(pk)
-		if peerAuthForHash != nil {
-			peerAuths = append(peerAuths, peerAuthForHash)
+		if peerAuthForHash != nil && !reply.add(peerAuthForHash) {
+			break
 		}
 	}
 
-	if len(peerAuths) == 0 {
+	if len(reply.data) == 0 {
 		return nil, dataRetriever.ErrPeerAuthNotFound
 	}
 
-	return peerAuths, nil
+	return reply.data, nil
 }
 
 // fetchPeerAuthenticationAsByteSlice returns the value from authentication pool if exists

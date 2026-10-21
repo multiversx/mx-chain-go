@@ -9,3 +9,9 @@ type HeaderWithExecutionResults interface {
 	data.HeaderHandler
 	GetExecutionResults() []data.ExecutionResultHandler
 }
+
+// DismissedExecutionHandler handles state owned by dismissed executions
+type DismissedExecutionHandler interface {
+	DiscardStateAccessesForHeader(headerHash []byte)
+	IsInterfaceNil() bool
+}

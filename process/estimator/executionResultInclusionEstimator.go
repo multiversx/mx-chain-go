@@ -241,8 +241,6 @@ func (erie *ExecutionResultInclusionEstimator) checkSanity(
 	return true
 }
 
-// TODO check for overflow?
 func convertMsToNs(ms uint64) uint64 {
-	// Convert milliseconds to nanoseconds
 	return ms * 1_000_000
 }

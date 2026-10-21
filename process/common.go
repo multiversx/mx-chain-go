@@ -19,18 +19,50 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
+	"github.com/multiversx/mx-chain-go/storage"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
 var log = logger.GetOrCreate("process")
 
+const maxSelfNotarizedLookback = 50
 const VMStoragePrefix = "VM@"
+const maxLenMiniBlockReservedField = 10
+
+// CheckIncomingMiniBlockHeaderAtMetachain verifies the execution contract for
+// an incoming miniblock in a legacy metachain block.
+func CheckIncomingMiniBlockHeaderAtMetachain(mbh data.MiniBlockHeaderHandler) error {
+	if mbh == nil {
+		return ErrNilMiniBlockHeader
+	}
+
+	isIncomingAtMetachain := mbh.GetReceiverShardID() == core.MetachainShardId &&
+		mbh.GetSenderShardID() != core.MetachainShardId
+	if !isIncomingAtMetachain {
+		return nil
+	}
+
+	processingType := mbh.GetProcessingType()
+	if processingType != int32(block.Normal) {
+		return fmt.Errorf("%w: incoming miniblock at metachain must have Normal processing type, got %d",
+			ErrInvalidMiniBlockProcessingType, processingType)
+	}
+
+	constructionState := mbh.GetConstructionState()
+	if constructionState != int32(block.Final) {
+		return fmt.Errorf("%w: incoming miniblock at metachain must have Final construction state, got %d",
+			ErrInvalidConstructionState, constructionState)
+	}
+
+	return nil
+}
 
 // ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
 type ShardedCacheSearchMethod byte
@@ -759,6 +791,22 @@ func SortVMOutputInsideData(vmOutput *vmcommon.VMOutput) []*vmcommon.OutputAccou
 	return outPutAccounts
 }
 
+// VMOutputValidationChecker validates the vmOutput for various input
+func VMOutputValidationChecker(vmOutput *vmcommon.VMOutput) error {
+	for key, acc := range vmOutput.OutputAccounts {
+		if acc == nil || !bytes.Equal([]byte(key), acc.Address) {
+			return ErrAccountAddressMismatch
+		}
+
+		for storeKey, storeUpdate := range acc.StorageUpdates {
+			if storeUpdate == nil || !bytes.Equal([]byte(storeKey), storeUpdate.Offset) {
+				return ErrAccountAddressMismatch
+			}
+		}
+	}
+	return nil
+}
+
 // GetSortedStorageUpdates returns the storage updates as a sorted list
 func GetSortedStorageUpdates(account *vmcommon.OutputAccount) []*vmcommon.StorageUpdate {
 	storageUpdates := make([]*vmcommon.StorageUpdate, len(account.StorageUpdates))
@@ -949,7 +997,9 @@ func IsScheduledMode(
 	return false, nil
 }
 
-const additionalTimeForCreatingScheduledMiniBlocks = 150 * time.Millisecond
+// additionalTimeForCreatingScheduledMiniBlocks is intended to leave 50ms of the legacy block subround
+// for finalizing and sending a block when scheduled processing starts at the normal 90% creation cutoff.
+const additionalTimeForCreatingScheduledMiniBlocks = 70 * time.Millisecond
 
 // HaveAdditionalTime returns if the additional time allocated for scheduled mini blocks is elapsed
 func HaveAdditionalTime() func() bool {
@@ -1052,6 +1102,301 @@ func CheckIfIndexesAreOutOfBound(
 			indexOfLastTxToBeProcessed,
 			maxIndex,
 		)
+	}
+
+	return nil
+}
+
+// CompleteMissingSelfNotarizedHeaders fills self-notarized headers for shards still at
+// nonce 0. Fast path uses FirstPendingMetaBlock on epoch start metablocks; fallback walks
+// back from startHash inspecting ShardInfo. Returns an error if any shard remains
+// unresolved and the walk did not reach genesis (legitimate empty state).
+func CompleteMissingSelfNotarizedHeaders(
+	startHash []byte,
+	numShards uint32,
+	blockTracker BlockTracker,
+	marshalizer marshal.Marshalizer,
+	store dataRetriever.StorageService,
+) error {
+	missingShards := make(map[uint32]bool)
+	for shardID := uint32(0); shardID < numShards; shardID++ {
+		lastSelfNotarized, _, err := blockTracker.GetLastSelfNotarizedHeader(shardID)
+		if err != nil || check.IfNil(lastSelfNotarized) || lastSelfNotarized.GetNonce() == 0 {
+			missingShards[shardID] = true
+		}
+	}
+
+	if len(missingShards) == 0 {
+		return nil
+	}
+
+	log.Debug("CompleteMissingSelfNotarizedHeaders",
+		"numMissing", len(missingShards))
+
+	startMetaBlock, err := GetMetaHeaderFromStorage(startHash, marshalizer, store)
+	if err != nil {
+		return fmt.Errorf("%w: could not load start metablock %s: %s",
+			ErrMissingHeader, hex.EncodeToString(startHash), err.Error())
+	}
+
+	if startMetaBlock.IsStartOfEpochBlock() {
+		deriveSelfNotarizedFromEpochStartData(startMetaBlock, missingShards, blockTracker, marshalizer, store)
+		if len(missingShards) == 0 {
+			return nil
+		}
+	}
+
+	reachedGenesis := false
+	currentHash := startHash
+	for i := 0; i < maxSelfNotarizedLookback && len(missingShards) > 0 && len(currentHash) > 0; i++ {
+		metaBlock, errGet := GetMetaHeaderFromStorage(currentHash, marshalizer, store)
+		if errGet != nil {
+			log.Debug("CompleteMissingSelfNotarizedHeaders: could not load meta block during walk back", "error", errGet.Error())
+			break
+		}
+
+		for shardID := range missingShards {
+			bestNonce, bestHeader, bestHash := findSelfNotarizedMetaHeaderInBlock(metaBlock, shardID, marshalizer, store)
+			if bestHeader != nil {
+				log.Debug("CompleteMissingSelfNotarizedHeaders: derived self-notarized header",
+					"shardID", shardID,
+					"metaNonce", bestNonce,
+					"metaHash", bestHash)
+				blockTracker.AddSelfNotarizedHeader(shardID, bestHeader, bestHash)
+				delete(missingShards, shardID)
+			}
+		}
+
+		if metaBlock.GetNonce() == 0 {
+			reachedGenesis = true
+			break
+		}
+		currentHash = metaBlock.GetPrevHash()
+	}
+
+	if len(missingShards) == 0 {
+		return nil
+	}
+
+	if reachedGenesis {
+		log.Debug("CompleteMissingSelfNotarizedHeaders: reached genesis, nothing to derive",
+			"numStillMissing", len(missingShards))
+		return nil
+	}
+
+	log.Warn("CompleteMissingSelfNotarizedHeaders: could not derive all self-notarized headers",
+		"numStillMissing", len(missingShards))
+	return fmt.Errorf("%w: could not derive self-notarized headers for %d shards",
+		ErrMissingHeader, len(missingShards))
+}
+
+func deriveSelfNotarizedFromEpochStartData(
+	epochStartMetaBlock data.MetaHeaderHandler,
+	missingShards map[uint32]bool,
+	blockTracker BlockTracker,
+	marshalizer marshal.Marshalizer,
+	store dataRetriever.StorageService,
+) {
+	epochStartHandler := epochStartMetaBlock.GetEpochStartHandler()
+	if epochStartHandler == nil {
+		return
+	}
+
+	for _, shardData := range epochStartHandler.GetLastFinalizedHeaderHandlers() {
+		shardID := shardData.GetShardID()
+		if !missingShards[shardID] {
+			continue
+		}
+
+		metaHash := shardData.GetFirstPendingMetaBlock()
+		if len(metaHash) == 0 {
+			continue
+		}
+
+		selfNotarizedMeta, err := GetMetaHeaderFromStorage(metaHash, marshalizer, store)
+		if err != nil {
+			log.Debug("deriveSelfNotarizedFromEpochStartData: could not load meta block",
+				"shardID", shardID,
+				"metaHash", metaHash,
+				"error", err.Error())
+			continue
+		}
+
+		log.Debug("deriveSelfNotarizedFromEpochStartData: derived self-notarized header",
+			"shardID", shardID,
+			"metaNonce", selfNotarizedMeta.GetNonce(),
+			"metaHash", metaHash)
+		blockTracker.AddSelfNotarizedHeader(shardID, selfNotarizedMeta, metaHash)
+		delete(missingShards, shardID)
+	}
+}
+
+func findSelfNotarizedMetaHeaderInBlock(
+	metaBlock data.MetaHeaderHandler,
+	shardID uint32,
+	marshalizer marshal.Marshalizer,
+	store dataRetriever.StorageService,
+) (uint64, data.HeaderHandler, []byte) {
+	var bestNonce uint64
+	var bestHeader data.HeaderHandler
+	var bestHash []byte
+	hadLoadErrors := false
+
+	shardInfoHandlers := metaBlock.GetShardInfoHandlers()
+	for i := range shardInfoHandlers {
+		if shardInfoHandlers[i].GetShardID() != shardID {
+			continue
+		}
+
+		headerHash := shardInfoHandlers[i].GetHeaderHash()
+		shardHeader, err := GetShardHeaderFromStorage(headerHash, marshalizer, store)
+		if err != nil {
+			log.Debug("findSelfNotarizedMetaHeaderInBlock: could not load shard header",
+				"shardID", shardID,
+				"headerHash", headerHash,
+				"error", err.Error())
+			hadLoadErrors = true
+			continue
+		}
+
+		for _, metaHash := range shardHeader.GetMetaBlockHashes() {
+			metaHeader, errGet := GetMetaHeaderFromStorage(metaHash, marshalizer, store)
+			if errGet != nil {
+				continue
+			}
+
+			if metaHeader.GetNonce() > bestNonce {
+				bestNonce = metaHeader.GetNonce()
+				bestHeader = metaHeader
+				bestHash = metaHash
+			}
+		}
+	}
+
+	if hadLoadErrors {
+		return 0, nil, nil
+	}
+
+	return bestNonce, bestHeader, bestHash
+}
+
+// CheckMiniBlock will check miniblock validity
+func CheckMiniBlock(
+	miniBlock *block.MiniBlock,
+	shardCoordinator sharding.Coordinator,
+) error {
+	senderShard := miniBlock.GetSenderShardID()
+	receiverShard := miniBlock.GetReceiverShardID()
+
+	// shard id checks
+	receiverShardInvalid := receiverShard >= shardCoordinator.NumberOfShards() &&
+		(receiverShard != core.MetachainShardId && receiverShard != core.AllShardId)
+	if receiverShardInvalid {
+		return fmt.Errorf("%w - receiver not for current shard: block type: %s, sender shard id: %d, receiver shard id: %d",
+			ErrInvalidShardId,
+			miniBlock.Type,
+			senderShard,
+			receiverShard)
+	}
+
+	senderShardInvalid := senderShard >= shardCoordinator.NumberOfShards() &&
+		senderShard != core.MetachainShardId
+	if senderShardInvalid {
+		return fmt.Errorf("%w - sender not for current shard: block type: %s, sender shard id: %d, receiver shard id: %d",
+			ErrInvalidShardId,
+			miniBlock.Type,
+			senderShard,
+			receiverShard)
+	}
+
+	if senderShard != shardCoordinator.SelfId() && receiverShard != shardCoordinator.SelfId() && receiverShard != core.AllShardId {
+		return fmt.Errorf("%w - not valid shard ids: block type: %s, sender shard id: %d, receiver shard id: %d",
+			ErrInvalidShardId,
+			miniBlock.Type,
+			senderShard,
+			receiverShard)
+	}
+
+	err := checkMiniBlockByType(miniBlock, shardCoordinator)
+	if err != nil {
+		return err
+	}
+
+	for _, txHash := range miniBlock.TxHashes {
+		if txHash == nil {
+			return ErrNilTxHash
+		}
+	}
+
+	if len(miniBlock.GetReserved()) > maxLenMiniBlockReservedField {
+		return ErrReservedFieldInvalid
+	}
+
+	return nil
+}
+
+func checkMiniBlockByType(
+	miniBlock *block.MiniBlock,
+	shardCoordinator sharding.Coordinator,
+) error {
+	selfId := shardCoordinator.SelfId()
+	sender := miniBlock.GetSenderShardID()
+	receiver := miniBlock.GetReceiverShardID()
+	mbType := miniBlock.GetType()
+
+	switch mbType {
+	case block.TxBlock:
+		if sender == core.MetachainShardId || receiver == core.AllShardId {
+			return fmt.Errorf("%w - TxBlock must be from shard to specific shard id: block type: %s, sender shard id: %d, receiver shard id: %d",
+				ErrInvalidShardId,
+				mbType,
+				sender,
+				receiver,
+			)
+		}
+
+	case block.SmartContractResultBlock:
+		if receiver == core.AllShardId {
+			return fmt.Errorf("%w - SCResultBlock cannot target AllShardId: block type: %s, sender shard id: %d, receiver shard id: %d",
+				ErrInvalidShardId,
+				mbType,
+				sender,
+				receiver,
+			)
+		}
+
+	case block.InvalidBlock, block.ReceiptBlock:
+		if sender != selfId || receiver != selfId {
+			return fmt.Errorf("%w - must be intra-shard: block type: %s, sender shard id: %d, receiver shard id: %d",
+				ErrInvalidShardId,
+				mbType,
+				sender,
+				receiver,
+			)
+		}
+
+	case block.PeerBlock:
+		if sender != core.MetachainShardId || receiver != core.AllShardId {
+			return fmt.Errorf("%w - PeerBlock must be from metachain to all shards: block type: %s, sender shard id: %d, receiver shard id: %d",
+				ErrInvalidShardId,
+				mbType,
+				sender,
+				receiver,
+			)
+		}
+
+	case block.RewardsBlock:
+		if sender != core.MetachainShardId || receiver == core.AllShardId {
+			return fmt.Errorf("%w - RewardsBlock must be from metachain to specific shard: block type: %s, sender shard id: %d, receiver shard id: %d",
+				ErrInvalidShardId,
+				mbType,
+				sender,
+				receiver,
+			)
+		}
+
+	default:
+		return fmt.Errorf("%w - unknown miniblock type %d", ErrInvalidShardId, int32(mbType))
 	}
 
 	return nil
@@ -1332,9 +1677,17 @@ func UpdateContextForReplacedHeader(
 		return err
 	}
 
-	err = CleanCachesForExecutionResult(blockChain.GetLastExecutionResult(), postProcessTransactions, executedMiniBlocks)
-	if err != nil {
-		return err
+	currentExecResult := blockChain.GetLastExecutionResult()
+	if !check.IfNil(currentExecResult) {
+		if bytes.Equal(currentExecResult.GetHeaderHash(), executionResultToSet.GetHeaderHash()) {
+			// already at the desired state
+			return nil
+		}
+
+		err = CleanCachesForExecutionResult(currentExecResult, postProcessTransactions, executedMiniBlocks)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Debug("UpdateContextForReplacedHeader last executed header",
@@ -1342,8 +1695,7 @@ func UpdateContextForReplacedHeader(
 		"nonce", headerToSet.GetNonce(),
 		"hash", executionResultToSet.GetHeaderHash())
 
-	blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
-	blockChain.SetLastExecutionResult(executionResultToSet)
+	blockChain.SetLastExecutionInfo(headerToSet, executionResultToSet)
 
 	// need to remove all execution results after the one set
 	err = executionManager.RemovePendingExecutionResultsFromNonce(executionResultToSet.GetHeaderNonce() + 1)
@@ -1429,6 +1781,34 @@ func checkForNils(
 		return ErrNilMarshalizer
 	}
 	return nil
+}
+
+// ShardInfoHandler exposes the shard header identity common to both meta shard info flavors
+type ShardInfoHandler interface {
+	GetHeaderHash() []byte
+	GetShardID() uint32
+	GetNonce() uint64
+	GetEpoch() uint32
+}
+
+// GetShardHeadersReferencedByMeta returns the shard headers the meta block references, reading the
+// proposal shard info for V3 headers and the classic shard info otherwise
+func GetShardHeadersReferencedByMeta(header data.MetaHeaderHandler) []ShardInfoHandler {
+	var shardInfoHandlers []ShardInfoHandler
+
+	if header.IsHeaderV3() {
+		for _, shardInfo := range header.GetShardInfoProposalHandlers() {
+			shardInfoHandlers = append(shardInfoHandlers, shardInfo)
+		}
+
+		return shardInfoHandlers
+	}
+
+	for _, shardInfo := range header.GetShardInfoHandlers() {
+		shardInfoHandlers = append(shardInfoHandlers, shardInfo)
+	}
+
+	return shardInfoHandlers
 }
 
 func getExecutionResultToSetOnReplacedHeader(

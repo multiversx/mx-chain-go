@@ -143,6 +143,11 @@ func (scf *systemSCFactory) createGasConfig(gasMap map[string]map[string]uint64)
 		return err
 	}
 
+	err = check.ForZeroUintFields(*builtInFunctionsCost)
+	if err != nil {
+		return err
+	}
+
 	scf.gasCost = vm.GasCost{
 		BaseOperationCost:      *baseOps,
 		MetaChainSystemSCsCost: *metaChainSCsOps,

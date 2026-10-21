@@ -690,6 +690,7 @@ func createHardForkExporter(
 					CacheSpanInSec:   1,
 				},
 			},
+			PeerAuthenticationTimeBetweenSendsInSec: 60,
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

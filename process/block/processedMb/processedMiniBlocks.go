@@ -3,8 +3,9 @@ package processedMb
 import (
 	"sync"
 
-	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 )
 
 var log = logger.GetOrCreate("process/processedMb")
@@ -125,6 +126,22 @@ func (pmbt *processedMiniBlocksTracker) IsMiniBlockFullyProcessed(metaBlockHash 
 	}
 
 	return processedMbInfo.FullyProcessed
+}
+
+// HasUnfinishedMiniBlocks returns true if at least one tracked mini block is not fully processed.
+func (pmbt *processedMiniBlocksTracker) HasUnfinishedMiniBlocks() bool {
+	pmbt.mutProcessedMiniBlocks.RLock()
+	defer pmbt.mutProcessedMiniBlocks.RUnlock()
+
+	for _, miniBlocksProcessed := range pmbt.processedMiniBlocks {
+		for _, processedMbInfo := range miniBlocksProcessed {
+			if !processedMbInfo.FullyProcessed {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // ConvertProcessedMiniBlocksMapToSlice will convert a map[string]map[string]struct{} in a slice of MiniBlocksInMeta

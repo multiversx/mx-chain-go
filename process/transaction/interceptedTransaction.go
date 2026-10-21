@@ -116,6 +116,10 @@ func NewInterceptedTransaction(
 	if err != nil {
 		return nil, err
 	}
+	err = checkCanonicalTxEncoding(protoMarshalizer, tx, txBuff)
+	if err != nil {
+		return nil, err
+	}
 
 	inTx := &InterceptedTransaction{
 		tx:                     tx,
@@ -152,6 +156,19 @@ func createTx(marshalizer marshal.Marshalizer, txBuff []byte) (*transaction.Tran
 	}
 
 	return tx, nil
+}
+
+func checkCanonicalTxEncoding(marshalizer marshal.Marshalizer, tx *transaction.Transaction, txBuff []byte) error {
+	canonicalTxBuff, err := marshalizer.Marshal(tx)
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(txBuff, canonicalTxBuff) {
+		return process.ErrNonCanonicalTransactionEncoding
+	}
+
+	return nil
 }
 
 func createRelayedV2(relayedTx *transaction.Transaction, args [][]byte) (*transaction.Transaction, error) {

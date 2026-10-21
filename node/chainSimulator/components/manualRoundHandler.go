@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -65,6 +66,11 @@ func (handler *manualRoundHandler) Index() int64 {
 	return atomic.LoadInt64(&handler.index)
 }
 
+// IndexForCurrentTime returns the current index, as rounds are advanced manually and not by the clock
+func (handler *manualRoundHandler) IndexForCurrentTime() int64 {
+	return handler.Index()
+}
+
 // BeforeGenesis returns false
 func (handler *manualRoundHandler) BeforeGenesis() bool {
 	return false
@@ -99,6 +105,15 @@ func (handler *manualRoundHandler) isSupernovaActive(roundIndex int64) bool {
 func (handler *manualRoundHandler) TimeDuration() time.Duration {
 	roundIndex := atomic.LoadInt64(&handler.index)
 	if !handler.isSupernovaActive(roundIndex) {
+		return handler.roundDuration
+	}
+
+	return handler.supernovaRoundDuration
+}
+
+// TimeDurationForRound returns the provided time duration for the specified round
+func (handler *manualRoundHandler) TimeDurationForRound(round uint64) time.Duration {
+	if !handler.isSupernovaActive(int64(round)) {
 		return handler.roundDuration
 	}
 

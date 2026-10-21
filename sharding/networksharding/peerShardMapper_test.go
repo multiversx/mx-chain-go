@@ -231,7 +231,7 @@ func TestPeerShardMapper_UpdatePeerIDPublicKeyPairShouldWork(t *testing.T) {
 	pid := core.PeerID("dummy peer ID")
 	pk := []byte("dummy pk")
 
-	psm.UpdatePeerIDPublicKeyPair(pid, pk)
+	psm.UpdatePeerIDPublicKeyPair(pid, pk, 0)
 
 	pkRecovered := psm.GetPkFromPidPk(pid)
 	assert.Equal(t, pk, pkRecovered)

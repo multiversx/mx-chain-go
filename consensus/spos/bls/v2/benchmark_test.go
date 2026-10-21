@@ -126,6 +126,7 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 		},
 		&consensus.SposWorkerMock{},
 		&nodeMock.ThrottlerStub{},
+		v2.NewSignatureEvidenceStore(nil),
 	)
 
 	sr.SetHeader(&block.Header{})

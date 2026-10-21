@@ -41,7 +41,7 @@ const (
 	mockTxSignature                         = "ssig"
 	mockRelayerTxSignature                  = "rsig"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
-	roundsPerEpoch                          = 40
+	roundsPerEpoch                          = 30
 	guardAccountCost                        = 250_000
 	extraGasLimitForGuarded                 = minGasLimit
 	extraGasESDTTransfer                    = 250000
@@ -1022,8 +1022,8 @@ func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	expectedFeeScCallBefore := "827295420000000"
-	expectedFeeScCallAfter := "885705420000000"
+	expectedFeeScCallBefore := "827296420000000"
+	expectedFeeScCallAfter := "885706420000000"
 	t.Run("sc call", testFixRelayedMoveBalanceWithChainSimulatorScCall(expectedFeeScCallBefore, expectedFeeScCallAfter))
 
 	expectedFeeMoveBalanceBefore := "809500000000000" // 506 * 1500 + 50000 + 500
@@ -1331,7 +1331,7 @@ func startChainSimulator(
 	}
 	supernovaRoundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
-		Value:    roundsPerEpoch * 10,
+		Value:    roundsPerEpoch,
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{

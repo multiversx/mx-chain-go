@@ -98,8 +98,10 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.sendTransaction,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(sendTransactionEndpoint, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(sendTransactionEndpoint, func() interface{} {
+						return tg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
@@ -109,8 +111,10 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.simulateTransaction,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(simulateTransactionEndpoint, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(simulateTransactionEndpoint, func() interface{} {
+						return tg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
@@ -120,8 +124,10 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.simulateSCR,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(simulateSCRCostEndpoint, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(simulateSCRCostEndpoint, func() interface{} {
+						return tg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
@@ -136,8 +142,10 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.getTransactionsPool,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionPath, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionPath, func() interface{} {
+						return tg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
@@ -147,8 +155,10 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.simulateTransactionsSelection,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(getSelectedTransactionsPath, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getSelectedTransactionsPath, func() interface{} {
+						return tg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
@@ -158,8 +168,10 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.getVirtualNonceByAddress,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(getVirtualNoncePath, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getVirtualNoncePath, func() interface{} {
+						return tg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
@@ -169,8 +181,10 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.sendMultipleTransactions,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(sendMultipleTransactionsEndpoint, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(sendMultipleTransactionsEndpoint, func() interface{} {
+						return tg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
@@ -180,8 +194,10 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.getTransaction,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionEndpoint, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionEndpoint, func() interface{} {
+						return tg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},
@@ -191,8 +207,10 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.getScrsByTxHash,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
-					Middleware: middleware.CreateEndpointThrottlerFromFacade(getScrsByTxHashEndpoint, facade),
-					Position:   shared.Before,
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getScrsByTxHashEndpoint, func() interface{} {
+						return tg.getFacade()
+					}),
+					Position: shared.Before,
 				},
 			},
 		},

@@ -27,5 +27,6 @@ type EpochStartTriggerHandler interface {
 // RoundHandler defines the operations of a round handler needed by the blockchain hook
 type RoundHandler interface {
 	TimeDuration() time.Duration
+	TimeDurationForRound(round uint64) time.Duration
 	IsInterfaceNil() bool
 }

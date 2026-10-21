@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
 	"github.com/multiversx/mx-chain-go/debug/handler"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -115,6 +116,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
 		GenesisTime:                 args.GenesisTime,
+		PrintPrettifiedHeader:       args.Configs.FlagsConfig.PrintPrettifiedHeader,
 	})
 	if err != nil {
 		return nil, err
@@ -276,6 +278,11 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 
 	instance.collectClosableComponents(args.APIInterface)
 
+	bootstrapCompletedNotifier, ok := instance.ProcessComponentsHolder.EpochStartTrigger().(epochStart.BootstrapCompletedNotifier)
+	if ok {
+		bootstrapCompletedNotifier.OnBootstrapCompleted()
+	}
+
 	return instance, nil
 }
 
@@ -375,9 +382,9 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.ProcessComponentsHolder.ShardCoordinator(),
 		node.CryptoComponentsHolder.PeerSignatureHandler(),
 		node.DataComponentsHolder.Datapool().Headers(),
-		node.DataComponentsHolder.Datapool().Headers(),
 		node.DataComponentsHolder.Datapool().Proofs(),
 		node.CoreComponentsHolder.EnableEpochsHandler(),
+		node.CoreComponentsHolder.ProcessConfigsHandler(),
 		node.ProcessComponentsHolder.InterceptorsContainer(),
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),
@@ -565,14 +572,14 @@ func (node *testOnlyProcessingNode) setBlockchainRootHashIfSupernovaIsActive(
 	metaResult, isMeta := lastExecutionResult.(*block.MetaExecutionResult)
 	if isMeta {
 		metaResult.ExecutionResult.BaseExecutionResult.RootHash = rootHash
-		node.ChainHandler.SetLastExecutionResult(metaResult)
+		node.ChainHandler.SetLastExecutionInfo(header, metaResult)
 		return
 	}
 
 	shardResult, isShard := lastExecutionResult.(*block.ExecutionResult)
 	if isShard {
 		shardResult.BaseExecutionResult.RootHash = rootHash
-		node.ChainHandler.SetLastExecutionResult(shardResult)
+		node.ChainHandler.SetLastExecutionInfo(header, shardResult)
 		return
 	}
 
@@ -584,7 +591,7 @@ func (node *testOnlyProcessingNode) setBlockchainRootHashIfSupernovaIsActive(
 		RootHash:    rootHash,
 		GasUsed:     lastExecutionResult.GetGasUsed(),
 	}
-	node.ChainHandler.SetLastExecutionResult(updatedLastExecutionResult)
+	node.ChainHandler.SetLastExecutionInfo(header, updatedLastExecutionResult)
 }
 
 // RemoveAccount will remove the account for the given address

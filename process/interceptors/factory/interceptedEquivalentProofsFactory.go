@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -17,7 +18,8 @@ import (
 // ArgInterceptedEquivalentProofsFactory is the DTO used to create a new instance of interceptedEquivalentProofsFactory
 type ArgInterceptedEquivalentProofsFactory struct {
 	ArgInterceptedDataFactory
-	ProofsPool dataRetriever.ProofsPool
+	ProofsPool  dataRetriever.ProofsPool
+	HeadersPool dataRetriever.HeadersPool
 }
 
 type interceptedEquivalentProofsFactory struct {
@@ -25,23 +27,32 @@ type interceptedEquivalentProofsFactory struct {
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
+	headersPool       dataRetriever.HeadersPool
 	hasher            hashing.Hasher
 	proofSizeChecker  common.FieldsSizeChecker
 	km                sync.KeyRWMutexHandler
 	validityAttester  process.ValidityAttester
+	roundExclusions   common.RoundExclusionHandler
 }
 
 // NewInterceptedEquivalentProofsFactory creates a new instance of interceptedEquivalentProofsFactory
 func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFactory) *interceptedEquivalentProofsFactory {
+	roundExclusions := args.ArgInterceptedDataFactory.RoundExclusions
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
+	}
+
 	return &interceptedEquivalentProofsFactory{
 		marshaller:        args.CoreComponents.InternalMarshalizer(),
 		shardCoordinator:  args.ShardCoordinator,
 		headerSigVerifier: args.HeaderSigVerifier,
 		proofsPool:        args.ProofsPool,
+		headersPool:       args.HeadersPool,
 		hasher:            args.CoreComponents.Hasher(),
 		proofSizeChecker:  args.CoreComponents.FieldsSizeChecker(),
 		km:                sync.NewKeyRWMutex(),
 		validityAttester:  args.ValidityAttester,
+		roundExclusions:   roundExclusions,
 	}
 }
 
@@ -53,10 +64,12 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, _ core.Pe
 		ShardCoordinator:  factory.shardCoordinator,
 		HeaderSigVerifier: factory.headerSigVerifier,
 		Proofs:            factory.proofsPool,
+		HeadersPool:       factory.headersPool,
 		Hasher:            factory.hasher,
 		ProofSizeChecker:  factory.proofSizeChecker,
 		KeyRWMutexHandler: factory.km,
 		ValidityAttester:  factory.validityAttester,
+		RoundExclusions:   factory.roundExclusions,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }

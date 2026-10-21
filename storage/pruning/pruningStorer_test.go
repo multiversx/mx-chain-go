@@ -99,7 +99,7 @@ func getDefaultArgsSerialDB() pruning.StorerArgs {
 	cacheConf.Capacity = 40
 	persisterFactory := &mock.PersisterFactoryStub{
 		CreateCalled: func(path string) (storage.Persister, error) {
-			return database.NewSerialDB(path, 1, 20, 10)
+			return database.NewSerialDB(path, 1, 20, 10, 10)
 		},
 	}
 	pathManager := &testscommon.PathManagerStub{PathForEpochCalled: func(shardId string, epoch uint32, identifier string) string {
@@ -362,6 +362,24 @@ func TestPruningStorer_RemoveShouldWork(t *testing.T) {
 	res, err = ps.Get(testKey)
 	assert.NotNil(t, err)
 	assert.Nil(t, res)
+}
+
+func TestPruningStorer_RemoveFromAllActiveEpochsRemovesOlderCopy(t *testing.T) {
+	t.Parallel()
+
+	ps, err := pruning.NewPruningStorer(getDefaultArgs())
+	require.NoError(t, err)
+	key := []byte("nonce-selector")
+	require.NoError(t, ps.PutInEpoch(key, []byte("older"), 0))
+	require.NoError(t, ps.ChangeEpochSimple(1))
+	require.NoError(t, ps.PutInEpoch(key, []byte("newer"), 1))
+
+	require.NoError(t, ps.Remove(key))
+	ps.ClearCache()
+	require.NoError(t, ps.Has(key))
+
+	require.NoError(t, ps.RemoveFromAllActiveEpochs(key))
+	require.Error(t, ps.Has(key))
 }
 
 func TestPruningStorer_DestroyUnitShouldWork(t *testing.T) {
@@ -1327,6 +1345,25 @@ func TestPruningStorer_PutInEpoch(t *testing.T) {
 			assert.Nil(t, result)
 		})
 	})
+}
+
+func TestPruningStorer_PutInEpochWithPruningDisabled(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	args.PruningEnabled = false
+	ps, err := pruning.NewPruningStorer(args)
+	require.Nil(t, err)
+
+	key := []byte("key")
+	value := []byte("value")
+
+	require.Nil(t, ps.PutInEpoch(key, value, 99))
+
+	ps.ClearCache()
+	recovered, err := ps.Get(key)
+	require.Nil(t, err)
+	assert.Equal(t, value, recovered)
 }
 
 func TestPruningStorer_RemoveFromCurrentEpoch(t *testing.T) {

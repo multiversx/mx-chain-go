@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -26,6 +27,7 @@ type PreProcessorMock struct {
 	CreateMarshalledDataCalled                         func(txHashes [][]byte) ([][]byte, error)
 	GetTransactionsAndRequestMissingForMiniBlockCalled func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int)
 	ProcessMiniBlockCalled                             func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
+	ProcessMiniBlockWithPolicyCalled                   func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, gasProcessingPolicy process.GasProcessingPolicy) ([][]byte, int, bool, error)
 	CreateAndProcessMiniBlocksCalled                   func(haveTime func() bool) (block.MiniBlockSlice, error)
 	SelectOutgoingTransactionsCalled                   func(bandwidth uint64, nonce uint64, haveTimeForSelection func() bool) ([][]byte, []data.TransactionHandler, error)
 	GetAllCurrentUsedTxsCalled                         func() map[string]data.TransactionHandler
@@ -138,7 +140,11 @@ func (ppm *PreProcessorMock) ProcessMiniBlock(
 	partialMbExecutionMode bool,
 	indexOfLastTxProcessed int,
 	preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) ([][]byte, int, bool, error) {
+	if ppm.ProcessMiniBlockWithPolicyCalled != nil {
+		return ppm.ProcessMiniBlockWithPolicyCalled(miniBlock, haveTime, haveAdditionalTime, scheduledMode, partialMbExecutionMode, indexOfLastTxProcessed, preProcessorExecutionInfoHandler, gasProcessingPolicy)
+	}
 	if ppm.ProcessMiniBlockCalled == nil {
 		return nil, 0, false, nil
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -24,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -97,7 +99,7 @@ func initConsensusState() *spos.ConsensusState {
 		&mock.NodeRedundancyHandlerStub{},
 	)
 
-	cns.Data = []byte("X")
+	cns.SetData([]byte("X"))
 	cns.SetRoundIndex(0)
 	return cns
 }
@@ -673,6 +675,57 @@ func TestSubround_DoWorkShouldReturnFalseWhenConsensusIsNotDone(t *testing.T) {
 	t.Parallel()
 
 	testDoWork(t, false, false)
+}
+
+func TestSubround_DoWorkShouldReturnFalseWhenContextClosed(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+
+	sr, _ := spos.NewSubround(
+		-1,
+		bls.SrStartRound,
+		bls.SrBlock,
+		roundTimeDuration,
+		0,
+		0.05,
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	sr.Job = func(_ context.Context) bool {
+		return true
+	}
+
+	firstCheck := true
+	sr.Check = func() bool {
+		if firstCheck {
+			firstCheck = false
+			return false
+		}
+
+		return true
+	}
+
+	maxTime := time.Now().Add(100 * time.Millisecond)
+	roundHandlerMock := &round.RoundHandlerMock{}
+	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
+		return time.Until(maxTime)
+	}
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	cancel()
+
+	r := sr.DoWork(ctx, roundHandlerMock)
+	require.Equal(t, false, r)
+	require.True(t, sr.GetRoundCanceled())
 }
 
 func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T) {
@@ -1370,15 +1423,28 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 	createSubround := func(
 		blockchain data.ChainHandler,
 		proofsPool *dataRetriever.ProofsPoolMock,
+		headersPool *pool.HeadersPoolStub,
+		currentShardID uint32,
+		useV3Rules bool,
 	) *spos.Subround {
 		consensusState := internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
 		ch := make(chan bool, 1)
 		container := consensus.InitConsensusCore()
 		container.SetBlockchain(blockchain)
 		container.SetEquivalentProofsPool(proofsPool)
+		if headersPool != nil {
+			container.SetHeadersPool(headersPool)
+		}
 		container.SetShardCoordinator(&mock.ShardCoordinatorMock{
-			ShardID: shardID,
+			ShardID: currentShardID,
 		})
+		if useV3Rules {
+			container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledCalled:        func(_ core.EnableEpochFlag) bool { return true },
+				IsFlagEnabledInEpochCalled: func(_ core.EnableEpochFlag, _ uint32) bool { return true },
+			})
+			container.SetEnableRoundsHandler(testscommon.NewEnableRoundsHandlerStub(common.SupernovaRoundFlag))
+		}
 
 		sr, _ := spos.NewSubround(
 			bls.SrStartRound,
@@ -1403,13 +1469,13 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		t.Parallel()
 
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return nil
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return nil, nil
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{}
 
-		sr := createSubround(blockchain, proofsPool)
+		sr := createSubround(blockchain, proofsPool, nil, shardID, false)
 
 		assert.False(t, sr.HasProofForCompetingBlock())
 	})
@@ -1418,8 +1484,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		t.Parallel()
 
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{Nonce: prevBlockNonce}
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, []byte("current_block_hash")
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1428,7 +1494,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool)
+		sr := createSubround(blockchain, proofsPool, nil, shardID, false)
 
 		assert.False(t, sr.HasProofForCompetingBlock())
 	})
@@ -1439,8 +1505,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		competingBlockHash := []byte("competing_block_hash")
 
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{Nonce: prevBlockNonce}
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, []byte("current_block_hash")
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1449,7 +1515,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool)
+		sr := createSubround(blockchain, proofsPool, nil, shardID, false)
 		sr.SetData(nil)
 
 		assert.True(t, sr.HasProofForCompetingBlock())
@@ -1461,8 +1527,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		currentBlockHash := []byte("current_block_hash")
 
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{Nonce: prevBlockNonce}
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, currentBlockHash
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1471,7 +1537,7 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool)
+		sr := createSubround(blockchain, proofsPool, nil, shardID, false)
 		sr.SetData(currentBlockHash)
 
 		assert.False(t, sr.HasProofForCompetingBlock())
@@ -1484,8 +1550,8 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 		competingBlockHash := []byte("competing_block_hash")
 
 		blockchain := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{Nonce: prevBlockNonce}
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, currentBlockHash
 			},
 		}
 		proofsPool := &dataRetriever.ProofsPoolMock{
@@ -1494,9 +1560,661 @@ func TestSubround_HasProofForCompetingBlock(t *testing.T) {
 			},
 		}
 
-		sr := createSubround(blockchain, proofsPool)
+		sr := createSubround(blockchain, proofsPool, nil, shardID, false)
 		sr.SetData(currentBlockHash)
 
 		assert.True(t, sr.HasProofForCompetingBlock())
 	})
+
+	t.Run("V3 metachain ignores a known proof from another branch", func(t *testing.T) {
+		t.Parallel()
+
+		consensusBlockHash := []byte("consensus_block_hash")
+		proofHash := []byte("proof_hash")
+		currentBlockHash := []byte("current_block_hash")
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.MetaBlockV3{Nonce: prevBlockNonce}, currentBlockHash
+			},
+		}
+		proof := &block.HeaderProof{HeaderHash: proofHash}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return proof, nil
+			},
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+				return []data.HeaderProofHandler{proof}, nil
+			},
+		}
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{PrevHash: []byte("other_parent")}, nil
+			},
+		}
+
+		sr := createSubround(blockchain, proofsPool, headersPool, core.MetachainShardId, true)
+		sr.SetData(consensusBlockHash)
+
+		assert.False(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("V3 metachain proofed child protects its parent", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("current_block_hash")
+		proofHash := []byte("proof_hash")
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.MetaBlockV3{Nonce: prevBlockNonce}, currentBlockHash
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{HeaderHash: proofHash}, nil
+			},
+		}
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{PrevHash: currentBlockHash}, nil
+			},
+		}
+
+		sr := createSubround(blockchain, proofsPool, headersPool, core.MetachainShardId, true)
+
+		assert.True(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("proof for child of current block should return true without scanning other proofs", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("current_block_hash")
+		competingBlockHash := []byte("competing_block_hash")
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.HeaderV3{Nonce: prevBlockNonce}, currentBlockHash
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{HeaderHash: competingBlockHash}, nil
+			},
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+				require.Fail(t, "should not scan proofs")
+				return nil, nil
+			},
+		}
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.Header{PrevHash: currentBlockHash}, nil
+			},
+		}
+
+		sr := createSubround(blockchain, proofsPool, headersPool, shardID, true)
+
+		sr.SetData(competingBlockHash)
+		assert.False(t, sr.HasProofForCompetingBlock())
+
+		sr.SetData(nil)
+		assert.True(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("proof for child of discarded block should return false", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("current_block_hash")
+		staleBlockHash := []byte("stale_block_hash")
+		staleProof := &block.HeaderProof{HeaderHash: staleBlockHash}
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.HeaderV3{Nonce: prevBlockNonce}, currentBlockHash
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return staleProof, nil
+			},
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+				return []data.HeaderProofHandler{staleProof}, nil
+			},
+		}
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.Header{PrevHash: []byte("discarded_block_hash")}, nil
+			},
+		}
+
+		sr := createSubround(blockchain, proofsPool, headersPool, shardID, true)
+		sr.SetData(nil)
+
+		assert.False(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("proof with unavailable header should remain competing", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("current_block_hash")
+		competingBlockHash := []byte("competing_block_hash")
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.HeaderV3{Nonce: prevBlockNonce}, currentBlockHash
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{HeaderHash: competingBlockHash}, nil
+			},
+		}
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, errors.New("header not found")
+			},
+		}
+
+		sr := createSubround(blockchain, proofsPool, headersPool, shardID, true)
+
+		assert.True(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("first V3 child over a legacy parent uses candidate ancestry rules", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("legacy_parent_hash")
+		candidateHash := []byte("first_v3_candidate_hash")
+		proofHash := []byte("proof_hash")
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, currentBlockHash
+			},
+		}
+
+		for _, testCase := range []struct {
+			name        string
+			proofHeader data.HeaderHandler
+			expected    bool
+		}{
+			{
+				name:        "legacy same-parent proof is competing",
+				proofHeader: &block.Header{PrevHash: currentBlockHash},
+				expected:    true,
+			},
+			{
+				name:        "V3 same-parent proof is competing",
+				proofHeader: &block.HeaderV3{PrevHash: currentBlockHash},
+				expected:    true,
+			},
+			{
+				name:        "known off-parent proof is not competing",
+				proofHeader: &block.Header{PrevHash: []byte("other_parent")},
+				expected:    false,
+			},
+			{
+				name:     "unknown proof ancestry is competing",
+				expected: true,
+			},
+		} {
+			t.Run(testCase.name, func(t *testing.T) {
+				proof := &block.HeaderProof{HeaderHash: proofHash}
+				proofsPool := &dataRetriever.ProofsPoolMock{
+					GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+						return proof, nil
+					},
+					GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+						return []data.HeaderProofHandler{proof}, nil
+					},
+				}
+				headersPool := &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						if testCase.proofHeader == nil {
+							return nil, errors.New("header not found")
+						}
+
+						return testCase.proofHeader, nil
+					},
+				}
+				sr := createSubround(blockchain, proofsPool, headersPool, shardID, true)
+				sr.SetData(candidateHash)
+
+				beforeHeaderCreation := sr.HasProofForCompetingBlock()
+				sr.SetHeader(&block.HeaderV3{Epoch: 1, Round: 1})
+				afterHeaderReception := sr.HasProofForCompetingBlock()
+
+				assert.Equal(t, testCase.expected, beforeHeaderCreation)
+				assert.Equal(t, testCase.expected, afterHeaderReception)
+			})
+		}
+	})
+
+	t.Run("first V3 child before round activation keeps legacy behavior", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("legacy_parent_hash")
+		candidateHash := []byte("first_v3_candidate_hash")
+		proofHash := []byte("off_parent_proof_hash")
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, currentBlockHash
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{HeaderHash: proofHash}, nil
+			},
+		}
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.Header{PrevHash: []byte("other_parent")}, nil
+			},
+		}
+		sr := createSubround(blockchain, proofsPool, headersPool, shardID, false)
+		sr.SetData(candidateHash)
+		sr.SetHeader(&block.HeaderV3{Epoch: 1, Round: 1})
+
+		assert.True(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("first V3 child without proof is allowed", func(t *testing.T) {
+		t.Parallel()
+
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.Header{Nonce: prevBlockNonce}, []byte("legacy_parent_hash")
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return nil, errors.New("proof not found")
+			},
+		}
+		sr := createSubround(blockchain, proofsPool, nil, shardID, true)
+		sr.SetData([]byte("first_v3_candidate_hash"))
+
+		assert.False(t, sr.HasProofForCompetingBlock())
+		sr.SetHeader(&block.HeaderV3{Epoch: 1, Round: 1})
+		assert.False(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("non-preferred proposal proof is allowed but another live proof blocks", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("current_block_hash")
+		staleBlockHash := []byte("stale_block_hash")
+		competingBlockHash := []byte("competing_block_hash")
+		staleProof := &block.HeaderProof{HeaderHash: staleBlockHash}
+		competingProof := &block.HeaderProof{HeaderHash: competingBlockHash}
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return &block.HeaderV3{Nonce: prevBlockNonce}, currentBlockHash
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return staleProof, nil
+			},
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+				return []data.HeaderProofHandler{staleProof, competingProof}, nil
+			},
+		}
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, competingBlockHash) {
+					return &block.Header{PrevHash: currentBlockHash}, nil
+				}
+
+				return &block.Header{PrevHash: []byte("discarded_block_hash")}, nil
+			},
+		}
+
+		sr := createSubround(blockchain, proofsPool, headersPool, shardID, true)
+
+		sr.SetData(competingBlockHash)
+		assert.False(t, sr.HasProofForCompetingBlock())
+
+		sr.SetData([]byte("new_proposal_hash"))
+		assert.True(t, sr.HasProofForCompetingBlock())
+	})
+}
+
+func TestSubround_HasProofForCompetingParent(t *testing.T) {
+	t.Parallel()
+
+	headNonce := uint64(10)
+	headRound := uint64(14)
+	headHash := []byte("headHash")
+
+	createSubround := func(currentHeader data.HeaderHandler, lowestProof data.HeaderProofHandler) *spos.Subround {
+		consensusState := internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
+		ch := make(chan bool, 1)
+		container := consensus.InitConsensusCore()
+		container.SetBlockchain(&testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return currentHeader, headHash
+			},
+		})
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				if headerNonce != headNonce || lowestProof == nil {
+					return nil, errors.New("proof not found")
+				}
+				return lowestProof, nil
+			},
+		})
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			roundTimeDuration,
+			0.05,
+			0.25,
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+		return sr
+	}
+
+	head := &block.Header{Nonce: headNonce, Round: headRound}
+
+	t.Run("nil current block", func(t *testing.T) {
+		t.Parallel()
+
+		sr := createSubround(nil, &block.HeaderProof{HeaderRound: headRound - 4})
+		assert.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("no proof at the head nonce", func(t *testing.T) {
+		t.Parallel()
+
+		sr := createSubround(head, nil)
+		assert.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("lower-round sibling proof", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("siblingHash"), HeaderNonce: headNonce, HeaderRound: headRound - 4}
+		sr := createSubround(head, proof)
+		assert.True(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("own proof is the lowest", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: headHash, HeaderNonce: headNonce, HeaderRound: headRound}
+		sr := createSubround(head, proof)
+		assert.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("legacy same-round competing proof keeps the round-only rule", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("anotherHash"), HeaderNonce: headNonce, HeaderRound: headRound}
+		sr := createSubround(head, proof)
+		assert.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("higher-round sibling proof", func(t *testing.T) {
+		t.Parallel()
+
+		// the head is the lower-round branch and must keep extending
+		proof := &block.HeaderProof{HeaderHash: []byte("siblingHash"), HeaderNonce: headNonce, HeaderRound: headRound + 3}
+		sr := createSubround(head, proof)
+		assert.False(t, sr.HasProofForCompetingParent())
+	})
+}
+
+func TestSubround_HasProofForCompetingParentUsesV3MetaAncestry(t *testing.T) {
+	t.Parallel()
+
+	const headNonce = uint64(10)
+	const headRound = uint64(14)
+	headHash := []byte("head")
+	parentHash := []byte("parent")
+	head := &block.MetaBlockV3{Nonce: headNonce, Round: headRound, PrevHash: parentHash}
+
+	createSubround := func(
+		test *testing.T,
+		preferredProof data.HeaderProofHandler,
+		proofs []data.HeaderProofHandler,
+		headers map[string]data.HeaderHandler,
+	) *spos.Subround {
+		container := consensus.InitConsensusCore()
+		container.SetBlockchain(&testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderAndHashCalled: func() (data.HeaderHandler, []byte) {
+				return head, headHash
+			},
+		})
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				require.Equal(test, headNonce, headerNonce)
+				require.Equal(test, uint32(core.MetachainShardId), shardID)
+				return preferredProof, nil
+			},
+			GetProofsByNonceCalled: func(headerNonce uint64, shardID uint32) ([]data.HeaderProofHandler, error) {
+				require.Equal(test, headNonce, headerNonce)
+				require.Equal(test, uint32(core.MetachainShardId), shardID)
+				return proofs, nil
+			},
+		})
+		container.SetHeadersPool(&pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				header, ok := headers[string(hash)]
+				if !ok {
+					return nil, errors.New("header not found")
+				}
+
+				return header, nil
+			},
+		})
+		container.SetShardCoordinator(&mock.ShardCoordinatorMock{ShardID: core.MetachainShardId})
+
+		sr, err := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			roundTimeDuration,
+			0.05,
+			0.25,
+			"(BLOCK)",
+			internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{}),
+			make(chan bool, 1),
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+		require.NoError(test, err)
+
+		return sr
+	}
+
+	t.Run("known off-branch proof does not roll back the head", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("off_branch"), HeaderNonce: headNonce, HeaderRound: headRound - 2}
+		sr := createSubround(
+			t,
+			proof,
+			[]data.HeaderProofHandler{proof},
+			map[string]data.HeaderHandler{string(proof.GetHeaderHash()): &block.MetaBlockV3{PrevHash: []byte("other_parent")}},
+		)
+
+		require.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("lower-ranked sibling proof is actionable", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("sibling"), HeaderNonce: headNonce, HeaderRound: headRound - 1}
+		sr := createSubround(
+			t,
+			proof,
+			[]data.HeaderProofHandler{proof},
+			map[string]data.HeaderHandler{string(proof.GetHeaderHash()): &block.MetaBlockV3{PrevHash: parentHash}},
+		)
+
+		require.True(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("same-round sibling uses the hash tie-break", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("aaa"), HeaderNonce: headNonce, HeaderRound: headRound}
+		sr := createSubround(
+			t,
+			proof,
+			[]data.HeaderProofHandler{proof},
+			map[string]data.HeaderHandler{string(proof.GetHeaderHash()): &block.MetaBlockV3{PrevHash: parentHash}},
+		)
+
+		require.True(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("own proof does not outcompete the head", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: headHash, HeaderNonce: headNonce, HeaderRound: headRound}
+		sr := createSubround(t, proof, []data.HeaderProofHandler{proof}, nil)
+
+		require.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("higher-round sibling does not outcompete the head", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("sibling"), HeaderNonce: headNonce, HeaderRound: headRound + 1}
+		sr := createSubround(t, proof, []data.HeaderProofHandler{proof}, nil)
+
+		require.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("same-round higher hash does not outcompete the head", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("zzz"), HeaderNonce: headNonce, HeaderRound: headRound}
+		sr := createSubround(t, proof, []data.HeaderProofHandler{proof}, nil)
+
+		require.False(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("another lower-ranked sibling remains actionable", func(t *testing.T) {
+		t.Parallel()
+
+		offBranchProof := &block.HeaderProof{HeaderHash: []byte("off_branch"), HeaderNonce: headNonce, HeaderRound: headRound - 2}
+		siblingProof := &block.HeaderProof{HeaderHash: []byte("sibling"), HeaderNonce: headNonce, HeaderRound: headRound - 1}
+		sr := createSubround(
+			t,
+			offBranchProof,
+			[]data.HeaderProofHandler{offBranchProof, siblingProof},
+			map[string]data.HeaderHandler{
+				string(offBranchProof.GetHeaderHash()): &block.MetaBlockV3{PrevHash: []byte("other_parent")},
+				string(siblingProof.GetHeaderHash()):   &block.MetaBlockV3{PrevHash: parentHash},
+			},
+		)
+
+		require.True(t, sr.HasProofForCompetingParent())
+	})
+
+	t.Run("missing ancestry remains conservative", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{HeaderHash: []byte("unknown"), HeaderNonce: headNonce, HeaderRound: headRound - 1}
+		sr := createSubround(t, proof, []data.HeaderProofHandler{proof}, nil)
+
+		require.True(t, sr.HasProofForCompetingParent())
+	})
+}
+
+func TestSubround_SetSignatureSubroundEndTimePercentage(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+	sr, err := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		roundTimeDuration,
+		0.05,
+		0.25,
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, time.Duration(0), sr.SignatureSubroundEndTime())
+
+	sr.SetSignatureSubroundEndTimePercentage(0.85)
+	require.Equal(t, time.Duration(float64(roundTimeDuration)*0.85), sr.SignatureSubroundEndTime())
+}
+
+func TestSubround_SignatureSubroundEndTime(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+	sr, err := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		roundTimeDuration,
+		0.05,
+		0.25,
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	require.Nil(t, err)
+
+	sr.SetSignatureSubroundEndTimePercentage(0.85)
+	require.Equal(t, time.Duration(float64(roundTimeDuration)*0.85), sr.SignatureSubroundEndTime())
+}
+
+func TestSubround_SetProcessingThresholdPercent(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+	sr, err := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		roundTimeDuration,
+		0.05,
+		0.25,
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, 0, sr.ProcessingThresholdPercent())
+
+	sr.SetProcessingThresholdPercent(85)
+	require.Equal(t, 85, sr.ProcessingThresholdPercent())
 }

@@ -8,10 +8,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const initUint = uint64(0)
@@ -44,6 +45,9 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersFromPool, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersProcessed, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNumTimesInForkChoice, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricNumEquivocationProofs, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricNumReconcileSwitches, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricNumRollBacksRefusedMissingState, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountConsensusAcceptedBlocks, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, initUint)
@@ -78,6 +82,7 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricTotalFees, initZeroString)
+	appStatusHandler.SetUInt64Value(common.MetricTxPoolLoad, initUint)
 
 	return nil
 }
@@ -89,6 +94,7 @@ func InitConfigMetrics(
 	economicsConfig config.EconomicsConfig,
 	genesisNodesConfig sharding.GenesisNodesSetupHandler,
 	gatewayMetricsConfig config.GatewayMetricsConfig,
+	systemSmartContractsConfig config.SystemSmartContractsConfig,
 ) error {
 	if check.IfNil(appStatusHandler) {
 		return ErrNilAppStatusHandler
@@ -214,6 +220,12 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV1V2DisableEpoch, uint64(enableEpochs.RelayedTransactionsV1V2DisableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricTailInflationEnableEpoch, uint64(economicsConfig.GlobalSettings.TailInflation.EnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricSupernovaEnableEpoch, uint64(enableEpochs.SupernovaEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricFixEpochChangeProposedCurrentEpochEnableEpoch, uint64(enableEpochs.FixEpochChangeProposedCurrentEpochEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricFixCorrectSmallIntAndGasLimitsEnableEpoch, uint64(enableEpochs.FixCorrectSmallIntAndGasLimitsEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricOutputRollbackOnDestContextEnableEpoch, uint64(enableEpochs.OutputRollbackOnDestContextEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriod, systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriod)
+	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriodSupernova, systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriodSupernova)
+	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriodInEpochs, uint64(systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriodInEpochs))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)
@@ -366,6 +378,9 @@ func InitMetrics(
 
 	appStatusHandler.SetStringValue(common.MetricPublicKeyBlockSign, pubkeyStr)
 	appStatusHandler.SetUInt64Value(common.MetricShardId, shardId)
+	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		appStatusHandler.SetUInt64Value(common.MetricSupernovaTransitionReady, 0)
+	}
 	appStatusHandler.SetUInt64Value(common.MetricNumShardsWithoutMetachain, numOfShards)
 	appStatusHandler.SetStringValue(common.MetricNodeType, string(nodeType))
 	appStatusHandler.SetUInt64Value(common.MetricRoundTime, roundDuration)

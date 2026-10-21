@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -15,6 +14,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -22,12 +22,19 @@ import (
 
 const leaderIndex = 0
 
+// maxRoundsInfoPerBatch caps how many RoundInfo entries are sent in a single
+// SaveRoundsInfo call. Without batching, a long pause (e.g. one day offline)
+// would accumulate tens/hundreds of thousands of missed rounds into a single
+// huge payload, which can OOM the node or fail in the drivers / indexers.
+const maxRoundsInfoPerBatch = 2000
+
 func getMetricsFromMetaHeader(
 	header data.MetaHeaderHandler,
 	marshalizer marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
 	numShardHeadersFromPool int,
 	numShardHeadersProcessed uint64,
+	numTxs uint64,
 ) {
 	numMiniBlocksMetaBlock := uint64(0)
 	headerSize := uint64(0)
@@ -41,11 +48,26 @@ func getMetricsFromMetaHeader(
 		headerSize = uint64(len(marshalizedHeader))
 	}
 
+	appStatusHandler.SetUInt64Value(common.MetricTxPoolLoad, numTxs)
 	appStatusHandler.SetUInt64Value(common.MetricHeaderSize, headerSize)
-	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(header.GetTxCount()))
+	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(getMetaHeaderTxCount(header)))
 	appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersProcessed, numShardHeadersProcessed)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersFromPool, uint64(numShardHeadersFromPool))
+}
+
+func getMetaHeaderTxCount(header data.MetaHeaderHandler) uint32 {
+	if !header.IsHeaderV3() {
+		return header.GetTxCount()
+	}
+
+	txsInExecutionResults, err := getTxCountExecutionResults(header)
+	if err != nil {
+		log.Debug("getMetaHeaderTxCount: failed to compute tx count from execution results", "error", err)
+		return 0
+	}
+
+	return getTxCount(header.GetShardInfoHandlers()) + txsInExecutionResults
 }
 
 func getMetricsFromBlockBody(
@@ -164,6 +186,7 @@ func indexRoundInfo(
 	lastHeader data.HeaderHandler,
 	signersIndexes []uint64,
 	enableEpochsHandler common.EnableEpochsHandler,
+	roundHandler consensus.RoundHandler,
 ) {
 	timestampSec, timestampMs, err := common.GetHeaderTimestamps(header, enableEpochsHandler)
 	if err != nil {
@@ -189,12 +212,10 @@ func indexRoundInfo(
 	lastBlockRound := lastHeader.GetRound()
 	currentBlockRound := header.GetRound()
 
-	// TODO: evaluate more if this handling (based on current header and last header) is needed with one-short finality from andromeda
-	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
-
-	roundsInfo := make([]*outportcore.RoundInfo, 0)
-	roundsInfo = append(roundsInfo, roundInfo)
 	epoch := header.GetEpoch()
+	batch := make([]*outportcore.RoundInfo, 0, maxRoundsInfoPerBatch)
+	batch = append(batch, roundInfo)
+
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
 		var ok bool
 		signersIndexes, ok = getSignersIndices(header, enableEpochsHandler, lastHeader, i, nodesCoordinator)
@@ -202,11 +223,8 @@ func indexRoundInfo(
 			continue
 		}
 
-		roundTimestamp := uint64(time.Duration(header.GetTimeStamp() - ((currentBlockRound - i) * roundDuration)))
-		roundTimestampSec, roundTimestampMs, errP := common.PrepareTimestampBasedOnHeaderData(roundTimestamp, epoch, enableEpochsHandler)
-		if errP != nil {
-			continue
-		}
+		roundTimestampMs := roundHandler.GetTimeStampForRound(i)
+		roundTimestampSec := roundTimestampMs / 1000
 
 		roundInfo = &outportcore.RoundInfo{
 			Round:            i,
@@ -218,10 +236,16 @@ func indexRoundInfo(
 			TimestampMs:      roundTimestampMs,
 		}
 
-		roundsInfo = append(roundsInfo, roundInfo)
+		batch = append(batch, roundInfo)
+		if len(batch) >= maxRoundsInfoPerBatch {
+			outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: batch})
+			batch = make([]*outportcore.RoundInfo, 0, maxRoundsInfoPerBatch)
+		}
 	}
 
-	outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: roundsInfo})
+	if len(batch) > 0 {
+		outportHandler.SaveRoundsInfo(&outportcore.RoundsInfo{ShardID: shardId, RoundsInfo: batch})
+	}
 }
 
 func getSignersIndices(

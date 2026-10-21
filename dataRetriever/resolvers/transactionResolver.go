@@ -1,7 +1,9 @@
 package resolvers
 
 import (
+	"errors"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -83,8 +85,15 @@ func checkArgTxResolver(arg ArgTxResolver) error {
 
 // ProcessReceivedMessage will be the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to, usually a request topic)
-func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
-	err := txRes.canProcessMessage(message, fromConnectedPeer)
+func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) (msg []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			logTrieNodes.Error("panic recovered", "peer", fromConnectedPeer, "panic", r, "stack", string(debug.Stack()))
+			err = fmt.Errorf("panic in TxResolver.ProcessReceivedMessage: %v", r)
+		}
+	}()
+
+	err = txRes.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
 		return nil, err
 	}
@@ -99,14 +108,22 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 
 	switch rd.Type {
 	case dataRetriever.HashType:
+		err = validateRequestedHashSize(rd.Value)
+		if err != nil {
+			return nil, err
+		}
 		err = txRes.resolveTxRequestByHash(rd.Value, message.Peer(), rd.Epoch, source)
 	case dataRetriever.HashArrayType:
-		err = txRes.resolveTxRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, source)
+		err = txRes.resolveTxRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, source, fromConnectedPeer, message.SeqNo())
 	default:
 		err = dataRetriever.ErrRequestTypeNotImplemented
 	}
 
 	if err != nil {
+		if errors.Is(err, dataRetriever.ErrBadRequest) {
+			return nil, err
+		}
+
 		return nil, fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
 	}
 
@@ -153,18 +170,27 @@ func (txRes *TxResolver) fetchTxAsByteSlice(hash []byte, epoch uint32) ([]byte, 
 	return buff, nil
 }
 
-func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core.PeerID, epoch uint32, source p2p.MessageHandler) error {
+func (txRes *TxResolver) resolveTxRequestByHashArray(
+	hashesBuff []byte,
+	pid core.PeerID,
+	epoch uint32,
+	source p2p.MessageHandler,
+	fromConnectedPeer core.PeerID,
+	sequence []byte,
+) error {
 	// TODO this can be optimized by searching in corresponding datapool (taken by topic name)
-	b := batch.Batch{}
-	err := txRes.marshalizer.Unmarshal(&b, hashesBuff)
+	hashes, err := txRes.parseRequestedHashes(hashesBuff, fromConnectedPeer, sequence)
 	if err != nil {
 		return err
 	}
-	hashes := b.Data
+	err = validateRequestedHashesSize(hashes)
+	if err != nil {
+		return err
+	}
 
 	var errFetch error
 	errorsFound := 0
-	txsBuffSlice := make([][]byte, 0, len(hashes))
+	reply := newHashArrayReply()
 	for _, hash := range hashes {
 		tx, errTemp := txRes.fetchTxAsByteSlice(hash, epoch)
 		if errTemp != nil {
@@ -178,10 +204,12 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core
 
 			continue
 		}
-		txsBuffSlice = append(txsBuffSlice, tx)
+		if !reply.add(tx) {
+			break
+		}
 	}
 
-	buffsToSend, errPack := txRes.dataPacker.PackDataInChunks(txsBuffSlice, maxBuffToSendBulkTransactions)
+	buffsToSend, errPack := txRes.dataPacker.PackDataInChunks(reply.data, maxBuffToSendBulkTransactions)
 	if errPack != nil {
 		return errPack
 	}

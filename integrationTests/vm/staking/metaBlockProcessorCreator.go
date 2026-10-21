@@ -2,6 +2,7 @@ package staking
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -88,15 +89,15 @@ func createMetaBlockProcessor(
 	stakingToPeer := createSCToProtocol(coreComponents, stateComponents, dataComponents.Datapool().CurrentBlockTxs())
 
 	headersForBlock, _ := headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
-		DataPool:            dataComponents.Datapool(),
-		RequestHandler:      &testscommon.RequestHandlerStub{},
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-		ShardCoordinator:    bootstrapComponents.ShardCoordinator(),
-		BlockTracker:        blockTracker,
-		TxCoordinator:       txCoordinator,
-		RoundHandler:        coreComponents.RoundHandler(),
-		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
-		GenesisNonce: 0,
+		DataPool:              dataComponents.Datapool(),
+		RequestHandler:        &testscommon.RequestHandlerStub{},
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:      bootstrapComponents.ShardCoordinator(),
+		BlockTracker:          blockTracker,
+		TxCoordinator:         txCoordinator,
+		RoundHandler:          coreComponents.RoundHandler(),
+		ProcessConfigsHandler: testscommon.GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(100 * time.Millisecond),
+		GenesisNonce:          0,
 	})
 
 	preprocessors := containers.NewPreProcessorsContainer()
@@ -117,7 +118,7 @@ func createMetaBlockProcessor(
 	)
 
 	blocksCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	executionResultsTracker, _ := executionTrack.NewExecutionResultsTracker(disabled.NewDisabledStateAccessesCollector())
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 		BlocksCache:             blocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
@@ -140,10 +141,11 @@ func createMetaBlockProcessor(
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        dataComponents.Datapool().Headers(),
-		ProofsPool:         dataComponents.Datapool().Proofs(),
-		RequestHandler:     &testscommon.RequestHandlerStub{},
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         dataComponents.Datapool().Headers(),
+		ProofsPool:          dataComponents.Datapool().Proofs(),
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 
@@ -179,6 +181,7 @@ func createMetaBlockProcessor(
 			HeaderValidator:                    headerValidator,
 			BootStorer:                         bootStorer,
 			BlockTracker:                       blockTracker,
+			MiniBlockTracker:                   &testscommon.MiniBlockTrackerStub{},
 			BlockSizeThrottler:                 &mock.BlockSizeThrottlerStub{},
 			HistoryRepository:                  &dblookupext.HistoryRepositoryStub{},
 			VMContainersFactory:                metaVMFactory,

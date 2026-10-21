@@ -113,7 +113,6 @@ func (scr *smartContractResults) IsDataPrepared(requestedScrs int, haveTime func
 			"num scrs", requestedScrs)
 		err := scr.scrForBlock.WaitForRequestedData(haveTime())
 		missingScrs := scr.scrForBlock.GetMissingTxsCount()
-		// TODO: previously the number of missing txs was cleared in scrForBlock - check if this is still needed
 		log.Debug("received missing scrs",
 			"num scrs", requestedScrs-missingScrs)
 		if err != nil {
@@ -210,6 +209,17 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		return process.ErrNilBlockBody
 	}
 
+	gasProcessingPolicy, err := process.ResolveGasProcessingPolicy(
+		headerHandler,
+		scr.enableEpochsHandler,
+		scr.enableRoundsHandler,
+		scr.economicsFee,
+		scr.shardCoordinator.SelfId(),
+	)
+	if err != nil {
+		return err
+	}
+
 	numSCRsProcessed := 0
 	gasInfo := gasConsumedInfo{
 		gasConsumedByMiniBlocksInSenderShard:  uint64(0),
@@ -283,13 +293,14 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			}
 
 			if scr.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
-				gasProvidedByTxInSelfShard, err = scr.computeGasProvided(
+				gasProvidedByTxInSelfShard, err = scr.computeGasProvidedWithPolicy(
 					miniBlock.SenderShardID,
 					miniBlock.ReceiverShardID,
 					currScr,
 					txHash,
 					&gasInfo,
-					skipBlockLimitChecks)
+					skipBlockLimitChecks,
+					gasProcessingPolicy)
 
 				if err != nil {
 					return err
@@ -509,6 +520,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	partialMbExecutionMode bool,
 	indexOfLastTxProcessed int,
 	preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) ([][]byte, int, bool, error) {
 
 	if miniBlock.Type != block.SmartContractResultBlock {
@@ -547,13 +559,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
 
-	var maxGasLimitUsedForDestMeTxs uint64
-	isFirstMiniBlockDestMe := gasInfo.totalGasConsumedInSelfShard == 0
-	if isFirstMiniBlockDestMe {
-		maxGasLimitUsedForDestMeTxs = scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId())
-	} else {
-		maxGasLimitUsedForDestMeTxs = scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
-	}
+	maxGasLimitUsedForDestMeTxs := scr.getMaxGasLimitUsedForDestMeTxs(gasInfo.totalGasConsumedInSelfShard, gasProcessingPolicy)
 
 	log.Debug("smartContractResults.ProcessMiniBlock: before processing",
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
@@ -581,13 +587,14 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			break
 		}
 
-		gasProvidedByTxInSelfShard, err = scr.computeGasProvided(
+		gasProvidedByTxInSelfShard, err = scr.computeGasProvidedWithPolicy(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID,
 			miniBlockScrs[txIndex],
 			miniBlockTxHashes[txIndex],
 			&gasInfo,
-			skipBlockLimitChecks)
+			skipBlockLimitChecks,
+			gasProcessingPolicy)
 
 		if err != nil {
 			break

@@ -7,7 +7,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -420,7 +419,7 @@ func TestDecide_RoundStartAlignment(t *testing.T) {
 			NotarizedInRound: 1,
 			ProposedInRound:  0,
 		}
-		//second execution result finishes in round 4, allignment will take its finish time as base. third small enough to fit so all accepted
+		// second execution result finishes in round 4, allignment will take its finish time as base. third small enough to fit so all accepted
 		pending := []data.BaseExecutionResultHandler{
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 50000000}},
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 3, HeaderRound: 3, GasUsed: 120000000}},

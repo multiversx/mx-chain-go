@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -39,6 +40,7 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 		Hasher:                &hashingMocks.HasherMock{},
 		Marshalizer:           &mock.MarshalizerMock{},
 		Store:                 createMetaStore(),
+		Headers:               &pool.HeadersPoolStub{},
 		ShardCoordinator:      shardCoordinator,
 		RewardsHandler:        &mock.RewardsHandlerStub{},
 		RoundTime:             &mock.RoundTimeDurationHandler{},
@@ -81,6 +83,17 @@ func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilStore(t *testing.T) 
 	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
 	require.Nil(t, esd)
 	require.Equal(t, epochStart.ErrNilStorage, err)
+}
+
+func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilHeadersPool(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochEconomicsArguments()
+	arguments.Headers = nil
+
+	esd, err := NewEndOfEpochEconomicsDataCreator(arguments)
+	require.Nil(t, esd)
+	require.Equal(t, epochStart.ErrNilHeadersDataPool, err)
 }
 
 func TestEpochEconomics_NewEndOfEpochEconomicsDataCreatorNilShardCoordinator(t *testing.T) {
@@ -388,6 +401,49 @@ func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.
 
 func TestEconomics_ComputeInflationRate(t *testing.T) {
 	t.Parallel()
+
+	t.Run("before supernova uses historical round duration", func(t *testing.T) {
+		t.Parallel()
+
+		args := getArguments()
+		args.RoundTime = &mock.RoundTimeDurationHandler{
+			TimeDurationCalled: func() time.Duration {
+				return 600 * time.Millisecond
+			},
+		}
+
+		requestedEpoch := uint32(0)
+		args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				requestedEpoch = epoch
+
+				return config.ChainParametersByEpochConfig{
+					RoundDuration: 6000,
+				}, nil
+			},
+		}
+
+		requestedYear := uint32(0)
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			MaxInflationRateCalled: func(year uint32, _ uint32) float64 {
+				requestedYear = year
+
+				return 0.1
+			},
+		}
+
+		economicsData, err := NewEndOfEpochEconomicsDataCreator(args)
+		require.NoError(t, err)
+
+		header := &block.MetaBlock{
+			Round: 1454500,
+			Epoch: 100,
+		}
+		economicsData.computeInflationRate(header)
+
+		require.Equal(t, uint32(99), requestedEpoch)
+		require.Equal(t, uint32(1), requestedYear)
+	})
 
 	t.Run("before supernova", func(t *testing.T) {
 		t.Parallel()
@@ -738,6 +794,13 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	args.RoundTime = &mock.RoundTimeDurationHandler{
 		TimeDurationCalled: func() time.Duration {
 			return time.Duration(roundDurationBeforeSupernova) * time.Millisecond
+		},
+	}
+	args.ChainParamsHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				RoundDuration: roundDurationBeforeSupernova,
+			}, nil
 		},
 	}
 
@@ -2459,6 +2522,21 @@ func TestEconomics_createEconomicsV3Args(t *testing.T) {
 				DevFeesInEpoch:         big.NewInt(300),
 			},
 		},
+		ExecutionResults: []*block.MetaExecutionResult{
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("some hash"),
+						HeaderEpoch: 2,
+						HeaderNonce: 3,
+						RootHash:    []byte("some root hash"),
+					},
+					ValidatorStatsRootHash: []byte("validator stats root hash"),
+					AccumulatedFeesInEpoch: big.NewInt(1000),
+					DevFeesInEpoch:         big.NewInt(300),
+				},
+			},
+		},
 	}
 
 	t.Run("nil meta block", func(t *testing.T) {
@@ -2559,6 +2637,14 @@ func TestEconomics_createEconomicsV3Args(t *testing.T) {
 					ShardID:    2,
 					HeaderHash: []byte("hash2"),
 				},
+			},
+		}
+		arguments.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{
+					EpochChangeProposed: true,
+					Nonce:               metaBlockCopy.ExecutionResults[0].GetHeaderNonce(),
+				}, nil
 			},
 		}
 
@@ -3048,6 +3134,7 @@ func getArguments() ArgsNewEpochEconomics {
 		Marshalizer:           &mock.MarshalizerMock{},
 		Hasher:                &hashingMocks.HasherMock{},
 		Store:                 &storageStubs.ChainStorerStub{},
+		Headers:               &pool.HeadersPoolStub{},
 		ShardCoordinator:      mock.NewMultipleShardsCoordinatorMock(),
 		RewardsHandler:        &mock.RewardsHandlerStub{},
 		RoundTime:             &mock.RoundTimeDurationHandler{},

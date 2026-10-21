@@ -9,9 +9,10 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var formatter = logger.PlainFormatter{}
@@ -59,7 +60,7 @@ func InitLogHandler(args LogHandlerArgs) error {
 			webSocket, err = openWebSocket(scheme, nodeURL)
 
 			if err != nil {
-				_, _ = args.Presenter.Write([]byte(fmt.Sprintf("termui websocket error %s, retrying in %v...", err, retryDuration)))
+				_, _ = fmt.Fprintf(args.Presenter, "termui websocket error %s, retrying in %v...", err, retryDuration)
 				time.Sleep(retryDuration)
 				continue
 			}
@@ -125,9 +126,9 @@ func startListeningOnWebSocket(presenter PresenterHandler, chanNodeIsStarting ch
 
 		_, isConnectionClosed := err.(*websocket.CloseError)
 		if !isConnectionClosed {
-			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket error: %s", err.Error())))
+			_, _ = fmt.Fprintf(presenter, "termui websocket error: %s", err.Error())
 		} else {
-			_, _ = presenter.Write([]byte(fmt.Sprintf("termui websocket terminated: %s", err.Error())))
+			_, _ = fmt.Fprintf(presenter, "termui websocket terminated: %s", err.Error())
 		}
 		chanNodeIsStarting <- struct{}{}
 		return
