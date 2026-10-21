@@ -4385,3 +4385,85 @@ func TestTrigger_SupernovaActivationEpochUsesPreviousEpochStartFinality(t *testi
 	require.Equal(t, activationEpoch, tr.MetaEpoch())
 	require.Zero(t, numPendingFinalityEvidence(tr))
 }
+
+func TestTrigger_ImportModeDisablesOnlyEpochStartWatchdog(t *testing.T) {
+	for _, importMode := range []bool{false, true} {
+		t.Run(fmt.Sprintf("import=%t", importMode), func(t *testing.T) {
+			args := createMockShardEpochStartTriggerArguments()
+			args.IsImportDBMode = importMode
+			args.Epoch = 2243
+			args.RoundHandler = &mock.RoundHandlerStub{
+				TimeDurationCalled: func() time.Duration { return 10 * time.Millisecond },
+			}
+			requested := make(chan uint32, 1)
+			args.RequestHandler = &testscommon.RequestHandlerStub{
+				RequestStartOfEpochMetaBlockCalled: func(epoch uint32) {
+					select {
+					case requested <- epoch:
+					default:
+					}
+				},
+			}
+			tr, err := NewEpochStartTrigger(args)
+			require.NoError(t, err)
+			defer tr.Close()
+			if importMode {
+				select {
+				case epoch := <-requested:
+					t.Fatalf("import watchdog requested epoch %d", epoch)
+				case <-time.After(250 * time.Millisecond):
+				}
+			} else {
+				select {
+				case epoch := <-requested:
+					require.Equal(t, uint32(2244), epoch)
+				case <-time.After(time.Second):
+					t.Fatal("normal-mode watchdog did not request the next epoch")
+				}
+			}
+		})
+	}
+}
+
+func TestTrigger_ImportModeStillProcessesRequestedEpochStart(t *testing.T) {
+	parentHash, startHash := []byte("parent"), []byte("epoch-start")
+	headers := map[string]data.HeaderHandler{}
+	proofs := map[string]struct{}{}
+	args := createHeldFinalTriggerArgs(headers, proofs, true)
+	args.IsImportDBMode = true
+	args.Epoch = 2243
+	proofRequested := make(chan uint32, 1)
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestEquivalentProofByHashForEpochCalled: func(_ uint32, hash []byte, epoch uint32) {
+			if bytes.Equal(hash, startHash) {
+				select {
+				case proofRequested <- epoch:
+				default:
+				}
+			}
+		},
+	}
+	tr, err := NewEpochStartTrigger(args)
+	require.NoError(t, err)
+	defer tr.Close()
+	tr.OnBootstrapCompleted()
+	parent := &block.MetaBlockV3{Epoch: 2243, Nonce: 9, Round: 19}
+	start := &block.MetaBlockV3{Epoch: 2244, Nonce: 10, Round: 20, PrevHash: parentHash,
+		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{ShardID: 1}}},
+	}
+	putHeldFinalHeader(headers, parentHash, parent)
+	putHeldFinalHeader(headers, startHash, start)
+	putHeldFinalProof(proofs, parentHash)
+	tr.receivedMetaBlock(start, startHash)
+	select {
+	case epoch := <-proofRequested:
+		require.Equal(t, uint32(2244), epoch)
+	case <-time.After(time.Second):
+		t.Fatal("import mode did not request the missing epoch-start proof")
+	}
+	putHeldFinalProof(proofs, startHash)
+	tr.receivedProof(&block.HeaderProof{HeaderShardId: core.MetachainShardId, HeaderHash: startHash})
+	require.Equal(t, uint32(2244), tr.MetaEpoch())
+	tr.SetProcessed(&block.Header{Epoch: 2244, Nonce: 10, EpochStartMetaHash: startHash}, nil)
+	require.Equal(t, uint32(2244), tr.processedEpoch())
+}

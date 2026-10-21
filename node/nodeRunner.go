@@ -819,6 +819,7 @@ func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.S
 		Facade:          initialFacade,
 		ApiConfig:       *nr.configs.ApiRoutesConfig,
 		AntiFloodConfig: nr.configs.GeneralConfig.WebServerAntiflood,
+		TrieOperations:  nr.configs.GeneralConfig.TrieOperations,
 	}
 
 	httpServerWrapper, err := gin.NewGinWebServerHandler(httpServerArgs)
@@ -1284,7 +1285,8 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	if err != nil {
 		return nil, err
 	}
-	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache)
+	roundDuration := time.Duration(coreComponents.GenesisNodesSetup().GetRoundDuration()) * time.Millisecond
+	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(whiteListCache, interceptors.WhiteListRequestTTL(roundDuration))
 	if err != nil {
 		return nil, err
 	}
@@ -1301,8 +1303,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 
 	log.Trace("creating time cache for requested items components")
 	// TODO consider lowering this (perhaps to 1 second) and use a common const
-	requestedItemsHandler := cache.NewTimeCache(
-		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
+	requestedItemsHandler := cache.NewTimeCache(roundDuration)
 
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
 
@@ -1817,5 +1818,6 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 	if err != nil {
 		return nil, err
 	}
-	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+	// the entries only record that a transaction's signatures were already verified, which does not become stale
+	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified, 0)
 }

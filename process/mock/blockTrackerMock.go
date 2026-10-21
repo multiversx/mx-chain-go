@@ -31,6 +31,7 @@ type BlockTrackerMock struct {
 	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
 	CheckAgainstWhitelistCalled                        func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
+	SetSettledNonceProviderCalled                      func(func() uint64)
 	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarizedCalled     func() ([]data.HeaderHandler, [][]byte, error)
 	ComputeLongestShardsChainsFromLastNotarizedCalled  func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
@@ -67,6 +68,12 @@ type BlockTrackerMock struct {
 
 	mutHeaders sync.RWMutex
 	headers    map[uint32][]*headerInfo
+}
+
+func (btm *BlockTrackerMock) SetSettledNonceProvider(provider func() uint64) {
+	if btm.SetSettledNonceProviderCalled != nil {
+		btm.SetSettledNonceProviderCalled(provider)
+	}
 }
 
 // NewBlockTrackerMock -

@@ -10,6 +10,7 @@ type TxLogsProcessorStub struct {
 	GetLogCalled            func(txHash []byte) (data.LogHandler, error)
 	SaveLogCalled           func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error
 	GetAllCurrentLogsCalled func() []data.LogDataHandler
+	CleanCalled             func()
 }
 
 // GetLog -
@@ -23,6 +24,9 @@ func (txls *TxLogsProcessorStub) GetLog(txHash []byte) (data.LogHandler, error) 
 
 // Clean -
 func (txls *TxLogsProcessorStub) Clean() {
+	if txls.CleanCalled != nil {
+		txls.CleanCalled()
+	}
 }
 
 // SaveLog -

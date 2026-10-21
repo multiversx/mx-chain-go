@@ -88,6 +88,10 @@ func (tnRes *TrieNodeResolver) ProcessReceivedMessage(message p2p.MessageP2P, fr
 
 	switch rd.Type {
 	case dataRetriever.HashType:
+		err = validateRequestedHashSize(rd.Value)
+		if err != nil {
+			return nil, err
+		}
 		err = tnRes.resolveOneHash(rd.Value, rd.ChunkIndex, message, source)
 	case dataRetriever.HashArrayType:
 		err = tnRes.resolveMultipleHashes(rd.Value, message, source)
@@ -108,6 +112,10 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 		return err
 	}
 	hashes := deduplicateHashes(b.Data)
+	err = validateRequestedHashesSize(hashes)
+	if err != nil {
+		return err
+	}
 
 	supportedChunkIndex := uint32(0)
 	nodes := make(map[string]struct{})

@@ -954,6 +954,13 @@ func (d *delegation) changeOwner(args *vmcommon.ContractCallInput) vmcommon.Retu
 		return vmcommon.UserError
 	}
 
+	if d.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) && len(d.governanceSCAddr) > 0 {
+		if d.hasActiveGovernanceVote(args.CallerAddr) {
+			d.eei.AddReturnMessage("cannot change owner while stake has active governance vote")
+			return vmcommon.UserError
+		}
+	}
+
 	isNew, _, err := d.getOrCreateDelegatorData(newOwner)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -1002,6 +1009,71 @@ func (d *delegation) saveOwnerToAccount(newOwner []byte) error {
 	}
 
 	return d.eei.SetOwnerOperatingOnAccount(newOwner)
+}
+
+func (d *delegation) hasActiveGovernanceVote(address []byte) bool {
+	marshaledData := d.eei.GetStorageFromAddress(d.governanceSCAddr, address)
+	if len(marshaledData) == 0 {
+		return false
+	}
+
+	onGoingListV2 := &OngoingVotedListV2{}
+	err := d.marshalizer.Unmarshal(onGoingListV2, marshaledData)
+	if err != nil {
+		return false
+	}
+
+	checkedNonces := make(map[uint64]struct{})
+	currentEpoch := uint64(d.eei.BlockChainHook().CurrentEpoch())
+
+	for i := len(onGoingListV2.Direct) - 1; i >= 0; i-- {
+		nonce := onGoingListV2.Direct[i]
+		if _, checked := checkedNonces[nonce]; checked {
+			continue
+		}
+		checkedNonces[nonce] = struct{}{}
+		if d.isProposalActive(nonce, currentEpoch) {
+			return true
+		}
+	}
+
+	for i := len(onGoingListV2.DelegatedWithAddress) - 1; i >= 0; i-- {
+		delegated := onGoingListV2.DelegatedWithAddress[i]
+		if delegated == nil {
+			continue
+		}
+		if _, checked := checkedNonces[delegated.Nonce]; checked {
+			continue
+		}
+		checkedNonces[delegated.Nonce] = struct{}{}
+		if d.isProposalActive(delegated.Nonce, currentEpoch) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (d *delegation) isProposalActive(nonce uint64, currentEpoch uint64) bool {
+	nonceKey := append([]byte(noncePrefix), big.NewInt(0).SetUint64(nonce).Bytes()...)
+	commitHash := d.eei.GetStorageFromAddress(d.governanceSCAddr, nonceKey)
+	if len(commitHash) == 0 {
+		return false
+	}
+
+	propKey := append([]byte(proposalPrefix), commitHash...)
+	propData := d.eei.GetStorageFromAddress(d.governanceSCAddr, propKey)
+	if len(propData) == 0 {
+		return false
+	}
+
+	proposal := &GeneralProposal{}
+	err := d.marshalizer.Unmarshal(proposal, propData)
+	if err != nil {
+		return false
+	}
+
+	return !proposal.Closed && currentEpoch <= proposal.EndVoteEpoch
 }
 
 func (d *delegation) synchronizeOwner(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -2058,6 +2130,13 @@ func (d *delegation) computeRewards(
 }
 
 func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if d.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if args.CallValue.Cmp(zero) != 0 {
+			d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+			return vmcommon.UserError
+		}
+	}
+
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -2225,18 +2304,24 @@ func (d *delegation) withdraw(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 
 		totalUnBonded.Add(totalUnBonded, fund.Value)
 		if totalUnBonded.Cmp(actualUserUnBond) > 0 {
-			unBondedFromThisFund := big.NewInt(0).Sub(totalUnBonded, actualUserUnBond)
-			fund.Value.Sub(fund.Value, unBondedFromThisFund)
+			remainingInThisFund := big.NewInt(0).Sub(totalUnBonded, actualUserUnBond)
+			fund.Value.Set(remainingInThisFund)
 			err = d.saveFund(fundKey, fund)
 			if err != nil {
 				d.eei.AddReturnMessage(err.Error())
 				return vmcommon.UserError
 			}
+			tempUnStakedFunds = append(tempUnStakedFunds, fundKey)
+			tempUnStakedFunds = append(tempUnStakedFunds, delegator.UnStakedFunds[fundIndex+1:]...)
 			break
 		}
 
 		withdrawFundKeys = append(withdrawFundKeys, fundKey)
 		d.eei.SetStorage(fundKey, nil)
+		if totalUnBonded.Cmp(actualUserUnBond) == 0 {
+			tempUnStakedFunds = append(tempUnStakedFunds, delegator.UnStakedFunds[fundIndex+1:]...)
+			break
+		}
 	}
 	delegator.UnStakedFunds = tempUnStakedFunds
 
@@ -2655,6 +2740,10 @@ func (d *delegation) checkArgumentsForUserViewFunc(args *vmcommon.ContractCallIn
 		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
 		return nil, vmcommon.UserError
 	}
+	if len(args.Arguments[0]) != 32 {
+		d.eei.AddReturnMessage("invalid argument, wanted an address")
+		return nil, vmcommon.UserError
+	}
 
 	isNew, delegator, err := d.getOrCreateDelegatorData(args.Arguments[0])
 	if err != nil {
@@ -3053,6 +3142,12 @@ func (d *delegation) getOrCreateDelegatorData(address []byte) (bool, *DelegatorD
 	err := d.marshalizer.Unmarshal(dData, marshaledData)
 	if err != nil {
 		return false, nil, err
+	}
+	if dData.UnClaimedRewards == nil {
+		dData.UnClaimedRewards = big.NewInt(0)
+	}
+	if dData.TotalCumulatedRewards == nil {
+		dData.TotalCumulatedRewards = big.NewInt(0)
 	}
 
 	return false, dData, nil

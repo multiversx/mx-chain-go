@@ -7,11 +7,13 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/shared"
@@ -186,6 +188,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		DataFieldParser:           dataFieldParser,
 		BlockChainHook:            tpn.BlockchainHook,
 		SCRProcessor:              tpn.ScProcessor,
+		TxLogsProcessor:           &mock.TxLogsProcessorStub{},
 	}
 
 	txSimulator, err := transactionEvaluator.NewTransactionSimulator(argSimulator)
@@ -202,6 +205,10 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		BlockChain:          tpn.BlockChain,
+	}
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		argsTransactionEvaluator.PeerAccounts, err = transactionEvaluator.NewSimulationAccountsDB(tpn.PeerState)
+		log.LogIfError(err)
 	}
 	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	log.LogIfError(err)

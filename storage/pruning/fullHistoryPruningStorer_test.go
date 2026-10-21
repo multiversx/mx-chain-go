@@ -3,8 +3,10 @@ package pruning_test
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"math"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -16,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/storage/pathmanager"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -73,9 +76,7 @@ func TestNewFullHistoryPruningStorer_PutAndGetInEpochShouldWork(t *testing.T) {
 	fhps, _ := pruning.NewFullHistoryPruningStorer(fhArgs)
 
 	testKey, testVal := []byte("key"), []byte("value")
-	// init persister for epoch 7
-	_, _ = fhps.GetFromEpoch(testKey, 7)
-
+	// only the write path may init the persister for epoch 7
 	err := fhps.PutInEpoch(testKey, testVal, 7)
 	assert.Nil(t, err)
 
@@ -94,19 +95,21 @@ func TestNewFullHistoryPruningStorer_GetMultipleDifferentEpochsShouldEvict(t *te
 	}
 	fhps, _ := pruning.NewFullHistoryPruningStorer(fhArgs)
 
-	testKey := []byte("key")
+	testKey, testVal := []byte("key"), []byte("value")
 	testEpoch := []byte("7")
 	testEpochNext := []byte("8")
-	// init persister for epoch 7 and 8
-	_, _ = fhps.GetFromEpoch(testKey, 7)
+	// init persisters for epoch 7 and 8
+	_ = fhps.PutInEpoch(testKey, testVal, 7)
+	_ = fhps.PutInEpoch(testKey, testVal, 8)
 	ok := fhps.GetOldEpochsActivePersisters().Has(testEpoch)
 	assert.True(t, ok)
 
 	ok = fhps.GetOldEpochsActivePersisters().Has(testEpochNext)
 	assert.True(t, ok)
 
-	// init persister for epoch 9
-	_, _ = fhps.GetFromEpoch(testKey, 9)
+	// init persisters for epoch 9 and 10, evicting the one for epoch 7
+	_ = fhps.PutInEpoch(testKey, testVal, 9)
+	_ = fhps.PutInEpoch(testKey, testVal, 10)
 	ok = fhps.GetOldEpochsActivePersisters().Has(testEpoch)
 	assert.False(t, ok)
 }
@@ -130,20 +133,22 @@ func TestNewFullHistoryPruningStorer_GetAfterEvictShouldWork(t *testing.T) {
 	testKey := []byte("key")
 	testEpochKey := []byte("7")
 	testEpoch := uint32(7)
-	// init persister for epoch 7 and 8
-	_, _ = fhps.GetFromEpoch(nil, testEpoch)
-	ok := fhps.GetOldEpochsActivePersisters().Has(testEpochKey)
-	assert.True(t, ok)
-
+	// init persister for epoch 7 on the write path
 	err := fhps.PutInEpoch(testKey, testVal, testEpoch)
 	assert.Nil(t, err)
+	ok := fhps.GetOldEpochsActivePersisters().Has(testEpochKey)
+	assert.True(t, ok)
 
 	res, err := fhps.GetFromEpoch(testKey, testEpoch)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal, res)
 
-	// init persister for epoch 9 and 10
-	_, _ = fhps.GetFromEpoch(testKey, 9)
+	// init persisters for epochs 8, 9 and 10, evicting the one for epoch 7
+	for epoch := uint32(8); epoch <= 10; epoch++ {
+		_ = fhps.PutInEpoch(testKey, testVal, epoch)
+	}
+	ok = fhps.GetOldEpochsActivePersisters().Has(testEpochKey)
+	assert.False(t, ok)
 
 	// get from evicted epoch 7
 	res, err = fhps.GetFromEpoch(testKey, testEpoch)
@@ -163,9 +168,7 @@ func TestNewFullHistoryPruningStorer_GetFromEpochShouldSearchAlsoInNext(t *testi
 	testVal := []byte("value")
 	testKey := []byte("key")
 	testEpoch := uint32(7)
-	// init persister for epoch 7
-	_, _ = fhps.GetFromEpoch(nil, testEpoch)
-
+	// only the write path may init the persister for epoch 7
 	err := fhps.PutInEpoch(testKey, testVal, testEpoch)
 	assert.Nil(t, err)
 
@@ -305,7 +308,7 @@ func TestFullHistoryPruningStorer_Close(t *testing.T) {
 	}
 	fhps, _ := pruning.NewShardedFullHistoryPruningStorer(fhArgs, 2)
 	for i := 0; i < 10; i++ {
-		_, _ = fhps.GetFromEpoch([]byte("key"), uint32(i))
+		_ = fhps.PutInEpoch([]byte("key"), []byte("value"), uint32(i))
 	}
 	assert.Equal(t, int(fhArgs.NumOfOldActivePersisters), fhps.GetOldEpochsActivePersisters().Len())
 
@@ -459,4 +462,303 @@ func TestFullHistoryPruningStorer_changeEpochClosesOldDbs(t *testing.T) {
 		require.Nil(t, err)
 	}
 	require.True(t, shouldCleanCalled)
+}
+
+func TestFullHistoryPruningStorer_ReadPathShouldNotCreatePersisters(t *testing.T) {
+	t.Parallel()
+
+	createArgs := func(t *testing.T) (pruning.FullHistoryStorerArgs, *[]string, *[]string) {
+		createdPaths := make([]string, 0)
+		existsCheckedPaths := make([]string, 0)
+		mutPaths := sync.Mutex{}
+
+		args := getDefaultArgs()
+		persistersMap := make(map[string]storage.Persister)
+		args.PersisterFactory = &mock.PersisterFactoryStub{
+			CreateCalled: func(path string) (storage.Persister, error) {
+				mutPaths.Lock()
+				defer mutPaths.Unlock()
+
+				persister, exists := persistersMap[path]
+				if !exists {
+					persister = database.NewMemDB()
+					persistersMap[path] = persister
+					createdPaths = append(createdPaths, path)
+				}
+
+				return persister, nil
+			},
+			PersisterExistsCalled: func(path string) (bool, error) {
+				mutPaths.Lock()
+				defer mutPaths.Unlock()
+
+				existsCheckedPaths = append(existsCheckedPaths, path)
+				_, exists := persistersMap[path]
+
+				return exists, nil
+			},
+		}
+
+		return pruning.FullHistoryStorerArgs{
+			StorerArgs:               args,
+			NumOfOldActivePersisters: 5,
+		}, &createdPaths, &existsCheckedPaths
+	}
+
+	t.Run("GetFromEpoch on a future epoch should not touch the persister factory", func(t *testing.T) {
+		t.Parallel()
+
+		fhArgs, createdPaths, existsCheckedPaths := createArgs(t)
+		fhps, err := pruning.NewFullHistoryPruningStorer(fhArgs)
+		require.Nil(t, err)
+
+		numCreatedOnInit := len(*createdPaths)
+		numPersistersOnInit := len(fhps.GetPersistersEpochs())
+
+		for epoch := uint32(1000); epoch < 1010; epoch++ {
+			value, errGet := fhps.GetFromEpoch([]byte("key"), epoch)
+			require.Nil(t, value)
+			require.True(t, errors.Is(errGet, storage.ErrPersisterNotFoundForEpoch))
+		}
+
+		assert.Equal(t, numCreatedOnInit, len(*createdPaths))
+		assert.Empty(t, *existsCheckedPaths)
+		assert.Equal(t, numPersistersOnInit, len(fhps.GetPersistersEpochs()))
+		assert.Equal(t, 0, fhps.GetOldEpochsActivePersisters().Len())
+	})
+	t.Run("GetBulkFromEpoch on a future epoch should not create persisters", func(t *testing.T) {
+		t.Parallel()
+
+		fhArgs, createdPaths, _ := createArgs(t)
+		fhps, err := pruning.NewFullHistoryPruningStorer(fhArgs)
+		require.Nil(t, err)
+
+		numCreatedOnInit := len(*createdPaths)
+		numPersistersOnInit := len(fhps.GetPersistersEpochs())
+
+		res, err := fhps.GetBulkFromEpoch([][]byte{[]byte("key")}, 1000)
+		require.Nil(t, res)
+		require.True(t, errors.Is(err, storage.ErrPersisterNotFoundForEpoch))
+
+		assert.Equal(t, numCreatedOnInit, len(*createdPaths))
+		assert.Equal(t, numPersistersOnInit, len(fhps.GetPersistersEpochs()))
+	})
+	t.Run("GetFromEpoch on an old, never stored epoch should not create persisters", func(t *testing.T) {
+		t.Parallel()
+
+		fhArgs, createdPaths, existsCheckedPaths := createArgs(t)
+		// make epoch 20 the current one, so that the older epochs are not rejected as future epochs
+		fhArgs.StorerArgs.EpochsData.StartingEpoch = 20
+		fhArgs.StorerArgs.EpochsData.NumOfEpochsToKeep = 3
+		fhArgs.StorerArgs.EpochsData.NumOfActivePersisters = 2
+		fhArgs.StorerArgs.PersistersTracker = pruning.NewPersistersTracker(fhArgs.StorerArgs.EpochsData)
+
+		fhps, err := pruning.NewFullHistoryPruningStorer(fhArgs)
+		require.Nil(t, err)
+
+		numCreatedOnInit := len(*createdPaths)
+		numPersistersOnInit := len(fhps.GetPersistersEpochs())
+
+		value, err := fhps.GetFromEpoch([]byte("key"), 5)
+		require.Nil(t, value)
+		require.True(t, errors.Is(err, storage.ErrPersisterNotFoundForEpoch))
+
+		assert.Equal(t, numCreatedOnInit, len(*createdPaths))
+		assert.NotEmpty(t, *existsCheckedPaths)
+		assert.Equal(t, numPersistersOnInit, len(fhps.GetPersistersEpochs()))
+	})
+	t.Run("GetFromEpoch on a registered epoch should reuse it", func(t *testing.T) {
+		t.Parallel()
+
+		fhArgs, createdPaths, _ := createArgs(t)
+		fhps, err := pruning.NewFullHistoryPruningStorer(fhArgs)
+		require.Nil(t, err)
+
+		testKey, testVal := []byte("key"), []byte("value")
+		// the write path creates the persister, as it is driven by the node's own epoch
+		require.Nil(t, fhps.PutInEpoch(testKey, testVal, 1))
+
+		numCreatedAfterPut := len(*createdPaths)
+
+		res, err := fhps.GetFromEpoch(testKey, 1)
+		require.Nil(t, err)
+		assert.Equal(t, testVal, res)
+		assert.Equal(t, numCreatedAfterPut, len(*createdPaths))
+	})
+}
+
+func TestFullHistoryPruningStorer_ReadProbeFailureAndFallback(t *testing.T) {
+	t.Parallel()
+
+	probeErr := &os.PathError{Op: "stat", Path: "not found/epoch", Err: os.ErrPermission}
+	for _, testCase := range []struct {
+		name           string
+		firstErr       error
+		fallbackErr    error
+		fallbackExists bool
+		fallbackData   bool
+		wantErr        error
+	}{
+		{name: "both absent", wantErr: storage.ErrPersisterNotFoundForEpoch},
+		{name: "probe failure then absence", firstErr: probeErr, wantErr: probeErr},
+		{name: "absence then probe failure", fallbackErr: probeErr, wantErr: probeErr},
+		{name: "both probes fail", firstErr: probeErr, fallbackErr: probeErr, wantErr: probeErr},
+		{name: "probe failure then empty database", firstErr: probeErr, fallbackExists: true, wantErr: probeErr},
+		{name: "probe failure then data", firstErr: probeErr, fallbackExists: true, fallbackData: true},
+		{name: "absence then data", fallbackExists: true, fallbackData: true},
+	} {
+		for _, bulk := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/bulk=%v", testCase.name, bulk), func(t *testing.T) {
+				args := getDefaultArgs()
+				args.EpochsData.StartingEpoch = 20
+				args.PersistersTracker = pruning.NewPersistersTracker(args.EpochsData)
+				args.PathManager = &testscommon.PathManagerStub{
+					PathForEpochCalled: func(_ string, epoch uint32, _ string) string {
+						return fmt.Sprint(epoch)
+					},
+				}
+				opened := make([]string, 0)
+				args.PersisterFactory = &mock.PersisterFactoryStub{
+					PersisterExistsCalled: func(path string) (bool, error) {
+						if path == "5" {
+							return false, testCase.firstErr
+						}
+						require.Equal(t, "6", path)
+						return testCase.fallbackExists, testCase.fallbackErr
+					},
+					CreateCalled: func(path string) (storage.Persister, error) {
+						opened = append(opened, path)
+						db := database.NewMemDB()
+						if path == "6" && testCase.fallbackData {
+							require.NoError(t, db.Put([]byte("key"), []byte("value")))
+						}
+						return db, nil
+					},
+				}
+				fhps, err := pruning.NewFullHistoryPruningStorer(pruning.FullHistoryStorerArgs{
+					StorerArgs: args, NumOfOldActivePersisters: 2,
+				})
+				require.NoError(t, err)
+				t.Cleanup(func() { require.NoError(t, fhps.Close()) })
+				opened = nil
+				var value []byte
+				if bulk {
+					var values []data.KeyValuePair
+					values, err = fhps.GetBulkFromEpoch([][]byte{[]byte("key")}, 5)
+					if len(values) > 0 {
+						require.Len(t, values, 1)
+						value = values[0].Value
+					}
+				} else {
+					value, err = fhps.GetFromEpoch([]byte("key"), 5)
+				}
+				if testCase.wantErr != nil {
+					require.ErrorIs(t, err, testCase.wantErr)
+					require.Nil(t, value)
+					if testCase.wantErr == probeErr {
+						require.ErrorIs(t, err, storage.ErrPersisterAccess)
+						require.False(t, storage.IsNotFoundInStorageErr(err))
+					}
+				} else {
+					require.NoError(t, err)
+					require.Equal(t, []byte("value"), value)
+				}
+				if testCase.fallbackExists && testCase.fallbackErr == nil {
+					require.Equal(t, []string{"6"}, opened)
+				} else {
+					require.Empty(t, opened)
+				}
+			})
+		}
+	}
+}
+
+func TestFullHistoryPruningStorer_ReadOpenAndRecheckFailures(t *testing.T) {
+	t.Parallel()
+
+	for _, failOnOpen := range []bool{false, true} {
+		t.Run(fmt.Sprintf("failOnOpen=%v", failOnOpen), func(t *testing.T) {
+			args := getDefaultArgs()
+			args.EpochsData.StartingEpoch = 20
+			args.PersistersTracker = pruning.NewPersistersTracker(args.EpochsData)
+			args.PathManager = &testscommon.PathManagerStub{
+				PathForEpochCalled: func(_ string, epoch uint32, _ string) string { return fmt.Sprint(epoch) },
+			}
+			probeCalls, openCalls := 0, 0
+			args.PersisterFactory = &mock.PersisterFactoryStub{
+				PersisterExistsCalled: func(path string) (bool, error) {
+					if path != "5" {
+						return false, nil
+					}
+					probeCalls++
+					if probeCalls == 2 && !failOnOpen {
+						return false, os.ErrPermission
+					}
+					return true, nil
+				},
+				CreateCalled: func(path string) (storage.Persister, error) {
+					if path == "5" {
+						openCalls++
+						return nil, os.ErrPermission
+					}
+					return database.NewMemDB(), nil
+				},
+			}
+			fhps, err := pruning.NewFullHistoryPruningStorer(pruning.FullHistoryStorerArgs{
+				StorerArgs: args, NumOfOldActivePersisters: 2,
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, fhps.Close()) })
+			before := fhps.GetPersistersEpochs()
+			value, err := fhps.GetFromEpoch([]byte("key"), 5)
+			require.Nil(t, value)
+			require.ErrorIs(t, err, os.ErrPermission)
+			require.ErrorIs(t, err, storage.ErrPersisterAccess)
+			require.Equal(t, 2, probeCalls)
+			if failOnOpen {
+				require.Equal(t, 1, openCalls)
+			} else {
+				require.Zero(t, openCalls)
+			}
+			require.Equal(t, before, fhps.GetPersistersEpochs())
+			require.Zero(t, fhps.GetOldEpochsActivePersisters().Len())
+		})
+	}
+}
+
+func TestFullHistoryPruningStorer_ReadColdDatabase(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	args := getDefaultArgs()
+	args.EpochsData.StartingEpoch = 20
+	args.PersistersTracker = pruning.NewPersistersTracker(args.EpochsData)
+	args.PathManager = &testscommon.PathManagerStub{
+		PathForEpochCalled: func(_ string, epoch uint32, _ string) string {
+			return filepath.Join(dir, fmt.Sprint(epoch))
+		},
+	}
+	pf, err := factory.NewPersisterFactory(config.DBConfig{
+		Type: "LvlDBSerial", MaxBatchSize: 10, MaxOpenFiles: 10, BatchDelaySeconds: 1,
+	})
+	require.NoError(t, err)
+	args.PersisterFactory = pf
+	db, err := pf.Create(filepath.Join(dir, "5"))
+	require.NoError(t, err)
+	require.NoError(t, db.Put([]byte("key"), []byte("value")))
+	require.NoError(t, db.Close())
+
+	fhps, err := pruning.NewFullHistoryPruningStorer(pruning.FullHistoryStorerArgs{
+		StorerArgs: args, NumOfOldActivePersisters: 2,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, fhps.Close()) })
+	require.NotContains(t, fhps.GetPersistersEpochs(), uint32(5))
+	require.Zero(t, fhps.GetOldEpochsActivePersisters().Len())
+	value, err := fhps.GetFromEpoch([]byte("key"), 5)
+	require.NoError(t, err)
+	require.Equal(t, []byte("value"), value)
+	require.Contains(t, fhps.GetPersistersEpochs(), uint32(5))
+	_, err = os.Stat(filepath.Join(dir, "6"))
+	require.True(t, os.IsNotExist(err))
 }

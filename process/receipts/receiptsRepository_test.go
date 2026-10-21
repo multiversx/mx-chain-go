@@ -3,6 +3,8 @@ package receipts
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"os"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -10,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -17,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewReceiptsRepository(t *testing.T) {
@@ -430,4 +433,45 @@ func Test_SaveReceiptsForExecResult(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, 1, counter)
 	})
+}
+
+func TestReceiptsRepository_LoadReceiptsPreservesPersisterAccessError(t *testing.T) {
+	t.Parallel()
+
+	cause := &os.PathError{Op: "stat", Path: "not found/epoch", Err: os.ErrPermission}
+	accessErr := fmt.Errorf("%w: %w", storage.ErrPersisterAccess, cause)
+	for _, testCase := range []struct {
+		name string
+		err  error
+	}{
+		{name: "access failure", err: accessErr},
+		{name: "absent epoch", err: storage.ErrPersisterNotFoundForEpoch},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			repository, err := NewReceiptsRepository(ArgsNewReceiptsRepository{
+				Marshaller: marshallerMock.MarshalizerMock{},
+				Hasher:     &testscommon.HasherStub{},
+				Store: &testsCommonStorage.ChainStorerStub{
+					GetStorerCalled: func(_ dataRetriever.UnitType) (storage.Storer, error) {
+						return &testsCommonStorage.StorerStub{
+							GetFromEpochCalled: func(_ []byte, _ uint32) ([]byte, error) {
+								return nil, testCase.err
+							},
+						}, nil
+					},
+				},
+			})
+			require.NoError(t, err)
+			holder, err := repository.LoadReceipts([]byte("receipts"), &block.Header{Epoch: 5}, []byte("header"))
+			if errors.Is(testCase.err, accessErr) {
+				require.Nil(t, holder)
+				require.ErrorIs(t, err, errCannotLoadReceipts)
+				require.ErrorIs(t, err, storage.ErrPersisterAccess)
+				require.ErrorIs(t, err, os.ErrPermission)
+				return
+			}
+			require.NoError(t, err)
+			require.Empty(t, holder.GetMiniblocks())
+		})
+	}
 }

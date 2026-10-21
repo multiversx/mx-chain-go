@@ -1,6 +1,7 @@
 package initial
 
 import (
+	"context"
 	"errors"
 	"math/big"
 
@@ -123,17 +124,17 @@ func (inf *initialNodeFacade) GetESDTBalance(_ string, _ string, _ api.AccountQu
 }
 
 // GetAllESDTTokens returns nil and error
-func (inf *initialNodeFacade) GetAllESDTTokens(_ string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetAllESDTTokens(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns nil and error
-func (inf *initialNodeFacade) GetNFTTokenIDsRegisteredByAddress(_ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetNFTTokenIDsRegisteredByAddress(_ context.Context, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetESDTsWithRole returns nil and error
-func (inf *initialNodeFacade) GetESDTsWithRole(_ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetESDTsWithRole(_ context.Context, _ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
@@ -188,7 +189,7 @@ func (inf *initialNodeFacade) ComputeTransactionGasLimit(_ *transaction.Transact
 }
 
 // GetAccount returns nil and error
-func (inf *initialNodeFacade) GetAccount(_ string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetAccount(_ context.Context, _ string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 	return api.AccountResponse{}, api.BlockInfo{}, errNodeStarting
 }
 
@@ -348,12 +349,12 @@ func (inf *initialNodeFacade) Close() error {
 }
 
 // GetKeyValuePairs nil map
-func (inf *initialNodeFacade) GetKeyValuePairs(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetKeyValuePairs(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // IterateKeys returns error
-func (inf *initialNodeFacade) IterateKeys(_ string, _ uint, _ [][]byte, _ api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
+func (inf *initialNodeFacade) IterateKeys(_ context.Context, _ string, _ uint, _ [][]byte, _ api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
 	return nil, nil, api.BlockInfo{}, errNodeStarting
 }
 
@@ -378,12 +379,12 @@ func (inf *initialNodeFacade) GetESDTData(_ string, _ string, _ uint64, _ api.Ac
 }
 
 // GetESDTsRoles return nil and error
-func (inf *initialNodeFacade) GetESDTsRoles(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
+func (inf *initialNodeFacade) GetESDTsRoles(_ context.Context, _ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
 // GetAllIssuedESDTs returns nil and error
-func (inf *initialNodeFacade) GetAllIssuedESDTs(_ string) ([]string, error) {
+func (inf *initialNodeFacade) GetAllIssuedESDTs(_ context.Context, _ string) ([]string, error) {
 	return nil, errNodeStarting
 }
 

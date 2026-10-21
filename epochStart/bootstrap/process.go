@@ -276,7 +276,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		return nil, err
 	}
 
-	epochStartProvider.whiteListHandler, err = interceptors.NewWhiteListDataVerifier(whiteListCache)
+	roundDuration := time.Duration(epochStartProvider.genesisNodesConfig.GetRoundDuration()) * time.Millisecond
+	epochStartProvider.whiteListHandler, err = interceptors.NewWhiteListDataVerifier(whiteListCache, interceptors.WhiteListRequestTTL(roundDuration))
 	if err != nil {
 		return nil, err
 	}

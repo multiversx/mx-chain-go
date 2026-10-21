@@ -952,6 +952,13 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			activationEpoch:     handler.enableEpochsConfig.FixEpochChangeProposedCurrentEpochEnableEpoch,
 			activationEpochName: "FixEpochChangeProposedCurrentEpochEnableEpoch",
 		},
+		common.FixDataTrieLeafValidationFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixDataTrieLeafValidationEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.FixDataTrieLeafValidationEnableEpoch,
+			activationEpochName: "FixDataTrieLeafValidationEnableEpoch",
+		},
 		// TODO: move it to activation round
 		common.CheckBuiltInCallOnTransferValueAndFailExecutionFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
@@ -1029,6 +1036,27 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch:     handler.enableEpochsConfig.AttributeExtraGasUsageEnableEpoch,
 			activationEpochName: "AttributeExtraGasUsageEnableEpoch",
+		},
+		common.FixCorrectSmallIntAndGasLimitsFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixCorrectSmallIntAndGasLimitsEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.FixCorrectSmallIntAndGasLimitsEnableEpoch,
+			activationEpochName: "FixCorrectSmallIntAndGasLimitsEnableEpoch",
+		},
+		common.OutputRollbackOnDestContextFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.OutputRollbackOnDestContextEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.OutputRollbackOnDestContextEnableEpoch,
+			activationEpochName: "OutputRollbackOnDestContextEnableEpoch",
+		},
+		common.KeepReturnDataOnAsyncTransferCallbackFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.KeepReturnDataOnAsyncTransferCallbackEnableEpoch
+			},
+			activationEpoch:     handler.enableEpochsConfig.KeepReturnDataOnAsyncTransferCallbackEnableEpoch,
+			activationEpochName: "KeepReturnDataOnAsyncTransferCallbackEnableEpoch",
 		},
 	}
 }

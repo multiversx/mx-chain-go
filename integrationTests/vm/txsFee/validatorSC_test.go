@@ -23,14 +23,15 @@ import (
 )
 
 const (
-	stakingIsFullMessage      = "staking is full key put into waiting list"
-	validatorBLSKey           = "4fcdbfce9a3621621d388019353f87aceb0c5ec826256bc5a57220ed8f7d84b5c13f50219dc7a6ef090671f39d398c106f8a36022a04e6c18061ff38629d5b42b125aaea1e94a97b5f1c871bcf93b1f141a49ddb0b4c32b976cd530c1008da86"
-	validatorStakeData        = "stake@01@" + validatorBLSKey + "@0b823739887c40e9331f70c5a140623dfaf4558a9138b62f4473b26bbafdd4f58cb5889716a71c561c9e20e7a280e985@b2a11555ce521e4944e09ab17549d85b487dcd26c84b5017a39e31a3670889ba"
-	cannotUnBondTokensMessage = "cannot unBond tokens, the validator would remain without min deposit, nodes are still active"
-	noTokensToUnBondMessage   = "no tokens that can be unbond at this time"
-	delegationManagementKey   = "delegationManagement"
-	stakingV4Step1EnableEpoch = 4443
-	stakingV4Step2EnableEpoch = 4444
+	stakingIsFullMessage                      = "staking is full key put into waiting list"
+	validatorBLSKey                           = "4fcdbfce9a3621621d388019353f87aceb0c5ec826256bc5a57220ed8f7d84b5c13f50219dc7a6ef090671f39d398c106f8a36022a04e6c18061ff38629d5b42b125aaea1e94a97b5f1c871bcf93b1f141a49ddb0b4c32b976cd530c1008da86"
+	validatorStakeData                        = "stake@01@" + validatorBLSKey + "@0b823739887c40e9331f70c5a140623dfaf4558a9138b62f4473b26bbafdd4f58cb5889716a71c561c9e20e7a280e985@b2a11555ce521e4944e09ab17549d85b487dcd26c84b5017a39e31a3670889ba"
+	cannotUnBondTokensMessage                 = "cannot unBond tokens, the validator would remain without min deposit, nodes are still active"
+	noTokensToUnBondMessage                   = "no tokens that can be unbond at this time"
+	delegationManagementKey                   = "delegationManagement"
+	stakingV4Step1EnableEpoch                 = 4443
+	stakingV4Step2EnableEpoch                 = 4444
+	fixCorrectSmallIntAndGasLimitsEnableEpoch = 4445
 )
 
 var (
@@ -54,7 +55,13 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T
 		t.Skip("this is not a short test")
 	}
 
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{}, 1)
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
+		core.MetachainShardId,
+		config.EnableEpochs{
+			FixCorrectSmallIntAndGasLimitsEnableEpoch: fixCorrectSmallIntAndGasLimitsEnableEpoch,
+		},
+		1,
+	)
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
@@ -209,8 +216,9 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		core.MetachainShardId,
 		config.EnableEpochs{
-			StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
-			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
+			StakingV4Step1EnableEpoch:                 stakingV4Step1EnableEpoch,
+			StakingV4Step2EnableEpoch:                 stakingV4Step2EnableEpoch,
+			FixCorrectSmallIntAndGasLimitsEnableEpoch: fixCorrectSmallIntAndGasLimitsEnableEpoch,
 		},
 		1,
 	)
@@ -267,8 +275,9 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t 
 	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		core.MetachainShardId,
 		config.EnableEpochs{
-			StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
-			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
+			StakingV4Step1EnableEpoch:                 stakingV4Step1EnableEpoch,
+			StakingV4Step2EnableEpoch:                 stakingV4Step2EnableEpoch,
+			FixCorrectSmallIntAndGasLimitsEnableEpoch: fixCorrectSmallIntAndGasLimitsEnableEpoch,
 		},
 		1,
 	)

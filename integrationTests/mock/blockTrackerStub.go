@@ -18,6 +18,7 @@ type BlockTrackerStub struct {
 	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
 	CheckAgainstWhitelistCalled                        func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
+	SetSettledNonceProviderCalled                      func(func() uint64)
 	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarizedCalled     func() ([]data.HeaderHandler, [][]byte, error)
 	ComputeLongestShardsChainsFromLastNotarizedCalled  func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error)
@@ -43,6 +44,12 @@ type BlockTrackerStub struct {
 	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 	ResetOwnShardStuckCalled                           func()
 	IsSettledCrossHeaderCalled                         func(header data.HeaderHandler, headerHash []byte) bool
+}
+
+func (bts *BlockTrackerStub) SetSettledNonceProvider(provider func() uint64) {
+	if bts.SetSettledNonceProviderCalled != nil {
+		bts.SetSettledNonceProviderCalled(provider)
+	}
 }
 
 // AddTrackedHeader -

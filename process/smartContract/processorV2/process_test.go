@@ -4380,6 +4380,10 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 	err := sc.processSimpleSCR(scrWithRefund, []byte("scrHash"), acntDst)
 	assert.Nil(t, err)
 	assert.True(t, completedLogSaved)
+
+	// Nil scResult and nil scResult.Value should return nil safely
+	assert.Nil(t, sc.processSimpleSCR(nil, []byte("scrHash"), acntDst))
+	assert.Nil(t, sc.processSimpleSCR(&smartContractResult.SmartContractResult{Value: nil}, []byte("scrHash"), acntDst))
 }
 
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
@@ -4682,5 +4686,237 @@ func Test_createExecutableCheckersMap(t *testing.T) {
 		require.NotNil(t, executableCheckersMap)
 		require.Equal(t, 1, len(executableCheckersMap))
 		require.Equal(t, expectedExecutableChecker, executableCheckersMap["SetGuardian"])
+	})
+}
+
+func TestSmartContractProcessor_AsyncCallWithCallerInOutputAccountsWithoutTransfers(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.SCDeployFlag || flag == common.FixCorrectSmallIntAndGasLimitsFlag
+		},
+	}
+	arguments.ArgsParser = smartContract.NewArgumentParser()
+	sc, err := NewSmartContractProcessorV2(arguments)
+	require.Nil(t, err)
+
+	callerAddr := []byte("caller_smart_contract_address_12")
+	calleeAddr := []byte("callee_smart_contract_address_12")
+	txHash := []byte("tx_hash_123456789012345678901234")
+
+	tx := &smartContractResult.SmartContractResult{
+		SndAddr:        callerAddr,
+		RcvAddr:        calleeAddr,
+		OriginalSender: callerAddr,
+		CallType:       vmData.AsynchronousCall,
+	}
+
+	callID := []byte("test_call_id_123")
+	vmInput := &vmcommon.VMInput{
+		CallType: vmData.AsynchronousCall,
+		AsyncArguments: &vmcommon.AsyncArguments{
+			CallID: callID,
+		},
+	}
+
+	vmOutput := &vmcommon.VMOutput{
+		ReturnCode:     vmcommon.Ok,
+		GasRemaining:   50000,
+		OutputAccounts: make(map[string]*vmcommon.OutputAccount),
+	}
+
+	outAccCaller := &vmcommon.OutputAccount{
+		Address:         callerAddr,
+		OutputTransfers: make([]vmcommon.OutputTransfer, 0),
+	}
+	vmOutput.OutputAccounts[string(callerAddr)] = outAccCaller
+
+	// In createSmartContractResults, caller output account with 0 transfers must NOT produce an incomplete async callback SCR under flag
+	createdAsyncCallback, results := sc.createSmartContractResults(vmInput, vmOutput, outAccCaller, tx, txHash)
+	require.False(t, createdAsyncCallback)
+	require.Empty(t, results)
+
+	// In completeOutputProcessingAndCreateCallback, because createdAsyncCallback is false,
+	// the canonical createAsyncCallBackSCRFromVMOutput runs and properly appends asyncParams
+	outData := &outputDataFromCall{
+		vmInput:              vmInput,
+		vmOutput:             vmOutput,
+		tx:                   tx,
+		txHash:               txHash,
+		createdAsyncCallback: createdAsyncCallback,
+	}
+	scrTxs, _, err := sc.completeOutputProcessingAndCreateCallback(outData)
+	require.Nil(t, err)
+	require.NotEmpty(t, scrTxs)
+
+	var callbackSCR *smartContractResult.SmartContractResult
+	for _, scrTx := range scrTxs {
+		scr, ok := scrTx.(*smartContractResult.SmartContractResult)
+		if ok && bytes.Equal(scr.RcvAddr, callerAddr) && scr.CallType == vmData.AsynchronousCallBack {
+			callbackSCR = scr
+			break
+		}
+	}
+	require.NotNil(t, callbackSCR)
+	require.Contains(t, string(callbackSCR.Data), hex.EncodeToString(callID))
+
+	// Backward compatibility test: when FixCorrectSmallIntAndGasLimitsFlag is not enabled, createSCRIfNoOutputTransfer is called
+	legacyArgs := createMockSmartContractProcessorArguments()
+	legacyArgs.ArgsParser = smartContract.NewArgumentParser()
+	legacySC, err := NewSmartContractProcessorV2(legacyArgs)
+	require.Nil(t, err)
+
+	legacyCallback, legacyResults := legacySC.createSmartContractResults(vmInput, vmOutput, outAccCaller, tx, txHash)
+	require.True(t, legacyCallback)
+	require.Len(t, legacyResults, 1)
+	legacyScr, ok := legacyResults[0].result.(*smartContractResult.SmartContractResult)
+	require.True(t, ok)
+	require.Equal(t, vmData.AsynchronousCallBack, legacyScr.CallType)
+	require.Equal(t, vmOutput.GasRemaining, legacyScr.GasLimit)
+}
+
+func TestSmartContractProcessor_PrepareExecutionAfterBuiltInFunc_PreservesContextFields(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.ArgsParser = smartContract.NewArgumentParser()
+	sc, err := NewSmartContractProcessorV2(arguments)
+	require.Nil(t, err)
+
+	origCaller := []byte("original_caller_addr_12345678901")
+	relayerAddr := []byte("relayer_addr_1234567890123456789")
+	prevTxHash := []byte("prev_tx_hash_1234567890123456789")
+	txGuardian := []byte("tx_guardian_12345678901234567890")
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:         []byte("caller"),
+			OriginalCallerAddr: origCaller,
+			RelayerAddr:        relayerAddr,
+			PrevTxHash:         prevTxHash,
+			TxGuardian:         txGuardian,
+		},
+		RecipientAddr: []byte("recipient"),
+	}
+
+	vmOutput := &vmcommon.VMOutput{
+		ReturnCode: vmcommon.Ok,
+	}
+
+	parsedTransfer := &vmcommon.ParsedESDTTransfers{
+		RcvAddr:      []byte("recipient"),
+		CallFunction: "someFunc",
+		CallArgs:     [][]byte{[]byte("arg1")},
+	}
+
+	// 1. Test createVMInputWithAsyncCallBackAfterBuiltIn
+	cbInput := sc.createVMInputWithAsyncCallBackAfterBuiltIn(vmInput, vmOutput, parsedTransfer)
+	require.Equal(t, origCaller, cbInput.OriginalCallerAddr)
+	require.Equal(t, relayerAddr, cbInput.RelayerAddr)
+	require.Equal(t, prevTxHash, cbInput.PrevTxHash)
+	require.Equal(t, txGuardian, cbInput.TxGuardian)
+
+	// 2. Test prepareExecutionAfterBuiltInFunc
+	inData := &inputDataAfterBuiltInCall{
+		vmInput:              vmInput,
+		vmOutput:             vmOutput,
+		parsedTransfer:       parsedTransfer,
+		callType:             vmData.DirectCall,
+		scExecuteOutTransfer: &vmcommon.OutputTransfer{GasLimit: 1000},
+	}
+	execInput, _, err := sc.prepareExecutionAfterBuiltInFunc(inData)
+	require.Nil(t, err)
+	require.Equal(t, origCaller, execInput.OriginalCallerAddr)
+	require.Equal(t, relayerAddr, execInput.RelayerAddr)
+	require.Equal(t, prevTxHash, execInput.PrevTxHash)
+	require.Equal(t, txGuardian, execInput.TxGuardian)
+}
+
+func TestSmartContractProcessor_UseLastTransferAsAsyncCallBack_ReturnDataFlag(t *testing.T) {
+	t.Parallel()
+
+	callerAddr := []byte("caller_smart_contract_address_12")
+	calleeAddr := []byte("callee_smart_contract_address_12")
+	returnDataValue := []byte("returned_value_123")
+
+	t.Run("flag disabled should not append return data", func(t *testing.T) {
+		arguments := createMockSmartContractProcessorArguments()
+		arguments.ArgsParser = smartContract.NewArgumentParser()
+		sc, err := NewSmartContractProcessorV2(arguments)
+		require.Nil(t, err)
+
+		vmInput := &vmcommon.VMInput{
+			CallType: vmData.AsynchronousCall,
+		}
+		outAcc := &vmcommon.OutputAccount{
+			Address: callerAddr,
+		}
+		outputTransfer := &vmcommon.OutputTransfer{
+			SenderAddress: calleeAddr,
+			Data:          nil,
+			GasLimit:      10000,
+		}
+		vmOutput := &vmcommon.VMOutput{
+			ReturnCode:   vmcommon.Ok,
+			ReturnData:   [][]byte{returnDataValue},
+			GasRemaining: 5000,
+		}
+		tx := &smartContractResult.SmartContractResult{
+			SndAddr: callerAddr,
+		}
+		result := &smartContractResult.SmartContractResult{}
+
+		success := sc.useLastTransferAsAsyncCallBackWhenNeeded(vmInput, outAcc, outputTransfer, vmOutput, tx, result, true)
+		require.True(t, success)
+		require.NotContains(t, string(result.Data), hex.EncodeToString(returnDataValue))
+	})
+
+	t.Run("flag enabled should append return data", func(t *testing.T) {
+		arguments := createMockSmartContractProcessorArguments()
+		arguments.ArgsParser = smartContract.NewArgumentParser()
+		enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepReturnDataOnAsyncTransferCallbackFlag)
+		arguments.EnableEpochsHandler = enableEpochsHandler
+		sc, err := NewSmartContractProcessorV2(arguments)
+		require.Nil(t, err)
+
+		vmInput := &vmcommon.VMInput{
+			CallType: vmData.AsynchronousCall,
+			AsyncArguments: &vmcommon.AsyncArguments{
+				CallID:       []byte("call_id_1"),
+				CallerCallID: []byte("caller_call_id_1"),
+			},
+		}
+		outAcc := &vmcommon.OutputAccount{
+			Address: callerAddr,
+		}
+		outputTransfer := &vmcommon.OutputTransfer{
+			SenderAddress: calleeAddr,
+			Data:          nil,
+			GasLimit:      10000,
+		}
+		vmOutput := &vmcommon.VMOutput{
+			ReturnCode:   vmcommon.Ok,
+			ReturnData:   [][]byte{returnDataValue},
+			GasRemaining: 5000,
+		}
+		tx := &smartContractResult.SmartContractResult{
+			SndAddr: callerAddr,
+		}
+		result := &smartContractResult.SmartContractResult{}
+
+		success := sc.useLastTransferAsAsyncCallBackWhenNeeded(vmInput, outAcc, outputTransfer, vmOutput, tx, result, true)
+		require.True(t, success)
+		require.Contains(t, string(result.Data), hex.EncodeToString(returnDataValue))
+
+		parsedArgs, err := sc.argsParser.ParseArguments(string(result.Data))
+		require.Nil(t, err)
+
+		extractedAsyncArgs, callArgs, err := separateAsyncArguments(vmData.AsynchronousCallBack, parsedArgs)
+		require.Nil(t, err)
+		require.Len(t, extractedAsyncArgs, 4)
+		require.True(t, len(callArgs) >= 2)
+		require.Equal(t, returnDataValue, callArgs[len(callArgs)-1])
 	})
 }

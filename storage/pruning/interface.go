@@ -16,6 +16,7 @@ type EpochStartNotifier interface {
 type DbFactoryHandler interface {
 	Create(filePath string) (storage.Persister, error)
 	CreateDisabled() storage.Persister
+	PersisterExists(filePath string) (bool, error)
 	IsInterfaceNil() bool
 }
 

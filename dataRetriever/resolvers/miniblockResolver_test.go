@@ -10,7 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
@@ -147,6 +149,20 @@ func TestMiniblockResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Nil(t, msgID)
+}
+
+func TestMiniblockResolver_ProcessReceivedMessageOversizedHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	mbRes, _ := resolvers.NewMiniblockResolver(createMockArgMiniblockResolver())
+	msgID, err := mbRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashType, make([]byte, common.HashSize+1)),
+		fromConnectedPeerId,
+		&p2pmocks.MessengerStub{},
+	)
+
+	require.ErrorIs(t, err, dataRetriever.ErrBadRequest)
+	require.Nil(t, msgID)
 }
 
 func TestMiniblockResolver_ProcessReceivedMessageWrongTypeShouldErr(t *testing.T) {
@@ -422,9 +438,6 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 
 	mbHash := []byte("aaa")
 	marshalizer := &mock.MarshalizerMock{}
-	miniBlockList := make([][]byte, 0)
-	miniBlockList = append(miniBlockList, mbHash)
-	requestedBuff, _ := marshalizer.Marshal(&batch.Batch{Data: miniBlockList})
 
 	wasResolved := false
 	wasSend := false
@@ -453,7 +466,7 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 	mbRes, _ := resolvers.NewMiniblockResolver(arg)
 
 	msgID, err := mbRes.ProcessReceivedMessage(
-		createRequestMsg(dataRetriever.HashType, requestedBuff),
+		createRequestMsg(dataRetriever.HashType, mbHash),
 		fromConnectedPeerId,
 		&p2pmocks.MessengerStub{},
 	)
@@ -471,9 +484,6 @@ func TestMiniblockResolver_ProcessReceivedMessageMarshalFails(t *testing.T) {
 
 	mbHash := []byte("aaa")
 	marshalizer := &mock.MarshalizerMock{}
-	miniBlockList := make([][]byte, 0)
-	miniBlockList = append(miniBlockList, mbHash)
-	requestedBuff, _ := marshalizer.Marshal(&batch.Batch{Data: miniBlockList})
 
 	wasResolved := false
 
@@ -507,7 +517,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMarshalFails(t *testing.T) {
 	mbRes, _ := resolvers.NewMiniblockResolver(arg)
 
 	msgID, err := mbRes.ProcessReceivedMessage(
-		createRequestMsg(dataRetriever.HashType, requestedBuff),
+		createRequestMsg(dataRetriever.HashType, mbHash),
 		fromConnectedPeerId,
 		&p2pmocks.MessengerStub{},
 	)
@@ -523,10 +533,6 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 	t.Parallel()
 
 	mbHash := []byte("aaa")
-	marshalizer := &mock.MarshalizerMock{}
-	miniBlockList := make([][]byte, 0)
-	miniBlockList = append(miniBlockList, mbHash)
-	requestedBuff, _ := marshalizer.Marshal(&batch.Batch{Data: miniBlockList})
 
 	wasSent := false
 
@@ -552,7 +558,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 	mbRes, _ := resolvers.NewMiniblockResolver(arg)
 
 	_, _ = mbRes.ProcessReceivedMessage(
-		createRequestMsg(dataRetriever.HashType, requestedBuff),
+		createRequestMsg(dataRetriever.HashType, mbHash),
 		fromConnectedPeerId,
 		&p2pmocks.MessengerStub{},
 	)
