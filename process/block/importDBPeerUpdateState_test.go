@@ -17,15 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type importPeerUpdateObserver struct {
-	*stateMock.AccountsStub
-	observe func(data.HeaderHandler, []byte, uint64, []byte)
-}
-
-func (o *importPeerUpdateObserver) ProcessImportDBPeerSnapshot(header data.HeaderHandler, hash []byte, finalNonce uint64, finalHash []byte) {
-	o.observe(header, hash, finalNonce, finalHash)
-}
-
 func TestImportDBPeerUpdateStateUsesSettledExecutionInsteadOfHeaderFinality(t *testing.T) {
 	result := func(nonce uint64, hash string) *block.MetaExecutionResultInfo {
 		return &block.MetaExecutionResultInfo{ExecutionResult: &block.BaseMetaExecutionResult{
@@ -56,9 +47,9 @@ func TestImportDBPeerUpdateStateUsesSettledExecutionInsteadOfHeaderFinality(t *t
 	args := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	args.ForkDetector = &mock.ForkDetectorMock{GetHighestSettledBlockInfoCalled: func() (uint64, []byte) { return 8, []byte("header8") }}
 	calls := 0
-	args.AccountsDB[state.PeerAccountsState] = &importPeerUpdateObserver{
+	args.AccountsDB[state.PeerAccountsState] = &stateMock.ImportDBPeerAccountsStub{
 		AccountsStub: &stateMock.AccountsStub{},
-		observe: func(header data.HeaderHandler, hash []byte, nonce uint64, blockHash []byte) {
+		ProcessImportDBPeerSnapshotCalled: func(header data.HeaderHandler, hash []byte, nonce uint64, blockHash []byte) {
 			calls++
 			require.Same(t, committed, header)
 			require.Equal(t, []byte("header9"), hash)

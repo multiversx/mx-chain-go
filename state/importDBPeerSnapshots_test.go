@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
@@ -20,28 +21,15 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
+	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	trieMocks "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/require"
 )
 
-type importPeerTestStore interface {
-	storage.Storer
-	GetFromCurrentEpoch([]byte) ([]byte, error)
-	Rotate()
-	SnapshotFinished()
-}
-
-type importPeerSnapshotStub struct {
-	state.SnapshotsManager
-	copy func([]byte, uint32, common.StorageManager, func()) bool
-}
-
-func (s *importPeerSnapshotStub) SnapshotPeerState(root []byte, epoch uint32, manager common.StorageManager, start func()) bool {
-	return s.copy(root, epoch, manager, start)
-}
-
-func newImportPeerFixture(t *testing.T, interval uint64, copy func([]byte, uint32, common.StorageManager, func()) bool, bootstrap ...storage.Storer) (*state.PeerAccountsDB, common.Trie, importPeerTestStore) {
+func newImportPeerFixture(t *testing.T, interval uint64, copy func([]byte, uint32, common.StorageManager, func()) bool, bootstrap ...storage.Storer) (*state.PeerAccountsDB, common.Trie, storageMocks.ImportDBPeerStorer) {
 	t.Helper()
 	var source storage.Storer
 	if len(bootstrap) > 0 {
@@ -67,7 +55,7 @@ func newImportPeerFixture(t *testing.T, interval uint64, copy func([]byte, uint3
 	args := createMockAccountsDBArgs()
 	args.Trie, args.SnapshotsManager = tr, snapshots
 	if copy != nil {
-		args.SnapshotsManager = &importPeerSnapshotStub{SnapshotsManager: snapshots, copy: copy}
+		args.SnapshotsManager = &stateMocks.SnapshotsManagerStub{SnapshotPeerStateCalled: copy}
 	}
 	peer, err := state.NewPeerAccountsDB(args)
 	require.NoError(t, err)
@@ -361,4 +349,92 @@ func TestImportDBPeerSnapshotFinalityWinsBeforeTimeoutRetarget(t *testing.T) {
 	// replacing it. Duplicate notifications above must not advance its age.
 	peer.ProcessImportDBPeerSnapshot(&block.MetaBlockV3{Nonce: 16, Round: 110}, []byte("16"), 11, []byte("11"))
 	require.Equal(t, candidate, copied)
+}
+
+func TestImportDBPeerSnapshotsRejectInvalidDependencies(t *testing.T) {
+	for _, name := range []string{"nil storer", "typed nil storer", "unsupported storer", "unsupported snapshots", "zero interval", "peer pruning", "snapshots disabled"} {
+		t.Run(name, func(t *testing.T) {
+			args := createMockAccountsDBArgs()
+			args.SnapshotsManager = &stateMocks.SnapshotsManagerStub{}
+			manager := &storageManager.StorageManagerStub{}
+			args.Trie = &trieMocks.TrieStub{GetStorageManagerCalled: func() common.StorageManager { return manager }}
+			memory := pruning.NewImportDBPeerPruningStorer(7, nil)
+			t.Cleanup(func() { require.NoError(t, memory.Close()) })
+			var store storage.Storer = memory
+			interval := uint64(5)
+			switch name {
+			case "nil storer":
+				store = nil
+			case "typed nil storer":
+				typedNil := memory
+				typedNil = nil
+				store = typedNil
+			case "unsupported storer":
+				store = &storageMocks.StorerStub{}
+			case "unsupported snapshots":
+				args.SnapshotsManager = stateDisabled.NewDisabledSnapshotsManager()
+			case "zero interval":
+				interval = 0
+			case "peer pruning":
+				args.PruningEnabled = true
+			case "snapshots disabled":
+				manager.IsSnapshotSupportedCalled = func() bool { return false }
+			}
+			peer, err := state.NewPeerAccountsDB(args)
+			require.NoError(t, err)
+			err = peer.EnableImportDBPeerSnapshots(store, interval)
+			require.Error(t, err)
+			require.ErrorIs(t, err, state.ErrInvalidImportDBPeerSnapshotConfig)
+		})
+	}
+}
+
+func TestImportDBPeerSnapshotsContinueAcrossLagAndDuplicateCommits(t *testing.T) {
+	peer, tr, store := newImportPeerFixture(t, 5, nil)
+	require.NoError(t, tr.Update([]byte("unchanged"), []byte("live")))
+	completed := 0
+	for nonce := uint64(1); nonce <= 65; nonce++ {
+		header := &block.MetaBlockV3{Nonce: nonce, Round: nonce, Epoch: 7}
+		root := commitImportPeer(t, peer, tr, header)
+		// The threshold captures every fifth round; the selected execution
+		// settles four commits later while execution keeps advancing.
+		if nonce >= 6 && (nonce-6)%9 == 0 {
+			require.NoError(t, store.Put([]byte("obsolete"), []byte("source-only")))
+		}
+		finalNonce := uint64(0)
+		if nonce > 4 {
+			finalNonce = nonce - 4
+		}
+		for duplicate := 0; duplicate < 3; duplicate++ {
+			peer.ProcessImportDBPeerSnapshot(header, []byte(fmt.Sprint(nonce)), finalNonce, []byte(fmt.Sprint(finalNonce)))
+		}
+		if nonce >= 10 && (nonce-10)%9 == 0 {
+			completed++
+			_, err := store.Get([]byte("obsolete"))
+			require.Error(t, err, "each successful snapshot must retire the old generation")
+			recreated, err := tr.Recreate(holders.NewDefaultRootHashesHolder(root))
+			require.NoError(t, err)
+			value, _, err := recreated.Get([]byte("unchanged"))
+			require.NoError(t, err)
+			require.Equal(t, "live", string(value))
+		}
+	}
+	require.Equal(t, 7, completed)
+}
+
+func TestImportDBPeerSnapshotSkipsUnpreparedWorker(t *testing.T) {
+	args := getDefaultSnapshotManagerArgs()
+	args.ProcessingMode = common.ImportDb
+	sm, err := state.NewSnapshotsManager(args)
+	require.NoError(t, err)
+	manager := &storageManager.StorageManagerStub{
+		EnterPruningBufferingModeCalled: func() { t.Fatal("a skipped snapshot must not enter buffering mode") },
+		TakeSnapshotCalled: func(string, []byte, []byte, *common.TrieIteratorChannels, chan []byte, common.SnapshotStatisticsHandler, uint32) {
+			t.Fatal("a skipped snapshot must not start its worker")
+		},
+	}
+	// The normal preparation logic skips the initial empty root/epoch tuple.
+	// Its nil statistics must never be handed to an asynchronous worker.
+	require.False(t, sm.SnapshotPeerState(nil, 0, manager, func() { t.Fatal("must not report a skipped snapshot as started") }))
+	require.False(t, sm.IsSnapshotInProgress())
 }

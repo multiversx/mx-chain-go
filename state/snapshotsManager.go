@@ -187,7 +187,7 @@ func (sm *snapshotsManager) SnapshotState(
 
 	log.Info("starting snapshot", "type", sm.stateMetrics.GetSnapshotMessage(), "rootHash", rootHash, "epoch", epoch)
 
-	go sm.snapshotState(rootHash, epoch, trieStorageManager, stats)
+	go sm.snapshotState(rootHash, epoch, trieStorageManager, stats, nil)
 
 	sm.waitForCompletionIfAppropriate(stats)
 }
@@ -210,8 +210,11 @@ func (sm *snapshotsManager) SnapshotPeerState(root []byte, epoch uint32, manager
 	}
 	// Root/epoch deduplication cannot describe a newly rotated memory DB.
 	sm.lastSnapshot = &snapshotInfo{}
-	stats, _ := sm.prepareSnapshot(root, epoch, manager)
+	stats, skipSnapshot := sm.prepareSnapshot(root, epoch, manager)
 	sm.mutex.Unlock()
+	if skipSnapshot {
+		return false
+	}
 	done := make(chan bool, 1)
 	completion := &peerSnapshotCompletion{done: done, onStart: onStart}
 	// updateState runs inside CommitBlock. Use the existing import scheduling
@@ -253,12 +256,12 @@ func (sm *snapshotsManager) snapshotState(
 	epoch uint32,
 	trieStorageManager common.StorageManager,
 	stats *snapshotStatistics,
-	completion ...*peerSnapshotCompletion,
+	completion *peerSnapshotCompletion,
 ) {
 	finishEarly := func() {
 		sm.earlySnapshotCompletion(stats, trieStorageManager)
-		if len(completion) > 0 {
-			completion[0].done <- false
+		if completion != nil {
+			completion.done <- false
 		}
 	}
 	if sm.processingMode != common.ImportDb {
@@ -282,8 +285,8 @@ func (sm *snapshotsManager) snapshotState(
 		return
 	}
 
-	if len(completion) > 0 {
-		completion[0].onStart()
+	if completion != nil && completion.onStart != nil {
+		completion.onStart()
 	}
 
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
@@ -305,7 +308,7 @@ func (sm *snapshotsManager) snapshotState(
 
 	go sm.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, sm.getTrieSyncer())
 
-	go sm.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, epoch, completion...)
+	go sm.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, epoch, completion)
 }
 
 func (sm *snapshotsManager) earlySnapshotCompletion(stats *snapshotStatistics, trieStorageManager common.StorageManager) {
@@ -386,7 +389,7 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 	errChan common.BufferedErrChan,
 	rootHash []byte,
 	epoch uint32,
-	completion ...*peerSnapshotCompletion,
+	completion *peerSnapshotCompletion,
 ) {
 	sm.finishSnapshotOperation(rootHash, stats, missingNodesCh, sm.stateMetrics.GetSnapshotMessage(), trieStorageManager)
 
@@ -396,8 +399,8 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 		sm.stateMetrics.UpdateMetricsOnSnapshotCompletion(stats)
 		sm.printStorageStatistics()
 		errChan.Close()
-		if len(completion) > 0 {
-			completion[0].done <- completed
+		if completion != nil {
+			completion.done <- completed
 		}
 	}()
 

@@ -140,3 +140,10 @@ func TestCloseDestroysBothMemoryGenerations(t *testing.T) {
 	}
 	require.NoError(t, s.Close())
 }
+
+func TestImportDBPeerPreviousGenerationNotFound(t *testing.T) {
+	s := NewImportDBPeerPruningStorer(7, nil)
+	t.Cleanup(func() { require.NoError(t, s.Close()) })
+	_, err := s.GetFromLastEpoch([]byte("node"))
+	require.ErrorIs(t, err, storage.ErrKeyNotFound)
+}

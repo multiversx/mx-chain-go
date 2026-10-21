@@ -101,7 +101,10 @@ func (s *importDBPeerPruningStorer) Get(key []byte) ([]byte, error) {
 	return nil, err
 }
 
-func (s *importDBPeerPruningStorer) Has(key []byte) error                   { _, err := s.Get(key); return err }
+func (s *importDBPeerPruningStorer) Has(key []byte) error {
+	_, err := s.Get(key)
+	return err
+}
 func (s *importDBPeerPruningStorer) SearchFirst(key []byte) ([]byte, error) { return s.Get(key) }
 func (s *importDBPeerPruningStorer) PutInEpoch(key, value []byte, _ uint32) error {
 	return s.Put(key, value)
@@ -147,7 +150,7 @@ func (s *importDBPeerPruningStorer) GetFromLastEpoch(key []byte) ([]byte, error)
 		if s.bootstrap != nil {
 			return s.bootstrap.SearchFirst(key)
 		}
-		return nil, fmt.Errorf("no previous peer memory DB")
+		return nil, fmt.Errorf("%w: no previous peer memory DB", storage.ErrKeyNotFound)
 	}
 	return s.old.Get(key)
 }

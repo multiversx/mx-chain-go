@@ -184,7 +184,7 @@ func (boot *MetaBootstrap) StartSyncingBlocks() error {
 	}
 
 	if boot.isInImportMode {
-		if initializer, ok := boot.validatorAccountsDB.(interface{ InitializeImportDBPeerState() error }); ok {
+		if initializer, ok := boot.validatorAccountsDB.(importDBPeerStateInitializer); ok {
 			log.Debug("import-db peer initializing memory state before replay", "storage bootstrap error", errNotCritical)
 			if err := initializer.InitializeImportDBPeerState(); err != nil {
 				log.Debug("import-db peer memory state initialization failed", "error", err)

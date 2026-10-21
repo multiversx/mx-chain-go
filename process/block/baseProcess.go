@@ -2617,16 +2617,19 @@ func (bp *baseProcessor) commitState(headerHandler data.HeaderHandler) error {
 	return bp.commit()
 }
 
-func (bp *baseProcessor) commitStateForHeader(headerHandler data.HeaderHandler, headerHash []byte) (err error) {
-	defer func() {
-		if err == nil {
-			if observer, ok := bp.accountsDB[state.PeerAccountsState].(interface {
-				RecordImportDBPeerCommit(data.HeaderHandler, []byte)
-			}); ok {
-				observer.RecordImportDBPeerCommit(headerHandler, headerHash)
-			}
-		}
-	}()
+func (bp *baseProcessor) commitStateForHeader(headerHandler data.HeaderHandler, headerHash []byte) error {
+	err := bp.commitStateAndCollectAccesses(headerHandler, headerHash)
+	if err != nil {
+		return err
+	}
+
+	if observer, ok := bp.accountsDB[state.PeerAccountsState].(importDBPeerCommitObserver); ok {
+		observer.RecordImportDBPeerCommit(headerHandler, headerHash)
+	}
+	return nil
+}
+
+func (bp *baseProcessor) commitStateAndCollectAccesses(headerHandler data.HeaderHandler, headerHash []byte) error {
 	if !bp.outportHandler.HasDrivers() {
 		return bp.commitState(headerHandler)
 	}
@@ -2634,11 +2637,10 @@ func (bp *baseProcessor) commitStateForHeader(headerHandler data.HeaderHandler, 
 	bp.stateAccessesCollector.BeginExecution(headerHash)
 	defer bp.stateAccessesCollector.EndExecution(headerHash)
 
-	err = bp.commitState(headerHandler)
+	err := bp.commitState(headerHandler)
 	if err != nil {
 		bp.stateAccessesCollector.DiscardStateAccessesForHeader(headerHash)
 	}
-
 	return err
 }
 

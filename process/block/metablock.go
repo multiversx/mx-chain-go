@@ -1732,9 +1732,8 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 		mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, rootHash)
 	}
 
-	if observer, ok := mp.accountsDB[state.PeerAccountsState].(interface {
-		ProcessImportDBPeerSnapshot(data.HeaderHandler, []byte, uint64, []byte)
-	}); ok && !check.IfNil(committed) {
+	observer, ok := mp.accountsDB[state.PeerAccountsState].(importDBPeerSnapshotProcessor)
+	if ok && !check.IfNil(committed) {
 		finalNonce, finalHash, _ := mp.blockChain.GetFinalBlockInfo()
 		observer.ProcessImportDBPeerSnapshot(committed, committedHash, finalNonce, finalHash)
 	}

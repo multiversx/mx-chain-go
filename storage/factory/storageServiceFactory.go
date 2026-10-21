@@ -86,14 +86,6 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 		return nil, err
 	}
 
-	if args.StorageType == ProcessStorageService && args.Config.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval > 0 {
-		if args.NodeProcessingMode != common.ImportDb || args.ShardCoordinator.SelfId() != core.MetachainShardId ||
-			args.Config.PeerAccountsTrieStorage.DB.Type != string(storageunit.MemoryDB) ||
-			!args.Config.StateTriesConfig.SnapshotsEnabled || args.Config.StateTriesConfig.PeerStatePruningEnabled || args.PrefsConfig.FullArchive {
-			return nil, fmt.Errorf("peer memory snapshots require metachain import-db, MemoryDB, snapshots, disabled peer pruning and disabled full archive")
-		}
-	}
-
 	argsOldDataCleanerProvider := clean.ArgOldDataCleanerProvider{
 		NodeTypeProvider:    args.NodeTypeProvider,
 		PruningStorerConfig: args.Config.StoragePruning,
@@ -139,6 +131,14 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	}
 	if check.IfNil(args.StateStatsHandler) {
 		return statistics.ErrNilStateStatsHandler
+	}
+
+	if args.StorageType == ProcessStorageService && args.Config.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval > 0 {
+		if args.NodeProcessingMode != common.ImportDb || args.ShardCoordinator.SelfId() != core.MetachainShardId ||
+			args.Config.PeerAccountsTrieStorage.DB.Type != string(storageunit.MemoryDB) ||
+			!args.Config.StateTriesConfig.SnapshotsEnabled || args.Config.StateTriesConfig.PeerStatePruningEnabled || args.PrefsConfig.FullArchive {
+			return fmt.Errorf("%w: peer memory snapshots require metachain import-db, MemoryDB, snapshots, disabled peer pruning and disabled full archive", storage.ErrInvalidConfig)
+		}
 	}
 
 	return nil
@@ -472,29 +472,29 @@ func (psf *StorageServiceFactory) createTrieStorer(
 }
 
 func (psf *StorageServiceFactory) createPeerTrieStorer(remover storage.CustomDatabaseRemoverHandler) (storage.Storer, error) {
-	if psf.storageType == ProcessStorageService && psf.nodeProcessingMode == common.ImportDb &&
-		psf.generalConfig.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval > 0 {
-		// Persisted per-DB configs retain the original disk format and sharding.
-		// New/empty paths use the normal disk default, independently of MemoryDB.
-		diskConfig := psf.generalConfig.PeerAccountsTrieStorage
-		diskConfig.DB.Type = defaultType
-		args, err := psf.createPruningStorerArgs(diskConfig, remover)
-		if err != nil {
-			return nil, err
-		}
-		// This temporary source must never follow replay's epoch notifications.
-		args.Notifier = notifier.NewManualEpochStartNotifier()
-		args.PersistersTracker = pruning.NewTriePersisterTracker(args.EpochsData)
-		log.Debug("import-db peer opening startup disk source", "path", args.DbPath, "epoch", psf.currentEpoch)
-		disk, err := psf.createTriePruningPersister(args)
-		if err != nil {
-			log.Debug("import-db peer opening startup disk source failed", "path", args.DbPath, "epoch", psf.currentEpoch, "error", err)
-			return nil, err
-		}
-		log.Debug("import-db peer startup disk source opened", "path", args.DbPath, "epoch", psf.currentEpoch)
-		return pruning.NewImportDBPeerPruningStorer(psf.currentEpoch, disk), nil
+	if psf.storageType != ProcessStorageService || psf.nodeProcessingMode != common.ImportDb ||
+		psf.generalConfig.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval == 0 {
+		return psf.createTrieStorer(psf.generalConfig.PeerAccountsTrieStorage, remover)
 	}
-	return psf.createTrieStorer(psf.generalConfig.PeerAccountsTrieStorage, remover)
+	// Persisted per-DB configs retain the original disk format and sharding.
+	// New/empty paths use the normal disk default, independently of MemoryDB.
+	diskConfig := psf.generalConfig.PeerAccountsTrieStorage
+	diskConfig.DB.Type = defaultType
+	args, err := psf.createPruningStorerArgs(diskConfig, remover)
+	if err != nil {
+		return nil, err
+	}
+	// This temporary source must never follow replay's epoch notifications.
+	args.Notifier = notifier.NewManualEpochStartNotifier()
+	args.PersistersTracker = pruning.NewTriePersisterTracker(args.EpochsData)
+	log.Debug("import-db peer opening startup disk source", "path", args.DbPath, "epoch", psf.currentEpoch)
+	disk, err := psf.createTriePruningPersister(args)
+	if err != nil {
+		log.Debug("import-db peer opening startup disk source failed", "path", args.DbPath, "epoch", psf.currentEpoch, "error", err)
+		return nil, err
+	}
+	log.Debug("import-db peer startup disk source opened", "path", args.DbPath, "epoch", psf.currentEpoch)
+	return pruning.NewImportDBPeerPruningStorer(psf.currentEpoch, disk), nil
 }
 
 func (psf *StorageServiceFactory) createTrieUnit(

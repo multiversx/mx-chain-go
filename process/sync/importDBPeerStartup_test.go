@@ -12,15 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type importPeerStartupAccounts struct {
-	*stateMock.AccountsStub
-	initialize func() error
-}
-
-func (a *importPeerStartupAccounts) InitializeImportDBPeerState() error {
-	return a.initialize()
-}
-
 func TestMetaBootstrap_ImportPeerStartupSnapshotWaitsAfterRestoration(t *testing.T) {
 	args := CreateMetaBootstrapMockArguments()
 	args.IsInImportMode = true
@@ -30,9 +21,9 @@ func TestMetaBootstrap_ImportPeerStartupSnapshotWaitsAfterRestoration(t *testing
 	}
 	started, finish := make(chan bool, 1), make(chan struct{})
 	stopBeforeReplay := errors.New("stop before starting replay")
-	args.ValidatorAccountsDB = &importPeerStartupAccounts{
+	args.ValidatorAccountsDB = &stateMock.ImportDBPeerAccountsStub{
 		AccountsStub: &stateMock.AccountsStub{},
-		initialize: func() error {
+		InitializeImportDBPeerStateCalled: func() error {
 			started <- restored
 			<-finish
 			return stopBeforeReplay
@@ -66,9 +57,9 @@ func TestMetaBootstrap_ExcludedTipDoesNotStartPeerStartupSnapshot(t *testing.T) 
 	args.StorageBootstrapper = &mock.StorageBootstrapperMock{
 		LoadFromStorageCalled: func() error { return common.ErrRoundExcluded },
 	}
-	args.ValidatorAccountsDB = &importPeerStartupAccounts{
-		AccountsStub: &stateMock.AccountsStub{},
-		initialize:   func() error { t.Fatal("must not snapshot an excluded checkpoint"); return nil },
+	args.ValidatorAccountsDB = &stateMock.ImportDBPeerAccountsStub{
+		AccountsStub:                      &stateMock.AccountsStub{},
+		InitializeImportDBPeerStateCalled: func() error { t.Fatal("must not snapshot an excluded checkpoint"); return nil },
 	}
 	boot, err := sync.NewMetaBootstrap(args)
 	require.NoError(t, err)

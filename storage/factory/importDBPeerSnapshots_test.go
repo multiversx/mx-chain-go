@@ -5,9 +5,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/databaseremover/disabled"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
+	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,10 +37,7 @@ func TestImportDBPeerFactorySelectsProcessingMemoryOnly(t *testing.T) {
 	require.NoError(t, err)
 	storer, err = factory.createPeerTrieStorer(disabled.NewDisabledCustomDatabaseRemover())
 	require.NoError(t, err)
-	_, memory := storer.(interface {
-		Rotate()
-		SnapshotFinished()
-	})
+	_, memory := storer.(storageMocks.ImportDBPeerStorer)
 	require.False(t, memory, "import source trie storer must remain disabled")
 }
 
@@ -65,7 +64,7 @@ func TestImportDBPeerFactoryReadsExistingDiskState(t *testing.T) {
 	require.NoError(t, err, "startup must read the normal disk DB before its first snapshot")
 	require.Equal(t, "persisted-node", string(value))
 	require.NoError(t, memory.Put([]byte("memory-only"), []byte("new-node")))
-	memory.(interface{ SnapshotFinished() }).SnapshotFinished()
+	memory.(storageMocks.ImportDBPeerStorer).SnapshotFinished()
 
 	// Closing the startup fallback must leave the normal DB intact and unlocked.
 	args.Config.PeerAccountsTrieStorage.DB.Type = "LvlDBSerial"
@@ -101,7 +100,7 @@ func TestImportDBPeerFactoryRejectsIncompatibleSettings(t *testing.T) {
 				args.PrefsConfig.FullArchive = true
 			}
 			_, err := NewStorageServiceFactory(args)
-			require.Error(t, err)
+			require.ErrorIs(t, err, storage.ErrInvalidConfig)
 		})
 	}
 }
