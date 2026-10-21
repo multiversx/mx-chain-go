@@ -108,7 +108,7 @@ func (tr *patriciaMerkleTrie) GetWithVersion(key []byte) (value []byte, depth ui
 	hexKey := keyBytesToHex(key)
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	val, version, err := tr.root.tryGetWithVersion(hexKey, tmc, tr.trieStorage)
+	value, version, err = tr.root.tryGetWithVersion(hexKey, tmc, tr.trieStorage)
 	tr.collapseManager.MarkKeyAsAccessed(hexKey, tmc.GetSizeLoadedInMem())
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))

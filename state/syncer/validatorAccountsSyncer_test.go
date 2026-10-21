@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 )
 
@@ -153,7 +154,7 @@ func testValidatorAccountsSyncerRepairsMissingChild(t *testing.T, version int) {
 			return bytes.Clone(value), nil
 		},
 	}
-	tr, err := trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, args.EnableEpochsHandler, 5)
+	tr, err := trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, args.EnableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	require.NoError(t, err)
 	require.NoError(t, tr.Update([]byte("first"), []byte("one")))
 	require.NoError(t, tr.Update([]byte("second"), []byte("two")))

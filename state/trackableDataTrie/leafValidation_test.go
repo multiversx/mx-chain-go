@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 func TestLeafValidation_ReadAndWrite(t *testing.T) {
@@ -61,14 +62,21 @@ func TestLeafValidation_ReadAndWrite(t *testing.T) {
 					}
 					return flag == common.AutoBalanceDataTriesFlag
 				}}
-				tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, 10)
+				tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, collapseManager.NewDisabledCollapseManager())
 				require.NoError(t, err)
 				require.NoError(t, tr.UpdateWithVersion(physical, value, version))
 				before, err := tr.RootHash()
 				require.NoError(t, err)
-				tdt, err := trackableDataTrie.NewTrackableDataTrie(address, hasher, codec, flags, &stateMock.StateAccessesCollectorStub{})
+				tdt, err := trackableDataTrie.NewTrackableDataTrie(trackableDataTrie.TrackableDataTrieArgs{
+					Identifier:             address,
+					Hasher:                 hasher,
+					Marshaller:             codec,
+					EnableEpochsHandler:    flags,
+					StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+					DataTriesHolder:        &trieMock.TriesHolderStub{GetCalled: func(_ []byte) common.Trie { return tr }},
+					DataTrieCreator:        tr,
+				})
 				require.NoError(t, err)
-				tdt.SetDataTrie(tr)
 				got, _, err := tdt.RetrieveValue(key)
 				if scenario == "malformed" || (active && scenario != "valid" && scenario != "legacy alias") {
 					require.Error(t, err)
@@ -102,16 +110,23 @@ func TestLeafValidation_LegacyMigrationAndRevert(t *testing.T) {
 	flags := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AutoBalanceDataTriesFlag, common.FixDataTrieLeafValidationFlag)
 	hasher := blake2b.NewBlake2b()
 	codec := &marshal.GogoProtoMarshalizer{}
-	tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, 10)
+	tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, collapseManager.NewDisabledCollapseManager())
 	require.NoError(t, err)
 	address, key, value := []byte("account"), []byte("legacy-key"), []byte("old-value")
 	stored := append(append(bytes.Clone(value), key...), address...)
 	require.NoError(t, tr.UpdateWithVersion(key, stored, core.NotSpecified))
 	before, err := tr.RootHash()
 	require.NoError(t, err)
-	tdt, err := trackableDataTrie.NewTrackableDataTrie(address, hasher, codec, flags, &stateMock.StateAccessesCollectorStub{})
+	tdt, err := trackableDataTrie.NewTrackableDataTrie(trackableDataTrie.TrackableDataTrieArgs{
+		Identifier:             address,
+		Hasher:                 hasher,
+		Marshaller:             codec,
+		EnableEpochsHandler:    flags,
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        &trieMock.TriesHolderStub{GetCalled: func(_ []byte) common.Trie { return tr }},
+		DataTrieCreator:        tr,
+	})
 	require.NoError(t, err)
-	tdt.SetDataTrie(tr)
 	got, _, err := tdt.RetrieveValue(key)
 	require.NoError(t, err)
 	require.Equal(t, value, got)
@@ -168,7 +183,7 @@ func TestLeafValidation_RollsBackEarlierWritesOnBindingFailure(t *testing.T) {
 	flags := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AutoBalanceDataTriesFlag, common.FixDataTrieLeafValidationFlag)
 	hasher := blake2b.NewBlake2b()
 	codec := &marshal.GogoProtoMarshalizer{}
-	tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, 10)
+	tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, collapseManager.NewDisabledCollapseManager())
 	require.NoError(t, err)
 	address := []byte("account")
 	for _, key := range []string{"first", "second"} {
@@ -181,9 +196,16 @@ func TestLeafValidation_RollsBackEarlierWritesOnBindingFailure(t *testing.T) {
 	invalidValue, err := codec.Marshal(&dataTrieValue.TrieLeafData{Key: []byte("wrong"), Address: address, Value: []byte("old")})
 	require.NoError(t, err)
 	wrapper := &validationFailureAfterWrite{DataTrie: tr, invalidValue: invalidValue}
-	tdt, err := trackableDataTrie.NewTrackableDataTrie(address, hasher, codec, flags, &stateMock.StateAccessesCollectorStub{})
+	tdt, err := trackableDataTrie.NewTrackableDataTrie(trackableDataTrie.TrackableDataTrieArgs{
+		Identifier:             address,
+		Hasher:                 hasher,
+		Marshaller:             codec,
+		EnableEpochsHandler:    flags,
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        &trieMock.TriesHolderStub{GetCalled: func(_ []byte) common.Trie { return wrapper }},
+		DataTrieCreator:        tr,
+	})
 	require.NoError(t, err)
-	tdt.SetDataTrie(wrapper)
 	require.NoError(t, tdt.SaveKeyValue([]byte("first"), []byte("new")))
 	require.NoError(t, tdt.SaveKeyValue([]byte("second"), []byte("new")))
 	_, _, err = tdt.SaveDirtyData(tr)
@@ -198,16 +220,23 @@ func TestLeafValidation_MigrationUsesLogicalKey(t *testing.T) {
 	flags := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AutoBalanceDataTriesFlag, common.FixDataTrieLeafValidationFlag)
 	hasher := blake2b.NewBlake2b()
 	codec := &marshal.GogoProtoMarshalizer{}
-	tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, 10)
+	tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, collapseManager.NewDisabledCollapseManager())
 	require.NoError(t, err)
 	key, address := []byte("key"), []byte("account")
 	value, err := codec.Marshal(&dataTrieValue.TrieLeafData{Key: key, Address: address, Value: []byte("value")})
 	require.NoError(t, err)
 	physical := hasher.Compute(string(key))
 	require.NoError(t, tr.UpdateWithVersion(physical, value, core.AutoBalanceEnabled))
-	tdt, err := trackableDataTrie.NewTrackableDataTrie(address, hasher, codec, flags, &stateMock.StateAccessesCollectorStub{})
+	tdt, err := trackableDataTrie.NewTrackableDataTrie(trackableDataTrie.TrackableDataTrieArgs{
+		Identifier:             address,
+		Hasher:                 hasher,
+		Marshaller:             codec,
+		EnableEpochsHandler:    flags,
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		DataTriesHolder:        &trieMock.TriesHolderStub{GetCalled: func(_ []byte) common.Trie { return tr }},
+		DataTrieCreator:        tr,
+	})
 	require.NoError(t, err)
-	tdt.SetDataTrie(tr)
 	err = tdt.MigrateDataTrieLeaves(vmcommon.ArgsMigrateDataTrieLeaves{
 		OldVersion: core.AutoBalanceEnabled, NewVersion: core.AutoBalanceEnabled,
 		TrieMigrator: &trieMock.DataTrieMigratorStub{GetLeavesToBeMigratedCalled: func() []core.TrieData {
@@ -229,7 +258,7 @@ func TestLeafValidation_LegacyAliasFallback(t *testing.T) {
 				flags := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AutoBalanceDataTriesFlag, common.FixDataTrieLeafValidationFlag)
 				hasher := blake2b.NewBlake2b()
 				codec := &marshal.GogoProtoMarshalizer{}
-				tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, 10)
+				tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, collapseManager.NewDisabledCollapseManager())
 				require.NoError(t, err)
 				key, address := []byte("ELRONDesdtEXAMPLE-123456"), bytes.Repeat([]byte{7}, 32)
 				hashed := hasher.Compute(string(key))
@@ -243,9 +272,16 @@ func TestLeafValidation_LegacyAliasFallback(t *testing.T) {
 				}
 				before, err := tr.RootHash()
 				require.NoError(t, err)
-				tdt, err := trackableDataTrie.NewTrackableDataTrie(address, hasher, codec, flags, &stateMock.StateAccessesCollectorStub{})
+				tdt, err := trackableDataTrie.NewTrackableDataTrie(trackableDataTrie.TrackableDataTrieArgs{
+					Identifier:             address,
+					Hasher:                 hasher,
+					Marshaller:             codec,
+					EnableEpochsHandler:    flags,
+					StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+					DataTriesHolder:        &trieMock.TriesHolderStub{GetCalled: func(_ []byte) common.Trie { return tr }},
+					DataTrieCreator:        tr,
+				})
 				require.NoError(t, err)
-				tdt.SetDataTrie(tr)
 				switch operation {
 				case "read":
 					got, depth, readErr := tdt.RetrieveValue(key)
@@ -300,16 +336,23 @@ func TestLeafValidation_InteractingBatchDeterministic(t *testing.T) {
 				for iteration := 0; iteration < 64; iteration++ {
 					codec := &marshal.GogoProtoMarshalizer{}
 					flags := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AutoBalanceDataTriesFlag, common.FixDataTrieLeafValidationFlag)
-					tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, 10)
+					tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, collapseManager.NewDisabledCollapseManager())
 					require.NoError(t, err)
 					address := []byte("account")
 					legacy := append(append([]byte("old"), alias...), address...)
 					require.NoError(t, tr.UpdateWithVersion(alias, legacy, core.NotSpecified))
 					before, err := tr.RootHash()
 					require.NoError(t, err)
-					tdt, err := trackableDataTrie.NewTrackableDataTrie(address, hasher, codec, flags, &stateMock.StateAccessesCollectorStub{})
+					tdt, err := trackableDataTrie.NewTrackableDataTrie(trackableDataTrie.TrackableDataTrieArgs{
+						Identifier:             address,
+						Hasher:                 hasher,
+						Marshaller:             codec,
+						EnableEpochsHandler:    flags,
+						StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+						DataTriesHolder:        &trieMock.TriesHolderStub{GetCalled: func(_ []byte) common.Trie { return tr }},
+						DataTrieCreator:        tr,
+					})
 					require.NoError(t, err)
-					tdt.SetDataTrie(tr)
 					aliasValue := []byte("updated alias")
 					if deleteAlias {
 						aliasValue = nil
@@ -355,7 +398,7 @@ func TestLeafValidation_CollectedVersions(t *testing.T) {
 					flags.AddActiveFlags(common.FixDataTrieLeafValidationFlag)
 				}
 				hasher, codec := blake2b.NewBlake2b(), &marshal.GogoProtoMarshalizer{}
-				tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, 10)
+				tr, err := trie.NewTrie(&storageManager.StorageManagerStub{}, codec, hasher, flags, collapseManager.NewDisabledCollapseManager())
 				require.NoError(t, err)
 				key, address := []byte("key"), []byte("account")
 				physical, version := hasher.Compute(string(key)), core.AutoBalanceEnabled
@@ -374,9 +417,16 @@ func TestLeafValidation_CollectedVersions(t *testing.T) {
 				collector := &stateMock.StateAccessesCollectorStub{AddStateChangeCalled: func(access *stateChange.StateAccess) {
 					reads = append(reads, access.DataTrieChanges...)
 				}}
-				tdt, err := trackableDataTrie.NewTrackableDataTrie(address, hasher, codec, flags, collector)
+				tdt, err := trackableDataTrie.NewTrackableDataTrie(trackableDataTrie.TrackableDataTrieArgs{
+					Identifier:             address,
+					Hasher:                 hasher,
+					Marshaller:             codec,
+					EnableEpochsHandler:    flags,
+					StateAccessesCollector: collector,
+					DataTriesHolder:        &trieMock.TriesHolderStub{GetCalled: func(_ []byte) common.Trie { return tr }},
+					DataTrieCreator:        tr,
+				})
 				require.NoError(t, err)
-				tdt.SetDataTrie(tr)
 				_, _, _ = tdt.RetrieveValue(key)
 				found := false
 				for _, read := range reads {
