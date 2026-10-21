@@ -23,8 +23,8 @@ require (
 	github.com/multiversx/mx-chain-logger-go v1.2.0
 	github.com/multiversx/mx-chain-scenario-go v1.8.0
 	github.com/multiversx/mx-chain-storage-go v1.2.0
-	github.com/multiversx/mx-chain-vm-common-go v1.7.2
-	github.com/multiversx/mx-chain-vm-go v1.5.51
+	github.com/multiversx/mx-chain-vm-common-go v1.7.3
+	github.com/multiversx/mx-chain-vm-go v1.5.52
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.70
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.71
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.100
@@ -199,7 +199,3 @@ require (
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
 
 replace github.com/ipfs/go-log/v2 => github.com/sstanculeanu/go-log/v2 v2.0.0-20260714113044-ce58d5968237
-
-replace github.com/multiversx/mx-chain-vm-common-go => github.com/multiversx/mx-chain-vm-common-go-ghsa-w84w-h39x-g6cq v1.7.3-0.20261009071257-28206342f66f
-
-replace github.com/multiversx/mx-chain-vm-go => github.com/multiversx/mx-chain-vm-go-ghsa-f474-vg6c-h9f2 v1.5.51-0.20261020075133-1298a5f1ed96
