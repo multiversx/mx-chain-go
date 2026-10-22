@@ -187,9 +187,43 @@ func (sm *snapshotsManager) SnapshotState(
 
 	log.Info("starting snapshot", "type", sm.stateMetrics.GetSnapshotMessage(), "rootHash", rootHash, "epoch", epoch)
 
-	go sm.snapshotState(rootHash, epoch, trieStorageManager, stats)
+	go sm.snapshotState(rootHash, epoch, trieStorageManager, stats, nil)
 
 	sm.waitForCompletionIfAppropriate(stats)
+}
+
+type peerSnapshotCompletion struct {
+	done    chan bool
+	onStart func()
+}
+
+// SnapshotPeerState runs the existing worker and waits through completion. Errors
+// retain normal snapshot logging; the result only authorizes source retirement.
+func (sm *snapshotsManager) SnapshotPeerState(root []byte, epoch uint32, manager common.StorageManager, onStart func()) bool {
+	if sm.processingMode != common.ImportDb || check.IfNil(manager) || !manager.IsSnapshotSupported() {
+		return false
+	}
+	sm.mutex.Lock()
+	if sm.isSnapshotInProgress.IsSet() {
+		sm.mutex.Unlock()
+		return false
+	}
+	// Root/epoch deduplication cannot describe a newly rotated memory DB.
+	sm.lastSnapshot = &snapshotInfo{}
+	stats, skipSnapshot := sm.prepareSnapshot(root, epoch, manager)
+	sm.mutex.Unlock()
+	if skipSnapshot {
+		return false
+	}
+	done := make(chan bool, 1)
+	completion := &peerSnapshotCompletion{done: done, onStart: onStart}
+	// updateState runs inside CommitBlock. Use the existing import scheduling
+	// rules, keeping blockers suspended through repair and final bookkeeping.
+	sm.processStatusHandler.SetIdle()
+	sm.processStatusHandler.SuspendBackgroundJobBlocking("snapshotsManager.SnapshotPeerState")
+	defer sm.processStatusHandler.ResumeBackgroundJobBlocking()
+	go sm.snapshotState(root, epoch, manager, stats, completion)
+	return <-done
 }
 
 func (sm *snapshotsManager) prepareSnapshot(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager) (*snapshotStatistics, bool) {
@@ -222,7 +256,14 @@ func (sm *snapshotsManager) snapshotState(
 	epoch uint32,
 	trieStorageManager common.StorageManager,
 	stats *snapshotStatistics,
+	completion *peerSnapshotCompletion,
 ) {
+	finishEarly := func() {
+		sm.earlySnapshotCompletion(stats, trieStorageManager)
+		if completion != nil {
+			completion.done <- false
+		}
+	}
 	if sm.processingMode != common.ImportDb {
 		err := storageEpochChange.WaitForStorageEpochChange(storageEpochChange.StorageEpochChangeWaitArgs{
 			TrieStorageManager:            trieStorageManager,
@@ -232,7 +273,7 @@ func (sm *snapshotsManager) snapshotState(
 		})
 		if err != nil {
 			log.Error("error waiting for storage epoch change", "err", err)
-			sm.earlySnapshotCompletion(stats, trieStorageManager)
+			finishEarly()
 			return
 		}
 	}
@@ -240,8 +281,12 @@ func (sm *snapshotsManager) snapshotState(
 	if !trieStorageManager.ShouldTakeSnapshot() {
 		log.Debug("skipping snapshot", "rootHash", rootHash, "epoch", epoch)
 
-		sm.earlySnapshotCompletion(stats, trieStorageManager)
+		finishEarly()
 		return
+	}
+
+	if completion != nil && completion.onStart != nil {
+		completion.onStart()
 	}
 
 	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
@@ -263,7 +308,7 @@ func (sm *snapshotsManager) snapshotState(
 
 	go sm.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, sm.getTrieSyncer())
 
-	go sm.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, epoch)
+	go sm.processSnapshotCompletion(stats, trieStorageManager, missingNodesChannel, iteratorChannels.ErrChan, rootHash, epoch, completion)
 }
 
 func (sm *snapshotsManager) earlySnapshotCompletion(stats *snapshotStatistics, trieStorageManager common.StorageManager) {
@@ -344,14 +389,19 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 	errChan common.BufferedErrChan,
 	rootHash []byte,
 	epoch uint32,
+	completion *peerSnapshotCompletion,
 ) {
 	sm.finishSnapshotOperation(rootHash, stats, missingNodesCh, sm.stateMetrics.GetSnapshotMessage(), trieStorageManager)
 
+	completed := false
 	defer func() {
 		sm.isSnapshotInProgress.Reset()
 		sm.stateMetrics.UpdateMetricsOnSnapshotCompletion(stats)
 		sm.printStorageStatistics()
 		errChan.Close()
+		if completion != nil {
+			completion.done <- completed
+		}
 	}()
 
 	errorDuringSnapshot := errChan.ReadFromChanNonBlocking()
@@ -368,6 +418,7 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 	log.Debug("set activeDB in epoch", "epoch", epoch)
 	errPut := trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 	handleLoggingWhenError("error while putting active DB value into main storer", errPut)
+	completed = errPut == nil
 }
 
 func (sm *snapshotsManager) printStorageStatistics() {

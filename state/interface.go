@@ -384,3 +384,19 @@ type StateAccessesStorer interface {
 	Store(stateAccessesForTxs map[string]*data.StateAccesses) error
 	IsInterfaceNil() bool
 }
+
+// importDBPeerMemory provides generation rotation for import-db peer snapshots.
+type importDBPeerMemory interface {
+	Rotate()
+	SnapshotFinished()
+}
+
+// importDBPeerBootstrapSource reports whether startup state still needs copying.
+type importDBPeerBootstrapSource interface {
+	HasBootstrapSource() bool
+}
+
+// importDBPeerSnapshotter waits until the snapshot worker finishes bookkeeping.
+type importDBPeerSnapshotter interface {
+	SnapshotPeerState([]byte, uint32, common.StorageManager, func()) bool
+}

@@ -1444,7 +1444,7 @@ func (mp *metaProcessor) CommitBlock(
 	)
 
 	finalMetaBlock, finalMetaBlockHash := mp.computeFinalMetaBlock(header, headerHash)
-	mp.updateState(finalMetaBlock, finalMetaBlockHash)
+	mp.updateState(finalMetaBlock, finalMetaBlockHash, header, headerHash)
 
 	rootHash := mp.getLastExecutedRootHash(header)
 
@@ -1572,7 +1572,7 @@ func (mp *metaProcessor) computeFinalMetaBlock(metaBlock data.MetaHeaderHandler,
 	if isBlockAfterAndromedaFlag {
 		// for the first block we need to update both the state of the previous one and for current
 		if common.IsEpochChangeBlockForFlagActivation(metaBlock, mp.enableEpochsHandler, common.AndromedaFlag) {
-			mp.updateState(lastMetaBlock, lastMetaBlockHash)
+			mp.updateState(lastMetaBlock, lastMetaBlockHash, nil, nil)
 		}
 
 		finalMetaBlock = metaBlock
@@ -1656,7 +1656,7 @@ func (mp *metaProcessor) getRootHashAndValidatorRootHash(metaBlock data.MetaHead
 	return execRes.GetRootHash(), execRes.GetValidatorStatsRootHash(), nil
 }
 
-func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
+func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlockHash []byte, committed data.HeaderHandler, committedHash []byte) {
 	if check.IfNil(metaBlock) {
 		log.Debug("updateState nil header")
 		return
@@ -1723,16 +1723,20 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 
 	if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, metaBlock.GetEpoch()) {
 		mp.signalNewlyFinalBlocks(metaBlock, metaBlockHash)
-		return
+	} else {
+		outportFinalizedHeaderHash := metaBlockHash
+		if !common.IsFlagEnabledAfterEpochsStartBlock(metaBlock, mp.enableEpochsHandler, common.AndromedaFlag) {
+			outportFinalizedHeaderHash = metaBlock.GetPrevHash()
+		}
+		mp.setFinalizedHeaderHashInIndexer(outportFinalizedHeaderHash)
+		mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, rootHash)
 	}
 
-	outportFinalizedHeaderHash := metaBlockHash
-	if !common.IsFlagEnabledAfterEpochsStartBlock(metaBlock, mp.enableEpochsHandler, common.AndromedaFlag) {
-		outportFinalizedHeaderHash = metaBlock.GetPrevHash()
+	observer, ok := mp.accountsDB[state.PeerAccountsState].(importDBPeerSnapshotProcessor)
+	if ok && !check.IfNil(committed) {
+		finalNonce, finalHash, _ := mp.blockChain.GetFinalBlockInfo()
+		observer.ProcessImportDBPeerSnapshot(committed, committedHash, finalNonce, finalHash)
 	}
-	mp.setFinalizedHeaderHashInIndexer(outportFinalizedHeaderHash)
-
-	mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, rootHash)
 }
 
 // signalNewlyFinalBlocks emits the external finality signals for the blocks settled since the

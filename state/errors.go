@@ -205,3 +205,6 @@ func (e *StateAccessesRootMismatchError) Error() string {
 func (e *StateAccessesRootMismatchError) Unwrap() error {
 	return ErrStateAccessesRootMismatch
 }
+
+// ErrInvalidImportDBPeerSnapshotConfig signals incompatible peer snapshot settings.
+var ErrInvalidImportDBPeerSnapshotConfig = errors.New("invalid import-db peer snapshot configuration")
