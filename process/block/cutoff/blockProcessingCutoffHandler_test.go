@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,7 @@ func TestNewBlockProcessingCutoffHandler(t *testing.T) {
 			Enabled: true,
 			Mode:    "invalid",
 		}
-		b, err := NewBlockProcessingCutoffHandler(cfg)
+		b, err := NewBlockProcessingCutoffHandler(cfg, nil)
 		require.Equal(t, "invalid block processing cutoff mode, provided value=invalid", err.Error())
 		require.Nil(t, b)
 	})
@@ -34,7 +35,7 @@ func TestNewBlockProcessingCutoffHandler(t *testing.T) {
 			Mode:          "pause",
 			CutoffTrigger: "invalid",
 		}
-		b, err := NewBlockProcessingCutoffHandler(cfg)
+		b, err := NewBlockProcessingCutoffHandler(cfg, nil)
 		require.Equal(t, "invalid block processing cutoff trigger, provided value=invalid", err.Error())
 		require.Nil(t, b)
 	})
@@ -47,10 +48,75 @@ func TestNewBlockProcessingCutoffHandler(t *testing.T) {
 			Mode:          "pause",
 			CutoffTrigger: "epoch",
 		}
-		b, err := NewBlockProcessingCutoffHandler(cfg)
+		b, err := NewBlockProcessingCutoffHandler(cfg, nil)
 		require.NoError(t, err)
 		require.False(t, check.IfNil(b))
 	})
+
+	t.Run("graceful stop with nil stop channel - should error", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := config.BlockProcessingCutoffConfig{
+			Enabled:       true,
+			Mode:          common.BlockProcessingCutoffModeGracefulStop,
+			CutoffTrigger: string(common.BlockProcessingCutoffByRound),
+		}
+		b, err := NewBlockProcessingCutoffHandler(cfg, nil)
+		require.ErrorIs(t, err, errNilStopNodeChannel)
+		require.Nil(t, b)
+	})
+}
+
+func TestBlockProcessingCutoffHandler_HandleGracefulStopCutoff(t *testing.T) {
+	t.Parallel()
+
+	stopChan := make(chan endProcess.ArgEndProcess, 1)
+	cfg := config.BlockProcessingCutoffConfig{
+		Enabled:       true,
+		Mode:          common.BlockProcessingCutoffModeGracefulStop,
+		CutoffTrigger: string(common.BlockProcessingCutoffByRound),
+		Value:         20,
+	}
+	b, err := NewBlockProcessingCutoffHandler(cfg, stopChan)
+	require.NoError(t, err)
+
+	callbackCalled := make(chan struct{}, 1)
+	b.HandleGracefulStopCutoff(&block.MetaBlock{Round: 19}, func() {
+		callbackCalled <- struct{}{}
+	})
+	require.Empty(t, callbackCalled)
+	require.Empty(t, stopChan)
+
+	done := make(chan struct{})
+	go func() {
+		b.HandleGracefulStopCutoff(&block.MetaBlock{Round: 20}, func() {
+			callbackCalled <- struct{}{}
+		})
+		close(done)
+	}()
+
+	stopArg := <-stopChan
+	<-callbackCalled
+	require.Equal(t, "BlockProcessingCutoff", stopArg.Reason)
+	require.Equal(t, "block processing completed through round 20", stopArg.Description)
+
+	select {
+	case <-done:
+		require.Fail(t, "cutoff returned before shutdown")
+	case <-time.After(20 * time.Millisecond):
+	}
+
+	b.Close()
+	require.Eventually(t, func() bool {
+		select {
+		case <-done:
+			return true
+		default:
+			return false
+		}
+	}, time.Second, time.Millisecond)
+
+	b.Close()
 }
 
 func TestBlockProcessingCutoffHandler_HandlePauseBackoff(t *testing.T) {
@@ -69,7 +135,7 @@ func TestBlockProcessingCutoffHandler_HandlePauseBackoff(t *testing.T) {
 			Mode:          "pause",
 			CutoffTrigger: "nonce",
 		}
-		b, err := NewBlockProcessingCutoffHandler(cfg)
+		b, err := NewBlockProcessingCutoffHandler(cfg, nil)
 		require.NoError(t, err)
 
 		b.HandlePauseCutoff(nil)
@@ -93,7 +159,7 @@ func testHandlePauseCutoff(trigger string) func(t *testing.T) {
 			CutoffTrigger: trigger,
 			Value:         20,
 		}
-		b, err := NewBlockProcessingCutoffHandler(cfg)
+		b, err := NewBlockProcessingCutoffHandler(cfg, nil)
 		require.NoError(t, err)
 
 		b.HandlePauseCutoff(&block.MetaBlock{
@@ -136,7 +202,7 @@ func TestBlockProcessingCutoffHandler_HandleProcessErrorBackoff(t *testing.T) {
 			Mode:          "pause",
 			CutoffTrigger: "nonce",
 		}
-		b, err := NewBlockProcessingCutoffHandler(cfg)
+		b, err := NewBlockProcessingCutoffHandler(cfg, nil)
 		require.NoError(t, err)
 
 		err = b.HandleProcessErrorCutoff(nil)
@@ -163,7 +229,7 @@ func testHandleProcessErrorCutoff(trigger string) func(t *testing.T) {
 			CutoffTrigger: trigger,
 			Value:         20,
 		}
-		b, err := NewBlockProcessingCutoffHandler(cfg)
+		b, err := NewBlockProcessingCutoffHandler(cfg, nil)
 		require.NoError(t, err)
 
 		err = b.HandleProcessErrorCutoff(&block.MetaBlock{

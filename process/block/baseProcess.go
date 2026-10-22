@@ -3025,6 +3025,8 @@ func (bp *baseProcessor) ProposedDirectSentTransactionsToBroadcast(proposedBody 
 
 // Close closes all underlying components
 func (bp *baseProcessor) Close() error {
+	bp.blockProcessingCutoffHandler.Close()
+
 	var err1, err2, err3 error
 	if !check.IfNil(bp.vmContainer) {
 		err1 = bp.vmContainer.Close()

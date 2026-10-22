@@ -349,6 +349,7 @@ type HeadersExecutor interface {
 // ExecutionManager defines a component able to manage the components responsible for block execution
 type ExecutionManager interface {
 	StartExecution()
+	PauseExecution()
 	SetHeadersExecutor(executor HeadersExecutor) error
 	AddPairForExecution(pair cache.HeaderBodyPair) error
 	GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error)
