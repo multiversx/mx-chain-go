@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -227,15 +228,18 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenUpdateFails(t *testing.T) {
 		Value:   []byte("b"),
 		Version: 0,
 	})
-	accnt := stateMock.NewAccountWrapMock(nil)
-
 	tr := &trieMock.TrieStub{
 		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 			return expectedErr
 		},
 	}
+	dataTriesHolder := &trieMock.TriesHolderStub{
+		GetCalled: func(_ []byte) common.Trie {
+			return tr
+		},
+	}
+	accnt := stateMock.NewAccountWrapMockWithDataTrieHolder(dataTriesHolder)
 
-	accnt.SetDataTrie(tr)
 	entry, _ := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	acc, err := entry.Revert()
@@ -254,7 +258,6 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 		Value:   []byte("b"),
 		Version: 0,
 	})
-	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
 		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
@@ -265,7 +268,12 @@ func TestJournalEntryDataTrieUpdates_RevertFailsWhenAccountRootFails(t *testing.
 		},
 	}
 
-	accnt.SetDataTrie(tr)
+	dataTriesHolder := &trieMock.TriesHolderStub{
+		GetCalled: func(_ []byte) common.Trie {
+			return tr
+		},
+	}
+	accnt := stateMock.NewAccountWrapMockWithDataTrieHolder(dataTriesHolder)
 	entry, _ := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	acc, err := entry.Revert()
@@ -285,7 +293,6 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 		Value:   []byte("b"),
 		Version: 0,
 	})
-	accnt := stateMock.NewAccountWrapMock(nil)
 
 	tr := &trieMock.TrieStub{
 		UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
@@ -298,7 +305,12 @@ func TestJournalEntryDataTrieUpdates_RevertShouldWork(t *testing.T) {
 		},
 	}
 
-	accnt.SetDataTrie(tr)
+	dataTriesHolder := &trieMock.TriesHolderStub{
+		GetCalled: func(_ []byte) common.Trie {
+			return tr
+		},
+	}
+	accnt := stateMock.NewAccountWrapMockWithDataTrieHolder(dataTriesHolder)
 	entry, _ := state.NewJournalEntryDataTrieUpdates(trieUpdates, accnt)
 
 	acc, err := entry.Revert()

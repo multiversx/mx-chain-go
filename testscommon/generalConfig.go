@@ -167,11 +167,13 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		StateTriesConfig: config.StateTriesConfig{
-			SnapshotsEnabled:            true,
-			AccountsStatePruningEnabled: false,
-			PeerStatePruningEnabled:     false,
-			MaxStateTrieLevelInMemory:   5,
-			MaxPeerTrieLevelInMemory:    5,
+			SnapshotsEnabled:             true,
+			AccountsStatePruningEnabled:  false,
+			PeerStatePruningEnabled:      false,
+			MaxUserTrieSizeInMemory:      common.TenMbSize,
+			MaxPeerTrieSizeInMemory:      common.TenMbSize,
+			DataTriesSizeInMemory:        common.TenMbSize,
+			NumLeavesToCollapseSingleRun: common.NumLeavesToCollapseSingleRun,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:           1000,

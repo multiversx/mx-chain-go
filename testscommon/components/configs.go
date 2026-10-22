@@ -1,6 +1,7 @@
 package components
 
 import (
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon"
 )
@@ -20,10 +21,12 @@ func GetGeneralConfig() config.Config {
 			SignatureLength: 48,
 		},
 		StateTriesConfig: config.StateTriesConfig{
-			AccountsStatePruningEnabled: true,
-			PeerStatePruningEnabled:     true,
-			MaxStateTrieLevelInMemory:   5,
-			MaxPeerTrieLevelInMemory:    5,
+			AccountsStatePruningEnabled:  true,
+			PeerStatePruningEnabled:      true,
+			MaxUserTrieSizeInMemory:      common.TenMbSize,
+			MaxPeerTrieSizeInMemory:      common.TenMbSize,
+			DataTriesSizeInMemory:        common.TenMbSize,
+			NumLeavesToCollapseSingleRun: 100,
 		},
 		EvictionWaitingList: config.EvictionWaitingListConfig{
 			HashesSize:     100,

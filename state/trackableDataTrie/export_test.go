@@ -1,6 +1,9 @@
 package trackableDataTrie
 
-import "github.com/multiversx/mx-chain-core-go/core"
+import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+)
 
 // DirtyData -
 type DirtyData struct {
@@ -35,4 +38,14 @@ func (tdt *trackableDataTrie) SetDirtyData(index int, key string, value []byte, 
 		value:      value,
 		newVersion: newVersion,
 	}
+}
+
+// LoadTrie -
+func (tdt *trackableDataTrie) LoadTrie() error {
+	return tdt.loadTrie()
+}
+
+// GetDataTrie -
+func (tdt *trackableDataTrie) GetDataTrie() common.Trie {
+	return tdt.tr
 }

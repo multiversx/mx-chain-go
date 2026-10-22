@@ -20,6 +20,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/stretchr/testify/require"
 )
@@ -47,7 +48,7 @@ func TestTrieCollectionRealProducerReleasesPruningBuffer(t *testing.T) {
 		EnterPruningBufferingModeCalled: func() { buffering.Add(1) },
 		ExitPruningBufferingModeCalled:  func() { buffering.Add(-1) },
 	}
-	tr, err := trie.NewTrie(storage, &marshal.GogoProtoMarshalizer{}, blake2b.NewBlake2b(), enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), 10)
+	tr, err := trie.NewTrie(storage, &marshal.GogoProtoMarshalizer{}, blake2b.NewBlake2b(), enableEpochsHandlerMock.NewEnableEpochsHandlerStub(), collapseManager.NewDisabledCollapseManager())
 	require.NoError(t, err)
 	for i := 0; i < 25; i++ {
 		require.NoError(t, tr.Update([]byte(fmt.Sprint(i)), []byte("value")))

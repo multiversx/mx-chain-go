@@ -13,15 +13,17 @@ import (
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	testCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
-	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 // TestMarshalizer -
@@ -29,9 +31,6 @@ var TestMarshalizer = &marshal.GogoProtoMarshalizer{}
 
 // TestHasher -
 var TestHasher = sha256.NewSha256()
-
-// MaxTrieLevelInMemory -
-const MaxTrieLevelInMemory = uint(5)
 
 // CreateMemUnit -
 func CreateMemUnit() storage.Storer {
@@ -94,21 +93,23 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	}
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 
-	args := testcommonStorage.GetStorageManagerArgs()
+	args := testCommon.GetStorageManagerArgs()
 	args.MainStorer = db
 	args.Marshalizer = TestMarshalizer
 	args.Hasher = TestHasher
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, MaxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
-
+	dth, _ := triesHolder.NewDataTriesHolder(common.TenMbSize)
 	argsAccCreator := accountFactory.ArgsAccountCreator{
 		Hasher:                 TestHasher,
 		Marshaller:             TestMarshalizer,
 		EnableEpochsHandler:    enableEpochs,
 		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
+		DataTrieCreator:        tr,
 	}
 	accCreator, _ := accountFactory.NewAccountCreator(argsAccCreator)
 
@@ -133,6 +134,7 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       snapshotsManager,
 		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		DataTriesHolder:        dth,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

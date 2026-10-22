@@ -622,3 +622,9 @@ var ErrNilAOTSelector = errors.New("nil AOT selector")
 
 // ErrNilTransactionProcessor signals that a nil transaction processor has been provided
 var ErrNilTransactionProcessor = errors.New("nil transaction processor")
+
+// ErrNilDataTriesHolder signals that a nil data tries holder has been provided
+var ErrNilDataTriesHolder = errors.New("nil data tries holder")
+
+// ErrNilDataTrieCreator signals that a nil data trie creator has been provided
+var ErrNilDataTrieCreator = errors.New("nil data trie creator")
