@@ -67,6 +67,7 @@ func CreateNode(
 
 	var nd *Node
 	nd, err = NewNode(
+		WithTrieOperations(config.TrieOperations),
 		WithStatusCoreComponents(statusCoreComponents),
 		WithCoreComponents(coreComponents),
 		WithCryptoComponents(cryptoComponents),

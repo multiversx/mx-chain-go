@@ -143,3 +143,80 @@ func TestMetrics_IndexRoundInfoShouldKeepSyntheticRoundTimestampsSplitByUnitsAft
 	assert.Equal(t, uint64(1774864082400), syntheticRoundInfo.TimestampMs)
 	assert.Equal(t, []uint64{11}, syntheticRoundInfo.SignersIndexes)
 }
+
+func TestMetrics_IndexRoundInfoSplitsLargeGapIntoMultipleBatches(t *testing.T) {
+	t.Parallel()
+
+	lastRound := uint64(0)
+	currentRound := uint64(2*maxRoundsInfoPerBatch + 505)
+	totalEntries := int(currentRound - lastRound)
+	require.Equal(t, 2*maxRoundsInfoPerBatch+505, totalEntries)
+
+	var savedBatches []*outportcore.RoundsInfo
+	outportHandler := &outportStub.OutportStub{
+		SaveRoundsInfoCalled: func(roundsInfo *outportcore.RoundsInfo) {
+			savedBatches = append(savedBatches, roundsInfo)
+		},
+	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && epoch == 7
+		},
+	}
+	header := &testscommon.HeaderHandlerStub{
+		EpochField:        7,
+		RoundField:        currentRound,
+		TimestampField:    1774864086000,
+		GetRandSeedCalled: func() []byte { return []byte("rand-seed") },
+	}
+	lastHeader := &testscommon.HeaderHandlerStub{
+		EpochField:        7,
+		RoundField:        lastRound,
+		TimestampField:    1774864080000,
+		GetRandSeedCalled: func() []byte { return []byte("rand-seed") },
+	}
+	nodesCoordinator := &shardingMocks.NodesCoordinatorStub{
+		GetValidatorsPublicKeysCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) (string, []string, error) {
+			return "leader", []string{"pk1"}, nil
+		},
+		GetValidatorsIndexesCalled: func(_ []string, _ uint32) ([]uint64, error) {
+			return []uint64{11}, nil
+		},
+	}
+	roundHandler := &testscommon.RoundHandlerMock{
+		GetTimeStampForRoundCalled: func(round uint64) uint64 {
+			return 1774864080000 + round*600
+		},
+	}
+
+	indexRoundInfo(outportHandler, nodesCoordinator, 1, header, lastHeader, []uint64{22}, enableEpochsHandler, roundHandler)
+
+	require.Len(t, savedBatches, 3)
+	require.Len(t, savedBatches[0].RoundsInfo, maxRoundsInfoPerBatch)
+	require.Len(t, savedBatches[1].RoundsInfo, maxRoundsInfoPerBatch)
+	require.Len(t, savedBatches[2].RoundsInfo, 505)
+
+	totalSaved := 0
+	for _, batch := range savedBatches {
+		require.LessOrEqual(t, len(batch.RoundsInfo), maxRoundsInfoPerBatch)
+		assert.Equal(t, uint32(1), batch.ShardID)
+		totalSaved += len(batch.RoundsInfo)
+	}
+	assert.Equal(t, totalEntries, totalSaved)
+
+	currentRoundInfo := savedBatches[0].RoundsInfo[0]
+	assert.Equal(t, currentRound, currentRoundInfo.Round)
+	assert.True(t, currentRoundInfo.BlockWasProposed)
+
+	flattened := make([]*outportcore.RoundInfo, 0, totalSaved)
+	for _, batch := range savedBatches {
+		flattened = append(flattened, batch.RoundsInfo...)
+	}
+	for idx := uint64(1); idx < currentRound; idx++ {
+		missed := flattened[idx]
+		assert.Equal(t, idx, missed.Round)
+		assert.False(t, missed.BlockWasProposed)
+		assert.Equal(t, 1774864080000+idx*600, missed.TimestampMs)
+		assert.Equal(t, (1774864080000+idx*600)/1000, missed.Timestamp)
+	}
+}

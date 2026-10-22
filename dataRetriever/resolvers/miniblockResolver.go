@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"errors"
 	"fmt"
 	"runtime/debug"
 
@@ -102,6 +103,10 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 
 	switch rd.Type {
 	case dataRetriever.HashType:
+		err = validateRequestedHashSize(rd.Value)
+		if err != nil {
+			return nil, err
+		}
 		err = mbRes.resolveMbRequestByHash(rd.Value, message.Peer(), rd.Epoch, source)
 	case dataRetriever.HashArrayType:
 		err = mbRes.resolveMbRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, source, fromConnectedPeer, message.SeqNo())
@@ -110,6 +115,10 @@ func (mbRes *miniblockResolver) ProcessReceivedMessage(message p2p.MessageP2P, f
 	}
 
 	if err != nil {
+		if errors.Is(err, dataRetriever.ErrBadRequest) {
+			return nil, err
+		}
+
 		return nil, fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
 	}
 
@@ -164,6 +173,10 @@ func (mbRes *miniblockResolver) resolveMbRequestByHashArray(
 	sequence []byte,
 ) error {
 	hashes, err := mbRes.parseRequestedHashesWithPartialResponse(mbBuff, fromConnectedPeer, sequence)
+	if err != nil {
+		return err
+	}
+	err = validateRequestedHashesSize(hashes)
 	if err != nil {
 		return err
 	}

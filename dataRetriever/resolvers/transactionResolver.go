@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"errors"
 	"fmt"
 	"runtime/debug"
 
@@ -107,6 +108,10 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 
 	switch rd.Type {
 	case dataRetriever.HashType:
+		err = validateRequestedHashSize(rd.Value)
+		if err != nil {
+			return nil, err
+		}
 		err = txRes.resolveTxRequestByHash(rd.Value, message.Peer(), rd.Epoch, source)
 	case dataRetriever.HashArrayType:
 		err = txRes.resolveTxRequestByHashArray(rd.Value, message.Peer(), rd.Epoch, source, fromConnectedPeer, message.SeqNo())
@@ -115,6 +120,10 @@ func (txRes *TxResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConn
 	}
 
 	if err != nil {
+		if errors.Is(err, dataRetriever.ErrBadRequest) {
+			return nil, err
+		}
+
 		return nil, fmt.Errorf("%w for hash %s", err, logger.DisplayByteSlice(rd.Value))
 	}
 
@@ -171,6 +180,10 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(
 ) error {
 	// TODO this can be optimized by searching in corresponding datapool (taken by topic name)
 	hashes, err := txRes.parseRequestedHashes(hashesBuff, fromConnectedPeer, sequence)
+	if err != nil {
+		return err
+	}
+	err = validateRequestedHashesSize(hashes)
 	if err != nil {
 		return err
 	}

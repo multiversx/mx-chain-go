@@ -23,6 +23,7 @@ type interceptedShardHeaderDataFactory struct {
 	epochStartTrigger             process.EpochStartTriggerHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	roundExclusions               common.RoundExclusionHandler
 }
 
 // NewInterceptedShardHeaderDataFactory creates an instance of interceptedShardHeaderDataFactory
@@ -60,6 +61,10 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 	if check.IfNil(argument.ValidityAttester) {
 		return nil, process.ErrNilValidityAttester
 	}
+	roundExclusions := argument.RoundExclusions
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
+	}
 
 	return &interceptedShardHeaderDataFactory{
 		marshalizer:                   argument.CoreComponents.InternalMarshalizer(),
@@ -71,6 +76,7 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 		epochStartTrigger:             argument.EpochStartTrigger,
 		enableEpochsHandler:           argument.CoreComponents.EnableEpochsHandler(),
 		epochChangeGracePeriodHandler: argument.CoreComponents.EpochChangeGracePeriodHandler(),
+		roundExclusions:               roundExclusions,
 	}, nil
 }
 
@@ -87,6 +93,7 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte, _ core.PeerI
 		EpochStartTrigger:             ishdf.epochStartTrigger,
 		EnableEpochsHandler:           ishdf.enableEpochsHandler,
 		EpochChangeGracePeriodHandler: ishdf.epochChangeGracePeriodHandler,
+		RoundExclusions:               ishdf.roundExclusions,
 	}
 
 	return interceptedBlocks.NewInterceptedHeader(arg)

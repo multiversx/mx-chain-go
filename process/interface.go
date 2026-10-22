@@ -720,6 +720,7 @@ type RequestForEpochHandler interface {
 // RequestHandler defines the methods through which request to data can be made
 type RequestHandler interface {
 	RequestForEpochHandler
+	SetRecoveryTrieRequests(enabled bool)
 	SetEpoch(epoch uint32)
 	RequestShardHeader(shardID uint32, hash []byte)
 	RequestMetaHeader(hash []byte)
@@ -1044,6 +1045,7 @@ type BlockTracker interface {
 	CheckProofAgainstFinal(proof data.HeaderProofHandler) error
 	CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
+	SetSettledNonceProvider(func() uint64)
 	CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)

@@ -3052,3 +3052,69 @@ func TestValidatorStatistics_SearchInMap(t *testing.T) {
 		require.Nil(t, retHeader)
 	})
 }
+
+func TestValidatorStatistics_UpdateValidatorInfoOnSuccessfulBlock_InvalidBitmapLength(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArguments()
+	vs, err := peer.NewValidatorStatisticsProcessor(args)
+	require.Nil(t, err)
+
+	val1 := shardingMocks.NewValidatorMock([]byte("val1"), 1, 1)
+	val2 := shardingMocks.NewValidatorMock([]byte("val2"), 1, 1)
+	valList := []nodesCoordinator.Validator{val1, val2}
+
+	// 1. Empty or nil bitmap returns ErrNilPubKeysBitmap
+	err = peer.UpdateValidatorInfoOnSuccessfulBlock(
+		vs,
+		val1,
+		valList,
+		nil,
+		big.NewInt(0),
+		0,
+		0,
+	)
+	require.Equal(t, process.ErrNilPubKeysBitmap, err)
+
+	err = peer.UpdateValidatorInfoOnSuccessfulBlock(
+		vs,
+		val1,
+		valList,
+		[]byte{},
+		big.NewInt(0),
+		0,
+		0,
+	)
+	require.Equal(t, process.ErrNilPubKeysBitmap, err)
+
+	// 2. Undersized bitmap returns ErrInvalidPubKeysBitmap (avoids OOB panic when len(signingBitmap)*8 < len(valList))
+	valList9 := make([]nodesCoordinator.Validator, 9)
+	for i := 0; i < 9; i++ {
+		valList9[i] = shardingMocks.NewValidatorMock([]byte(fmt.Sprintf("val_%d", i)), 1, 1)
+	}
+	bitmap1Byte := []byte{0xFF} // only 8 bits for 9 validators
+
+	err = peer.UpdateValidatorInfoOnSuccessfulBlock(
+		vs,
+		valList9[0],
+		valList9,
+		bitmap1Byte,
+		big.NewInt(0),
+		0,
+		0,
+	)
+	require.Equal(t, process.ErrInvalidPubKeysBitmap, err)
+
+	// 3. Sufficiently sized bitmap (2 bytes = 16 bits >= 9 validators) does not return ErrInvalidPubKeysBitmap
+	bitmap2Bytes := []byte{0xFF, 0x01}
+	err = peer.UpdateValidatorInfoOnSuccessfulBlock(
+		vs,
+		valList9[0],
+		valList9,
+		bitmap2Bytes,
+		big.NewInt(0),
+		0,
+		0,
+	)
+	require.NoError(t, err)
+}

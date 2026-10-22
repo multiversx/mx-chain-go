@@ -53,6 +53,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	ProofsPool                              dataRetriever.ProofsPool
 	HeadersPool                             dataRetriever.HeadersPool
 	ProofsInterceptorProcessor              process.InterceptorProcessor
+	RoundExclusions                         common.RoundExclusionHandler
 	PeerAuthCacher                          storage.Cacher
 	PeerAuthenticationTimeBetweenSendsInSec int64
 }
@@ -80,6 +81,9 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	if check.IfNil(args.ProofsInterceptorProcessor) {
 		return nil, epochStart.ErrNilEquivalentProofsProcessor
 	}
+	if check.IfNil(args.RoundExclusions) {
+		return nil, common.ErrNilRoundExclusionHandler
+	}
 
 	e := &epochStartMetaSyncer{
 		requestHandler:                 args.RequestHandler,
@@ -103,6 +107,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		ArgsParser:                              args.ArgsParser,
 		PeerAuthCacher:                          args.PeerAuthCacher,
 		PeerAuthenticationTimeBetweenSendsInSec: args.PeerAuthenticationTimeBetweenSendsInSec,
+		RoundExclusions:                         args.RoundExclusions,
 	}
 	argsInterceptedMetaHeaderFactory := interceptorsFactory.ArgInterceptedMetaHeaderFactory{
 		ArgInterceptedDataFactory: argsInterceptedDataFactory,

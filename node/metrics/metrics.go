@@ -82,6 +82,7 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetStringValue(common.MetricInflation, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, initZeroString)
 	appStatusHandler.SetStringValue(common.MetricTotalFees, initZeroString)
+	appStatusHandler.SetUInt64Value(common.MetricTxPoolLoad, initUint)
 
 	return nil
 }
@@ -220,6 +221,8 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricTailInflationEnableEpoch, uint64(economicsConfig.GlobalSettings.TailInflation.EnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricSupernovaEnableEpoch, uint64(enableEpochs.SupernovaEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricFixEpochChangeProposedCurrentEpochEnableEpoch, uint64(enableEpochs.FixEpochChangeProposedCurrentEpochEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricFixCorrectSmallIntAndGasLimitsEnableEpoch, uint64(enableEpochs.FixCorrectSmallIntAndGasLimitsEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricOutputRollbackOnDestContextEnableEpoch, uint64(enableEpochs.OutputRollbackOnDestContextEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriod, systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriod)
 	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriodSupernova, systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriodSupernova)
 	appStatusHandler.SetUInt64Value(common.MetricUnBondPeriodInEpochs, uint64(systemSmartContractsConfig.StakingSystemSCConfig.UnBondPeriodInEpochs))

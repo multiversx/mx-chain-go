@@ -833,6 +833,12 @@ const (
 	// MetricAttributeExtraGasUsageEnableEpoch represents the epoch when attributes are using extra gas usage fees
 	MetricAttributeExtraGasUsageEnableEpoch = "erd_attribute_extra_gasusage_enable_epoch"
 
+	// MetricFixCorrectSmallIntAndGasLimitsEnableEpoch represents the epoch when the fix for signed small int encoding and gas loopholes is enabled
+	MetricFixCorrectSmallIntAndGasLimitsEnableEpoch = "erd_fix_correct_small_int_and_gas_limits_enable_epoch"
+
+	// MetricOutputRollbackOnDestContextEnableEpoch represents the epoch when output state rollback on failed destination context calls is enabled
+	MetricOutputRollbackOnDestContextEnableEpoch = "erd_output_rollback_on_dest_context_enable_epoch"
+
 	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
 	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
 
@@ -1349,6 +1355,7 @@ const (
 	SupernovaFlag                                       core.EnableEpochFlag = "SupernovaFlag"
 	FixEmptyValidatorRegistrationFlag                   core.EnableEpochFlag = "FixEmptyValidatorRegistrationFlag"
 	FixEpochChangeProposedCurrentEpochFlag              core.EnableEpochFlag = "FixEpochChangeProposedCurrentEpochFlag"
+	FixDataTrieLeafValidationFlag                       core.EnableEpochFlag = "FixDataTrieLeafValidationFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
 	MaskInternalDependenciesErrorsFlag                  core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
 	FixBackTransferOPCODEFlag                           core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
@@ -1360,6 +1367,9 @@ const (
 	FullShardDataValidationFlag                         core.EnableEpochFlag = "FullShardDataValidationFlag"
 	ConsumedGasInEconomicsFlag                          core.EnableEpochFlag = "ConsumedGasInEconomicsFlag"
 	AttributeExtraGasUsageFlag                          core.EnableEpochFlag = "AttributeExtraGasUsageFlag"
+	FixCorrectSmallIntAndGasLimitsFlag                  core.EnableEpochFlag = "FixCorrectSmallIntAndGasLimitsFlag"
+	OutputRollbackOnDestContextFlag                     core.EnableEpochFlag = "OutputRollbackOnDestContextFlag"
+	KeepReturnDataOnAsyncTransferCallbackFlag           core.EnableEpochFlag = "KeepReturnDataOnAsyncTransferCallbackFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
 

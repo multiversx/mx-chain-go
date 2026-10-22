@@ -128,6 +128,7 @@ type EnableEpochs struct {
 	AndromedaEnableEpoch                                     uint32
 	SupernovaEnableEpoch                                     uint32
 	FixEpochChangeProposedCurrentEpochEnableEpoch            uint32
+	FixDataTrieLeafValidationEnableEpoch                     uint32
 	CheckBuiltInCallOnTransferValueAndFailEnableRound        uint32
 	MaskVMInternalDependenciesErrorsEnableEpoch              uint32
 	FixBackTransferOPCODEEnableEpoch                         uint32
@@ -139,6 +140,9 @@ type EnableEpochs struct {
 	FullShardDataValidationEnableEpoch                       uint32
 	ConsumedGasInEconomicsFixEnableEpoch                     uint32
 	AttributeExtraGasUsageEnableEpoch                        uint32
+	FixCorrectSmallIntAndGasLimitsEnableEpoch                uint32
+	OutputRollbackOnDestContextEnableEpoch                   uint32
+	KeepReturnDataOnAsyncTransferCallbackEnableEpoch         uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

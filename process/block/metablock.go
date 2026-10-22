@@ -372,6 +372,7 @@ func (mp *metaProcessor) updateMetrics(header data.MetaHeaderHandler) {
 		mp.appStatusHandler,
 		numShardHeadersFromPool,
 		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
+		uint64(txCounts.GetTotal()),
 	)
 }
 
@@ -2460,9 +2461,9 @@ func (mp *metaProcessor) buildShardDataFromHeader(shardHdr data.ShardHeaderHandl
 	shardData.AccumulatedFees = shardHdr.GetAccumulatedFees()
 	shardData.DeveloperFees = shardHdr.GetDeveloperFees()
 
-	for i := 0; i < len(shardHdr.GetMiniBlockHeaderHandlers()); i++ {
+	mbHeaderHandlers := shardHdr.GetMiniBlockHeaderHandlers()
+	for _, miniBlockHeader := range mbHeaderHandlers {
 		if mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
-			miniBlockHeader := shardHdr.GetMiniBlockHeaderHandlers()[i]
 			if !miniBlockHeader.IsFinal() {
 				log.Debug("metaProcessor.buildShardDataFromHeader: do not create shard data with mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 				continue
@@ -2470,11 +2471,11 @@ func (mp *metaProcessor) buildShardDataFromHeader(shardHdr data.ShardHeaderHandl
 		}
 
 		shardMiniBlockHeader := block.MiniBlockHeader{}
-		shardMiniBlockHeader.SenderShardID = shardHdr.GetMiniBlockHeaderHandlers()[i].GetSenderShardID()
-		shardMiniBlockHeader.ReceiverShardID = shardHdr.GetMiniBlockHeaderHandlers()[i].GetReceiverShardID()
-		shardMiniBlockHeader.Hash = shardHdr.GetMiniBlockHeaderHandlers()[i].GetHash()
-		shardMiniBlockHeader.TxCount = shardHdr.GetMiniBlockHeaderHandlers()[i].GetTxCount()
-		shardMiniBlockHeader.Type = block.Type(shardHdr.GetMiniBlockHeaderHandlers()[i].GetTypeInt32())
+		shardMiniBlockHeader.SenderShardID = miniBlockHeader.GetSenderShardID()
+		shardMiniBlockHeader.ReceiverShardID = miniBlockHeader.GetReceiverShardID()
+		shardMiniBlockHeader.Hash = miniBlockHeader.GetHash()
+		shardMiniBlockHeader.TxCount = miniBlockHeader.GetTxCount()
+		shardMiniBlockHeader.Type = block.Type(miniBlockHeader.GetTypeInt32())
 
 		shardData.ShardMiniBlockHeaders = append(shardData.ShardMiniBlockHeaders, shardMiniBlockHeader)
 	}

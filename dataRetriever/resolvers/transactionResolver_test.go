@@ -10,7 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
@@ -231,6 +233,38 @@ func TestTxResolver_ProcessReceivedMessageFoundInTxPoolShouldSearchAndSend(t *te
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 	assert.Len(t, msgID, 0)
+}
+
+func TestTxResolver_ProcessReceivedMessageOversizedHashShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txRes, _ := resolvers.NewTxResolver(createMockArgTxResolver())
+	msgID, err := txRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashType, make([]byte, common.HashSize+1)),
+		connectedPeerId,
+		&p2pmocks.MessengerStub{},
+	)
+
+	require.ErrorIs(t, err, dataRetriever.ErrBadRequest)
+	require.Nil(t, msgID)
+}
+
+func TestTxResolver_ProcessReceivedMessageOversizedHashInArrayShouldErr(t *testing.T) {
+	t.Parallel()
+
+	marshalizer := &mock.MarshalizerMock{}
+	hashesBuff, err := marshalizer.Marshal(&batch.Batch{Data: [][]byte{make([]byte, common.HashSize+1)}})
+	require.NoError(t, err)
+
+	txRes, _ := resolvers.NewTxResolver(createMockArgTxResolver())
+	msgID, err := txRes.ProcessReceivedMessage(
+		createRequestMsg(dataRetriever.HashArrayType, hashesBuff),
+		connectedPeerId,
+		&p2pmocks.MessengerStub{},
+	)
+
+	require.ErrorIs(t, err, dataRetriever.ErrBadRequest)
+	require.Nil(t, msgID)
 }
 
 func TestTxResolver_ProcessReceivedMessageFoundInTxPoolMarshalizerFailShouldRetNilAndErr(t *testing.T) {

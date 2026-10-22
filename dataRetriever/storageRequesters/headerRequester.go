@@ -114,7 +114,6 @@ func (hdrReq *headerRequester) RequestDataFromNonce(nonce uint64, epoch uint32) 
 func (hdrReq *headerRequester) RequestDataFromEpoch(identifier []byte) error {
 	buff, err := hdrReq.resolveHeaderFromEpoch(identifier)
 	if err != nil {
-		hdrReq.signalGracefullyClose()
 		return err
 	}
 

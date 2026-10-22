@@ -1579,8 +1579,8 @@ func getNumOfCrossShardScCallsOrSpecialTxs(
 	numCrossShardScCallsOrSpecialTxs := 0
 	for _, txHash := range mb.TxHashes {
 		tx, ok := allTxs[string(txHash)]
-		if !ok {
-			log.Warn("transactionCoordinator.getNumOfCrossShardScCallsOrSpecialTxs: tx not found",
+		if !ok || check.IfNil(tx) {
+			log.Trace("transactionCoordinator.getNumOfCrossShardScCallsOrSpecialTxs: tx not found",
 				"mb type", mb.Type,
 				"senderShardID", mb.SenderShardID,
 				"receiverShardID", mb.ReceiverShardID,

@@ -33,7 +33,12 @@ func NewShardForkDetector(
 	chainParametersHandler common.ChainParametersHandler,
 	processConfigsHandler common.ProcessConfigsHandler,
 	shardID uint32,
+	roundExclusionHandlers ...common.RoundExclusionHandler,
 ) (*shardForkDetector, error) {
+	roundExclusions, err := common.ResolveRoundExclusionHandler(roundExclusionHandlers...)
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
@@ -79,6 +84,7 @@ func NewShardForkDetector(
 		chainParametersHandler: chainParametersHandler,
 		processConfigsHandler:  processConfigsHandler,
 		shardID:                shardID,
+		roundExclusions:        roundExclusions,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)
@@ -96,12 +102,25 @@ func NewShardForkDetector(
 	sfd := shardForkDetector{
 		baseForkDetector: bfd,
 	}
+	sfd.bindSettledNonceProvider()
 
 	sfd.blockTracker.RegisterSelfNotarizedFromCrossHeadersHandler(sfd.ReceivedSelfNotarizedFromCrossHeaders)
 
 	bfd.forkDetector = &sfd
 
 	return &sfd, nil
+}
+
+func (sfd *shardForkDetector) bindSettledNonceProvider() {
+	sfd.blockTracker.SetSettledNonceProvider(func() uint64 {
+		nonce, _ := sfd.GetHighestSettledBlockInfo()
+		return nonce
+	})
+}
+
+func (sfd *shardForkDetector) RestoreToGenesis() {
+	sfd.baseForkDetector.RestoreToGenesis()
+	sfd.bindSettledNonceProvider()
 }
 
 // AddHeader method adds a new header to headers map

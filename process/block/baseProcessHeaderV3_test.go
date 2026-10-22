@@ -311,8 +311,8 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			bp := getDefaultBaseProcessor()
 			bp.store = &commonStorage.ChainStorerStub{
 				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-					require.Fail(t, "should not be called")
-					return nil, nil
+					require.Equal(t, dataRetriever.ExecutionResultsUnit, unitType)
+					return &commonStorage.StorerStub{}, nil
 				},
 			}
 
@@ -687,15 +687,11 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 							cntPutCalled++
 							return nil
 						},
+						PutInEpochCalled: func(key, data []byte, epoch uint32) error {
+							cntPutCalled++
+							return nil
+						},
 					}, nil
-				},
-				PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
-					if unitType == dataRetriever.ExecutionResultsUnit {
-						cntPutCalled++
-						return nil
-					}
-
-					return nil
 				},
 			},
 			dataPool: &dataRetrieverMock.PoolsHolderStub{
@@ -931,13 +927,13 @@ func TestBaseProcessor_saveExecutionResult(t *testing.T) {
 	bp := &baseProcessor{
 		marshalizer: &marshallerMock.MarshalizerMock{},
 		store: &commonStorage.ChainStorerStub{
-			PutCalled: func(unitType dataRetriever.UnitType, key, value []byte) error {
-				if unitType == dataRetriever.ExecutionResultsUnit {
-					cntPutCalled++
-					return nil
-				}
-
-				return nil
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &commonStorage.StorerStub{
+					PutInEpochCalled: func(key, value []byte, epoch uint32) error {
+						cntPutCalled++
+						return nil
+					},
+				}, nil
 			},
 		},
 	}

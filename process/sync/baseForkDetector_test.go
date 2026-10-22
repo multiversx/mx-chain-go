@@ -271,6 +271,28 @@ func TestBasicForkDetector_CheckBlockValidityShouldErrHigherRoundInBlock(t *test
 	assert.Equal(t, sync.ErrHigherRoundInBlock, err)
 }
 
+func TestBasicForkDetector_CheckBlockValidity_OverflowRound_BUG740(t *testing.T) {
+	t.Parallel()
+
+	roundHandlerMock := &mock.RoundHandlerMock{RoundIndex: 0}
+	bfd, _ := sync.NewShardForkDetector(
+		roundHandlerMock,
+		&testscommon.TimeCacheStub{},
+		&mock.BlockTrackerMock{},
+		0,
+		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
+		&dataRetriever.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
+	)
+	// Round 1 << 63 has MSB set, previously int64(round) > nextRound evaluated to negative > positive (false)
+	err := bfd.CheckBlockValidity(&block.Header{Nonce: 1, Round: 1 << 63, PubKeysBitmap: []byte("X")}, []byte("hash"))
+	assert.Equal(t, sync.ErrHigherRoundInBlock, err)
+}
+
 func TestBasicForkDetector_CheckBlockValidityShouldErrHigherNonceInBlock(t *testing.T) {
 	t.Parallel()
 
@@ -1624,6 +1646,9 @@ func TestBasicForkDetector_SetFinalToLastCheckpointShouldWork(t *testing.T) {
 
 	assert.Equal(t, uint64(900), bfd.GetHighestFinalBlockNonce())
 	assert.Equal(t, []byte("hash"), bfd.GetHighestFinalBlockHash())
+	settledNonce, settledHash := bfd.GetHighestSettledBlockInfo()
+	assert.Equal(t, uint64(900), settledNonce)
+	assert.Equal(t, []byte("hash"), settledHash)
 }
 
 func TestBaseForkDetector_GetNotarizedHeaderHash(t *testing.T) {

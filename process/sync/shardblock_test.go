@@ -959,6 +959,23 @@ func TestShardBootstrap_StartSyncingBlocksNotifiesBootstrapCompletion(t *testing
 	}
 }
 
+func TestShardBootstrap_StartSyncingBlocksExcludedStoredTipShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.StorageBootstrapper = &mock.StorageBootstrapperMock{
+		LoadFromStorageCalled: func() error {
+			return common.ErrRoundExcluded
+		},
+	}
+	bs, err := sync.NewShardBootstrap(args)
+	require.NoError(t, err)
+
+	err = bs.StartSyncingBlocks()
+
+	require.ErrorIs(t, err, common.ErrRoundExcluded)
+}
+
 func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 	t.Parallel()
 
@@ -5309,4 +5326,61 @@ func TestShardBootstrap_GetMaxSyncWithErrorsAllowedRoundSelection(t *testing.T) 
 		_ = bs.GetMaxSyncWithErrorsAllowed(&block.Header{Round: 42})
 		require.Equal(t, uint64(42), capturedRound)
 	})
+}
+
+type mockShardHeaderWithCount struct {
+	*block.Header
+	getMiniBlocksCount *int
+}
+
+func (m *mockShardHeaderWithCount) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
+	*m.getMiniBlocksCount++
+	return m.Header.GetMiniBlockHeaderHandlers()
+}
+
+func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing_HoistedGetters_BUG729(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	bchain := initBlockchain()
+	_ = bchain.SetCurrentBlockHeader(&block.Header{Nonce: 10})
+	args.ChainHandler = bchain
+	args.ForkDetector = &mock.ForkDetectorMock{
+		ProbableHighestNonceCalled: func() uint64 {
+			return 100
+		},
+	}
+	miniblocksRequested := false
+	args.RequestHandler = &testscommon.RequestHandlerStub{
+		RequestMiniBlocksHandlerCalled: func(shardId uint32, hashes [][]byte) {
+			miniblocksRequested = true
+		},
+	}
+	args.MiniblocksProvider = &mock.MiniBlocksProviderStub{
+		GetMiniBlocksFromPoolCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
+			return nil, hashes
+		},
+	}
+
+	bs, err := sync.NewShardBootstrap(args)
+	require.Nil(t, err)
+
+	callCount := 0
+	mbHeaders := make([]block.MiniBlockHeader, 10)
+	for i := 0; i < 10; i++ {
+		mbHeaders[i] = block.MiniBlockHeader{Hash: []byte(fmt.Sprintf("hash%d", i))}
+	}
+	rawHeader := &block.Header{
+		Nonce:            11,
+		MiniBlockHeaders: mbHeaders,
+	}
+	countedHeader := &mockShardHeaderWithCount{
+		Header:             rawHeader,
+		getMiniBlocksCount: &callCount,
+	}
+
+	bs.RequestMiniBlocksFromHeaderWithNonceIfMissing(countedHeader)
+
+	require.True(t, miniblocksRequested)
+	require.Equal(t, 1, callCount, "GetMiniBlockHeaderHandlers must be hoisted and called exactly once")
 }

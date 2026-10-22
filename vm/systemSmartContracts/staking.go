@@ -729,6 +729,13 @@ func (s *stakingSC) unBond(args *vmcommon.ContractCallInput) vmcommon.ReturnCode
 		return vmcommon.UserError
 	}
 
+	if s.enableEpochsHandler.IsFlagEnabled(common.FixCorrectSmallIntAndGasLimitsFlag) {
+		if registrationData.UnStakedNonce == 0 {
+			s.eei.AddReturnMessage(fmt.Sprintf("cannot unBond key %s which was never unStaked", encodedBlsKey))
+			return vmcommon.UserError
+		}
+	}
+
 	currentNonce := s.eei.BlockChainHook().CurrentNonce()
 	if registrationData.UnStakedNonce > 0 && currentNonce-registrationData.UnStakedNonce < s.getUnBondPeriod() {
 		s.eei.AddReturnMessage(fmt.Sprintf("unBond is not possible for key %s because unBond period did not pass", encodedBlsKey))

@@ -413,6 +413,10 @@ func (ps *PruningStorer) doPutInPersister(key, data []byte, persister storage.Pe
 
 // PutInEpoch adds data to specified epoch
 func (ps *PruningStorer) PutInEpoch(key, data []byte, epoch uint32) error {
+	if !ps.pruningEnabled {
+		return ps.Put(key, data)
+	}
+
 	ps.cacher.Put(key, data, len(data))
 
 	ps.lock.RLock()
@@ -738,6 +742,22 @@ func (ps *PruningStorer) Remove(key []byte) error {
 	}
 
 	return err
+}
+
+// RemoveFromAllActiveEpochs removes a key from every active persister.
+func (ps *PruningStorer) RemoveFromAllActiveEpochs(key []byte) error {
+	ps.cacher.Remove(key)
+
+	ps.lock.RLock()
+	defer ps.lock.RUnlock()
+	for _, pd := range ps.activePersisters {
+		ps.stateStatsHandler.IncrWritePersister(pd.epoch)
+		if err := pd.getPersister().Remove(key); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ClearCache cleans up the entire cache

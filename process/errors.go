@@ -92,6 +92,9 @@ var ErrNilTxHash = errors.New("nil transaction hash")
 // ErrNilPubKeysBitmap signals that an operation has been attempted with a nil public keys bitmap
 var ErrNilPubKeysBitmap = errors.New("nil public keys bitmap")
 
+// ErrInvalidPubKeysBitmap signals that an invalid public keys bitmap was provided
+var ErrInvalidPubKeysBitmap = errors.New("invalid public keys bitmap")
+
 // ErrNilPreviousBlockHash signals that an operation has been attempted with a nil previous block header hash
 var ErrNilPreviousBlockHash = errors.New("nil previous block header hash")
 
@@ -494,6 +497,9 @@ var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshInterv
 
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
+
+// ErrEpochStartPending signals that the local epoch trigger is not ready yet.
+var ErrEpochStartPending = errors.New("epoch start pending")
 
 // ErrInvalidTimestamp signals that the header timestamp does not match the expected value for the round
 var ErrInvalidTimestamp = errors.New("invalid timestamp")
