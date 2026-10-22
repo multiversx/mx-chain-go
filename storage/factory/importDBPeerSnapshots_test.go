@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"os"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -103,4 +104,40 @@ func TestImportDBPeerFactoryRejectsIncompatibleSettings(t *testing.T) {
 			require.ErrorIs(t, err, storage.ErrInvalidConfig)
 		})
 	}
+}
+
+func TestImportDBPeerFactoryBoundsBootstrapEpochScan(t *testing.T) {
+	args := importPeerFactoryArgs(t)
+	args.CurrentEpoch = 12
+	args.Config.DbLookupExtensions.Enabled = false
+	args.Config.StoragePruning.NumActivePersisters = 4
+	args.Config.StoragePruning.NumEpochsToKeep = 4
+	args.Config.PeerAccountsTrieStorage.DB.Type = "LvlDBSerial"
+	args.Config.PeerAccountsTrieStorage.DB.ShardIDProviderType = "BinarySplit"
+	args.Config.PeerAccountsTrieStorage.DB.NumShards = 4
+	args.Config.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval = 0
+	factory, err := NewStorageServiceFactory(args)
+	require.NoError(t, err)
+	disk, err := factory.createPeerTrieStorer(disabled.NewDisabledCustomDatabaseRemover())
+	require.NoError(t, err)
+	require.NoError(t, disk.PutInEpoch([]byte("current-root"), []byte("current-value"), 12))
+	require.NoError(t, disk.PutInEpoch([]byte("older-node"), []byte("older-value"), 10))
+	require.NoError(t, disk.Close())
+	untouched := args.PathManager.PathForEpoch(core.GetShardIDString(core.MetachainShardId), 8, args.Config.PeerAccountsTrieStorage.DB.FilePath)
+	_, err = os.Stat(untouched)
+	require.ErrorIs(t, err, os.ErrNotExist)
+	args.Config.PeerAccountsTrieStorage.DB.Type = "MemoryDB"
+	args.Config.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval = 200
+	factory, err = NewStorageServiceFactory(args)
+	require.NoError(t, err)
+	memory, err := factory.createPeerTrieStorer(disabled.NewDisabledCustomDatabaseRemover())
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, memory.Close()) })
+	for key, expected := range map[string]string{"current-root": "current-value", "older-node": "older-value"} {
+		value, readErr := memory.Get([]byte(key))
+		require.NoError(t, readErr)
+		require.Equal(t, expected, string(value))
+	}
+	_, err = os.Stat(untouched)
+	require.ErrorIs(t, err, os.ErrNotExist, "startup must not create historical peer DBs outside the configured window")
 }

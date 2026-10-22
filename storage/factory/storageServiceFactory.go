@@ -486,7 +486,8 @@ func (psf *StorageServiceFactory) createPeerTrieStorer(remover storage.CustomDat
 	}
 	// This temporary source must never follow replay's epoch notifications.
 	args.Notifier = notifier.NewManualEpochStartNotifier()
-	args.PersistersTracker = pruning.NewTriePersisterTracker(args.EpochsData)
+	// Keep the bounded import-db tracker from createPruningStorerArgs.
+	// Sliced checkpoints may lack the markers needed to stop a trie tracker.
 	log.Debug("import-db peer opening startup disk source", "path", args.DbPath, "epoch", psf.currentEpoch)
 	disk, err := psf.createTriePruningPersister(args)
 	if err != nil {
