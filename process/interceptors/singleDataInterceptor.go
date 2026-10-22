@@ -108,6 +108,16 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	sdi.receivedDebugInterceptedData(interceptedData)
 	messageID := interceptedData.Hash()
+	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
+	isWhiteListed := sdi.whiteListRequest.IsWhiteListed(interceptedData)
+	if !isWhiteListed && errOriginator != nil {
+		log.Trace("got message from peer on topic only for validators",
+			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",
+			sdi.topic, "err", errOriginator)
+		sdi.throttler.EndProcessing()
+		return nil, errOriginator
+	}
+
 	isInterceptedEquivalentProof := strings.HasPrefix(message.Topic(), common.EquivalentProofsTopic)
 	isMessageFromSelfOriginator := sdi.isMessageFromSelfOriginator(message)
 	isMessageFromSelfToSelf := sdi.isMessageFromSelfToSelf(fromConnectedPeer, message)
@@ -117,6 +127,10 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		if err != nil {
 			sdi.throttler.EndProcessing()
 			sdi.processDebugInterceptedData(interceptedData, err)
+			if errors.Is(err, common.ErrAlreadyExistingEquivalentProof) ||
+				errors.Is(err, process.ErrDuplicatedInterceptedDataNotAllowed) {
+				return messageID, p2p.ErrMessageShouldBeIgnored
+			}
 
 			isWrongVersion := errors.Is(err, process.ErrInvalidTransactionVersion) || errors.Is(err, process.ErrInvalidChainID)
 			if isWrongVersion {
@@ -132,19 +146,8 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.interceptedDataVerifier.MarkVerified(interceptedData, message.BroadcastMethod())
 	}
 
-	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
-	isWhiteListed := sdi.whiteListRequest.IsWhiteListed(interceptedData)
-	if !isWhiteListed && errOriginator != nil {
-		log.Trace("got message from peer on topic only for validators",
-			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",
-			sdi.topic, "err", errOriginator)
-		sdi.throttler.EndProcessing()
-		return nil, errOriginator
-	}
-
 	isForCurrentShard := interceptedData.IsForCurrentShard()
-	shouldProcess := isForCurrentShard || isWhiteListed
-	if !shouldProcess {
+	if !isForCurrentShard {
 		sdi.throttler.EndProcessing()
 		log.Trace("intercepted data is for other shards",
 			"pid", p2p.MessageOriginatorPid(message),
@@ -152,10 +155,9 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 			"topic", message.Topic(),
 			"hash", interceptedData.Hash(),
 			"is for current shard", isForCurrentShard,
-			"is white listed", isWhiteListed,
 		)
 
-		return messageID, nil
+		return messageID, process.ErrInterceptedDataNotForCurrentShard
 	}
 
 	go func() {

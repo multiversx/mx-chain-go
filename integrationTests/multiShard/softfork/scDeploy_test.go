@@ -41,6 +41,7 @@ func TestScDeploy(t *testing.T) {
 	enableEpochs.StakingV4Step2EnableEpoch = integrationTests.StakingV4Step2EnableEpoch
 	enableEpochs.StakingV4Step3EnableEpoch = integrationTests.StakingV4Step3EnableEpoch
 	enableEpochs.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochs.AndromedaEnableEpoch = integrationTests.UnreachableEpoch
 
 	shardNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,

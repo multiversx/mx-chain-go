@@ -134,7 +134,19 @@ func (wrk *Worker) ReceivedMessages() map[consensus.MessageType][]*consensus.Mes
 	wrk.mutReceivedMessages.RLock()
 	defer wrk.mutReceivedMessages.RUnlock()
 
-	return wrk.receivedMessages
+	snapshot := make(map[consensus.MessageType][]*consensus.Message, len(wrk.receivedMessages))
+	for msgType, messages := range wrk.receivedMessages {
+		if messages == nil {
+			snapshot[msgType] = nil
+			continue
+		}
+
+		messagesCopy := make([]*consensus.Message, len(messages))
+		copy(messagesCopy, messages)
+		snapshot[msgType] = messagesCopy
+	}
+
+	return snapshot
 }
 
 // SetReceivedMessages -
@@ -184,6 +196,11 @@ func (wrk *Worker) Hasher() data.Hasher {
 // SetEnableEpochsHandler
 func (wrk *Worker) SetEnableEpochsHandler(enableEpochsHandler common.EnableEpochsHandler) {
 	wrk.enableEpochsHandler = enableEpochsHandler
+}
+
+// AddBlockToPool -
+func (wrk *Worker) AddBlockToPool(bodyBytes []byte) {
+	_ = wrk.addBlockToPool(bodyBytes)
 }
 
 // AddFutureHeaderToProcessIfNeeded -

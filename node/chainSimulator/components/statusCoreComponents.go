@@ -27,12 +27,13 @@ func CreateStatusCoreComponents(configs config.Configs, coreComponents factory.C
 	var err error
 
 	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(statusCore.StatusCoreComponentsFactoryArgs{
-		Config:          *configs.GeneralConfig,
-		EpochConfig:     *configs.EpochConfig,
-		RoundConfig:     *configs.RoundConfig,
-		RatingsConfig:   *configs.RatingsConfig,
-		EconomicsConfig: *configs.EconomicsConfig,
-		CoreComp:        coreComponents,
+		Config:                     *configs.GeneralConfig,
+		EpochConfig:                *configs.EpochConfig,
+		RoundConfig:                *configs.RoundConfig,
+		RatingsConfig:              *configs.RatingsConfig,
+		EconomicsConfig:            *configs.EconomicsConfig,
+		SystemSmartContractsConfig: *configs.SystemSCConfig,
+		CoreComp:                   coreComponents,
 	})
 	if err != nil {
 		return nil, err

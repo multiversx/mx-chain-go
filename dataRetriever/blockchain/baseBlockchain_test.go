@@ -109,7 +109,7 @@ func TestBaseBlockchain_SetAndGetLastExecutedBlockHeaderAndRootHash(t *testing.T
 	})
 }
 
-func TestBaseBlockchain_SetAndGetLastExecutionResult(t *testing.T) {
+func TestBaseBlockchain_SetAndGetLastExecutionInfo(t *testing.T) {
 	t.Parallel()
 
 	base := &baseBlockChain{
@@ -122,6 +122,10 @@ func TestBaseBlockchain_SetAndGetLastExecutionResult(t *testing.T) {
 	hash := []byte("hash")
 	rootHash := []byte("root-hash")
 
+	header1 := &block.HeaderV3{
+		Nonce: nonce,
+	}
+
 	execResult := &block.ExecutionResult{
 		BaseExecutionResult: &block.BaseExecutionResult{
 			RootHash:    rootHash,
@@ -130,11 +134,13 @@ func TestBaseBlockchain_SetAndGetLastExecutionResult(t *testing.T) {
 		},
 	}
 
-	base.SetLastExecutionResult(execResult)
+	base.SetLastExecutionInfo(header1, execResult)
 
 	retExecResult := base.GetLastExecutionResult()
-
 	require.Equal(t, execResult, retExecResult)
+
+	retLastExecHeader := base.GetLastExecutedBlockHeader()
+	require.Equal(t, header1, retLastExecHeader)
 }
 
 func TestBaseBlockchain_Concurrency(t *testing.T) {
@@ -181,7 +187,7 @@ func TestBaseBlockchain_Concurrency(t *testing.T) {
 			case 9:
 				bc.SetGenesisHeaderHash(headerHash)
 			case 10:
-				bc.SetLastExecutionResult(execResult)
+				bc.SetLastExecutionInfo(header, execResult)
 			case 11:
 				_ = bc.GetLastExecutionResult()
 			default:
@@ -213,7 +219,8 @@ func TestBaseBlockchain_setMetrics(t *testing.T) {
 
 		require.Equal(t, header.Nonce, handler.GetUint64(common.MetricNonce))
 		require.Equal(t, header.Round, handler.GetUint64(common.MetricSynchronizedRound))
-		require.Equal(t, header.TimeStamp, handler.GetUint64(common.MetricBlockTimestampMs))
+		require.Equal(t, header.TimeStamp, handler.GetUint64(common.MetricBlockTimestamp))
+		require.Equal(t, common.ConvertTimeStampSecToMs(header.TimeStamp), handler.GetUint64(common.MetricBlockTimestampMs))
 	})
 
 	t.Run("set metrics header v3", func(t *testing.T) {
@@ -237,6 +244,7 @@ func TestBaseBlockchain_setMetrics(t *testing.T) {
 
 		require.Equal(t, uint64(9), handler.GetUint64(common.MetricNonce))
 		require.Equal(t, header.Round, handler.GetUint64(common.MetricSynchronizedRound))
+		require.Equal(t, common.ConvertTimeStampMsToSec(header.TimestampMs), handler.GetUint64(common.MetricBlockTimestamp))
 		require.Equal(t, header.TimestampMs, handler.GetUint64(common.MetricBlockTimestampMs))
 	})
 }

@@ -111,7 +111,11 @@ func (cache *DisabledCache) UnRegisterHandler(string) {
 }
 
 // ImmunizeTxsAgainstEviction does nothing
-func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
+func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte, _ uint64) {
+}
+
+// SetOldestImmuneNonce does nothing
+func (cache *DisabledCache) SetOldestImmuneNonce(_ uint64) {
 }
 
 // Diagnose does nothing

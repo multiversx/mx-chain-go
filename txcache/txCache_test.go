@@ -13,8 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
+
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/types"
 	"github.com/stretchr/testify/require"
@@ -33,7 +35,7 @@ func Test_NewTxCache(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	cache, err := NewTxCache(config, host, 0)
 	require.Nil(t, err)
@@ -143,7 +145,7 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 
 		cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
 
-		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 				return 1, big.NewInt(3 * 1500000 * oneBillion), true, nil
 			},
@@ -177,7 +179,6 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 		)
 		require.Nil(t, err)
 
-		// TODO analyze if this behaviour is ok. Even if the limit of txs per sender is exceeded, no tx is removed because the specific nonce is tracked.
 		cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3).withGasLimit(1500000))
 		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3", "tx-alice-4"}, cache.getHashesForSender("alice"))
 		require.True(t, cache.areInternalMapsConsistent())
@@ -394,7 +395,7 @@ func Test_Keys(t *testing.T) {
 }
 
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	t.Run("numSenders = 11, numTransactions = 10, countThreshold = 100, numItemsToPreemptivelyEvict = 1", func(t *testing.T) {
 		config := ConfigSourceMe{
@@ -572,7 +573,7 @@ func TestTxCache_GetDimensionOfTrackedBlocks(t *testing.T) {
 	require.Nil(t, err)
 	txCache.tracker = tracker
 
-	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+	accountsProvider := mempool.NewAccountNonceAndBalanceProviderMock()
 
 	err = txCache.OnProposedBlock(
 		[]byte("hash1"),
@@ -661,7 +662,7 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	sw := core.NewStopWatch()
 
@@ -746,7 +747,7 @@ func TestBenchmarkTxCache_addManyTransactionsInDifferentScenarios(t *testing.T) 
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	sw := core.NewStopWatch()
 
 	t.Run("numTransactions = 5_000 with decreasing nonce (worst case)", func(t *testing.T) {
@@ -825,7 +826,7 @@ func TestBenchmarkTxCache_addManyTransactionsInDifferentScenarios(t *testing.T) 
 func Test_ResetTracker(t *testing.T) {
 	t.Parallel()
 
-	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+	accountsProvider := &mempool.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 11, big.NewInt(6 * 100000 * oneBillion), true, nil
 		},
@@ -843,7 +844,7 @@ func Test_ResetTracker(t *testing.T) {
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	cache, err := NewTxCache(config, host, 0)
 	require.Nil(t, err)
@@ -891,7 +892,7 @@ func Test_ResetTracker(t *testing.T) {
 }
 
 func newUnconstrainedCacheToTest(boundsConfig config.TxCacheBoundsConfig) *TxCache {
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                        "test",
@@ -912,7 +913,7 @@ func newUnconstrainedCacheToTest(boundsConfig config.TxCacheBoundsConfig) *TxCac
 }
 
 func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold uint32) *TxCache {
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                        "test",

@@ -8,10 +8,11 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("integrationtests")
@@ -74,12 +75,16 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	configs.ImportDbConfig = &config.ImportDbConfig{}
 	configs.NodesConfig = &nodesConfig
 
-	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch = computeChainParameters(uint32(len(configs.NodesConfig.InitialNodes)), configs.GeneralConfig.GeneralSettings.GenesisMaxNumberOfShards)
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch = computeChainParameters(
+		uint32(len(configs.NodesConfig.InitialNodes)),
+		configs.GeneralConfig.GeneralSettings.GenesisMaxNumberOfShards,
+		configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch,
+	)
 
 	return configs
 }
 
-func computeChainParameters(numInitialNodes uint32, numShardsWithoutMeta uint32) []config.ChainParametersByEpochConfig {
+func computeChainParameters(numInitialNodes uint32, numShardsWithoutMeta uint32, supernovaEpoch uint32) []config.ChainParametersByEpochConfig {
 	numShardsWithMeta := numShardsWithoutMeta + 1
 	nodesPerShards := numInitialNodes / numShardsWithMeta
 	shardCnsGroupSize := nodesPerShards
@@ -87,17 +92,24 @@ func computeChainParameters(numInitialNodes uint32, numShardsWithoutMeta uint32)
 		shardCnsGroupSize--
 	}
 	diff := numInitialNodes - nodesPerShards*numShardsWithMeta
-	return []config.ChainParametersByEpochConfig{
-		{
-			ShardConsensusGroupSize:     shardCnsGroupSize,
-			ShardMinNumNodes:            nodesPerShards,
-			MetachainConsensusGroupSize: nodesPerShards,
-			MetachainMinNumNodes:        nodesPerShards + diff,
-			RoundDuration:               2000,
-			RoundsPerEpoch:              200,
-			MinRoundsBetweenEpochs:      20,
-		},
+	baseParameters := config.ChainParametersByEpochConfig{
+		EnableEpoch:                 0,
+		ShardConsensusGroupSize:     shardCnsGroupSize,
+		ShardMinNumNodes:            nodesPerShards,
+		MetachainConsensusGroupSize: nodesPerShards,
+		MetachainMinNumNodes:        nodesPerShards + diff,
+		RoundDuration:               2000,
+		RoundsPerEpoch:              200,
+		MinRoundsBetweenEpochs:      20,
 	}
+	if supernovaEpoch == 0 {
+		return []config.ChainParametersByEpochConfig{baseParameters}
+	}
+
+	supernovaParameters := baseParameters
+	supernovaParameters.EnableEpoch = supernovaEpoch
+
+	return []config.ChainParametersByEpochConfig{baseParameters, supernovaParameters}
 }
 
 func createConfigurationsPathsHolder() *config.ConfigurationPathsHolder {

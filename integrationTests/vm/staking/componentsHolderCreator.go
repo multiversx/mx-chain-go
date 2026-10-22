@@ -76,6 +76,7 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		GovernanceEnableEpoch:              integrationTests.UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		AndromedaEnableEpoch:               integrationTests.UnreachableEpoch,
+		SupernovaEnableEpoch:               integrationTests.UnreachableEpoch,
 	}
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, epochNotifier)
@@ -186,7 +187,7 @@ func getNewTrieStorageManagerArgs(coreComponents factory.CoreComponentsHolder) t
 		MainStorer:     testscommon.CreateMemUnit(),
 		Marshalizer:    coreComponents.InternalMarshalizer(),
 		Hasher:         coreComponents.Hasher(),
-		GeneralConfig:  config.TrieStorageManagerConfig{SnapshotsGoroutineNum: 1},
+		GeneralConfig:  config.TrieStorageManagerConfig{SnapshotsGoroutinesPerCore: 1},
 		IdleProvider:   &testscommon.ProcessStatusHandlerStub{},
 		Identifier:     "id",
 		StatsCollector: disabled.NewStateStatistics(),

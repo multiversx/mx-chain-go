@@ -31,6 +31,15 @@ func (tdt *trackableDataTrie) GetValueForVersion(key []byte, val []byte, version
 	return valWithMetadata
 }
 
+// SetDirtyData -
+func (tdt *trackableDataTrie) SetDirtyData(index int, key string, value []byte, newVersion core.TrieNodeVersion) {
+	tdt.dirtyData[key] = dirtyData{
+		index:      index,
+		value:      value,
+		newVersion: newVersion,
+	}
+}
+
 // LoadTrie -
 func (tdt *trackableDataTrie) LoadTrie() error {
 	return tdt.loadTrie()

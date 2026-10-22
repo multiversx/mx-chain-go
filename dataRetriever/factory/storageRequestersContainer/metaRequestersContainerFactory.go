@@ -83,6 +83,11 @@ func (mrcf *metaRequestersContainerFactory) Create() (dataRetriever.RequestersCo
 	return mrcf.container, nil
 }
 
+// AddShardTrieNodeRequesters returns nil
+func (mrcf *metaRequestersContainerFactory) AddShardTrieNodeRequesters(_ dataRetriever.RequestersContainer) error {
+	return nil
+}
+
 func (mrcf *metaRequestersContainerFactory) generateShardHeaderRequesters() error {
 	shardC := mrcf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()

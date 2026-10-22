@@ -22,8 +22,7 @@ const maxAllowedSizeInBytes = uint32(core.MegabyteSize * 95 / 100)
 // subroundBlock defines the data needed by the subround Block
 type subroundBlock struct {
 	*spos.Subround
-
-	processingThresholdPercentage int
+	roundExclusions common.RoundExclusionHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -31,15 +30,22 @@ func NewSubroundBlock(
 	baseSubround *spos.Subround,
 	extend func(subroundId int),
 	processingThresholdPercentage int,
+	roundExclusionHandlers ...common.RoundExclusionHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
 		return nil, err
 	}
+	roundExclusions, err := common.ResolveRoundExclusionHandler(roundExclusionHandlers...)
+	if err != nil {
+		return nil, err
+	}
+
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
 
 	srBlock := subroundBlock{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
+		Subround:        baseSubround,
+		roundExclusions: roundExclusions,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -67,6 +73,11 @@ func checkNewSubroundBlockParams(
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
+	round := sr.RoundHandler().Index()
+	if round < 0 || sr.roundExclusions.IsRoundExcluded(uint64(round)) {
+		return false
+	}
+
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
@@ -230,6 +241,8 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 	sr.SetBody(bodyHandler)
 	sr.SetHeader(headerHandler)
 
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(headerHandler, "sent", "v1", sr.CommonConfigsHandler())
 	return true
 }
 
@@ -422,6 +435,9 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	}
 
 	header := sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
+	if !check.IfNil(header) && common.IsHeaderExcluded(sr.roundExclusions, header.GetRound(), header.GetShardID(), cnsDta.BlockHeaderHash) {
+		return false
+	}
 	if sr.isFlagActiveForHeader(header) {
 		return false
 	}
@@ -448,6 +464,9 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
+
+	// log the header output for debugging purposes
+	common.LogPrettifiedHeader(sr.GetHeader(), "received", "v1", sr.CommonConfigsHandler())
 
 	return blockProcessedWithSuccess
 }
@@ -607,7 +626,7 @@ func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *conse
 	node := string(cnsDta.PubKey)
 
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	remainingTimeInCurrentRound := func() time.Duration {
 		return sr.RoundHandler().RemainingTime(startTime, maxTime)
 	}

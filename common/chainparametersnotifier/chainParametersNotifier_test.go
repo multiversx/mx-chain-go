@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 func TestNewChainParametersNotifier(t *testing.T) {
@@ -112,12 +113,15 @@ func TestChainParametersNotifier_ConcurrentOperations(t *testing.T) {
 }
 
 type dummyNotifee struct {
-	receivedChainParameters config.ChainParametersByEpochConfig
+	receivedChainParameters    config.ChainParametersByEpochConfig
+	mutReceivedChainParameters sync.RWMutex
 }
 
 // ChainParametersChanged -
 func (dn *dummyNotifee) ChainParametersChanged(chainParameters config.ChainParametersByEpochConfig) {
+	dn.mutReceivedChainParameters.Lock()
 	dn.receivedChainParameters = chainParameters
+	dn.mutReceivedChainParameters.Unlock()
 }
 
 // IsInterfaceNil -

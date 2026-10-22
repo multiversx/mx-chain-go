@@ -1,6 +1,7 @@
 package v1_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -360,7 +361,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 	err := errors.New("create signature share error")
 	signingHandler := &consensusMocks.SigningHandlerStub{
-		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+		CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return nil, err
 		},
 	}
@@ -370,7 +371,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	assert.False(t, r)
 
 	signingHandler = &consensusMocks.SigningHandlerStub{
-		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+		CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return []byte("SIG"), nil
 		},
 	}
@@ -441,7 +442,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 
 	err := errors.New("create signature share error")
 	signingHandler := &consensusMocks.SigningHandlerStub{
-		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+		CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return nil, err
 		},
 	}
@@ -451,7 +452,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 	assert.False(t, r)
 
 	signingHandler = &consensusMocks.SigningHandlerStub{
-		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
+		CreateSignatureShareForPublicKeyCalled: func(_ context.Context, msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 			return []byte("SIG"), nil
 		},
 	}

@@ -42,6 +42,7 @@ type BufferedErrChan interface {
 // Trie is an interface for Merkle Trees implementations
 type Trie interface {
 	Get(key []byte) ([]byte, uint32, error)
+	GetWithVersion(key []byte) (value []byte, depth uint32, version uint32, err error)
 	Update(key, value []byte) error
 	Delete(key []byte) error
 	RootHash() ([]byte, error)
@@ -265,6 +266,14 @@ type ProcessStatusHandler interface {
 	SetBusy(reason string)
 	TrySetBusy(reason string) bool
 	SetIdle()
+	// BlockBackgroundJobs marks latency critical work that background jobs must yield to, without
+	// claiming the block processing exclusion, so the spans may overlap and are reference counted
+	BlockBackgroundJobs(reason string)
+	UnblockBackgroundJobs()
+	// SuspendBackgroundJobBlocking makes IsIdle ignore active blockers: for a caller that waits on a
+	// background job while itself holding a blocker, which would otherwise deadlock the wait
+	SuspendBackgroundJobBlocking(reason string)
+	ResumeBackgroundJobBlocking()
 	IsIdle() bool
 	IsInterfaceNil() bool
 }
@@ -504,6 +513,9 @@ type ProcessConfigsHandler interface {
 	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
 	GetMaxBlockProcessingTime(round uint64) time.Duration
 	GetNumHeadersToRequestInAdvance(round uint64) uint64
+	GetExtraDelayForBroadcastBlockInfo(round uint64) time.Duration
+	GetExtraDelayBetweenBroadcastMbsAndTxs(round uint64) time.Duration
+	GetExtraDelayForRequestBlockInfo(round uint64) time.Duration
 
 	GetValue(variable dto.ConfigVariable) uint64
 
@@ -513,9 +525,11 @@ type ProcessConfigsHandler interface {
 // CommonConfigsHandler defines the behavior of a component that can return epoch start configurations by epoch or by round
 type CommonConfigsHandler interface {
 	GetGracePeriodRoundsByEpoch(epoch uint32) uint32
-	GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round uint64) uint32
 	GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32
+	GetSubroundsTimingByRound(round uint64) config.ConsensusConfigByRound
+	GetActiveTimingBoundaryRound(round uint64) uint64
+	PrintPrettifiedHeader() bool
 
 	IsInterfaceNil() bool
 }

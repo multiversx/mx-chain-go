@@ -55,8 +55,8 @@ func TestMultiESDTNFTTransferViaRelayedV2(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	tokenID1 := []byte("MYNFT1")
-	tokenID2 := []byte("MYNFT2")
+	tokenID1 := []byte("MNFT1-123456")
+	tokenID2 := []byte("MNFT2-123456")
 	sh0Addr := []byte("12345678901234567890123456789010")
 	sh1Addr := []byte("12345678901234567890123456789011")
 

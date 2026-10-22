@@ -187,6 +187,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.aotSelector) {
 		return errors.ErrNilAOTSelector
 	}
+	if check.IfNil(m.processComponents.transactionProcessor) {
+		return errors.ErrNilTransactionProcessor
+	}
 
 	return nil
 }
@@ -733,6 +736,18 @@ func (m *managedProcessComponents) AOTSelector() process.AOTTransactionSelector 
 	}
 
 	return m.processComponents.aotSelector
+}
+
+// TransactionProcessor returns the transaction processor
+func (m *managedProcessComponents) TransactionProcessor() process.TransactionProcessor {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.transactionProcessor
 }
 
 // IsInterfaceNil returns true if the interface is nil

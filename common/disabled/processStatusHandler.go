@@ -19,6 +19,18 @@ func (psh *processStatusHandler) TrySetBusy(_ string) bool { return true }
 // SetIdle does nothing
 func (psh *processStatusHandler) SetIdle() {}
 
+// BlockBackgroundJobs does nothing
+func (psh *processStatusHandler) BlockBackgroundJobs(_ string) {}
+
+// UnblockBackgroundJobs does nothing
+func (psh *processStatusHandler) UnblockBackgroundJobs() {}
+
+// SuspendBackgroundJobBlocking does nothing
+func (psh *processStatusHandler) SuspendBackgroundJobBlocking(_ string) {}
+
+// ResumeBackgroundJobBlocking does nothing
+func (psh *processStatusHandler) ResumeBackgroundJobBlocking() {}
+
 // IsIdle returns true
 func (psh *processStatusHandler) IsIdle() bool {
 	return true

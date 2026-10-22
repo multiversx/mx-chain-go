@@ -18,6 +18,7 @@ type TxCacheBoundsConfig struct {
 	MaxNumBytesPerSenderUpperBound uint32
 	MaxTrackedBlocks               uint32
 	PropagationGracePeriodMs       uint32
+	MaxTxNonceDeltaAllowed         int
 }
 
 // TxCacheSelectionConfig will map the mempool selection config
@@ -49,7 +50,6 @@ type ProofsPoolConfig struct {
 }
 
 // ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read-only thereafter.
-// TODO add also max estimated block gas capacity
 type ExecutionResultInclusionEstimatorConfig struct {
 	SafetyMargin       uint64
 	MaxResultsPerBlock uint64
@@ -65,6 +65,9 @@ type DBConfig struct {
 	UseTmpAsFilePath    bool
 	ShardIDProviderType string
 	NumShards           int32
+	// BloomFilterBitsPerKey == 0, the Bloom filter is disabled.
+	// Otherwise, it specifies the number of bits per key used by the Bloom filter.
+	BloomFilterBitsPerKey int
 }
 
 // StorageConfig will map the storage unit configuration
@@ -125,12 +128,11 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinShuffledOutRestartThreshold              float64
-	MaxShuffledOutRestartThreshold              float64
-	MinNumConnectedPeersToStart                 int
-	MinNumOfPeersToConsiderBlockValid           int
-	ExtraDelayForRequestBlockInfoInMilliseconds int
-	GenesisEpoch                                uint32
+	MinShuffledOutRestartThreshold    float64
+	MaxShuffledOutRestartThreshold    float64
+	MinNumConnectedPeersToStart       int
+	MinNumOfPeersToConsiderBlockValid int
+	GenesisEpoch                      uint32
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
@@ -178,6 +180,9 @@ type HeartbeatV2Config struct {
 
 // Config will hold the entire application configuration parameters
 type Config struct {
+	HardforkRoundExclusions    []HardforkRoundExclusionConfig
+	HardforkRecoveryCheckpoint HardforkRecoveryCheckpointConfig
+
 	MiniBlocksStorage               StorageConfig
 	PeerBlockBodyStorage            StorageConfig
 	BlockHeaderStorage              StorageConfig
@@ -209,6 +214,7 @@ type Config struct {
 	StateAccessesCollectorConfig StateAccessesCollectorConfig
 	TrieStorageManagerConfig     TrieStorageManagerConfig
 	TrieLeavesRetrieverConfig    TrieLeavesRetrieverConfig
+	TrieOperations               TrieOperationsConfig
 	BadBlocksCache               CacheConfig
 
 	TxBlockBodyDataPool          CacheConfig
@@ -281,6 +287,23 @@ type Config struct {
 	DirectSentTransactions  DirectSentTransactionsConfig
 }
 
+// HardforkRoundExclusionConfig defines an inclusive interval of rounds which cannot be accepted.
+type HardforkRoundExclusionConfig struct {
+	StartRound uint64
+	EndRound   uint64
+}
+
+type HardforkRecoveryCheckpointConfig struct {
+	Enabled bool
+	Round   uint64
+	Headers []HardforkRecoveryHeaderConfig
+}
+
+type HardforkRecoveryHeaderConfig struct {
+	ShardID uint32
+	Hash    string
+}
+
 // PeersRatingConfig will hold settings related to peers rating
 type PeersRatingConfig struct {
 	TopRatedCacheCapacity int
@@ -302,6 +325,7 @@ type StoragePruningConfig struct {
 	AccountsTrieSkipRemovalCustomPattern string
 	NumEpochsToKeep                      uint64
 	NumActivePersisters                  uint64
+	AssumedPeersNumActivePersisters      uint32
 	FullArchiveNumActivePersisters       uint32
 }
 
@@ -347,12 +371,24 @@ type ConsensusConfigByEpoch struct {
 	NumRoundsToWaitBeforeSignalingChronologyStuck uint32
 }
 
+// ConsensusConfigByRound defines consensus configuration parameters by round
+type ConsensusConfigByRound struct {
+	EnableRound                uint64
+	SubroundsTiming            []SubroundTiming
+	ProcessingThresholdPercent uint32
+}
+
+// SubroundTiming holds the start and end time ratios (of the round duration) for a single subround
+type SubroundTiming struct {
+	StartTime float64
+	EndTime   float64
+}
+
 // EpochStartConfigByEpoch defines epoch start configuration parameters by epoch
 type EpochStartConfigByEpoch struct {
 	EnableEpoch uint32
 
-	GracePeriodRounds                           uint32
-	ExtraDelayForRequestBlockInfoInMilliseconds uint32
+	GracePeriodRounds uint32
 }
 
 // EpochStartConfigByRound defines epoch start configuration parameters by round
@@ -415,6 +451,20 @@ type ProcessConfigByRound struct {
 	MaxRoundsOfInactivityAccepted        uint64
 	MaxBlockProcessingTimeMs             uint32
 	NumHeadersToRequestInAdvance         uint64
+
+	// ExtraDelayForBroadcastBlockInfoMs defines the wait, in milliseconds, between the block broadcast and the
+	// moment when its components, like mini blocks, would be broadcast too
+	ExtraDelayForBroadcastBlockInfoMs uint32
+
+	// ExtraDelayBetweenBroadcastMbsAndTxsMs defines the wait, in milliseconds, since the mini blocks have been
+	// broadcast and the moment when their transactions would be broadcast too
+	ExtraDelayBetweenBroadcastMbsAndTxsMs uint32
+
+	// ExtraDelayForRequestBlockInfoMs defines the wait, in milliseconds, since a block has been observed and the
+	// moment when its components, like mini blocks and transactions, would be requested too if still missing.
+	// It must exceed the sender's broadcast chain (ExtraDelayForBroadcastBlockInfoMs +
+	// ExtraDelayBetweenBroadcastMbsAndTxsMs) plus the gossip delivery time of the broadcast data
+	ExtraDelayForRequestBlockInfoMs uint32
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -438,6 +488,7 @@ type GeneralSettingsConfig struct {
 	EpochStartConfigsByEpoch         []EpochStartConfigByEpoch
 	EpochStartConfigsByRound         []EpochStartConfigByRound
 	ConsensusConfigsByEpoch          []ConsensusConfigByEpoch
+	ConsensusConfigsByRound          []ConsensusConfigByRound
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config
@@ -474,9 +525,9 @@ type StateAccessesCollectorConfig struct {
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
 type TrieStorageManagerConfig struct {
-	PruningBufferLen      uint32
-	SnapshotsBufferLen    uint32
-	SnapshotsGoroutineNum uint32
+	PruningBufferLen           uint32
+	SnapshotsBufferLen         uint32
+	SnapshotsGoroutinesPerCore uint32
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines
@@ -525,8 +576,10 @@ type TxAccumulatorConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Enabled        bool
-	ConfigsByRound []AntifloodConfigByRound
+	Enabled                              bool
+	MaxAllowedTrieNodeChunks             uint32
+	TrieNodeChunksInactivityTimeoutInSec int64
+	ConfigsByRound                       []AntifloodConfigByRound
 }
 
 // AntifloodConfigByRound will hold antiflood parameters by round
@@ -810,9 +863,10 @@ type TrieSyncConfig struct {
 
 // RequesterConfig represents the config options to be used when setting up the requester instances
 type RequesterConfig struct {
-	NumCrossShardPeers  uint32
-	NumTotalPeers       uint32
-	NumFullHistoryPeers uint32
+	NumCrossShardPeers         uint32
+	NumTotalPeers              uint32
+	NumFullHistoryPeers        uint32
+	RequestProofByNonceDelayMs uint32
 }
 
 // ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs

@@ -125,8 +125,25 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	// enable db lookup extension
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
-	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
 	configs.GeneralConfig.EpochStartConfig.GenesisEpoch = args.InitialEpoch
+
+	// the simulator drives the rounds itself and every node shares the same process, so there is no
+	// gossip to wait for: collapse the block data propagation delays on every round config
+	for i := range configs.GeneralConfig.GeneralSettings.ProcessConfigsByRound {
+		cfg := &configs.GeneralConfig.GeneralSettings.ProcessConfigsByRound[i]
+		cfg.ExtraDelayForBroadcastBlockInfoMs = 0
+		cfg.ExtraDelayBetweenBroadcastMbsAndTxsMs = 0
+		cfg.ExtraDelayForRequestBlockInfoMs = 1
+	}
+
+	// the simulator always builds its own genesis locally (even for a non-zero InitialEpoch) and
+	// never joins a real p2p network, so there is never epoch-start data to fetch from peers;
+	// leaving this enabled makes epochStartBootstrap.Bootstrap try to sync from the network and
+	// hang forever once InitialRound/InitialEpoch is large enough that isStartInEpochZero's
+	// round-based check no longer short-circuits it
+	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
+
+	configs.GeneralConfig.Requesters.RequestProofByNonceDelayMs = 0
 
 	if args.RoundsPerEpoch.HasValue {
 		for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
@@ -205,7 +222,7 @@ func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConf
 
 	// update supernova round for the new rounds per epoch config
 	newRoundsPerEpoch := args.RoundsPerEpoch.Value
-	newSupernovaRound := uint64(supernovaEpoch)*newRoundsPerEpoch + numRoundsAfterSupernovaEnableEpoch
+	newSupernovaRound := uint64(args.InitialRound) + uint64(max(0, diff))*newRoundsPerEpoch + numRoundsAfterSupernovaEnableEpoch
 	if isSupernovaFromGenesis {
 		// if supernova is from genesis, the round should be 0 as well
 		newSupernovaRound = 0

@@ -16,7 +16,7 @@ func ConstructPartialComponentForTest(component interface{}, subcomponents map[s
 		ft := rv.Type().Field(i)
 
 		// handle embedded *structs that are nil
-		if ft.Anonymous && field.Kind() == reflect.Ptr && field.IsNil() && field.Type().Elem().Kind() == reflect.Struct {
+		if ft.Anonymous && field.Kind() == reflect.Pointer && field.IsNil() && field.Type().Elem().Kind() == reflect.Struct {
 			newVal := reflect.New(field.Type().Elem())
 			if !field.CanSet() {
 				field = reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem()
@@ -43,11 +43,11 @@ func ConstructPartialComponentForTest(component interface{}, subcomponents map[s
 			field.Set(val)
 		case val.Type().ConvertibleTo(field.Type()):
 			field.Set(val.Convert(field.Type()))
-		case val.Kind() != reflect.Ptr && field.Kind() == reflect.Ptr && val.Type().AssignableTo(field.Type().Elem()):
+		case val.Kind() != reflect.Pointer && field.Kind() == reflect.Pointer && val.Type().AssignableTo(field.Type().Elem()):
 			ptr := reflect.New(val.Type())
 			ptr.Elem().Set(val)
 			field.Set(ptr)
-		case val.Kind() != reflect.Ptr && field.Kind() == reflect.Ptr && val.Type().ConvertibleTo(field.Type().Elem()):
+		case val.Kind() != reflect.Pointer && field.Kind() == reflect.Pointer && val.Type().ConvertibleTo(field.Type().Elem()):
 			ptr := reflect.New(field.Type().Elem())
 			ptr.Elem().Set(val.Convert(field.Type().Elem()))
 			field.Set(ptr)

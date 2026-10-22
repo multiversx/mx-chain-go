@@ -42,6 +42,7 @@ type economics struct {
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
 	store                 dataRetriever.StorageService
+	headers               dataRetriever.HeadersPool
 	shardCoordinator      sharding.Coordinator
 	rewardsHandler        process.RewardsHandler
 	roundTime             process.RoundTimeDurationHandler
@@ -60,6 +61,7 @@ type ArgsNewEpochEconomics struct {
 	Marshalizer           marshal.Marshalizer
 	Hasher                hashing.Hasher
 	Store                 dataRetriever.StorageService
+	Headers               dataRetriever.HeadersPool
 	ShardCoordinator      sharding.Coordinator
 	RewardsHandler        process.RewardsHandler
 	RoundTime             process.RoundTimeDurationHandler
@@ -83,6 +85,9 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 	}
 	if check.IfNil(args.Store) {
 		return nil, epochStart.ErrNilStorage
+	}
+	if check.IfNil(args.Headers) {
+		return nil, epochStart.ErrNilHeadersDataPool
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, epochStart.ErrNilShardCoordinator
@@ -110,6 +115,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		marshalizer:           args.Marshalizer,
 		hasher:                args.Hasher,
 		store:                 args.Store,
+		headers:               args.Headers,
 		shardCoordinator:      args.ShardCoordinator,
 		rewardsHandler:        args.RewardsHandler,
 		roundTime:             args.RoundTime,
@@ -492,13 +498,7 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 
 // compute inflation rate from genesisTotalSupply and economics settings for that year
 func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch uint32) float64 {
-	roundDurationInSec := uint64(e.roundTime.TimeDuration().Seconds())
-	if roundDurationInSec <= 0 {
-		// this means that round duration is sub-seconds
-		// set it to default number of seconds
-		log.Error("computeInflationBeforeSupernova: sub second round time before supernova activation")
-		roundDurationInSec = e.getDefaultRoundDuration()
-	}
+	roundDurationInSec := e.getRoundDurationBeforeSupernova(epoch)
 
 	roundsPerDay := numberOfSecondsInDay / roundDurationInSec
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
@@ -507,15 +507,31 @@ func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch u
 	return e.rewardsHandler.MaxInflationRate(yearsIndex, epoch)
 }
 
-func (e *economics) getDefaultRoundDuration() uint64 {
-	defaultRoundDuration := uint64(6) // seconds
-	chainParameters, err := e.chainParamsHandler.ChainParametersForEpoch(0)
+func (e *economics) getRoundDurationBeforeSupernova(epoch uint32) uint64 {
+	const defaultRoundDurationInSeconds = uint64(6)
+
+	prevEpoch := e.getPreviousEpoch(epoch)
+	chainParameters, err := e.chainParamsHandler.ChainParametersForEpoch(prevEpoch)
 	if err != nil {
-		// this should not happen, chain parameter configs is checked at init
-		return defaultRoundDuration
+		roundDurationInSeconds := uint64(e.roundTime.TimeDuration() / time.Second)
+		if roundDurationInSeconds > 0 {
+			return roundDurationInSeconds
+		}
+
+		return defaultRoundDurationInSeconds
 	}
 
-	return chainParameters.RoundDuration
+	roundDurationInSeconds := chainParameters.RoundDuration / uint64(time.Second/time.Millisecond)
+	if roundDurationInSeconds == 0 {
+		log.Error("computeInflationBeforeSupernova: sub second round time before supernova activation",
+			"epoch", prevEpoch,
+			"round duration milliseconds", chainParameters.RoundDuration,
+		)
+
+		return defaultRoundDurationInSeconds
+	}
+
+	return roundDurationInSeconds
 }
 
 func (e *economics) computeInflationRate(
@@ -655,7 +671,7 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 		return mapShardIdNonce, previousEpochStartMeta, nil
 	}
 
-	prevEpochMetaNonce, err := getPrevEpochMetaStartNonceForEconomics(previousEpochStartMeta)
+	prevEpochMetaNonce, err := e.getPrevEpochMetaStartNonceForEconomics(previousEpochStartMeta)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -667,17 +683,30 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 	return mapShardIdNonce, previousEpochStartMeta, nil
 }
 
-func getPrevEpochMetaStartNonceForEconomics(previousEpochStartMeta data.MetaHeaderHandler) (uint64, error) {
+func (e *economics) getPrevEpochMetaStartNonceForEconomics(previousEpochStartMeta data.MetaHeaderHandler) (uint64, error) {
 	if !previousEpochStartMeta.IsHeaderV3() {
 		return previousEpochStartMeta.GetNonce(), nil
 	}
-	// todo: extract the epoch change proposal execution result here
-	lastNotarizedResult, err := common.GetLastBaseExecutionResultHandler(previousEpochStartMeta)
-	if err != nil {
-		return 0, err
+
+	for _, execResult := range previousEpochStartMeta.GetExecutionResultsHandlers() {
+		hdr, err := process.GetMetaHeader(
+			execResult.GetHeaderHash(),
+			e.headers,
+			e.marshalizer,
+			e.store,
+		)
+		if err != nil {
+			return 0, err
+		}
+
+		if hdr.IsEpochChangeProposed() {
+			return hdr.GetNonce(), nil
+		}
 	}
 
-	return lastNotarizedResult.GetHeaderNonce(), nil
+	log.Debug("getPrevEpochMetaStartNonceForEconomics could not find epoch change proposed header")
+
+	return 0, epochStart.ErrMissingHeader
 }
 
 func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev data.MetaHeaderHandler) uint64 {

@@ -1,10 +1,12 @@
 package shared
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // MiddlewarePosition is the type that specifies the position of a middleware relative to the base endpoint handler
@@ -82,6 +84,10 @@ func RespondWithValidationError(c *gin.Context, err error, innerErr error) {
 // RespondWithInternalError should be called when the request cannot be satisfied due to an internal error
 func RespondWithInternalError(c *gin.Context, err error, innerErr error) {
 	errMessage := fmt.Sprintf("%s: %s", err.Error(), innerErr.Error())
+	if errors.Is(innerErr, common.ErrTrieOperationsBusy) {
+		RespondWith(c, http.StatusTooManyRequests, nil, errMessage, ReturnCodeSystemBusy)
+		return
+	}
 
 	RespondWith(
 		c,

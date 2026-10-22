@@ -23,9 +23,8 @@ import (
 type subroundStartRound struct {
 	outportMutex sync.RWMutex
 	*spos.Subround
-	processingThresholdPercentage int
-	executeStoredMessages         func()
-	resetConsensusMessages        func()
+	executeStoredMessages  func()
+	resetConsensusMessages func()
 
 	outportHandler       outport.OutportHandler
 	sentSignatureTracker spos.SentSignaturesTracker
@@ -59,14 +58,15 @@ func NewSubroundStartRound(
 		return nil, ErrNilSentSignatureTracker
 	}
 
+	baseSubround.SetProcessingThresholdPercent(processingThresholdPercentage)
+
 	srStartRound := subroundStartRound{
-		Subround:                      baseSubround,
-		processingThresholdPercentage: processingThresholdPercentage,
-		executeStoredMessages:         executeStoredMessages,
-		resetConsensusMessages:        resetConsensusMessages,
-		outportHandler:                disabled.NewDisabledOutport(),
-		sentSignatureTracker:          sentSignatureTracker,
-		outportMutex:                  sync.RWMutex{},
+		Subround:               baseSubround,
+		executeStoredMessages:  executeStoredMessages,
+		resetConsensusMessages: resetConsensusMessages,
+		outportHandler:         disabled.NewDisabledOutport(),
+		sentSignatureTracker:   sentSignatureTracker,
+		outportMutex:           sync.RWMutex{},
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
@@ -216,7 +216,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	startTime := sr.GetRoundTimeStamp()
-	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
+	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.ProcessingThresholdPercent()) / 100
 	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),

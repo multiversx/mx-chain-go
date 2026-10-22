@@ -26,6 +26,20 @@ type syncStarter interface {
 	SyncBlock(ctx context.Context) error
 }
 
+// settlementChecker answers whether a block at the reconcile nonce is settled, per the settlement
+// authority of the chain the node belongs to
+type settlementChecker interface {
+	prepareInclusionScan(scanCursor uint64) (scanFrom uint64, scanTo uint64, nextCursor uint64)
+	settlementVerdict(nonce uint64, localHash []byte, competitorHash []byte, scanFrom uint64, scanTo uint64) (bool, bool)
+	resolveNotarizedHeader(nonce uint64, candidates []notarizedHeaderCandidate) []byte
+	deadCrossNotarizedMeta() (data.HeaderHandler, []byte, bool)
+}
+
+// epochStartTriggerDisarmer reverts a trigger activation armed by a dead epoch start meta block
+type epochStartTriggerDisarmer interface {
+	DisarmDeadEpochStartActivation(epoch uint32, deadEpochStartHash []byte) bool
+}
+
 // forkDetector is the interface needed by base fork detector to deal with shards and meta nodes
 type forkDetector interface {
 	computeFinalCheckpoint()

@@ -11,17 +11,13 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
-	"github.com/multiversx/mx-chain-go/epochStart/metachain/disabled"
-
-	"github.com/multiversx/mx-chain-go/process/estimator"
-	"github.com/multiversx/mx-chain-go/process/missingData"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	metachainEpochStart "github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain/disabled"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
@@ -37,9 +33,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -61,6 +59,7 @@ type blockProcessorAndVmFactories struct {
 	vmFactoryForProcessing process.VirtualMachinesContainerFactory
 	epochSystemSCProcessor process.EpochStartSystemSCProcessor
 	aotSelector            process.AOTTransactionSelector
+	transactionProcessor   process.TransactionProcessor
 }
 
 func (pcf *processComponentsFactory) newBlockProcessor(
@@ -396,7 +395,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	// TODO: evaluate disabling this entirely (for old flows) - the check is not triggered if async enabled but there are still some checks in the old flow
 	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
@@ -427,6 +425,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
 		BlockSizeComputation:              blockSizeComputationProposalHandler,
+		BlockTracker:                      blockTracker,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -478,12 +477,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+	argsDetector := coordinator.ArgsDoubleTransactionsDetector{
 		Marshaller:          pcf.coreData.InternalMarshalizer(),
 		Hasher:              pcf.coreData.Hasher(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
-	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	doubleTransactionsDetector, err := coordinator.NewDoubleTransactionsDetector(argsDetector)
 	if err != nil {
 		return nil, err
 	}
@@ -564,15 +563,15 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
 	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
-		DataPool:            pcf.data.Datapool(),
-		RequestHandler:      requestHandler,
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		BlockTracker:        blockTracker,
-		TxCoordinator:       txCoordinator,
-		RoundHandler:        pcf.coreData.RoundHandler(),
-		ExtraDelayForRequestBlockInfoInMilliseconds: pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds,
-		GenesisNonce: pcf.genesisNonce,
+		DataPool:              pcf.data.Datapool(),
+		RequestHandler:        requestHandler,
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+		BlockTracker:          blockTracker,
+		TxCoordinator:         txCoordinator,
+		RoundHandler:          pcf.coreData.RoundHandler(),
+		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
+		GenesisNonce:          pcf.genesisNonce,
 	}
 	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
 	if err != nil {
@@ -616,10 +615,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        pcf.data.Datapool().Headers(),
-		ProofsPool:         pcf.data.Datapool().Proofs(),
-		RequestHandler:     requestHandler,
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         pcf.data.Datapool().Headers(),
+		ProofsPool:          pcf.data.Datapool().Proofs(),
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {
@@ -638,6 +638,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		AccountsProposal:                   pcf.state.AccountsAdapterProposal(),
 		ForkDetector:                       forkDetector,
 		NodesCoordinator:                   pcf.nodesCoordinator,
+		MiniBlockTracker:                   pcf.miniBlockTracker,
 		FeeHandler:                         txFeeHandler,
 		RequestHandler:                     requestHandler,
 		BlockChainHook:                     vmFactory.BlockChainHookImpl(),
@@ -689,6 +690,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: factoryDisabled.NewDisabledEpochStartSystemSC(),
 		aotSelector:            aotSelector,
+		transactionProcessor:   transactionProcessor,
 	}
 
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
@@ -723,6 +725,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	vmFactory, err := pcf.createVMFactoryMeta(
 		pcf.state.AccountsAdapter(),
+		pcf.state.PeerAccounts(),
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		pcf.config.SmartContractsStorage,
 		builtInFuncFactory.NFTStorageHandler(),
@@ -885,6 +888,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
 		BlockSizeComputation:              blockSizeComputationProposalHandler,
+		BlockTracker:                      blockTracker,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -934,12 +938,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	argsDetector := coordinator.ArgsPrintDoubleTransactionsDetector{
+	argsDetector := coordinator.ArgsDoubleTransactionsDetector{
 		Marshaller:          pcf.coreData.InternalMarshalizer(),
 		Hasher:              pcf.coreData.Hasher(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
-	doubleTransactionsDetector, err := coordinator.NewPrintDoubleTransactionsDetector(argsDetector)
+	doubleTransactionsDetector, err := coordinator.NewDoubleTransactionsDetector(argsDetector)
 	if err != nil {
 		return nil, err
 	}
@@ -1043,6 +1047,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		Marshalizer:           pcf.coreData.InternalMarshalizer(),
 		Hasher:                pcf.coreData.Hasher(),
 		Store:                 pcf.data.StorageService(),
+		Headers:               pcf.data.Datapool().Headers(),
 		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
 		RewardsHandler:        pcf.coreData.EconomicsData(),
 		RoundTime:             pcf.coreData.RoundHandler(),
@@ -1145,15 +1150,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
 	argsHeadersForBlock := headerForBlock.ArgHeadersForBlock{
-		DataPool:            pcf.data.Datapool(),
-		RequestHandler:      requestHandler,
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		BlockTracker:        blockTracker,
-		TxCoordinator:       txCoordinator,
-		RoundHandler:        pcf.coreData.RoundHandler(),
-		ExtraDelayForRequestBlockInfoInMilliseconds: pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds,
-		GenesisNonce: pcf.genesisNonce,
+		DataPool:              pcf.data.Datapool(),
+		RequestHandler:        requestHandler,
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
+		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+		BlockTracker:          blockTracker,
+		TxCoordinator:         txCoordinator,
+		RoundHandler:          pcf.coreData.RoundHandler(),
+		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
+		GenesisNonce:          pcf.genesisNonce,
 	}
 	hdrsForBlock, err := headerForBlock.NewHeadersForBlock(argsHeadersForBlock)
 	if err != nil {
@@ -1197,10 +1202,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	missingDataArgs := missingData.ResolverArgs{
-		HeadersPool:        pcf.data.Datapool().Headers(),
-		ProofsPool:         pcf.data.Datapool().Proofs(),
-		RequestHandler:     requestHandler,
-		BlockDataRequester: proposalBlockDataRequester,
+		HeadersPool:         pcf.data.Datapool().Headers(),
+		ProofsPool:          pcf.data.Datapool().Proofs(),
+		RequestHandler:      requestHandler,
+		BlockDataRequester:  proposalBlockDataRequester,
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
 	if err != nil {
@@ -1228,6 +1234,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		HeaderValidator:                    headerValidator,
 		BootStorer:                         bootStorer,
 		BlockTracker:                       blockTracker,
+		MiniBlockTracker:                   pcf.miniBlockTracker,
 		FeeHandler:                         txFeeHandler,
 		BlockSizeThrottler:                 blockSizeThrottler,
 		HistoryRepository:                  pcf.historyRepo,
@@ -1379,6 +1386,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: epochStartSystemSCProcessor,
 		aotSelector:            aotSelector,
+		transactionProcessor:   transactionProcessor,
 	}
 
 	return blockProcessorComponents, nil
@@ -1435,7 +1443,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
 	epochStartTriggerHandler process.EpochStartTriggerHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
-	counter, err := counters.NewUsageCounter(esdtTransferParser)
+	counter, err := counters.NewUsageCounter(esdtTransferParser, pcf.coreData.EnableEpochsHandler())
 	if err != nil {
 		return nil, err
 	}
@@ -1489,6 +1497,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 
 func (pcf *processComponentsFactory) createVMFactoryMeta(
 	accounts state.AccountsAdapter,
+	peerAccounts state.AccountsAdapter,
 	builtInFuncs vmcommon.BuiltInFunctionContainer,
 	configSCStorage config.StorageConfig,
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
@@ -1535,8 +1544,8 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		Hasher:              pcf.coreData.Hasher(),
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		SystemSCConfig:      pcf.systemSCConfig,
-		ValidatorAccountsDB: pcf.state.PeerAccounts(),
-		UserAccountsDB:      pcf.state.AccountsAdapter(),
+		ValidatorAccountsDB: peerAccounts,
+		UserAccountsDB:      accounts,
 		ChanceComputer:      pcf.coreData.Rater(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),

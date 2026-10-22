@@ -36,6 +36,11 @@ func (pmbt *ProcessedMiniBlocksTracker) IsMiniBlockFullyProcessed(_ []byte, _ []
 	return false
 }
 
+// HasUnfinishedMiniBlocks returns false as it is a disabled component
+func (pmbt *ProcessedMiniBlocksTracker) HasUnfinishedMiniBlocks() bool {
+	return false
+}
+
 // ConvertProcessedMiniBlocksMapToSlice returns nil as it is a disabled component
 func (pmbt *ProcessedMiniBlocksTracker) ConvertProcessedMiniBlocksMapToSlice() []bootstrapStorage.MiniBlocksInMeta {
 	return nil

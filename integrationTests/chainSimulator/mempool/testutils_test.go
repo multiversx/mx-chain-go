@@ -23,7 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
 	"github.com/multiversx/mx-chain-go/txcache"
 )
 
@@ -63,7 +63,7 @@ func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Con
 		},
 		SupernovaRoundsPerEpoch: core.OptionalUint64{
 			HasValue: true,
-			Value:    100,
+			Value:    10,
 		},
 		ApiInterface:             api.NewNoApiInterface(),
 		MinNodesPerShard:         1,
@@ -326,7 +326,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -339,7 +339,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
 	_ = initialAmount.Add(initialAmount, core.SafeMul(uint64(numTxs), uint64(transferredValue)))
 
-	selectionSession := &txcachemocks.SelectionSessionMock{
+	selectionSession := &mempool.SelectionSessionMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
@@ -348,7 +348,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 		},
 	}
 
-	accountsAdapter := &txcachemocks.AccountNonceAndBalanceProviderMock{
+	accountsAdapter := &mempool.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
@@ -396,7 +396,7 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -409,7 +409,7 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
 	_ = initialAmount.Add(initialAmount, big.NewInt(int64(numTxs)))
 
-	selectionSession := &txcachemocks.SelectionSessionMock{
+	selectionSession := &mempool.SelectionSessionMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
@@ -445,7 +445,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	// create some fake address for each account
 	accounts := createFakeAddresses(numAddresses)
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -458,7 +458,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
 	_ = initialAmount.Add(initialAmount, core.SafeMul(uint64(numTxs), uint64(transferredValue)))
 
-	selectionSession := &txcachemocks.SelectionSessionMock{
+	selectionSession := &mempool.SelectionSessionMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
@@ -467,7 +467,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 		},
 	}
 
-	accountsAdapter := &txcachemocks.AccountNonceAndBalanceProviderMock{
+	accountsAdapter := &mempool.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
@@ -536,7 +536,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBeSelected int, numAddresses int) {
 	accounts := createFakeAddresses(numAddresses)
 
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
@@ -549,7 +549,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	_ = initialAmount.Mul(numTxsAsBigInt, core.SafeMul(uint64(gasLimit), uint64(gasPrice)))
 	_ = initialAmount.Add(initialAmount, core.SafeMul(uint64(numTxs), uint64(transferredValue)))
 
-	selectionSession := &txcachemocks.SelectionSessionMock{
+	selectionSession := &mempool.SelectionSessionMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
@@ -558,7 +558,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 		},
 	}
 
-	accountsAdapter := &txcachemocks.AccountNonceAndBalanceProviderMock{
+	accountsAdapter := &mempool.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},

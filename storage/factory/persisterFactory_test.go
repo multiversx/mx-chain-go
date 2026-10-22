@@ -76,6 +76,45 @@ func TestPersisterFactory_Create(t *testing.T) {
 	})
 }
 
+func TestPersisterFactory_PersisterExists(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty path, should return false", func(t *testing.T) {
+		t.Parallel()
+
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
+
+		exists, err := pf.PersisterExists("")
+		require.NoError(t, err)
+		require.False(t, exists)
+	})
+
+	t.Run("not existing path, should return false", func(t *testing.T) {
+		t.Parallel()
+
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
+
+		exists, err := pf.PersisterExists(path.Join(t.TempDir(), "Epoch_4294967295"))
+		require.NoError(t, err)
+		require.False(t, exists)
+	})
+
+	t.Run("created persister, should return true", func(t *testing.T) {
+		t.Parallel()
+
+		pf, _ := factory.NewPersisterFactory(createDefaultDBConfig())
+
+		dir := path.Join(t.TempDir(), "Epoch_1")
+		p, err := pf.Create(dir)
+		require.Nil(t, err)
+		require.Nil(t, p.Close())
+
+		exists, err := pf.PersisterExists(dir)
+		require.NoError(t, err)
+		require.True(t, exists)
+	})
+}
+
 func TestPersisterFactory_CreateWithRetries(t *testing.T) {
 	t.Parallel()
 
@@ -228,4 +267,15 @@ func TestGetTmpFilePath(t *testing.T) {
 
 	tmpPath, _ = factory.GetTmpFilePath("/")
 	require.True(t, strings.Contains(tmpPath, path.Join(tmpBasePath, "")))
+}
+
+func TestPersisterFactory_PersisterExistsPropagatesStatError(t *testing.T) {
+	t.Parallel()
+
+	pf, err := factory.NewPersisterFactory(createDefaultDBConfig())
+	require.NoError(t, err)
+	exists, err := pf.PersisterExists("invalid\x00path")
+	require.False(t, exists)
+	var pathErr *os.PathError
+	require.ErrorAs(t, err, &pathErr)
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -86,51 +87,62 @@ func NewMetaInterceptorsContainerFactory(
 	if args.HeartbeatExpiryTimespanInSec < minTimespanDurationInSec {
 		return nil, process.ErrInvalidExpiryTimespan
 	}
+	roundExclusions, err := common.NewConfiguredRoundExclusionHandler(&args.Config)
+	if err != nil {
+		return nil, err
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
-		CoreComponents:               args.CoreComponents,
-		CryptoComponents:             args.CryptoComponents,
-		ShardCoordinator:             args.ShardCoordinator,
-		NodesCoordinator:             args.NodesCoordinator,
-		FeeHandler:                   args.TxFeeHandler,
-		WhiteListerVerifiedTxs:       args.WhiteListerVerifiedTxs,
-		HeaderSigVerifier:            args.HeaderSigVerifier,
-		ValidityAttester:             args.ValidityAttester,
-		HeaderIntegrityVerifier:      args.HeaderIntegrityVerifier,
-		EpochStartTrigger:            args.EpochStartTrigger,
-		ArgsParser:                   args.ArgumentsParser,
-		PeerSignatureHandler:         args.PeerSignatureHandler,
-		SignaturesHandler:            args.SignaturesHandler,
-		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
-		PeerID:                       args.MainMessenger.ID(),
+		CoreComponents:                          args.CoreComponents,
+		CryptoComponents:                        args.CryptoComponents,
+		ShardCoordinator:                        args.ShardCoordinator,
+		NodesCoordinator:                        args.NodesCoordinator,
+		FeeHandler:                              args.TxFeeHandler,
+		WhiteListerVerifiedTxs:                  args.WhiteListerVerifiedTxs,
+		HeaderSigVerifier:                       args.HeaderSigVerifier,
+		ValidityAttester:                        args.ValidityAttester,
+		HeaderIntegrityVerifier:                 args.HeaderIntegrityVerifier,
+		EpochStartTrigger:                       args.EpochStartTrigger,
+		ArgsParser:                              args.ArgumentsParser,
+		PeerSignatureHandler:                    args.PeerSignatureHandler,
+		SignaturesHandler:                       args.SignaturesHandler,
+		HeartbeatExpiryTimespanInSec:            args.HeartbeatExpiryTimespanInSec,
+		PeerID:                                  args.MainMessenger.ID(),
+		PeerShardMapper:                         args.MainPeerShardMapper,
+		PeerAuthCacher:                          args.DataPool.PeerAuthentications(),
+		PeerAuthenticationTimeBetweenSendsInSec: args.PeerAuthenticationTimeBetweenSendsInSec,
+		RoundExclusions:                         roundExclusions,
 	}
 
 	base := &baseInterceptorsContainerFactory{
-		mainContainer:                  containers.NewInterceptorsContainer(),
-		fullArchiveContainer:           containers.NewInterceptorsContainer(),
-		shardCoordinator:               args.ShardCoordinator,
-		mainMessenger:                  args.MainMessenger,
-		fullArchiveMessenger:           args.FullArchiveMessenger,
-		store:                          args.Store,
-		dataPool:                       args.DataPool,
-		nodesCoordinator:               args.NodesCoordinator,
-		blockBlackList:                 args.BlockBlackList,
-		argInterceptorFactory:          argInterceptorFactory,
-		maxTxNonceDeltaAllowed:         args.MaxTxNonceDeltaAllowed,
-		accounts:                       args.Accounts,
-		antifloodHandler:               args.AntifloodHandler,
-		whiteListHandler:               args.WhiteListHandler,
-		whiteListerVerifiedTxs:         args.WhiteListerVerifiedTxs,
-		preferredPeersHolder:           args.PreferredPeersHolder,
-		hasher:                         args.CoreComponents.Hasher(),
-		requestHandler:                 args.RequestHandler,
-		mainPeerShardMapper:            args.MainPeerShardMapper,
-		fullArchivePeerShardMapper:     args.FullArchivePeerShardMapper,
-		hardforkTrigger:                args.HardforkTrigger,
-		nodeOperationMode:              args.NodeOperationMode,
-		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
-		enableEpochsHandler:            args.CoreComponents.EnableEpochsHandler(),
-		config:                         args.Config,
+		mainContainer:                   containers.NewInterceptorsContainer(),
+		fullArchiveContainer:            containers.NewInterceptorsContainer(),
+		shardCoordinator:                args.ShardCoordinator,
+		mainMessenger:                   args.MainMessenger,
+		fullArchiveMessenger:            args.FullArchiveMessenger,
+		store:                           args.Store,
+		dataPool:                        args.DataPool,
+		nodesCoordinator:                args.NodesCoordinator,
+		blockBlackList:                  args.BlockBlackList,
+		argInterceptorFactory:           argInterceptorFactory,
+		maxTxNonceDeltaAllowed:          args.MaxTxNonceDeltaAllowed,
+		accounts:                        args.Accounts,
+		antifloodHandler:                args.AntifloodHandler,
+		whiteListHandler:                args.WhiteListHandler,
+		whiteListerVerifiedTxs:          args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:            args.PreferredPeersHolder,
+		hasher:                          args.CoreComponents.Hasher(),
+		requestHandler:                  args.RequestHandler,
+		maxAllowedTrieNodeChunks:        args.MaxAllowedTrieNodeChunks,
+		trieNodeChunksInactivityTimeout: args.TrieNodeChunksInactivityTimeout,
+		mainPeerShardMapper:             args.MainPeerShardMapper,
+		fullArchivePeerShardMapper:      args.FullArchivePeerShardMapper,
+		hardforkTrigger:                 args.HardforkTrigger,
+		nodeOperationMode:               args.NodeOperationMode,
+		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
+		enableEpochsHandler:             args.CoreComponents.EnableEpochsHandler(),
+		roundExclusions:                 roundExclusions,
+		config:                          args.Config,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -269,6 +281,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 		BlockBlackList:      micf.blockBlackList,
 		Proofs:              micf.dataPool.Proofs(),
 		EnableEpochsHandler: micf.enableEpochsHandler,
+		RoundExclusions:     micf.roundExclusions,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

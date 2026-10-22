@@ -38,22 +38,22 @@ var log = logger.GetOrCreate("update/factory")
 
 // ArgsExporter is the argument structure to create a new exporter
 type ArgsExporter struct {
-	CoreComponents                   process.CoreComponentsHolder
-	CryptoComponents                 process.CryptoComponentsHolder
-	StatusCoreComponents             process.StatusCoreComponentsHolder
-	NetworkComponents                mxFactory.NetworkComponentsHolder
-	HeaderValidator                  epochStart.HeaderValidator
-	DataPool                         dataRetriever.PoolsHolder
-	StorageService                   dataRetriever.StorageService
-	RequestHandler                   process.RequestHandler
-	ShardCoordinator                 sharding.Coordinator
-	ActiveAccountsDBs                map[state.AccountsDbIdentifier]state.AccountsAdapter
-	ExistingResolvers                dataRetriever.ResolversContainer
-	ExistingRequesters               dataRetriever.RequestersContainer
-	ExportFolder                     string
-	ExportTriesStorageConfig         config.StorageConfig
-	ExportStateStorageConfig         config.StorageConfig
-	ExportStateKeysConfig            config.StorageConfig
+	CoreComponents                          process.CoreComponentsHolder
+	CryptoComponents                        process.CryptoComponentsHolder
+	StatusCoreComponents                    process.StatusCoreComponentsHolder
+	NetworkComponents                       mxFactory.NetworkComponentsHolder
+	HeaderValidator                         epochStart.HeaderValidator
+	DataPool                                dataRetriever.PoolsHolder
+	StorageService                          dataRetriever.StorageService
+	RequestHandler                          process.RequestHandler
+	ShardCoordinator                        sharding.Coordinator
+	ActiveAccountsDBs                       map[state.AccountsDbIdentifier]state.AccountsAdapter
+	ExistingResolvers                       dataRetriever.ResolversContainer
+	ExistingRequesters                      dataRetriever.RequestersContainer
+	ExportFolder                            string
+	ExportTriesStorageConfig                config.StorageConfig
+	ExportStateStorageConfig                config.StorageConfig
+	ExportStateKeysConfig                   config.StorageConfig
 	WhiteListHandler                 process.WhiteListHandler
 	WhiteListerVerifiedTxs           process.WhiteListHandler
 	MainInterceptorsContainer        process.InterceptorsContainer
@@ -63,30 +63,32 @@ type ArgsExporter struct {
 	HeaderIntegrityVerifier          process.HeaderIntegrityVerifier
 	ValidityAttester                 process.ValidityAttester
 	RoundHandler                     process.RoundHandler
-	MaxHardCapForMissingNodes        int
-	NumConcurrentTrieSyncers         int
-	TrieSyncerVersion                int
-	CheckNodesOnDisk                 bool
-	NodeOperationMode                common.NodeOperation
-	InterceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
-	Config                           config.Config
+	InterceptorDebugConfig                  config.InterceptorResolverDebugConfig
+	MaxHardCapForMissingNodes               int
+	NumConcurrentTrieSyncers                int
+	TrieSyncerVersion                       int
+	CheckNodesOnDisk                        bool
+	NodeOperationMode                       common.NodeOperation
+	InterceptedDataVerifierFactory          process.InterceptedDataVerifierFactory
+	PeerAuthenticationTimeBetweenSendsInSec int64
+	Config                                  config.Config
 }
 
 type exportHandlerFactory struct {
-	coreComponents                   process.CoreComponentsHolder
-	cryptoComponents                 process.CryptoComponentsHolder
-	statusCoreComponents             process.StatusCoreComponentsHolder
-	networkComponents                mxFactory.NetworkComponentsHolder
-	headerValidator                  epochStart.HeaderValidator
-	dataPool                         dataRetriever.PoolsHolder
-	storageService                   dataRetriever.StorageService
-	requestHandler                   process.RequestHandler
-	shardCoordinator                 sharding.Coordinator
-	activeAccountsDBs                map[state.AccountsDbIdentifier]state.AccountsAdapter
-	exportFolder                     string
-	exportTriesStorageConfig         config.StorageConfig
-	exportStateStorageConfig         config.StorageConfig
-	exportStateKeysConfig            config.StorageConfig
+	coreComponents                          process.CoreComponentsHolder
+	cryptoComponents                        process.CryptoComponentsHolder
+	statusCoreComponents                    process.StatusCoreComponentsHolder
+	networkComponents                       mxFactory.NetworkComponentsHolder
+	headerValidator                         epochStart.HeaderValidator
+	dataPool                                dataRetriever.PoolsHolder
+	storageService                          dataRetriever.StorageService
+	requestHandler                          process.RequestHandler
+	shardCoordinator                        sharding.Coordinator
+	activeAccountsDBs                       map[state.AccountsDbIdentifier]state.AccountsAdapter
+	exportFolder                            string
+	exportTriesStorageConfig                config.StorageConfig
+	exportStateStorageConfig                config.StorageConfig
+	exportStateKeysConfig                   config.StorageConfig
 	whiteListHandler                 process.WhiteListHandler
 	whiteListerVerifiedTxs           process.WhiteListHandler
 	mainInterceptorsContainer        process.InterceptorsContainer
@@ -102,13 +104,15 @@ type exportHandlerFactory struct {
 	resolverContainer                dataRetriever.ResolversContainer
 	requestersContainer              dataRetriever.RequestersContainer
 	roundHandler                     process.RoundHandler
-	maxHardCapForMissingNodes        int
-	numConcurrentTrieSyncers         int
-	trieSyncerVersion                int
-	checkNodesOnDisk                 bool
-	nodeOperationMode                common.NodeOperation
-	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
-	config                           config.Config
+	interceptorDebugConfig                  config.InterceptorResolverDebugConfig
+	maxHardCapForMissingNodes               int
+	numConcurrentTrieSyncers                int
+	trieSyncerVersion                       int
+	checkNodesOnDisk                        bool
+	nodeOperationMode                       common.NodeOperation
+	interceptedDataVerifierFactory          process.InterceptedDataVerifierFactory
+	peerAuthenticationTimeBetweenSendsInSec int64
+	config                                  config.Config
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -234,39 +238,41 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	}
 
 	e := &exportHandlerFactory{
-		coreComponents:                   args.CoreComponents,
-		cryptoComponents:                 args.CryptoComponents,
-		networkComponents:                args.NetworkComponents,
-		headerValidator:                  args.HeaderValidator,
-		dataPool:                         args.DataPool,
-		storageService:                   args.StorageService,
-		requestHandler:                   args.RequestHandler,
-		shardCoordinator:                 args.ShardCoordinator,
-		activeAccountsDBs:                args.ActiveAccountsDBs,
-		exportFolder:                     args.ExportFolder,
-		exportTriesStorageConfig:         args.ExportTriesStorageConfig,
-		exportStateStorageConfig:         args.ExportStateStorageConfig,
-		exportStateKeysConfig:            args.ExportStateKeysConfig,
-		mainInterceptorsContainer:        args.MainInterceptorsContainer,
-		fullArchiveInterceptorsContainer: args.FullArchiveInterceptorsContainer,
-		whiteListHandler:                 args.WhiteListHandler,
-		whiteListerVerifiedTxs:           args.WhiteListerVerifiedTxs,
-		existingResolvers:                args.ExistingResolvers,
-		existingRequesters:               args.ExistingRequesters,
-		accounts:                         args.ActiveAccountsDBs[state.UserAccountsState],
-		nodesCoordinator:                 args.NodesCoordinator,
-		headerSigVerifier:                args.HeaderSigVerifier,
-		headerIntegrityVerifier:          args.HeaderIntegrityVerifier,
-		validityAttester:                 args.ValidityAttester,
-		roundHandler:                     args.RoundHandler,
-		maxHardCapForMissingNodes:        args.MaxHardCapForMissingNodes,
-		numConcurrentTrieSyncers:         args.NumConcurrentTrieSyncers,
-		trieSyncerVersion:                args.TrieSyncerVersion,
-		checkNodesOnDisk:                 args.CheckNodesOnDisk,
-		statusCoreComponents:             args.StatusCoreComponents,
-		nodeOperationMode:                args.NodeOperationMode,
-		interceptedDataVerifierFactory:   args.InterceptedDataVerifierFactory,
-		config:                           args.Config,
+		coreComponents:                          args.CoreComponents,
+		cryptoComponents:                        args.CryptoComponents,
+		networkComponents:                       args.NetworkComponents,
+		headerValidator:                         args.HeaderValidator,
+		dataPool:                                args.DataPool,
+		storageService:                          args.StorageService,
+		requestHandler:                          args.RequestHandler,
+		shardCoordinator:                        args.ShardCoordinator,
+		activeAccountsDBs:                       args.ActiveAccountsDBs,
+		exportFolder:                            args.ExportFolder,
+		exportTriesStorageConfig:                args.ExportTriesStorageConfig,
+		exportStateStorageConfig:                args.ExportStateStorageConfig,
+		exportStateKeysConfig:                   args.ExportStateKeysConfig,
+		mainInterceptorsContainer:               args.MainInterceptorsContainer,
+		fullArchiveInterceptorsContainer:        args.FullArchiveInterceptorsContainer,
+		whiteListHandler:                        args.WhiteListHandler,
+		whiteListerVerifiedTxs:                  args.WhiteListerVerifiedTxs,
+		existingResolvers:                       args.ExistingResolvers,
+		existingRequesters:                      args.ExistingRequesters,
+		accounts:                                args.ActiveAccountsDBs[state.UserAccountsState],
+		nodesCoordinator:                        args.NodesCoordinator,
+		headerSigVerifier:                       args.HeaderSigVerifier,
+		headerIntegrityVerifier:                 args.HeaderIntegrityVerifier,
+		validityAttester:                        args.ValidityAttester,
+		roundHandler:                     		 args.RoundHandler,
+		interceptorDebugConfig:                  args.InterceptorDebugConfig,
+		maxHardCapForMissingNodes:               args.MaxHardCapForMissingNodes,
+		numConcurrentTrieSyncers:                args.NumConcurrentTrieSyncers,
+		trieSyncerVersion:                       args.TrieSyncerVersion,
+		checkNodesOnDisk:                        args.CheckNodesOnDisk,
+		statusCoreComponents:                    args.StatusCoreComponents,
+		nodeOperationMode:                       args.NodeOperationMode,
+		interceptedDataVerifierFactory:          args.InterceptedDataVerifierFactory,
+		peerAuthenticationTimeBetweenSendsInSec: args.PeerAuthenticationTimeBetweenSendsInSec,
+		config:                                  args.Config,
 	}
 
 	return e, nil
@@ -295,22 +301,23 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		return nil, err
 	}
 	argsEpochTrigger := shardchain.ArgsShardEpochStartTrigger{
-		Marshalizer:          e.coreComponents.InternalMarshalizer(),
-		Hasher:               e.coreComponents.Hasher(),
-		HeaderValidator:      e.headerValidator,
-		Uint64Converter:      e.coreComponents.Uint64ByteSliceConverter(),
-		DataPool:             e.dataPool,
-		Storage:              e.storageService,
-		RequestHandler:       e.requestHandler,
-		EpochStartNotifier:   notifier.NewEpochStartSubscriptionHandler(),
-		Epoch:                0,
-		Validity:             process.MetaBlockValidity,
-		Finality:             process.BlockFinality,
-		PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
-		RoundHandler:         e.roundHandler,
-		AppStatusHandler:     e.statusCoreComponents.AppStatusHandler(),
-		EnableEpochsHandler:  e.coreComponents.EnableEpochsHandler(),
-		CommonConfigsHandler: e.coreComponents.CommonConfigsHandler(),
+		Marshalizer:           e.coreComponents.InternalMarshalizer(),
+		Hasher:                e.coreComponents.Hasher(),
+		HeaderValidator:       e.headerValidator,
+		Uint64Converter:       e.coreComponents.Uint64ByteSliceConverter(),
+		DataPool:              e.dataPool,
+		Storage:               e.storageService,
+		RequestHandler:        e.requestHandler,
+		ShardID:               e.shardCoordinator.SelfId(),
+		EpochStartNotifier:    notifier.NewEpochStartSubscriptionHandler(),
+		Epoch:                 0,
+		Validity:              process.MetaBlockValidity,
+		Finality:              process.BlockFinality,
+		PeerMiniBlocksSyncer:  peerMiniBlocksSyncer,
+		RoundHandler:          e.roundHandler,
+		AppStatusHandler:      e.statusCoreComponents.AppStatusHandler(),
+		EnableEpochsHandler:   e.coreComponents.EnableEpochsHandler(),
+		ProcessConfigsHandler: e.coreComponents.ProcessConfigsHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {
@@ -565,31 +572,32 @@ func (e *exportHandlerFactory) prepareFolders(folder string) error {
 
 func (e *exportHandlerFactory) createInterceptors() error {
 	argsInterceptors := ArgsNewFullSyncInterceptorsContainerFactory{
-		CoreComponents:                   e.coreComponents,
-		CryptoComponents:                 e.cryptoComponents,
-		Accounts:                         e.accounts,
-		ShardCoordinator:                 e.shardCoordinator,
-		NodesCoordinator:                 e.nodesCoordinator,
-		MainMessenger:                    e.networkComponents.NetworkMessenger(),
-		FullArchiveMessenger:             e.networkComponents.FullArchiveNetworkMessenger(),
-		Store:                            e.storageService,
-		DataPool:                         e.dataPool,
-		MaxTxNonceDeltaAllowed:           math.MaxInt32,
-		TxFeeHandler:                     &disabled.FeeHandler{},
-		BlockBlackList:                   cache.NewTimeCache(time.Second),
-		HeaderSigVerifier:                e.headerSigVerifier,
-		HeaderIntegrityVerifier:          e.headerIntegrityVerifier,
-		SizeCheckDelta:                   math.MaxUint32,
-		ValidityAttester:                 e.validityAttester,
-		EpochStartTrigger:                e.epochStartTrigger,
-		WhiteListHandler:                 e.whiteListHandler,
-		WhiteListerVerifiedTxs:           e.whiteListerVerifiedTxs,
-		MainInterceptorsContainer:        e.mainInterceptorsContainer,
-		FullArchiveInterceptorsContainer: e.fullArchiveInterceptorsContainer,
-		AntifloodHandler:                 e.networkComponents.InputAntiFloodHandler(),
-		NodeOperationMode:                e.nodeOperationMode,
-		InterceptedDataVerifierFactory:   e.interceptedDataVerifierFactory,
-		Config:                           e.config,
+		CoreComponents:                          e.coreComponents,
+		CryptoComponents:                        e.cryptoComponents,
+		Accounts:                                e.accounts,
+		ShardCoordinator:                        e.shardCoordinator,
+		NodesCoordinator:                        e.nodesCoordinator,
+		MainMessenger:                           e.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:                    e.networkComponents.FullArchiveNetworkMessenger(),
+		Store:                                   e.storageService,
+		DataPool:                                e.dataPool,
+		MaxTxNonceDeltaAllowed:                  math.MaxInt32,
+		TxFeeHandler:                            &disabled.FeeHandler{},
+		BlockBlackList:                          cache.NewTimeCache(time.Second),
+		HeaderSigVerifier:                       e.headerSigVerifier,
+		HeaderIntegrityVerifier:                 e.headerIntegrityVerifier,
+		SizeCheckDelta:                          math.MaxUint32,
+		ValidityAttester:                        e.validityAttester,
+		EpochStartTrigger:                       e.epochStartTrigger,
+		WhiteListHandler:                        e.whiteListHandler,
+		WhiteListerVerifiedTxs:                  e.whiteListerVerifiedTxs,
+		MainInterceptorsContainer:               e.mainInterceptorsContainer,
+		FullArchiveInterceptorsContainer:        e.fullArchiveInterceptorsContainer,
+		AntifloodHandler:                        e.networkComponents.InputAntiFloodHandler(),
+		NodeOperationMode:                       e.nodeOperationMode,
+		InterceptedDataVerifierFactory:          e.interceptedDataVerifierFactory,
+		PeerAuthenticationTimeBetweenSendsInSec: e.peerAuthenticationTimeBetweenSendsInSec,
+		Config:                                  e.config,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

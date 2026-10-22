@@ -18,7 +18,9 @@ func startNodeServerEndpointThrottler(handler func(c *gin.Context), facade inter
 	ws := gin.New()
 	ws.Use(cors.Default())
 
-	ws.Use(middleware.CreateEndpointThrottlerFromFacade(throttlerName, facade))
+	ws.Use(middleware.CreateEndpointThrottlerFromFacade(throttlerName, func() interface{} {
+		return facade
+	}))
 
 	ginAddressRoutes := ws.Group("/address")
 

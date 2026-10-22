@@ -10,12 +10,14 @@ import (
 	coreSync "github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	errErd "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
-	errErd "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -65,16 +67,32 @@ func createMockDataBuff() []byte {
 }
 
 func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
+	roundExclusions, _ := common.NewRoundExclusionHandler(nil)
 	return ArgInterceptedEquivalentProof{
 		DataBuff:          createMockDataBuff(),
 		Marshaller:        testMarshaller,
 		ShardCoordinator:  &mock.ShardCoordinatorMock{},
 		HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 		Proofs:            &dataRetriever.ProofsPoolMock{},
+		HeadersPool: &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return providedNonce
+					},
+					GetShardIDCalled: func() uint32 {
+						return providedShard
+					},
+					EpochField: providedEpoch,
+					RoundField: providedRound,
+				}, nil
+			},
+		},
 		Hasher:            &hashingMocks.HasherMock{},
 		ProofSizeChecker:  &testscommon.FieldsSizeCheckerMock{},
 		KeyRWMutexHandler: coreSync.NewKeyRWMutex(),
 		ValidityAttester:  &processMock.ValidityAttesterStub{},
+		RoundExclusions:   roundExclusions,
 	}
 }
 
@@ -134,6 +152,15 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		args.Proofs = nil
 		iep, err := NewInterceptedEquivalentProof(args)
 		require.Equal(t, process.ErrNilProofsPool, err)
+		require.Nil(t, iep)
+	})
+	t.Run("nil headers pool should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.HeadersPool = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilHeadersDataPool, err)
 		require.Nil(t, iep)
 	})
 	t.Run("nil Hasher should error", func(t *testing.T) {
@@ -197,6 +224,22 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 	t.Parallel()
 
+	t.Run("missing header should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.HeadersPool = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, expectedErr
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.Equal(t, expectedErr, err)
+	})
 	t.Run("invalid proof should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -298,7 +341,20 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 				return true
 			},
 		}
-
+		args.HeadersPool = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return providedNonce
+					},
+					GetShardIDCalled: func() uint32 {
+						return providedShard
+					},
+					EpochField: providedEpoch,
+					RoundField: providedRound,
+				}, nil
+			},
+		}
 		iep, err := NewInterceptedEquivalentProof(args)
 		require.NoError(t, err)
 
@@ -308,11 +364,46 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		iep, err := NewInterceptedEquivalentProof(createMockArgInterceptedEquivalentProof())
+		args := createMockArgInterceptedEquivalentProof()
+		args.HeadersPool = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return providedNonce
+					},
+					GetShardIDCalled: func() uint32 {
+						return providedShard
+					},
+					EpochField: providedEpoch,
+					RoundField: providedRound,
+				}, nil
+			},
+		}
+		iep, err := NewInterceptedEquivalentProof(args)
 		require.NoError(t, err)
 
 		err = iep.CheckValidity()
 		require.NoError(t, err)
+	})
+	t.Run("excluded round should return before pool access", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.RoundExclusions, _ = common.NewRoundExclusionHandler([]config.HardforkRoundExclusionConfig{
+			{StartRound: providedRound, EndRound: providedRound},
+		})
+		args.HeadersPool = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				require.Fail(t, "header pool should not be accessed")
+				return nil, nil
+			},
+		}
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+
+		require.ErrorIs(t, err, common.ErrRoundExcluded)
 	})
 	t.Run("concurrent calls should work", func(t *testing.T) {
 		t.Parallel()

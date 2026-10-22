@@ -676,6 +676,120 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 	assert.NotNil(t, err)
 }
 
+func TestTxProcessor_ProcessTransactionCrossShardReservedAddressShouldUseFailurePath(t *testing.T) {
+	t.Parallel()
+
+	senderAddress := []byte("sender")
+	receiverAddress := []byte("receiver")
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+	shardCoordinator.CurrentShard = 1
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		if bytes.Equal(address, receiverAddress) {
+			return 1
+		}
+
+		return 0
+	}
+
+	var stateAccessTxHash []byte
+	accountsDB := &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			require.Equal(t, receiverAddress, address)
+			return nil, state.ErrAccountAddressIsReserved
+		},
+		SetTxHashForLatestStateAccessesCalled: func(txHash []byte) {
+			stateAccessTxHash = txHash
+		},
+	}
+	processIfErrorCalled := false
+	var processedTxHash []byte
+	scProcessor := &testscommon.SCProcessorMock{
+		ProcessIfErrorCalled: func(
+			acntSnd state.UserAccountHandler,
+			txHash []byte,
+			tx data.TransactionHandler,
+			returnCode string,
+			returnMessage []byte,
+			snapshot int,
+			gasLocked uint64,
+		) error {
+			processIfErrorCalled = true
+			processedTxHash = txHash
+			require.Nil(t, acntSnd)
+			require.Equal(t, state.ErrAccountAddressIsReserved.Error(), returnCode)
+			require.Nil(t, returnMessage)
+			require.Zero(t, snapshot)
+			require.Zero(t, gasLocked)
+			require.Equal(t, senderAddress, tx.GetSndAddr())
+			require.Equal(t, receiverAddress, tx.GetRcvAddr())
+			return nil
+		},
+	}
+	args := createArgsForTxProcessor()
+	args.Accounts = accountsDB
+	args.ShardCoordinator = shardCoordinator
+	args.ScProcessor = scProcessor
+	execTx, err := txproc.NewTxProcessor(args)
+	require.NoError(t, err)
+
+	tx := &transaction.Transaction{
+		SndAddr: senderAddress,
+		RcvAddr: receiverAddress,
+		Value:   big.NewInt(1),
+	}
+	returnCode, err := execTx.ProcessTransaction(tx)
+	require.NoError(t, err)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.True(t, processIfErrorCalled)
+	require.NotEmpty(t, processedTxHash)
+	require.Equal(t, processedTxHash, stateAccessTxHash)
+}
+
+func TestTxProcessor_ProcessTransactionLocalReservedAddressShouldPreserveError(t *testing.T) {
+	t.Parallel()
+
+	senderAddress := []byte("sender")
+	receiverAddress := []byte("receiver")
+	senderAccount := createUserAcc(senderAddress)
+	accountsDB := &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+			if bytes.Equal(address, senderAddress) {
+				return senderAccount, nil
+			}
+
+			return nil, state.ErrAccountAddressIsReserved
+		},
+	}
+	processIfErrorCalled := false
+	args := createArgsForTxProcessor()
+	args.Accounts = accountsDB
+	args.ScProcessor = &testscommon.SCProcessorMock{
+		ProcessIfErrorCalled: func(
+			_ state.UserAccountHandler,
+			_ []byte,
+			_ data.TransactionHandler,
+			_ string,
+			_ []byte,
+			_ int,
+			_ uint64,
+		) error {
+			processIfErrorCalled = true
+			return nil
+		},
+	}
+	execTx, err := txproc.NewTxProcessor(args)
+	require.NoError(t, err)
+
+	tx := &transaction.Transaction{
+		SndAddr: senderAddress,
+		RcvAddr: receiverAddress,
+		Value:   big.NewInt(1),
+	}
+	_, err = execTx.ProcessTransaction(tx)
+	require.ErrorIs(t, err, state.ErrAccountAddressIsReserved)
+	require.False(t, processIfErrorCalled)
+}
+
 func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	t.Parallel()
 

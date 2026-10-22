@@ -24,6 +24,11 @@ func (rndm *RoundHandlerStub) Index() int64 {
 	return rndm.RoundIndex
 }
 
+// IndexForCurrentTime -
+func (rndm *RoundHandlerStub) IndexForCurrentTime() int64 {
+	return rndm.Index()
+}
+
 // TimeDuration -
 func (rndm *RoundHandlerStub) TimeDuration() time.Duration {
 	if rndm.TimeDurationCalled != nil {

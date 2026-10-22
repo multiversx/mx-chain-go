@@ -13,10 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -905,6 +906,109 @@ func TestScrsPreprocessor_ProcessBlockTransactionsShouldErrMaxGasLimitPerBlockIn
 	assert.Equal(t, process.ErrMaxGasLimitPerBlockInSelfShardIsReached, err)
 }
 
+func TestScrsPreprocessor_ProcessBlockTransactionsEnforcesHistoricalDrainLimit(t *testing.T) {
+	t.Parallel()
+
+	const (
+		supernovaEpoch = uint32(2)
+		supernovaRound = uint64(260)
+		legacyGasLimit = uint64(1_500_000_000)
+		v3GasLimit     = uint64(600_000_000)
+	)
+
+	tests := []struct {
+		name        string
+		gasProvided []uint64
+		expectedErr error
+	}{
+		{name: "exact limit", gasProvided: []uint64{500_000_000, 500_000_000, 500_000_000}},
+		{name: "above limit", gasProvided: []uint64{500_000_000, 500_000_000, 500_000_001}, expectedErr: process.ErrMaxGasLimitPerBlockInSelfShardIsReached},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return flag == common.SupernovaFlag && epoch >= supernovaEpoch
+				},
+				GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+					return supernovaEpoch
+				},
+			}
+			enableEpochsHandler.AddActiveFlags(common.OptimizeGasUsedInCrossMiniBlocksFlag, common.SupernovaFlag)
+			enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+				IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+					return flag == common.SupernovaRoundFlag && round >= supernovaRound
+				},
+				IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+					return flag == common.SupernovaRoundFlag
+				},
+			}
+			economicsFee := feeHandlerMock()
+			economicsFee.MaxGasLimitPerBlockInEpochCalled = func(_ uint32, epoch uint32) uint64 {
+				if epoch < supernovaEpoch {
+					return legacyGasLimit
+				}
+
+				return v3GasLimit
+			}
+			economicsFee.BlockCapacityOverestimationFactorCalled = func() uint64 { return 200 }
+
+			gasIndex := 0
+			args := createDefaultSmartContractProcessorArgs(initDataPool())
+			args.EnableEpochsHandler = enableEpochsHandler
+			args.EnableRoundsHandler = enableRoundsHandler
+			args.EconomicsFee = economicsFee
+			args.GasHandler = &mock.GasHandlerMock{
+				ComputeGasProvidedByTxCalled: func(_ uint32, _ uint32, _ data.TransactionHandler) (uint64, uint64, error) {
+					gasProvided := test.gasProvided[gasIndex]
+					gasIndex++
+					return 0, gasProvided, nil
+				},
+			}
+			args.ScrProcessor = &testscommon.TxProcessorMock{
+				ProcessSmartContractResultCalled: func(_ *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
+					return vmcommon.Ok, nil
+				},
+			}
+
+			preprocessor, err := NewSmartContractResultPreprocessor(args)
+			require.NoError(t, err)
+			preprocessor.gasEpochState.EpochConfirmed(supernovaEpoch)
+			preprocessor.gasEpochState.RoundConfirmed(supernovaRound)
+
+			txHashes := [][]byte{[]byte("scrHash0"), []byte("scrHash1"), []byte("scrHash2")}
+			miniBlock := &block.MiniBlock{
+				TxHashes:        txHashes,
+				SenderShardID:   1,
+				ReceiverShardID: args.ShardCoordinator.SelfId(),
+				Type:            block.SmartContractResultBlock,
+			}
+			miniBlockHash, err := core.CalculateHash(preprocessor.marshalizer, preprocessor.hasher, miniBlock)
+			require.NoError(t, err)
+			for _, txHash := range txHashes {
+				preprocessor.scrForBlock.AddTransaction(txHash, &smartContractResult.SmartContractResult{}, 1, args.ShardCoordinator.SelfId())
+			}
+
+			header := &block.Header{
+				Epoch: supernovaEpoch,
+				Round: supernovaRound - 1,
+				MiniBlockHeaders: []block.MiniBlockHeader{{
+					Hash:    miniBlockHash,
+					TxCount: uint32(len(txHashes)),
+				}},
+			}
+			err = preprocessor.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTimeTrue)
+			require.Equal(t, len(test.gasProvided), gasIndex)
+			if test.expectedErr == nil {
+				require.NoError(t, err)
+			} else {
+				require.ErrorIs(t, err, test.expectedErr)
+			}
+		})
+	}
+}
+
 func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 	t.Parallel()
 
@@ -948,7 +1052,7 @@ func TestScrsPreprocessor_ProcessMiniBlock(t *testing.T) {
 		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
 	}
 
-	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock, process.GasProcessingPolicy{})
 
 	assert.Nil(t, err)
 }
@@ -969,7 +1073,7 @@ func TestScrsPreprocessor_ProcessMiniBlockWrongTypeMiniblockShouldErr(t *testing
 		GetNumOfCrossInterMbsAndTxsCalled: getNumOfCrossInterMbsAndTxsZero,
 	}
 
-	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+	_, _, _, err := scr.ProcessMiniBlock(&miniblock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock, process.GasProcessingPolicy{})
 
 	assert.NotNil(t, err)
 	assert.Equal(t, err, process.ErrWrongTypeInMiniBlock)

@@ -348,7 +348,10 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return timeRemaining() >= 0
 	}
 
-	tc.doubleTransactionsDetector.ProcessBlockBody(body)
+	err := tc.doubleTransactionsDetector.ProcessBlockBody(body)
+	if err != nil {
+		return err
+	}
 
 	startTime := time.Now()
 	mbIndex, err := tc.processMiniBlocksToMe(header, body, haveTime)
@@ -365,6 +368,16 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
+	if !header.IsHeaderV3() &&
+		common.IsInSupernovaDrainWindowForEpochAndRound(
+			tc.enableEpochsHandler,
+			tc.enableRoundsHandler,
+			header.GetEpoch(),
+			header.GetRound(),
+		) &&
+		hasForbiddenOutgoingTxMiniBlocks(tc.shardCoordinator.SelfId(), miniBlocksFromMe) {
+		return process.ErrOutgoingTxsDisabled
+	}
 	startTime = time.Now()
 	err = tc.processMiniBlocksFromMe(header, &block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
 	elapsedTime = time.Since(startTime)
@@ -376,6 +389,18 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	}
 
 	return nil
+}
+
+func hasForbiddenOutgoingTxMiniBlocks(selfShardID uint32, miniBlocks block.MiniBlockSlice) bool {
+	for _, mb := range miniBlocks {
+		if mb.SenderShardID != selfShardID {
+			continue
+		}
+		if mb.Type == block.TxBlock || mb.Type == block.InvalidBlock {
+			return true
+		}
+	}
+	return false
 }
 
 // GetCreatedMiniBlocksFromMe returns the created mini blocks from me
@@ -436,8 +461,14 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	body *block.Body,
 	haveTime func() bool,
 ) error {
+	selfId := tc.shardCoordinator.SelfId()
 	for _, mb := range body.MiniBlocks {
-		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
+		err := process.CheckMiniBlock(mb, tc.shardCoordinator)
+		if err != nil {
+			return err
+		}
+
+		if mb.SenderShardID != selfId {
 			return process.ErrMiniBlocksInWrongOrder
 		}
 	}
@@ -495,10 +526,25 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	// processing destination ME miniblocks first
 	mbIndex := 0
+	selfId := tc.shardCoordinator.SelfId()
 	for mbIndex = 0; mbIndex < len(body.MiniBlocks); mbIndex++ {
 		miniBlock := body.MiniBlocks[mbIndex]
-		if miniBlock.SenderShardID == tc.shardCoordinator.SelfId() {
+
+		err := process.CheckMiniBlock(miniBlock, tc.shardCoordinator)
+		if err != nil {
+			return mbIndex, err
+		}
+
+		if miniBlock.SenderShardID == selfId {
 			return mbIndex, nil
+		}
+
+		if miniBlock.GetType() != block.PeerBlock && miniBlock.ReceiverShardID != tc.shardCoordinator.SelfId() {
+			return mbIndex, fmt.Errorf("%w: block type: %s, sender shard id: %d, receiver shard id: %d",
+				process.ErrInvalidShardId,
+				miniBlock.Type,
+				miniBlock.SenderShardID,
+				miniBlock.ReceiverShardID)
 		}
 
 		preProc := tc.preProcExecution.getPreProcessor(miniBlock.Type)
@@ -507,7 +553,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 		}
 
 		log.Debug("processMiniBlocksToMe: miniblock", "type", miniBlock.Type)
-		err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
+		err = preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
 		if err != nil {
 			return mbIndex, err
 		}
@@ -526,6 +572,8 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
+	allowStartingPartialExecution bool,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 
 	createMBDestMeExecutionInfo := initMiniBlockDestMeExecutionInfo()
@@ -576,7 +624,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			break
 		}
 
-		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
+		if !hdr.IsHeaderV3() && tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
 			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
 				"scheduled mode", scheduledMode,
 				"stop creating", "max block size has been reached")
@@ -661,8 +709,11 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		}
 
 		oldIndexOfLastTxProcessed := processedMbInfo.IndexOfLastTxProcessed
+		isContinuation := oldIndexOfLastTxProcessed >= 0
+		allowPartialExecution := tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag) &&
+			(allowStartingPartialExecution || isContinuation)
 
-		errProc := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo, headerHash)
+		errProc := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, allowPartialExecution, processedMbInfo, headerHash, gasProcessingPolicy)
 		tc.handleProcessMiniBlockExecution(oldIndexOfLastTxProcessed, miniBlock, processedMbInfo, createMBDestMeExecutionInfo)
 		if errProc != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
@@ -962,7 +1013,8 @@ func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[strin
 
 	shouldNotSkipTransactionFunc := func(_ []byte) bool { return false }
 
-	for headerHash, miniBlocks := range miniBlocksMap {
+	for _, headerHash := range sortedMiniBlockMapKeys(miniBlocksMap) {
+		miniBlocks := miniBlocksMap[headerHash]
 		cachedIntermediateTxsMap, err := common.GetCachedIntermediateTxs(tc.dataPool.PostProcessTransactions(), []byte(headerHash))
 		if err != nil {
 			log.Warn("createMarshalledDataV3.GetCachedIntermediateTxs", "error", err.Error())
@@ -979,6 +1031,16 @@ func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[strin
 	}
 
 	return mrsTxs
+}
+
+func sortedMiniBlockMapKeys(miniBlocksMap map[string]block.MiniBlockSlice) []string {
+	headerHashes := make([]string, 0, len(miniBlocksMap))
+	for headerHash := range miniBlocksMap {
+		headerHashes = append(headerHashes, headerHash)
+	}
+	sort.Strings(headerHashes)
+
+	return headerHashes
 }
 
 func (tc *transactionCoordinator) appendTransactionsForMiniBlock(
@@ -1194,8 +1256,10 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	haveTime func() bool,
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
+	allowPartialExecution bool,
 	processedMbInfo *processedMb.ProcessedMiniBlockInfo,
 	headerHash []byte,
+	gasProcessingPolicy process.GasProcessingPolicy,
 ) error {
 
 	snapshot := tc.handleProcessMiniBlockInit(miniBlockHash, headerHash)
@@ -1217,9 +1281,10 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		haveTime,
 		haveAdditionalTime,
 		scheduledMode,
-		tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag),
+		allowPartialExecution,
 		int(processedMbInfo.IndexOfLastTxProcessed),
 		tc,
+		gasProcessingPolicy,
 	)
 
 	log.Debug("transactionsCoordinator.processCompleteMiniBlock: after processing",
@@ -1250,7 +1315,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		if shouldRevert {
 			tc.handleProcessTransactionError(snapshot, miniBlockHash, txsToBeReverted)
 		} else {
-			if tc.enableEpochsHandler.IsFlagEnabled(common.MiniBlockPartialExecutionFlag) {
+			if allowPartialExecution {
 				processedMbInfo.IndexOfLastTxProcessed = int32(indexOfLastTxProcessed)
 				processedMbInfo.FullyProcessed = false
 			}
@@ -1514,8 +1579,8 @@ func getNumOfCrossShardScCallsOrSpecialTxs(
 	numCrossShardScCallsOrSpecialTxs := 0
 	for _, txHash := range mb.TxHashes {
 		tx, ok := allTxs[string(txHash)]
-		if !ok {
-			log.Warn("transactionCoordinator.getNumOfCrossShardScCallsOrSpecialTxs: tx not found",
+		if !ok || check.IfNil(tx) {
+			log.Trace("transactionCoordinator.getNumOfCrossShardScCallsOrSpecialTxs: tx not found",
 				"mb type", mb.Type,
 				"senderShardID", mb.SenderShardID,
 				"receiverShardID", mb.ReceiverShardID,

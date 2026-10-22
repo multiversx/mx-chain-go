@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -38,20 +39,25 @@ const uniqueEquivalentProofSuffix = "eqp"
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
 type resolverRequestHandler struct {
-	mutEpoch              sync.RWMutex
-	epoch                 uint32
-	shardID               uint32
-	maxTxsToRequest       int
-	requestersFinder      dataRetriever.RequestersFinder
-	requestedItemsHandler dataRetriever.RequestedItemsHandler
-	whiteList             dataRetriever.WhiteListHandler
-	sweepTime             time.Time
-	requestInterval       time.Duration
-	mutSweepTime          sync.Mutex
+	recoveryTrieRequests     atomic.Bool
+	mutEpoch                 sync.RWMutex
+	epoch                    uint32
+	shardID                  uint32
+	maxTxsToRequest          int
+	requestersFinder         dataRetriever.RequestersFinder
+	requestedItemsHandler    dataRetriever.RequestedItemsHandler
+	whiteList                dataRetriever.WhiteListHandler
+	sweepTime                time.Time
+	requestInterval          time.Duration
+	requestProofByNonceDelay time.Duration
+	mutSweepTime             sync.Mutex
 
 	trieHashesAccumulator map[string]struct{}
 	lastTrieRequestTime   time.Time
 	mutexTrieHashes       sync.Mutex
+
+	inFlightProofsByNonce    map[string]struct{}
+	mutInFlightProofsByNonce sync.Mutex
 }
 
 // NewResolverRequestHandler creates a requestHandler interface implementation with request functions
@@ -62,6 +68,7 @@ func NewResolverRequestHandler(
 	maxTxsToRequest int,
 	shardID uint32,
 	requestInterval time.Duration,
+	requestProofByNonceDelay time.Duration,
 ) (*resolverRequestHandler, error) {
 
 	if check.IfNil(finder) {
@@ -81,14 +88,16 @@ func NewResolverRequestHandler(
 	}
 
 	rrh := &resolverRequestHandler{
-		requestersFinder:      finder,
-		requestedItemsHandler: requestedItemsHandler,
-		epoch:                 uint32(0), // will be updated after creation of the request handler
-		shardID:               shardID,
-		maxTxsToRequest:       maxTxsToRequest,
-		whiteList:             whiteList,
-		requestInterval:       requestInterval,
-		trieHashesAccumulator: make(map[string]struct{}),
+		requestersFinder:         finder,
+		requestedItemsHandler:    requestedItemsHandler,
+		epoch:                    uint32(0), // will be updated after creation of the request handler
+		shardID:                  shardID,
+		maxTxsToRequest:          maxTxsToRequest,
+		whiteList:                whiteList,
+		requestInterval:          requestInterval,
+		requestProofByNonceDelay: requestProofByNonceDelay,
+		trieHashesAccumulator:    make(map[string]struct{}),
+		inFlightProofsByNonce:    make(map[string]struct{}),
 	}
 
 	rrh.sweepTime = time.Now()
@@ -190,6 +199,32 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 				"epoch", epoch,
 				"batch size", len(batch),
 			)
+		}
+	}
+}
+
+func (rrh *resolverRequestHandler) requestHashesInBatches(
+	hashes [][]byte,
+	requester HashSliceRequester,
+	epoch uint32,
+	onSuccess func(hashes [][]byte),
+) {
+	for startIndex := 0; startIndex < len(hashes); startIndex += common.MaxHashesInRequest {
+		endIndex := core.MinInt(startIndex+common.MaxHashesInRequest, len(hashes))
+		batch := hashes[startIndex:endIndex]
+
+		err := requester.RequestDataFromHashArray(batch, epoch)
+		if err != nil {
+			log.Debug("requestHashesInBatches.RequestDataFromHashArray",
+				"error", err.Error(),
+				"epoch", epoch,
+				"batch size", len(batch),
+			)
+			continue
+		}
+
+		if onSuccess != nil {
+			onSuccess(batch)
 		}
 	}
 }
@@ -316,17 +351,9 @@ func (rrh *resolverRequestHandler) RequestMiniBlocksForEpoch(destShardID uint32,
 
 	rrh.whiteList.Add(unrequestedHashes)
 
-	err = miniBlocksRequester.RequestDataFromHashArray(unrequestedHashes, epoch)
-	if err != nil {
-		log.Debug("RequestMiniBlocksForEpoch.RequestDataFromHashArray",
-			"error", err.Error(),
-			"epoch", epoch,
-			"num mbs", len(unrequestedHashes),
-		)
-		return
-	}
-
-	rrh.addRequestedItems(unrequestedHashes, suffix)
+	rrh.requestHashesInBatches(unrequestedHashes, miniBlocksRequester, epoch, func(hashes [][]byte) {
+		rrh.addRequestedItems(hashes, suffix)
+	})
 }
 
 // RequestShardHeader method asks for shard header from the connected peers
@@ -523,7 +550,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodesForEpoch(destShardID uint32, 
 		return
 	}
 
-	trieRequester, ok := requester.(HashSliceRequester)
+	typedRequester, ok := requester.(trieRequester)
 	if !ok {
 		log.Warn("wrong assertion type when creating a trie nodes requester")
 		return
@@ -531,7 +558,11 @@ func (rrh *resolverRequestHandler) RequestTrieNodesForEpoch(destShardID uint32, 
 
 	rrh.logTrieHashesFromAccumulator()
 
-	go rrh.requestHashesWithDataSplit(itemsToRequest, trieRequester, epoch)
+	var hashRequester HashSliceRequester = typedRequester
+	if rrh.recoveryTrieRequests.Load() {
+		hashRequester = &recoveryTrieRequesterAdapter{typedRequester}
+	}
+	go rrh.requestHashesWithDataSplit(itemsToRequest, hashRequester, epoch)
 
 	rrh.addRequestedItems(itemsToRequest, uniqueTrieNodesSuffix)
 	rrh.lastTrieRequestTime = time.Now()
@@ -572,13 +603,17 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 		return
 	}
 
-	trieRequester, ok := requester.(ChunkRequester)
+	typedRequester, ok := requester.(trieRequester)
 	if !ok {
 		log.Warn("wrong assertion type when creating a trie chunk requester")
 		return
 	}
 
-	go rrh.requestReferenceWithChunkIndex(requestHash, chunkIndex, trieRequester)
+	var chunkRequester ChunkRequester = typedRequester
+	if rrh.recoveryTrieRequests.Load() {
+		chunkRequester = &recoveryTrieRequesterAdapter{typedRequester}
+	}
+	go rrh.requestReferenceWithChunkIndex(requestHash, chunkIndex, chunkRequester)
 
 	rrh.addRequestedItems([][]byte{identifier}, uniqueTrieNodesSuffix)
 }
@@ -716,18 +751,9 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfoForEpoch(hashes [][]byte
 
 	rrh.whiteList.Add(unrequestedHashes)
 
-	err = validatorInfoRequester.RequestDataFromHashArray(unrequestedHashes, epoch)
-	if err != nil {
-		log.Debug("RequestValidatorsInfoForEpoch.RequestDataFromHash",
-			"error", err.Error(),
-			"topic", common.ValidatorInfoTopic,
-			"num hashes", len(unrequestedHashes),
-			"epoch", epoch,
-		)
-		return
-	}
-
-	rrh.addRequestedItems(unrequestedHashes, uniqueValidatorInfoSuffix)
+	rrh.requestHashesInBatches(unrequestedHashes, validatorInfoRequester, epoch, func(hashes [][]byte) {
+		rrh.addRequestedItems(hashes, uniqueValidatorInfoSuffix)
+	})
 }
 
 func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte, suffix string) bool {
@@ -857,11 +883,18 @@ func (rrh *resolverRequestHandler) IsInterfaceNil() bool {
 
 func (rrh *resolverRequestHandler) getUnrequestedHashes(hashes [][]byte, suffix string) [][]byte {
 	unrequestedHashes := make([][]byte, 0)
+	seen := make(map[string]struct{}, len(hashes))
 
 	rrh.sweepIfNeeded()
 
 	for _, hash := range hashes {
-		if !rrh.requestedItemsHandler.Has(string(hash) + suffix) {
+		key := string(hash) + suffix
+		if _, alreadySeen := seen[key]; alreadySeen {
+			continue
+		}
+		seen[key] = struct{}{}
+
+		if !rrh.requestedItemsHandler.Has(key) {
 			unrequestedHashes = append(unrequestedHashes, hash)
 		}
 	}
@@ -937,15 +970,15 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashesForEpoch(de
 		return
 	}
 
-	err = peerAuthRequester.RequestDataFromHashArray(hashes, epoch)
-	if err != nil {
-		log.Debug("RequestPeerAuthenticationsByHashesForEpoch.RequestDataFromHashArray",
-			"error", err.Error(),
-			"topic", common.PeerAuthenticationTopic,
-			"shard", destShardID,
-			"epoch", epoch,
-		)
+	identifiers := make([][]byte, 0, len(hashes))
+	for _, hash := range hashes {
+		identifier := common.PeerAuthenticationPublicKeyIdentifier(hash)
+		identifiers = append(identifiers, identifier)
 	}
+
+	rrh.whiteList.Add(identifiers)
+
+	rrh.requestHashesInBatches(hashes, peerAuthRequester, epoch, nil)
 }
 
 // RequestEquivalentProofByHash asks for equivalent proof for the provided header hash
@@ -1003,9 +1036,42 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uin
 // RequestEquivalentProofByNonceForEpoch asks for equivalent proof for the provided header nonce and epoch
 func (rrh *resolverRequestHandler) RequestEquivalentProofByNonceForEpoch(headerShard uint32, headerNonce uint64, epoch uint32) {
 	key := common.GetEquivalentProofNonceShardKey(headerNonce, headerShard)
+	if !rrh.reserveProofByNonceRequest(key) {
+		return
+	}
+
+	go rrh.requestReservedEquivalentProofByNonce(key, headerShard, headerNonce, epoch)
+}
+
+// reserveProofByNonceRequest claims key for one delayed request; the request goroutine releases it
+func (rrh *resolverRequestHandler) reserveProofByNonceRequest(key string) bool {
+	rrh.mutInFlightProofsByNonce.Lock()
+	defer rrh.mutInFlightProofsByNonce.Unlock()
+
+	_, inFlight := rrh.inFlightProofsByNonce[key]
+	if inFlight {
+		return false
+	}
+
+	rrh.inFlightProofsByNonce[key] = struct{}{}
+	return true
+}
+
+func (rrh *resolverRequestHandler) releaseProofByNonceRequest(key string) {
+	rrh.mutInFlightProofsByNonce.Lock()
+	delete(rrh.inFlightProofsByNonce, key)
+	rrh.mutInFlightProofsByNonce.Unlock()
+}
+
+func (rrh *resolverRequestHandler) requestReservedEquivalentProofByNonce(key string, headerShard uint32, headerNonce uint64, epoch uint32) {
+	defer rrh.releaseProofByNonceRequest(key)
+
+	// kept here rather than before the reservation so cached keys still trigger the periodic sweep
 	if !rrh.testIfRequestIsNeeded([]byte(key), uniqueEquivalentProofSuffix) {
 		return
 	}
+
+	time.Sleep(rrh.requestProofByNonceDelay)
 
 	log.Debug("requesting equivalent proof by nonce from network",
 		"headerNonce", headerNonce,
@@ -1018,6 +1084,8 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByNonceForEpoch(headerS
 		log.Error("RequestEquivalentProofByNonceForEpoch.getEquivalentProofsRequester",
 			"error", err.Error(),
 			"headerNonce", headerNonce,
+			"headerShard", headerShard,
+			"epoch", epoch,
 		)
 		return
 	}
@@ -1041,6 +1109,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByNonceForEpoch(headerS
 		return
 	}
 
+	// added before the deferred release so no caller slips between the two protections
 	rrh.addRequestedItems([][]byte{[]byte(key)}, uniqueEquivalentProofSuffix)
 }
 

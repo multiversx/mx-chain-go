@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -18,8 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var errExpected = errors.New("expected error")
@@ -199,9 +200,9 @@ func getArgumentsShard() storagerequesterscontainer.FactoryArgs {
 			AccountsTrieStorage:     getMockStorageConfig(),
 			PeerAccountsTrieStorage: getMockStorageConfig(),
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
-				PruningBufferLen:      255,
-				SnapshotsBufferLen:    255,
-				SnapshotsGoroutineNum: 2,
+				PruningBufferLen:           255,
+				SnapshotsBufferLen:         255,
+				SnapshotsGoroutinesPerCore: 2,
 			},
 			StateTriesConfig: config.StateTriesConfig{
 				AccountsStatePruningEnabled: false,

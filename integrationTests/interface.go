@@ -1,6 +1,7 @@
 package integrationTests
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -48,7 +49,7 @@ type NodesCoordinatorFactory interface {
 // NetworkShardingUpdater defines the updating methods used by the network sharding component
 type NetworkShardingUpdater interface {
 	GetPeerInfo(pid core.PeerID) core.P2PPeerInfo
-	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte)
+	UpdatePeerIDPublicKeyPair(pid core.PeerID, pk []byte, timestamp int64)
 	PutPeerIdShardId(pid core.PeerID, shardID uint32)
 	UpdatePeerIDInfo(pid core.PeerID, pk []byte, shardID uint32)
 	PutPeerIdSubType(pid core.PeerID, peerSubType core.P2PPeerSubType)
@@ -61,15 +62,15 @@ type Facade interface {
 	GetUsername(address string, options dataApi.AccountQueryOptions) (string, dataApi.BlockInfo, error)
 	GetCodeHash(address string, options dataApi.AccountQueryOptions) ([]byte, dataApi.BlockInfo, error)
 	GetValueForKey(address string, key string, options dataApi.AccountQueryOptions) (string, dataApi.BlockInfo, error)
-	GetAccount(address string, options dataApi.AccountQueryOptions) (dataApi.AccountResponse, dataApi.BlockInfo, error)
+	GetAccount(ctx context.Context, address string, options dataApi.AccountQueryOptions) (dataApi.AccountResponse, dataApi.BlockInfo, error)
 	GetAccounts(addresses []string, options dataApi.AccountQueryOptions) (map[string]*dataApi.AccountResponse, dataApi.BlockInfo, error)
 	GetESDTData(address string, key string, nonce uint64, options dataApi.AccountQueryOptions) (*esdt.ESDigitalToken, dataApi.BlockInfo, error)
-	GetNFTTokenIDsRegisteredByAddress(address string, options dataApi.AccountQueryOptions) ([]string, dataApi.BlockInfo, error)
-	GetESDTsWithRole(address string, role string, options dataApi.AccountQueryOptions) ([]string, dataApi.BlockInfo, error)
-	GetAllESDTTokens(address string, options dataApi.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, dataApi.BlockInfo, error)
-	GetESDTsRoles(address string, options dataApi.AccountQueryOptions) (map[string][]string, dataApi.BlockInfo, error)
-	GetKeyValuePairs(address string, options dataApi.AccountQueryOptions) (map[string]string, dataApi.BlockInfo, error)
-	IterateKeys(address string, numKeys uint, iteratorState [][]byte, options dataApi.AccountQueryOptions) (map[string]string, [][]byte, dataApi.BlockInfo, error)
+	GetNFTTokenIDsRegisteredByAddress(ctx context.Context, address string, options dataApi.AccountQueryOptions) ([]string, dataApi.BlockInfo, error)
+	GetESDTsWithRole(ctx context.Context, address string, role string, options dataApi.AccountQueryOptions) ([]string, dataApi.BlockInfo, error)
+	GetAllESDTTokens(ctx context.Context, address string, options dataApi.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, dataApi.BlockInfo, error)
+	GetESDTsRoles(ctx context.Context, address string, options dataApi.AccountQueryOptions) (map[string][]string, dataApi.BlockInfo, error)
+	GetKeyValuePairs(ctx context.Context, address string, options dataApi.AccountQueryOptions) (map[string]string, dataApi.BlockInfo, error)
+	IterateKeys(ctx context.Context, address string, numKeys uint, iteratorState [][]byte, options dataApi.AccountQueryOptions) (map[string]string, [][]byte, dataApi.BlockInfo, error)
 	GetGuardianData(address string, options dataApi.AccountQueryOptions) (dataApi.GuardianData, dataApi.BlockInfo, error)
 	GetBlockByHash(hash string, options dataApi.BlockQueryOptions) (*dataApi.Block, error)
 	GetBlockByNonce(nonce uint64, options dataApi.BlockQueryOptions) (*dataApi.Block, error)
@@ -79,7 +80,7 @@ type Facade interface {
 	GetTotalStakedValue() (*dataApi.StakeValues, error)
 	GetDirectStakedList() ([]*dataApi.DirectStakedValue, error)
 	GetDelegatorsList() ([]*dataApi.Delegator, error)
-	GetAllIssuedESDTs(tokenType string) ([]string, error)
+	GetAllIssuedESDTs(ctx context.Context, tokenType string) ([]string, error)
 	GetTokenSupply(token string) (*dataApi.ESDTSupply, error)
 	GetHeartbeats() ([]data.PubKeyHeartbeat, error)
 	StatusMetrics() external.StatusMetricsHandler

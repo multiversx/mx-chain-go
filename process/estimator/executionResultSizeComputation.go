@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+const defaultEstimatedNumMbs = 20
+
 type execResSizeComputation struct {
 	execResSize    uint32
 	maxExecResSize uint32
@@ -29,7 +31,7 @@ func NewExecResultSizeComputationHandler(
 	}
 
 	var err error
-	ers.execResSize, err = ers.generateDummyExecutionResultSize(marshalizer, 10)
+	ers.execResSize, err = ers.generateDummyExecutionResultSize(marshalizer, defaultEstimatedNumMbs)
 	if err != nil {
 		return nil, err
 	}

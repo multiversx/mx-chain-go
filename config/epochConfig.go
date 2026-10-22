@@ -127,6 +127,8 @@ type EnableEpochs struct {
 	RelayedTransactionsV3FixESDTTransferEnableEpoch          uint32
 	AndromedaEnableEpoch                                     uint32
 	SupernovaEnableEpoch                                     uint32
+	FixEpochChangeProposedCurrentEpochEnableEpoch            uint32
+	FixDataTrieLeafValidationEnableEpoch                     uint32
 	CheckBuiltInCallOnTransferValueAndFailEnableRound        uint32
 	MaskVMInternalDependenciesErrorsEnableEpoch              uint32
 	FixBackTransferOPCODEEnableEpoch                         uint32
@@ -135,6 +137,12 @@ type EnableEpochs struct {
 	FixGetBalanceEnableEpoch                                 uint32
 	AutomaticActivationOfNodesDisableEpoch                   uint32
 	RelayedTransactionsV1V2DisableEpoch                      uint32
+	FullShardDataValidationEnableEpoch                       uint32
+	ConsumedGasInEconomicsFixEnableEpoch                     uint32
+	AttributeExtraGasUsageEnableEpoch                        uint32
+	FixCorrectSmallIntAndGasLimitsEnableEpoch                uint32
+	OutputRollbackOnDestContextEnableEpoch                   uint32
+	KeepReturnDataOnAsyncTransferCallbackEnableEpoch         uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

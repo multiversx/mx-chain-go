@@ -394,7 +394,7 @@ func TestExtensionNode_tryGet(t *testing.T) {
 	key = append(key, lnKey...)
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	val, err := en.tryGet(key, tmc, nil)
+	val, _, err := en.tryGetWithVersion(key, tmc, nil)
 	assert.Equal(t, dogBytes, val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(2), tmc.GetMaxDepth())
@@ -407,7 +407,7 @@ func TestExtensionNode_tryGetEmptyKey(t *testing.T) {
 	var key []byte
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	val, err := en.tryGet(key, tmc, nil)
+	val, _, err := en.tryGetWithVersion(key, tmc, nil)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
@@ -420,7 +420,7 @@ func TestExtensionNode_tryGetWrongKey(t *testing.T) {
 	key := []byte("gdo")
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	val, err := en.tryGet(key, tmc, nil)
+	val, _, err := en.tryGetWithVersion(key, tmc, nil)
 	assert.Nil(t, err)
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
@@ -441,7 +441,7 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	key = append(key, lnKey...)
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	val, err := collapsedEn.tryGet(key, tmc, db)
+	val, _, err := collapsedEn.tryGetWithVersion(key, tmc, db)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(2), tmc.GetMaxDepth())
@@ -457,7 +457,7 @@ func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
 	key := []byte("dog")
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	val, err := en.tryGet(key, tmc, nil)
+	val, _, err := en.tryGetWithVersion(key, tmc, nil)
 	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
@@ -470,7 +470,7 @@ func TestExtensionNode_tryGetNilNode(t *testing.T) {
 	key := []byte("dog")
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	val, err := en.tryGet(key, tmc, nil)
+	val, _, err := en.tryGetWithVersion(key, tmc, nil)
 	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
@@ -523,7 +523,7 @@ func TestExtensionNode_insert(t *testing.T) {
 	newLn, _ := newLeafNode(newData, en.marsh, en.hasher)
 	assert.Equal(t, newLn.sizeInBytes(), tmc.GetSizeLoadedInMem())
 
-	val, _ := newNode.tryGet(key, trieMetricsCollector.NewTrieMetricsCollector(), nil)
+	val, _, _ := newNode.tryGetWithVersion(key, trieMetricsCollector.NewTrieMetricsCollector(), nil)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
@@ -547,7 +547,7 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	expectedSize := newLn.sizeInBytes() + en.child.sizeInBytes()
 	assert.Equal(t, expectedSize, tmc.GetSizeLoadedInMem())
 
-	val, _ := newNode.tryGet(key, trieMetricsCollector.NewTrieMetricsCollector(), db)
+	val, _, _ := newNode.tryGetWithVersion(key, trieMetricsCollector.NewTrieMetricsCollector(), db)
 	assert.Equal(t, []byte("dogs"), val)
 }
 
@@ -661,7 +661,7 @@ func TestExtensionNode_delete(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, _ := en.tryGet(key, trieMetricsCollector.NewTrieMetricsCollector(), nil)
+	val, _, _ := en.tryGetWithVersion(key, trieMetricsCollector.NewTrieMetricsCollector(), nil)
 	assert.Equal(t, dogBytes, val)
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
@@ -672,7 +672,7 @@ func TestExtensionNode_delete(t *testing.T) {
 	deletedLeaf, _ := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), en.marsh, en.hasher)
 	assert.Equal(t, -(deletedLeaf.sizeInBytes() + hashSizeInBytes), tmc.GetSizeLoadedInMem())
 
-	val, _ = en.tryGet(key, trieMetricsCollector.NewTrieMetricsCollector(), nil)
+	val, _, _ = en.tryGetWithVersion(key, trieMetricsCollector.NewTrieMetricsCollector(), nil)
 	assert.Nil(t, val)
 }
 
@@ -758,7 +758,7 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	val, _ := en.tryGet(key, trieMetricsCollector.NewTrieMetricsCollector(), db)
+	val, _, _ := en.tryGetWithVersion(key, trieMetricsCollector.NewTrieMetricsCollector(), db)
 	assert.Equal(t, []byte("dog"), val)
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
@@ -767,7 +767,7 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, collapsedEn.child.sizeInBytes(), tmc.GetSizeLoadedInMem())
 
-	val, _ = newNode.tryGet(key, trieMetricsCollector.NewTrieMetricsCollector(), db)
+	val, _, _ = newNode.tryGetWithVersion(key, trieMetricsCollector.NewTrieMetricsCollector(), db)
 	assert.Nil(t, val)
 }
 
@@ -1027,6 +1027,26 @@ func TestExtensionNode_getNextHashAndKeyNilNode(t *testing.T) {
 
 	var collapsedEn *extensionNode
 	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("d"))
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+}
+
+func TestExtensionNode_getNextHashAndKeyInvalidKeyShouldNotAdvance(t *testing.T) {
+	t.Parallel()
+
+	_, collapsedEn := getEnAndCollapsedEn()
+
+	collapsedEn.Key = []byte("dog")
+	proofVerified, nextHash, nextKey := collapsedEn.getNextHashAndKey([]byte("do"))
+
+	assert.False(t, proofVerified)
+	assert.Nil(t, nextHash)
+	assert.Nil(t, nextKey)
+
+	collapsedEn.Key = []byte("dog")
+	proofVerified, nextHash, nextKey = collapsedEn.getNextHashAndKey([]byte("cat"))
 
 	assert.False(t, proofVerified)
 	assert.Nil(t, nextHash)

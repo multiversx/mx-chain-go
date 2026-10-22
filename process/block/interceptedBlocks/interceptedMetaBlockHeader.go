@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -30,6 +31,7 @@ type InterceptedMetaHeader struct {
 	validityAttester    process.ValidityAttester
 	epochStartTrigger   process.EpochStartTriggerHandler
 	enableEpochsHandler common.EnableEpochsHandler
+	roundExclusions     common.RoundExclusionHandler
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -43,6 +45,10 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	if err != nil {
 		return nil, err
 	}
+	roundExclusions := arg.RoundExclusions
+	if check.IfNil(roundExclusions) {
+		roundExclusions, _ = common.NewRoundExclusionHandler(nil)
+	}
 
 	inHdr := &InterceptedMetaHeader{
 		hdr:                 hdr,
@@ -53,6 +59,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		validityAttester:    arg.ValidityAttester,
 		epochStartTrigger:   arg.EpochStartTrigger,
 		enableEpochsHandler: arg.EnableEpochsHandler,
+		roundExclusions:     roundExclusions,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -76,6 +83,9 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
 	log.Trace("CheckValidity for header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
+	if common.IsHeaderExcluded(imh.roundExclusions, imh.hdr.GetRound(), imh.hdr.GetShardID(), imh.hash) {
+		return common.ErrRoundExcluded
+	}
 
 	err := imh.integrity()
 	if err != nil {
@@ -126,6 +136,10 @@ func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 		return false
 	}
 
+	if imh.epochStartTrigger.Epoch() == 0 {
+		return false
+	}
+
 	if imh.hdr.GetEpoch() > imh.epochStartTrigger.Epoch()+1 {
 		return true
 	}
@@ -149,8 +163,21 @@ func (imh *InterceptedMetaHeader) integrity() error {
 	if err != nil {
 		return err
 	}
+	if !imh.hdr.IsHeaderV3() {
+		for _, mbh := range imh.hdr.GetMiniBlockHeaderHandlers() {
+			err = process.CheckIncomingMiniBlockHeaderAtMetachain(mbh)
+			if err != nil {
+				return err
+			}
+		}
+	}
 
 	if imh.hdr.IsHeaderV3() {
+		err = checkMetaShardDataProposal(imh.hdr.GetShardInfoProposalHandlers(), imh.shardCoordinator)
+		if err != nil {
+			return err
+		}
+
 		for i, result := range imh.hdr.GetExecutionResultsHandlers() {
 			executionResult, ok := result.(*block.MetaExecutionResult)
 			if !ok {
@@ -187,8 +214,11 @@ func (imh *InterceptedMetaHeader) String() string {
 // Identifiers returns the identifiers used in requests
 func (imh *InterceptedMetaHeader) Identifiers() [][]byte {
 	keyNonce := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, imh.hdr.GetNonce()))
-	keyEpoch := []byte(core.EpochStartIdentifier(imh.hdr.GetEpoch()))
+	if !imh.hdr.IsStartOfEpochBlock() {
+		return [][]byte{imh.hash, keyNonce}
+	}
 
+	keyEpoch := []byte(core.EpochStartIdentifier(imh.hdr.GetEpoch()))
 	return [][]byte{imh.hash, keyNonce, keyEpoch}
 }
 

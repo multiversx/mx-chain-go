@@ -93,7 +93,7 @@ func InitConsensusStateWithArgsVerifySignature(keysHandler consensus.KeysHandler
 		rstatus,
 		&mock.NodeRedundancyHandlerStub{},
 	)
-	cns.Data = []byte("X")
+	cns.SetData([]byte("X"))
 	cns.SetRoundIndex(0)
 
 	return cns
@@ -153,7 +153,7 @@ func createConsensusStateWithNodes(eligibleNodesPubKeys map[string]struct{}, con
 		&mock.NodeRedundancyHandlerStub{},
 	)
 
-	cns.Data = []byte("X")
+	cns.SetData([]byte("X"))
 	cns.SetRoundIndex(0)
 	return cns
 }

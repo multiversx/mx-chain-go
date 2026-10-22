@@ -22,6 +22,9 @@ var ErrGenesisBlockNotInitialized = errors.New("genesis block is not initialized
 // ErrHasherCreation signals that the hasher cannot be created based on provided data
 var ErrHasherCreation = errors.New("error creating hasher")
 
+// ErrSupernovaActivationConfigMismatch signals that the configs carrying the Supernova activation boundary disagree
+var ErrSupernovaActivationConfigMismatch = errors.New("supernova activation configs mismatch")
+
 // ErrInvalidChainID signals that an invalid chain ID has been provided
 var ErrInvalidChainID = errors.New("invalid chain ID in consensus")
 
@@ -616,6 +619,9 @@ var ErrNilTrieLeavesRetriever = errors.New("nil trie leaves retriever")
 
 // ErrNilAOTSelector signals that a nil AOT selector has been provided
 var ErrNilAOTSelector = errors.New("nil AOT selector")
+
+// ErrNilTransactionProcessor signals that a nil transaction processor has been provided
+var ErrNilTransactionProcessor = errors.New("nil transaction processor")
 
 // ErrNilDataTriesHolder signals that a nil data tries holder has been provided
 var ErrNilDataTriesHolder = errors.New("nil data tries holder")

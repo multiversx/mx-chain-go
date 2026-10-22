@@ -106,6 +106,7 @@ type ArgsCoreComponentsHolder struct {
 	MinNodesPerShard            uint32
 	ConsensusGroupSize          uint32
 	MinNodesMeta                uint32
+	PrintPrettifiedHeader       bool
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMs           uint64
 	GenesisTime                 time.Time
@@ -193,17 +194,16 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	startTime := computeStartTimeBaseOnInitialRound(
-		args.GenesisTime,
-		instance.enableEpochsHandler,
-		args.InitialRound,
-		args.RoundDurationInMs,
-	)
 	if nodesSetup.StartTime == 0 {
+		// the genesis/epoch-start header for InitialRound/InitialEpoch is a synthetic checkpoint
+		// standing in for a chain that has already reached that round "as of now", so its
+		// timestamp should be the real wall-clock time rather than offset by InitialRound - the
+		// round handler already accounts for InitialRound when converting a round index to a
+		// timestamp
 		if instance.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, 0) {
-			nodesSetup.StartTime = startTime.UnixMilli()
+			nodesSetup.StartTime = args.GenesisTime.UnixMilli()
 		} else {
-			nodesSetup.StartTime = startTime.Unix()
+			nodesSetup.StartTime = args.GenesisTime.Unix()
 		}
 	}
 
@@ -228,8 +228,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
 	supernovaRound := instance.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
 
-	startTime = instance.genesisTime
-	instance.supernovaGenesisTime = startTime.Add(time.Duration(supernovaRound-uint64(args.InitialRound)) * roundDuration)
+	instance.supernovaGenesisTime = instance.genesisTime.Add(time.Duration(supernovaRound-uint64(args.InitialRound)) * roundDuration)
 	if instance.supernovaGenesisTime.Before(instance.genesisTime) {
 		instance.supernovaGenesisTime = instance.genesisTime
 	}
@@ -333,6 +332,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		args.Config.GeneralSettings.EpochStartConfigsByEpoch,
 		args.Config.GeneralSettings.EpochStartConfigsByRound,
 		args.Config.GeneralSettings.ConsensusConfigsByEpoch,
+		args.Config.GeneralSettings.ConsensusConfigsByRound,
+		true,
 	)
 	if err != nil {
 		return nil, err
@@ -349,19 +350,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.collectClosableComponents()
 
 	return instance, nil
-}
-
-func computeStartTimeBaseOnInitialRound(
-	genesisTime time.Time,
-	enableEpochsHandler common.EnableEpochsHandler,
-	initialRound int64,
-	roundDurationMs uint64,
-) time.Time {
-	if enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, 0) {
-		return genesisTime.Add(time.Millisecond * time.Duration(int64(roundDurationMs)*initialRound))
-	}
-
-	return genesisTime.Add(time.Second * time.Duration(int64(roundDurationMs/1000)*initialRound))
 }
 
 func computeEncodedAddressLen(converter core.PubkeyConverter) (uint32, error) {

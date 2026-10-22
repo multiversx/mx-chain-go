@@ -20,4 +20,7 @@ var (
 
 	// ErrExecutionResultMismatch signals an execution result mismatch
 	ErrExecutionResultMismatch = errors.New("execution result mismatch")
+
+	// ErrNilDismissedExecutionHandler signals that a nil dismissal handler was provided
+	ErrNilDismissedExecutionHandler = errors.New("nil dismissed execution handler")
 )

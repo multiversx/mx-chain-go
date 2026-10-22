@@ -203,6 +203,27 @@ func TestGetBody(t *testing.T) {
 		require.Equal(t, ErrMissingMiniBlock, err)
 	})
 
+	t.Run("cast error", func(t *testing.T) {
+		t.Parallel()
+
+		h1 := []byte("h1")
+		executionResult := &block.ExecutionResult{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash: h1,
+				},
+			},
+		}
+
+		marshaller := &marshallerMock.MarshalizerMock{}
+
+		cacher := cache.NewCacherMock()
+		cacher.Put(h1, "wrong", 0)
+
+		_, err := GetCachedBody(cacher, marshaller, executionResult)
+		require.ErrorIs(t, err, ErrWrongTypeAssertion)
+	})
+
 	t.Run("marshaller error", func(t *testing.T) {
 		t.Parallel()
 

@@ -16,7 +16,9 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -66,6 +68,38 @@ func TestNewStorageEpochStartBootstrap_ShouldWork(t *testing.T) {
 	sesb, err := NewStorageEpochStartBootstrap(args)
 	assert.False(t, check.IfNil(sesb))
 	assert.Nil(t, err)
+}
+
+func TestStorageEpochStartBootstrap_CreateStorageRequestHandlerUsesCurrentShard(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createComponentsForEpochStart()
+	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.GeneralConfig = testscommon.GetGeneralConfig()
+	args.ImportDbConfig = config.ImportDbConfig{
+		ImportDBWorkingDir:    t.TempDir(),
+		ImportDBTargetShardID: 1,
+	}
+
+	sesb, err := NewStorageEpochStartBootstrap(args)
+	assert.Nil(t, err)
+	sesb.shardCoordinator, err = sharding.NewMultiShardCoordinator(2, 1)
+	assert.Nil(t, err)
+
+	err = sesb.createStorageRequestHandler()
+	assert.Nil(t, err)
+	defer func() {
+		_ = sesb.closeStorageRequesters()
+	}()
+
+	expectedTopic := processFactory.MiniBlocksTopic + core.CommunicationIdentifierBetweenShards(0, 1)
+	oldTopic := processFactory.MiniBlocksTopic + core.CommunicationIdentifierBetweenShards(0, core.MetachainShardId)
+
+	_, err = sesb.container.Get(expectedTopic)
+	assert.Nil(t, err)
+
+	_, err = sesb.container.Get(oldTopic)
+	assert.NotNil(t, err)
 }
 
 func TestStorageEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {

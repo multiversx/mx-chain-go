@@ -6,11 +6,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+
+	chainCommon "github.com/multiversx/mx-chain-go/common"
 	mock2 "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	"github.com/multiversx/mx-chain-go/testscommon/common"
@@ -21,6 +24,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	mock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	outportStub "github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -80,13 +84,20 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 	consensusCore.SetScheduledProcessor(&consensus.ScheduledProcessorStub{})
 	consensusCore.SetMessageSigningHandler(&mock2.MessageSigningHandlerStub{})
 	consensusCore.SetPeerBlacklistHandler(&mock2.PeerBlacklistHandlerStub{})
+	consensusCore.SetPeerSignatureHandler(&cryptoMocks.PeerSignatureHandlerStub{})
 	consensusCore.SetSigningHandler(&consensus.SigningHandlerStub{})
 	consensusCore.SetEnableEpochsHandler(epochsEnable)
 	consensusCore.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{})
 	consensusCore.SetExecutionManager(&processMocks.ExecutionManagerMock{})
 	consensusCore.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{})
+	consensusCore.SetHeadersPool(&pool.HeadersPoolStub{})
 	consensusCore.SetEpochNotifier(epochNotifier)
 	consensusCore.SetInvalidSignersCache(&consensus.InvalidSignersCacheMock{})
+
+	messagesHandler, _ := bls.NewConsensusService()
+	consensusCore.SetMessagesHandler(messagesHandler)
+	consensusCore.SetCommonConfigsHandler(testscommon.GetDefaultCommonConfigsHandler())
+
 	handlerArgs.ConsensusCoreHandler = consensusCore
 
 	return handlerArgs, consensusCore
@@ -283,7 +294,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		}
 		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return true
+				return flag == chainCommon.AndromedaFlag
 			},
 		}
 		handlerArgs.Chronology = chronology
@@ -314,7 +325,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		}
 		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return true
+				return flag == chainCommon.AndromedaFlag
 			},
 		}
 		handlerArgs.Chronology = chronology
@@ -335,6 +346,38 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, int32(2), startCalled.Load())
 	})
 	t.Run("equivalent messages enabled, with previous consensus type consensusV2", func(t *testing.T) {
+		t.Parallel()
+
+		startCalled := atomic.Int32{}
+		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
+		chronology := &consensus.ChronologyHandlerMock{
+			StartRoundCalled: func() {
+				startCalled.Add(1)
+			},
+		}
+		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == chainCommon.AndromedaFlag
+			},
+		}
+		handlerArgs.Chronology = chronology
+		handlerArgs.EnableEpochsHandler = enableEpoch
+		consensusCore.SetEnableEpochsHandler(enableEpoch)
+		consensusCore.SetChronology(chronology)
+
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+		// first call on register to EpochNotifier
+		require.Equal(t, int32(1), startCalled.Load())
+		sh.currentConsensusType = consensusV2
+
+		err = sh.initSubroundsForEpoch(0)
+		require.Nil(t, err)
+		require.Equal(t, consensusV2, sh.currentConsensusType)
+		require.Equal(t, int32(1), startCalled.Load())
+	})
+	t.Run("supernova enabled, with previous consensus type consensusV2", func(t *testing.T) {
 		t.Parallel()
 
 		startCalled := atomic.Int32{}

@@ -1872,6 +1872,60 @@ func TestStakingSc_UnBondFromWaitingNotPossible(t *testing.T) {
 	doUnBond(t, stakingSmartContract, stakingAccessAddress, []byte("fourthKey"), vmcommon.Ok)
 }
 
+func TestStakingSc_UnBondNeverUnStakedKeyFailsUnderFlag(t *testing.T) {
+	t.Parallel()
+
+	stakeValue := big.NewInt(100)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentNonceCalled: func() uint64 {
+			return 1000
+		},
+	}
+
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.FixCorrectSmallIntAndGasLimitsFlag)
+
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MinStakeValue = stakeValue.Text(10)
+	args.Eei = eei
+	args.StakingSCConfig.UnBondPeriod = 100
+	args.EnableEpochsHandler = enableEpochsHandler
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+	stakingSmartContract.addToStakedNodes(10)
+
+	key := []byte("neverUnstakedKey")
+	regData := &StakedDataV2_0{
+		RewardAddress: []byte("rewardAddr"),
+		Staked:        false,
+		Waiting:       false,
+		UnStakedNonce: 0,
+	}
+	marshaledData, _ := args.Marshalizer.Marshal(regData)
+	eei.SetStorage(key, marshaledData)
+
+	callInput := CreateVmContractCallInput()
+	callInput.Function = "unBond"
+	callInput.CallerAddr = stakingAccessAddress
+	callInput.Arguments = [][]byte{key}
+
+	retCode := stakingSmartContract.Execute(callInput)
+	assert.Equal(t, vmcommon.UserError, retCode)
+	assert.Contains(t, eei.returnMessage, "was never unStaked")
+
+	// Now set UnStakedNonce > 0 (as if unstaked at nonce 100)
+	regData.UnStakedNonce = 100
+	marshaledData, _ = args.Marshalizer.Marshal(regData)
+	eei.SetStorage(key, marshaledData)
+
+	retCode = stakingSmartContract.Execute(callInput)
+	assert.Equal(t, vmcommon.Ok, retCode)
+}
+
 func Test_NoActionAllowedForBadRatingOrJailed(t *testing.T) {
 	t.Parallel()
 
@@ -2455,8 +2509,13 @@ func TestStakingSc_StakeFromQueue(t *testing.T) {
 func TestStakingSC_UnstakeAtEndOfEpoch(t *testing.T) {
 	t.Parallel()
 
+	const currentEpoch = uint32(2235)
 	stakeValue := big.NewInt(100)
-	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
 	}
@@ -2482,6 +2541,10 @@ func TestStakingSC_UnstakeAtEndOfEpoch(t *testing.T) {
 
 	doUnStakeAtEndOfEpoch(t, stakingSmartContract, stakerPubKey, vmcommon.Ok)
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
+
+	registrationData, err := stakingSmartContract.getOrCreateRegisteredData(stakerPubKey)
+	require.NoError(t, err)
+	require.Equal(t, currentEpoch, registrationData.UnStakedEpoch)
 }
 
 func TestStakingSC_ResetWaitingListUnJailed(t *testing.T) {
@@ -3826,7 +3889,12 @@ func TestStakingSC_UnStakeAllFromQueueErrors(t *testing.T) {
 func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 	t.Parallel()
 
-	blockChainHook := &mock.BlockChainHookStub{}
+	const currentEpoch = uint32(2235)
+	blockChainHook := &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
 	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
 		return nil, 0, nil
 	}
@@ -3881,6 +3949,9 @@ func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 	assert.Equal(t, uint32(0), newHead.Length) // no entries in the queue list
 
 	doGetStatus(t, stakingSmartContract, eei, []byte("secondKey"), "unStaked")
+	registrationData, err := stakingSmartContract.getOrCreateRegisteredData([]byte("secondKey"))
+	require.NoError(t, err)
+	require.Equal(t, currentEpoch, registrationData.UnStakedEpoch)
 
 	// stake them again - as they were deleted from waiting list
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKey "))

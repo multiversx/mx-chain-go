@@ -5,19 +5,22 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
 )
 
 // HistoryRepositoryStub -
 type HistoryRepositoryStub struct {
-	RecordBlockCalled                  func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrsPool map[string]data.TransactionHandler, receipts map[string]data.TransactionHandler, createdIntraMiniBlocks []*block.MiniBlock, logs []data.LogDataHandler) error
-	OnNotarizedBlocksCalled            func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
-	GetMiniblockMetadataByTxHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
-	GetEpochByHashCalled               func(hash []byte) (uint32, error)
-	GetEventsHashesByTxHashCalled      func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error)
-	GetESDTSupplyCalled                func(token string) (*esdtSupply.SupplyESDT, error)
-	IsEnabledCalled                    func() bool
+	GetMiniblockMetadataByMiniblockHashCalled func(hash []byte) (*dblookupext.MiniblockMetadata, error)
+	RecordBlockCalled                         func(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler, scrsPool map[string]data.TransactionHandler, receipts map[string]data.TransactionHandler, createdIntraMiniBlocks []*block.MiniBlock, logs []data.LogDataHandler) error
+	OnNotarizedBlocksCalled                   func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
+	GetMiniblockMetadataByTxHashCalled        func(hash []byte) (*dblookupext.MiniblockMetadata, error)
+	GetEpochByHashCalled                      func(hash []byte) (uint32, error)
+	GetEventsHashesByTxHashCalled             func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error)
+	GetESDTSupplyCalled                       func(token string) (*esdtSupply.SupplyESDT, error)
+	IsEnabledCalled                           func() bool
+	RevertBlockCalled                         func(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error
 }
 
 // RecordBlock -
@@ -51,6 +54,13 @@ func (hp *HistoryRepositoryStub) GetMiniblockMetadataByTxHash(hash []byte) (*dbl
 	return nil, fmt.Errorf("miniblock metadata not found")
 }
 
+func (hp *HistoryRepositoryStub) GetMiniblockMetadataByMiniblockHash(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+	if hp.GetMiniblockMetadataByMiniblockHashCalled != nil {
+		return hp.GetMiniblockMetadataByMiniblockHashCalled(hash)
+	}
+	return nil, fmt.Errorf("miniblock metadata not found")
+}
+
 // GetEpochByHash -
 func (hp *HistoryRepositoryStub) GetEpochByHash(hash []byte) (uint32, error) {
 	if hp.GetEpochByHashCalled != nil {
@@ -76,7 +86,10 @@ func (hp *HistoryRepositoryStub) GetResultsHashesByTxHash(hash []byte, epoch uin
 }
 
 // RevertBlock -
-func (hp *HistoryRepositoryStub) RevertBlock(_ data.HeaderHandler, _ data.BodyHandler) error {
+func (hp *HistoryRepositoryStub) RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error {
+	if hp.RevertBlockCalled != nil {
+		return hp.RevertBlockCalled(blockHeader, blockBody)
+	}
 	return nil
 }
 

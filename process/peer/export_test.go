@@ -1,11 +1,28 @@
 package peer
 
 import (
+	"math/big"
+
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 )
+
+// UpdateValidatorInfoOnSuccessfulBlock -
+func UpdateValidatorInfoOnSuccessfulBlock(
+	vs process.ValidatorStatisticsProcessor,
+	leader nodesCoordinator.Validator,
+	validatorList []nodesCoordinator.Validator,
+	signingBitmap []byte,
+	accumulatedFees *big.Int,
+	shardId uint32,
+	epoch uint32,
+) error {
+	return vs.(*validatorStatistics).updateValidatorInfoOnSuccessfulBlock(leader, validatorList, signingBitmap, accumulatedFees, shardId, epoch)
+}
 
 // CheckForMissedBlocks -
 func (vs *validatorStatistics) CheckForMissedBlocks(

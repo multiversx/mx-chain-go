@@ -242,7 +242,7 @@ func TestLeafNode_tryGet(t *testing.T) {
 	key := []byte("dog")
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	val, err := ln.tryGet(key, tmc, nil)
+	val, _, err := ln.tryGetWithVersion(key, tmc, nil)
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
@@ -255,7 +255,7 @@ func TestLeafNode_tryGetWrongKey(t *testing.T) {
 	wrongKey := []byte{1, 2, 3}
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	val, err := ln.tryGet(wrongKey, tmc, nil)
+	val, _, err := ln.tryGetWithVersion(wrongKey, tmc, nil)
 	assert.Nil(t, val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
@@ -268,7 +268,7 @@ func TestLeafNode_tryGetEmptyNode(t *testing.T) {
 
 	key := []byte("dog")
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	val, err := ln.tryGet(key, tmc, nil)
+	val, _, err := ln.tryGetWithVersion(key, tmc, nil)
 	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
@@ -281,7 +281,7 @@ func TestLeafNode_tryGetNilNode(t *testing.T) {
 	key := []byte("dog")
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	val, err := ln.tryGet(key, tmc, nil)
+	val, _, err := ln.tryGetWithVersion(key, tmc, nil)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, val)
 	assert.Equal(t, uint32(0), tmc.GetMaxDepth())
@@ -336,7 +336,7 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 1, tmc.GetSizeLoadedInMem())
 
-	val, _ := newNode.tryGet([]byte(key), dtmc, nil)
+	val, _, _ := newNode.tryGetWithVersion([]byte(key), dtmc, nil)
 	assert.Equal(t, []byte(expectedVal), val)
 }
 
@@ -358,7 +358,7 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	expectedSize := newNode.sizeInBytes() + newNode.(*branchNode).children[3].sizeInBytes() - 1
 	assert.Equal(t, expectedSize, tmc.GetSizeLoadedInMem())
 
-	val, _ := newNode.tryGet(nodeKey, trieMetricsCollector.NewTrieMetricsCollector(), nil)
+	val, _, _ := newNode.tryGetWithVersion(nodeKey, trieMetricsCollector.NewTrieMetricsCollector(), nil)
 	assert.Equal(t, nodeVal, val)
 	assert.IsType(t, &branchNode{}, newNode)
 }

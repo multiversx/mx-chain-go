@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -66,6 +67,7 @@ func CreateNode(
 
 	var nd *Node
 	nd, err = NewNode(
+		WithTrieOperations(config.TrieOperations),
 		WithStatusCoreComponents(statusCoreComponents),
 		WithCoreComponents(coreComponents),
 		WithCryptoComponents(cryptoComponents),
@@ -88,6 +90,7 @@ func CreateNode(
 		WithValidatorSignatureSize(config.ValidatorPubkeyConverter.SignatureLength),
 		WithPublicKeySize(config.ValidatorPubkeyConverter.Length),
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
+		WithMaxTxNonceDeltaAllowed(config.TxCacheBounds.MaxTxNonceDeltaAllowed),
 		WithImportMode(isInImportMode),
 		WithESDTNFTStorageHandler(processComponents.ESDTDataStorageHandlerForAPI()),
 	)

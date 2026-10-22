@@ -30,6 +30,7 @@ type txCacheForSelectionTracker interface {
 	GetByTxHash(txHash []byte) (*WrappedTransaction, bool)
 	SetSelectionOffsetsByLastNonce(lastNoncePerSender map[string]uint64)
 	ResetSelectionOffsetsToNonce(sendersWithFirstNonce map[string]uint64)
+	ResetAllSelectionOffsets()
 	IsInterfaceNil() bool
 }
 

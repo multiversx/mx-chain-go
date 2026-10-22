@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"github.com/stretchr/testify/require"
@@ -228,6 +229,42 @@ func TestMiniBlockSelectionSession_CreateAndAddMiniBlockFromTransactions(t *test
 		require.Empty(t, session.GetMiniBlocks())
 		require.Empty(t, session.GetMiniBlockHashes())
 	})
+}
+
+func TestMiniBlocksSelectionSession_RemoveEmptyMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	marshaller := &testscommon.MarshallerStub{}
+	hasher := &testscommon.HasherStub{}
+
+	newMbHeader := func(hash []byte, txCount uint32) *block.MiniBlockHeader {
+		return &block.MiniBlockHeader{Hash: hash, SenderShardID: 1, ReceiverShardID: 1, TxCount: txCount, Type: block.TxBlock}
+	}
+
+	session, _ := NewMiniBlocksSelectionSession(1, marshaller, hasher)
+	emptyMb := &block.MiniBlock{TxHashes: nil}
+	emptyHash := []byte("emptyHash")
+	nonEmptyMb := &block.MiniBlock{TxHashes: [][]byte{[]byte("tx1")}}
+	nonEmptyHash := []byte("nonEmptyHash")
+
+	session.miniBlocks = block.MiniBlockSlice{emptyMb, nonEmptyMb}
+	session.miniBlockHeaderHandlers = []data.MiniBlockHeaderHandler{newMbHeader(emptyHash, 0), newMbHeader(nonEmptyHash, 1)}
+	session.miniBlockHashes = [][]byte{emptyHash, nonEmptyHash}
+	session.miniBlockHashesUnique[string(emptyHash)] = struct{}{}
+	session.miniBlockHashesUnique[string(nonEmptyHash)] = struct{}{}
+
+	session.RemoveEmptyMiniBlocks()
+
+	require.Len(t, session.GetMiniBlocks(), 1)
+	require.Len(t, session.GetMiniBlockHeaderHandlers(), 1)
+	require.Len(t, session.GetMiniBlockHashes(), 1)
+	require.Equal(t, nonEmptyMb, session.GetMiniBlocks()[0])
+	require.Equal(t, nonEmptyHash, session.GetMiniBlockHashes()[0])
+
+	_, exists := session.miniBlockHashesUnique[string(emptyHash)]
+	require.False(t, exists)
+	_, exists = session.miniBlockHashesUnique[string(nonEmptyHash)]
+	require.True(t, exists)
 }
 
 func TestMiniBlocksSelectionSession_AddReferencedMetaBlock(t *testing.T) {

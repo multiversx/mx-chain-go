@@ -196,6 +196,15 @@ func (listForSender *txListForSender) decrementSelectionOffset(count int) {
 	}
 }
 
+// resetSelectionOffset makes all transactions of the sender selectable again.
+// This is called when the tracked proposed blocks are dropped (rollback / sync reset).
+func (listForSender *txListForSender) resetSelectionOffset() {
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
+	listForSender.selectionOffset = 0
+}
+
 // resetSelectionOffsetByNonce resets the selection offset to point to the first transaction
 // with nonce >= startNonce. Uses binary search for efficiency.
 // This is called during block replacement to re-enable transactions for selection.

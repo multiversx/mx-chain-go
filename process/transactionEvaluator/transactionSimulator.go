@@ -14,13 +14,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("process/txSimulator")
@@ -37,6 +38,7 @@ type ArgsTxSimulator struct {
 	DataFieldParser           DataFieldParser
 	BlockChainHook            process.BlockChainHookHandler
 	SCRProcessor              process.SmartContractResultProcessor
+	TxLogsProcessor           process.TransactionLogProcessor
 }
 
 type refundHandler interface {
@@ -56,6 +58,7 @@ type transactionSimulator struct {
 	refundDetector         refundHandler
 	dataFieldParser        DataFieldParser
 	blockChainHook         process.BlockChainHookHandler
+	txLogsProcessor        process.TransactionLogProcessor
 }
 
 // NewTransactionSimulator returns a new instance of a transactionSimulator
@@ -90,6 +93,9 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 	if check.IfNil(args.SCRProcessor) {
 		return nil, process.ErrNilSmartContractResultProcessor
 	}
+	if check.IfNil(args.TxLogsProcessor) {
+		return nil, process.ErrNilTxLogsProcessor
+	}
 
 	return &transactionSimulator{
 		txProcessor:            args.TransactionProcessor,
@@ -103,6 +109,7 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 		dataFieldParser:        args.DataFieldParser,
 		blockChainHook:         args.BlockChainHook,
 		scrProcessor:           args.SCRProcessor,
+		txLogsProcessor:        args.TxLogsProcessor,
 	}, nil
 }
 
@@ -118,7 +125,10 @@ func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction, currentHe
 
 func (ts *transactionSimulator) process(txHandler data.TransactionHandler, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
 	ts.mutOperation.Lock()
-	defer ts.mutOperation.Unlock()
+	defer func() {
+		ts.txLogsProcessor.Clean()
+		ts.mutOperation.Unlock()
+	}()
 
 	err := ts.blockChainHook.SetCurrentHeader(currentHeader)
 	if err != nil {

@@ -73,6 +73,7 @@ type MiniBlocksSelectionSession interface {
 	GetNumTxsAdded() uint32
 	AddMiniBlocksAndHashes(miniBlocksAndHashes []block.MiniblockAndHash) error
 	CreateAndAddMiniBlockFromTransactions(txHashes [][]byte) error
+	RemoveEmptyMiniBlocks()
 	IsInterfaceNil() bool
 }
 

@@ -527,6 +527,10 @@ func (st *selectionTracker) ResetTrackedBlocks() {
 
 	st.blocks = make(map[string]*trackedBlock)
 	st.globalBreadcrumbsCompiler.cleanGlobalBreadcrumbs()
+
+	// no tracked blocks left, so no transaction is "already proposed" anymore; without this
+	// rewind, transactions of dropped proposals would stay skipped by selection forever
+	st.txCache.ResetAllSelectionOffsets()
 }
 
 func (st *selectionTracker) canDoSimulateSelection(nonce uint64) bool {

@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 
@@ -9,7 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -17,6 +21,7 @@ import (
 // ShardBootstrap implements the bootstrap mechanism
 type ShardBootstrap struct {
 	*baseBootstrap
+	bootstrapCompletedNotifier epochStart.BootstrapCompletedNotifier
 }
 
 // NewShardBootstrap creates a new Bootstrap object
@@ -32,6 +37,12 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	}
 	if check.IfNil(arguments.PoolsHolder.MiniBlocks()) {
 		return nil, process.ErrNilTxBlockBody
+	}
+	if check.IfNil(arguments.MetaFinalityView) {
+		return nil, process.ErrNilMetaFinalityView
+	}
+	if check.IfNil(arguments.BlockTracker) {
+		return nil, process.ErrNilBlockTracker
 	}
 
 	err := checkBaseBootstrapParameters(arguments.ArgBaseBootstrapper)
@@ -59,6 +70,8 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		bootStorer:                   arguments.BootStorer,
 		storageBootstrapper:          arguments.StorageBootstrapper,
 		epochHandler:                 arguments.EpochHandler,
+		epochStartTrigger:            arguments.EpochStartTrigger,
+		divergenceEvaluatedRound:     -1,
 		miniBlocksProvider:           arguments.MiniblocksProvider,
 		uint64Converter:              arguments.Uint64Converter,
 		poolsHolder:                  arguments.PoolsHolder,
@@ -75,6 +88,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		enableRoundsHandler:          arguments.EnableRoundsHandler,
 		processConfigsHandler:        arguments.ProcessConfigsHandler,
+		recoveryCheckpoint:           arguments.RecoveryCheckpoint,
 	}
 
 	if base.isInImportMode {
@@ -84,9 +98,20 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	boot := ShardBootstrap{
 		baseBootstrap: base,
 	}
+	boot.bootstrapCompletedNotifier, _ = arguments.EpochStartTrigger.(epochStart.BootstrapCompletedNotifier)
 
 	base.blockBootstrapper = &boot
 	base.syncStarter = &boot
+	base.settlementChecker = &shardSettlementChecker{
+		metaFinalityView: arguments.MetaFinalityView,
+		blockTracker:     arguments.BlockTracker,
+		headers:          arguments.PoolsHolder.Headers(),
+		proofs:           arguments.PoolsHolder.Proofs(),
+		requestHandler:   arguments.RequestHandler,
+		selfShardID:      arguments.ShardCoordinator.SelfId(),
+	}
+	// the disarm capability exists only on the production shard trigger; test triggers may lack it
+	base.epochStartDisarmer, _ = arguments.EpochStartTrigger.(epochStartTriggerDisarmer)
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
 
 	// placed in struct fields for performance reasons
@@ -127,11 +152,25 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 
 // StartSyncingBlocks method will start syncing blocks as a go routine
 func (boot *ShardBootstrap) StartSyncingBlocks() error {
-	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
+	var errNotCritical error
+	if boot.recoveryCheckpoint != nil {
+		errNotCritical = boot.loadRecoveryCheckpointFromStorage(nil)
+		if errNotCritical != nil {
+			return errNotCritical
+		}
+	} else {
+		errNotCritical = boot.storageBootstrapper.LoadFromStorage()
+	}
+	if errors.Is(errNotCritical, common.ErrRoundExcluded) {
+		return errNotCritical
+	}
 	if errNotCritical != nil {
 		log.Debug("boot.syncFromStorer",
 			"error", errNotCritical.Error(),
 		)
+	}
+	if boot.bootstrapCompletedNotifier != nil {
+		boot.bootstrapCompletedNotifier.OnBootstrapCompleted()
 	}
 
 	var ctx context.Context
@@ -223,9 +262,10 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(header
 		return
 	}
 
-	hashes := make([][]byte, 0, len(header.GetMiniBlockHeaderHandlers()))
-	for i := 0; i < len(header.GetMiniBlockHeaderHandlers()); i++ {
-		hashes = append(hashes, header.GetMiniBlockHeaderHandlers()[i].GetHash())
+	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
+	hashes := make([][]byte, 0, len(miniBlockHeaders))
+	for _, mbHeader := range miniBlockHeaders {
+		hashes = append(hashes, mbHeader.GetHash())
 	}
 
 	_, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)

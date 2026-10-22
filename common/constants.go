@@ -70,8 +70,11 @@ const MaxTxNonceDeltaAllowed = 100
 // TODO convert this const into a var and read it from config when this code moves to another binary
 const MaxBulkTransactionSize = 1 << 18 // 256KB bulks
 
+// MaxHashesInRequest specifies the maximum number of hashes sent or processed in one request batch
+const MaxHashesInRequest = 1000
+
 // MaxTxsToRequest specifies the maximum number of txs to request
-const MaxTxsToRequest = 1000
+const MaxTxsToRequest = MaxHashesInRequest
 
 // NodesSetupJsonFileName specifies the name of the json file which contains the setup of the nodes
 const NodesSetupJsonFileName = "nodesSetup.json"
@@ -258,6 +261,18 @@ const MetricNumShardHeadersProcessed = "erd_num_shard_headers_processed"
 
 // MetricNumTimesInForkChoice is the metric that counts how many times a node was in fork choice
 const MetricNumTimesInForkChoice = "erd_fork_choice_count"
+
+// MetricNumRollBacksRefusedMissingState is the metric that counts the roll backs refused because
+// the post-rollback execution base state was not recreatable
+const MetricNumRollBacksRefusedMissingState = "erd_rollbacks_refused_missing_state_count"
+
+// MetricNumEquivocationProofs is the metric that counts the equivocation events observed by the
+// proofs pool (different-hash proofs received for the same header nonce)
+const MetricNumEquivocationProofs = "erd_num_equivocation_proofs"
+
+// MetricNumReconcileSwitches is the metric that counts the reconcile backstop activations, each a
+// switch away from a finalized block on equivocation evidence
+const MetricNumReconcileSwitches = "erd_num_reconcile_switches"
 
 // MetricHighestFinalBlock is the metric for the nonce of the highest final block
 const MetricHighestFinalBlock = "erd_highest_final_nonce"
@@ -812,11 +827,38 @@ const (
 	// MetricRelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
 	MetricRelayedTransactionsV1V2DisableEpoch = "erd_relayed_transactions_v1_v2_disable_epoch"
 
+	// MetricConsumedGasInEconomicsFixEnableEpoch represents the epoch when consumed gas for accumulated fees is fixed
+	MetricConsumedGasInEconomicsFixEnableEpoch = "erd_consumed_gas_in_economics_fix_enable_epoch"
+
+	// MetricAttributeExtraGasUsageEnableEpoch represents the epoch when attributes are using extra gas usage fees
+	MetricAttributeExtraGasUsageEnableEpoch = "erd_attribute_extra_gasusage_enable_epoch"
+
+	// MetricFixCorrectSmallIntAndGasLimitsEnableEpoch represents the epoch when the fix for signed small int encoding and gas loopholes is enabled
+	MetricFixCorrectSmallIntAndGasLimitsEnableEpoch = "erd_fix_correct_small_int_and_gas_limits_enable_epoch"
+
+	// MetricOutputRollbackOnDestContextEnableEpoch represents the epoch when output state rollback on failed destination context calls is enabled
+	MetricOutputRollbackOnDestContextEnableEpoch = "erd_output_rollback_on_dest_context_enable_epoch"
+
 	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
 	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
 
 	// MetricSupernovaEnableEpoch represents the epoch when supernova is enabled
 	MetricSupernovaEnableEpoch = "erd_supernova_enable_epoch"
+
+	// MetricFixEpochChangeProposedCurrentEpochEnableEpoch represents the epoch when epoch change proposed blocks expose the prepared epoch
+	MetricFixEpochChangeProposedCurrentEpochEnableEpoch = "erd_fix_epoch_change_proposed_current_epoch_enable_epoch"
+
+	// MetricSupernovaTransitionReady represents whether the shard is ready for or has completed the Supernova transition
+	MetricSupernovaTransitionReady = "erd_supernova_transition_ready"
+
+	// MetricUnBondPeriod represents the unbond period in rounds from StakingSystemSCConfig
+	MetricUnBondPeriod = "erd_unbond_period"
+
+	// MetricUnBondPeriodSupernova represents the unbond period in rounds for supernova from StakingSystemSCConfig
+	MetricUnBondPeriodSupernova = "erd_unbond_period_supernova"
+
+	// MetricUnBondPeriodInEpochs represents the unbond period in epochs from StakingSystemSCConfig
+	MetricUnBondPeriodInEpochs = "erd_unbond_period_in_epochs"
 
 	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
 	MetricEpochEnable = "erd_epoch_enable"
@@ -1018,18 +1060,6 @@ const TimeToWaitForP2PBootstrap = 20 * time.Second
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10
-
-// ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
-// moment when its components, like mini blocks and transactions, would be broadcast too
-const ExtraDelayForBroadcastBlockInfo = 120 * time.Millisecond
-
-// ExtraDelayBetweenBroadcastMbsAndTxs represents the number of seconds to wait since miniblocks have been broadcast
-// and the moment when theirs transactions would be broadcast too
-const ExtraDelayBetweenBroadcastMbsAndTxs = 100 * time.Millisecond
-
-// ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
-// moment when its components, like mini blocks and transactions, would be requested too if they are still missing
-const ExtraDelayForRequestBlockInfo = ExtraDelayForBroadcastBlockInfo + ExtraDelayBetweenBroadcastMbsAndTxs
 
 // CommitMaxTime represents max time accepted for a commit action, after which a warn message is displayed
 const CommitMaxTime = 3 * time.Second
@@ -1323,6 +1353,8 @@ const (
 	RelayedTransactionsV3FixESDTTransferFlag            core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
 	AndromedaFlag                                       core.EnableEpochFlag = "AndromedaFlag"
 	SupernovaFlag                                       core.EnableEpochFlag = "SupernovaFlag"
+	FixEpochChangeProposedCurrentEpochFlag              core.EnableEpochFlag = "FixEpochChangeProposedCurrentEpochFlag"
+	FixDataTrieLeafValidationFlag                       core.EnableEpochFlag = "FixDataTrieLeafValidationFlag"
 	CheckBuiltInCallOnTransferValueAndFailExecutionFlag core.EnableEpochFlag = "CheckBuiltInCallOnTransferValueAndFailExecutionFlag"
 	MaskInternalDependenciesErrorsFlag                  core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
 	FixBackTransferOPCODEFlag                           core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
@@ -1331,6 +1363,12 @@ const (
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
 	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
 	RelayedTransactionsV1V2DisableFlag                  core.EnableEpochFlag = "RelayedTransactionsV1V2DisableFlag"
+	FullShardDataValidationFlag                         core.EnableEpochFlag = "FullShardDataValidationFlag"
+	ConsumedGasInEconomicsFlag                          core.EnableEpochFlag = "ConsumedGasInEconomicsFlag"
+	AttributeExtraGasUsageFlag                          core.EnableEpochFlag = "AttributeExtraGasUsageFlag"
+	FixCorrectSmallIntAndGasLimitsFlag                  core.EnableEpochFlag = "FixCorrectSmallIntAndGasLimitsFlag"
+	OutputRollbackOnDestContextFlag                     core.EnableEpochFlag = "OutputRollbackOnDestContextFlag"
+	KeepReturnDataOnAsyncTransferCallbackFlag           core.EnableEpochFlag = "KeepReturnDataOnAsyncTransferCallbackFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
 

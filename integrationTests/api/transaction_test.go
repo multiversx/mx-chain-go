@@ -3,10 +3,12 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
@@ -18,9 +20,13 @@ func TestTransactionGroup(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	node := integrationTests.NewTestProcessorNodeWithTestWebServer(3, 0, 0)
-
-	testTransactionGasCostWithMissingFields(t, node)
+	for _, shardID := range []uint32{0, core.MetachainShardId} {
+		t.Run(fmt.Sprint(shardID), func(t *testing.T) {
+			node := integrationTests.NewTestProcessorNodeWithTestWebServer(3, shardID, 0)
+			t.Cleanup(node.Close)
+			testTransactionGasCostWithMissingFields(t, node)
+		})
+	}
 }
 
 func testTransactionGasCostWithMissingFields(tb testing.TB, node *integrationTests.TestProcessorNodeWithTestWebServer) {

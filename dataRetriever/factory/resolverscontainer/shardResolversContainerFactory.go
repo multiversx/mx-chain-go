@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
@@ -144,6 +145,11 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 	return srcf.container, nil
 }
 
+// AddShardTrieNodeResolvers returns nil
+func (srcf *shardResolversContainerFactory) AddShardTrieNodeResolvers(_ dataRetriever.ResolversContainer) error {
+	return nil
+}
+
 // ------- Hdr resolver
 
 func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
@@ -175,6 +181,7 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 			Throttler:        srcf.throttler,
 		},
 		Headers:              srcf.dataPools.Headers(),
+		Proofs:               srcf.dataPools.Proofs(),
 		HdrStorage:           hdrStorer,
 		HeadersNoncesStorage: hdrNonceStore,
 		NonceConverter:       srcf.uint64ByteSliceConverter,
@@ -228,6 +235,7 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 			Throttler:        srcf.throttler,
 		},
 		Headers:              srcf.dataPools.Headers(),
+		Proofs:               srcf.dataPools.Proofs(),
 		HdrStorage:           hdrStorer,
 		HeadersNoncesStorage: hdrNonceStore,
 		NonceConverter:       srcf.uint64ByteSliceConverter,

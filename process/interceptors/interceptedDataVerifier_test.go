@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/p2p"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -254,7 +255,7 @@ func TestInterceptedDataVerifier_CheckValidityInterceptedProof(t *testing.T) {
 	verifier := defaultInterceptedDataVerifier(defaultSpan)
 
 	err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
-	require.Equal(t, process.ErrInvalidInterceptedData, err)
+	require.Equal(t, common.ErrAlreadyExistingEquivalentProof, err)
 }
 
 func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {

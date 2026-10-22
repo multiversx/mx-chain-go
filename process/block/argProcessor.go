@@ -102,6 +102,7 @@ type ArgBaseProcessor struct {
 	ManagedPeersHolder                 common.ManagedPeersHolder
 	SentSignaturesTracker              process.SentSignaturesTracker
 	StateAccessesCollector             state.StateAccessesCollector
+	MiniBlockTracker                   process.MiniBlockTracker
 	HeadersForBlock                    HeadersForBlock
 	ExecutionResultsInclusionEstimator process.InclusionEstimator
 	MiniBlocksSelectionSession         MiniBlocksSelectionSession

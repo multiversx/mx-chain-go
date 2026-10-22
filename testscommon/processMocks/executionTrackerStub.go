@@ -16,6 +16,7 @@ type ExecutionTrackerStub struct {
 	SetLastNotarizedResultCalled           func(executionResult data.BaseExecutionResultHandler) error
 	RemoveFromNonceCalled                  func(nonce uint64) error
 	CleanCalled                            func(lastNotarizedResult data.BaseExecutionResultHandler)
+	RewindCalled                           func(lastNotarizedResult data.BaseExecutionResultHandler, chainTipNonce uint64)
 	CleanConfirmedExecutionResultsCalled   func(header data.HeaderHandler) error
 	CleanOnConsensusReachedCalled          func(headerHash []byte, header data.HeaderHandler)
 	PopDismissedResultsCalled              func() []executionTrack.DismissedBatch
@@ -97,6 +98,13 @@ func (e *ExecutionTrackerStub) RemoveFromNonce(nonce uint64) error {
 func (e *ExecutionTrackerStub) Clean(lastNotarizedResult data.BaseExecutionResultHandler) {
 	if e.CleanCalled != nil {
 		e.CleanCalled(lastNotarizedResult)
+	}
+}
+
+// Rewind -
+func (e *ExecutionTrackerStub) Rewind(lastNotarizedResult data.BaseExecutionResultHandler, chainTipNonce uint64) {
+	if e.RewindCalled != nil {
+		e.RewindCalled(lastNotarizedResult, chainTipNonce)
 	}
 }
 

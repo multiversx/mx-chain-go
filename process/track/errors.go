@@ -36,3 +36,6 @@ var ErrNilKeysHandler = errors.New("nil keys handler")
 
 // ErrNilProofsPool signals that a nil proofs pool has been provided
 var ErrNilProofsPool = errors.New("nil proofs pool")
+
+// ErrNilHeadersPool signals that a nil headers pool has been provided
+var ErrNilHeadersPool = errors.New("nil headers pool")

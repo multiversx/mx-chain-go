@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+
+	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks/mempool"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,7 +36,7 @@ func TestNewTransactionsHeapItem(t *testing.T) {
 }
 
 func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
-	host := txcachemocks.NewMempoolHostMock()
+	host := mempool.NewMempoolHostMock()
 
 	a := createTx([]byte("tx-1"), "alice", 42)
 	b := createTx([]byte("tx-2"), "alice", 43)
@@ -157,7 +159,7 @@ func TestTransactionsHeapItem_detectNonceDuplicate(t *testing.T) {
 
 func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
 	t.Run("is correctly guarded", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
 		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
@@ -171,7 +173,7 @@ func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
 	})
 
 	t.Run("is incorrectly guarded", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
+		session := mempool.NewSelectionSessionMock()
 		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
 			return true
 		}

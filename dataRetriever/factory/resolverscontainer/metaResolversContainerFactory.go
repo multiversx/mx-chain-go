@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
@@ -11,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
@@ -229,6 +231,7 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 			Throttler:        mrcf.throttler,
 		},
 		Headers:              mrcf.dataPools.Headers(),
+		Proofs:               mrcf.dataPools.Proofs(),
 		HdrStorage:           hdrStorer,
 		HeadersNoncesStorage: hdrNonceStore,
 		NonceConverter:       mrcf.uint64ByteSliceConverter,
@@ -292,6 +295,7 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 			Throttler:        mrcf.throttler,
 		},
 		Headers:              mrcf.dataPools.Headers(),
+		Proofs:               mrcf.dataPools.Proofs(),
 		HdrStorage:           hdrStorer,
 		HeadersNoncesStorage: hdrNonceStore,
 		NonceConverter:       mrcf.uint64ByteSliceConverter,
