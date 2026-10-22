@@ -277,48 +277,33 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
-	// TODO use different size in apiAccountsDB for DataTriesSizeInMemory
-	apiDataTriesHolder, err := triesHolder.NewDataTriesHolder(scf.config.StateTriesConfig.DataTriesSizeInMemory)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
-	}
-
-	argsAPIAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:                 scf.core.Hasher(),
-		Marshaller:             scf.core.InternalMarshalizer(),
-		EnableEpochsHandler:    scf.core.EnableEpochsHandler(),
-		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
-		DataTriesHolder:        apiDataTriesHolder,
-		DataTrieCreator:        merkleTrie,
-	}
-	accountFactoryAPI, err := factoryState.NewAccountCreator(argsAPIAccCreator)
+	argsFinal, err := scf.createStateViewAccountsDBArgs(merkleTrie, storagePruning,
+		scf.config.StateTriesConfig.DataTriesSizeInMemoryForFinalAPI, "DataTriesSizeInMemoryForFinalAPI")
 	if err != nil {
 		return nil, err
 	}
 
-	argsAPIAccountsDB := state.ArgsAccountsDB{
-		Trie:                   merkleTrie,
-		Hasher:                 scf.core.Hasher(),
-		Marshaller:             scf.core.InternalMarshalizer(),
-		AccountFactory:         accountFactoryAPI,
-		StoragePruningManager:  storagePruning,
-		AddressConverter:       scf.core.AddressPubKeyConverter(),
-		SnapshotsManager:       disabled.NewDisabledSnapshotsManager(),
-		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
-		DataTriesHolder:        apiDataTriesHolder,
-	}
-
-	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsAPIAccountsDB, scf.chainHandler)
+	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsFinal, scf.chainHandler)
 	if err != nil {
 		return nil, fmt.Errorf("accounts adapter API on final: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
-	accountsAdapterApiOnCurrent, err := factoryState.CreateAccountsAdapterAPIOnCurrent(argsAPIAccountsDB, scf.chainHandler)
+	argsCurrent, err := scf.createStateViewAccountsDBArgs(merkleTrie, storagePruning,
+		scf.config.StateTriesConfig.DataTriesSizeInMemoryForCurrentAPI, "DataTriesSizeInMemoryForCurrentAPI")
+	if err != nil {
+		return nil, err
+	}
+	accountsAdapterApiOnCurrent, err := factoryState.CreateAccountsAdapterAPIOnCurrent(argsCurrent, scf.chainHandler)
 	if err != nil {
 		return nil, fmt.Errorf("accounts adapter API on current: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
-	accountsAdapterApiOnHistorical, err := factoryState.CreateAccountsAdapterAPIOnHistorical(argsAPIAccountsDB)
+	argsHistorical, err := scf.createStateViewAccountsDBArgs(merkleTrie, storagePruning,
+		scf.config.StateTriesConfig.DataTriesSizeInMemoryForHistoricalAPI, "DataTriesSizeInMemoryForHistoricalAPI")
+	if err != nil {
+		return nil, err
+	}
+	accountsAdapterApiOnHistorical, err := factoryState.CreateAccountsAdapterAPIOnHistorical(argsHistorical)
 	if err != nil {
 		return nil, fmt.Errorf("accounts adapter API on historical: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
@@ -334,7 +319,12 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, fmt.Errorf("accountsRepository: %w", err)
 	}
 
-	accountsAdapterProposal, err := state.NewAccountsDB(argsAPIAccountsDB)
+	argsProposal, err := scf.createStateViewAccountsDBArgs(merkleTrie, storagePruning,
+		scf.config.StateTriesConfig.DataTriesSizeInMemoryForProposal, "DataTriesSizeInMemoryForProposal")
+	if err != nil {
+		return nil, err
+	}
+	accountsAdapterProposal, err := state.NewAccountsDB(argsProposal)
 	if err != nil {
 		return nil, fmt.Errorf("accounts adapter for proposal: %w: %s", errors.ErrAccountsAdapterCreation, err)
 	}
@@ -347,6 +337,44 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	return response, nil
+}
+
+// createStateViewAccountsDBArgs keeps each adapter and its account factory on the same private cache.
+func (scf *stateComponentsFactory) createStateViewAccountsDBArgs(
+	merkleTrie common.Trie,
+	storagePruning state.StoragePruningManager,
+	maxTriesSize uint64,
+	configField string,
+) (state.ArgsAccountsDB, error) {
+	dataTriesHolder, err := triesHolder.NewDataTriesHolder(maxTriesSize)
+	if err != nil {
+		return state.ArgsAccountsDB{}, fmt.Errorf("%s: %w", configField, err)
+	}
+
+	collector := disabled.NewDisabledStateAccessesCollector()
+	accountFactory, err := factoryState.NewAccountCreator(factoryState.ArgsAccountCreator{
+		Hasher:                 scf.core.Hasher(),
+		Marshaller:             scf.core.InternalMarshalizer(),
+		EnableEpochsHandler:    scf.core.EnableEpochsHandler(),
+		StateAccessesCollector: collector,
+		DataTriesHolder:        dataTriesHolder,
+		DataTrieCreator:        merkleTrie,
+	})
+	if err != nil {
+		return state.ArgsAccountsDB{}, err
+	}
+
+	return state.ArgsAccountsDB{
+		Trie:                   merkleTrie,
+		Hasher:                 scf.core.Hasher(),
+		Marshaller:             scf.core.InternalMarshalizer(),
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  storagePruning,
+		AddressConverter:       scf.core.AddressPubKeyConverter(),
+		SnapshotsManager:       disabled.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: collector,
+		DataTriesHolder:        dataTriesHolder,
+	}, nil
 }
 
 func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {
