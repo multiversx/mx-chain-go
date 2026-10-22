@@ -879,9 +879,10 @@ func (st *storageBootstrapper) restoreBlockBodyIntoPools(headerHash []byte) erro
 }
 
 func (st *storageBootstrapper) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	hashes := make([][]byte, len(headerHandler.GetMiniBlockHeaderHandlers()))
-	for i := 0; i < len(headerHandler.GetMiniBlockHeaderHandlers()); i++ {
-		hashes[i] = headerHandler.GetMiniBlockHeaderHandlers()[i].GetHash()
+	miniBlockHeaderHandlers := headerHandler.GetMiniBlockHeaderHandlers()
+	hashes := make([][]byte, len(miniBlockHeaderHandlers))
+	for i, mbHeader := range miniBlockHeaderHandlers {
+		hashes[i] = mbHeader.GetHash()
 	}
 
 	miniBlocksAndHashes, missingMiniBlocksHashes := st.miniBlocksProvider.GetMiniBlocksFromStorer(hashes)

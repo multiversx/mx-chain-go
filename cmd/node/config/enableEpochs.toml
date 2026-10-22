@@ -351,6 +351,9 @@
     # FixEpochChangeProposedCurrentEpochEnableEpoch represents the epoch when epoch change proposed blocks expose the prepared epoch
     FixEpochChangeProposedCurrentEpochEnableEpoch = 3
 
+    # Keep disabled until a coordinated activation epoch is selected.
+    FixDataTrieLeafValidationEnableEpoch = 1 # TODO can be removed if proven that there is no import-db issue or set to the activation epoch when released
+
     # CheckBuiltInCallOnTransferValueAndFailEnableRound represents the ROUND when the check on transfer value fix is activated
     CheckBuiltInCallOnTransferValueAndFailEnableRound = 1
 
@@ -384,6 +387,15 @@
 
     # AttributeExtraGasUsageEnableEpoch represents the epoch when the extra gas usage for attributes is enabled
     AttributeExtraGasUsageEnableEpoch = 1
+
+    # FixCorrectSmallIntAndGasLimitsEnableEpoch represents the epoch when the fix for signed small int encoding and gas loopholes is enabled
+    FixCorrectSmallIntAndGasLimitsEnableEpoch = 2
+
+    # OutputRollbackOnDestContextEnableEpoch represents the epoch when output state rollback on failed destination context calls is enabled
+    OutputRollbackOnDestContextEnableEpoch = 2
+
+    # KeepReturnDataOnAsyncTransferCallbackEnableEpoch represents the epoch when return data is preserved in async transfer callbacks
+    KeepReturnDataOnAsyncTransferCallbackEnableEpoch = 2
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [

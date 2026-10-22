@@ -164,7 +164,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 
 	}
-	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(lruCacheRequest)
+	roundDuration := time.Duration(args.CoreComponents.GenesisNodesSetup().GetRoundDuration()) * time.Millisecond
+	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(lruCacheRequest, interceptors.WhiteListRequestTTL(roundDuration))
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +175,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 
 	}
-	whiteListVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(lruCacheTx)
+	// the entries only record that a transaction's signatures were already verified, which does not become stale
+	whiteListVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(lruCacheTx, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -184,8 +186,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	requestedItemsHandler := cache.NewTimeCache(
-		time.Duration(uint64(time.Millisecond) * args.CoreComponents.GenesisNodesSetup().GetRoundDuration()))
+	requestedItemsHandler := cache.NewTimeCache(roundDuration)
 
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
 

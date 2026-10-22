@@ -1321,11 +1321,17 @@ func TestEnableEpochConfig(t *testing.T) {
     # AttributeExtraGasUsageEnableEpoch represents the epoch when the extra gas usage for attributes is enabled
     AttributeExtraGasUsageEnableEpoch = 115
 
+    # FixCorrectSmallIntAndGasLimitsEnableEpoch represents the epoch when the fix for signed small int encoding and gas loopholes is enabled
+    FixCorrectSmallIntAndGasLimitsEnableEpoch = 116
+
+    # OutputRollbackOnDestContextEnableEpoch represents the epoch when output state rollback on failed destination context calls is enabled
+    OutputRollbackOnDestContextEnableEpoch = 117
+
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
-    SupernovaEnableEpoch = 116
+    SupernovaEnableEpoch = 118
 
     # FixEpochChangeProposedCurrentEpochEnableEpoch represents the epoch when epoch change proposed blocks expose the prepared epoch
-    FixEpochChangeProposedCurrentEpochEnableEpoch = 117
+    FixEpochChangeProposedCurrentEpochEnableEpoch = 119
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1461,8 +1467,10 @@ func TestEnableEpochConfig(t *testing.T) {
 			RelayedTransactionsV1V2DisableEpoch:                      113,
 			ConsumedGasInEconomicsFixEnableEpoch:                     114,
 			AttributeExtraGasUsageEnableEpoch:                        115,
-			SupernovaEnableEpoch:                                     116,
-			FixEpochChangeProposedCurrentEpochEnableEpoch:            117,
+			FixCorrectSmallIntAndGasLimitsEnableEpoch:                116,
+			OutputRollbackOnDestContextEnableEpoch:                   117,
+			SupernovaEnableEpoch:                                     118,
+			FixEpochChangeProposedCurrentEpochEnableEpoch:            119,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

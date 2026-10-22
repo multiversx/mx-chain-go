@@ -83,6 +83,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 	node.closeHandler.AddComponent(heartbeatComponents)
 
 	nd, err := nodePack.NewNode(
+		nodePack.WithTrieOperations(configs.GeneralConfig.TrieOperations),
 		nodePack.WithStatusCoreComponents(node.StatusCoreComponents),
 		nodePack.WithCoreComponents(node.CoreComponentsHolder),
 		nodePack.WithCryptoComponents(node.CryptoComponentsHolder),
@@ -144,6 +145,7 @@ func (node *testOnlyProcessingNode) createHttpServer(configs config.Configs) err
 		Facade:          node.facadeHandler,
 		ApiConfig:       *configs.ApiRoutesConfig,
 		AntiFloodConfig: configs.GeneralConfig.WebServerAntiflood,
+		TrieOperations:  configs.GeneralConfig.TrieOperations,
 	}
 
 	httpServerWrapper, err := gin.NewGinWebServerHandler(httpServerArgs)

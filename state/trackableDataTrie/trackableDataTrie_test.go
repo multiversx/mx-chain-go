@@ -962,7 +962,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 		marshaller := &marshallerMock.MarshalizerMock{}
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return true
+				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
 		tdt, _ := trackableDataTrie.NewTrackableDataTrie(

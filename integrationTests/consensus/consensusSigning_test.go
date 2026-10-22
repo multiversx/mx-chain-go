@@ -88,14 +88,14 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 
 	nodes, invalidNodesAddresses := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
 
-	defer func() {
+	t.Cleanup(func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
 				_ = n.MainMessenger.Close()
 				_ = n.FullArchiveMessenger.Close()
 			}
 		}
-	}()
+	})
 
 	// delay for bootstrapping and topic announcement
 	fmt.Println("Start consensus...")
@@ -103,7 +103,7 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 
 	for _, nodesList := range nodes {
 		for _, n := range nodesList {
-			err := startFullConsensusNode(n)
+			err := startFullConsensusNode(t, n)
 			require.Nil(t, err)
 		}
 	}

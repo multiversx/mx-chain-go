@@ -424,3 +424,168 @@ func TestVmContext_UpdateCodeDeployerAddress(t *testing.T) {
 		assert.Equal(t, ownerAddress, vmCtx.outputAccounts[scAddress].CodeDeployerAddress)
 	})
 }
+
+func TestVmContext_CopyToNewContext_DeepCopyStorageUpdate(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultEeiArgs()
+	vmCtx, _ := NewVMContext(args)
+	vmCtx.SetSCAddress([]byte("scAddress1"))
+	vmCtx.SetStorage([]byte("key1"), []byte("val1"))
+
+	newCtx := vmCtx.copyToNewContext()
+
+	// Mutate newCtx storage
+	newCtx.SetStorage([]byte("key1"), []byte("mutated_val1"))
+	newCtx.SetStorage([]byte("key2"), []byte("val2"))
+
+	// Verify original vmCtx storage was not mutated
+	assert.Equal(t, []byte("val1"), vmCtx.storageUpdate["scAddress1"]["key1"])
+	_, exists := vmCtx.storageUpdate["scAddress1"]["key2"]
+	assert.False(t, exists)
+}
+
+func TestVmContext_ExecuteOnDestContext_RollbackStorageOnFailure(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultEeiArgs()
+	destAddr := []byte("destinationSC")
+	senderAddr := []byte("senderAddress")
+
+	mockContract := &mock.SystemSCStub{}
+
+	vmCtx, _ := NewVMContext(args)
+	_ = vmCtx.SetSystemSCContainer(&mock.SystemSCContainerStub{
+		GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+			if bytes.Equal(key, destAddr) {
+				return mockContract, nil
+			}
+			return nil, errors.New("contract not found")
+		},
+	})
+
+	vmCtx.SetSCAddress([]byte("parentSC"))
+	vmCtx.SetStorage([]byte("parentKey"), []byte("parentVal"))
+
+	mockContract.ExecuteCalled = func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+		vmCtx.SetStorage([]byte("calleeKey"), []byte("calleeVal"))
+		return vmcommon.UserError
+	}
+
+	vmOutput, err := vmCtx.ExecuteOnDestContext(destAddr, senderAddr, big.NewInt(0), []byte("dummyFunc"))
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.UserError, vmOutput.ReturnCode)
+
+	// Verify that the failed callee's storage write was rolled back
+	_, calleeKeyExists := vmCtx.storageUpdate[string(destAddr)]["calleeKey"]
+	assert.False(t, calleeKeyExists)
+
+	// Verify that parent's storage was preserved
+	assert.Equal(t, []byte("parentVal"), vmCtx.storageUpdate["parentSC"]["parentKey"])
+}
+
+func TestVmContext_GetBalance_NilBalanceSafe(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultEeiArgs()
+	vmCtx, _ := NewVMContext(args)
+
+	addr := []byte("accountWithNilBalance")
+	vmCtx.outputAccounts[string(addr)] = &vmcommon.OutputAccount{
+		Address:      addr,
+		Balance:      nil,
+		BalanceDelta: big.NewInt(100),
+	}
+
+	assert.NotPanics(t, func() {
+		bal := vmCtx.GetBalance(addr)
+		assert.Equal(t, big.NewInt(100), bal)
+	})
+
+	addrNilDelta := []byte("accountWithNilDelta")
+	vmCtx.outputAccounts[string(addrNilDelta)] = &vmcommon.OutputAccount{
+		Address:      addrNilDelta,
+		Balance:      big.NewInt(200),
+		BalanceDelta: nil,
+	}
+
+	assert.NotPanics(t, func() {
+		bal := vmCtx.GetBalance(addrNilDelta)
+		assert.Equal(t, big.NewInt(200), bal)
+	})
+}
+
+func TestVmContext_AddCode_InitializesBalance(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultEeiArgs()
+	vmCtx, _ := NewVMContext(args)
+
+	scAddr := []byte("newSC")
+	vmCtx.AddCode(scAddr, []byte("someCode"))
+
+	acc, exists := vmCtx.outputAccounts[string(scAddr)]
+	assert.True(t, exists)
+	assert.NotNil(t, acc.Balance)
+	assert.Equal(t, big.NewInt(0), acc.Balance)
+	assert.NotPanics(t, func() {
+		bal := vmCtx.GetBalance(scAddr)
+		assert.Equal(t, big.NewInt(0), bal)
+	})
+}
+
+func TestVmContext_AddTxValueToSmartContract_NilBalanceGuards(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultEeiArgs()
+	vmCtx, _ := NewVMContext(args)
+
+	scAddr := []byte("scWithNilDeltas")
+	// Pre-create output account with nil Balance and nil BalanceDelta
+	vmCtx.outputAccounts[string(scAddr)] = &vmcommon.OutputAccount{
+		Address:      scAddr,
+		Balance:      nil,
+		BalanceDelta: nil,
+	}
+
+	assert.NotPanics(t, func() {
+		vmCtx.AddTxValueToSmartContract(big.NewInt(500), scAddr)
+	})
+
+	acc := vmCtx.outputAccounts[string(scAddr)]
+	assert.NotNil(t, acc.Balance)
+	assert.NotNil(t, acc.BalanceDelta)
+	assert.Equal(t, big.NewInt(500), acc.BalanceDelta)
+}
+
+func TestVmContext_AddTxValueToSmartContract_LoadsPersistedBalance(t *testing.T) {
+	t.Parallel()
+
+	scAddr := []byte("scWithPersistedBalance")
+	persistedBalance := big.NewInt(1000)
+
+	account, _ := accounts.NewUserAccount(scAddr, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
+	_ = account.AddToBalance(persistedBalance)
+
+	args := createDefaultEeiArgs()
+	args.BlockChainHook = &mock.BlockChainHookStub{
+		GetUserAccountCalled: func(address []byte) (vmcommon.UserAccountHandler, error) {
+			if bytes.Equal(address, scAddr) {
+				return account, nil
+			}
+			return nil, errors.New("not found")
+		},
+	}
+	vmCtx, _ := NewVMContext(args)
+
+	vmCtx.AddTxValueToSmartContract(big.NewInt(250), scAddr)
+
+	acc := vmCtx.outputAccounts[string(scAddr)]
+	assert.NotNil(t, acc)
+	assert.Equal(t, persistedBalance, acc.Balance)
+	assert.Equal(t, big.NewInt(250), acc.BalanceDelta)
+
+	// GetBalance should compute Balance (1000) + BalanceDelta (250) = 1250
+	totalBalance := vmCtx.GetBalance(scAddr)
+	assert.Equal(t, big.NewInt(1250), totalBalance)
+}

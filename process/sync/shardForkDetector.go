@@ -102,12 +102,25 @@ func NewShardForkDetector(
 	sfd := shardForkDetector{
 		baseForkDetector: bfd,
 	}
+	sfd.bindSettledNonceProvider()
 
 	sfd.blockTracker.RegisterSelfNotarizedFromCrossHeadersHandler(sfd.ReceivedSelfNotarizedFromCrossHeaders)
 
 	bfd.forkDetector = &sfd
 
 	return &sfd, nil
+}
+
+func (sfd *shardForkDetector) bindSettledNonceProvider() {
+	sfd.blockTracker.SetSettledNonceProvider(func() uint64 {
+		nonce, _ := sfd.GetHighestSettledBlockInfo()
+		return nonce
+	})
+}
+
+func (sfd *shardForkDetector) RestoreToGenesis() {
+	sfd.baseForkDetector.RestoreToGenesis()
+	sfd.bindSettledNonceProvider()
 }
 
 // AddHeader method adds a new header to headers map

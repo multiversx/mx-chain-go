@@ -92,6 +92,9 @@ var ErrNilTxHash = errors.New("nil transaction hash")
 // ErrNilPubKeysBitmap signals that an operation has been attempted with a nil public keys bitmap
 var ErrNilPubKeysBitmap = errors.New("nil public keys bitmap")
 
+// ErrInvalidPubKeysBitmap signals that an invalid public keys bitmap was provided
+var ErrInvalidPubKeysBitmap = errors.New("invalid public keys bitmap")
+
 // ErrNilPreviousBlockHash signals that an operation has been attempted with a nil previous block header hash
 var ErrNilPreviousBlockHash = errors.New("nil previous block header hash")
 

@@ -958,6 +958,15 @@
     Enabled = false
     MaxSizeInBytes = 10485760 #10MB
 
+[TrieOperations]
+    # Non-paginated API collection budgets, zero values use these defaults
+    # MaxBytes is accounting for collected data
+    MaxBytes = 10485760
+    MaxLeaves = 10000
+    MaxConcurrentRequests = 2
+    HTTPTimeoutMilliseconds = 5000
+    MaxRequestBodyBytes = 2097152
+
 [StateAccessesCollectorConfig]
     TypesToCollect = []          # These can be "READ","WRITE".
     SaveToStorage = false
