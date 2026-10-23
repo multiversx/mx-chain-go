@@ -17,6 +17,8 @@ func TestDisabledBlockProcessingCutoff_FunctionsShouldNotPanic(t *testing.T) {
 	d := NewDisabledBlockProcessingCutoff()
 
 	d.HandlePauseCutoff(&block.MetaBlock{Nonce: 37})
+	d.HandleGracefulStopCutoff(&block.MetaBlock{Nonce: 37}, func() {})
+	d.Close()
 	err := d.HandleProcessErrorCutoff(&block.MetaBlock{Round: 37})
 	require.NoError(t, err)
 	require.False(t, d.IsInterfaceNil())
