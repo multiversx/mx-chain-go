@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // GetDefaultProcessConfigsHandler -
@@ -210,4 +211,9 @@ func GetProcessConfigsHandlerWithExtraDelayForRequestBlockInfo(delay time.Durati
 			return delay
 		},
 	}
+}
+
+// SetActivationRound -
+func (p *ProcessConfigsHandlerStub) SetActivationRound(round uint64, log logger.Logger) {
+
 }
