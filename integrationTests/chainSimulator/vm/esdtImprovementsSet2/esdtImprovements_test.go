@@ -1252,13 +1252,15 @@ func TestChainSimulator_dynamicNFT_mergeMetaDataFromMultipleUpdates(t *testing.T
 }
 
 func TestChainSimulator_dynamicNFT_changeMetaDataForOneNFTShouldNotChangeOtherNonces(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
+	// Reused Supernova smoke scenario: metadata updates must remain nonce-local.
 
 	baseIssuingCost := "1000"
-	cs, _ := vm2.GetTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
+	cs, _ := vm2.GetTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost, func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 2
+		cfg.RoundConfig.RoundActivations["SupernovaEnableRound"] = config.ActivationRoundByName{Round: "90"}
+	})
 	defer cs.Close()
+	testsChainSimulator.RequireSupernova(t, cs, 3, 200)
 
 	addrs := vm2.CreateAddresses(t, cs, true)
 

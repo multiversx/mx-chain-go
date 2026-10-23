@@ -1,5 +1,5 @@
 CURRENT_DIRECTORY := $(shell pwd)
-TESTS_TO_RUN := $(shell go list ./... | grep -v /integrationTests/ | grep -v /testscommon/ | grep -v mock | grep -v disabled | grep -v defaults)
+TESTS_TO_RUN = $(shell go list ./... | grep -v /integrationTests/ | grep -v /testscommon/ | grep -v mock | grep -v disabled | grep -v defaults)
 
 build:
 	go build ./...
@@ -31,6 +31,11 @@ test-short-v:
 
 test-race:
 	go test -short -race -v ./...
+
+.PHONY: test-debit-authorization
+test-debit-authorization:
+	go test -count=1 ./testscommon/debitauthorization
+	go test -count=1 -short=false -timeout=5m ./integrationTests/vm/txsFee -run '^TestSignedDebit'
 
 test-memp2p-v:
 	go test -v -count=1 ./p2p/memp2p
