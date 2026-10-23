@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/disabled"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // persisterFactory is the factory which will handle creating new databases
@@ -33,13 +34,31 @@ func (pf *persisterFactory) CreateWithRetries(path string) (storage.Persister, e
 	for i := 0; i < storage.MaxRetriesToCreateDB; i++ {
 		persister, err = pf.Create(path)
 		if err == nil {
+			if i > 0 {
+				log.Debug("Create Persister succeeded after retrying", "path", path, "attempts", i+1)
+			}
+
 			return persister, nil
 		}
-		log.Warn("Create Persister failed", "path", path, "error", err)
+
+		logLevel := logger.LogDebug
+		if i == 0 {
+			logLevel = logger.LogWarning
+		}
+		log.Log(logLevel, "Create Persister failed, will retry",
+			"path", path,
+			"attempt", i+1,
+			"maxAttempts", storage.MaxRetriesToCreateDB,
+			"error", err)
 
 		// TODO: extract this in a parameter and inject it
 		time.Sleep(storage.SleepTimeBetweenCreateDBRetries)
 	}
+
+	log.Warn("Create Persister failed on all attempts",
+		"path", path,
+		"maxAttempts", storage.MaxRetriesToCreateDB,
+		"error", err)
 
 	return nil, err
 }

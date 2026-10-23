@@ -113,7 +113,7 @@ func (st *selectionTracker) OnProposedBlock(
 
 	tBlock := newTrackedBlock(nonce, blockHash, prevHash)
 
-	log.Debug("selectionTracker.OnProposedBlock",
+	log.Trace("selectionTracker.OnProposedBlock",
 		"nonce", nonce,
 		"blockHash", blockHash,
 		"prevHash", prevHash,
@@ -409,7 +409,7 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler, root
 	nonce := blockHeader.GetNonce()
 	prevHash := blockHeader.GetPrevHash()
 
-	log.Debug("selectionTracker.OnExecutedBlock",
+	log.Trace("selectionTracker.OnExecutedBlock",
 		"nonce", nonce,
 		"rootHash", rootHash,
 		"prevHash", prevHash,
@@ -471,7 +471,7 @@ func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) e
 }
 
 func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, receivedRootHash []byte) {
-	log.Debug("selectionTracker.updateLatestRootHashNoLock",
+	log.Trace("selectionTracker.updateLatestRootHashNoLock",
 		"latest root hash", st.latestRootHash,
 		"received root hash", receivedRootHash,
 		"latest nonce", st.latestNonce,
@@ -586,7 +586,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		return nil, errRootHashMismatch
 	}
 
-	log.Debug("selectionTracker.deriveVirtualSelectionSession",
+	log.Trace("selectionTracker.deriveVirtualSelectionSession",
 		"rootHash", rootHash,
 		"nonce", nonce,
 	)
@@ -782,7 +782,7 @@ func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger,
 		return
 	}
 
-	log.Debug("selectionTracker.deriveVirtualSelectionSession",
+	log.Trace("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(st.blocks))
 
 	if len(st.blocks) > 0 {
