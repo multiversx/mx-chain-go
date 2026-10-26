@@ -260,3 +260,92 @@ func TestAccountsDBApiWithHistory_ConcurrentArchivedReads(t *testing.T) {
 		require.NoError(t, err)
 	}
 }
+
+func TestAccountsDBApiWithHistory_ParallelHistoricalVersions(t *testing.T) {
+	for _, epochs := range [][2]uint32{{7, 12}, {12, 7}} {
+		t.Run(fmt.Sprintf("%d-then-%d", epochs[0], epochs[1]), func(t *testing.T) {
+			f := newArchivedAccountsFixture(t, core.AutoBalanceEnabled)
+			type result struct {
+				value []byte
+				err   error
+			}
+			firstReady, secondComplete := make(chan struct{}), make(chan struct{})
+			firstResult, secondResult := make(chan result, 1), make(chan result, 1)
+			go func() {
+				account, _, err := f.history.GetAccountWithBlockInfo(f.addresses[0], holders.NewRootHashHolder(f.roots[epochs[0]], core.OptionalUint32{Value: epochs[0], HasValue: true}))
+				close(firstReady)
+				<-secondComplete
+				if err != nil {
+					firstResult <- result{err: err}
+					return
+				}
+				value, _, err := account.(state.UserAccountHandler).RetrieveValue([]byte("key-0"))
+				firstResult <- result{value: value, err: err}
+			}()
+			go func() {
+				<-firstReady
+				defer close(secondComplete)
+				account, _, err := f.history.GetAccountWithBlockInfo(f.addresses[0], holders.NewRootHashHolder(f.roots[epochs[1]], core.OptionalUint32{Value: epochs[1], HasValue: true}))
+				if err != nil {
+					secondResult <- result{err: err}
+					return
+				}
+				value, _, err := account.(state.UserAccountHandler).RetrieveValue([]byte("key-0"))
+				secondResult <- result{value: value, err: err}
+			}()
+			first, second := <-firstResult, <-secondResult
+			require.NoError(t, first.err)
+			require.NoError(t, second.err)
+			require.Equal(t, archivedValue(epochs[0], f.addresses[0], 0), first.value)
+			require.Equal(t, archivedValue(epochs[1], f.addresses[0], 0), second.value)
+		})
+	}
+}
+
+func TestAccountsDBApiWithHistory_ConcurrentMixedArchivedReads(t *testing.T) {
+	f := newArchivedAccountsFixture(t, core.AutoBalanceEnabled)
+	start := make(chan struct{})
+	failures := make(chan error, 4)
+	var workers sync.WaitGroup
+	for worker := 0; worker < 4; worker++ {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			<-start
+			address := f.addresses[worker%len(f.addresses)]
+			for iteration := 0; iteration < 32; iteration++ {
+				epoch := uint32(7)
+				if (worker+iteration)%2 == 1 {
+					epoch = 12
+				}
+				options := holders.NewRootHashHolder(f.roots[epoch], core.OptionalUint32{Value: epoch, HasValue: true})
+				account, info, err := f.history.GetAccountWithBlockInfo(address, options)
+				if err != nil {
+					failures <- err
+					return
+				}
+				if !bytes.Equal(info.GetRootHash(), f.roots[epoch]) {
+					failures <- fmt.Errorf("unexpected historical root %x", info.GetRootHash())
+					return
+				}
+				for key := 0; key < 16; key++ {
+					value, _, readErr := account.(state.UserAccountHandler).RetrieveValue([]byte(fmt.Sprintf("key-%d", key)))
+					if readErr != nil {
+						failures <- readErr
+						return
+					}
+					if !bytes.Equal(value, archivedValue(epoch, address, key)) {
+						failures <- fmt.Errorf("unexpected storage value %q", value)
+						return
+					}
+				}
+			}
+		}()
+	}
+	close(start)
+	workers.Wait()
+	close(failures)
+	for err := range failures {
+		require.NoError(t, err)
+	}
+}
