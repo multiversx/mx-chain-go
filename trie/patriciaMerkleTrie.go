@@ -109,7 +109,12 @@ func (tr *patriciaMerkleTrie) GetWithVersion(key []byte) (value []byte, depth ui
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
 	value, version, err = tr.root.tryGetWithVersion(hexKey, tmc, tr.trieStorage)
-	tr.collapseManager.MarkKeyAsAccessed(hexKey, tmc.GetSizeLoadedInMem())
+	if err == nil && len(value) > 0 {
+		tr.collapseManager.MarkKeyAsAccessed(hexKey, tmc.GetSizeLoadedInMem())
+	} else {
+		// Misses and failed reads can decode nodes, but identify no leaf to collapse.
+		tr.collapseManager.AddSizeInMemory(tmc.GetSizeLoadedInMem())
+	}
 	if err != nil {
 		err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
 		return nil, tmc.GetMaxDepth(), 0, err
