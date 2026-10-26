@@ -920,6 +920,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 			return nil, err
 		}
 	}
+	adb.dataTries.MarkAllAsCommitted()
 
 	oldRoot := adb.mainTrie.GetOldRoot()
 

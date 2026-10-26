@@ -242,6 +242,7 @@ func TestCreateStateViewAccountsDBArgs_IndependentCacheBudgets(t *testing.T) {
 		fullTrie := &trieMock.TrieStub{SizeInMemoryCalled: func() int { return size }}
 		holder.Put([]byte("account"), fullTrie)
 		require.Equal(t, []common.Trie{fullTrie}, holder.GetAll())
+		holder.MarkAllAsCommitted()
 		require.Same(t, fullTrie, holder.Get([]byte("account")), "an entry at the exact budget must fit")
 		holder.Put([]byte("other account"), &trieMock.TrieStub{SizeInMemoryCalled: func() int { return 1 }})
 		require.Nil(t, holder.Get([]byte("account")), "one extra byte must evict the clean entry")
