@@ -289,6 +289,11 @@ func (tdt *trackableDataTrie) SetRootHash(rootHash []byte) {
 	tdt.rootHash = rootHash
 }
 
+// SetDataTrieCreator binds the storage context before the first data-trie access.
+func (tdt *trackableDataTrie) SetDataTrieCreator(creator common.DataTrieCreator) {
+	tdt.dataTrieCreator = creator
+}
+
 // DataTrie sets the internal data trie
 func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
 	err := tdt.loadTrie()

@@ -15,6 +15,7 @@ import (
 type accountsDBApiWithHistory struct {
 	innerAccountsAdapter    AccountsAdapter
 	latestRecreatedRootHash []byte
+	dataTrieCreator         common.DataTrieCreator
 	mutRecreateAndGet       sync.RWMutex
 }
 
@@ -194,6 +195,10 @@ func (accountsDB *accountsDBApiWithHistory) doGetAccountWithBlockInfoUnprotected
 		return nil, nil, err
 	}
 
+	if userAccount, ok := account.(UserAccountHandler); ok {
+		userAccount.SetDataTrieCreator(accountsDB.dataTrieCreator)
+	}
+
 	return account, blockInfo, nil
 }
 
@@ -237,11 +242,26 @@ func (accountsDB *accountsDBApiWithHistory) shouldRecreateTrieUnprotected(rootHa
 }
 
 func (accountsDB *accountsDBApiWithHistory) recreateTrieUnprotected(options common.RootHashHolder) error {
+	// Do not reuse a previous selection if recreation or context preparation fails.
+	accountsDB.latestRecreatedRootHash = nil
+	accountsDB.dataTrieCreator = nil
+
 	err := accountsDB.innerAccountsAdapter.RecreateTrie(options)
 	if err != nil {
 		return err
 	}
 
+	// An empty trie preserves the selected storage context without retaining the
+	// expanded main trie or loading any data-trie nodes.
+	creator, err := accountsDB.innerAccountsAdapter.GetTrie(nil)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(creator) {
+		return ErrNilTrie
+	}
+
+	accountsDB.dataTrieCreator = creator
 	accountsDB.latestRecreatedRootHash = options.GetRootHash()
 	return nil
 }

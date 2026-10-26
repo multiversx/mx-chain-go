@@ -17,14 +17,15 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
-	Nonce            uint64
-	Balance          *big.Int
-	DeveloperRewards *big.Int
-	UserName         []byte
-	Owner            []byte
-	Address          []byte
-	CodeMetadata     []byte
-	CodeHash         []byte
+	SetDataTrieCreatorCalled func(creator common.DataTrieCreator)
+	Nonce                    uint64
+	Balance                  *big.Int
+	DeveloperRewards         *big.Int
+	UserName                 []byte
+	Owner                    []byte
+	Address                  []byte
+	CodeMetadata             []byte
+	CodeHash                 []byte
 
 	AddToBalanceCalled       func(value *big.Int) error
 	DataTrieTrackerCalled    func() state.DataTrieTracker
@@ -216,4 +217,11 @@ func (u *UserAccountStub) AccountDataHandler() vmcommon.AccountDataHandler {
 // GetAllLeaves -
 func (u *UserAccountStub) GetAllLeaves(_ *common.TrieIteratorChannels, _ context.Context) error {
 	return nil
+}
+
+// SetDataTrieCreator -
+func (u *UserAccountStub) SetDataTrieCreator(creator common.DataTrieCreator) {
+	if u.SetDataTrieCreatorCalled != nil {
+		u.SetDataTrieCreatorCalled(creator)
+	}
 }

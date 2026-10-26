@@ -1822,3 +1822,28 @@ func TestTrackableDataTrie_loadTrie(t *testing.T) {
 		assert.Equal(t, recreatedTrie, tdt.GetDataTrie())
 	})
 }
+
+func TestTrackableDataTrie_SetDataTrieCreatorPreservesLazyLoading(t *testing.T) {
+	t.Parallel()
+	args := getDefaultArgs()
+	args.DataTrieCreator = &trieMock.TrieStub{RecreateCalled: func(common.RootHashHolder) (common.Trie, error) {
+		t.Fatal("must not recreate with the construction-time creator")
+		return nil, nil
+	}}
+	tracker, err := trackableDataTrie.NewTrackableDataTrie(args)
+	require.NoError(t, err)
+	root := []byte("data root")
+	tracker.SetRootHash(root)
+	expectedErr := errors.New("selected storage error")
+	calls := 0
+	tracker.SetDataTrieCreator(&trieMock.TrieStub{RecreateCalled: func(options common.RootHashHolder) (common.Trie, error) {
+		calls++
+		require.Equal(t, root, options.GetRootHash())
+		require.False(t, options.GetEpoch().HasValue, "the captured creator already owns the selected context")
+		return nil, expectedErr
+	}})
+	require.Zero(t, calls)
+	_, _, err = tracker.RetrieveValue([]byte("key"))
+	require.ErrorIs(t, err, expectedErr)
+	require.Equal(t, 1, calls)
+}

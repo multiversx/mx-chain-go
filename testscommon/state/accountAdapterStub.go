@@ -9,6 +9,7 @@ import (
 
 // StateUserAccountHandlerStub -
 type StateUserAccountHandlerStub struct {
+	SetDataTrieCreatorCalled    func(creator common.DataTrieCreator)
 	AddressBytesCalled          func() []byte
 	IncreaseNonceCalled         func(nonce uint64)
 	GetNonceCalled              func() uint64
@@ -242,4 +243,11 @@ func (aas *StateUserAccountHandlerStub) GetAllLeaves(leavesChannels *common.Trie
 // IsInterfaceNil -
 func (aas *StateUserAccountHandlerStub) IsInterfaceNil() bool {
 	return aas == nil
+}
+
+// SetDataTrieCreator -
+func (aas *StateUserAccountHandlerStub) SetDataTrieCreator(creator common.DataTrieCreator) {
+	if aas.SetDataTrieCreatorCalled != nil {
+		aas.SetDataTrieCreatorCalled(creator)
+	}
 }
