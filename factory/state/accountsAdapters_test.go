@@ -235,7 +235,7 @@ func TestCreateStateViewAccountsDBArgs_IndependentCacheBudgets(t *testing.T) {
 	var holders []common.TriesHolder
 	for i := 1; i <= 4; i++ {
 		size := i << 20
-		args, err := scf.createStateViewAccountsDBArgs(mainTrie, &stateMock.StoragePruningManagerStub{}, uint64(size), "cache size")
+		args, err := scf.createStateViewAccountsDBArgs(mainTrie, &stateMock.StoragePruningManagerStub{}, uint64(size), "cache size", false)
 		require.NoError(t, err)
 		holder := args.DataTriesHolder
 		// Use the same address in every cache, with independently sized entries.

@@ -278,7 +278,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	argsFinal, err := scf.createStateViewAccountsDBArgs(merkleTrie, storagePruning,
-		scf.config.StateTriesConfig.DataTriesSizeInMemoryForFinalAPI, "DataTriesSizeInMemoryForFinalAPI")
+		scf.config.StateTriesConfig.DataTriesSizeInMemoryForFinalAPI, "DataTriesSizeInMemoryForFinalAPI", true)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +289,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	argsCurrent, err := scf.createStateViewAccountsDBArgs(merkleTrie, storagePruning,
-		scf.config.StateTriesConfig.DataTriesSizeInMemoryForCurrentAPI, "DataTriesSizeInMemoryForCurrentAPI")
+		scf.config.StateTriesConfig.DataTriesSizeInMemoryForCurrentAPI, "DataTriesSizeInMemoryForCurrentAPI", true)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +299,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	argsHistorical, err := scf.createStateViewAccountsDBArgs(merkleTrie, storagePruning,
-		scf.config.StateTriesConfig.DataTriesSizeInMemoryForHistoricalAPI, "DataTriesSizeInMemoryForHistoricalAPI")
+		scf.config.StateTriesConfig.DataTriesSizeInMemoryForHistoricalAPI, "DataTriesSizeInMemoryForHistoricalAPI", true)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +320,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	argsProposal, err := scf.createStateViewAccountsDBArgs(merkleTrie, storagePruning,
-		scf.config.StateTriesConfig.DataTriesSizeInMemoryForProposal, "DataTriesSizeInMemoryForProposal")
+		scf.config.StateTriesConfig.DataTriesSizeInMemoryForProposal, "DataTriesSizeInMemoryForProposal", false)
 	if err != nil {
 		return nil, err
 	}
@@ -345,8 +345,15 @@ func (scf *stateComponentsFactory) createStateViewAccountsDBArgs(
 	storagePruning state.StoragePruningManager,
 	maxTriesSize uint64,
 	configField string,
+	readOnly bool,
 ) (state.ArgsAccountsDB, error) {
-	dataTriesHolder, err := triesHolder.NewDataTriesHolder(maxTriesSize)
+	var dataTriesHolder common.TriesHolder
+	var err error
+	if readOnly {
+		dataTriesHolder, err = triesHolder.NewReadOnlyDataTriesHolder(maxTriesSize)
+	} else {
+		dataTriesHolder, err = triesHolder.NewDataTriesHolder(maxTriesSize)
+	}
 	if err != nil {
 		return state.ArgsAccountsDB{}, fmt.Errorf("%s: %w", configField, err)
 	}
