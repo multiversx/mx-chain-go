@@ -371,6 +371,15 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		return nil, err
 	}
 
+	if scf.processingMode == common.ImportDb && scf.config.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval > 0 {
+		store, errStore := scf.storageService.GetStorer(dataRetriever.PeerAccountsUnit)
+		if errStore != nil {
+			return nil, errStore
+		}
+		if err = peerAdapter.EnableImportDBPeerSnapshots(store, scf.config.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval); err != nil {
+			return nil, err
+		}
+	}
 	return peerAdapter, nil
 }
 

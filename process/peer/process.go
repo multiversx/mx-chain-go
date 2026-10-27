@@ -473,6 +473,10 @@ func computeEpoch(header data.HeaderHandler) uint32 {
 
 // DisplayRatings will print the ratings
 func (vs *validatorStatistics) DisplayRatings(epoch uint32) {
+	if log.GetLevel() != logger.LogTrace {
+		return
+	}
+
 	validatorPKs, err := vs.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(epoch)
 	if err != nil {
 		log.Warn("could not get ValidatorPublicKeys", "epoch", epoch)

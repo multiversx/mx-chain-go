@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/clean"
 	"github.com/multiversx/mx-chain-go/storage/databaseremover/disabled"
@@ -130,6 +131,14 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	}
 	if check.IfNil(args.StateStatsHandler) {
 		return statistics.ErrNilStateStatsHandler
+	}
+
+	if args.StorageType == ProcessStorageService && args.Config.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval > 0 {
+		if args.NodeProcessingMode != common.ImportDb || args.ShardCoordinator.SelfId() != core.MetachainShardId ||
+			args.Config.PeerAccountsTrieStorage.DB.Type != string(storageunit.MemoryDB) ||
+			!args.Config.StateTriesConfig.SnapshotsEnabled || args.Config.StateTriesConfig.PeerStatePruningEnabled || args.PrefsConfig.FullArchive {
+			return fmt.Errorf("%w: peer memory snapshots require metachain import-db, MemoryDB, snapshots, disabled peer pruning and disabled full archive", storage.ErrInvalidConfig)
+		}
 	}
 
 	return nil
@@ -417,7 +426,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 
-	peerAccountsUnit, err := psf.createTrieStorer(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
+	peerAccountsUnit, err := psf.createPeerTrieStorer(customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
@@ -460,6 +469,33 @@ func (psf *StorageServiceFactory) createTrieStorer(
 	}
 
 	return psf.createTrieUnit(storageConfig, accountsUnitArgs)
+}
+
+func (psf *StorageServiceFactory) createPeerTrieStorer(remover storage.CustomDatabaseRemoverHandler) (storage.Storer, error) {
+	if psf.storageType != ProcessStorageService || psf.nodeProcessingMode != common.ImportDb ||
+		psf.generalConfig.StateTriesConfig.ImportDBPeerSnapshotRoundsInterval == 0 {
+		return psf.createTrieStorer(psf.generalConfig.PeerAccountsTrieStorage, remover)
+	}
+	// Persisted per-DB configs retain the original disk format and sharding.
+	// New/empty paths use the normal disk default, independently of MemoryDB.
+	diskConfig := psf.generalConfig.PeerAccountsTrieStorage
+	diskConfig.DB.Type = defaultType
+	args, err := psf.createPruningStorerArgs(diskConfig, remover)
+	if err != nil {
+		return nil, err
+	}
+	// This temporary source must never follow replay's epoch notifications.
+	args.Notifier = notifier.NewManualEpochStartNotifier()
+	// Keep the bounded import-db tracker from createPruningStorerArgs.
+	// Sliced checkpoints may lack the markers needed to stop a trie tracker.
+	log.Debug("import-db peer opening startup disk source", "path", args.DbPath, "epoch", psf.currentEpoch)
+	disk, err := psf.createTriePruningPersister(args)
+	if err != nil {
+		log.Debug("import-db peer opening startup disk source failed", "path", args.DbPath, "epoch", psf.currentEpoch, "error", err)
+		return nil, err
+	}
+	log.Debug("import-db peer startup disk source opened", "path", args.DbPath, "epoch", psf.currentEpoch)
+	return pruning.NewImportDBPeerPruningStorer(psf.currentEpoch, disk), nil
 }
 
 func (psf *StorageServiceFactory) createTrieUnit(

@@ -712,7 +712,7 @@ func (bp *baseProcessor) UpdateState(
 
 // UpdateState -
 func (mp *metaProcessor) UpdateState(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
-	mp.updateState(metaBlock, metaBlockHash)
+	mp.updateState(metaBlock, metaBlockHash, metaBlock, metaBlockHash)
 }
 
 // SignalNewlyFinalBlocks -

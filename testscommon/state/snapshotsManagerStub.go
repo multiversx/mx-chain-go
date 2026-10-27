@@ -7,6 +7,7 @@ import (
 
 // SnapshotsManagerStub -
 type SnapshotsManagerStub struct {
+	SnapshotPeerStateCalled                 func([]byte, uint32, common.StorageManager, func()) bool
 	SnapshotStateCalled                     func(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager)
 	StartSnapshotAfterRestartIfNeededCalled func(trieStorageManager common.StorageManager) error
 	IsSnapshotInProgressCalled              func() bool
@@ -47,4 +48,12 @@ func (s *SnapshotsManagerStub) SetSyncer(syncer state.AccountsDBSyncer) error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (s *SnapshotsManagerStub) IsInterfaceNil() bool {
 	return s == nil
+}
+
+// SnapshotPeerState waits for a peer snapshot and reports successful completion.
+func (s *SnapshotsManagerStub) SnapshotPeerState(root []byte, epoch uint32, manager common.StorageManager, start func()) bool {
+	if s.SnapshotPeerStateCalled != nil {
+		return s.SnapshotPeerStateCalled(root, epoch, manager, start)
+	}
+	return false
 }
