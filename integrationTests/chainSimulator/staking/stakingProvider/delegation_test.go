@@ -1436,8 +1436,13 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 }
 
 func TestChainSimulator_MaxDelegationCap(t *testing.T) {
+	// Reuse the existing scenario under the active protocol in normal short runs.
+	t.Run("Supernova", func(t *testing.T) {
+		cs := newSupernovaProviderSimulator(t)
+		testChainSimulatorMaxDelegationCap(t, cs, 4, true)
+	})
 	if testing.Short() {
-		t.Skip("this is not a short test")
+		return
 	}
 
 	// Test scenario done in staking 3.5 phase (staking v4 is not active)
@@ -1616,7 +1621,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 
 }
 
-func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, targetEpoch int32) {
+func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, targetEpoch int32, qualify ...bool) {
 	err := cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
 	require.Nil(t, err)
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
@@ -1772,7 +1777,7 @@ func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrati
 	delegatorCTx1, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx1DelegatorC, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, delegatorCTx1)
-	require.Equal(t, delegatorBTx2.SmartContractResults[0].ReturnMessage, "total delegation cap reached")
+	require.Equal(t, delegatorCTx1.SmartContractResults[0].ReturnMessage, "total delegation cap reached")
 
 	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddress, "getTotalActiveStake", nil)
 	require.Nil(t, err)
@@ -1783,6 +1788,25 @@ func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrati
 	require.Nil(t, err)
 	require.Zero(t, len(output.ReturnData))
 	require.Equal(t, "view function works only for existing delegators", output.ReturnMessage)
+	if len(qualify) > 0 {
+		require.NoError(t, cs.GenerateBlocks(8))
+		feeTotal := new(big.Int)
+		for _, result := range []*transaction.ApiTransactionResult{delegatorBTx1, delegatorBTx2, delegatorBTx3} {
+			fee, ok := new(big.Int).SetString(result.Fee, 10)
+			require.True(t, ok)
+			feeTotal.Add(feeTotal, fee)
+		}
+		accountB, err := cs.GetAccount(delegatorB)
+		require.NoError(t, err)
+		accepted := new(big.Int).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(500))
+		require.Equal(t, new(big.Int).Sub(new(big.Int).Sub(new(big.Int).Set(initialFunds), accepted), feeTotal).String(), accountB.Balance, "rejected deposits must be refunded in full")
+		accountC, err := cs.GetAccount(delegatorC)
+		require.NoError(t, err)
+		feeC, ok := new(big.Int).SetString(delegatorCTx1.Fee, 10)
+		require.True(t, ok)
+		require.Equal(t, new(big.Int).Sub(new(big.Int).Set(initialFunds), feeC).String(), accountC.Balance)
+	}
+
 }
 
 func executeQuery(cs chainSimulatorIntegrationTests.ChainSimulator, shardID uint32, scAddress []byte, funcName string, args [][]byte) (*dataVm.VMOutputApi, error) {
@@ -1857,8 +1881,13 @@ func getBLSTopUpValue(t *testing.T, metachainNode chainSimulatorProcess.NodeHand
 //
 // Internal test scenario #12
 func TestChainSimulator_MergeDelegation(t *testing.T) {
+	// Reuse the existing scenario under the active protocol in normal short runs.
+	t.Run("Supernova", func(t *testing.T) {
+		cs := newSupernovaProviderSimulator(t)
+		testChainSimulatorMergingDelegation(t, cs, 4, true)
+	})
 	if testing.Short() {
-		t.Skip("this is not a short test")
+		return
 	}
 
 	// Test steps:
@@ -2004,7 +2033,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 	})
 }
 
-func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, targetEpoch int32) {
+func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, targetEpoch int32, qualify ...bool) {
 	err := cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
 	require.Nil(t, err)
 
@@ -2079,6 +2108,12 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
 	require.Equal(t, validatorB.Bytes, getBLSKeyOwner(t, metachainNode, decodedBLSKey1))
 
+	validatorBNonce := uint64(1)
+	if len(qualify) > 0 {
+		checkUnauthorizedMerge(t, cs, validatorB, delegationAddress, decodedBLSKey1)
+		validatorBNonce++
+	}
+
 	log.Info("Step 4. User A : whitelistForMerge@addressB")
 	txDataField = fmt.Sprintf("whitelistForMerge@%s", hex.EncodeToString(validatorB.Bytes))
 	whitelistForMerge := chainSimulatorIntegrationTests.GenerateTransaction(validatorA.Bytes, 2, delegationAddress, chainSimulatorIntegrationTests.ZeroValue, txDataField, gasLimitForDelegate)
@@ -2092,7 +2127,7 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	log.Info("Step 5. User A : mergeValidatorToDelegationWithWhitelist")
 	txDataField = fmt.Sprintf("mergeValidatorToDelegationWithWhitelist@%s", hex.EncodeToString(delegationAddress))
 
-	txConvert = chainSimulatorIntegrationTests.GenerateTransaction(validatorB.Bytes, 1, vm.DelegationManagerSCAddress, chainSimulatorIntegrationTests.ZeroValue, txDataField, gasLimitForMergeOperation)
+	txConvert = chainSimulatorIntegrationTests.GenerateTransaction(validatorB.Bytes, validatorBNonce, vm.DelegationManagerSCAddress, chainSimulatorIntegrationTests.ZeroValue, txDataField, gasLimitForMergeOperation)
 	convertTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txConvert, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, convertTx)
@@ -2108,6 +2143,9 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 
 	expectedTopUpValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(200))
 	require.Equal(t, expectedTopUpValue, getBLSTopUpValue(t, metachainNode, delegationAddress))
+	if len(qualify) > 0 {
+		checkMergedFunds(t, cs, validatorA, validatorB, delegationAddress, validatorBNonce+1)
+	}
 }
 
 func getBLSKeyOwner(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte) []byte {
@@ -2125,27 +2163,28 @@ func getBLSKeyOwner(t *testing.T, metachainNode chainSimulatorProcess.NodeHandle
 	return result.ReturnData[0]
 }
 
+// Included in the bounded Supernova smoke inventory, including short/race runs.
 func TestChainSimulator_CreateDelegationContractAndWithdraw(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 
 	// Staking V4 activated
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:     true,
-		BypassCreateBlockTimeCheck: true,
-		TempDir:                    t.TempDir(),
-		PathToInitialConfig:        defaultPathToInitialConfig,
-		NumOfShards:                3,
-		GenesisTimestamp:           time.Now().Unix(),
-		RoundDurationInMillis:      roundDurationInMillis,
-		RoundsPerEpoch:             roundsPerEpoch,
-		ApiInterface:               api.NewNoApiInterface(),
-		MinNodesPerShard:           3,
-		MetaChainMinNodes:          3,
-		NumNodesWaitingListMeta:    3,
-		NumNodesWaitingListShard:   3,
+		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    3,
+		GenesisTimestamp:               time.Now().Unix(),
+		RoundDurationInMillis:          roundDurationInMillis,
+		RoundsPerEpoch:                 roundsPerEpoch,
+		SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		NumNodesWaitingListMeta:        3,
+		NumNodesWaitingListShard:       3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.RoundConfig.RoundActivations["SupernovaEnableRound"] = config.ActivationRoundByName{Round: "160"}
 			cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -2160,6 +2199,7 @@ func TestChainSimulator_CreateDelegationContractAndWithdraw(t *testing.T) {
 
 	defer cs.Close()
 
+	chainSimulatorIntegrationTests.RequireSupernova(t, cs, 3, 250)
 	testChainSimulatorCreateNewDelegationContractAndUnStakeUnBond(t, cs, 4)
 }
 
